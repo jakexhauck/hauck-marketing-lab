@@ -1,0 +1,280 @@
+# Benchmarks Brasil - Meta Ads
+# Referência para análise de performance no mercado brasileiro
+# Atualizado: 2026-01
+
+meta_ads:
+  # Métricas gerais por objetivo
+  por_objetivo:
+    conversoes:
+      ctr:
+        ruim: "< 0.5%"
+        aceitavel: "0.5% - 1%"
+        bom: "1% - 2%"
+        excelente: "> 2%"
+
+      cpm:
+        muito_alto: "> R$ 60"
+        alto: "R$ 40 - R$ 60"
+        normal: "R$ 20 - R$ 40"
+        baixo: "< R$ 20"
+
+      cpc:
+        alto: "> R$ 3"
+        normal: "R$ 1 - R$ 3"
+        bom: "R$ 0.50 - R$ 1"
+        excelente: "< R$ 0.50"
+
+    leads:
+      cpl:
+        alto: "> R$ 30"
+        normal: "R$ 15 - R$ 30"
+        bom: "R$ 8 - R$ 15"
+        excelente: "< R$ 8"
+
+      taxa_conversao_lp:
+        ruim: "< 10%"
+        aceitavel: "10% - 20%"
+        bom: "20% - 35%"
+        excelente: "> 35%"
+
+    trafego:
+      cpc_link:
+        alto: "> R$ 1"
+        normal: "R$ 0.30 - R$ 1"
+        bom: "R$ 0.15 - R$ 0.30"
+        excelente: "< R$ 0.15"
+
+  # Por nicho de mercado
+  por_nicho:
+    infoprodutos:
+      ticket_baixo: # < R$ 200
+        roas_meta: "2x - 3x"
+        cpa_ideal: "< 30% do ticket"
+        ctr_esperado: "1% - 2%"
+
+      ticket_medio: # R$ 200 - R$ 1000
+        roas_meta: "3x - 5x"
+        cpa_ideal: "< 25% do ticket"
+        ctr_esperado: "0.8% - 1.5%"
+
+      ticket_alto: # > R$ 1000
+        roas_meta: "5x - 10x"
+        cpa_ideal: "< 20% do ticket"
+        ctr_esperado: "0.5% - 1%"
+
+    ecommerce:
+      moda:
+        roas_meta: "2x - 4x"
+        cpm_medio: "R$ 25 - R$ 45"
+        taxa_carrinho: "3% - 8%"
+
+      eletronicos:
+        roas_meta: "1.5x - 3x"
+        cpm_medio: "R$ 30 - R$ 50"
+        taxa_carrinho: "2% - 5%"
+
+      cosmeticos:
+        roas_meta: "2.5x - 5x"
+        cpm_medio: "R$ 20 - R$ 40"
+        taxa_carrinho: "4% - 10%"
+
+    servicos:
+      consultorias:
+        cpl_esperado: "R$ 20 - R$ 80"
+        taxa_show: "30% - 50%"
+        taxa_close: "10% - 30%"
+
+      saas:
+        cac_meta: "< 3 meses de receita"
+        trial_to_paid: "5% - 15%"
+        cpl: "R$ 15 - R$ 50"
+
+  # Por temperatura de audiência
+  por_temperatura:
+    hot: # Compradores, leads qualificados
+      cpa_relativo: "0.5x - 0.8x média"
+      roas_relativo: "1.5x - 2x média"
+      volume: "10% - 20% do total"
+      frequencia_ideal: "< 5"
+
+    warm: # Engajados, visitantes
+      cpa_relativo: "0.8x - 1.2x média"
+      roas_relativo: "1x - 1.5x média"
+      volume: "30% - 40% do total"
+      frequencia_ideal: "< 3"
+
+    cold: # Lookalikes, interesses
+      cpa_relativo: "1x - 1.5x média"
+      roas_relativo: "0.8x - 1.2x média"
+      volume: "40% - 60% do total"
+      frequencia_ideal: "< 2"
+
+  # Indicadores de fadiga
+  fadiga:
+    criativo:
+      sinais:
+        - "CTR caindo 30%+ em 7 dias"
+        - "Frequência acima de 3"
+        - "CPM subindo sem mudança de bid"
+
+      acao: "Renovar criativos, pausar fatigados"
+
+    audiencia:
+      sinais:
+        - "Frequência acima de 4"
+        - "Reach estagnado"
+        - "CPA subindo progressivamente"
+
+      acao: "Expandir audiência, criar novas LALs"
+
+  # Sazonalidade Brasil
+  sazonalidade:
+    picos_custo: # CPM mais alto
+      - mes: "Novembro"
+        motivo: "Black Friday"
+        aumento_esperado: "+30% a +80%"
+
+      - mes: "Dezembro"
+        motivo: "Natal"
+        aumento_esperado: "+20% a +50%"
+
+      - mes: "Maio"
+        motivo: "Dia das Mães"
+        aumento_esperado: "+15% a +30%"
+
+    baixa_temporada: # CPM mais baixo
+      - mes: "Janeiro"
+        motivo: "Pós-festas"
+        reducao_esperada: "-10% a -20%"
+
+      - mes: "Março"
+        motivo: "Pré-Páscoa"
+        reducao_esperada: "-5% a -15%"
+
+# Funil de Pixel - Taxas Esperadas
+funil_pixel:
+  view_content:
+    taxa_do_click: "60% - 80%"
+    sinais_problema:
+      - "< 50%: Página lenta ou problema de loading"
+      - "< 30%: Pixel mal instalado"
+
+  add_to_cart:
+    taxa_do_vc: "5% - 15%"
+    sinais_problema:
+      - "< 3%: Preço/oferta não atrai"
+      - "< 1%: Problema grave de conversão"
+
+  initiate_checkout:
+    taxa_do_atc: "30% - 60%"
+    sinais_problema:
+      - "< 20%: Carrinho confuso ou frete alto"
+      - "< 10%: Problema técnico no carrinho"
+
+  purchase:
+    taxa_do_ic: "40% - 70%"
+    sinais_problema:
+      - "< 30%: Checkout complicado"
+      - "< 20%: Gateway com problemas"
+
+# Regras de Otimização
+regras_otimizacao:
+  quando_pausar:
+    - criterio: "CPA > 2x meta após 1000 impressões"
+      acao: "Pausar imediatamente"
+
+    - criterio: "CTR < 0.3% após 500 impressões"
+      acao: "Pausar e revisar criativo"
+
+    - criterio: "0 conversões após 2x budget diário gasto"
+      acao: "Pausar e investigar funil"
+
+  quando_escalar:
+    - criterio: "ROAS > meta por 3 dias consecutivos"
+      acao: "Aumentar 20-30% do budget"
+
+    - criterio: "CPA estável e volume crescente"
+      acao: "Duplicar adset para novo teste"
+
+    - criterio: "Winner identificado com 100+ conversões"
+      acao: "Migrar para CBO"
+
+  quando_otimizar:
+    - criterio: "CPA entre 1x e 2x da meta"
+      acao: "Testar novos criativos, ajustar bid"
+
+    - criterio: "CTR bom mas CPA alto"
+      acao: "Verificar página de vendas"
+
+    - criterio: "Frequência subindo mas métricas ok"
+      acao: "Expandir audiência antes de saturar"
+
+# Referências CAPI
+capi:
+  match_rate:
+    excelente: "> 90%"
+    bom: "80% - 90%"
+    aceitavel: "60% - 80%"
+    ruim: "< 60%"
+
+  event_match_quality:
+    excelente: "> 8"
+    bom: "6 - 8"
+    aceitavel: "4 - 6"
+    ruim: "< 4"
+
+  parametros_recomendados:
+    obrigatorios:
+      - "external_id (ou fbp)"
+      - "client_ip_address"
+      - "client_user_agent"
+
+    alta_prioridade:
+      - "em (email hasheado)"
+      - "ph (telefone hasheado)"
+      - "fn (primeiro nome hasheado)"
+
+    media_prioridade:
+      - "ln (sobrenome hasheado)"
+      - "ct (cidade hasheada)"
+      - "zp (CEP hasheado)"
+
+# Métricas de Diagnóstico
+diagnostico:
+  arvore_decisao:
+    ctr_baixo:
+      causa_provavel: "Criativo/hook não atrai"
+      verificar:
+        - "Hook nos primeiros 3 segundos"
+        - "Thumbnail chamativa"
+        - "Copy do anúncio"
+      solucao: "Testar novos hooks, formatos diferentes"
+
+    ctr_bom_cpa_alto:
+      causa_provavel: "Problema na página ou oferta"
+      verificar:
+        - "Taxa de conversão da LP"
+        - "Velocidade de loading"
+        - "Match mensagem ad x LP"
+      solucao: "Otimizar LP, melhorar oferta"
+
+    cpm_alto:
+      causa_provavel: "Audiência saturada ou competitiva"
+      verificar:
+        - "Frequência da audiência"
+        - "Tamanho do público"
+        - "Qualidade do criativo"
+      solucao: "Expandir audiência, melhorar quality score"
+
+    volume_baixo:
+      causa_provavel: "Budget ou audiência limitados"
+      verificar:
+        - "Budget diário vs tamanho audiência"
+        - "Bid muito restritivo"
+        - "Posicionamentos limitados"
+      solucao: "Aumentar budget, expandir targeting"
+
+---
+# Fonte: Dados agregados do mercado brasileiro 2024-2026
+# Nota: Benchmarks são referências, cada conta pode variar
+# Atualização: Revisar trimestralmente

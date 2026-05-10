@@ -1,0 +1,691 @@
+# Media Buyer Skills Registry
+# Registro central de todas as skills do domínio media-buyer
+# Total: 18 skills | 47 frameworks | 5 experts
+# Updated: 2026-02-01 - Synchronized with actual SKILL.md files
+
+metadata:
+  version: "1.1.0"
+  domain: "media-buyer"
+  squad: "media-buyer-squad"
+  managed_by: "@media-strategist"
+  created_at: "2026-02-01"
+  updated_at: "2026-02-01"
+  total_skills: 18
+  total_frameworks: 47
+  canonical_location: ".aios-core/development/skills/media-buyer/"
+
+# =============================================================================
+# EXPERT SOURCES
+# =============================================================================
+
+experts:
+  media-expert-a:
+    name: "Media Buying Expert"
+    source: "Inner Circle / BATCH-077, 068-084, 097"
+    frameworks_count: 28
+    weight: 0.95
+    specialties:
+      - "DSL Revolution"
+      - "Constants vs Variables"
+      - "Paid Media Scaling"
+      - "Hydra Strategy"
+      - "Andromeda Algorithm"
+      - "Hammer Strategy"
+
+  media-expert-b:
+    name: "Performance Expert"
+    source: "BATCH-076, 080"
+    frameworks_count: 10
+    weight: 0.90
+    specialties:
+      - "YouTube Ads"
+      - "7-Part Script"
+      - "Hook Testing"
+      - "Targeting Timeline"
+
+  business-expert:
+    name: "Business Expert"
+    source: "BATCH-099"
+    frameworks_count: 5
+    weight: 0.92
+    specialties:
+      - "Unit Economics"
+      - "Offer Design"
+      - "Scaling Philosophy"
+
+  brandon-carter:
+    name: "Creative Expert"
+    source: "BATCH-077"
+    frameworks_count: 3
+    weight: 0.88
+    specialties:
+      - "Constants vs Variables"
+      - "Scientific Ad Testing"
+
+  jordan-stupar:
+    name: "Strategy Expert"
+    source: "BATCH-077"
+    frameworks_count: 1
+    weight: 0.85
+    specialties:
+      - "Creative Strategy"
+
+# =============================================================================
+# CATEGORIES
+# =============================================================================
+
+categories:
+  diagnostic:
+    description: "Análise de problemas, diagnóstico de métricas, identificação de issues"
+    skills_count: 5
+    icon: "🔍"
+
+  generative:
+    description: "Criação de conteúdo, hooks, copy, scripts, DSL"
+    skills_count: 5
+    icon: "✨"
+
+  optimization:
+    description: "Otimização de campanhas, regras de pausar/escalar, budget, audiências"
+    skills_count: 3
+    icon: "⚡"
+
+  strategic:
+    description: "Planejamento de alto nível, funis, economia, scaling, estrutura"
+    skills_count: 4
+    icon: "🎯"
+
+  automation:
+    description: "Orquestração autônoma, monitoramento contínuo"
+    skills_count: 1
+    icon: "🤖"
+
+# =============================================================================
+# SKILLS REGISTRY
+# =============================================================================
+
+skills:
+  # ---------------------------------------------------------------------------
+  # DIAGNOSTIC (5 skills)
+  # ---------------------------------------------------------------------------
+
+  metric-diagnosis:
+    id: "metric-diagnosis"
+    name: "Metric Diagnosis"
+    category: "diagnostic"
+    location: ".aios-core/development/skills/media-buyer/diagnostic/metric-diagnosis/SKILL.md"
+    description: "Diagnóstico completo de métricas (CTR, CPA, ROAS, CPM)"
+    version: "1.0.0"
+    activation_command: "*diagnose-metrics"
+    frameworks:
+      - name: "Andromeda Method"
+        expert: "media-expert-b"
+        weight: 0.90
+      - name: "Kill Rules"
+        expert: "media-expert-a"
+        weight: 0.95
+      - name: "Constants vs Variables"
+        expert: "media-expert-a"
+        weight: 0.95
+    agents:
+      primary: ["@performance-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["diagnóstico", "por que não converte", "CPA alto", "ROAS baixo", "CTR baixo"]
+      metric: ["cpa > target * 1.5", "roas < 1.5", "ctr < 0.5%"]
+    token_estimate: "~1200 tokens"
+
+  tracking-audit:
+    id: "tracking-audit"
+    name: "Tracking Audit"
+    category: "diagnostic"
+    location: ".aios-core/development/skills/media-buyer/diagnostic/tracking-audit/SKILL.md"
+    description: "Auditoria completa de pixel, CAPI e eventos"
+    version: "1.0.0"
+    activation_command: "*audit-tracking"
+    frameworks:
+      - name: "CAPI Priority Framework"
+        expert: "media-expert-a"
+        weight: 0.95
+      - name: "Match Rate Optimization"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "Attribution Settings"
+        expert: "media-expert-a"
+        weight: 0.85
+    agents:
+      primary: ["@pixel-specialist"]
+      consumers: ["@media-strategist", "@performance-analyst"]
+    triggers:
+      semantic: ["pixel", "tracking", "conversões não aparecem", "CAPI", "match rate"]
+      metric: ["conversions == 0 for 6h", "match_rate < 60%"]
+    token_estimate: "~1000 tokens"
+
+  creative-fatigue-detector:
+    id: "creative-fatigue-detector"
+    name: "Creative Fatigue Detector"
+    category: "diagnostic"
+    location: ".aios-core/development/skills/media-buyer/diagnostic/creative-fatigue-detector/SKILL.md"
+    description: "Detecta fadiga de criativos e saturação de audiência"
+    version: "1.0.0"
+    activation_command: "*detect-fatigue"
+    frameworks:
+      - name: "Creative Saturation Detector"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "View Rate Health Monitor"
+        expert: "media-expert-b"
+        weight: 0.85
+      - name: "Hook Rate Analysis"
+        expert: "media-expert-b"
+        weight: 0.90
+    agents:
+      primary: ["@creative-analyst", "@performance-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["fadiga", "saturação", "criativo cansou", "frequência alta"]
+      metric: ["frequency > 3", "ctr_drop > 30%", "hook_rate < 15%"]
+    token_estimate: "~800 tokens"
+
+  funnel-analysis:
+    id: "funnel-analysis"
+    name: "Funnel Analysis"
+    category: "diagnostic"
+    location: ".aios-core/development/skills/media-buyer/diagnostic/funnel-analysis/SKILL.md"
+    description: "Análise completa de funil de conversão e drop-offs"
+    version: "1.0.0"
+    activation_command: "*analyze-funnel"
+    frameworks:
+      - name: "Funnel Conversion Analysis"
+        expert: "business-expert"
+        weight: 0.92
+      - name: "E-commerce Funnel Health"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "Mini Webinar 2.0"
+        expert: "media-expert-a"
+        weight: 0.88
+    agents:
+      primary: ["@performance-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["funil", "drop-off", "conversão por etapa", "gargalo"]
+      metric: ["atc_to_purchase < 20%", "overall_cvr < benchmark * 0.5"]
+    token_estimate: "~1000 tokens"
+
+  attribution-analysis:
+    id: "attribution-analysis"
+    name: "Attribution Analysis"
+    category: "diagnostic"
+    location: ".aios-core/development/skills/media-buyer/diagnostic/attribution-analysis/SKILL.md"
+    description: "Análise de atribuição e reconciliação entre plataformas"
+    version: "1.0.0"
+    activation_command: "*analyze-attribution"
+    frameworks:
+      - name: "Post-iOS14 Optimization"
+        expert: "media-expert-a"
+        weight: 0.95
+      - name: "Attribution Settings"
+        expert: "media-expert-a"
+        weight: 0.92
+      - name: "Cross-Platform Attribution"
+        expert: "media-expert-b"
+        weight: 0.88
+    agents:
+      primary: ["@pixel-specialist"]
+      consumers: ["@performance-analyst", "@media-strategist"]
+    triggers:
+      semantic: ["atribuição", "janela de conversão", "iOS14", "CAPI"]
+      metric: ["meta_vs_backend > 30%", "ios_percentage > 60%"]
+    token_estimate: "~1100 tokens"
+
+  # ---------------------------------------------------------------------------
+  # GENERATIVE (5 skills)
+  # ---------------------------------------------------------------------------
+
+  hook-generator:
+    id: "hook-generator"
+    name: "Hook Generator"
+    category: "generative"
+    location: ".aios-core/development/skills/media-buyer/generative/hook-generator/SKILL.md"
+    description: "Gera 10+ variações de hooks usando DSL Revolution"
+    version: "1.0.0"
+    activation_command: "*generate-hooks"
+    frameworks:
+      - name: "DSL Revolution Framework"
+        expert: "media-expert-a"
+        weight: 0.95
+      - name: "5-Second Hook Formula"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "10+ Hook Variations"
+        expert: "media-expert-b"
+        weight: 0.90
+      - name: "Constants vs Variables"
+        expert: "brandon-carter"
+        weight: 0.88
+      - name: "Hook Types (6 Categories)"
+        expert: "media-expert-a"
+        weight: 0.85
+    agents:
+      primary: ["@creative-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["hook", "gancho", "headline", "atenção", "DSL", "variações"]
+      metric: ["hook_rate < 15%", "ctr < 0.5%"]
+    token_estimate: "~1500 tokens"
+
+  copy-generator:
+    id: "copy-generator"
+    name: "Copy Generator"
+    category: "generative"
+    location: ".aios-core/development/skills/media-buyer/generative/copy-generator/SKILL.md"
+    description: "Gera copy usando frameworks PAS, AIDA, BAB e Story"
+    version: "1.0.0"
+    activation_command: "*generate-copy"
+    frameworks:
+      - name: "PAS (Problem-Agitation-Solution)"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "AIDA (Attention-Interest-Desire-Action)"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "Before-After-Bridge"
+        expert: "media-expert-a"
+        weight: 0.85
+      - name: "Story Framework"
+        expert: "media-expert-a"
+        weight: 0.88
+    agents:
+      primary: ["@creative-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["copy", "texto", "PAS", "AIDA", "primary text"]
+    token_estimate: "~1200 tokens"
+
+  creative-brief:
+    id: "creative-brief"
+    name: "Creative Brief"
+    category: "generative"
+    location: ".aios-core/development/skills/media-buyer/generative/creative-brief/SKILL.md"
+    description: "Gera briefs completos para criativos"
+    version: "1.0.0"
+    activation_command: "*create-brief"
+    frameworks:
+      - name: "Ad Element Hierarchy"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "Character Expectation Triangle"
+        expert: "media-expert-a"
+        weight: 0.85
+    agents:
+      primary: ["@creative-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["brief", "briefing", "orientação para designer"]
+    token_estimate: "~1000 tokens"
+
+  angle-generator:
+    id: "angle-generator"
+    name: "Angle Generator"
+    category: "generative"
+    location: ".aios-core/development/skills/media-buyer/generative/angle-generator/SKILL.md"
+    description: "Gera ângulos criativos diferentes para mesma oferta"
+    version: "1.0.0"
+    activation_command: "*generate-angles"
+    frameworks:
+      - name: "Creative Concepts"
+        expert: "jordan-stupar"
+        weight: 0.85
+      - name: "Multi-Angle Testing"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "Creative Variables"
+        expert: "brandon-carter"
+        weight: 0.88
+    agents:
+      primary: ["@creative-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["ângulo", "abordagem", "perspectiva", "creative angle"]
+    token_estimate: "~1000 tokens"
+
+  dsl-structure:
+    id: "dsl-structure"
+    name: "DSL Structure"
+    category: "generative"
+    location: ".aios-core/development/skills/media-buyer/generative/dsl-structure/SKILL.md"
+    description: "Cria estruturas de Deck Sales Letter (DSL Revolution)"
+    version: "1.0.0"
+    activation_command: "*create-dsl"
+    frameworks:
+      - name: "DSL Revolution Framework"
+        expert: "media-expert-a"
+        weight: 0.95
+      - name: "Mini Webinar 2.0"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "Slide 5 Optimization"
+        expert: "media-expert-a"
+        weight: 0.93
+    agents:
+      primary: ["@creative-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["DSL", "deck sales letter", "slides", "webinar", "high-ticket"]
+    token_estimate: "~1300 tokens"
+
+  # ---------------------------------------------------------------------------
+  # OPTIMIZATION (3 skills)
+  # ---------------------------------------------------------------------------
+
+  kill-scale-rules:
+    id: "kill-scale-rules"
+    name: "Kill & Scale Rules"
+    category: "optimization"
+    location: ".aios-core/development/skills/media-buyer/optimization/kill-scale-rules/SKILL.md"
+    description: "Regras de quando pausar ou escalar campanhas"
+    version: "1.0.0"
+    activation_command: "*evaluate-kill-scale"
+    frameworks:
+      - name: "24-Hour Kill Threshold"
+        expert: "media-expert-a"
+        weight: 0.95
+      - name: "CPA 2x Rule"
+        expert: "media-expert-a"
+        weight: 0.95
+      - name: "Frequency Rule"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "Scale Rules (Vertical/Horizontal)"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "Constants vs Variables Testing"
+        expert: "brandon-carter"
+        weight: 0.88
+    agents:
+      primary: ["@performance-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["pausar", "escalar", "matar", "kill", "scale"]
+      metric: ["cpa > target * 2", "roas > 2.5 stable 3d", "frequency > 3"]
+    token_estimate: "~1100 tokens"
+
+  budget-allocation:
+    id: "budget-allocation"
+    name: "Budget Allocation"
+    category: "optimization"
+    location: ".aios-core/development/skills/media-buyer/optimization/budget-allocation/SKILL.md"
+    description: "Otimiza alocação de budget entre campanhas"
+    version: "1.0.0"
+    activation_command: "*allocate-budget"
+    frameworks:
+      - name: "Andromeda Budget Distribution"
+        expert: "media-expert-b"
+        weight: 0.90
+      - name: "CBO vs ABO Strategy"
+        expert: "media-expert-a"
+        weight: 0.92
+      - name: "Aggressive Allocation"
+        expert: "business-expert"
+        weight: 0.88
+    agents:
+      primary: ["@performance-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["budget", "orçamento", "realocar", "redistribuir"]
+    token_estimate: "~900 tokens"
+
+  audience-expansion:
+    id: "audience-expansion"
+    name: "Audience Expansion"
+    category: "optimization"
+    location: ".aios-core/development/skills/media-buyer/optimization/audience-expansion/SKILL.md"
+    description: "Estratégias para expandir audiências saturadas"
+    version: "1.0.0"
+    activation_command: "*expand-audience"
+    frameworks:
+      - name: "Pixel Funnel Lookalike"
+        expert: "media-expert-a"
+        weight: 0.95
+      - name: "Andromeda Broad Testing"
+        expert: "media-expert-b"
+        weight: 0.90
+      - name: "Audience Saturation"
+        expert: "media-expert-a"
+        weight: 0.92
+    agents:
+      primary: ["@performance-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["expandir audiência", "LAL", "lookalike", "broad", "saturação"]
+      metric: ["frequency > 3", "audience_saturation > 60%"]
+    token_estimate: "~1000 tokens"
+
+  # ---------------------------------------------------------------------------
+  # STRATEGIC (4 skills)
+  # ---------------------------------------------------------------------------
+
+  funnel-selection:
+    id: "funnel-selection"
+    name: "Funnel Selection"
+    category: "strategic"
+    location: ".aios-core/development/skills/media-buyer/strategic/funnel-selection/SKILL.md"
+    description: "Seleção estratégica do tipo de funil ideal"
+    version: "1.0.0"
+    activation_command: "*select-funnel"
+    frameworks:
+      - name: "Funil de 1 Real"
+        expert: "media-expert-a"
+        weight: 0.95
+      - name: "Tráfego Direto"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "Aula no Zoom"
+        expert: "media-expert-a"
+        weight: 0.90
+      - name: "Perpétuo vs Lançamento"
+        expert: "media-expert-a"
+        weight: 0.85
+    agents:
+      primary: ["@media-strategist"]
+      consumers: ["@creative-analyst"]
+    triggers:
+      semantic: ["funil", "qual funil", "tráfego direto", "zoom", "perpétuo", "lançamento"]
+    token_estimate: "~1100 tokens"
+
+  unit-economics:
+    id: "unit-economics"
+    name: "Unit Economics"
+    category: "strategic"
+    location: ".aios-core/development/skills/media-buyer/strategic/unit-economics/SKILL.md"
+    description: "Cálculo de CAC, LTV, payback e decisão de scaling"
+    version: "1.0.0"
+    activation_command: "*calculate-economics"
+    frameworks:
+      - name: "LTV:CAC Decision Matrix"
+        expert: "business-expert"
+        weight: 0.95
+      - name: "Scaling Readiness Checker"
+        expert: "business-expert"
+        weight: 0.92
+      - name: "Payback Calculator"
+        expert: "business-expert"
+        weight: 0.90
+    agents:
+      primary: ["@performance-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["CAC", "LTV", "payback", "unit economics", "posso escalar"]
+    token_estimate: "~1000 tokens"
+
+  scale-readiness-check:
+    id: "scale-readiness-check"
+    name: "Scale Readiness Check"
+    category: "strategic"
+    location: ".aios-core/development/skills/media-buyer/strategic/scale-readiness-check/SKILL.md"
+    description: "Avaliação completa de prontidão para escalar"
+    version: "1.0.0"
+    activation_command: "*check-scale-readiness"
+    frameworks:
+      - name: "Scale Prerequisites"
+        expert: "media-expert-a"
+        weight: 0.95
+      - name: "Hydra Strategy"
+        expert: "business-expert"
+        weight: 0.90
+      - name: "Andromeda Scale"
+        expert: "media-expert-b"
+        weight: 0.88
+    agents:
+      primary: ["@performance-analyst"]
+      consumers: ["@media-strategist"]
+    triggers:
+      semantic: ["pronto para escalar", "escala", "readiness", "posso aumentar"]
+    token_estimate: "~1200 tokens"
+
+  campaign-structure:
+    id: "campaign-structure"
+    name: "Campaign Structure"
+    category: "strategic"
+    location: ".aios-core/development/skills/media-buyer/strategic/campaign-structure/SKILL.md"
+    description: "Define estrutura otimizada de campanhas, adsets e ads"
+    version: "1.0.0"
+    activation_command: "*structure-campaign"
+    frameworks:
+      - name: "CBO vs ABO Strategy"
+        expert: "media-expert-a"
+        weight: 0.95
+      - name: "Campaign Organization"
+        expert: "media-expert-a"
+        weight: 0.93
+      - name: "Andromeda Structure"
+        expert: "media-expert-b"
+        weight: 0.90
+    agents:
+      primary: ["@media-strategist"]
+      consumers: ["@performance-analyst"]
+    triggers:
+      semantic: ["estrutura", "campanha", "adset", "CBO", "ABO", "nomenclatura"]
+    token_estimate: "~1100 tokens"
+
+  # ---------------------------------------------------------------------------
+  # AUTOMATION (1 skill)
+  # ---------------------------------------------------------------------------
+
+  campaign-monitor:
+    id: "campaign-monitor"
+    name: "Campaign Monitor"
+    category: "automation"
+    location: ".aios-core/development/skills/media-buyer/automation/campaign-monitor/SKILL.md"
+    description: "Orquestração autônoma de campanhas com monitoramento contínuo"
+    version: "1.0.0"
+    activation_command: "*monitor-campaigns"
+    frameworks:
+      - name: "AIOS Autonomous Loop Pattern"
+        expert: "native"
+        weight: 1.0
+      - name: "Decision Rules Engine"
+        expert: "native"
+        weight: 1.0
+    agents:
+      primary: ["@media-strategist"]
+      consumers: ["@performance-analyst", "@creative-analyst", "@pixel-specialist"]
+    triggers:
+      semantic: ["monitorar", "autônomo", "autonomous", "orquestrar"]
+    components:
+      rules: "rules/decision-rules.yaml"
+      loop: "scripts/campaign-monitor-loop.js"
+      templates: "templates/decision-report.md"
+    token_estimate: "~2000 tokens"
+
+# =============================================================================
+# AGENT-SKILL MATRIX
+# =============================================================================
+
+agent_skills:
+  "@media-strategist":
+    role: "Lead - Campaign Monitor Owner"
+    primary_skills:
+      - campaign-monitor
+      - funnel-selection
+      - campaign-structure
+    can_invoke:
+      - all
+    can_delegate:
+      - hook-generator → @creative-analyst
+      - tracking-audit → @pixel-specialist
+      - metric-diagnosis → @performance-analyst
+    receives_escalations: true
+
+  "@creative-analyst":
+    role: "Specialist - Creative Skills"
+    primary_skills:
+      - hook-generator
+      - copy-generator
+      - creative-brief
+      - angle-generator
+      - dsl-structure
+    reports_to: "@media-strategist"
+
+  "@pixel-specialist":
+    role: "Specialist - Tracking Skills"
+    primary_skills:
+      - tracking-audit
+      - attribution-analysis
+    reports_to: "@media-strategist"
+
+  "@performance-analyst":
+    role: "Specialist - Analysis Skills"
+    primary_skills:
+      - metric-diagnosis
+      - creative-fatigue-detector
+      - funnel-analysis
+      - kill-scale-rules
+      - budget-allocation
+      - audience-expansion
+      - unit-economics
+      - scale-readiness-check
+    reports_to: "@media-strategist"
+
+# =============================================================================
+# STATISTICS
+# =============================================================================
+
+statistics:
+  total_skills: 18
+  by_category:
+    diagnostic: 5
+    generative: 5
+    optimization: 3
+    strategic: 4
+    automation: 1
+  total_frameworks: 47
+  by_expert:
+    media-expert-a: 28
+    media-expert-b: 10
+    business-expert: 5
+    brandon-carter: 3
+    jordan-stupar: 1
+  total_token_estimate: "~19000 tokens"
+
+# =============================================================================
+# CHANGELOG
+# =============================================================================
+
+changelog:
+  - version: "1.1.0"
+    date: "2026-02-01"
+    changes:
+      - "Synchronized skill IDs with actual SKILL.md files"
+      - "audience-analyzer → funnel-analysis"
+      - "youtube-relevance-audit → attribution-analysis"
+      - "copy-frameworks → copy-generator"
+      - "youtube-script-builder → angle-generator"
+      - "email-sequence-builder → dsl-structure"
+      - "budget-optimizer → budget-allocation"
+      - "creative-refresh → audience-expansion"
+      - "hydra-multi-funnel → scale-readiness-check"
+      - "youtube-launch-protocol → campaign-structure"
+      - "Added activation_command to all skills"
+      - "Updated agent-skill matrix"
