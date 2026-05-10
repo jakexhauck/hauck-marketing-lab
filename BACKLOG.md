@@ -32,6 +32,24 @@ Small follow-ups that close gaps the v1 base shell deliberately left open.
 
 ---
 
+## Pre-launch surfaces — the "we haven't shipped a campaign yet" state
+
+The v1 dashboard assumes a campaign is already running. Before launch, the operative view is *readiness*, not performance. These items cover that pre-spend phase.
+
+- [ ] **Pre-launch readiness dashboard**
+  - **What:** Alternate dashboard mode shown when the active client has no live campaigns yet. Renders a launch-readiness checklist instead of KPIs: Meta token entered? Pixel installed + verified? CAPI configured? Domain verified? Lead form built? Creative pool seeded (8+ angles, 12+ hooks)? Audiences defined? Budget agreed? Tracking dry-run passed? Each row gets a status dot (go/hold/stop) using the same Mission Control vocabulary. Hero changes to a launch-readiness verdict ("READY TO LAUNCH" / "BLOCKED ON X") with the spectrum bar repurposed as a completeness percentage.
+  - **Why now:** Willis Windows (and any future client) won't have live ad data before we ship. Without this, the dashboard renders placeholder data that doesn't reflect reality, which erodes trust in the surface.
+  - **Detection:** Client config gets a `status: "pre-launch" | "live" | "paused"` field; dashboard renders the matching view. Could also auto-detect (no entries in `data/<client>/kpis/` → pre-launch).
+  - **Size:** L.
+  - **Touches:** New `app/src/components/PreLaunchDashboard.tsx`, branch in `Dashboard.tsx` based on client status, new `LaunchChecklist.tsx`, new Rust commands for reading/writing `data/<client>/launch-checklist.yaml`, status field in `data/clients.yaml`.
+  - **Depends on:** Multi-client management (so client config exists as a thing). Meta token storage helps populate one of the checklist rows.
+
+- [ ] **Launch-readiness check via agent**
+  - **What:** "Ask Aurelius if we're ready" button on the pre-launch dashboard. Bundles the current launch-checklist state into a prompt, agent verifies and pushes back on weak spots ("creative pool only has 6 angles, recommend 4 more before going live"). Saves the verdict to `outputs/launch-readiness/`.
+  - **Why now:** Pairs naturally with the pre-launch dashboard — gives Jake a sanity check before flipping the switch.
+  - **Size:** M (after pre-launch dashboard ships).
+  - **Touches:** Button on `PreLaunchDashboard.tsx`, reuses chat streaming, new output folder.
+
 ## Dashboard surfaces — wire real data to the v1 placeholders
 
 The v1 dashboard renders the Mission Control layout with **placeholder content** in the KPI strip, hero, diagnosis panel, tracking pulse, and creative ring. These items make each card live.
@@ -131,6 +149,14 @@ Generalize the hardcoded "Willis Windows" into a multi-client model.
   - **Why deferred:** In `APP-FOUNDATION-PLAN.md` § v1 deliberately omits.
   - **Size:** M.
   - **Touches:** New surface, ties to `config.rs`.
+
+- [ ] **Per-client Meta access token storage**
+  - **What:** UI surface (probably inside the client settings) to enter and store the Meta long-lived access token, ad account ID, pixel ID, and business ID for each client. Stored in `data/<client>/credentials.yaml` (gitignored) or the OS keychain via `tauri-plugin-stronghold` / `tauri-plugin-keyring` for actual security. Reveals as `********` after save, with a "rotate" button.
+  - **Why now:** Needed for the pre-launch checklist (Meta token entered? row), and a prerequisite for the full Meta Ads API integration item later. Useful on its own as a record of which token belongs to which client even before any sync exists.
+  - **Security note:** Tokens are long-lived secrets. The `data/<client>/credentials.yaml` approach is convenient but unencrypted on disk — only acceptable if the file is gitignored AND the user understands the trust model is "anyone with disk access has the tokens." For real safety, use the OS keychain plugin. Decide before implementing.
+  - **Size:** M (file-based storage) or L (keychain integration).
+  - **Touches:** New `app/src/components/ClientCredentials.tsx`, new Rust commands for credentials I/O, gitignore additions for `data/*/credentials.yaml`, possible `tauri-plugin-stronghold` integration.
+  - **Depends on:** Multi-client management surface (somewhere to attach the credentials UI to).
 
 - [ ] **Per-client benchmark sets**
   - **What:** `benchmarks-brasil.yaml` is the only one present and is high-ticket challenge-funnel oriented. Add `benchmarks-us-local-lead-gen.yaml` for Willis Windows. Make benchmark selection part of the client config.
