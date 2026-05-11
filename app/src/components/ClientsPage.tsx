@@ -24,8 +24,11 @@ export function ClientsPage({
 }: Props) {
   const [adding, setAdding] = useState(Boolean(startInAddMode));
   const [newName, setNewName] = useState("");
+  const [newDriveUrl, setNewDriveUrl] = useState("");
   const [renamingSlug, setRenamingSlug] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [editingDriveSlug, setEditingDriveSlug] = useState<string | null>(null);
+  const [driveDraft, setDriveDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [benchmarkSets, setBenchmarkSets] = useState<BenchmarkSummary[]>([]);
@@ -67,13 +70,31 @@ export function ClientsPage({
       setError("Enter a client name.");
       return;
     }
+    const driveUrl = newDriveUrl.trim();
     setBusy(true);
     setError(null);
     try {
       // Pass an empty slug so the backend slugifies + de-collides.
-      await api.addClient(root, "", name);
+      await api.addClient(root, "", name, driveUrl || null);
       setNewName("");
+      setNewDriveUrl("");
       setAdding(false);
+      await refresh();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSaveDrive = async (slug: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const trimmed = driveDraft.trim();
+      await api.setClientDriveFolder(root, slug, trimmed || null);
+      setEditingDriveSlug(null);
+      setDriveDraft("");
       await refresh();
     } catch (e) {
       setError(String(e));
@@ -154,7 +175,7 @@ export function ClientsPage({
               + Add client
             </button>
           ) : (
-            <div className="clients-add-row">
+            <div className="clients-add-row clients-add-row-stacked">
               <input
                 ref={newInputRef}
                 className="kpi-form-input"
@@ -166,29 +187,49 @@ export function ClientsPage({
                   if (e.key === "Escape") {
                     setAdding(false);
                     setNewName("");
+                    setNewDriveUrl("");
                     setError(null);
                   }
                 }}
                 disabled={busy}
               />
-              <button
-                className="kpi-form-btn primary"
-                onClick={handleAdd}
-                disabled={busy || !newName.trim()}
-              >
-                {busy ? "Adding…" : "Create"}
-              </button>
-              <button
-                className="kpi-form-btn"
-                onClick={() => {
-                  setAdding(false);
-                  setNewName("");
-                  setError(null);
+              <input
+                className="kpi-form-input"
+                placeholder="Google Drive folder URL (optional)"
+                value={newDriveUrl}
+                onChange={(e) => setNewDriveUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAdd();
+                  if (e.key === "Escape") {
+                    setAdding(false);
+                    setNewName("");
+                    setNewDriveUrl("");
+                    setError(null);
+                  }
                 }}
                 disabled={busy}
-              >
-                Cancel
-              </button>
+              />
+              <div className="clients-add-actions">
+                <button
+                  className="kpi-form-btn primary"
+                  onClick={handleAdd}
+                  disabled={busy || !newName.trim()}
+                >
+                  {busy ? "Adding…" : "Create"}
+                </button>
+                <button
+                  className="kpi-form-btn"
+                  onClick={() => {
+                    setAdding(false);
+                    setNewName("");
+                    setNewDriveUrl("");
+                    setError(null);
+                  }}
+                  disabled={busy}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -237,6 +278,80 @@ export function ClientsPage({
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div className="clients-row-bench">
+                    <label className="clients-row-bench-label">DRIVE FOLDER</label>
+                    {editingDriveSlug === c.slug ? (
+                      <div className="clients-add-row">
+                        <input
+                          autoFocus
+                          className="kpi-form-input"
+                          placeholder="Google Drive folder URL"
+                          value={driveDraft}
+                          onChange={(e) => setDriveDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveDrive(c.slug);
+                            if (e.key === "Escape") {
+                              setEditingDriveSlug(null);
+                              setDriveDraft("");
+                            }
+                          }}
+                          disabled={busy}
+                        />
+                        <button
+                          className="kpi-form-btn primary"
+                          onClick={() => handleSaveDrive(c.slug)}
+                          disabled={busy}
+                        >
+                          Save
+                        </button>
+                        <button
+                          className="kpi-form-btn"
+                          onClick={() => {
+                            setEditingDriveSlug(null);
+                            setDriveDraft("");
+                          }}
+                          disabled={busy}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : c.drive_folder_url ? (
+                      <div className="clients-row-drive">
+                        <a
+                          className="clients-row-drive-link"
+                          href={c.drive_folder_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={c.drive_folder_url}
+                        >
+                          Open Drive ↗
+                        </a>
+                        <button
+                          className="kpi-form-btn"
+                          onClick={() => {
+                            setEditingDriveSlug(c.slug);
+                            setDriveDraft(c.drive_folder_url ?? "");
+                            setError(null);
+                          }}
+                          disabled={busy}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="kpi-form-btn"
+                        onClick={() => {
+                          setEditingDriveSlug(c.slug);
+                          setDriveDraft("");
+                          setError(null);
+                        }}
+                        disabled={busy}
+                      >
+                        + Add Drive folder
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="clients-row-actions">

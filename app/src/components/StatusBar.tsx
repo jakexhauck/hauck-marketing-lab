@@ -9,6 +9,7 @@ type Props = {
   onAddClient: () => void;
   onManageClients: () => void;
   onOpenSettings: () => void;
+  onBackToMain: () => void;
   onRefresh: () => void;
   refreshing: boolean;
 };
@@ -32,6 +33,7 @@ export function StatusBar({
   onAddClient,
   onManageClients,
   onOpenSettings,
+  onBackToMain,
   onRefresh,
   refreshing,
 }: Props) {
@@ -81,6 +83,17 @@ export function StatusBar({
   return (
     <div className="statusbar">
       <div className="left">
+        <button
+          className="back-to-main-btn"
+          onClick={onBackToMain}
+          aria-label="Back to main dashboard"
+          title="Back to main dashboard"
+        >
+          <span className="back-to-main-glyph" aria-hidden="true">
+            ◂
+          </span>
+          <span className="back-to-main-label">DASHBOARD</span>
+        </button>
         <span>
           <span className="pulse-dot" />
           JARVIS · ONLINE

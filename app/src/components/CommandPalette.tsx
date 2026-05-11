@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/tauri";
+import { ALL_FORM_CONFIGS, type FormSurfaceId } from "../lib/formConfigs";
 import type {
   ChatSummary,
   KnowledgeTitle,
@@ -16,6 +17,15 @@ type Props = {
   onOpenKnowledge: (item: KnowledgeTitle) => void;
   onOpenDiagnosis?: () => void;
   onOpenKnowledgeBrowser?: () => void;
+  onOpenHookGenerator?: () => void;
+  onOpenCreativeBrief?: () => void;
+  onOpenReport?: () => void;
+  onOpenScaleReadiness?: () => void;
+  onOpenTrackingAudit?: () => void;
+  onOpenWorkflowLaunch?: () => void;
+  onOpenWorkflowOptimize?: () => void;
+  onOpenWorkflowScale?: () => void;
+  onOpenForm?: (id: FormSurfaceId) => void;
 };
 
 type ActionRow = {
@@ -67,6 +77,15 @@ export function CommandPalette({
   onOpenKnowledge,
   onOpenDiagnosis,
   onOpenKnowledgeBrowser,
+  onOpenHookGenerator,
+  onOpenCreativeBrief,
+  onOpenReport,
+  onOpenScaleReadiness,
+  onOpenTrackingAudit,
+  onOpenWorkflowLaunch,
+  onOpenWorkflowOptimize,
+  onOpenWorkflowScale,
+  onOpenForm,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -137,6 +156,50 @@ export function CommandPalette({
         },
       });
     }
+    const genRow = (
+      handler: (() => void) | undefined,
+      id: string,
+      label: string,
+      sub: string,
+    ): ResultRow | null =>
+      handler
+        ? {
+            kind: "ACTION" as const,
+            key: `action:${id}`,
+            label,
+            sub,
+            data: { id, label, sub, run: handler },
+          }
+        : null;
+    const generatorRows: ResultRow[] = [
+      genRow(onOpenHookGenerator, "hooks", "Generate hooks", "Vortex · 100-hook framework"),
+      genRow(onOpenCreativeBrief, "briefs", "Build creative brief", "Vortex · designer-ready brief"),
+      genRow(onOpenReport, "reports", "Build performance report", "Aurelius · client-ready report"),
+      genRow(onOpenScaleReadiness, "scale", "Run scale-readiness check", "Stratos · 4-pillar verdict"),
+      genRow(onOpenTrackingAudit, "audit", "Run tracking audit", "Nexus · pixel/CAPI/EMQ walk-through"),
+      genRow(onOpenWorkflowLaunch, "wf-launch", "Workflow · launch", "Multi-agent launch playbook"),
+      genRow(onOpenWorkflowOptimize, "wf-optimize", "Workflow · optimize", "Multi-agent diagnose + fix"),
+      genRow(onOpenWorkflowScale, "wf-scale", "Workflow · scale", "Multi-agent scale playbook"),
+    ].filter((r): r is ResultRow => r !== null);
+    actionRows.push(...generatorRows);
+
+    // Form-driven onboarding forms (welcome email, contract, audiences, etc.)
+    if (onOpenForm) {
+      for (const cfg of ALL_FORM_CONFIGS) {
+        actionRows.push({
+          kind: "ACTION" as const,
+          key: `action:form:${cfg.id}`,
+          label: cfg.title,
+          sub: `${cfg.agentName} · ${cfg.subtitle.split(".")[0]}`,
+          data: {
+            id: `form:${cfg.id}`,
+            label: cfg.title,
+            sub: cfg.agentName,
+            run: () => onOpenForm(cfg.id as FormSurfaceId),
+          },
+        });
+      }
+    }
     const skillRows: ResultRow[] = (skills ?? []).map((s) => ({
       kind: "SKILL" as const,
       key: `skill:${s.id}`,
@@ -196,7 +259,24 @@ export function CommandPalette({
       .slice(0, 30)
       .map((x) => x.r);
     return all;
-  }, [open, query, skills, knowledge, chats, onOpenDiagnosis, onOpenKnowledgeBrowser]);
+  }, [
+    open,
+    query,
+    skills,
+    knowledge,
+    chats,
+    onOpenDiagnosis,
+    onOpenKnowledgeBrowser,
+    onOpenHookGenerator,
+    onOpenCreativeBrief,
+    onOpenReport,
+    onOpenScaleReadiness,
+    onOpenTrackingAudit,
+    onOpenWorkflowLaunch,
+    onOpenWorkflowOptimize,
+    onOpenWorkflowScale,
+    onOpenForm,
+  ]);
 
   useEffect(() => {
     setActive(0);

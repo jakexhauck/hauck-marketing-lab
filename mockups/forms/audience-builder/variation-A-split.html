@@ -1,0 +1,354 @@
+<!--
+  Audience Builder — Stratos
+  Form left, audience configurations right.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HML OS · Audience Builder · Stratos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #0a0c12;
+    --bg-deep: #0e1119;
+    --bg-surface: #141823;
+    --bg-elev: #1a1f2d;
+    --bg-input: #0f131c;
+    --border: rgba(180, 200, 240, 0.07);
+    --border-strong: rgba(180, 200, 240, 0.15);
+    --border-focus: rgba(236, 152, 73, 0.5);
+    --text: #eef1f7;
+    --text-mid: #c5ccdb;
+    --text-muted: #8d96a8;
+    --text-faint: #5a6378;
+    --copper: #ec9849;
+    --copper-glow: rgba(236, 152, 73, 0.35);
+    --signal-go: #5fe699;
+    --agent: #f59e0b;
+    --agent-glow: rgba(245, 158, 11, 0.3);
+    --sans: 'Hanken Grotesk', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg-void); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: radial-gradient(ellipse at top, rgba(245, 158, 11, 0.04), transparent 60%), var(--bg-void); min-height: 100vh; }
+
+  .topbar { height: 44px; border-bottom: 1px solid var(--border); background: rgba(10, 12, 18, 0.92); backdrop-filter: blur(14px); display: flex; align-items: center; padding: 0 32px; font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); position: sticky; top: 0; z-index: 100; }
+  .topbar .right { margin-left: auto; display: flex; gap: 22px; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 12px; color: var(--text); font-weight: 600; }
+  .brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--agent); box-shadow: 0 0 10px var(--agent-glow); }
+  .brand .sep { color: var(--text-faint); margin: 0 4px; font-weight: 400; }
+  .brand .client { color: var(--text-mid); font-weight: 500; }
+  .brand .stage { color: var(--agent); font-weight: 500; }
+
+  .shell { display: grid; grid-template-columns: minmax(0, 540px) 1fr; gap: 0; min-height: calc(100vh - 44px); }
+  .form-col { border-right: 1px solid var(--border); background: var(--bg-deep); padding: 40px 44px 140px; overflow-y: auto; max-height: calc(100vh - 44px); }
+  .output-col { padding: 40px 44px 60px; overflow-y: auto; max-height: calc(100vh - 44px); }
+
+  .form-head { margin-bottom: 32px; }
+  .form-title { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 6px; }
+  .form-sub { color: var(--text-muted); font-size: 13.5px; max-width: 440px; }
+  .form-sub .agent-name { color: var(--agent); font-weight: 500; }
+
+  .ctx-strip { margin-top: 16px; padding: 10px 14px; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.18); border-radius: 6px; display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
+  .ctx-icon { color: var(--agent); }
+  .ctx-label { color: var(--text-mid); font-weight: 500; }
+  .ctx-files { color: var(--text-muted); flex: 1; }
+  .ctx-refresh { color: var(--agent); font-size: 11.5px; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(245, 158, 11, 0.3); }
+
+  .section { margin-bottom: 32px; }
+  .section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 14px; }
+  .field { margin-bottom: 14px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .field-row.thirds { grid-template-columns: 1fr 1fr 1fr; }
+  label.l { display: block; font-size: 12.5px; font-weight: 500; color: var(--text-mid); margin-bottom: 6px; }
+  label.l .hint { color: var(--text-faint); font-weight: 400; margin-left: 6px; }
+  input[type="text"], input[type="number"], select, textarea { width: 100%; background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: 6px; padding: 10px 12px; color: var(--text); font-family: var(--sans); font-size: 13.5px; transition: border-color 0.15s, background 0.15s; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--border-focus); background: var(--bg-surface); }
+  textarea { resize: vertical; min-height: 70px; line-height: 1.55; }
+  select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2395a0b3' d='M6 8L2 4h8z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; padding-right: 32px; }
+
+  .seg { display: flex; gap: 4px; background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: 7px; padding: 4px; }
+  .seg-opt { flex: 1; text-align: center; padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--text-muted); border-radius: 4px; cursor: pointer; transition: all 0.15s; }
+  .seg-opt:hover { color: var(--text-mid); }
+  .seg-opt.active { background: var(--bg-elev); color: var(--copper); box-shadow: 0 0 0 1px rgba(236, 152, 73, 0.25); }
+
+  .age-range {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+  }
+  .age-range input {
+    background: none; border: none; padding: 0;
+    font-size: 14px; font-weight: 600; color: var(--text);
+    width: 36px; text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .age-range input:focus { outline: none; }
+  .age-range .dash { color: var(--text-faint); }
+  .age-range .lbl { font-size: 12px; color: var(--text-faint); margin-left: auto; }
+
+  .action-bar { position: sticky; bottom: 0; margin: 40px -44px -140px; padding: 20px 44px; background: linear-gradient(to top, var(--bg-deep) 85%, transparent); display: flex; gap: 12px; align-items: center; z-index: 5; }
+  .btn-primary { background: var(--copper); color: #1a0d05; border: none; padding: 12px 24px; border-radius: 6px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 0 24px var(--copper-glow); transition: filter 0.15s; }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border-strong); padding: 11px 18px; border-radius: 6px; font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; }
+
+  /* output */
+  .out-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 4px; }
+  .out-head h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; }
+  .out-count { font-size: 12.5px; color: var(--text-muted); }
+  .out-sub { color: var(--text-faint); font-size: 13px; margin-bottom: 24px; }
+  .out-toolbar { display: flex; gap: 8px; margin-bottom: 24px; }
+  .tool { font-size: 12.5px; font-weight: 500; color: var(--text-muted); padding: 7px 12px; border: 1px solid var(--border-strong); border-radius: 5px; background: transparent; cursor: pointer; transition: all 0.15s; }
+  .tool:hover { color: var(--copper); border-color: var(--border-focus); }
+  .tool.regen { margin-left: auto; }
+
+  .aud {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px 24px;
+    margin-bottom: 14px;
+  }
+  .aud-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px; padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .aud-tag {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--agent); font-weight: 600;
+  }
+  .aud-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .aud-size {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--text-muted);
+  }
+  .aud-size b { color: var(--text-mid); font-weight: 500; }
+
+  .aud-row { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 7px 0; font-size: 13px; }
+  .aud-row .k { color: var(--text-faint); font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 500; padding-top: 2px; }
+  .aud-row .v { color: var(--text-mid); line-height: 1.55; }
+  .aud-row .v .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--text-mid);
+    margin: 2px 4px 2px 0;
+  }
+  .aud-note {
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px dashed var(--border);
+    font-size: 12.5px; color: var(--text-muted); line-height: 1.55;
+  }
+  .aud-note b { color: var(--text-mid); font-weight: 500; }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <span class="brand-dot"></span>HML OS
+    <span class="sep">/</span><span class="client">Willis Windows</span>
+    <span class="sep">/</span><span class="stage">Stratos</span>
+  </div>
+  <div class="right"><span>⌘K</span></div>
+</div>
+
+<div class="shell">
+
+  <!-- FORM -->
+  <div class="form-col">
+    <div class="form-head">
+      <div class="form-title">Audience Builder</div>
+      <div class="form-sub">Generate audience configurations for the campaign. Powered by <span class="agent-name">Stratos</span>.</div>
+      <div class="ctx-strip">
+        <span class="ctx-icon">◇</span>
+        <span class="ctx-label">Context loaded</span>
+        <span class="ctx-files">customer file · past campaigns · niche research</span>
+        <span class="ctx-refresh">refresh</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Setup</div>
+      <div class="field-row">
+        <div>
+          <label class="l">Client</label>
+          <select><option>Willis Windows</option></select>
+        </div>
+        <div>
+          <label class="l">Objective</label>
+          <select>
+            <option selected>Lead generation</option>
+            <option>Conversions</option>
+            <option>Traffic</option>
+            <option>Awareness</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Targeting</div>
+      <div class="field">
+        <label class="l">Geography</label>
+        <input type="text" value="Boise, ID + 25mi" />
+      </div>
+      <div class="field-row">
+        <div>
+          <label class="l">Age range</label>
+          <div class="age-range">
+            <input type="text" value="35" />
+            <span class="dash">–</span>
+            <input type="text" value="65" />
+            <span class="lbl">years</span>
+          </div>
+        </div>
+        <div>
+          <label class="l">Gender</label>
+          <div class="seg">
+            <div class="seg-opt active">All</div>
+            <div class="seg-opt">Women</div>
+            <div class="seg-opt">Men</div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="l">Ideal customer <span class="hint">in their words</span></label>
+        <textarea>Homeowners in Boise metro, 2-story homes, $80k+ HH income. Time-poor professionals who want it done right the first time. Most are repeat customers — they care about reliability over price.</textarea>
+      </div>
+      <div class="field">
+        <label class="l">Exclusions</label>
+        <input type="text" value="Past leads (30d) · existing customers · renters" />
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn-primary">Build audiences</button>
+      <button class="btn-ghost">Save as preset</button>
+    </div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="output-col">
+    <div class="out-head">
+      <h2>Audience configurations</h2>
+      <span class="out-count">3 options</span>
+    </div>
+    <div class="out-sub">Lead gen · Boise metro · 35-65 · homeowners</div>
+
+    <div class="out-toolbar">
+      <button class="tool">Copy all</button>
+      <button class="tool">Export to Ads Manager</button>
+      <button class="tool regen">Regenerate</button>
+    </div>
+
+    <!-- AUD 1 -->
+    <div class="aud">
+      <div class="aud-head">
+        <span class="aud-tag">A1 · BROAD</span>
+        <span class="aud-name">Boise homeowners — open targeting</span>
+        <span class="aud-size">Reach: <b>~85K</b></span>
+      </div>
+      <div class="aud-row">
+        <span class="k">Geo</span>
+        <span class="v">Boise, ID + 25mi radius</span>
+      </div>
+      <div class="aud-row">
+        <span class="k">Demo</span>
+        <span class="v">35-65 · all genders</span>
+      </div>
+      <div class="aud-row">
+        <span class="k">Interests</span>
+        <span class="v">Let the algorithm find them — no interest stacking</span>
+      </div>
+      <div class="aud-row">
+        <span class="k">Exclusions</span>
+        <span class="v">Past leads (30d) · CRM list · renters proxy</span>
+      </div>
+      <div class="aud-note">
+        <b>Why this works:</b> Meta's algorithm is sharper than interest targeting for local services. Broad gives it room to find the people most likely to convert. Start here, scale here.
+      </div>
+    </div>
+
+    <!-- AUD 2 -->
+    <div class="aud">
+      <div class="aud-head">
+        <span class="aud-tag">A2 · INTEREST</span>
+        <span class="aud-name">Home services intent</span>
+        <span class="aud-size">Reach: <b>~32K</b></span>
+      </div>
+      <div class="aud-row">
+        <span class="k">Geo</span>
+        <span class="v">Boise, ID + 25mi</span>
+      </div>
+      <div class="aud-row">
+        <span class="k">Demo</span>
+        <span class="v">35-65 · homeowners (behavioral)</span>
+      </div>
+      <div class="aud-row">
+        <span class="k">Interests</span>
+        <span class="v">
+          <span class="pill">Home improvement</span>
+          <span class="pill">House cleaning</span>
+          <span class="pill">Pressure washing</span>
+          <span class="pill">Real estate</span>
+          <span class="pill">Lawn care services</span>
+        </span>
+      </div>
+      <div class="aud-row">
+        <span class="k">Exclusions</span>
+        <span class="v">Past leads · CRM list</span>
+      </div>
+      <div class="aud-note">
+        <b>Why this works:</b> Backup when broad needs help. Stacks intent signals — homeowners actively spending on home services already have proven they'll pay someone else to do it.
+      </div>
+    </div>
+
+    <!-- AUD 3 -->
+    <div class="aud">
+      <div class="aud-head">
+        <span class="aud-tag">A3 · LOOKALIKE</span>
+        <span class="aud-name">1% LAL — past customers</span>
+        <span class="aud-size">Reach: <b>~21K</b></span>
+      </div>
+      <div class="aud-row">
+        <span class="k">Source</span>
+        <span class="v">Customer file (CRM export, 380 buyers)</span>
+      </div>
+      <div class="aud-row">
+        <span class="k">Match</span>
+        <span class="v">1% lookalike, US-narrowed to Boise + 25mi</span>
+      </div>
+      <div class="aud-row">
+        <span class="k">Demo</span>
+        <span class="v">35-65 · all genders</span>
+      </div>
+      <div class="aud-row">
+        <span class="k">Exclusions</span>
+        <span class="v">Customer file (don't show ads to existing buyers)</span>
+      </div>
+      <div class="aud-note">
+        <b>Why this works:</b> Highest-quality cold audience available — Meta finds people who behave like your actual buyers. Best CPL historically but smaller reach, so pair with A1 for scale.
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

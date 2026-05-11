@@ -14,12 +14,16 @@ import type {
   DataChangedEvent,
   DiagnosisFile,
   DiagnosisInputs,
+  DriveIndex,
   FolderSummary,
+  GeneratorKind,
+  GeneratorOutput,
   KnowledgeChunk,
   KnowledgeTitle,
   KpiEntry,
   LaunchChecklist,
   ParsedBenchmarks,
+  SaveGeneratorOutputArgs,
   SkillEntry,
   SkillFile,
   StreamEvent,
@@ -62,14 +66,30 @@ export const api = {
     invoke<ClientStatus>("read_client_status", { root, clientSlug }),
   setClientStatus: (root: string, clientSlug: string, status: ClientStatus) =>
     invoke<void>("set_client_status", { root, clientSlug, status }),
-  addClient: (root: string, slug: string, name: string) =>
-    invoke<ClientEntry>("add_client", { root, slug, name }),
+  addClient: (
+    root: string,
+    slug: string,
+    name: string,
+    driveFolderUrl: string | null = null,
+  ) =>
+    invoke<ClientEntry>("add_client", {
+      root,
+      slug,
+      name,
+      driveFolderUrl,
+    }),
   renameClient: (root: string, slug: string, newName: string) =>
     invoke<void>("rename_client", { root, slug, newName }),
   deleteClient: (root: string, slug: string) =>
     invoke<void>("delete_client", { root, slug }),
   setClientBenchmarks: (root: string, clientSlug: string, filename: string | null) =>
     invoke<void>("set_client_benchmarks", { root, clientSlug, filename }),
+  setClientDriveFolder: (root: string, clientSlug: string, url: string | null) =>
+    invoke<void>("set_client_drive_folder", { root, clientSlug, url }),
+  readDriveIndex: (root: string, clientSlug: string) =>
+    invoke<DriveIndex | null>("read_drive_index", { root, clientSlug }),
+  refreshDriveIndex: (root: string, clientSlug: string) =>
+    invoke<DriveIndex>("refresh_drive_index", { root, clientSlug }),
   listBenchmarkSets: (root: string) =>
     invoke<BenchmarkSummary[]>("list_benchmark_sets", { root }),
   readBenchmarksForClient: (root: string, clientSlug: string) =>
@@ -118,6 +138,39 @@ export const api = {
     }),
   readLatestDiagnosis: (root: string, clientSlug: string) =>
     invoke<DiagnosisFile | null>("read_latest_diagnosis", { root, clientSlug }),
+
+  saveGeneratorOutput: (args: SaveGeneratorOutputArgs) =>
+    invoke<GeneratorOutput>("save_generator_output", {
+      root: args.root,
+      clientSlug: args.clientSlug,
+      kind: args.kind,
+      title: args.title,
+      summary: args.summary,
+      body: args.body,
+      inputsYaml: args.inputsYaml,
+    }),
+  listGeneratorOutputs: (
+    root: string,
+    clientSlug: string,
+    kind: GeneratorKind,
+    limit: number,
+  ) =>
+    invoke<GeneratorOutput[]>("list_generator_outputs", {
+      root,
+      clientSlug,
+      kind,
+      limit,
+    }),
+  readLatestGeneratorOutput: (
+    root: string,
+    clientSlug: string,
+    kind: GeneratorKind,
+  ) =>
+    invoke<GeneratorOutput | null>("read_latest_generator_output", {
+      root,
+      clientSlug,
+      kind,
+    }),
 
   pickFolder: async (): Promise<string | null> => {
     const result = await open({ directory: true, multiple: false });

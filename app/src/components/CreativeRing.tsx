@@ -8,14 +8,6 @@ type Props = {
   clientSlug: string;
 };
 
-const PLACEHOLDER_CREATIVES = [
-  { id: "WW-001", name: "before/after", signal: "go" },
-  { id: "WW-002", name: "neighbor proof", signal: "go" },
-  { id: "WW-003", name: "price reveal", signal: "hold" },
-  { id: "WW-004", name: "UGC testimonial", signal: "go" },
-  { id: "WW-005", name: "seasonal urgency", signal: "stop" },
-];
-
 const dotColor: Record<string, string> = {
   go: "var(--signal-go)",
   hold: "var(--signal-hold)",
@@ -70,28 +62,17 @@ export function CreativeRing({ root, clientSlug }: Props) {
               Edit
             </button>
           </div>
-          <div className="creative-ring" style={{ "--pct": "53%" } as React.CSSProperties}>
+          <div className="creative-ring" style={{ "--pct": "0%" } as React.CSSProperties}>
             <div className="creative-ring-inner">
               <div className="num">
-                <em>8</em>/15
+                <em>—</em>
               </div>
-              <div className="denom">ACTIVE / MIN</div>
+              <div className="denom">NO DATA</div>
             </div>
           </div>
-          <ul className="creative-list">
-            {PLACEHOLDER_CREATIVES.map((c) => (
-              <li key={c.id}>
-                <span>
-                  <span className="id">{c.id}</span>
-                  {c.name}
-                </span>
-                <span style={{ color: dotColor[c.signal] }}>●</span>
-              </li>
-            ))}
-            <li style={{ color: "var(--text-faint)" }}>+ 3 others · 7 needed</li>
-          </ul>
           <div className="pulse-line dim" style={{ marginTop: 12, paddingTop: 12 }}>
-            Audit pending — values shown are placeholders.
+            <strong>No data</strong> — add creatives via Edit to populate this
+            panel.
           </div>
         </div>
 

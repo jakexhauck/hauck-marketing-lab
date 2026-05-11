@@ -76,19 +76,12 @@ export function TrackingPulse({ root, clientSlug }: Props) {
 
   const hasAudit = audit !== null;
 
-  const pixel: DialView = hasAudit
-    ? statusDial(audit!.pixel_status)
-    : { ringClass: "", valClass: "", pct: 100, display: "✓" };
-  const capi: DialView = hasAudit
-    ? statusDial(audit!.capi_status)
-    : { ringClass: "", valClass: "", pct: 100, display: "✓" };
-  const emq: DialView = hasAudit
-    ? emqDial(audit!.emq_score ?? null)
-    : { ringClass: "amber", valClass: "warn", pct: 72, display: "7.2" };
+  const emptyDial: DialView = { ringClass: "", valClass: "", pct: 0, display: "—" };
+  const pixel: DialView = hasAudit ? statusDial(audit!.pixel_status) : emptyDial;
+  const capi: DialView = hasAudit ? statusDial(audit!.capi_status) : emptyDial;
+  const emq: DialView = hasAudit ? emqDial(audit!.emq_score ?? null) : emptyDial;
 
-  const note = hasAudit
-    ? audit!.pulse_note
-    : "Server-side events flowing. EMQ could climb to 8.5+ by adding hashed phone + zip on the lead form. Optional but recommended before scale.";
+  const note = hasAudit ? audit!.pulse_note : null;
 
   return (
     <>
@@ -141,7 +134,8 @@ export function TrackingPulse({ root, clientSlug }: Props) {
         {note && <div className="pulse-line">{note}</div>}
         {!hasAudit && (
           <div className="pulse-line dim" style={{ marginTop: 12, paddingTop: 12 }}>
-            Audit pending — values shown are placeholders.
+            <strong>No data</strong> — run a tracking audit to populate pixel,
+            CAPI, and EMQ status.
           </div>
         )}
       </div>

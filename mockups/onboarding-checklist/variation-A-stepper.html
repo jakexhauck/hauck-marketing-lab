@@ -1,0 +1,1106 @@
+<!--
+  Onboarding Checklist — Variation A · Vertical Stepper with Gated Progression
+  Surface: Media Buying app's main area for a fresh client (pre-analytics).
+  Client: Willis Windows. Status: 4 / 10 cleared. Active step: Meta access granted.
+  Visual reference: mockups/main-dashboard/07-dashboard-v1.html (tokens locked).
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440, initial-scale=1.0">
+<title>HML OS · Media Buying · Onboarding · Willis Windows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #08090d;
+    --bg-deep: #0c0f17;
+    --bg-surface: #11151f;
+    --bg-elev: #161b28;
+    --bg-elev-2: #1b2130;
+    --border: rgba(180, 200, 240, 0.08);
+    --border-strong: rgba(180, 200, 240, 0.18);
+    --text: #eef1f7;
+    --text-mid: #c5ccdb;
+    --text-muted: #95a0b3;
+    --text-faint: #5a6378;
+    --text-locked: #3a4255;
+    --copper: #ec9849;
+    --copper-soft: #c9722a;
+    --copper-glow: rgba(236, 152, 73, 0.38);
+    --copper-faint: rgba(236, 152, 73, 0.08);
+    --signal-go: #5fe699;
+    --signal-go-glow: rgba(95, 230, 153, 0.32);
+    --signal-hold: #fbbf24;
+    --signal-stop: #f87171;
+    --grid: rgba(180, 200, 240, 0.025);
+    --sans: 'Hanken Grotesk', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Newsreader', serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-void);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  body {
+    background:
+      radial-gradient(ellipse at top left, rgba(236, 152, 73, 0.05), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 70% 30%, rgba(95, 230, 153, 0.018), transparent 60%),
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+      var(--bg-void);
+    background-size: auto, auto, 36px 36px, 36px 36px, auto;
+    min-height: 100vh;
+    width: 1440px;
+  }
+
+  /* ── topbar ───────────────────────────────── */
+  .topbar {
+    height: 42px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8, 9, 13, 0.9);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    padding: 0 26px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar .crumb { color: var(--text); font-weight: 600; }
+  .topbar .sep { color: var(--text-locked); margin: 0 14px; }
+  .topbar .right { margin-left: auto; display: flex; gap: 22px; align-items: center; }
+  .brand-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--copper);
+    box-shadow: 0 0 10px var(--copper-glow);
+    display: inline-block;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+  .pulse-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--signal-go);
+    box-shadow: 0 0 8px var(--signal-go);
+    animation: pulse 2s ease-in-out infinite;
+    display: inline-block; margin-right: 8px;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.85); }
+  }
+
+  /* ── page shell ──────────────────────────── */
+  .page {
+    padding: 38px 56px 0;
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  /* ── hero / progress header ───────────────── */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 56px;
+    align-items: end;
+    margin-bottom: 38px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .hero::after {
+    content: ''; position: absolute; bottom: -1px; left: 0; width: 40%; height: 1px;
+    background: linear-gradient(90deg, var(--copper), transparent);
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--copper);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .eyebrow .pip {
+    width: 5px; height: 5px; background: var(--copper); border-radius: 50%;
+    box-shadow: 0 0 6px var(--copper-glow);
+  }
+  .hero h1 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 44px;
+    letter-spacing: -0.028em;
+    line-height: 1.05;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
+  .hero h1 .accent { color: var(--copper); font-weight: 500; }
+  .hero-sub {
+    color: var(--text-muted);
+    font-size: 15px;
+    max-width: 560px;
+    line-height: 1.6;
+  }
+
+  /* progress meter (right side of hero) */
+  .progress {
+    display: flex; flex-direction: column; gap: 14px;
+    padding-bottom: 4px;
+  }
+  .progress-label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .progress-label .count {
+    font-family: var(--mono);
+    color: var(--copper);
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .progress-bar {
+    height: 6px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .progress-fill {
+    position: absolute; inset: 0 60% 0 0;
+    background: linear-gradient(90deg, var(--copper-soft), var(--copper));
+    box-shadow: 0 0 12px var(--copper-glow);
+  }
+  .progress-fill::after {
+    content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 28px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22));
+  }
+  .progress-ticks {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--text-locked);
+    letter-spacing: 0.1em;
+  }
+  .progress-ticks span {
+    text-align: center;
+    padding-top: 2px;
+    border-top: 1px solid var(--border);
+  }
+  .progress-ticks span.done { color: var(--signal-go); border-top-color: var(--signal-go); }
+  .progress-ticks span.now { color: var(--copper); border-top-color: var(--copper); }
+
+  /* ── main grid: stepper + coach ──────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 40px;
+    align-items: start;
+    padding-bottom: 32px;
+  }
+
+  /* ── stepper ─────────────────────────────── */
+  .stepper {
+    position: relative;
+    padding-left: 0;
+  }
+  /* the spine */
+  .stepper::before {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 24px;
+    bottom: 24px;
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      var(--signal-go) 0%,
+      var(--signal-go) 38%,
+      var(--copper) 42%,
+      var(--copper) 50%,
+      var(--border) 54%,
+      var(--border) 100%
+    );
+    opacity: 0.6;
+  }
+
+  .step {
+    position: relative;
+    padding: 0 0 14px 60px;
+    margin-bottom: 8px;
+  }
+  .step-node {
+    position: absolute;
+    left: 8px;
+    top: 14px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--bg-void);
+    border: 1px solid var(--border-strong);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    z-index: 2;
+    transition: all 0.18s;
+  }
+  .step-row {
+    display: flex; align-items: center;
+    padding: 13px 18px;
+    border: 1px solid var(--border);
+    background: rgba(17, 21, 31, 0.45);
+    cursor: pointer;
+    transition: all 0.18s;
+    min-height: 52px;
+  }
+  .step-row:hover { background: var(--bg-surface); border-color: var(--border-strong); }
+  .step-idx {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    color: var(--text-faint);
+    width: 32px;
+    flex-shrink: 0;
+  }
+  .step-title {
+    flex: 1;
+    color: var(--text-mid);
+    font-size: 14.5px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .step-title .glyph {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  .step-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 3px 9px;
+    border: 1px solid var(--border-strong);
+    margin-left: 12px;
+    border-radius: 1px;
+  }
+
+  /* ── step states ─────────────────────────── */
+  /* done */
+  .step.done .step-node {
+    background: var(--signal-go);
+    border-color: var(--signal-go);
+    color: var(--bg-void);
+    box-shadow: 0 0 0 4px rgba(95, 230, 153, 0.1), 0 0 10px var(--signal-go-glow);
+  }
+  .step.done .step-row {
+    border-color: rgba(95, 230, 153, 0.12);
+    background: rgba(95, 230, 153, 0.02);
+  }
+  .step.done .step-title { color: var(--text-muted); }
+  .step.done .step-title .glyph { color: var(--signal-go); }
+  .step.done .step-idx { color: var(--signal-go); }
+  .step.done .step-meta { color: var(--signal-go); border-color: rgba(95, 230, 153, 0.28); }
+
+  /* active */
+  .step.active .step-node {
+    background: var(--copper);
+    border-color: var(--copper);
+    color: var(--bg-void);
+    box-shadow: 0 0 0 5px rgba(236, 152, 73, 0.1), 0 0 16px var(--copper-glow);
+    animation: nodePulse 2.4s ease-in-out infinite;
+  }
+  @keyframes nodePulse {
+    0%, 100% { box-shadow: 0 0 0 5px rgba(236, 152, 73, 0.10), 0 0 16px var(--copper-glow); }
+    50% { box-shadow: 0 0 0 9px rgba(236, 152, 73, 0.04), 0 0 22px var(--copper-glow); }
+  }
+  .step.active .step-row {
+    background: linear-gradient(180deg, rgba(236, 152, 73, 0.06), rgba(236, 152, 73, 0.02));
+    border: 1px solid rgba(236, 152, 73, 0.32);
+    cursor: default;
+    box-shadow: 0 0 0 1px rgba(236, 152, 73, 0.06), 0 18px 40px -28px rgba(0,0,0,0.6);
+  }
+  .step.active .step-title { color: var(--text); font-weight: 600; }
+  .step.active .step-title .glyph { color: var(--copper); }
+  .step.active .step-idx { color: var(--copper); }
+  .step.active .step-meta {
+    color: var(--copper);
+    border-color: rgba(236, 152, 73, 0.45);
+    background: rgba(236, 152, 73, 0.06);
+  }
+
+  /* locked */
+  .step.locked .step-node {
+    background: var(--bg-deep);
+    border-color: rgba(180, 200, 240, 0.05);
+    color: var(--text-locked);
+  }
+  .step.locked .step-row {
+    background: transparent;
+    border-color: rgba(180, 200, 240, 0.04);
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+  .step.locked:hover .step-row { background: transparent; border-color: rgba(180, 200, 240, 0.04); }
+  .step.locked .step-title { color: var(--text-locked); }
+  .step.locked .step-title .glyph { color: var(--text-locked); }
+  .step.locked .step-idx { color: var(--text-locked); }
+  .step.locked .step-meta { color: var(--text-locked); border-color: rgba(180, 200, 240, 0.04); }
+
+  /* ── expanded body (active step) ────────── */
+  .step-body {
+    margin-top: -1px;
+    border: 1px solid rgba(236, 152, 73, 0.32);
+    border-top: none;
+    background:
+      radial-gradient(circle at 95% -10%, rgba(236, 152, 73, 0.06), transparent 50%),
+      var(--bg-surface);
+    padding: 28px 34px 26px;
+    position: relative;
+  }
+  .step-body::before {
+    content: '';
+    position: absolute; left: -41px; top: 24px; width: 22px; height: 1px;
+    background: rgba(236, 152, 73, 0.45);
+  }
+  .body-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 14px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .body-head .lh {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--copper);
+    font-weight: 500;
+  }
+  .body-head .rh {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    color: var(--text-faint);
+  }
+  .body-head .rh em {
+    color: var(--signal-hold); font-style: normal; font-weight: 600;
+  }
+
+  /* form grid */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px 24px;
+    margin-bottom: 22px;
+  }
+  .field { display: flex; flex-direction: column; gap: 7px; }
+  .field.full { grid-column: 1 / -1; }
+  .field-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    display: flex; justify-content: space-between; align-items: center;
+    font-weight: 500;
+  }
+  .field-label .hint {
+    color: var(--text-locked);
+    letter-spacing: 0.14em;
+  }
+  .field-input {
+    height: 38px;
+    background: var(--bg-void);
+    border: 1px solid var(--border-strong);
+    padding: 0 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    transition: border-color 0.15s, background 0.15s;
+    display: flex; align-items: center;
+  }
+  .field-input:hover { border-color: rgba(236, 152, 73, 0.32); }
+  .field-input.filled { color: var(--text); }
+  .field-input.empty { color: var(--text-locked); }
+  .field-input .verified {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    color: var(--signal-go);
+    text-transform: uppercase;
+  }
+  .field-input .pending {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    color: var(--signal-hold);
+    text-transform: uppercase;
+  }
+
+  /* toggle row */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px;
+    border: 1px solid var(--border-strong);
+    background: rgba(8, 9, 13, 0.5);
+    margin-bottom: 22px;
+  }
+  .toggle-row .tr-label {
+    font-family: var(--sans);
+    font-size: 13.5px;
+    color: var(--text-mid);
+    font-weight: 500;
+  }
+  .toggle-row .tr-label .sub {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-top: 4px;
+    font-weight: 400;
+  }
+  .toggle {
+    width: 44px; height: 22px;
+    border-radius: 12px;
+    background: var(--bg-void);
+    border: 1px solid var(--border-strong);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    transition: all 0.18s;
+  }
+  .toggle.on {
+    background: rgba(236, 152, 73, 0.16);
+    border-color: var(--copper);
+  }
+  .toggle.on::after {
+    left: 25px;
+    background: var(--copper);
+    box-shadow: 0 0 8px var(--copper-glow);
+  }
+
+  /* aurelius inline note */
+  .aurelius-note {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 14px;
+    align-items: start;
+    padding: 14px 16px;
+    border-left: 2px solid var(--copper);
+    background: linear-gradient(90deg, rgba(236, 152, 73, 0.05), transparent 80%);
+    margin-bottom: 22px;
+  }
+  .aurelius-note .orb {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(255,255,255,0.22), transparent 55%),
+      linear-gradient(135deg, var(--copper), var(--copper-soft));
+    box-shadow: 0 0 10px var(--copper-glow);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .aurelius-note .nt {
+    font-size: 13.5px;
+    color: var(--text-mid);
+    line-height: 1.55;
+  }
+  .aurelius-note .nt .who {
+    display: block;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--copper);
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .aurelius-note .nt em {
+    font-style: normal;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* action row */
+  .action-row {
+    display: flex; align-items: center; gap: 14px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-primary {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--bg-void);
+    background: var(--copper);
+    border: 1px solid var(--copper);
+    padding: 12px 22px;
+    cursor: pointer;
+    font-weight: 600;
+    position: relative;
+    transition: all 0.15s;
+    box-shadow: 0 0 0 0 var(--copper-glow);
+    animation: btnPulse 2.2s ease-in-out infinite;
+  }
+  @keyframes btnPulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--copper-glow); }
+    50% { box-shadow: 0 0 0 6px rgba(236, 152, 73, 0.04), 0 0 18px var(--copper-glow); }
+  }
+  .btn-primary:hover {
+    background: #f3a55a;
+    box-shadow: 0 0 22px var(--copper-glow);
+  }
+  .btn-ghost {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    padding: 11px 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-ghost:hover { color: var(--copper); border-color: var(--copper); }
+  .action-meta {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .action-meta .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--signal-hold);
+    box-shadow: 0 0 6px var(--signal-hold);
+  }
+
+  /* ── coach panel (right rail) ────────────── */
+  .coach {
+    position: sticky;
+    top: 62px;
+    border: 1px solid var(--border);
+    background:
+      radial-gradient(circle at 100% 0%, rgba(236, 152, 73, 0.06), transparent 55%),
+      var(--bg-surface);
+    overflow: hidden;
+  }
+  .coach::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--copper) 30%, var(--copper) 70%, transparent);
+  }
+  .coach-head {
+    padding: 22px 24px 16px;
+    display: grid; grid-template-columns: 36px 1fr;
+    gap: 14px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .coach-orb {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 28% 28%, rgba(255,255,255,0.22), transparent 55%),
+      linear-gradient(135deg, var(--copper), var(--copper-soft));
+    box-shadow: 0 0 18px var(--copper-glow), inset 0 0 10px rgba(255,255,255,0.12);
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--sans);
+    font-weight: 700;
+    color: var(--bg-void);
+    font-size: 14px;
+  }
+  .coach-orb::after {
+    content: ''; position: absolute; inset: -3px; border-radius: 50%;
+    border: 1px solid var(--copper);
+    opacity: 0.32;
+    animation: ring 3.4s ease-in-out infinite;
+  }
+  @keyframes ring {
+    0%, 100% { transform: scale(1); opacity: 0.32; }
+    50% { transform: scale(1.12); opacity: 0; }
+  }
+  .coach-title {
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .coach-title .name {
+    font-family: var(--sans);
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.005em;
+  }
+  .coach-title .role {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--copper);
+    font-weight: 500;
+  }
+
+  .coach-body { padding: 22px 24px; }
+  .coach-step {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .coach-step .num { color: var(--copper); }
+  .coach-h {
+    font-family: var(--sans);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    margin-bottom: 14px;
+  }
+  .coach-section { margin-bottom: 18px; }
+  .coach-section h4 {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--copper);
+    font-weight: 600;
+    margin-bottom: 9px;
+  }
+  .coach-section p {
+    font-size: 13px;
+    color: var(--text-mid);
+    line-height: 1.55;
+  }
+  .coach-list {
+    list-style: none;
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .coach-list li {
+    font-size: 12.5px;
+    color: var(--text-mid);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .coach-list li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--copper);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .coach-list li.blocker::before { color: var(--signal-stop); }
+
+  .coach-foot {
+    padding: 18px 24px 22px;
+    border-top: 1px solid var(--border);
+    background: rgba(8, 9, 13, 0.4);
+  }
+  .ask-input {
+    display: flex; align-items: center;
+    height: 40px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-void);
+    padding: 0 14px;
+    cursor: text;
+    transition: border-color 0.15s;
+    margin-bottom: 10px;
+  }
+  .ask-input:hover { border-color: var(--copper); }
+  .ask-input .prompt {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--copper);
+    margin-right: 10px;
+    letter-spacing: 0.12em;
+  }
+  .ask-input .ph {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--text-locked);
+    flex: 1;
+  }
+  .ask-input .kbd {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--text-faint);
+    border: 1px solid var(--border-strong);
+    padding: 2px 6px;
+    letter-spacing: 0.1em;
+  }
+  .ask-hint {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    text-align: center;
+  }
+
+  /* ── footer action bar ───────────────────── */
+  .footer-bar {
+    margin: 8px auto 0;
+    padding: 26px 56px 36px;
+    max-width: 1440px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+    background:
+      linear-gradient(180deg, transparent, rgba(8, 9, 13, 0.6));
+  }
+  .footer-bar .left { color: var(--text-faint); font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; }
+  .footer-bar .left .copper { color: var(--copper); }
+  .footer-bar .right { margin-left: auto; display: flex; gap: 10px; }
+  .btn-launch {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--text-locked);
+    background: transparent;
+    border: 1px solid rgba(180, 200, 240, 0.06);
+    padding: 11px 22px;
+    cursor: not-allowed;
+    font-weight: 500;
+  }
+
+  /* reveal */
+  .reveal { opacity: 0; transform: translateY(6px); animation: reveal 0.55s cubic-bezier(.2,.8,.2,1) forwards; }
+  .reveal-1 { animation-delay: 0.04s; }
+  .reveal-2 { animation-delay: 0.10s; }
+  .reveal-3 { animation-delay: 0.18s; }
+  .reveal-4 { animation-delay: 0.26s; }
+  @keyframes reveal { to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<!-- ── TOPBAR ──────────────────────────────── -->
+<div class="topbar">
+  <span><span class="brand-dot"></span><span class="crumb">HAUCK MARKETING OS</span></span>
+  <span class="sep">·</span>
+  <span>CLIENT: <span class="crumb">WILLIS WINDOWS</span></span>
+  <span class="sep">·</span>
+  <span>MEDIA BUYING</span>
+  <div class="right">
+    <span><span class="pulse-dot"></span>AURELIUS · STANDING BY</span>
+    <span style="color: var(--text-faint);">⌘ K · COMMAND</span>
+  </div>
+</div>
+
+<!-- ── PAGE ─────────────────────────────────── -->
+<div class="page">
+
+  <!-- HERO -->
+  <section class="hero reveal reveal-1">
+    <div>
+      <div class="eyebrow"><span class="pip"></span>▸ Onboarding · Willis Windows</div>
+      <h1>We're halfway there, <span class="accent">Sir.</span></h1>
+      <p class="hero-sub">
+        Six steps remain before we go live. The Meta access handover is in flight — once Willis approves the partner request, the pixel and event verifications follow automatically. I'll handle the heavy lifting.
+      </p>
+    </div>
+    <div class="progress">
+      <div class="progress-label">
+        <span>▸ Cleared</span>
+        <span class="count">4 / 10 · 40%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill"></div>
+      </div>
+      <div class="progress-ticks">
+        <span class="done">01</span>
+        <span class="done">02</span>
+        <span class="done">03</span>
+        <span class="done">04</span>
+        <span class="now">05</span>
+        <span>06</span>
+        <span>07</span>
+        <span>08</span>
+        <span>09</span>
+        <span>10</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN GRID -->
+  <div class="grid">
+
+    <!-- STEPPER -->
+    <div class="stepper reveal reveal-2">
+
+      <!-- 1 DONE -->
+      <div class="step done">
+        <div class="step-node">✓</div>
+        <div class="step-row">
+          <span class="step-idx">01</span>
+          <span class="step-title"><span class="glyph">▸</span>Discovery call notes saved</span>
+          <span class="step-meta">CLEARED · 06 MAY</span>
+        </div>
+      </div>
+
+      <!-- 2 DONE -->
+      <div class="step done">
+        <div class="step-node">✓</div>
+        <div class="step-row">
+          <span class="step-idx">02</span>
+          <span class="step-title"><span class="glyph">▸</span>Service agreement signed</span>
+          <span class="step-meta">CLEARED · 07 MAY</span>
+        </div>
+      </div>
+
+      <!-- 3 DONE -->
+      <div class="step done">
+        <div class="step-node">✓</div>
+        <div class="step-row">
+          <span class="step-idx">03</span>
+          <span class="step-title"><span class="glyph">▸</span>Brand assets uploaded</span>
+          <span class="step-meta">14 FILES · 09 MAY</span>
+        </div>
+      </div>
+
+      <!-- 4 DONE -->
+      <div class="step done">
+        <div class="step-node">✓</div>
+        <div class="step-row">
+          <span class="step-idx">04</span>
+          <span class="step-title"><span class="glyph">▸</span>Offer locked in</span>
+          <span class="step-meta">$149 FIRST CLEAN · 10 MAY</span>
+        </div>
+      </div>
+
+      <!-- 5 ACTIVE -->
+      <div class="step active">
+        <div class="step-node">05</div>
+        <div class="step-row">
+          <span class="step-idx">05</span>
+          <span class="step-title"><span class="glyph">▸</span>Meta access granted</span>
+          <span class="step-meta">IN PROGRESS</span>
+        </div>
+
+        <!-- EXPANDED BODY -->
+        <div class="step-body">
+          <div class="body-head">
+            <span class="lh">▸ Meta · Business Manager Handover</span>
+            <span class="rh">STATUS · <em>AWAITING WILLIS</em></span>
+          </div>
+
+          <div class="form-grid">
+            <div class="field">
+              <span class="field-label">▸ Ad Account ID <span class="hint">act_*</span></span>
+              <div class="field-input filled">
+                act_817 432 990 211 <span class="verified">✓ VERIFIED</span>
+              </div>
+            </div>
+            <div class="field">
+              <span class="field-label">▸ Business Manager ID <span class="hint">numeric</span></span>
+              <div class="field-input filled">
+                4 419 286 003 <span class="verified">✓ VERIFIED</span>
+              </div>
+            </div>
+            <div class="field">
+              <span class="field-label">▸ Facebook Page <span class="hint">page handle</span></span>
+              <div class="field-input filled">
+                @williswindowsTN <span class="pending">⋯ INVITE SENT</span>
+              </div>
+            </div>
+            <div class="field">
+              <span class="field-label">▸ Instagram Handle <span class="hint">optional</span></span>
+              <div class="field-input empty">
+                — not provided —
+              </div>
+            </div>
+            <div class="field full">
+              <span class="field-label">▸ Page Admin Invite <span class="hint">jake@hauck.co → role: admin</span></span>
+              <div class="field-input filled">
+                Sent 10 May, 14:22 · expires in 5 days <span class="pending">⋯ AWAITING ACCEPT</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="toggle-row">
+            <div class="tr-label">
+              Partner request pending
+              <span class="sub">Hauck Marketing → Willis Windows Business Manager</span>
+            </div>
+            <div class="toggle on"></div>
+          </div>
+
+          <div class="aurelius-note">
+            <div class="orb"></div>
+            <div class="nt">
+              <span class="who">▸ Aurelius · note</span>
+              <em>Sir, once Willis grants Business Manager access, I can verify the pixel automatically.</em> I'll re-run the handshake every 4 minutes and ping you the moment it clears.
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button class="btn-primary">▸ Verify Access</button>
+            <button class="btn-ghost">Resend Invite</button>
+            <button class="btn-ghost">Skip · request later</button>
+            <span class="action-meta"><span class="dot"></span>Last checked 2 min ago</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 LOCKED -->
+      <div class="step locked">
+        <div class="step-node">06</div>
+        <div class="step-row">
+          <span class="step-idx">06</span>
+          <span class="step-title"><span class="glyph">▸</span>Pixel installed + firing</span>
+          <span class="step-meta">LOCKED</span>
+        </div>
+      </div>
+
+      <!-- 7 LOCKED -->
+      <div class="step locked">
+        <div class="step-node">07</div>
+        <div class="step-row">
+          <span class="step-idx">07</span>
+          <span class="step-title"><span class="glyph">▸</span>Conversion events mapped — Lead / Purchase / Schedule</span>
+          <span class="step-meta">LOCKED</span>
+        </div>
+      </div>
+
+      <!-- 8 LOCKED -->
+      <div class="step locked">
+        <div class="step-node">08</div>
+        <div class="step-row">
+          <span class="step-idx">08</span>
+          <span class="step-title"><span class="glyph">▸</span>Audience research complete</span>
+          <span class="step-meta">LOCKED</span>
+        </div>
+      </div>
+
+      <!-- 9 LOCKED -->
+      <div class="step locked">
+        <div class="step-node">09</div>
+        <div class="step-row">
+          <span class="step-idx">09</span>
+          <span class="step-title"><span class="glyph">▸</span>Creative brief approved by client</span>
+          <span class="step-meta">LOCKED</span>
+        </div>
+      </div>
+
+      <!-- 10 LOCKED -->
+      <div class="step locked">
+        <div class="step-node">10</div>
+        <div class="step-row">
+          <span class="step-idx">10</span>
+          <span class="step-title"><span class="glyph">▸</span>First 3 ad concepts approved</span>
+          <span class="step-meta">LOCKED</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COACH RAIL -->
+    <aside class="coach reveal reveal-3">
+      <div class="coach-head">
+        <div class="coach-orb">A</div>
+        <div class="coach-title">
+          <span class="name">Aurelius</span>
+          <span class="role">▸ Onboarding Coach</span>
+        </div>
+      </div>
+
+      <div class="coach-body">
+        <div class="coach-step">▸ Step <span class="num">05 / 10</span> · current</div>
+        <div class="coach-h">Meta access is the gate everything else hinges on, Sir.</div>
+
+        <div class="coach-section">
+          <h4>▸ What we need</h4>
+          <p>
+            Willis to approve the partner request and grant Hauck Marketing admin access to the Page and ad account. That's the unlock for every step below.
+          </p>
+        </div>
+
+        <div class="coach-section">
+          <h4>▸ Why it matters</h4>
+          <p>
+            Without admin rights, I can't verify the pixel, register conversion events, or push creative. Steps 06 through 10 stay locked until this clears.
+          </p>
+        </div>
+
+        <div class="coach-section">
+          <h4>▸ Common blockers</h4>
+          <ul class="coach-list">
+            <li class="blocker">Client clicks "deny" thinking it's a phishing email</li>
+            <li class="blocker">No Business Manager set up — needs creation first</li>
+            <li>Wrong Facebook user invited (personal vs. business)</li>
+            <li>Two-factor delay on client's end</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="coach-foot">
+        <div class="ask-input">
+          <span class="prompt">▸</span>
+          <span class="ph">Ask Aurelius about this step…</span>
+          <span class="kbd">⌘ /</span>
+        </div>
+        <div class="ask-hint">Returns scoped to step 05 · Meta access</div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<!-- FOOTER BAR -->
+<div class="footer-bar reveal reveal-4">
+  <div class="left">
+    ▸ Folder · <span class="copper">/clients/willis-windows/onboarding</span> · synced 2 min ago
+  </div>
+  <div class="right">
+    <button class="btn-ghost">▸ Reset onboarding</button>
+    <button class="btn-ghost">Skip to dashboard (admin)</button>
+    <button class="btn-launch">Mark all complete ▸ launch</button>
+  </div>
+</div>
+
+</body>
+</html>

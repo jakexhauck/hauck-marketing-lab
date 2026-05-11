@@ -8,102 +8,6 @@
 
 ---
 
-## Generators (the productive flows)
-
-Surfaces where the user produces new artifacts via an agent.
-
-- [ ] **Hook generator UI**
-  - **What:** Dedicated form: client + angle count + creatives per angle + seed (optional). Dispatches Vortex with a structured prompt. Renders generated hooks in a reviewable list. Save to `outputs/hooks/YYYY-MM-DD-<slug>.md`.
-  - **Why deferred:** In `APP-FOUNDATION-PLAN.md` § v1 deliberately omits.
-  - **Size:** L.
-  - **Touches:** New route/surface, new Rust command for `outputs/hooks/`, streaming reused from chat drawer.
-
-- [ ] **Creative brief builder**
-  - **What:** Form-driven brief generation using `media-buying/skills/templates/creative-brief.md`. Output saves to `outputs/briefs/`.
-  - **Why deferred:** Same family as hook generator — needs the generator-surface pattern established.
-  - **Size:** M after hook generator pattern exists.
-  - **Touches:** New surface, reuses generator scaffolding.
-
-- [ ] **Report builder**
-  - **What:** Performance-report generation using `media-buying/skills/templates/performance-report.md`. Output saves to `outputs/reports/`. Export to PDF (optional).
-  - **Why deferred:** In `APP-FOUNDATION-PLAN.md` § v1 deliberately omits.
-  - **Size:** L (M without PDF).
-  - **Touches:** New surface, possibly add a PDF crate to Rust.
-
-- [ ] **Scale-readiness UI**
-  - **What:** Single-button "Am I ready to scale?" surface that runs `scale-readiness-check` skill against current data. Renders a go/hold/kill verdict with reasoning.
-  - **Why deferred:** In `APP-FOUNDATION-PLAN.md` § v1 deliberately omits.
-  - **Size:** M.
-  - **Touches:** New surface, ties to the spectrum bar on the hero.
-
-- [ ] **Tracking audit UI**
-  - **What:** Walk-through form: pixel ID, CAPI status, EMQ score, dedup setup. Renders a per-check status with copy-paste fix snippets. Output saves to `outputs/audits/`.
-  - **Why deferred:** In `APP-FOUNDATION-PLAN.md` § v1 deliberately omits.
-  - **Size:** M.
-  - **Touches:** New surface.
-
-- [ ] **Workflow chains (launch / optimize / scale)**
-  - **What:** Multi-step guided flows from `media-buying/README.md` — e.g. "launch campaign" walks Aurelius → Stratos → Vortex → Nexus → back to Aurelius for a final go/no-go.
-  - **Why deferred:** Composite of several generators above.
-  - **Size:** L.
-  - **Touches:** New orchestration layer, sequential agent invocations, shared state across steps.
-
----
-
-## Multi-client and config
-
-Generalize the hardcoded "Willis Windows" into a multi-client model.
-
-- [x] **Multi-client management**
-  - **What:** Switch active client via the status bar pill or a clients page. Each client gets its own `data/<client>/` subfolder for KPIs, creatives, diagnoses. Dashboard re-reads on switch.
-  - **Why deferred:** v1 hardcoded `Willis Windows` for shipping speed. The architecture supports multi-client; just needs UI + folder convention.
-  - **Size:** L.
-  - **Touches:** New `data/clients.yaml` registry, status bar becomes interactive, all dashboard components take a client prop, new Rust command for client list.
-
-- [x] **Settings / preferences screen**
-  - **What:** Change picked folder, default agent, client list, theme overrides (minor — Mission Control is the look), shortcut customization.
-  - **Why deferred:** In `APP-FOUNDATION-PLAN.md` § v1 deliberately omits.
-  - **Size:** M.
-  - **Touches:** New surface, ties to `config.rs`.
-
-- [x] **Per-client Meta access token storage**
-  - **What:** UI surface inside Settings (between Clients and Shortcuts, scoped to the active client) to enter and store the Meta long-lived access token, ad account ID, pixel ID, and business ID. Stored as plain YAML at `data/<client>/credentials.yaml` (gitignored). Sensitive fields mask as `••••••••AB23` with Reveal toggle and Rotate button. Launch-checklist `meta_token` auto-seeds to Go on fresh checklists when a token is present.
-  - **Shipped:** v1 chose the file-based path. No encryption, clear in-UI warning ("STORED LOCALLY · NOT ENCRYPTED. Anyone with access to this folder can read the token."). Keychain integration deferred — see follow-up below.
-  - **Touched:** `app/src-tauri/src/credentials.rs` (new, 3 commands), `launch_checklist.rs` (auto-seed `meta_token` to Go only on fresh checklist files — user overrides preserved on existing files), `app/src/components/ClientCredentials.tsx` (new), `SettingsPage.tsx` (embed), `lib/types.ts` + `lib/tauri.ts` (bindings), `.gitignore`.
-
-- [ ] **Keychain-backed credential storage** (follow-up to the item above)
-  - **What:** Replace the plain-YAML store with OS-native secret storage via `tauri-plugin-stronghold` (Tauri-native, encrypted vault) or `tauri-plugin-keyring` (delegates to Windows Credential Manager / macOS Keychain / Secret Service). UI layer stays the same; only the read/write commands change.
-  - **Why deferred:** v1 deliberately picked file-based for portability (everything about a client lives in one folder) and zero extra plugins. Upgrade once a user explicitly needs at-rest encryption or starts syncing the folder via iCloud/Dropbox/OneDrive.
-  - **Size:** M. Add plugin, migrate existing `credentials.yaml` files on first run, delete the YAML.
-  - **Touches:** `app/src-tauri/Cargo.toml`, `credentials.rs`, one-time migration helper, capabilities config.
-
-- [x] **Per-client benchmark sets**
-  - **What:** `benchmarks-brasil.yaml` is the only one present and is high-ticket challenge-funnel oriented. Add `benchmarks-us-local-lead-gen.yaml` for Willis Windows. Make benchmark selection part of the client config.
-  - **Shipped:** Added `benchmarks-us-local-lead-gen.yaml` (English, USD, home-services lead-gen oriented) with a top-level `kpi_strip:` block that maps exactly onto the KPI strip cards. New Rust module `benchmarks.rs` exposes `list_benchmark_sets` and `read_benchmarks_for_client`. `ClientEntry.benchmarks: Option<String>` persists the choice. The Clients page row carries a dropdown; `Kpis.tsx` re-fetches on `clientSlug` change and substitutes the YAML strings into the card "bench" sub-labels. When no benchmark is set (or the file is missing) the hardcoded `card.meta` strings remain.
-  - **Touched:** `media-buying/skills/data/benchmarks-us-local-lead-gen.yaml` (new), `app/src-tauri/src/benchmarks.rs` (new), `clients.rs`, `lib.rs`, `app/src/lib/types.ts`, `app/src/lib/tauri.ts`, `app/src/components/ClientsPage.tsx`, `app/src/components/Kpis.tsx`, `app/src/index.css`.
-  - **Follow-up:** `benchmarks-brasil.yaml` should be renamed (e.g. `benchmarks-br-infoproduct.yaml`) now that it's no longer the only benchmark file — its name is no longer descriptive. Left in place to avoid breaking existing client references. Roll into the next content-pass.
-
----
-
-## Browsing / discovery
-
-- [x] **Knowledge browser**
-  - **What:** Searchable, categorized view of `media-buying/knowledge/TFC-*.md` (517 chunks). Open a chunk → read pane. Pin chunks to the current chat context.
-  - **Shipped:** New `KnowledgeBrowser.tsx` two-pane surface (filterable list + read pane). Entry points: ⌘K → "Browse knowledge" action, or ⌘K → click any KNOWLEDGE result auto-selects that chunk. Tag filter pills populate lazily as chunks are opened. "Pin to chat" routes the chunk body into the active agent's drawer via the existing `pendingInput` mechanism.
-  - **Touched:** `app/src-tauri/src/knowledge.rs` (new `read_knowledge_chunk` command), `lib.rs`, `lib/tauri.ts` (binding), `App.tsx` (state + route + pin handler), `CommandPalette.tsx` (action row), `index.css` (`.kb-*` rules).
-
-- [x] **Output materialization back to dashboard cards**
-  - **What:** When an agent writes to `outputs/`, the relevant dashboard panel updates without manual refresh. E.g., a new diagnosis → diagnosis panel reflects it immediately, hero updates verdict.
-  - **Shipped:** New `data://changed` Tauri event bus. Rust write commands emit a `DataChanged { kind, client_slug, path }` payload after each successful write. React dashboard panels subscribe and re-fetch when their relevant kind+slug fires. Focus-refresh remains as a fallback for external/CLI writes.
-  - **Touched:** `app/src-tauri/src/events.rs` (new module with `DataKind` enum + `emit_changed` helper), emit calls added to `diagnosis.rs`, `kpi.rs`, `tracking.rs`, `creatives.rs`, `launch_checklist.rs`, `chat.rs`, `clients.rs`. TS side: `types.ts` (`DataKind`, `DataChangedEvent`), `tauri.ts` (`onDataChanged`), subscriptions in `Hero.tsx`, `DiagnosisPanel.tsx`, `Kpis.tsx`, `TrackingPulse.tsx`, `CreativeRing.tsx`, `PreLaunchDashboard.tsx`, plus `App.tsx` listens for `chat` and re-runs `loadFolder`.
-
-- [x] **Chat search / filter on Recent Threads**
-  - **What:** Search bar above Recent Threads, filter by agent, date range, or keyword.
-  - **Shipped:** Inline keyword search, agent pills (OR-toggle), date window pills (All / 7d / 30d / 90d). Matches header shows N count + Clear button when any filter is active. Unfiltered behaviour unchanged (top 5 most recent). Agent slugs and pretty names collapse case-insensitively so duplicates don't show as separate pills.
-  - **Touched:** `app/src/components/RecentThreads.tsx`, `index.css` (`.feed-search`, `.feed-filter-*`, `.feed-clear`).
-
----
-
 ## Polish / quality-of-life
 
 Small wins that improve the daily-use feel without changing scope.
@@ -176,6 +80,12 @@ These are off the v1 plan but listed in case use exposes a real need.
   - **What:** Pull spend/CPM/CTR/CVR/CPA/ROAS directly from Meta Ads instead of paste/CSV.
   - **Why deferred:** Explicitly out of v1 scope per `APP-FOUNDATION-PLAN.md`. May or may not ever be wanted given the "no recurring fees / no auth" stance.
   - **Size:** L. Adds OAuth, token storage, refresh cycle — significant departure from current architecture.
+
+- [ ] **Keychain-backed credential storage** (follow-up to shipped Per-client Meta token storage)
+  - **What:** Replace the plain-YAML store at `data/<client>/credentials.yaml` with OS-native secret storage via `tauri-plugin-stronghold` (Tauri-native, encrypted vault) or `tauri-plugin-keyring` (delegates to Windows Credential Manager / macOS Keychain / Secret Service). UI layer stays the same; only the read/write commands change.
+  - **Why deferred:** v1 deliberately picked file-based for portability (everything about a client lives in one folder) and zero extra plugins. Upgrade once a user explicitly needs at-rest encryption or starts syncing the folder via iCloud/Dropbox/OneDrive.
+  - **Size:** M. Add plugin, migrate existing `credentials.yaml` files on first run, delete the YAML.
+  - **Touches:** `app/src-tauri/Cargo.toml`, `credentials.rs`, one-time migration helper, capabilities config.
 
 ---
 

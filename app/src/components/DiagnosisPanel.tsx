@@ -76,43 +76,22 @@ export function DiagnosisPanel({ root, clientSlug }: Props) {
         </div>
 
         <div className="diag-headline">
-          Bottleneck identified at the <strong>creative</strong> layer; landing-page friction is a
-          contributing factor.
+          <strong>No data</strong> — run a Zenith diagnosis to populate
+          findings.
         </div>
 
-        <ul className="diag-list">
-          <li className="diag-item">
-            <span className="diag-dot high" />
-            <span className="diag-attr">VORTEX · HIGH</span>
-            <span className="diag-text">
-              <strong>Creative diversity at 8/15.</strong> Andromeda minimum is 15 active variants;
-              the algorithm cannot find pockets without breadth. Ship 12 new hooks across 4 angles.
-            </span>
-          </li>
-          <li className="diag-item">
-            <span className="diag-dot med" />
-            <span className="diag-attr">STRATOS · MED</span>
-            <span className="diag-text">
-              <strong>Landing CVR 2.8% (target 3.5%).</strong> Click-through is healthy but the page
-              is failing to close. Suspect headline/offer mismatch with ad creative.
-            </span>
-          </li>
-          <li className="diag-item">
-            <span className="diag-dot low" />
-            <span className="diag-attr">NEXUS · OK</span>
-            <span className="diag-text">
-              <strong>Tracking is clean.</strong> Pixel + CAPI both firing; EMQ at 7.2/10. No
-              attribution loss to investigate.
-            </span>
-          </li>
-        </ul>
-
-        <div className="actions-row">
-          <button className="action primary">Dispatch Vortex · 12 hooks</button>
-          <button className="action">Open landing audit</button>
-          <button className="action">Generate brief</button>
-          <button className="action">Export report</button>
-        </div>
+        <p
+          style={{
+            color: "var(--text-muted)",
+            fontSize: 13,
+            lineHeight: 1.55,
+            margin: "12px 0 0",
+          }}
+        >
+          Findings, severity, and recommended next actions will appear here once
+          a diagnosis has been written to{" "}
+          <code>data/&lt;client&gt;/diagnoses/</code>.
+        </p>
       </div>
     );
   }

@@ -25,6 +25,10 @@ pub struct ClientEntry {
     /// falls back to the hardcoded card metadata in `Kpis.tsx`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub benchmarks: Option<String>,
+    /// URL to this client's Google Drive folder. Used as both a one-click
+    /// human shortcut and the pointer agents use when loading client context.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub drive_folder_url: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -49,6 +53,7 @@ pub fn read_clients_file(root: &str) -> Result<Vec<ClientEntry>, String> {
             status: ClientStatus::PreLaunch,
             created_at: None,
             benchmarks: None,
+            drive_folder_url: None,
         }]);
     }
     let raw = fs::read_to_string(&path).map_err(|e| format!("read clients: {e}"))?;
@@ -157,6 +162,7 @@ pub fn set_client_status(
                 status,
                 created_at: Some(chrono::Utc::now().to_rfc3339()),
                 benchmarks: None,
+                drive_folder_url: None,
             });
         }
     }
@@ -171,6 +177,7 @@ pub fn add_client(
     root: String,
     slug: String,
     name: String,
+    drive_folder_url: Option<String>,
 ) -> Result<ClientEntry, String> {
     let trimmed_name = name.trim().to_string();
     if trimmed_name.is_empty() {
@@ -201,12 +208,18 @@ pub fn add_client(
         base
     };
 
+    let normalized_drive = drive_folder_url.and_then(|s| {
+        let t = s.trim().to_string();
+        if t.is_empty() { None } else { Some(t) }
+    });
+
     let entry = ClientEntry {
         slug: final_slug.clone(),
         name: trimmed_name,
         status: ClientStatus::PreLaunch,
         created_at: Some(chrono::Utc::now().to_rfc3339()),
         benchmarks: None,
+        drive_folder_url: normalized_drive,
     };
 
     clients.push(entry.clone());
@@ -257,6 +270,28 @@ pub fn set_client_benchmarks(
     });
     match clients.iter_mut().find(|c| c.slug == client_slug) {
         Some(existing) => existing.benchmarks = normalized,
+        None => return Err(format!("No client with slug '{client_slug}'.")),
+    }
+    write_clients_file(&root, &clients)?;
+    emit_changed(&app, DataKind::Client, Some(client_slug), None);
+    Ok(())
+}
+
+/// Set (or clear) the Google Drive folder URL for a client.
+#[tauri::command]
+pub fn set_client_drive_folder(
+    app: AppHandle,
+    root: String,
+    client_slug: String,
+    url: Option<String>,
+) -> Result<(), String> {
+    let mut clients = read_clients_file(&root)?;
+    let normalized = url.and_then(|s| {
+        let t = s.trim().to_string();
+        if t.is_empty() { None } else { Some(t) }
+    });
+    match clients.iter_mut().find(|c| c.slug == client_slug) {
+        Some(existing) => existing.drive_folder_url = normalized,
         None => return Err(format!("No client with slug '{client_slug}'.")),
     }
     write_clients_file(&root, &clients)?;

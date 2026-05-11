@@ -11,6 +11,12 @@ pub enum DataKind {
     LaunchChecklist,
     Chat,
     Client,
+    Hooks,
+    Briefs,
+    Reports,
+    ScaleChecks,
+    Audits,
+    Workflows,
 }
 
 #[derive(Debug, Serialize, Clone)]

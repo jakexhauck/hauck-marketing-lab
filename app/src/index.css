@@ -433,6 +433,39 @@ body {
   align-items: center;
   max-width: 600px;
 }
+.clients-add-row-stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  max-width: 600px;
+}
+.clients-add-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.clients-row-drive {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.clients-row-drive-link {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: var(--copper);
+  text-decoration: none;
+  border: 1px solid rgba(236, 152, 73, 0.36);
+  padding: 5px 10px;
+  background: rgba(236, 152, 73, 0.06);
+  transition: border-color 0.15s, background 0.15s;
+}
+.clients-row-drive-link:hover {
+  border-color: var(--copper);
+  background: rgba(236, 152, 73, 0.12);
+}
 .clients-list {
   list-style: none;
   display: flex;
@@ -2457,6 +2490,34 @@ body {
   color: var(--text-faint);
   letter-spacing: 0.04em;
   padding: 8px 0;
+}
+
+/* ── statusbar back-to-main affordance ────────────────── */
+.back-to-main-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.back-to-main-btn:hover {
+  border-color: var(--copper);
+  color: var(--copper);
+}
+.back-to-main-glyph {
+  font-size: 12px;
+  line-height: 1;
+}
+.back-to-main-label {
+  font-weight: 500;
 }
 
 /* ── statusbar settings affordance ────────────────────── */

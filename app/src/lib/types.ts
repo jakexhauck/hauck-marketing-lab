@@ -127,6 +127,16 @@ export type ClientEntry = {
   /** Filename (no path) of the chosen benchmarks YAML. Null/undefined = use
    * the hardcoded card metadata fallback in Kpis.tsx. */
   benchmarks?: string | null;
+  /** URL to this client's Google Drive folder. */
+  drive_folder_url?: string | null;
+};
+
+export type DriveIndex = {
+  client: string;
+  drive_folder_url: string | null;
+  updated_at: string;
+  body: string;
+  path: string;
 };
 
 export type BenchmarkSummary = {
@@ -239,7 +249,42 @@ export type DataKind =
   | "creatives"
   | "launch_checklist"
   | "chat"
-  | "client";
+  | "client"
+  | "hooks"
+  | "briefs"
+  | "reports"
+  | "scale_checks"
+  | "audits"
+  | "workflows";
+
+export type GeneratorKind =
+  | "hooks"
+  | "briefs"
+  | "reports"
+  | "scale_checks"
+  | "audits"
+  | "workflows";
+
+export type GeneratorOutput = {
+  kind: GeneratorKind;
+  client: string;
+  created_at: string;
+  title: string;
+  summary: string | null;
+  inputs_yaml: string | null;
+  body: string;
+  path: string;
+};
+
+export type SaveGeneratorOutputArgs = {
+  root: string;
+  clientSlug: string;
+  kind: GeneratorKind;
+  title: string;
+  summary: string | null;
+  body: string;
+  inputsYaml: string | null;
+};
 
 export type DataChangedEvent = {
   kind: DataKind;

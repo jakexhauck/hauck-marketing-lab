@@ -1,0 +1,410 @@
+/* Onboarding Checklist — Variation F (Stack)
+   Scoped to .ob- prefix to avoid collisions with global classes in index.css.
+   Tokens (--bg-void, --copper, etc.) come from :root in index.css — do not redefine. */
+
+.ob-root {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+  color: var(--text);
+}
+
+/* ── progress strip ───────────────────────── */
+.ob-progress-strip {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: rgba(8, 9, 13, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 0 16px;
+  margin: 0 -24px 28px;
+}
+.ob-progress-inner {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.ob-progress-label { color: var(--copper); font-weight: 600; letter-spacing: 0.22em; }
+.ob-progress-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.ob-progress-bar .ob-fill {
+  position: absolute; top: 0; left: 0; bottom: 0;
+  background: linear-gradient(90deg, var(--copper-soft), var(--copper));
+  box-shadow: 0 0 12px var(--copper-glow);
+  transition: width 0.3s cubic-bezier(.2,.8,.2,1);
+}
+.ob-progress-bar .ob-marker {
+  position: absolute; top: -3px; bottom: -3px;
+  width: 1px; background: var(--text-faint);
+  opacity: 0.4;
+}
+.ob-progress-count { color: var(--text); font-weight: 500; }
+.ob-progress-count em { color: var(--copper); font-style: normal; }
+
+/* ── stack ────────────────────────────────── */
+.ob-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 8px;
+}
+
+.ob-card {
+  position: relative;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ── DONE card ────────────────────────────── */
+.ob-card.ob-done {
+  background: rgba(17, 21, 31, 0.5);
+  border-color: rgba(180, 200, 240, 0.05);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 52px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.ob-card.ob-done:hover { background: rgba(17, 21, 31, 0.78); }
+.ob-card.ob-done .ob-check {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid var(--copper);
+  color: var(--copper);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.ob-card.ob-done .ob-phase-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--text-faint);
+  font-weight: 500;
+}
+.ob-card.ob-done .ob-phase-name {
+  font-family: var(--sans);
+  font-size: 14.5px;
+  color: var(--text-mid);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.ob-card.ob-done .ob-done-meta {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+.ob-card.ob-done .ob-done-meta .ob-sep { margin: 0 8px; opacity: 0.5; }
+
+/* ── ACTIVE card ──────────────────────────── */
+.ob-card.ob-active {
+  background:
+    radial-gradient(circle at 95% 0%, rgba(236, 152, 73, 0.06), transparent 50%),
+    var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  padding: 0;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.35), 0 0 0 1px rgba(236, 152, 73, 0.05);
+  margin: 14px 0;
+}
+.ob-card.ob-active::before {
+  content: '';
+  position: absolute; top: 0; bottom: 0; left: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--copper), rgba(236, 152, 73, 0));
+}
+.ob-active-head {
+  padding: 26px 34px 22px;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 24px;
+  align-items: start;
+}
+.ob-active-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  color: var(--copper);
+  font-weight: 600;
+  padding-top: 6px;
+}
+.ob-active-title { display: flex; flex-direction: column; gap: 6px; }
+.ob-active-title h2 {
+  font-family: var(--sans);
+  font-style: normal;
+  font-weight: 600;
+  font-size: 28px;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  color: var(--text);
+  margin: 0;
+}
+.ob-active-title h2 .ob-copper { color: var(--copper); }
+.ob-active-title .ob-purpose {
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 580px;
+}
+.ob-active-stats {
+  text-align: right;
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+}
+.ob-active-stats .ob-pill {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--copper);
+  border: 1px solid rgba(236, 152, 73, 0.32);
+  padding: 4px 10px;
+  border-radius: 1px;
+}
+.ob-active-stats .ob-count-ring {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+.ob-active-stats .ob-count-ring em {
+  color: var(--text);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.ob-active-body { padding: 6px 34px 28px; }
+.ob-subsection {
+  padding: 18px 0 4px;
+  border-bottom: 1px dashed rgba(180, 200, 240, 0.06);
+}
+.ob-subsection:last-child { border-bottom: none; }
+.ob-sub-head {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 10px;
+}
+.ob-sub-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+.ob-sub-label .ob-num { color: var(--copper); margin-right: 8px; }
+.ob-sub-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  margin-left: auto;
+}
+
+.ob-task {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 14px;
+  padding: 9px 0;
+  align-items: start;
+}
+.ob-task + .ob-task { border-top: 1px solid rgba(180, 200, 240, 0.04); }
+.ob-check-box {
+  width: 16px; height: 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 2px;
+  margin-top: 2px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.15s, background 0.15s;
+  flex-shrink: 0;
+  background: transparent;
+  padding: 0;
+}
+.ob-check-box:hover { border-color: var(--copper); }
+.ob-check-box.ob-checked {
+  background: var(--copper);
+  border-color: var(--copper);
+}
+.ob-check-box.ob-checked::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  color: var(--bg-void);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.ob-task-body {
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--text-mid);
+  line-height: 1.5;
+}
+.ob-task.ob-complete .ob-task-body {
+  color: var(--text-faint);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(180,200,240,0.18);
+}
+.ob-task-body strong { color: var(--text); font-weight: 600; }
+.ob-task-howto {
+  margin-top: 7px;
+  padding: 10px 14px 11px;
+  background: rgba(8, 9, 13, 0.55);
+  border-left: 2px solid rgba(236, 152, 73, 0.45);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+.ob-howto-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--copper);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.ob-task-howto code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-mid);
+  background: rgba(180,200,240,0.06);
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+.ob-task-howto ol {
+  padding-left: 18px;
+  margin: 3px 0 0;
+}
+.ob-task-howto ol li { margin-bottom: 2px; }
+
+/* ── UPCOMING card ────────────────────────── */
+.ob-card.ob-upcoming {
+  background: rgba(17, 21, 31, 0.35);
+  border-color: rgba(180, 200, 240, 0.05);
+  padding: 16px 24px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 20px;
+  align-items: center;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+.ob-card.ob-upcoming:hover { opacity: 0.85; }
+.ob-upcoming-ring {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--text-faint);
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ob-upcoming-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ob-upcoming-head { display: flex; align-items: baseline; gap: 12px; }
+.ob-upcoming-num {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  color: var(--text-faint);
+  font-weight: 500;
+}
+.ob-upcoming-name {
+  font-family: var(--sans);
+  font-size: 14.5px;
+  color: var(--text-mid);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.ob-upcoming-hint {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--text-faint);
+  line-height: 1.4;
+  max-width: 540px;
+}
+.ob-upcoming-meta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  text-align: right;
+  white-space: nowrap;
+}
+.ob-upcoming-meta strong { color: var(--text-muted); font-weight: 500; }
+
+/* ── footer / graduation ──────────────────── */
+.ob-foot {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 36px 24px 24px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: center;
+}
+.ob-foot .ob-line {
+  width: 40px; height: 1px;
+  background: var(--border-strong);
+}
+.ob-graduate {
+  margin: 28px auto 0;
+  display: flex;
+  justify-content: center;
+}
+.ob-graduate button {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--copper);
+  background: transparent;
+  border: 1px solid rgba(236, 152, 73, 0.35);
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ob-graduate button:hover {
+  background: rgba(236, 152, 73, 0.08);
+  border-color: var(--copper);
+}

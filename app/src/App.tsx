@@ -1,16 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { AgentRail } from "./components/AgentRail";
+import { AgentFormsHub } from "./components/AgentFormsHub";
 import { AskDock } from "./components/AskDock";
 import { ChatDrawer } from "./components/ChatDrawer";
 import { ClientsPage } from "./components/ClientsPage";
 import { CommandPalette } from "./components/CommandPalette";
+import { CreativeBriefBuilder } from "./components/CreativeBriefBuilder";
 import { Dashboard } from "./components/Dashboard";
 import { DiagnosisForm } from "./components/DiagnosisForm";
 import { FolderPicker } from "./components/FolderPicker";
+import { GenericFormGenerator } from "./components/GenericFormGenerator";
+import { HookGenerator } from "./components/HookGenerator";
 import { KnowledgeBrowser } from "./components/KnowledgeBrowser";
+import { MainDashboard } from "./components/MainDashboard";
+import { Sidebar, type WorkspaceView, type WorkflowView } from "./components/MainDashboard/Sidebar";
+import { TopBar } from "./components/MainDashboard/TopBar";
+import "./components/MainDashboard/main-dashboard.css";
+import { OnboardingChecklist } from "./components/OnboardingChecklist";
+import { ReportBuilder } from "./components/ReportBuilder";
+import { ScaleReadiness } from "./components/ScaleReadiness";
 import { SettingsPage } from "./components/SettingsPage";
-import { StatusBar } from "./components/StatusBar";
+import { TrackingAuditWalkthrough } from "./components/TrackingAuditWalkthrough";
+import { WorkflowChain } from "./components/WorkflowChain";
+import { getFormConfig, type FormSurfaceId } from "./lib/formConfigs";
 import { api } from "./lib/tauri";
 import type {
   AgentSummary,
@@ -46,7 +58,6 @@ export default function App() {
   const pendingInputTick = useRef(0);
   const [bootDone, setBootDone] = useState(false);
   const [clientStatus, setClientStatus] = useState<ClientStatus>("pre-launch");
-  const awaitingReadinessVerdict = useRef(false);
 
   // Multi-client state
   const [clients, setClients] = useState<ClientEntry[]>([DEFAULT_CLIENT]);
@@ -57,6 +68,69 @@ export default function App() {
   // Settings
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [defaultAgentSlug, setDefaultAgentSlug] = useState<string | null>(null);
+
+  // Main Dashboard vs Media Buying — boots into the Main Dashboard.
+  const [view, setView] = useState<"main" | "media-buying">("main");
+
+  // Per-client onboarding-dismissed flag — localStorage-backed for v1.
+  // Set when the user clicks "Skip" or "Onboarding complete" inside the
+  // OnboardingChecklist; until set, a pre-launch client lands on the checklist
+  // instead of the existing pre-launch Dashboard.
+  const ONBOARDING_DISMISS_KEY = "hml-onboarding-dismissed-v1";
+  const [onboardingDismissed, setOnboardingDismissed] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(ONBOARDING_DISMISS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+  const dismissOnboarding = useCallback((slug: string) => {
+    setOnboardingDismissed((prev) => {
+      const next = { ...prev, [slug]: true };
+      try {
+        localStorage.setItem(ONBOARDING_DISMISS_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
+  const restoreOnboarding = useCallback((slug: string) => {
+    setOnboardingDismissed((prev) => {
+      if (!prev[slug]) return prev;
+      const next = { ...prev };
+      delete next[slug];
+      try {
+        localStorage.setItem(ONBOARDING_DISMISS_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
+
+  // Generator surface — null = dashboard, otherwise the open generator.
+  // Form surface ids (welcome-email, contract, audiences, etc.) are also valid
+  // values; they route to the shared GenericFormGenerator via getFormConfig.
+  type GeneratorSurface =
+    | "hooks"
+    | "briefs"
+    | "reports"
+    | "scale"
+    | "audit"
+    | "workflow-launch"
+    | "workflow-optimize"
+    | "workflow-scale"
+    | FormSurfaceId;
+  const [generator, setGenerator] = useState<GeneratorSurface | null>(null);
+
+  // Forms hub for a non-Aurelius specialist agent. When set, clicking the
+  // agent in the sidebar lands here instead of a chat drawer. Aurelius keeps
+  // his chat. Selecting a form here opens the generator on top of the hub;
+  // closing the form returns to the hub.
+  const [agentFormsHub, setAgentFormsHub] = useState<AgentSummary | null>(null);
+  const isChatAgent = (slug: string) => slug.toLowerCase() === "aurelius";
 
   const activeClient =
     clients.find((c) => c.slug === activeClientSlug) ?? clients[0] ?? DEFAULT_CLIENT;
@@ -193,13 +267,28 @@ export default function App() {
   };
 
   const onAgentSelect = (agent: AgentSummary) => {
-    if (drawerOpen) {
-      setActiveAgent(agent);
-      // start fresh thread when switching mid-drawer for now
-      setCurrentChat(null);
-    } else {
-      openDrawer(agent);
+    setActiveAgent(agent);
+    if (isChatAgent(agent.slug)) {
+      // Aurelius keeps the chat surface
+      setAgentFormsHub(null);
+      if (drawerOpen) {
+        // already chatting — start a fresh thread with Aurelius
+        setCurrentChat(null);
+      } else {
+        openDrawer(agent);
+      }
+      return;
     }
+    // Specialist agent — show their forms hub. Close any active chat so the
+    // two surfaces don't overlap.
+    setDrawerOpen(false);
+    setCurrentChat(null);
+    setGenerator(null);
+    setSettingsOpen(false);
+    setClientsPageOpen(false);
+    setDiagnosisOpen(false);
+    setKnowledgeOpen(false);
+    setAgentFormsHub(agent);
   };
 
   const onOpenChatFromList = async (chat: ChatSummary) => {
@@ -217,50 +306,22 @@ export default function App() {
   };
 
   const onAskDock = () => {
-    if (activeAgent) {
-      openDrawer(activeAgent, null);
-      return;
-    }
+    // Chat is Aurelius-only. The dock always routes there if he's present;
+    // otherwise fall back to active/default/first agent so the dock isn't dead.
+    const aurelius = summary?.agents.find((a) => isChatAgent(a.slug));
     const fallback =
+      aurelius ??
+      activeAgent ??
       (defaultAgentSlug
         ? summary?.agents.find((a) => a.slug === defaultAgentSlug)
-        : undefined) ?? summary?.agents[0];
-    if (fallback) openDrawer(fallback);
-  };
-
-  const onAskAurelius = (bundledPrompt: string) => {
-    const aurelius =
-      summary?.agents.find((a) => a.slug === "aurelius" || a.name === "Aurelius") ??
+        : undefined) ??
       summary?.agents[0];
-    if (!aurelius) return;
-    openDrawer(aurelius, null);
-    pendingInputTick.current += 1;
-    setPendingInput(bundledPrompt);
-    awaitingReadinessVerdict.current = true;
+    if (fallback) openDrawer(fallback, null);
   };
 
   const onChatSaved = async () => {
     if (!root) return;
     await loadFolder(root);
-    if (awaitingReadinessVerdict.current) {
-      awaitingReadinessVerdict.current = false;
-      const slugAtVerdict = activeClientSlug;
-      (async () => {
-        try {
-          const fresh = await api.parseFolder(root);
-          const latest = fresh.chats
-            .filter((c) => c.agent === "aurelius" || c.agent === "Aurelius")
-            .sort((a, b) => b.modified_at.localeCompare(a.modified_at))[0];
-          if (!latest) return;
-          const file = await api.readChat(latest.path);
-          const lastAgentTurn = [...file.turns].reverse().find((t) => t.role === "agent");
-          if (!lastAgentTurn) return;
-          await api.saveLaunchReadinessVerdict(root, slugAtVerdict, lastAgentTurn.body);
-        } catch (e) {
-          console.error("verdict save failed", e);
-        }
-      })();
-    }
   };
 
   const onPaletteChat = async (chat: ChatSummary) => {
@@ -315,6 +376,20 @@ export default function App() {
     if (root) loadFolder(root);
   };
 
+  const openGenerator = (surface: GeneratorSurface) => {
+    setPaletteOpen(false);
+    setDiagnosisOpen(false);
+    setKnowledgeOpen(false);
+    setSettingsOpen(false);
+    setClientsPageOpen(false);
+    setGenerator(surface);
+  };
+
+  const closeGenerator = () => {
+    setGenerator(null);
+    if (root) loadFolder(root);
+  };
+
   const onAgentChangeInDrawer = (agent: AgentSummary) => {
     setActiveAgent(agent);
     setCurrentChat(null);
@@ -329,6 +404,8 @@ export default function App() {
     setActiveClientSlug(slug);
     // close any per-client modal/drawer state to avoid stale references
     setDiagnosisOpen(false);
+    setGenerator(null);
+    setAgentFormsHub(null);
     setCurrentChat(null);
     try {
       await api.saveConfig({
@@ -347,11 +424,6 @@ export default function App() {
     setClientsPageOpen(true);
   };
 
-  const onOpenManageClients = () => {
-    setClientsPageStartInAdd(false);
-    setClientsPageOpen(true);
-  };
-
   const onClientsChanged = (next: ClientEntry[]) => {
     setClients(next.length === 0 ? [DEFAULT_CLIENT] : next);
     // If the active client was deleted, fall back to the first remaining one.
@@ -359,6 +431,16 @@ export default function App() {
       void switchClient(next[0].slug);
     }
   };
+
+  if (view === "main") {
+    return (
+      <MainDashboard
+        onOpenMediaBuying={() => setView("media-buying")}
+        root={root}
+        clients={clients}
+      />
+    );
+  }
 
   if (!bootDone) {
     return (
@@ -388,7 +470,10 @@ export default function App() {
     );
   }
 
+  // Dock advertises the chat agent (Aurelius). If not found, fall back to the
+  // active or default agent so the surface stays usable.
   const dockAgent =
+    summary.agents.find((a) => isChatAgent(a.slug)) ??
     activeAgent ??
     (defaultAgentSlug
       ? summary.agents.find((a) => a.slug === defaultAgentSlug) ?? summary.agents[0]
@@ -396,99 +481,215 @@ export default function App() {
   const clientName = activeClient.name;
   const clientSlug = activeClient.slug;
 
+  const onSelectWorkspaceFromShell = (tab: WorkspaceView) => {
+    // Any workspace pick exits media-buying back to the main dashboard.
+    setView("main");
+    if (tab !== "dashboard") {
+      // Calendar/Tasks are still wired by MainDashboard's own state, which
+      // resets to dashboard on mount — the click intent is preserved in spirit
+      // by simply returning to main.
+    }
+  };
+  const onSelectWorkflowFromShell = (_tab: WorkflowView) => {
+    // Only media-buying remains; we're already here.
+  };
+
+  const paneContent = settingsOpen ? (
+    <SettingsPage
+      root={root}
+      agents={summary.agents}
+      clients={clients}
+      defaultAgentSlug={defaultAgentSlug}
+      activeClientSlug={clientSlug}
+      activeClientName={clientName}
+      onClose={() => setSettingsOpen(false)}
+      onFolderChanged={async (path) => {
+        setRoot(path);
+        await loadFolder(path);
+      }}
+      onDefaultAgentChanged={(slug) => setDefaultAgentSlug(slug)}
+      onManageClients={() => {
+        setSettingsOpen(false);
+        setClientsPageStartInAdd(false);
+        setClientsPageOpen(true);
+      }}
+    />
+  ) : clientsPageOpen ? (
+    <ClientsPage
+      root={root}
+      clients={clients}
+      activeSlug={clientSlug}
+      onClose={() => setClientsPageOpen(false)}
+      onClientsChanged={onClientsChanged}
+      onSelectClient={(slug) => {
+        void switchClient(slug);
+      }}
+      startInAddMode={clientsPageStartInAdd}
+    />
+  ) : diagnosisOpen ? (
+    <DiagnosisForm
+      root={root}
+      agents={summary.agents}
+      clientName={clientName}
+      clientSlug={clientSlug}
+      onClose={onCloseDiagnosis}
+    />
+  ) : knowledgeOpen ? (
+    <KnowledgeBrowser
+      root={root}
+      initialChunkId={knowledgeChunkId}
+      onClose={onCloseKnowledge}
+      onPinToChat={onPinKnowledgeToChat}
+    />
+  ) : generator === "hooks" ? (
+    <HookGenerator
+      root={root}
+      agents={summary.agents}
+      clientName={clientName}
+      clientSlug={clientSlug}
+      onClose={closeGenerator}
+    />
+  ) : generator === "briefs" ? (
+    <CreativeBriefBuilder
+      root={root}
+      agents={summary.agents}
+      clientName={clientName}
+      clientSlug={clientSlug}
+      onClose={closeGenerator}
+    />
+  ) : generator === "reports" ? (
+    <ReportBuilder
+      root={root}
+      agents={summary.agents}
+      clientName={clientName}
+      clientSlug={clientSlug}
+      onClose={closeGenerator}
+    />
+  ) : generator === "scale" ? (
+    <ScaleReadiness
+      root={root}
+      agents={summary.agents}
+      clientName={clientName}
+      clientSlug={clientSlug}
+      onClose={closeGenerator}
+    />
+  ) : generator === "audit" ? (
+    <TrackingAuditWalkthrough
+      root={root}
+      agents={summary.agents}
+      clientName={clientName}
+      clientSlug={clientSlug}
+      onClose={closeGenerator}
+    />
+  ) : generator === "workflow-launch" ||
+    generator === "workflow-optimize" ||
+    generator === "workflow-scale" ? (
+    <WorkflowChain
+      root={root}
+      agents={summary.agents}
+      clientName={clientName}
+      clientSlug={clientSlug}
+      onClose={closeGenerator}
+      initialKind={
+        generator === "workflow-launch"
+          ? "launch"
+          : generator === "workflow-optimize"
+            ? "optimize"
+            : "scale"
+      }
+    />
+  ) : generator && getFormConfig(generator) ? (
+    <GenericFormGenerator
+      config={getFormConfig(generator)!}
+      root={root}
+      agents={summary.agents}
+      clientName={clientName}
+      clientSlug={clientSlug}
+      onClose={closeGenerator}
+    />
+  ) : agentFormsHub ? (
+    <AgentFormsHub
+      agent={agentFormsHub}
+      clientName={clientName}
+      onOpenForm={(id) => openGenerator(id)}
+      onClose={() => setAgentFormsHub(null)}
+    />
+  ) : clientStatus === "pre-launch" && !onboardingDismissed[clientSlug] ? (
+    <OnboardingChecklist
+      clientName={clientName}
+      clientSlug={clientSlug}
+      onComplete={() => dismissOnboarding(clientSlug)}
+    />
+  ) : (
+    <Dashboard
+      summary={summary}
+      clientName={clientName}
+      clientSlug={clientSlug}
+      clientStatus={clientStatus}
+      root={root}
+      drawerOpen={drawerOpen}
+      onOpenChat={onOpenChatFromList}
+      onOpenDiagnosis={onOpenDiagnosis}
+      onBackToOnboarding={() => restoreOnboarding(clientSlug)}
+      onOpenHookGenerator={() => openGenerator("hooks")}
+      onOpenCreativeBrief={() => openGenerator("briefs")}
+      onOpenReport={() => openGenerator("reports")}
+      onOpenScaleReadiness={() => openGenerator("scale")}
+      onOpenTrackingAudit={() => openGenerator("audit")}
+      onOpenWorkflowLaunch={() => openGenerator("workflow-launch")}
+      onOpenWorkflowOptimize={() => openGenerator("workflow-optimize")}
+      onOpenWorkflowScale={() => openGenerator("workflow-scale")}
+    />
+  );
+
   return (
     <>
-      <StatusBar
-        clients={clients}
-        activeSlug={clientSlug}
-        activeName={clientName}
-        onSelectClient={switchClient}
-        onAddClient={onOpenAddClient}
-        onManageClients={onOpenManageClients}
-        onOpenSettings={() => {
-          setClientsPageOpen(false);
-          setDiagnosisOpen(false);
-          setSettingsOpen(true);
-        }}
-        onRefresh={() => loadFolder(root)}
-        refreshing={refreshing}
-      />
-      <div className="shell">
-        <AgentRail
-          agents={summary.agents}
-          activeSlug={drawerOpen ? activeAgent?.slug ?? null : null}
-          drawerOpen={drawerOpen}
-          onSelect={onAgentSelect}
+      <div className="md-root">
+        <TopBar
+          onBrandClick={() => setView("main")}
+          onCommand={() => setPaletteOpen(true)}
+          onSettings={() => {
+            setClientsPageOpen(false);
+            setDiagnosisOpen(false);
+            setSettingsOpen(true);
+          }}
+          onRefresh={() => loadFolder(root)}
+          refreshing={refreshing}
+          rightLabel={clientName.toUpperCase()}
         />
-        {settingsOpen ? (
-          <SettingsPage
-            root={root}
-            agents={summary.agents}
+        <div className="md-shell">
+          <Sidebar
+            activeWorkspace={null}
+            activeWorkflow="media-buying"
             clients={clients}
-            defaultAgentSlug={defaultAgentSlug}
+            agents={summary.agents}
+            activeAgentSlug={drawerOpen ? activeAgent?.slug ?? null : null}
             activeClientSlug={clientSlug}
-            activeClientName={clientName}
-            onClose={() => setSettingsOpen(false)}
-            onFolderChanged={async (path) => {
-              setRoot(path);
-              await loadFolder(path);
-            }}
-            onDefaultAgentChanged={(slug) => setDefaultAgentSlug(slug)}
-            onManageClients={() => {
-              setSettingsOpen(false);
-              setClientsPageStartInAdd(false);
-              setClientsPageOpen(true);
-            }}
+            activeFormId={generator}
+            onSelectWorkspace={onSelectWorkspaceFromShell}
+            onSelectWorkflow={onSelectWorkflowFromShell}
+            onSelectClient={(slug) => void switchClient(slug)}
+            onSelectAgent={(agent) => onAgentSelect(agent)}
+            onSelectForm={(id) => openGenerator(id)}
+            onOpenAureliusChat={onAskDock}
+            onAddClient={onOpenAddClient}
           />
-        ) : clientsPageOpen ? (
-          <ClientsPage
-            root={root}
-            clients={clients}
-            activeSlug={clientSlug}
-            onClose={() => setClientsPageOpen(false)}
-            onClientsChanged={onClientsChanged}
-            onSelectClient={(slug) => {
-              void switchClient(slug);
-            }}
-            startInAddMode={clientsPageStartInAdd}
-          />
-        ) : diagnosisOpen ? (
-          <DiagnosisForm
-            root={root}
-            agents={summary.agents}
-            clientName={clientName}
-            clientSlug={clientSlug}
-            onClose={onCloseDiagnosis}
-          />
-        ) : knowledgeOpen ? (
-          <KnowledgeBrowser
-            root={root}
-            initialChunkId={knowledgeChunkId}
-            onClose={onCloseKnowledge}
-            onPinToChat={onPinKnowledgeToChat}
-          />
-        ) : (
-          <Dashboard
-            summary={summary}
-            clientName={clientName}
-            clientSlug={clientSlug}
-            clientStatus={clientStatus}
-            root={root}
-            drawerOpen={drawerOpen}
-            onOpenChat={onOpenChatFromList}
-            onAskAurelius={onAskAurelius}
-            onOpenDiagnosis={onOpenDiagnosis}
-          />
-        )}
+          <main className="md-main md-main--mb">{paneContent}</main>
+        </div>
       </div>
 
-      {!drawerOpen && !clientsPageOpen && !settingsOpen && !knowledgeOpen && (
-        <AskDock
-          agentName={dockAgent.name}
-          agentInitial={dockAgent.initial}
-          onClick={onAskDock}
-        />
-      )}
+      {!drawerOpen &&
+        !clientsPageOpen &&
+        !settingsOpen &&
+        !knowledgeOpen &&
+        !generator &&
+        !agentFormsHub && (
+          <AskDock
+            agentName={dockAgent.name}
+            agentInitial={dockAgent.initial}
+            onClick={onAskDock}
+          />
+        )}
 
       {drawerOpen && activeAgent && (
         <ChatDrawer
@@ -519,6 +720,15 @@ export default function App() {
         onOpenKnowledge={onPaletteKnowledge}
         onOpenDiagnosis={onOpenDiagnosis}
         onOpenKnowledgeBrowser={onOpenKnowledgeBrowser}
+        onOpenHookGenerator={() => openGenerator("hooks")}
+        onOpenCreativeBrief={() => openGenerator("briefs")}
+        onOpenReport={() => openGenerator("reports")}
+        onOpenScaleReadiness={() => openGenerator("scale")}
+        onOpenTrackingAudit={() => openGenerator("audit")}
+        onOpenWorkflowLaunch={() => openGenerator("workflow-launch")}
+        onOpenWorkflowOptimize={() => openGenerator("workflow-optimize")}
+        onOpenWorkflowScale={() => openGenerator("workflow-scale")}
+        onOpenForm={(id) => openGenerator(id)}
       />
     </>
   );

@@ -1,0 +1,593 @@
+<!--
+  Ad Copy Generator — Variation A (Split, simplified)
+  Form left, output right. Vortex.
+  Formats: FB/IG Ad · Video Script only.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HML OS · Ad Copy Generator · Vortex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #0a0c12;
+    --bg-deep: #0e1119;
+    --bg-surface: #141823;
+    --bg-elev: #1a1f2d;
+    --bg-input: #0f131c;
+    --border: rgba(180, 200, 240, 0.07);
+    --border-strong: rgba(180, 200, 240, 0.15);
+    --border-focus: rgba(236, 152, 73, 0.5);
+    --text: #eef1f7;
+    --text-mid: #c5ccdb;
+    --text-muted: #8d96a8;
+    --text-faint: #5a6378;
+    --copper: #ec9849;
+    --copper-glow: rgba(236, 152, 73, 0.35);
+    --signal-go: #5fe699;
+    --vortex: #a78bfa;
+    --vortex-glow: rgba(167, 139, 250, 0.3);
+    --sans: 'Hanken Grotesk', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-void);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  body {
+    background:
+      radial-gradient(ellipse at top, rgba(167, 139, 250, 0.04), transparent 60%),
+      var(--bg-void);
+    min-height: 100vh;
+  }
+
+  /* ── topbar ─────────────────────────── */
+  .topbar {
+    height: 44px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10, 12, 18, 0.92);
+    backdrop-filter: blur(14px);
+    display: flex; align-items: center;
+    padding: 0 32px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar .right { margin-left: auto; display: flex; gap: 22px; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 12px; color: var(--text); font-weight: 600; }
+  .brand-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--vortex); box-shadow: 0 0 10px var(--vortex-glow);
+  }
+  .brand .sep { color: var(--text-faint); margin: 0 4px; font-weight: 400; }
+  .brand .client { color: var(--text-mid); font-weight: 500; }
+  .brand .stage { color: var(--vortex); font-weight: 500; }
+
+  /* ── layout ─────────────────────────── */
+  .shell {
+    display: grid;
+    grid-template-columns: minmax(0, 560px) 1fr;
+    gap: 0;
+    min-height: calc(100vh - 44px);
+  }
+  .form-col {
+    border-right: 1px solid var(--border);
+    background: var(--bg-deep);
+    padding: 40px 44px 140px;
+    overflow-y: auto;
+    max-height: calc(100vh - 44px);
+  }
+  .output-col {
+    padding: 40px 44px 60px;
+    overflow-y: auto;
+    max-height: calc(100vh - 44px);
+  }
+
+  /* ── form header ─────────────────────── */
+  .form-head { margin-bottom: 36px; }
+  .form-title {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .form-sub {
+    color: var(--text-muted);
+    font-size: 13.5px;
+    max-width: 440px;
+  }
+  .form-sub .agent {
+    color: var(--vortex);
+    font-weight: 500;
+  }
+  .ctx-strip {
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: rgba(167, 139, 250, 0.05);
+    border: 1px solid rgba(167, 139, 250, 0.15);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+  }
+  .ctx-icon { color: var(--vortex); }
+  .ctx-label { color: var(--text-mid); font-weight: 500; }
+  .ctx-files { color: var(--text-muted); flex: 1; }
+  .ctx-refresh {
+    color: var(--vortex);
+    font-size: 11.5px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(167, 139, 250, 0.3);
+  }
+  .ctx-refresh:hover { text-decoration-color: var(--vortex); }
+
+  /* ── form sections ───────────────────── */
+  .section {
+    margin-bottom: 32px;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+  }
+
+  .field { margin-bottom: 14px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  label.l {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-mid);
+    margin-bottom: 6px;
+  }
+  label.l .hint {
+    color: var(--text-faint); font-weight: 400; margin-left: 6px;
+  }
+  input[type="text"], input[type="number"], select, textarea {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    background: var(--bg-surface);
+  }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.55; }
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2395a0b3' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+    padding-right: 32px;
+  }
+
+  /* ── segmented (radio) ───────────────── */
+  .seg {
+    display: flex; gap: 4px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    padding: 4px;
+  }
+  .seg-opt {
+    flex: 1;
+    text-align: center;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .seg-opt:hover { color: var(--text-mid); }
+  .seg-opt.active {
+    background: var(--bg-elev);
+    color: var(--copper);
+    box-shadow: 0 0 0 1px rgba(236, 152, 73, 0.25);
+  }
+
+  /* ── stepper (numbers) ───────────────── */
+  .stepper {
+    display: inline-flex; align-items: center;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+  }
+  .stepper button {
+    background: none; border: none;
+    width: 32px; height: 34px;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+  }
+  .stepper button:hover { color: var(--copper); }
+  .stepper .val { padding: 0 14px; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  /* ── collapse ────────────────────────── */
+  details.collapse {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-surface);
+  }
+  details.collapse summary {
+    padding: 12px 14px;
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-mid);
+    display: flex; align-items: center; gap: 10px;
+    list-style: none;
+  }
+  details.collapse summary::-webkit-details-marker { display: none; }
+  details.collapse summary::before {
+    content: '›';
+    color: var(--text-faint);
+    font-size: 16px;
+    transition: transform 0.15s;
+    display: inline-block;
+  }
+  details.collapse[open] summary::before { transform: rotate(90deg); }
+  details.collapse summary .badge {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--signal-go);
+    font-weight: 400;
+  }
+  details.collapse .body { padding: 6px 14px 14px; }
+
+  /* ── action bar ──────────────────────── */
+  .action-bar {
+    position: sticky; bottom: 0;
+    margin: 40px -44px -140px;
+    padding: 20px 44px;
+    background: linear-gradient(to top, var(--bg-deep) 85%, transparent);
+    display: flex; gap: 12px; align-items: center;
+    z-index: 5;
+  }
+  .btn-primary {
+    background: var(--copper);
+    color: #1a0d05;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 0 24px var(--copper-glow);
+    transition: filter 0.15s;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-strong);
+    padding: 11px 18px;
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border-focus); }
+
+  /* ── output column ───────────────────── */
+  .out-head {
+    display: flex; align-items: baseline; gap: 14px;
+    margin-bottom: 4px;
+  }
+  .out-head h2 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  .out-count {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .out-sub {
+    color: var(--text-faint);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .out-toolbar {
+    display: flex; gap: 8px;
+    margin-bottom: 24px;
+  }
+  .tool {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 7px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tool:hover { color: var(--copper); border-color: var(--border-focus); }
+  .tool.regen { margin-left: auto; }
+
+  .variant {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px 24px;
+    margin-bottom: 14px;
+    transition: border-color 0.15s;
+  }
+  .variant:hover { border-color: var(--border-strong); }
+  .variant-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px;
+  }
+  .variant-num {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--copper);
+    letter-spacing: 0.04em;
+  }
+  .variant-actions {
+    margin-left: auto; display: flex; gap: 4px;
+  }
+  .variant-actions .act {
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px;
+    color: var(--text-faint);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .variant-actions .act:hover { color: var(--copper); background: var(--bg-elev); }
+  .variant-body {
+    font-size: 14.5px;
+    color: var(--text);
+    line-height: 1.65;
+    white-space: pre-wrap;
+  }
+  .variant-body .hl {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+</style>
+</head>
+<body>
+
+<!-- topbar -->
+<div class="topbar">
+  <div class="brand">
+    <span class="brand-dot"></span>
+    HML OS
+    <span class="sep">/</span>
+    <span class="client">Willis Windows</span>
+    <span class="sep">/</span>
+    <span class="stage">Vortex</span>
+  </div>
+  <div class="right">
+    <span>⌘K</span>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- ───── FORM COLUMN ───── -->
+  <div class="form-col">
+    <div class="form-head">
+      <div class="form-title">Ad Copy Generator</div>
+      <div class="form-sub">Generate scroll-stopping ad copy in the client's voice. Powered by <span class="agent">Vortex</span>.</div>
+      <div class="ctx-strip">
+        <span class="ctx-icon">◇</span>
+        <span class="ctx-label">Context loaded</span>
+        <span class="ctx-files">voice samples · brand guide · 3 past campaigns</span>
+        <span class="ctx-refresh">refresh</span>
+      </div>
+    </div>
+
+    <!-- 1. setup -->
+    <div class="section">
+      <div class="section-label">Setup</div>
+      <div class="field-row">
+        <div>
+          <label class="l">Client</label>
+          <select>
+            <option>Willis Windows</option>
+            <option>+ New client</option>
+          </select>
+        </div>
+        <div>
+          <label class="l">Format</label>
+          <div class="seg">
+            <div class="seg-opt active">FB/IG Ad</div>
+            <div class="seg-opt">Video Script</div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="l">Goal <span class="hint">what should it do</span></label>
+        <input type="text" value="Book a free window-cleaning estimate" />
+      </div>
+    </div>
+
+    <!-- 2. pitch -->
+    <div class="section">
+      <div class="section-label">The Pitch</div>
+      <div class="field">
+        <label class="l">Offer / Hook</label>
+        <input type="text" value="$50 off first-time exterior window clean — spring booking" />
+      </div>
+      <div class="field-row">
+        <div>
+          <label class="l">Audience</label>
+          <input type="text" value="Homeowners 35-65, Boise metro" />
+        </div>
+        <div>
+          <label class="l">Angle</label>
+          <select>
+            <option>Problem-aware</option>
+            <option selected>Result-focused</option>
+            <option>Pain-point</option>
+            <option>Social proof</option>
+            <option>Curiosity</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label class="l">Proof points <span class="hint">one per line</span></label>
+        <textarea>4.9★ across 280+ Google reviews
+Licensed, bonded, insured
+Same-week scheduling
+100% satisfaction or we re-clean free</textarea>
+      </div>
+    </div>
+
+    <!-- 3. output -->
+    <div class="section">
+      <div class="section-label">Output</div>
+      <div class="field-row">
+        <div>
+          <label class="l">Variations</label>
+          <div class="stepper">
+            <button>−</button><span class="val">5</span><button>+</button>
+          </div>
+        </div>
+        <div>
+          <label class="l">Length</label>
+          <select>
+            <option>Short (1-2 lines)</option>
+            <option selected>Medium (3-5 lines)</option>
+            <option>Long (5-7 lines)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. guardrails -->
+    <div class="section">
+      <details class="collapse">
+        <summary>Guardrails <span class="badge">✓ loaded from client config</span></summary>
+        <div class="body">
+          <div class="field" style="margin-top:10px">
+            <label class="l">Must include</label>
+            <textarea style="min-height:50px">"licensed & insured" · phone 208-555-0140</textarea>
+          </div>
+          <div class="field">
+            <label class="l">Must avoid</label>
+            <textarea style="min-height:50px">no income/result guarantees · no competitor names · no fake urgency</textarea>
+          </div>
+          <div class="field">
+            <label class="l">Voice notes <span class="hint">for this job only</span></label>
+            <textarea style="min-height:50px" placeholder="e.g. lean more casual than usual"></textarea>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- action bar -->
+    <div class="action-bar">
+      <button class="btn-primary">Generate copy</button>
+      <button class="btn-ghost">Save as preset</button>
+    </div>
+  </div>
+
+  <!-- ───── OUTPUT COLUMN ───── -->
+  <div class="output-col">
+    <div class="out-head">
+      <h2>Generated copy</h2>
+      <span class="out-count">5 variations</span>
+    </div>
+    <div class="out-sub">Result-focused · Willis Windows voice</div>
+
+    <div class="out-toolbar">
+      <button class="tool">Copy all</button>
+      <button class="tool">Export CSV</button>
+      <button class="tool regen">Regenerate</button>
+    </div>
+
+    <!-- variant 1 -->
+    <div class="variant">
+      <div class="variant-head">
+        <span class="variant-num">V1</span>
+        <div class="variant-actions">
+          <span class="act">★</span>
+          <span class="act">⧉</span>
+        </div>
+      </div>
+      <div class="variant-body"><span class="hl">Windows so clean it looks like there's no glass there.</span>
+
+That's the standard at Willis Windows — Boise homeowners book us because we don't leave streaks, we don't leave smudges, and we don't leave 'til it's done.
+
+Spring slots filling fast. $50 off your first clean. Get a free quote in under a minute.</div>
+    </div>
+
+    <!-- variant 2 -->
+    <div class="variant">
+      <div class="variant-head">
+        <span class="variant-num">V2</span>
+        <div class="variant-actions">
+          <span class="act">★</span>
+          <span class="act">⧉</span>
+        </div>
+      </div>
+      <div class="variant-body"><span class="hl">Your windows haven't been this clean since they were installed.</span>
+
+Licensed, bonded, insured, and rated 4.9★ across 280+ Boise homeowners. Same-week scheduling. If you can see through it when we leave, you don't pay.
+
+$50 off your first exterior clean — book in under a minute.</div>
+    </div>
+
+    <!-- variant 3 -->
+    <div class="variant">
+      <div class="variant-head">
+        <span class="variant-num">V3</span>
+        <div class="variant-actions">
+          <span class="act">★</span>
+          <span class="act">⧉</span>
+        </div>
+      </div>
+      <div class="variant-body"><span class="hl">Two-story home. North-facing windows. Last cleaned: who knows when.</span>
+
+That's most Boise homeowners we hear from. We handle the ladder, we handle the screens, we handle the tracks. You handle nothing.
+
+280+ neighbors. 4.9 stars. Spring booking is open and $50 off your first clean is on the table through May.
+
+Free quote takes about a minute.</div>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

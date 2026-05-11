@@ -56,10 +56,12 @@ export function Hero({ clientName, root, clientSlug, onOpenDiagnosis }: Props) {
     };
   }, [clientSlug, load]);
 
-  const pill = diagnosis ? VERDICT_PILL[diagnosis.verdict] : VERDICT_PILL.hold;
+  const pill = diagnosis
+    ? VERDICT_PILL[diagnosis.verdict]
+    : { label: "▸ NO DATA", className: "verdict" };
   const markerLeft = diagnosis
     ? `${Math.max(0, Math.min(100, diagnosis.scale_score))}%`
-    : "52%";
+    : "0%";
 
   return (
     <section className="hero reveal reveal-1">
@@ -89,29 +91,28 @@ export function Hero({ clientName, root, clientSlug, onOpenDiagnosis }: Props) {
       ) : (
         <>
           <h1>
-            Sir, I'd advise against scaling {clientName} just yet —{" "}
-            <strong>creative diversity is below threshold</strong> and the landing page is leaking
-            conversions.
+            <span className="tag">No data</span> — no diagnosis on file for{" "}
+            {clientName} yet.
           </h1>
           <p className="hero-body">
-            ROAS sits at <span className="tag">1.6×</span> against the 2.0× scale floor. CTR is
-            healthy; CVR is not. Current creative pool stands at 8 active variants — the Andromeda
-            paradigm requires <span className="tag">15+</span>. Recommend deploying Vortex for 12
-            fresh hooks before the next budget review.
+            Run a fresh Zenith diagnosis to populate this hero. Until then, the
+            scale spectrum below is unset.
           </p>
         </>
       )}
 
-      <div className="spectrum">
-        <div className="spectrum-track">
-          <div className="spectrum-marker" style={{ left: markerLeft }} />
+      {diagnosis && (
+        <div className="spectrum">
+          <div className="spectrum-track">
+            <div className="spectrum-marker" style={{ left: markerLeft }} />
+          </div>
+          <div className="spectrum-labels">
+            <span>KILL</span>
+            <span>HOLD</span>
+            <span>SCALE +20%</span>
+          </div>
         </div>
-        <div className="spectrum-labels">
-          <span>KILL</span>
-          <span>HOLD</span>
-          <span>SCALE +20%</span>
-        </div>
-      </div>
+      )}
     </section>
   );
 }

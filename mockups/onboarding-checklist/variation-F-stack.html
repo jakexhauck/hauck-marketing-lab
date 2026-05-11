@@ -1,0 +1,831 @@
+<!--
+  Onboarding Checklist — Variation F (Stack)
+  Vertical scroll of phase cards. Done collapsed, active fully expanded with
+  inline how-to, upcoming dimmed. One page, scannable.
+  Demo state: Phases 0–2 done · Phase 3 active · Phases 4–9 upcoming.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HML OS · Onboarding · Willis Windows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #08090d;
+    --bg-deep: #0c0f17;
+    --bg-surface: #11151f;
+    --bg-elev: #161b28;
+    --border: rgba(180, 200, 240, 0.08);
+    --border-strong: rgba(180, 200, 240, 0.18);
+    --text: #eef1f7;
+    --text-mid: #c5ccdb;
+    --text-muted: #95a0b3;
+    --text-faint: #5a6378;
+    --copper: #ec9849;
+    --copper-soft: #c9722a;
+    --copper-glow: rgba(236, 152, 73, 0.38);
+    --signal-go: #5fe699;
+    --signal-hold: #fbbf24;
+    --signal-stop: #f87171;
+    --grid: rgba(180, 200, 240, 0.025);
+    --sans: 'Hanken Grotesk', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Newsreader', serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-void);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  body {
+    background:
+      radial-gradient(ellipse at top left, rgba(236, 152, 73, 0.05), transparent 55%),
+      radial-gradient(ellipse at bottom right, rgba(95, 230, 153, 0.02), transparent 55%),
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+      var(--bg-void);
+    background-size: auto, auto, 36px 36px, 36px 36px, auto;
+    min-height: 100vh;
+  }
+
+  /* ── topbar ───────────────────────────────── */
+  .topbar {
+    height: 42px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8, 9, 13, 0.9);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar .right { margin-left: auto; display: flex; gap: 22px; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 12px; color: var(--text); font-weight: 600; }
+  .brand-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--copper);
+    box-shadow: 0 0 10px var(--copper-glow);
+  }
+  .brand .sep { color: var(--text-faint); margin: 0 4px; font-weight: 400; }
+  .brand .client { color: var(--text-mid); font-weight: 500; }
+  .brand .stage { color: var(--copper); font-weight: 500; }
+  .pulse-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--signal-go);
+    box-shadow: 0 0 8px var(--signal-go);
+    animation: pulse 2s ease-in-out infinite;
+    display: inline-block; margin-right: 9px;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.9); }
+  }
+
+  /* ── progress strip ───────────────────────── */
+  .progress-strip {
+    position: sticky;
+    top: 42px;
+    z-index: 90;
+    background: rgba(8, 9, 13, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 0 16px;
+  }
+  .progress-inner {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .progress-label { color: var(--copper); font-weight: 600; letter-spacing: 0.22em; }
+  .progress-bar {
+    flex: 1;
+    height: 3px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .progress-bar .fill {
+    position: absolute; top: 0; left: 0; bottom: 0;
+    width: 23.7%; /* 18/76 */
+    background: linear-gradient(90deg, var(--copper-soft), var(--copper));
+    box-shadow: 0 0 12px var(--copper-glow);
+  }
+  .progress-bar .marker {
+    position: absolute; top: -3px; bottom: -3px;
+    width: 1px; background: var(--text-faint);
+    opacity: 0.4;
+  }
+  .progress-count { color: var(--text); font-weight: 500; }
+  .progress-count em { color: var(--copper); font-style: normal; }
+
+  /* ── stack ────────────────────────────────── */
+  .stack {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 36px 24px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  /* ── card base ────────────────────────────── */
+  .card {
+    position: relative;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+  }
+
+  /* ── DONE card (collapsed single row) ─────── */
+  .card.done {
+    background: rgba(17, 21, 31, 0.5);
+    border-color: rgba(180, 200, 240, 0.05);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-height: 52px;
+    transition: background 0.2s;
+  }
+  .card.done:hover { background: rgba(17, 21, 31, 0.78); }
+  .card.done .check {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid var(--copper);
+    color: var(--copper);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .card.done .phase-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--text-faint);
+    font-weight: 500;
+  }
+  .card.done .phase-name {
+    font-family: var(--sans);
+    font-size: 14.5px;
+    color: var(--text-mid);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+  .card.done .meta {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+  .card.done .meta .sep { margin: 0 8px; opacity: 0.5; }
+
+  /* ── ACTIVE card (full) ───────────────────── */
+  .card.active {
+    background:
+      radial-gradient(circle at 95% 0%, rgba(236, 152, 73, 0.06), transparent 50%),
+      var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    padding: 0;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.35), 0 0 0 1px rgba(236, 152, 73, 0.05);
+    margin: 14px 0;
+  }
+  .card.active::before {
+    content: '';
+    position: absolute; top: 0; bottom: 0; left: 0;
+    width: 2px;
+    background: linear-gradient(180deg, var(--copper), rgba(236, 152, 73, 0));
+  }
+  .active-head {
+    padding: 26px 34px 22px;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 24px;
+    align-items: start;
+  }
+  .active-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    color: var(--copper);
+    font-weight: 600;
+    padding-top: 6px;
+  }
+  .active-title {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .active-title h2 {
+    font-family: var(--serif);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 30px;
+    letter-spacing: -0.015em;
+    line-height: 1.1;
+    color: var(--text);
+  }
+  .active-title h2 .copper { color: var(--copper); }
+  .active-title .purpose {
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    max-width: 580px;
+  }
+  .active-stats {
+    text-align: right;
+    display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+  }
+  .active-stats .pill {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--copper);
+    border: 1px solid rgba(236, 152, 73, 0.32);
+    padding: 4px 10px;
+    border-radius: 1px;
+  }
+  .active-stats .count-ring {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+  .active-stats .count-ring em {
+    color: var(--text);
+    font-style: normal;
+    font-weight: 500;
+    font-size: 16px;
+  }
+
+  /* sub-sections within active card */
+  .active-body { padding: 6px 34px 28px; }
+  .subsection {
+    padding: 18px 0 4px;
+    border-bottom: 1px dashed rgba(180, 200, 240, 0.06);
+  }
+  .subsection:last-child { border-bottom: none; }
+  .sub-head {
+    display: flex; align-items: baseline; gap: 12px;
+    margin-bottom: 10px;
+  }
+  .sub-label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-weight: 600;
+  }
+  .sub-label .num { color: var(--copper); margin-right: 8px; }
+  .sub-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-left: auto;
+  }
+
+  /* task row */
+  .task {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 14px;
+    padding: 9px 0;
+    align-items: start;
+  }
+  .task + .task { border-top: 1px solid rgba(180, 200, 240, 0.04); }
+  .check-box {
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 2px;
+    margin-top: 2px;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.15s, background 0.15s;
+    flex-shrink: 0;
+  }
+  .check-box:hover { border-color: var(--copper); }
+  .check-box.checked {
+    background: var(--copper);
+    border-color: var(--copper);
+  }
+  .check-box.checked::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    color: var(--bg-void);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .task-body {
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--text-mid);
+    line-height: 1.5;
+  }
+  .task.complete .task-body { color: var(--text-faint); text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: rgba(180,200,240,0.18); }
+  .task-body strong { color: var(--text); font-weight: 600; }
+  .task-howto {
+    margin-top: 7px;
+    padding: 10px 14px 11px;
+    background: rgba(8, 9, 13, 0.55);
+    border-left: 2px solid rgba(236, 152, 73, 0.45);
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+  .task-howto .howto-label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--copper);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .task-howto code {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-mid);
+    background: rgba(180,200,240,0.06);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+  .task-howto ol {
+    padding-left: 18px;
+    margin-top: 3px;
+  }
+  .task-howto ol li { margin-bottom: 2px; }
+
+  /* ── UPCOMING card (collapsed but informative) ── */
+  .card.upcoming {
+    background: rgba(17, 21, 31, 0.35);
+    border-color: rgba(180, 200, 240, 0.05);
+    padding: 16px 24px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 20px;
+    align-items: center;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+  .card.upcoming:hover { opacity: 0.85; }
+  .upcoming-ring {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1.5px dashed var(--text-faint);
+    color: var(--text-faint);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .upcoming-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .upcoming-head {
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  .upcoming-num {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    color: var(--text-faint);
+    font-weight: 500;
+  }
+  .upcoming-name {
+    font-family: var(--sans);
+    font-size: 14.5px;
+    color: var(--text-mid);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+  .upcoming-hint {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--text-faint);
+    line-height: 1.4;
+    max-width: 540px;
+  }
+  .upcoming-meta {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .upcoming-meta strong { color: var(--text-muted); font-weight: 500; }
+
+  /* footer breadcrumb */
+  .stack-foot {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    justify-content: center;
+  }
+  .stack-foot .line {
+    width: 40px; height: 1px;
+    background: var(--border-strong);
+  }
+
+  /* reveal */
+  .reveal { opacity: 0; transform: translateY(4px); animation: reveal 0.5s cubic-bezier(.2,.8,.2,1) forwards; }
+  .reveal-1 { animation-delay: 0.03s; }
+  .reveal-2 { animation-delay: 0.08s; }
+  .reveal-3 { animation-delay: 0.13s; }
+  .reveal-4 { animation-delay: 0.20s; }
+  .reveal-5 { animation-delay: 0.28s; }
+  .reveal-6 { animation-delay: 0.36s; }
+  @keyframes reveal { to { opacity: 1; transform: translateY(0); } }
+  .card.upcoming.reveal { opacity: 0; }
+  .card.upcoming.reveal { animation-name: reveal-dim; }
+  @keyframes reveal-dim { to { opacity: 0.5; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">
+    <span class="brand-dot"></span>
+    HAUCK MARKETING OS
+    <span class="sep">·</span>
+    <span class="client">WILLIS WINDOWS</span>
+    <span class="sep">·</span>
+    <span class="stage">ONBOARDING</span>
+  </span>
+  <div class="right">
+    <span><span class="pulse-dot"></span>JARVIS · ONLINE</span>
+  </div>
+</div>
+
+<div class="progress-strip">
+  <div class="progress-inner">
+    <span class="progress-label">▸ Onboarding</span>
+    <span class="progress-count"><em>18</em> of 76 tasks</span>
+    <div class="progress-bar">
+      <div class="fill"></div>
+      <!-- markers at each phase boundary (10 phases) -->
+      <span class="marker" style="left:10%"></span>
+      <span class="marker" style="left:20%"></span>
+      <span class="marker" style="left:30%"></span>
+      <span class="marker" style="left:40%"></span>
+      <span class="marker" style="left:50%"></span>
+      <span class="marker" style="left:60%"></span>
+      <span class="marker" style="left:70%"></span>
+      <span class="marker" style="left:80%"></span>
+      <span class="marker" style="left:90%"></span>
+    </div>
+    <span class="progress-count">Phase <em>3</em> / 10</span>
+  </div>
+</div>
+
+<main class="stack">
+
+  <!-- ────────── DONE ────────── -->
+  <section class="card done reveal reveal-1">
+    <div class="check">✓</div>
+    <div class="phase-num">PHASE 00</div>
+    <div class="phase-name">Pre-Kickoff</div>
+    <div class="meta">5 OF 5 COMPLETE <span class="sep">·</span> 09 MAY</div>
+  </section>
+
+  <section class="card done reveal reveal-2">
+    <div class="check">✓</div>
+    <div class="phase-num">PHASE 01</div>
+    <div class="phase-name">Discovery &amp; Intake</div>
+    <div class="meta">4 OF 4 COMPLETE <span class="sep">·</span> 10 MAY</div>
+  </section>
+
+  <section class="card done reveal reveal-3">
+    <div class="check">✓</div>
+    <div class="phase-num">PHASE 02</div>
+    <div class="phase-name">Budget &amp; Strategy</div>
+    <div class="meta">5 OF 5 COMPLETE <span class="sep">·</span> 10 MAY</div>
+  </section>
+
+  <!-- ────────── ACTIVE ────────── -->
+  <section class="card active reveal reveal-4">
+    <div class="active-head">
+      <div class="active-num">PHASE 03 / 10</div>
+      <div class="active-title">
+        <h2>Account &amp; <span class="copper">Tracking Setup</span></h2>
+        <p class="purpose">Get the plumbing right before a single dollar moves. Client owns the Business Manager, we hold Partner access only, and every pixel event lights green before traffic.</p>
+      </div>
+      <div class="active-stats">
+        <div class="pill">▸ ACTIVE · DAY 3 OF 5</div>
+        <div class="count-ring"><em>4</em> / 16 tasks</div>
+      </div>
+    </div>
+
+    <div class="active-body">
+
+      <!-- Meta BM -->
+      <div class="subsection">
+        <div class="sub-head">
+          <span class="sub-label"><span class="num">3.1</span>Meta Business Manager</span>
+          <span class="sub-meta">course §3.3 · §3.4</span>
+        </div>
+
+        <div class="task complete">
+          <div class="check-box checked"></div>
+          <div class="task-body">
+            <strong>Client creates/owns Business Manager</strong> — NEVER us; agency access only.
+          </div>
+        </div>
+
+        <div class="task complete">
+          <div class="check-box checked"></div>
+          <div class="task-body">
+            Verify BM is verified (domain verification done).
+          </div>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">
+            <strong>Ad account created inside client's BM.</strong>
+            <div class="task-howto">
+              <span class="howto-label">▸ HOW TO</span>
+              <ol>
+                <li>From the client's BM, open <code>Business Settings → Accounts → Ad Accounts → Add → Create New</code>.</li>
+                <li>Name it <code>WillisWindows_Ads_2026</code>. Time zone: client's local. Currency: USD.</li>
+                <li>Assign client as Admin first; we'll be added as Partner in the next step.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">
+            Payment method on file (client's card, not ours).
+            <div class="task-howto">
+              <span class="howto-label">▸ HOW TO</span>
+              Have the client add their card under <code>Billing → Payment Methods</code>. Confirm Hauck Marketing is NOT listed as a funding source — keep a screenshot in <code>assets/contracts/</code>.
+            </div>
+          </div>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">
+            <strong>Add Hauck Marketing as Partner</strong> with Admin access to: Ad Account, Page, Pixel, Catalog (if applicable).
+            <div class="task-howto">
+              <span class="howto-label">▸ HOW TO · partner handshake</span>
+              <ol>
+                <li>Client opens <code>Business Settings → Partners → Add → Give a Partner access to your assets</code>.</li>
+                <li>Enters our BM ID: <code>HAUCK-1042-887</code>.</li>
+                <li>Grants <strong>Admin</strong> on each asset. Anything less and we can't pause campaigns at 2am.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">
+            Spend limit set on ad account.
+          </div>
+        </div>
+      </div>
+
+      <!-- Page & Identity -->
+      <div class="subsection">
+        <div class="sub-head">
+          <span class="sub-label"><span class="num">3.2</span>Page &amp; Identity</span>
+          <span class="sub-meta">0 / 3</span>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">FB Page admin access confirmed.</div>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">
+            IG account connected to FB Page (Professional / Business mode).
+            <div class="task-howto">
+              <span class="howto-label">▸ HOW TO</span>
+              In Meta Business Suite → <code>Settings → Accounts → Instagram</code>. If the IG is still Personal, switch it under the IG app: <code>Settings → Account → Switch to Professional</code>. Reels &amp; insights won't work otherwise.
+            </div>
+          </div>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">Instagram access granted via Meta Business Suite.</div>
+        </div>
+      </div>
+
+      <!-- Pixel & CAPI -->
+      <div class="subsection">
+        <div class="sub-head">
+          <span class="sub-label"><span class="num">3.3</span>Pixel &amp; Conversions API</span>
+          <span class="sub-meta">course §3.5 · 0 / 6</span>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">
+            <strong>Meta Pixel installed via GTM.</strong>
+            <div class="task-howto">
+              <span class="howto-label">▸ HOW TO</span>
+              <ol>
+                <li>Grab the pixel ID from <code>Events Manager → Data Sources</code>.</li>
+                <li>In GTM, install the official <code>Facebook Pixel</code> template tag. Trigger: <em>All Pages</em>.</li>
+                <li>Publish the container. Confirm fire in <code>Meta Pixel Helper</code> Chrome extension before moving on.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">CAPI configured (server-side via GTM Server, Stape, or native).</div>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">Standard events firing: PageView, ViewContent, <strong>Lead</strong>, Purchase (as relevant).</div>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">Test events tab green for all events.</div>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">Domain verified in BM.</div>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">Aggregated Event Measurement — 8 events prioritized.</div>
+        </div>
+      </div>
+
+      <!-- Tracking Audit -->
+      <div class="subsection">
+        <div class="sub-head">
+          <span class="sub-label"><span class="num">3.4</span>Tracking Audit</span>
+          <span class="sub-meta">app workflow · 0 / 2</span>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">
+            <strong>Run the Tracking Audit Walkthrough</strong> in the app — every check green before launch.
+            <div class="task-howto">
+              <span class="howto-label">▸ HOW TO · run in app</span>
+              Open <code>⌘K → Tracking Audit</code>. The walkthrough fires a synthetic Lead event end-to-end and verifies the pixel, CAPI, dedupe, and AEM priority. Red rows block Phase 5.
+            </div>
+          </div>
+        </div>
+
+        <div class="task">
+          <div class="check-box"></div>
+          <div class="task-body">Document gaps in <code>assets/tracking-audit.md</code>.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ────────── UPCOMING ────────── -->
+  <section class="card upcoming reveal reveal-5">
+    <div class="upcoming-ring">04</div>
+    <div class="upcoming-body">
+      <div class="upcoming-head">
+        <span class="upcoming-num">PHASE 04</span>
+        <span class="upcoming-name">Creative Production</span>
+      </div>
+      <div class="upcoming-hint">Strategy doc → angles → hooks → copy → visuals. Build 9 ads (3 statics, 3 carousels, 3 videos) in defined order, no skipping.</div>
+    </div>
+    <div class="upcoming-meta"><strong>12 steps</strong><br>Days 4–7</div>
+  </section>
+
+  <section class="card upcoming reveal reveal-5">
+    <div class="upcoming-ring">05</div>
+    <div class="upcoming-body">
+      <div class="upcoming-head">
+        <span class="upcoming-num">PHASE 05</span>
+        <span class="upcoming-name">Campaign Build</span>
+      </div>
+      <div class="upcoming-hint">Campaign shell, ad set structure, three ad slots, pre-flight check. Locked naming, CBO on, no audience fragmentation day one.</div>
+    </div>
+    <div class="upcoming-meta"><strong>5 steps</strong><br>Days 7–8</div>
+  </section>
+
+  <section class="card upcoming reveal reveal-6">
+    <div class="upcoming-ring">06</div>
+    <div class="upcoming-body">
+      <div class="upcoming-head">
+        <span class="upcoming-num">PHASE 06</span>
+        <span class="upcoming-name">Launch</span>
+      </div>
+      <div class="upcoming-hint">Final sign-off, Monday/Tuesday AM publish, spend pacing confirmed in 4 hours, "we're live" Loom out to client.</div>
+    </div>
+    <div class="upcoming-meta"><strong>6 tasks</strong><br>Day 8</div>
+  </section>
+
+  <section class="card upcoming reveal reveal-6">
+    <div class="upcoming-ring">07</div>
+    <div class="upcoming-body">
+      <div class="upcoming-head">
+        <span class="upcoming-num">PHASE 07</span>
+        <span class="upcoming-name">Learning Phase Management</span>
+      </div>
+      <div class="upcoming-hint">Hands off for 3–4 days. Daily 15-min scan. Day 7 cull and scale. Day 14 exit review.</div>
+    </div>
+    <div class="upcoming-meta"><strong>5 tasks</strong><br>Days 8–15</div>
+  </section>
+
+  <section class="card upcoming reveal reveal-6">
+    <div class="upcoming-ring">08</div>
+    <div class="upcoming-body">
+      <div class="upcoming-head">
+        <span class="upcoming-num">PHASE 08</span>
+        <span class="upcoming-name">Ongoing Operations</span>
+      </div>
+      <div class="upcoming-hint">Daily pacing, weekly creative refresh, monthly report via Report Builder. Pricing review at month 3, 6, 12.</div>
+    </div>
+    <div class="upcoming-meta"><strong>11 tasks</strong><br>Week 3+</div>
+  </section>
+
+  <section class="card upcoming reveal reveal-6">
+    <div class="upcoming-ring">09</div>
+    <div class="upcoming-body">
+      <div class="upcoming-head">
+        <span class="upcoming-num">PHASE 09</span>
+        <span class="upcoming-name">AI Layer</span>
+      </div>
+      <div class="upcoming-hint">Meta Ads MCP, 4-agent loop, auto-report drop, alert rules on CPL, spend pace, frequency, CTR.</div>
+    </div>
+    <div class="upcoming-meta"><strong>5 tasks</strong><br>Set up once</div>
+  </section>
+
+</main>
+
+<div class="stack-foot">
+  <span class="line"></span>
+  <span>End of plan · 10 phases · 76 tasks</span>
+  <span class="line"></span>
+</div>
+
+<script>
+  // tiny inline toggle — purely cosmetic for the demo
+  document.querySelectorAll('.check-box').forEach(box => {
+    box.addEventListener('click', () => {
+      box.classList.toggle('checked');
+      const row = box.closest('.task');
+      if (row) row.classList.toggle('complete', box.classList.contains('checked'));
+    });
+  });
+</script>
+
+</body>
+</html>

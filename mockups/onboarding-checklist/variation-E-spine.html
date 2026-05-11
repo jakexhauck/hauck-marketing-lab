@@ -1,0 +1,1007 @@
+<!--
+  Onboarding Checklist — Variation E · "Spine"
+  Thin vertical phase list (sticky left rail) + active phase tasks (right pane).
+  Spine is navigation AND progress meter in one. Active phase: Phase 4 —
+  Creative Production. Steps 1–4 expanded, Steps 5–12 collapsed.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HML OS · Onboarding · Spine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #08090d;
+    --bg-deep: #0c0f17;
+    --bg-surface: #11151f;
+    --bg-elev: #161b28;
+    --border: rgba(180, 200, 240, 0.08);
+    --border-strong: rgba(180, 200, 240, 0.18);
+    --text: #eef1f7;
+    --text-mid: #c5ccdb;
+    --text-muted: #95a0b3;
+    --text-faint: #5a6378;
+    --copper: #ec9849;
+    --copper-soft: #c9722a;
+    --copper-glow: rgba(236, 152, 73, 0.38);
+    --signal-go: #5fe699;
+    --signal-hold: #fbbf24;
+    --signal-stop: #f87171;
+    --grid: rgba(180, 200, 240, 0.025);
+    --sans: 'Hanken Grotesk', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Newsreader', serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-void);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background:
+      radial-gradient(ellipse at top left, rgba(236, 152, 73, 0.045), transparent 55%),
+      radial-gradient(ellipse at bottom right, rgba(95, 230, 153, 0.022), transparent 55%),
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+      var(--bg-void);
+    background-size: auto, auto, 36px 36px, 36px 36px, auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── topbar ───────────────────────────────── */
+  .topbar {
+    height: 42px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8, 9, 13, 0.85);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    padding: 0 26px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar .right { margin-left: auto; display: flex; gap: 22px; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 12px; color: var(--text); font-weight: 600; }
+  .brand sep { color: var(--text-faint); margin: 0 10px; font-weight: 400; }
+  .brand-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--copper);
+    box-shadow: 0 0 10px var(--copper-glow);
+  }
+  .pulse-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--signal-go);
+    box-shadow: 0 0 8px var(--signal-go);
+    animation: pulse 2s ease-in-out infinite;
+    display: inline-block; margin-right: 9px;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.9); }
+  }
+
+  /* ── shell: spine + pane ──────────────────── */
+  .shell {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 42px);
+  }
+
+  /* ── SPINE (left rail) ────────────────────── */
+  .spine {
+    border-right: 1px solid var(--border);
+    background: rgba(12, 15, 23, 0.55);
+    position: sticky;
+    top: 42px;
+    height: calc(100vh - 42px);
+    overflow-y: auto;
+    padding: 22px 0 18px;
+    display: flex;
+    flex-direction: column;
+  }
+  .spine-head {
+    padding: 0 22px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .spine-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--copper);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .spine-title {
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+  }
+  .spine-meter {
+    display: flex; align-items: center; gap: 9px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+  }
+  .spine-meter-bar {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .spine-meter-bar::after {
+    content: '';
+    position: absolute; inset: 0 60% 0 0;
+    background: linear-gradient(90deg, var(--copper-soft), var(--copper));
+    box-shadow: 0 0 10px var(--copper-glow);
+  }
+
+  .phase-list {
+    list-style: none;
+    display: flex; flex-direction: column;
+    padding-bottom: 8px;
+  }
+  .phase {
+    position: relative;
+    padding: 11px 22px 11px 22px;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    border-left: 2px solid transparent;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .phase:hover { background: rgba(255,255,255,0.012); }
+  .phase .num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .phase .name {
+    font-family: var(--sans);
+    font-size: 13.2px;
+    color: var(--text-muted);
+    font-weight: 500;
+    line-height: 1.25;
+  }
+  .phase .mark {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+  }
+  .phase.done .num,
+  .phase.done .name { color: var(--text-muted); }
+  .phase.done .mark { color: var(--signal-go); }
+  .phase.done .name { text-decoration: line-through; text-decoration-thickness: 0.5px; text-decoration-color: var(--text-faint); }
+
+  .phase.active {
+    border-left-color: var(--copper);
+    background: linear-gradient(90deg, rgba(236, 152, 73, 0.10), transparent 75%);
+  }
+  .phase.active .num { color: var(--copper); }
+  .phase.active .name { color: var(--text); font-weight: 600; }
+  .phase.active .mark { color: var(--copper); }
+
+  .phase.future .num,
+  .phase.future .name { color: var(--text-faint); }
+
+  /* mini dots progress under each row */
+  .phase-dots {
+    grid-column: 2 / 4;
+    display: flex; gap: 3px;
+    margin-top: 6px;
+  }
+  .phase-dot {
+    width: 6px; height: 2px;
+    background: var(--border-strong);
+    border-radius: 0;
+  }
+  .phase-dot.fill { background: var(--text-muted); }
+  .phase.done .phase-dot { background: var(--signal-go); opacity: 0.55; }
+  .phase.active .phase-dot { background: rgba(236, 152, 73, 0.22); }
+  .phase.active .phase-dot.fill { background: var(--copper); box-shadow: 0 0 6px var(--copper-glow); }
+
+  .spine-foot {
+    margin-top: auto;
+    padding: 14px 22px 4px;
+    border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .spine-foot .row { display: flex; justify-content: space-between; }
+  .spine-foot .copper { color: var(--copper); }
+
+  /* ── PANE (right) ─────────────────────────── */
+  .pane {
+    padding: 38px 56px 120px;
+    max-width: 980px;
+  }
+
+  .phase-head {
+    margin-bottom: 28px;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 30px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .phase-head::after {
+    content: '';
+    position: absolute; bottom: -1px; left: 0; width: 80px; height: 1px;
+    background: var(--copper);
+    box-shadow: 0 0 10px var(--copper-glow);
+  }
+  .phase-head-left { display: flex; flex-direction: column; gap: 8px; }
+  .phase-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--copper);
+    font-weight: 600;
+  }
+  .phase-h1 {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 34px;
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+    color: var(--text);
+  }
+  .phase-h1 .num {
+    font-family: var(--mono);
+    font-size: 22px;
+    color: var(--copper);
+    font-weight: 500;
+    margin-right: 12px;
+    letter-spacing: 0;
+  }
+  .phase-purpose {
+    margin-top: 12px;
+    font-family: var(--serif);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 16.5px;
+    color: var(--text-mid);
+    line-height: 1.5;
+    max-width: 600px;
+  }
+  .phase-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--text-faint);
+    text-align: right;
+    line-height: 1.7;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .phase-meta .big {
+    display: block;
+    font-size: 24px;
+    color: var(--text);
+    letter-spacing: -0.01em;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 2px;
+  }
+  .phase-meta .big em { color: var(--copper); font-style: normal; }
+
+  /* parallel-with banner */
+  .parallel {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 18px;
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--copper);
+    background: linear-gradient(90deg, rgba(236, 152, 73, 0.05), transparent 70%);
+    margin-bottom: 32px;
+    font-family: var(--sans);
+    font-size: 13.5px;
+    color: var(--text-mid);
+  }
+  .parallel .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--copper);
+    font-weight: 600;
+  }
+  .parallel strong { color: var(--text); font-weight: 600; }
+
+  /* ── step blocks (Phase 4: 12 steps) ─────── */
+  .step {
+    border-top: 1px solid var(--border);
+    padding: 22px 0 18px;
+  }
+  .step:first-of-type { border-top: none; padding-top: 0; }
+  .step-head {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .step-num {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--copper);
+    font-weight: 600;
+  }
+  .step-title {
+    font-family: var(--sans);
+    font-size: 17px;
+    color: var(--text);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  .step-title .dur {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-left: 12px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+  .step-chev {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  .step.expanded .step-chev { transform: rotate(90deg); color: var(--copper); display: inline-block; transform-origin: center; }
+
+  .step-byline {
+    font-family: var(--serif);
+    font-size: 14.5px;
+    color: var(--text-muted);
+    margin: 2px 0 14px 0;
+    padding-left: 36px;
+    line-height: 1.5;
+    max-width: 640px;
+  }
+  .step-byline em { color: var(--copper); font-style: normal; font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; }
+
+  /* task list */
+  .tasks { list-style: none; padding-left: 36px; display: flex; flex-direction: column; gap: 12px; }
+  .task {
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .task-check {
+    width: 16px; height: 16px;
+    border: 1px solid var(--border-strong);
+    border-radius: 2px;
+    background: var(--bg-deep);
+    position: relative;
+    margin-top: 3px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .task-check:hover { border-color: var(--copper); }
+  .task-check.done {
+    border-color: var(--signal-go);
+    background: rgba(95, 230, 153, 0.14);
+  }
+  .task-check.done::after {
+    content: '';
+    position: absolute; left: 4px; top: 0;
+    width: 5px; height: 10px;
+    border-right: 1.5px solid var(--signal-go);
+    border-bottom: 1.5px solid var(--signal-go);
+    transform: rotate(45deg);
+  }
+  .task-body { display: flex; flex-direction: column; gap: 6px; }
+  .task-label {
+    font-family: var(--sans);
+    font-size: 14.5px;
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .task-check.done + .task-body .task-label {
+    color: var(--text-muted);
+    text-decoration: line-through;
+    text-decoration-thickness: 0.5px;
+    text-decoration-color: var(--text-faint);
+  }
+  .task-howto {
+    list-style: none;
+    display: flex; flex-direction: column; gap: 3px;
+    margin-top: 2px;
+    padding-left: 12px;
+    border-left: 1px solid var(--border);
+  }
+  .task-howto li {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    padding: 1px 0 1px 12px;
+    position: relative;
+  }
+  .task-howto li::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    color: var(--text-faint);
+    font-weight: 700;
+  }
+  .task-howto li code {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--copper);
+    background: rgba(236, 152, 73, 0.06);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  /* collapsed step row */
+  .step.collapsed { padding: 14px 0; }
+  .step.collapsed .step-head { margin-bottom: 0; }
+  .step.collapsed .step-title { color: var(--text-mid); font-weight: 500; font-size: 15px; }
+  .step.collapsed .step-chev { color: var(--text-faint); }
+  .step.collapsed:hover .step-title { color: var(--text); }
+  .step.collapsed:hover .step-chev { color: var(--copper); }
+  .step.collapsed .step-count {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    letter-spacing: 0.12em;
+    margin-right: 14px;
+  }
+
+  /* ── action bar ───────────────────────────── */
+  .actbar {
+    margin-top: 42px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .actbar a {
+    color: var(--text-muted);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .actbar a:hover { color: var(--copper); }
+  .actbar .prev::before { content: '‹  '; color: var(--text-faint); }
+  .actbar .next::after { content: '  ›'; color: var(--copper); }
+  .actbar .next { color: var(--text); }
+  .actbar .center {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    color: var(--text-faint);
+  }
+  .actbar .center .copper { color: var(--copper); }
+
+  /* fade-in */
+  .reveal { opacity: 0; transform: translateY(6px); animation: reveal 0.6s cubic-bezier(.2,.8,.2,1) forwards; }
+  .reveal-1 { animation-delay: 0.05s; }
+  .reveal-2 { animation-delay: 0.13s; }
+  .reveal-3 { animation-delay: 0.21s; }
+  @keyframes reveal { to { opacity: 1; transform: translateY(0); } }
+
+  /* hide scrollbar visual noise */
+  .spine::-webkit-scrollbar { width: 4px; }
+  .spine::-webkit-scrollbar-thumb { background: var(--border-strong); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">
+    <span class="brand-dot"></span>HAUCK MARKETING OS
+    <sep>·</sep>WILLIS WINDOWS
+    <sep>·</sep>ONBOARDING
+  </span>
+  <div class="right">
+    <span><span class="pulse-dot"></span>JARVIS · ONLINE</span>
+    <span>DAY 5 / 8</span>
+    <span>&#8984; K · COMMAND</span>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- ─── SPINE ─── -->
+  <aside class="spine">
+    <div class="spine-head">
+      <div class="spine-eyebrow">&#9656; Onboarding</div>
+      <div class="spine-title">Willis Windows</div>
+      <div class="spine-meter">
+        <span>40%</span>
+        <div class="spine-meter-bar"></div>
+        <span>4 / 10</span>
+      </div>
+    </div>
+
+    <ul class="phase-list">
+
+      <li class="phase done">
+        <span class="num">00</span>
+        <span class="name">Pre-Kickoff</span>
+        <span class="mark">&#10003;</span>
+        <div class="phase-dots">
+          <span class="phase-dot fill"></span><span class="phase-dot fill"></span><span class="phase-dot fill"></span><span class="phase-dot fill"></span><span class="phase-dot fill"></span>
+        </div>
+      </li>
+
+      <li class="phase done">
+        <span class="num">01</span>
+        <span class="name">Discovery &amp; Intake</span>
+        <span class="mark">&#10003;</span>
+        <div class="phase-dots">
+          <span class="phase-dot fill"></span><span class="phase-dot fill"></span><span class="phase-dot fill"></span><span class="phase-dot fill"></span>
+        </div>
+      </li>
+
+      <li class="phase done">
+        <span class="num">02</span>
+        <span class="name">Budget &amp; Strategy</span>
+        <span class="mark">&#10003;</span>
+        <div class="phase-dots">
+          <span class="phase-dot fill"></span><span class="phase-dot fill"></span><span class="phase-dot fill"></span><span class="phase-dot fill"></span><span class="phase-dot fill"></span>
+        </div>
+      </li>
+
+      <li class="phase done">
+        <span class="num">03</span>
+        <span class="name">Account &amp; Tracking</span>
+        <span class="mark">&#10003;</span>
+        <div class="phase-dots">
+          <span class="phase-dot fill"></span><span class="phase-dot fill"></span><span class="phase-dot fill"></span><span class="phase-dot fill"></span><span class="phase-dot fill"></span><span class="phase-dot fill"></span>
+        </div>
+      </li>
+
+      <li class="phase active">
+        <span class="num">04</span>
+        <span class="name">Creative Production</span>
+        <span class="mark">4 / 12</span>
+        <div class="phase-dots">
+          <span class="phase-dot fill"></span>
+          <span class="phase-dot fill"></span>
+          <span class="phase-dot fill"></span>
+          <span class="phase-dot fill"></span>
+          <span class="phase-dot"></span>
+          <span class="phase-dot"></span>
+          <span class="phase-dot"></span>
+          <span class="phase-dot"></span>
+          <span class="phase-dot"></span>
+          <span class="phase-dot"></span>
+          <span class="phase-dot"></span>
+          <span class="phase-dot"></span>
+        </div>
+      </li>
+
+      <li class="phase future">
+        <span class="num">05</span>
+        <span class="name">Campaign Build</span>
+        <span class="mark">&middot;</span>
+        <div class="phase-dots">
+          <span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span>
+        </div>
+      </li>
+
+      <li class="phase future">
+        <span class="num">06</span>
+        <span class="name">Launch</span>
+        <span class="mark">&middot;</span>
+        <div class="phase-dots">
+          <span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span>
+        </div>
+      </li>
+
+      <li class="phase future">
+        <span class="num">07</span>
+        <span class="name">Learning Phase</span>
+        <span class="mark">&middot;</span>
+        <div class="phase-dots">
+          <span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span>
+        </div>
+      </li>
+
+      <li class="phase future">
+        <span class="num">08</span>
+        <span class="name">Ongoing Ops</span>
+        <span class="mark">&middot;</span>
+        <div class="phase-dots">
+          <span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span>
+        </div>
+      </li>
+
+      <li class="phase future">
+        <span class="num">09</span>
+        <span class="name">AI Layer</span>
+        <span class="mark">&middot;</span>
+        <div class="phase-dots">
+          <span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span>
+        </div>
+      </li>
+
+      <li class="phase future">
+        <span class="num">10</span>
+        <span class="name">Retention &amp; Scale</span>
+        <span class="mark">&middot;</span>
+        <div class="phase-dots">
+          <span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span><span class="phase-dot"></span>
+        </div>
+      </li>
+
+    </ul>
+
+    <div class="spine-foot">
+      <div class="row"><span>Folder</span><span class="copper">SYNCED</span></div>
+      <div class="row"><span>Started</span><span>06 MAY</span></div>
+      <div class="row"><span>Phase ETA</span><span>14 MAY</span></div>
+    </div>
+  </aside>
+
+  <!-- ─── PANE ─── -->
+  <main class="pane">
+
+    <section class="phase-head reveal reveal-1">
+      <div class="phase-head-left">
+        <span class="phase-eyebrow">&#9656; Phase 04 of 10</span>
+        <h1 class="phase-h1"><span class="num">04</span>Creative Production</h1>
+        <p class="phase-purpose">
+          Twelve steps, in this exact order, every client. Strategy doc first &mdash; hooks before copy &mdash; copy before visuals.
+          By the end: nine ads (three statics, three carousels, three videos), every one traceable back to the strategy doc.
+        </p>
+      </div>
+      <div class="phase-meta">
+        Day 4 &ndash; 7<br>
+        <span class="big"><em>4</em> / 12</span>
+        Steps complete
+      </div>
+    </section>
+
+    <div class="parallel reveal reveal-2">
+      <span class="tag">Parallel track</span>
+      <span><strong>Runs alongside Phase 3</strong> &mdash; Account &amp; Tracking Setup. Don't wait for pixel verification; build creative now.</span>
+    </div>
+
+    <!-- STEP 01 — EXPANDED -->
+    <section class="step expanded reveal reveal-3">
+      <div class="step-head">
+        <span class="step-num">Step 01</span>
+        <span class="step-title">Strategy doc first<span class="dur">1 hour</span></span>
+        <span class="step-chev">&#9656;</span>
+      </div>
+      <p class="step-byline"><em>Before code, before Canva.</em> Locks in <code>assets/strategy.md</code>. Everything downstream is built off this doc &mdash; if it's wrong, the ads are wrong.</p>
+      <ul class="tasks">
+
+        <li class="task">
+          <span class="task-check done"></span>
+          <div class="task-body">
+            <div class="task-label">Offer &mdash; the one thing we're selling</div>
+            <ul class="task-howto">
+              <li>One sentence. No menu. Example: <code>$99 first window cleaning</code>.</li>
+              <li>If you can't say it without "and" or "plus," it's two offers &mdash; pick one.</li>
+              <li>Match this to whatever the landing page (or call script) actually delivers.</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="task">
+          <span class="task-check done"></span>
+          <div class="task-body">
+            <div class="task-label">Audience &mdash; who specifically</div>
+            <ul class="task-howto">
+              <li>Demographic + geo radius. Example: homeowners 35&ndash;65, 20mi around Phoenix.</li>
+              <li>Pull this from the discovery form (Phase 1) &mdash; don't guess.</li>
+              <li>This becomes the ad-set audience name in Phase 5 verbatim.</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="task">
+          <span class="task-check done"></span>
+          <div class="task-body">
+            <div class="task-label">Pain point &mdash; what's bugging them</div>
+            <ul class="task-howto">
+              <li>Use the client's words from the kickoff transcript, not marketing-speak.</li>
+              <li>Willis example: dirty windows, no time, embarrassed when guests come over.</li>
+              <li>Three is plenty. More is noise.</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="task">
+          <span class="task-check done"></span>
+          <div class="task-body">
+            <div class="task-label">Desire &mdash; what they actually want</div>
+            <ul class="task-howto">
+              <li>The end-state, not the product. Clean home, peace of mind, one less chore.</li>
+              <li>Desire fuels hooks. Pain fuels copy. Keep them in separate columns.</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="task">
+          <span class="task-check"></span>
+          <div class="task-body">
+            <div class="task-label">Objections &mdash; top 3 reasons they'd say no</div>
+            <ul class="task-howto">
+              <li>Price, trust, "I'll do it myself" &mdash; the usual suspects for home services.</li>
+              <li>Each objection needs a counter in the proof list below. One-to-one.</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="task">
+          <span class="task-check"></span>
+          <div class="task-body">
+            <div class="task-label">Proof &mdash; what we have to back it up</div>
+            <ul class="task-howto">
+              <li>Testimonials (with names + city), before/afters, review counts, years in business.</li>
+              <li>If proof is thin, schedule a 30-min shoot now (Step 08 will need it anyway).</li>
+            </ul>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- STEP 02 — EXPANDED -->
+    <section class="step expanded">
+      <div class="step-head">
+        <span class="step-num">Step 02</span>
+        <span class="step-title">Angles<span class="dur">30 min</span></span>
+        <span class="step-chev">&#9656;</span>
+      </div>
+      <p class="step-byline">Five distinct angles &mdash; not twelve. Pick the top three to actually build; park the other two for refresh week.</p>
+      <ul class="tasks">
+
+        <li class="task">
+          <span class="task-check done"></span>
+          <div class="task-body">
+            <div class="task-label">Open the Creative Brief Builder in the app</div>
+            <ul class="task-howto">
+              <li>Loads strategy.md automatically. If it asks for inputs, Step 01 isn't done.</li>
+              <li>Output drops into <code>creatives/angles.md</code>.</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="task">
+          <span class="task-check done"></span>
+          <div class="task-body">
+            <div class="task-label">Generate 5 distinct angles for Willis Windows</div>
+            <ul class="task-howto">
+              <li>Distinct = different emotion driving the click. Not five flavors of "we clean good."</li>
+              <li>Working set: Embarrassment / Time-saving / Curb appeal / Spring seasonal / Social proof.</li>
+              <li>If two angles can use the same hook, they're the same angle &mdash; merge them.</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="task">
+          <span class="task-check"></span>
+          <div class="task-body">
+            <div class="task-label">Pick top 3 to actually build. Park the other 2.</div>
+            <ul class="task-howto">
+              <li>Tag each with "build" or "park" in <code>angles.md</code> &mdash; we revisit at week 3 refresh.</li>
+              <li>Bias to the angle the client's testimonials already prove. Easier copy, faster approval.</li>
+            </ul>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- STEP 03 — EXPANDED -->
+    <section class="step expanded">
+      <div class="step-head">
+        <span class="step-num">Step 03</span>
+        <span class="step-title">Hooks<span class="dur">45 min</span></span>
+        <span class="step-chev">&#9656;</span>
+      </div>
+      <p class="step-byline"><em>Hooks before copy. Hooks before visuals. Always.</em> The first 1.5 seconds. If the hook doesn't stop the scroll, nothing else matters.</p>
+      <ul class="tasks">
+
+        <li class="task">
+          <span class="task-check done"></span>
+          <div class="task-body">
+            <div class="task-label">Run Hook Generator per angle &mdash; 10 each, 30 total</div>
+            <ul class="task-howto">
+              <li>App pre-loads the angle context. One pass per angle, don't batch them.</li>
+              <li>Mix formats: question, statement, pattern interrupt, social proof, contrarian.</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="task">
+          <span class="task-check"></span>
+          <div class="task-body">
+            <div class="task-label">Cull to top 3 per angle &mdash; 9 surviving hooks</div>
+            <ul class="task-howto">
+              <li>Read each one aloud. If you stumble, kill it. Phone-scrolling test.</li>
+              <li>6th-grade reading level max. No jargon. No "synergy."</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="task">
+          <span class="task-check"></span>
+          <div class="task-body">
+            <div class="task-label">Save to creatives/hooks.md</div>
+            <ul class="task-howto">
+              <li>Group by angle, numbered 1&ndash;9. Each hook gets a one-line "why this works" note.</li>
+              <li>This file feeds Step 04 (copy) and Step 11 (video text overlays).</li>
+            </ul>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- STEP 04 — EXPANDED -->
+    <section class="step expanded">
+      <div class="step-head">
+        <span class="step-num">Step 04</span>
+        <span class="step-title">Primary text / body copy<span class="dur">1 hour</span></span>
+        <span class="step-chev">&#9656;</span>
+      </div>
+      <p class="step-byline">One framework per angle &mdash; don't mix. PAS for angle 1, BAB for angle 2, Story for angle 3. Output: 5&ndash;7 lines, 6th-grade level, one clear CTA.</p>
+      <ul class="tasks">
+
+        <li class="task">
+          <span class="task-check"></span>
+          <div class="task-body">
+            <div class="task-label">Angle 1 &mdash; PAS (Problem &middot; Agitate &middot; Solution)</div>
+            <ul class="task-howto">
+              <li>Lead with the pain. Twist the knife. Then the offer as relief.</li>
+              <li>Save to <code>creatives/copy/embarrassment.md</code>.</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="task">
+          <span class="task-check"></span>
+          <div class="task-body">
+            <div class="task-label">Angle 2 &mdash; BAB (Before &middot; After &middot; Bridge)</div>
+            <ul class="task-howto">
+              <li>Paint the current Saturday (chores, ladder, frustration) &rarr; the new Saturday &rarr; how we get there.</li>
+              <li>Save to <code>creatives/copy/time-saving.md</code>.</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="task">
+          <span class="task-check"></span>
+          <div class="task-body">
+            <div class="task-label">Angle 3 &mdash; Story</div>
+            <ul class="task-howto">
+              <li>Real client story, names changed if needed. Beginning, middle, payoff.</li>
+              <li>Save to <code>creatives/copy/curb-appeal.md</code>.</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="task">
+          <span class="task-check"></span>
+          <div class="task-body">
+            <div class="task-label">One clear CTA per ad &mdash; no "learn more, or call, or book"</div>
+            <ul class="task-howto">
+              <li>Match the CTA button you'll set in Phase 5: Get Quote / Book Now / Learn More.</li>
+              <li>If the offer is "$99 first clean," the CTA is "Book your $99 clean." Direct.</li>
+            </ul>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- STEPS 05 – 12 — COLLAPSED -->
+    <section class="step collapsed">
+      <div class="step-head">
+        <span class="step-num">Step 05</span>
+        <span class="step-title">Headlines<span class="dur">30 min</span></span>
+        <span><span class="step-count">0 / 6</span><span class="step-chev">&#9656;</span></span>
+      </div>
+    </section>
+
+    <section class="step collapsed">
+      <div class="step-head">
+        <span class="step-num">Step 06</span>
+        <span class="step-title">Compliance pass<span class="dur">15 min</span></span>
+        <span><span class="step-count">0 / 5</span><span class="step-chev">&#9656;</span></span>
+      </div>
+    </section>
+
+    <section class="step collapsed">
+      <div class="step-head">
+        <span class="step-num">Step 07</span>
+        <span class="step-title">Visual concepts<span class="dur">30 min</span></span>
+        <span><span class="step-count">0 / 3</span><span class="step-chev">&#9656;</span></span>
+      </div>
+    </section>
+
+    <section class="step collapsed">
+      <div class="step-head">
+        <span class="step-num">Step 08</span>
+        <span class="step-title">Asset gathering<span class="dur">1&ndash;2 hours</span></span>
+        <span><span class="step-count">0 / 3</span><span class="step-chev">&#9656;</span></span>
+      </div>
+    </section>
+
+    <section class="step collapsed">
+      <div class="step-head">
+        <span class="step-num">Step 09</span>
+        <span class="step-title">Static image ads &mdash; 3 builds<span class="dur">2 hours</span></span>
+        <span><span class="step-count">0 / 4</span><span class="step-chev">&#9656;</span></span>
+      </div>
+    </section>
+
+    <section class="step collapsed">
+      <div class="step-head">
+        <span class="step-num">Step 10</span>
+        <span class="step-title">Carousels &mdash; 3 builds<span class="dur">1.5 hours</span></span>
+        <span><span class="step-count">0 / 3</span><span class="step-chev">&#9656;</span></span>
+      </div>
+    </section>
+
+    <section class="step collapsed">
+      <div class="step-head">
+        <span class="step-num">Step 11</span>
+        <span class="step-title">Video / Reel &mdash; 3 builds<span class="dur">2 hours</span></span>
+        <span><span class="step-count">0 / 5</span><span class="step-chev">&#9656;</span></span>
+      </div>
+    </section>
+
+    <section class="step collapsed">
+      <div class="step-head">
+        <span class="step-num">Step 12</span>
+        <span class="step-title">Client approval gate<span class="dur">24h turnaround</span></span>
+        <span><span class="step-count">0 / 4</span><span class="step-chev">&#9656;</span></span>
+      </div>
+    </section>
+
+    <!-- action bar -->
+    <div class="actbar">
+      <a class="prev">Phase 03 &middot; Account &amp; Tracking</a>
+      <span class="center"><span class="copper">Phase 04</span> &middot; Step 05 of 12 up next</span>
+      <a class="next">Phase 05 &middot; Campaign Build</a>
+    </div>
+
+  </main>
+
+</div>
+
+</body>
+</html>

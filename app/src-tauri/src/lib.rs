@@ -6,9 +6,11 @@ mod config;
 mod creatives;
 mod credentials;
 mod diagnosis;
+mod drive_index;
 mod events;
 mod folder;
 mod frontmatter;
+mod generators;
 mod knowledge;
 mod kpi;
 mod launch_checklist;
@@ -47,6 +49,9 @@ pub fn run() {
             clients::rename_client,
             clients::delete_client,
             clients::set_client_benchmarks,
+            clients::set_client_drive_folder,
+            drive_index::read_drive_index,
+            drive_index::refresh_drive_index,
             benchmarks::list_benchmark_sets,
             benchmarks::read_benchmarks_for_client,
             kpi::read_latest_kpis,
@@ -61,6 +66,9 @@ pub fn run() {
             creatives::write_creatives_manifest,
             diagnosis::save_diagnosis,
             diagnosis::read_latest_diagnosis,
+            generators::save_generator_output,
+            generators::list_generator_outputs,
+            generators::read_latest_generator_output,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
