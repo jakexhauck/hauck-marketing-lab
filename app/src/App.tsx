@@ -188,7 +188,16 @@ export default function App() {
   );
 
   const onSync = useCallback(async () => {
-    if (!root || syncing) return;
+    if (syncing) return;
+    if (!root) {
+      setSyncStatus("error");
+      setSyncTooltip(
+        "No media-buying folder configured on this machine. Open Settings (⚙) and pick the folder first.",
+      );
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = window.setTimeout(() => setSyncStatus("idle"), 5000);
+      return;
+    }
     setSyncing(true);
     setSyncStatus("idle");
     setSyncTooltip("Syncing with GitHub…");
@@ -466,7 +475,7 @@ export default function App() {
         onOpenMediaBuying={() => setView("media-buying")}
         root={root}
         clients={clients}
-        onSync={root ? onSync : undefined}
+        onSync={onSync}
         syncing={syncing}
         syncStatus={syncStatus}
         syncTooltip={syncTooltip}
