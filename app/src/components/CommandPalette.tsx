@@ -15,6 +15,7 @@ type Props = {
   onScaffoldSkill: (skill: SkillEntry) => void;
   onOpenKnowledge: (item: KnowledgeTitle) => void;
   onOpenDiagnosis?: () => void;
+  onOpenKnowledgeBrowser?: () => void;
 };
 
 type ActionRow = {
@@ -65,6 +66,7 @@ export function CommandPalette({
   onScaffoldSkill,
   onOpenKnowledge,
   onOpenDiagnosis,
+  onOpenKnowledgeBrowser,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -118,6 +120,20 @@ export function CommandPalette({
           label: "Run diagnosis",
           sub: "Zenith",
           run: onOpenDiagnosis,
+        },
+      });
+    }
+    if (onOpenKnowledgeBrowser) {
+      actionRows.push({
+        kind: "ACTION" as const,
+        key: "action:knowledge",
+        label: "Browse knowledge",
+        sub: "TFC corpus · search, read, pin to chat",
+        data: {
+          id: "knowledge",
+          label: "Browse knowledge",
+          sub: "TFC corpus",
+          run: onOpenKnowledgeBrowser,
         },
       });
     }
@@ -180,7 +196,7 @@ export function CommandPalette({
       .slice(0, 30)
       .map((x) => x.r);
     return all;
-  }, [open, query, skills, knowledge, chats, onOpenDiagnosis]);
+  }, [open, query, skills, knowledge, chats, onOpenDiagnosis, onOpenKnowledgeBrowser]);
 
   useEffect(() => {
     setActive(0);

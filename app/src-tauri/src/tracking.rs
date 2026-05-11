@@ -2,6 +2,9 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use tauri::AppHandle;
+
+use crate::events::{emit_changed, DataKind};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
@@ -47,6 +50,7 @@ pub fn read_tracking_audit(
 
 #[tauri::command]
 pub fn write_tracking_audit(
+    app: AppHandle,
     root: String,
     client_slug: String,
     audit: TrackingAudit,
@@ -65,5 +69,12 @@ pub fn write_tracking_audit(
     };
     let yaml = serde_yaml::to_string(&stamped).map_err(|e| format!("serialize tracking: {e}"))?;
     fs::write(&path, yaml).map_err(|e| format!("write tracking: {e}"))?;
-    Ok(path.to_string_lossy().into_owned())
+    let path_str = path.to_string_lossy().into_owned();
+    emit_changed(
+        &app,
+        DataKind::Tracking,
+        Some(client_slug),
+        Some(path_str.clone()),
+    );
+    Ok(path_str)
 }

@@ -37,6 +37,9 @@ desktop.ini
 # App runtime config (per-machine paths, not portable)
 app-config.local.json
 
+# Per-client Meta credentials (unencrypted secrets — never commit)
+data/*/credentials.yaml
+
 # Claude Code per-developer state
 .claude/settings.local.json
 .claude/worktrees/

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/tauri";
 import type { DiagnosisFile } from "../lib/types";
 
@@ -29,6 +29,15 @@ function formatRelativeTime(iso: string): string {
 export function DiagnosisPanel({ root, clientSlug }: Props) {
   const [diagnosis, setDiagnosis] = useState<DiagnosisFile | null>(null);
 
+  const load = useCallback(async () => {
+    try {
+      const result = await api.readLatestDiagnosis(root, clientSlug);
+      setDiagnosis(result);
+    } catch {
+      setDiagnosis(null);
+    }
+  }, [root, clientSlug]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -43,6 +52,20 @@ export function DiagnosisPanel({ root, clientSlug }: Props) {
       cancelled = true;
     };
   }, [root, clientSlug]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      unlisten = await api.onDataChanged((evt) => {
+        if (evt.kind !== "diagnosis") return;
+        if (evt.client_slug !== null && evt.client_slug !== clientSlug) return;
+        load();
+      });
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [clientSlug, load]);
 
   if (!diagnosis) {
     return (

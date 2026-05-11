@@ -2,6 +2,9 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use tauri::AppHandle;
+
+use crate::events::{emit_changed, DataKind};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct KpiEntry {
@@ -92,6 +95,7 @@ pub fn read_kpi_history(
 
 #[tauri::command]
 pub fn write_kpi_entry(
+    app: AppHandle,
     root: String,
     client_slug: String,
     entry: KpiEntry,
@@ -114,5 +118,12 @@ pub fn write_kpi_entry(
     };
     let yaml = serde_yaml::to_string(&stamped).map_err(|e| format!("serialize kpi: {e}"))?;
     fs::write(&path, yaml).map_err(|e| format!("write kpi: {e}"))?;
-    Ok(path.to_string_lossy().into_owned())
+    let path_str = path.to_string_lossy().into_owned();
+    emit_changed(
+        &app,
+        DataKind::Kpi,
+        Some(client_slug),
+        Some(path_str.clone()),
+    );
+    Ok(path_str)
 }

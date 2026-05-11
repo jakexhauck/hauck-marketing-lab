@@ -136,6 +136,20 @@ export function Kpis({ root, clientSlug }: Props) {
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      unlisten = await api.onDataChanged((evt) => {
+        if (evt.kind !== "kpi") return;
+        if (evt.client_slug !== null && evt.client_slug !== clientSlug) return;
+        refresh();
+      });
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [clientSlug, refresh]);
+
   const prior = useMemo<KpiEntry | null>(() => {
     if (history.length < 2) return null;
     // history is newest-first; index 0 is latest, 1 is prior

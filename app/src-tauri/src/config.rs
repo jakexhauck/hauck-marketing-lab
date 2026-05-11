@@ -6,6 +6,10 @@ use tauri::{AppHandle, Manager};
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct AppConfig {
     pub media_buying_path: Option<String>,
+    #[serde(default)]
+    pub active_client_slug: Option<String>,
+    #[serde(default)]
+    pub default_agent_slug: Option<String>,
 }
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {

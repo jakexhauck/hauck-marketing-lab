@@ -3,12 +3,15 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import type {
   AppConfig,
+  BenchmarkSummary,
   ChatFile,
   ChatTurn,
   ClaudeCheck,
+  ClientCredentialsFile,
   ClientEntry,
   ClientStatus,
   CreativesManifest,
+  DataChangedEvent,
   DiagnosisFile,
   DiagnosisInputs,
   FolderSummary,
@@ -16,6 +19,7 @@ import type {
   KnowledgeTitle,
   KpiEntry,
   LaunchChecklist,
+  ParsedBenchmarks,
   SkillEntry,
   SkillFile,
   StreamEvent,
@@ -46,6 +50,8 @@ export const api = {
     invoke<string>("invoke_claude", { id, prompt }),
   matchKnowledgeChunks: (root: string, userInput: string) =>
     invoke<KnowledgeChunk[]>("match_knowledge_chunks", { root, userInput }),
+  readKnowledgeChunk: (root: string, chunkId: string) =>
+    invoke<KnowledgeChunk>("read_knowledge_chunk", { root, chunkId }),
 
   readLaunchChecklist: (root: string, clientSlug: string) =>
     invoke<LaunchChecklist>("read_launch_checklist", { root, clientSlug }),
@@ -56,6 +62,18 @@ export const api = {
     invoke<ClientStatus>("read_client_status", { root, clientSlug }),
   setClientStatus: (root: string, clientSlug: string, status: ClientStatus) =>
     invoke<void>("set_client_status", { root, clientSlug, status }),
+  addClient: (root: string, slug: string, name: string) =>
+    invoke<ClientEntry>("add_client", { root, slug, name }),
+  renameClient: (root: string, slug: string, newName: string) =>
+    invoke<void>("rename_client", { root, slug, newName }),
+  deleteClient: (root: string, slug: string) =>
+    invoke<void>("delete_client", { root, slug }),
+  setClientBenchmarks: (root: string, clientSlug: string, filename: string | null) =>
+    invoke<void>("set_client_benchmarks", { root, clientSlug, filename }),
+  listBenchmarkSets: (root: string) =>
+    invoke<BenchmarkSummary[]>("list_benchmark_sets", { root }),
+  readBenchmarksForClient: (root: string, clientSlug: string) =>
+    invoke<ParsedBenchmarks | null>("read_benchmarks_for_client", { root, clientSlug }),
   saveLaunchReadinessVerdict: (root: string, clientSlug: string, body: string) =>
     invoke<string>("save_launch_readiness_verdict", { root, clientSlug, body }),
 
@@ -70,6 +88,16 @@ export const api = {
     invoke<TrackingAudit | null>("read_tracking_audit", { root, clientSlug }),
   writeTrackingAudit: (root: string, clientSlug: string, audit: TrackingAudit) =>
     invoke<string>("write_tracking_audit", { root, clientSlug, audit }),
+
+  readClientCredentials: (root: string, clientSlug: string) =>
+    invoke<ClientCredentialsFile>("read_client_credentials", { root, clientSlug }),
+  writeClientCredentials: (
+    root: string,
+    clientSlug: string,
+    file: ClientCredentialsFile,
+  ) => invoke<void>("write_client_credentials", { root, clientSlug, file }),
+  clearClientCredentials: (root: string, clientSlug: string) =>
+    invoke<void>("clear_client_credentials", { root, clientSlug }),
 
   readCreativesManifest: (root: string, clientSlug: string) =>
     invoke<CreativesManifest | null>("read_creatives_manifest", { root, clientSlug }),
@@ -99,4 +127,7 @@ export const api = {
 
   onClaudeStream: (handler: (e: StreamEvent) => void): Promise<UnlistenFn> =>
     listen<StreamEvent>("claude://stream", (evt) => handler(evt.payload)),
+
+  onDataChanged: (handler: (e: DataChangedEvent) => void): Promise<UnlistenFn> =>
+    listen<DataChangedEvent>("data://changed", (evt) => handler(evt.payload)),
 };

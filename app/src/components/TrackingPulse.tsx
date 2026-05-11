@@ -60,6 +60,20 @@ export function TrackingPulse({ root, clientSlug }: Props) {
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      unlisten = await api.onDataChanged((evt) => {
+        if (evt.kind !== "tracking") return;
+        if (evt.client_slug !== null && evt.client_slug !== clientSlug) return;
+        refresh();
+      });
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [clientSlug, refresh]);
+
   const hasAudit = audit !== null;
 
   const pixel: DialView = hasAudit

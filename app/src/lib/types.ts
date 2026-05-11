@@ -1,5 +1,7 @@
 export type AppConfig = {
   media_buying_path: string | null;
+  active_client_slug?: string | null;
+  default_agent_slug?: string | null;
 };
 
 export type AgentSummary = {
@@ -121,6 +123,24 @@ export type ClientEntry = {
   slug: string;
   name: string;
   status: ClientStatus;
+  created_at?: string | null;
+  /** Filename (no path) of the chosen benchmarks YAML. Null/undefined = use
+   * the hardcoded card metadata fallback in Kpis.tsx. */
+  benchmarks?: string | null;
+};
+
+export type BenchmarkSummary = {
+  filename: string;
+  title: string;
+};
+
+export type ParsedBenchmarks = {
+  spend_cap?: string | null;
+  cpm_band?: string | null;
+  ctr_band?: string | null;
+  cvr_band?: string | null;
+  cpa_band?: string | null;
+  roas_band?: string | null;
 };
 
 export type KpiWindow = "7d" | "14d" | "28d";
@@ -147,6 +167,19 @@ export type TrackingAudit = {
   emq_score: number | null;
   pulse_note: string | null;
   updated_at: string;
+};
+
+export type MetaCredentials = {
+  access_token: string | null;
+  ad_account_id: string | null;
+  pixel_id: string | null;
+  business_id: string | null;
+};
+
+export type ClientCredentialsFile = {
+  client: string;
+  meta: MetaCredentials;
+  updated_at: string | null;
 };
 
 export type CreativeSignal = "go" | "hold" | "stop";
@@ -197,4 +230,19 @@ export type DiagnosisFile = {
   inputs: DiagnosisInputs;
   transcript: string;
   path: string;
+};
+
+export type DataKind =
+  | "diagnosis"
+  | "kpi"
+  | "tracking"
+  | "creatives"
+  | "launch_checklist"
+  | "chat"
+  | "client";
+
+export type DataChangedEvent = {
+  kind: DataKind;
+  client_slug: string | null;
+  path: string | null;
 };

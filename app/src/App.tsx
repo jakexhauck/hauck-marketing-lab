@@ -1,27 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { AgentRail } from "./components/AgentRail";
 import { AskDock } from "./components/AskDock";
 import { ChatDrawer } from "./components/ChatDrawer";
+import { ClientsPage } from "./components/ClientsPage";
 import { CommandPalette } from "./components/CommandPalette";
 import { Dashboard } from "./components/Dashboard";
 import { DiagnosisForm } from "./components/DiagnosisForm";
 import { FolderPicker } from "./components/FolderPicker";
+import { KnowledgeBrowser } from "./components/KnowledgeBrowser";
+import { SettingsPage } from "./components/SettingsPage";
 import { StatusBar } from "./components/StatusBar";
 import { api } from "./lib/tauri";
 import type {
   AgentSummary,
   ChatFile,
   ChatSummary,
+  ClientEntry,
   ClientStatus,
   FolderSummary,
+  KnowledgeChunk,
   KnowledgeTitle,
   SkillEntry,
 } from "./lib/types";
 
-const CLIENT_NAME = "Willis Windows";
-const CLIENT_SLUG = "willis-windows";
+const DEFAULT_CLIENT: ClientEntry = {
+  slug: "willis-windows",
+  name: "Willis Windows",
+  status: "pre-launch",
+};
 
 export default function App() {
   const [bootError, setBootError] = useState<string | null>(null);
@@ -33,47 +40,87 @@ export default function App() {
   const [currentChat, setCurrentChat] = useState<ChatFile | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [diagnosisOpen, setDiagnosisOpen] = useState(false);
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
+  const [knowledgeChunkId, setKnowledgeChunkId] = useState<string | null>(null);
   const [pendingInput, setPendingInput] = useState<string | undefined>(undefined);
   const pendingInputTick = useRef(0);
   const [bootDone, setBootDone] = useState(false);
   const [clientStatus, setClientStatus] = useState<ClientStatus>("pre-launch");
   const awaitingReadinessVerdict = useRef(false);
 
-  const loadFolder = useCallback(async (path: string) => {
-    setRefreshing(true);
-    try {
-      const next = await api.parseFolder(path);
-      setSummary(next);
-      setActiveAgent((prev) => {
-        if (prev) {
-          const stillThere = next.agents.find((a) => a.slug === prev.slug);
-          return stillThere ?? next.agents[0] ?? null;
-        }
-        return next.agents[0] ?? null;
-      });
+  // Multi-client state
+  const [clients, setClients] = useState<ClientEntry[]>([DEFAULT_CLIENT]);
+  const [activeClientSlug, setActiveClientSlug] = useState<string>(DEFAULT_CLIENT.slug);
+  const [clientsPageOpen, setClientsPageOpen] = useState(false);
+  const [clientsPageStartInAdd, setClientsPageStartInAdd] = useState(false);
+
+  // Settings
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [defaultAgentSlug, setDefaultAgentSlug] = useState<string | null>(null);
+
+  const activeClient =
+    clients.find((c) => c.slug === activeClientSlug) ?? clients[0] ?? DEFAULT_CLIENT;
+
+  const loadFolder = useCallback(
+    async (path: string, clientSlugOverride?: string) => {
+      setRefreshing(true);
       try {
-        const status = await api.readClientStatus(path, CLIENT_SLUG);
-        setClientStatus(status);
-      } catch {
-        setClientStatus("pre-launch");
+        const next = await api.parseFolder(path);
+        setSummary(next);
+        setActiveAgent((prev) => {
+          if (prev) {
+            const stillThere = next.agents.find((a) => a.slug === prev.slug);
+            return stillThere ?? next.agents[0] ?? null;
+          }
+          return next.agents[0] ?? null;
+        });
+        // Refresh clients registry alongside folder parse
+        let latestClients: ClientEntry[] = [];
+        try {
+          latestClients = await api.listClients(path);
+          if (latestClients.length === 0) latestClients = [DEFAULT_CLIENT];
+          setClients(latestClients);
+        } catch {
+          latestClients = [DEFAULT_CLIENT];
+          setClients(latestClients);
+        }
+        const resolvedSlug =
+          clientSlugOverride ??
+          (latestClients.some((c) => c.slug === activeClientSlug)
+            ? activeClientSlug
+            : latestClients[0]?.slug ?? DEFAULT_CLIENT.slug);
+        try {
+          const status = await api.readClientStatus(path, resolvedSlug);
+          setClientStatus(status);
+        } catch {
+          setClientStatus("pre-launch");
+        }
+        setBootError(null);
+        return next;
+      } catch (e) {
+        setBootError(String(e));
+        return null;
+      } finally {
+        setRefreshing(false);
       }
-      setBootError(null);
-      return next;
-    } catch (e) {
-      setBootError(String(e));
-      return null;
-    } finally {
-      setRefreshing(false);
-    }
-  }, []);
+    },
+    [activeClientSlug],
+  );
 
   useEffect(() => {
     (async () => {
       try {
         const cfg = await api.loadConfig();
+        if (cfg.default_agent_slug) {
+          setDefaultAgentSlug(cfg.default_agent_slug);
+        }
         if (cfg.media_buying_path) {
           setRoot(cfg.media_buying_path);
-          await loadFolder(cfg.media_buying_path);
+          const persistedSlug = cfg.active_client_slug ?? undefined;
+          if (persistedSlug) {
+            setActiveClientSlug(persistedSlug);
+          }
+          await loadFolder(cfg.media_buying_path, persistedSlug ?? undefined);
         }
       } catch (e) {
         setBootError(String(e));
@@ -81,7 +128,8 @@ export default function App() {
         setBootDone(true);
       }
     })();
-  }, [loadFolder]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // refresh on window focus
   useEffect(() => {
@@ -91,6 +139,22 @@ export default function App() {
       const win = getCurrentWindow();
       unlisten = await win.onFocusChanged(({ payload: focused }) => {
         if (focused) {
+          loadFolder(root);
+        }
+      });
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [root, loadFolder]);
+
+  // refresh folder summary when chats are written (e.g. via CLI)
+  useEffect(() => {
+    if (!root) return;
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      unlisten = await api.onDataChanged((evt) => {
+        if (evt.kind === "chat") {
           loadFolder(root);
         }
       });
@@ -114,7 +178,11 @@ export default function App() {
 
   const onFolderPicked = async (path: string) => {
     setRoot(path);
-    await api.saveConfig({ media_buying_path: path });
+    await api.saveConfig({
+      media_buying_path: path,
+      active_client_slug: activeClientSlug,
+      default_agent_slug: defaultAgentSlug ?? null,
+    });
     await loadFolder(path);
   };
 
@@ -149,11 +217,15 @@ export default function App() {
   };
 
   const onAskDock = () => {
-    if (!activeAgent && summary?.agents[0]) {
-      openDrawer(summary.agents[0]);
-    } else if (activeAgent) {
+    if (activeAgent) {
       openDrawer(activeAgent, null);
+      return;
     }
+    const fallback =
+      (defaultAgentSlug
+        ? summary?.agents.find((a) => a.slug === defaultAgentSlug)
+        : undefined) ?? summary?.agents[0];
+    if (fallback) openDrawer(fallback);
   };
 
   const onAskAurelius = (bundledPrompt: string) => {
@@ -172,6 +244,7 @@ export default function App() {
     await loadFolder(root);
     if (awaitingReadinessVerdict.current) {
       awaitingReadinessVerdict.current = false;
+      const slugAtVerdict = activeClientSlug;
       (async () => {
         try {
           const fresh = await api.parseFolder(root);
@@ -182,7 +255,7 @@ export default function App() {
           const file = await api.readChat(latest.path);
           const lastAgentTurn = [...file.turns].reverse().find((t) => t.role === "agent");
           if (!lastAgentTurn) return;
-          await api.saveLaunchReadinessVerdict(root, CLIENT_SLUG, lastAgentTurn.body);
+          await api.saveLaunchReadinessVerdict(root, slugAtVerdict, lastAgentTurn.body);
         } catch (e) {
           console.error("verdict save failed", e);
         }
@@ -203,13 +276,33 @@ export default function App() {
     if (agent) openDrawer(agent, currentChat);
   };
 
-  const onPaletteKnowledge = async (item: KnowledgeTitle) => {
+  const onPaletteKnowledge = (item: KnowledgeTitle) => {
     setPaletteOpen(false);
-    try {
-      await openPath(item.path);
-    } catch (e) {
-      setBootError(String(e));
-    }
+    setKnowledgeChunkId(item.id);
+    setKnowledgeOpen(true);
+  };
+
+  const onOpenKnowledgeBrowser = () => {
+    setPaletteOpen(false);
+    setKnowledgeChunkId(null);
+    setKnowledgeOpen(true);
+  };
+
+  const onCloseKnowledge = () => {
+    setKnowledgeOpen(false);
+    setKnowledgeChunkId(null);
+  };
+
+  const onPinKnowledgeToChat = (chunk: KnowledgeChunk) => {
+    const agent = activeAgent ?? summary?.agents[0];
+    if (!agent) return;
+    setKnowledgeOpen(false);
+    setKnowledgeChunkId(null);
+    pendingInputTick.current += 1;
+    setPendingInput(
+      `Reference this knowledge chunk in your reply:\n\n## ${chunk.id} — ${chunk.title}\n${chunk.body}\n\n`,
+    );
+    openDrawer(agent, null);
   };
 
   const onOpenDiagnosis = () => {
@@ -225,6 +318,46 @@ export default function App() {
   const onAgentChangeInDrawer = (agent: AgentSummary) => {
     setActiveAgent(agent);
     setCurrentChat(null);
+  };
+
+  // ── client switching ──────────────────────────────────
+  const switchClient = async (slug: string) => {
+    if (slug === activeClientSlug || !root) {
+      setActiveClientSlug(slug);
+      return;
+    }
+    setActiveClientSlug(slug);
+    // close any per-client modal/drawer state to avoid stale references
+    setDiagnosisOpen(false);
+    setCurrentChat(null);
+    try {
+      await api.saveConfig({
+        media_buying_path: root,
+        active_client_slug: slug,
+        default_agent_slug: defaultAgentSlug ?? null,
+      });
+    } catch (e) {
+      console.error("persist active client failed", e);
+    }
+    await loadFolder(root, slug);
+  };
+
+  const onOpenAddClient = () => {
+    setClientsPageStartInAdd(true);
+    setClientsPageOpen(true);
+  };
+
+  const onOpenManageClients = () => {
+    setClientsPageStartInAdd(false);
+    setClientsPageOpen(true);
+  };
+
+  const onClientsChanged = (next: ClientEntry[]) => {
+    setClients(next.length === 0 ? [DEFAULT_CLIENT] : next);
+    // If the active client was deleted, fall back to the first remaining one.
+    if (!next.some((c) => c.slug === activeClientSlug) && next[0]) {
+      void switchClient(next[0].slug);
+    }
   };
 
   if (!bootDone) {
@@ -255,12 +388,28 @@ export default function App() {
     );
   }
 
-  const dockAgent = activeAgent ?? summary.agents[0];
+  const dockAgent =
+    activeAgent ??
+    (defaultAgentSlug
+      ? summary.agents.find((a) => a.slug === defaultAgentSlug) ?? summary.agents[0]
+      : summary.agents[0]);
+  const clientName = activeClient.name;
+  const clientSlug = activeClient.slug;
 
   return (
     <>
       <StatusBar
-        client={CLIENT_NAME}
+        clients={clients}
+        activeSlug={clientSlug}
+        activeName={clientName}
+        onSelectClient={switchClient}
+        onAddClient={onOpenAddClient}
+        onManageClients={onOpenManageClients}
+        onOpenSettings={() => {
+          setClientsPageOpen(false);
+          setDiagnosisOpen(false);
+          setSettingsOpen(true);
+        }}
         onRefresh={() => loadFolder(root)}
         refreshing={refreshing}
       />
@@ -271,19 +420,58 @@ export default function App() {
           drawerOpen={drawerOpen}
           onSelect={onAgentSelect}
         />
-        {diagnosisOpen ? (
+        {settingsOpen ? (
+          <SettingsPage
+            root={root}
+            agents={summary.agents}
+            clients={clients}
+            defaultAgentSlug={defaultAgentSlug}
+            activeClientSlug={clientSlug}
+            activeClientName={clientName}
+            onClose={() => setSettingsOpen(false)}
+            onFolderChanged={async (path) => {
+              setRoot(path);
+              await loadFolder(path);
+            }}
+            onDefaultAgentChanged={(slug) => setDefaultAgentSlug(slug)}
+            onManageClients={() => {
+              setSettingsOpen(false);
+              setClientsPageStartInAdd(false);
+              setClientsPageOpen(true);
+            }}
+          />
+        ) : clientsPageOpen ? (
+          <ClientsPage
+            root={root}
+            clients={clients}
+            activeSlug={clientSlug}
+            onClose={() => setClientsPageOpen(false)}
+            onClientsChanged={onClientsChanged}
+            onSelectClient={(slug) => {
+              void switchClient(slug);
+            }}
+            startInAddMode={clientsPageStartInAdd}
+          />
+        ) : diagnosisOpen ? (
           <DiagnosisForm
             root={root}
             agents={summary.agents}
-            clientName={CLIENT_NAME}
-            clientSlug={CLIENT_SLUG}
+            clientName={clientName}
+            clientSlug={clientSlug}
             onClose={onCloseDiagnosis}
+          />
+        ) : knowledgeOpen ? (
+          <KnowledgeBrowser
+            root={root}
+            initialChunkId={knowledgeChunkId}
+            onClose={onCloseKnowledge}
+            onPinToChat={onPinKnowledgeToChat}
           />
         ) : (
           <Dashboard
             summary={summary}
-            clientName={CLIENT_NAME}
-            clientSlug={CLIENT_SLUG}
+            clientName={clientName}
+            clientSlug={clientSlug}
             clientStatus={clientStatus}
             root={root}
             drawerOpen={drawerOpen}
@@ -294,7 +482,7 @@ export default function App() {
         )}
       </div>
 
-      {!drawerOpen && (
+      {!drawerOpen && !clientsPageOpen && !settingsOpen && !knowledgeOpen && (
         <AskDock
           agentName={dockAgent.name}
           agentInitial={dockAgent.initial}
@@ -308,7 +496,7 @@ export default function App() {
           root={root}
           agents={summary.agents}
           activeAgent={activeAgent}
-          clientName={CLIENT_NAME}
+          clientName={clientName}
           initialChat={currentChat}
           initialInput={pendingInput}
           onClose={() => {
@@ -330,6 +518,7 @@ export default function App() {
         onScaffoldSkill={onPaletteSkill}
         onOpenKnowledge={onPaletteKnowledge}
         onOpenDiagnosis={onOpenDiagnosis}
+        onOpenKnowledgeBrowser={onOpenKnowledgeBrowser}
       />
     </>
   );
