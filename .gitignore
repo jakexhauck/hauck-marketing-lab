@@ -39,3 +39,4 @@ app-config.local.json
 
 # Claude Code per-developer state
 .claude/settings.local.json
+.claude/worktrees/

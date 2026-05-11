@@ -1,28 +1,87 @@
-export function Hero({ clientName }: { clientName: string }) {
+import { useEffect, useState } from "react";
+import { api } from "../lib/tauri";
+import type { DiagnosisFile, DiagnosisVerdict } from "../lib/types";
+
+type Props = {
+  clientName: string;
+  root: string;
+  clientSlug: string;
+  onOpenDiagnosis?: () => void;
+};
+
+const VERDICT_PILL: Record<DiagnosisVerdict, { label: string; className: string }> = {
+  kill: { label: "▸ KILL", className: "verdict verdict-kill" },
+  hold: { label: "▸ HOLD", className: "verdict" },
+  scale: { label: "▸ SCALE +20%", className: "verdict verdict-scale" },
+};
+
+export function Hero({ clientName, root, clientSlug, onOpenDiagnosis }: Props) {
+  const [diagnosis, setDiagnosis] = useState<DiagnosisFile | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const latest = await api.readLatestDiagnosis(root, clientSlug);
+        if (!cancelled) setDiagnosis(latest);
+      } catch {
+        if (!cancelled) setDiagnosis(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, clientSlug]);
+
+  const pill = diagnosis ? VERDICT_PILL[diagnosis.verdict] : VERDICT_PILL.hold;
+  const markerLeft = diagnosis
+    ? `${Math.max(0, Math.min(100, diagnosis.scale_score))}%`
+    : "52%";
+
   return (
     <section className="hero reveal reveal-1">
       <div className="hero-eyebrow">
         <span>OPERATIONAL STATUS</span>
-        <span className="verdict">▸ HOLD</span>
+        <span className={pill.className}>{pill.label}</span>
+        {onOpenDiagnosis && (
+          <button
+            type="button"
+            className="panel-edit"
+            onClick={onOpenDiagnosis}
+            title="Run a fresh Zenith diagnosis"
+          >
+            ▸ RUN DIAGNOSIS
+          </button>
+        )}
         <span style={{ marginLeft: "auto", color: "var(--text-faint)", fontWeight: 400 }}>
           EVAL WINDOW · 7d / 14d
         </span>
       </div>
-      <h1>
-        Sir, I'd advise against scaling {clientName} just yet —{" "}
-        <strong>creative diversity is below threshold</strong> and the landing page is leaking
-        conversions.
-      </h1>
-      <p className="hero-body">
-        ROAS sits at <span className="tag">1.6×</span> against the 2.0× scale floor. CTR is healthy;
-        CVR is not. Current creative pool stands at 8 active variants — the Andromeda paradigm
-        requires <span className="tag">15+</span>. Recommend deploying Vortex for 12 fresh hooks
-        before the next budget review.
-      </p>
+
+      {diagnosis ? (
+        <>
+          <h1>{diagnosis.headline}</h1>
+          <p className="hero-body">{diagnosis.body}</p>
+        </>
+      ) : (
+        <>
+          <h1>
+            Sir, I'd advise against scaling {clientName} just yet —{" "}
+            <strong>creative diversity is below threshold</strong> and the landing page is leaking
+            conversions.
+          </h1>
+          <p className="hero-body">
+            ROAS sits at <span className="tag">1.6×</span> against the 2.0× scale floor. CTR is
+            healthy; CVR is not. Current creative pool stands at 8 active variants — the Andromeda
+            paradigm requires <span className="tag">15+</span>. Recommend deploying Vortex for 12
+            fresh hooks before the next budget review.
+          </p>
+        </>
+      )}
 
       <div className="spectrum">
         <div className="spectrum-track">
-          <div className="spectrum-marker" style={{ left: "52%" }} />
+          <div className="spectrum-marker" style={{ left: markerLeft }} />
         </div>
         <div className="spectrum-labels">
           <span>KILL</span>

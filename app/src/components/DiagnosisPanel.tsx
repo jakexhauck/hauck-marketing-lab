@@ -1,60 +1,117 @@
-type Finding = {
-  severity: "high" | "med" | "low";
-  attribution: string;
-  body: React.ReactNode;
+import { useEffect, useState } from "react";
+import { api } from "../lib/tauri";
+import type { DiagnosisFile } from "../lib/types";
+
+type Props = {
+  root: string;
+  clientSlug: string;
 };
 
-const PLACEHOLDER: Finding[] = [
-  {
-    severity: "high",
-    attribution: "VORTEX · HIGH",
-    body: (
-      <>
-        <strong>Creative diversity at 8/15.</strong> Andromeda minimum is 15 active variants; the
-        algorithm cannot find pockets without breadth. Ship 12 new hooks across 4 angles.
-      </>
-    ),
-  },
-  {
-    severity: "med",
-    attribution: "STRATOS · MED",
-    body: (
-      <>
-        <strong>Landing CVR 2.8% (target 3.5%).</strong> Click-through is healthy but the page is
-        failing to close. Suspect headline/offer mismatch with ad creative.
-      </>
-    ),
-  },
-  {
-    severity: "low",
-    attribution: "NEXUS · OK",
-    body: (
-      <>
-        <strong>Tracking is clean.</strong> Pixel + CAPI both firing; EMQ at 7.2/10. No attribution
-        loss to investigate.
-      </>
-    ),
-  },
-];
+function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "just now";
+  const diffMs = Date.now() - then;
+  const sec = Math.max(0, Math.floor(diffMs / 1000));
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day === 1) return "yesterday";
+  if (day < 30) return `${day}d ago`;
+  const mo = Math.floor(day / 30);
+  if (mo < 12) return `${mo}mo ago`;
+  const yr = Math.floor(day / 365);
+  return `${yr}y ago`;
+}
 
-export function DiagnosisPanel() {
+export function DiagnosisPanel({ root, clientSlug }: Props) {
+  const [diagnosis, setDiagnosis] = useState<DiagnosisFile | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await api.readLatestDiagnosis(root, clientSlug);
+        if (!cancelled) setDiagnosis(result);
+      } catch {
+        if (!cancelled) setDiagnosis(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, clientSlug]);
+
+  if (!diagnosis) {
+    return (
+      <div className="panel">
+        <div className="panel-head">
+          <span className="panel-title">▸ DIAGNOSIS</span>
+          <span className="panel-meta">ZENITH · no diagnosis yet</span>
+        </div>
+
+        <div className="diag-headline">
+          Bottleneck identified at the <strong>creative</strong> layer; landing-page friction is a
+          contributing factor.
+        </div>
+
+        <ul className="diag-list">
+          <li className="diag-item">
+            <span className="diag-dot high" />
+            <span className="diag-attr">VORTEX · HIGH</span>
+            <span className="diag-text">
+              <strong>Creative diversity at 8/15.</strong> Andromeda minimum is 15 active variants;
+              the algorithm cannot find pockets without breadth. Ship 12 new hooks across 4 angles.
+            </span>
+          </li>
+          <li className="diag-item">
+            <span className="diag-dot med" />
+            <span className="diag-attr">STRATOS · MED</span>
+            <span className="diag-text">
+              <strong>Landing CVR 2.8% (target 3.5%).</strong> Click-through is healthy but the page
+              is failing to close. Suspect headline/offer mismatch with ad creative.
+            </span>
+          </li>
+          <li className="diag-item">
+            <span className="diag-dot low" />
+            <span className="diag-attr">NEXUS · OK</span>
+            <span className="diag-text">
+              <strong>Tracking is clean.</strong> Pixel + CAPI both firing; EMQ at 7.2/10. No
+              attribution loss to investigate.
+            </span>
+          </li>
+        </ul>
+
+        <div className="actions-row">
+          <button className="action primary">Dispatch Vortex · 12 hooks</button>
+          <button className="action">Open landing audit</button>
+          <button className="action">Generate brief</button>
+          <button className="action">Export report</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="panel">
       <div className="panel-head">
         <span className="panel-title">▸ DIAGNOSIS</span>
-        <span className="panel-meta">ZENITH · 0.92 confidence · updated 11m ago</span>
+        <span className="panel-meta">
+          ZENITH · updated {formatRelativeTime(diagnosis.created_at)}
+        </span>
       </div>
 
-      <div className="diag-headline">
-        Bottleneck identified at the <strong>creative</strong> layer; landing-page friction is a
-        contributing factor.
-      </div>
+      <div className="diag-headline">{diagnosis.headline}</div>
 
       <ul className="diag-list">
-        {PLACEHOLDER.map((f) => (
-          <li key={f.attribution} className="diag-item">
+        {diagnosis.findings.map((f, idx) => (
+          <li key={`${f.attribution}-${idx}`} className="diag-item">
             <span className={`diag-dot ${f.severity}`} />
-            <span className="diag-attr">{f.attribution}</span>
+            <span className="diag-attr">
+              {f.attribution} · {f.severity.toUpperCase()}
+            </span>
             <span className="diag-text">{f.body}</span>
           </li>
         ))}

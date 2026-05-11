@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/tauri";
 import { assemblePrompt } from "../lib/prompt";
+import {
+  assembleSkillPrompt,
+  defaultSkillChips,
+  type SkillChip,
+} from "../lib/skills";
 import type {
   AgentSummary,
   ChatFile,
   ChatTurn,
+  KnowledgeChunk,
+  SkillFile,
   StreamEvent,
 } from "../lib/types";
 
@@ -14,28 +21,18 @@ type Props = {
   activeAgent: AgentSummary;
   clientName: string;
   initialChat: ChatFile | null;
+  initialInput?: string;
   onClose: () => void;
   onAgentChange: (agent: AgentSummary) => void;
   onChatSaved: () => void;
   onOpenPalette: () => void;
 };
 
-const SKILL_CHIPS: { label: string; prompt: string; featured?: boolean }[] = [
-  {
-    label: "Diagnose campaign",
-    featured: true,
-    prompt:
-      "Diagnose the current Willis Windows campaign. Walk through what the data is saying and where the bottleneck is.",
-  },
-  {
-    label: "Generate hooks",
-    prompt: "Generate 12 fresh hooks for Willis Windows across 4 angles.",
-  },
-  { label: "Tracking audit", prompt: "Walk through tracking — pixel, CAPI, EMQ, dedup." },
-  { label: "Scale readiness", prompt: "Are we ready to scale? What does the data say?" },
-  { label: "Creative brief", prompt: "Build a creative brief for the next batch." },
-  { label: "Audience expansion", prompt: "What audience expansions should we test next?" },
-];
+const SKILL_CHIPS: SkillChip[] = defaultSkillChips();
+
+function fallbackSkillPrompt(chip: SkillChip, clientName: string): string {
+  return `Run the ${chip.label} skill for ${clientName}.\n\n(Skill file not found at media-buying/skills/${chip.category}/${chip.skillId}/SKILL.md — proceed using your built-in knowledge of this skill.)`;
+}
 
 export function ChatDrawer({
   root,
@@ -43,17 +40,22 @@ export function ChatDrawer({
   activeAgent,
   clientName,
   initialChat,
+  initialInput,
   onClose,
   onAgentChange,
   onChatSaved,
   onOpenPalette,
 }: Props) {
   const [chatFile, setChatFile] = useState<ChatFile | null>(initialChat);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialInput ?? "");
   const [streaming, setStreaming] = useState(false);
   const [, setStreamId] = useState<string | null>(null);
   const [streamText, setStreamText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [skillForm, setSkillForm] = useState<{
+    skill: SkillFile;
+    values: Record<string, string>;
+  } | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -64,6 +66,10 @@ export function ChatDrawer({
     setStreaming(false);
     setStreamId(null);
   }, [initialChat]);
+
+  useEffect(() => {
+    if (initialInput !== undefined) setInput(initialInput);
+  }, [initialInput]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -177,12 +183,20 @@ export function ChatDrawer({
       return;
     }
 
+    let knowledgeChunks: KnowledgeChunk[] = [];
+    try {
+      knowledgeChunks = await api.matchKnowledgeChunks(root, value);
+    } catch (e) {
+      console.error("matchKnowledgeChunks failed", e);
+    }
+
     const prompt = assemblePrompt({
       agent: activeAgent,
       agentBody,
       history: file.turns,
       userInput: value,
       clientName,
+      knowledgeChunks,
     });
 
     try {
@@ -288,12 +302,83 @@ export function ChatDrawer({
 
       <div className="chips-wrap">
         <div className="chips-label">QUICK SKILLS — click to scaffold a prompt</div>
+        {skillForm && (
+          <div
+            className="skill-form"
+            style={{
+              border: "1px solid var(--line)",
+              padding: "10px 12px",
+              margin: "0 0 10px 0",
+              background: "rgba(0,0,0,0.15)",
+            }}
+          >
+            <div style={{ fontSize: "11px", letterSpacing: "0.08em", marginBottom: "6px" }}>
+              {skillForm.skill.name.toUpperCase()} ›
+            </div>
+            {skillForm.skill.inputs.map((inp) => (
+              <div key={inp.name} style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "6px" }}>
+                <label style={{ minWidth: "160px", fontSize: "12px", opacity: 0.8 }}>
+                  {inp.label?.trim() || inp.name}
+                </label>
+                <input
+                  type="text"
+                  value={skillForm.values[inp.name] ?? ""}
+                  placeholder={inp.prompt ?? inp.default ?? ""}
+                  onChange={(e) =>
+                    setSkillForm((prev) =>
+                      prev ? { ...prev, values: { ...prev.values, [inp.name]: e.target.value } } : prev,
+                    )
+                  }
+                  style={{
+                    flex: 1,
+                    background: "transparent",
+                    border: "1px solid var(--line)",
+                    color: "inherit",
+                    padding: "4px 6px",
+                    font: "inherit",
+                  }}
+                />
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+              <button
+                className="chip featured"
+                onClick={() => {
+                  const prompt = assembleSkillPrompt(skillForm.skill, skillForm.values, clientName);
+                  setInput(prompt);
+                  setSkillForm(null);
+                  inputRef.current?.focus();
+                }}
+              >
+                Scaffold
+              </button>
+              <button className="chip" onClick={() => setSkillForm(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
         <div className="chips">
           {SKILL_CHIPS.map((c) => (
             <button
               key={c.label}
               className={`chip ${c.featured ? "featured" : ""}`}
-              onClick={() => setInput(c.prompt)}
+              onClick={async () => {
+                try {
+                  const skill = await api.loadSkill(root, c.category, c.skillId);
+                  if (skill.inputs.length === 0) {
+                    setInput(assembleSkillPrompt(skill, {}, clientName));
+                    inputRef.current?.focus();
+                  } else {
+                    const defaults: Record<string, string> = {};
+                    for (const i of skill.inputs) defaults[i.name] = i.default ?? "";
+                    setSkillForm({ skill, values: defaults });
+                  }
+                } catch {
+                  setInput(fallbackSkillPrompt(c, clientName));
+                  inputRef.current?.focus();
+                }
+              }}
               disabled={streaming}
             >
               {c.label}

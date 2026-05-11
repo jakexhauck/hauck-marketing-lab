@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { AgentRail } from "./components/AgentRail";
 import { AskDock } from "./components/AskDock";
 import { ChatDrawer } from "./components/ChatDrawer";
 import { CommandPalette } from "./components/CommandPalette";
 import { Dashboard } from "./components/Dashboard";
+import { DiagnosisForm } from "./components/DiagnosisForm";
 import { FolderPicker } from "./components/FolderPicker";
 import { StatusBar } from "./components/StatusBar";
 import { api } from "./lib/tauri";
@@ -12,10 +14,14 @@ import type {
   AgentSummary,
   ChatFile,
   ChatSummary,
+  ClientStatus,
   FolderSummary,
+  KnowledgeTitle,
+  SkillEntry,
 } from "./lib/types";
 
 const CLIENT_NAME = "Willis Windows";
+const CLIENT_SLUG = "willis-windows";
 
 export default function App() {
   const [bootError, setBootError] = useState<string | null>(null);
@@ -26,7 +32,12 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentChat, setCurrentChat] = useState<ChatFile | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [diagnosisOpen, setDiagnosisOpen] = useState(false);
+  const [pendingInput, setPendingInput] = useState<string | undefined>(undefined);
+  const pendingInputTick = useRef(0);
   const [bootDone, setBootDone] = useState(false);
+  const [clientStatus, setClientStatus] = useState<ClientStatus>("pre-launch");
+  const awaitingReadinessVerdict = useRef(false);
 
   const loadFolder = useCallback(async (path: string) => {
     setRefreshing(true);
@@ -40,6 +51,12 @@ export default function App() {
         }
         return next.agents[0] ?? null;
       });
+      try {
+        const status = await api.readClientStatus(path, CLIENT_SLUG);
+        setClientStatus(status);
+      } catch {
+        setClientStatus("pre-launch");
+      }
       setBootError(null);
       return next;
     } catch (e) {
@@ -139,7 +156,69 @@ export default function App() {
     }
   };
 
-  const onChatSaved = () => {
+  const onAskAurelius = (bundledPrompt: string) => {
+    const aurelius =
+      summary?.agents.find((a) => a.slug === "aurelius" || a.name === "Aurelius") ??
+      summary?.agents[0];
+    if (!aurelius) return;
+    openDrawer(aurelius, null);
+    pendingInputTick.current += 1;
+    setPendingInput(bundledPrompt);
+    awaitingReadinessVerdict.current = true;
+  };
+
+  const onChatSaved = async () => {
+    if (!root) return;
+    await loadFolder(root);
+    if (awaitingReadinessVerdict.current) {
+      awaitingReadinessVerdict.current = false;
+      (async () => {
+        try {
+          const fresh = await api.parseFolder(root);
+          const latest = fresh.chats
+            .filter((c) => c.agent === "aurelius" || c.agent === "Aurelius")
+            .sort((a, b) => b.modified_at.localeCompare(a.modified_at))[0];
+          if (!latest) return;
+          const file = await api.readChat(latest.path);
+          const lastAgentTurn = [...file.turns].reverse().find((t) => t.role === "agent");
+          if (!lastAgentTurn) return;
+          await api.saveLaunchReadinessVerdict(root, CLIENT_SLUG, lastAgentTurn.body);
+        } catch (e) {
+          console.error("verdict save failed", e);
+        }
+      })();
+    }
+  };
+
+  const onPaletteChat = async (chat: ChatSummary) => {
+    setPaletteOpen(false);
+    await onOpenChatFromList(chat);
+  };
+
+  const onPaletteSkill = (skill: SkillEntry) => {
+    setPaletteOpen(false);
+    pendingInputTick.current += 1;
+    setPendingInput(`Run the ${skill.name} skill.`);
+    const agent = activeAgent ?? summary?.agents[0];
+    if (agent) openDrawer(agent, currentChat);
+  };
+
+  const onPaletteKnowledge = async (item: KnowledgeTitle) => {
+    setPaletteOpen(false);
+    try {
+      await openPath(item.path);
+    } catch (e) {
+      setBootError(String(e));
+    }
+  };
+
+  const onOpenDiagnosis = () => {
+    setPaletteOpen(false);
+    setDiagnosisOpen(true);
+  };
+
+  const onCloseDiagnosis = () => {
+    setDiagnosisOpen(false);
     if (root) loadFolder(root);
   };
 
@@ -192,12 +271,27 @@ export default function App() {
           drawerOpen={drawerOpen}
           onSelect={onAgentSelect}
         />
-        <Dashboard
-          summary={summary}
-          clientName={CLIENT_NAME}
-          drawerOpen={drawerOpen}
-          onOpenChat={onOpenChatFromList}
-        />
+        {diagnosisOpen ? (
+          <DiagnosisForm
+            root={root}
+            agents={summary.agents}
+            clientName={CLIENT_NAME}
+            clientSlug={CLIENT_SLUG}
+            onClose={onCloseDiagnosis}
+          />
+        ) : (
+          <Dashboard
+            summary={summary}
+            clientName={CLIENT_NAME}
+            clientSlug={CLIENT_SLUG}
+            clientStatus={clientStatus}
+            root={root}
+            drawerOpen={drawerOpen}
+            onOpenChat={onOpenChatFromList}
+            onAskAurelius={onAskAurelius}
+            onOpenDiagnosis={onOpenDiagnosis}
+          />
+        )}
       </div>
 
       {!drawerOpen && (
@@ -210,19 +304,33 @@ export default function App() {
 
       {drawerOpen && activeAgent && (
         <ChatDrawer
+          key={`drawer-${pendingInputTick.current}`}
           root={root}
           agents={summary.agents}
           activeAgent={activeAgent}
           clientName={CLIENT_NAME}
           initialChat={currentChat}
-          onClose={() => setDrawerOpen(false)}
+          initialInput={pendingInput}
+          onClose={() => {
+            setDrawerOpen(false);
+            setPendingInput(undefined);
+          }}
           onAgentChange={onAgentChangeInDrawer}
           onChatSaved={onChatSaved}
           onOpenPalette={() => setPaletteOpen(true)}
         />
       )}
 
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <CommandPalette
+        open={paletteOpen}
+        root={root}
+        chats={summary.chats}
+        onClose={() => setPaletteOpen(false)}
+        onOpenChat={onPaletteChat}
+        onScaffoldSkill={onPaletteSkill}
+        onOpenKnowledge={onPaletteKnowledge}
+        onOpenDiagnosis={onOpenDiagnosis}
+      />
     </>
   );
 }
