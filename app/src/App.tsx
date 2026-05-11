@@ -72,6 +72,12 @@ export default function App() {
   // Main Dashboard vs Media Buying — boots into the Main Dashboard.
   const [view, setView] = useState<"main" | "media-buying">("main");
 
+  // Git sync state
+  const [syncing, setSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "ok" | "error">("idle");
+  const [syncTooltip, setSyncTooltip] = useState<string>("Sync with GitHub");
+  const syncTimerRef = useRef<number | null>(null);
+
   // Per-client onboarding-dismissed flag — localStorage-backed for v1.
   // Set when the user clicks "Skip" or "Onboarding complete" inside the
   // OnboardingChecklist; until set, a pre-launch client lands on the checklist
@@ -180,6 +186,28 @@ export default function App() {
     },
     [activeClientSlug],
   );
+
+  const onSync = useCallback(async () => {
+    if (!root || syncing) return;
+    setSyncing(true);
+    setSyncStatus("idle");
+    setSyncTooltip("Syncing with GitHub…");
+    try {
+      const result = await api.gitSync(root);
+      setSyncStatus("ok");
+      const stamp = new Date().toLocaleTimeString();
+      setSyncTooltip(`${result.summary}\nLast sync: ${stamp}\n\n${result.detail}`);
+      await loadFolder(root);
+    } catch (e) {
+      setSyncStatus("error");
+      setSyncTooltip(`Sync failed:\n${String(e)}`);
+      console.error("git sync failed", e);
+    } finally {
+      setSyncing(false);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = window.setTimeout(() => setSyncStatus("idle"), 4000);
+    }
+  }, [root, syncing, loadFolder]);
 
   useEffect(() => {
     (async () => {
@@ -438,6 +466,10 @@ export default function App() {
         onOpenMediaBuying={() => setView("media-buying")}
         root={root}
         clients={clients}
+        onSync={root ? onSync : undefined}
+        syncing={syncing}
+        syncStatus={syncStatus}
+        syncTooltip={syncTooltip}
       />
     );
   }
@@ -655,6 +687,10 @@ export default function App() {
           }}
           onRefresh={() => loadFolder(root)}
           refreshing={refreshing}
+          onSync={onSync}
+          syncing={syncing}
+          syncStatus={syncStatus}
+          syncTooltip={syncTooltip}
           rightLabel={clientName.toUpperCase()}
         />
         <div className="md-shell">

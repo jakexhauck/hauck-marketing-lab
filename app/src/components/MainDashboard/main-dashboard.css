@@ -803,6 +803,26 @@
   }
 }
 
+/* sync button in topbar */
+.md-sync-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+}
+.md-sync-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.md-sync-btn.md-syncing {
+  color: var(--copper);
+}
+.md-sync-btn.md-sync-ok {
+  color: var(--signal-go);
+}
+.md-sync-btn.md-sync-error {
+  color: #e06c75;
+}
+
 /* small page-head context (eyebrow + serif h1) within a generator pane */
 .md-context-bar {
   display: flex;

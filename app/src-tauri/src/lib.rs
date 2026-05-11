@@ -14,6 +14,7 @@ mod generators;
 mod knowledge;
 mod kpi;
 mod launch_checklist;
+mod sync;
 mod tracking;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -69,6 +70,7 @@ pub fn run() {
             generators::save_generator_output,
             generators::list_generator_outputs,
             generators::read_latest_generator_output,
+            sync::git_sync,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

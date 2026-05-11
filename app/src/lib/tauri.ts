@@ -172,6 +172,16 @@ export const api = {
       kind,
     }),
 
+  gitSync: (root: string) =>
+    invoke<{
+      ok: boolean;
+      summary: string;
+      detail: string;
+      committed: boolean;
+      pulled: boolean;
+      pushed: boolean;
+    }>("git_sync", { root }),
+
   pickFolder: async (): Promise<string | null> => {
     const result = await open({ directory: true, multiple: false });
     if (typeof result === "string") return result;

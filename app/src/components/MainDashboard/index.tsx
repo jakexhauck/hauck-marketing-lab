@@ -20,6 +20,10 @@ interface MainDashboardProps {
   clients?: ClientEntry[] | null;
   /** Selected media-buying folder root; required for backend calls from sub-pages. */
   root?: string | null;
+  onSync?: () => void;
+  syncing?: boolean;
+  syncStatus?: "idle" | "ok" | "error";
+  syncTooltip?: string;
 }
 
 type View =
@@ -27,7 +31,15 @@ type View =
   | { kind: "workspace"; tab: WorkspaceView }
   | { kind: "client"; slug: string; section: ClientSection };
 
-export function MainDashboard({ onOpenMediaBuying, clients, root }: MainDashboardProps) {
+export function MainDashboard({
+  onOpenMediaBuying,
+  clients,
+  root,
+  onSync,
+  syncing,
+  syncStatus,
+  syncTooltip,
+}: MainDashboardProps) {
   const [view, setView] = useState<View>({ kind: "dashboard" });
   const realClients: ClientEntry[] = clients ?? [];
 
@@ -61,7 +73,13 @@ export function MainDashboard({ onOpenMediaBuying, clients, root }: MainDashboar
 
   return (
     <div className="md-root">
-      <TopBar onBrandClick={goDashboard} />
+      <TopBar
+        onBrandClick={goDashboard}
+        onSync={onSync}
+        syncing={syncing}
+        syncStatus={syncStatus}
+        syncTooltip={syncTooltip}
+      />
       <div className="md-shell">
         <Sidebar
           activeWorkspace={activeWorkspace}
