@@ -34,4 +34,8 @@ bumpJson(join(appRoot, "package.json"));
 bumpJson(join(appRoot, "src-tauri/tauri.conf.json"));
 bumpCargoToml(join(appRoot, "src-tauri/Cargo.toml"));
 console.log("\nDone. Next:");
-console.log("  TAURI_SIGNING_PRIVATE_KEY=\"$(cat ~/.tauri/hauck-marketing-lab.key)\" npm run tauri build");
+console.log(
+  '  TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/hauck-marketing-lab.key)" \\\n' +
+  '  TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \\\n' +
+  '    npm run tauri build -- --bundles app'
+);

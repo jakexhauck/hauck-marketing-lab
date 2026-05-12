@@ -40,13 +40,18 @@ From `app/`:
 
 ```bash
 TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/hauck-marketing-lab.key)" \
-  npm run tauri build
+TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
+  npm run tauri build -- --bundles app
 ```
 
 Bundles land in `app/src-tauri/target/release/bundle/`:
-- `macos/Hauck Marketing Lab.app.tar.gz` + `.sig` — updater payload
-- `dmg/Hauck Marketing Lab_0.2.0_aarch64.dmg` — what you give people to
-  install fresh
+- `macos/Hauck Marketing Lab.app.tar.gz` + `.sig` — updater payload (required)
+- `macos/Hauck Marketing Lab.app` — the bundled app
+
+The `--bundles app` flag skips the `.dmg` step, which fails on most fresh
+macOS installs (AppleScript permission issues). For fresh installs, hand
+people the `.app.tar.gz` and have them extract it to /Applications, or build
+the dmg separately once `bundle_dmg.sh` is happy.
 
 Copy the `.app.tar.gz` + `.sig` into a release staging folder (e.g.
 `~/Desktop/release-0.2.0/`), renaming to include the arch so it doesn't
@@ -67,6 +72,7 @@ On the Windows machine, `git pull` the version bump, then from `app\`:
 
 ```powershell
 $env:TAURI_SIGNING_PRIVATE_KEY = Get-Content $HOME\.tauri\hauck-marketing-lab.key -Raw
+$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
 npm run tauri build
 ```
 

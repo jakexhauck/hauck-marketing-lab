@@ -63,19 +63,7 @@ export function ClientProfileForm({ root, client, mode, onClose, onSaved }: Prop
     setValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const validate = (): string | null => {
-    if (!values.business.trim()) return "Tell us what they do (one line).";
-    if (!values.services.trim()) return "List at least one service.";
-    if (!values.target.trim()) return "Describe the target customer.";
-    return null;
-  };
-
   const handleSave = async () => {
-    const v = validate();
-    if (v) {
-      setError(v);
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -102,7 +90,9 @@ export function ClientProfileForm({ root, client, mode, onClose, onSaved }: Prop
             <h1 className="clients-page-title">{client.name}</h1>
             <p className="clients-page-sub">
               Saved to <code>vault/Clients/{client.name}/Profile.md</code>. Used to brief
-              agents on every chat involving this client.
+              agents on every chat involving this client. All fields are optional — fill in
+              what you know now and come back via <strong>Edit profile</strong> on the
+              Clients page to update the rest.
             </p>
           </div>
           <button className="panel-edit" onClick={onClose} disabled={busy}>
@@ -133,7 +123,6 @@ export function ClientProfileForm({ root, client, mode, onClose, onSaved }: Prop
             <Field
               label="What they do"
               hint="One sentence. Becomes the “Business” section."
-              required
             >
               <input
                 ref={firstInputRef}
@@ -148,7 +137,6 @@ export function ClientProfileForm({ root, client, mode, onClose, onSaved }: Prop
             <Field
               label="Services"
               hint="One service per line. Saved as bullets."
-              required
             >
               <textarea
                 className="kpi-form-input"
@@ -163,7 +151,6 @@ export function ClientProfileForm({ root, client, mode, onClose, onSaved }: Prop
             <Field
               label="Target customer"
               hint="Homeowner profile, age, income, neighborhoods, pain points."
-              required
             >
               <textarea
                 className="kpi-form-input"
@@ -247,12 +234,10 @@ export function ClientProfileForm({ root, client, mode, onClose, onSaved }: Prop
 function Field({
   label,
   hint,
-  required,
   children,
 }: {
   label: string;
   hint?: string;
-  required?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -267,7 +252,6 @@ function Field({
         }}
       >
         {label}
-        {required && <span style={{ color: "var(--copper)" }}> *</span>}
       </span>
       {children}
       {hint && (

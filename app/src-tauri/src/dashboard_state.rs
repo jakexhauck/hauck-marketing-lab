@@ -14,6 +14,8 @@ pub struct DashboardState {
     pub notes: Vec<Note>,
     #[serde(default)]
     pub calendar: Option<CalendarConnection>,
+    #[serde(default)]
+    pub recordings: Vec<FathomRecording>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -32,6 +34,17 @@ pub struct Note {
     pub title: String,
     pub body: String,
     pub updated_at: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FathomRecording {
+    pub id: String,
+    pub url: String,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    pub created_at: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

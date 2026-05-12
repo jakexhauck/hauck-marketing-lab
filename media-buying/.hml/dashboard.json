@@ -1,5 +1,24 @@
 {
-  "tasks": [],
+  "tasks": [
+    {
+      "id": "mp2qyvs0-ma2d36",
+      "title": "Add Corresponding GDrive Folders Under Each Client",
+      "done": false,
+      "createdAt": 1778597398368
+    },
+    {
+      "id": "mp2quhvk-dhait9",
+      "title": "Setup Stripe Account After EIN",
+      "done": false,
+      "createdAt": 1778597193728
+    },
+    {
+      "id": "mp2qua3i-uk3z1a",
+      "title": "Setup EIN",
+      "done": false,
+      "createdAt": 1778597183646
+    }
+  ],
   "notes": [],
   "calendar": {
     "apiKey": "AIzaSyClglDdq983-oNHlsbJfyG-ws3rAczdnAY",

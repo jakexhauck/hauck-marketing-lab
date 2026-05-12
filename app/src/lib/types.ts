@@ -339,8 +339,17 @@ export interface CalendarConnection {
   connectedAt: string;
 }
 
+export interface FathomRecording {
+  id: string;
+  url: string;
+  title: string;
+  description?: string;
+  createdAt: number;
+}
+
 export interface DashboardState {
   tasks: Task[];
   notes: Note[];
   calendar?: CalendarConnection | null;
+  recordings?: FathomRecording[];
 }

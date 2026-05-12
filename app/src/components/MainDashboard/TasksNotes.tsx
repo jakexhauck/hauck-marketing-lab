@@ -100,7 +100,6 @@ function TasksPane({ root }: { root: string | null }) {
           const folderTasks = Array.isArray(state.tasks) ? state.tasks : [];
           const lsTasks = loadJSON<Task[]>(TASKS_KEY, []);
           if (folderTasks.length === 0 && lsTasks.length > 0) {
-            // One-time migration: copy localStorage into folder on first save
             needsMigration.current = true;
             setTasks(lsTasks);
           } else {
@@ -140,6 +139,7 @@ function TasksPane({ root }: { root: string | null }) {
               tasks,
               notes: Array.isArray(current.notes) ? current.notes : [],
               calendar: current.calendar ?? null,
+              recordings: Array.isArray(current.recordings) ? current.recordings : [],
             });
             if (needsMigration.current) {
               try {
@@ -333,6 +333,7 @@ function NotesPane({ root }: { root: string | null }) {
               tasks: Array.isArray(current.tasks) ? current.tasks : [],
               notes,
               calendar: current.calendar ?? null,
+              recordings: Array.isArray(current.recordings) ? current.recordings : [],
             });
             if (needsMigration.current) {
               try {

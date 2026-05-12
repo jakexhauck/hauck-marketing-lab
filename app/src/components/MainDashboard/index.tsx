@@ -9,6 +9,7 @@ import { BookedToday } from "./BookedToday";
 import { CalendarWidget } from "./CalendarWidget";
 import { ConnectCalendarModal } from "./ConnectCalendarModal";
 import { TasksNotes } from "./TasksNotes";
+import { RecordingsPage } from "./RecordingsPage";
 import { CalendarPage } from "./CalendarPage";
 import { ClientOverview } from "./pages/ClientOverview";
 import { ClientContract } from "./pages/ClientContract";
@@ -119,6 +120,16 @@ function renderMain(
             ◂ Back to dashboard
           </button>
           <TasksNotes root={root} />
+        </div>
+      );
+    }
+    if (view.tab === "recordings") {
+      return (
+        <div className="md-placeholder" style={{ padding: 0 }}>
+          <button type="button" className="md-back" onClick={onBack}>
+            ◂ Back to dashboard
+          </button>
+          <RecordingsPage root={root} />
         </div>
       );
     }
@@ -260,6 +271,7 @@ function DashboardSurface({
         tasks: current.tasks ?? [],
         notes: current.notes ?? [],
         calendar: nextConn,
+        recordings: current.recordings ?? [],
       };
       await api.writeDashboardState(root, nextState);
       if (!mountedRef.current) return;
@@ -282,6 +294,7 @@ function DashboardSurface({
         tasks: current.tasks ?? [],
         notes: current.notes ?? [],
         calendar: null,
+        recordings: current.recordings ?? [],
       };
       await api.writeDashboardState(root, nextState);
       if (!mountedRef.current) return;

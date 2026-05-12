@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.1"
+version = "0.1.2"
 description = "Hauck Marketing Lab — desktop assistant for media buying"
 authors = ["Jake Hauck"]
 edition = "2021"
