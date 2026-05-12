@@ -19,6 +19,7 @@ import {
   useEscapeClose,
   useStreamListener,
 } from "./generators/GeneratorChrome";
+import { PastResults } from "./generators/PastResults";
 
 type Props = {
   root: string;
@@ -115,6 +116,7 @@ export function TrackingAuditWalkthrough({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<GeneratorOutput | null>(null);
   const [launchReady, setLaunchReady] = useState<string | null>(null);
+  const [pastRefresh, setPastRefresh] = useState(0);
 
   const nexus = useMemo(() => findNexus(agents), [agents]);
 
@@ -236,6 +238,7 @@ export function TrackingAuditWalkthrough({
         inputsYaml: buildInputsYaml(form),
       });
       setSaved(output);
+      setPastRefresh((n) => n + 1);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -464,6 +467,23 @@ export function TrackingAuditWalkthrough({
       )}
       {error && <ErrorPanel error={error} />}
 
+      {!saved && !streaming && !streamText && (
+        <PastResults
+          root={root}
+          clientSlug={clientSlug}
+          kind="audits"
+          refreshKey={pastRefresh}
+          onSelect={(out) => {
+            setSaved(out);
+            setStreamText("");
+            setError(null);
+            const parsed = extractJson(out.body);
+            const ready = (parsed?.launch_ready as string | undefined) ?? null;
+            setLaunchReady(ready);
+          }}
+        />
+      )}
+
       {saved && (
         <>
           <SavedHeader
@@ -481,6 +501,21 @@ export function TrackingAuditWalkthrough({
             badgeTone={launchReady ? READY_TONE[launchReady] : undefined}
           />
           <FullTranscript title="▸ FULL AUDIT" agent="NEXUS" body={saved.body} />
+          <PastResults
+            root={root}
+            clientSlug={clientSlug}
+            kind="audits"
+            refreshKey={pastRefresh}
+            activePath={saved.path}
+            onSelect={(out) => {
+              setSaved(out);
+              setStreamText("");
+              setError(null);
+              const parsed = extractJson(out.body);
+              const ready = (parsed?.launch_ready as string | undefined) ?? null;
+              setLaunchReady(ready);
+            }}
+          />
         </>
       )}
     </main>

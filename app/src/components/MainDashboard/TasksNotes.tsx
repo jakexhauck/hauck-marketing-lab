@@ -140,6 +140,7 @@ function TasksPane({ root }: { root: string | null }) {
               notes: Array.isArray(current.notes) ? current.notes : [],
               calendar: current.calendar ?? null,
               recordings: Array.isArray(current.recordings) ? current.recordings : [],
+              sopRuns: Array.isArray(current.sopRuns) ? current.sopRuns : [],
             });
             if (needsMigration.current) {
               try {
@@ -334,6 +335,7 @@ function NotesPane({ root }: { root: string | null }) {
               notes,
               calendar: current.calendar ?? null,
               recordings: Array.isArray(current.recordings) ? current.recordings : [],
+              sopRuns: Array.isArray(current.sopRuns) ? current.sopRuns : [],
             });
             if (needsMigration.current) {
               try {

@@ -20,6 +20,7 @@ import {
   useEscapeClose,
   useStreamListener,
 } from "./generators/GeneratorChrome";
+import { PastResults } from "./generators/PastResults";
 
 type Props = {
   root: string;
@@ -105,6 +106,7 @@ export function WorkflowChain({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<GeneratorOutput | null>(null);
   const [verdict, setVerdict] = useState<string | null>(null);
+  const [pastRefresh, setPastRefresh] = useState(0);
   const cancelledRef = useRef(false);
   const currentStepRef = useRef<string | null>(null);
 
@@ -257,6 +259,7 @@ export function WorkflowChain({
               .join("\n")}`,
           });
           setSaved(output);
+          setPastRefresh((n) => n + 1);
         }
       } catch (e) {
         setRuns((p) => ({
@@ -388,6 +391,23 @@ export function WorkflowChain({
         </div>
       )}
 
+      {!saved && !running && (
+        <PastResults
+          root={root}
+          clientSlug={clientSlug}
+          kind="workflows"
+          refreshKey={pastRefresh}
+          onSelect={(out) => {
+            setSaved(out);
+            setError(null);
+            setRuns({});
+            const parsed = extractJson(out.body);
+            const v = (parsed?.verdict as string | undefined) ?? null;
+            setVerdict(v);
+          }}
+        />
+      )}
+
       {/* Per-step transcript panels */}
       {steps.map((step) => {
         const r = runs[step.id];
@@ -454,6 +474,20 @@ export function WorkflowChain({
             badgeTone={verdict ? KIND_TONE[verdict] : undefined}
           />
           <FullTranscript title="▸ WORKFLOW TRANSCRIPT" agent="ORCHESTRATION" body={saved.body} />
+          <PastResults
+            root={root}
+            clientSlug={clientSlug}
+            kind="workflows"
+            refreshKey={pastRefresh}
+            activePath={saved.path}
+            onSelect={(out) => {
+              setSaved(out);
+              setError(null);
+              const parsed = extractJson(out.body);
+              const v = (parsed?.verdict as string | undefined) ?? null;
+              setVerdict(v);
+            }}
+          />
         </>
       )}
     </main>

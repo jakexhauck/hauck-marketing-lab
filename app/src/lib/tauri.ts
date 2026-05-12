@@ -29,6 +29,9 @@ import type {
   SaveGeneratorOutputArgs,
   SkillEntry,
   SkillFile,
+  SopFile,
+  SopSummary,
+  SopWriteArgs,
   StreamEvent,
   TrackingAudit,
   VaultNote,
@@ -180,6 +183,16 @@ export const api = {
     invoke<DashboardState>("read_dashboard_state", { root }),
   writeDashboardState: (root: string, state: DashboardState) =>
     invoke<void>("write_dashboard_state", { root, state }),
+
+  listSops: (root: string) => invoke<SopSummary[]>("list_sops", { root }),
+  readSop: (root: string, sopId: string) =>
+    invoke<SopFile>("read_sop", { root, sopId }),
+  writeSop: (root: string, sopId: string, args: SopWriteArgs) =>
+    invoke<SopFile>("write_sop", { root, sopId, args }),
+  createSop: (root: string, title: string) =>
+    invoke<SopFile>("create_sop", { root, title }),
+  deleteSop: (root: string, sopId: string) =>
+    invoke<void>("delete_sop", { root, sopId }),
 
   readVaultNote: (root: string, path: string) =>
     invoke<VaultNote>("read_vault_note", { root, path }),

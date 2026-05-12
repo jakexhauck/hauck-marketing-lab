@@ -10,6 +10,7 @@ import { CalendarWidget } from "./CalendarWidget";
 import { ConnectCalendarModal } from "./ConnectCalendarModal";
 import { TasksNotes } from "./TasksNotes";
 import { RecordingsPage } from "./RecordingsPage";
+import { SOPsPage } from "./SOPsPage";
 import { CalendarPage } from "./CalendarPage";
 import { ClientOverview } from "./pages/ClientOverview";
 import type { CalendarConnection, ClientEntry, DashboardState } from "../../lib/types";
@@ -133,6 +134,16 @@ function renderMain(
             ◂ Back to dashboard
           </button>
           <RecordingsPage root={root} />
+        </div>
+      );
+    }
+    if (view.tab === "sops") {
+      return (
+        <div className="md-placeholder" style={{ padding: 0 }}>
+          <button type="button" className="md-back" onClick={onBack}>
+            ◂ Back to dashboard
+          </button>
+          <SOPsPage root={root} />
         </div>
       );
     }
@@ -264,6 +275,7 @@ function DashboardSurface({
         notes: current.notes ?? [],
         calendar: nextConn,
         recordings: current.recordings ?? [],
+        sopRuns: current.sopRuns ?? [],
       };
       await api.writeDashboardState(root, nextState);
       if (!mountedRef.current) return;
@@ -287,6 +299,7 @@ function DashboardSurface({
         notes: current.notes ?? [],
         calendar: null,
         recordings: current.recordings ?? [],
+        sopRuns: current.sopRuns ?? [],
       };
       await api.writeDashboardState(root, nextState);
       if (!mountedRef.current) return;

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 use tauri::AppHandle;
@@ -16,6 +17,24 @@ pub struct DashboardState {
     pub calendar: Option<CalendarConnection>,
     #[serde(default)]
     pub recordings: Vec<FathomRecording>,
+    #[serde(default)]
+    pub sop_runs: Vec<SopRun>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SopRun {
+    pub id: String,
+    pub sop_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    pub started_at: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<i64>,
+    /// Keyed by stable hash of the step text. Frontend computes the hash so the
+    /// backend stays oblivious to step parsing.
+    #[serde(default)]
+    pub checks: BTreeMap<String, bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

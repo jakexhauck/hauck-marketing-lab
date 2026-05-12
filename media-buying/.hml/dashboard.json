@@ -1,6 +1,12 @@
 {
   "tasks": [
     {
+      "id": "mp2yetkg-5mg8lc",
+      "title": "Add in skills from course",
+      "done": false,
+      "createdAt": 1778609899312
+    },
+    {
       "id": "mp2vwql1-z0cpt5",
       "title": "add sop: weekly optimization routine & client reporting",
       "done": false,

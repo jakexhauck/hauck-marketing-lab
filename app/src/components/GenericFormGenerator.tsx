@@ -18,6 +18,7 @@ import type {
   KnowledgeChunk,
   StreamEvent,
 } from "../lib/types";
+import { PastResults } from "./generators/PastResults";
 
 type Props = {
   config: FormConfig;
@@ -81,6 +82,7 @@ export function GenericFormGenerator({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<GeneratorOutput | null>(null);
   const [driveBadge, setDriveBadge] = useState<string | null>(null);
+  const [pastRefresh, setPastRefresh] = useState(0);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const agent = useMemo(() => findAgent(agents, config.agentSlug), [agents, config.agentSlug]);
@@ -274,6 +276,7 @@ export function GenericFormGenerator({
         inputsYaml: buildInputsYaml(config, values),
       });
       setSaved(output);
+      setPastRefresh((n) => n + 1);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -490,6 +493,20 @@ export function GenericFormGenerator({
               </span>
             )}
           </div>
+
+          {!streaming && !streamText && (
+            <PastResults
+              root={root}
+              clientSlug={clientSlug}
+              kind={config.kind}
+              refreshKey={pastRefresh}
+              onSelect={(out) => {
+                setSaved(out);
+                setStreamText("");
+                setError(null);
+              }}
+            />
+          )}
         </>
       )}
 
@@ -567,7 +584,7 @@ export function GenericFormGenerator({
             </div>
           </section>
 
-          <section className="panel reveal reveal-4">
+          <section className="panel reveal reveal-4" style={{ marginBottom: 32 }}>
             <div className="panel-head">
               <span className="panel-title">▸ FULL OUTPUT</span>
               <span className="panel-meta">{config.agentName.toLowerCase()} · verbatim</span>
@@ -579,6 +596,19 @@ export function GenericFormGenerator({
               </div>
             </div>
           </section>
+
+          <PastResults
+            root={root}
+            clientSlug={clientSlug}
+            kind={config.kind}
+            refreshKey={pastRefresh}
+            activePath={saved.path}
+            onSelect={(out) => {
+              setSaved(out);
+              setStreamText("");
+              setError(null);
+            }}
+          />
         </>
       )}
     </main>

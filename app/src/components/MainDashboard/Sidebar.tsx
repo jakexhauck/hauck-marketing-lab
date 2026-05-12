@@ -3,7 +3,7 @@ import { ALL_FORM_CONFIGS, groupFormsByCategory, type FormSurfaceId } from "../.
 import { ClientTree, type ClientSection } from "./ClientTree";
 import type { ClientV1 } from "./v1Data";
 
-export type WorkspaceView = "dashboard" | "calendar" | "tasks" | "recordings";
+export type WorkspaceView = "dashboard" | "calendar" | "tasks" | "recordings" | "sops";
 export type WorkflowView = "media-buying";
 
 interface SidebarProps {
@@ -110,6 +110,14 @@ export function Sidebar({
         >
           <span className="md-glyph">▶</span>
           <span>Recordings</span>
+        </button>
+        <button
+          type="button"
+          className={`md-nav-item${activeWorkspace === "sops" ? " md-active" : ""}`}
+          onClick={() => onSelectWorkspace("sops")}
+        >
+          <span className="md-glyph">☑</span>
+          <span>SOPs</span>
         </button>
       </div>
 

@@ -110,6 +110,7 @@ export function RecordingsPage({ root }: RecordingsPageProps) {
               notes: Array.isArray(current.notes) ? current.notes : [],
               calendar: current.calendar ?? null,
               recordings,
+              sopRuns: Array.isArray(current.sopRuns) ? current.sopRuns : [],
             });
             if (needsMigration.current) {
               try {

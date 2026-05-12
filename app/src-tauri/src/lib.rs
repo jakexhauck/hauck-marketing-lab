@@ -15,6 +15,7 @@ mod generators;
 mod knowledge;
 mod kpi;
 mod launch_checklist;
+mod sops;
 mod sync;
 mod tracking;
 mod vault;
@@ -85,6 +86,11 @@ pub fn run() {
             vault::find_knowledge_notes,
             vault::list_vault_notes,
             vault::vault_root_path,
+            sops::list_sops,
+            sops::read_sop,
+            sops::write_sop,
+            sops::create_sop,
+            sops::delete_sop,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

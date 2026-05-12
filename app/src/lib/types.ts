@@ -347,9 +347,46 @@ export interface FathomRecording {
   createdAt: number;
 }
 
+export interface SopSummary {
+  id: string;
+  title: string;
+  summary: string | null;
+  tags: string[];
+  path: string;
+  stepCount: number;
+  updatedAt: number;
+}
+
+export interface SopFile {
+  id: string;
+  title: string;
+  summary: string | null;
+  tags: string[];
+  body: string;
+  path: string;
+  updatedAt: number;
+}
+
+export interface SopWriteArgs {
+  title: string;
+  summary: string | null;
+  tags: string[];
+  body: string;
+}
+
+export interface SopRun {
+  id: string;
+  sopId: string;
+  label?: string | null;
+  startedAt: number;
+  completedAt?: number | null;
+  checks: Record<string, boolean>;
+}
+
 export interface DashboardState {
   tasks: Task[];
   notes: Note[];
   calendar?: CalendarConnection | null;
   recordings?: FathomRecording[];
+  sopRuns?: SopRun[];
 }
