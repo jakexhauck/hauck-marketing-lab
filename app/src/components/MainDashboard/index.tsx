@@ -29,6 +29,7 @@ interface MainDashboardProps {
   syncing?: boolean;
   syncStatus?: "idle" | "ok" | "error";
   syncTooltip?: string;
+  onSettings?: () => void;
 }
 
 type View =
@@ -44,6 +45,7 @@ export function MainDashboard({
   syncing,
   syncStatus,
   syncTooltip,
+  onSettings,
 }: MainDashboardProps) {
   const [view, setView] = useState<View>({ kind: "dashboard" });
   const realClients: ClientEntry[] = clients ?? [];
@@ -84,6 +86,7 @@ export function MainDashboard({
         syncing={syncing}
         syncStatus={syncStatus}
         syncTooltip={syncTooltip}
+        onSettings={onSettings}
       />
       <div className="md-shell">
         <Sidebar

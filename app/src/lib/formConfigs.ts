@@ -2,6 +2,7 @@
 // Each config defines: fields, target agent, prompt task, expected JSON shape.
 // The shared GenericFormGenerator renders + runs these.
 
+import type { ProfileFormValues } from "./clientProfile";
 import type { GeneratorKind } from "./types";
 
 export type FormFieldBase = {
@@ -47,6 +48,15 @@ export type FormConfig = {
   eyebrow: string;
   /** Right-side eyebrow label, e.g. "ONBOARDING · DAY 0". */
   eyebrowMeta?: string;
+  /** "phase" (default) — slots into onboarding Phase 1-6 grouping.
+   *  "misc" — standalone tool surfaced below the phase groups (no phase fields needed). */
+  category?: "phase" | "misc";
+  /** Onboarding phase (1-6). Required when category is "phase". */
+  phase?: number;
+  /** Phase display name, e.g. "Close the Deal". */
+  phaseName?: string;
+  /** Phase meta line shown next to the section header, e.g. "Day 0". */
+  phaseMeta?: string;
   /** Agent slug used to lookup persona body from media-buying/agents/<slug>.md. */
   agentSlug: string;
   /** Agent display name used in prompt header. */
@@ -69,6 +79,9 @@ export type FormConfig = {
   outputInstructions: string;
   /** Fallback title used to name the saved output if the model omits one. */
   defaultTitle: string;
+  /** Optional: pre-fill these form fields from the active client's Profile.md.
+   *  Map: form-field-key → ProfileFormValues key. */
+  prefillFromProfile?: Partial<Record<string, keyof ProfileFormValues>>;
 };
 
 // ── Vortex · Welcome Email ─────────────────────────────────────────
@@ -79,6 +92,9 @@ const WELCOME_EMAIL: FormConfig = {
     "Drafts the welcome email after the contract is signed. Sets timeline, links the onboarding form, and the calendar.",
   eyebrow: "▸ WELCOME EMAIL · VORTEX",
   eyebrowMeta: "ONBOARDING · DAY 0",
+  phase: 1,
+  phaseName: "Close the Deal",
+  phaseMeta: "Day 0",
   agentSlug: "vortex",
   agentName: "Vortex",
   kind: "briefs",
@@ -159,6 +175,9 @@ const OFFER_CTA: FormConfig = {
     "Lock the primary offer and CTA before creative starts. Returns 3-5 sharpened variations.",
   eyebrow: "▸ OFFER + CTA · VORTEX",
   eyebrowMeta: "ONBOARDING · DAY 1",
+  phase: 2,
+  phaseName: "Onboarding Call",
+  phaseMeta: "Day 1",
   agentSlug: "vortex",
   agentName: "Vortex",
   kind: "briefs",
@@ -237,6 +256,9 @@ const EXPECTATIONS_EMAIL: FormConfig = {
   subtitle: "After the kickoff call — what happens in week 1 and what Jake needs from them.",
   eyebrow: "▸ EXPECTATIONS · VORTEX",
   eyebrowMeta: "ONBOARDING · DAY 1",
+  phase: 2,
+  phaseName: "Onboarding Call",
+  phaseMeta: "Day 1",
   agentSlug: "vortex",
   agentName: "Vortex",
   kind: "briefs",
@@ -302,6 +324,9 @@ const APPROVAL_EMAIL: FormConfig = {
   subtitle: "Packages copy + creative for client sign-off with a clean approval deadline.",
   eyebrow: "▸ APPROVAL · VORTEX",
   eyebrowMeta: "ONBOARDING · DAY 4",
+  phase: 4,
+  phaseName: "Creative Production",
+  phaseMeta: "Days 3–4",
   agentSlug: "vortex",
   agentName: "Vortex",
   kind: "briefs",
@@ -373,6 +398,9 @@ const LIVE_MESSAGE: FormConfig = {
   subtitle: "Short, confident note to the client the moment campaigns go live.",
   eyebrow: "▸ LIVE MESSAGE · VORTEX",
   eyebrowMeta: "ONBOARDING · DAY 7",
+  phase: 6,
+  phaseName: "Launch + Monitor",
+  phaseMeta: "Day 7",
   agentSlug: "vortex",
   agentName: "Vortex",
   kind: "briefs",
@@ -437,6 +465,9 @@ const CONTRACT: FormConfig = {
     "Fills the standard client agreement. Use the output as a starting draft in DocuSign or PandaDoc — not legal advice.",
   eyebrow: "▸ CONTRACT · STRATOS",
   eyebrowMeta: "ONBOARDING · DAY 0",
+  phase: 1,
+  phaseName: "Close the Deal",
+  phaseMeta: "Day 0",
   agentSlug: "stratos",
   agentName: "Stratos",
   kind: "scale_checks",
@@ -526,6 +557,9 @@ const COMPETITOR_RESEARCH: FormConfig = {
   subtitle: "Maps the 5-10 most relevant competitors with angles, offers, and ad-library breadcrumbs.",
   eyebrow: "▸ COMPETITOR INTEL · STRATOS",
   eyebrowMeta: "ONBOARDING · DAY 2",
+  phase: 3,
+  phaseName: "Technical Setup",
+  phaseMeta: "Day 2",
   agentSlug: "stratos",
   agentName: "Stratos",
   kind: "scale_checks",
@@ -606,6 +640,9 @@ const AUDIENCE_BUILDER: FormConfig = {
   subtitle: "Returns 3-5 Meta audience configurations — broad, interest-stacked, lookalike — with reasoning.",
   eyebrow: "▸ AUDIENCES · STRATOS",
   eyebrowMeta: "ONBOARDING · DAYS 3-4",
+  phase: 4,
+  phaseName: "Creative Production",
+  phaseMeta: "Days 3–4",
   agentSlug: "stratos",
   agentName: "Stratos",
   kind: "scale_checks",
@@ -702,6 +739,9 @@ const CAMPAIGN_STRUCTURE: FormConfig = {
   subtitle: "CBO vs ABO call, ad-set split, creative-per-ad-set guidance for this build.",
   eyebrow: "▸ STRUCTURE · STRATOS",
   eyebrowMeta: "ONBOARDING · DAYS 5-6",
+  phase: 5,
+  phaseName: "Campaign Build + QA",
+  phaseMeta: "Days 5–6",
   agentSlug: "stratos",
   agentName: "Stratos",
   kind: "scale_checks",
@@ -785,6 +825,9 @@ const PIXEL_INSTALL: FormConfig = {
   subtitle: "Step-by-step install guide tailored to the website platform — copy-paste snippets included.",
   eyebrow: "▸ PIXEL INSTALL · NEXUS",
   eyebrowMeta: "ONBOARDING · DAY 2",
+  phase: 3,
+  phaseName: "Technical Setup",
+  phaseMeta: "Day 2",
   agentSlug: "nexus",
   agentName: "Nexus",
   kind: "audits",
@@ -857,6 +900,9 @@ const OPTIMIZER_CONFIG: FormConfig = {
   subtitle: "Defines the kill/scale rules and alert thresholds Zenith uses to monitor this account.",
   eyebrow: "▸ OPTIMIZER · ZENITH",
   eyebrowMeta: "ONBOARDING · DAY 7",
+  phase: 6,
+  phaseName: "Launch + Monitor",
+  phaseMeta: "Day 7",
   agentSlug: "zenith",
   agentName: "Zenith",
   kind: "reports",
@@ -950,23 +996,340 @@ const OPTIMIZER_CONFIG: FormConfig = {
   defaultTitle: "Optimizer config",
 };
 
+// ── Vortex · Hooks (Misc) ─────────────────────────────────────────
+const HOOKS: FormConfig = {
+  id: "hooks",
+  title: "Hooks Generator",
+  subtitle:
+    "Generates scroll-stopping hooks across multiple angles using the 100-Hook Framework. Pre-filled from this client's Profile.",
+  eyebrow: "▸ HOOKS · VORTEX",
+  eyebrowMeta: "TOOL · ANYTIME",
+  category: "misc",
+  agentSlug: "vortex",
+  agentName: "Vortex",
+  kind: "hooks",
+  savedHeading: "Hooks saved",
+  generateLabel: "Generate hooks",
+  generatingLabel: "Generating…",
+  prefillFromProfile: {
+    offer: "offers",
+    audience: "target",
+  },
+  sections: [
+    {
+      title: "▸ BRIEF",
+      meta: "required",
+      fields: [
+        {
+          kind: "textarea",
+          key: "offer",
+          label: "Offer",
+          promptLabel: "Offer",
+          placeholder: "What you're selling. (Pre-filled from Profile.md if available.)",
+          minRows: 2,
+          required: true,
+        },
+        {
+          kind: "textarea",
+          key: "audience",
+          label: "Target audience",
+          promptLabel: "Target audience",
+          placeholder: "Who buys this — demo, mindset, situation.",
+          minRows: 2,
+          required: true,
+        },
+        {
+          kind: "segmented",
+          key: "awareness",
+          label: "Awareness level",
+          promptLabel: "Awareness level",
+          options: ["cold", "warm", "retargeting"],
+          default: "cold",
+        },
+      ],
+    },
+    {
+      title: "▸ VOLUME",
+      meta: "how many hooks",
+      fields: [
+        {
+          kind: "number",
+          key: "angle_count",
+          label: "Angles",
+          promptLabel: "Angle count",
+          default: 4,
+          min: 1,
+          max: 12,
+        },
+        {
+          kind: "number",
+          key: "hooks_per_angle",
+          label: "Hooks per angle",
+          promptLabel: "Hooks per angle",
+          default: 5,
+          min: 1,
+          max: 25,
+          inline: true,
+        },
+        {
+          kind: "textarea",
+          key: "seed",
+          label: "Seed / inspiration (optional)",
+          promptLabel: "Seed",
+          placeholder: "Any direction, raw notes, or hooks Jake wants iterated on.",
+          minRows: 3,
+        },
+      ],
+    },
+  ],
+  taskDescription:
+    "Generate hooks using the 100 Hook Framework. Cover the requested number of distinct angles with the requested hooks per angle. Diverse categories for algorithm variety — urgency, social proof, problem, curiosity, transformation, tactical, disruption. End with a short list of top picks Jake should test first.",
+  outputSchema:
+    '{"headline":"…","summary":"…","angles":[{"name":"…","category":"urgency|social_proof|problem|curiosity|transformation|tactical|disruption","hooks":["hook 1","hook 2"]}],"top_picks":[{"hook":"…","why":"…"}]}',
+  outputInstructions:
+    "After the JSON, write a Vortex-style hook list grouped by angle with bold headers and a 1-line rationale on each top pick.",
+  defaultTitle: "Hooks set",
+};
+
+// ── Vortex · Creative Brief (Misc) ────────────────────────────────
+const CREATIVE_BRIEF: FormConfig = {
+  id: "creative-brief",
+  title: "Creative Brief Builder",
+  subtitle:
+    "Designer- and editor-ready creative brief. Pre-filled from this client's Profile when available.",
+  eyebrow: "▸ CREATIVE BRIEF · VORTEX",
+  eyebrowMeta: "TOOL · ANYTIME",
+  category: "misc",
+  agentSlug: "vortex",
+  agentName: "Vortex",
+  kind: "briefs",
+  savedHeading: "Creative brief saved",
+  generateLabel: "Build brief",
+  generatingLabel: "Building…",
+  prefillFromProfile: {
+    product: "services",
+    audience: "target",
+    visual_style: "voice",
+    do_nots: "avoid",
+  },
+  sections: [
+    {
+      title: "▸ WHAT WE'RE MAKING",
+      meta: "required",
+      fields: [
+        {
+          kind: "textarea",
+          key: "product",
+          label: "Product / offer",
+          promptLabel: "Product",
+          placeholder: "What this brief is selling. (Pre-filled from Profile.md if available.)",
+          minRows: 2,
+          required: true,
+        },
+        {
+          kind: "text",
+          key: "format",
+          label: "Format(s)",
+          promptLabel: "Format",
+          placeholder: "1080×1920 video, 15-30s.",
+          required: true,
+        },
+        {
+          kind: "number",
+          key: "quantity",
+          label: "Variations",
+          promptLabel: "Quantity",
+          default: 3,
+          min: 1,
+          max: 10,
+          inline: true,
+        },
+      ],
+    },
+    {
+      title: "▸ WHO + WHY",
+      meta: "audience + angle",
+      fields: [
+        {
+          kind: "textarea",
+          key: "audience",
+          label: "Audience",
+          promptLabel: "Audience",
+          placeholder: "Demo, mindset, where they are in the buying journey.",
+          minRows: 3,
+          required: true,
+        },
+        {
+          kind: "segmented",
+          key: "awareness",
+          label: "Awareness",
+          promptLabel: "Awareness",
+          options: ["cold", "warm", "hot"],
+          default: "cold",
+        },
+        {
+          kind: "textarea",
+          key: "pains",
+          label: "Pain points",
+          promptLabel: "Pain points",
+          placeholder: "The specific frustrations driving the buy.",
+          minRows: 3,
+        },
+        {
+          kind: "textarea",
+          key: "desires",
+          label: "Desires",
+          promptLabel: "Desires",
+          placeholder: "The outcome they actually want.",
+          minRows: 3,
+        },
+      ],
+    },
+    {
+      title: "▸ THE PITCH",
+      meta: "message + proof",
+      fields: [
+        {
+          kind: "text",
+          key: "hook",
+          label: "Lead hook (optional)",
+          promptLabel: "Lead hook",
+          placeholder: "If Jake already has one — drop it here.",
+        },
+        {
+          kind: "textarea",
+          key: "core_message",
+          label: "Core message",
+          promptLabel: "Core message",
+          placeholder: "The single idea every variation must land.",
+          minRows: 2,
+        },
+        {
+          kind: "textarea",
+          key: "proof",
+          label: "Proof",
+          promptLabel: "Proof",
+          placeholder: "Reviews, results, stats, social proof.",
+          minRows: 3,
+        },
+        {
+          kind: "text",
+          key: "cta",
+          label: "CTA",
+          promptLabel: "CTA",
+          placeholder: "Get a free quote.",
+        },
+      ],
+    },
+    {
+      title: "▸ VISUAL + GUARDRAILS",
+      meta: "execution notes",
+      fields: [
+        {
+          kind: "textarea",
+          key: "visual_style",
+          label: "Visual style",
+          promptLabel: "Visual style",
+          placeholder: "Look, feel, references. (Pre-filled from Profile voice/brand if available.)",
+          minRows: 3,
+        },
+        {
+          kind: "textarea",
+          key: "do_nots",
+          label: "Do-nots",
+          promptLabel: "Do-nots",
+          placeholder: "Anything off-limits — claims, imagery, tone. (Pre-filled from Profile.)",
+          minRows: 2,
+        },
+        {
+          kind: "text",
+          key: "deadline",
+          label: "Deadline",
+          promptLabel: "Deadline",
+          placeholder: "When this needs to ship.",
+        },
+      ],
+    },
+  ],
+  taskDescription:
+    "Produce a complete creative brief a designer/editor can execute against. Follow the Vortex Creative Brief skill template — overview, audience, message, visual direction, technical specs, deliverables checklist. Be specific. No placeholders left unfilled.",
+  outputSchema:
+    '{"headline":"…","summary":"…","format":"…","deliverables":["…","…"],"hook":"…","cta":"…"}',
+  outputInstructions:
+    "After the JSON, write the full brief as markdown — headers, lists, tables where they help. Production-ready.",
+  defaultTitle: "Creative brief",
+};
+
+// Ordered to match the onboarding sequence (onboardingPlan.ts):
+// 1. Close the Deal  → 2. Onboarding Call  → 3. Technical Setup
+// 4. Creative Production  → 5. Campaign Build + QA  → 6. Launch + Monitor
+// Misc tools (Hooks, Creative Brief) live below the phase forms and surface
+// in a separate "Misc" group in the sidebar + AgentFormsHub.
 export const ALL_FORM_CONFIGS: FormConfig[] = [
+  CONTRACT,
   WELCOME_EMAIL,
   OFFER_CTA,
   EXPECTATIONS_EMAIL,
-  APPROVAL_EMAIL,
-  LIVE_MESSAGE,
-  CONTRACT,
+  PIXEL_INSTALL,
   COMPETITOR_RESEARCH,
   AUDIENCE_BUILDER,
+  APPROVAL_EMAIL,
   CAMPAIGN_STRUCTURE,
-  PIXEL_INSTALL,
+  LIVE_MESSAGE,
   OPTIMIZER_CONFIG,
+  HOOKS,
+  CREATIVE_BRIEF,
 ];
 
 export type FormSurfaceId = (typeof ALL_FORM_CONFIGS)[number]["id"];
 
 export type FormValues = Record<string, string | number | string[] | undefined>;
+
+export type FormPhaseGroup = {
+  phase: number;
+  phaseName: string;
+  phaseMeta: string;
+  forms: FormConfig[];
+};
+
+export type FormMiscGroup = {
+  forms: FormConfig[];
+};
+
+export type FormGroups = {
+  phaseGroups: FormPhaseGroup[];
+  miscGroup: FormMiscGroup | null;
+};
+
+/** Group a list of form configs into phase buckets + a single misc bucket.
+ *  Phase buckets sort ascending by phase; misc rendered last by the UI. */
+export function groupFormsByCategory(configs: FormConfig[]): FormGroups {
+  const phaseGroups: FormPhaseGroup[] = [];
+  const miscForms: FormConfig[] = [];
+  for (const cfg of configs) {
+    if ((cfg.category ?? "phase") === "misc") {
+      miscForms.push(cfg);
+      continue;
+    }
+    if (cfg.phase === undefined) continue;
+    let group = phaseGroups.find((g) => g.phase === cfg.phase);
+    if (!group) {
+      group = {
+        phase: cfg.phase,
+        phaseName: cfg.phaseName ?? "",
+        phaseMeta: cfg.phaseMeta ?? "",
+        forms: [],
+      };
+      phaseGroups.push(group);
+    }
+    group.forms.push(cfg);
+  }
+  phaseGroups.sort((a, b) => a.phase - b.phase);
+  return {
+    phaseGroups,
+    miscGroup: miscForms.length > 0 ? { forms: miscForms } : null,
+  };
+}
 
 export function defaultValuesFor(config: FormConfig): FormValues {
   const out: FormValues = {};

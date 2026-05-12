@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Hauck Marketing Lab",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "com.hauckmarketing.lab",
   "build": {
     "beforeDevCommand": "npx vite",
@@ -28,6 +28,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -35,5 +36,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/jakexhauck/hauck-marketing-lab/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEEyQ0ZFOTE5MTkxNEYxRkUKUldUKzhSUVpHZW5Qb25WWVRNRnJWeGwvR2FKYm5IUWovRW5DY244WGREVVM2SWYyOHU4MGxUY0gK"
+    }
   }
 }

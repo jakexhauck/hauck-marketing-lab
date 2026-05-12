@@ -1,5 +1,5 @@
 import type { AgentSummary, ClientEntry } from "../../lib/types";
-import { ALL_FORM_CONFIGS, type FormSurfaceId } from "../../lib/formConfigs";
+import { ALL_FORM_CONFIGS, groupFormsByCategory, type FormSurfaceId } from "../../lib/formConfigs";
 import { ClientTree, type ClientSection } from "./ClientTree";
 import type { ClientV1 } from "./v1Data";
 
@@ -154,36 +154,85 @@ export function Sidebar({
         </button>
       </div>
 
-      {onSelectForm && (
-        <div className="md-nav-section">
-          <div className="md-nav-label">▸ Forms · {ALL_FORM_CONFIGS.length}</div>
-          {ALL_FORM_CONFIGS.map((cfg) => {
-            const accent = AGENT_ACCENT[cfg.agentSlug.toLowerCase()] ?? "#95a0b3";
-            const isActive = cfg.id === activeFormId;
-            return (
-              <button
-                key={cfg.id}
-                type="button"
-                className={`md-nav-item md-agent-item${isActive ? " md-active" : ""}`}
-                onClick={() => onSelectForm(cfg.id as FormSurfaceId)}
-                title={`${cfg.title} · ${cfg.agentName}`}
+      {onSelectForm && (() => {
+        const { phaseGroups, miscGroup } = groupFormsByCategory(ALL_FORM_CONFIGS);
+        const renderFormButton = (cfg: (typeof ALL_FORM_CONFIGS)[number], group: string) => {
+          const accent = AGENT_ACCENT[cfg.agentSlug.toLowerCase()] ?? "#95a0b3";
+          const isActive = cfg.id === activeFormId;
+          return (
+            <button
+              key={cfg.id}
+              type="button"
+              className={`md-nav-item md-agent-item${isActive ? " md-active" : ""}`}
+              onClick={() => onSelectForm(cfg.id as FormSurfaceId)}
+              title={`${cfg.title} · ${cfg.agentName} · ${group}`}
+            >
+              <span
+                className="md-agent-initial"
+                style={{
+                  color: accent,
+                  borderColor: `${accent}55`,
+                  background: `${accent}14`,
+                }}
               >
-                <span
-                  className="md-agent-initial"
+                {cfg.agentName[0]}
+              </span>
+              <span>{cfg.title}</span>
+            </button>
+          );
+        };
+        return (
+          <div className="md-nav-section">
+            <div className="md-nav-label">▸ Forms · {ALL_FORM_CONFIGS.length}</div>
+            {phaseGroups.map((group) => (
+              <div key={group.phase} className="md-form-phase">
+                <div
+                  className="md-nav-label"
                   style={{
-                    color: accent,
-                    borderColor: `${accent}55`,
-                    background: `${accent}14`,
+                    marginTop: 10,
+                    marginBottom: 4,
+                    fontSize: 10,
+                    opacity: 0.75,
+                    letterSpacing: "0.08em",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}
                 >
-                  {cfg.agentName[0]}
-                </span>
-                <span>{cfg.title}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                    Phase {String(group.phase).padStart(2, "0")} · {group.phaseName}
+                  </span>
+                </div>
+                {group.forms.map((cfg) =>
+                  renderFormButton(cfg, `Phase ${group.phase} ${group.phaseName}`),
+                )}
+              </div>
+            ))}
+            {miscGroup && (
+              <div className="md-form-phase">
+                <div
+                  className="md-nav-label"
+                  style={{
+                    marginTop: 10,
+                    marginBottom: 4,
+                    fontSize: 10,
+                    opacity: 0.75,
+                    letterSpacing: "0.08em",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                    Misc · Tools
+                  </span>
+                </div>
+                {miscGroup.forms.map((cfg) => renderFormButton(cfg, "Misc · Tools"))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {(onOpenAureliusChat || (agents && agents.some((a) => a.slug.toLowerCase() === "aurelius"))) && (
         <div className="md-nav-section">

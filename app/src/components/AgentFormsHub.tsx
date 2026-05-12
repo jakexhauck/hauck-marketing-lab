@@ -1,5 +1,10 @@
 import { useMemo } from "react";
-import { ALL_FORM_CONFIGS, type FormSurfaceId } from "../lib/formConfigs";
+import {
+  ALL_FORM_CONFIGS,
+  groupFormsByCategory,
+  type FormConfig,
+  type FormSurfaceId,
+} from "../lib/formConfigs";
 import type { AgentSummary } from "../lib/types";
 
 type Props = {
@@ -9,6 +14,71 @@ type Props = {
   onClose: () => void;
 };
 
+function FormCard({
+  cfg,
+  onOpen,
+}: {
+  cfg: FormConfig;
+  onOpen: (id: FormSurfaceId) => void;
+}) {
+  return (
+    <button
+      key={cfg.id}
+      type="button"
+      className="panel"
+      onClick={() => onOpen(cfg.id as FormSurfaceId)}
+      style={{
+        textAlign: "left",
+        cursor: "pointer",
+        background: "var(--bg-surface, transparent)",
+        border: "1px solid var(--border, rgba(180,200,240,0.08))",
+        transition: "border-color 0.15s, transform 0.05s",
+        padding: 0,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "var(--copper, #ec9849)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor =
+          "var(--border, rgba(180,200,240,0.08))";
+      }}
+    >
+      <div className="panel-head">
+        <span className="panel-title">{cfg.eyebrow}</span>
+        {cfg.eyebrowMeta && <span className="panel-meta">{cfg.eyebrowMeta}</span>}
+      </div>
+      <div style={{ padding: "0 18px 18px" }}>
+        <div
+          style={{
+            fontSize: 17,
+            fontWeight: 600,
+            letterSpacing: "-0.01em",
+            color: "var(--text)",
+            marginBottom: 6,
+          }}
+        >
+          {cfg.title}
+        </div>
+        <div style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.5 }}>
+          {cfg.subtitle}
+        </div>
+        <div
+          style={{
+            marginTop: 14,
+            fontFamily: "var(--mono)",
+            fontSize: 11,
+            color: "var(--copper, #ec9849)",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
+          Open form →
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export function AgentFormsHub({ agent, clientName, onOpenForm, onClose }: Props) {
   const forms = useMemo(
     () =>
@@ -16,6 +86,11 @@ export function AgentFormsHub({ agent, clientName, onOpenForm, onClose }: Props)
         (cfg) => cfg.agentSlug.toLowerCase() === agent.slug.toLowerCase(),
       ),
     [agent.slug],
+  );
+
+  const { phaseGroups, miscGroup } = useMemo(
+    () => groupFormsByCategory(forms),
+    [forms],
   );
 
   return (
@@ -60,77 +135,123 @@ export function AgentFormsHub({ agent, clientName, onOpenForm, onClose }: Props)
         </section>
       ) : (
         <section className="reveal reveal-2" style={{ marginBottom: 32 }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-              gap: 14,
-            }}
-          >
-            {forms.map((cfg) => (
-              <button
-                key={cfg.id}
-                type="button"
-                className="panel"
-                onClick={() => onOpenForm(cfg.id as FormSurfaceId)}
+          {phaseGroups.map((group) => (
+            <div key={group.phase} style={{ marginBottom: 28 }}>
+              <div
                 style={{
-                  textAlign: "left",
-                  cursor: "pointer",
-                  background: "var(--bg-surface, transparent)",
-                  border: "1px solid var(--border, rgba(180,200,240,0.08))",
-                  transition: "border-color 0.15s, transform 0.05s",
-                  padding: 0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "var(--copper, #ec9849)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "var(--border, rgba(180,200,240,0.08))";
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 10,
+                  marginBottom: 12,
+                  paddingBottom: 8,
+                  borderBottom: "1px solid var(--border, rgba(180,200,240,0.08))",
                 }}
               >
-                <div className="panel-head">
-                  <span className="panel-title">{cfg.eyebrow}</span>
-                  {cfg.eyebrowMeta && (
-                    <span className="panel-meta">{cfg.eyebrowMeta}</span>
-                  )}
-                </div>
-                <div style={{ padding: "0 18px 18px" }}>
-                  <div
-                    style={{
-                      fontSize: 17,
-                      fontWeight: 600,
-                      letterSpacing: "-0.01em",
-                      color: "var(--text)",
-                      marginBottom: 6,
-                    }}
-                  >
-                    {cfg.title}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13.5,
-                      color: "var(--text-muted)",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {cfg.subtitle}
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 14,
-                      fontFamily: "var(--mono)",
-                      fontSize: 11,
-                      color: "var(--copper, #ec9849)",
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Open form →
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
+                <span
+                  style={{
+                    fontFamily: "var(--mono)",
+                    fontSize: 11,
+                    letterSpacing: "0.08em",
+                    color: "var(--copper, #ec9849)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  ▸ Phase {String(group.phase).padStart(2, "0")}
+                </span>
+                <span
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "var(--text)",
+                  }}
+                >
+                  {group.phaseName}
+                </span>
+                <span
+                  style={{
+                    marginLeft: "auto",
+                    fontFamily: "var(--mono)",
+                    fontSize: 11,
+                    color: "var(--text-faint)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  {group.phaseMeta}
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                {group.forms.map((cfg) => (
+                  <FormCard key={cfg.id} cfg={cfg} onOpen={onOpenForm} />
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {miscGroup && (
+            <div style={{ marginBottom: 28 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 10,
+                  marginBottom: 12,
+                  paddingBottom: 8,
+                  borderBottom: "1px solid var(--border, rgba(180,200,240,0.08))",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--mono)",
+                    fontSize: 11,
+                    letterSpacing: "0.08em",
+                    color: "var(--copper, #ec9849)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  ▸ Misc
+                </span>
+                <span
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "var(--text)",
+                  }}
+                >
+                  Tools
+                </span>
+                <span
+                  style={{
+                    marginLeft: "auto",
+                    fontFamily: "var(--mono)",
+                    fontSize: 11,
+                    color: "var(--text-faint)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  anytime
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                {miscGroup.forms.map((cfg) => (
+                  <FormCard key={cfg.id} cfg={cfg} onOpen={onOpenForm} />
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       )}
     </main>

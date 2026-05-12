@@ -20,8 +20,6 @@ type Props = {
   onBackToOnboarding?: () => void;
   onOpenHookGenerator?: () => void;
   onOpenCreativeBrief?: () => void;
-  onOpenReport?: () => void;
-  onOpenScaleReadiness?: () => void;
   onOpenTrackingAudit?: () => void;
   onOpenWorkflowLaunch?: () => void;
   onOpenWorkflowOptimize?: () => void;
@@ -40,8 +38,6 @@ export function Dashboard({
   onBackToOnboarding,
   onOpenHookGenerator,
   onOpenCreativeBrief,
-  onOpenReport,
-  onOpenScaleReadiness,
   onOpenTrackingAudit,
   onOpenWorkflowLaunch,
   onOpenWorkflowOptimize,
@@ -62,8 +58,6 @@ export function Dashboard({
         <GeneratorRail
           onOpenHookGenerator={onOpenHookGenerator}
           onOpenCreativeBrief={onOpenCreativeBrief}
-          onOpenReport={onOpenReport}
-          onOpenScaleReadiness={onOpenScaleReadiness}
           onOpenTrackingAudit={onOpenTrackingAudit}
           onOpenWorkflowLaunch={onOpenWorkflowLaunch}
           onOpenWorkflowOptimize={onOpenWorkflowOptimize}
@@ -90,8 +84,6 @@ export function Dashboard({
       <GeneratorRail
         onOpenHookGenerator={onOpenHookGenerator}
         onOpenCreativeBrief={onOpenCreativeBrief}
-        onOpenReport={onOpenReport}
-        onOpenScaleReadiness={onOpenScaleReadiness}
         onOpenTrackingAudit={onOpenTrackingAudit}
         onOpenWorkflowLaunch={onOpenWorkflowLaunch}
         onOpenWorkflowOptimize={onOpenWorkflowOptimize}
@@ -249,8 +241,6 @@ function NotLaunchedYet({
 function GeneratorRail({
   onOpenHookGenerator,
   onOpenCreativeBrief,
-  onOpenReport,
-  onOpenScaleReadiness,
   onOpenTrackingAudit,
   onOpenWorkflowLaunch,
   onOpenWorkflowOptimize,
@@ -258,8 +248,6 @@ function GeneratorRail({
 }: {
   onOpenHookGenerator?: () => void;
   onOpenCreativeBrief?: () => void;
-  onOpenReport?: () => void;
-  onOpenScaleReadiness?: () => void;
   onOpenTrackingAudit?: () => void;
   onOpenWorkflowLaunch?: () => void;
   onOpenWorkflowOptimize?: () => void;
@@ -283,18 +271,6 @@ function GeneratorRail({
       agent: "VORTEX",
       blurb: "Designer-ready brief from inputs",
       onClick: onOpenCreativeBrief,
-    },
-    {
-      label: "Performance report",
-      agent: "AURELIUS",
-      blurb: "Client-ready report from KPIs",
-      onClick: onOpenReport,
-    },
-    {
-      label: "Scale readiness",
-      agent: "STRATOS",
-      blurb: "4-pillar check · GO / HOLD / NO-GO",
-      onClick: onOpenScaleReadiness,
     },
     {
       label: "Tracking audit",

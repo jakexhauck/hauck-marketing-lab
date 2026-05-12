@@ -60,12 +60,14 @@ export function OnboardingChecklist({ clientName, clientSlug, onComplete }: Prop
   const [phaseDoneAt, setPhaseDoneAt] = useState<Record<string, string>>(
     () => loadState(clientSlug).phaseDoneAt,
   );
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   // Reload state when switching clients.
   useEffect(() => {
     const next = loadState(clientSlug);
     setDoneSet(new Set(next.done));
     setPhaseDoneAt(next.phaseDoneAt);
+    setSelectedIndex(null);
   }, [clientSlug]);
 
   // Persist on every change.
@@ -86,9 +88,17 @@ export function OnboardingChecklist({ clientName, clientSlug, onComplete }: Prop
     });
   }, [doneSet]);
 
-  // Find the active phase = first non-complete phase. Phases above it are done,
-  // phases below are upcoming. If everything is done, no active phase.
+  // Auto-derived active phase = first non-complete phase. Drives the progress
+  // strip "Phase N / M" indicator regardless of which phase the user is viewing.
   const activeIndex = phaseStates.findIndex((s) => s.completed < s.total);
+
+  // The phase shown expanded. User-selected phase wins; otherwise fall back to
+  // the auto-derived active phase. -1 means no phase is expanded (all done and
+  // nothing manually selected).
+  const expandedIndex =
+    selectedIndex !== null && selectedIndex >= 0 && selectedIndex < phaseStates.length
+      ? selectedIndex
+      : activeIndex;
 
   useEffect(() => {
     setPhaseDoneAt((prev) => {
@@ -148,7 +158,7 @@ export function OnboardingChecklist({ clientName, clientSlug, onComplete }: Prop
       <main className="ob-stack">
         {phaseStates.map((s, i) => {
           const isDone = s.completed === s.total;
-          const isActive = !isDone && i === activeIndex;
+          const isActive = i === expandedIndex;
           if (isActive) {
             return (
               <ActiveCard
@@ -166,10 +176,17 @@ export function OnboardingChecklist({ clientName, clientSlug, onComplete }: Prop
                 key={s.phase.num}
                 phase={s.phase}
                 completedAt={phaseDoneAt[String(s.phase.num)]}
+                onSelect={() => setSelectedIndex(i)}
               />
             );
           }
-          return <UpcomingCard key={s.phase.num} phase={s.phase} />;
+          return (
+            <UpcomingCard
+              key={s.phase.num}
+              phase={s.phase}
+              onSelect={() => setSelectedIndex(i)}
+            />
+          );
         })}
       </main>
 
@@ -200,10 +217,23 @@ export function OnboardingChecklist({ clientName, clientSlug, onComplete }: Prop
   );
 }
 
-function DoneCard({ phase, completedAt }: { phase: OnboardingPhase; completedAt: string | undefined }) {
+function DoneCard({
+  phase,
+  completedAt,
+  onSelect,
+}: {
+  phase: OnboardingPhase;
+  completedAt: string | undefined;
+  onSelect: () => void;
+}) {
   const total = phaseTaskCount(phase);
   return (
-    <section className="ob-card ob-done">
+    <button
+      type="button"
+      className="ob-card ob-done"
+      onClick={onSelect}
+      aria-label={`Open phase ${phase.num}: ${phase.name}`}
+    >
       <div className="ob-check">✓</div>
       <div className="ob-phase-num">PHASE {String(phase.num).padStart(2, "0")}</div>
       <div className="ob-phase-name">{phase.name}</div>
@@ -216,13 +246,18 @@ function DoneCard({ phase, completedAt }: { phase: OnboardingPhase; completedAt:
           </>
         )}
       </div>
-    </section>
+    </button>
   );
 }
 
-function UpcomingCard({ phase }: { phase: OnboardingPhase }) {
+function UpcomingCard({ phase, onSelect }: { phase: OnboardingPhase; onSelect: () => void }) {
   return (
-    <section className="ob-card ob-upcoming">
+    <button
+      type="button"
+      className="ob-card ob-upcoming"
+      onClick={onSelect}
+      aria-label={`Open phase ${phase.num}: ${phase.name}`}
+    >
       <div className="ob-upcoming-ring">{String(phase.num).padStart(2, "0")}</div>
       <div className="ob-upcoming-body">
         <div className="ob-upcoming-head">
@@ -232,7 +267,7 @@ function UpcomingCard({ phase }: { phase: OnboardingPhase }) {
         <div className="ob-upcoming-hint">{phase.hint}</div>
       </div>
       <div className="ob-upcoming-meta">{phase.meta}</div>
-    </section>
+    </button>
   );
 }
 

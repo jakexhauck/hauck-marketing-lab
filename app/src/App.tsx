@@ -5,22 +5,19 @@ import { AskDock } from "./components/AskDock";
 import { ChatDrawer } from "./components/ChatDrawer";
 import { ClientsPage } from "./components/ClientsPage";
 import { CommandPalette } from "./components/CommandPalette";
-import { CreativeBriefBuilder } from "./components/CreativeBriefBuilder";
 import { Dashboard } from "./components/Dashboard";
 import { DiagnosisForm } from "./components/DiagnosisForm";
 import { FolderPicker } from "./components/FolderPicker";
 import { GenericFormGenerator } from "./components/GenericFormGenerator";
-import { HookGenerator } from "./components/HookGenerator";
 import { KnowledgeBrowser } from "./components/KnowledgeBrowser";
 import { MainDashboard } from "./components/MainDashboard";
 import { Sidebar, type WorkspaceView, type WorkflowView } from "./components/MainDashboard/Sidebar";
 import { TopBar } from "./components/MainDashboard/TopBar";
 import "./components/MainDashboard/main-dashboard.css";
 import { OnboardingChecklist } from "./components/OnboardingChecklist";
-import { ReportBuilder } from "./components/ReportBuilder";
-import { ScaleReadiness } from "./components/ScaleReadiness";
 import { SettingsPage } from "./components/SettingsPage";
 import { TrackingAuditWalkthrough } from "./components/TrackingAuditWalkthrough";
+import { UpdaterPrompt } from "./components/UpdaterPrompt";
 import { WorkflowChain } from "./components/WorkflowChain";
 import { getFormConfig, type FormSurfaceId } from "./lib/formConfigs";
 import { api } from "./lib/tauri";
@@ -117,13 +114,11 @@ export default function App() {
   }, []);
 
   // Generator surface — null = dashboard, otherwise the open generator.
-  // Form surface ids (welcome-email, contract, audiences, etc.) are also valid
-  // values; they route to the shared GenericFormGenerator via getFormConfig.
+  // Form surface ids (welcome-email, contract, hooks, creative-brief, audiences,
+  // etc.) all route to the shared GenericFormGenerator via getFormConfig.
+  // A handful of multi-step surfaces (tracking audit, workflows) keep bespoke
+  // components for now.
   type GeneratorSurface =
-    | "hooks"
-    | "briefs"
-    | "reports"
-    | "scale"
     | "audit"
     | "workflow-launch"
     | "workflow-optimize"
@@ -434,16 +429,23 @@ export default function App() {
 
   // ── client switching ──────────────────────────────────
   const switchClient = async (slug: string) => {
+    // Always close any open surface so clicking a client routes back to that
+    // client's dashboard or onboarding checklist — even when the slug matches
+    // the already-active client (e.g. user has a form open and wants to get
+    // back to the client view).
+    setSettingsOpen(false);
+    setClientsPageOpen(false);
+    setKnowledgeOpen(false);
+    setDiagnosisOpen(false);
+    setGenerator(null);
+    setAgentFormsHub(null);
+    setCurrentChat(null);
+
     if (slug === activeClientSlug || !root) {
       setActiveClientSlug(slug);
       return;
     }
     setActiveClientSlug(slug);
-    // close any per-client modal/drawer state to avoid stale references
-    setDiagnosisOpen(false);
-    setGenerator(null);
-    setAgentFormsHub(null);
-    setCurrentChat(null);
     try {
       await api.saveConfig({
         media_buying_path: root,
@@ -470,16 +472,47 @@ export default function App() {
   };
 
   if (view === "main") {
+    if (settingsOpen && summary && root) {
+      const mainClient = clients.find((c) => c.slug === activeClientSlug) ?? clients[0] ?? DEFAULT_CLIENT;
+      return (
+        <>
+          <SettingsPage
+            root={root}
+            agents={summary.agents}
+            clients={clients}
+            defaultAgentSlug={defaultAgentSlug}
+            activeClientSlug={mainClient.slug}
+            activeClientName={mainClient.name}
+            onClose={() => setSettingsOpen(false)}
+            onFolderChanged={async (path) => {
+              setRoot(path);
+              await loadFolder(path);
+            }}
+            onDefaultAgentChanged={(slug) => setDefaultAgentSlug(slug)}
+            onManageClients={() => {
+              setSettingsOpen(false);
+              setClientsPageStartInAdd(false);
+              setClientsPageOpen(true);
+            }}
+          />
+          <UpdaterPrompt />
+        </>
+      );
+    }
     return (
-      <MainDashboard
-        onOpenMediaBuying={() => setView("media-buying")}
-        root={root}
-        clients={clients}
-        onSync={onSync}
-        syncing={syncing}
-        syncStatus={syncStatus}
-        syncTooltip={syncTooltip}
-      />
+      <>
+        <MainDashboard
+          onOpenMediaBuying={() => setView("media-buying")}
+          root={root}
+          clients={clients}
+          onSync={onSync}
+          syncing={syncing}
+          syncStatus={syncStatus}
+          syncTooltip={syncTooltip}
+          onSettings={summary && root ? () => setSettingsOpen(true) : undefined}
+        />
+        <UpdaterPrompt />
+      </>
     );
   }
 
@@ -582,38 +615,6 @@ export default function App() {
       onClose={onCloseKnowledge}
       onPinToChat={onPinKnowledgeToChat}
     />
-  ) : generator === "hooks" ? (
-    <HookGenerator
-      root={root}
-      agents={summary.agents}
-      clientName={clientName}
-      clientSlug={clientSlug}
-      onClose={closeGenerator}
-    />
-  ) : generator === "briefs" ? (
-    <CreativeBriefBuilder
-      root={root}
-      agents={summary.agents}
-      clientName={clientName}
-      clientSlug={clientSlug}
-      onClose={closeGenerator}
-    />
-  ) : generator === "reports" ? (
-    <ReportBuilder
-      root={root}
-      agents={summary.agents}
-      clientName={clientName}
-      clientSlug={clientSlug}
-      onClose={closeGenerator}
-    />
-  ) : generator === "scale" ? (
-    <ScaleReadiness
-      root={root}
-      agents={summary.agents}
-      clientName={clientName}
-      clientSlug={clientSlug}
-      onClose={closeGenerator}
-    />
   ) : generator === "audit" ? (
     <TrackingAuditWalkthrough
       root={root}
@@ -673,9 +674,7 @@ export default function App() {
       onOpenDiagnosis={onOpenDiagnosis}
       onBackToOnboarding={() => restoreOnboarding(clientSlug)}
       onOpenHookGenerator={() => openGenerator("hooks")}
-      onOpenCreativeBrief={() => openGenerator("briefs")}
-      onOpenReport={() => openGenerator("reports")}
-      onOpenScaleReadiness={() => openGenerator("scale")}
+      onOpenCreativeBrief={() => openGenerator("creative-brief")}
       onOpenTrackingAudit={() => openGenerator("audit")}
       onOpenWorkflowLaunch={() => openGenerator("workflow-launch")}
       onOpenWorkflowOptimize={() => openGenerator("workflow-optimize")}
@@ -766,16 +765,13 @@ export default function App() {
         onOpenKnowledge={onPaletteKnowledge}
         onOpenDiagnosis={onOpenDiagnosis}
         onOpenKnowledgeBrowser={onOpenKnowledgeBrowser}
-        onOpenHookGenerator={() => openGenerator("hooks")}
-        onOpenCreativeBrief={() => openGenerator("briefs")}
-        onOpenReport={() => openGenerator("reports")}
-        onOpenScaleReadiness={() => openGenerator("scale")}
         onOpenTrackingAudit={() => openGenerator("audit")}
         onOpenWorkflowLaunch={() => openGenerator("workflow-launch")}
         onOpenWorkflowOptimize={() => openGenerator("workflow-optimize")}
         onOpenWorkflowScale={() => openGenerator("workflow-scale")}
         onOpenForm={(id) => openGenerator(id)}
       />
+      <UpdaterPrompt />
     </>
   );
 }

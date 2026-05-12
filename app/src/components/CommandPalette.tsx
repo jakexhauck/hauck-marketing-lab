@@ -17,10 +17,6 @@ type Props = {
   onOpenKnowledge: (item: KnowledgeTitle) => void;
   onOpenDiagnosis?: () => void;
   onOpenKnowledgeBrowser?: () => void;
-  onOpenHookGenerator?: () => void;
-  onOpenCreativeBrief?: () => void;
-  onOpenReport?: () => void;
-  onOpenScaleReadiness?: () => void;
   onOpenTrackingAudit?: () => void;
   onOpenWorkflowLaunch?: () => void;
   onOpenWorkflowOptimize?: () => void;
@@ -77,10 +73,6 @@ export function CommandPalette({
   onOpenKnowledge,
   onOpenDiagnosis,
   onOpenKnowledgeBrowser,
-  onOpenHookGenerator,
-  onOpenCreativeBrief,
-  onOpenReport,
-  onOpenScaleReadiness,
   onOpenTrackingAudit,
   onOpenWorkflowLaunch,
   onOpenWorkflowOptimize,
@@ -172,10 +164,6 @@ export function CommandPalette({
           }
         : null;
     const generatorRows: ResultRow[] = [
-      genRow(onOpenHookGenerator, "hooks", "Generate hooks", "Vortex · 100-hook framework"),
-      genRow(onOpenCreativeBrief, "briefs", "Build creative brief", "Vortex · designer-ready brief"),
-      genRow(onOpenReport, "reports", "Build performance report", "Aurelius · client-ready report"),
-      genRow(onOpenScaleReadiness, "scale", "Run scale-readiness check", "Stratos · 4-pillar verdict"),
       genRow(onOpenTrackingAudit, "audit", "Run tracking audit", "Nexus · pixel/CAPI/EMQ walk-through"),
       genRow(onOpenWorkflowLaunch, "wf-launch", "Workflow · launch", "Multi-agent launch playbook"),
       genRow(onOpenWorkflowOptimize, "wf-optimize", "Workflow · optimize", "Multi-agent diagnose + fix"),
@@ -267,10 +255,6 @@ export function CommandPalette({
     chats,
     onOpenDiagnosis,
     onOpenKnowledgeBrowser,
-    onOpenHookGenerator,
-    onOpenCreativeBrief,
-    onOpenReport,
-    onOpenScaleReadiness,
     onOpenTrackingAudit,
     onOpenWorkflowLaunch,
     onOpenWorkflowOptimize,

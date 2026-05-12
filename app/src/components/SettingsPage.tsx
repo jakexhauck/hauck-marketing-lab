@@ -3,6 +3,8 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import { AboutSettings } from "./AboutSettings";
 import { ClientCredentials } from "./ClientCredentials";
 import { api } from "../lib/tauri";
+import { checkForUpdates, installAndRestart } from "../lib/updater";
+import type { Update } from "@tauri-apps/plugin-updater";
 import type { AgentSummary, ClaudeCheck, ClientEntry } from "../lib/types";
 
 type Props = {
@@ -18,7 +20,7 @@ type Props = {
   onManageClients: () => void;
 };
 
-const APP_VERSION = "0.1.0";
+const APP_VERSION = "0.1.1";
 
 export function SettingsPage({
   root,
@@ -35,6 +37,41 @@ export function SettingsPage({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claude, setClaude] = useState<ClaudeCheck | null>(null);
+
+  type UpdateUiState =
+    | { phase: "idle" }
+    | { phase: "checking" }
+    | { phase: "up-to-date" }
+    | { phase: "no-releases-yet" }
+    | { phase: "available"; update: Update }
+    | { phase: "installing" }
+    | { phase: "error"; message: string };
+  const [updateState, setUpdateState] = useState<UpdateUiState>({ phase: "idle" });
+
+  const handleCheckForUpdates = async () => {
+    setUpdateState({ phase: "checking" });
+    const result = await checkForUpdates();
+    if (result.kind === "available") {
+      setUpdateState({ phase: "available", update: result.update });
+    } else if (result.kind === "up-to-date") {
+      setUpdateState({ phase: "up-to-date" });
+    } else if (result.kind === "no-releases-yet") {
+      setUpdateState({ phase: "no-releases-yet" });
+    } else {
+      setUpdateState({ phase: "error", message: result.message });
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    if (updateState.phase !== "available") return;
+    const { update } = updateState;
+    setUpdateState({ phase: "installing" });
+    try {
+      await installAndRestart(update);
+    } catch (e) {
+      setUpdateState({ phase: "error", message: String(e) });
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -247,6 +284,47 @@ export function SettingsPage({
                   <dt>App version</dt>
                   <dd>
                     <code>{APP_VERSION}</code>
+                  </dd>
+                </div>
+                <div className="settings-meta-row">
+                  <dt>Updates</dt>
+                  <dd>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        className="kpi-form-btn"
+                        onClick={handleCheckForUpdates}
+                        disabled={updateState.phase === "checking" || updateState.phase === "installing"}
+                      >
+                        {updateState.phase === "checking" ? "Checking…" : "Check for updates"}
+                      </button>
+                      {updateState.phase === "up-to-date" && (
+                        <span style={{ opacity: 0.7 }}>You're on the latest version.</span>
+                      )}
+                      {updateState.phase === "no-releases-yet" && (
+                        <span style={{ opacity: 0.7 }}>No releases published yet.</span>
+                      )}
+                      {updateState.phase === "available" && (
+                        <>
+                          <span style={{ opacity: 0.85 }}>
+                            v{updateState.update.version} available
+                          </span>
+                          <button
+                            type="button"
+                            className="kpi-form-btn"
+                            onClick={handleInstallUpdate}
+                          >
+                            Install & restart
+                          </button>
+                        </>
+                      )}
+                      {updateState.phase === "installing" && (
+                        <span style={{ opacity: 0.85 }}>Installing…</span>
+                      )}
+                      {updateState.phase === "error" && (
+                        <span style={{ color: "#ff8a8a" }}>{updateState.message}</span>
+                      )}
+                    </div>
                   </dd>
                 </div>
                 <div className="settings-meta-row">

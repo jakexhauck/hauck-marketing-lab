@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/tauri";
 import {
+  parseProfileBody,
+  profilePathFor,
+  type ProfileFormValues,
+} from "../lib/clientProfile";
+import {
   defaultValuesFor,
   type FormConfig,
   type FormField,
@@ -97,6 +102,43 @@ export function GenericFormGenerator({
     setStreamText("");
     setError(null);
   }, [config]);
+
+  // pre-fill from Profile.md when the form opts in via config.prefillFromProfile
+  useEffect(() => {
+    const mapping = config.prefillFromProfile;
+    if (!mapping) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const note = await api.readVaultNote(
+          root,
+          profilePathFor(root, {
+            slug: clientSlug,
+            name: clientName,
+            status: "pre-launch",
+          }),
+        );
+        if (cancelled || !note?.body) return;
+        const profile = parseProfileBody(note.body);
+        setValues((prev) => {
+          const next = { ...prev };
+          for (const [fieldKey, profileKey] of Object.entries(mapping)) {
+            if (!profileKey) continue;
+            const v = profile[profileKey as keyof ProfileFormValues];
+            if (typeof v === "string" && v.trim().length > 0) {
+              next[fieldKey] = v;
+            }
+          }
+          return next;
+        });
+      } catch {
+        // No Profile.md (or unreadable) — defaults stand; user can still type.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [config, root, clientName, clientSlug]);
 
   // load drive index badge once per (client, root)
   useEffect(() => {
