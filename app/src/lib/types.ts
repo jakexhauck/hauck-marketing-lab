@@ -69,6 +69,32 @@ export type KnowledgeChunk = {
   path: string;
 };
 
+export type NoteFront = {
+  id?: string | null;
+  title?: string | null;
+  type?: string | null;
+  client?: string | null;
+  agent?: string | null;
+  tags?: string[];
+  subject?: string | null;
+  status?: string | null;
+  [key: string]: unknown;
+};
+
+export type VaultNote = {
+  path: string;
+  rel_path: string;
+  front: NoteFront;
+  body: string;
+};
+
+export type KnowledgeQuery = {
+  client?: string | null;
+  agent?: string | null;
+  tags?: string[];
+  limit?: number | null;
+};
+
 export type SkillInput = {
   name: string;
   label: string | null;

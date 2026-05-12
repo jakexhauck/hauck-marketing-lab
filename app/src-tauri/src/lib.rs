@@ -17,6 +17,7 @@ mod kpi;
 mod launch_checklist;
 mod sync;
 mod tracking;
+mod vault;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -74,6 +75,13 @@ pub fn run() {
             sync::git_sync,
             dashboard_state::read_dashboard_state,
             dashboard_state::write_dashboard_state,
+            vault::read_vault_note,
+            vault::write_vault_note,
+            vault::append_to_memory,
+            vault::read_about_notes,
+            vault::read_client_notes,
+            vault::find_knowledge_notes,
+            vault::list_vault_notes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -743,6 +743,7 @@ export default function App() {
           agents={summary.agents}
           activeAgent={activeAgent}
           clientName={clientName}
+          clientSlug={activeClientSlug}
           initialChat={currentChat}
           initialInput={pendingInput}
           onClose={() => {

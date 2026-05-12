@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/tauri";
 import type { BenchmarkSummary, ClientEntry } from "../lib/types";
+import { ClientProfileForm } from "./ClientProfileForm";
 
 type Props = {
   root: string;
@@ -32,6 +33,9 @@ export function ClientsPage({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [benchmarkSets, setBenchmarkSets] = useState<BenchmarkSummary[]>([]);
+  const [profileFor, setProfileFor] = useState<
+    { client: ClientEntry; mode: "new" | "edit" } | null
+  >(null);
   const newInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -75,11 +79,13 @@ export function ClientsPage({
     setError(null);
     try {
       // Pass an empty slug so the backend slugifies + de-collides.
-      await api.addClient(root, "", name, driveUrl || null);
+      const created = await api.addClient(root, "", name, driveUrl || null);
       setNewName("");
       setNewDriveUrl("");
       setAdding(false);
       await refresh();
+      // Immediately open the structured Profile form for the new client.
+      setProfileFor({ client: created, mode: "new" });
     } catch (e) {
       setError(String(e));
     } finally {
@@ -149,6 +155,25 @@ export function ClientsPage({
       setBusy(false);
     }
   };
+
+  if (profileFor) {
+    return (
+      <ClientProfileForm
+        root={root}
+        client={profileFor.client}
+        mode={profileFor.mode}
+        onClose={() => setProfileFor(null)}
+        onSaved={async () => {
+          const saved = profileFor;
+          setProfileFor(null);
+          await refresh();
+          if (saved.mode === "new") {
+            onSelectClient(saved.client.slug);
+          }
+        }}
+      />
+    );
+  }
 
   return (
     <main className="main" style={{ position: "relative" }}>
@@ -396,6 +421,16 @@ export function ClientsPage({
                         disabled={busy}
                       >
                         Rename
+                      </button>
+                      <button
+                        className="kpi-form-btn"
+                        onClick={() => {
+                          setProfileFor({ client: c, mode: "edit" });
+                          setError(null);
+                        }}
+                        disabled={busy}
+                      >
+                        Edit profile
                       </button>
                       <button
                         className="kpi-form-btn danger"

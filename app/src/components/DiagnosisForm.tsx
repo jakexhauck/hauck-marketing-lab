@@ -7,6 +7,7 @@ import type {
   DiagnosisInputs,
   KnowledgeChunk,
   StreamEvent,
+  VaultNote,
 } from "../lib/types";
 
 type Props = {
@@ -180,12 +181,25 @@ export function DiagnosisForm({ root, agents, clientName, clientSlug, onClose }:
       console.error("matchKnowledgeChunks failed", e);
     }
 
+    let aboutNotes: VaultNote[] = [];
+    let clientNotes: VaultNote[] = [];
+    try {
+      [aboutNotes, clientNotes] = await Promise.all([
+        api.readAboutNotes(root),
+        api.readClientNotes(root, clientSlug),
+      ]);
+    } catch (e) {
+      console.error("vault context fetch failed", e);
+    }
+
     const prompt = assembleDiagnosisPrompt({
       zenithBody,
       inputs: promptInputs,
       paste,
       clientName,
       knowledgeChunks,
+      aboutNotes,
+      clientNotes,
     });
 
     const id = crypto.randomUUID();

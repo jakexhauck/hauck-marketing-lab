@@ -13,6 +13,7 @@ import type {
   KnowledgeChunk,
   SkillFile,
   StreamEvent,
+  VaultNote,
 } from "../lib/types";
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
   agents: AgentSummary[];
   activeAgent: AgentSummary;
   clientName: string;
+  clientSlug: string;
   initialChat: ChatFile | null;
   initialInput?: string;
   onClose: () => void;
@@ -39,6 +41,7 @@ export function ChatDrawer({
   agents,
   activeAgent,
   clientName,
+  clientSlug,
   initialChat,
   initialInput,
   onClose,
@@ -56,8 +59,34 @@ export function ChatDrawer({
     skill: SkillFile;
     values: Record<string, string>;
   } | null>(null);
+  const [memoryDraft, setMemoryDraft] = useState<{
+    turnIndex: number;
+    text: string;
+    error: string | null;
+    saving: boolean;
+  } | null>(null);
+  const [savedTurnIndexes, setSavedTurnIndexes] = useState<Set<number>>(new Set());
+  const [toast, setToast] = useState<string | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const toastTimerRef = useRef<number | null>(null);
+
+  const showToast = (message: string) => {
+    setToast(message);
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = window.setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, 3200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     setChatFile(initialChat);
@@ -65,6 +94,8 @@ export function ChatDrawer({
     setStreamText("");
     setStreaming(false);
     setStreamId(null);
+    setSavedTurnIndexes(new Set());
+    setMemoryDraft(null);
   }, [initialChat]);
 
   useEffect(() => {
@@ -124,6 +155,44 @@ export function ChatDrawer({
   const submit = async () => {
     const value = input.trim();
     if (!value || streaming) return;
+
+    // Slash commands — intercept before any LLM call
+    if (value.startsWith("/")) {
+      const helpText =
+        "Available commands:\n" +
+        "  /remember <fact>  — save a fact to this client's memory\n" +
+        "  /help, /?         — show this list";
+
+      if (value === "/help" || value === "/?") {
+        setError(null);
+        setInput("");
+        showToast(helpText);
+        return;
+      }
+
+      if (value === "/remember" || value.startsWith("/remember ")) {
+        const fact = value === "/remember" ? "" : value.slice("/remember ".length).trim();
+        if (!fact) {
+          setError("Usage: /remember <fact>");
+          return;
+        }
+        try {
+          await api.appendToMemory(root, clientSlug, fact);
+          setError(null);
+          setInput("");
+          showToast(`Remembered: ${fact}`);
+        } catch (e) {
+          setError(String(e));
+        }
+        return;
+      }
+
+      // Unknown slash command — surface usage, do not call LLM
+      if (/^\/[A-Za-z?]/.test(value)) {
+        setError(`Unknown command: ${value.split(/\s+/)[0]}. Try /help.`);
+        return;
+      }
+    }
 
     setError(null);
     setInput("");
@@ -190,6 +259,17 @@ export function ChatDrawer({
       console.error("matchKnowledgeChunks failed", e);
     }
 
+    let aboutNotes: VaultNote[] = [];
+    let clientNotes: VaultNote[] = [];
+    try {
+      [aboutNotes, clientNotes] = await Promise.all([
+        api.readAboutNotes(root),
+        api.readClientNotes(root, clientSlug),
+      ]);
+    } catch (e) {
+      console.error("vault context fetch failed", e);
+    }
+
     const prompt = assemblePrompt({
       agent: activeAgent,
       agentBody,
@@ -197,6 +277,8 @@ export function ChatDrawer({
       userInput: value,
       clientName,
       knowledgeChunks,
+      aboutNotes,
+      clientNotes,
     });
 
     try {
@@ -217,6 +299,31 @@ export function ChatDrawer({
       setStreaming(false);
       setStreamId(null);
       setStreamText("");
+    }
+  };
+
+  const saveMemoryDraft = async () => {
+    if (!memoryDraft) return;
+    const fact = memoryDraft.text.trim();
+    if (!fact) {
+      setMemoryDraft({ ...memoryDraft, error: "Fact can't be empty." });
+      return;
+    }
+    setMemoryDraft({ ...memoryDraft, saving: true, error: null });
+    try {
+      await api.appendToMemory(root, clientSlug, fact);
+      const savedIndex = memoryDraft.turnIndex;
+      setSavedTurnIndexes((prev) => {
+        const next = new Set(prev);
+        next.add(savedIndex);
+        return next;
+      });
+      setMemoryDraft(null);
+      showToast(`Saved to ${clientName} memory.`);
+    } catch (e) {
+      setMemoryDraft((prev) =>
+        prev ? { ...prev, saving: false, error: String(e) } : prev,
+      );
     }
   };
 
@@ -269,14 +376,38 @@ export function ChatDrawer({
           </div>
         )}
 
-        {visibleTurns.map((t, i) => (
-          <div className={`msg ${t.role} reveal reveal-${Math.min(i + 1, 5)}`} key={i}>
-            <div className="msg-label">
-              {t.role === "user" ? "YOU ›" : `${(t.agent ?? "AGENT").toUpperCase()} ›`}
+        {visibleTurns.map((t, i) => {
+          const isAgent = t.role === "agent";
+          const hasBody = (t.body ?? "").trim().length > 0;
+          const saved = savedTurnIndexes.has(i);
+          return (
+            <div className={`msg ${t.role} reveal reveal-${Math.min(i + 1, 5)}`} key={i}>
+              <div className="msg-label">
+                {t.role === "user" ? "YOU ›" : `${(t.agent ?? "AGENT").toUpperCase()} ›`}
+                {isAgent && hasBody && (
+                  <span className="msg-actions">
+                    {saved && <span className="msg-saved-badge">remembered</span>}
+                    <button
+                      className="msg-action-btn"
+                      title="Save a fact from this response to client memory"
+                      onClick={() =>
+                        setMemoryDraft({
+                          turnIndex: i,
+                          text: (t.body ?? "").trim().slice(0, 280),
+                          error: null,
+                          saving: false,
+                        })
+                      }
+                    >
+                      Save to memory
+                    </button>
+                  </span>
+                )}
+              </div>
+              <div className="msg-body">{t.body}</div>
             </div>
-            <div className="msg-body">{t.body}</div>
-          </div>
-        ))}
+          );
+        })}
 
         {streaming && (
           <div className="msg agent reveal">
@@ -438,6 +569,97 @@ export function ChatDrawer({
           </div>
         </div>
       </div>
+
+      {toast && (
+        <div className="chat-toast" role="status" aria-live="polite">
+          {toast}
+        </div>
+      )}
+
+      {memoryDraft && (
+        <div
+          className="kpi-modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !memoryDraft.saving) setMemoryDraft(null);
+          }}
+        >
+          <div className="kpi-modal" style={{ width: 560 }}>
+            <div className="kpi-modal-head">
+              <div className="kpi-modal-title">SAVE TO MEMORY · {clientName.toUpperCase()}</div>
+              <button
+                className="kpi-modal-close"
+                onClick={() => !memoryDraft.saving && setMemoryDraft(null)}
+                disabled={memoryDraft.saving}
+                title="Cancel"
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ padding: "18px 28px 4px" }}>
+              <label
+                className="kpi-form-label"
+                htmlFor="memory-draft-textarea"
+                style={{ marginBottom: 10 }}
+              >
+                FACT TO REMEMBER
+              </label>
+              <textarea
+                id="memory-draft-textarea"
+                className="kpi-form-input"
+                rows={6}
+                value={memoryDraft.text}
+                placeholder="What's the fact to remember?"
+                onChange={(e) =>
+                  setMemoryDraft((prev) => (prev ? { ...prev, text: e.target.value } : prev))
+                }
+                disabled={memoryDraft.saving}
+                autoFocus
+                style={{
+                  resize: "vertical",
+                  minHeight: 120,
+                  fontFamily: "var(--sans)",
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                }}
+              />
+              <div
+                style={{
+                  marginTop: 8,
+                  fontFamily: "var(--mono)",
+                  fontSize: 10.5,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "var(--text-faint)",
+                }}
+              >
+                Appends to vault/Clients/{clientName}/Memory.md with today's date.
+              </div>
+            </div>
+            {memoryDraft.error && (
+              <div className="kpi-form-err">{memoryDraft.error}</div>
+            )}
+            <div className="kpi-form-foot">
+              <span className="kpi-form-hint">Manual only — agents never auto-save facts.</span>
+              <div className="kpi-form-actions">
+                <button
+                  className="kpi-form-btn"
+                  onClick={() => setMemoryDraft(null)}
+                  disabled={memoryDraft.saving}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="kpi-form-btn primary"
+                  onClick={saveMemoryDraft}
+                  disabled={memoryDraft.saving || memoryDraft.text.trim().length === 0}
+                >
+                  {memoryDraft.saving ? "Saving…" : "Save to memory"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { openPath } from "@tauri-apps/plugin-opener";
+import { AboutSettings } from "./AboutSettings";
 import { ClientCredentials } from "./ClientCredentials";
 import { api } from "../lib/tauri";
 import type { AgentSummary, ClaudeCheck, ClientEntry } from "../lib/types";
@@ -153,6 +154,9 @@ export function SettingsPage({
             </div>
           </div>
 
+          {/* About ────────────────────────────────────── */}
+          <AboutSettings root={root} />
+
           {/* Default agent ─────────────────────────────── */}
           <div className="settings-section">
             <div className="settings-section-head">
@@ -231,10 +235,10 @@ export function SettingsPage({
             </div>
           </div>
 
-          {/* About ───────────────────────────────────────── */}
+          {/* Build info ─────────────────────────────────── */}
           <div className="settings-section">
             <div className="settings-section-head">
-              <div className="settings-section-eye">ABOUT</div>
+              <div className="settings-section-eye">BUILD</div>
               <div className="settings-section-title">Build info</div>
             </div>
             <div className="settings-section-body">

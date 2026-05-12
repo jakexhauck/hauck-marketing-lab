@@ -1,4 +1,4 @@
-import type { AgentSummary, ChatTurn, KnowledgeChunk } from "./types";
+import type { AgentSummary, ChatTurn, KnowledgeChunk, VaultNote } from "./types";
 
 /**
  * Strip YAML frontmatter from a markdown body.
@@ -13,15 +13,52 @@ function stripFrontmatter(md: string): string {
   return after.slice(end + 4).replace(/^\n/, "");
 }
 
+function appendVaultSections(
+  lines: string[],
+  aboutNotes: VaultNote[] | undefined,
+  clientNotes: VaultNote[] | undefined,
+  clientName: string,
+): void {
+  const about = aboutNotes ?? [];
+  if (about.length > 0) {
+    lines.push("");
+    lines.push("# About");
+    lines.push("");
+    for (const note of about) {
+      lines.push(note.body.trim());
+      lines.push("");
+    }
+  }
+
+  const client = clientNotes ?? [];
+  if (client.length > 0) {
+    lines.push("");
+    lines.push(`# Client context: ${clientName}`);
+    lines.push("");
+    for (const note of client) {
+      const body = note.body.trim();
+      if (body.length === 0) continue;
+      lines.push(body);
+      lines.push("");
+    }
+  }
+}
+
 /**
  * Assemble the full prompt sent to `claude -p` for one turn.
  *
- * v1 strategy (from APP-FOUNDATION-PLAN.md § Conversation context strategy):
- *   1. Agent body markdown as persona
- *   2. Full conversation history (replayed each turn)
- *   3. New user input
+ * Section order:
+ *   1. Preamble (you are X, address Jake as Sir, dry wit)
+ *   2. # About — Jake.md + Hauck Marketing.md from the vault
+ *   3. # Client context — Profile.md + Memory.md + Drive Index.md (active client)
+ *   4. # Persona — the agent body markdown
+ *   5. # Reference knowledge — optional keyword-routed chunks (legacy router)
+ *   6. # Conversation so far — full history replayed each turn
+ *   7. # New message from Jake
  *
- * Keyword-routed knowledge chunks are deferred to v1.1 — noted in BUILD-NOTES.md.
+ * Vault sections are passed in by the caller (see ChatDrawer / DiagnosisForm).
+ * The caller is responsible for fetching them via api.readAboutNotes /
+ * api.readClientNotes — this keeps prompt.ts pure.
  */
 export function assemblePrompt(opts: {
   agent: AgentSummary;
@@ -30,6 +67,8 @@ export function assemblePrompt(opts: {
   userInput: string;
   clientName?: string;
   knowledgeChunks?: KnowledgeChunk[];
+  aboutNotes?: VaultNote[];
+  clientNotes?: VaultNote[];
 }): string {
   const persona = stripFrontmatter(opts.agentBody).trim();
   const client = opts.clientName ?? "Willis Windows";
@@ -41,6 +80,9 @@ export function assemblePrompt(opts: {
   lines.push("");
   lines.push(`Stay in character as ${opts.agent.name}. Be direct, precise, and concise — no fluff.`);
   lines.push("Address Jake as \"Sir\". Dry British wit is welcome where appropriate.");
+
+  appendVaultSections(lines, opts.aboutNotes, opts.clientNotes, client);
+
   lines.push("");
   lines.push("# Persona");
   lines.push("");
@@ -113,6 +155,8 @@ export function assembleDiagnosisPrompt(opts: {
   paste: string;
   clientName?: string;
   knowledgeChunks?: KnowledgeChunk[];
+  aboutNotes?: VaultNote[];
+  clientNotes?: VaultNote[];
 }): string {
   const persona = stripFrontmatter(opts.zenithBody).trim();
   const client = opts.clientName ?? "Willis Windows";
@@ -124,6 +168,9 @@ export function assembleDiagnosisPrompt(opts: {
   lines.push("");
   lines.push(`Stay in character as Zenith. Be direct, precise, and concise — no fluff.`);
   lines.push("Address Jake as \"Sir\". Dry British wit is welcome where appropriate.");
+
+  appendVaultSections(lines, opts.aboutNotes, opts.clientNotes, client);
+
   lines.push("");
   lines.push("# Persona");
   lines.push("");

@@ -21,14 +21,17 @@ import type {
   GeneratorOutput,
   KnowledgeChunk,
   KnowledgeTitle,
+  KnowledgeQuery,
   KpiEntry,
   LaunchChecklist,
+  NoteFront,
   ParsedBenchmarks,
   SaveGeneratorOutputArgs,
   SkillEntry,
   SkillFile,
   StreamEvent,
   TrackingAudit,
+  VaultNote,
 } from "./types";
 
 export const api = {
@@ -177,6 +180,21 @@ export const api = {
     invoke<DashboardState>("read_dashboard_state", { root }),
   writeDashboardState: (root: string, state: DashboardState) =>
     invoke<void>("write_dashboard_state", { root, state }),
+
+  readVaultNote: (root: string, path: string) =>
+    invoke<VaultNote>("read_vault_note", { root, path }),
+  writeVaultNote: (root: string, path: string, front: NoteFront, body: string) =>
+    invoke<VaultNote>("write_vault_note", { root, path, front, body }),
+  appendToMemory: (root: string, clientSlug: string, fact: string) =>
+    invoke<VaultNote>("append_to_memory", { root, clientSlug, fact }),
+  readAboutNotes: (root: string) =>
+    invoke<VaultNote[]>("read_about_notes", { root }),
+  readClientNotes: (root: string, clientSlug: string) =>
+    invoke<VaultNote[]>("read_client_notes", { root, clientSlug }),
+  findKnowledgeNotes: (root: string, query: KnowledgeQuery) =>
+    invoke<VaultNote[]>("find_knowledge_notes", { root, query }),
+  listVaultNotes: (root: string) =>
+    invoke<VaultNote[]>("list_vault_notes", { root }),
 
   gitSync: (root: string) =>
     invoke<{
