@@ -7,6 +7,7 @@ import type {
   ChatFile,
   ChatTurn,
   ClaudeCheck,
+  DashboardState,
   ClientCredentialsFile,
   ClientEntry,
   ClientStatus,
@@ -171,6 +172,11 @@ export const api = {
       clientSlug,
       kind,
     }),
+
+  readDashboardState: (root: string) =>
+    invoke<DashboardState>("read_dashboard_state", { root }),
+  writeDashboardState: (root: string, state: DashboardState) =>
+    invoke<void>("write_dashboard_state", { root, state }),
 
   gitSync: (root: string) =>
     invoke<{

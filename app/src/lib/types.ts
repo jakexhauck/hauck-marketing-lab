@@ -291,3 +291,30 @@ export type DataChangedEvent = {
   client_slug: string | null;
   path: string | null;
 };
+
+export interface Task {
+  id: string;
+  title: string;
+  done: boolean;
+  createdAt: number;
+}
+
+export interface Note {
+  id: string;
+  title: string;
+  body: string;
+  updatedAt: number;
+}
+
+export interface CalendarConnection {
+  apiKey: string;
+  calendarId: string;
+  label?: string | null;
+  connectedAt: string;
+}
+
+export interface DashboardState {
+  tasks: Task[];
+  notes: Note[];
+  calendar?: CalendarConnection | null;
+}

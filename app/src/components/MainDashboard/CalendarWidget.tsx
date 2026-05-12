@@ -1,7 +1,11 @@
+import { activeDaysInMonth, type GCalEvent } from "../../lib/googleCalendar";
+import type { CalendarConnection } from "../../lib/types";
+
 interface Cell {
   day: number;
   dim: boolean;
   today?: boolean;
+  hasEvent?: boolean;
 }
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -20,11 +24,14 @@ const MONTHS = [
   "December",
 ];
 
-function buildMonthGrid(year: number, month: number, todayDay: number): Cell[] {
+function buildMonthGrid(
+  year: number,
+  month: number,
+  todayDay: number,
+  activeDays: Set<number>,
+): Cell[] {
   const cells: Cell[] = [];
   const firstOfMonth = new Date(year, month, 1);
-  // JS getDay: 0 = Sunday … 6 = Saturday. We want Monday-start, so map to 0..6
-  // with Mon = 0.
   const jsDay = firstOfMonth.getDay();
   const leading = (jsDay + 6) % 7;
   const prevMonthLast = new Date(year, month, 0).getDate();
@@ -33,9 +40,13 @@ function buildMonthGrid(year: number, month: number, todayDay: number): Cell[] {
   }
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ day: d, dim: false, today: d === todayDay });
+    cells.push({
+      day: d,
+      dim: false,
+      today: d === todayDay,
+      hasEvent: activeDays.has(d),
+    });
   }
-  // Pad trailing cells so the grid fills 7-wide rows
   const total = cells.length;
   const trailing = (7 - (total % 7)) % 7;
   for (let i = 1; i <= trailing; i++) {
@@ -44,14 +55,30 @@ function buildMonthGrid(year: number, month: number, todayDay: number): Cell[] {
   return cells;
 }
 
-export function CalendarWidget() {
+function nowHHMM(): string {
+  const d = new Date();
+  const hh = d.getHours().toString().padStart(2, "0");
+  const mm = d.getMinutes().toString().padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+interface Props {
+  connection?: CalendarConnection | null;
+  events?: GCalEvent[];
+  onConnect: () => void;
+  onDisconnect: () => void;
+}
+
+export function CalendarWidget({ connection, events = [], onConnect, onDisconnect }: Props) {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
   const todayDay = now.getDate();
-  const cells = buildMonthGrid(year, month, todayDay);
+  const activeDays = activeDaysInMonth(events, year, month);
+  const cells = buildMonthGrid(year, month, todayDay, activeDays);
   const monthLabel = `${MONTHS[month]} ${year}`;
   const monthShort = MONTHS[month].slice(0, 3).toUpperCase();
+  const isConnected = !!connection;
 
   return (
     <div className="md-panel">
@@ -78,6 +105,7 @@ export function CalendarWidget() {
               "md-cal-cell",
               c.dim ? "md-dim" : "",
               c.today ? "md-today" : "",
+              c.hasEvent ? "md-has-event" : "",
             ]
               .filter(Boolean)
               .join(" ");
@@ -89,8 +117,29 @@ export function CalendarWidget() {
           })}
         </div>
       </div>
-      <div className="md-cal-summary">
-        <strong>No data</strong> — calendar integration not wired up yet.
+      <div className="md-gcal">
+        {!isConnected ? (
+          <>
+            <button type="button" className="md-gcal-btn" onClick={onConnect}>
+              Connect Google Calendar
+            </button>
+            <div className="md-gcal-hint">
+              Connect a public calendar via API key to see today's events.
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="md-gcal-row">
+              <span className="md-gcal-email" title={connection?.calendarId}>
+                {connection?.label ?? "Google Calendar"}
+              </span>
+              <button type="button" className="md-gcal-link" onClick={onDisconnect}>
+                Disconnect
+              </button>
+            </div>
+            <div className="md-gcal-hint">Synced · {nowHHMM()}</div>
+          </>
+        )}
       </div>
     </div>
   );

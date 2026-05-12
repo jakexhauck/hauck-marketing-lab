@@ -5,6 +5,7 @@ mod clients;
 mod config;
 mod creatives;
 mod credentials;
+mod dashboard_state;
 mod diagnosis;
 mod drive_index;
 mod events;
@@ -71,6 +72,8 @@ pub fn run() {
             generators::list_generator_outputs,
             generators::read_latest_generator_output,
             sync::git_sync,
+            dashboard_state::read_dashboard_state,
+            dashboard_state::write_dashboard_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

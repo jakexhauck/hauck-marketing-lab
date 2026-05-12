@@ -1,16 +1,22 @@
 interface Props {
   clientCount: number;
+  eventsToday?: number;
 }
 
-export function MiniStats({ clientCount }: Props) {
+export function MiniStats({ clientCount, eventsToday = 0 }: Props) {
   const stats = [
     {
       label: "CLIENTS",
       value: String(clientCount),
       sub: clientCount === 0 ? "None on file" : `${clientCount} on file`,
     },
-    { label: "CALLS TODAY", value: "—", sub: "No data — not wired" },
-    { label: "FOLLOW-UPS DUE", value: "—", sub: "No data — not wired" },
+    eventsToday > 0
+      ? {
+          label: "EVENTS TODAY",
+          value: String(eventsToday),
+          sub: eventsToday === 1 ? "1 event" : `${eventsToday} events`,
+        }
+      : { label: "EVENTS TODAY", value: "—", sub: "No events today" },
   ];
   return (
     <section className="md-mini-stats md-reveal md-reveal-3">
