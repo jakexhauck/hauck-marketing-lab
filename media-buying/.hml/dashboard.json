@@ -1,6 +1,18 @@
 {
   "tasks": [
     {
+      "id": "mp2vwql1-z0cpt5",
+      "title": "add sop: weekly optimization routine & client reporting",
+      "done": false,
+      "createdAt": 1778605696405
+    },
+    {
+      "id": "mp2vvcvj-n3oc27",
+      "title": "Add in sop section that connects too obsidian",
+      "done": false,
+      "createdAt": 1778605631983
+    },
+    {
       "id": "mp2qyvs0-ma2d36",
       "title": "Add Corresponding GDrive Folders Under Each Client",
       "done": false,
@@ -25,5 +37,6 @@
     "calendarId": "contact.jakehauck@gmail.com",
     "label": "Personal Calendar",
     "connectedAt": "2026-05-12T00:16:39.916Z"
-  }
+  },
+  "recordings": []
 }

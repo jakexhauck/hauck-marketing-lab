@@ -13,6 +13,9 @@ interface SidebarProps {
   onSelectClientSection?: (slug: string, section: ClientSection) => void;
   onSelectWorkflow: (view: WorkflowView) => void;
   onAddClient?: () => void;
+  onManageClients?: () => void;
+  /** Active media-buying root — needed for ClientTree to fetch Drive indexes. */
+  root?: string | null;
   /** Real client list — when provided, used in place of V1 mock data. */
   clients?: ClientEntry[];
   /** When set, sidebar renders flat client list + agents section (media-buying mode). */
@@ -48,6 +51,8 @@ export function Sidebar({
   onSelectClientSection,
   onSelectWorkflow,
   onAddClient,
+  onManageClients,
+  root,
   clients,
   agents,
   activeAgentSlug,
@@ -65,6 +70,9 @@ export function Sidebar({
     status: statusToV1(c.status),
     counts: {},
   }));
+  const driveUrlBySlug = new Map<string, string | null>(
+    (clients ?? []).map((c) => [c.slug, c.drive_folder_url ?? null]),
+  );
   const clientCount = clientList.length;
 
   return (
@@ -140,6 +148,8 @@ export function Sidebar({
               <ClientTree
                 key={client.slug}
                 client={client}
+                root={root ?? null}
+                driveFolderUrl={driveUrlBySlug.get(client.slug) ?? null}
                 defaultExpanded
                 onSelect={(slug, section) => onSelectClientSection?.(slug, section)}
               />
@@ -148,6 +158,15 @@ export function Sidebar({
         <button type="button" className="md-add-client-row" onClick={onAddClient}>
           + Add client
         </button>
+        {onManageClients && (
+          <button
+            type="button"
+            className="md-add-client-row md-manage-client-row"
+            onClick={onManageClients}
+          >
+            Manage clients
+          </button>
+        )}
       </div>
 
       <div className="md-nav-section">

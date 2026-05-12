@@ -12,10 +12,6 @@ import { TasksNotes } from "./TasksNotes";
 import { RecordingsPage } from "./RecordingsPage";
 import { CalendarPage } from "./CalendarPage";
 import { ClientOverview } from "./pages/ClientOverview";
-import { ClientContract } from "./pages/ClientContract";
-import { ClientResources } from "./pages/ClientResources";
-import { ClientCampaigns } from "./pages/ClientCampaigns";
-import { ClientInvoices } from "./pages/ClientInvoices";
 import type { CalendarConnection, ClientEntry, DashboardState } from "../../lib/types";
 import { api } from "../../lib/tauri";
 import { eventsOn, fetchCalendarEvents, type GCalEvent } from "../../lib/googleCalendar";
@@ -31,6 +27,8 @@ interface MainDashboardProps {
   syncStatus?: "idle" | "ok" | "error";
   syncTooltip?: string;
   onSettings?: () => void;
+  onAddClient?: () => void;
+  onManageClients?: () => void;
 }
 
 type View =
@@ -47,6 +45,8 @@ export function MainDashboard({
   syncStatus,
   syncTooltip,
   onSettings,
+  onAddClient,
+  onManageClients,
 }: MainDashboardProps) {
   const [view, setView] = useState<View>({ kind: "dashboard" });
   const realClients: ClientEntry[] = clients ?? [];
@@ -95,6 +95,9 @@ export function MainDashboard({
           onSelectWorkspace={onSelectWorkspace}
           onSelectClientSection={onSelectClientSection}
           onSelectWorkflow={onSelectWorkflow}
+          onAddClient={onAddClient}
+          onManageClients={onManageClients}
+          root={root ?? null}
           clients={realClients}
         />
         <main className="md-main">{renderMain(view, goDashboard, realClients, root ?? null)}</main>
@@ -148,29 +151,18 @@ function renderMain(
       </div>
     );
   }
-  // client section
+  // client section — only "overview" remains; Drive folders open externally.
   const realEntry = realClients.find((c) => c.slug === view.slug) ?? null;
   const clientName = realEntry?.name ?? view.slug;
-  switch (view.section) {
-    case "overview":
-      return (
-        <ClientOverview
-          clientName={clientName}
-          clientSlug={view.slug}
-          client={realEntry}
-          root={root}
-          onBack={onBack}
-        />
-      );
-    case "contract":
-      return <ClientContract clientName={clientName} onBack={onBack} />;
-    case "resources":
-      return <ClientResources clientName={clientName} onBack={onBack} />;
-    case "campaigns":
-      return <ClientCampaigns clientName={clientName} onBack={onBack} />;
-    case "invoices":
-      return <ClientInvoices clientName={clientName} onBack={onBack} />;
-  }
+  return (
+    <ClientOverview
+      clientName={clientName}
+      clientSlug={view.slug}
+      client={realEntry}
+      root={root}
+      onBack={onBack}
+    />
+  );
 }
 
 function DashboardSurface({

@@ -1,24 +1,61 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../../lib/tauri";
+import { parseDriveFolders, type DriveFolder } from "../../lib/driveIndex";
 import type { ClientV1 } from "./v1Data";
 
-export type ClientSection = "overview" | "contract" | "resources" | "campaigns" | "invoices";
+export type ClientSection = "overview";
 
 interface ClientTreeProps {
   client: ClientV1;
+  root: string | null;
+  driveFolderUrl: string | null;
   defaultExpanded?: boolean;
   onSelect: (slug: string, section: ClientSection) => void;
 }
 
-const SECTIONS: { key: ClientSection; label: string }[] = [
-  { key: "overview", label: "Overview" },
-  { key: "contract", label: "Contract" },
-  { key: "resources", label: "Resources" },
-  { key: "campaigns", label: "Campaigns" },
-  { key: "invoices", label: "Invoices" },
-];
+type FoldersState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "ready"; folders: DriveFolder[] }
+  | { kind: "no-index" }
+  | { kind: "error"; message: string };
 
-export function ClientTree({ client, defaultExpanded = true, onSelect }: ClientTreeProps) {
+export function ClientTree({
+  client,
+  root,
+  driveFolderUrl,
+  defaultExpanded = true,
+  onSelect,
+}: ClientTreeProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const [folders, setFolders] = useState<FoldersState>({ kind: "idle" });
+
+  useEffect(() => {
+    if (!expanded || !root) return;
+    if (folders.kind !== "idle") return;
+    let cancelled = false;
+    setFolders({ kind: "loading" });
+    api
+      .readDriveIndex(root, client.slug)
+      .then((idx) => {
+        if (cancelled) return;
+        if (!idx) {
+          setFolders({ kind: "no-index" });
+          return;
+        }
+        setFolders({ kind: "ready", folders: parseDriveFolders(idx.body) });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setFolders({
+          kind: "error",
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [expanded, root, client.slug, folders.kind]);
 
   return (
     <div className={`md-client-block${expanded ? " md-expanded" : ""}`}>
@@ -33,44 +70,73 @@ export function ClientTree({ client, defaultExpanded = true, onSelect }: ClientT
       </button>
       {expanded && (
         <div className="md-client-sub">
-          {SECTIONS.map((section) => {
-            const badge = badgeFor(client, section.key);
-            return (
-              <button
-                key={section.key}
-                type="button"
-                className="md-client-sub-item"
-                onClick={() => onSelect(client.slug, section.key)}
-              >
-                <span className="md-micro">▸</span>
-                {section.label}
-                {badge && (
-                  <span className={`md-badge${badge.warn ? " md-warn" : ""}`}>{badge.text}</span>
-                )}
-              </button>
-            );
-          })}
+          <button
+            type="button"
+            className="md-client-sub-item"
+            onClick={() => onSelect(client.slug, "overview")}
+          >
+            <span className="md-micro">▸</span>
+            Overview
+          </button>
+          <DriveSection
+            state={folders}
+            hasDriveUrl={!!driveFolderUrl}
+          />
         </div>
       )}
     </div>
   );
 }
 
-function badgeFor(
-  client: ClientV1,
-  section: ClientSection,
-): { text: string; warn?: boolean } | null {
-  const c = client.counts;
-  switch (section) {
-    case "contract":
-      return c.contract ? { text: c.contract } : null;
-    case "resources":
-      return c.resources ? { text: c.resources } : null;
-    case "campaigns":
-      return c.campaigns ? { text: c.campaigns } : null;
-    case "invoices":
-      return c.invoicesDue ? { text: c.invoicesDue, warn: true } : null;
-    default:
-      return null;
+function DriveSection({
+  state,
+  hasDriveUrl,
+}: {
+  state: FoldersState;
+  hasDriveUrl: boolean;
+}) {
+  if (!hasDriveUrl) {
+    return <SubHint text="No Drive folder linked" />;
   }
+  if (state.kind === "idle" || state.kind === "loading") {
+    return <SubHint text="Loading Drive…" />;
+  }
+  if (state.kind === "error") {
+    return <SubHint text="Drive index failed to load" />;
+  }
+  if (state.kind === "no-index") {
+    return <SubHint text="Drive not indexed yet" />;
+  }
+  if (state.folders.length === 0) {
+    return <SubHint text="No folders found in Drive index" />;
+  }
+  return (
+    <>
+      {state.folders.map((folder) => (
+        <a
+          key={folder.id}
+          className="md-client-sub-item"
+          href={folder.url}
+          target="_blank"
+          rel="noreferrer"
+          title={`Open ${folder.name} in Google Drive`}
+        >
+          <span className="md-micro">▸</span>
+          {folder.name}
+        </a>
+      ))}
+    </>
+  );
+}
+
+function SubHint({ text }: { text: string }) {
+  return (
+    <div
+      className="md-client-sub-item"
+      style={{ opacity: 0.55, cursor: "default", fontStyle: "italic" }}
+    >
+      <span className="md-micro">·</span>
+      {text}
+    </div>
+  );
 }

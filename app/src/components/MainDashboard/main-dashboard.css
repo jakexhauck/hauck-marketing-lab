@@ -304,6 +304,16 @@
   border-color: var(--copper);
 }
 
+.md-manage-client-row {
+  margin-top: -6px;
+  border-style: solid;
+  border-color: var(--border);
+}
+.md-manage-client-row:hover {
+  color: var(--copper);
+  border-color: var(--copper);
+}
+
 .md-sidebar-foot {
   margin-top: auto;
   padding: 18px 22px;

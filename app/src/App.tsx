@@ -472,6 +472,24 @@ export default function App() {
   };
 
   if (view === "main") {
+    if (clientsPageOpen && summary && root) {
+      return (
+        <>
+          <ClientsPage
+            root={root}
+            clients={clients}
+            activeSlug={activeClientSlug}
+            onClose={() => setClientsPageOpen(false)}
+            onClientsChanged={onClientsChanged}
+            onSelectClient={(slug) => {
+              void switchClient(slug);
+            }}
+            startInAddMode={clientsPageStartInAdd}
+          />
+          <UpdaterPrompt />
+        </>
+      );
+    }
     if (settingsOpen && summary && root) {
       const mainClient = clients.find((c) => c.slug === activeClientSlug) ?? clients[0] ?? DEFAULT_CLIENT;
       return (
@@ -510,6 +528,15 @@ export default function App() {
           syncStatus={syncStatus}
           syncTooltip={syncTooltip}
           onSettings={summary && root ? () => setSettingsOpen(true) : undefined}
+          onAddClient={summary && root ? onOpenAddClient : undefined}
+          onManageClients={
+            summary && root
+              ? () => {
+                  setClientsPageStartInAdd(false);
+                  setClientsPageOpen(true);
+                }
+              : undefined
+          }
         />
         <UpdaterPrompt />
       </>
