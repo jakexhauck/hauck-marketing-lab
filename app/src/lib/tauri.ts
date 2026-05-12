@@ -195,6 +195,8 @@ export const api = {
     invoke<VaultNote[]>("find_knowledge_notes", { root, query }),
   listVaultNotes: (root: string) =>
     invoke<VaultNote[]>("list_vault_notes", { root }),
+  vaultRootPath: (root: string) =>
+    invoke<string>("vault_root_path", { root }),
 
   gitSync: (root: string) =>
     invoke<{

@@ -84,6 +84,7 @@ pub fn run() {
             vault::read_client_notes,
             vault::find_knowledge_notes,
             vault::list_vault_notes,
+            vault::vault_root_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

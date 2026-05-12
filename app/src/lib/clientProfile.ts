@@ -78,9 +78,14 @@ export function buildProfileFront(client: ClientEntry): NoteFront {
   };
 }
 
-/** Vault path for a client's Profile.md (relative to root). Uses human name. */
-export function profilePathFor(root: string, client: ClientEntry): string {
-  return `${root}/vault/Clients/${client.name}/Profile.md`;
+/**
+ * Vault path for a client's Profile.md.
+ * Pass the resolved vault root (from `api.vaultRootPath(root)`), not the app root —
+ * the vault may live at a sibling path (project-root/vault) rather than inside the
+ * picked media-buying folder.
+ */
+export function profilePathFor(vaultRoot: string, client: ClientEntry): string {
+  return `${vaultRoot}/Clients/${client.name}/Profile.md`;
 }
 
 /** Heading aliases — accept variants on parse, write canonical on save. */

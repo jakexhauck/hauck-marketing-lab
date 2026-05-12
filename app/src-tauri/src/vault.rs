@@ -5,7 +5,22 @@ use std::path::{Path, PathBuf};
 use tauri::AppHandle;
 
 pub fn vault_root(root: &str) -> PathBuf {
-    PathBuf::from(root).join("vault")
+    let p = PathBuf::from(root);
+    // Prefer the sibling layout: project-root/vault next to project-root/media-buying.
+    // This is the canonical Obsidian layout (vault opens cleanly at the project root).
+    if let Some(parent) = p.parent() {
+        let sibling = parent.join("vault");
+        if sibling.exists() {
+            return sibling;
+        }
+    }
+    // Fallback: nested vault inside the picked root.
+    p.join("vault")
+}
+
+#[tauri::command]
+pub fn vault_root_path(root: String) -> String {
+    vault_root(&root).to_string_lossy().to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

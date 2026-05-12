@@ -69,7 +69,8 @@ export function ClientProfileForm({ root, client, mode, onClose, onSaved }: Prop
     try {
       const body = buildProfileBody(client, values);
       const front = buildProfileFront(client);
-      const path = profilePathFor(root, client);
+      const vaultRoot = await api.vaultRootPath(root);
+      const path = profilePathFor(vaultRoot, client);
       await api.writeVaultNote(root, path, front, body);
       onSaved();
     } catch (e) {

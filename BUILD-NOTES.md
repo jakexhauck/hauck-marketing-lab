@@ -49,3 +49,38 @@ Living record of deviations from `APP-FOUNDATION-PLAN.md` and `BUILD-CHECKLIST.m
 - Cmd/Ctrl+K opens a placeholder palette overlay (populated in v1.1)
 - Window focus event triggers folder reload
 - Selected folder persisted to OS app-config dir as `config.json`
+
+---
+
+## 2026-05-12 — Memory system finished (steps 4-6 + CLAUDE.md cutover)
+
+Wrapped the Obsidian-vault memory system kicked off in commit `ccafae8`. The three handoff documents in `docs/handoffs/` are now fully shipped:
+
+- **Step 4 — `AboutSettings.tsx`** wired into `SettingsPage.tsx`. Tabbed editor for `vault/About/Jake.md` and `vault/About/Hauck Marketing.md`. Frontmatter round-tripped via the loaded `note.front`; body is a single markdown textarea per slot.
+- **Step 5 — `ClientProfileForm.tsx`** wired into `ClientsPage.tsx` for both "new" and "edit" modes. Structured fields → `buildProfileBody` → `vault/Clients/<Name>/Profile.md`. Re-open re-parses via `parseProfileBody`.
+- **Step 6 — Save-to-memory chat action** in `ChatDrawer.tsx`. Two entry points: a "Save to memory" button on each agent turn (opens a pre-filled draft modal) and a `/remember <fact>` slash command in the chat input that bypasses the LLM. Both call `api.appendToMemory(root, clientSlug, fact)`. `/help` and `/?` print the command list as a toast. The Rust `append_to_memory` auto-seeds `Memory.md` if missing.
+
+### Deviation — root `CLAUDE.md` not deleted, replaced with a pointer stub
+**Handoff item:** Step 4 final note — "the root `CLAUDE.md` becomes redundant — leave that deletion as the **last** step, gated on Jake's verification."
+
+**Deviation:** Replaced the rule content with a thin pointer + identity stub instead of deleting outright.
+
+**Why:** The in-app prompt assembler (`app/src/lib/prompt.ts`) doesn't read `CLAUDE.md` — it pulls from `vault/About/` directly via `api.readAboutNotes`. But CLI Claude Code sessions (e.g., `claude -p` in this repo from a terminal) *do* read `CLAUDE.md`. Hard-deleting it would silently strip identity context from CLI sessions. The pointer stub keeps a minimal "address Jake as Sir / read the vault for real rules" instruction for CLI callers while making clear the editable source of truth is the vault.
+
+**Reversal cost:** Trivial. Delete `CLAUDE.md` if/when CLI sessions are no longer in use.
+
+### Status
+- `pnpm tsc --noEmit` clean from `app/`.
+- Vault on disk: `vault/About/Jake.md`, `vault/About/Hauck Marketing.md`, `vault/Clients/Willis Windows/Profile.md`, `vault/Clients/Willis Windows/Memory.md` all present with correct frontmatter.
+- Willis Windows `Profile.md` body is still placeholder text (`_(fill in — …)_`) — Jake fills it in via Settings → Manage clients → Edit profile, not a build task.
+
+### Bug fix — vault path resolution
+Discovered during the wrap-up: the Rust `vault_root(root)` was hard-coded to `<root>/vault`, but `root` is the **media-buying** folder (per `config.json`) while the actual Obsidian vault lives at the **project root** (`hauck-marketing-lab/vault/`, sibling of `media-buying/`). Result: every vault read returned empty silently, and any in-app save (`/remember`, About edits, Profile saves) would have written to a parallel `media-buying/vault/` invisible to Obsidian. None of the in-app forms had been exercised yet, so no orphan files existed.
+
+**Fix:**
+- `vault.rs:7` — `vault_root()` now prefers the sibling layout (`<root>/../vault`) if it exists, and falls back to nested (`<root>/vault`) otherwise. Both layouts are now supported.
+- Added a new `vault_root_path` Tauri command so the frontend can resolve the same path the Rust side will use (needed because `clientProfile.ts:profilePathFor` had the same `${root}/vault/...` bug).
+- `clientProfile.ts:profilePathFor` now takes `vaultRoot` (a resolved absolute path) instead of the app root. `ClientProfileForm.tsx:handleSave` resolves it via `api.vaultRootPath(root)` before writing.
+
+`cargo check` and `pnpm tsc --noEmit` both clean after the fix. **A Tauri rebuild is required** for the Rust change to take effect — restart `pnpm tauri dev` (or build a new bundle).
+
