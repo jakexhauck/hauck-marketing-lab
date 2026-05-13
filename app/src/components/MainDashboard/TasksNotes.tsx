@@ -42,38 +42,42 @@ export function TasksNotes({ root }: TasksNotesProps) {
   const [tab, setTab] = useState<Tab>("tasks");
 
   return (
-    <div className="md-tasks-page">
+    <div className="hml-content">
       <style>{tasksNotesCSS}</style>
 
-      <div className="md-tasks-head">
-        <span className="md-page-head-eyebrow">▸ Workspace</span>
-        <h1>
-          Tasks <span className="md-copper-text">&amp;</span> Notes
-        </h1>
-      </div>
+      <section className="hml-page-header">
+        <div>
+          <div className="hml-page-eyebrow">
+            <span className="hml-eyebrow-dot" style={{ background: "var(--hml-accent)" }} />
+            Workspace
+          </div>
+          <h1 className="hml-page-title">Tasks &amp; Notes</h1>
+          <div className="hml-page-subtitle">
+            Quick-capture for what you're juggling. Local-only — never leaves your machine.
+          </div>
+        </div>
+      </section>
 
-      <div className="md-tasks-tabs" role="tablist">
+      <nav className="hml-subnav" style={{ marginBottom: 22 }}>
         <button
           type="button"
-          role="tab"
-          aria-selected={tab === "tasks"}
-          className={`md-tasks-tab ${tab === "tasks" ? "is-active" : ""}`}
+          className={`hml-subnav-item${tab === "tasks" ? " hml-active" : ""}`}
           onClick={() => setTab("tasks")}
         >
           Tasks
         </button>
         <button
           type="button"
-          role="tab"
-          aria-selected={tab === "notes"}
-          className={`md-tasks-tab ${tab === "notes" ? "is-active" : ""}`}
+          className={`hml-subnav-item${tab === "notes" ? " hml-active" : ""}`}
           onClick={() => setTab("notes")}
         >
           Notes
         </button>
-      </div>
+      </nav>
 
-      {tab === "tasks" ? <TasksPane root={root} /> : <NotesPane root={root} />}
+      <div className="md-tasks-page">
+        {tab === "tasks" ? <TasksPane root={root} /> : <NotesPane root={root} />}
+      </div>
     </div>
   );
 }
@@ -140,7 +144,6 @@ function TasksPane({ root }: { root: string | null }) {
               notes: Array.isArray(current.notes) ? current.notes : [],
               calendar: current.calendar ?? null,
               recordings: Array.isArray(current.recordings) ? current.recordings : [],
-              sopRuns: Array.isArray(current.sopRuns) ? current.sopRuns : [],
             });
             if (needsMigration.current) {
               try {
@@ -335,7 +338,6 @@ function NotesPane({ root }: { root: string | null }) {
               notes,
               calendar: current.calendar ?? null,
               recordings: Array.isArray(current.recordings) ? current.recordings : [],
-              sopRuns: Array.isArray(current.sopRuns) ? current.sopRuns : [],
             });
             if (needsMigration.current) {
               try {
@@ -509,8 +511,8 @@ function NotesPane({ root }: { root: string | null }) {
 
 const tasksNotesCSS = `
 .md-tasks-page {
-  padding: 32px 0 80px;
-  max-width: 1080px;
+  padding: 0;
+  max-width: none;
 }
 .md-tasks-head {
   margin-bottom: 22px;

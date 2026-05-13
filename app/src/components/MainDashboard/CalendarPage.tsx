@@ -216,34 +216,28 @@ export function CalendarPage({ root, onBack }: CalendarPageProps) {
   };
 
   return (
-    <div className="md-cal-page">
-      <div className="md-cal-page-head">
-        <button type="button" className="md-back" onClick={onBack}>
-          ◂ Back to dashboard
-        </button>
-        <div className="md-cal-page-title">
-          <span className="md-cal-page-eyebrow">▸ Workspace</span>
-          <h1>Calendar</h1>
+    <div className="hml-content">
+      <section className="hml-page-header">
+        <div>
+          <div className="hml-page-eyebrow">
+            <span className="hml-eyebrow-dot" />
+            Workspace
+          </div>
+          <h1 className="hml-page-title">Calendar</h1>
+          <div className="hml-page-subtitle">
+            {connection?.label ?? "Google Calendar"} — read-only view of your schedule.
+          </div>
         </div>
-        <div className="md-cal-page-conn">
-          {connection ? (
-            <>
-              <span className="md-cal-page-conn-dot" />
-              <span className="md-cal-page-conn-label">
-                {connection.label ?? "Google Calendar"}
-              </span>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="md-cal-page-connect"
-              onClick={onBack}
-            >
-              Connect →
+        <div className="hml-page-header-actions">
+          {!connection && (
+            <button type="button" className="hml-btn" onClick={onBack}>
+              Connect calendar →
             </button>
           )}
         </div>
-      </div>
+      </section>
+
+      <div className="md-cal-page">
 
       {fetchError ? (
         <div className="md-cal-page-error">
@@ -411,6 +405,7 @@ export function CalendarPage({ root, onBack }: CalendarPageProps) {
           </aside>
         </div>
       )}
+      </div>
     </div>
   );
 }

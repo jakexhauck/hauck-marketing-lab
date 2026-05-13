@@ -1,0 +1,569 @@
+<!--
+  Web Designer — Edit View · Variation A (Classic split)
+  Chat left (~40%), live preview right (~60%).
+  Standard messaging UX, bottom-anchored input.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HML OS · Web Designer · Edit (A)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #0a0c12;
+    --bg-deep: #0e1119;
+    --bg-surface: #141823;
+    --bg-elev: #1a1f2d;
+    --bg-input: #0f131c;
+    --border: rgba(180, 200, 240, 0.07);
+    --border-strong: rgba(180, 200, 240, 0.15);
+    --border-focus: rgba(94, 234, 212, 0.5);
+    --text: #eef1f7;
+    --text-mid: #c5ccdb;
+    --text-muted: #8d96a8;
+    --text-faint: #5a6378;
+    --signal-go: #5fe699;
+    --agent: #5eead4;
+    --agent-glow: rgba(94, 234, 212, 0.3);
+    --agent-soft: rgba(94, 234, 212, 0.08);
+    --sans: 'Hanken Grotesk', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-void);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.55;
+    height: 100vh;
+    overflow: hidden;
+  }
+  body {
+    background:
+      radial-gradient(ellipse at top, rgba(94, 234, 212, 0.04), transparent 60%),
+      var(--bg-void);
+  }
+
+  .topbar {
+    height: 44px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10, 12, 18, 0.92);
+    backdrop-filter: blur(14px);
+    display: flex; align-items: center;
+    padding: 0 32px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .topbar .right { margin-left: auto; display: flex; gap: 22px; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 12px; color: var(--text); font-weight: 600; }
+  .brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--agent); box-shadow: 0 0 10px var(--agent-glow); }
+  .brand .sep { color: var(--text-faint); margin: 0 4px; font-weight: 400; }
+  .brand .client { color: var(--text-mid); font-weight: 500; }
+  .brand .stage { color: var(--agent); font-weight: 500; }
+  .back-link {
+    color: var(--text-faint);
+    background: none; border: none;
+    font-family: inherit; font-size: inherit;
+    letter-spacing: inherit; text-transform: inherit;
+    cursor: pointer;
+    margin-right: 22px;
+  }
+  .back-link:hover { color: var(--agent); }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 460px 1fr;
+    height: calc(100vh - 44px);
+  }
+
+  /* ── CHAT COL ─────────────────────── */
+  .chat-col {
+    border-right: 1px solid var(--border);
+    background: var(--bg-deep);
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .chat-head {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .chat-head .title {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .chat-head .sub {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .chat-head .sub .file { color: var(--agent); }
+  .chat-meta {
+    display: flex; gap: 14px; margin-top: 12px;
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .chat-meta .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+  }
+  .chat-meta .pill .d { width: 6px; height: 6px; border-radius: 50%; background: var(--agent); box-shadow: 0 0 6px var(--agent-glow); }
+  .chat-meta .pill.off .d { background: var(--text-faint); box-shadow: none; }
+
+  .chat-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 22px 24px;
+  }
+
+  .msg { margin-bottom: 18px; }
+  .msg-meta {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .msg-meta .who { color: var(--text-mid); font-weight: 600; }
+  .msg-meta .who.agent { color: var(--agent); }
+  .msg-body {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13.5px;
+    color: var(--text);
+    line-height: 1.55;
+  }
+  .msg.user .msg-body {
+    background: var(--bg-elev);
+  }
+  .msg.agent .msg-body {
+    border-color: var(--border-strong);
+  }
+  .msg.agent.streaming .msg-body {
+    border-color: var(--agent);
+    box-shadow: 0 0 0 1px var(--agent-glow);
+  }
+
+  .change-list {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-mid);
+  }
+  .change-list .row {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 4px 0;
+  }
+  .change-list .row .ic {
+    color: var(--signal-go);
+    font-family: var(--mono);
+    font-size: 10px;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .change-list .row.del .ic { color: #f87171; }
+
+  /* composer */
+  .composer {
+    border-top: 1px solid var(--border);
+    padding: 14px 18px 18px;
+    background: var(--bg-deep);
+  }
+  .composer-tools {
+    display: flex; gap: 6px; align-items: center;
+    margin-bottom: 10px;
+  }
+  .chip {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 4px 9px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .chip:hover { color: var(--text); }
+  .chip.on {
+    background: var(--agent-soft);
+    color: var(--agent);
+    border-color: var(--agent);
+  }
+  .chip .x { color: var(--text-faint); margin-left: 6px; }
+  .chip.on .x { color: var(--agent); }
+  .composer-tools .spacer { flex: 1; }
+  .composer-tools .meta {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: var(--mono);
+  }
+
+  .composer-box {
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex; flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.15s;
+  }
+  .composer-box:focus-within { border-color: var(--border-focus); }
+  .composer-box textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    resize: none;
+    outline: none;
+    min-height: 44px;
+  }
+  .composer-actions {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .composer-actions .send {
+    margin-left: auto;
+    background: var(--agent);
+    color: #042720;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 0 16px var(--agent-glow);
+  }
+  .composer-actions .hint {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: var(--mono);
+  }
+
+  /* ── PREVIEW COL ─────────────────── */
+  .preview-col {
+    display: flex; flex-direction: column;
+    min-height: 0;
+    background: var(--bg-void);
+  }
+  .preview-tools {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(10,12,18,0.6);
+  }
+  .vp-seg {
+    display: inline-flex; gap: 2px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 3px;
+  }
+  .vp-opt {
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .vp-opt.active {
+    background: var(--bg-elev);
+    color: var(--agent);
+  }
+  .version-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-mid);
+    cursor: pointer;
+  }
+  .version-pill .v { color: var(--agent); font-family: var(--mono); font-weight: 600; }
+  .tool {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .tool:hover { color: var(--agent); border-color: var(--border-focus); }
+  .preview-tools .r { margin-left: auto; }
+
+  .frame-wrap {
+    flex: 1;
+    padding: 22px 28px 28px;
+    overflow: auto;
+    background: var(--bg-void);
+  }
+  .frame {
+    background: #0a0a0a;
+    border-radius: 10px;
+    border: 1px solid var(--border-strong);
+    overflow: hidden;
+    height: 100%;
+    min-height: 600px;
+  }
+  /* fake rendered site */
+  .fs {
+    padding: 56px 48px 40px;
+    color: #eee;
+    font-family: 'Inter', var(--sans);
+    height: 100%;
+    overflow-y: auto;
+  }
+  .fs-hero {
+    text-align: center;
+    padding: 50px 0 60px;
+  }
+  .fs-eyebrow {
+    color: #5eead4;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .fs-h1 {
+    font-size: 44px;
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+    max-width: 600px;
+    margin-left: auto; margin-right: auto;
+  }
+  .fs-sub {
+    color: #999;
+    font-size: 15px;
+    max-width: 500px;
+    margin: 0 auto 26px;
+    line-height: 1.55;
+  }
+  .fs-cta-row { display: flex; gap: 10px; justify-content: center; }
+  .fs-cta {
+    display: inline-block;
+    background: #5eead4;
+    color: #042720;
+    padding: 13px 28px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .fs-cta.ghost {
+    background: transparent;
+    color: #eee;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .fs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 50px;
+  }
+  .fs-card {
+    background: #15171c;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 20px 18px;
+  }
+  .fs-icon {
+    width: 30px; height: 30px;
+    background: rgba(94,234,212,0.15);
+    border-radius: 6px;
+    margin-bottom: 14px;
+  }
+  .fs-card h3 { font-size: 15px; margin-bottom: 6px; font-weight: 600; }
+  .fs-card p { font-size: 12.5px; color: #888; line-height: 1.55; }
+
+  /* highlight ring on hero to show "just edited" */
+  .fs-hero {
+    position: relative;
+  }
+  .fs-hero::after {
+    content: '';
+    position: absolute;
+    inset: -10px -20px;
+    border: 1px dashed rgba(94,234,212,0.35);
+    border-radius: 12px;
+    pointer-events: none;
+    animation: pulse 2s ease-out 1;
+  }
+  @keyframes pulse {
+    0% { opacity: 0; }
+    30% { opacity: 1; }
+    100% { opacity: 0.6; }
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="back-link">‹ Back to Web Designer</button>
+  <div class="brand">
+    <span class="brand-dot"></span>
+    HML OS
+    <span class="sep">/</span>
+    <span class="client">Willis Windows</span>
+    <span class="sep">/</span>
+    <span class="stage">Web Designer · Edit</span>
+  </div>
+  <div class="right"><span>⌘K</span></div>
+</div>
+
+<div class="shell">
+
+  <!-- ── CHAT ── -->
+  <div class="chat-col">
+    <div class="chat-head">
+      <div class="title">Iterate on the site</div>
+      <div class="sub">▸ <span class="file">miamiSmilesDental-website.html</span> · v3</div>
+      <div class="chat-meta">
+        <span class="pill"><span class="d"></span>Web Designer</span>
+        <span class="pill off"><span class="d"></span>Polish mode · off</span>
+        <span class="pill"><span class="d"></span>Auto-backup</span>
+      </div>
+    </div>
+
+    <div class="chat-scroll">
+
+      <div class="msg agent">
+        <div class="msg-meta"><span class="who agent">Web Designer</span><span>· 14:22</span></div>
+        <div class="msg-body">
+          Site built. Saved to <code style="font-family:var(--mono);font-size:12px;color:var(--agent)">miamiSmilesDental-website.html</code>. Ready to tweak — tell me what to change.
+        </div>
+      </div>
+
+      <div class="msg user">
+        <div class="msg-meta"><span class="who">Sir</span><span>· 14:25</span></div>
+        <div class="msg-body">Make the hero headline punchier — drop "Brighter Smile" and lead with the outcome. Also the CTA feels weak.</div>
+      </div>
+
+      <div class="msg agent">
+        <div class="msg-meta"><span class="who agent">Web Designer</span><span>· 14:25</span></div>
+        <div class="msg-body">
+          Reworked the hero. New headline leads with the booking outcome, secondary CTA added for credibility.
+          <div class="change-list">
+            <div class="row"><span class="ic">+</span><span><strong>Hero headline:</strong> "A Brighter Smile, Same Week." → "Book a Dentist Today. Smile Tomorrow."</span></div>
+            <div class="row"><span class="ic">+</span><span><strong>CTA copy:</strong> "Book a free consult →" → "Book in 60 seconds →"</span></div>
+            <div class="row"><span class="ic">+</span><span><strong>Added secondary CTA:</strong> "See our 280+ reviews"</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg user">
+        <div class="msg-meta"><span class="who">Sir</span><span>· 14:26</span></div>
+        <div class="msg-body">Better. Now swap the accent for something warmer — try a coral.</div>
+      </div>
+
+      <div class="msg agent streaming">
+        <div class="msg-meta"><span class="who agent">Web Designer</span><span>· streaming…</span></div>
+        <div class="msg-body">
+          Swapping the accent token from blue (#3B82F6) to coral (#FB7185). Updating CTA, eyebrow, icon backgrounds, hover<span style="color:var(--agent)">▍</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="composer">
+      <div class="composer-tools">
+        <span class="chip">Apply to hero only</span>
+        <span class="chip on">Web Designer<span class="x">✕</span></span>
+        <span class="chip">+ Design polish</span>
+        <span class="spacer"></span>
+        <span class="meta">v3 · 2 unsaved</span>
+      </div>
+      <div class="composer-box">
+        <textarea placeholder="What should change? e.g. 'Add a third testimonial' · 'Tighten the spacing on services' · 'Make the contact form simpler'"></textarea>
+        <div class="composer-actions">
+          <span class="hint">⌘↵ to send · ⇧↵ for new line</span>
+          <button class="send">Send →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PREVIEW ── -->
+  <div class="preview-col">
+    <div class="preview-tools">
+      <div class="vp-seg">
+        <div class="vp-opt active">Desktop</div>
+        <div class="vp-opt">Tablet</div>
+        <div class="vp-opt">Mobile · 375</div>
+      </div>
+      <div class="version-pill">
+        <span class="v">v3</span>
+        <span>· 4 versions saved</span>
+        <span style="color:var(--text-faint)">▾</span>
+      </div>
+      <button class="tool r">↻ Reload</button>
+      <button class="tool">Open in browser</button>
+      <button class="tool">Copy HTML</button>
+    </div>
+    <div class="frame-wrap">
+      <div class="frame">
+        <div class="fs">
+          <div class="fs-hero">
+            <div class="fs-eyebrow">▸ Miami's Top-Rated Dental Practice</div>
+            <div class="fs-h1">Book a Dentist Today. Smile Tomorrow.</div>
+            <div class="fs-sub">Modern dental care in the heart of Miami. Walk-ins welcome, financing available, and a smile guarantee on every visit.</div>
+            <div class="fs-cta-row">
+              <div class="fs-cta">Book in 60 seconds →</div>
+              <div class="fs-cta ghost">See our 280+ reviews</div>
+            </div>
+          </div>
+          <div class="fs-grid">
+            <div class="fs-card">
+              <div class="fs-icon"></div>
+              <h3>Cosmetic Dentistry</h3>
+              <p>Veneers, whitening, and smile makeovers designed around you.</p>
+            </div>
+            <div class="fs-card">
+              <div class="fs-icon"></div>
+              <h3>Family Care</h3>
+              <p>Cleanings, fillings, and check-ups for every age.</p>
+            </div>
+            <div class="fs-card">
+              <div class="fs-icon"></div>
+              <h3>Emergency Visits</h3>
+              <p>Same-day appointments when you need them most.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

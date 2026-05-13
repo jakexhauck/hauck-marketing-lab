@@ -2,7 +2,9 @@
 type: profile
 client: willis-windows
 agent: all
-tags: [client, profile]
+tags:
+- client
+- profile
 status: pre-launch
 ---
 
@@ -12,19 +14,22 @@ status: pre-launch
 Window cleaning company.
 
 ## Services
-_(fill in — residential vs commercial, frequency, add-ons like gutters/screens)_
+- residential interior and exterior window cleaning
+- screen cleaning
+- gutter cleaniing
+- commercial window cleaning
 
 ## Target customer
-_(fill in — homeowner age, income, neighborhoods, pain points)_
+homeowners 25-65+
 
 ## Offers
-_(fill in — intro price, packages, seasonal promos)_
+- $100 off + free screen cleaning
 
 ## Voice / brand notes
-_(fill in — how they want to be talked about, do's and don'ts)_
+young hustlers
 
-## What they want us to avoid
-_(fill in)_
+## What to avoid
+- fake urgency
 
 ## Geography
-_(fill in — service area, ZIP codes, radius)_
+Metro Detroit Michigan, 30 mile radius

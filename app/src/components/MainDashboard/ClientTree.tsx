@@ -32,7 +32,6 @@ export function ClientTree({
 
   useEffect(() => {
     if (!expanded || !root) return;
-    if (folders.kind !== "idle") return;
     let cancelled = false;
     setFolders({ kind: "loading" });
     api
@@ -55,7 +54,7 @@ export function ClientTree({
     return () => {
       cancelled = true;
     };
-  }, [expanded, root, client.slug, folders.kind]);
+  }, [expanded, root, client.slug]);
 
   return (
     <div className={`md-client-block${expanded ? " md-expanded" : ""}`}>

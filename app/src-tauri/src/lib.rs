@@ -15,10 +15,13 @@ mod generators;
 mod knowledge;
 mod kpi;
 mod launch_checklist;
+mod lead_scraper;
+mod prospects;
 mod sops;
 mod sync;
 mod tracking;
 mod vault;
+mod web_designer;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -76,6 +79,12 @@ pub fn run() {
             generators::list_generator_outputs,
             generators::read_latest_generator_output,
             sync::git_sync,
+            lead_scraper::run_lead_scraper,
+            lead_scraper::list_prospect_files,
+            lead_scraper::lead_scraper_paths,
+            prospects::list_prospects,
+            prospects::read_prospect,
+            prospects::promote_lead_to_prospect,
             dashboard_state::read_dashboard_state,
             dashboard_state::write_dashboard_state,
             vault::read_vault_note,
@@ -88,9 +97,14 @@ pub fn run() {
             vault::vault_root_path,
             sops::list_sops,
             sops::read_sop,
-            sops::write_sop,
-            sops::create_sop,
-            sops::delete_sop,
+            sops::refresh_sops_index,
+            sops::fetch_sop,
+            sops::clear_sop_cache,
+            web_designer::run_web_designer,
+            web_designer::edit_web_designer,
+            web_designer::list_web_designer_files,
+            web_designer::read_web_designer_file,
+            web_designer::web_designer_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

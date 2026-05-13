@@ -17,11 +17,45 @@ pub struct DriveIndex {
     pub path: String,
 }
 
+/// Drive index location. Canonical (v2): `vault/Clients/<Name>/_drive-index.md`.
+/// Falls back to the legacy `media-buying/data/<slug>/_drive-index.md` when
+/// the vault file does not yet exist, so the migration can be done safely at
+/// any time. Writes go to the canonical vault location.
 fn drive_index_path(root: &str, slug: &str) -> PathBuf {
-    PathBuf::from(root)
+    let vault = crate::vault::vault_root(root);
+    let name = client_name_for(root, slug);
+    let vault_path = vault.join("Clients").join(&name).join("_drive-index.md");
+    if vault_path.exists() {
+        return vault_path;
+    }
+    // Legacy: media-buying/data/<slug>/_drive-index.md
+    let legacy = PathBuf::from(root)
         .join("data")
         .join(slug)
-        .join("_drive-index.md")
+        .join("_drive-index.md");
+    if legacy.exists() {
+        return legacy;
+    }
+    // Neither exists — return the canonical path so reads can fail cleanly
+    // and writes land in the right place.
+    vault_path
+}
+
+fn drive_index_write_path(root: &str, slug: &str) -> PathBuf {
+    let vault = crate::vault::vault_root(root);
+    let name = client_name_for(root, slug);
+    vault.join("Clients").join(&name).join("_drive-index.md")
+}
+
+fn client_name_for(root: &str, slug: &str) -> String {
+    match read_clients_file(root) {
+        Ok(list) => list
+            .into_iter()
+            .find(|c| c.slug == slug)
+            .map(|c| c.name)
+            .unwrap_or_else(|| slug.to_string()),
+        Err(_) => slug.to_string(),
+    }
 }
 
 fn locate_claude() -> Option<PathBuf> {
@@ -133,15 +167,27 @@ pub async fn refresh_drive_index(
         "You have access to Google Drive tools (mcp__claude_ai_Google_Drive__*). \
          The client \"{name}\" has a Google Drive folder at: {url}\n\n\
          Please:\n\
-         1. Use the Drive tools to list and read the relevant contents of that folder \
-         (and any obvious subfolders like brand-assets, creative, reports).\n\
+         1. Use the Drive tools to list the immediate subfolders of that root folder, \
+         then read the relevant contents of those subfolders.\n\
          2. Produce a concise context briefing in markdown that future agents can read \
          to quickly understand this client. Cover: \
          brand voice/tone if found, key brand assets available (logos, fonts, photos), \
          products/services, target audience, any past creative or reporting that exists, \
          and anything else important you notice.\n\
-         3. Format the output as clean markdown. Start with a single H1 \"# {name} — Client Context\". \
-         Do not include any tool-call chatter, only the final briefing.\n",
+         3. Format the output as clean markdown. Start with a single H1 \"# {name} — Client Context\".\n\
+         4. IMMEDIATELY after the H1 (before any other section), include a section titled \
+         \"## Subfolders\" with a markdown table of the immediate subfolders of the root folder. \
+         The table MUST use exactly this format (the folder ID column wrapped in backticks is required \
+         — the desktop app parses this table to render sidebar links):\n\n\
+         | Subfolder | Folder ID | Notes |\n\
+         |---|---|---|\n\
+         | Assets | `1AbCdEf...` | brief note |\n\
+         | Creatives | `1XyZ...` | brief note |\n\n\
+         Use the real folder IDs returned by the Drive list call (each ID is typically 25+ chars, \
+         alphanumeric with dashes/underscores). One row per immediate subfolder. \
+         If the root has no subfolders, still include the table header with a single row \
+         saying the root is empty.\n\
+         5. Do not include any tool-call chatter, only the final briefing.\n",
         name = client.name,
         url = drive_url
     );
@@ -196,7 +242,9 @@ pub async fn refresh_drive_index(
     );
     let file_body = format!("{frontmatter}\n{body}\n");
 
-    let path = drive_index_path(&root, &client_slug);
+    // Refreshes always write to the canonical vault location so the file
+    // ends up next to the client's Profile/Memory under vault/Clients/<Name>/.
+    let path = drive_index_write_path(&root, &client_slug);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("create client dir: {e}"))?;
     }

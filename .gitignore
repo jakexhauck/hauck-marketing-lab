@@ -40,6 +40,10 @@ app-config.local.json
 # Per-client Meta credentials (unencrypted secrets — never commit)
 data/*/credentials.yaml
 
+# Lead scraper Google service account (never commit)
+lead-scraper/credentials.json
+lead-scraper/credentials*.json
+
 # Claude Code per-developer state
 .claude/settings.local.json
 .claude/worktrees/

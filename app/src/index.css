@@ -1,54 +1,61 @@
 @import "tailwindcss";
+@import "./styles/design-system.css";
+
+/* ─── HML design system v2 — calm editorial dark, Geist + Geist Mono.
+   Token names below are kept for compatibility with the existing md-* classes
+   in main-dashboard.css and elsewhere; values are remapped to the new palette
+   so old chrome instantly inherits the new look. ─── */
 
 @theme {
-  --color-bg-void: #08090d;
-  --color-bg-deep: #0c0f17;
-  --color-bg-surface: #11151f;
-  --color-bg-elev: #161b28;
+  --color-bg-void: #0a0a0c;
+  --color-bg-deep: #0d0d11;
+  --color-bg-surface: #131318;
+  --color-bg-elev: #191920;
 
-  --color-text: #eef1f7;
-  --color-text-mid: #c5ccdb;
-  --color-text-muted: #95a0b3;
-  --color-text-faint: #5a6378;
+  --color-text: #ececf0;
+  --color-text-mid: #c2c2cc;
+  --color-text-muted: #9c9ca8;
+  --color-text-faint: #6a6a76;
 
-  --color-border: rgba(180, 200, 240, 0.08);
-  --color-border-strong: rgba(180, 200, 240, 0.18);
+  --color-border: rgba(255, 255, 255, 0.05);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
 
-  --color-copper: #ec9849;
-  --color-copper-soft: #c9722a;
-  --color-copper-glow: rgba(236, 152, 73, 0.38);
+  --color-copper: #d4a574;
+  --color-copper-soft: #b88656;
+  --color-copper-glow: rgba(212, 165, 116, 0.38);
 
-  --color-signal-go: #5fe699;
-  --color-signal-hold: #fbbf24;
-  --color-signal-stop: #f87171;
+  --color-signal-go: #7fb285;
+  --color-signal-hold: #d4a574;
+  --color-signal-stop: #c4847b;
 
-  --font-sans: "Hanken Grotesk", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
-  --font-serif: "Newsreader", serif;
+  --font-sans: "Geist", system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  --font-serif: "Geist", system-ui, sans-serif;
 }
 
 :root {
-  --bg-void: #08090d;
-  --bg-deep: #0c0f17;
-  --bg-surface: #11151f;
-  --bg-elev: #161b28;
-  --border: rgba(180, 200, 240, 0.08);
-  --border-strong: rgba(180, 200, 240, 0.18);
-  --text: #eef1f7;
-  --text-mid: #c5ccdb;
-  --text-muted: #95a0b3;
-  --text-faint: #5a6378;
-  --copper: #ec9849;
-  --copper-soft: #c9722a;
-  --copper-glow: rgba(236, 152, 73, 0.38);
-  --signal-go: #5fe699;
-  --signal-hold: #fbbf24;
-  --signal-stop: #f87171;
-  --grid: rgba(180, 200, 240, 0.025);
+  /* Legacy md-* token names — remapped to new palette */
+  --bg-void: #0a0a0c;
+  --bg-deep: #0d0d11;
+  --bg-surface: #131318;
+  --bg-elev: #191920;
+  --border: rgba(255, 255, 255, 0.05);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text: #ececf0;
+  --text-mid: #c2c2cc;
+  --text-muted: #9c9ca8;
+  --text-faint: #6a6a76;
+  --copper: #d4a574;
+  --copper-soft: #b88656;
+  --copper-glow: rgba(212, 165, 116, 0.38);
+  --signal-go: #7fb285;
+  --signal-hold: #d4a574;
+  --signal-stop: #c4847b;
+  --grid: rgba(255, 255, 255, 0);
 
-  --sans: "Hanken Grotesk", system-ui, sans-serif;
-  --mono: "JetBrains Mono", monospace;
-  --serif: "Newsreader", serif;
+  --sans: "Geist", system-ui, -apple-system, sans-serif;
+  --mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  --serif: "Geist", system-ui, sans-serif;
 }
 
 * {
@@ -62,20 +69,19 @@ body {
   background: var(--bg-void);
   color: var(--text);
   font-family: var(--sans);
-  font-size: 15.5px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.003em;
   overflow-x: hidden;
 }
 
 body {
   background:
-    radial-gradient(ellipse at top left, rgba(236, 152, 73, 0.045), transparent 50%),
-    radial-gradient(ellipse at bottom right, rgba(95, 230, 153, 0.025), transparent 50%),
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+    radial-gradient(ellipse 600px 400px at 18% -10%, rgba(212, 165, 116, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 500px 500px at 100% 100%, rgba(123, 168, 196, 0.03) 0%, transparent 60%),
     var(--bg-void);
-  background-size: auto, auto, 36px 36px, 36px 36px, auto;
   min-height: 100vh;
 }
 

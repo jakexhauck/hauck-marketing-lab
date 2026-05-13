@@ -1,45 +1,39 @@
 use crate::events::{emit_changed, DataKind};
-use crate::frontmatter;
-use crate::vault::vault_root;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
 use tauri::AppHandle;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::process::Command;
 
-/// Filesystem layout: vault/Knowledge/SOP-XXXX - <title>.md
-/// Frontmatter: type: sop, id: SOP-XXXX, title, summary, tags
-/// Body: freeform markdown with `- [ ]` checklist lines.
+/// SOPs now live in a Google Drive folder, not the vault. The app keeps a
+/// local cache of the listing + each doc's body so the UI is instant after a
+/// refresh.
 ///
-/// Run state for SOPs lives in the dashboard-state JSON, not in the .md file.
-/// The .md is the template; the JSON stores executions.
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-struct SopFront {
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    kind: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    title: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    summary: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    tags: Vec<String>,
-}
+/// Cache layout (inside the media-buying root):
+///   data/_sops/index.json     — array of SopSummary
+///   data/_sops/<docId>.md     — cached body for a doc
+///
+/// Refreshes shell out to `claude -p` with the Google Drive MCP tools — the
+/// same trick used in drive_index.rs.
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SopSummary {
     pub id: String,
     pub title: String,
-    pub summary: Option<String>,
-    pub tags: Vec<String>,
-    pub path: String,
-    /// Number of `- [ ]` / `- [x]` lines in the template. Lets the list show
-    /// "8 steps" without a second round-trip.
-    pub step_count: usize,
-    /// Unix ms — last modified time of the underlying .md file.
-    pub updated_at: i64,
+    #[serde(default)]
+    pub mime_type: Option<String>,
+    #[serde(default)]
+    pub web_view_link: Option<String>,
+    #[serde(default)]
+    pub modified_time: Option<String>,
+    #[serde(default)]
+    pub folder: Option<String>,
+    /// True once we've fetched the body and cached it locally.
+    #[serde(default)]
+    pub cached: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -47,284 +41,339 @@ pub struct SopSummary {
 pub struct SopFile {
     pub id: String,
     pub title: String,
-    pub summary: Option<String>,
-    pub tags: Vec<String>,
     pub body: String,
-    pub path: String,
-    pub updated_at: i64,
+    #[serde(default)]
+    pub web_view_link: Option<String>,
+    pub fetched_at: String,
 }
 
-fn knowledge_dir(root: &str) -> PathBuf {
-    vault_root(root).join("Knowledge")
-}
-
-fn parse_front(raw: &str) -> (SopFront, String) {
-    match frontmatter::split(raw) {
-        Some((yaml, body)) => {
-            let parsed: SopFront = serde_yaml::from_str(&yaml).unwrap_or_default();
-            (parsed, body)
-        }
-        None => (SopFront::default(), raw.to_string()),
-    }
-}
-
-fn is_sop(front: &SopFront, filename: &str) -> bool {
-    if front.kind.as_deref().map(str::to_lowercase) == Some("sop".to_string()) {
-        return true;
-    }
-    // Fallback: a stray SOP-prefixed file with no/missing type still counts.
-    filename.starts_with("SOP-")
-}
-
-fn count_steps(body: &str) -> usize {
-    body.lines()
-        .filter(|line| {
-            let trimmed = line.trim_start();
-            trimmed.starts_with("- [ ]")
-                || trimmed.starts_with("- [x]")
-                || trimmed.starts_with("- [X]")
-        })
-        .count()
-}
-
-fn file_mtime_ms(path: &Path) -> i64 {
-    fs::metadata(path)
-        .and_then(|m| m.modified())
-        .ok()
-        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|d| d.as_millis() as i64)
-        .unwrap_or(0)
-}
-
-fn sanitize_title_for_filename(title: &str) -> String {
-    let mut out = String::with_capacity(title.len());
-    for ch in title.chars() {
-        match ch {
-            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => out.push('-'),
-            _ => out.push(ch),
-        }
-    }
-    out.trim().to_string()
-}
-
-fn find_sop_path(dir: &Path, sop_id: &str) -> Option<PathBuf> {
-    let rd = fs::read_dir(dir).ok()?;
-    let id_prefix = format!("{} ", sop_id);
-    for entry in rd.flatten() {
-        let p = entry.path();
-        if p.extension().and_then(|s| s.to_str()) != Some("md") {
-            continue;
-        }
-        let name = p.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-        if name == sop_id || name.starts_with(&id_prefix) {
-            return Some(p);
-        }
-    }
-    None
-}
-
-fn next_sop_id(dir: &Path) -> String {
-    let mut max = 0u32;
-    if let Ok(rd) = fs::read_dir(dir) {
-        for entry in rd.flatten() {
-            let p = entry.path();
-            if p.extension().and_then(|s| s.to_str()) != Some("md") {
-                continue;
-            }
-            let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-            if !stem.starts_with("SOP-") {
-                continue;
-            }
-            // SOP-0007 or "SOP-0007 - Title"
-            let after = &stem[4..];
-            let num_part = after.split(|c: char| !c.is_ascii_digit()).next().unwrap_or("");
-            if let Ok(n) = num_part.parse::<u32>() {
-                if n > max {
-                    max = n;
-                }
-            }
-        }
-    }
-    format!("SOP-{:04}", max + 1)
-}
-
-fn render_sop(front: &SopFront, body: &str) -> Result<String, String> {
-    let yaml = serde_yaml::to_string(front).map_err(|e| format!("serialize front: {e}"))?;
-    let trimmed = yaml.trim_start_matches("---\n");
-    let body_clean = body.trim_start_matches('\n');
-    Ok(format!("---\n{trimmed}---\n\n{body_clean}"))
-}
-
-#[tauri::command]
-pub fn list_sops(root: String) -> Result<Vec<SopSummary>, String> {
-    let dir = knowledge_dir(&root);
-    if !dir.exists() {
-        return Ok(Vec::new());
-    }
-    let mut out = Vec::new();
-    let entries = fs::read_dir(&dir).map_err(|e| format!("read Knowledge: {e}"))?;
-    for entry in entries.flatten() {
-        let p = entry.path();
-        if p.extension().and_then(|s| s.to_str()) != Some("md") {
-            continue;
-        }
-        let filename = p.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_string();
-        let raw = match fs::read_to_string(&p) {
-            Ok(s) => s,
-            Err(_) => continue,
-        };
-        let (front, body) = parse_front(&raw);
-        if !is_sop(&front, &filename) {
-            continue;
-        }
-        let id = front.id.clone().unwrap_or_else(|| {
-            // Derive id from filename: "SOP-0001 - Foo" -> "SOP-0001"
-            filename
-                .split(" - ")
-                .next()
-                .unwrap_or(&filename)
-                .trim()
-                .to_string()
-        });
-        let title = front.title.clone().unwrap_or_else(|| {
-            filename
-                .splitn(2, " - ")
-                .nth(1)
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| id.clone())
-        });
-        out.push(SopSummary {
-            id,
-            title,
-            summary: front.summary.clone(),
-            tags: front.tags.clone(),
-            path: p.to_string_lossy().into_owned(),
-            step_count: count_steps(&body),
-            updated_at: file_mtime_ms(&p),
-        });
-    }
-    out.sort_by(|a, b| a.id.cmp(&b.id));
-    Ok(out)
-}
-
-#[tauri::command]
-pub fn read_sop(root: String, sop_id: String) -> Result<SopFile, String> {
-    let dir = knowledge_dir(&root);
-    let path = find_sop_path(&dir, &sop_id)
-        .ok_or_else(|| format!("SOP not found: {sop_id}"))?;
-    let raw = fs::read_to_string(&path).map_err(|e| format!("read sop: {e}"))?;
-    let (front, body) = parse_front(&raw);
-    let id = front.id.clone().unwrap_or_else(|| sop_id.clone());
-    let title = front.title.clone().unwrap_or_else(|| id.clone());
-    Ok(SopFile {
-        id,
-        title,
-        summary: front.summary,
-        tags: front.tags,
-        body,
-        path: path.to_string_lossy().into_owned(),
-        updated_at: file_mtime_ms(&path),
-    })
-}
-
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct SopWriteArgs {
-    pub title: String,
-    #[serde(default)]
-    pub summary: Option<String>,
-    #[serde(default)]
-    pub tags: Vec<String>,
-    pub body: String,
+pub struct SopsIndex {
+    pub folder_url: Option<String>,
+    pub updated_at: Option<String>,
+    pub items: Vec<SopSummary>,
+}
+
+fn sops_dir(root: &str) -> PathBuf {
+    PathBuf::from(root).join("data").join("_sops")
+}
+
+fn index_path(root: &str) -> PathBuf {
+    sops_dir(root).join("index.json")
+}
+
+fn body_path(root: &str, doc_id: &str) -> PathBuf {
+    // Sanitize doc_id — Drive IDs are safe chars but be defensive.
+    let safe: String = doc_id
+        .chars()
+        .map(|c| match c {
+            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' => c,
+            _ => '_',
+        })
+        .collect();
+    sops_dir(root).join(format!("{safe}.md"))
+}
+
+fn read_index_from_disk(root: &str) -> SopsIndex {
+    let p = index_path(root);
+    if !p.exists() {
+        return SopsIndex {
+            folder_url: None,
+            updated_at: None,
+            items: Vec::new(),
+        };
+    }
+    let raw = match fs::read_to_string(&p) {
+        Ok(s) => s,
+        Err(_) => {
+            return SopsIndex {
+                folder_url: None,
+                updated_at: None,
+                items: Vec::new(),
+            }
+        }
+    };
+    let mut idx: SopsIndex = serde_json::from_str(&raw).unwrap_or(SopsIndex {
+        folder_url: None,
+        updated_at: None,
+        items: Vec::new(),
+    });
+    // Stamp `cached` based on whether the body file exists.
+    for item in idx.items.iter_mut() {
+        item.cached = body_path(root, &item.id).exists();
+    }
+    idx
+}
+
+fn write_index_to_disk(root: &str, idx: &SopsIndex) -> Result<(), String> {
+    let dir = sops_dir(root);
+    fs::create_dir_all(&dir).map_err(|e| format!("create sops cache dir: {e}"))?;
+    let raw = serde_json::to_string_pretty(idx).map_err(|e| format!("serialize index: {e}"))?;
+    fs::write(index_path(root), raw).map_err(|e| format!("write index: {e}"))?;
+    Ok(())
+}
+
+fn locate_claude() -> Option<PathBuf> {
+    if let Ok(p) = which::which("claude") {
+        return Some(p);
+    }
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Some(home) = dirs::home_dir() {
+        #[cfg(windows)]
+        {
+            candidates.push(
+                home.join("AppData").join("Roaming").join("npm").join("claude.cmd"),
+            );
+            candidates.push(
+                home.join("AppData").join("Roaming").join("npm").join("claude.ps1"),
+            );
+            candidates.push(
+                home.join("AppData")
+                    .join("Local")
+                    .join("Programs")
+                    .join("claude")
+                    .join("claude.exe"),
+            );
+        }
+        #[cfg(not(windows))]
+        {
+            candidates.push(home.join(".local").join("bin").join("claude"));
+            candidates.push(PathBuf::from("/opt/homebrew/bin/claude"));
+            candidates.push(PathBuf::from("/usr/local/bin/claude"));
+        }
+    }
+    candidates.into_iter().find(|p| p.exists())
+}
+
+fn build_command(claude_path: &Path) -> Command {
+    #[cfg(windows)]
+    {
+        let ext = claude_path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|s| s.to_lowercase());
+        if matches!(ext.as_deref(), Some("cmd") | Some("bat") | Some("ps1")) {
+            let mut c = Command::new("cmd");
+            c.arg("/C").arg(claude_path);
+            return c;
+        }
+    }
+    Command::new(claude_path)
+}
+
+async fn run_claude_with_prompt(prompt: String) -> Result<String, String> {
+    let claude = locate_claude().ok_or_else(|| {
+        "Claude Code not detected on PATH. Install it and log in, then restart.".to_string()
+    })?;
+    let mut cmd = build_command(&claude);
+    cmd.arg("-p")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true);
+
+    let mut child = cmd.spawn().map_err(|e| format!("spawn claude: {e}"))?;
+    if let Some(mut stdin) = child.stdin.take() {
+        let p = prompt.clone();
+        tauri::async_runtime::spawn(async move {
+            let _ = stdin.write_all(p.as_bytes()).await;
+            let _ = stdin.shutdown().await;
+        });
+    }
+    let mut stdout = child.stdout.take().ok_or("no stdout")?;
+    let mut out = String::new();
+    stdout
+        .read_to_string(&mut out)
+        .await
+        .map_err(|e| format!("read stdout: {e}"))?;
+    let status = child.wait().await.map_err(|e| format!("wait: {e}"))?;
+    if !status.success() {
+        let mut err_buf = String::new();
+        if let Some(mut stderr) = child.stderr.take() {
+            let _ = stderr.read_to_string(&mut err_buf).await;
+        }
+        return Err(format!("claude -p exited {status}. {}", err_buf.trim()));
+    }
+    Ok(out.trim().to_string())
+}
+
+/// Strip a markdown ```json … ``` fence (or plain ``` … ```) if Claude wrapped it.
+fn strip_code_fence(s: &str) -> &str {
+    let trimmed = s.trim();
+    if let Some(rest) = trimmed.strip_prefix("```json") {
+        let rest = rest.trim_start_matches('\n');
+        if let Some(end) = rest.rfind("```") {
+            return rest[..end].trim_end();
+        }
+    }
+    if let Some(rest) = trimmed.strip_prefix("```") {
+        let rest = rest.trim_start_matches('\n');
+        if let Some(end) = rest.rfind("```") {
+            return rest[..end].trim_end();
+        }
+    }
+    trimmed
 }
 
 #[tauri::command]
-pub fn write_sop(
+pub fn list_sops(root: String) -> Result<SopsIndex, String> {
+    Ok(read_index_from_disk(&root))
+}
+
+#[tauri::command]
+pub async fn refresh_sops_index(
     app: AppHandle,
     root: String,
-    sop_id: String,
-    args: SopWriteArgs,
-) -> Result<SopFile, String> {
-    let dir = knowledge_dir(&root);
-    fs::create_dir_all(&dir).map_err(|e| format!("create Knowledge dir: {e}"))?;
-
-    let existing = find_sop_path(&dir, &sop_id);
-    let safe_title = sanitize_title_for_filename(&args.title);
-    let new_filename = if safe_title.is_empty() {
-        format!("{sop_id}.md")
-    } else {
-        format!("{sop_id} - {safe_title}.md")
-    };
-    let target_path = dir.join(&new_filename);
-
-    let front = SopFront {
-        kind: Some("sop".to_string()),
-        id: Some(sop_id.clone()),
-        title: Some(args.title.clone()),
-        summary: args.summary.clone().filter(|s| !s.trim().is_empty()),
-        tags: args.tags.clone(),
-    };
-    let rendered = render_sop(&front, &args.body)?;
-
-    // If renaming (title changed → filename changed), remove the old file.
-    if let Some(old) = &existing {
-        if old != &target_path {
-            fs::write(&target_path, &rendered).map_err(|e| format!("write sop: {e}"))?;
-            let _ = fs::remove_file(old);
-        } else {
-            fs::write(&target_path, &rendered).map_err(|e| format!("write sop: {e}"))?;
-        }
-    } else {
-        fs::write(&target_path, &rendered).map_err(|e| format!("write sop: {e}"))?;
+    folder_url: String,
+) -> Result<SopsIndex, String> {
+    let url = folder_url.trim().to_string();
+    if url.is_empty() {
+        return Err("No SOPs folder URL set. Add one in Settings.".to_string());
     }
 
-    let path_str = target_path.to_string_lossy().into_owned();
-    emit_changed(&app, DataKind::Vault, None, Some(path_str.clone()));
-
-    Ok(SopFile {
-        id: sop_id,
-        title: args.title,
-        summary: front.summary,
-        tags: args.tags,
-        body: args.body,
-        path: path_str,
-        updated_at: file_mtime_ms(&target_path),
-    })
-}
-
-#[tauri::command]
-pub fn create_sop(app: AppHandle, root: String, title: String) -> Result<SopFile, String> {
-    let trimmed = title.trim().to_string();
-    if trimmed.is_empty() {
-        return Err("Title cannot be empty.".to_string());
-    }
-    let dir = knowledge_dir(&root);
-    fs::create_dir_all(&dir).map_err(|e| format!("create Knowledge dir: {e}"))?;
-    let sop_id = next_sop_id(&dir);
-    let body = format!(
-        "# {title}\n\n_Add an intro: what this SOP covers, when to run it, who it's for._\n\n## Steps\n\n- [ ] First step\n- [ ] Second step\n- [ ] Third step\n",
-        title = trimmed,
+    let prompt = format!(
+        "You have access to Google Drive tools (mcp__claude_ai_Google_Drive__*).\n\n\
+         The agency's SOPs live in the Google Drive folder at: {url}\n\n\
+         Please:\n\
+         1. Use the Drive search/list tools to enumerate every file in that folder. Recurse one level into any immediate sub-folders so docs inside them are included. Do not emit folder entries themselves, only files.\n\
+         2. Output ONLY a JSON array (no prose, no markdown code fences) with one object per file, in this exact shape:\n   {{ \"id\": \"<drive file id>\", \"title\": \"<file name without extension>\", \"mimeType\": \"<mime type>\", \"webViewLink\": \"<url to open in Drive>\", \"modifiedTime\": \"<ISO 8601 timestamp>\", \"folder\": \"<sub-folder name if any, otherwise empty string>\" }}\n\
+         3. Sort by title ascending. Return [] if the folder is empty.\n\
+         4. Do not include any tool-call chatter — output the raw JSON array and nothing else.\n"
     );
-    let args = SopWriteArgs {
-        title: trimmed,
-        summary: None,
-        tags: vec!["sop".to_string()],
-        body,
-    };
-    write_sop(app, root, sop_id, args)
-}
 
-#[tauri::command]
-pub fn delete_sop(app: AppHandle, root: String, sop_id: String) -> Result<(), String> {
-    let dir = knowledge_dir(&root);
-    let path = find_sop_path(&dir, &sop_id)
-        .ok_or_else(|| format!("SOP not found: {sop_id}"))?;
-    fs::remove_file(&path).map_err(|e| format!("delete sop: {e}"))?;
+    let raw = run_claude_with_prompt(prompt).await?;
+    let cleaned = strip_code_fence(&raw);
+    let items: Vec<SopSummary> = serde_json::from_str(cleaned).map_err(|e| {
+        format!(
+            "Claude did not return a valid JSON array. Parse error: {e}. Raw output (first 500 chars): {}",
+            &raw.chars().take(500).collect::<String>()
+        )
+    })?;
+
+    let idx = SopsIndex {
+        folder_url: Some(url),
+        updated_at: Some(chrono::Utc::now().to_rfc3339()),
+        items,
+    };
+    write_index_to_disk(&root, &idx)?;
+
+    // Re-read so `cached` flags are populated from disk.
+    let final_idx = read_index_from_disk(&root);
+
     emit_changed(
         &app,
         DataKind::Vault,
         None,
-        Some(path.to_string_lossy().into_owned()),
+        Some(index_path(&root).to_string_lossy().into_owned()),
+    );
+
+    Ok(SopsIndex {
+        folder_url: final_idx.folder_url.or(idx.folder_url),
+        updated_at: final_idx.updated_at.or(idx.updated_at),
+        items: final_idx.items,
+    })
+}
+
+#[tauri::command]
+pub fn read_sop(root: String, sop_id: String) -> Result<Option<SopFile>, String> {
+    let idx = read_index_from_disk(&root);
+    let Some(item) = idx.items.iter().find(|i| i.id == sop_id) else {
+        return Err(format!("SOP not found in index: {sop_id}"));
+    };
+    let p = body_path(&root, &sop_id);
+    if !p.exists() {
+        return Ok(None);
+    }
+    let body = fs::read_to_string(&p).map_err(|e| format!("read sop body: {e}"))?;
+    let fetched_at = fs::metadata(&p)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| {
+            chrono::DateTime::<chrono::Utc>::from_timestamp(d.as_secs() as i64, 0)
+                .map(|dt| dt.to_rfc3339())
+                .unwrap_or_default()
+        })
+        .unwrap_or_default();
+    Ok(Some(SopFile {
+        id: sop_id,
+        title: item.title.clone(),
+        body,
+        web_view_link: item.web_view_link.clone(),
+        fetched_at,
+    }))
+}
+
+#[tauri::command]
+pub async fn fetch_sop(
+    app: AppHandle,
+    root: String,
+    sop_id: String,
+) -> Result<SopFile, String> {
+    let idx = read_index_from_disk(&root);
+    let item = idx
+        .items
+        .iter()
+        .find(|i| i.id == sop_id)
+        .cloned()
+        .ok_or_else(|| {
+            format!(
+                "SOP not in cached index — refresh the list from Drive first. id: {sop_id}"
+            )
+        })?;
+
+    let prompt = format!(
+        "You have access to Google Drive tools (mcp__claude_ai_Google_Drive__*).\n\n\
+         Fetch the full content of Drive file id: {id}\n\
+         Title (for context): {title}\n\
+         MIME type: {mime}\n\n\
+         Instructions:\n\
+         1. Use the Drive tools (read_file_content / download_file_content / get_file_metadata as appropriate) to retrieve the document's contents. For Google Docs, return clean markdown that preserves headings, lists, checkboxes, links, and bold/italic formatting. For plain markdown or text files, return the content verbatim.\n\
+         2. Output ONLY the document content. Do not wrap it in a code fence. Do not add any preamble (\"Here is the content\"), tool-call chatter, or trailing notes. Start directly with the doc's first line.\n",
+        id = sop_id,
+        title = item.title,
+        mime = item.mime_type.as_deref().unwrap_or("unknown"),
+    );
+
+    let body = run_claude_with_prompt(prompt).await?;
+    let cleaned = strip_code_fence(&body).to_string();
+    if cleaned.is_empty() {
+        return Err("Claude returned an empty document body.".to_string());
+    }
+
+    let dir = sops_dir(&root);
+    fs::create_dir_all(&dir).map_err(|e| format!("create cache dir: {e}"))?;
+    let p = body_path(&root, &sop_id);
+    fs::write(&p, &cleaned).map_err(|e| format!("write sop body: {e}"))?;
+
+    emit_changed(
+        &app,
+        DataKind::Vault,
+        None,
+        Some(p.to_string_lossy().into_owned()),
+    );
+
+    Ok(SopFile {
+        id: sop_id,
+        title: item.title,
+        body: cleaned,
+        web_view_link: item.web_view_link,
+        fetched_at: chrono::Utc::now().to_rfc3339(),
+    })
+}
+
+#[tauri::command]
+pub fn clear_sop_cache(app: AppHandle, root: String, sop_id: String) -> Result<(), String> {
+    let p = body_path(&root, &sop_id);
+    if p.exists() {
+        fs::remove_file(&p).map_err(|e| format!("remove cached body: {e}"))?;
+    }
+    emit_changed(
+        &app,
+        DataKind::Vault,
+        None,
+        Some(p.to_string_lossy().into_owned()),
     );
     Ok(())
 }

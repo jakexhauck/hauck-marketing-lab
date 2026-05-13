@@ -88,7 +88,7 @@ export function AgentFormsHub({ agent, clientName, onOpenForm, onClose }: Props)
     [agent.slug],
   );
 
-  const { phaseGroups, miscGroup } = useMemo(
+  const { phaseGroups, miscGroup, reportsGroup } = useMemo(
     () => groupFormsByCategory(forms),
     [forms],
   );
@@ -247,6 +247,65 @@ export function AgentFormsHub({ agent, clientName, onOpenForm, onClose }: Props)
                 }}
               >
                 {miscGroup.forms.map((cfg) => (
+                  <FormCard key={cfg.id} cfg={cfg} onOpen={onOpenForm} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {reportsGroup && (
+            <div style={{ marginBottom: 28 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 10,
+                  marginBottom: 12,
+                  paddingBottom: 8,
+                  borderBottom: "1px solid var(--border, rgba(180,200,240,0.08))",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--mono)",
+                    fontSize: 11,
+                    letterSpacing: "0.08em",
+                    color: "var(--copper, #ec9849)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  ▸ Reports
+                </span>
+                <span
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "var(--text)",
+                  }}
+                >
+                  Client deliverables
+                </span>
+                <span
+                  style={{
+                    marginLeft: "auto",
+                    fontFamily: "var(--mono)",
+                    fontSize: 11,
+                    color: "var(--text-faint)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  recurring
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                {reportsGroup.forms.map((cfg) => (
                   <FormCard key={cfg.id} cfg={cfg} onOpen={onOpenForm} />
                 ))}
               </div>

@@ -51,10 +51,49 @@ fn default_items() -> Vec<ChecklistItem> {
         .collect()
 }
 
+/// Launch-checklist location. Canonical (v2):
+/// `vault/Clients/<Name>/media-buying/launch-checklist.yaml`. Falls back to the
+/// legacy `media-buying/data/<slug>/launch-checklist.yaml` for backward
+/// compatibility while migration is in flight.
 fn checklist_path(root: &str, slug: &str) -> PathBuf {
-    PathBuf::from(root)
+    let vault = crate::vault::vault_root(root);
+    let name = client_name_for(root, slug);
+    let vault_path = vault
+        .join("Clients")
+        .join(&name)
+        .join("media-buying")
+        .join("launch-checklist.yaml");
+    if vault_path.exists() {
+        return vault_path;
+    }
+    let legacy = PathBuf::from(root)
         .join("data")
         .join(slug)
+        .join("launch-checklist.yaml");
+    if legacy.exists() {
+        return legacy;
+    }
+    vault_path
+}
+
+fn client_name_for(root: &str, slug: &str) -> String {
+    match crate::clients::read_clients_file(root) {
+        Ok(list) => list
+            .into_iter()
+            .find(|c| c.slug == slug)
+            .map(|c| c.name)
+            .unwrap_or_else(|| slug.to_string()),
+        Err(_) => slug.to_string(),
+    }
+}
+
+fn checklist_write_path(root: &str, slug: &str) -> PathBuf {
+    let vault = crate::vault::vault_root(root);
+    let name = client_name_for(root, slug);
+    vault
+        .join("Clients")
+        .join(&name)
+        .join("media-buying")
         .join("launch-checklist.yaml")
 }
 

@@ -26,15 +26,18 @@ import type {
   LaunchChecklist,
   NoteFront,
   ParsedBenchmarks,
+  ProspectFile,
+  ScraperEvent,
   SaveGeneratorOutputArgs,
   SkillEntry,
   SkillFile,
   SopFile,
-  SopSummary,
-  SopWriteArgs,
+  SopsIndex,
   StreamEvent,
   TrackingAudit,
   VaultNote,
+  WebDesignerEvent,
+  WebsiteFile,
 } from "./types";
 
 export const api = {
@@ -69,6 +72,46 @@ export const api = {
   writeLaunchChecklist: (root: string, clientSlug: string, checklist: LaunchChecklist) =>
     invoke<void>("write_launch_checklist", { root, clientSlug, checklist }),
   listClients: (root: string) => invoke<ClientEntry[]>("list_clients", { root }),
+  // ── outreach (Rust commands land in a follow-up). Until the backend ships,
+  // these resolve to empty/no-op so the UI can call them safely.
+  listProspects: async (
+    root: string,
+  ): Promise<import("./navigation").ProspectEntry[]> => {
+    try {
+      return await invoke<import("./navigation").ProspectEntry[]>(
+        "list_prospects",
+        { root },
+      );
+    } catch {
+      return [];
+    }
+  },
+  readProspect: async (
+    root: string,
+    slug: string,
+  ): Promise<import("./navigation").ProspectEntry | null> => {
+    try {
+      return await invoke<import("./navigation").ProspectEntry | null>(
+        "read_prospect",
+        { root, slug },
+      );
+    } catch {
+      return null;
+    }
+  },
+  promoteLeadToProspect: async (
+    root: string,
+    row: Record<string, unknown>,
+  ): Promise<import("./navigation").ProspectEntry | null> => {
+    try {
+      return await invoke<import("./navigation").ProspectEntry | null>(
+        "promote_lead_to_prospect",
+        { root, row },
+      );
+    } catch {
+      return null;
+    }
+  },
   readClientStatus: (root: string, clientSlug: string) =>
     invoke<ClientStatus>("read_client_status", { root, clientSlug }),
   setClientStatus: (root: string, clientSlug: string, status: ClientStatus) =>
@@ -184,15 +227,15 @@ export const api = {
   writeDashboardState: (root: string, state: DashboardState) =>
     invoke<void>("write_dashboard_state", { root, state }),
 
-  listSops: (root: string) => invoke<SopSummary[]>("list_sops", { root }),
+  listSops: (root: string) => invoke<SopsIndex>("list_sops", { root }),
+  refreshSopsIndex: (root: string, folderUrl: string) =>
+    invoke<SopsIndex>("refresh_sops_index", { root, folderUrl }),
   readSop: (root: string, sopId: string) =>
-    invoke<SopFile>("read_sop", { root, sopId }),
-  writeSop: (root: string, sopId: string, args: SopWriteArgs) =>
-    invoke<SopFile>("write_sop", { root, sopId, args }),
-  createSop: (root: string, title: string) =>
-    invoke<SopFile>("create_sop", { root, title }),
-  deleteSop: (root: string, sopId: string) =>
-    invoke<void>("delete_sop", { root, sopId }),
+    invoke<SopFile | null>("read_sop", { root, sopId }),
+  fetchSop: (root: string, sopId: string) =>
+    invoke<SopFile>("fetch_sop", { root, sopId }),
+  clearSopCache: (root: string, sopId: string) =>
+    invoke<void>("clear_sop_cache", { root, sopId }),
 
   readVaultNote: (root: string, path: string) =>
     invoke<VaultNote>("read_vault_note", { root, path }),
@@ -210,6 +253,58 @@ export const api = {
     invoke<VaultNote[]>("list_vault_notes", { root }),
   vaultRootPath: (root: string) =>
     invoke<string>("vault_root_path", { root }),
+
+  runLeadScraper: (id: string, root: string, niche: string, city: string) =>
+    invoke<void>("run_lead_scraper", { id, root, niche, city }),
+  listProspectFiles: (root: string) =>
+    invoke<ProspectFile[]>("list_prospect_files", { root }),
+  leadScraperPaths: (root: string) =>
+    invoke<[string, string]>("lead_scraper_paths", { root }),
+  onLeadScraperStream: (handler: (e: ScraperEvent) => void): Promise<UnlistenFn> =>
+    listen<ScraperEvent>("lead_scraper://stream", (evt) => handler(evt.payload)),
+
+  runWebDesigner: (
+    id: string,
+    root: string,
+    clientSlug: string,
+    mode: "build" | "revamp",
+    prompt: string,
+    businessSlug: string,
+  ) =>
+    invoke<void>("run_web_designer", {
+      id,
+      root,
+      clientSlug,
+      mode,
+      prompt,
+      businessSlug,
+    }),
+  editWebDesigner: (
+    id: string,
+    root: string,
+    clientSlug: string,
+    filePath: string,
+    userRequest: string,
+    sectionScope: string | null,
+    useDesignPolish: boolean,
+  ) =>
+    invoke<void>("edit_web_designer", {
+      id,
+      root,
+      clientSlug,
+      filePath,
+      userRequest,
+      sectionScope,
+      useDesignPolish,
+    }),
+  listWebDesignerFiles: (root: string, clientSlug: string) =>
+    invoke<WebsiteFile[]>("list_web_designer_files", { root, clientSlug }),
+  readWebDesignerFile: (path: string) =>
+    invoke<string>("read_web_designer_file", { path }),
+  webDesignerDir: (root: string, clientSlug: string) =>
+    invoke<string>("web_designer_dir", { root, clientSlug }),
+  onWebDesignerStream: (handler: (e: WebDesignerEvent) => void): Promise<UnlistenFn> =>
+    listen<WebDesignerEvent>("web_designer://stream", (evt) => handler(evt.payload)),
 
   gitSync: (root: string) =>
     invoke<{

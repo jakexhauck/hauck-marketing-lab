@@ -110,7 +110,6 @@ export function RecordingsPage({ root }: RecordingsPageProps) {
               notes: Array.isArray(current.notes) ? current.notes : [],
               calendar: current.calendar ?? null,
               recordings,
-              sopRuns: Array.isArray(current.sopRuns) ? current.sopRuns : [],
             });
             if (needsMigration.current) {
               try {
@@ -191,15 +190,23 @@ export function RecordingsPage({ root }: RecordingsPageProps) {
   };
 
   return (
-    <div className="md-recordings-page">
+    <div className="hml-content">
       <style>{recordingsPageCSS}</style>
 
-      <div className="md-recordings-head">
-        <span className="md-page-head-eyebrow">▸ Workspace</span>
-        <h1>
-          Fathom <span className="md-copper-text">Recordings</span>
-        </h1>
-      </div>
+      <section className="hml-page-header">
+        <div>
+          <div className="hml-page-eyebrow">
+            <span className="hml-eyebrow-dot" />
+            Workspace
+          </div>
+          <h1 className="hml-page-title">Fathom Recordings</h1>
+          <div className="hml-page-subtitle">
+            Saved share links from Fathom — paste the URL, give it a title, watch inline.
+          </div>
+        </div>
+      </section>
+
+      <div className="md-recordings-page">
 
       <div className="md-panel md-recordings-panel">
         <div className="md-panel-head">
@@ -317,14 +324,15 @@ export function RecordingsPage({ root }: RecordingsPageProps) {
           })}
         </ul>
       )}
+      </div>
     </div>
   );
 }
 
 const recordingsPageCSS = `
 .md-recordings-page {
-  padding: 32px 0 80px;
-  max-width: 1080px;
+  padding: 0;
+  max-width: none;
 }
 .md-recordings-head {
   margin-bottom: 22px;

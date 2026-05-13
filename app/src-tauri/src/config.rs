@@ -10,6 +10,11 @@ pub struct AppConfig {
     pub active_client_slug: Option<String>,
     #[serde(default)]
     pub default_agent_slug: Option<String>,
+    /// URL to the agency-wide Google Drive folder that holds SOP docs.
+    /// When set, the SOPs page lists + reads docs from this folder via
+    /// the Drive MCP tools (see sops.rs).
+    #[serde(default)]
+    pub sops_drive_folder_url: Option<String>,
 }
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {

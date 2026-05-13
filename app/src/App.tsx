@@ -13,6 +13,7 @@ import { KnowledgeBrowser } from "./components/KnowledgeBrowser";
 import { MainDashboard } from "./components/MainDashboard";
 import { Sidebar, type WorkspaceView, type WorkflowView } from "./components/MainDashboard/Sidebar";
 import { TopBar } from "./components/MainDashboard/TopBar";
+import { TroubleshootingPage } from "./components/MainDashboard/TroubleshootingPage";
 import "./components/MainDashboard/main-dashboard.css";
 import { OnboardingChecklist } from "./components/OnboardingChecklist";
 import { SettingsPage } from "./components/SettingsPage";
@@ -68,6 +69,12 @@ export default function App() {
 
   // Main Dashboard vs Media Buying — boots into the Main Dashboard.
   const [view, setView] = useState<"main" | "media-buying">("main");
+  // When set, the Main Dashboard lands directly on this workflow (e.g. when
+  // the user clicks Lead Scraper from inside the media-buying shell).
+  const [pendingWorkflow, setPendingWorkflow] = useState<WorkflowView | null>(null);
+
+  // Troubleshooting page (media-buying section only)
+  const [troubleshootingOpen, setTroubleshootingOpen] = useState(false);
 
   // Git sync state
   const [syncing, setSyncing] = useState(false);
@@ -320,6 +327,7 @@ export default function App() {
     setClientsPageOpen(false);
     setDiagnosisOpen(false);
     setKnowledgeOpen(false);
+    setTroubleshootingOpen(false);
     setAgentFormsHub(agent);
   };
 
@@ -414,7 +422,20 @@ export default function App() {
     setKnowledgeOpen(false);
     setSettingsOpen(false);
     setClientsPageOpen(false);
+    setTroubleshootingOpen(false);
     setGenerator(surface);
+  };
+
+  const openTroubleshooting = () => {
+    setPaletteOpen(false);
+    setDiagnosisOpen(false);
+    setKnowledgeOpen(false);
+    setSettingsOpen(false);
+    setClientsPageOpen(false);
+    setGenerator(null);
+    setAgentFormsHub(null);
+    setDrawerOpen(false);
+    setTroubleshootingOpen(true);
   };
 
   const closeGenerator = () => {
@@ -440,6 +461,7 @@ export default function App() {
     setGenerator(null);
     setAgentFormsHub(null);
     setCurrentChat(null);
+    setTroubleshootingOpen(false);
 
     if (slug === activeClientSlug || !root) {
       setActiveClientSlug(slug);
@@ -523,6 +545,7 @@ export default function App() {
           onOpenMediaBuying={() => setView("media-buying")}
           root={root}
           clients={clients}
+          activeClientSlug={activeClientSlug}
           onSync={onSync}
           syncing={syncing}
           syncStatus={syncStatus}
@@ -537,7 +560,31 @@ export default function App() {
                 }
               : undefined
           }
+          initialWorkflow={pendingWorkflow}
+          onInitialWorkflowApplied={() => setPendingWorkflow(null)}
+          onOpenForm={(id, slug) => {
+            // Switch active client + open the form generator overlay.
+            void switchClient(slug);
+            openGenerator(id);
+          }}
+          onSwitchClient={(slug) => void switchClient(slug)}
         />
+        {generator && getFormConfig(generator) && root && summary && (
+          <div className="hml-overlay" onClick={(e) => {
+            if (e.target === e.currentTarget) closeGenerator();
+          }}>
+            <div className="hml-overlay-content">
+              <GenericFormGenerator
+                config={getFormConfig(generator)!}
+                root={root}
+                agents={summary.agents}
+                clientName={activeClient.name}
+                clientSlug={activeClient.slug}
+                onClose={closeGenerator}
+              />
+            </div>
+          </div>
+        )}
         <UpdaterPrompt />
       </>
     );
@@ -591,8 +638,12 @@ export default function App() {
       // by simply returning to main.
     }
   };
-  const onSelectWorkflowFromShell = (_tab: WorkflowView) => {
-    // Only media-buying remains; we're already here.
+  const onSelectWorkflowFromShell = (tab: WorkflowView) => {
+    if (tab === "media-buying") return;
+    if (tab === "lead-scraper" || tab === "web-designer") {
+      setPendingWorkflow(tab);
+      setView("main");
+    }
   };
 
   const paneContent = settingsOpen ? (
@@ -683,6 +734,8 @@ export default function App() {
       onOpenForm={(id) => openGenerator(id)}
       onClose={() => setAgentFormsHub(null)}
     />
+  ) : troubleshootingOpen ? (
+    <TroubleshootingPage />
   ) : clientStatus === "pre-launch" && !onboardingDismissed[clientSlug] ? (
     <OnboardingChecklist
       clientName={clientName}
@@ -743,6 +796,8 @@ export default function App() {
             onSelectAgent={(agent) => onAgentSelect(agent)}
             onSelectForm={(id) => openGenerator(id)}
             onOpenAureliusChat={onAskDock}
+            onOpenTroubleshooting={openTroubleshooting}
+            activeTroubleshooting={troubleshootingOpen}
             onAddClient={onOpenAddClient}
           />
           <main className="md-main md-main--mb">{paneContent}</main>
@@ -754,7 +809,8 @@ export default function App() {
         !settingsOpen &&
         !knowledgeOpen &&
         !generator &&
-        !agentFormsHub && (
+        !agentFormsHub &&
+        !troubleshootingOpen && (
           <AskDock
             agentName={dockAgent.name}
             agentInitial={dockAgent.initial}

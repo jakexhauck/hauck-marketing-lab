@@ -2,6 +2,8 @@ export type AppConfig = {
   media_buying_path: string | null;
   active_client_slug?: string | null;
   default_agent_slug?: string | null;
+  /** Agency-wide Google Drive folder URL that holds SOP docs. */
+  sops_drive_folder_url?: string | null;
 };
 
 export type AgentSummary = {
@@ -347,40 +349,30 @@ export interface FathomRecording {
   createdAt: number;
 }
 
+/** A doc inside the user's Google Drive SOPs folder. */
 export interface SopSummary {
   id: string;
   title: string;
-  summary: string | null;
-  tags: string[];
-  path: string;
-  stepCount: number;
-  updatedAt: number;
+  mimeType?: string | null;
+  webViewLink?: string | null;
+  modifiedTime?: string | null;
+  folder?: string | null;
+  /** True when the body has been fetched and cached on disk. */
+  cached: boolean;
+}
+
+export interface SopsIndex {
+  folderUrl: string | null;
+  updatedAt: string | null;
+  items: SopSummary[];
 }
 
 export interface SopFile {
   id: string;
   title: string;
-  summary: string | null;
-  tags: string[];
   body: string;
-  path: string;
-  updatedAt: number;
-}
-
-export interface SopWriteArgs {
-  title: string;
-  summary: string | null;
-  tags: string[];
-  body: string;
-}
-
-export interface SopRun {
-  id: string;
-  sopId: string;
-  label?: string | null;
-  startedAt: number;
-  completedAt?: number | null;
-  checks: Record<string, boolean>;
+  webViewLink?: string | null;
+  fetchedAt: string;
 }
 
 export interface DashboardState {
@@ -388,5 +380,31 @@ export interface DashboardState {
   notes: Note[];
   calendar?: CalendarConnection | null;
   recordings?: FathomRecording[];
-  sopRuns?: SopRun[];
 }
+
+export interface ProspectFile {
+  name: string;
+  path: string;
+  modified_unix: number;
+  size_bytes: number;
+}
+
+export type ScraperEvent =
+  | { kind: "started"; id: string }
+  | { kind: "line"; id: string; text: string; stream: "stdout" | "stderr" }
+  | { kind: "done"; id: string; exit_code: number; csv_path: string | null }
+  | { kind: "error"; id: string; message: string };
+
+export interface WebsiteFile {
+  name: string;
+  path: string;
+  modified_unix: number;
+  size_bytes: number;
+  mode: "build" | "revamp";
+}
+
+export type WebDesignerEvent =
+  | { kind: "started"; id: string }
+  | { kind: "delta"; id: string; text: string }
+  | { kind: "done"; id: string; ok: boolean; path: string | null; message: string | null }
+  | { kind: "error"; id: string; message: string };

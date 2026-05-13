@@ -10,6 +10,9 @@ export type FormFieldBase = {
   label: string;
   /** Optional override for how this field is labeled inside the assembled prompt. */
   promptLabel?: string;
+  /** Placeholder token in `FormConfig.promptTemplate` that this field's value
+   *  replaces, e.g. "[BUSINESS NAME]". Ignored when promptTemplate is absent. */
+  promptPlaceholder?: string;
   hint?: string;
   /** Render this field on the same row as the previous field (grid 1fr 1fr). */
   inline?: boolean;
@@ -49,8 +52,9 @@ export type FormConfig = {
   /** Right-side eyebrow label, e.g. "ONBOARDING · DAY 0". */
   eyebrowMeta?: string;
   /** "phase" (default) — slots into onboarding Phase 1-6 grouping.
-   *  "misc" — standalone tool surfaced below the phase groups (no phase fields needed). */
-  category?: "phase" | "misc";
+   *  "misc" — standalone tool surfaced below the phase groups (no phase fields needed).
+   *  "reports" — client-facing deliverables (weekly/monthly recaps, audits, etc.). */
+  category?: "phase" | "misc" | "reports";
   /** Onboarding phase (1-6). Required when category is "phase". */
   phase?: number;
   /** Phase display name, e.g. "Close the Deal". */
@@ -71,12 +75,18 @@ export type FormConfig = {
   generatingLabel: string;
   /** Form sections rendered top to bottom. */
   sections: FormSection[];
-  /** Prompt task description. */
-  taskDescription: string;
-  /** JSON schema string inserted inside the ```json fence. Headline + summary are required. */
-  outputSchema: string;
-  /** Instructions appended after the JSON schema for the markdown body. */
-  outputInstructions: string;
+  /** Prompt task description. Optional when `promptTemplate` is supplied. */
+  taskDescription?: string;
+  /** JSON schema string inserted inside the ```json fence. Optional when `promptTemplate` is supplied. */
+  outputSchema?: string;
+  /** Instructions appended after the JSON schema for the markdown body.
+   *  Optional when `promptTemplate` is supplied. */
+  outputInstructions?: string;
+  /** Verbatim prompt sent to the model, with `[PLACEHOLDER]` tokens substituted
+   *  from form fields (matched via each field's `promptPlaceholder`). When set,
+   *  this REPLACES the assembled persona/brief/task/output format — the template
+   *  is shipped as-is. Use for prompts you want to control end-to-end. */
+  promptTemplate?: string;
   /** Fallback title used to name the saved output if the model omits one. */
   defaultTitle: string;
   /** Optional: pre-fill these form fields from the active client's Profile.md.
@@ -1260,6 +1270,642 @@ const CREATIVE_BRIEF: FormConfig = {
   defaultTitle: "Creative brief",
 };
 
+// ── Vortex · Ad Copy (Misc) ───────────────────────────────────────
+const AD_COPY: FormConfig = {
+  id: "ad-copy",
+  title: "Ad Copy Generator",
+  subtitle:
+    "12 Facebook/Instagram ad variations across PAS, AIDA, BAB, STORY — one reason to buy per ad.",
+  eyebrow: "▸ AD COPY · VORTEX",
+  eyebrowMeta: "TOOL · ANYTIME",
+  category: "misc",
+  agentSlug: "vortex",
+  agentName: "Vortex",
+  kind: "briefs",
+  savedHeading: "Ad copy saved",
+  generateLabel: "Generate ad copy",
+  generatingLabel: "Writing…",
+  prefillFromProfile: {
+    business_name: "business",
+    what_they_sell: "services",
+    target_customer: "target",
+    current_offer: "offers",
+  },
+  sections: [
+    {
+      title: "▸ BUSINESS",
+      meta: "required",
+      fields: [
+        {
+          kind: "text",
+          key: "business_name",
+          label: "Business name",
+          promptPlaceholder: "[BUSINESS NAME]",
+          placeholder: "Willis Windows.",
+          required: true,
+        },
+        {
+          kind: "textarea",
+          key: "what_they_sell",
+          label: "What they sell",
+          promptPlaceholder: "[WHAT THEY SELL]",
+          placeholder: "Exterior window cleaning, single + multi-story homes.",
+          minRows: 2,
+          required: true,
+        },
+        {
+          kind: "textarea",
+          key: "target_customer",
+          label: "Target customer",
+          promptPlaceholder: "[TARGET CUSTOMER]",
+          placeholder: "Homeowners, 2-story homes, $80k+ HH income. Time-poor.",
+          minRows: 3,
+          required: true,
+        },
+      ],
+    },
+    {
+      title: "▸ THE ANGLE",
+      meta: "required",
+      fields: [
+        {
+          kind: "textarea",
+          key: "usp",
+          label: "Unique selling proposition",
+          promptPlaceholder: "[UNIQUE SELLING PROPOSITION]",
+          placeholder: "Streak-free guarantee · same-day service · veteran-owned.",
+          minRows: 3,
+          required: true,
+        },
+        {
+          kind: "textarea",
+          key: "current_offer",
+          label: "Current offer",
+          promptPlaceholder: "[CURRENT OFFER]",
+          placeholder: "$50 off first clean. Free in-home estimate. Book this week.",
+          minRows: 2,
+          required: true,
+        },
+      ],
+    },
+  ],
+  promptTemplate: `You are a world-class direct response copywriter. Write 12 ad copy variations for Facebook and Instagram ads.
+
+BUSINESS: [BUSINESS NAME]
+WHAT THEY SELL: [WHAT THEY SELL]
+TARGET CUSTOMER: [TARGET CUSTOMER]
+USP: [UNIQUE SELLING PROPOSITION]
+CURRENT OFFER: [CURRENT OFFER]
+TONE: Casual and friendly
+
+RULES:
+1. ONE AD = ONE REASON TO BUY. Each ad must target a completely different motivation (different fear, desire, or angle). NOT variations of the same headline.
+2. Use these frameworks (3 ads each):
+   - PAS (Problem → Agitate → Solution)
+   - AIDA (Attention → Interest → Desire → Action)
+   - BAB (Before → After → Bridge)
+   - STORY (Character → Conflict → Resolution)
+3. Mix lengths:
+   - 3 short (under 50 words) — for Stories/Reels
+   - 6 medium (50-100 words) — for Feed ads
+   - 3 long (100-150 words) — for high-intent audiences
+4. ANTI-PATTERNS TO AVOID:
+   - No "Not X — It's Y" dramatic contrasts
+   - No triple parallel structures ("X. Y. And Z.")
+   - No "Imagine this" or "Picture this" openers
+   - No filler words: elevate, transform, unlock, game-changer, seamless, revolutionize
+   - No perfect grammar — use contractions, fragments, slang where natural
+   - No question-then-answer cadence ("Tired of X? We have the solution.")
+5. Write like a human texting a friend, not a copywriter writing a brochure
+6. Include specific numbers, prices, and details — NOT generic claims
+7. Every ad ends with a clear CTA
+
+Label each ad with: [Framework] [Angle] [Length] [Word count]
+
+GO.`,
+  defaultTitle: "Ad copy set",
+};
+
+// ── Nexus · Audience Research (Misc) ──────────────────────────────
+const AUDIENCE_RESEARCH: FormConfig = {
+  id: "audience-research",
+  title: "Audience Research",
+  subtitle:
+    "Voice-of-customer research — motivations, objections, triggers, language, competitors, daily routine. Informs copy + creative, not targeting.",
+  eyebrow: "▸ AUDIENCE RESEARCH · NEXUS",
+  eyebrowMeta: "TOOL · ANYTIME",
+  category: "misc",
+  agentSlug: "nexus",
+  agentName: "Nexus",
+  kind: "briefs",
+  savedHeading: "Audience research saved",
+  generateLabel: "Run research",
+  generatingLabel: "Researching…",
+  prefillFromProfile: {
+    business_name: "business",
+    product_service: "services",
+    location: "geography",
+  },
+  sections: [
+    {
+      title: "▸ BUSINESS",
+      meta: "required",
+      fields: [
+        {
+          kind: "text",
+          key: "business_name",
+          label: "Business name",
+          promptPlaceholder: "[Business name]",
+          placeholder: "Willis Windows.",
+          required: true,
+        },
+        {
+          kind: "textarea",
+          key: "product_service",
+          label: "Product / service",
+          promptPlaceholder: "[Product/service]",
+          placeholder: "Exterior window cleaning for residential homes.",
+          minRows: 2,
+          required: true,
+        },
+        {
+          kind: "text",
+          key: "location",
+          label: "Location",
+          promptPlaceholder: "[City, state]",
+          placeholder: "Boise, ID.",
+          required: true,
+        },
+        {
+          kind: "text",
+          key: "price_range",
+          label: "Average ticket",
+          promptPlaceholder: "[Average ticket]",
+          placeholder: "$250-$450 per clean.",
+          required: true,
+          inline: true,
+        },
+      ],
+    },
+  ],
+  promptTemplate: `I'm running Facebook/Instagram ads for a local business. I need to deeply understand their target audience — NOT for targeting settings (I'm using broad targeting), but to write better ad copy and create better visuals.
+
+BUSINESS: [Business name]
+WHAT THEY SELL: [Product/service]
+LOCATION: [City, state]
+PRICE RANGE: [Average ticket]
+
+Give me:
+1. The top 10 REASONS someone would buy this (not features — emotional motivations)
+2. The top 5 OBJECTIONS they'd have before buying
+3. The top 5 MOMENTS when they'd think about this product (triggers)
+4. What language/slang does this audience actually use?
+5. Who are they comparing this business to? (competitors + alternatives)
+6. What does their day look like? (daily routine relevant to the product)
+
+Be specific. Use real examples. No generic marketing talk.`,
+  defaultTitle: "Audience research",
+};
+
+// ── Zenith · Weekly Ads Report (Reports) ──────────────────────────
+const WEEKLY_REPORT: FormConfig = {
+  id: "weekly-report",
+  title: "Weekly Ads Report",
+  subtitle:
+    "Client-ready weekly update — numbers, what's working, what changed, what's next.",
+  eyebrow: "▸ WEEKLY REPORT · ZENITH",
+  eyebrowMeta: "REPORT · WEEKLY",
+  category: "reports",
+  agentSlug: "zenith",
+  agentName: "Zenith",
+  kind: "reports",
+  savedHeading: "Weekly report saved",
+  generateLabel: "Generate report",
+  generatingLabel: "Writing…",
+  sections: [
+    {
+      title: "▸ THIS WEEK'S NUMBERS",
+      meta: "required",
+      fields: [
+        {
+          kind: "text",
+          key: "total_spend",
+          label: "Total spend ($)",
+          promptPlaceholder: "[TOTAL SPEND]",
+          placeholder: "1,240",
+          required: true,
+        },
+        {
+          kind: "text",
+          key: "total_leads",
+          label: "Total leads",
+          promptPlaceholder: "[TOTAL LEADS]",
+          placeholder: "32",
+          required: true,
+          inline: true,
+        },
+        {
+          kind: "text",
+          key: "cost_per_lead",
+          label: "Cost per lead ($)",
+          promptPlaceholder: "[COST PER LEAD]",
+          placeholder: "38.75",
+          required: true,
+        },
+        {
+          kind: "text",
+          key: "best_ad_name",
+          label: "Best performing ad",
+          promptPlaceholder: "[BEST AD NAME]",
+          placeholder: "V3 — streak-free guarantee UGC.",
+          required: true,
+        },
+        {
+          kind: "text",
+          key: "best_ad_cpl",
+          label: "Best ad CPL ($)",
+          promptPlaceholder: "[BEST AD CPL]",
+          placeholder: "24.10",
+          required: true,
+          inline: true,
+        },
+      ],
+    },
+    {
+      title: "▸ WHAT'S WORKING",
+      meta: "qualitative",
+      fields: [
+        {
+          kind: "textarea",
+          key: "top_ad_why",
+          label: "Why the top ad is winning",
+          promptPlaceholder: "[TOP AD WHY]",
+          placeholder: "Angle + creative type + what's resonating.",
+          minRows: 3,
+          required: true,
+        },
+        {
+          kind: "textarea",
+          key: "trends",
+          label: "Trends noticed",
+          promptPlaceholder: "[TRENDS]",
+          placeholder: "Mobile-first audiences · weekend CPLs · etc.",
+          minRows: 3,
+        },
+      ],
+    },
+    {
+      title: "▸ WHAT WE CHANGED",
+      meta: "actions taken",
+      fields: [
+        {
+          kind: "text",
+          key: "paused_ads",
+          label: "Ads paused (too expensive)",
+          promptPlaceholder: "[PAUSED ADS]",
+          placeholder: "V1, V4 — CPL > $80.",
+        },
+        {
+          kind: "text",
+          key: "scaled_ad",
+          label: "Ad scaled (budget +)",
+          promptPlaceholder: "[SCALED AD]",
+          placeholder: "V3 — bumped daily from $40 → $80.",
+        },
+        {
+          kind: "text",
+          key: "new_creatives",
+          label: "New creatives added",
+          promptPlaceholder: "[NEW CREATIVES]",
+          placeholder: "V5, V6 — testimonial UGC + before/after.",
+        },
+      ],
+    },
+    {
+      title: "▸ NEXT WEEK'S PLAN",
+      meta: "what's next",
+      fields: [
+        {
+          kind: "textarea",
+          key: "next_week_plan",
+          label: "Plan for next week",
+          promptPlaceholder: "[NEXT WEEK PLAN]",
+          placeholder: "Ship 3 new UGC angles · test landing page V2 · push budget on V3.",
+          minRows: 3,
+          required: true,
+        },
+      ],
+    },
+  ],
+  promptTemplate: `Output the following weekly ads update email exactly as written below, substituting the values in place. No preamble, no commentary, no closing remarks — just the email itself.
+
+Hey [CLIENT NAME]! Here's your weekly ads update:
+
+📊 THIS WEEK'S NUMBERS
+• Total Spend: $[TOTAL SPEND]
+• Total Leads: [TOTAL LEADS]
+• Cost Per Lead: $[COST PER LEAD]
+• Best Performing Ad: [BEST AD NAME] — $[BEST AD CPL]
+
+🟢 WHAT'S WORKING
+• [TOP AD WHY]
+• [TRENDS]
+
+🔴 WHAT WE CHANGED
+• Paused [PAUSED ADS] (too expensive)
+• Increased budget on [SCALED AD] — best performer
+• Added [NEW CREATIVES] to keep things fresh
+
+📅 NEXT WEEK'S PLAN
+• [NEXT WEEK PLAN]
+
+Questions? Let me know!`,
+  defaultTitle: "Weekly ads report",
+};
+
+// ── Zenith · Monthly Ads Report (Reports) ─────────────────────────
+const MONTHLY_REPORT: FormConfig = {
+  id: "monthly-report",
+  title: "Monthly Ads Report",
+  subtitle:
+    "Full monthly recap — big numbers, MoM comparison, wins, challenges, next-month plan, recommendation.",
+  eyebrow: "▸ MONTHLY REPORT · ZENITH",
+  eyebrowMeta: "REPORT · MONTHLY",
+  category: "reports",
+  agentSlug: "zenith",
+  agentName: "Zenith",
+  kind: "reports",
+  savedHeading: "Monthly report saved",
+  generateLabel: "Generate report",
+  generatingLabel: "Writing…",
+  sections: [
+    {
+      title: "▸ PERIOD",
+      meta: "required",
+      fields: [
+        {
+          kind: "text",
+          key: "month_year",
+          label: "Month & year",
+          promptPlaceholder: "[MONTH YEAR]",
+          placeholder: "May 2026.",
+          required: true,
+        },
+      ],
+    },
+    {
+      title: "▸ THIS MONTH",
+      meta: "headline numbers",
+      fields: [
+        {
+          kind: "text",
+          key: "spend_this",
+          label: "Total spend ($)",
+          promptPlaceholder: "[SPEND THIS]",
+          placeholder: "4,820",
+          required: true,
+        },
+        {
+          kind: "text",
+          key: "leads_this",
+          label: "Total leads",
+          promptPlaceholder: "[LEADS THIS]",
+          placeholder: "138",
+          required: true,
+          inline: true,
+        },
+        {
+          kind: "text",
+          key: "cpl_this",
+          label: "Cost per lead ($)",
+          promptPlaceholder: "[CPL THIS]",
+          placeholder: "34.92",
+          required: true,
+        },
+        {
+          kind: "text",
+          key: "revenue_this",
+          label: "Est. revenue ($)",
+          promptPlaceholder: "[REVENUE THIS]",
+          placeholder: "21,400",
+          required: true,
+          inline: true,
+        },
+        {
+          kind: "text",
+          key: "roas",
+          label: "ROAS (x)",
+          promptPlaceholder: "[ROAS]",
+          placeholder: "4.4",
+          required: true,
+        },
+      ],
+    },
+    {
+      title: "▸ LAST MONTH",
+      meta: "for MoM comparison (leave blank if N/A)",
+      fields: [
+        {
+          kind: "text",
+          key: "spend_last",
+          label: "Spend last month ($)",
+          promptPlaceholder: "[SPEND LAST]",
+          placeholder: "4,300",
+        },
+        {
+          kind: "text",
+          key: "spend_change",
+          label: "Spend change",
+          promptPlaceholder: "[SPEND CHANGE]",
+          placeholder: "+12%",
+          inline: true,
+        },
+        {
+          kind: "text",
+          key: "leads_last",
+          label: "Leads last month",
+          promptPlaceholder: "[LEADS LAST]",
+          placeholder: "112",
+        },
+        {
+          kind: "text",
+          key: "leads_change",
+          label: "Leads change",
+          promptPlaceholder: "[LEADS CHANGE]",
+          placeholder: "+23%",
+          inline: true,
+        },
+        {
+          kind: "text",
+          key: "cpl_last",
+          label: "CPL last month ($)",
+          promptPlaceholder: "[CPL LAST]",
+          placeholder: "38.40",
+        },
+        {
+          kind: "text",
+          key: "cpl_change",
+          label: "CPL change",
+          promptPlaceholder: "[CPL CHANGE]",
+          placeholder: "-9%",
+          inline: true,
+        },
+        {
+          kind: "text",
+          key: "revenue_last",
+          label: "Revenue last month ($)",
+          promptPlaceholder: "[REVENUE LAST]",
+          placeholder: "17,200",
+        },
+        {
+          kind: "text",
+          key: "revenue_change",
+          label: "Revenue change",
+          promptPlaceholder: "[REVENUE CHANGE]",
+          placeholder: "+24%",
+          inline: true,
+        },
+      ],
+    },
+    {
+      title: "▸ WINS",
+      meta: "what worked",
+      fields: [
+        {
+          kind: "textarea",
+          key: "top_ad_win",
+          label: "Best performing ad / angle (and why)",
+          promptPlaceholder: "[TOP AD WIN]",
+          placeholder: "V3 streak-free guarantee UGC — drove 41% of leads at $24 CPL.",
+          minRows: 3,
+          required: true,
+        },
+        {
+          kind: "textarea",
+          key: "record_wins",
+          label: "Record days / weeks",
+          promptPlaceholder: "[RECORD WINS]",
+          placeholder: "May 18 — 14 leads in one day, all-time high.",
+          minRows: 2,
+        },
+        {
+          kind: "textarea",
+          key: "new_winner",
+          label: "New audience or creative that worked",
+          promptPlaceholder: "[NEW WINNER]",
+          placeholder: "First testimonial UGC outperformed studio creative 2x.",
+          minRows: 2,
+        },
+      ],
+    },
+    {
+      title: "▸ CHALLENGES",
+      meta: "what didn't work",
+      fields: [
+        {
+          kind: "textarea",
+          key: "challenges",
+          label: "What didn't work (and what was learned)",
+          promptPlaceholder: "[CHALLENGES]",
+          placeholder: "Long-form video underperformed — audience prefers 15s hooks.",
+          minRows: 3,
+        },
+        {
+          kind: "textarea",
+          key: "external_factors",
+          label: "External factors",
+          promptPlaceholder: "[EXTERNAL FACTORS]",
+          placeholder: "Memorial Day weekend dip · new competitor ad blitz.",
+          minRows: 2,
+        },
+      ],
+    },
+    {
+      title: "▸ NEXT MONTH",
+      meta: "the plan",
+      fields: [
+        {
+          kind: "textarea",
+          key: "next_3_things",
+          label: "3 specific things to do differently",
+          promptPlaceholder: "[NEXT 3 THINGS]",
+          placeholder: "1) Ship 3 testimonial UGCs · 2) Test 7-day retargeting · 3) Kill long-form.",
+          minRows: 3,
+          required: true,
+        },
+        {
+          kind: "textarea",
+          key: "new_angles",
+          label: "New creative angles to test",
+          promptPlaceholder: "[NEW ANGLES]",
+          placeholder: "Before/after splits · veteran-owned story · neighbor referral.",
+          minRows: 2,
+        },
+        {
+          kind: "text",
+          key: "budget_rec",
+          label: "Budget recommendation",
+          promptPlaceholder: "[BUDGET REC]",
+          placeholder: "Scale to $200/day, hold for 14 days.",
+        },
+      ],
+    },
+    {
+      title: "▸ THE ASK",
+      meta: "one clear recommendation",
+      fields: [
+        {
+          kind: "textarea",
+          key: "recommendation",
+          label: "Recommendation",
+          promptPlaceholder: "[RECOMMENDATION]",
+          placeholder: "Increase monthly ad budget to $6k — current scale is bottlenecked by spend, not demand.",
+          minRows: 3,
+          required: true,
+        },
+      ],
+    },
+  ],
+  promptTemplate: `Output the following monthly performance report exactly as written below, substituting the values in place. Preserve all spacing, line breaks, emojis, and the column alignment in the MoM table. No preamble, no commentary, no closing remarks — just the report itself.
+
+📊 MONTHLY PERFORMANCE REPORT — [MONTH YEAR]
+[BUSINESS NAME] | Prepared by Jake Hauck
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📈 THE BIG NUMBERS
+• Total Ad Spend: $[SPEND THIS]
+• Total Leads Generated: [LEADS THIS]
+• Cost Per Lead: $[CPL THIS]
+• Estimated Revenue from Ads: $[REVENUE THIS]
+• Return on Ad Spend (ROAS): [ROAS]x
+
+📊 MONTH-OVER-MONTH COMPARISON
+             This Month    Last Month    Change
+Spend:       $[SPEND THIS]          $[SPEND LAST]          [SPEND CHANGE]
+Leads:       [LEADS THIS]           [LEADS LAST]           [LEADS CHANGE]
+CPL:         $[CPL THIS]          $[CPL LAST]          [CPL CHANGE]
+Revenue:     $[REVENUE THIS]          $[REVENUE LAST]          [REVENUE CHANGE]
+
+🏆 WINS THIS MONTH
+• [TOP AD WIN]
+• [RECORD WINS]
+• [NEW WINNER]
+
+📉 CHALLENGES
+• [CHALLENGES]
+• [EXTERNAL FACTORS]
+
+🎯 NEXT MONTH PLAN
+• [NEXT 3 THINGS]
+• [NEW ANGLES]
+• [BUDGET REC]
+
+💡 RECOMMENDATION
+[RECOMMENDATION]`,
+  defaultTitle: "Monthly ads report",
+};
+
 // Ordered to match the onboarding sequence (onboardingPlan.ts):
 // 1. Close the Deal  → 2. Onboarding Call  → 3. Technical Setup
 // 4. Creative Production  → 5. Campaign Build + QA  → 6. Launch + Monitor
@@ -1279,6 +1925,10 @@ export const ALL_FORM_CONFIGS: FormConfig[] = [
   OPTIMIZER_CONFIG,
   HOOKS,
   CREATIVE_BRIEF,
+  AD_COPY,
+  AUDIENCE_RESEARCH,
+  WEEKLY_REPORT,
+  MONTHLY_REPORT,
 ];
 
 export type FormSurfaceId = (typeof ALL_FORM_CONFIGS)[number]["id"];
@@ -1296,19 +1946,30 @@ export type FormMiscGroup = {
   forms: FormConfig[];
 };
 
+export type FormReportsGroup = {
+  forms: FormConfig[];
+};
+
 export type FormGroups = {
   phaseGroups: FormPhaseGroup[];
   miscGroup: FormMiscGroup | null;
+  reportsGroup: FormReportsGroup | null;
 };
 
-/** Group a list of form configs into phase buckets + a single misc bucket.
- *  Phase buckets sort ascending by phase; misc rendered last by the UI. */
+/** Group a list of form configs into phase buckets + a misc bucket + a reports bucket.
+ *  Phase buckets sort ascending by phase; misc + reports rendered last by the UI. */
 export function groupFormsByCategory(configs: FormConfig[]): FormGroups {
   const phaseGroups: FormPhaseGroup[] = [];
   const miscForms: FormConfig[] = [];
+  const reportForms: FormConfig[] = [];
   for (const cfg of configs) {
-    if ((cfg.category ?? "phase") === "misc") {
+    const category = cfg.category ?? "phase";
+    if (category === "misc") {
       miscForms.push(cfg);
+      continue;
+    }
+    if (category === "reports") {
+      reportForms.push(cfg);
       continue;
     }
     if (cfg.phase === undefined) continue;
@@ -1328,6 +1989,7 @@ export function groupFormsByCategory(configs: FormConfig[]): FormGroups {
   return {
     phaseGroups,
     miscGroup: miscForms.length > 0 ? { forms: miscForms } : null,
+    reportsGroup: reportForms.length > 0 ? { forms: reportForms } : null,
   };
 }
 

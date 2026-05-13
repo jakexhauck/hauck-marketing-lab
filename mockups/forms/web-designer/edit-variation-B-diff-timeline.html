@@ -1,0 +1,638 @@
+<!--
+  Web Designer — Edit View · Variation B (Diff timeline)
+  Chat left with inline change-cards. Preview right with a version
+  timeline rail underneath. Emphasis on "what changed" and quick revert.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HML OS · Web Designer · Edit (B)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #0a0c12;
+    --bg-deep: #0e1119;
+    --bg-surface: #141823;
+    --bg-elev: #1a1f2d;
+    --bg-input: #0f131c;
+    --border: rgba(180, 200, 240, 0.07);
+    --border-strong: rgba(180, 200, 240, 0.15);
+    --border-focus: rgba(94, 234, 212, 0.5);
+    --text: #eef1f7;
+    --text-mid: #c5ccdb;
+    --text-muted: #8d96a8;
+    --text-faint: #5a6378;
+    --signal-go: #5fe699;
+    --signal-warn: #fbbf24;
+    --signal-stop: #f87171;
+    --agent: #5eead4;
+    --agent-glow: rgba(94, 234, 212, 0.3);
+    --agent-soft: rgba(94, 234, 212, 0.08);
+    --sans: 'Hanken Grotesk', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-void);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.55;
+    height: 100vh;
+    overflow: hidden;
+  }
+  body {
+    background:
+      radial-gradient(ellipse at top, rgba(94, 234, 212, 0.04), transparent 60%),
+      var(--bg-void);
+  }
+
+  .topbar {
+    height: 44px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10, 12, 18, 0.92);
+    backdrop-filter: blur(14px);
+    display: flex; align-items: center;
+    padding: 0 32px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .topbar .right { margin-left: auto; display: flex; gap: 22px; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 12px; color: var(--text); font-weight: 600; }
+  .brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--agent); box-shadow: 0 0 10px var(--agent-glow); }
+  .brand .sep { color: var(--text-faint); margin: 0 4px; font-weight: 400; }
+  .brand .client { color: var(--text-mid); font-weight: 500; }
+  .brand .stage { color: var(--agent); font-weight: 500; }
+  .back-link {
+    color: var(--text-faint);
+    background: none; border: none;
+    font-family: inherit; font-size: inherit;
+    letter-spacing: inherit; text-transform: inherit;
+    cursor: pointer;
+    margin-right: 22px;
+  }
+  .back-link:hover { color: var(--agent); }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 440px 1fr;
+    height: calc(100vh - 44px);
+  }
+
+  /* ── CHAT COL ─── */
+  .chat-col {
+    border-right: 1px solid var(--border);
+    background: var(--bg-deep);
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .chat-head {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .chat-head .title { font-size: 15.5px; font-weight: 600; margin-bottom: 3px; }
+  .chat-head .sub { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+  .chat-head .sub .f { color: var(--agent); }
+
+  .chat-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 22px;
+  }
+
+  .turn { margin-bottom: 22px; }
+  .turn-meta {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .turn-meta .who { color: var(--text-mid); font-weight: 600; }
+  .turn-meta .who.agent { color: var(--agent); }
+  .turn-meta .v {
+    margin-left: auto;
+    color: var(--agent);
+    font-weight: 600;
+  }
+
+  .bubble {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    color: var(--text);
+  }
+  .turn.user .bubble { background: var(--bg-elev); }
+
+  /* diff card */
+  .diff-card {
+    margin-top: 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .diff-head {
+    padding: 9px 12px;
+    background: rgba(94,234,212,0.04);
+    border-bottom: 1px solid var(--border-strong);
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--agent);
+  }
+  .diff-head .count {
+    color: var(--text-faint);
+    margin-left: auto;
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+  }
+  .diff-row {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .diff-row:last-child { border-bottom: none; }
+  .diff-row .where {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .diff-old {
+    color: var(--text-faint);
+    text-decoration: line-through;
+    text-decoration-color: rgba(248,113,113,0.4);
+  }
+  .diff-new {
+    color: var(--text);
+  }
+  .diff-arrow {
+    color: var(--agent);
+    margin: 0 6px;
+    font-family: var(--mono);
+  }
+  .diff-actions {
+    padding: 9px 12px;
+    display: flex; gap: 8px;
+    background: rgba(0,0,0,0.2);
+  }
+  .da-btn {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .da-btn:hover { color: var(--text); border-color: var(--border-focus); }
+  .da-btn.revert { color: var(--signal-warn); border-color: rgba(251,191,36,0.3); }
+  .da-btn.revert:hover { color: var(--signal-warn); border-color: var(--signal-warn); }
+  .da-btn.keep {
+    margin-left: auto;
+    color: var(--signal-go);
+    border-color: rgba(95,230,153,0.3);
+  }
+
+  .quick-acts {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin: 0 22px 14px;
+  }
+  .qa {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    padding: 6px 10px;
+    border-radius: 14px;
+    cursor: pointer;
+  }
+  .qa:hover { color: var(--agent); border-color: var(--border-focus); }
+
+  /* composer */
+  .composer {
+    border-top: 1px solid var(--border);
+    padding: 14px 20px 18px;
+    background: var(--bg-deep);
+  }
+  .composer-row1 {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 10px;
+  }
+  .skill-toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 6px 11px;
+    cursor: pointer;
+  }
+  .st-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--agent); box-shadow: 0 0 6px var(--agent-glow); }
+  .st-name { font-size: 12px; color: var(--text-mid); font-weight: 500; }
+  .skill-toggle.off { opacity: 0.6; }
+  .skill-toggle.off .st-dot { background: var(--text-faint); box-shadow: none; }
+  .composer-row1 .meta {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: var(--mono);
+  }
+
+  .composer-box {
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 11px 14px;
+    transition: border-color 0.15s;
+  }
+  .composer-box:focus-within { border-color: var(--border-focus); }
+  .composer-box textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13.5px;
+    resize: none;
+    outline: none;
+    min-height: 44px;
+  }
+  .composer-actions {
+    display: flex; gap: 8px; align-items: center;
+    margin-top: 8px;
+  }
+  .composer-actions .send {
+    margin-left: auto;
+    background: var(--agent);
+    color: #042720;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 0 16px var(--agent-glow);
+  }
+  .composer-actions .hint { font-size: 11px; color: var(--text-faint); font-family: var(--mono); }
+
+  /* ── PREVIEW COL ── */
+  .preview-col {
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .preview-tools {
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(10,12,18,0.6);
+  }
+  .vp-seg {
+    display: inline-flex; gap: 2px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 3px;
+  }
+  .vp-opt {
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .vp-opt.active { background: var(--bg-elev); color: var(--agent); }
+  .tool {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .tool:hover { color: var(--agent); border-color: var(--border-focus); }
+  .preview-tools .r { margin-left: auto; }
+
+  .frame-wrap {
+    flex: 1;
+    padding: 18px 26px;
+    overflow: auto;
+  }
+  .frame {
+    background: #0a0a0a;
+    border-radius: 10px;
+    border: 1px solid var(--border-strong);
+    overflow: hidden;
+    height: 100%;
+    min-height: 520px;
+  }
+  .fs {
+    padding: 50px 44px 30px;
+    color: #eee;
+    font-family: 'Inter', var(--sans);
+    height: 100%;
+    overflow-y: auto;
+  }
+  .fs-hero { text-align: center; padding: 40px 0 50px; }
+  .fs-eyebrow { color: #fb7185; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 14px; }
+  .fs-h1 { font-size: 38px; line-height: 1.1; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 14px; max-width: 540px; margin: 0 auto 14px; }
+  .fs-sub { color: #999; font-size: 14px; max-width: 460px; margin: 0 auto 24px; }
+  .fs-cta { display: inline-block; background: #fb7185; color: #310a14; padding: 12px 26px; border-radius: 6px; font-weight: 600; font-size: 14px; }
+  .fs-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .fs-card { background: #15171c; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 16px; }
+  .fs-icon { width: 26px; height: 26px; background: rgba(251,113,133,0.18); border-radius: 6px; margin-bottom: 12px; }
+  .fs-card h3 { font-size: 13.5px; margin-bottom: 5px; font-weight: 600; }
+  .fs-card p { font-size: 12px; color: #888; line-height: 1.5; }
+
+  /* version timeline */
+  .timeline {
+    border-top: 1px solid var(--border);
+    background: var(--bg-deep);
+    padding: 14px 26px;
+  }
+  .timeline-head {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 10px;
+  }
+  .timeline-head h4 {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-weight: 600;
+  }
+  .timeline-head .info {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: var(--mono);
+  }
+  .timeline-head .compare {
+    margin-left: auto;
+    font-size: 11.5px;
+    color: var(--agent);
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(94,234,212,0.3);
+  }
+  .timeline-rail {
+    display: flex; gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .v-node {
+    flex-shrink: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    padding: 10px 13px;
+    min-width: 150px;
+    cursor: pointer;
+    transition: border-color 0.12s;
+  }
+  .v-node:hover { border-color: var(--text-faint); }
+  .v-node.active {
+    border-color: var(--agent);
+    background: var(--agent-soft);
+    box-shadow: 0 0 0 1px var(--agent-glow);
+  }
+  .v-node .vn-tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--agent);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .v-node.active .vn-tag { color: var(--agent); }
+  .v-node .vn-desc {
+    font-size: 12px;
+    color: var(--text-mid);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 4px;
+  }
+  .v-node .vn-time {
+    font-size: 10.5px;
+    color: var(--text-faint);
+    font-family: var(--mono);
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="back-link">‹ Back</button>
+  <div class="brand">
+    <span class="brand-dot"></span>
+    HML OS
+    <span class="sep">/</span>
+    <span class="client">Willis Windows</span>
+    <span class="sep">/</span>
+    <span class="stage">Web Designer · Edit</span>
+  </div>
+  <div class="right"><span>⌘K</span></div>
+</div>
+
+<div class="shell">
+
+  <!-- ── CHAT ── -->
+  <div class="chat-col">
+    <div class="chat-head">
+      <div class="title">Iterate</div>
+      <div class="sub">▸ <span class="f">miamiSmilesDental-website.html</span> · v3</div>
+    </div>
+
+    <div class="chat-scroll">
+
+      <div class="turn user">
+        <div class="turn-meta"><span class="who">Sir</span><span>· 14:25</span></div>
+        <div class="bubble">Hero headline punchier. Lead with the outcome.</div>
+      </div>
+
+      <div class="turn agent">
+        <div class="turn-meta"><span class="who agent">Web Designer</span><span>· 14:25</span><span class="v">v2</span></div>
+        <div class="bubble">Rewrote the hero. New copy leads with the booking outcome and tightens the subhead.</div>
+        <div class="diff-card">
+          <div class="diff-head">
+            <span>◆ 2 changes</span>
+            <span class="count">hero section · 4 lines</span>
+          </div>
+          <div class="diff-row">
+            <div class="where">Hero · h1</div>
+            <span class="diff-old">A Brighter Smile, Same Week.</span>
+            <span class="diff-arrow">→</span>
+            <span class="diff-new">Book a Dentist Today. Smile Tomorrow.</span>
+          </div>
+          <div class="diff-row">
+            <div class="where">Hero · CTA</div>
+            <span class="diff-old">Book a free consult →</span>
+            <span class="diff-arrow">→</span>
+            <span class="diff-new">Book in 60 seconds →</span>
+          </div>
+          <div class="diff-actions">
+            <button class="da-btn revert">↶ Revert</button>
+            <button class="da-btn">Show diff</button>
+            <button class="da-btn keep">Keep ✓</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="turn user">
+        <div class="turn-meta"><span class="who">Sir</span><span>· 14:26</span></div>
+        <div class="bubble">Swap the accent for a warmer coral.</div>
+      </div>
+
+      <div class="turn agent">
+        <div class="turn-meta"><span class="who agent">Web Designer</span><span>· 14:26</span><span class="v">v3</span></div>
+        <div class="bubble">Swapped the accent token. Updated CTA, eyebrow, hover states, and icon backgrounds to match.</div>
+        <div class="diff-card">
+          <div class="diff-head">
+            <span>◆ 5 changes</span>
+            <span class="count">accent token · 5 selectors</span>
+          </div>
+          <div class="diff-row">
+            <div class="where">:root · --accent</div>
+            <span class="diff-old">#3B82F6</span>
+            <span class="diff-arrow">→</span>
+            <span class="diff-new">#FB7185</span>
+          </div>
+          <div class="diff-row">
+            <div class="where">.cta · color</div>
+            <span class="diff-old">#3B82F6 → #1e293b</span>
+            <span class="diff-arrow">→</span>
+            <span class="diff-new">#FB7185 → #310a14</span>
+          </div>
+          <div class="diff-actions">
+            <button class="da-btn revert">↶ Revert</button>
+            <button class="da-btn">Show diff</button>
+            <button class="da-btn keep">Keep ✓</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="quick-acts">
+      <span class="qa">+ Add FAQ</span>
+      <span class="qa">+ Add testimonial</span>
+      <span class="qa">Tighten spacing</span>
+      <span class="qa">Run mobile check</span>
+    </div>
+
+    <div class="composer">
+      <div class="composer-row1">
+        <div class="skill-toggle"><span class="st-dot"></span><span class="st-name">Web Designer</span></div>
+        <div class="skill-toggle off"><span class="st-dot"></span><span class="st-name">+ Design polish</span></div>
+        <span class="meta">v3 · saved</span>
+      </div>
+      <div class="composer-box">
+        <textarea placeholder="What should change next?"></textarea>
+        <div class="composer-actions">
+          <span class="hint">⌘↵ to send</span>
+          <button class="send">Send →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PREVIEW ── -->
+  <div class="preview-col">
+    <div class="preview-tools">
+      <div class="vp-seg">
+        <div class="vp-opt active">Desktop</div>
+        <div class="vp-opt">Tablet</div>
+        <div class="vp-opt">Mobile · 375</div>
+      </div>
+      <button class="tool r">↻ Reload</button>
+      <button class="tool">Open in browser</button>
+      <button class="tool">Export</button>
+    </div>
+    <div class="frame-wrap">
+      <div class="frame">
+        <div class="fs">
+          <div class="fs-hero">
+            <div class="fs-eyebrow">▸ Miami's Top-Rated Dental Practice</div>
+            <div class="fs-h1">Book a Dentist Today. Smile Tomorrow.</div>
+            <div class="fs-sub">Modern dental care in the heart of Miami. Walk-ins welcome, financing available, and a smile guarantee on every visit.</div>
+            <div class="fs-cta">Book in 60 seconds →</div>
+          </div>
+          <div class="fs-grid">
+            <div class="fs-card">
+              <div class="fs-icon"></div>
+              <h3>Cosmetic Dentistry</h3>
+              <p>Veneers, whitening, and smile makeovers designed around you.</p>
+            </div>
+            <div class="fs-card">
+              <div class="fs-icon"></div>
+              <h3>Family Care</h3>
+              <p>Cleanings, fillings, and check-ups for every age.</p>
+            </div>
+            <div class="fs-card">
+              <div class="fs-icon"></div>
+              <h3>Emergency Visits</h3>
+              <p>Same-day appointments when you need them most.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- timeline -->
+    <div class="timeline">
+      <div class="timeline-head">
+        <h4>Versions</h4>
+        <span class="info">auto-saved · 4 of 4 on disk</span>
+        <span class="compare">Compare versions ↗</span>
+      </div>
+      <div class="timeline-rail">
+        <div class="v-node">
+          <div class="vn-tag">v1 · BUILD</div>
+          <div class="vn-desc">Initial generation</div>
+          <div class="vn-time">14:22</div>
+        </div>
+        <div class="v-node">
+          <div class="vn-tag">v2 · EDIT</div>
+          <div class="vn-desc">Punchier hero copy</div>
+          <div class="vn-time">14:25</div>
+        </div>
+        <div class="v-node active">
+          <div class="vn-tag">v3 · EDIT</div>
+          <div class="vn-desc">Coral accent palette</div>
+          <div class="vn-time">14:26</div>
+        </div>
+        <div class="v-node" style="opacity:0.5">
+          <div class="vn-tag">v4 · DRAFT</div>
+          <div class="vn-desc">Unsent edit</div>
+          <div class="vn-time">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

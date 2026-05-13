@@ -20,6 +20,48 @@ function fieldValueForPrompt(field: FormField, value: unknown): string {
   return s.length > 0 ? s : "(unspecified)";
 }
 
+/** Template-mode value renderer: empty values collapse to empty string so the
+ *  surrounding template literals (e.g. "$[SPEND LAST]") stay clean even when
+ *  the field is unfilled. Diverges from `fieldValueForPrompt`, which uses
+ *  "(unspecified)" for the scaffolded prompt mode. */
+function templateValueForPrompt(field: FormField, value: unknown): string {
+  if (value === undefined || value === null) return "";
+  if (field.kind === "multi") {
+    const arr = Array.isArray(value) ? (value as string[]) : [];
+    return arr.join(", ");
+  }
+  return String(value).trim();
+}
+
+/** Render a verbatim prompt template, substituting each field's
+ *  `promptPlaceholder` with its current value. The template is shipped as-is
+ *  with no surrounding persona/brief/output scaffolding — use this for prompts
+ *  you've authored end-to-end. Unmatched placeholders are left untouched.
+ *
+ *  Built-in placeholders (no form field needed):
+ *  - [CLIENT NAME] / [CLIENT_NAME] — the active client's name.
+ *  - [BUSINESS NAME] / [BUSINESS_NAME] — alias for the active client's name. */
+function renderPromptTemplate(
+  template: string,
+  config: FormConfig,
+  values: FormValues,
+  clientName: string,
+): string {
+  let out = template;
+  for (const section of config.sections) {
+    for (const f of section.fields) {
+      const token = f.promptPlaceholder;
+      if (!token) continue;
+      const value = templateValueForPrompt(f, values[f.key]);
+      out = out.split(token).join(value);
+    }
+  }
+  for (const alias of ["[CLIENT NAME]", "[CLIENT_NAME]", "[BUSINESS NAME]", "[BUSINESS_NAME]"]) {
+    out = out.split(alias).join(clientName);
+  }
+  return out;
+}
+
 export function assembleGenericPrompt(opts: {
   config: FormConfig;
   values: FormValues;
@@ -29,6 +71,14 @@ export function assembleGenericPrompt(opts: {
   knowledgeChunks?: KnowledgeChunk[];
 }): string {
   const { config, values, agentBody, clientName, driveContext, knowledgeChunks } = opts;
+
+  // Template mode: ship the authored prompt verbatim with placeholder
+  // substitution. No persona / brief / output scaffolding is added — the
+  // template is treated as the complete prompt.
+  if (config.promptTemplate) {
+    return renderPromptTemplate(config.promptTemplate, config, values, clientName);
+  }
+
   const lines: string[] = [];
 
   lines.push(
@@ -87,7 +137,7 @@ export function assembleGenericPrompt(opts: {
   lines.push("");
   lines.push("## Task");
   lines.push("");
-  lines.push(config.taskDescription.trim());
+  lines.push((config.taskDescription ?? "").trim());
 
   lines.push("");
   lines.push("## Required output format");
@@ -97,10 +147,10 @@ export function assembleGenericPrompt(opts: {
   );
   lines.push("");
   lines.push("```json");
-  lines.push(config.outputSchema.trim());
+  lines.push((config.outputSchema ?? "").trim());
   lines.push("```");
   lines.push("");
-  lines.push(config.outputInstructions.trim());
+  lines.push((config.outputInstructions ?? "").trim());
 
   return lines.join("\n");
 }
