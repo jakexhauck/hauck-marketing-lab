@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hauck Marketing Lab — Dashboard (Variation A · Hub Launcher)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../restructure/styles.css">
+<style>
+  /* ───────── Variation A · Hub Launcher (mockup-local styles only) ───────── */
+
+  /* Tight greeting strip — replaces the chunky greeting card. */
+  .hub-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    padding: 0 2px;
+  }
+
+  .hub-strip-left {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .hub-strip-greeting {
+    font-size: 14px;
+    color: var(--text-secondary);
+    letter-spacing: -0.005em;
+  }
+
+  .hub-strip-greeting .em {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .hub-strip-divider {
+    width: 1px;
+    height: 12px;
+    background: var(--border);
+  }
+
+  .hub-strip-date {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+  }
+
+  .hub-strip-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+  }
+
+  .sync-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sync-status .dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(127, 178, 133, 0.5);
+  }
+
+  /* ───────── Hub grid ─────────
+     4 cols × 2 rows, with hero tiles spanning 2 cols. */
+  .hub-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: minmax(0, auto);
+    gap: 16px;
+  }
+
+  .hub-tile {
+    position: relative;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 22px 22px 20px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
+    display: flex;
+    flex-direction: column;
+    min-height: 180px;
+  }
+
+  .hub-tile:hover {
+    border-color: var(--accent-border);
+    transform: translateY(-1px);
+    background: var(--bg-elev-2);
+  }
+
+  .hub-tile::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 320px; height: 320px;
+    background: radial-gradient(circle at 100% 0%, rgba(212, 165, 116, 0.07) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+  }
+
+  .hub-tile:hover::before { opacity: 1; }
+
+  .hub-tile.hero {
+    grid-column: span 2;
+    min-height: 240px;
+    padding: 26px 28px 24px;
+  }
+
+  /* The hero tiles get a softer ambient glow so they feel like covers. */
+  .hub-tile.hero::after {
+    content: '';
+    position: absolute;
+    bottom: -40%; left: -10%;
+    width: 460px; height: 460px;
+    background: radial-gradient(circle, rgba(212, 165, 116, 0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .hub-tile.medium { grid-column: span 2; }
+  .hub-tile.small { grid-column: span 1; }
+
+  /* Tile chrome */
+  .tile-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .tile-icon {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .hub-tile.hero .tile-icon {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+  }
+
+  .tile-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 2px;
+  }
+
+  .tile-title {
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: -0.018em;
+    color: var(--text-primary);
+    line-height: 1.15;
+  }
+
+  .hub-tile.hero .tile-title {
+    font-size: 22px;
+    letter-spacing: -0.025em;
+  }
+
+  /* Body — varies per tile type */
+  .tile-body { flex: 1; display: flex; flex-direction: column; }
+
+  /* Hero stat row */
+  .tile-stat-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 28px;
+    margin: 8px 0 18px;
+  }
+
+  .tile-stat-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .tile-stat-num {
+    font-size: 34px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    line-height: 1;
+    font-feature-settings: "tnum" 1;
+  }
+
+  .tile-stat-num .accent { color: var(--accent); }
+  .tile-stat-num .muted { color: var(--text-tertiary); font-size: 18px; font-weight: 400; margin-left: 4px; }
+
+  .tile-stat-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+  }
+
+  /* Avatars strip (clients hub) */
+  .avatar-strip {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: auto;
+  }
+
+  .avatar-strip .av {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    letter-spacing: -0.02em;
+    margin-left: -8px;
+    background: var(--bg-elev-3);
+    color: var(--text-secondary);
+    box-shadow: 0 0 0 2px var(--bg-elev-1);
+    position: relative;
+  }
+
+  .hub-tile.hero:hover .avatar-strip .av {
+    box-shadow: 0 0 0 2px var(--bg-elev-2);
+  }
+
+  .avatar-strip .av:first-child { margin-left: 0; }
+
+  .avatar-strip .av.willis {
+    background: linear-gradient(135deg, #3a2e22, #1f1a14);
+    color: var(--accent);
+  }
+  .avatar-strip .av.acme {
+    background: linear-gradient(135deg, #3a342a, #241f1a);
+    color: var(--amber);
+  }
+  .avatar-strip .av.bright {
+    background: linear-gradient(135deg, #2a3a3a, #1a2424);
+    color: var(--teal);
+  }
+
+  .avatar-strip-meta {
+    margin-left: 14px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+  }
+
+  /* Funnel bar (outreach hero) */
+  .funnel {
+    display: flex;
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--bg-elev-3);
+    margin: 4px 0 12px;
+  }
+
+  .funnel .seg {
+    height: 100%;
+  }
+  .funnel .seg.scraped { background: rgba(123, 168, 196, 0.55); flex: 12; }
+  .funnel .seg.mockup  { background: rgba(212, 165, 116, 0.70); flex: 4; }
+  .funnel .seg.booked  { background: rgba(127, 178, 133, 0.70); flex: 2; }
+
+  .funnel-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: auto;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+  }
+
+  .funnel-legend .item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .funnel-legend .swatch {
+    width: 7px; height: 7px;
+    border-radius: 2px;
+  }
+
+  .funnel-legend .swatch.scraped { background: rgba(123, 168, 196, 0.7); }
+  .funnel-legend .swatch.mockup  { background: rgba(212, 165, 116, 0.85); }
+  .funnel-legend .swatch.booked  { background: rgba(127, 178, 133, 0.85); }
+
+  .funnel-legend .v { color: var(--text-secondary); font-weight: 500; }
+
+  /* Medium / small tile body */
+  .tile-line {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    letter-spacing: -0.003em;
+  }
+
+  .tile-line .em { color: var(--text-primary); font-weight: 500; }
+  .tile-line .accent-em { color: var(--accent); font-weight: 500; }
+  .tile-line .dim { color: var(--text-tertiary); }
+
+  .tile-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 14px;
+  }
+
+  .tile-meta {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .tile-cta {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-quaternary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.18s ease;
+  }
+
+  .hub-tile:hover .tile-cta { color: var(--accent); }
+
+  .tile-cta .arrow {
+    transition: transform 0.18s ease;
+  }
+
+  .hub-tile:hover .tile-cta .arrow { transform: translateX(3px); }
+
+  /* Small tile — compact */
+  .hub-tile.small { padding: 18px 18px 16px; min-height: 158px; }
+  .hub-tile.small .tile-head { margin-bottom: 12px; }
+  .hub-tile.small .tile-icon { width: 30px; height: 30px; border-radius: 8px; }
+  .hub-tile.small .tile-title { font-size: 14.5px; }
+  .hub-tile.small .tile-stat-num { font-size: 24px; }
+
+  /* Make the content padding a touch tighter for this dense layout. */
+  .content.hub-content {
+    padding: 24px 30px 56px;
+    max-width: 1280px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">H</div>
+      <div class="brand-name">
+        Hauck Marketing
+        <span class="sub">Lab · v1.4</span>
+      </div>
+    </div>
+
+    <div class="sidebar-search">
+      <div class="search-bar">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span class="placeholder">Search…</span>
+        <span class="kbd">⌘K</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+
+      <!-- Workspace -->
+      <div class="nav-section">
+        <div class="section-label"><span>Workspace</span></div>
+        <div class="nav-item active">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Calendar
+          <span class="badge">2</span>
+        </div>
+        <div class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3l8 -8"/><path d="M21 12v7a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h11"/></svg>
+          Tasks
+          <span class="badge">5</span>
+        </div>
+        <div class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          Recordings
+        </div>
+        <div class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          SOPs
+        </div>
+      </div>
+
+      <!-- Clients (expanded) -->
+      <div class="nav-section nav-group expanded">
+        <div class="section-label" style="cursor:pointer;">
+          <span style="display:inline-flex;align-items:center;gap:6px;">
+            <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(90deg);"><polyline points="9 18 15 12 9 6"/></svg>
+            Clients
+          </span>
+          <span class="count">3</span>
+        </div>
+
+        <div class="nav-item">
+          <span class="client-avatar" style="width:18px;height:18px;font-size:9.5px;border-radius:4px;">W</span>
+          Willis Windows
+          <span class="pill green" style="margin-left:auto;padding:1px 6px;font-size:9px;"><span class="pill-dot"></span>Live</span>
+        </div>
+        <div class="nav-item">
+          <span class="client-avatar" style="width:18px;height:18px;font-size:9.5px;border-radius:4px;background:linear-gradient(135deg,#3a342a,#241f1a);color:var(--amber);">A</span>
+          Acme Roofing
+          <span class="pill amber" style="margin-left:auto;padding:1px 6px;font-size:9px;"><span class="pill-dot"></span>Pre</span>
+        </div>
+        <div class="nav-item">
+          <span class="client-avatar" style="width:18px;height:18px;font-size:9.5px;border-radius:4px;background:linear-gradient(135deg,#2a3a3a,#1a2424);color:var(--teal);">B</span>
+          Bright Smile Dental
+          <span class="pill amber" style="margin-left:auto;padding:1px 6px;font-size:9px;"><span class="pill-dot"></span>Pre</span>
+        </div>
+
+        <div class="nav-add">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add client
+        </div>
+      </div>
+
+      <!-- Outreach (collapsed) -->
+      <div class="nav-section nav-group">
+        <div class="section-label" style="cursor:pointer;">
+          <span style="display:inline-flex;align-items:center;gap:6px;">
+            <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            Outreach
+          </span>
+          <span class="count">12</span>
+        </div>
+        <!-- Children hidden — section is collapsed. -->
+      </div>
+
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-avatar">JH</div>
+      <div class="user-info">
+        <div class="user-name">Jake Hauck</div>
+        <div class="user-status">
+          <span class="status-dot"></span>
+          Aurelius online
+        </div>
+      </div>
+      <div class="sidebar-foot-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83a2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33a1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2a2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0a2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2a2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83a2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2a2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0a2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2a2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <main class="main">
+
+    <header class="topbar">
+      <div class="breadcrumb">
+        <span class="seg">Workspace</span>
+        <span class="sep">/</span>
+        <span class="current">Dashboard</span>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-clock">Wed · 13 May 2026 · 18:42</span>
+        <button class="icon-btn" title="Notifications">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        </button>
+        <button class="btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New</button>
+      </div>
+    </header>
+
+    <div class="content hub-content">
+
+      <!-- Thin greeting / sync strip — no chunky greeting card. -->
+      <section class="hub-strip">
+        <div class="hub-strip-left">
+          <div class="hub-strip-greeting">Good evening, <span class="em">Sir.</span></div>
+          <span class="hub-strip-divider"></span>
+          <div class="hub-strip-date">WED · 13 MAY 2026</div>
+        </div>
+        <div class="hub-strip-right">
+          <span class="sync-status"><span class="dot"></span>Vault synced · 2m ago</span>
+          <span style="color:var(--text-quaternary);">·</span>
+          <span>Aurelius online</span>
+        </div>
+      </section>
+
+      <!-- Hub grid: pick where you're going. -->
+      <section class="hub-grid">
+
+        <!-- ───── Clients hub (hero, spans 2) ───── -->
+        <div class="hub-tile hero">
+          <div class="tile-head">
+            <div class="tile-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+              <div class="tile-eyebrow">Hub</div>
+              <div class="tile-title">Clients</div>
+            </div>
+          </div>
+
+          <div class="tile-body">
+            <div class="tile-stat-row">
+              <div class="tile-stat-block">
+                <div class="tile-stat-num">3</div>
+                <div class="tile-stat-label">Total</div>
+              </div>
+              <div class="tile-stat-block">
+                <div class="tile-stat-num"><span class="accent">1</span></div>
+                <div class="tile-stat-label">Live</div>
+              </div>
+              <div class="tile-stat-block">
+                <div class="tile-stat-num">2</div>
+                <div class="tile-stat-label">Pre-launch</div>
+              </div>
+            </div>
+
+            <div class="avatar-strip">
+              <div class="av willis" title="Willis Windows">W</div>
+              <div class="av acme" title="Acme Roofing">A</div>
+              <div class="av bright" title="Bright Smile Dental">B</div>
+              <span class="avatar-strip-meta">Willis Windows · Acme Roofing · Bright Smile Dental</span>
+            </div>
+
+            <div class="tile-foot">
+              <div class="tile-meta">Last touched · Willis Windows · 2h</div>
+              <div class="tile-cta">
+                Open hub
+                <svg class="arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ───── Outreach hub (hero, spans 2) ───── -->
+        <div class="hub-tile hero">
+          <div class="tile-head">
+            <div class="tile-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            </div>
+            <div>
+              <div class="tile-eyebrow">Hub</div>
+              <div class="tile-title">Outreach</div>
+            </div>
+          </div>
+
+          <div class="tile-body">
+            <div class="tile-stat-row">
+              <div class="tile-stat-block">
+                <div class="tile-stat-num">18</div>
+                <div class="tile-stat-label">Prospects</div>
+              </div>
+              <div class="tile-stat-block">
+                <div class="tile-stat-num"><span class="accent">4</span></div>
+                <div class="tile-stat-label">Mockup ready</div>
+              </div>
+              <div class="tile-stat-block">
+                <div class="tile-stat-num">2</div>
+                <div class="tile-stat-label">Booked calls</div>
+              </div>
+            </div>
+
+            <div class="funnel" aria-hidden="true">
+              <span class="seg scraped"></span>
+              <span class="seg mockup"></span>
+              <span class="seg booked"></span>
+            </div>
+
+            <div class="funnel-legend">
+              <span class="item"><span class="swatch scraped"></span><span class="v">12</span> scraped</span>
+              <span class="item"><span class="swatch mockup"></span><span class="v">4</span> mockup-ready</span>
+              <span class="item"><span class="swatch booked"></span><span class="v">2</span> booked</span>
+            </div>
+
+            <div class="tile-foot">
+              <div class="tile-meta">Newest · Novi Junk Removal · 14m</div>
+              <div class="tile-cta">
+                Open hub
+                <svg class="arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ───── Calendar (medium, spans 2) ───── -->
+        <div class="hub-tile medium">
+          <div class="tile-head">
+            <div class="tile-icon" style="color: var(--blue);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div>
+              <div class="tile-eyebrow">Up next</div>
+              <div class="tile-title">Calendar</div>
+            </div>
+          </div>
+          <div class="tile-body">
+            <div class="tile-line">
+              <span class="em">Willis Windows</span> — weekly sync
+            </div>
+            <div class="tile-line" style="margin-top:4px;">
+              <span class="dim">Tomorrow · 10:00 AM · Google Meet</span>
+            </div>
+            <div class="tile-foot">
+              <div class="tile-meta">2 events this week</div>
+              <div class="tile-cta">
+                Open
+                <svg class="arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ───── Tasks (medium, spans 2) ───── -->
+        <div class="hub-tile medium">
+          <div class="tile-head">
+            <div class="tile-icon" style="color: var(--green);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3l8 -8"/><path d="M21 12v7a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h11"/></svg>
+            </div>
+            <div>
+              <div class="tile-eyebrow">Open</div>
+              <div class="tile-title">Tasks</div>
+            </div>
+          </div>
+          <div class="tile-body">
+            <div class="tile-line">
+              <span class="em">5 open</span> · <span class="accent-em">2 due today</span>
+            </div>
+            <div class="tile-line" style="margin-top:4px;">
+              <span class="dim">Top: Review Acme Roofing onboarding form</span>
+            </div>
+            <div class="tile-foot">
+              <div class="tile-meta">Last completed · 1h ago</div>
+              <div class="tile-cta">
+                Open
+                <svg class="arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ───── Recordings (medium, spans 2) ───── -->
+        <div class="hub-tile medium">
+          <div class="tile-head">
+            <div class="tile-icon" style="color: var(--plum);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            </div>
+            <div>
+              <div class="tile-eyebrow">Latest</div>
+              <div class="tile-title">Recordings</div>
+            </div>
+          </div>
+          <div class="tile-body">
+            <div class="tile-line">
+              <span class="em">Discovery call</span> w/ Willis
+            </div>
+            <div class="tile-line" style="margin-top:4px;">
+              <span class="dim">2 days ago · 47 min · 8 highlights</span>
+            </div>
+            <div class="tile-foot">
+              <div class="tile-meta">14 in library</div>
+              <div class="tile-cta">
+                Open
+                <svg class="arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ───── SOPs (small) ───── -->
+        <div class="hub-tile small">
+          <div class="tile-head">
+            <div class="tile-icon" style="color: var(--teal);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <div>
+              <div class="tile-eyebrow">Library</div>
+              <div class="tile-title">SOPs</div>
+            </div>
+          </div>
+          <div class="tile-body">
+            <div class="tile-stat-num">12<span class="muted">docs</span></div>
+            <div class="tile-foot">
+              <div class="tile-meta">Updated 3d</div>
+              <div class="tile-cta">
+                Open
+                <svg class="arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>

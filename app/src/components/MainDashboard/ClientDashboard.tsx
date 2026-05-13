@@ -3,20 +3,22 @@
  * Media Buying/Website).
  */
 
-import { useEffect, useState } from "react";
-import type { ClientEntry, VaultNote } from "../../lib/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ClientEntry, DashboardState, FathomRecording, VaultNote } from "../../lib/types";
 import type { ClientSection } from "../../lib/navigation";
 import type { FormSurfaceId } from "../../lib/formConfigs";
 import { api } from "../../lib/tauri";
 import { parseDriveFolders, type DriveFolder } from "../../lib/driveIndex";
 import { ClientMediaBuying } from "./ClientMediaBuying";
 import { WebDesignerPage } from "./WebDesignerPage";
+import { recordingsPageCSS } from "./RecordingsPage";
 import {
   IconBarChart,
   IconFolder,
   IconGlobe,
   IconMore,
   IconPen,
+  IconRecordings,
   IconUser,
 } from "../icons";
 
@@ -39,6 +41,7 @@ const TABS: ReadonlyArray<{
   { id: "drive", label: "Drive", Icon: IconFolder },
   { id: "media-buying", label: "Media Buying", Icon: IconBarChart },
   { id: "website", label: "Website", Icon: IconGlobe },
+  { id: "recordings", label: "Recordings", Icon: IconRecordings },
 ];
 
 function clientPill(status: ClientEntry["status"]) {
@@ -158,6 +161,9 @@ export function ClientDashboard({
             clientName={client.name}
           />
         )}
+        {section === "recordings" && (
+          <ClientRecordingsView root={root} clientSlug={client.slug} clientName={client.name} />
+        )}
       </div>
     </div>
   );
@@ -257,6 +263,307 @@ function ClientNoteView({
       >
         {note.body}
       </pre>
+    </div>
+  );
+}
+
+const CLIENT_RECORDINGS_KEY_PREFIX = "hml.recordings.client.";
+const FATHOM_SHARE_RE_CLIENT =
+  /^https?:\/\/(?:[\w-]+\.)?fathom\.video\/(?:share|calls)\/([\w-]+)/i;
+
+function recUid(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function parseFathomUrl(input: string): { url: string; embedUrl: string } | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(FATHOM_SHARE_RE_CLIENT);
+  if (!match) return null;
+  return { url: trimmed, embedUrl: `https://fathom.video/share/${match[1]}` };
+}
+
+function formatRecStamp(ts: number): string {
+  const d = new Date(ts);
+  const date = d.toLocaleDateString(undefined, { day: "2-digit", month: "short" });
+  const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return `${date} · ${time}`.toUpperCase();
+}
+
+function ClientRecordingsView({
+  root,
+  clientSlug,
+  clientName,
+}: {
+  root: string | null;
+  clientSlug: string;
+  clientName: string;
+}) {
+  const [recordings, setRecordings] = useState<FathomRecording[]>([]);
+  const [loading, setLoading] = useState(true);
+  const skipSave = useRef(true);
+  const saveTimer = useRef<number | null>(null);
+
+  const [recUrl, setRecUrl] = useState("");
+  const [recTitle, setRecTitle] = useState("");
+  const [recDescription, setRecDescription] = useState("");
+  const [recError, setRecError] = useState<string | null>(null);
+
+  const lsKey = `${CLIENT_RECORDINGS_KEY_PREFIX}${clientSlug}`;
+
+  useEffect(() => {
+    let cancelled = false;
+    skipSave.current = true;
+    setLoading(true);
+
+    const run = async () => {
+      if (root) {
+        try {
+          const state = await api.readDashboardState(root);
+          if (cancelled) return;
+          const all = Array.isArray(state.recordings) ? state.recordings : [];
+          setRecordings(all.filter((r) => r.clientSlug === clientSlug));
+        } catch (err) {
+          console.warn("Failed to read dashboard state for client recordings:", err);
+          if (!cancelled) {
+            try {
+              const raw = localStorage.getItem(lsKey);
+              setRecordings(raw ? JSON.parse(raw) : []);
+            } catch {
+              setRecordings([]);
+            }
+          }
+        }
+      } else {
+        try {
+          const raw = localStorage.getItem(lsKey);
+          if (!cancelled) setRecordings(raw ? JSON.parse(raw) : []);
+        } catch {
+          if (!cancelled) setRecordings([]);
+        }
+      }
+      if (!cancelled) setLoading(false);
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, clientSlug, lsKey]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (skipSave.current) {
+      skipSave.current = false;
+      return;
+    }
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      const persist = async () => {
+        if (root) {
+          try {
+            const current = await api.readDashboardState(root);
+            const others = (current.recordings ?? []).filter(
+              (r) => r.clientSlug !== clientSlug,
+            );
+            const next: DashboardState = {
+              tasks: Array.isArray(current.tasks) ? current.tasks : [],
+              notes: Array.isArray(current.notes) ? current.notes : [],
+              calendar: current.calendar ?? null,
+              recordings: [...others, ...recordings],
+            };
+            await api.writeDashboardState(root, next);
+          } catch (err) {
+            console.warn("Failed to write client recordings:", err);
+          }
+        } else {
+          try {
+            localStorage.setItem(lsKey, JSON.stringify(recordings));
+          } catch (err) {
+            console.warn("Failed to write client recordings to localStorage:", err);
+          }
+        }
+      };
+      void persist();
+    }, 400);
+    return () => {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    };
+  }, [recordings, root, loading, clientSlug, lsKey]);
+
+  const sortedRecordings = useMemo(
+    () => [...recordings].sort((a, b) => b.createdAt - a.createdAt),
+    [recordings],
+  );
+
+  const recUrlValid = !recUrl.trim() || parseFathomUrl(recUrl) !== null;
+
+  const addRecording = () => {
+    const parsed = parseFathomUrl(recUrl);
+    if (!parsed) {
+      setRecError("Paste a fathom.video share link.");
+      return;
+    }
+    const title = recTitle.trim();
+    if (!title) {
+      setRecError("Add a title before saving.");
+      return;
+    }
+    const description = recDescription.trim();
+    const rec: FathomRecording = {
+      id: recUid(),
+      url: parsed.url,
+      title,
+      description: description || undefined,
+      createdAt: Date.now(),
+      clientSlug,
+    };
+    setRecordings((prev) => [rec, ...prev]);
+    setRecUrl("");
+    setRecTitle("");
+    setRecDescription("");
+    setRecError(null);
+  };
+
+  const removeRecording = (id: string) => {
+    const rec = recordings.find((r) => r.id === id);
+    const label = rec?.title || "this recording";
+    if (!window.confirm(`Delete "${label}"?`)) return;
+    setRecordings((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const updateRecordingTitle = (id: string, title: string) => {
+    setRecordings((prev) => prev.map((r) => (r.id === id ? { ...r, title } : r)));
+  };
+
+  const updateRecordingDescription = (id: string, description: string) => {
+    setRecordings((prev) =>
+      prev.map((r) =>
+        r.id === id ? { ...r, description: description || undefined } : r,
+      ),
+    );
+  };
+
+  return (
+    <div className="md-recordings-page">
+      <style>{recordingsPageCSS}</style>
+
+      <div className="md-panel md-recordings-panel">
+        <div className="md-panel-head">
+          <span className="md-panel-title">▸ New Recording — {clientName}</span>
+          <span className="md-panel-meta">{recordings.length} SAVED</span>
+        </div>
+
+        <div className="md-rec-form">
+          <input
+            className={`md-rec-input ${recUrl && !recUrlValid ? "is-invalid" : ""}`}
+            type="url"
+            placeholder="Paste fathom.video link…"
+            value={recUrl}
+            onChange={(e) => {
+              setRecUrl(e.target.value);
+              if (recError) setRecError(null);
+            }}
+          />
+          <input
+            className="md-rec-input"
+            type="text"
+            placeholder="Title"
+            value={recTitle}
+            onChange={(e) => {
+              setRecTitle(e.target.value);
+              if (recError) setRecError(null);
+            }}
+          />
+          <textarea
+            className="md-rec-description"
+            placeholder="Description (optional)"
+            value={recDescription}
+            onChange={(e) => setRecDescription(e.target.value)}
+            rows={2}
+          />
+          <div className="md-rec-form-actions">
+            {recError ? <span className="md-rec-error">{recError}</span> : <span />}
+            <button
+              type="button"
+              className="md-rec-add"
+              onClick={addRecording}
+              disabled={!recUrl.trim() || !recTitle.trim()}
+            >
+              Save recording
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="md-rec-empty">Loading…</div>
+      ) : sortedRecordings.length === 0 ? (
+        <div className="md-rec-empty">No recordings for {clientName} yet, Sir.</div>
+      ) : (
+        <ul className="md-rec-list">
+          {sortedRecordings.map((r) => {
+            const parsed = parseFathomUrl(r.url);
+            return (
+              <li key={r.id} className="md-rec-item md-panel">
+                <div className="md-rec-embed">
+                  {parsed ? (
+                    <iframe
+                      src={parsed.embedUrl}
+                      title={r.title}
+                      allow="autoplay; fullscreen; clipboard-write"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <div className="md-rec-embed-fallback">
+                      Invalid Fathom URL — open externally:{" "}
+                      <a href={r.url} target="_blank" rel="noreferrer">
+                        {r.url}
+                      </a>
+                    </div>
+                  )}
+                </div>
+                <div className="md-rec-body">
+                  <input
+                    className="md-rec-title-input"
+                    type="text"
+                    value={r.title}
+                    onChange={(e) => updateRecordingTitle(r.id, e.target.value)}
+                    placeholder="Title"
+                  />
+                  <textarea
+                    className="md-rec-description-input"
+                    value={r.description ?? ""}
+                    onChange={(e) =>
+                      updateRecordingDescription(r.id, e.target.value)
+                    }
+                    placeholder="Description (optional)"
+                    rows={2}
+                  />
+                  <div className="md-rec-meta-row">
+                    <a
+                      className="md-rec-link"
+                      href={r.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open in Fathom ↗
+                    </a>
+                    <span className="md-panel-meta">{formatRecStamp(r.createdAt)}</span>
+                    <button
+                      type="button"
+                      className="md-rec-delete"
+                      onClick={() => removeRecording(r.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

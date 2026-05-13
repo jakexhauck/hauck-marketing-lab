@@ -3,6 +3,7 @@ mod chat;
 mod claude;
 mod clients;
 mod config;
+mod copywriter;
 mod creatives;
 mod credentials;
 mod dashboard_state;
@@ -14,8 +15,9 @@ mod frontmatter;
 mod generators;
 mod knowledge;
 mod kpi;
-mod launch_checklist;
 mod lead_scraper;
+mod onboarding;
+mod ops;
 mod prospects;
 mod sops;
 mod sync;
@@ -48,9 +50,8 @@ pub fn run() {
             chat::replace_last_turn,
             claude::check_claude,
             claude::invoke_claude,
-            launch_checklist::read_launch_checklist,
-            launch_checklist::write_launch_checklist,
-            launch_checklist::save_launch_readiness_verdict,
+            onboarding::read_onboarding_state,
+            onboarding::write_onboarding_state,
             clients::list_clients,
             clients::read_client_status,
             clients::set_client_status,
@@ -85,8 +86,17 @@ pub fn run() {
             prospects::list_prospects,
             prospects::read_prospect,
             prospects::promote_lead_to_prospect,
+            prospects::add_prospect,
+            prospects::delete_prospect,
+            prospects::update_prospect_status,
             dashboard_state::read_dashboard_state,
             dashboard_state::write_dashboard_state,
+            ops::read_ops_clients,
+            ops::write_ops_clients,
+            ops::read_ops_tasks,
+            ops::write_ops_tasks,
+            ops::read_ops_revenue,
+            ops::write_ops_revenue,
             vault::read_vault_note,
             vault::write_vault_note,
             vault::append_to_memory,
@@ -105,6 +115,9 @@ pub fn run() {
             web_designer::list_web_designer_files,
             web_designer::read_web_designer_file,
             web_designer::web_designer_dir,
+            copywriter::run_copywriter,
+            copywriter::list_dm_files,
+            copywriter::read_dm_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

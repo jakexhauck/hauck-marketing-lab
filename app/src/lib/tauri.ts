@@ -7,14 +7,19 @@ import type {
   ChatFile,
   ChatTurn,
   ClaudeCheck,
+  CopywriterEvent,
   DashboardState,
   ClientCredentialsFile,
   ClientEntry,
   ClientStatus,
   CreativesManifest,
+  OpsClientsFile,
+  OpsRevenueFile,
+  OpsTasksFile,
   DataChangedEvent,
   DiagnosisFile,
   DiagnosisInputs,
+  DmFile,
   DriveIndex,
   FolderSummary,
   GeneratorKind,
@@ -23,7 +28,7 @@ import type {
   KnowledgeTitle,
   KnowledgeQuery,
   KpiEntry,
-  LaunchChecklist,
+  OnboardingState,
   NoteFront,
   ParsedBenchmarks,
   ProspectFile,
@@ -67,10 +72,10 @@ export const api = {
   readKnowledgeChunk: (root: string, chunkId: string) =>
     invoke<KnowledgeChunk>("read_knowledge_chunk", { root, chunkId }),
 
-  readLaunchChecklist: (root: string, clientSlug: string) =>
-    invoke<LaunchChecklist>("read_launch_checklist", { root, clientSlug }),
-  writeLaunchChecklist: (root: string, clientSlug: string, checklist: LaunchChecklist) =>
-    invoke<void>("write_launch_checklist", { root, clientSlug, checklist }),
+  readOnboardingState: (root: string, clientSlug: string) =>
+    invoke<OnboardingState>("read_onboarding_state", { root, clientSlug }),
+  writeOnboardingState: (root: string, clientSlug: string, state: OnboardingState) =>
+    invoke<void>("write_onboarding_state", { root, clientSlug, state }),
   listClients: (root: string) => invoke<ClientEntry[]>("list_clients", { root }),
   // ── outreach (Rust commands land in a follow-up). Until the backend ships,
   // these resolve to empty/no-op so the UI can call them safely.
@@ -112,6 +117,32 @@ export const api = {
       return null;
     }
   },
+  addProspect: (
+    root: string,
+    input: {
+      name: string;
+      niche?: string | null;
+      url?: string | null;
+      contactName?: string | null;
+      contactPhone?: string | null;
+      contactEmail?: string | null;
+      scheduledAt?: string | null;
+      status?: string | null;
+      notes?: string | null;
+    },
+  ) =>
+    invoke<import("./navigation").ProspectEntry>("add_prospect", {
+      root,
+      input,
+    }),
+  deleteProspect: (root: string, slug: string) =>
+    invoke<void>("delete_prospect", { root, slug }),
+  updateProspectStatus: (root: string, slug: string, status: string) =>
+    invoke<import("./navigation").ProspectEntry>("update_prospect_status", {
+      root,
+      slug,
+      status,
+    }),
   readClientStatus: (root: string, clientSlug: string) =>
     invoke<ClientStatus>("read_client_status", { root, clientSlug }),
   setClientStatus: (root: string, clientSlug: string, status: ClientStatus) =>
@@ -144,8 +175,6 @@ export const api = {
     invoke<BenchmarkSummary[]>("list_benchmark_sets", { root }),
   readBenchmarksForClient: (root: string, clientSlug: string) =>
     invoke<ParsedBenchmarks | null>("read_benchmarks_for_client", { root, clientSlug }),
-  saveLaunchReadinessVerdict: (root: string, clientSlug: string, body: string) =>
-    invoke<string>("save_launch_readiness_verdict", { root, clientSlug, body }),
 
   readLatestKpis: (root: string, clientSlug: string) =>
     invoke<KpiEntry | null>("read_latest_kpis", { root, clientSlug }),
@@ -227,6 +256,18 @@ export const api = {
   writeDashboardState: (root: string, state: DashboardState) =>
     invoke<void>("write_dashboard_state", { root, state }),
 
+  readOpsClients: (root: string) =>
+    invoke<OpsClientsFile>("read_ops_clients", { root }),
+  writeOpsClients: (root: string, file: OpsClientsFile) =>
+    invoke<void>("write_ops_clients", { root, file }),
+  readOpsTasks: (root: string) => invoke<OpsTasksFile>("read_ops_tasks", { root }),
+  writeOpsTasks: (root: string, file: OpsTasksFile) =>
+    invoke<void>("write_ops_tasks", { root, file }),
+  readOpsRevenue: (root: string) =>
+    invoke<OpsRevenueFile>("read_ops_revenue", { root }),
+  writeOpsRevenue: (root: string, file: OpsRevenueFile) =>
+    invoke<void>("write_ops_revenue", { root, file }),
+
   listSops: (root: string) => invoke<SopsIndex>("list_sops", { root }),
   refreshSopsIndex: (root: string, folderUrl: string) =>
     invoke<SopsIndex>("refresh_sops_index", { root, folderUrl }),
@@ -270,6 +311,7 @@ export const api = {
     mode: "build" | "revamp",
     prompt: string,
     businessSlug: string,
+    targetKind: "client" | "outreach" = "client",
   ) =>
     invoke<void>("run_web_designer", {
       id,
@@ -278,7 +320,25 @@ export const api = {
       mode,
       prompt,
       businessSlug,
+      targetKind,
     }),
+  runCopywriter: (
+    id: string,
+    root: string,
+    csvPath: string,
+    userInstructions: string,
+  ) =>
+    invoke<void>("run_copywriter", {
+      id,
+      root,
+      csvPath,
+      userInstructions,
+    }),
+  listDmFiles: (root: string) =>
+    invoke<DmFile[]>("list_dm_files", { root }),
+  readDmFile: (path: string) => invoke<string>("read_dm_file", { path }),
+  onCopywriterStream: (handler: (e: CopywriterEvent) => void): Promise<UnlistenFn> =>
+    listen<CopywriterEvent>("copywriter://stream", (evt) => handler(evt.payload)),
   editWebDesigner: (
     id: string,
     root: string,

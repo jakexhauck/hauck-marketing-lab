@@ -738,6 +738,7 @@ export default function App() {
     <TroubleshootingPage />
   ) : clientStatus === "pre-launch" && !onboardingDismissed[clientSlug] ? (
     <OnboardingChecklist
+      root={root}
       clientName={clientName}
       clientSlug={clientSlug}
       onComplete={() => dismissOnboarding(clientSlug)}

@@ -64,6 +64,8 @@ pub struct FathomRecording {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     pub created_at: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_slug: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

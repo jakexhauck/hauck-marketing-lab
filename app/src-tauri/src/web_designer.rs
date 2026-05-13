@@ -84,6 +84,24 @@ fn websites_dir(root: &str, client_slug: &str) -> PathBuf {
         .join("websites")
 }
 
+/// Outreach target — saves mockups under vault/Outreach/<slug>/revamp/ so the
+/// Web Designer can be reused from the outreach wizard without polluting the
+/// Clients tree. `slug` is the prospect slug created by the wizard.
+fn outreach_revamp_dir(root: &str, prospect_slug: &str) -> PathBuf {
+    PathBuf::from(root)
+        .join("vault")
+        .join("Outreach")
+        .join(prospect_slug)
+        .join("revamp")
+}
+
+fn target_output_dir(root: &str, slug: &str, target_kind: &str) -> PathBuf {
+    match target_kind {
+        "outreach" => outreach_revamp_dir(root, slug),
+        _ => websites_dir(root, slug),
+    }
+}
+
 /// Read the web-designer skill's CLAUDE.md and SKILL.md from the repo root
 /// (sibling of the media-buying folder) and format them as a preamble block
 /// the agent reads as authoritative style/behavior context. Silently returns
@@ -163,7 +181,9 @@ pub async fn run_web_designer(
     mode: String,
     prompt: String,
     business_slug: String,
+    target_kind: Option<String>,
 ) -> Result<(), String> {
+    let target = target_kind.as_deref().unwrap_or("client");
     let Some(claude) = locate_claude() else {
         let msg = "Claude Code not detected on PATH. Install from https://claude.ai/code and log in, then restart the app.";
         let _ = app.emit(
@@ -176,9 +196,9 @@ pub async fn run_web_designer(
         return Err(msg.into());
     };
 
-    let dir = websites_dir(&root, &client_slug);
+    let dir = target_output_dir(&root, &client_slug, target);
     if let Err(e) = std::fs::create_dir_all(&dir) {
-        let msg = format!("failed to create websites dir {}: {}", dir.display(), e);
+        let msg = format!("failed to create output dir {}: {}", dir.display(), e);
         let _ = app.emit(
             "web_designer://stream",
             WebDesignerEvent::Error {

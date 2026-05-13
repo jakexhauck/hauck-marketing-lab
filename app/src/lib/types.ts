@@ -130,20 +130,13 @@ export type KnowledgeTitle = {
   path: string;
 };
 
-export type ChecklistStatus = "go" | "hold" | "stop";
-
-export type ChecklistItem = {
-  id: string;
-  label: string;
-  status: ChecklistStatus;
-  note: string | null;
-};
-
-export type LaunchChecklist = {
-  client: string;
-  updated_at: string;
-  items: ChecklistItem[];
-};
+export interface OnboardingState {
+  done: string[];
+  /** Phase number (as string) → human-readable completion date (e.g. "12 MAY"). */
+  phaseDoneAt: Record<string, string>;
+  /** ISO-8601 timestamp stamped by the backend on every write. */
+  updatedAt?: string;
+}
 
 export type ClientStatus = "pre-launch" | "live" | "paused";
 
@@ -275,7 +268,7 @@ export type DataKind =
   | "kpi"
   | "tracking"
   | "creatives"
-  | "launch_checklist"
+  | "onboarding"
   | "chat"
   | "client"
   | "hooks"
@@ -347,6 +340,10 @@ export interface FathomRecording {
   title: string;
   description?: string;
   createdAt: number;
+  /** Optional client slug — when set, this recording is scoped to one client.
+   *  Recordings created from the global Workspace > Recordings tab leave this
+   *  unset and behave like agency-wide entries. */
+  clientSlug?: string | null;
 }
 
 /** A doc inside the user's Google Drive SOPs folder. */
@@ -407,4 +404,72 @@ export type WebDesignerEvent =
   | { kind: "started"; id: string }
   | { kind: "delta"; id: string; text: string }
   | { kind: "done"; id: string; ok: boolean; path: string | null; message: string | null }
+  | { kind: "error"; id: string; message: string };
+
+export interface DmFile {
+  name: string;
+  path: string;
+  modified_unix: number;
+  size_bytes: number;
+}
+
+// ── Ops trackers (Workspace > Dashboard) ──────────────────────
+
+export interface OpsClientRow {
+  retainer?: number | null;
+  startDate?: string | null;
+  adSpend?: number | null;
+  nextReportDue?: string | null;
+  nextCall?: string | null;
+  notes?: string | null;
+}
+
+export interface OpsClientsFile {
+  /** Keyed by client slug. */
+  rows: Record<string, OpsClientRow>;
+}
+
+export type OpsTaskStatus = "todo" | "in-progress" | "done";
+
+export interface OpsTask {
+  id: string;
+  title: string;
+  /** null = agency-internal task (not tied to a real client). */
+  clientSlug?: string | null;
+  assignedTo?: string | null;
+  /** ISO YYYY-MM-DD. */
+  dueDate?: string | null;
+  status: OpsTaskStatus;
+  createdAt: number;
+}
+
+export interface OpsTasksFile {
+  tasks: OpsTask[];
+}
+
+export interface OpsRevenueRow {
+  /** ISO `YYYY-MM`. */
+  month: string;
+  revenue?: number | null;
+  expenses?: number | null;
+  /** Manual override for # of clients. Null → fall back to live count. */
+  clientsOverride?: number | null;
+  notes?: string | null;
+}
+
+export interface OpsRevenueFile {
+  months: OpsRevenueRow[];
+}
+
+export type CopywriterEvent =
+  | { kind: "started"; id: string }
+  | { kind: "delta"; id: string; text: string }
+  | {
+      kind: "done";
+      id: string;
+      ok: boolean;
+      path: string | null;
+      body: string | null;
+      message: string | null;
+    }
   | { kind: "error"; id: string; message: string };

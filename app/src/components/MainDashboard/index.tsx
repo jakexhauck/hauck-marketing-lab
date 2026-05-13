@@ -4,8 +4,12 @@ import { AppSidebar } from "./AppSidebar";
 import type { WorkflowView } from "./Sidebar";
 import type { FormSurfaceId } from "../../lib/formConfigs";
 import {
+  IconArrowRight,
   IconBell,
+  IconFolder,
+  IconLayout,
   IconPlus,
+  IconRecordings,
   IconSettings,
   IconTarget,
   IconTasks,
@@ -18,8 +22,8 @@ import type {
   WorkspaceView,
 } from "../../lib/navigation";
 import { ConnectCalendarModal } from "./ConnectCalendarModal";
-import { TasksNotes } from "./TasksNotes";
 import { RecordingsPage } from "./RecordingsPage";
+import { ResourcesPage } from "./ResourcesPage";
 import { SOPsPage } from "./SOPsPage";
 import { CalendarPage } from "./CalendarPage";
 import { LeadScraperPage } from "./LeadScraperPage";
@@ -27,6 +31,12 @@ import { WebDesignerPage } from "./WebDesignerPage";
 import { ClientDashboard } from "./ClientDashboard";
 import { OutreachHub } from "./OutreachHub";
 import { OutreachProspectPage } from "./OutreachProspectPage";
+import { OutreachSequencePage } from "./OutreachSequencePage";
+import {
+  ClientsTrackerPage,
+  RevenueTrackerPage,
+  TasksTrackerPage,
+} from "./OpsTrackers";
 import type { CalendarConnection, ClientEntry, DashboardState } from "../../lib/types";
 import { api } from "../../lib/tauri";
 import { eventsOn, fetchCalendarEvents, type GCalEvent } from "../../lib/googleCalendar";
@@ -97,10 +107,22 @@ export function MainDashboard({
 
   const realClients: ClientEntry[] = clients ?? [];
 
-  // Prospects (greenfield) — placeholder; backed by `list_prospects` once the
-  // Rust command lands. For now we read nothing and the sidebar's Prospects
-  // subtree simply hides.
+  // Prospects (backed by vault/Outreach/<slug>/profile.md via list_prospects).
   const [prospects, setProspects] = useState<ProspectEntry[]>([]);
+  const refreshProspects = useCallback(async () => {
+    if (!root) {
+      setProspects([]);
+      return;
+    }
+    try {
+      const list = await api.listProspects?.(root);
+      if (!list) return;
+      setProspects(list);
+    } catch {
+      setProspects([]);
+    }
+  }, [root]);
+
   useEffect(() => {
     if (!root) {
       setProspects([]);
@@ -142,7 +164,7 @@ export function MainDashboard({
   };
 
   const onSelectOutreachSection = (
-    section: "overview" | "lead-scraper" | "web-designer",
+    section: "overview" | "lead-scraper" | "web-designer" | "sequence",
   ) => {
     setView({ kind: "outreach", section });
   };
@@ -265,6 +287,7 @@ export function MainDashboard({
             onSelectProspect,
             onSelectClientSection,
             onOpenForm,
+            onProspectsChanged: refreshProspects,
           })}
         </main>
       </div>
@@ -317,7 +340,11 @@ function buildBreadcrumb(
       );
     }
     const label =
-      view.section === "lead-scraper" ? "Lead Scraper" : "Web Designer";
+      view.section === "lead-scraper"
+        ? "Lead Scraper"
+        : view.section === "web-designer"
+          ? "Web Designer"
+          : "Outreach Sequence";
     return (
       <>
         <span className="hml-seg">Outreach</span>
@@ -352,6 +379,8 @@ function sectionToLabel(s: ClientSection): string {
       return "Media Buying";
     case "website":
       return "Website";
+    case "recordings":
+      return "Recordings";
   }
 }
 
@@ -380,11 +409,12 @@ interface RenderMainArgs {
   activeClient: ClientEntry | null;
   activeProspect: ProspectEntry | null;
   onSelectOutreachSection: (
-    section: "overview" | "lead-scraper" | "web-designer",
+    section: "overview" | "lead-scraper" | "web-designer" | "sequence",
   ) => void;
   onSelectProspect: (slug: string) => void;
   onSelectClientSection: (slug: string, section: ClientSection) => void;
   onOpenForm?: (id: FormSurfaceId, clientSlug: string, clientName: string) => void;
+  onProspectsChanged: () => void;
 }
 
 function renderMain(args: RenderMainArgs): React.ReactNode {
@@ -402,13 +432,39 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
   } = args;
 
   if (view.kind === "dashboard") {
-    return <DashboardSurface clientCount={realClients.length} root={root} />;
+    return (
+      <DashboardSurface
+        clientCount={realClients.length}
+        root={root}
+        clients={realClients}
+        prospects={prospects}
+        onOpenClientsHub={() => {
+          // Land on the first client's profile (or the active one if set).
+          const target =
+            realClients.find((c) => c.slug === activeClientSlug) ??
+            realClients[0];
+          if (target) {
+            onSelectClientSection(target.slug, "profile");
+          }
+        }}
+        onOpenOutreachHub={() => onSelectOutreachSection("overview")}
+        onSelectOutreachSection={onSelectOutreachSection}
+        onSelectClientSection={onSelectClientSection}
+        activeClientSlug={activeClientSlug}
+      />
+    );
   }
 
   if (view.kind === "workspace") {
-    if (view.tab === "tasks") return <TasksNotes root={root} />;
+    if (view.tab === "clients")
+      return <ClientsTrackerPage root={root} clients={realClients} />;
+    if (view.tab === "tasks")
+      return <TasksTrackerPage root={root} clients={realClients} />;
+    if (view.tab === "revenue")
+      return <RevenueTrackerPage root={root} clients={realClients} />;
     if (view.tab === "recordings") return <RecordingsPage root={root} />;
     if (view.tab === "sops") return <SOPsPage root={root} />;
+    if (view.tab === "resources") return <ResourcesPage root={root} />;
     if (view.tab === "calendar") return <CalendarPage root={root} onBack={args.onBack} />;
     return null;
   }
@@ -417,9 +473,11 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
     if (view.section === "overview") {
       return (
         <OutreachHub
+          root={root}
           prospects={prospects}
           onSelectSection={onSelectOutreachSection}
           onSelectProspect={onSelectProspect}
+          onProspectsChanged={args.onProspectsChanged}
         />
       );
     }
@@ -434,6 +492,14 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
           root={root}
           clientSlug={activeClientSlug ?? "willis-windows"}
           clientName={activeClient?.name ?? "Willis Windows"}
+        />
+      );
+    }
+    if (view.section === "sequence") {
+      return (
+        <OutreachSequencePage
+          root={root}
+          onExit={() => onSelectOutreachSection("overview")}
         />
       );
     }
@@ -482,9 +548,25 @@ function greetingForHour(hour: number): string {
 function DashboardSurface({
   clientCount,
   root,
+  clients,
+  prospects,
+  onOpenClientsHub,
+  onOpenOutreachHub,
+  onSelectOutreachSection,
+  onSelectClientSection,
+  activeClientSlug,
 }: {
   clientCount: number;
   root: string | null;
+  clients: ClientEntry[];
+  prospects: ProspectEntry[];
+  onOpenClientsHub: () => void;
+  onOpenOutreachHub: () => void;
+  onSelectOutreachSection: (
+    section: "overview" | "lead-scraper" | "web-designer" | "sequence",
+  ) => void;
+  onSelectClientSection: (slug: string, section: ClientSection) => void;
+  activeClientSlug: string | null;
 }) {
   const now = new Date();
   const hour = now.getHours();
@@ -594,6 +676,22 @@ function DashboardSurface({
 
   const todayEvents = eventsOn(events, new Date());
 
+  // Hub banner derived stats
+  const liveCount = clients.filter((c) => c.status === "live").length;
+  const preLaunchCount = clients.filter((c) => c.status === "pre-launch").length;
+  const pausedCount = clients.filter((c) => c.status === "paused").length;
+  const prospectCount = prospects.length;
+  const bookedCount = prospects.filter(
+    (p) => p.status === "scheduled" || p.status === "showed",
+  ).length;
+  const mockupReadyCount = prospects.filter(
+    (p) => p.status === "mockup-ready",
+  ).length;
+
+  // Quick-link target client (active or first)
+  const quickClient =
+    clients.find((c) => c.slug === activeClientSlug) ?? clients[0] ?? null;
+
   return (
     <div className="hml-content">
       {/* Greeting card ──────────────────────────────────────── */}
@@ -613,6 +711,133 @@ function DashboardSurface({
           <span className="hml-divider" />
           <span className="hml-mono">{stamp}</span>
         </div>
+      </section>
+
+      {/* Hub entry banners ──────────────────────────────────── */}
+      <section className="hml-hub-banners">
+        <button
+          type="button"
+          className="hml-hub-banner hml-hub-clients"
+          onClick={onOpenClientsHub}
+        >
+          <div className="hml-hub-banner-icon">
+            <IconUser size={18} />
+          </div>
+          <div className="hml-hub-banner-body">
+            <div className="hml-hub-banner-eyebrow">Hub</div>
+            <div className="hml-hub-banner-title">Clients hub</div>
+            <div className="hml-hub-banner-stat">
+              <span className="hml-em">
+                {clientCount} client{clientCount === 1 ? "" : "s"}
+              </span>
+              <span className="hml-sep">·</span>
+              <span className="hml-em hml-green-em">{liveCount} live</span>
+              <span className="hml-sep">·</span>
+              <span>
+                {preLaunchCount} pre-launch
+                {pausedCount > 0 ? ` · ${pausedCount} paused` : ""}
+              </span>
+            </div>
+          </div>
+          <div className="hml-hub-banner-arrow">
+            <IconArrowRight size={14} />
+          </div>
+        </button>
+
+        <button
+          type="button"
+          className="hml-hub-banner hml-hub-outreach"
+          onClick={onOpenOutreachHub}
+        >
+          <div className="hml-hub-banner-icon">
+            <IconTarget size={18} />
+          </div>
+          <div className="hml-hub-banner-body">
+            <div className="hml-hub-banner-eyebrow">Hub</div>
+            <div className="hml-hub-banner-title">Outreach hub</div>
+            <div className="hml-hub-banner-stat">
+              <span className="hml-em">
+                {prospectCount} prospect{prospectCount === 1 ? "" : "s"}
+              </span>
+              {mockupReadyCount > 0 && (
+                <>
+                  <span className="hml-sep">·</span>
+                  <span className="hml-em hml-accent-em">
+                    {mockupReadyCount} mockup-ready
+                  </span>
+                </>
+              )}
+              {bookedCount > 0 && (
+                <>
+                  <span className="hml-sep">·</span>
+                  <span className="hml-em hml-green-em">
+                    {bookedCount} booked
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="hml-hub-banner-arrow">
+            <IconArrowRight size={14} />
+          </div>
+        </button>
+      </section>
+
+      {/* Quick links chip bar ───────────────────────────────── */}
+      <section className="hml-quick-links">
+        <span className="hml-quick-links-label">Quick links</span>
+        {quickClient && (
+          <>
+            <button
+              type="button"
+              className="hml-quick-chip"
+              onClick={() => onSelectClientSection(quickClient.slug, "drive")}
+            >
+              <IconFolder size={11} className="hml-qc-icon" />
+              {quickClient.name}
+              <span className="hml-qc-sep">·</span>
+              <span className="hml-qc-tail">Drive</span>
+            </button>
+            <button
+              type="button"
+              className="hml-quick-chip"
+              onClick={() => onSelectClientSection(quickClient.slug, "website")}
+            >
+              <IconLayout size={11} className="hml-qc-icon" />
+              {quickClient.name}
+              <span className="hml-qc-sep">·</span>
+              <span className="hml-qc-tail">Web Designer</span>
+            </button>
+            <button
+              type="button"
+              className="hml-quick-chip"
+              onClick={() => onSelectClientSection(quickClient.slug, "recordings")}
+            >
+              <IconRecordings size={11} className="hml-qc-icon" />
+              {quickClient.name}
+              <span className="hml-qc-sep">·</span>
+              <span className="hml-qc-tail">Recordings</span>
+            </button>
+          </>
+        )}
+        <button
+          type="button"
+          className="hml-quick-chip"
+          onClick={() => onSelectOutreachSection("lead-scraper")}
+        >
+          <IconTarget size={11} className="hml-qc-icon" />
+          Lead Scraper
+        </button>
+        <button
+          type="button"
+          className="hml-quick-chip"
+          onClick={() => onSelectOutreachSection("web-designer")}
+        >
+          <IconLayout size={11} className="hml-qc-icon" />
+          Web Designer
+          <span className="hml-qc-sep">·</span>
+          <span className="hml-qc-tail">Outreach</span>
+        </button>
       </section>
 
       {/* Stat row ──────────────────────────────────────────── */}

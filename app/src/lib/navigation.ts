@@ -10,15 +10,19 @@
 export type WorkspaceView =
   | "dashboard"
   | "calendar"
+  | "clients"
   | "tasks"
+  | "revenue"
   | "recordings"
-  | "sops";
+  | "sops"
+  | "resources";
 
 /** Top-level surfaces inside the Outreach pillar. */
 export type OutreachSection =
   | "overview"
   | "lead-scraper"
   | "web-designer"
+  | "sequence"
   | "prospect"; // when `prospect`, `slug` field on the view discriminator names which one
 
 /** Per-client tabs inside a ClientDashboard. */
@@ -27,7 +31,8 @@ export type ClientSection =
   | "memory"
   | "drive"
   | "media-buying"
-  | "website";
+  | "website"
+  | "recordings";
 
 /**
  * Lightweight prospect entry used to populate the Outreach > Prospects subtree
@@ -48,6 +53,9 @@ export type ProspectStatus =
   | "mockup-ready"
   | "sequence-sent"
   | "replied"
+  | "scheduled"
+  | "showed"
+  | "no-show"
   | "closed";
 
 /** Maps a prospect status to a pill colour class used by .hml-pill */
@@ -64,6 +72,12 @@ export function prospectStatusPill(status: ProspectStatus): {
       return { className: "hml-teal", label: "Sequence Sent" };
     case "replied":
       return { className: "hml-blue", label: "Replied" };
+    case "scheduled":
+      return { className: "hml-amber", label: "Scheduled" };
+    case "showed":
+      return { className: "hml-teal", label: "Showed" };
+    case "no-show":
+      return { className: "hml-neutral", label: "No-show" };
     case "closed":
       return { className: "hml-green", label: "Closed" };
   }

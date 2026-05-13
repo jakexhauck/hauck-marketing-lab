@@ -329,7 +329,7 @@ export function RecordingsPage({ root }: RecordingsPageProps) {
   );
 }
 
-const recordingsPageCSS = `
+export const recordingsPageCSS = `
 .md-recordings-page {
   padding: 0;
   max-width: none;

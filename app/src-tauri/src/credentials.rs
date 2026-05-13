@@ -45,29 +45,6 @@ fn credentials_path(root: &str, client_slug: &str) -> PathBuf {
         .join("credentials.yaml")
 }
 
-/// Returns true if a credentials file exists for the client AND it contains
-/// a non-empty `meta.access_token`. Used by the launch checklist to auto-seed
-/// the "Meta access token entered" item to Go on fresh checklists.
-pub fn has_meta_access_token(root: &str, client_slug: &str) -> bool {
-    let path = credentials_path(root, client_slug);
-    if !path.exists() {
-        return false;
-    }
-    let raw = match fs::read_to_string(&path) {
-        Ok(s) => s,
-        Err(_) => return false,
-    };
-    let file: ClientCredentialsFile = match serde_yaml::from_str(&raw) {
-        Ok(f) => f,
-        Err(_) => return false,
-    };
-    file.meta
-        .access_token
-        .as_deref()
-        .map(|t| !t.trim().is_empty())
-        .unwrap_or(false)
-}
-
 #[tauri::command]
 pub fn read_client_credentials(
     root: String,

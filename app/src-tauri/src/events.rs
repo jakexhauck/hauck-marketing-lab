@@ -8,7 +8,7 @@ pub enum DataKind {
     Kpi,
     Tracking,
     Creatives,
-    LaunchChecklist,
+    Onboarding,
     Chat,
     Client,
     Hooks,

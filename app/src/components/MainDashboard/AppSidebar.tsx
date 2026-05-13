@@ -8,6 +8,7 @@ import type {
 } from "../../lib/navigation";
 import { prospectStatusPill } from "../../lib/navigation";
 import {
+  IconArrowRight,
   IconBarChart,
   IconBroadcast,
   IconCalendar,
@@ -22,9 +23,11 @@ import {
   IconSearch,
   IconSettings,
   IconSOPs,
+  IconStar,
   IconTarget,
   IconTasks,
   IconUser,
+  IconUsers,
 } from "../icons";
 
 export interface AppSidebarProps {
@@ -45,7 +48,7 @@ export interface AppSidebarProps {
   // ── callbacks ─────────────────────────────────────────────
   onSelectWorkspace: (tab: WorkspaceView) => void;
   onSelectOutreachSection: (
-    section: "overview" | "lead-scraper" | "web-designer",
+    section: "overview" | "lead-scraper" | "web-designer" | "sequence",
   ) => void;
   onSelectProspect: (slug: string) => void;
   onSelectClientSection: (slug: string, section: ClientSection) => void;
@@ -71,6 +74,7 @@ const CLIENT_SECTIONS: ReadonlyArray<{
   { id: "drive", label: "Drive", Icon: IconFolder },
   { id: "media-buying", label: "Media Buying", Icon: IconBarChart },
   { id: "website", label: "Website", Icon: IconGlobe },
+  { id: "recordings", label: "Recordings", Icon: IconRecordings },
 ];
 
 function avatarText(name: string): string {
@@ -130,6 +134,23 @@ export function AppSidebar({
     setManuallyExpanded((prev) => ({ ...prev, [slug]: !isClientExpanded(slug) }));
   };
 
+  // Section-level collapse for the Outreach + Clients groups. Both expanded by
+  // default. Active item in a section forces it open even when manually
+  // collapsed (so the active state never hides).
+  const [collapsedSections, setCollapsedSections] = useState<{
+    outreach: boolean;
+    clients: boolean;
+  }>({ outreach: false, clients: false });
+
+  const toggleSection = (key: "outreach" | "clients") => {
+    setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const outreachActive = activeOutreach !== null && activeOutreach !== undefined;
+  const clientsActive = activeClient !== null && activeClient !== undefined;
+  const outreachOpen = !collapsedSections.outreach || outreachActive;
+  const clientsOpen = !collapsedSections.clients || clientsActive;
+
   const prospectsList = useMemo(() => prospects ?? [], [prospects]);
 
   return (
@@ -179,10 +200,22 @@ export function AppSidebar({
             onClick={() => onSelectWorkspace("calendar")}
           />
           <NavItem
+            label="Clients"
+            Icon={IconUsers}
+            active={activeWorkspace === "clients"}
+            onClick={() => onSelectWorkspace("clients")}
+          />
+          <NavItem
             label="Tasks"
             Icon={IconTasks}
             active={activeWorkspace === "tasks"}
             onClick={() => onSelectWorkspace("tasks")}
+          />
+          <NavItem
+            label="Revenue"
+            Icon={IconBarChart}
+            active={activeWorkspace === "revenue"}
+            onClick={() => onSelectWorkspace("revenue")}
           />
           <NavItem
             label="Recordings"
@@ -196,90 +229,142 @@ export function AppSidebar({
             active={activeWorkspace === "sops"}
             onClick={() => onSelectWorkspace("sops")}
           />
+          <NavItem
+            label="Resources"
+            Icon={IconStar}
+            active={activeWorkspace === "resources"}
+            onClick={() => onSelectWorkspace("resources")}
+          />
         </div>
 
         {/* OUTREACH ──────────────────────────────────── */}
         <div className="hml-nav-section">
-          <div className="hml-section-label">
-            <span>Outreach</span>
+          <button
+            type="button"
+            className="hml-section-label hml-section-toggle"
+            onClick={() => toggleSection("outreach")}
+            title={outreachOpen ? "Collapse Outreach" : "Expand Outreach"}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <IconChevronRight
+                className="hml-nav-chevron"
+                size={9}
+                style={{
+                  transform: outreachOpen ? "rotate(90deg)" : "rotate(0deg)",
+                  transition: "transform 120ms ease",
+                  opacity: 0.6,
+                }}
+              />
+              Outreach
+            </span>
             {prospectsList.length > 0 && (
               <span className="hml-count">{prospectsList.length}</span>
             )}
-          </div>
-          <NavItem
-            label="Overview"
-            Icon={IconBroadcast}
-            active={activeOutreach === "overview"}
-            onClick={() => onSelectOutreachSection("overview")}
-          />
-          <NavItem
-            label="Lead Scraper"
-            Icon={IconTarget}
-            active={activeOutreach === "lead-scraper"}
-            onClick={() => onSelectOutreachSection("lead-scraper")}
-          />
-          <NavItem
-            label="Web Designer"
-            Icon={IconLayout}
-            active={activeOutreach === "web-designer"}
-            onClick={() => onSelectOutreachSection("web-designer")}
-          />
-          {prospectsList.length > 0 && (
+          </button>
+          {outreachOpen && (
             <>
-              <div className="hml-section-sublabel">
-                Prospects · {prospectsList.length} active
-              </div>
-              {prospectsList.map((p) => {
-                const pill = prospectStatusPill(p.status);
-                const isActive =
-                  activeOutreach === "prospect" && activeProspectSlug === p.slug;
-                return (
-                  <button
-                    key={p.slug}
-                    type="button"
-                    className={`hml-nav-item-sub${isActive ? " hml-active" : ""}`}
-                    onClick={() => onSelectProspect(p.slug)}
-                    title={p.name}
-                  >
-                    <span
-                      className="hml-pill-dot"
-                      style={{
-                        background: `var(--hml-${pill.className.replace("hml-", "")})`,
-                      }}
-                    />
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {p.name}
-                    </span>
-                  </button>
-                );
-              })}
+              <NavItem
+                label="Overview"
+                Icon={IconBroadcast}
+                active={activeOutreach === "overview"}
+                onClick={() => onSelectOutreachSection("overview")}
+              />
+              <NavItem
+                label="Sequence"
+                Icon={IconArrowRight}
+                active={activeOutreach === "sequence"}
+                onClick={() => onSelectOutreachSection("sequence")}
+              />
+              <NavItem
+                label="Lead Scraper"
+                Icon={IconTarget}
+                active={activeOutreach === "lead-scraper"}
+                onClick={() => onSelectOutreachSection("lead-scraper")}
+              />
+              <NavItem
+                label="Web Designer"
+                Icon={IconLayout}
+                active={activeOutreach === "web-designer"}
+                onClick={() => onSelectOutreachSection("web-designer")}
+              />
+              {prospectsList.length > 0 && (
+                <>
+                  <div className="hml-section-sublabel">
+                    Prospects · {prospectsList.length} active
+                  </div>
+                  {prospectsList.map((p) => {
+                    const pill = prospectStatusPill(p.status);
+                    const isActive =
+                      activeOutreach === "prospect" && activeProspectSlug === p.slug;
+                    return (
+                      <button
+                        key={p.slug}
+                        type="button"
+                        className={`hml-nav-item-sub${isActive ? " hml-active" : ""}`}
+                        onClick={() => onSelectProspect(p.slug)}
+                        title={p.name}
+                      >
+                        <span
+                          className="hml-pill-dot"
+                          style={{
+                            background: `var(--hml-${pill.className.replace("hml-", "")})`,
+                          }}
+                        />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {p.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
             </>
           )}
         </div>
 
         {/* CLIENTS ───────────────────────────────────── */}
         <div className="hml-nav-section">
-          <div className="hml-section-label">
-            <span>Clients</span>
+          <button
+            type="button"
+            className="hml-section-label hml-section-toggle"
+            onClick={() => toggleSection("clients")}
+            title={clientsOpen ? "Collapse Clients" : "Expand Clients"}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <IconChevronRight
+                className="hml-nav-chevron"
+                size={9}
+                style={{
+                  transform: clientsOpen ? "rotate(90deg)" : "rotate(0deg)",
+                  transition: "transform 120ms ease",
+                  opacity: 0.6,
+                }}
+              />
+              Clients
+            </span>
             <span className="hml-count">{clients.length}</span>
-          </div>
-          {clients.map((c) => (
-            <ClientGroup
-              key={c.slug}
-              client={c}
-              expanded={isClientExpanded(c.slug)}
-              activeSection={
-                activeClient?.slug === c.slug ? activeClient.section : null
-              }
-              onToggle={() => toggleClient(c.slug)}
-              onSelectSection={(section) => onSelectClientSection(c.slug, section)}
-            />
-          ))}
-          {onAddClient && (
-            <button type="button" className="hml-nav-add" onClick={onAddClient}>
-              <IconPlus size={13} />
-              <span>Add client</span>
-            </button>
+          </button>
+          {clientsOpen && (
+            <>
+              {clients.map((c) => (
+                <ClientGroup
+                  key={c.slug}
+                  client={c}
+                  expanded={isClientExpanded(c.slug)}
+                  activeSection={
+                    activeClient?.slug === c.slug ? activeClient.section : null
+                  }
+                  onToggle={() => toggleClient(c.slug)}
+                  onSelectSection={(section) => onSelectClientSection(c.slug, section)}
+                />
+              ))}
+              {onAddClient && (
+                <button type="button" className="hml-nav-add" onClick={onAddClient}>
+                  <IconPlus size={13} />
+                  <span>Add client</span>
+                </button>
+              )}
+            </>
           )}
         </div>
       </nav>

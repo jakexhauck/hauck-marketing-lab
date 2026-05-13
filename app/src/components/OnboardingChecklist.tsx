@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ONBOARDING_PLAN,
   phaseTaskCount,
@@ -7,44 +7,47 @@ import {
   type OnboardingPhase,
   type OnboardingTask,
 } from "../lib/onboardingPlan";
+import { api } from "../lib/tauri";
 import "./onboarding-checklist.css";
 
-const STORAGE_PREFIX = "hml-onboarding-v1:";
+/** Legacy localStorage key — read once on first load to migrate, then cleared. */
+const LEGACY_STORAGE_PREFIX = "hml-onboarding-v1:";
 
 type Props = {
+  /** Vault root; required to persist to disk. When null, state stays in-memory. */
+  root: string | null;
   clientName: string;
   clientSlug: string;
   onComplete: () => void;
 };
-
-function storageKey(slug: string): string {
-  return STORAGE_PREFIX + slug;
-}
 
 type Persisted = {
   done: string[];
   phaseDoneAt: Record<string, string>;
 };
 
-function loadState(slug: string): Persisted {
+function readLegacyLocal(slug: string): Persisted | null {
   try {
-    const raw = localStorage.getItem(storageKey(slug));
-    if (!raw) return { done: [], phaseDoneAt: {} };
+    const raw = localStorage.getItem(LEGACY_STORAGE_PREFIX + slug);
+    if (!raw) return null;
     const parsed = JSON.parse(raw);
     return {
       done: Array.isArray(parsed.done) ? parsed.done : [],
-      phaseDoneAt: parsed.phaseDoneAt && typeof parsed.phaseDoneAt === "object" ? parsed.phaseDoneAt : {},
+      phaseDoneAt:
+        parsed.phaseDoneAt && typeof parsed.phaseDoneAt === "object"
+          ? parsed.phaseDoneAt
+          : {},
     };
   } catch {
-    return { done: [], phaseDoneAt: {} };
+    return null;
   }
 }
 
-function saveState(slug: string, state: Persisted): void {
+function clearLegacyLocal(slug: string): void {
   try {
-    localStorage.setItem(storageKey(slug), JSON.stringify(state));
+    localStorage.removeItem(LEGACY_STORAGE_PREFIX + slug);
   } catch {
-    // localStorage may be unavailable; silently fall back to in-memory only.
+    // ignore
   }
 }
 
@@ -55,25 +58,98 @@ function formatToday(): string {
     .toUpperCase();
 }
 
-export function OnboardingChecklist({ clientName, clientSlug, onComplete }: Props) {
-  const [doneSet, setDoneSet] = useState<Set<string>>(() => new Set(loadState(clientSlug).done));
-  const [phaseDoneAt, setPhaseDoneAt] = useState<Record<string, string>>(
-    () => loadState(clientSlug).phaseDoneAt,
-  );
+export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }: Props) {
+  const [doneSet, setDoneSet] = useState<Set<string>>(() => new Set());
+  const [phaseDoneAt, setPhaseDoneAt] = useState<Record<string, string>>({});
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  // Suppress the persist effect until after the load resolves, so we don't
+  // race the initial empty state to disk.
+  const skipNextPersist = useRef(true);
+  const saveTimer = useRef<number | null>(null);
 
-  // Reload state when switching clients.
+  // Load from disk (and migrate any legacy localStorage value) on mount /
+  // when the client slug changes.
   useEffect(() => {
-    const next = loadState(clientSlug);
-    setDoneSet(new Set(next.done));
-    setPhaseDoneAt(next.phaseDoneAt);
+    let cancelled = false;
+    skipNextPersist.current = true;
     setSelectedIndex(null);
-  }, [clientSlug]);
+    void (async () => {
+      let next: Persisted = { done: [], phaseDoneAt: {} };
+      let needsMigrationWrite = false;
 
-  // Persist on every change.
+      if (root) {
+        try {
+          const state = await api.readOnboardingState(root, clientSlug);
+          next = { done: state.done ?? [], phaseDoneAt: state.phaseDoneAt ?? {} };
+        } catch {
+          next = { done: [], phaseDoneAt: {} };
+        }
+        // If vault has nothing yet, migrate from the legacy localStorage key.
+        if (next.done.length === 0 && Object.keys(next.phaseDoneAt).length === 0) {
+          const legacy = readLegacyLocal(clientSlug);
+          if (legacy && (legacy.done.length > 0 || Object.keys(legacy.phaseDoneAt).length > 0)) {
+            next = legacy;
+            needsMigrationWrite = true;
+          }
+        }
+      } else {
+        // No folder selected — fall back to legacy local read so the UI works
+        // standalone, but we won't write back until a root is available.
+        const legacy = readLegacyLocal(clientSlug);
+        if (legacy) next = legacy;
+      }
+
+      if (cancelled) return;
+      setDoneSet(new Set(next.done));
+      setPhaseDoneAt(next.phaseDoneAt);
+      setLoaded(true);
+
+      if (needsMigrationWrite && root) {
+        try {
+          await api.writeOnboardingState(root, clientSlug, {
+            done: next.done,
+            phaseDoneAt: next.phaseDoneAt,
+          });
+          clearLegacyLocal(clientSlug);
+        } catch {
+          // leave the legacy copy in place; we'll try again next mount
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, clientSlug]);
+
+  // Persist on every change, debounced 300ms.
   useEffect(() => {
-    saveState(clientSlug, { done: Array.from(doneSet), phaseDoneAt });
-  }, [clientSlug, doneSet, phaseDoneAt]);
+    if (skipNextPersist.current) {
+      skipNextPersist.current = false;
+      return;
+    }
+    if (!root || !loaded) return;
+    if (saveTimer.current != null) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      void api
+        .writeOnboardingState(root, clientSlug, {
+          done: Array.from(doneSet),
+          phaseDoneAt,
+        })
+        .catch((err) => {
+          // eslint-disable-next-line no-console
+          console.error("onboarding persist failed", err);
+        });
+    }, 300);
+  }, [root, clientSlug, doneSet, phaseDoneAt, loaded]);
+
+  // Flush any pending save on unmount.
+  useEffect(
+    () => () => {
+      if (saveTimer.current != null) window.clearTimeout(saveTimer.current);
+    },
+    [],
+  );
 
   const total = useMemo(() => totalTasks(), []);
   const doneCount = doneSet.size;
