@@ -339,3 +339,75 @@ export function IconLightning(p: IconProps) {
     </I>
   );
 }
+
+export function IconHabits(p: IconProps) {
+  return (
+    <I {...p}>
+      <path d="M12 3c-1.5 3-4.5 4-4.5 7.5a4.5 4.5 0 0 0 9 0c0-2-1-3-2-4.5" />
+      <path d="M12 21v-3" />
+    </I>
+  );
+}
+
+export function IconPersonal(p: IconProps) {
+  return (
+    <I {...p}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+    </I>
+  );
+}
+
+export function IconHygiene(p: IconProps) {
+  return (
+    <I {...p}>
+      <path d="M9 2h6v4H9z" />
+      <path d="M7 6h10l-1 4H8z" />
+      <path d="M8 10h8v11a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1z" />
+      <path d="M10 14h4" />
+    </I>
+  );
+}
+
+export function IconShirt(p: IconProps) {
+  return (
+    <I {...p}>
+      <path d="M8 3l4 3 4-3 5 3-2 5-3-1v11H6V10L3 11 1 6z" />
+    </I>
+  );
+}
+
+export function IconTrash(p: IconProps) {
+  return (
+    <I {...p}>
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </I>
+  );
+}
+
+export function IconExternalLink(p: IconProps) {
+  return (
+    <I {...p}>
+      <path d="M14 3h7v7" />
+      <path d="M10 14L21 3" />
+      <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
+    </I>
+  );
+}
+
+export function IconGrip(p: IconProps) {
+  return (
+    <I {...p} strokeWidth={1.8}>
+      <circle cx="9" cy="6" r="0.6" fill="currentColor" />
+      <circle cx="15" cy="6" r="0.6" fill="currentColor" />
+      <circle cx="9" cy="12" r="0.6" fill="currentColor" />
+      <circle cx="15" cy="12" r="0.6" fill="currentColor" />
+      <circle cx="9" cy="18" r="0.6" fill="currentColor" />
+      <circle cx="15" cy="18" r="0.6" fill="currentColor" />
+    </I>
+  );
+}

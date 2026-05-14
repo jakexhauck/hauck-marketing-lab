@@ -26,16 +26,14 @@ const EMPTY_SLOT: SlotState = {
 
 const SLOT_META: Record<
   Slot,
-  { eye: string; title: string; subtitle: string; placeholder: string }
+  { title: string; subtitle: string; placeholder: string }
 > = {
   jake: {
-    eye: "ABOUT JAKE",
     title: "Identity & voice",
     subtitle: "Edits vault/About/Jake.md. Frontmatter is preserved automatically.",
     placeholder: "# Jake Hauck\n\n## Who I am\n- ...",
   },
   agency: {
-    eye: "ABOUT HAUCK MARKETING",
     title: "Agency voice & ad-copy rules",
     subtitle:
       "Edits vault/About/Hauck Marketing.md. Frontmatter is preserved automatically.",
@@ -47,7 +45,6 @@ function classifyNote(note: VaultNote): Slot | null {
   const rel = note.rel_path.replace(/\\/g, "/");
   if (rel.endsWith("About/Jake.md")) return "jake";
   if (rel.endsWith("About/Hauck Marketing.md")) return "agency";
-  // Fallback to frontmatter subject
   const subject = (note.front?.subject ?? "").toString().toLowerCase();
   if (subject === "jake") return "jake";
   if (subject === "agency") return "agency";
@@ -115,7 +112,6 @@ export function AboutSettings({ root }: Props) {
     }
     setSlot(key, (prev) => ({ ...prev, busy: true, error: null }));
     try {
-      // Preserve frontmatter exactly — pass back the loaded `front` unchanged.
       const front: NoteFront = { ...slot.note.front };
       const written = await api.writeVaultNote(root, slot.note.path, front, body);
       setSlot(key, () => ({
@@ -138,22 +134,22 @@ export function AboutSettings({ root }: Props) {
     const slot = getSlot(key);
     const meta = SLOT_META[key];
     const dirty = slot.draft !== slot.loaded;
-    const canSave = !!slot.note && !slot.busy && dirty && slot.draft.trim().length > 0;
+    const canSave =
+      !!slot.note && !slot.busy && dirty && slot.draft.trim().length > 0;
     return (
       <div className="about-pane">
         <div className="about-pane-head">
           <div>
-            <div className="settings-section-eye">{meta.eye}</div>
-            <div className="settings-section-title">{meta.title}</div>
+            <div className="about-pane-title">{meta.title}</div>
             <div className="about-pane-sub">{meta.subtitle}</div>
           </div>
-          {dirty && <span className="about-dirty-dot">UNSAVED</span>}
+          {dirty && <span className="about-dirty">UNSAVED</span>}
         </div>
 
-        {slot.error && <div className="clients-page-err">{slot.error}</div>}
+        {slot.error && <div className="hml-error-banner about-err">{slot.error}</div>}
 
         <textarea
-          className="about-textarea"
+          className="hml-form-textarea about-textarea"
           value={slot.draft}
           placeholder={meta.placeholder}
           rows={28}
@@ -167,7 +163,7 @@ export function AboutSettings({ root }: Props) {
         <div className="about-actions">
           <button
             type="button"
-            className="kpi-form-btn primary"
+            className="hml-btn hml-accent"
             onClick={() => void handleSave(key)}
             disabled={!canSave}
           >
@@ -175,7 +171,7 @@ export function AboutSettings({ root }: Props) {
           </button>
           <button
             type="button"
-            className="kpi-form-btn"
+            className="hml-btn hml-ghost"
             onClick={() => handleRevert(key)}
             disabled={slot.busy || !dirty}
           >
@@ -183,7 +179,9 @@ export function AboutSettings({ root }: Props) {
           </button>
           {slot.note && (
             <span className="about-path">
-              <code>{slot.note.rel_path.replace(/\\/g, "/")}</code>
+              <code className="set-code">
+                {slot.note.rel_path.replace(/\\/g, "/")}
+              </code>
             </span>
           )}
         </div>
@@ -192,19 +190,23 @@ export function AboutSettings({ root }: Props) {
   };
 
   return (
-    <div className="settings-section">
-      <div className="settings-section-head">
-        <div className="settings-section-eye">ABOUT</div>
-        <div className="settings-section-title">Identity & agency rules</div>
+    <section className="hml-panel set-panel">
+      <style>{aboutCSS}</style>
+      <div className="hml-panel-header">
+        <div className="hml-panel-title">
+          <span className="hml-dot" style={{ background: "var(--hml-amber)" }} />
+          Identity & agency rules
+        </div>
+        <span className="hml-panel-action">Injected into every chat turn</span>
       </div>
-      <div className="settings-section-body">
-        <p className="settings-note">
-          These notes are read into every chat turn as the agent's system context.
-          Edit the markdown directly — frontmatter at the top of each file is hidden
-          from this form but round-tripped on save.
+      <div className="hml-panel-body set-body">
+        <p className="set-note about-intro">
+          These notes are read into every chat turn as the agent's system
+          context. Edit the markdown directly — frontmatter at the top of each
+          file is hidden from this form but round-tripped on save.
         </p>
 
-        {loadError && <div className="clients-page-err">{loadError}</div>}
+        {loadError && <div className="hml-error-banner">{loadError}</div>}
 
         <div className="about-tabs" role="tablist">
           <button
@@ -225,7 +227,9 @@ export function AboutSettings({ root }: Props) {
             onClick={() => setActive("agency")}
           >
             About Hauck Marketing
-            {agency.draft !== agency.loaded && <span className="about-tab-dot" />}
+            {agency.draft !== agency.loaded && (
+              <span className="about-tab-dot" />
+            )}
           </button>
         </div>
 
@@ -235,6 +239,107 @@ export function AboutSettings({ root }: Props) {
           renderSlot(active)
         )}
       </div>
-    </div>
+    </section>
   );
 }
+
+const aboutCSS = `
+.about-intro { margin: 0 0 14px; }
+
+.about-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--hml-border-subtle);
+}
+
+.about-tab {
+  position: relative;
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  color: var(--hml-text-tertiary);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.12s ease, border-color 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.about-tab:hover { color: var(--hml-text-primary); }
+.about-tab.active {
+  color: var(--hml-accent);
+  border-bottom-color: var(--hml-accent);
+}
+
+.about-tab-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--hml-accent);
+}
+
+.about-pane-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.about-pane-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--hml-text-primary);
+  margin-bottom: 3px;
+}
+
+.about-pane-sub {
+  font-size: 12px;
+  color: var(--hml-text-tertiary);
+}
+
+.about-dirty {
+  font-family: var(--hml-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  color: var(--hml-accent);
+  padding: 3px 6px;
+  border: 1px solid var(--hml-accent-border);
+  background: var(--hml-accent-dim);
+  border-radius: 4px;
+}
+
+.about-textarea {
+  font-family: var(--hml-font-mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  min-height: 360px;
+  background: var(--hml-bg-elev-2);
+}
+
+.about-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.about-path {
+  margin-left: auto;
+  display: inline-flex;
+}
+
+.about-err { margin-bottom: 10px; }
+
+.about-loading {
+  padding: 30px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--hml-text-tertiary);
+}
+`;

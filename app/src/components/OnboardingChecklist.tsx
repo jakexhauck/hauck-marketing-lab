@@ -58,6 +58,17 @@ function formatToday(): string {
     .toUpperCase();
 }
 
+function todayYMD(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Task IDs that trigger writes into the Client Dashboard (`ops/clients.json`)
+ *  when first checked. Idempotent — we only write when the target column is
+ *  empty, so re-checks and re-mounts don't clobber manual edits. */
+const PHASE_1_TASK_IDS = ["01-contract", "01-payment", "01-welcome"];
+const ADS_PUBLISH_TASK_ID = "06-publish";
+
 export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }: Props) {
   const [doneSet, setDoneSet] = useState<Set<string>>(() => new Set());
   const [phaseDoneAt, setPhaseDoneAt] = useState<Record<string, string>>({});
@@ -150,6 +161,42 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
     },
     [],
   );
+
+  // Auto-populate the Workspace > Clients row when onboarding milestones land.
+  // Only ever writes a field that is currently empty, so manual edits in the
+  // Client Dashboard always win and a re-check never clobbers them.
+  useEffect(() => {
+    if (!root || !loaded) return;
+    const adsPublished = doneSet.has(ADS_PUBLISH_TASK_ID);
+    const phase1Done = PHASE_1_TASK_IDS.every((id) => doneSet.has(id));
+    if (!adsPublished && !phase1Done) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const opsFile = await api.readOpsClients(root);
+        if (cancelled) return;
+        const existing = opsFile.rows[clientSlug] ?? {};
+        const today = todayYMD();
+        const patch: Record<string, string> = {};
+        if (adsPublished && !existing.adsLaunchedAt) patch.adsLaunchedAt = today;
+        if (phase1Done && !existing.startDate) patch.startDate = today;
+        if (Object.keys(patch).length === 0) return;
+        await api.writeOpsClients(root, {
+          rows: {
+            ...opsFile.rows,
+            [clientSlug]: { ...existing, ...patch },
+          },
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("auto-populate ops row failed", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, clientSlug, doneSet, loaded]);
 
   const total = useMemo(() => totalTasks(), []);
   const doneCount = doneSet.size;

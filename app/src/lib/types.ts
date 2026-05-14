@@ -417,10 +417,20 @@ export interface DmFile {
 
 export interface OpsClientRow {
   retainer?: number | null;
+  /** Retainer / contract start. Distinct from {@link adsLaunchedAt}. */
   startDate?: string | null;
   adSpend?: number | null;
+  /** Date campaigns went live. Drives weekly + monthly report cadence. */
+  adsLaunchedAt?: string | null;
+  /** Legacy single-due column. New UI computes from {@link adsLaunchedAt}. */
   nextReportDue?: string | null;
+  /** ISO date the most-recent weekly report was marked sent. */
+  weeklyReportSentAt?: string | null;
+  /** ISO date the most-recent monthly report was marked sent. */
+  monthlyReportSentAt?: string | null;
   nextCall?: string | null;
+  /** GCal event id when next call was sourced from the calendar. */
+  nextCallEventId?: string | null;
   notes?: string | null;
 }
 
@@ -429,18 +439,25 @@ export interface OpsClientsFile {
   rows: Record<string, OpsClientRow>;
 }
 
-export type OpsTaskStatus = "todo" | "in-progress" | "done";
+export type OpsTaskStatus = "todo" | "done";
+
+/** Which tab the task lives in. Missing = "active" (legacy rows).
+ *  "daily" tasks recur every day — their `status` is ignored; completion is
+ *  tracked per-day via `lastCompletedDate` so the checkbox resets at midnight. */
+export type OpsTaskLane = "active" | "backburner" | "daily";
 
 export interface OpsTask {
   id: string;
   title: string;
   /** null = agency-internal task (not tied to a real client). */
   clientSlug?: string | null;
-  assignedTo?: string | null;
-  /** ISO YYYY-MM-DD. */
-  dueDate?: string | null;
   status: OpsTaskStatus;
+  /** Defaults to "active" when undefined. */
+  lane?: OpsTaskLane;
   createdAt: number;
+  /** YYYY-MM-DD. Set when a `lane: "daily"` task is checked off; the box
+   *  re-appears unchecked the next day. */
+  lastCompletedDate?: string | null;
 }
 
 export interface OpsTasksFile {
@@ -459,6 +476,30 @@ export interface OpsRevenueRow {
 
 export interface OpsRevenueFile {
   months: OpsRevenueRow[];
+}
+
+export interface PersonalItem {
+  id: string;
+  name: string;
+  url?: string | null;
+  /** Cost in dollars. Null/undefined when unknown. */
+  price?: number | null;
+  notes?: string | null;
+}
+
+export interface PersonalCategory {
+  id: string;
+  name: string;
+  items: PersonalItem[];
+}
+
+export interface PersonalSectionData {
+  categories: PersonalCategory[];
+}
+
+export interface PersonalHubFile {
+  hygiene: PersonalSectionData;
+  clothing: PersonalSectionData;
 }
 
 export type CopywriterEvent =

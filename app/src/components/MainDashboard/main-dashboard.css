@@ -1859,6 +1859,52 @@
   color: var(--text-muted);
   line-height: 1.4;
 }
+.md-cal-page-detail-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--copper);
+  background: rgba(212, 165, 116, 0.12);
+  border: 1px solid rgba(212, 165, 116, 0.28);
+  border-radius: 4px;
+  vertical-align: 1px;
+}
+.md-cal-page-detail-assign {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.md-cal-page-detail-assign-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.md-cal-page-detail-assign-select {
+  flex: 1;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+  color-scheme: dark;
+  transition: border-color 120ms ease;
+}
+.md-cal-page-detail-assign-select:hover,
+.md-cal-page-detail-assign-select:focus {
+  border-color: rgba(212, 165, 116, 0.4);
+}
 .md-cal-page-detail-more {
   font-family: var(--mono);
   font-size: 10.5px;
@@ -3138,16 +3184,46 @@ select.ops-input {
   cursor: pointer;
 }
 
-select.ops-input.ops-status-todo {
-  color: var(--hml-text-dim);
+.ops-cell-check {
+  text-align: center;
 }
 
-select.ops-input.ops-status-in-progress {
-  color: var(--hml-amber, #e0a050);
+.ops-check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--hml-border, rgba(255, 255, 255, 0.18));
+  background: transparent;
+  cursor: pointer;
+  display: inline-grid;
+  place-content: center;
+  transition: background 120ms ease, border-color 120ms ease;
 }
 
-select.ops-input.ops-status-done {
-  color: var(--hml-green, #5bcc88);
+.ops-check:hover {
+  border-color: var(--hml-accent, #6aa9ff);
+}
+
+.ops-check:checked {
+  background: var(--hml-green, #5bcc88);
+  border-color: var(--hml-green, #5bcc88);
+}
+
+.ops-check:checked::after {
+  content: "";
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid #0d0f12;
+  border-bottom: 2px solid #0d0f12;
+  transform: translateY(-1px) rotate(-45deg);
+}
+
+.ops-input-done {
+  color: var(--hml-text-faint, rgba(255, 255, 255, 0.4));
+  text-decoration: line-through;
+  text-decoration-color: var(--hml-text-faint, rgba(255, 255, 255, 0.3));
 }
 
 .ops-row-del {

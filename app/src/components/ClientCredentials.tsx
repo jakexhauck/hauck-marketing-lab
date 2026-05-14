@@ -159,7 +159,6 @@ export function ClientCredentials({ root, clientSlug, clientName }: Props) {
     if (!editing) setEditing(true);
     setDraft((d) => ({ ...d, [key]: "" }));
     setRevealed((r) => ({ ...r, [key]: true }));
-    // refocus the input on the next tick so the user can paste a new value
     requestAnimationFrame(() => {
       inputRefs.current[key]?.focus();
     });
@@ -183,23 +182,29 @@ export function ClientCredentials({ root, clientSlug, clientName }: Props) {
   };
 
   return (
-    <div className="settings-section">
-      <div className="settings-section-head">
-        <div className="settings-section-eye">CLIENT CREDENTIALS</div>
-        <div className="settings-section-title">
-          Meta credentials · <span className="cred-client-name">{clientName}</span>
+    <section className="hml-panel set-panel">
+      <style>{credCSS}</style>
+      <div className="hml-panel-header">
+        <div className="hml-panel-title">
+          <span className="hml-dot" style={{ background: "var(--hml-green)" }} />
+          Meta credentials · <span className="cred-client">{clientName}</span>
         </div>
+        {updatedAt && (
+          <span className="hml-panel-action">
+            Saved {updatedAt}
+          </span>
+        )}
       </div>
-      <div className="settings-section-body">
-        <p className="cred-trust-note">
+      <div className="hml-panel-body set-body">
+        <div className="cred-trust">
           <span className="cred-trust-eye">STORED LOCALLY</span>
-          <code>data/{clientSlug}/credentials.yaml</code>
+          <code className="set-code">data/{clientSlug}/credentials.yaml</code>
           <span className="cred-trust-warn">
             NOT ENCRYPTED. Anyone with access to this folder can read the token.
           </span>
-        </p>
+        </div>
 
-        {error && <div className="clients-page-err">{error}</div>}
+        {error && <div className="hml-error-banner">{error}</div>}
 
         <div className="cred-fields">
           {FIELDS.map((f) => {
@@ -210,14 +215,14 @@ export function ClientCredentials({ root, clientSlug, clientName }: Props) {
             const showAsInput = editing;
             return (
               <div key={f.key} className="cred-field">
-                <label className="cred-field-label">{f.label}</label>
+                <label className="hml-form-label">{f.label}</label>
                 {showAsInput ? (
                   <div className="cred-field-row">
                     <input
                       ref={(el) => {
                         inputRefs.current[f.key] = el;
                       }}
-                      className="kpi-form-input cred-input"
+                      className="hml-form-input cred-input"
                       type={f.sensitive && !isRevealed ? "password" : "text"}
                       autoComplete="off"
                       spellCheck={false}
@@ -231,7 +236,7 @@ export function ClientCredentials({ root, clientSlug, clientName }: Props) {
                     {f.sensitive && (
                       <button
                         type="button"
-                        className="kpi-form-btn cred-mini"
+                        className="hml-btn hml-ghost cred-mini"
                         onClick={() => toggleReveal(f.key)}
                         disabled={busy}
                       >
@@ -251,7 +256,7 @@ export function ClientCredentials({ root, clientSlug, clientName }: Props) {
                     {hasStored && f.sensitive && (
                       <button
                         type="button"
-                        className="kpi-form-btn cred-mini"
+                        className="hml-btn hml-ghost cred-mini"
                         onClick={() => toggleReveal(f.key)}
                       >
                         {isRevealed ? "Hide" : "Reveal"}
@@ -260,7 +265,7 @@ export function ClientCredentials({ root, clientSlug, clientName }: Props) {
                     {hasStored && (
                       <button
                         type="button"
-                        className="kpi-form-btn cred-mini rotate"
+                        className="hml-btn hml-ghost cred-mini"
                         onClick={() => handleRotate(f.key)}
                         title="Clear this field and paste a new value"
                       >
@@ -270,7 +275,7 @@ export function ClientCredentials({ root, clientSlug, clientName }: Props) {
                   </div>
                 )}
                 {f.hint && !editing && !hasStored && (
-                  <div className="cred-field-hint">{f.hint}</div>
+                  <div className="hml-form-help">{f.hint}</div>
                 )}
               </div>
             );
@@ -281,14 +286,16 @@ export function ClientCredentials({ root, clientSlug, clientName }: Props) {
           {editing ? (
             <>
               <button
-                className="kpi-form-btn primary"
+                type="button"
+                className="hml-btn hml-accent"
                 onClick={handleSave}
                 disabled={busy || !isDirty}
               >
                 {busy ? "Saving…" : "Save credentials"}
               </button>
               <button
-                className="kpi-form-btn"
+                type="button"
+                className="hml-btn hml-ghost"
                 onClick={handleCancel}
                 disabled={busy}
               >
@@ -298,7 +305,8 @@ export function ClientCredentials({ root, clientSlug, clientName }: Props) {
           ) : (
             <>
               <button
-                className="kpi-form-btn"
+                type="button"
+                className="hml-btn"
                 onClick={() => setEditing(true)}
                 disabled={busy}
               >
@@ -306,7 +314,8 @@ export function ClientCredentials({ root, clientSlug, clientName }: Props) {
               </button>
               {anyStored && (
                 <button
-                  className="kpi-form-btn danger"
+                  type="button"
+                  className="hml-btn hml-danger"
                   onClick={handleClearAll}
                   disabled={busy}
                   title="Delete data/<slug>/credentials.yaml"
@@ -316,13 +325,90 @@ export function ClientCredentials({ root, clientSlug, clientName }: Props) {
               )}
             </>
           )}
-          {updatedAt && (
-            <span className="cred-updated">
-              Last saved <code>{updatedAt}</code>
-            </span>
-          )}
         </div>
       </div>
-    </div>
+    </section>
   );
 }
+
+const credCSS = `
+.cred-client {
+  color: var(--hml-accent);
+  font-weight: 500;
+}
+
+.cred-trust {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 9px 11px;
+  margin-bottom: 14px;
+  background: var(--hml-amber-bg);
+  border: 1px solid var(--hml-amber-border);
+  border-radius: 7px;
+  font-size: 11.5px;
+  color: var(--hml-text-secondary);
+}
+
+.cred-trust-eye {
+  font-family: var(--hml-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  color: var(--hml-amber);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.cred-trust-warn {
+  font-family: var(--hml-font-mono);
+  font-size: 10px;
+  color: var(--hml-red);
+  letter-spacing: 0.04em;
+  margin-left: auto;
+}
+
+.cred-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cred-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cred-input { flex: 1; min-width: 200px; }
+
+.cred-display {
+  flex: 1;
+  min-width: 200px;
+  font-family: var(--hml-font-mono);
+  font-size: 12px;
+  color: var(--hml-text-secondary);
+  background: var(--hml-bg-elev-2);
+  border: 1px solid var(--hml-border-subtle);
+  border-radius: 6px;
+  padding: 8px 11px;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.cred-mini {
+  font-size: 11.5px;
+  padding: 6px 9px;
+}
+
+.cred-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hml-border-subtle);
+}
+`;

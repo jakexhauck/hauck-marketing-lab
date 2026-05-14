@@ -1,28 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./main-dashboard.css";
+import { openInAppWindow } from "../../lib/openInApp";
 import { AppSidebar } from "./AppSidebar";
 import type { WorkflowView } from "./Sidebar";
 import type { FormSurfaceId } from "../../lib/formConfigs";
 import {
   IconArrowRight,
   IconBell,
-  IconFolder,
-  IconLayout,
   IconPlus,
-  IconRecordings,
   IconSettings,
   IconTarget,
   IconTasks,
   IconUser,
 } from "../icons";
-import type {
-  ClientSection,
-  OutreachSection,
-  ProspectEntry,
-  WorkspaceView,
+import {
+  defaultClientSection,
+  type ClientSection,
+  type OutreachSection,
+  type PersonalSection,
+  type ProspectEntry,
+  type WorkspaceView,
 } from "../../lib/navigation";
 import { ConnectCalendarModal } from "./ConnectCalendarModal";
 import { RecordingsPage } from "./RecordingsPage";
+import { HabitsPage } from "./HabitsPage";
 import { ResourcesPage } from "./ResourcesPage";
 import { SOPsPage } from "./SOPsPage";
 import { CalendarPage } from "./CalendarPage";
@@ -32,12 +33,20 @@ import { ClientDashboard } from "./ClientDashboard";
 import { OutreachHub } from "./OutreachHub";
 import { OutreachProspectPage } from "./OutreachProspectPage";
 import { OutreachSequencePage } from "./OutreachSequencePage";
+import { PersonalHubPage } from "./PersonalHubPage";
 import {
   ClientsTrackerPage,
   RevenueTrackerPage,
   TasksTrackerPage,
+  todayYMD,
 } from "./OpsTrackers";
-import type { CalendarConnection, ClientEntry, DashboardState } from "../../lib/types";
+import type {
+  CalendarConnection,
+  ClientEntry,
+  DashboardState,
+  OpsTask,
+  OpsTasksFile,
+} from "../../lib/types";
 import { api } from "../../lib/tauri";
 import { eventsOn, fetchCalendarEvents, type GCalEvent } from "../../lib/googleCalendar";
 
@@ -70,7 +79,8 @@ type View =
   | { kind: "dashboard" }
   | { kind: "workspace"; tab: Exclude<WorkspaceView, "dashboard"> }
   | { kind: "outreach"; section: OutreachSection; prospectSlug?: string }
-  | { kind: "client"; slug: string; section: ClientSection };
+  | { kind: "client"; slug: string; section: ClientSection }
+  | { kind: "personal"; section: PersonalSection };
 
 function initialViewFromWorkflow(w: WorkflowView | null | undefined): View {
   if (w === "lead-scraper") return { kind: "outreach", section: "lead-scraper" };
@@ -181,6 +191,10 @@ export function MainDashboard({
     }
   };
 
+  const onSelectPersonalSection = (section: PersonalSection) => {
+    setView({ kind: "personal", section });
+  };
+
   // Sidebar active-state derivations ─────────────────────────
   const activeWorkspace: WorkspaceView | null =
     view.kind === "dashboard"
@@ -192,17 +206,15 @@ export function MainDashboard({
   const activeOutreach: OutreachSection | null =
     view.kind === "outreach" ? view.section : null;
 
-  const activeProspectSlug: string | null =
-    view.kind === "outreach" && view.section === "prospect"
-      ? view.prospectSlug ?? null
-      : null;
-
   const activeClientForSidebar:
     | { slug: string; section: ClientSection }
     | null =
     view.kind === "client"
       ? { slug: view.slug, section: view.section }
       : null;
+
+  const activePersonal: PersonalSection | null =
+    view.kind === "personal" ? view.section : null;
 
   // Topbar breadcrumb ─────────────────────────────────────────
   const breadcrumb = useMemo(() => buildBreadcrumb(view, realClients, prospects), [
@@ -225,14 +237,14 @@ export function MainDashboard({
         <AppSidebar
           activeWorkspace={activeWorkspace}
           activeOutreach={activeOutreach}
-          activeProspectSlug={activeProspectSlug}
           activeClient={activeClientForSidebar}
+          activePersonal={activePersonal}
           clients={realClients}
           prospects={prospects}
           onSelectWorkspace={onSelectWorkspace}
           onSelectOutreachSection={onSelectOutreachSection}
-          onSelectProspect={onSelectProspect}
           onSelectClientSection={onSelectClientSection}
+          onSelectPersonalSection={onSelectPersonalSection}
           onAddClient={onAddClient}
           onOpenSettings={onSettings}
           onBrandClick={goDashboard}
@@ -286,6 +298,7 @@ export function MainDashboard({
             onSelectOutreachSection,
             onSelectProspect,
             onSelectClientSection,
+            onSelectPersonalSection,
             onOpenForm,
             onProspectsChanged: refreshProspects,
           })}
@@ -353,6 +366,21 @@ function buildBreadcrumb(
       </>
     );
   }
+  if (view.kind === "personal") {
+    const label =
+      view.section === "hygiene"
+        ? "Hygiene"
+        : view.section === "clothing"
+          ? "Clothes & Jewelry"
+          : "Overview";
+    return (
+      <>
+        <span className="hml-seg">Personal</span>
+        <span className="hml-sep">/</span>
+        <span className="hml-current">{label}</span>
+      </>
+    );
+  }
   // client
   const c = clients.find((c) => c.slug === view.slug);
   const sectionLabel = sectionToLabel(view.section);
@@ -369,6 +397,10 @@ function buildBreadcrumb(
 
 function sectionToLabel(s: ClientSection): string {
   switch (s) {
+    case "dashboard":
+      return "Dashboard";
+    case "onboarding":
+      return "Onboarding";
     case "profile":
       return "Profile";
     case "memory":
@@ -413,6 +445,7 @@ interface RenderMainArgs {
   ) => void;
   onSelectProspect: (slug: string) => void;
   onSelectClientSection: (slug: string, section: ClientSection) => void;
+  onSelectPersonalSection: (section: PersonalSection) => void;
   onOpenForm?: (id: FormSurfaceId, clientSlug: string, clientName: string) => void;
   onProspectsChanged: () => void;
 }
@@ -429,6 +462,7 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
     onSelectOutreachSection,
     onSelectProspect,
     onSelectClientSection,
+    onSelectPersonalSection,
   } = args;
 
   if (view.kind === "dashboard") {
@@ -444,13 +478,10 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
             realClients.find((c) => c.slug === activeClientSlug) ??
             realClients[0];
           if (target) {
-            onSelectClientSection(target.slug, "profile");
+            onSelectClientSection(target.slug, defaultClientSection(target.status));
           }
         }}
         onOpenOutreachHub={() => onSelectOutreachSection("overview")}
-        onSelectOutreachSection={onSelectOutreachSection}
-        onSelectClientSection={onSelectClientSection}
-        activeClientSlug={activeClientSlug}
       />
     );
   }
@@ -462,10 +493,12 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
       return <TasksTrackerPage root={root} clients={realClients} />;
     if (view.tab === "revenue")
       return <RevenueTrackerPage root={root} clients={realClients} />;
-    if (view.tab === "recordings") return <RecordingsPage root={root} />;
+    if (view.tab === "habits") return <HabitsPage />;
+    if (view.tab === "recordings") return <RecordingsPage root={root} clients={realClients} />;
     if (view.tab === "sops") return <SOPsPage root={root} />;
     if (view.tab === "resources") return <ResourcesPage root={root} />;
-    if (view.tab === "calendar") return <CalendarPage root={root} onBack={args.onBack} />;
+    if (view.tab === "calendar")
+      return <CalendarPage root={root} onBack={args.onBack} clients={realClients} />;
     return null;
   }
 
@@ -509,6 +542,16 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
     return null;
   }
 
+  if (view.kind === "personal") {
+    return (
+      <PersonalHubPage
+        section={view.section}
+        root={root}
+        onSelectSection={onSelectPersonalSection}
+      />
+    );
+  }
+
   // kind: "client"
   const c =
     activeClient ??
@@ -529,7 +572,7 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
       onOpenDrive={
         c.drive_folder_url
           ? () => {
-              window.open(c.drive_folder_url!, "_blank", "noreferrer");
+              openInAppWindow(c.drive_folder_url!, `${c.name} — Drive`);
             }
           : undefined
       }
@@ -552,9 +595,6 @@ function DashboardSurface({
   prospects,
   onOpenClientsHub,
   onOpenOutreachHub,
-  onSelectOutreachSection,
-  onSelectClientSection,
-  activeClientSlug,
 }: {
   clientCount: number;
   root: string | null;
@@ -562,11 +602,6 @@ function DashboardSurface({
   prospects: ProspectEntry[];
   onOpenClientsHub: () => void;
   onOpenOutreachHub: () => void;
-  onSelectOutreachSection: (
-    section: "overview" | "lead-scraper" | "web-designer" | "sequence",
-  ) => void;
-  onSelectClientSection: (slug: string, section: ClientSection) => void;
-  activeClientSlug: string | null;
 }) {
   const now = new Date();
   const hour = now.getHours();
@@ -585,6 +620,7 @@ function DashboardSurface({
   const [events, setEvents] = useState<GCalEvent[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [tasksFile, setTasksFile] = useState<OpsTasksFile>({ tasks: [] });
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -625,6 +661,52 @@ function DashboardSurface({
       setFetchError(err instanceof Error ? err.message : String(err));
     }
   }, [root, loadEventsFor]);
+
+  const refreshTasks = useCallback(async () => {
+    if (!root) {
+      setTasksFile({ tasks: [] });
+      return;
+    }
+    try {
+      const next = await api.readOpsTasks(root);
+      if (!mountedRef.current) return;
+      setTasksFile(next);
+    } catch {
+      if (!mountedRef.current) return;
+      setTasksFile({ tasks: [] });
+    }
+  }, [root]);
+
+  useEffect(() => {
+    void refreshTasks();
+  }, [refreshTasks]);
+
+  const today = todayYMD();
+  const dailyTasks = tasksFile.tasks.filter((t) => t.lane === "daily");
+  const dailyDoneCount = dailyTasks.filter(
+    (t) => t.lastCompletedDate === today,
+  ).length;
+
+  const toggleDailyDone = useCallback(
+    async (task: OpsTask, done: boolean) => {
+      if (!root) return;
+      const next: OpsTasksFile = {
+        tasks: tasksFile.tasks.map((t) =>
+          t.id === task.id
+            ? { ...t, lastCompletedDate: done ? today : null }
+            : t,
+        ),
+      };
+      setTasksFile(next);
+      try {
+        await api.writeOpsTasks(root, next);
+      } catch {
+        // If the write fails, pull the truth back from disk.
+        void refreshTasks();
+      }
+    },
+    [root, tasksFile, today, refreshTasks],
+  );
 
   useEffect(() => {
     if (!root) {
@@ -688,9 +770,15 @@ function DashboardSurface({
     (p) => p.status === "mockup-ready",
   ).length;
 
-  // Quick-link target client (active or first)
-  const quickClient =
-    clients.find((c) => c.slug === activeClientSlug) ?? clients[0] ?? null;
+  // "Calls booked today" — count of prospects newly moved into the
+  // `scheduled` state whose lastTouchedAt falls on today. Best signal we have
+  // until a proper bookings log exists.
+  const todayStamp = new Date().toISOString().slice(0, 10);
+  const callsBookedToday = prospects.filter((p) => {
+    if (p.status !== "scheduled") return false;
+    if (!p.lastTouchedAt) return false;
+    return p.lastTouchedAt.slice(0, 10) === todayStamp;
+  }).length;
 
   return (
     <div className="hml-content">
@@ -783,63 +871,6 @@ function DashboardSurface({
         </button>
       </section>
 
-      {/* Quick links chip bar ───────────────────────────────── */}
-      <section className="hml-quick-links">
-        <span className="hml-quick-links-label">Quick links</span>
-        {quickClient && (
-          <>
-            <button
-              type="button"
-              className="hml-quick-chip"
-              onClick={() => onSelectClientSection(quickClient.slug, "drive")}
-            >
-              <IconFolder size={11} className="hml-qc-icon" />
-              {quickClient.name}
-              <span className="hml-qc-sep">·</span>
-              <span className="hml-qc-tail">Drive</span>
-            </button>
-            <button
-              type="button"
-              className="hml-quick-chip"
-              onClick={() => onSelectClientSection(quickClient.slug, "website")}
-            >
-              <IconLayout size={11} className="hml-qc-icon" />
-              {quickClient.name}
-              <span className="hml-qc-sep">·</span>
-              <span className="hml-qc-tail">Web Designer</span>
-            </button>
-            <button
-              type="button"
-              className="hml-quick-chip"
-              onClick={() => onSelectClientSection(quickClient.slug, "recordings")}
-            >
-              <IconRecordings size={11} className="hml-qc-icon" />
-              {quickClient.name}
-              <span className="hml-qc-sep">·</span>
-              <span className="hml-qc-tail">Recordings</span>
-            </button>
-          </>
-        )}
-        <button
-          type="button"
-          className="hml-quick-chip"
-          onClick={() => onSelectOutreachSection("lead-scraper")}
-        >
-          <IconTarget size={11} className="hml-qc-icon" />
-          Lead Scraper
-        </button>
-        <button
-          type="button"
-          className="hml-quick-chip"
-          onClick={() => onSelectOutreachSection("web-designer")}
-        >
-          <IconLayout size={11} className="hml-qc-icon" />
-          Web Designer
-          <span className="hml-qc-sep">·</span>
-          <span className="hml-qc-tail">Outreach</span>
-        </button>
-      </section>
-
       {/* Stat row ──────────────────────────────────────────── */}
       <section className="hml-stat-row">
         <div className="hml-stat-card">
@@ -855,11 +886,15 @@ function DashboardSurface({
         <div className="hml-stat-card">
           <div className="hml-stat-label">
             <IconTarget className="hml-icon" />
-            Open Prospects
+            Calls Booked Today
           </div>
           <div className="hml-stat-value">
-            0
-            <span className="hml-stat-delta hml-flat">— scraper idle</span>
+            {callsBookedToday}
+            {callsBookedToday > 0 ? (
+              <span className="hml-stat-delta hml-pos">today</span>
+            ) : (
+              <span className="hml-stat-delta hml-flat">— none yet</span>
+            )}
           </div>
         </div>
         <div className="hml-stat-card">
@@ -900,18 +935,49 @@ function DashboardSurface({
           <div className="hml-panel-header">
             <div className="hml-panel-title">
               <span className="hml-dot" />
-              Recent activity
+              Daily routine
             </div>
-            <span className="hml-panel-action">View all</span>
+            <span className="hml-panel-action">
+              {dailyTasks.length === 0
+                ? "Add in Tasks"
+                : `${dailyDoneCount} / ${dailyTasks.length} done`}
+            </span>
           </div>
           <div className="hml-panel-body">
-            <div className="hml-empty">
-              <div className="hml-empty-title">No activity logged yet</div>
-              <div className="hml-empty-sub">
-                Run a form, generate a website, or scrape leads — the feed
-                fills as you work.
+            {dailyTasks.length === 0 ? (
+              <div className="hml-empty">
+                <div className="hml-empty-title">No daily tasks yet</div>
+                <div className="hml-empty-sub">
+                  Add recurring daily work in Workspace → Tasks → Daily routine.
+                  They'll show up here every day.
+                </div>
               </div>
-            </div>
+            ) : (
+              <ul className="hml-daily-list">
+                {dailyTasks.map((t) => {
+                  const done = t.lastCompletedDate === today;
+                  return (
+                    <li
+                      key={t.id}
+                      className={`hml-daily-row${done ? " hml-daily-done" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="hml-daily-check"
+                        checked={done}
+                        onChange={(e) => {
+                          void toggleDailyDone(t, e.target.checked);
+                        }}
+                        aria-label={`Mark "${t.title || "untitled"}" done`}
+                      />
+                      <span className="hml-daily-title">
+                        {t.title.trim() || <em>(untitled)</em>}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/tauri";
+import { openInAppWindow } from "../lib/openInApp";
 import type { BenchmarkSummary, ClientEntry } from "../lib/types";
 import { ClientProfileForm } from "./ClientProfileForm";
 
@@ -176,282 +177,479 @@ export function ClientsPage({
   }
 
   return (
-    <main className="main" style={{ position: "relative" }}>
-      <section className="clients-page reveal reveal-1">
-        <header className="clients-page-head">
-          <div>
-            <div className="clients-page-eye">CLIENT REGISTRY</div>
-            <h1 className="clients-page-title">Manage clients</h1>
-            <p className="clients-page-sub">
-              Each client gets its own <code>data/&lt;slug&gt;/</code> folder. Switch the active
-              client from the status bar pill.
-            </p>
+    <div className="md-root hml-app">
+      <style>{clientsCSS}</style>
+      <main className="hml-main hml-main-standalone">
+        <header className="hml-topbar">
+          <div className="hml-breadcrumb">
+            <span className="hml-seg">Workspace</span>
+            <span className="hml-sep">/</span>
+            <span className="hml-current">Manage clients</span>
           </div>
-          <button className="panel-edit" onClick={onClose}>
-            ← BACK
-          </button>
+          <div className="hml-topbar-right">
+            <button
+              type="button"
+              className="hml-btn hml-ghost"
+              onClick={onClose}
+            >
+              ← Back
+            </button>
+          </div>
         </header>
 
-        {error && <div className="clients-page-err">{error}</div>}
-
-        <div className="clients-page-toolbar">
-          {!adding ? (
-            <button className="action primary" onClick={() => setAdding(true)}>
-              + Add client
-            </button>
-          ) : (
-            <div className="clients-add-row clients-add-row-stacked">
-              <input
-                ref={newInputRef}
-                className="kpi-form-input"
-                placeholder="Client name (e.g. Bright Smile Dental)"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAdd();
-                  if (e.key === "Escape") {
-                    setAdding(false);
-                    setNewName("");
-                    setNewDriveUrl("");
-                    setError(null);
-                  }
-                }}
-                disabled={busy}
-              />
-              <input
-                className="kpi-form-input"
-                placeholder="Google Drive folder URL (optional)"
-                value={newDriveUrl}
-                onChange={(e) => setNewDriveUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAdd();
-                  if (e.key === "Escape") {
-                    setAdding(false);
-                    setNewName("");
-                    setNewDriveUrl("");
-                    setError(null);
-                  }
-                }}
-                disabled={busy}
-              />
-              <div className="clients-add-actions">
-                <button
-                  className="kpi-form-btn primary"
-                  onClick={handleAdd}
-                  disabled={busy || !newName.trim()}
-                >
-                  {busy ? "Adding…" : "Create"}
-                </button>
-                <button
-                  className="kpi-form-btn"
-                  onClick={() => {
-                    setAdding(false);
-                    setNewName("");
-                    setNewDriveUrl("");
-                    setError(null);
-                  }}
-                  disabled={busy}
-                >
-                  Cancel
-                </button>
+        <div className="hml-content">
+          <section className="hml-page-header">
+            <div>
+              <div className="hml-page-eyebrow">
+                <span className="hml-eyebrow-dot" />
+                Client registry
+              </div>
+              <h1 className="hml-page-title">Manage clients</h1>
+              <div className="hml-page-subtitle">
+                Each client gets its own <code>data/&lt;slug&gt;/</code> folder.
+                Switch the active client from the status bar pill.
               </div>
             </div>
-          )}
-        </div>
+            {!adding && (
+              <div className="hml-page-header-actions">
+                <button
+                  type="button"
+                  className="hml-btn hml-accent"
+                  onClick={() => setAdding(true)}
+                >
+                  + Add client
+                </button>
+              </div>
+            )}
+          </section>
 
-        <ul className="clients-list">
-          {clients.map((c) => {
-            const isActive = c.slug === activeSlug;
-            const renaming = renamingSlug === c.slug;
-            return (
-              <li key={c.slug} className={`clients-row${isActive ? " active" : ""}`}>
-                <div className="clients-row-main">
-                  {renaming ? (
-                    <input
-                      autoFocus
-                      className="kpi-form-input"
-                      value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleRename(c.slug);
-                        if (e.key === "Escape") {
-                          setRenamingSlug(null);
-                          setRenameValue("");
-                        }
-                      }}
-                      disabled={busy}
-                    />
-                  ) : (
-                    <div className="clients-row-name">
-                      {c.name}
-                      {isActive && <span className="clients-row-tag">ACTIVE</span>}
-                    </div>
-                  )}
-                  <div className="clients-row-slug">data/{c.slug}/</div>
-                  <div className="clients-row-bench">
-                    <label className="clients-row-bench-label">BENCHMARKS</label>
-                    <select
-                      className="clients-row-bench-select"
-                      value={c.benchmarks ?? ""}
-                      onChange={(e) => handleBenchmarksChange(c.slug, e.target.value)}
-                      disabled={busy}
-                    >
-                      <option value="">— none (use defaults) —</option>
-                      {benchmarkSets.map((b) => (
-                        <option key={b.filename} value={b.filename}>
-                          {b.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="clients-row-bench">
-                    <label className="clients-row-bench-label">DRIVE FOLDER</label>
-                    {editingDriveSlug === c.slug ? (
-                      <div className="clients-add-row">
+          {error && <div className="hml-error-banner">{error}</div>}
+
+          {adding && (
+            <section className="hml-panel cp-add-panel">
+              <div className="hml-panel-header">
+                <div className="hml-panel-title">
+                  <span className="hml-dot" />
+                  New client
+                </div>
+              </div>
+              <div className="hml-panel-body cp-add-body">
+                <div className="hml-form-field">
+                  <label className="hml-form-label">Name</label>
+                  <input
+                    ref={newInputRef}
+                    className="hml-form-input"
+                    placeholder="Client name (e.g. Bright Smile Dental)"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAdd();
+                      if (e.key === "Escape") {
+                        setAdding(false);
+                        setNewName("");
+                        setNewDriveUrl("");
+                        setError(null);
+                      }
+                    }}
+                    disabled={busy}
+                  />
+                </div>
+                <div className="hml-form-field">
+                  <label className="hml-form-label">Drive folder (optional)</label>
+                  <input
+                    className="hml-form-input"
+                    placeholder="Google Drive folder URL"
+                    value={newDriveUrl}
+                    onChange={(e) => setNewDriveUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAdd();
+                      if (e.key === "Escape") {
+                        setAdding(false);
+                        setNewName("");
+                        setNewDriveUrl("");
+                        setError(null);
+                      }
+                    }}
+                    disabled={busy}
+                  />
+                </div>
+                <div className="cp-add-actions">
+                  <button
+                    type="button"
+                    className="hml-btn hml-accent"
+                    onClick={handleAdd}
+                    disabled={busy || !newName.trim()}
+                  >
+                    {busy ? "Adding…" : "Create"}
+                  </button>
+                  <button
+                    type="button"
+                    className="hml-btn hml-ghost"
+                    onClick={() => {
+                      setAdding(false);
+                      setNewName("");
+                      setNewDriveUrl("");
+                      setError(null);
+                    }}
+                    disabled={busy}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          <ul className="cp-list">
+            {clients.map((c) => {
+              const isActive = c.slug === activeSlug;
+              const renaming = renamingSlug === c.slug;
+              return (
+                <li
+                  key={c.slug}
+                  className={`hml-panel cp-row${isActive ? " cp-active" : ""}`}
+                >
+                  <div className="cp-row-main">
+                    <div className="cp-row-head">
+                      {renaming ? (
                         <input
                           autoFocus
-                          className="kpi-form-input"
-                          placeholder="Google Drive folder URL"
-                          value={driveDraft}
-                          onChange={(e) => setDriveDraft(e.target.value)}
+                          className="hml-form-input cp-rename-input"
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") handleSaveDrive(c.slug);
+                            if (e.key === "Enter") handleRename(c.slug);
                             if (e.key === "Escape") {
-                              setEditingDriveSlug(null);
-                              setDriveDraft("");
+                              setRenamingSlug(null);
+                              setRenameValue("");
                             }
                           }}
                           disabled={busy}
                         />
+                      ) : (
+                        <div className="cp-row-name">
+                          {c.name}
+                          {isActive && (
+                            <span className="cp-active-tag">ACTIVE</span>
+                          )}
+                        </div>
+                      )}
+                      <code className="cp-row-slug">data/{c.slug}/</code>
+                    </div>
+
+                    <div className="cp-row-fields">
+                      <div className="cp-field">
+                        <label className="hml-form-label">Benchmarks</label>
+                        <select
+                          className="hml-form-select"
+                          value={c.benchmarks ?? ""}
+                          onChange={(e) =>
+                            handleBenchmarksChange(c.slug, e.target.value)
+                          }
+                          disabled={busy}
+                        >
+                          <option value="">— none (use defaults) —</option>
+                          {benchmarkSets.map((b) => (
+                            <option key={b.filename} value={b.filename}>
+                              {b.title}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="cp-field">
+                        <label className="hml-form-label">Drive folder</label>
+                        {editingDriveSlug === c.slug ? (
+                          <div className="cp-drive-edit">
+                            <input
+                              autoFocus
+                              className="hml-form-input"
+                              placeholder="Google Drive folder URL"
+                              value={driveDraft}
+                              onChange={(e) => setDriveDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter")
+                                  handleSaveDrive(c.slug);
+                                if (e.key === "Escape") {
+                                  setEditingDriveSlug(null);
+                                  setDriveDraft("");
+                                }
+                              }}
+                              disabled={busy}
+                            />
+                            <button
+                              type="button"
+                              className="hml-btn hml-accent"
+                              onClick={() => handleSaveDrive(c.slug)}
+                              disabled={busy}
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              className="hml-btn hml-ghost"
+                              onClick={() => {
+                                setEditingDriveSlug(null);
+                                setDriveDraft("");
+                              }}
+                              disabled={busy}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : c.drive_folder_url ? (
+                          <div className="cp-drive-row">
+                            <a
+                              className="cp-drive-link"
+                              href={c.drive_folder_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={c.drive_folder_url}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (c.drive_folder_url) {
+                                  openInAppWindow(c.drive_folder_url, `${c.name} — Drive`);
+                                }
+                              }}
+                            >
+                              Open Drive ↗
+                            </a>
+                            <button
+                              type="button"
+                              className="hml-btn hml-ghost"
+                              onClick={() => {
+                                setEditingDriveSlug(c.slug);
+                                setDriveDraft(c.drive_folder_url ?? "");
+                                setError(null);
+                              }}
+                              disabled={busy}
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="hml-btn"
+                            onClick={() => {
+                              setEditingDriveSlug(c.slug);
+                              setDriveDraft("");
+                              setError(null);
+                            }}
+                            disabled={busy}
+                          >
+                            + Add Drive folder
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="cp-row-actions">
+                    {renaming ? (
+                      <>
                         <button
-                          className="kpi-form-btn primary"
-                          onClick={() => handleSaveDrive(c.slug)}
+                          type="button"
+                          className="hml-btn hml-accent"
+                          onClick={() => handleRename(c.slug)}
                           disabled={busy}
                         >
                           Save
                         </button>
                         <button
-                          className="kpi-form-btn"
+                          type="button"
+                          className="hml-btn hml-ghost"
                           onClick={() => {
-                            setEditingDriveSlug(null);
-                            setDriveDraft("");
+                            setRenamingSlug(null);
+                            setRenameValue("");
                           }}
                           disabled={busy}
                         >
                           Cancel
                         </button>
-                      </div>
-                    ) : c.drive_folder_url ? (
-                      <div className="clients-row-drive">
-                        <a
-                          className="clients-row-drive-link"
-                          href={c.drive_folder_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          title={c.drive_folder_url}
-                        >
-                          Open Drive ↗
-                        </a>
+                      </>
+                    ) : (
+                      <>
+                        {!isActive && (
+                          <button
+                            type="button"
+                            className="hml-btn"
+                            onClick={() => onSelectClient(c.slug)}
+                            disabled={busy}
+                          >
+                            Switch to
+                          </button>
+                        )}
                         <button
-                          className="kpi-form-btn"
+                          type="button"
+                          className="hml-btn hml-ghost"
                           onClick={() => {
-                            setEditingDriveSlug(c.slug);
-                            setDriveDraft(c.drive_folder_url ?? "");
+                            setRenamingSlug(c.slug);
+                            setRenameValue(c.name);
                             setError(null);
                           }}
                           disabled={busy}
                         >
-                          Edit
+                          Rename
                         </button>
-                      </div>
-                    ) : (
-                      <button
-                        className="kpi-form-btn"
-                        onClick={() => {
-                          setEditingDriveSlug(c.slug);
-                          setDriveDraft("");
-                          setError(null);
-                        }}
-                        disabled={busy}
-                      >
-                        + Add Drive folder
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="clients-row-actions">
-                  {renaming ? (
-                    <>
-                      <button
-                        className="kpi-form-btn primary"
-                        onClick={() => handleRename(c.slug)}
-                        disabled={busy}
-                      >
-                        Save
-                      </button>
-                      <button
-                        className="kpi-form-btn"
-                        onClick={() => {
-                          setRenamingSlug(null);
-                          setRenameValue("");
-                        }}
-                        disabled={busy}
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      {!isActive && (
                         <button
-                          className="kpi-form-btn"
-                          onClick={() => onSelectClient(c.slug)}
+                          type="button"
+                          className="hml-btn hml-ghost"
+                          onClick={() => {
+                            setProfileFor({ client: c, mode: "edit" });
+                            setError(null);
+                          }}
                           disabled={busy}
                         >
-                          Switch to
+                          Edit profile
                         </button>
-                      )}
-                      <button
-                        className="kpi-form-btn"
-                        onClick={() => {
-                          setRenamingSlug(c.slug);
-                          setRenameValue(c.name);
-                          setError(null);
-                        }}
-                        disabled={busy}
-                      >
-                        Rename
-                      </button>
-                      <button
-                        className="kpi-form-btn"
-                        onClick={() => {
-                          setProfileFor({ client: c, mode: "edit" });
-                          setError(null);
-                        }}
-                        disabled={busy}
-                      >
-                        Edit profile
-                      </button>
-                      <button
-                        className="kpi-form-btn danger"
-                        onClick={() => handleDelete(c.slug)}
-                        disabled={busy || clients.length <= 1}
-                        title={
-                          clients.length <= 1
-                            ? "Can't delete the only client."
-                            : "Delete (only works if data/<slug>/ is empty)"
-                        }
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-    </main>
+                        <button
+                          type="button"
+                          className="hml-btn hml-danger"
+                          onClick={() => handleDelete(c.slug)}
+                          disabled={busy || clients.length <= 1}
+                          title={
+                            clients.length <= 1
+                              ? "Can't delete the only client."
+                              : "Delete (only works if data/<slug>/ is empty)"
+                          }
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </main>
+    </div>
   );
 }
+
+const clientsCSS = `
+.cp-add-panel { margin-bottom: 22px; }
+.cp-add-body { padding: 16px 18px; }
+
+.cp-add-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hml-border-subtle);
+}
+
+.cp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cp-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  padding: 16px 18px;
+  align-items: flex-start;
+}
+
+.cp-row.cp-active {
+  border-color: var(--hml-accent-border);
+  background:
+    linear-gradient(180deg, var(--hml-accent-dim) 0%, var(--hml-bg-elev-1) 60%);
+}
+
+.cp-row-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.cp-row-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--hml-text-primary);
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.cp-active-tag {
+  font-family: var(--hml-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  color: var(--hml-accent);
+  padding: 3px 6px;
+  border: 1px solid var(--hml-accent-border);
+  background: var(--hml-accent-dim);
+  border-radius: 4px;
+}
+
+.cp-row-slug {
+  font-family: var(--hml-font-mono);
+  font-size: 11px;
+  color: var(--hml-text-tertiary);
+  background: var(--hml-bg-elev-2);
+  border: 1px solid var(--hml-border-subtle);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+
+.cp-row-fields {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) 1fr;
+  gap: 16px;
+}
+
+.cp-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.cp-drive-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cp-drive-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cp-drive-link {
+  font-size: 12.5px;
+  color: var(--hml-accent);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--hml-accent-border);
+  padding-bottom: 1px;
+}
+.cp-drive-link:hover {
+  color: var(--hml-accent-bright);
+  border-color: var(--hml-accent);
+}
+
+.cp-rename-input { font-weight: 500; }
+
+.cp-row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  min-width: 120px;
+}
+
+@media (max-width: 800px) {
+  .cp-row { grid-template-columns: 1fr; }
+  .cp-row-actions { flex-direction: row; flex-wrap: wrap; }
+  .cp-row-fields { grid-template-columns: 1fr; }
+}
+`;

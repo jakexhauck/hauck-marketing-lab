@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../../lib/tauri";
+import { openInAppWindow } from "../../../lib/openInApp";
 import type { ClientEntry, DriveIndex } from "../../../lib/types";
 
 interface Props {
@@ -93,6 +94,10 @@ export function ClientOverview({ clientName, clientSlug, client, root, onBack }:
               target="_blank"
               rel="noreferrer"
               title={driveUrl}
+              onClick={(e) => {
+                e.preventDefault();
+                openInAppWindow(driveUrl, "Google Drive");
+              }}
             >
               Open in Drive ↗
             </a>

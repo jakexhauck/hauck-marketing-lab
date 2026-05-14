@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/tauri";
+import { openInAppWindow } from "../../lib/openInApp";
 import { parseDriveFolders, type DriveFolder } from "../../lib/driveIndex";
 import type { ClientV1 } from "./v1Data";
 
@@ -119,6 +120,10 @@ function DriveSection({
           target="_blank"
           rel="noreferrer"
           title={`Open ${folder.name} in Google Drive`}
+          onClick={(e) => {
+            e.preventDefault();
+            openInAppWindow(folder.url, folder.name);
+          }}
         >
           <span className="md-micro">▸</span>
           {folder.name}

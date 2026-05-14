@@ -5,7 +5,12 @@ import {
   fetchCalendarEvents,
   type GCalEvent,
 } from "../../lib/googleCalendar";
-import type { CalendarConnection } from "../../lib/types";
+import type {
+  CalendarConnection,
+  ClientEntry,
+  OpsClientRow,
+} from "../../lib/types";
+import { CreateEventModal } from "./CreateEventModal";
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 const MONTHS = [
@@ -35,6 +40,12 @@ const WEEKDAYS = [
 interface CalendarPageProps {
   root: string | null;
   onBack: () => void;
+  /** Real clients — populates the per-event "Assign to client" picker. */
+  clients?: ClientEntry[];
+}
+
+function eventYMD(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 interface Cell {
@@ -96,7 +107,7 @@ function formatFullDate(d: Date): string {
 const MAX_CHIPS_PER_CELL = 3;
 const MAX_DETAIL_ROWS = 20;
 
-export function CalendarPage({ root, onBack }: CalendarPageProps) {
+export function CalendarPage({ root, onBack, clients = [] }: CalendarPageProps) {
   const today = useMemo(() => startOfDay(new Date()), []);
   const [cursor, setCursor] = useState<{ year: number; month: number }>(() => ({
     year: today.getFullYear(),
@@ -109,15 +120,86 @@ export function CalendarPage({ root, onBack }: CalendarPageProps) {
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [opsRows, setOpsRows] = useState<Record<string, OpsClientRow>>({});
+  const [oauthConnected, setOauthConnected] = useState(false);
+  const [oauthBusy, setOauthBusy] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const mountedRef = useRef(true);
-
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
     };
   }, []);
+
+  /** event-id → client-slug, derived from opsRows for fast detail lookup. */
+  const eventClientMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const [slug, row] of Object.entries(opsRows)) {
+      if (row.nextCallEventId) m.set(row.nextCallEventId, slug);
+    }
+    return m;
+  }, [opsRows]);
+
+  const refreshOpsRows = useCallback(async () => {
+    if (!root) {
+      setOpsRows({});
+      return;
+    }
+    try {
+      const file = await api.readOpsClients(root);
+      if (!mountedRef.current) return;
+      setOpsRows(file.rows ?? {});
+    } catch {
+      if (mountedRef.current) setOpsRows({});
+    }
+  }, [root]);
+
+  useEffect(() => {
+    void refreshOpsRows();
+  }, [refreshOpsRows]);
+
+  /** Assign (or unassign) a calendar event to a client by writing
+   *  `nextCall` + `nextCallEventId` on the corresponding ops row. Clearing
+   *  prior owners keeps the event-id → slug map 1:1. */
+  const assignEventToClient = useCallback(
+    async (event: GCalEvent, clientSlug: string | null) => {
+      if (!root) return;
+      try {
+        const file = await api.readOpsClients(root);
+        const rows = { ...file.rows };
+
+        // Remove this event-id from any other client that previously owned it.
+        for (const [slug, row] of Object.entries(rows)) {
+          if (slug === clientSlug) continue;
+          if (row.nextCallEventId === event.id) {
+            rows[slug] = {
+              ...row,
+              nextCall: null,
+              nextCallEventId: null,
+            };
+          }
+        }
+
+        if (clientSlug) {
+          const prev = rows[clientSlug] ?? {};
+          rows[clientSlug] = {
+            ...prev,
+            nextCall: eventYMD(event.start),
+            nextCallEventId: event.id,
+          };
+        }
+
+        await api.writeOpsClients(root, { rows });
+        if (mountedRef.current) setOpsRows(rows);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("assign event to client failed", err);
+      }
+    },
+    [root],
+  );
 
   const loadAll = useCallback(async () => {
     if (!root) {
@@ -161,6 +243,46 @@ export function CalendarPage({ root, onBack }: CalendarPageProps) {
   useEffect(() => {
     void loadAll();
   }, [loadAll]);
+
+  const refreshOauthStatus = useCallback(async () => {
+    try {
+      const ok = await api.googleCalendarIsConnected();
+      if (mountedRef.current) setOauthConnected(ok);
+    } catch {
+      if (mountedRef.current) setOauthConnected(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshOauthStatus();
+  }, [refreshOauthStatus]);
+
+  const handleConnectOAuth = useCallback(async () => {
+    if (oauthBusy) return;
+    setOauthBusy(true);
+    setFetchError(null);
+    try {
+      await api.googleCalendarConnect();
+      await refreshOauthStatus();
+    } catch (err) {
+      setFetchError(
+        `Google sign-in failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      if (mountedRef.current) setOauthBusy(false);
+    }
+  }, [oauthBusy, refreshOauthStatus]);
+
+  const handleDisconnectOAuth = useCallback(async () => {
+    if (oauthBusy) return;
+    setOauthBusy(true);
+    try {
+      await api.googleCalendarDisconnect();
+      await refreshOauthStatus();
+    } finally {
+      if (mountedRef.current) setOauthBusy(false);
+    }
+  }, [oauthBusy, refreshOauthStatus]);
 
   const cells = useMemo(
     () => buildMonthGrid(cursor.year, cursor.month),
@@ -232,6 +354,37 @@ export function CalendarPage({ root, onBack }: CalendarPageProps) {
           {!connection && (
             <button type="button" className="hml-btn" onClick={onBack}>
               Connect calendar →
+            </button>
+          )}
+          {oauthConnected ? (
+            <>
+              <button
+                type="button"
+                className="hml-btn"
+                onClick={() => setCreateOpen(true)}
+              >
+                + New block
+              </button>
+              <button
+                type="button"
+                className="hml-btn"
+                onClick={handleDisconnectOAuth}
+                disabled={oauthBusy}
+                title="Sign out of Google Calendar write access"
+                style={{ opacity: 0.7 }}
+              >
+                {oauthBusy ? "…" : "Sign out"}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="hml-btn"
+              onClick={handleConnectOAuth}
+              disabled={oauthBusy}
+              title="Authorize Hauck Marketing Lab to create events on your calendar"
+            >
+              {oauthBusy ? "Opening browser…" : "Sign in with Google"}
             </button>
           )}
         </div>
@@ -379,21 +532,60 @@ export function CalendarPage({ root, onBack }: CalendarPageProps) {
                 <div className="md-cal-page-detail-empty">No events.</div>
               ) : (
                 <>
-                  {selectedEvents.slice(0, MAX_DETAIL_ROWS).map((e) => (
-                    <div key={e.id} className="md-cal-page-detail-row">
-                      <div className="md-cal-page-detail-time">
-                        {e.allDay
-                          ? "All day"
-                          : `${formatTime(e.start)} – ${formatTime(e.end)}`}
-                      </div>
-                      <div className="md-cal-page-detail-title">{e.title}</div>
-                      {e.location ? (
-                        <div className="md-cal-page-detail-loc">
-                          {e.location}
+                  {selectedEvents.slice(0, MAX_DETAIL_ROWS).map((e) => {
+                    const assignedSlug = eventClientMap.get(e.id) ?? "";
+                    return (
+                      <div key={e.id} className="md-cal-page-detail-row">
+                        <div className="md-cal-page-detail-time">
+                          {e.allDay
+                            ? "All day"
+                            : `${formatTime(e.start)} – ${formatTime(e.end)}`}
                         </div>
-                      ) : null}
-                    </div>
-                  ))}
+                        <div className="md-cal-page-detail-title">
+                          {e.title}
+                          {assignedSlug && (
+                            <span
+                              className="md-cal-page-detail-tag"
+                              title="Assigned as next call"
+                            >
+                              →{" "}
+                              {clients.find((c) => c.slug === assignedSlug)
+                                ?.name ?? assignedSlug}
+                            </span>
+                          )}
+                        </div>
+                        {e.location ? (
+                          <div className="md-cal-page-detail-loc">
+                            {e.location}
+                          </div>
+                        ) : null}
+                        {clients.length > 0 && (
+                          <div className="md-cal-page-detail-assign">
+                            <label className="md-cal-page-detail-assign-label">
+                              Next call for
+                            </label>
+                            <select
+                              className="md-cal-page-detail-assign-select"
+                              value={assignedSlug}
+                              onChange={(ev) =>
+                                void assignEventToClient(
+                                  e,
+                                  ev.target.value || null,
+                                )
+                              }
+                            >
+                              <option value="">— Unassigned —</option>
+                              {clients.map((c) => (
+                                <option key={c.slug} value={c.slug}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                   {selectedEvents.length > MAX_DETAIL_ROWS ? (
                     <div className="md-cal-page-detail-more">
                       +{selectedEvents.length - MAX_DETAIL_ROWS} more
@@ -406,6 +598,15 @@ export function CalendarPage({ root, onBack }: CalendarPageProps) {
         </div>
       )}
       </div>
+
+      <CreateEventModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        defaultDate={selected}
+        onCreated={() => {
+          void loadAll();
+        }}
+      />
     </div>
   );
 }

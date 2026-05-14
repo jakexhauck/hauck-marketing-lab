@@ -44,5 +44,13 @@
     "label": "Personal Calendar",
     "connectedAt": "2026-05-12T00:16:39.916Z"
   },
-  "recordings": []
+  "recordings": [
+    {
+      "id": "mp4d8gfa-jg47il",
+      "url": "https://fathom.video/share/K3xsQpoRxamky89rM7T3CyT1yTXaiJQB",
+      "title": "Pavel Q&A",
+      "createdAt": 1778695262758
+    }
+  ],
+  "sopRuns": []
 }

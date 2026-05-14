@@ -6,6 +6,7 @@ import { api } from "../lib/tauri";
 import { checkForUpdates, installAndRestart } from "../lib/updater";
 import type { Update } from "@tauri-apps/plugin-updater";
 import type { AgentSummary, ClaudeCheck, ClientEntry } from "../lib/types";
+import { IconArrowRight } from "./icons";
 
 type Props = {
   root: string;
@@ -126,8 +127,6 @@ export function SettingsPage({
 
   const handleOpenBacklog = async () => {
     try {
-      // BACKLOG.md lives in the project root, one level up from the media-buying folder.
-      // Try the sibling path first; fall back to opening just the root if that fails.
       const parts = root.replace(/\\/g, "/").split("/");
       parts.pop();
       const projectRoot = parts.join("/");
@@ -148,227 +147,574 @@ export function SettingsPage({
   };
 
   return (
-    <main className="main" style={{ position: "relative" }}>
-      <section className="clients-page reveal reveal-1">
-        <header className="clients-page-head">
-          <div>
-            <div className="clients-page-eye">PREFERENCES</div>
-            <h1 className="clients-page-title">Settings</h1>
-            <p className="clients-page-sub">
-              Reconfigure folder, default agent, and clients. Everything here writes to the
-              local <code>config.json</code>; nothing leaves the machine.
-            </p>
+    <div className="md-root hml-app">
+      <style>{settingsCSS}</style>
+      <main className="hml-main hml-main-standalone">
+        <header className="hml-topbar">
+          <div className="hml-breadcrumb">
+            <span className="hml-seg">Workspace</span>
+            <span className="hml-sep">/</span>
+            <span className="hml-current">Settings</span>
           </div>
-          <button className="panel-edit" onClick={onClose}>
-            ← BACK
-          </button>
+          <div className="hml-topbar-right">
+            <button
+              type="button"
+              className="hml-btn hml-ghost"
+              onClick={onClose}
+            >
+              ← Back
+            </button>
+          </div>
         </header>
 
-        {error && <div className="clients-page-err">{error}</div>}
-
-        <div className="settings-sections">
-          {/* Folder ─────────────────────────────────────── */}
-          <div className="settings-section">
-            <div className="settings-section-head">
-              <div className="settings-section-eye">FOLDER</div>
-              <div className="settings-section-title">Media-buying folder</div>
+        <div className="hml-content">
+          <section className="hml-page-header">
+            <div>
+              <div className="hml-page-eyebrow">
+                <span className="hml-eyebrow-dot" />
+                Preferences
+              </div>
+              <h1 className="hml-page-title">Settings</h1>
+              <div className="hml-page-subtitle">
+                Reconfigure folder, default agent, and clients. Everything here
+                writes to the local <code>config.json</code>; nothing leaves the
+                machine.
+              </div>
             </div>
-            <div className="settings-section-body">
-              <div className="settings-path-row">
-                <code className="settings-path">{root}</code>
+          </section>
+
+          {error && <div className="hml-error-banner">{error}</div>}
+
+          {/* Folder ───────────────────────────────────────── */}
+          <section className="hml-panel set-panel">
+            <div className="hml-panel-header">
+              <div className="hml-panel-title">
+                <span className="hml-dot" />
+                Media-buying folder
+              </div>
+            </div>
+            <div className="hml-panel-body set-body">
+              <div className="set-path-row">
+                <code className="set-path">{root}</code>
                 <button
-                  className="kpi-form-btn"
+                  type="button"
+                  className="hml-btn"
                   onClick={handleChangeFolder}
                   disabled={busy}
                 >
                   {busy ? "Picking…" : "Change folder…"}
                 </button>
               </div>
-              <p className="settings-note">
-                The folder is the source of truth for agents, skills, knowledge, and chats.
-                Changing it reloads everything.
+              <p className="set-note">
+                The folder is the source of truth for agents, skills, knowledge,
+                and chats. Changing it reloads everything.
               </p>
             </div>
-          </div>
+          </section>
 
-          {/* About ────────────────────────────────────── */}
+          {/* About ────────────────────────────────────────── */}
           <AboutSettings root={root} />
 
-          {/* Default agent ─────────────────────────────── */}
-          <div className="settings-section">
-            <div className="settings-section-head">
-              <div className="settings-section-eye">DEFAULT AGENT</div>
-              <div className="settings-section-title">Who opens when you summon the dock</div>
+          {/* Default agent ────────────────────────────────── */}
+          <section className="hml-panel set-panel">
+            <div className="hml-panel-header">
+              <div className="hml-panel-title">
+                <span
+                  className="hml-dot"
+                  style={{ background: "var(--hml-blue)" }}
+                />
+                Default agent
+              </div>
+              <span className="hml-panel-action">
+                Opens when you summon the dock
+              </span>
             </div>
-            <div className="settings-section-body">
-              <ul className="settings-radio-list">
+            <div className="hml-panel-body set-body">
+              <ul className="set-radio-list">
                 {agents.map((a) => {
                   const checked = a.slug === resolvedDefaultSlug;
                   return (
                     <li key={a.slug}>
                       <button
                         type="button"
-                        className={`settings-radio${checked ? " checked" : ""}`}
+                        className={`set-radio${checked ? " checked" : ""}`}
                         onClick={() => handleSelectDefaultAgent(a.slug)}
                         aria-pressed={checked}
                       >
-                        <span className="settings-radio-dot" aria-hidden="true" />
-                        <span className="settings-radio-name">{a.name}</span>
+                        <span className="set-radio-dot" aria-hidden="true" />
+                        <span className="set-radio-name">{a.name}</span>
                         {a.role && (
-                          <span className="settings-radio-role">{a.role}</span>
+                          <span className="set-radio-role">{a.role}</span>
                         )}
-                        <span className="settings-radio-slug">{a.slug}</span>
+                        <span className="set-radio-slug">{a.slug}</span>
                       </button>
                     </li>
                   );
                 })}
               </ul>
             </div>
-          </div>
+          </section>
 
-          {/* Clients ─────────────────────────────────────── */}
-          <div className="settings-section">
-            <div className="settings-section-head">
-              <div className="settings-section-eye">CLIENTS</div>
-              <div className="settings-section-title">Client registry</div>
+          {/* Clients ──────────────────────────────────────── */}
+          <section className="hml-panel set-panel">
+            <div className="hml-panel-header">
+              <div className="hml-panel-title">
+                <span
+                  className="hml-dot"
+                  style={{ background: "var(--hml-plum)" }}
+                />
+                Client registry
+              </div>
             </div>
-            <div className="settings-section-body">
-              <div className="settings-inline-row">
-                <span className="settings-inline-text">
-                  {clients.length} client{clients.length === 1 ? "" : "s"} on file.
+            <div className="hml-panel-body set-body">
+              <div className="set-inline-row">
+                <span className="set-inline-text">
+                  {clients.length} client{clients.length === 1 ? "" : "s"} on
+                  file.
                 </span>
-                <button className="kpi-form-btn" onClick={onManageClients}>
-                  Manage clients →
+                <button
+                  type="button"
+                  className="hml-btn"
+                  onClick={onManageClients}
+                >
+                  Manage clients
+                  <IconArrowRight size={12} />
                 </button>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Client credentials ──────────────────────────── */}
+          {/* Client credentials ───────────────────────────── */}
           <ClientCredentials
             root={root}
             clientSlug={activeClientSlug}
             clientName={activeClientName}
           />
 
-          {/* Shortcuts ───────────────────────────────────── */}
-          <div className="settings-section">
-            <div className="settings-section-head">
-              <div className="settings-section-eye">SHORTCUTS</div>
-              <div className="settings-section-title">Keyboard</div>
+          {/* Shortcuts ────────────────────────────────────── */}
+          <section className="hml-panel set-panel">
+            <div className="hml-panel-header">
+              <div className="hml-panel-title">
+                <span
+                  className="hml-dot"
+                  style={{ background: "var(--hml-teal)" }}
+                />
+                Keyboard shortcuts
+              </div>
             </div>
-            <div className="settings-section-body">
-              <ul className="settings-shortcut-list">
+            <div className="hml-panel-body set-body">
+              <ul className="set-shortcut-list">
                 <li>
-                  <span className="settings-shortcut-keys">
-                    <kbd>⌘K</kbd>
-                    <span className="settings-shortcut-sep">/</span>
-                    <kbd>Ctrl+K</kbd>
+                  <span className="set-shortcut-keys">
+                    <kbd className="hml-kbd">⌘K</kbd>
+                    <span className="set-shortcut-sep">/</span>
+                    <kbd className="hml-kbd">Ctrl+K</kbd>
                   </span>
-                  <span className="settings-shortcut-label">Command palette</span>
+                  <span className="set-shortcut-label">Command palette</span>
                 </li>
               </ul>
-              <p className="settings-note">Shortcut customization coming later.</p>
+              <p className="set-note">Shortcut customization coming later.</p>
             </div>
-          </div>
+          </section>
 
-          {/* Build info ─────────────────────────────────── */}
-          <div className="settings-section">
-            <div className="settings-section-head">
-              <div className="settings-section-eye">BUILD</div>
-              <div className="settings-section-title">Build info</div>
+          {/* Build info ──────────────────────────────────── */}
+          <section className="hml-panel set-panel">
+            <div className="hml-panel-header">
+              <div className="hml-panel-title">
+                <span
+                  className="hml-dot"
+                  style={{ background: "var(--hml-neutral)" }}
+                />
+                Build info
+              </div>
             </div>
-            <div className="settings-section-body">
-              <dl className="settings-meta">
-                <div className="settings-meta-row">
+            <div className="hml-panel-body set-body">
+              <dl className="set-meta">
+                <div className="set-meta-row">
                   <dt>App version</dt>
                   <dd>
-                    <code>{APP_VERSION}</code>
+                    <code className="set-code">{APP_VERSION}</code>
                   </dd>
                 </div>
-                <div className="settings-meta-row">
+                <div className="set-meta-row">
                   <dt>Updates</dt>
-                  <dd>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        className="kpi-form-btn"
-                        onClick={handleCheckForUpdates}
-                        disabled={updateState.phase === "checking" || updateState.phase === "installing"}
-                      >
-                        {updateState.phase === "checking" ? "Checking…" : "Check for updates"}
-                      </button>
-                      {updateState.phase === "up-to-date" && (
-                        <span style={{ opacity: 0.7 }}>You're on the latest version.</span>
-                      )}
-                      {updateState.phase === "no-releases-yet" && (
-                        <span style={{ opacity: 0.7 }}>No releases published yet.</span>
-                      )}
-                      {updateState.phase === "available" && (
-                        <>
-                          <span style={{ opacity: 0.85 }}>
-                            v{updateState.update.version} available
-                          </span>
-                          <button
-                            type="button"
-                            className="kpi-form-btn"
-                            onClick={handleInstallUpdate}
-                          >
-                            Install & restart
-                          </button>
-                        </>
-                      )}
-                      {updateState.phase === "installing" && (
-                        <span style={{ opacity: 0.85 }}>Installing…</span>
-                      )}
-                      {updateState.phase === "error" && (
-                        <span style={{ color: "#ff8a8a" }}>{updateState.message}</span>
-                      )}
-                    </div>
-                  </dd>
-                </div>
-                <div className="settings-meta-row">
-                  <dt>Claude Code</dt>
-                  <dd>
-                    {claude == null ? (
-                      <code>checking…</code>
-                    ) : claude.found ? (
-                      <code>{claude.version ?? "installed"}</code>
-                    ) : (
-                      <code className="settings-meta-missing">not found</code>
+                  <dd className="set-meta-updates">
+                    <button
+                      type="button"
+                      className="hml-btn"
+                      onClick={handleCheckForUpdates}
+                      disabled={
+                        updateState.phase === "checking" ||
+                        updateState.phase === "installing"
+                      }
+                    >
+                      {updateState.phase === "checking"
+                        ? "Checking…"
+                        : "Check for updates"}
+                    </button>
+                    {updateState.phase === "up-to-date" && (
+                      <span className="set-meta-note">
+                        You're on the latest version.
+                      </span>
+                    )}
+                    {updateState.phase === "no-releases-yet" && (
+                      <span className="set-meta-note">
+                        No releases published yet.
+                      </span>
+                    )}
+                    {updateState.phase === "available" && (
+                      <>
+                        <span className="set-meta-note">
+                          v{updateState.update.version} available
+                        </span>
+                        <button
+                          type="button"
+                          className="hml-btn hml-accent"
+                          onClick={handleInstallUpdate}
+                        >
+                          Install & restart
+                        </button>
+                      </>
+                    )}
+                    {updateState.phase === "installing" && (
+                      <span className="set-meta-note">Installing…</span>
+                    )}
+                    {updateState.phase === "error" && (
+                      <span className="set-meta-error">
+                        {updateState.message}
+                      </span>
                     )}
                   </dd>
                 </div>
-                <div className="settings-meta-row">
+                <div className="set-meta-row">
+                  <dt>Claude Code</dt>
+                  <dd>
+                    {claude == null ? (
+                      <code className="set-code">checking…</code>
+                    ) : claude.found ? (
+                      <code className="set-code">
+                        {claude.version ?? "installed"}
+                      </code>
+                    ) : (
+                      <code className="set-code set-code-missing">
+                        not found
+                      </code>
+                    )}
+                  </dd>
+                </div>
+                <div className="set-meta-row">
                   <dt>Data folder</dt>
                   <dd>
                     <button
                       type="button"
-                      className="settings-meta-link"
+                      className="set-link"
                       onClick={handleOpenDataFolder}
                       title="Open in file explorer"
                     >
-                      <code>{root}</code>
+                      <code className="set-code">{root}</code>
                     </button>
                   </dd>
                 </div>
-                <div className="settings-meta-row">
+                <div className="set-meta-row">
                   <dt>Backlog</dt>
                   <dd>
                     <button
                       type="button"
-                      className="settings-meta-link"
+                      className="set-link"
                       onClick={handleOpenBacklog}
                     >
-                      <code>BACKLOG.md →</code>
+                      <code className="set-code">BACKLOG.md →</code>
                     </button>
                   </dd>
                 </div>
               </dl>
             </div>
-          </div>
+          </section>
         </div>
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }
+
+const settingsCSS = `
+.hml-main-standalone {
+  height: 100vh;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.hml-topbar {
+  height: 44px;
+  border-bottom: 1px solid var(--hml-border-subtle);
+  background: rgba(13, 13, 17, 0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  padding: 0 22px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.hml-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--hml-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--hml-text-tertiary);
+}
+
+.hml-breadcrumb .hml-seg { color: var(--hml-text-tertiary); }
+.hml-breadcrumb .hml-sep { color: var(--hml-text-quaternary); }
+.hml-breadcrumb .hml-current { color: var(--hml-text-primary); }
+
+.hml-topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hml-error-banner {
+  margin-bottom: 18px;
+  padding: 11px 14px;
+  border: 1px solid var(--hml-red-border);
+  background: var(--hml-red-bg);
+  color: var(--hml-red);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.set-panel { margin-bottom: 18px; }
+.set-body { padding: 14px 18px 16px; }
+
+.set-note {
+  font-size: 12.5px;
+  color: var(--hml-text-tertiary);
+  line-height: 1.55;
+  margin: 10px 0 0;
+}
+
+.set-path-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.set-path {
+  flex: 1;
+  min-width: 200px;
+  font-family: var(--hml-font-mono);
+  font-size: 12px;
+  color: var(--hml-text-secondary);
+  background: var(--hml-bg-elev-2);
+  border: 1px solid var(--hml-border-subtle);
+  border-radius: 6px;
+  padding: 8px 11px;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.set-radio-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.set-radio {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--hml-bg-elev-2);
+  border: 1px solid var(--hml-border-subtle);
+  border-radius: 8px;
+  color: var(--hml-text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.set-radio:hover {
+  background: var(--hml-bg-elev-3);
+  border-color: var(--hml-border);
+}
+
+.set-radio.checked {
+  border-color: var(--hml-accent-border);
+  background: var(--hml-accent-dim);
+}
+
+.set-radio-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--hml-border-strong);
+  background: transparent;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.set-radio.checked .set-radio-dot {
+  border-color: var(--hml-accent);
+}
+.set-radio.checked .set-radio-dot::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--hml-accent);
+}
+
+.set-radio-name {
+  font-weight: 500;
+  color: var(--hml-text-primary);
+}
+
+.set-radio-role {
+  color: var(--hml-text-tertiary);
+  font-size: 11.5px;
+  margin-left: 8px;
+}
+
+.set-radio-slug {
+  font-family: var(--hml-font-mono);
+  font-size: 10.5px;
+  color: var(--hml-text-quaternary);
+  letter-spacing: 0.02em;
+}
+
+.set-inline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.set-inline-text {
+  font-size: 13px;
+  color: var(--hml-text-secondary);
+}
+
+.set-shortcut-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.set-shortcut-list li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 0;
+}
+
+.set-shortcut-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.set-shortcut-sep {
+  color: var(--hml-text-quaternary);
+  font-size: 11px;
+}
+
+.set-shortcut-label {
+  font-size: 13px;
+  color: var(--hml-text-secondary);
+}
+
+.set-meta {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.set-meta-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--hml-border-subtle);
+}
+.set-meta-row:last-child { border-bottom: none; }
+
+.set-meta-row dt {
+  font-family: var(--hml-font-mono);
+  font-size: 10.5px;
+  color: var(--hml-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.set-meta-row dd {
+  margin: 0;
+  font-size: 13px;
+  color: var(--hml-text-primary);
+}
+
+.set-meta-updates {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.set-meta-note {
+  font-size: 12.5px;
+  color: var(--hml-text-tertiary);
+}
+
+.set-meta-error {
+  font-size: 12.5px;
+  color: var(--hml-red);
+}
+
+.set-code {
+  font-family: var(--hml-font-mono);
+  font-size: 11.5px;
+  color: var(--hml-text-secondary);
+  background: var(--hml-bg-elev-2);
+  border: 1px solid var(--hml-border-subtle);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.set-code-missing {
+  color: var(--hml-red);
+  border-color: var(--hml-red-border);
+  background: var(--hml-red-bg);
+}
+
+.set-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.set-link:hover .set-code {
+  color: var(--hml-accent);
+  border-color: var(--hml-accent-border);
+}
+`;

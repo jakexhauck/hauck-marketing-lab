@@ -16,6 +16,7 @@ import type {
   OpsClientsFile,
   OpsRevenueFile,
   OpsTasksFile,
+  PersonalHubFile,
   DataChangedEvent,
   DiagnosisFile,
   DiagnosisInputs,
@@ -268,6 +269,11 @@ export const api = {
   writeOpsRevenue: (root: string, file: OpsRevenueFile) =>
     invoke<void>("write_ops_revenue", { root, file }),
 
+  readPersonalHub: (root: string) =>
+    invoke<PersonalHubFile>("read_personal_hub", { root }),
+  writePersonalHub: (root: string, file: PersonalHubFile) =>
+    invoke<void>("write_personal_hub", { root, file }),
+
   listSops: (root: string) => invoke<SopsIndex>("list_sops", { root }),
   refreshSopsIndex: (root: string, folderUrl: string) =>
     invoke<SopsIndex>("refresh_sops_index", { root, folderUrl }),
@@ -387,4 +393,18 @@ export const api = {
 
   onDataChanged: (handler: (e: DataChangedEvent) => void): Promise<UnlistenFn> =>
     listen<DataChangedEvent>("data://changed", (evt) => handler(evt.payload)),
+
+  googleCalendarConnect: () => invoke<void>("google_calendar_connect"),
+  googleCalendarDisconnect: () => invoke<void>("google_calendar_disconnect"),
+  googleCalendarIsConnected: () => invoke<boolean>("google_calendar_is_connected"),
+  googleCalendarCreateEvent: (args: {
+    title: string;
+    startIso: string;
+    endIso: string;
+    description?: string | null;
+    location?: string | null;
+    allDay: boolean;
+  }) => invoke<string>("google_calendar_create_event", { args }),
+  googleCalendarDeleteEvent: (eventId: string) =>
+    invoke<void>("google_calendar_delete_event", { eventId }),
 };

@@ -1,24 +1,47 @@
 /**
- * ClientDashboard — per-client surface with sub-nav (Profile/Memory/Drive/
- * Media Buying/Website).
+ * ClientDashboard — per-client surface with sub-nav.
+ *
+ * Tab order (status-aware):
+ *   pre-launch → Onboarding · Drive · Media Buying · Website · Recordings · Profile · Memory*
+ *   live/paused → Dashboard · Drive · Media Buying · Website · Recordings · Profile · Memory*
+ *
+ * Memory tab only shows when vault/Clients/<name>/Memory.md actually has content.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ClientEntry, DashboardState, FathomRecording, VaultNote } from "../../lib/types";
+import type {
+  ClientEntry,
+  DashboardState,
+  FathomRecording,
+  OpsClientRow,
+  VaultNote,
+} from "../../lib/types";
 import type { ClientSection } from "../../lib/navigation";
 import type { FormSurfaceId } from "../../lib/formConfigs";
 import { api } from "../../lib/tauri";
 import { parseDriveFolders, type DriveFolder } from "../../lib/driveIndex";
+import {
+  buildProfileBody,
+  buildProfileFront,
+  emptyProfileFormValues,
+  parseProfileBody,
+  profilePathFor,
+  type ProfileFormValues,
+} from "../../lib/clientProfile";
 import { ClientMediaBuying } from "./ClientMediaBuying";
 import { WebDesignerPage } from "./WebDesignerPage";
-import { recordingsPageCSS } from "./RecordingsPage";
+import { recordingsPageCSS, openFathomInApp } from "./RecordingsPage";
+import { openInAppWindow } from "../../lib/openInApp";
+import { OnboardingChecklist } from "../OnboardingChecklist";
 import {
   IconBarChart,
+  IconDashboard,
   IconFolder,
   IconGlobe,
   IconMore,
   IconPen,
   IconRecordings,
+  IconTasks,
   IconUser,
 } from "../icons";
 
@@ -31,18 +54,28 @@ interface ClientDashboardProps {
   onOpenDrive?: () => void;
 }
 
-const TABS: ReadonlyArray<{
-  id: ClientSection;
-  label: string;
-  Icon: typeof IconUser;
-}> = [
-  { id: "profile", label: "Profile", Icon: IconUser },
-  { id: "memory", label: "Memory", Icon: IconPen },
-  { id: "drive", label: "Drive", Icon: IconFolder },
-  { id: "media-buying", label: "Media Buying", Icon: IconBarChart },
-  { id: "website", label: "Website", Icon: IconGlobe },
-  { id: "recordings", label: "Recordings", Icon: IconRecordings },
-];
+type TabDef = { id: ClientSection; label: string; Icon: typeof IconUser };
+
+/** Build the ordered tab list given client status + whether memory has content. */
+function buildTabs(status: ClientEntry["status"], hasMemory: boolean): TabDef[] {
+  const first: TabDef =
+    status === "pre-launch"
+      ? { id: "onboarding", label: "Onboarding", Icon: IconTasks }
+      : { id: "dashboard", label: "Dashboard", Icon: IconDashboard };
+
+  const tabs: TabDef[] = [
+    first,
+    { id: "drive", label: "Drive", Icon: IconFolder },
+    { id: "media-buying", label: "Media Buying", Icon: IconBarChart },
+    { id: "website", label: "Website", Icon: IconGlobe },
+    { id: "recordings", label: "Recordings", Icon: IconRecordings },
+    { id: "profile", label: "Profile", Icon: IconUser },
+  ];
+  if (hasMemory) {
+    tabs.push({ id: "memory", label: "Memory", Icon: IconPen });
+  }
+  return tabs;
+}
 
 function clientPill(status: ClientEntry["status"]) {
   switch (status) {
@@ -68,6 +101,43 @@ export function ClientDashboard({
   onOpenDrive,
 }: ClientDashboardProps) {
   const pill = clientPill(client.status);
+
+  // Memory tab visibility — async probe for any non-empty Memory.md
+  const [hasMemory, setHasMemory] = useState(false);
+  useEffect(() => {
+    if (!root) {
+      setHasMemory(false);
+      return;
+    }
+    let cancelled = false;
+    api
+      .readClientNotes(root, client.slug)
+      .then((notes) => {
+        if (cancelled) return;
+        const mem = notes.find((n) => {
+          const lower = n.path.toLowerCase();
+          return lower.endsWith("/memory.md") || lower.endsWith("\\memory.md");
+        });
+        setHasMemory(!!mem && mem.body.trim().length > 0);
+      })
+      .catch(() => {
+        if (!cancelled) setHasMemory(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [root, client.slug]);
+
+  const tabs = useMemo(() => buildTabs(client.status, hasMemory), [client.status, hasMemory]);
+
+  // If the active section is no longer in the visible tab set (e.g. status
+  // flipped, or memory was emptied), bounce to the first tab.
+  useEffect(() => {
+    if (!tabs.some((t) => t.id === section)) {
+      onSelectSection(tabs[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabs, section]);
 
   return (
     <div className="hml-content">
@@ -125,7 +195,7 @@ export function ClientDashboard({
       </section>
 
       <nav className="hml-subnav">
-        {TABS.map(({ id, label, Icon }) => (
+        {tabs.map(({ id, label, Icon }) => (
           <button
             key={id}
             type="button"
@@ -139,8 +209,24 @@ export function ClientDashboard({
       </nav>
 
       <div>
+        {section === "dashboard" && (
+          <ClientOverviewPanel client={client} root={root} />
+        )}
+        {section === "onboarding" && (
+          <OnboardingChecklist
+            root={root}
+            clientSlug={client.slug}
+            clientName={client.name}
+            onComplete={() => {
+              // Switch to Dashboard if the client has graduated out of
+              // pre-launch (otherwise Dashboard isn't in the tab list and
+              // the tab bounce-back would land us back here anyway).
+              if (client.status !== "pre-launch") onSelectSection("dashboard");
+            }}
+          />
+        )}
         {section === "profile" && (
-          <ClientNoteView root={root} clientSlug={client.slug} match="profile" emptyLabel="No Profile.md found yet." />
+          <ClientProfileInlineEditor client={client} root={root} />
         )}
         {section === "memory" && (
           <ClientNoteView root={root} clientSlug={client.slug} match="memory" emptyLabel="No Memory.md found yet." />
@@ -169,8 +255,438 @@ export function ClientDashboard({
   );
 }
 
-/** Lightweight vault-note display for the Profile/Memory tabs. Renders
- *  pre-wrapped markdown for now — a richer renderer can replace this. */
+/** Per-client overview surface — status snapshot, ops row stats, latest activity. */
+function ClientOverviewPanel({
+  client,
+  root,
+}: {
+  client: ClientEntry;
+  root: string | null;
+}) {
+  const [opsRow, setOpsRow] = useState<OpsClientRow | null>(null);
+  const [recCount, setRecCount] = useState<number | null>(null);
+  const [latestRec, setLatestRec] = useState<FathomRecording | null>(null);
+
+  useEffect(() => {
+    if (!root) {
+      setOpsRow(null);
+      setRecCount(null);
+      setLatestRec(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const ops = await api.readOpsClients(root);
+        if (!cancelled) setOpsRow(ops.rows[client.slug] ?? null);
+      } catch {
+        if (!cancelled) setOpsRow(null);
+      }
+      try {
+        const state = await api.readDashboardState(root);
+        if (cancelled) return;
+        const mine = (state.recordings ?? []).filter(
+          (r) => r.clientSlug === client.slug,
+        );
+        setRecCount(mine.length);
+        mine.sort((a, b) => b.createdAt - a.createdAt);
+        setLatestRec(mine[0] ?? null);
+      } catch {
+        if (!cancelled) {
+          setRecCount(null);
+          setLatestRec(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, client.slug]);
+
+  const fmtMoney = (n: number | null | undefined) =>
+    n == null ? "—" : `$${n.toLocaleString()}`;
+  const fmtDate = (iso: string | null | undefined) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  return (
+    <div>
+      <section className="hml-stat-row">
+        <div className="hml-stat-card">
+          <div className="hml-stat-label">
+            <IconBarChart className="hml-icon" />
+            Retainer
+          </div>
+          <div className="hml-stat-value">
+            {fmtMoney(opsRow?.retainer ?? null)}
+            <span className="hml-stat-delta hml-flat">monthly</span>
+          </div>
+        </div>
+        <div className="hml-stat-card">
+          <div className="hml-stat-label">
+            <IconBarChart className="hml-icon" />
+            Ad spend
+          </div>
+          <div className="hml-stat-value">
+            {fmtMoney(opsRow?.adSpend ?? null)}
+            <span className="hml-stat-delta hml-flat">monthly</span>
+          </div>
+        </div>
+        <div className="hml-stat-card">
+          <div className="hml-stat-label">
+            <IconRecordings className="hml-icon" />
+            Recordings
+          </div>
+          <div className="hml-stat-value">
+            {recCount ?? 0}
+            <span className="hml-stat-delta hml-flat">
+              {recCount && recCount > 0 ? "on file" : "— none yet"}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section className="hml-col-2">
+        <div className="hml-panel">
+          <div className="hml-panel-header">
+            <div className="hml-panel-title">
+              <span className="hml-dot" />
+              Key dates
+            </div>
+          </div>
+          <div className="hml-panel-body" style={{ padding: "14px 20px" }}>
+            <KvRow label="Retainer start" value={fmtDate(opsRow?.startDate)} />
+            <KvRow label="Ads launched" value={fmtDate(opsRow?.adsLaunchedAt)} />
+            <KvRow label="Last weekly report" value={fmtDate(opsRow?.weeklyReportSentAt)} />
+            <KvRow label="Last monthly report" value={fmtDate(opsRow?.monthlyReportSentAt)} />
+            <KvRow label="Next call" value={fmtDate(opsRow?.nextCall)} />
+          </div>
+        </div>
+
+        <div className="hml-panel">
+          <div className="hml-panel-header">
+            <div className="hml-panel-title">
+              <span className="hml-dot" style={{ background: "var(--hml-blue)" }} />
+              Latest recording
+            </div>
+          </div>
+          <div className="hml-panel-body" style={{ padding: "14px 20px" }}>
+            {latestRec ? (
+              <div>
+                <button
+                  type="button"
+                  className="hml-link"
+                  onClick={() => openFathomInApp(latestRec.url, latestRec.title)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    padding: 0,
+                    color: "var(--hml-text)",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                >
+                  {latestRec.title}
+                </button>
+                {latestRec.description && (
+                  <div
+                    style={{
+                      marginTop: 6,
+                      color: "var(--hml-text-secondary)",
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {latestRec.description}
+                  </div>
+                )}
+                <div className="hml-activity-meta" style={{ marginTop: 8 }}>
+                  <span>
+                    {new Date(latestRec.createdAt).toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="hml-empty" style={{ padding: "8px 0" }}>
+                <div className="hml-empty-sub">No recordings on file for {client.name}.</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {opsRow?.notes && (
+        <section className="hml-panel" style={{ marginTop: 18 }}>
+          <div className="hml-panel-header">
+            <div className="hml-panel-title">
+              <span className="hml-dot" />
+              Ops notes
+            </div>
+          </div>
+          <div
+            className="hml-panel-body"
+            style={{
+              padding: "14px 20px",
+              whiteSpace: "pre-wrap",
+              fontSize: 13,
+              lineHeight: 1.6,
+              color: "var(--hml-text-secondary)",
+            }}
+          >
+            {opsRow.notes}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function KvRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        padding: "7px 0",
+        borderBottom: "1px solid var(--hml-border-subtle, rgba(255,255,255,0.05))",
+        fontSize: 13,
+      }}
+    >
+      <span style={{ color: "var(--hml-text-secondary)" }}>{label}</span>
+      <span style={{ color: "var(--hml-text)", fontWeight: 500 }}>{value}</span>
+    </div>
+  );
+}
+
+/** Profile.md editor — embedded form for in-place edits. Mirrors the standalone
+ *  ClientProfileForm but without the modal chrome. */
+function ClientProfileInlineEditor({
+  client,
+  root,
+}: {
+  client: ClientEntry;
+  root: string | null;
+}) {
+  const [values, setValues] = useState<ProfileFormValues>(() => emptyProfileFormValues());
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!root) {
+      setLoading(false);
+      setValues(emptyProfileFormValues());
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setSavedAt(null);
+    (async () => {
+      try {
+        const notes = await api.readClientNotes(root, client.slug);
+        const profileNote =
+          notes.find((n) => n.front?.type === "profile") ??
+          notes.find((n) => n.rel_path.replace(/\\/g, "/").endsWith("/Profile.md"));
+        if (profileNote) {
+          const parsed = parseProfileBody(profileNote.body);
+          if (!cancelled) setValues(parsed);
+        } else if (!cancelled) {
+          setValues(emptyProfileFormValues());
+        }
+      } catch (e) {
+        if (!cancelled) setError(String(e));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, client.slug]);
+
+  const update = <K extends keyof ProfileFormValues>(key: K, value: ProfileFormValues[K]) => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!root) {
+      setError("Pick a media-buying folder first.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const body = buildProfileBody(client, values);
+      const front = buildProfileFront(client);
+      const vaultRoot = await api.vaultRootPath(root);
+      const path = profilePathFor(vaultRoot, client);
+      await api.writeVaultNote(root, path, front, body);
+      setSavedAt(Date.now());
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="hml-empty"><div className="hml-empty-sub">Loading profile…</div></div>;
+  }
+
+  return (
+    <section className="hml-panel">
+      <div className="hml-panel-header">
+        <div className="hml-panel-title">
+          <span className="hml-dot" />
+          Profile
+        </div>
+        <span className="hml-panel-action">
+          vault/Clients/{client.name}/Profile.md
+        </span>
+      </div>
+      <div className="hml-panel-body" style={{ padding: "18px 22px 22px" }}>
+        {error && (
+          <div
+            className="hml-error-banner"
+            style={{ marginBottom: 14 }}
+          >
+            {error}
+          </div>
+        )}
+
+        <Field label="What they do" hint='One sentence. Becomes the "Business" section.'>
+          <input
+            className="hml-form-input"
+            placeholder="e.g. Residential window cleaning company serving the north suburbs."
+            value={values.business}
+            onChange={(e) => update("business", e.target.value)}
+            disabled={busy}
+          />
+        </Field>
+
+        <Field label="Services" hint="One service per line. Saved as bullets.">
+          <textarea
+            className="hml-form-textarea"
+            rows={4}
+            placeholder={"Residential window cleaning\nGutter cleaning\nScreen repair"}
+            value={values.services}
+            onChange={(e) => update("services", e.target.value)}
+            disabled={busy}
+          />
+        </Field>
+
+        <Field
+          label="Target customer"
+          hint="Homeowner profile, age, income, neighborhoods, pain points."
+        >
+          <textarea
+            className="hml-form-textarea"
+            rows={3}
+            placeholder="Homeowners 35–65, $120k+ HHI, neighborhoods with HOA pressure to keep curb appeal up."
+            value={values.target}
+            onChange={(e) => update("target", e.target.value)}
+            disabled={busy}
+          />
+        </Field>
+
+        <Field label="Offers" hint="Intro pricing, packages, seasonal promos. One per line.">
+          <textarea
+            className="hml-form-textarea"
+            rows={3}
+            placeholder={"$99 first-time clean\nSpring bundle: windows + gutters"}
+            value={values.offers}
+            onChange={(e) => update("offers", e.target.value)}
+            disabled={busy}
+          />
+        </Field>
+
+        <Field label="Voice / brand notes" hint="How they want to be talked about.">
+          <textarea
+            className="hml-form-textarea"
+            rows={3}
+            placeholder="Friendly, local, never corporate. We sound like a neighbor, not a chain."
+            value={values.voice}
+            onChange={(e) => update("voice", e.target.value)}
+            disabled={busy}
+          />
+        </Field>
+
+        <Field label="What to avoid" hint="No-gos. One item per line.">
+          <textarea
+            className="hml-form-textarea"
+            rows={3}
+            placeholder={"Fake urgency claims\nDiscounts above 30%"}
+            value={values.avoid}
+            onChange={(e) => update("avoid", e.target.value)}
+            disabled={busy}
+          />
+        </Field>
+
+        <Field label="Geography" hint="Service area, ZIP codes, radius.">
+          <input
+            className="hml-form-input"
+            placeholder="e.g. North suburbs of Chicago — 20 mi radius from 60062"
+            value={values.geography}
+            onChange={(e) => update("geography", e.target.value)}
+            disabled={busy}
+          />
+        </Field>
+
+        <div className="hml-form-footer">
+          {savedAt && (
+            <span className="hml-dim" style={{ fontSize: 12 }}>
+              Saved {new Date(savedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
+          <button
+            type="button"
+            className="hml-btn hml-accent"
+            onClick={handleSave}
+            disabled={busy || !root}
+            style={{ marginLeft: "auto" }}
+          >
+            {busy ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="hml-form-field">
+      <label className="hml-form-label">{label}</label>
+      {children}
+      {hint && <div className="hml-form-help">{hint}</div>}
+    </div>
+  );
+}
+
+/** Lightweight vault-note display for the Memory tab — read-only for now. */
 function ClientNoteView({
   root,
   clientSlug,
@@ -275,12 +791,11 @@ function recUid(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function parseFathomUrl(input: string): { url: string; embedUrl: string } | null {
+function parseFathomUrl(input: string): { url: string } | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
-  const match = trimmed.match(FATHOM_SHARE_RE_CLIENT);
-  if (!match) return null;
-  return { url: trimmed, embedUrl: `https://fathom.video/share/${match[1]}` };
+  if (!FATHOM_SHARE_RE_CLIENT.test(trimmed)) return null;
+  return { url: trimmed };
 }
 
 function formatRecStamp(ts: number): string {
@@ -506,23 +1021,26 @@ function ClientRecordingsView({
             const parsed = parseFathomUrl(r.url);
             return (
               <li key={r.id} className="md-rec-item md-panel">
-                <div className="md-rec-embed">
-                  {parsed ? (
-                    <iframe
-                      src={parsed.embedUrl}
-                      title={r.title}
-                      allow="autoplay; fullscreen; clipboard-write"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <div className="md-rec-embed-fallback">
-                      Invalid Fathom URL — open externally:{" "}
+                {parsed ? (
+                  <button
+                    type="button"
+                    className="md-rec-card"
+                    onClick={() => openFathomInApp(r.url, r.title)}
+                    title="Play recording"
+                  >
+                    <span className="md-rec-card-play" aria-hidden="true">▶</span>
+                    <span className="md-rec-card-label">Play recording</span>
+                  </button>
+                ) : (
+                  <div className="md-rec-card md-rec-card-invalid">
+                    <span className="md-rec-card-label">
+                      Invalid Fathom URL —{" "}
                       <a href={r.url} target="_blank" rel="noreferrer">
                         {r.url}
                       </a>
-                    </div>
-                  )}
-                </div>
+                    </span>
+                  </div>
+                )}
                 <div className="md-rec-body">
                   <input
                     className="md-rec-title-input"
@@ -645,6 +1163,10 @@ function ClientDriveView({
             target="_blank"
             rel="noreferrer"
             className="hml-panel-action"
+            onClick={(e) => {
+              e.preventDefault();
+              openInAppWindow(driveUrl, `${clientSlug} — Drive`);
+            }}
           >
             Open root ↗
           </a>
@@ -666,6 +1188,10 @@ function ClientDriveView({
               rel="noreferrer"
               className="hml-activity"
               style={{ textDecoration: "none" }}
+              onClick={(e) => {
+                e.preventDefault();
+                openInAppWindow(f.url, f.name);
+              }}
             >
               <div className="hml-activity-icon hml-blue">
                 <IconFolder size={13} />
@@ -673,9 +1199,6 @@ function ClientDriveView({
               <div className="hml-activity-body">
                 <div className="hml-activity-title">
                   <span className="hml-em">{f.name}</span>
-                </div>
-                <div className="hml-activity-meta">
-                  <span>{f.url.replace(/^https?:\/\/(www\.)?drive\.google\.com/, "drive.google.com")}</span>
                 </div>
               </div>
             </a>

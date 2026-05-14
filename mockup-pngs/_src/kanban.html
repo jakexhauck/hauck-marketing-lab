@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Pipeline · Kanban</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  body { width: 2080px; }
+</style>
+</head>
+<body>
+<div class="hml-content">
+  <section class="hml-page-header">
+    <div>
+      <div class="hml-page-eyebrow"><span class="hml-eyebrow-dot"></span>CRM · Mockup · Read-only</div>
+      <h1 class="hml-page-title">Pipeline</h1>
+      <div class="hml-page-subtitle">GoHighLevel mirror — pick a layout. Real wiring is webhooks in, API pulls on open. All data shown is placeholder.</div>
+    </div>
+    <div class="pm-variant-switch">
+      <button class="pm-variant-btn pm-variant-on">Kanban board</button>
+      <button class="pm-variant-btn">Split view</button>
+      <button class="pm-variant-btn">Dense table</button>
+    </div>
+  </section>
+
+  <div class="pm-kanban">
+    <!-- Lead -->
+    <div class="pm-kanban-col">
+      <header class="pm-kanban-col-head">
+        <div class="pm-kanban-col-title"><span class="pm-kanban-col-dot" style="background:#888894"></span>New Lead<span class="pm-kanban-col-count">2</span></div>
+      </header>
+      <div class="pm-kanban-col-body">
+        <article class="pm-card">
+          <div class="pm-card-row"><div class="pm-avatar">TB</div><div class="pm-card-title-block"><div class="pm-card-name">Tom Briggs</div><div class="pm-card-sub">Briggs HVAC</div></div></div>
+          <div class="pm-card-meta"><span class="pm-tag">Scraper</span></div>
+          <div class="pm-card-foot"><span class="pm-card-touch">Last touch today</span></div>
+        </article>
+        <article class="pm-card">
+          <div class="pm-card-row"><div class="pm-avatar">QV</div><div class="pm-card-title-block"><div class="pm-card-name">Quinn Vega</div><div class="pm-card-sub">Vega Solar</div></div></div>
+          <div class="pm-card-meta"><span class="pm-tag">Scraper</span></div>
+          <div class="pm-card-foot"><span class="pm-card-touch">Last touch today</span></div>
+        </article>
+      </div>
+    </div>
+
+    <!-- Contacted -->
+    <div class="pm-kanban-col">
+      <header class="pm-kanban-col-head">
+        <div class="pm-kanban-col-title"><span class="pm-kanban-col-dot" style="background:#7ba8c4"></span>Contacted<span class="pm-kanban-col-count">2</span></div>
+      </header>
+      <div class="pm-kanban-col-body">
+        <article class="pm-card">
+          <div class="pm-card-row"><div class="pm-avatar">SM</div><div class="pm-card-title-block"><div class="pm-card-name">Sara Mendel</div><div class="pm-card-sub">Mendel Window Cleaning</div></div></div>
+          <div class="pm-card-meta"><span class="pm-tag">Cold DM</span><span class="pm-value">$1,800</span></div>
+          <div class="pm-card-foot"><span class="pm-card-touch">Last touch 1d ago</span></div>
+        </article>
+        <article class="pm-card">
+          <div class="pm-card-row"><div class="pm-avatar">JA</div><div class="pm-card-title-block"><div class="pm-card-name">Jordan Ash</div><div class="pm-card-sub">Ash Landscaping</div></div></div>
+          <div class="pm-card-meta"><span class="pm-tag">Cold DM</span><span class="pm-value">$2,400</span></div>
+          <div class="pm-card-foot"><span class="pm-card-touch">Last touch 2d ago</span></div>
+        </article>
+      </div>
+    </div>
+
+    <!-- Booked -->
+    <div class="pm-kanban-col">
+      <header class="pm-kanban-col-head">
+        <div class="pm-kanban-col-title"><span class="pm-kanban-col-dot" style="background:#d4a574"></span>Call Booked<span class="pm-kanban-col-count">2</span></div>
+        <div class="pm-kanban-col-sum">$5,700</div>
+      </header>
+      <div class="pm-kanban-col-body">
+        <article class="pm-card">
+          <div class="pm-card-row"><div class="pm-avatar">MD</div><div class="pm-card-title-block"><div class="pm-card-name">Marcus Doyle</div><div class="pm-card-sub">Doyle Pressure Washing</div></div></div>
+          <div class="pm-card-meta"><span class="pm-tag">Cold Call</span><span class="pm-value">$2,500</span></div>
+          <div class="pm-card-next">📅 Thu, May 14, 3:00 PM</div>
+          <div class="pm-card-foot"><span class="pm-card-touch">Last touch 1d ago</span></div>
+        </article>
+        <article class="pm-card">
+          <div class="pm-card-row"><div class="pm-avatar">AP</div><div class="pm-card-title-block"><div class="pm-card-name">Avery Pope</div><div class="pm-card-sub">Pope Plumbing</div></div></div>
+          <div class="pm-card-meta"><span class="pm-tag">Inbound</span><span class="pm-value">$3,200</span></div>
+          <div class="pm-card-next">📅 Fri, May 15, 11:00 AM</div>
+          <div class="pm-card-foot"><span class="pm-card-touch">Last touch 1d ago</span></div>
+        </article>
+      </div>
+    </div>
+
+    <!-- Showed -->
+    <div class="pm-kanban-col">
+      <header class="pm-kanban-col-head">
+        <div class="pm-kanban-col-title"><span class="pm-kanban-col-dot" style="background:#b48ac4"></span>Showed<span class="pm-kanban-col-count">1</span></div>
+        <div class="pm-kanban-col-sum">$4,200</div>
+      </header>
+      <div class="pm-kanban-col-body">
+        <article class="pm-card">
+          <div class="pm-card-row"><div class="pm-avatar">LP</div><div class="pm-card-title-block"><div class="pm-card-name">Lena Park</div><div class="pm-card-sub">Park Family Dentistry</div></div></div>
+          <div class="pm-card-meta"><span class="pm-tag">Referral</span><span class="pm-value">$4,200</span></div>
+          <div class="pm-card-next">📅 Sat, May 16, 10:00 AM</div>
+          <div class="pm-card-foot"><span class="pm-card-touch">Last touch today</span></div>
+        </article>
+      </div>
+    </div>
+
+    <!-- Proposal -->
+    <div class="pm-kanban-col">
+      <header class="pm-kanban-col-head">
+        <div class="pm-kanban-col-title"><span class="pm-kanban-col-dot" style="background:#7fc4b9"></span>Proposal Sent<span class="pm-kanban-col-count">1</span></div>
+        <div class="pm-kanban-col-sum">$3,800</div>
+      </header>
+      <div class="pm-kanban-col-body">
+        <article class="pm-card">
+          <div class="pm-card-row"><div class="pm-avatar">DH</div><div class="pm-card-title-block"><div class="pm-card-name">Devon Hill</div><div class="pm-card-sub">Hillside Roofing</div></div></div>
+          <div class="pm-card-meta"><span class="pm-tag">Cold Call</span><span class="pm-value">$3,800</span></div>
+          <div class="pm-card-next">📅 Fri, May 15, 2:00 PM</div>
+          <div class="pm-card-foot"><span class="pm-card-touch">Last touch 2d ago</span></div>
+        </article>
+      </div>
+    </div>
+
+    <!-- Closed -->
+    <div class="pm-kanban-col">
+      <header class="pm-kanban-col-head">
+        <div class="pm-kanban-col-title"><span class="pm-kanban-col-dot" style="background:#7fb285"></span>Closed<span class="pm-kanban-col-count">1</span></div>
+        <div class="pm-kanban-col-sum">$2,200</div>
+      </header>
+      <div class="pm-kanban-col-body">
+        <article class="pm-card">
+          <div class="pm-card-row"><div class="pm-avatar">RK</div><div class="pm-card-title-block"><div class="pm-card-name">Riley Knox</div><div class="pm-card-sub">Knox Detailing</div></div></div>
+          <div class="pm-card-meta"><span class="pm-tag">Cold Call</span><span class="pm-value">$2,200</span></div>
+          <div class="pm-card-foot"><span class="pm-card-touch">Last touch 4d ago</span></div>
+        </article>
+      </div>
+    </div>
+
+    <!-- Lost -->
+    <div class="pm-kanban-col">
+      <header class="pm-kanban-col-head">
+        <div class="pm-kanban-col-title"><span class="pm-kanban-col-dot" style="background:#c4847b"></span>Lost<span class="pm-kanban-col-count">1</span></div>
+      </header>
+      <div class="pm-kanban-col-body">
+        <article class="pm-card">
+          <div class="pm-card-row"><div class="pm-avatar">CN</div><div class="pm-card-title-block"><div class="pm-card-name">Casey Nguyen</div><div class="pm-card-sub">Nguyen Law</div></div></div>
+          <div class="pm-card-meta"><span class="pm-tag">Cold Call</span></div>
+          <div class="pm-card-foot"><span class="pm-card-touch">Last touch 11d ago</span></div>
+        </article>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

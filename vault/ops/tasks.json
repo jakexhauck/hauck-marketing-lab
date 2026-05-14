@@ -1,10 +1,79 @@
 {
   "tasks": [
     {
-      "id": "f823b48f-bb11-4801-9630-919f32686384",
-      "title": "",
+      "id": "3667c0de-a21b-4e43-b354-289e4aa3da26",
+      "title": "Setup A2P In GHL",
+      "clientSlug": "willis-windows",
+      "assignedTo": "ME",
       "status": "todo",
-      "createdAt": 1778682430370
+      "createdAt": 1778692347674
+    },
+    {
+      "id": "9836651d-02c6-40d1-8c98-a422bf3bc787",
+      "title": "Jersey Income Tracker",
+      "status": "todo",
+      "createdAt": 1778693014822
+    },
+    {
+      "id": "6049c27a-ac75-4136-9c17-caabd54b0d1d",
+      "title": "Create SOP's From Brez Course & Important Info",
+      "status": "todo",
+      "createdAt": 1778693032032
+    },
+    {
+      "id": "4b1a30f2-740e-4dd8-8d0d-4a2b78e7bfd3",
+      "title": "Call GHL & Downgrade To $97",
+      "status": "todo",
+      "createdAt": 1778693571669
+    },
+    {
+      "id": "77f113eb-a45a-4f59-b2c3-1beaf5cfa898",
+      "title": "Create Contracts + Automation",
+      "status": "todo",
+      "createdAt": 1778693604541
+    },
+    {
+      "id": "f75b16fa-231c-4bda-8a05-7946d9ae2f97",
+      "title": "Contact GHL Support About Downgrading Too $97",
+      "status": "todo",
+      "createdAt": 1778693610740
+    },
+    {
+      "id": "9d0622d8-e522-450b-819c-2d753fedb5fe",
+      "title": "Change Commercial Cleaning Photo On Website",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1778694212210
+    },
+    {
+      "id": "29d837e4-bbba-4f02-9852-19192e20bf65",
+      "title": "Government Assignment",
+      "status": "todo",
+      "createdAt": 1778697133153
+    },
+    {
+      "id": "0b1b9a55-7e8b-4d22-b186-812162049137",
+      "title": "Create Split View Using The MD File",
+      "status": "todo",
+      "createdAt": 1778698317638
+    },
+    {
+      "id": "2bcd06eb-a4ce-43f1-93a8-a40606ba3a34",
+      "title": "Create Every Improvement Within The \"recommended improvements folder\"",
+      "status": "todo",
+      "createdAt": 1778700895101
+    },
+    {
+      "id": "69416545-60af-41fb-a546-fd44408b58c2",
+      "title": "Integrate All Of Brez Course Into Resources Section",
+      "status": "todo",
+      "createdAt": 1778703673887
+    },
+    {
+      "id": "38fd361d-697c-44ea-b5b6-5e759431c5a0",
+      "title": "Integrate GHL Within The APP Entirely",
+      "status": "todo",
+      "createdAt": 1778706770842
     }
   ]
 }

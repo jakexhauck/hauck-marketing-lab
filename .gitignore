@@ -44,6 +44,9 @@ data/*/credentials.yaml
 lead-scraper/credentials.json
 lead-scraper/credentials*.json
 
+# Google Calendar OAuth client (desktop-app creds, but keep out of repo for push protection)
+app/src-tauri/src/google_oauth_secrets.rs
+
 # Claude Code per-developer state
 .claude/settings.local.json
 .claude/worktrees/

@@ -13,11 +13,14 @@ mod events;
 mod folder;
 mod frontmatter;
 mod generators;
+mod google_calendar;
+mod google_oauth_secrets;
 mod knowledge;
 mod kpi;
 mod lead_scraper;
 mod onboarding;
 mod ops;
+mod personal;
 mod prospects;
 mod sops;
 mod sync;
@@ -97,6 +100,8 @@ pub fn run() {
             ops::write_ops_tasks,
             ops::read_ops_revenue,
             ops::write_ops_revenue,
+            personal::read_personal_hub,
+            personal::write_personal_hub,
             vault::read_vault_note,
             vault::write_vault_note,
             vault::append_to_memory,
@@ -118,6 +123,11 @@ pub fn run() {
             copywriter::run_copywriter,
             copywriter::list_dm_files,
             copywriter::read_dm_file,
+            google_calendar::google_calendar_connect,
+            google_calendar::google_calendar_disconnect,
+            google_calendar::google_calendar_is_connected,
+            google_calendar::google_calendar_create_event,
+            google_calendar::google_calendar_delete_event,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

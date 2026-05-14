@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Pipeline · Split View</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+  body { width: 1500px; }
+</style>
+</head>
+<body>
+<div class="hml-content">
+  <section class="hml-page-header">
+    <div>
+      <div class="hml-page-eyebrow"><span class="hml-eyebrow-dot"></span>CRM · Mockup · Read-only</div>
+      <h1 class="hml-page-title">Pipeline</h1>
+      <div class="hml-page-subtitle">GoHighLevel mirror — pick a layout. Real wiring is webhooks in, API pulls on open. All data shown is placeholder.</div>
+    </div>
+    <div class="pm-variant-switch">
+      <button class="pm-variant-btn">Kanban board</button>
+      <button class="pm-variant-btn pm-variant-on">Split view</button>
+      <button class="pm-variant-btn">Dense table</button>
+    </div>
+  </section>
+
+  <div class="pm-split">
+    <!-- Left list -->
+    <aside class="pm-split-list">
+      <header class="pm-split-list-head">
+        <div class="pm-split-search">
+          <svg class="icn" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 L13.5 13.5"/></svg>
+          <input placeholder="Search prospects…" />
+        </div>
+        <div class="pm-stage-filter">
+          <button class="pm-stage-chip pm-stage-on">All <span class="pm-stage-count">10</span></button>
+          <button class="pm-stage-chip"><span class="pm-stage-chip-dot" style="background:#888894"></span>New Lead <span class="pm-stage-count">2</span></button>
+          <button class="pm-stage-chip"><span class="pm-stage-chip-dot" style="background:#7ba8c4"></span>Contacted <span class="pm-stage-count">2</span></button>
+          <button class="pm-stage-chip"><span class="pm-stage-chip-dot" style="background:#d4a574"></span>Call Booked <span class="pm-stage-count">2</span></button>
+          <button class="pm-stage-chip"><span class="pm-stage-chip-dot" style="background:#b48ac4"></span>Showed <span class="pm-stage-count">1</span></button>
+          <button class="pm-stage-chip"><span class="pm-stage-chip-dot" style="background:#7fc4b9"></span>Proposal <span class="pm-stage-count">1</span></button>
+          <button class="pm-stage-chip"><span class="pm-stage-chip-dot" style="background:#7fb285"></span>Closed <span class="pm-stage-count">1</span></button>
+          <button class="pm-stage-chip"><span class="pm-stage-chip-dot" style="background:#c4847b"></span>Lost <span class="pm-stage-count">1</span></button>
+        </div>
+      </header>
+      <div class="pm-split-rows">
+        <button class="pm-split-row pm-split-row-on">
+          <div class="pm-avatar pm-avatar-sm">MD</div>
+          <div class="pm-split-row-body">
+            <div class="pm-split-row-line1"><span class="pm-split-row-name">Marcus Doyle</span><span class="pm-split-row-sub">· Doyle Pressure Washing</span></div>
+            <div class="pm-split-row-line2"><span class="hml-pill hml-amber"><span class="hml-pill-dot"></span>Call Booked</span><span class="pm-split-row-meta">1d ago</span></div>
+          </div>
+        </button>
+        <button class="pm-split-row">
+          <div class="pm-avatar pm-avatar-sm">LP</div>
+          <div class="pm-split-row-body">
+            <div class="pm-split-row-line1"><span class="pm-split-row-name">Lena Park</span><span class="pm-split-row-sub">· Park Family Dentistry</span></div>
+            <div class="pm-split-row-line2"><span class="hml-pill hml-plum"><span class="hml-pill-dot"></span>Showed</span><span class="pm-split-row-meta">today</span></div>
+          </div>
+        </button>
+        <button class="pm-split-row">
+          <div class="pm-avatar pm-avatar-sm">DH</div>
+          <div class="pm-split-row-body">
+            <div class="pm-split-row-line1"><span class="pm-split-row-name">Devon Hill</span><span class="pm-split-row-sub">· Hillside Roofing</span></div>
+            <div class="pm-split-row-line2"><span class="hml-pill hml-teal"><span class="hml-pill-dot"></span>Proposal Sent</span><span class="pm-split-row-meta">2d ago</span></div>
+          </div>
+        </button>
+        <button class="pm-split-row">
+          <div class="pm-avatar pm-avatar-sm">AP</div>
+          <div class="pm-split-row-body">
+            <div class="pm-split-row-line1"><span class="pm-split-row-name">Avery Pope</span><span class="pm-split-row-sub">· Pope Plumbing</span></div>
+            <div class="pm-split-row-line2"><span class="hml-pill hml-amber"><span class="hml-pill-dot"></span>Call Booked</span><span class="pm-split-row-meta">1d ago</span></div>
+          </div>
+        </button>
+        <button class="pm-split-row">
+          <div class="pm-avatar pm-avatar-sm">SM</div>
+          <div class="pm-split-row-body">
+            <div class="pm-split-row-line1"><span class="pm-split-row-name">Sara Mendel</span><span class="pm-split-row-sub">· Mendel Window Cleaning</span></div>
+            <div class="pm-split-row-line2"><span class="hml-pill hml-blue"><span class="hml-pill-dot"></span>Contacted</span><span class="pm-split-row-meta">1d ago</span></div>
+          </div>
+        </button>
+        <button class="pm-split-row">
+          <div class="pm-avatar pm-avatar-sm">JA</div>
+          <div class="pm-split-row-body">
+            <div class="pm-split-row-line1"><span class="pm-split-row-name">Jordan Ash</span><span class="pm-split-row-sub">· Ash Landscaping</span></div>
+            <div class="pm-split-row-line2"><span class="hml-pill hml-blue"><span class="hml-pill-dot"></span>Contacted</span><span class="pm-split-row-meta">2d ago</span></div>
+          </div>
+        </button>
+        <button class="pm-split-row">
+          <div class="pm-avatar pm-avatar-sm">TB</div>
+          <div class="pm-split-row-body">
+            <div class="pm-split-row-line1"><span class="pm-split-row-name">Tom Briggs</span><span class="pm-split-row-sub">· Briggs HVAC</span></div>
+            <div class="pm-split-row-line2"><span class="hml-pill hml-neutral"><span class="hml-pill-dot"></span>New Lead</span><span class="pm-split-row-meta">today</span></div>
+          </div>
+        </button>
+        <button class="pm-split-row">
+          <div class="pm-avatar pm-avatar-sm">QV</div>
+          <div class="pm-split-row-body">
+            <div class="pm-split-row-line1"><span class="pm-split-row-name">Quinn Vega</span><span class="pm-split-row-sub">· Vega Solar</span></div>
+            <div class="pm-split-row-line2"><span class="hml-pill hml-neutral"><span class="hml-pill-dot"></span>New Lead</span><span class="pm-split-row-meta">today</span></div>
+          </div>
+        </button>
+        <button class="pm-split-row">
+          <div class="pm-avatar pm-avatar-sm">RK</div>
+          <div class="pm-split-row-body">
+            <div class="pm-split-row-line1"><span class="pm-split-row-name">Riley Knox</span><span class="pm-split-row-sub">· Knox Detailing</span></div>
+            <div class="pm-split-row-line2"><span class="hml-pill hml-green"><span class="hml-pill-dot"></span>Closed</span><span class="pm-split-row-meta">4d ago</span></div>
+          </div>
+        </button>
+        <button class="pm-split-row">
+          <div class="pm-avatar pm-avatar-sm">CN</div>
+          <div class="pm-split-row-body">
+            <div class="pm-split-row-line1"><span class="pm-split-row-name">Casey Nguyen</span><span class="pm-split-row-sub">· Nguyen Law</span></div>
+            <div class="pm-split-row-line2"><span class="hml-pill hml-red"><span class="hml-pill-dot"></span>Lost</span><span class="pm-split-row-meta">11d ago</span></div>
+          </div>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Right detail -->
+    <section class="pm-split-detail">
+      <header class="pm-detail-head">
+        <div class="pm-avatar pm-avatar-lg">MD</div>
+        <div class="pm-detail-title-block">
+          <div class="pm-detail-name">Marcus Doyle</div>
+          <div class="pm-detail-sub">Doyle Pressure Washing · Pressure washing</div>
+          <div class="pm-detail-pills">
+            <span class="hml-pill hml-amber"><span class="hml-pill-dot"></span>Call Booked</span>
+            <span class="pm-tag">Cold Call</span>
+            <span class="pm-value pm-value-lg">$2,500</span>
+          </div>
+        </div>
+        <button class="pm-ghost-btn">
+          <svg class="icn" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h3v3"/><path d="M13 3 8 8"/><path d="M12 9v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/></svg>
+          Open in GHL
+        </button>
+      </header>
+
+      <div class="pm-detail-grid">
+        <div class="pm-detail-col">
+          <div class="pm-detail-section">
+            <div class="pm-section-label">Contact</div>
+            <div class="pm-contact-row">
+              <svg class="icn" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2.5h2l1 3-1.5 1a8 8 0 0 0 4 4l1-1.5 3 1V13a1 1 0 0 1-1 1A11 11 0 0 1 2 3.5a1 1 0 0 1 1-1z"/></svg>
+              <span class="pm-contact-val">+1 (614) 555-0114</span>
+            </div>
+            <div class="pm-contact-row">
+              <svg class="icn" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3.5" width="12" height="9" rx="1"/><path d="m2 4.5 6 4 6-4"/></svg>
+              <span class="pm-contact-val">marcus@doylepw.com</span>
+            </div>
+          </div>
+
+          <div class="pm-detail-section">
+            <div class="pm-section-label">Next scheduled</div>
+            <div class="pm-next-card">
+              <svg class="icn" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 6h12M5 1.5v3M11 1.5v3"/></svg>
+              <div>
+                <div class="pm-next-when">Thu, May 14, 3:00 PM</div>
+                <div class="pm-next-what">Discovery call · 30 min</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pm-detail-section">
+            <div class="pm-section-label">Notes</div>
+            <div class="pm-notes">Wants 30 jobs/mo. Currently $0 ads. Booked discovery for Thu 3pm.</div>
+          </div>
+
+          <div class="pm-detail-section">
+            <div class="pm-section-label">Quick actions</div>
+            <div class="pm-actions">
+              <button class="pm-action-btn">Trigger: Send Loom</button>
+              <button class="pm-action-btn">Trigger: Proposal Sequence</button>
+              <button class="pm-action-btn" style="color:var(--hml-red)">Trigger: Re-engage 90d</button>
+            </div>
+            <div class="pm-actions-note">Fires the matching GHL workflow. Result reflects back via webhook.</div>
+          </div>
+        </div>
+
+        <div class="pm-detail-col">
+          <div class="pm-detail-section">
+            <div class="pm-section-label">Activity</div>
+            <ol class="pm-timeline">
+              <li class="pm-timeline-row"><span class="pm-timeline-dot pm-timeline-stage"></span><div class="pm-timeline-body"><div class="pm-timeline-summary">Moved to Call Booked</div><div class="pm-timeline-when">May 12</div></div></li>
+              <li class="pm-timeline-row"><span class="pm-timeline-dot pm-timeline-call"></span><div class="pm-timeline-body"><div class="pm-timeline-summary">Outbound · 4m 12s · Booked</div><div class="pm-timeline-when">May 12</div></div></li>
+              <li class="pm-timeline-row"><span class="pm-timeline-dot pm-timeline-sms"></span><div class="pm-timeline-body"><div class="pm-timeline-summary">Sent: Calendar link</div><div class="pm-timeline-when">May 12</div></div></li>
+              <li class="pm-timeline-row"><span class="pm-timeline-dot pm-timeline-stage"></span><div class="pm-timeline-body"><div class="pm-timeline-summary">Moved to Contacted</div><div class="pm-timeline-when">May 10</div></div></li>
+              <li class="pm-timeline-row"><span class="pm-timeline-dot pm-timeline-call"></span><div class="pm-timeline-body"><div class="pm-timeline-summary">Outbound · 1m 48s · VM</div><div class="pm-timeline-when">May 10</div></div></li>
+              <li class="pm-timeline-row"><span class="pm-timeline-dot pm-timeline-stage"></span><div class="pm-timeline-body"><div class="pm-timeline-summary">Created from Scraper</div><div class="pm-timeline-when">May 8</div></div></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

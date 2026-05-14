@@ -13,6 +13,7 @@ export type WorkspaceView =
   | "clients"
   | "tasks"
   | "revenue"
+  | "habits"
   | "recordings"
   | "sops"
   | "resources";
@@ -25,14 +26,25 @@ export type OutreachSection =
   | "sequence"
   | "prospect"; // when `prospect`, `slug` field on the view discriminator names which one
 
+/** Top-level surfaces inside the Personal pillar. */
+export type PersonalSection = "overview" | "hygiene" | "clothing";
+
 /** Per-client tabs inside a ClientDashboard. */
 export type ClientSection =
-  | "profile"
-  | "memory"
+  | "dashboard"
+  | "onboarding"
   | "drive"
   | "media-buying"
   | "website"
-  | "recordings";
+  | "recordings"
+  | "profile"
+  | "memory";
+
+/** First section to open when the user clicks a client. Pre-launch clients
+ *  land on the onboarding checklist; everyone else lands on the dashboard. */
+export function defaultClientSection(status: "pre-launch" | "live" | "paused"): ClientSection {
+  return status === "pre-launch" ? "onboarding" : "dashboard";
+}
 
 /**
  * Lightweight prospect entry used to populate the Outreach > Prospects subtree

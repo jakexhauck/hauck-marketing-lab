@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../lib/tauri";
-import type { FathomRecording } from "../../lib/types";
+import { openInAppWindow } from "../../lib/openInApp";
+import type { ClientEntry, FathomRecording } from "../../lib/types";
+
+export async function openFathomInApp(url: string, title: string) {
+  return openInAppWindow(url, title || "Fathom Recording", {
+    width: 1200,
+    height: 780,
+    background: "#000000",
+  });
+}
 
 const RECORDINGS_KEY = "hml.recordings.v1";
 const FATHOM_SHARE_RE =
@@ -28,23 +37,21 @@ function formatStamp(ts: number): string {
   return `${date} · ${time}`.toUpperCase();
 }
 
-function parseFathomUrl(input: string): { url: string; embedUrl: string } | null {
+function parseFathomUrl(input: string): { url: string } | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
-  const match = trimmed.match(FATHOM_SHARE_RE);
-  if (!match) return null;
-  const id = match[1];
-  return {
-    url: trimmed,
-    embedUrl: `https://fathom.video/share/${id}`,
-  };
+  if (!FATHOM_SHARE_RE.test(trimmed)) return null;
+  return { url: trimmed };
 }
 
 interface RecordingsPageProps {
   root: string | null;
+  /** Real clients — drives the assign-to-client picker. Optional so the page
+   *  works when invoked without context (defensive). */
+  clients?: ClientEntry[];
 }
 
-export function RecordingsPage({ root }: RecordingsPageProps) {
+export function RecordingsPage({ root, clients = [] }: RecordingsPageProps) {
   const [recordings, setRecordings] = useState<FathomRecording[]>([]);
   const [loading, setLoading] = useState(true);
   const skipSave = useRef(true);
@@ -54,7 +61,14 @@ export function RecordingsPage({ root }: RecordingsPageProps) {
   const [recUrl, setRecUrl] = useState("");
   const [recTitle, setRecTitle] = useState("");
   const [recDescription, setRecDescription] = useState("");
+  const [recClientSlug, setRecClientSlug] = useState<string>("");
   const [recError, setRecError] = useState<string | null>(null);
+
+  const clientNameBySlug = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of clients) m.set(c.slug, c.name);
+    return m;
+  }, [clients]);
 
   useEffect(() => {
     let cancelled = false;
@@ -162,12 +176,20 @@ export function RecordingsPage({ root }: RecordingsPageProps) {
       title,
       description: description || undefined,
       createdAt: Date.now(),
+      clientSlug: recClientSlug || null,
     };
     setRecordings((prev) => [rec, ...prev]);
     setRecUrl("");
     setRecTitle("");
     setRecDescription("");
+    setRecClientSlug("");
     setRecError(null);
+  };
+
+  const updateRecordingClient = (id: string, slug: string) => {
+    setRecordings((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, clientSlug: slug || null } : r)),
+    );
   };
 
   const removeRecording = (id: string) => {
@@ -242,6 +264,19 @@ export function RecordingsPage({ root }: RecordingsPageProps) {
             onChange={(e) => setRecDescription(e.target.value)}
             rows={2}
           />
+          <select
+            className="md-rec-input md-rec-client-select"
+            value={recClientSlug}
+            onChange={(e) => setRecClientSlug(e.target.value)}
+            title="Assign this recording to a client (also makes it show up under that client's Recordings tab)"
+          >
+            <option value="">— No client (agency-wide) —</option>
+            {clients.map((c) => (
+              <option key={c.slug} value={c.slug}>
+                {c.name}
+              </option>
+            ))}
+          </select>
           <div className="md-rec-form-actions">
             {recError ? <span className="md-rec-error">{recError}</span> : <span />}
             <button
@@ -266,23 +301,26 @@ export function RecordingsPage({ root }: RecordingsPageProps) {
             const parsed = parseFathomUrl(r.url);
             return (
               <li key={r.id} className="md-rec-item md-panel">
-                <div className="md-rec-embed">
-                  {parsed ? (
-                    <iframe
-                      src={parsed.embedUrl}
-                      title={r.title}
-                      allow="autoplay; fullscreen; clipboard-write"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <div className="md-rec-embed-fallback">
-                      Invalid Fathom URL — open externally:{" "}
+                {parsed ? (
+                  <button
+                    type="button"
+                    className="md-rec-card"
+                    onClick={() => openFathomInApp(r.url, r.title)}
+                    title="Play recording"
+                  >
+                    <span className="md-rec-card-play" aria-hidden="true">▶</span>
+                    <span className="md-rec-card-label">Play recording</span>
+                  </button>
+                ) : (
+                  <div className="md-rec-card md-rec-card-invalid">
+                    <span className="md-rec-card-label">
+                      Invalid Fathom URL —{" "}
                       <a href={r.url} target="_blank" rel="noreferrer">
                         {r.url}
                       </a>
-                    </div>
-                  )}
-                </div>
+                    </span>
+                  </div>
+                )}
                 <div className="md-rec-body">
                   <input
                     className="md-rec-title-input"
@@ -309,6 +347,25 @@ export function RecordingsPage({ root }: RecordingsPageProps) {
                     >
                       Open in Fathom ↗
                     </a>
+                    {clients.length > 0 && (
+                      <select
+                        className="md-rec-client-tag"
+                        value={r.clientSlug ?? ""}
+                        onChange={(e) => updateRecordingClient(r.id, e.target.value)}
+                        title={
+                          r.clientSlug
+                            ? `Assigned to ${clientNameBySlug.get(r.clientSlug) ?? r.clientSlug}`
+                            : "Agency-wide (no client)"
+                        }
+                      >
+                        <option value="">— Unassigned —</option>
+                        {clients.map((c) => (
+                          <option key={c.slug} value={c.slug}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <span className="md-panel-meta">{formatStamp(r.createdAt)}</span>
                     <button
                       type="button"
@@ -373,6 +430,38 @@ export const recordingsPageCSS = `
 }
 .md-rec-input.is-invalid {
   border-color: #b85a3a;
+}
+.md-rec-client-select {
+  appearance: none;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 30px;
+}
+.md-rec-client-tag {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 3px 22px 3px 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 12px) 50%, calc(100% - 8px) 50%;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+.md-rec-client-tag:hover {
+  border-color: var(--copper);
+  color: var(--copper);
 }
 .md-rec-description {
   width: 100%;
@@ -454,34 +543,66 @@ export const recordingsPageCSS = `
   gap: 18px;
   padding: 14px;
 }
-.md-rec-embed {
+.md-rec-card {
   position: relative;
   width: 100%;
+  padding: 0;
   padding-top: 56.25%;
-  background: #000;
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
   border: 1px solid var(--border);
   overflow: hidden;
+  text-decoration: none;
+  color: var(--text);
+  display: block;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
 }
-.md-rec-embed iframe {
+.md-rec-card:hover {
+  border-color: var(--copper);
+}
+.md-rec-card:hover .md-rec-card-play {
+  transform: translate(-50%, -50%) scale(1.08);
+  color: var(--copper);
+}
+.md-rec-card-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  line-height: 1;
+  color: var(--text-muted);
+  transition: transform 120ms ease, color 120ms ease;
+}
+.md-rec-card-label {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.md-rec-card-invalid {
+  cursor: default;
+}
+.md-rec-card-invalid .md-rec-card-label {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-.md-rec-embed-fallback {
-  position: absolute;
-  inset: 0;
+  bottom: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 12px;
-  text-align: center;
-  font-family: var(--sans);
   font-size: 12px;
-  color: var(--text-muted);
+  letter-spacing: 0;
+  text-transform: none;
 }
-.md-rec-embed-fallback a {
+.md-rec-card-invalid a {
   color: var(--copper);
   margin-left: 6px;
   word-break: break-all;

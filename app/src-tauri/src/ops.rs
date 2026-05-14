@@ -28,14 +28,34 @@ use crate::vault::vault_root;
 pub struct OpsClientRow {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub retainer: Option<f64>,
+    /// Retainer / contract start date (when the money started). Distinct from
+    /// `ads_launched_at` — onboarding can run for days/weeks before ads go live.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub start_date: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ad_spend: Option<f64>,
+    /// Date the campaigns actually went live. Drives weekly + monthly report
+    /// cadence. Stamped by onboarding when task `06-publish` is checked.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ads_launched_at: Option<String>,
+    /// Legacy single-due-date column. New code computes weekly + monthly from
+    /// `ads_launched_at` and the *_sent_at fields below. Kept on the struct so
+    /// existing on-disk rows still round-trip.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_report_due: Option<String>,
+    /// ISO date the most-recent weekly report was marked sent. Used to advance
+    /// the displayed weekly due date by one cadence.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub weekly_report_sent_at: Option<String>,
+    /// ISO date the most-recent monthly report was marked sent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub monthly_report_sent_at: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_call: Option<String>,
+    /// GCal event id when the next call was sourced from the calendar. Null
+    /// when the date was typed in manually from the row.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_call_event_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
 }
