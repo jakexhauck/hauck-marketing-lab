@@ -369,6 +369,63 @@ pub async fn google_calendar_create_event(
 }
 
 #[tauri::command]
+pub async fn google_calendar_update_event(
+    app: AppHandle,
+    event_id: String,
+    args: CreateEventArgs,
+) -> Result<(), String> {
+    let token = access_token(&app).await?;
+    let body = if args.all_day {
+        EventBody {
+            summary: args.title,
+            description: args.description,
+            location: args.location,
+            start: EventTime {
+                date_time: None,
+                date: Some(args.start_iso.chars().take(10).collect()),
+            },
+            end: EventTime {
+                date_time: None,
+                date: Some(args.end_iso.chars().take(10).collect()),
+            },
+        }
+    } else {
+        EventBody {
+            summary: args.title,
+            description: args.description,
+            location: args.location,
+            start: EventTime {
+                date_time: Some(args.start_iso),
+                date: None,
+            },
+            end: EventTime {
+                date_time: Some(args.end_iso),
+                date: None,
+            },
+        }
+    };
+
+    let client = reqwest::Client::new();
+    let url = format!(
+        "https://www.googleapis.com/calendar/v3/calendars/primary/events/{}",
+        urlencoding::encode(&event_id)
+    );
+    let resp = client
+        .patch(&url)
+        .bearer_auth(&token)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("update event request: {e}"))?;
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(format!("update event failed ({status}): {text}"));
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn google_calendar_delete_event(
     app: AppHandle,
     event_id: String,

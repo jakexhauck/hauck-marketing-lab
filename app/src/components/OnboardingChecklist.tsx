@@ -7,8 +7,15 @@ import {
   type OnboardingPhase,
   type OnboardingTask,
 } from "../lib/onboardingPlan";
+import { syncOnboardingPhase } from "../lib/ghlSync";
 import { api } from "../lib/tauri";
 import "./onboarding-checklist.css";
+
+type GhlSyncStatus =
+  | { kind: "idle" }
+  | { kind: "syncing"; phase: number }
+  | { kind: "ok"; phase: number; stageName: string }
+  | { kind: "err"; phase: number; message: string };
 
 /** Legacy localStorage key — read once on first load to migrate, then cleared. */
 const LEGACY_STORAGE_PREFIX = "hml-onboarding-v1:";
@@ -74,6 +81,10 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
   const [phaseDoneAt, setPhaseDoneAt] = useState<Record<string, string>>({});
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [ghlSync, setGhlSync] = useState<GhlSyncStatus>({ kind: "idle" });
+  // Highest phase number already pushed to GHL for this client mount.
+  // Prevents re-firing on re-renders or when loading historical state.
+  const lastSyncedPhase = useRef<number>(0);
   // Suppress the persist effect until after the load resolves, so we don't
   // race the initial empty state to disk.
   const skipNextPersist = useRef(true);
@@ -114,6 +125,14 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
       if (cancelled) return;
       setDoneSet(new Set(next.done));
       setPhaseDoneAt(next.phaseDoneAt);
+      // Seed the sync watermark to the highest phase already stamped on disk,
+      // so re-opening the app for an in-flight client doesn't re-push every
+      // historical phase to GHL.
+      const seeded = Object.keys(next.phaseDoneAt)
+        .map((k) => Number(k))
+        .filter((n) => Number.isFinite(n));
+      lastSyncedPhase.current = seeded.length ? Math.max(...seeded) : 0;
+      setGhlSync({ kind: "idle" });
       setLoaded(true);
 
       if (needsMigrationWrite && root) {
@@ -241,6 +260,55 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
     });
   }, [phaseStates]);
 
+  // GHL sync — when a new phase flips done, advance the matching opportunity
+  // stage in GoHighLevel. Idempotent: lastSyncedPhase ref is the watermark.
+  // The Rust side also no-ops when the opportunity is already at the target
+  // stage, so we're double-protected against duplicate fires.
+  useEffect(() => {
+    if (!loaded) return;
+    const completedPhases = phaseStates
+      .filter((s) => s.completed === s.total)
+      .map((s) => s.phase.num);
+    if (completedPhases.length === 0) return;
+    const maxCompleted = Math.max(...completedPhases);
+    if (maxCompleted <= lastSyncedPhase.current) return;
+
+    const target = maxCompleted;
+    lastSyncedPhase.current = target;
+    setGhlSync({ kind: "syncing", phase: target });
+    let cancelled = false;
+    void (async () => {
+      const result = await syncOnboardingPhase({
+        root: root ?? "",
+        clientSlug,
+        clientName,
+        phaseNum: target,
+      });
+      if (cancelled) return;
+      if (result.ok) {
+        setGhlSync({
+          kind: "ok",
+          phase: target,
+          stageName: result.stageName ?? "",
+        });
+      } else {
+        // Roll the watermark back so a future tick retries.
+        lastSyncedPhase.current = Math.max(0, target - 1);
+        setGhlSync({ kind: "err", phase: target, message: result.message });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [phaseStates, loaded, root, clientSlug, clientName]);
+
+  const retryGhlSync = useCallback(() => {
+    if (ghlSync.kind !== "err") return;
+    lastSyncedPhase.current = Math.max(0, ghlSync.phase - 1);
+    // Nudge the effect to re-run by writing the same phaseDoneAt back.
+    setPhaseDoneAt((prev) => ({ ...prev }));
+  }, [ghlSync]);
+
   const toggleTask = useCallback((id: string) => {
     setDoneSet((prev) => {
       const next = new Set(prev);
@@ -275,6 +343,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
           <span className="ob-progress-count">
             Phase <em>{Math.min(currentPhaseNum, ONBOARDING_PLAN.length - 1)}</em> / {ONBOARDING_PLAN.length}
           </span>
+          <GhlSyncPill status={ghlSync} onRetry={retryGhlSync} />
         </div>
       </div>
 
@@ -493,5 +562,39 @@ function TaskRow({
         )}
       </div>
     </div>
+  );
+}
+
+function GhlSyncPill({
+  status,
+  onRetry,
+}: {
+  status: GhlSyncStatus;
+  onRetry: () => void;
+}) {
+  if (status.kind === "idle") return null;
+  if (status.kind === "syncing") {
+    return (
+      <span className="ob-ghl-pill ob-ghl-syncing" title="Syncing to GoHighLevel">
+        GHL · syncing P{status.phase}
+      </span>
+    );
+  }
+  if (status.kind === "ok") {
+    return (
+      <span className="ob-ghl-pill ob-ghl-ok" title="Synced to GoHighLevel">
+        GHL · {status.stageName || `phase ${status.phase}`}
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="ob-ghl-pill ob-ghl-err"
+      onClick={onRetry}
+      title={status.message}
+    >
+      GHL · sync failed · retry
+    </button>
   );
 }

@@ -413,6 +413,95 @@ export interface DmFile {
   size_bytes: number;
 }
 
+// ── GoHighLevel (Sales Hub + onboarding sync) ────────────────
+
+export interface GhlStage {
+  id: string;
+  name: string;
+  position: number;
+}
+
+export interface GhlPipeline {
+  id: string;
+  name: string;
+  stages: GhlStage[];
+}
+
+export interface GhlOpportunity {
+  id: string;
+  name: string;
+  contactId?: string | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  pipelineId: string;
+  pipelineStageId: string;
+  status?: string | null;
+  monetaryValue?: number | null;
+  updatedAt?: string | null;
+}
+
+export interface GhlAdvanceArgs {
+  clientName: string;
+  clientEmail?: string | null;
+  /** Preferred — pass the GHL pipeline ID to avoid name-based lookups. */
+  pipelineId?: string | null;
+  /** Fallback when pipelineId isn't known. Case-insensitive name match. */
+  pipelineName?: string | null;
+  stageName: string;
+  knownContactId?: string | null;
+  knownOpportunityId?: string | null;
+}
+
+export interface GhlConfigStatus {
+  configured: boolean;
+  locationId?: string | null;
+  salesPipelineId?: string | null;
+  onboardingPipelineId?: string | null;
+  /** Single GHL calendar the app polls for new bookings. Drives the
+   *  Call Booked → sales-pipeline + Google Calendar sync. */
+  bookingCalendarId?: string | null;
+}
+
+/** Which hub a pipeline choice belongs to. */
+export type GhlHubKey = "sales" | "onboarding";
+
+export interface GhlAdvanceResult {
+  contactId: string;
+  opportunityId: string;
+  pipelineId: string;
+  stageId: string;
+}
+
+export interface GhlCalendar {
+  id: string;
+  name: string;
+  isActive?: boolean | null;
+  calendarType?: string | null;
+}
+
+export interface GhlAppointment {
+  id: string;
+  calendarId: string;
+  /** "confirmed" | "cancelled" | "noshow" | "showed" | "invalid". */
+  appointmentStatus: string;
+  startIso: string;
+  endIso: string;
+  title?: string | null;
+  contactId?: string | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  dateUpdated?: string | null;
+}
+
+export interface GhlContactLite {
+  id: string;
+  name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+}
+
 // ── Ops trackers (Workspace > Dashboard) ──────────────────────
 
 export interface OpsClientRow {
@@ -431,6 +520,10 @@ export interface OpsClientRow {
   nextCall?: string | null;
   /** GCal event id when next call was sourced from the calendar. */
   nextCallEventId?: string | null;
+  /** GoHighLevel contact ID — populated on first onboarding-stage sync. */
+  ghlContactId?: string | null;
+  /** GoHighLevel opportunity ID for the onboarding pipeline. */
+  ghlOpportunityId?: string | null;
   notes?: string | null;
 }
 
@@ -476,6 +569,33 @@ export interface OpsRevenueRow {
 
 export interface OpsRevenueFile {
   months: OpsRevenueRow[];
+}
+
+/** One GHL appointment synced into HML. Keyed by ghlAppointmentId in
+ *  {@link OpsAppointmentsFile}. */
+export interface OpsAppointmentRow {
+  ghlAppointmentId: string;
+  /** Google Calendar event ID created when this booking was synced. Used to
+   *  update on reschedule and delete on cancel without duplicating. */
+  gcalEventId?: string | null;
+  /** Sales-pipeline opportunity advanced to "Call Booked" (or moved to
+   *  "Call Canceled" on cancellation). */
+  opportunityId?: string | null;
+  contactId?: string | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  startIso: string;
+  endIso: string;
+  /** "booked" | "cancelled". */
+  status: string;
+  calendarId: string;
+  syncedAt: string;
+  title?: string | null;
+}
+
+export interface OpsAppointmentsFile {
+  /** Keyed by GHL appointment id. */
+  appointments: Record<string, OpsAppointmentRow>;
 }
 
 export interface PersonalItem {

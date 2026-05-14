@@ -74,6 +74,12 @@
       "title": "Integrate GHL Within The APP Entirely",
       "status": "todo",
       "createdAt": 1778706770842
+    },
+    {
+      "id": "500c099e-9374-4ebb-bb98-a1eda683cdee",
+      "title": "Taylor Study Guide",
+      "status": "todo",
+      "createdAt": 1778761441448
     }
   ]
 }

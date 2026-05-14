@@ -5,6 +5,10 @@ import {
   fetchCalendarEvents,
   type GCalEvent,
 } from "../../lib/googleCalendar";
+import {
+  loadAppointmentEvents,
+  mergeEvents,
+} from "../../lib/ghlCalendarSync";
 import type {
   CalendarConnection,
   ClientEntry,
@@ -210,23 +214,28 @@ export function CalendarPage({ root, onBack, clients = [] }: CalendarPageProps) 
     }
     setLoading(true);
     try {
-      const state = await api.readDashboardState(root);
+      const [state, apptEvents] = await Promise.all([
+        api.readDashboardState(root),
+        loadAppointmentEvents(root),
+      ]);
       if (!mountedRef.current) return;
       const conn = state.calendar ?? null;
       setConnection(conn);
       if (!conn) {
-        setEvents([]);
+        // No Google Calendar connection yet — still show HML appointments.
+        setEvents(apptEvents);
         setFetchError(null);
         return;
       }
       try {
-        const evts = await fetchCalendarEvents(conn, 365);
+        const gcalEvts = await fetchCalendarEvents(conn, 365);
         if (!mountedRef.current) return;
-        setEvents(evts);
+        setEvents(mergeEvents(gcalEvts, apptEvents));
         setFetchError(null);
       } catch (err) {
         if (!mountedRef.current) return;
-        setEvents([]);
+        // GCal fetch failed but appointments are still ours to show.
+        setEvents(apptEvents);
         setFetchError(err instanceof Error ? err.message : String(err));
       }
     } catch (err) {

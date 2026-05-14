@@ -1,9 +1,12 @@
 ---
 type: about
-subject: jake
 client: all
 agent: all
-tags: [identity, personality, communication]
+tags:
+- identity
+- personality
+- communication
+subject: jake
 ---
 
 # Jake Hauck
@@ -20,3 +23,4 @@ tags: [identity, personality, communication]
 - When I'm about to make a bad decision, push back respectfully
 - Anticipate what I need before I ask
 - Keep responses structured and scannable
+

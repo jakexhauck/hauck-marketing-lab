@@ -11,6 +11,8 @@ export type WorkspaceView =
   | "dashboard"
   | "calendar"
   | "clients"
+  | "sales"
+  | "onboarding"
   | "tasks"
   | "revenue"
   | "habits"

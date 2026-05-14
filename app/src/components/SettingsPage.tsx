@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { AboutSettings } from "./AboutSettings";
 import { ClientCredentials } from "./ClientCredentials";
+import { GhlSettings } from "./GhlSettings";
 import { api } from "../lib/tauri";
 import { checkForUpdates, installAndRestart } from "../lib/updater";
 import type { Update } from "@tauri-apps/plugin-updater";
@@ -290,6 +291,9 @@ export function SettingsPage({
             clientSlug={activeClientSlug}
             clientName={activeClientName}
           />
+
+          {/* GoHighLevel ──────────────────────────────────── */}
+          <GhlSettings />
 
           {/* Shortcuts ────────────────────────────────────── */}
           <section className="hml-panel set-panel">

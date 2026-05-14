@@ -13,6 +13,16 @@ import type {
   ClientEntry,
   ClientStatus,
   CreativesManifest,
+  GhlAdvanceArgs,
+  GhlAdvanceResult,
+  GhlAppointment,
+  GhlCalendar,
+  GhlConfigStatus,
+  GhlContactLite,
+  GhlHubKey,
+  GhlOpportunity,
+  GhlPipeline,
+  OpsAppointmentsFile,
   OpsClientsFile,
   OpsRevenueFile,
   OpsTasksFile,
@@ -268,6 +278,10 @@ export const api = {
     invoke<OpsRevenueFile>("read_ops_revenue", { root }),
   writeOpsRevenue: (root: string, file: OpsRevenueFile) =>
     invoke<void>("write_ops_revenue", { root, file }),
+  readOpsAppointments: (root: string) =>
+    invoke<OpsAppointmentsFile>("read_ops_appointments", { root }),
+  writeOpsAppointments: (root: string, file: OpsAppointmentsFile) =>
+    invoke<void>("write_ops_appointments", { root, file }),
 
   readPersonalHub: (root: string) =>
     invoke<PersonalHubFile>("read_personal_hub", { root }),
@@ -405,6 +419,46 @@ export const api = {
     location?: string | null;
     allDay: boolean;
   }) => invoke<string>("google_calendar_create_event", { args }),
+  googleCalendarUpdateEvent: (
+    eventId: string,
+    args: {
+      title: string;
+      startIso: string;
+      endIso: string;
+      description?: string | null;
+      location?: string | null;
+      allDay: boolean;
+    },
+  ) => invoke<void>("google_calendar_update_event", { eventId, args }),
   googleCalendarDeleteEvent: (eventId: string) =>
     invoke<void>("google_calendar_delete_event", { eventId }),
+
+  ghlIsConfigured: () => invoke<boolean>("ghl_is_configured"),
+  ghlGetLocationId: () => invoke<string | null>("ghl_get_location_id"),
+  ghlGetConfigStatus: () => invoke<GhlConfigStatus>("ghl_get_config_status"),
+  ghlSetCredentials: (privateToken: string, locationId: string) =>
+    invoke<void>("ghl_set_credentials", { privateToken, locationId }),
+  ghlSetPipelineChoice: (hub: GhlHubKey, pipelineId: string | null) =>
+    invoke<void>("ghl_set_pipeline_choice", { hub, pipelineId }),
+  ghlSetBookingCalendar: (calendarId: string | null) =>
+    invoke<void>("ghl_set_booking_calendar", { calendarId }),
+  ghlClearCredentials: () => invoke<void>("ghl_clear_credentials"),
+  ghlListPipelines: () => invoke<GhlPipeline[]>("ghl_list_pipelines"),
+  ghlListOpportunities: (pipelineId: string) =>
+    invoke<GhlOpportunity[]>("ghl_list_opportunities", { pipelineId }),
+  ghlListCalendars: () => invoke<GhlCalendar[]>("ghl_list_calendars"),
+  ghlListAppointments: (
+    calendarId: string,
+    startIso: string,
+    endIso: string,
+  ) =>
+    invoke<GhlAppointment[]>("ghl_list_appointments", {
+      calendarId,
+      startIso,
+      endIso,
+    }),
+  ghlGetContact: (contactId: string) =>
+    invoke<GhlContactLite>("ghl_get_contact", { contactId }),
+  ghlAdvanceOpportunity: (args: GhlAdvanceArgs) =>
+    invoke<GhlAdvanceResult>("ghl_advance_opportunity", { args }),
 };

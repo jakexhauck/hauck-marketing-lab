@@ -209,6 +209,32 @@ export function AppSidebar({
           />
         </div>
 
+        {/* ONBOARDING ────────────────────────────────── */}
+        <div className="hml-nav-section">
+          <div className="hml-section-label">
+            <span>Onboarding</span>
+          </div>
+          <NavItem
+            label="Onboarding Hub"
+            Icon={IconUsers}
+            active={activeWorkspace === "onboarding"}
+            onClick={() => onSelectWorkspace("onboarding")}
+          />
+        </div>
+
+        {/* SALES ─────────────────────────────────────── */}
+        <div className="hml-nav-section">
+          <div className="hml-section-label">
+            <span>Sales</span>
+          </div>
+          <NavItem
+            label="Sales Hub"
+            Icon={IconBarChart}
+            active={activeWorkspace === "sales"}
+            onClick={() => onSelectWorkspace("sales")}
+          />
+        </div>
+
         {/* CLIENTS ───────────────────────────────────── */}
         <div className="hml-nav-section">
           <div className="hml-section-label">

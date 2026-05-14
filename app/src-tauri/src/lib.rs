@@ -13,6 +13,7 @@ mod events;
 mod folder;
 mod frontmatter;
 mod generators;
+mod ghl;
 mod google_calendar;
 mod google_oauth_secrets;
 mod knowledge;
@@ -100,6 +101,8 @@ pub fn run() {
             ops::write_ops_tasks,
             ops::read_ops_revenue,
             ops::write_ops_revenue,
+            ops::read_ops_appointments,
+            ops::write_ops_appointments,
             personal::read_personal_hub,
             personal::write_personal_hub,
             vault::read_vault_note,
@@ -127,7 +130,21 @@ pub fn run() {
             google_calendar::google_calendar_disconnect,
             google_calendar::google_calendar_is_connected,
             google_calendar::google_calendar_create_event,
+            google_calendar::google_calendar_update_event,
             google_calendar::google_calendar_delete_event,
+            ghl::ghl_is_configured,
+            ghl::ghl_get_location_id,
+            ghl::ghl_get_config_status,
+            ghl::ghl_set_credentials,
+            ghl::ghl_set_pipeline_choice,
+            ghl::ghl_set_booking_calendar,
+            ghl::ghl_clear_credentials,
+            ghl::ghl_list_pipelines,
+            ghl::ghl_list_opportunities,
+            ghl::ghl_list_calendars,
+            ghl::ghl_list_appointments,
+            ghl::ghl_get_contact,
+            ghl::ghl_advance_opportunity,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

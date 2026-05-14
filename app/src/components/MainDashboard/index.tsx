@@ -33,6 +33,8 @@ import { ClientDashboard } from "./ClientDashboard";
 import { OutreachHub } from "./OutreachHub";
 import { OutreachProspectPage } from "./OutreachProspectPage";
 import { OutreachSequencePage } from "./OutreachSequencePage";
+import { SalesHubPage } from "./SalesHubPage";
+import { OnboardingHubPage } from "./OnboardingHubPage";
 import { PersonalHubPage } from "./PersonalHubPage";
 import {
   ClientsTrackerPage,
@@ -49,6 +51,11 @@ import type {
 } from "../../lib/types";
 import { api } from "../../lib/tauri";
 import { eventsOn, fetchCalendarEvents, type GCalEvent } from "../../lib/googleCalendar";
+import {
+  loadAppointmentEvents,
+  mergeEvents,
+  runSync as runGhlCalendarSync,
+} from "../../lib/ghlCalendarSync";
 
 interface MainDashboardProps {
   onOpenMediaBuying: () => void;
@@ -114,6 +121,38 @@ export function MainDashboard({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialWorkflow]);
+
+  // GHL calendar → HML sync. Runs on app open, on visibility-change to
+  // visible, and every 90s while the app is foregrounded. No-ops if GHL,
+  // the booking calendar, or the sales pipeline isn't set up yet.
+  useEffect(() => {
+    if (!root) return;
+    let cancelled = false;
+    let inFlight = false;
+    const tick = async () => {
+      if (cancelled || inFlight) return;
+      if (document.visibilityState === "hidden") return;
+      inFlight = true;
+      try {
+        await runGhlCalendarSync(root);
+      } catch {
+        // Swallow — runSync already returns a structured error result.
+      } finally {
+        inFlight = false;
+      }
+    };
+    void tick();
+    const interval = window.setInterval(tick, 90_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [root]);
 
   const realClients: ClientEntry[] = clients ?? [];
 
@@ -323,6 +362,24 @@ function buildBreadcrumb(
     );
   }
   if (view.kind === "workspace") {
+    if (view.tab === "sales") {
+      return (
+        <>
+          <span className="hml-seg">Sales</span>
+          <span className="hml-sep">/</span>
+          <span className="hml-current">Sales Hub</span>
+        </>
+      );
+    }
+    if (view.tab === "onboarding") {
+      return (
+        <>
+          <span className="hml-seg">Onboarding</span>
+          <span className="hml-sep">/</span>
+          <span className="hml-current">Onboarding Hub</span>
+        </>
+      );
+    }
     const label = view.tab.charAt(0).toUpperCase() + view.tab.slice(1);
     return (
       <>
@@ -489,6 +546,8 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
   if (view.kind === "workspace") {
     if (view.tab === "clients")
       return <ClientsTrackerPage root={root} clients={realClients} />;
+    if (view.tab === "sales") return <SalesHubPage root={root} />;
+    if (view.tab === "onboarding") return <OnboardingHubPage />;
     if (view.tab === "tasks")
       return <TasksTrackerPage root={root} clients={realClients} />;
     if (view.tab === "revenue")
@@ -630,23 +689,31 @@ function DashboardSurface({
     };
   }, []);
 
-  const loadEventsFor = useCallback(async (conn: CalendarConnection | null) => {
-    if (!conn) {
-      setEvents([]);
-      setFetchError(null);
-      return;
-    }
-    try {
-      const parsed = await fetchCalendarEvents(conn);
-      if (!mountedRef.current) return;
-      setEvents(parsed);
-      setFetchError(null);
-    } catch (err) {
-      if (!mountedRef.current) return;
-      setEvents([]);
-      setFetchError(err instanceof Error ? err.message : String(err));
-    }
-  }, []);
+  const loadEventsFor = useCallback(
+    async (conn: CalendarConnection | null) => {
+      // HML appointments are always shown — they exist independently of
+      // whether the user has connected a public-calendar read source.
+      const apptEvents = await loadAppointmentEvents(root);
+      if (!conn) {
+        if (!mountedRef.current) return;
+        setEvents(apptEvents);
+        setFetchError(null);
+        return;
+      }
+      try {
+        const parsed = await fetchCalendarEvents(conn);
+        if (!mountedRef.current) return;
+        setEvents(mergeEvents(parsed, apptEvents));
+        setFetchError(null);
+      } catch (err) {
+        if (!mountedRef.current) return;
+        // GCal fetch failed — appointments still load.
+        setEvents(apptEvents);
+        setFetchError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [root],
+  );
 
   const refresh = useCallback(async () => {
     if (!root) return;
@@ -1002,11 +1069,13 @@ function DashboardSurface({
             )}
           </div>
           <div className="hml-panel-body">
-            {!connection ? (
+            {todayEvents.length === 0 && !connection ? (
               <div className="hml-empty">
                 <div className="hml-empty-title">No calendar connected</div>
                 <div className="hml-empty-sub">
-                  Hook up a Google Calendar to see today at a glance.
+                  Hook up a Google Calendar to see today at a glance. GHL
+                  bookings will also surface here once you pick a booking
+                  calendar in the Sales Hub.
                 </div>
               </div>
             ) : todayEvents.length === 0 ? (

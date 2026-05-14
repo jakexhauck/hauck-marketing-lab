@@ -56,6 +56,12 @@ pub struct OpsClientRow {
     /// when the date was typed in manually from the row.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_call_event_id: Option<String>,
+    /// GoHighLevel contact ID, populated on first onboarding-stage sync.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ghl_contact_id: Option<String>,
+    /// GoHighLevel opportunity ID for the onboarding pipeline.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ghl_opportunity_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
 }
@@ -90,6 +96,48 @@ pub struct OpsTask {
 pub struct OpsTasksFile {
     #[serde(default)]
     pub tasks: Vec<OpsTask>,
+}
+
+/// One GHL appointment that's been synced into HML.
+/// Keyed by `ghl_appointment_id` in `OpsAppointmentsFile`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OpsAppointmentRow {
+    pub ghl_appointment_id: String,
+    /// Google Calendar event ID created by HML. Used for update/delete on
+    /// reschedule/cancel so we don't duplicate.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gcal_event_id: Option<String>,
+    /// GHL opportunity in the sales pipeline that this appointment advanced
+    /// to "Call Booked" (or moved to "Call Canceled" on cancellation).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub opportunity_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contact_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contact_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contact_email: Option<String>,
+    /// RFC3339, GHL's reported start.
+    pub start_iso: String,
+    pub end_iso: String,
+    /// "booked" | "cancelled".
+    pub status: String,
+    /// GHL calendar that produced this appointment — recorded so we can drop
+    /// rows if the user re-picks a different booking calendar.
+    pub calendar_id: String,
+    /// Last time we touched this row. ISO-8601.
+    pub synced_at: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct OpsAppointmentsFile {
+    /// Keyed by GHL appointment id. BTreeMap for stable on-disk order.
+    #[serde(default)]
+    pub appointments: BTreeMap<String, OpsAppointmentRow>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -132,6 +180,10 @@ fn tasks_path(root: &str) -> PathBuf {
 
 fn revenue_path(root: &str) -> PathBuf {
     ops_dir(root).join("revenue.json")
+}
+
+fn appointments_path(root: &str) -> PathBuf {
+    ops_dir(root).join("appointments.json")
 }
 
 fn write_atomic(path: &std::path::Path, body: &str) -> Result<(), String> {
@@ -229,6 +281,39 @@ pub fn write_ops_revenue(
     let path = revenue_path(&root);
     let json =
         serde_json::to_string_pretty(&file).map_err(|e| format!("serialize ops revenue: {e}"))?;
+    write_atomic(&path, &json)?;
+    emit_changed(
+        &app,
+        DataKind::DashboardState,
+        None,
+        Some(path.to_string_lossy().into_owned()),
+    );
+    Ok(())
+}
+
+// ── appointments.json ───────────────────────────────────────
+
+#[tauri::command]
+pub fn read_ops_appointments(root: String) -> Result<OpsAppointmentsFile, String> {
+    let path = appointments_path(&root);
+    if !path.exists() {
+        return Ok(OpsAppointmentsFile::default());
+    }
+    let raw = fs::read_to_string(&path).map_err(|e| format!("read ops appointments: {e}"))?;
+    let file: OpsAppointmentsFile =
+        serde_json::from_str(&raw).map_err(|e| format!("parse ops appointments: {e}"))?;
+    Ok(file)
+}
+
+#[tauri::command]
+pub fn write_ops_appointments(
+    app: AppHandle,
+    root: String,
+    file: OpsAppointmentsFile,
+) -> Result<(), String> {
+    let path = appointments_path(&root);
+    let json = serde_json::to_string_pretty(&file)
+        .map_err(|e| format!("serialize ops appointments: {e}"))?;
     write_atomic(&path, &json)?;
     emit_changed(
         &app,

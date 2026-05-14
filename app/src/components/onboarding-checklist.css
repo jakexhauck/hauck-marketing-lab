@@ -54,6 +54,23 @@
 .ob-progress-count { color: var(--hml-text-secondary); font-weight: 500; }
 .ob-progress-count em { color: var(--hml-text-primary); font-style: normal; font-weight: 600; }
 
+.ob-ghl-pill {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px;
+  margin-left: 10px;
+  border-radius: 999px;
+  border: 1px solid var(--hml-border);
+  background: rgba(255,255,255,0.02);
+  color: var(--hml-text-secondary);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+button.ob-ghl-pill { cursor: pointer; }
+.ob-ghl-syncing { color: #e9c46a; border-color: rgba(233,196,106,0.35); }
+.ob-ghl-ok { color: #5fe699; border-color: rgba(95,230,153,0.35); }
+.ob-ghl-err { color: #ff6b6b; border-color: rgba(255,107,107,0.35); }
+
 /* ── stack ────────────────────────────────── */
 .ob-stack {
   display: flex;
