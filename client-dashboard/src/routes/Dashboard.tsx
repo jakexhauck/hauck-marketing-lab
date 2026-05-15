@@ -3,10 +3,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Shell from "../components/Shell";
 import TopBar from "../components/TopBar";
 import StageFilter, { type StageFilterValue } from "../components/StageFilter";
+import StatsStrip from "../components/StatsStrip";
 import LeadRow from "../components/LeadRow";
 import EmptyState from "../components/EmptyState";
 import Toast from "../components/Toast";
 import { useLeads } from "../context/LeadsContext";
+import { useClient } from "../context/ClientContext";
+import { computeStats } from "../lib/computeStats";
 
 interface DashboardLocationState {
   toast?: string;
@@ -16,7 +19,13 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const { leads } = useLeads();
+  const { client } = useClient();
   const [active, setActive] = useState<StageFilterValue>("all");
+
+  const stats = useMemo(
+    () => computeStats(leads, client.monthlySpend),
+    [leads, client.monthlySpend]
+  );
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -68,6 +77,7 @@ export default function Dashboard() {
     <Shell>
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
       <TopBar />
+      <StatsStrip stats={stats} />
       <StageFilter active={active} counts={counts} onChange={setActive} />
       <main className="flex flex-1 flex-col">
         {visible.length === 0 ? (
