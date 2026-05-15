@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+:root {
+  --brand-primary: #1a4d8f;
+  --brand-primary-tint: #e8f0fa;
+  --brand-primary-dark: #133766;
+  --brand-fg: #ffffff;
+  --brand-bg: #f8fafc;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--brand-bg);
+  color: #0f172a;
+}
+
+/* Hide horizontal scrollbar on filter strips */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
