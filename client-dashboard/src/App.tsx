@@ -1,16 +1,48 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { ClientProvider } from "./context/ClientContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./routes/Login";
 import Dashboard from "./routes/Dashboard";
 import LeadDetail from "./routes/LeadDetail";
+import type { ReactNode } from "react";
+
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { currentUser } = useAuth();
+  if (!currentUser) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function RootRedirect() {
+  const { currentUser } = useAuth();
+  return <Navigate to={currentUser ? "/dashboard" : "/login"} replace />;
+}
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/lead/:id" element={<LeadDetail />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+    <ClientProvider>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<RootRedirect />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/lead/:id"
+            element={
+              <ProtectedRoute>
+                <LeadDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<RootRedirect />} />
+        </Routes>
+      </AuthProvider>
+    </ClientProvider>
   );
 }
