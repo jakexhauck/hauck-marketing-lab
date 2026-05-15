@@ -9,7 +9,9 @@ import EmptyState from "../components/EmptyState";
 import Toast from "../components/Toast";
 import { useLeads } from "../context/LeadsContext";
 import { useClient } from "../context/ClientContext";
+import { useAuth } from "../context/AuthContext";
 import { computeStats } from "../lib/computeStats";
+import { permissionsFor } from "../lib/rolePermissions";
 
 interface DashboardLocationState {
   toast?: string;
@@ -18,14 +20,33 @@ interface DashboardLocationState {
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { leads } = useLeads();
+  const { leads: allLeads } = useLeads();
   const { client } = useClient();
+  const { currentUser } = useAuth();
   const [active, setActive] = useState<StageFilterValue>("all");
+
+  const permissions = currentUser
+    ? permissionsFor(currentUser.role)
+    : permissionsFor("owner");
+
+  const leads = useMemo(() => {
+    if (permissions.assignedOnly && currentUser) {
+      return allLeads.filter((l) => l.assignedUserId === currentUser.id);
+    }
+    return allLeads;
+  }, [allLeads, permissions.assignedOnly, currentUser]);
 
   const stats = useMemo(
     () => computeStats(leads, client.monthlySpend),
     [leads, client.monthlySpend]
   );
+
+  const repWonValue = useMemo(() => {
+    if (!permissions.assignedOnly) return 0;
+    return leads
+      .filter((l) => l.stage === "won" && typeof l.value === "number")
+      .reduce((sum, l) => sum + (l.value ?? 0), 0);
+  }, [leads, permissions.assignedOnly]);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -77,7 +98,7 @@ export default function Dashboard() {
     <Shell>
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
       <TopBar />
-      <StatsStrip stats={stats} />
+      <StatsStrip stats={stats} permissions={permissions} repWonValue={repWonValue} />
       <StageFilter active={active} counts={counts} onChange={setActive} />
       <main className="flex flex-1 flex-col">
         {visible.length === 0 ? (
