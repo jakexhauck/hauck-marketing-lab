@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ClientProvider } from "./context/ClientContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { LeadsProvider } from "./context/LeadsContext";
 import Login from "./routes/Login";
 import Dashboard from "./routes/Dashboard";
 import LeadDetail from "./routes/LeadDetail";
@@ -21,7 +22,8 @@ export default function App() {
   return (
     <ClientProvider>
       <AuthProvider>
-        <Routes>
+        <LeadsProvider>
+          <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />
           <Route
@@ -41,7 +43,8 @@ export default function App() {
             }
           />
           <Route path="*" element={<RootRedirect />} />
-        </Routes>
+          </Routes>
+        </LeadsProvider>
       </AuthProvider>
     </ClientProvider>
   );

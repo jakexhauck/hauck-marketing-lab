@@ -1,19 +1,37 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Shell from "../components/Shell";
 import TopBar from "../components/TopBar";
 import StageFilter, { type StageFilterValue } from "../components/StageFilter";
 import LeadRow from "../components/LeadRow";
 import EmptyState from "../components/EmptyState";
-import { useClient } from "../context/ClientContext";
-import { getMockData } from "../mock";
+import Toast from "../components/Toast";
+import { useLeads } from "../context/LeadsContext";
+
+interface DashboardLocationState {
+  toast?: string;
+}
 
 export default function Dashboard() {
-  const { client } = useClient();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { leads } = useLeads();
   const [active, setActive] = useState<StageFilterValue>("all");
+  const [toast, setToast] = useState<string | null>(null);
 
-  const leads = useMemo(() => getMockData(client.id).leads, [client.id]);
+  useEffect(() => {
+    const state = location.state as DashboardLocationState | null;
+    if (state?.toast) {
+      setToast(state.toast);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 3000);
+    return () => window.clearTimeout(t);
+  }, [toast]);
 
   const sorted = useMemo(
     () =>
@@ -48,6 +66,7 @@ export default function Dashboard() {
 
   return (
     <Shell>
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
       <TopBar />
       <StageFilter active={active} counts={counts} onChange={setActive} />
       <main className="flex flex-1 flex-col">
