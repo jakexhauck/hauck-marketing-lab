@@ -5,6 +5,7 @@ import BrandedButton from "../components/BrandedButton";
 import BrandedLogo from "../components/BrandedLogo";
 import { useAuth } from "../context/AuthContext";
 import { useClient } from "../context/ClientContext";
+import { devMode } from "../lib/devMode";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -51,9 +52,11 @@ export default function Login() {
             </BrandedButton>
           </form>
 
-          <p className="mt-5 text-center text-xs text-slate-400">
-            Demo mode. Any email signs you in.
-          </p>
+          {devMode() && (
+            <p className="mt-5 text-center text-xs text-slate-400">
+              Demo mode. Any email signs you in.
+            </p>
+          )}
         </div>
       </div>
     </Shell>
