@@ -25,6 +25,13 @@ export default function Dashboard() {
   const { currentUser } = useAuth();
   const [active, setActive] = useState<StageFilterValue>("all");
 
+  useEffect(() => {
+    if (active === "all") return;
+    if (!client.pipeline.stages.includes(active)) {
+      setActive("all");
+    }
+  }, [client.pipeline.stages, active]);
+
   const permissions = currentUser
     ? permissionsFor(currentUser.role)
     : permissionsFor("owner");

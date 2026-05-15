@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import type { LeadStage } from "../types";
 import { stageLabels } from "../lib/stageColors";
+import { useClient } from "../context/ClientContext";
 
 export type StageFilterValue = "all" | LeadStage;
 
@@ -10,35 +11,23 @@ interface Props {
   onChange: (value: StageFilterValue) => void;
 }
 
-const FILTER_STAGES: StageFilterValue[] = [
-  "all",
-  "new",
-  "contacted",
-  "booked",
-  "won",
-  "lost",
-  "no-show",
-];
-
-const LABELS: Record<StageFilterValue, string> = {
-  all: "All",
-  new: stageLabels.new,
-  contacted: stageLabels.contacted,
-  "estimate-sent": stageLabels["estimate-sent"],
-  consultation: stageLabels.consultation,
-  booked: stageLabels.booked,
-  won: stageLabels.won,
-  lost: stageLabels.lost,
-  "no-show": stageLabels["no-show"],
-};
-
 export default function StageFilter({ active, counts, onChange }: Props) {
+  const { client } = useClient();
+
+  const chips: StageFilterValue[] = ["all", ...client.pipeline.stages];
+
+  const labelFor = (stage: StageFilterValue): string => {
+    if (stage === "all") return "All";
+    if (stage === "won") return client.pipeline.wonLabel;
+    return stageLabels[stage];
+  };
+
   return (
     <div
       className="flex gap-2 overflow-x-auto border-b border-slate-100 bg-white px-4 py-2"
       style={{ scrollbarWidth: "none" }}
     >
-      {FILTER_STAGES.map((stage) => {
+      {chips.map((stage) => {
         const isActive = stage === active;
         return (
           <button
@@ -57,7 +46,7 @@ export default function StageFilter({ active, counts, onChange }: Props) {
                 : undefined
             }
           >
-            {LABELS[stage]} {counts[stage]}
+            {labelFor(stage)} {counts[stage]}
           </button>
         );
       })}

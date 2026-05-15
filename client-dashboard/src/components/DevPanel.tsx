@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Role } from "../types";
 import { useAuth } from "../context/AuthContext";
 import { useClient } from "../context/ClientContext";
-import { getUsersForClient } from "../mock";
+import { getOwnerForClient, getUsersForClient } from "../mock";
 import { roleLabel } from "../lib/rolePermissions";
 
 const GEAR_PATH =
@@ -12,7 +12,7 @@ const ROLES: Role[] = ["owner", "manager", "rep"];
 
 export default function DevPanel() {
   const { currentUser, setUser } = useAuth();
-  const { client } = useClient();
+  const { client, setClient, allClients } = useClient();
   const [open, setOpen] = useState(false);
 
   const clientUsers = useMemo(() => getUsersForClient(client.id), [client.id]);
@@ -39,6 +39,12 @@ export default function DevPanel() {
   const handleUserChange = (userId: string) => {
     const next = clientUsers.find((u) => u.id === userId);
     if (next) setUser(next);
+  };
+
+  const handleClientChange = (newId: string) => {
+    if (newId === client.id) return;
+    setClient(newId);
+    setUser(getOwnerForClient(newId));
   };
 
   return (
@@ -91,6 +97,38 @@ export default function DevPanel() {
             </div>
 
             <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 py-4">
+              <fieldset>
+                <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Client
+                </legend>
+                <div className="flex flex-col gap-2">
+                  {allClients.map((c) => (
+                    <label
+                      key={c.id}
+                      className="flex min-h-[44px] items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"
+                    >
+                      <input
+                        type="radio"
+                        name="dev-client"
+                        value={c.id}
+                        checked={client.id === c.id}
+                        onChange={() => handleClientChange(c.id)}
+                        className="h-4 w-4"
+                        style={{ accentColor: "var(--brand-primary)" }}
+                      />
+                      <span
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold text-white"
+                        style={{ backgroundColor: c.brand.color }}
+                        aria-hidden="true"
+                      >
+                        {c.brand.initials}
+                      </span>
+                      <span>{c.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
               <fieldset>
                 <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Role

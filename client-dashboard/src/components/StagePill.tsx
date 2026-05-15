@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import type { LeadStage } from "../types";
 import { stageColors, stageLabels } from "../lib/stageColors";
+import { useClient } from "../context/ClientContext";
 
 interface Props {
   stage: LeadStage;
@@ -8,7 +9,9 @@ interface Props {
 }
 
 export default function StagePill({ stage, className }: Props) {
+  const { client } = useClient();
   const c = stageColors[stage];
+  const label = stage === "won" ? client.pipeline.wonLabel : stageLabels[stage];
   return (
     <span
       className={clsx(
@@ -18,7 +21,7 @@ export default function StagePill({ stage, className }: Props) {
         className
       )}
     >
-      {stageLabels[stage]}
+      {label}
     </span>
   );
 }

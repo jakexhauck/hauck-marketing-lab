@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useClient } from "../context/ClientContext";
 
 interface Props {
   open: boolean;
@@ -7,6 +8,8 @@ interface Props {
 }
 
 export default function WonSheet({ open, onCancel, onSave }: Props) {
+  const { client } = useClient();
+  const valueLabel = client.pipeline.valueLabel;
   const [raw, setRaw] = useState("");
 
   useEffect(() => {
@@ -37,8 +40,11 @@ export default function WonSheet({ open, onCancel, onSave }: Props) {
       >
         <div className="flex flex-col gap-4 px-5 pt-5">
           <div className="mx-auto h-1 w-10 rounded-full bg-slate-200" />
-          <h2 className="text-lg font-semibold text-slate-900">Deal value</h2>
-          <label className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 focus-within:border-slate-500">
+          <h2 className="text-lg font-semibold text-slate-900">{valueLabel}</h2>
+          <label
+            className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 focus-within:border-slate-500"
+            aria-label={valueLabel}
+          >
             <span className="text-base font-medium text-slate-500">$</span>
             <input
               type="number"

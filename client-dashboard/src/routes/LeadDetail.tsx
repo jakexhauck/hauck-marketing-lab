@@ -6,6 +6,7 @@ import BackButton from "../components/BackButton";
 import OutcomeButton from "../components/OutcomeButton";
 import WonSheet from "../components/WonSheet";
 import { useLeads } from "../context/LeadsContext";
+import { useClient } from "../context/ClientContext";
 import type { LeadStage } from "../types";
 
 const currencyFmt = new Intl.NumberFormat("en-US", {
@@ -44,7 +45,9 @@ export default function LeadDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getLead, markStage } = useLeads();
+  const { client } = useClient();
   const [wonOpen, setWonOpen] = useState(false);
+  const wonLabel = client.pipeline.wonLabel;
 
   const lead = id ? getLead(id) : undefined;
 
@@ -73,8 +76,8 @@ export default function LeadDetail() {
     else if (stage === "won") {
       message =
         typeof value === "number"
-          ? `Marked as Won, ${currencyFmt.format(value)}`
-          : "Marked as Won";
+          ? `Marked as ${wonLabel}, ${currencyFmt.format(value)}`
+          : `Marked as ${wonLabel}`;
     }
     navigate("/dashboard", { state: { toast: message } });
   };
@@ -145,7 +148,7 @@ export default function LeadDetail() {
             disabled={lead.stage === "won"}
             onClick={() => setWonOpen(true)}
           >
-            Mark Won
+            {`Mark ${wonLabel}`}
           </OutcomeButton>
           <OutcomeButton
             variant="lost"

@@ -3,6 +3,7 @@ import AnimatedNumber from "./AnimatedNumber";
 import StatCard from "./StatCard";
 import { formatMoney, formatRoas } from "../lib/formatMoney";
 import type { RolePermission } from "../lib/rolePermissions";
+import { useClient } from "../context/ClientContext";
 
 interface StatsStripProps {
   stats: Stats;
@@ -11,8 +12,10 @@ interface StatsStripProps {
 }
 
 export default function StatsStrip({ stats, permissions, repWonValue }: StatsStripProps) {
+  const { client } = useClient();
   const showRevenue = permissions.seeRevenue;
   const isRep = permissions.assignedOnly;
+  const wonLabel = client.pipeline.wonLabel;
 
   return (
     <div
@@ -31,7 +34,7 @@ export default function StatsStrip({ stats, permissions, repWonValue }: StatsStr
         secondary="this month"
       />
       <StatCard
-        label="Won"
+        label={wonLabel}
         accent="brand"
         value={<AnimatedNumber value={stats.wonMtd} />}
         secondary={showRevenue ? `${formatMoney(stats.revenueMtd)} revenue` : "this month"}
@@ -59,7 +62,7 @@ export default function StatsStrip({ stats, permissions, repWonValue }: StatsStr
       )}
       {!showRevenue && isRep && (
         <StatCard
-          label="My Won MTD"
+          label={`My ${wonLabel} MTD`}
           accent="brand"
           value={formatMoney(repWonValue ?? 0)}
           secondary={`est commission ${formatMoney(Math.round((repWonValue ?? 0) * 0.1))}`}
