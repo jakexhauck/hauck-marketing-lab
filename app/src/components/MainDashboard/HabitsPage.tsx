@@ -541,6 +541,7 @@ export function HabitsPage() {
   );
 }
 
+
 const habitsCSS = `
 .hb-panel { margin-bottom: 20px; }
 .hb-body { padding-bottom: 14px; }

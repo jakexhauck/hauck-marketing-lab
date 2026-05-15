@@ -1,0 +1,124 @@
+<h1 id="generate-meta-api-access-token">Generate Meta API Access
+Token</h1>
+<p><strong>Category:</strong> Stack <strong>Source:</strong> Module 5
+Lesson 3 <strong>When to use:</strong> When connecting any third-party
+software to a Meta ad account via API. <strong>Estimated time:</strong>
+20 min</p>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" />Meta Business Manager set
+up</label></li>
+<li><label><input type="checkbox" />Facebook Page connected to Business
+Manager</label></li>
+<li><label><input type="checkbox" />Admin access on the Business Manager
+(not employee-level)</label></li>
+</ul>
+<h2 id="checklist">Checklist</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" /><strong>Go to Meta
+Developers:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />developers.facebook.com</label></li>
+<li><label><input type="checkbox" />Log in with the Facebook account
+tied to your Business Manager</label></li>
+<li><label><input type="checkbox" />My Apps (top right)</label></li>
+<li><label><input type="checkbox" />Green Create App button</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Create the
+app:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Type: Business</label></li>
+<li><label><input type="checkbox" />Name: memorable, only you see it
+(e.g. "My Agency Ads Tool")</label></li>
+<li><label><input type="checkbox" />Contact email: yours</label></li>
+<li><label><input type="checkbox" />Pick your Business Manager from
+portfolio</label></li>
+<li><label><input type="checkbox" />Create App</label></li>
+<li><label><input type="checkbox" />Complete security verification if
+prompted</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Get access
+token:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Left menu: Tools</label></li>
+<li><label><input type="checkbox" />Open Graph API Explorer</label></li>
+<li><label><input type="checkbox" />Right side: select User
+Token</label></li>
+<li><label><input type="checkbox" />Add four permissions one at a
+time:</label>
+<ul class="task-list">
+<li><label><input type="checkbox" />ads_management (lets software create
+and modify ads)</label></li>
+<li><label><input type="checkbox" />ads_read (view ad performance
+data)</label></li>
+<li><label><input type="checkbox" />business_management (Business
+Manager access)</label></li>
+<li><label><input type="checkbox" />pages_read_engagement (read Page
+info)</label></li>
+</ul></li>
+<li><label><input type="checkbox" />Click Generate Access Token (blue
+button)</label></li>
+<li><label><input type="checkbox" />Click Continue on authorization
+popup</label></li>
+<li><label><input type="checkbox" />Copy the resulting token
+string</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Get Ad Account
+ID:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Business Manager, Ad
+Accounts</label></li>
+<li><label><input type="checkbox" />Copy ID, starts with
+<code>act_</code></label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Paste into target
+software:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Open the software (Adlevel, custom
+tool, etc.)</label></li>
+<li><label><input type="checkbox" />Settings, Meta Connection (or API
+Settings)</label></li>
+<li><label><input type="checkbox" />Paste access token</label></li>
+<li><label><input type="checkbox" />Paste Ad Account ID</label></li>
+<li><label><input type="checkbox" />Save or Connect</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Verify:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Open Campaigns or Dashboard in the
+software</label></li>
+<li><label><input type="checkbox" />If connected, existing campaigns
+appear (empty list with no error also = success)</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Convert to long-lived
+token:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Initial tokens expire in about an
+hour</label></li>
+<li><label><input type="checkbox" />Use software's built-in conversion
+or run Graph API request to extend to 60 days</label></li>
+</ul></li>
+</ul>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>Treat the token like a banking password. Full control of your ad
+account.</li>
+<li>"App" is misleading. You're not building software, just creating a
+credentials container.</li>
+<li>Common errors:
+<ul class="task-list">
+<li><label><input type="checkbox" />Invalid token: regenerate, it
+expired</label></li>
+<li><label><input type="checkbox" />No ad account found: confirm ID
+starts with <code>act_</code></label></li>
+<li><label><input type="checkbox" />Permissions error: re-add all four
+permissions, regenerate token</label></li>
+<li><label><input type="checkbox" />Business not found: you need admin
+access, not employee</label></li>
+</ul></li>
+</ul>
+<h2 id="related-sops">Related SOPs</h2>
+<ul>
+<li>claude-code-install</li>
+<li>meta-ads-mcp-install</li>
+</ul>

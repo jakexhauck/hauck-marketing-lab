@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
-import type { GeneratorOutput, StreamEvent } from "../../lib/types";
+import type { GeneratorKind, GeneratorOutput, StreamEvent } from "../../lib/types";
 import { api } from "../../lib/tauri";
+import { FormOutput } from "../forms/FormOutput";
 
 export function extractJson(src: string): Record<string, unknown> | null {
   const startIdx = src.indexOf("```json");
@@ -97,10 +98,12 @@ export function StreamPanel({
   agentName,
   streaming,
   streamText,
+  kind = "briefs",
 }: {
   agentName: string;
   streaming: boolean;
   streamText: string;
+  kind?: GeneratorKind;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -113,14 +116,9 @@ export function StreamPanel({
         <span className="panel-title">▸ {agentName.toUpperCase()} · DRAFTING</span>
         <span className="panel-meta">{streaming ? "streaming" : "complete"}</span>
       </div>
-      <div ref={ref} className="thread" style={{ maxHeight: 480, padding: 0, gap: 0 }}>
-        <div className="msg agent">
-          <div className="msg-label">{agentName.toUpperCase()} ›</div>
-          <div className="msg-body">
-            {streamText}
-            {streaming && <span className="caret" />}
-          </div>
-        </div>
+      <div ref={ref} style={{ maxHeight: 480, overflowY: "auto", padding: "20px 28px 8px" }}>
+        <FormOutput body={streamText} kind={kind} streaming />
+        {streaming && <span className="caret" />}
       </div>
     </section>
   );
@@ -200,23 +198,24 @@ export function FullTranscript({
   agent,
   body,
   maxHeight = 600,
+  kind = "briefs",
+  showHeader = false,
 }: {
   title: string;
   agent: string;
   body: string;
   maxHeight?: number;
+  kind?: GeneratorKind;
+  showHeader?: boolean;
 }) {
   return (
     <section className="panel reveal reveal-4">
       <div className="panel-head">
         <span className="panel-title">{title}</span>
-        <span className="panel-meta">{agent.toLowerCase()} · verbatim</span>
+        <span className="panel-meta">{agent.toLowerCase()}</span>
       </div>
-      <div className="thread" style={{ maxHeight, padding: 0, gap: 0 }}>
-        <div className="msg agent">
-          <div className="msg-label">{agent.toUpperCase()} ›</div>
-          <div className="msg-body">{body}</div>
-        </div>
+      <div style={{ maxHeight, overflowY: "auto", padding: "24px 4px 4px" }}>
+        <FormOutput body={body} kind={kind} showHeader={showHeader} />
       </div>
     </section>
   );

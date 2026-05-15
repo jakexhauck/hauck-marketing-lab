@@ -31,21 +31,23 @@ export type OutreachSection =
 /** Top-level surfaces inside the Personal pillar. */
 export type PersonalSection = "overview" | "hygiene" | "clothing";
 
-/** Per-client tabs inside a ClientDashboard. */
+/** Per-client tabs inside a ClientDashboard.
+ *  `service-delivery` is the consolidated tab that holds Forms, Websites, and
+ *  Drive as sub-tabs (see ClientServiceDelivery.tsx). */
 export type ClientSection =
   | "dashboard"
+  | "sequence"
   | "onboarding"
-  | "drive"
-  | "media-buying"
-  | "website"
+  | "service-delivery"
   | "recordings"
   | "profile"
   | "memory";
 
 /** First section to open when the user clicks a client. Pre-launch clients
- *  land on the onboarding checklist; everyone else lands on the dashboard. */
+ *  land on the Media Buying Sequence (guided wizard); everyone else lands on
+ *  the dashboard. The plain checklist remains accessible as its own tab. */
 export function defaultClientSection(status: "pre-launch" | "live" | "paused"): ClientSection {
-  return status === "pre-launch" ? "onboarding" : "dashboard";
+  return status === "pre-launch" ? "sequence" : "dashboard";
 }
 
 /**

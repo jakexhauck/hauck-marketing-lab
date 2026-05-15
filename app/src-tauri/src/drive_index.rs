@@ -187,7 +187,37 @@ pub async fn refresh_drive_index(
          alphanumeric with dashes/underscores). One row per immediate subfolder. \
          If the root has no subfolders, still include the table header with a single row \
          saying the root is empty.\n\
-         5. Do not include any tool-call chatter, only the final briefing.\n",
+         5. At the very END of your output (after every other section), include a section titled \
+         \"## Tree\" containing a single fenced ```json code block with the FULL recursive \
+         contents of the root folder. The desktop app parses this to let the user browse \
+         folders in-app and open files externally. The JSON shape MUST be exactly:\n\n\
+         ```json\n\
+         {{\n\
+           \"id\": \"<root folder id>\",\n\
+           \"name\": \"{name}\",\n\
+           \"type\": \"folder\",\n\
+           \"children\": [\n\
+             {{\n\
+               \"id\": \"<subfolder id>\",\n\
+               \"name\": \"Assets\",\n\
+               \"type\": \"folder\",\n\
+               \"children\": [\n\
+                 {{ \"id\": \"<file id>\", \"name\": \"logo.png\", \"type\": \"file\", \"mimeType\": \"image/png\", \"url\": \"https://drive.google.com/file/d/<file id>/view\" }}\n\
+               ]\n\
+             }}\n\
+           ]\n\
+         }}\n\
+         ```\n\n\
+         Rules for the tree:\n\
+         - Walk EVERY folder reachable from the root, depth-first, no depth limit. \
+         Each folder must list its complete `children` array (empty array `[]` if the folder is empty).\n\
+         - Every node has `id`, `name`, and `type` (\"folder\" or \"file\"). Folders also have \
+         `children`. Files also have `mimeType` and `url` (use the Drive `webViewLink`; if absent, \
+         construct `https://drive.google.com/file/d/<id>/view` for binary files or \
+         `https://docs.google.com/document/d/<id>/edit` for Google Docs / Sheets / Slides as appropriate).\n\
+         - Use the real Drive IDs and names. Do not invent or summarize. Do not include trashed items.\n\
+         - Output ONLY the JSON inside the fenced block — no commentary inside the block.\n\
+         6. Do not include any tool-call chatter, only the final briefing.\n",
         name = client.name,
         url = drive_url
     );

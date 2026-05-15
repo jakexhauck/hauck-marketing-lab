@@ -473,7 +473,7 @@ export function WorkflowChain({
             badge={verdict ? verdict.replace("_", " ") : null}
             badgeTone={verdict ? KIND_TONE[verdict] : undefined}
           />
-          <FullTranscript title="▸ WORKFLOW TRANSCRIPT" agent="ORCHESTRATION" body={saved.body} />
+          <FullTranscript title="▸ WORKFLOW TRANSCRIPT" agent="ORCHESTRATION" body={saved.body} kind="workflows" />
           <PastResults
             root={root}
             clientSlug={clientSlug}

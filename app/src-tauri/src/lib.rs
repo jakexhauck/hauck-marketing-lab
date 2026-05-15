@@ -9,6 +9,7 @@ mod credentials;
 mod dashboard_state;
 mod diagnosis;
 mod drive_index;
+mod drive_upload;
 mod events;
 mod folder;
 mod frontmatter;
@@ -66,6 +67,7 @@ pub fn run() {
             clients::set_client_drive_folder,
             drive_index::read_drive_index,
             drive_index::refresh_drive_index,
+            drive_upload::upload_output_to_drive,
             benchmarks::list_benchmark_sets,
             benchmarks::read_benchmarks_for_client,
             kpi::read_latest_kpis,

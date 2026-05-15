@@ -28,48 +28,27 @@ function task(id: string, label: string, howto?: OnboardingTask["howto"]): Onboa
   return { id, label, howto };
 }
 
+// Phase numbering note: contract signing + first payment used to be Phase 1
+// here. They were moved out 2026-05-14 into the Client Hub as persistent
+// "Contract due / Invoice due" status flags. The welcome email moved to a
+// GHL workflow that fires when the intake form submission lands. See
+// docs/build-plans/client-intake-email-automation.md.
+//
+// Task IDs (02-call, 03-bm-setup, etc.) kept their original numeric prefixes
+// for stable on-disk persistence; the `num` field is the user-facing phase
+// number and now starts at 1.
+
 export const ONBOARDING_PLAN: OnboardingPhase[] = [
   {
     num: 1,
-    name: "Close the Deal",
-    purpose:
-      "Contract signed, money in the bank, welcome email out. No work starts until payment clears.",
-    hint: "Contract · first payment · welcome email with onboarding form.",
-    meta: "Day 0 · 3 tasks",
-    subsections: [
-      {
-        id: "1.1",
-        title: "Paperwork & payment",
-        tasks: [
-          task(
-            "01-contract",
-            "<strong>Send contract</strong> via DocuSign or PandaDoc.",
-            "Use the standard client agreement template. Include scope of work, monthly fee, payment terms, and 30-day cancellation clause.",
-          ),
-          task(
-            "01-payment",
-            "<strong>Collect first payment.</strong>",
-            "Stripe invoice or direct bank transfer. Don't start ANY work until payment clears. No exceptions.",
-          ),
-          task(
-            "01-welcome",
-            "Send welcome email with onboarding form.",
-            "Include: what to expect, 7-day timeline, onboarding form link (Google Form or Typeform), calendar link for onboarding call.",
-          ),
-        ],
-      },
-    ],
-  },
-  {
-    num: 2,
     name: "Onboarding Call",
     purpose:
       "30 minutes on Zoom. Collect every access and asset, lock the offer, set expectations.",
     hint: "30-min call · BM, site, GA access · brand assets · offer + CTA · expectations.",
-    meta: "Day 1 · 7 tasks",
+    meta: "Day 0 · 8 tasks",
     subsections: [
       {
-        id: "2.1",
+        id: "1.1",
         title: "Call & access collection",
         tasks: [
           task("02-call", "Conduct 30-min onboarding call."),
@@ -77,6 +56,10 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
           task("02-site", "Collect website access for pixel installation."),
           task("02-ga", "Collect Google Analytics access (if they have it)."),
           task("02-brand", "Get their brand assets."),
+          task(
+            "02-offer-options",
+            "Create 10 different offer/CTA options before the call to show the business owner.",
+          ),
           task("02-offer", "Define the primary offer + CTA."),
           task("02-expect", "Set clear expectations."),
         ],
@@ -84,15 +67,15 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     ],
   },
   {
-    num: 3,
+    num: 2,
     name: "Technical Setup",
     purpose:
       "Pixel firing, ad account funded, competitive intel pulled. Plumbing green before a dollar moves.",
     hint: "Business Manager · pixel install + verify · payment method · competitor research.",
-    meta: "Day 2 · 5 tasks",
+    meta: "Day 1 · 5 tasks",
     subsections: [
       {
-        id: "3.1",
+        id: "2.1",
         title: "Accounts & tracking",
         tasks: [
           task("03-bm-setup", "Set up or audit Meta Business Manager."),
@@ -105,15 +88,15 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     ],
   },
   {
-    num: 4,
+    num: 3,
     name: "Creative Production",
     purpose:
       "Copy, creative, and audiences all built with the AI agents. Client signs off before anything ships.",
     hint: "10+ ad copy variations · creative concepts · audiences · client approval.",
-    meta: "Days 3–4 · 4 tasks",
+    meta: "Days 2–3 · 4 tasks",
     subsections: [
       {
-        id: "4.1",
+        id: "3.1",
         title: "Build & approve",
         tasks: [
           task("04-copy", "Generate 10+ ad copy variations with AI Ad Copy Agent."),
@@ -125,15 +108,15 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     ],
   },
   {
-    num: 5,
+    num: 4,
     name: "Campaign Build + QA",
     purpose:
       "Build the campaign structure in Ads Manager, upload every creative as its own ad, QA before launch.",
     hint: "Campaign structure · upload creatives · pre-launch QA checklist.",
-    meta: "Days 5–6 · 3 tasks",
+    meta: "Days 4–5 · 3 tasks",
     subsections: [
       {
-        id: "5.1",
+        id: "4.1",
         title: "Build & QA",
         tasks: [
           task("05-structure", "Build campaign structure in Ads Manager."),
@@ -144,15 +127,15 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     ],
   },
   {
-    num: 6,
+    num: 5,
     name: "Launch + Monitor",
     purpose:
       "Go live, tell the client, hand it off to the AI optimizer, schedule the first Monday report.",
     hint: "Publish · 'ads are live' message · AI Campaign Optimizer · first weekly report.",
-    meta: "Day 7 · 4 tasks",
+    meta: "Day 6 · 4 tasks",
     subsections: [
       {
-        id: "6.1",
+        id: "5.1",
         title: "Go live",
         tasks: [
           task("06-publish", "Publish all campaigns."),

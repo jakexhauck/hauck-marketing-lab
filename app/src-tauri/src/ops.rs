@@ -89,6 +89,17 @@ pub struct OpsTask {
     /// "todo" | "in-progress" | "done"
     pub status: String,
     pub created_at: i64,
+    /// "active" | "backburner" | "daily" | "weekly". Missing = "active".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lane: Option<String>,
+    /// YYYY-MM-DD. Stamped when a `lane: "daily"` task is checked off so the
+    /// box resets at midnight.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_completed_date: Option<String>,
+    /// YYYY-MM-DD of a Monday. Stamped when a `lane: "weekly"` task is
+    /// checked off so the box resets when the next Monday arrives.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_completed_week: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

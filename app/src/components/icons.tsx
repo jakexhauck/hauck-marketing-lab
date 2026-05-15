@@ -377,6 +377,36 @@ export function IconShirt(p: IconProps) {
   );
 }
 
+export function IconWallet(p: IconProps) {
+  return (
+    <I {...p}>
+      <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2" />
+      <path d="M3 7v11a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
+      <path d="M21 11h-4a2 2 0 0 0 0 4h4z" />
+    </I>
+  );
+}
+
+export function IconRefresh(p: IconProps) {
+  return (
+    <I {...p}>
+      <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
+      <path d="M3 21v-5h5" />
+    </I>
+  );
+}
+
+export function IconLink(p: IconProps) {
+  return (
+    <I {...p}>
+      <path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5" />
+      <path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5" />
+    </I>
+  );
+}
+
 export function IconTrash(p: IconProps) {
   return (
     <I {...p}>

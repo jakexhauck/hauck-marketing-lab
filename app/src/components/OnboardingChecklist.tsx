@@ -70,10 +70,14 @@ function todayYMD(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** Task IDs that trigger writes into the Client Dashboard (`ops/clients.json`)
- *  when first checked. Idempotent — we only write when the target column is
- *  empty, so re-checks and re-mounts don't clobber manual edits. */
-const PHASE_1_TASK_IDS = ["01-contract", "01-payment", "01-welcome"];
+/** Task ID that triggers writing `adsLaunchedAt` into the Client Dashboard
+ *  (`ops/clients.json`) when first checked. Idempotent — only writes when
+ *  the target column is empty.
+ *
+ *  Note: `startDate` is no longer driven by the checklist. As of 2026-05-14,
+ *  contract + invoice tracking lives on the Client Hub as persistent flags
+ *  (see `contractSignedAt` / `invoicePaidAt` on OpsClientRow). The retainer
+ *  start date is now written when the invoice is marked paid. */
 const ADS_PUBLISH_TASK_ID = "06-publish";
 
 export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }: Props) {
@@ -181,14 +185,13 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
     [],
   );
 
-  // Auto-populate the Workspace > Clients row when onboarding milestones land.
-  // Only ever writes a field that is currently empty, so manual edits in the
-  // Client Dashboard always win and a re-check never clobbers them.
+  // Auto-populate `adsLaunchedAt` on the Workspace > Clients row when the
+  // publish task lands. Only writes when the column is empty, so manual edits
+  // and re-checks never clobber existing values. Other date fields (startDate,
+  // contractSignedAt, invoicePaidAt) are managed from the Client Hub directly.
   useEffect(() => {
     if (!root || !loaded) return;
-    const adsPublished = doneSet.has(ADS_PUBLISH_TASK_ID);
-    const phase1Done = PHASE_1_TASK_IDS.every((id) => doneSet.has(id));
-    if (!adsPublished && !phase1Done) return;
+    if (!doneSet.has(ADS_PUBLISH_TASK_ID)) return;
 
     let cancelled = false;
     void (async () => {
@@ -196,20 +199,16 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
         const opsFile = await api.readOpsClients(root);
         if (cancelled) return;
         const existing = opsFile.rows[clientSlug] ?? {};
-        const today = todayYMD();
-        const patch: Record<string, string> = {};
-        if (adsPublished && !existing.adsLaunchedAt) patch.adsLaunchedAt = today;
-        if (phase1Done && !existing.startDate) patch.startDate = today;
-        if (Object.keys(patch).length === 0) return;
+        if (existing.adsLaunchedAt) return;
         await api.writeOpsClients(root, {
           rows: {
             ...opsFile.rows,
-            [clientSlug]: { ...existing, ...patch },
+            [clientSlug]: { ...existing, adsLaunchedAt: todayYMD() },
           },
         });
       } catch (err) {
         // eslint-disable-next-line no-console
-        console.warn("auto-populate ops row failed", err);
+        console.warn("auto-populate adsLaunchedAt failed", err);
       }
     })();
     return () => {

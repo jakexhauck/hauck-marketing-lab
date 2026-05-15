@@ -562,6 +562,7 @@ export default function App() {
           }
           initialWorkflow={pendingWorkflow}
           onInitialWorkflowApplied={() => setPendingWorkflow(null)}
+          agents={summary?.agents ?? []}
           onOpenForm={(id, slug) => {
             // Switch active client + open the form generator overlay.
             void switchClient(slug);

@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Book your kickoff call — Hauck Marketing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@300..600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-base: #0a0a0c;
+    --bg-elev-1: #131318;
+    --bg-elev-2: #191920;
+    --bg-elev-3: #1f1f28;
+    --border-subtle: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.085);
+    --border-strong: rgba(255,255,255,0.14);
+    --text-primary: #ececf0;
+    --text-secondary: #9c9ca8;
+    --text-tertiary: #6a6a76;
+    --text-quaternary: #494954;
+    --accent: #d4a574;
+    --accent-bright: #e2b585;
+    --accent-dim: rgba(212,165,116,0.12);
+    --accent-border: rgba(212,165,116,0.28);
+    --font-sans: 'Geist', -apple-system, system-ui, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.003em;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 700px 500px at 18% -10%, rgba(212,165,116,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 500px 400px at 100% 100%, rgba(123,168,196,0.03) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .shell { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  /* Header */
+  .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent), #a87a48);
+    display: flex; align-items: center; justify-content: center;
+    color: #1a1208; font-weight: 600; font-size: 13px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.10) inset, 0 4px 12px rgba(212,165,116,0.18);
+  }
+  .brand-name { font-size: 13px; font-weight: 500; }
+  .brand-name .sub {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--text-quaternary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 400;
+    margin-top: 1px;
+  }
+  .step-counter {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .step-counter .num { color: var(--accent); font-weight: 500; }
+
+  /* Progress */
+  .progress {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 40px;
+  }
+  .seg { height: 3px; border-radius: 2px; background: rgba(255,255,255,0.06); transition: background 200ms; }
+  .seg.done { background: var(--accent); opacity: 0.5; }
+  .seg.active { background: var(--accent); }
+
+  /* Hero */
+  .hero { display: grid; grid-template-columns: 1fr 1.4fr; gap: 48px; margin-bottom: 36px; align-items: end; }
+  .hero-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .hero-title {
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.028em;
+    line-height: 1.1;
+  }
+  .hero-detail-row {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .hero-detail-row:last-child { margin-bottom: 0; }
+  .hero-detail-row svg { color: var(--text-tertiary); flex-shrink: 0; }
+
+  /* Step display */
+  .step { display: none; animation: fadeIn 280ms ease both; }
+  .step.is-current { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Step 1: two-pane picker ───────────── */
+  .picker {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .pane-wrap { display: grid; grid-template-columns: 1.4fr 1fr; min-height: 460px; }
+  .pane { padding: 24px 26px; }
+  .pane-left { border-right: 1px solid var(--border-subtle); }
+  .pane-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 22px;
+  }
+  .month-label { font-size: 15.5px; font-weight: 500; letter-spacing: -0.01em; }
+  .month-nav { display: flex; gap: 6px; }
+  .month-btn {
+    width: 30px; height: 30px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 140ms;
+  }
+  .month-btn:hover { background: var(--bg-elev-2); color: var(--text-primary); border-color: var(--border-strong); }
+
+  .dow-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 8px; }
+  .dow {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--text-quaternary);
+    text-align: center;
+    padding: 4px 0;
+  }
+  .day-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .day {
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    transition: all 140ms;
+  }
+  .day.is-blank { cursor: default; }
+  .day.is-past, .day.is-disabled { color: var(--text-quaternary); cursor: not-allowed; }
+  .day.is-available { color: var(--text-primary); background: var(--bg-elev-2); }
+  .day.is-available::after {
+    content: '';
+    position: absolute;
+    bottom: 5px; left: 50%; transform: translateX(-50%);
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .day.is-available:hover { border-color: var(--accent-border); background: var(--bg-elev-3); }
+  .day.is-selected { background: var(--accent) !important; color: #1a1208 !important; font-weight: 500; }
+  .day.is-selected::after { display: none; }
+  .day.is-today { box-shadow: inset 0 0 0 1px var(--border-strong); }
+
+  /* Right pane (slots) */
+  .pane-right .pane-head { padding-bottom: 4px; }
+  .pane-right-title { font-size: 15.5px; font-weight: 500; letter-spacing: -0.01em; }
+  .pane-right-sub {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+  }
+  .slots-empty {
+    color: var(--text-tertiary);
+    font-size: 13px;
+    text-align: center;
+    padding: 60px 12px;
+    line-height: 1.6;
+  }
+  .slots-empty svg { color: var(--text-quaternary); margin-bottom: 12px; }
+  .slots-list { display: flex; flex-direction: column; gap: 6px; max-height: 380px; overflow-y: auto; padding-right: 4px; }
+  .slots-list::-webkit-scrollbar { width: 5px; }
+  .slots-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 3px; }
+  .slot {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    padding: 11px 14px;
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    cursor: pointer;
+    text-align: left;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: all 140ms;
+  }
+  .slot:hover { background: var(--bg-elev-2); border-color: var(--border-strong); }
+  .slot.is-selected {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    color: var(--accent-bright);
+    font-weight: 500;
+  }
+  .slot-check { color: var(--accent); opacity: 0; transition: opacity 140ms; }
+  .slot.is-selected .slot-check { opacity: 1; }
+
+  /* ── Step 2: details ───────────── */
+  .details-wrap { max-width: 600px; margin: 0 auto; }
+  .step-blurb {
+    color: var(--text-secondary);
+    font-size: 14.5px;
+    line-height: 1.6;
+    margin-bottom: 28px;
+  }
+  .meeting-badge {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 18px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--accent-border);
+    border-radius: 9px;
+    margin-bottom: 32px;
+  }
+  .meeting-badge-icon {
+    width: 42px; height: 42px;
+    border-radius: 8px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .meeting-badge-text { flex: 1; }
+  .meeting-badge-title { font-size: 14.5px; font-weight: 500; margin-bottom: 3px; letter-spacing: -0.008em; }
+  .meeting-badge-sub { font-size: 12.5px; color: var(--text-tertiary); }
+
+  .field { margin-bottom: 20px; }
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 500;
+    margin-bottom: 7px;
+    color: var(--text-primary);
+  }
+  .field .req { color: var(--accent); margin-left: 4px; }
+  .field input, .field textarea {
+    width: 100%;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 11px 13px;
+    transition: all 140ms;
+  }
+  .field input::placeholder, .field textarea::placeholder { color: var(--text-quaternary); }
+  .field input:focus, .field textarea:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    background: var(--bg-elev-2);
+    box-shadow: 0 0 0 3px rgba(212,165,116,0.08);
+  }
+  .field textarea { resize: vertical; min-height: 88px; }
+
+  /* Step nav */
+  .step-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 32px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .btn {
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 140ms;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+  .btn-ghost:hover { background: var(--bg-elev-1); color: var(--text-primary); border-color: var(--border-strong); }
+  .btn-primary { background: var(--accent); border: 1px solid var(--accent); color: #1a1208; }
+  .btn-primary:hover { background: var(--accent-bright); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Success */
+  .success-view { display: none; text-align: center; padding: 48px 0; }
+  .success-view.is-visible { display: block; }
+  .success-check {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+  }
+  .success-title { font-size: 28px; font-weight: 500; letter-spacing: -0.025em; margin-bottom: 12px; }
+  .success-sub { color: var(--text-secondary); font-size: 14.5px; line-height: 1.6; max-width: 460px; margin: 0 auto 24px; }
+  .success-detail {
+    display: inline-flex; gap: 10px; align-items: center;
+    padding: 12px 18px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13.5px;
+  }
+  .success-detail svg { color: var(--accent); }
+
+  @media (max-width: 820px) {
+    .hero { grid-template-columns: 1fr; gap: 18px; align-items: start; }
+    .pane-wrap { grid-template-columns: 1fr; }
+    .pane-left { border-right: none; border-bottom: 1px solid var(--border-subtle); }
+  }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="brand">
+        <div class="brand-mark">H</div>
+        <div class="brand-name">
+          Hauck Marketing
+          <span class="sub">Kickoff Call</span>
+        </div>
+      </div>
+      <div class="step-counter">Step <span class="num" id="curStep">1</span> / 2</div>
+    </header>
+
+    <div class="progress">
+      <div class="seg active" id="seg1"></div>
+      <div class="seg" id="seg2"></div>
+    </div>
+
+    <!-- Step 1: Pick date & time -->
+    <section class="step is-current" data-step="1">
+      <div class="hero">
+        <div>
+          <div class="hero-eyebrow">Onboarding · Final step</div>
+          <h1 class="hero-title">Pick a time that works.</h1>
+        </div>
+        <div>
+          <div class="hero-detail-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            30 minutes · Zoom (link sent after booking)
+          </div>
+          <div class="hero-detail-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0112 0v2"/></svg>
+            With Jake Hauck · founder, Hauck Marketing
+          </div>
+          <div class="hero-detail-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M2 12h20M12 2a15 15 0 010 20"/></svg>
+            Eastern Time (UTC −05:00)
+          </div>
+        </div>
+      </div>
+
+      <div class="picker">
+        <div class="pane-wrap">
+          <!-- Calendar -->
+          <div class="pane pane-left">
+            <div class="pane-head">
+              <div class="month-label" id="monthLabel">May 2026</div>
+              <div class="month-nav">
+                <button class="month-btn" id="prevMonth" aria-label="Previous month"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+                <button class="month-btn" id="nextMonth" aria-label="Next month"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg></button>
+              </div>
+            </div>
+            <div class="dow-row">
+              <div class="dow">Sun</div><div class="dow">Mon</div><div class="dow">Tue</div><div class="dow">Wed</div><div class="dow">Thu</div><div class="dow">Fri</div><div class="dow">Sat</div>
+            </div>
+            <div class="day-grid" id="dayGrid"></div>
+          </div>
+
+          <!-- Slots -->
+          <div class="pane pane-right">
+            <div class="pane-head">
+              <div>
+                <div class="pane-right-title" id="slotsTitle">Pick a date</div>
+                <div class="pane-right-sub" id="slotsSub">Available times</div>
+              </div>
+            </div>
+            <div id="slotsContainer">
+              <div class="slots-empty">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                <div>Choose a date on the left to see<br/>available time slots.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 2: Details -->
+    <section class="step" data-step="2">
+      <div class="details-wrap">
+        <div class="hero-eyebrow">Onboarding · Final step</div>
+        <h1 class="hero-title" style="margin-bottom: 12px;">Your details.</h1>
+        <p class="step-blurb">We'll send the calendar invite and Zoom link to the email you provide.</p>
+
+        <div class="meeting-badge">
+          <div class="meeting-badge-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          </div>
+          <div class="meeting-badge-text">
+            <div class="meeting-badge-title" id="confirmTime">—</div>
+            <div class="meeting-badge-sub">Kickoff call with Jake · 30 min · Zoom</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Full name <span class="req">*</span></label>
+          <input type="text" id="fName" placeholder="Your name" required />
+        </div>
+        <div class="field">
+          <label>Email <span class="req">*</span></label>
+          <input type="email" id="fEmail" placeholder="you@business.com" required />
+        </div>
+        <div class="field">
+          <label>Anything specific you'd like to cover?</label>
+          <textarea id="fNotes" placeholder="Optional — questions, current ad situation, etc."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Success -->
+    <div class="success-view" id="successView">
+      <div class="success-check">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h1 class="success-title">You're booked.</h1>
+      <p class="success-sub">A confirmation email is on its way with the Zoom link and calendar invite. We'll see you then — looking forward to it.</p>
+      <div class="success-detail">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span id="successDetailText">—</span>
+      </div>
+    </div>
+
+    <div class="step-nav" id="stepNav">
+      <button class="btn btn-ghost" id="backBtn" style="visibility:hidden">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Back
+      </button>
+      <button class="btn btn-primary" id="nextBtn" disabled>
+        Continue
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // ─────────────────────────────────────────────────────────────────
+    // CONFIG
+    // ─────────────────────────────────────────────────────────────────
+    // Apps Script Web App URL — same one the intake form uses. Set after
+    // deploying mockups/forms/client-intake/apps-script.gs as a Web App.
+    const APPS_SCRIPT_URL = 'REPLACE_WITH_APPS_SCRIPT_WEB_APP_URL';
+
+    // Timezone for displaying slots and booking. GHL respects this when
+    // returning free-slots and creating the appointment.
+    const DISPLAY_TZ = 'America/New_York';
+    const DISPLAY_TZ_LABEL = 'Eastern Time';
+
+    // When true, use fake slot data so the page works without a backend.
+    // Set false once Apps Script + GHL are wired up.
+    const MOCK_MODE = !APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('REPLACE_WITH');
+
+    let current = 1;
+    let selectedDate = null;        // Date (midnight, local)
+    let selectedSlotIso = null;     // The full ISO string returned by GHL
+    let selectedSlotLabel = null;   // "9:00 AM" — display only
+    const today = new Date(); today.setHours(0,0,0,0);
+    let viewYear = today.getFullYear(), viewMonth = today.getMonth();
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const dayLong = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    // ─── Slot data layer ───────────────────────────────────────────
+    // `slotsByDate` maps "YYYY-MM-DD" → array of { iso, label } objects.
+    // Filled lazily when a month is rendered; cached per session.
+    const slotsByDate = new Map();
+    const fetchedMonths = new Set(); // keys like "2026-5" so we don't refetch
+
+    function dateKey(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    function monthKey(y, m) { return `${y}-${m}`; }
+
+    async function ensureMonthLoaded(y, m) {
+      const key = monthKey(y, m);
+      if (fetchedMonths.has(key)) return;
+      fetchedMonths.add(key);
+      if (MOCK_MODE) {
+        // Fake availability — skip weekends, vary per day.
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        for (let d = 1; d <= lastDay; d++) {
+          const date = new Date(y, m, d);
+          if (date < today) continue;
+          const dow = date.getDay();
+          if (dow === 0 || dow === 6) continue;
+          const times = ['09:00','09:30','10:00','11:00','11:30','13:00','13:30','14:00','15:00','15:30','16:00']
+            .filter((_, i) => (d + i) % 3 !== 0);
+          slotsByDate.set(dateKey(date), times.map(t => ({
+            iso: `${dateKey(date)}T${t}:00-05:00`,
+            label: format12hr_(t),
+          })));
+        }
+        return;
+      }
+
+      // Real fetch: ask Apps Script for free-slots covering the entire month.
+      const start = new Date(y, m, 1).getTime();
+      const end = new Date(y, m + 1, 0, 23, 59, 59).getTime();
+      const url = `${APPS_SCRIPT_URL}?action=slots&startMs=${start}&endMs=${end}&timezone=${encodeURIComponent(DISPLAY_TZ)}`;
+      try {
+        const resp = await fetch(url);
+        const json = await resp.json();
+        if (!json.ok) throw new Error(json.error || 'fetch failed');
+        // GHL returns { "YYYY-MM-DD": { slots: [ISO,...] }, ..., traceId: ... }
+        Object.keys(json.slots || {}).forEach(k => {
+          if (k === 'traceId') return;
+          const arr = (json.slots[k] && json.slots[k].slots) || [];
+          slotsByDate.set(k, arr.map(iso => ({
+            iso,
+            label: format12hr_(iso.slice(11, 16)),
+          })));
+        });
+      } catch (err) {
+        console.error('slot fetch failed', err);
+      }
+    }
+
+    function getSlots(date) {
+      return slotsByDate.get(dateKey(date)) || [];
+    }
+    function hasAvail(d) {
+      if (d < today) return false;
+      return getSlots(d).length > 0;
+    }
+    function format12hr_(hhmm) {
+      const [hStr, mStr] = hhmm.split(':');
+      let h = parseInt(hStr, 10);
+      const m = mStr;
+      const suffix = h >= 12 ? 'PM' : 'AM';
+      if (h === 0) h = 12; else if (h > 12) h -= 12;
+      return `${h}:${m} ${suffix}`;
+    }
+
+    const steps = document.querySelectorAll('.step');
+    const seg1 = document.getElementById('seg1');
+    const seg2 = document.getElementById('seg2');
+    const curStepEl = document.getElementById('curStep');
+    const backBtn = document.getElementById('backBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const stepNav = document.getElementById('stepNav');
+
+    function render() {
+      steps.forEach(s => s.classList.toggle('is-current', Number(s.dataset.step) === current));
+      seg1.className = 'seg ' + (current === 1 ? 'active' : 'done');
+      seg2.className = 'seg ' + (current === 2 ? 'active' : '');
+      curStepEl.textContent = current;
+      backBtn.style.visibility = current === 1 ? 'hidden' : 'visible';
+      nextBtn.innerHTML = current === 2
+        ? 'Confirm booking <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>'
+        : 'Continue <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>';
+      updateNext();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function updateNext() {
+      if (current === 1) nextBtn.disabled = !(selectedDate && selectedSlotIso);
+      else if (current === 2) {
+        const name = document.getElementById('fName').value.trim();
+        const email = document.getElementById('fEmail').value.trim();
+        nextBtn.disabled = !(name && email);
+      } else nextBtn.disabled = false;
+    }
+    // Re-evaluate Continue button as user types details
+    ['fName','fEmail'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateNext);
+    });
+
+    // Calendar render — async because we may need to fetch slots first.
+    const monthLabel = document.getElementById('monthLabel');
+    const dayGrid = document.getElementById('dayGrid');
+    async function renderCalendar() {
+      monthLabel.textContent = `${monthNames[viewMonth]} ${viewYear} — loading…`;
+      await ensureMonthLoaded(viewYear, viewMonth);
+      monthLabel.textContent = `${monthNames[viewMonth]} ${viewYear}`;
+      dayGrid.innerHTML = '';
+      const first = new Date(viewYear, viewMonth, 1);
+      const lastDay = new Date(viewYear, viewMonth + 1, 0).getDate();
+      for (let i = 0; i < first.getDay(); i++) {
+        const blank = document.createElement('div');
+        blank.className = 'day is-blank';
+        dayGrid.appendChild(blank);
+      }
+      for (let d = 1; d <= lastDay; d++) {
+        const cellDate = new Date(viewYear, viewMonth, d);
+        const btn = document.createElement('button');
+        btn.className = 'day';
+        btn.textContent = d;
+        const isPast = cellDate < today;
+        if (cellDate.getTime() === today.getTime()) btn.classList.add('is-today');
+        if (isPast) { btn.classList.add('is-past'); btn.disabled = true; }
+        else if (!hasAvail(cellDate)) { btn.classList.add('is-disabled'); btn.disabled = true; }
+        else { btn.classList.add('is-available'); }
+        if (selectedDate && cellDate.getTime() === selectedDate.getTime()) btn.classList.add('is-selected');
+        btn.addEventListener('click', () => {
+          if (isPast || !hasAvail(cellDate)) return;
+          selectedDate = cellDate;
+          selectedSlotIso = null;
+          selectedSlotLabel = null;
+          renderCalendar();
+          renderSlots();
+          updateNext();
+        });
+        dayGrid.appendChild(btn);
+      }
+    }
+    document.getElementById('prevMonth').addEventListener('click', () => {
+      viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; } renderCalendar();
+    });
+    document.getElementById('nextMonth').addEventListener('click', () => {
+      viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; } renderCalendar();
+    });
+
+    // Slots render
+    const slotsContainer = document.getElementById('slotsContainer');
+    const slotsTitle = document.getElementById('slotsTitle');
+    const slotsSub = document.getElementById('slotsSub');
+    function renderSlots() {
+      if (!selectedDate) return;
+      const slots = getSlots(selectedDate);
+      slotsTitle.textContent = `${dayLong[selectedDate.getDay()]}, ${monthNames[selectedDate.getMonth()]} ${selectedDate.getDate()}`;
+      slotsSub.textContent = `${slots.length} open · ${DISPLAY_TZ_LABEL.split(' ')[0]}`;
+      const list = document.createElement('div');
+      list.className = 'slots-list';
+      slots.forEach(slot => {
+        const b = document.createElement('button');
+        b.className = 'slot';
+        b.innerHTML = `<span>${slot.label}</span><span class="slot-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>`;
+        if (selectedSlotIso === slot.iso) b.classList.add('is-selected');
+        b.addEventListener('click', () => {
+          selectedSlotIso = slot.iso;
+          selectedSlotLabel = slot.label;
+          list.querySelectorAll('.slot').forEach(s => s.classList.remove('is-selected'));
+          b.classList.add('is-selected');
+          updateNext();
+        });
+        list.appendChild(b);
+      });
+      slotsContainer.innerHTML = '';
+      slotsContainer.appendChild(list);
+    }
+
+    // Nav
+    backBtn.addEventListener('click', () => {
+      if (current > 1) { current--; render(); }
+    });
+    nextBtn.addEventListener('click', async () => {
+      if (current === 1) {
+        document.getElementById('confirmTime').textContent =
+          `${dayLong[selectedDate.getDay()]}, ${monthNames[selectedDate.getMonth()]} ${selectedDate.getDate()} · ${selectedSlotLabel} ${DISPLAY_TZ_LABEL.split(' ')[0]}`;
+        current = 2;
+        render();
+        return;
+      }
+      // Step 2 — submit booking to Apps Script.
+      const fullName = document.getElementById('fName').value.trim();
+      const email = document.getElementById('fEmail').value.trim();
+      const notes = document.getElementById('fNotes').value.trim();
+      if (!fullName || !email) return;
+
+      nextBtn.disabled = true;
+      nextBtn.innerHTML = 'Booking…';
+      try {
+        if (!MOCK_MODE) {
+          const resp = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            // text/plain to avoid CORS preflight on Apps Script Web Apps
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'book',
+              startTimeIso: selectedSlotIso,
+              fullName,
+              email,
+              notes,
+            }),
+          });
+          const json = await resp.json();
+          if (!json.ok) throw new Error(json.error || 'Booking failed');
+        }
+        // Success.
+        stepNav.style.display = 'none';
+        document.querySelector('.progress').style.display = 'none';
+        steps.forEach(s => s.classList.remove('is-current'));
+        document.getElementById('successDetailText').textContent =
+          `${dayLong[selectedDate.getDay()]}, ${monthNames[selectedDate.getMonth()]} ${selectedDate.getDate()} · ${selectedSlotLabel} ${DISPLAY_TZ_LABEL.split(' ')[0]}`;
+        document.getElementById('successView').classList.add('is-visible');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        alert(`Booking failed: ${err.message}\n\nPlease try again, or email us directly.`);
+        nextBtn.disabled = false;
+        nextBtn.innerHTML = 'Confirm booking <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+      }
+    });
+
+    renderCalendar();
+  </script>
+</body>
+</html>

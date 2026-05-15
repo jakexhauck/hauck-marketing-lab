@@ -1,0 +1,110 @@
+<h1 id="install-meta-pixel-via-google-tag-manager">Install Meta Pixel
+via Google Tag Manager</h1>
+<p><strong>Category:</strong> Onboarding <strong>Source:</strong> Module
+3 Lesson 5 <strong>When to use:</strong> Day 2 of onboarding for any
+client with a website. Skip if using Meta Lead Forms (no pixel needed).
+<strong>Estimated time:</strong> 30 to 45 min</p>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" />Client has a website</label></li>
+<li><label><input type="checkbox" />You have access to install code on
+their site (or a dev who will)</label></li>
+<li><label><input type="checkbox" />Client's Business Manager and ad
+account are set up</label></li>
+</ul>
+<h2 id="checklist">Checklist</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" /><strong>Create GTM account and
+container:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Go to
+tagmanager.google.com</label></li>
+<li><label><input type="checkbox" />Create one container per client
+website</label></li>
+<li><label><input type="checkbox" />Name the container after the
+business</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Install GTM on the website
+(one-time):</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />GTM provides two snippets, one in
+the head, one after the body opening tag</label></li>
+<li><label><input type="checkbox" />For Shopify, Wix, Squarespace,
+WordPress: client or dev installs via Custom Code or Header Scripts
+section</label></li>
+<li><label><input type="checkbox" />Verify install with GTM Preview
+mode</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Create the Meta Pixel in
+Events Manager:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Open Events Manager
+(facebook.com/events_manager)</label></li>
+<li><label><input type="checkbox" />Connect Data Sources, Web, Meta
+Pixel, Connect</label></li>
+<li><label><input type="checkbox" />Name the pixel after the
+client</label></li>
+<li><label><input type="checkbox" />Choose Install code
+manually</label></li>
+<li><label><input type="checkbox" />Copy the Pixel ID</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Add the Pixel to
+GTM:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />GTM Dashboard, Tags, New, Custom
+HTML</label></li>
+<li><label><input type="checkbox" />Paste Meta Pixel base
+code</label></li>
+<li><label><input type="checkbox" />Trigger: All Pages</label></li>
+<li><label><input type="checkbox" />Save as "Meta Pixel -
+Base"</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Add the Lead event
+tag:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />New tag, Custom HTML</label></li>
+<li><label><input type="checkbox" />Paste the fbq track Lead
+script</label></li>
+<li><label><input type="checkbox" />Trigger: Page View, Page URL
+contains /thank-you (or whatever the client's confirmation URL
+is)</label></li>
+<li><label><input type="checkbox" />Save as "Meta Pixel - Lead
+Event"</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Publish the GTM
+container:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Submit, Publish</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Verify it
+works:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Install Meta Pixel Helper Chrome
+extension</label></li>
+<li><label><input type="checkbox" />Visit client site, confirm Pixel
+Helper icon turns green</label></li>
+<li><label><input type="checkbox" />Events Manager, Data Sources, Test
+Events</label></li>
+<li><label><input type="checkbox" />Submit a test form on the site,
+confirm PageView and Lead events appear in real time</label></li>
+</ul></li>
+</ul>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>For most local business clients, you only need PageView and Lead
+events. Don't overcomplicate.</li>
+<li>If pixel won't fire: clear cache or try incognito, confirm code is
+in head not body, confirm pixel ID matches, disable ad blockers,
+re-paste fresh code.</li>
+<li>Meta also offers direct partner integrations for Shopify, WordPress
+(WooCommerce), and Squarespace if you only need Meta tracking and no
+other tools. 60-second install.</li>
+<li>GTM is the universal remote. Adding Google Ads or TikTok tracking
+later is just new tags in GTM, no developer call needed.</li>
+</ul>
+<h2 id="related-sops">Related SOPs</h2>
+<ul>
+<li>onboarding-7day-pipeline</li>
+<li>pre-launch-qa-checklist</li>
+</ul>

@@ -25,6 +25,11 @@ pub struct OnboardingState {
     pub phase_done_at: BTreeMap<String, String>,
     #[serde(default)]
     pub updated_at: String,
+    /// Media Buying Sequence state. Opaque to the backend; shape lives in
+    /// app/src/lib/mediaBuyingSequence.ts. Kept as JSON so adding fields TS-side
+    /// doesn't require a Rust change.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sequence: Option<serde_json::Value>,
 }
 
 fn client_name_for(root: &str, slug: &str) -> String {
@@ -76,6 +81,7 @@ pub fn write_onboarding_state(
         done: state.done,
         phase_done_at: state.phase_done_at,
         updated_at: Utc::now().to_rfc3339(),
+        sequence: state.sequence,
     };
     let json =
         serde_json::to_string_pretty(&stamped).map_err(|e| format!("serialize onboarding: {e}"))?;

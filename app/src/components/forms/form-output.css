@@ -1,0 +1,432 @@
+/* FormOutput — styled, readable rendering for generator outputs. */
+
+.form-out {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  color: var(--text-mid);
+  font-family: var(--sans);
+  line-height: 1.6;
+  font-size: 14.5px;
+}
+
+/* Streaming variant: same typography, no card chrome. */
+.form-out-streaming {
+  gap: 14px;
+  padding: 6px 4px;
+}
+
+.form-out-shimmer {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 24px 4px;
+  opacity: 0.7;
+  animation: form-out-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes form-out-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+/* Header */
+.form-out-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
+.form-out-headline {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 1.35;
+  letter-spacing: -0.012em;
+  color: var(--text);
+  margin: 0;
+}
+
+.form-out-summary {
+  font-size: 14.5px;
+  color: var(--text-mid);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 72ch;
+}
+
+/* Card chrome */
+.form-out-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.form-out-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-out-section + .form-out-section {
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.form-out-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+
+.form-out-label-inline {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-weight: 600;
+  min-width: 64px;
+  flex-shrink: 0;
+}
+
+/* Email subjects */
+.form-out-subjects {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-out-subjects li {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 2px solid var(--copper);
+}
+
+.form-out-subject-index {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+  min-width: 22px;
+}
+
+/* Email/message body block */
+.form-out-email-body {
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 2px solid var(--border-strong);
+  padding: 18px 22px;
+}
+
+/* Hooks: angles + numbered hooks */
+.form-out-angle-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.form-out-angle-num {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--copper);
+  font-weight: 600;
+}
+
+.form-out-angle-name {
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+
+.form-out-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+}
+
+.form-out-hooks {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-out-hooks li {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  line-height: 1.5;
+}
+
+.form-out-hook-index {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-faint);
+  min-width: 26px;
+}
+
+/* Top picks */
+.form-out-picks .form-out-pick-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-out-pick-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: rgba(236, 152, 73, 0.04);
+  border-left: 2px solid var(--copper);
+}
+
+.form-out-pick-hook {
+  font-family: var(--sans);
+  font-size: 15px;
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.form-out-pick-why {
+  font-size: 13.5px;
+  color: var(--text-mid);
+  line-height: 1.55;
+}
+
+/* Competitor grid */
+.form-out-competitor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.form-out-competitor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+}
+
+.form-out-competitor-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.form-out-competitor-num {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  color: var(--copper);
+}
+
+.form-out-competitor-name {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.form-out-competitor-row {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.form-out-competitor-weakness {
+  color: var(--text);
+}
+
+.form-out-whitespace p {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0;
+}
+
+/* Footnote — short notes from agents (placeholders, caveats) */
+.form-out-footnote {
+  border-left: 2px solid var(--copper);
+  padding: 12px 18px;
+  background: rgba(236, 152, 73, 0.04);
+  font-size: 13.5px;
+  color: var(--text-mid);
+  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-out-footnote p {
+  margin: 0;
+}
+
+/* Generic markdown rendering */
+.form-out-md {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--sans);
+  color: var(--text-mid);
+  line-height: 1.65;
+  font-size: 14.5px;
+}
+
+.form-out-md h1,
+.form-out-md h2,
+.form-out-md h3,
+.form-out-md h4 {
+  font-family: var(--sans);
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.008em;
+  margin: 18px 0 6px;
+  line-height: 1.3;
+}
+
+.form-out-md h1 { font-size: 22px; }
+.form-out-md h2 { font-size: 18px; }
+.form-out-md h3 { font-size: 16px; color: var(--copper); }
+.form-out-md h4 { font-size: 14px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.12em; }
+
+.form-out-md p { margin: 0; }
+
+.form-out-md ul,
+.form-out-md ol {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-out-md li::marker {
+  color: var(--text-faint);
+}
+
+.form-out-md strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.form-out-md em {
+  color: var(--text);
+  font-style: italic;
+}
+
+.form-out-md a {
+  color: var(--copper);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(236, 152, 73, 0.4);
+}
+
+.form-out-md a:hover {
+  text-decoration-color: var(--copper);
+}
+
+.form-out-md code {
+  font-family: var(--mono);
+  color: var(--copper);
+  font-size: 13px;
+  background: rgba(236, 152, 73, 0.08);
+  padding: 1px 6px;
+  border-radius: 2px;
+}
+
+.form-out-md pre {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.form-out-md pre code {
+  background: transparent;
+  color: var(--text-mid);
+  padding: 0;
+  font-size: 12.5px;
+}
+
+.form-out-md blockquote {
+  border-left: 2px solid var(--border-strong);
+  padding: 4px 16px;
+  margin: 0;
+  color: var(--text-mid);
+  font-style: italic;
+}
+
+.form-out-md hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 14px 0;
+}
+
+.form-out-md table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.form-out-md th,
+.form-out-md td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.form-out-md th {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+
+.form-out-md > :first-child {
+  margin-top: 0;
+}

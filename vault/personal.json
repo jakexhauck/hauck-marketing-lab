@@ -10,5 +10,15 @@
   },
   "clothing": {
     "categories": []
+  },
+  "finances": {
+    "config": {
+      "workerUrl": "https://hml-finances.jakehauck-hauckmarketing-lab.workers.dev",
+      "userId": "eed9770084e0acdd278fdf3ca43cbd3b"
+    },
+    "linkedItems": [],
+    "manualAccounts": [],
+    "recentTransactions": [],
+    "recurring": []
   }
 }

@@ -463,7 +463,7 @@ export function TrackingAuditWalkthrough({
       )}
 
       {(streaming || streamText) && !saved && (
-        <StreamPanel agentName="Nexus" streaming={streaming} streamText={streamText} />
+        <StreamPanel agentName="Nexus" streaming={streaming} streamText={streamText} kind="audits" />
       )}
       {error && <ErrorPanel error={error} />}
 
@@ -500,7 +500,7 @@ export function TrackingAuditWalkthrough({
             badge={launchReady ? `LAUNCH READY · ${launchReady}` : null}
             badgeTone={launchReady ? READY_TONE[launchReady] : undefined}
           />
-          <FullTranscript title="▸ FULL AUDIT" agent="NEXUS" body={saved.body} />
+          <FullTranscript title="▸ FULL AUDIT" agent="NEXUS" body={saved.body} kind="audits" />
           <PastResults
             root={root}
             clientSlug={clientSlug}

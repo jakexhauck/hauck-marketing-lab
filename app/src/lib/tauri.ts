@@ -32,6 +32,7 @@ import type {
   DiagnosisInputs,
   DmFile,
   DriveIndex,
+  DriveUploadResult,
   FolderSummary,
   GeneratorKind,
   GeneratorOutput,
@@ -182,6 +183,18 @@ export const api = {
     invoke<DriveIndex | null>("read_drive_index", { root, clientSlug }),
   refreshDriveIndex: (root: string, clientSlug: string) =>
     invoke<DriveIndex>("refresh_drive_index", { root, clientSlug }),
+  uploadOutputToDrive: (
+    root: string,
+    clientSlug: string,
+    outputPath: string,
+    filename: string,
+  ) =>
+    invoke<DriveUploadResult>("upload_output_to_drive", {
+      root,
+      clientSlug,
+      outputPath,
+      filename,
+    }),
   listBenchmarkSets: (root: string) =>
     invoke<BenchmarkSummary[]>("list_benchmark_sets", { root }),
   readBenchmarksForClient: (root: string, clientSlug: string) =>

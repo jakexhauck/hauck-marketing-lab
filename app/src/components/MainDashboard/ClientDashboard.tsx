@@ -10,6 +10,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
+  AgentSummary,
   ClientEntry,
   DashboardState,
   FathomRecording,
@@ -19,7 +20,13 @@ import type {
 import type { ClientSection } from "../../lib/navigation";
 import type { FormSurfaceId } from "../../lib/formConfigs";
 import { api } from "../../lib/tauri";
-import { parseDriveFolders, type DriveFolder } from "../../lib/driveIndex";
+import {
+  driveNodeUrl,
+  parseDriveFolders,
+  parseDriveTree,
+  type DriveFolder,
+  type DriveNode,
+} from "../../lib/driveIndex";
 import {
   buildProfileBody,
   buildProfileFront,
@@ -31,16 +38,20 @@ import {
 import { ClientMediaBuying } from "./ClientMediaBuying";
 import { WebDesignerPage } from "./WebDesignerPage";
 import { recordingsPageCSS, openFathomInApp } from "./RecordingsPage";
-import { openInAppWindow } from "../../lib/openInApp";
 import { OnboardingChecklist } from "../OnboardingChecklist";
+import { ClientSequence } from "./ClientSequence";
+import { ClientServiceDelivery } from "./ClientServiceDelivery";
 import {
   IconBarChart,
+  IconChevronRight,
   IconDashboard,
+  IconExternalLink,
+  IconFile,
   IconFolder,
-  IconGlobe,
   IconMore,
   IconPen,
   IconRecordings,
+  IconTarget,
   IconTasks,
   IconUser,
 } from "../icons";
@@ -49,6 +60,7 @@ interface ClientDashboardProps {
   client: ClientEntry;
   section: ClientSection;
   root: string | null;
+  agents: AgentSummary[];
   onSelectSection: (section: ClientSection) => void;
   onOpenForm: (id: FormSurfaceId, clientSlug: string, clientName: string) => void;
   onOpenDrive?: () => void;
@@ -56,21 +68,23 @@ interface ClientDashboardProps {
 
 type TabDef = { id: ClientSection; label: string; Icon: typeof IconUser };
 
-/** Build the ordered tab list given client status + whether memory has content. */
+/** Build the ordered tab list given client status + whether memory has content.
+ *  Pre-launch clients see a Sequence tab (guided wizard) and an Onboarding tab
+ *  (raw checklist). Both disappear once the client goes live. */
 function buildTabs(status: ClientEntry["status"], hasMemory: boolean): TabDef[] {
-  const first: TabDef =
-    status === "pre-launch"
-      ? { id: "onboarding", label: "Onboarding", Icon: IconTasks }
-      : { id: "dashboard", label: "Dashboard", Icon: IconDashboard };
+  const tabs: TabDef[] = [];
+  if (status === "pre-launch") {
+    tabs.push({ id: "sequence", label: "Sequence", Icon: IconTarget });
+    tabs.push({ id: "onboarding", label: "Onboarding", Icon: IconTasks });
+  } else {
+    tabs.push({ id: "dashboard", label: "Dashboard", Icon: IconDashboard });
+  }
 
-  const tabs: TabDef[] = [
-    first,
-    { id: "drive", label: "Drive", Icon: IconFolder },
-    { id: "media-buying", label: "Media Buying", Icon: IconBarChart },
-    { id: "website", label: "Website", Icon: IconGlobe },
+  tabs.push(
+    { id: "service-delivery", label: "Service Delivery", Icon: IconBarChart },
     { id: "recordings", label: "Recordings", Icon: IconRecordings },
     { id: "profile", label: "Profile", Icon: IconUser },
-  ];
+  );
   if (hasMemory) {
     tabs.push({ id: "memory", label: "Memory", Icon: IconPen });
   }
@@ -96,6 +110,7 @@ export function ClientDashboard({
   client,
   section,
   root,
+  agents,
   onSelectSection,
   onOpenForm,
   onOpenDrive,
@@ -225,27 +240,50 @@ export function ClientDashboard({
             }}
           />
         )}
+        {section === "sequence" && root && (
+          <ClientSequence
+            root={root}
+            clientSlug={client.slug}
+            clientName={client.name}
+            agents={agents}
+            onLaunched={() => onSelectSection("dashboard")}
+          />
+        )}
         {section === "profile" && (
           <ClientProfileInlineEditor client={client} root={root} />
         )}
         {section === "memory" && (
           <ClientNoteView root={root} clientSlug={client.slug} match="memory" emptyLabel="No Memory.md found yet." />
         )}
-        {section === "drive" && (
-          <ClientDriveView root={root} clientSlug={client.slug} driveUrl={client.drive_folder_url ?? null} />
-        )}
-        {section === "media-buying" && (
-          <ClientMediaBuying
-            clientName={client.name}
-            onOpenForm={(id) => onOpenForm(id, client.slug, client.name)}
-          />
-        )}
-        {section === "website" && (
-          <WebDesignerPage
-            root={root}
-            clientSlug={client.slug}
-            clientName={client.name}
-          />
+        {section === "service-delivery" && (
+          <ClientServiceDelivery clientName={client.name}>
+            {(active) => {
+              if (active === "forms") {
+                return (
+                  <ClientMediaBuying
+                    clientName={client.name}
+                    onOpenForm={(id) => onOpenForm(id, client.slug, client.name)}
+                  />
+                );
+              }
+              if (active === "websites") {
+                return (
+                  <WebDesignerPage
+                    root={root}
+                    clientSlug={client.slug}
+                    clientName={client.name}
+                  />
+                );
+              }
+              return (
+                <ClientDriveView
+                  root={root}
+                  clientSlug={client.slug}
+                  driveUrl={client.drive_folder_url ?? null}
+                />
+              );
+            }}
+          </ClientServiceDelivery>
         )}
         {section === "recordings" && (
           <ClientRecordingsView root={root} clientSlug={client.slug} clientName={client.name} />
@@ -316,6 +354,38 @@ function ClientOverviewPanel({
     });
   };
 
+  // Patch a partial OpsClientRow into ops/clients.json and reflect in local
+  // state. When `invoicePaidAt` is set for the first time, retainer
+  // `startDate` is auto-filled to the same date — the engagement officially
+  // begins when the first invoice clears.
+  async function patchOpsRow(patch: Partial<OpsClientRow>) {
+    if (!root) return;
+    try {
+      const ops = await api.readOpsClients(root);
+      const existing = ops.rows[client.slug] ?? {};
+      const next: OpsClientRow = { ...existing, ...patch };
+      if (patch.invoicePaidAt && !next.startDate) {
+        next.startDate = patch.invoicePaidAt;
+      }
+      await api.writeOpsClients(root, {
+        rows: { ...ops.rows, [client.slug]: next },
+      });
+      setOpsRow(next);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("patchOpsRow failed", err);
+    }
+  }
+
+  const today = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const markContractSigned = () => patchOpsRow({ contractSignedAt: today() });
+  const markInvoicePaid = () => patchOpsRow({ invoicePaidAt: today() });
+  const clearContract = () => patchOpsRow({ contractSignedAt: null });
+  const clearInvoice = () => patchOpsRow({ invoicePaidAt: null });
+
   return (
     <div>
       <section className="hml-stat-row">
@@ -350,6 +420,45 @@ function ClientOverviewPanel({
               {recCount && recCount > 0 ? "on file" : "— none yet"}
             </span>
           </div>
+        </div>
+      </section>
+
+      <section className="hml-panel" style={{ marginBottom: 16 }}>
+        <div className="hml-panel-header">
+          <div className="hml-panel-title">
+            <span
+              className="hml-dot"
+              style={{
+                background:
+                  opsRow?.contractSignedAt && opsRow?.invoicePaidAt
+                    ? "var(--hml-green)"
+                    : "var(--hml-amber)",
+              }}
+            />
+            Account status
+          </div>
+        </div>
+        <div className="hml-panel-body" style={{ padding: "14px 20px" }}>
+          <StatusRow
+            label="Contract"
+            date={opsRow?.contractSignedAt}
+            onMark={markContractSigned}
+            onClear={clearContract}
+            doneLabel="Signed"
+            dueLabel="Contract due"
+            actionLabel="Mark as signed"
+            fmtDate={fmtDate}
+          />
+          <StatusRow
+            label="Invoice"
+            date={opsRow?.invoicePaidAt}
+            onMark={markInvoicePaid}
+            onClear={clearInvoice}
+            doneLabel="Paid"
+            dueLabel="Invoice due"
+            actionLabel="Mark as paid"
+            fmtDate={fmtDate}
+          />
         </div>
       </section>
 
@@ -467,6 +576,95 @@ function KvRow({ label, value }: { label: string; value: string }) {
     >
       <span style={{ color: "var(--hml-text-secondary)" }}>{label}</span>
       <span style={{ color: "var(--hml-text)", fontWeight: 500 }}>{value}</span>
+    </div>
+  );
+}
+
+/** One row of the Account Status panel — Contract or Invoice.
+ *  Shows an amber "due" pill + action button when undated; flips to a green
+ *  done pill with the date and a small clear/undo affordance once marked. */
+function StatusRow({
+  label,
+  date,
+  onMark,
+  onClear,
+  doneLabel,
+  dueLabel,
+  actionLabel,
+  fmtDate,
+}: {
+  label: string;
+  date: string | null | undefined;
+  onMark: () => void;
+  onClear: () => void;
+  doneLabel: string;
+  dueLabel: string;
+  actionLabel: string;
+  fmtDate: (iso: string | null | undefined) => string;
+}) {
+  const isDone = !!date;
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 14,
+        padding: "10px 0",
+        borderBottom: "1px solid var(--hml-border-subtle, rgba(255,255,255,0.05))",
+        fontSize: 13,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span
+          style={{
+            color: "var(--hml-text-secondary)",
+            minWidth: 72,
+            display: "inline-block",
+          }}
+        >
+          {label}
+        </span>
+        <span className={`hml-pill ${isDone ? "hml-green" : "hml-amber"}`}>
+          <span className="hml-pill-dot" />
+          {isDone ? `${doneLabel} · ${fmtDate(date)}` : dueLabel}
+        </span>
+      </div>
+      {isDone ? (
+        <button
+          type="button"
+          onClick={onClear}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "var(--hml-text-tertiary)",
+            fontSize: 12,
+            cursor: "pointer",
+            padding: "4px 8px",
+            borderRadius: 4,
+          }}
+          title="Clear — mark as not yet completed"
+        >
+          Clear
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onMark}
+          style={{
+            background: "var(--hml-bg-elev-2)",
+            border: "1px solid var(--hml-border)",
+            color: "var(--hml-text-primary)",
+            fontSize: 12.5,
+            fontWeight: 500,
+            cursor: "pointer",
+            padding: "6px 12px",
+            borderRadius: 5,
+          }}
+        >
+          {actionLabel}
+        </button>
+      )}
     </div>
   );
 }
@@ -1095,38 +1293,47 @@ function ClientDriveView({
   clientSlug: string;
   driveUrl: string | null;
 }) {
+  const [tree, setTree] = useState<DriveNode | null | undefined>(undefined);
   const [folders, setFolders] = useState<DriveFolder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Stack of folder IDs descended into from the root. Empty = at root.
+  const [path, setPath] = useState<string[]>([]);
 
   useEffect(() => {
     if (!root) {
       setFolders([]);
+      setTree(null);
       return;
     }
     let cancelled = false;
     setFolders(null);
+    setTree(undefined);
     setError(null);
+    setPath([]);
     api
       .readDriveIndex(root, clientSlug)
       .then((idx) => {
         if (cancelled) return;
         if (!idx) {
           setFolders([]);
+          setTree(null);
           return;
         }
         setFolders(parseDriveFolders(idx.body));
+        setTree(parseDriveTree(idx.body));
       })
       .catch((e) => {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : String(e));
         setFolders([]);
+        setTree(null);
       });
     return () => {
       cancelled = true;
     };
   }, [root, clientSlug]);
 
-  if (folders === null) {
+  if (folders === null || tree === undefined) {
     return <div className="hml-empty"><div className="hml-empty-sub">Loading Drive index…</div></div>;
   }
 
@@ -1150,14 +1357,50 @@ function ClientDriveView({
     );
   }
 
+  // Tree path: array of nodes from root down to the currently viewed folder.
+  // Empty when the index has no `## Tree` block — we fall back to the flat
+  // folder list (older clients that haven't been re-indexed yet).
+  const trail: DriveNode[] = [];
+  if (tree) {
+    trail.push(tree);
+    let cursor: DriveNode | undefined = tree;
+    for (const id of path) {
+      const next: DriveNode | undefined = cursor?.children?.find(
+        (c) => c.id === id && c.type === "folder",
+      );
+      if (!next) break;
+      trail.push(next);
+      cursor = next;
+    }
+  }
+  const current = trail.length > 0 ? trail[trail.length - 1] : null;
+  const children = current?.children ?? [];
+
   return (
     <div className="hml-panel">
       <div className="hml-panel-header">
         <div className="hml-panel-title">
           <span className="hml-dot" style={{ background: "var(--hml-blue)" }} />
-          Drive folders
+          {trail.length > 1 ? (
+            <DriveBreadcrumb trail={trail} onJump={(depth) => setPath(path.slice(0, depth))} />
+          ) : (
+            "Drive folders"
+          )}
         </div>
-        {driveUrl && (
+        {current && current.id ? (
+          <a
+            href={driveNodeUrl(current)}
+            target="_blank"
+            rel="noreferrer"
+            className="hml-panel-action"
+            onClick={(e) => {
+              e.preventDefault();
+              window.open(driveNodeUrl(current), "_blank", "noopener,noreferrer");
+            }}
+          >
+            Open in Drive ↗
+          </a>
+        ) : driveUrl ? (
           <a
             href={driveUrl}
             target="_blank"
@@ -1165,32 +1408,134 @@ function ClientDriveView({
             className="hml-panel-action"
             onClick={(e) => {
               e.preventDefault();
-              openInAppWindow(driveUrl, `${clientSlug} — Drive`);
+              window.open(driveUrl, "_blank", "noopener,noreferrer");
             }}
           >
-            Open root ↗
+            Open in Drive ↗
           </a>
-        )}
+        ) : null}
       </div>
       <div className="hml-panel-body">
-        {folders.length === 0 ? (
+        {tree ? (
+          children.length === 0 ? (
+            <div className="hml-empty">
+              <div className="hml-empty-sub">This folder is empty.</div>
+            </div>
+          ) : (
+            <DriveChildren
+              nodes={children}
+              onOpenFolder={(id) => setPath([...path, id])}
+            />
+          )
+        ) : folders.length === 0 ? (
           <div className="hml-empty">
             <div className="hml-empty-sub">
               No folders indexed yet. Run the Drive index refresh from Settings.
             </div>
           </div>
         ) : (
-          folders.map((f) => (
-            <a
-              key={f.id}
-              href={f.url}
-              target="_blank"
-              rel="noreferrer"
+          <>
+            <div className="hml-empty" style={{ paddingBottom: 8 }}>
+              <div className="hml-empty-sub">
+                This index is from before in-app browsing — refresh it from Settings to enable drill-down.
+              </div>
+            </div>
+            {folders.map((f) => (
+              <a
+                key={f.id}
+                href={f.url}
+                target="_blank"
+                rel="noreferrer"
+                className="hml-activity"
+                style={{ textDecoration: "none" }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.open(f.url, "_blank", "noopener,noreferrer");
+                }}
+              >
+                <div className="hml-activity-icon hml-blue">
+                  <IconFolder size={13} />
+                </div>
+                <div className="hml-activity-body">
+                  <div className="hml-activity-title">
+                    <span className="hml-em">{f.name}</span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DriveBreadcrumb({
+  trail,
+  onJump,
+}: {
+  trail: DriveNode[];
+  onJump: (depth: number) => void;
+}) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+      {trail.map((node, i) => {
+        const isLast = i === trail.length - 1;
+        return (
+          <span key={node.id} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            {isLast ? (
+              <span>{node.name}</span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onJump(i)}
+                className="hml-link"
+                style={{ background: "none", border: 0, padding: 0, cursor: "pointer" }}
+              >
+                {node.name}
+              </button>
+            )}
+            {!isLast && (
+              <span style={{ opacity: 0.5, display: "inline-flex" }}>
+                <IconChevronRight size={12} />
+              </span>
+            )}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+function DriveChildren({
+  nodes,
+  onOpenFolder,
+}: {
+  nodes: DriveNode[];
+  onOpenFolder: (id: string) => void;
+}) {
+  // Folders first, then files; each group alphabetized.
+  const sorted = [...nodes].sort((a, b) => {
+    if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+  return (
+    <>
+      {sorted.map((node) => {
+        if (node.type === "folder") {
+          return (
+            <button
+              key={node.id}
+              type="button"
+              onClick={() => onOpenFolder(node.id)}
               className="hml-activity"
-              style={{ textDecoration: "none" }}
-              onClick={(e) => {
-                e.preventDefault();
-                openInAppWindow(f.url, f.name);
+              style={{
+                textDecoration: "none",
+                background: "none",
+                border: 0,
+                width: "100%",
+                textAlign: "left",
+                cursor: "pointer",
               }}
             >
               <div className="hml-activity-icon hml-blue">
@@ -1198,13 +1543,41 @@ function ClientDriveView({
               </div>
               <div className="hml-activity-body">
                 <div className="hml-activity-title">
-                  <span className="hml-em">{f.name}</span>
+                  <span className="hml-em">{node.name}</span>
                 </div>
               </div>
-            </a>
-          ))
-        )}
-      </div>
-    </div>
+              <div style={{ opacity: 0.5, display: "inline-flex", alignItems: "center" }}>
+                <IconChevronRight size={14} />
+              </div>
+            </button>
+          );
+        }
+        const url = driveNodeUrl(node);
+        return (
+          <a
+            key={node.id}
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="hml-activity"
+            style={{ textDecoration: "none" }}
+            onClick={(e) => {
+              e.preventDefault();
+              window.open(url, "_blank", "noopener,noreferrer");
+            }}
+          >
+            <div className="hml-activity-icon">
+              <IconFile size={13} />
+            </div>
+            <div className="hml-activity-body">
+              <div className="hml-activity-title">{node.name}</div>
+            </div>
+            <div style={{ opacity: 0.5, display: "inline-flex", alignItems: "center" }}>
+              <IconExternalLink size={13} />
+            </div>
+          </a>
+        );
+      })}
+    </>
   );
 }

@@ -78,8 +78,9 @@ export function assemblePrompt(opts: {
     `You are ${opts.agent.name}, an AI agent in Jake Hauck's (Hauck Marketing) media-buying workflow. The active client is ${client}.`,
   );
   lines.push("");
-  lines.push(`Stay in character as ${opts.agent.name}. Be direct, precise, and concise — no fluff.`);
+  lines.push(`Stay in character as ${opts.agent.name}. Be direct, precise, and concise. No fluff.`);
   lines.push("Address Jake as \"Sir\". Dry British wit is welcome where appropriate.");
+  lines.push("**Never use em dashes (—) in any output.** Use commas, periods, parentheses, or colons instead. This applies to chat replies, ad copy, emails, headlines, summaries, code comments, and every other piece of text you produce. No exceptions.");
 
   appendVaultSections(lines, opts.aboutNotes, opts.clientNotes, client);
 
@@ -98,7 +99,7 @@ export function assemblePrompt(opts: {
     );
     lines.push("");
     for (const c of chunks) {
-      lines.push(`## ${c.id} — ${c.title}`);
+      lines.push(`## ${c.id}: ${c.title}`);
       if (c.tags.length > 0) {
         lines.push(`tags: ${c.tags.join(", ")}`);
       }
@@ -166,8 +167,9 @@ export function assembleDiagnosisPrompt(opts: {
     `You are Zenith, an AI agent in Jake Hauck's (Hauck Marketing) media-buying workflow. The active client is ${client}.`,
   );
   lines.push("");
-  lines.push(`Stay in character as Zenith. Be direct, precise, and concise — no fluff.`);
+  lines.push(`Stay in character as Zenith. Be direct, precise, and concise. No fluff.`);
   lines.push("Address Jake as \"Sir\". Dry British wit is welcome where appropriate.");
+  lines.push("**Never use em dashes (—) in any output.** Use commas, periods, parentheses, or colons instead. This applies to chat replies, ad copy, emails, headlines, summaries, code comments, and every other piece of text you produce. No exceptions.");
 
   appendVaultSections(lines, opts.aboutNotes, opts.clientNotes, client);
 
@@ -186,7 +188,7 @@ export function assembleDiagnosisPrompt(opts: {
     );
     lines.push("");
     for (const c of chunks) {
-      lines.push(`## ${c.id} — ${c.title}`);
+      lines.push(`## ${c.id}: ${c.title}`);
       if (c.tags.length > 0) {
         lines.push(`tags: ${c.tags.join(", ")}`);
       }

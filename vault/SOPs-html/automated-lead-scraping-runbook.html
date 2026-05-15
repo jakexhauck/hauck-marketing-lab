@@ -1,0 +1,107 @@
+<h1 id="run-the-automated-lead-scraper">Run the Automated Lead
+Scraper</h1>
+<p><strong>Category:</strong> Leads <strong>Source:</strong> Module 5
+Lesson 10 <strong>When to use:</strong> Every Monday morning. Replaces
+manual scraping once the tool is built. <strong>Estimated time:</strong>
+5 min to run, 30 min to work the list</p>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" />Lead scraper folder exists at
+<code>lead-scraper/</code></label></li>
+<li><label><input type="checkbox" />Google Sheets API credentials
+configured (service account JSON in place)</label></li>
+<li><label><input type="checkbox" />Google Sheet "Agency Prospects"
+shared with the service account email</label></li>
+<li><label><input type="checkbox" />Sheet ID added to
+config</label></li>
+</ul>
+<h2 id="checklist">Checklist</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" /><strong>First time only (or after
+env changes):</strong></label>
+<ul class="task-list">
+<li><label><input
+type="checkbox" /><code>cd lead-scraper</code></label></li>
+<li><label><input
+type="checkbox" /><code>pip install -r requirements.txt</code></label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Run the
+scraper:</strong></label>
+<ul class="task-list">
+<li><label><input
+type="checkbox" /><code>python scrape.py "[niche]" "[city, state]"</code></label></li>
+<li><label><input type="checkbox" />Example:
+<code>python scrape.py "dentists" "Tampa, FL"</code></label></li>
+<li><label><input type="checkbox" />Watch terminal progress: businesses
+found, Ad Library checks, scoring</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Open the Google
+Sheet:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />New tab named
+<code>[City] - [Niche] - [Date]</code> should be visible</label></li>
+<li><label><input type="checkbox" />Sort by Score 5 first</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Quick-check each top
+prospect:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Open Meta Ad Library</label></li>
+<li><label><input type="checkbox" />Search by business name</label></li>
+<li><label><input type="checkbox" />30 seconds per prospect: note
+weaknesses in their ads for your opener</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Send personalized outreach
+to top 15:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Reference specific ads or
+competitors in the message</label></li>
+<li><label><input type="checkbox" />Use manual-lead-scraping templates
+as base</label></li>
+<li><label><input type="checkbox" />Update Outreach Date column in the
+sheet</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Set follow-up
+reminders:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Wednesday: follow up with
+non-responders</label></li>
+<li><label><input type="checkbox" />Friday: second
+follow-up</label></li>
+</ul></li>
+<li><label><input type="checkbox" /><strong>Run additional niches
+throughout the week:</strong></label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Try 2 to 3 niches in different
+cities</label></li>
+<li><label><input type="checkbox" />By end of week: 200+ scored
+prospects across multiple tabs</label></li>
+</ul></li>
+</ul>
+<h2 id="notes">Notes</h2>
+<ul>
+<li><strong>Outreach must stay manual.</strong> Mass-blasted AI messages
+get ignored and can flag your accounts. Scraping = fine, outreach =
+never.</li>
+<li>Your computer must be on if running on a local schedule. For
+unattended runs, deploy to a GitHub Action or small cloud server.</li>
+<li>Common breaks:
+<ul class="task-list">
+<li><label><input type="checkbox" />Google Sheets permission denied:
+re-share with service account email</label></li>
+<li><label><input type="checkbox" />Module not found: re-run
+<code>pip install -r requirements.txt</code></label></li>
+<li><label><input type="checkbox" />Rate limited: add 2 to 3 second
+delay between searches</label></li>
+<li><label><input type="checkbox" />Found 0 businesses: broaden search
+terms or try bigger city</label></li>
+</ul></li>
+<li>For niche selection logic, see manual-lead-scraping (same logic,
+automated execution).</li>
+</ul>
+<h2 id="related-sops">Related SOPs</h2>
+<ul>
+<li>manual-lead-scraping</li>
+<li>niche-landing-page-outreach</li>
+<li>competitor-research-workflow</li>
+</ul>

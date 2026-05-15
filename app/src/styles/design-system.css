@@ -3008,6 +3008,40 @@ select.hml-prospect-form-input {
   color: var(--hml-text-tertiary);
 }
 
+/* Segmented + multi-select toggle groups (form fields).
+   Used by GenericFormGenerator for single-select segmented controls and
+   multi-select chip groups. */
+.os-segment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.os-segment-btn {
+  font-family: var(--hml-font-sans);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  padding: 7px 12px;
+  border: 1px solid var(--hml-border);
+  background: var(--hml-bg-elev-2);
+  color: var(--hml-text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+.os-segment-btn:hover:not(:disabled) {
+  border-color: var(--hml-accent-border);
+  color: var(--hml-text-primary);
+}
+.os-segment-btn.is-active {
+  border-color: var(--hml-accent-border);
+  color: var(--hml-accent);
+  background: var(--hml-accent-dim);
+}
+.os-segment-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* Buttons ─────────────────────────────────────────── */
 .os-primary {
   background: var(--hml-accent);

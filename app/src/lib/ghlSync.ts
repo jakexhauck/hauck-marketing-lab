@@ -21,14 +21,21 @@ import type { OpsClientsFile } from "./types";
  *  matches in their GHL location. */
 export const ONBOARDING_PIPELINE_NAME_FALLBACK = "Client Onboarding";
 
-/** Phase number (1-6) → GHL stage name as Jake configured the pipeline. */
+/** Phase number (1-5) → GHL stage name as Jake configured the pipeline.
+ *
+ * "Invoice Paid" was Phase 1 prior to 2026-05-14. It's been removed — contract
+ * signing + invoice payment are now persistent flags on the Client Hub
+ * (`contractSignedAt`, `invoicePaidAt` on OpsClientRow), not workflow steps.
+ *
+ * The GHL pipeline itself may still contain an "Invoice Paid" stage; this
+ * map simply doesn't target it. The app starts opportunities at "Onboarding
+ * Call" and advances from there. */
 const PHASE_STAGE_NAMES: Record<number, string> = {
-  1: "Invoice Paid",
-  2: "Onboarding Call",
-  3: "Technical Setup",
-  4: "Creative Production",
-  5: "Campaign Build",
-  6: "Fully Launched",
+  1: "Onboarding Call",
+  2: "Technical Setup",
+  3: "Creative Production",
+  4: "Campaign Build",
+  5: "Fully Launched",
 };
 
 export function stageNameForPhase(phaseNum: number): string | null {

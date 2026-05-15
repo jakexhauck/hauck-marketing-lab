@@ -972,6 +972,7 @@ function TasksTracker({
 
   const [lane, setLane] = useState<OpsTaskLane>("active");
   const todayStamp = todayYMD();
+  const mondayStamp = mondayYMD();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -1057,6 +1058,7 @@ function TasksTracker({
       status: "todo",
       lane,
       createdAt: Date.now(),
+      ...(lane === "weekly" ? { weeklyDay: 1 } : {}),
     };
     setFile({ tasks: [...file.tasks, t] });
   };
@@ -1084,6 +1086,7 @@ function TasksTracker({
   const activeCount = file.tasks.filter((t) => laneOf(t) === "active").length;
   const backburnerCount = file.tasks.filter((t) => laneOf(t) === "backburner").length;
   const dailyCount = file.tasks.filter((t) => laneOf(t) === "daily").length;
+  const weeklyCount = file.tasks.filter((t) => laneOf(t) === "weekly").length;
 
   const tasksByCategory = new Map<string | null, OpsTask[]>();
   for (const cat of categories) tasksByCategory.set(cat.slug, []);
@@ -1131,22 +1134,33 @@ function TasksTracker({
           Daily routine
           <span className="ops-tab-count">{dailyCount}</span>
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={lane === "weekly"}
+          className={`ops-tab${lane === "weekly" ? " ops-tab-on" : ""}`}
+          onClick={() => setLane("weekly")}
+          title="Recurs every Monday"
+        >
+          Weekly routine
+          <span className="ops-tab-count">{weeklyCount}</span>
+        </button>
       </div>
 
       <div className="ops-cat-list">
-        {(lane === "daily"
+        {(lane === "daily" || lane === "weekly"
           ? [
               {
                 slug: null as string | null,
-                name: "Daily routine",
+                name: lane === "daily" ? "Daily routine" : "Weekly routine",
                 hideHeader: true,
               },
             ]
           : categories.map((c) => ({ ...c, hideHeader: false }))
         ).map((cat) => {
           const tasks =
-            lane === "daily"
-              ? file.tasks.filter((t) => laneOf(t) === "daily")
+            lane === "daily" || lane === "weekly"
+              ? file.tasks.filter((t) => laneOf(t) === lane)
               : tasksByCategory.get(cat.slug) ?? [];
           const headerDropActive =
             !cat.hideHeader &&
@@ -1160,7 +1174,7 @@ function TasksTracker({
                     type="button"
                     className="ops-cat-add"
                     onClick={() => addTask(null)}
-                    title="Add daily task"
+                    title={lane === "weekly" ? "Add weekly task" : "Add daily task"}
                   >
                     <IconPlus size={11} /> Add task
                   </button>
@@ -1211,7 +1225,7 @@ function TasksTracker({
                     <col style={{ width: 24 }} />
                     <col style={{ width: 36 }} />
                     <col />
-                    <col style={{ width: 36 }} />
+                    <col style={{ width: lane === "weekly" ? 64 : 36 }} />
                     <col style={{ width: 32 }} />
                   </colgroup>
                   <tbody>
@@ -1273,13 +1287,21 @@ function TasksTracker({
                             checked={
                               lane === "daily"
                                 ? t.lastCompletedDate === todayStamp
-                                : t.status === "done"
+                                : lane === "weekly"
+                                  ? t.lastCompletedWeek === mondayStamp
+                                  : t.status === "done"
                             }
                             onChange={(e) => {
                               if (lane === "daily") {
                                 updateTask(t.id, {
                                   lastCompletedDate: e.target.checked
                                     ? todayStamp
+                                    : null,
+                                });
+                              } else if (lane === "weekly") {
+                                updateTask(t.id, {
+                                  lastCompletedWeek: e.target.checked
+                                    ? mondayStamp
                                     : null,
                                 });
                               } else {
@@ -1296,7 +1318,9 @@ function TasksTracker({
                             className={`ops-input${
                               (lane === "daily"
                                 ? t.lastCompletedDate === todayStamp
-                                : t.status === "done")
+                                : lane === "weekly"
+                                  ? t.lastCompletedWeek === mondayStamp
+                                  : t.status === "done")
                                 ? " ops-input-done"
                                 : ""
                             }`}
@@ -1308,7 +1332,26 @@ function TasksTracker({
                           />
                         </td>
                         <td>
-                          {lane === "daily" ? (
+                          {lane === "weekly" ? (
+                            <select
+                              className="ops-row-dow"
+                              value={t.weeklyDay ?? 1}
+                              onChange={(e) =>
+                                updateTask(t.id, {
+                                  weeklyDay: Number(e.target.value),
+                                })
+                              }
+                              title="Day of week this task recurs on"
+                            >
+                              <option value={1}>Mon</option>
+                              <option value={2}>Tue</option>
+                              <option value={3}>Wed</option>
+                              <option value={4}>Thu</option>
+                              <option value={5}>Fri</option>
+                              <option value={6}>Sat</option>
+                              <option value={0}>Sun</option>
+                            </select>
+                          ) : lane === "daily" ? (
                             <span className="ops-row-move" style={{ visibility: "hidden" }} />
                           ) : (
                             <button
@@ -1423,6 +1466,28 @@ const tasksTabsCSS = `
 .ops-row-move:hover {
   background: var(--hml-row-hover, rgba(255,255,255,0.05));
   color: var(--hml-accent, #6aa9ff);
+  border-color: var(--hml-accent, #6aa9ff);
+}
+.ops-row-dow {
+  width: 58px;
+  height: 26px;
+  padding: 0 4px;
+  border-radius: 5px;
+  border: 1px solid var(--hml-border, rgba(255,255,255,0.12));
+  background: transparent;
+  color: var(--hml-text-mid, #9a9a9c);
+  font-family: inherit;
+  font-size: 11.5px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.ops-row-dow:hover {
+  color: var(--hml-text, #e7e7e8);
+  border-color: var(--hml-accent, #6aa9ff);
+}
+.ops-row-dow:focus {
+  outline: none;
   border-color: var(--hml-accent, #6aa9ff);
 }
 .ops-cell-grip {
@@ -1724,6 +1789,22 @@ function MoneyInput({
 
 export function todayYMD(): string {
   const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Day-of-week index in local time: 0 = Sun … 6 = Sat. */
+export function todayDow(): number {
+  return new Date().getDay();
+}
+
+/** YYYY-MM-DD of the Monday that starts the current week (local time).
+ *  Used as the bucket key for `lane: "weekly"` task completion. */
+export function mondayYMD(): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  const dow = d.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const shift = dow === 0 ? -6 : 1 - dow;
+  d.setDate(d.getDate() + shift);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 

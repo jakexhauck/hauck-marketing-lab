@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Resources — Variant A1 · Editorial Serif Reader</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-base: #0a0a0c;
+    --bg-rail: #0d0d11;
+    --bg-elev-1: #131318;
+    --bg-elev-2: #191920;
+    --border-subtle: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.085);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #ececf0;
+    --text-2: #9c9ca8;
+    --text-3: #6a6a76;
+    --text-4: #494954;
+    --accent: #d4a574;
+    --accent-2: #e2b585;
+    --accent-dim: rgba(212,165,116,0.12);
+    --accent-border: rgba(212,165,116,0.28);
+    --sans: 'Inter Tight', system-ui, sans-serif;
+    --serif: 'Source Serif 4', 'Iowan Old Style', Georgia, serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-base);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ── shell ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 260px 1fr 220px;
+    min-height: 100vh;
+  }
+
+  /* ── left rail (identical to Variant A) ── */
+  .rail {
+    background: var(--bg-rail);
+    border-right: 1px solid var(--border-subtle);
+    padding: 28px 0 40px;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .rail-head {
+    padding: 0 22px 22px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 18px;
+  }
+  .rail-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .rail-title {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .rail-search {
+    margin: 14px 22px 22px;
+    position: relative;
+  }
+  .rail-search input {
+    width: 100%;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 12.5px;
+    padding: 8px 10px 8px 30px;
+    outline: none;
+    transition: border-color 120ms;
+  }
+  .rail-search input:focus { border-color: var(--accent-border); }
+  .rail-search::before {
+    content: "⌕";
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-3);
+    font-size: 14px;
+  }
+  .rail-search kbd {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+  }
+  .rail-group { margin-bottom: 6px; }
+  .rail-group-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 22px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    cursor: pointer;
+  }
+  .rail-group-label:hover { color: var(--text-2); }
+  .rail-group-count {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-4);
+  }
+  .rail-list { list-style: none; padding: 2px 0 12px; }
+  .rail-list a {
+    display: block;
+    padding: 5px 22px 5px 32px;
+    font-size: 13px;
+    color: var(--text-2);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: background 120ms, color 120ms, border-color 120ms;
+  }
+  .rail-list a:hover { color: var(--text); background: rgba(255,255,255,0.02); }
+  .rail-list a.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  /* ── main column ── */
+  .main {
+    padding: 72px 80px 96px;
+    display: flex;
+    justify-content: center;
+  }
+  .article-shell { width: 100%; max-width: 640px; }
+
+  .breadcrumb {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 36px;
+  }
+  .breadcrumb span { color: var(--accent); }
+
+  .article-meta {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .article-meta .dot {
+    width: 3px;
+    height: 3px;
+    background: var(--text-4);
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .article-meta .read { color: var(--accent); }
+
+  .article-title {
+    font-family: var(--sans);
+    font-size: 42px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 22px;
+    color: var(--text);
+  }
+  .article-lede {
+    font-family: var(--serif);
+    font-size: 19px;
+    line-height: 1.6;
+    color: var(--text-2);
+    margin-bottom: 48px;
+    font-weight: 400;
+  }
+
+  /* the prose itself */
+  .article {
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.75;
+    color: var(--text);
+    font-weight: 400;
+  }
+  .article p {
+    margin-bottom: 1.1em;
+    color: var(--text);
+  }
+  .article p.muted { color: var(--text-2); }
+  .article strong, .article b {
+    font-weight: 600;
+    color: var(--text);
+  }
+  .article em { font-style: italic; color: var(--text); }
+  .article a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-border); }
+  .article a:hover { border-bottom-color: var(--accent); }
+
+  /* headings stay sans, restful but recognisable */
+  .article h2 {
+    font-family: var(--sans);
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 56px 0 18px;
+    color: var(--text);
+    scroll-margin-top: 24px;
+    line-height: 1.25;
+  }
+  .article h2::before {
+    content: "";
+    display: block;
+    width: 28px;
+    height: 1px;
+    background: var(--accent);
+    margin-bottom: 18px;
+    opacity: 0.6;
+  }
+  .article h3 {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    margin: 32px 0 12px;
+    color: var(--text);
+  }
+
+  /* drop cap on the first paragraph of the article */
+  .article > p.opener::first-letter {
+    font-family: var(--serif);
+    float: left;
+    font-size: 64px;
+    line-height: 0.92;
+    font-weight: 500;
+    color: var(--accent);
+    padding: 6px 10px 0 0;
+    margin-top: 4px;
+  }
+
+  /* pull-quote */
+  .pull-quote {
+    margin: 36px 0 36px 48px;
+    padding: 4px 0 4px 20px;
+    border-left: 1px solid var(--accent);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 24px;
+    line-height: 1.4;
+    color: var(--text);
+    font-weight: 400;
+    letter-spacing: -0.005em;
+  }
+  .pull-quote-attr {
+    display: block;
+    margin-top: 12px;
+    font-style: normal;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+
+  /* funnel — quieter, typographic */
+  .funnel {
+    margin: 28px 0 32px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .funnel-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 24px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    align-items: baseline;
+  }
+  .funnel-tier {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .funnel-text {
+    font-family: var(--serif);
+    font-size: 16px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .funnel-tag {
+    color: var(--text-3);
+    font-style: normal;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-left: 10px;
+  }
+
+  /* horizontal inline stats */
+  .stat-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px 56px;
+    margin: 32px 0 12px;
+    padding: 28px 0;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .stat-value {
+    font-family: var(--sans);
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--text);
+  }
+  .stat.hero .stat-value { color: var(--accent); }
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+
+  .article-foot {
+    margin-top: 72px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .pager {
+    flex: 1;
+    padding: 16px 0;
+    text-decoration: none;
+    color: var(--text);
+    transition: color 120ms;
+  }
+  .pager:hover { color: var(--accent); }
+  .pager-dir {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 6px;
+  }
+  .pager-title {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+  .pager.next { text-align: right; }
+
+  /* ── right rail (quiet companion) ── */
+  .toc {
+    padding: 72px 32px 40px 0;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .toc-label {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--text-4);
+    margin-bottom: 16px;
+  }
+  .toc ul { list-style: none; }
+  .toc li {
+    border-left: 1px solid var(--border-subtle);
+    padding: 5px 0 5px 12px;
+  }
+  .toc li.active { border-left-color: var(--accent); }
+  .toc a {
+    color: var(--text-3);
+    font-size: 11.5px;
+    text-decoration: none;
+    display: block;
+    transition: color 120ms;
+    line-height: 1.5;
+  }
+  .toc a:hover { color: var(--text-2); }
+  .toc li.active a { color: var(--accent); }
+
+  /* scrollbars */
+  .rail::-webkit-scrollbar, .toc::-webkit-scrollbar { width: 6px; }
+  .rail::-webkit-scrollbar-thumb, .toc::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- LEFT RAIL — identical to Variant A -->
+  <aside class="rail">
+    <div class="rail-head">
+      <div class="rail-eyebrow"><span style="display:inline-block;width:5px;height:5px;background:var(--accent);margin-right:8px;vertical-align:middle;border-radius:1px"></span>Workspace</div>
+      <div class="rail-title">Resources</div>
+    </div>
+
+    <div class="rail-search">
+      <input type="text" placeholder="Search 47 articles…" />
+      <kbd>⌘K</kbd>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-group-label">Fundamentals <span class="rail-group-count">05</span></div>
+      <ul class="rail-list">
+        <li><a href="#" class="active">How online ads actually work</a></li>
+        <li><a href="#">The six-piece machine</a></li>
+        <li><a href="#">$10/day funnel walkthrough</a></li>
+        <li><a href="#">30 days of real numbers</a></li>
+        <li><a href="#">Why ROAS is the only metric</a></li>
+      </ul>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-group-label">Glossary <span class="rail-group-count">13</span></div>
+      <ul class="rail-list">
+        <li><a href="#">Impression</a></li>
+        <li><a href="#">CTR — click-through rate</a></li>
+        <li><a href="#">CPM — cost per 1,000</a></li>
+        <li><a href="#">CPC — cost per click</a></li>
+        <li><a href="#">CPL — cost per lead</a></li>
+        <li><a href="#">CPA — cost per acquisition</a></li>
+        <li><a href="#">ROAS</a></li>
+        <li><a href="#">Pixel</a></li>
+        <li><a href="#">Learning phase</a></li>
+        <li><a href="#">Audience</a></li>
+        <li><a href="#">Creative</a></li>
+        <li><a href="#">Bid strategy</a></li>
+        <li><a href="#">Campaign objective</a></li>
+      </ul>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-group-label">Benchmarks <span class="rail-group-count">04</span></div>
+      <ul class="rail-list">
+        <li><a href="#">Healthy ROAS bands</a></li>
+        <li><a href="#">CPL by industry</a></li>
+        <li><a href="#">CTR by creative type</a></li>
+        <li><a href="#">Spend ramp guidelines</a></li>
+      </ul>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-group-label">Sales scripts <span class="rail-group-count">07</span></div>
+      <ul class="rail-list">
+        <li><a href="#">The 60-second pitch</a></li>
+        <li><a href="#">Discovery questions</a></li>
+        <li><a href="#">"I tried FB ads, didn't work"</a></li>
+        <li><a href="#">"How is this different from an agency?"</a></li>
+        <li><a href="#">"What's the catch?"</a></li>
+        <li><a href="#">Pricing conversation</a></li>
+        <li><a href="#">Renewal scripts</a></li>
+      </ul>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-group-label">Playbooks <span class="rail-group-count">06</span></div>
+      <ul class="rail-list">
+        <li><a href="#">New client onboarding</a></li>
+        <li><a href="#">Killing a losing campaign</a></li>
+        <li><a href="#">Scaling a winner</a></li>
+        <li><a href="#">Creative refresh cycle</a></li>
+        <li><a href="#">Reporting cadence</a></li>
+        <li><a href="#">Handling a bad month</a></li>
+      </ul>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-group-label">Templates <span class="rail-group-count">12</span></div>
+      <ul class="rail-list">
+        <li><a href="#">Hook templates</a></li>
+        <li><a href="#">Headline formulas</a></li>
+        <li><a href="#">CTA library</a></li>
+        <li><a href="#">Landing page checklist</a></li>
+        <li><a href="#">Cold email — local</a></li>
+        <li><a href="#">Cold DM — Instagram</a></li>
+        <li><a href="#">Voicemail script</a></li>
+        <li><a href="#">Follow-up sequence</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="article-shell">
+      <div class="breadcrumb">Workspace · Resources · <span>Fundamentals</span></div>
+
+      <div class="article-meta">
+        <span class="read">06 Min</span>
+        <span class="dot"></span>
+        <span>Updated 14 May</span>
+        <span class="dot"></span>
+        <span>Fundamentals</span>
+      </div>
+
+      <h1 class="article-title">How online ads actually work</h1>
+
+      <p class="article-lede">
+        Stripped to its bones, every ad campaign is the same six-step machine. We'll use a pizza shop as the example, but the same machine runs for a window cleaner, a plumber, or any other local business willing to put a few dollars behind it.
+      </p>
+
+      <article class="article">
+        <h2 id="six-pieces">The six pieces of any ad campaign</h2>
+
+        <p class="opener">Every campaign — whether it's running at ten dollars a day or ten thousand — is built from the same six pieces. Memorise them and you'll never feel lost on a strategy call, no matter how much jargon someone tries to bury you in.</p>
+
+        <p>Start with <strong>budget</strong>. You pay Meta — the parent company of Facebook and Instagram — to show your ads to its users. Think of it as paying someone to put flyers on doors, except the someone is a $1.4 trillion machine and the doors are everyone in your zip code. Next comes <strong>targeting</strong>, which is simply you picking <em>who</em> sees the ad: location, age, a few interest signals if you want them. Meta does the rest of the heavy lifting from there, and it does it embarrassingly well.</p>
+
+        <p>The <strong>creative</strong> is the ad itself — image or video, headline, body copy. This is the flyer. Get this wrong and nothing else matters; get it right and even mediocre targeting will work. A <strong>click</strong> happens when someone taps the ad. Most people won't, and that's normal — a one-to-three-percent click-through rate is healthy on a cold local audience. A <strong>conversion</strong> is when the person who clicked actually does the thing you wanted them to do: calls, books, fills out the form, walks in the door. Finally, <strong>ROAS</strong> — return on ad spend — is what you got back versus what you spent. It is the whole point of the exercise, and the only number a business owner should ever ask about.</p>
+
+        <p class="pull-quote">
+          ROAS is the only metric that actually matters. Everything else is just a clue about why it's the number it is.
+          <span class="pull-quote-attr">— Operating principle, page one</span>
+        </p>
+
+        <h2 id="funnel">What the funnel looks like on $10 a day</h2>
+
+        <p>Most of the people who see an ad won't click. Most of the ones who click won't convert. That's the shape of the funnel, not a problem to fix. Here is what a healthy day looks like at the bottom end of the spend spectrum — ten dollars on the table, a few thousand eyeballs, a handful of customers.</p>
+
+        <div class="funnel">
+          <div class="funnel-row"><span class="funnel-tier">$10</span><span class="funnel-text">spent on the day</span></div>
+          <div class="funnel-row"><span class="funnel-tier">500–1,000</span><span class="funnel-text">people see the ad <em class="funnel-tag">Impressions</em></span></div>
+          <div class="funnel-row"><span class="funnel-tier">15–25</span><span class="funnel-text">tap the ad <em class="funnel-tag">Clicks</em></span></div>
+          <div class="funnel-row"><span class="funnel-tier">3–5</span><span class="funnel-text">turn into leads</span></div>
+          <div class="funnel-row"><span class="funnel-tier">1–2</span><span class="funnel-text">become paying customers</span></div>
+        </div>
+
+        <p>If each customer is worth forty dollars or more — and for most local businesses that's a conservative floor — that's eighty dollars back on the ten you spent. An eight-times return, give or take, on a day where you didn't touch the account.</p>
+
+        <h2 id="real-numbers">Thirty days of real numbers</h2>
+
+        <p>Here is what a healthy account actually looks like at the one-month mark. The figures below are pulled from a window-cleaning client running at ten dollars a day, no creative refresh, no fancy audience layering — just the six pieces, set up correctly and left to compound.</p>
+
+        <div class="stat-row">
+          <div class="stat">
+            <span class="stat-value">$312</span>
+            <span class="stat-label">Spent</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">$4,200</span>
+            <span class="stat-label">Revenue back</span>
+          </div>
+          <div class="stat hero">
+            <span class="stat-value">13.5×</span>
+            <span class="stat-label">ROAS</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">31,400</span>
+            <span class="stat-label">Reached</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">847</span>
+            <span class="stat-label">Clicks</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">47</span>
+            <span class="stat-label">Leads</span>
+          </div>
+        </div>
+
+        <p>Nothing about that month was unusual — it is roughly what the median local account looks like when the offer is sharp and the creative isn't actively working against it. The lesson, such as there is one, is that the machine doesn't need to be clever. It needs to be assembled correctly and then left alone long enough for the numbers to mean something.</p>
+      </article>
+
+      <nav class="article-foot">
+        <a href="#" class="pager prev">
+          <div class="pager-dir">← Previous</div>
+          <div class="pager-title">Resources home</div>
+        </a>
+        <a href="#" class="pager next">
+          <div class="pager-dir">Next →</div>
+          <div class="pager-title">The six-piece machine</div>
+        </a>
+      </nav>
+    </div>
+  </main>
+
+  <!-- RIGHT RAIL — quiet companion -->
+  <aside class="toc">
+    <div class="toc-label">On this page</div>
+    <ul>
+      <li class="active"><a href="#six-pieces">The six pieces</a></li>
+      <li><a href="#funnel">The $10/day funnel</a></li>
+      <li><a href="#real-numbers">Thirty days of real numbers</a></li>
+    </ul>
+  </aside>
+
+</div>
+</body>
+</html>

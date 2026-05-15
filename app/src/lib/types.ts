@@ -136,6 +136,15 @@ export interface OnboardingState {
   phaseDoneAt: Record<string, string>;
   /** ISO-8601 timestamp stamped by the backend on every write. */
   updatedAt?: string;
+  /** Optional Media Buying Sequence state. Shape defined in
+   *  app/src/lib/mediaBuyingSequence.ts (`SequenceState`). Stored loosely-typed
+   *  here so the backend write/read path stays schema-agnostic. */
+  sequence?: {
+    currentStep: string;
+    stepOutputs: Record<string, { path: string; completedAt: string }>;
+    skipped?: string[];
+    launchedAt?: string;
+  };
 }
 
 export type ClientStatus = "pre-launch" | "live" | "paused";
@@ -158,6 +167,12 @@ export type DriveIndex = {
   updated_at: string;
   body: string;
   path: string;
+};
+
+export type DriveUploadResult = {
+  doc_url: string;
+  doc_id: string | null;
+  filename: string;
 };
 
 export type BenchmarkSummary = {
@@ -506,6 +521,12 @@ export interface GhlContactLite {
 
 export interface OpsClientRow {
   retainer?: number | null;
+  /** ISO date the contract was signed. Empty = "Contract due" flag on Client Hub. */
+  contractSignedAt?: string | null;
+  /** ISO date the first invoice was paid. Empty = "Invoice due" flag on Client Hub.
+   *  When set, the Client Hub auto-fills {@link startDate} if it's empty —
+   *  retainer start = "first cleared payment". */
+  invoicePaidAt?: string | null;
   /** Retainer / contract start. Distinct from {@link adsLaunchedAt}. */
   startDate?: string | null;
   adSpend?: number | null;
@@ -536,8 +557,10 @@ export type OpsTaskStatus = "todo" | "done";
 
 /** Which tab the task lives in. Missing = "active" (legacy rows).
  *  "daily" tasks recur every day — their `status` is ignored; completion is
- *  tracked per-day via `lastCompletedDate` so the checkbox resets at midnight. */
-export type OpsTaskLane = "active" | "backburner" | "daily";
+ *  tracked per-day via `lastCompletedDate` so the checkbox resets at midnight.
+ *  "weekly" tasks recur every Monday — completion is tracked per-week via
+ *  `lastCompletedWeek` (the Monday date of the active week). */
+export type OpsTaskLane = "active" | "backburner" | "daily" | "weekly";
 
 export interface OpsTask {
   id: string;
@@ -551,6 +574,13 @@ export interface OpsTask {
   /** YYYY-MM-DD. Set when a `lane: "daily"` task is checked off; the box
    *  re-appears unchecked the next day. */
   lastCompletedDate?: string | null;
+  /** YYYY-MM-DD of a Monday. Set when a `lane: "weekly"` task is checked off;
+   *  the box re-appears unchecked when the next Monday arrives. */
+  lastCompletedWeek?: string | null;
+  /** Day of week a `lane: "weekly"` task is scheduled for. 0 = Sun … 6 = Sat.
+   *  Defaults to 1 (Monday) when missing. The task surfaces in the main
+   *  dashboard's Daily routine on this day each week. */
+  weeklyDay?: number;
 }
 
 export interface OpsTasksFile {

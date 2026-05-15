@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Client Intake — Hauck Marketing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@300..600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-base: #0a0a0c;
+    --bg-elev-1: #131318;
+    --bg-elev-2: #191920;
+    --bg-elev-3: #1f1f28;
+    --border-subtle: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.085);
+    --border-strong: rgba(255,255,255,0.14);
+    --text-primary: #ececf0;
+    --text-secondary: #9c9ca8;
+    --text-tertiary: #6a6a76;
+    --text-quaternary: #494954;
+    --accent: #d4a574;
+    --accent-bright: #e2b585;
+    --accent-dim: rgba(212,165,116,0.12);
+    --accent-border: rgba(212,165,116,0.28);
+    --red: #c4847b;
+    --green: #7fb285;
+    --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.003em;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 700px 500px at 20% -10%, rgba(212,165,116,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 500px 400px at 100% 100%, rgba(123,168,196,0.03) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .shell {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* ── Header ───────────────────── */
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 56px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-mark {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent) 0%, #a87a48 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    color: #1a1208;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.10) inset, 0 4px 12px rgba(212,165,116,0.18);
+  }
+
+  .brand-name {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  .brand-name .sub {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--text-quaternary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 400;
+    margin-top: 1px;
+  }
+
+  .step-counter {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .step-counter .num { color: var(--accent); font-weight: 500; }
+
+  /* ── Progress segments ────────────────── */
+  .progress {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    margin-bottom: 56px;
+  }
+  .seg {
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.06);
+    transition: background 200ms ease;
+  }
+  .seg.done { background: var(--accent); opacity: 0.5; }
+  .seg.active { background: var(--accent); }
+
+  /* ── Step header ───────────────────── */
+  .step-title {
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+  }
+  .step-blurb {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.55;
+    margin-bottom: 40px;
+    max-width: 540px;
+  }
+
+  /* ── Fields ───────────────────── */
+  .field { margin-bottom: 28px; }
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .label {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: -0.005em;
+  }
+  .label .hint {
+    font-weight: 400;
+    color: var(--text-tertiary);
+    font-size: 11px;
+  }
+  .label .req {
+    color: var(--accent);
+    margin-left: 4px;
+  }
+
+  .help {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  input[type=text],
+  input[type=email],
+  input[type=tel],
+  input[type=url],
+  select,
+  textarea {
+    width: 100%;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 11px 13px;
+    transition: border-color 150ms ease, background 150ms ease;
+  }
+  input::placeholder, textarea::placeholder { color: var(--text-quaternary); }
+  input:hover, select:hover, textarea:hover {
+    border-color: var(--border-strong);
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    background: var(--bg-elev-2);
+    box-shadow: 0 0 0 3px rgba(212,165,116,0.08);
+  }
+  textarea {
+    resize: vertical;
+    min-height: 96px;
+  }
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236a6a76' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 11px;
+    padding-right: 36px;
+  }
+
+  /* File upload */
+  .upload {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 16px;
+    background: var(--bg-elev-1);
+    border: 1px dashed var(--border-strong);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 150ms, border-color 150ms;
+  }
+  .upload:hover {
+    background: var(--bg-elev-2);
+    border-color: var(--accent-border);
+  }
+  .upload-icon {
+    width: 38px; height: 38px;
+    border-radius: 6px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .upload-text { flex: 1; }
+  .upload-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+  .upload-meta {
+    font-size: 11.5px;
+    color: var(--text-tertiary);
+  }
+  .upload input { display: none; }
+
+  /* Radio group */
+  .radio-group { display: flex; flex-direction: column; gap: 8px; }
+  .radio {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 120ms, border-color 120ms;
+  }
+  .radio:hover { background: var(--bg-elev-2); border-color: var(--border-strong); }
+  .radio input { display: none; }
+  .radio-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-strong);
+    flex-shrink: 0;
+    position: relative;
+    transition: border-color 120ms;
+  }
+  .radio input:checked + .radio-dot { border-color: var(--accent); }
+  .radio input:checked + .radio-dot::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .radio-label { font-size: 13.5px; }
+
+  /* ── Footer / nav ───────────────────── */
+  .step-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .btn {
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 140ms, border-color 140ms, color 140ms;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .btn-ghost:hover {
+    background: var(--bg-elev-1);
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+  }
+  .btn-primary {
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: #1a1208;
+  }
+  .btn-primary:hover { background: var(--accent-bright); border-color: var(--accent-bright); }
+
+  /* Step display logic */
+  .step { display: none; animation: fadeIn 280ms ease both; }
+  .step.is-current { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Success state — shown after form submit */
+  .success-view {
+    display: none;
+    text-align: center;
+    padding: 32px 0 0;
+    animation: fadeIn 340ms ease both;
+  }
+  .success-view.is-visible { display: block; }
+  .success-check {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 28px;
+    border: 1px solid var(--accent-border);
+  }
+  .success-title {
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.028em;
+    line-height: 1.1;
+    margin-bottom: 14px;
+  }
+  .success-blurb {
+    color: var(--text-secondary);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 520px;
+    margin: 0 auto 32px;
+  }
+  .success-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent);
+    color: #1a1208;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 13px 24px;
+    border-radius: 7px;
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    transition: background 140ms;
+  }
+  .success-cta:hover { background: var(--accent-bright); }
+  .success-redirect {
+    margin-top: 22px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+  .success-redirect .num { color: var(--accent); }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    .shell { padding: 24px 16px 60px; }
+    .step-title { font-size: 22px; }
+    .field-row { grid-template-columns: 1fr; }
+    .top { margin-bottom: 36px; }
+    .progress { margin-bottom: 36px; }
+  }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="brand">
+        <div class="brand-mark">H</div>
+        <div class="brand-name">
+          Hauck Marketing
+          <span class="sub">Client Intake</span>
+        </div>
+      </div>
+      <div class="step-counter">Step <span class="num" id="curStep">1</span> / 6</div>
+    </header>
+
+    <div class="progress" id="progress">
+      <div class="seg active"></div>
+      <div class="seg"></div>
+      <div class="seg"></div>
+      <div class="seg"></div>
+      <div class="seg"></div>
+      <div class="seg"></div>
+    </div>
+
+    <form id="intakeForm">
+
+      <!-- Step 1: Business identity -->
+      <section class="step is-current" data-step="1">
+        <h1 class="step-title">Business identity</h1>
+        <p class="step-blurb">These details must match your IRS records exactly — they're used for SMS messaging and Facebook ad verification. Inaccuracy here gets your accounts flagged.</p>
+
+        <div class="field">
+          <label class="label">Full name <span class="req">*</span></label>
+          <input type="text" name="full_name" placeholder="As it appears on IRS records" required />
+        </div>
+
+        <div class="field">
+          <label class="label">Legal business name <span class="req">*</span></label>
+          <input type="text" name="legal_business" placeholder="As it appears on IRS records" required />
+        </div>
+
+        <div class="field">
+          <label class="label">Business EIN <span class="req">*</span></label>
+          <input type="text" name="ein" placeholder="XX-XXXXXXX" required />
+          <div class="help">Required for SMS messaging compliance and Facebook ad account verification — without it your accounts get flagged.</div>
+        </div>
+      </section>
+
+      <!-- Step 2: Address & contact -->
+      <section class="step" data-step="2">
+        <h1 class="step-title">Where can we reach you?</h1>
+        <p class="step-blurb">Address must match IRS records as well. Phone and email are how we'll send you onboarding next steps.</p>
+
+        <div class="field">
+          <label class="label">Street address</label>
+          <input type="text" name="street" placeholder="123 Main Street" />
+        </div>
+
+        <div class="field field-row">
+          <div>
+            <label class="label">City</label>
+            <input type="text" name="city" placeholder="" />
+          </div>
+          <div>
+            <label class="label">State</label>
+            <input type="text" name="state" placeholder="" />
+          </div>
+        </div>
+
+        <div class="field field-row">
+          <div>
+            <label class="label">Country</label>
+            <select name="country">
+              <option value="">Select country</option>
+              <option>United States</option>
+              <option>Canada</option>
+              <option>United Kingdom</option>
+              <option>Australia</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Postal code</label>
+            <input type="text" name="postal" placeholder="" />
+          </div>
+        </div>
+
+        <div class="field field-row">
+          <div>
+            <label class="label">Phone <span class="req">*</span></label>
+            <input type="tel" name="phone" placeholder="(555) 555-5555" required />
+          </div>
+          <div>
+            <label class="label">Email <span class="req">*</span></label>
+            <input type="email" name="email" placeholder="you@business.com" required />
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 3: Customer lists -->
+      <section class="step" data-step="3">
+        <h1 class="step-title">Your customer lists</h1>
+        <p class="step-blurb">Two campaigns we run early in the engagement need these. If you only have one list, that's fine — upload it where it fits and skip the other.</p>
+
+        <div class="field">
+          <label class="label">Past customers <span class="req">*</span></label>
+          <label class="upload">
+            <div class="upload-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            </div>
+            <div class="upload-text">
+              <div class="upload-title">Click to upload past customers</div>
+              <div class="upload-meta">CSV, XLS, PDF, DOC, JPG, PNG — up to 25MB</div>
+            </div>
+            <input type="file" name="past_customers" accept=".csv,.xls,.xlsx,.pdf,.doc,.docx,.jpg,.jpeg,.png,.gif" required />
+          </label>
+          <div class="help">Used for the reactivation campaign — bringing previous customers back.</div>
+        </div>
+
+        <div class="field">
+          <label class="label">Current customers <span class="hint">Optional</span></label>
+          <label class="upload">
+            <div class="upload-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            </div>
+            <div class="upload-text">
+              <div class="upload-title">Click to upload current customers</div>
+              <div class="upload-meta">CSV, XLS, PDF, DOC, JPG, PNG — up to 25MB</div>
+            </div>
+            <input type="file" name="current_customers" accept=".csv,.xls,.xlsx,.pdf,.doc,.docx,.jpg,.jpeg,.png,.gif" />
+          </label>
+          <div class="help">Used for the review-generation campaign — turning happy customers into Google reviews.</div>
+        </div>
+      </section>
+
+      <!-- Step 4: Web & assets -->
+      <section class="step" data-step="4">
+        <h1 class="step-title">Web presence & assets</h1>
+        <p class="step-blurb">We use these to build ad creatives, write copy, and set up your funnel. If you don't have something yet, just tell us so we know what to create.</p>
+
+        <div class="field">
+          <label class="label">Google Drive link of business assets <span class="hint">Photos, logos, videos</span></label>
+          <input type="url" name="assets_url" placeholder="https://drive.google.com/drive/folders/..." />
+          <div class="help">Make sure the link is set to anyone-with-the-link access. We can't pull from private folders.</div>
+        </div>
+
+        <div class="field">
+          <label class="label">Facebook page link <span class="req">*</span></label>
+          <input type="url" name="facebook" placeholder='facebook.com/your-business — or write "need to create"' required />
+        </div>
+
+        <div class="field">
+          <label class="label">Current website</label>
+          <input type="url" name="website" placeholder='https://... — or write "none"' />
+        </div>
+      </section>
+
+      <!-- Step 5: Service details -->
+      <section class="step" data-step="5">
+        <h1 class="step-title">What you do, and for whom</h1>
+        <p class="step-blurb">The clearer you are here, the sharper your ads will be. Specific cities and specific services convert noticeably better than vague catch-alls.</p>
+
+        <div class="field">
+          <label class="label">Cities you service <span class="req">*</span></label>
+          <textarea name="cities" rows="3" placeholder="e.g. Detroit MI, Warren MI, Sterling Heights MI — be specific" required></textarea>
+        </div>
+
+        <div class="field">
+          <label class="label">Main services to promote <span class="req">*</span></label>
+          <textarea name="services" rows="3" placeholder="e.g. Roof replacement, gutter installation, attic insulation — list the offers you actually want leads for" required></textarea>
+        </div>
+
+        <div class="field">
+          <label class="label">How should we notify you of new leads?</label>
+          <div class="radio-group">
+            <label class="radio">
+              <input type="radio" name="notify" value="sms" />
+              <span class="radio-dot"></span>
+              <span class="radio-label">SMS only — fastest response</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="notify" value="email" />
+              <span class="radio-dot"></span>
+              <span class="radio-label">Email only</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="notify" value="both" checked />
+              <span class="radio-dot"></span>
+              <span class="radio-label">Both — recommended</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 6: Final notes -->
+      <section class="step" data-step="6">
+        <h1 class="step-title">A few last things</h1>
+        <p class="step-blurb">Optional details that let us pre-handle objections, time campaigns properly, and craft offers that actually convert.</p>
+
+        <div class="field">
+          <label class="label">Common FAQs from customers</label>
+          <textarea name="faqs" rows="4" placeholder="What questions do you get asked over and over? We'll bake the answers into your website and ad copy."></textarea>
+        </div>
+
+        <div class="field">
+          <label class="label">Your time zone <span class="req">*</span></label>
+          <select name="timezone" required>
+            <option value="">Select time zone</option>
+            <option>Eastern (ET)</option>
+            <option>Central (CT)</option>
+            <option>Mountain (MT)</option>
+            <option>Pacific (PT)</option>
+            <option>Alaska (AKT)</option>
+            <option>Hawaii (HT)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label">Offers or promotions you've run</label>
+          <textarea name="offers" rows="3" placeholder="e.g. 15% off first service, $500 off full roof, free estimate, etc."></textarea>
+        </div>
+
+        <div class="field">
+          <label class="label">Additional notes</label>
+          <textarea name="notes" rows="3" placeholder="Anything else we should know before we get started."></textarea>
+        </div>
+      </section>
+
+      <div class="step-nav">
+        <button type="button" class="btn btn-ghost" id="backBtn" style="visibility:hidden">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+          Back
+        </button>
+        <button type="button" class="btn btn-primary" id="nextBtn">
+          Continue
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    </form>
+
+    <!-- Success state — revealed when submit completes. Auto-redirects to the
+         onboarding calendar after a short delay; button is the manual fallback. -->
+    <div class="success-view" id="successView">
+      <div class="success-check">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+      <h1 class="success-title">Submission received.</h1>
+      <p class="success-blurb">A confirmation email is on its way. Next step — book your 30-minute kickoff call. You'll be redirected automatically, or use the button below.</p>
+      <a class="success-cta" id="calendarLink" href="#">
+        Book your kickoff call
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+      <div class="success-redirect">Redirecting in <span class="num" id="countdown">5</span>…</div>
+    </div>
+  </div>
+
+  <script>
+    // ─────────────────────────────────────────────────────────────────
+    // CONFIG — Onboarding calendar URL.
+    //
+    // Set this to either:
+    //   (a) the GHL booking widget URL (e.g. https://link.hauckmarketing.com/widget/booking/<id>)
+    //   (b) the custom-themed booking page once it's built (e.g. https://intake.hauckmarketing.com/book)
+    //
+    // The form submits, the user sees the success state, then we redirect
+    // here after 5 seconds. The visible "Book your kickoff call" button is
+    // the manual fallback if the auto-redirect doesn't fire.
+    // ─────────────────────────────────────────────────────────────────
+    const ONBOARDING_CALENDAR_URL = 'https://link.hauckmarketing.com/widget/booking/REPLACE_WITH_CALENDAR_ID';
+
+    const totalSteps = 6;
+    let current = 1;
+    const steps = document.querySelectorAll('.step');
+    const segs = document.querySelectorAll('.seg');
+    const curStepEl = document.getElementById('curStep');
+    const backBtn = document.getElementById('backBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const successView = document.getElementById('successView');
+    const calendarLink = document.getElementById('calendarLink');
+    const countdownEl = document.getElementById('countdown');
+    calendarLink.href = ONBOARDING_CALENDAR_URL;
+
+    function render() {
+      steps.forEach(s => s.classList.toggle('is-current', Number(s.dataset.step) === current));
+      segs.forEach((s, i) => {
+        s.classList.toggle('done', i + 1 < current);
+        s.classList.toggle('active', i + 1 === current);
+      });
+      curStepEl.textContent = current;
+      backBtn.style.visibility = current === 1 ? 'hidden' : 'visible';
+      if (current === totalSteps) {
+        nextBtn.innerHTML = 'Submit intake <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+      } else {
+        nextBtn.innerHTML = 'Continue <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>';
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    backBtn.addEventListener('click', () => { if (current > 1) { current--; render(); }});
+    nextBtn.addEventListener('click', () => {
+      if (current < totalSteps) { current++; render(); return; }
+      showSuccess();
+    });
+
+    function showSuccess() {
+      // Hide the form chrome — header, progress bar, form, nav.
+      document.querySelector('.top').style.display = 'none';
+      document.getElementById('progress').style.display = 'none';
+      document.getElementById('intakeForm').style.display = 'none';
+      successView.classList.add('is-visible');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Countdown + auto-redirect. Only auto-redirects if the calendar URL
+      // has been configured (not the placeholder).
+      let n = 5;
+      const tick = setInterval(() => {
+        n -= 1;
+        countdownEl.textContent = String(n);
+        if (n <= 0) {
+          clearInterval(tick);
+          if (ONBOARDING_CALENDAR_URL && !ONBOARDING_CALENDAR_URL.includes('REPLACE_WITH_CALENDAR_ID')) {
+            window.location.href = ONBOARDING_CALENDAR_URL;
+          }
+        }
+      }, 1000);
+    }
+
+    // File upload feedback
+    document.querySelectorAll('.upload input[type=file]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const wrapper = inp.closest('.upload');
+        const title = wrapper.querySelector('.upload-title');
+        const meta = wrapper.querySelector('.upload-meta');
+        if (inp.files && inp.files[0]) {
+          title.textContent = inp.files[0].name;
+          meta.textContent = (inp.files[0].size / 1024 / 1024).toFixed(1) + ' MB · ready to upload';
+          wrapper.style.borderColor = 'var(--accent-border)';
+          wrapper.querySelector('.upload-icon').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

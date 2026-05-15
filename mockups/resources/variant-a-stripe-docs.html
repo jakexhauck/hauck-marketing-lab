@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Resources — Variant A · Stripe-docs three-column</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-base: #0a0a0c;
+    --bg-rail: #0d0d11;
+    --bg-elev-1: #131318;
+    --bg-elev-2: #191920;
+    --border-subtle: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.085);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #ececf0;
+    --text-2: #9c9ca8;
+    --text-3: #6a6a76;
+    --text-4: #494954;
+    --accent: #d4a574;
+    --accent-2: #e2b585;
+    --accent-dim: rgba(212,165,116,0.12);
+    --accent-border: rgba(212,165,116,0.28);
+    --sans: 'Inter', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-base);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── shell ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 260px 1fr 220px;
+    min-height: 100vh;
+  }
+
+  /* ── left rail ── */
+  .rail {
+    background: var(--bg-rail);
+    border-right: 1px solid var(--border-subtle);
+    padding: 28px 0 40px;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .rail-head {
+    padding: 0 22px 22px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 18px;
+  }
+  .rail-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .rail-title {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .rail-search {
+    margin: 14px 22px 22px;
+    position: relative;
+  }
+  .rail-search input {
+    width: 100%;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 12.5px;
+    padding: 8px 10px 8px 30px;
+    outline: none;
+    transition: border-color 120ms;
+  }
+  .rail-search input:focus { border-color: var(--accent-border); }
+  .rail-search::before {
+    content: "⌕";
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-3);
+    font-size: 14px;
+  }
+  .rail-search kbd {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+  }
+  .rail-group { margin-bottom: 6px; }
+  .rail-group-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 22px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    cursor: pointer;
+  }
+  .rail-group-label:hover { color: var(--text-2); }
+  .rail-group-count {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-4);
+  }
+  .rail-list { list-style: none; padding: 2px 0 12px; }
+  .rail-list a {
+    display: block;
+    padding: 5px 22px 5px 32px;
+    font-size: 13px;
+    color: var(--text-2);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: background 120ms, color 120ms, border-color 120ms;
+  }
+  .rail-list a:hover { color: var(--text); background: rgba(255,255,255,0.02); }
+  .rail-list a.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  /* ── main column ── */
+  .main {
+    padding: 56px 64px 80px;
+    max-width: 760px;
+  }
+  .breadcrumb {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 16px;
+  }
+  .breadcrumb span { color: var(--accent); }
+  .article-title {
+    font-size: 34px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin-bottom: 14px;
+  }
+  .article-lede {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--text-2);
+    margin-bottom: 36px;
+  }
+  .article h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 44px 0 14px;
+    letter-spacing: -0.01em;
+    scroll-margin-top: 24px;
+  }
+  .article h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  .article p { margin-bottom: 14px; color: var(--text); }
+  .article p.muted { color: var(--text-2); }
+
+  .callout {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    padding: 16px 20px;
+    margin: 22px 0;
+  }
+  .callout-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .funnel { display: flex; flex-direction: column; gap: 2px; margin: 18px 0; }
+  .funnel-row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 16px;
+    padding: 10px 14px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    align-items: baseline;
+  }
+  .funnel-tier {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .funnel-text { font-size: 13.5px; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 20px 0 8px;
+  }
+  .stat {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+  }
+  .stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .stat-hero {
+    background: var(--accent-dim);
+    border-color: var(--accent-border);
+  }
+  .stat-hero .stat-value { color: var(--accent); }
+
+  .article-foot {
+    margin-top: 56px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .pager {
+    flex: 1;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 120ms;
+  }
+  .pager:hover { border-color: var(--accent-border); }
+  .pager-dir {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 4px;
+  }
+  .pager-title { font-size: 13.5px; font-weight: 500; }
+  .pager.next { text-align: right; }
+
+  /* ── right rail (on-this-page) ── */
+  .toc {
+    padding: 56px 32px 40px 0;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .toc-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 14px;
+  }
+  .toc ul { list-style: none; }
+  .toc li {
+    border-left: 1px solid var(--border-subtle);
+    padding: 4px 0 4px 12px;
+  }
+  .toc li.active { border-left-color: var(--accent); }
+  .toc a {
+    color: var(--text-2);
+    font-size: 12.5px;
+    text-decoration: none;
+    display: block;
+    transition: color 120ms;
+  }
+  .toc a:hover, .toc li.active a { color: var(--accent); }
+
+  /* prevent scrollbar style clutter */
+  .rail::-webkit-scrollbar, .toc::-webkit-scrollbar { width: 6px; }
+  .rail::-webkit-scrollbar-thumb, .toc::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- LEFT RAIL -->
+  <aside class="rail">
+    <div class="rail-head">
+      <div class="rail-eyebrow"><span style="display:inline-block;width:5px;height:5px;background:var(--accent);margin-right:8px;vertical-align:middle;border-radius:1px"></span>Workspace</div>
+      <div class="rail-title">Resources</div>
+    </div>
+
+    <div class="rail-search">
+      <input type="text" placeholder="Search 47 articles…" />
+      <kbd>⌘K</kbd>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-group-label">Fundamentals <span class="rail-group-count">05</span></div>
+      <ul class="rail-list">
+        <li><a href="#" class="active">How online ads actually work</a></li>
+        <li><a href="#">The six-piece machine</a></li>
+        <li><a href="#">$10/day funnel walkthrough</a></li>
+        <li><a href="#">30 days of real numbers</a></li>
+        <li><a href="#">Why ROAS is the only metric</a></li>
+      </ul>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-group-label">Glossary <span class="rail-group-count">13</span></div>
+      <ul class="rail-list">
+        <li><a href="#">Impression</a></li>
+        <li><a href="#">CTR — click-through rate</a></li>
+        <li><a href="#">CPM — cost per 1,000</a></li>
+        <li><a href="#">CPC — cost per click</a></li>
+        <li><a href="#">CPL — cost per lead</a></li>
+        <li><a href="#">CPA — cost per acquisition</a></li>
+        <li><a href="#">ROAS</a></li>
+        <li><a href="#">Pixel</a></li>
+        <li><a href="#">Learning phase</a></li>
+        <li><a href="#">Audience</a></li>
+        <li><a href="#">Creative</a></li>
+        <li><a href="#">Bid strategy</a></li>
+        <li><a href="#">Campaign objective</a></li>
+      </ul>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-group-label">Benchmarks <span class="rail-group-count">04</span></div>
+      <ul class="rail-list">
+        <li><a href="#">Healthy ROAS bands</a></li>
+        <li><a href="#">CPL by industry</a></li>
+        <li><a href="#">CTR by creative type</a></li>
+        <li><a href="#">Spend ramp guidelines</a></li>
+      </ul>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-group-label">Sales scripts <span class="rail-group-count">07</span></div>
+      <ul class="rail-list">
+        <li><a href="#">The 60-second pitch</a></li>
+        <li><a href="#">Discovery questions</a></li>
+        <li><a href="#">"I tried FB ads, didn't work"</a></li>
+        <li><a href="#">"How is this different from an agency?"</a></li>
+        <li><a href="#">"What's the catch?"</a></li>
+        <li><a href="#">Pricing conversation</a></li>
+        <li><a href="#">Renewal scripts</a></li>
+      </ul>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-group-label">Playbooks <span class="rail-group-count">06</span></div>
+      <ul class="rail-list">
+        <li><a href="#">New client onboarding</a></li>
+        <li><a href="#">Killing a losing campaign</a></li>
+        <li><a href="#">Scaling a winner</a></li>
+        <li><a href="#">Creative refresh cycle</a></li>
+        <li><a href="#">Reporting cadence</a></li>
+        <li><a href="#">Handling a bad month</a></li>
+      </ul>
+    </div>
+
+    <div class="rail-group">
+      <div class="rail-group-label">Templates <span class="rail-group-count">12</span></div>
+      <ul class="rail-list">
+        <li><a href="#">Hook templates</a></li>
+        <li><a href="#">Headline formulas</a></li>
+        <li><a href="#">CTA library</a></li>
+        <li><a href="#">Landing page checklist</a></li>
+        <li><a href="#">Cold email — local</a></li>
+        <li><a href="#">Cold DM — Instagram</a></li>
+        <li><a href="#">Voicemail script</a></li>
+        <li><a href="#">Follow-up sequence</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="breadcrumb">Workspace · Resources · <span>Fundamentals</span></div>
+    <h1 class="article-title">How online ads actually work</h1>
+    <p class="article-lede">
+      Stripped to its bones, every ad campaign is the same six-step machine.
+      We'll use a pizza shop as the example, but the same machine runs for
+      a window cleaner, a plumber, or any other local business.
+    </p>
+
+    <article class="article">
+      <h2 id="six-pieces">The six pieces of any ad campaign</h2>
+      <p>Every campaign — whether you spend $10/day or $10,000/day — is made of the same six pieces. Memorise these and you'll never feel lost on a strategy call.</p>
+
+      <h3>1. Budget</h3>
+      <p class="muted">You pay Meta (Facebook + Instagram's parent company) to show ads. Think of it as paying someone to put flyers on doors.</p>
+
+      <h3>2. Targeting</h3>
+      <p class="muted">You pick <em>who</em> sees the ad — location, age, interests. Meta does most of the heavy lifting from there.</p>
+
+      <h3>3. Creative</h3>
+      <p class="muted">The ad itself — image, video, headline, text. This is the flyer.</p>
+
+      <h3>4. Click</h3>
+      <p class="muted">When someone taps the ad. Most people won't. That's normal.</p>
+
+      <h3>5. Conversion</h3>
+      <p class="muted">When someone does the thing you actually want — calls, books, or fills out a form.</p>
+
+      <h3>6. ROAS</h3>
+      <p class="muted">What you got back vs. what you spent. The whole point of running ads.</p>
+
+      <h2 id="funnel">What the funnel looks like on $10/day</h2>
+      <p>Most of the people who see the ad won't click. Most who click won't convert. That's the shape of the funnel, not a problem to fix.</p>
+      <div class="funnel">
+        <div class="funnel-row"><span class="funnel-tier">$10</span><span class="funnel-text">spent on the day</span></div>
+        <div class="funnel-row"><span class="funnel-tier">500–1,000</span><span class="funnel-text">people see the ad <em style="color:var(--text-3);font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-left:6px">impressions</em></span></div>
+        <div class="funnel-row"><span class="funnel-tier">15–25</span><span class="funnel-text">tap the ad <em style="color:var(--text-3);font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-left:6px">clicks</em></span></div>
+        <div class="funnel-row"><span class="funnel-tier">3–5</span><span class="funnel-text">turn into leads</span></div>
+        <div class="funnel-row"><span class="funnel-tier">1–2</span><span class="funnel-text">become paying customers</span></div>
+      </div>
+      <div class="callout">
+        <div class="callout-label">Bottom line</div>
+        If each customer is worth $40+, that's $80+ back on $10 spent. An 8x return.
+      </div>
+
+      <h2 id="real-numbers">30 days of real numbers</h2>
+      <p>Here's what a healthy account looks like at the one-month mark, taken from a window-cleaning client running at $10/day.</p>
+      <div class="stat-grid">
+        <div class="stat"><span class="stat-value">$312</span><span class="stat-label">spent</span></div>
+        <div class="stat"><span class="stat-value">$4,200</span><span class="stat-label">revenue back</span></div>
+        <div class="stat stat-hero"><span class="stat-value">13.5×</span><span class="stat-label">ROAS</span></div>
+        <div class="stat"><span class="stat-value">31,400</span><span class="stat-label">people reached</span></div>
+        <div class="stat"><span class="stat-value">847</span><span class="stat-label">clicks</span></div>
+        <div class="stat"><span class="stat-value">47</span><span class="stat-label">leads</span></div>
+      </div>
+    </article>
+
+    <nav class="article-foot">
+      <a href="#" class="pager prev">
+        <div class="pager-dir">← Previous</div>
+        <div class="pager-title">Resources home</div>
+      </a>
+      <a href="#" class="pager next">
+        <div class="pager-dir">Next →</div>
+        <div class="pager-title">The six-piece machine</div>
+      </a>
+    </nav>
+  </main>
+
+  <!-- RIGHT RAIL — ON THIS PAGE -->
+  <aside class="toc">
+    <div class="toc-label">On this page</div>
+    <ul>
+      <li class="active"><a href="#six-pieces">The six pieces</a></li>
+      <li><a href="#funnel">The $10/day funnel</a></li>
+      <li><a href="#real-numbers">30 days of real numbers</a></li>
+    </ul>
+  </aside>
+
+</div>
+</body>
+</html>

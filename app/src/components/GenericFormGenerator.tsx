@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/tauri";
+import { openInAppWindow } from "../lib/openInApp";
 import {
   parseProfileBody,
   profilePathFor,
@@ -19,6 +20,7 @@ import type {
   StreamEvent,
 } from "../lib/types";
 import { PastResults } from "./generators/PastResults";
+import { FormOutput } from "./forms/FormOutput";
 
 type Props = {
   config: FormConfig;
@@ -27,6 +29,12 @@ type Props = {
   clientName: string;
   clientSlug: string;
   onClose: () => void;
+  /** Override values to seed the form with. Applied AFTER defaults + Profile.md
+   *  prefill, so chained values from a prior sequence step take precedence. */
+  initialValues?: Partial<FormValues>;
+  /** Fires the moment a generator output is saved to disk. Lets parent
+   *  surfaces (e.g. ClientSequence) advance the stepper without polling. */
+  onSaved?: (output: GeneratorOutput) => void;
 };
 
 function findAgent(agents: AgentSummary[], slug: string): AgentSummary | null {
@@ -75,6 +83,8 @@ export function GenericFormGenerator({
   clientName,
   clientSlug,
   onClose,
+  initialValues,
+  onSaved,
 }: Props) {
   const [values, setValues] = useState<FormValues>(() => defaultValuesFor(config));
   const [streaming, setStreaming] = useState(false);
@@ -83,6 +93,12 @@ export function GenericFormGenerator({
   const [saved, setSaved] = useState<GeneratorOutput | null>(null);
   const [driveBadge, setDriveBadge] = useState<string | null>(null);
   const [pastRefresh, setPastRefresh] = useState(0);
+  const [driveOpen, setDriveOpen] = useState(false);
+  const [driveFilename, setDriveFilename] = useState("");
+  const [driveUploading, setDriveUploading] = useState(false);
+  const [driveUploadUrl, setDriveUploadUrl] = useState<string | null>(null);
+  const [driveUploadFilename, setDriveUploadFilename] = useState<string | null>(null);
+  const [driveUploadError, setDriveUploadError] = useState<string | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const agent = useMemo(() => findAgent(agents, config.agentSlug), [agents, config.agentSlug]);
@@ -104,6 +120,16 @@ export function GenericFormGenerator({
     setStreamText("");
     setError(null);
   }, [config]);
+
+  // reset Drive upload state whenever the saved output changes (run again, picking a past result, etc.)
+  useEffect(() => {
+    setDriveOpen(false);
+    setDriveFilename(saved?.title ?? "");
+    setDriveUploading(false);
+    setDriveUploadUrl(null);
+    setDriveUploadFilename(null);
+    setDriveUploadError(null);
+  }, [saved]);
 
   // pre-fill from Profile.md when the form opts in via config.prefillFromProfile
   useEffect(() => {
@@ -141,6 +167,21 @@ export function GenericFormGenerator({
       cancelled = true;
     };
   }, [config, root, clientName, clientSlug]);
+
+  // Apply caller-supplied initialValues last so they override both
+  // defaultValuesFor and prefillFromProfile. Re-runs on identity change so
+  // a sequence stepper can swap chained values when the user revisits.
+  useEffect(() => {
+    if (!initialValues) return;
+    setValues((prev) => {
+      const next = { ...prev };
+      for (const [k, v] of Object.entries(initialValues)) {
+        if (v === undefined) continue;
+        next[k] = v as FormValues[string];
+      }
+      return next;
+    });
+  }, [initialValues]);
 
   // load drive index badge once per (client, root)
   useEffect(() => {
@@ -277,6 +318,7 @@ export function GenericFormGenerator({
       });
       setSaved(output);
       setPastRefresh((n) => n + 1);
+      onSaved?.(output);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -286,13 +328,34 @@ export function GenericFormGenerator({
 
   const disabled = streaming || !!saved;
 
+  const handleSendToDrive = async () => {
+    if (!saved || driveUploading) return;
+    const trimmed = driveFilename.trim();
+    if (!trimmed) {
+      setDriveUploadError("Enter a filename before sending.");
+      return;
+    }
+    setDriveUploadError(null);
+    setDriveUploading(true);
+    try {
+      const result = await api.uploadOutputToDrive(root, clientSlug, saved.path, trimmed);
+      setDriveUploadUrl(result.doc_url);
+      setDriveUploadFilename(result.filename);
+      setDriveOpen(false);
+    } catch (e) {
+      setDriveUploadError(String(e));
+    } finally {
+      setDriveUploading(false);
+    }
+  };
+
   const renderField = (field: FormField) => {
     const v = values[field.key];
     switch (field.kind) {
       case "text":
         return (
           <input
-            className="kpi-form-input"
+            className="os-input"
             placeholder={field.placeholder ?? ""}
             value={(v as string) ?? ""}
             onChange={(e) => setField(field.key, e.target.value)}
@@ -302,7 +365,7 @@ export function GenericFormGenerator({
       case "textarea":
         return (
           <textarea
-            className="kpi-form-textarea"
+            className="os-input os-textarea"
             placeholder={field.placeholder ?? ""}
             value={(v as string) ?? ""}
             onChange={(e) => setField(field.key, e.target.value)}
@@ -313,7 +376,7 @@ export function GenericFormGenerator({
       case "number":
         return (
           <input
-            className="kpi-form-input"
+            className="os-input"
             type="number"
             min={field.min}
             max={field.max}
@@ -334,12 +397,12 @@ export function GenericFormGenerator({
       case "segmented":
       case "select":
         return (
-          <div className="status-toggle">
+          <div className="os-segment">
             {field.options.map((opt) => (
               <button
                 type="button"
                 key={opt}
-                className={`status-toggle-btn ${v === opt ? "active ok" : ""}`}
+                className={`os-segment-btn${v === opt ? " is-active" : ""}`}
                 onClick={() => setField(field.key, opt)}
                 disabled={disabled}
               >
@@ -351,17 +414,16 @@ export function GenericFormGenerator({
       case "multi": {
         const current = (v as string[] | undefined) ?? [];
         return (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div className="os-segment">
             {field.options.map((opt) => {
               const on = current.includes(opt);
               return (
                 <button
                   type="button"
                   key={opt}
-                  className={`status-toggle-btn ${on ? "active ok" : ""}`}
+                  className={`os-segment-btn${on ? " is-active" : ""}`}
                   onClick={() => toggleMulti(field.key, opt)}
                   disabled={disabled}
-                  style={{ flex: "0 0 auto" }}
                 >
                   {opt}
                 </button>
@@ -380,17 +442,17 @@ export function GenericFormGenerator({
       if (f.inline && groups.length > 0) groups[groups.length - 1].push(f);
       else groups.push([f]);
     }
-    return groups.map((group, idx) => {
+    return groups.map((group) => {
       if (group.length === 1) {
         const f = group[0];
         return (
-          <div key={f.key} style={{ marginBottom: idx === groups.length - 1 ? 0 : 14 }}>
-            <label className="kpi-form-label">
+          <label key={f.key} className="os-field">
+            <span className="os-label">
               {f.label}
-              {f.hint && <span style={{ color: "var(--text-faint)", marginLeft: 6 }}>· {f.hint}</span>}
-            </label>
+              {f.hint && <span className="os-hint" style={{ marginLeft: 6 }}>· {f.hint}</span>}
+            </span>
             {renderField(f)}
-          </div>
+          </label>
         );
       }
       return (
@@ -400,17 +462,16 @@ export function GenericFormGenerator({
             display: "grid",
             gridTemplateColumns: `repeat(${group.length}, 1fr)`,
             gap: 14,
-            marginBottom: idx === groups.length - 1 ? 0 : 14,
           }}
         >
           {group.map((f) => (
-            <div key={f.key}>
-              <label className="kpi-form-label">
+            <label key={f.key} className="os-field">
+              <span className="os-label">
                 {f.label}
-                {f.hint && <span style={{ color: "var(--text-faint)", marginLeft: 6 }}>· {f.hint}</span>}
-              </label>
+                {f.hint && <span className="os-hint" style={{ marginLeft: 6 }}>· {f.hint}</span>}
+              </span>
               {renderField(f)}
-            </div>
+            </label>
           ))}
         </div>
       );
@@ -418,77 +479,77 @@ export function GenericFormGenerator({
   };
 
   return (
-    <main className="main" style={{ position: "relative" }}>
-      <section className="hero reveal reveal-1">
-        <div className="hero-eyebrow">
-          <span>{config.eyebrow}</span>
-          {config.eyebrowMeta && <span className="verdict">{config.eyebrowMeta}</span>}
-          <span style={{ marginLeft: "auto", color: "var(--text-faint)", fontWeight: 400 }}>
-            CLIENT · {clientName.toUpperCase()}
-          </span>
+    <div className="hml-content">
+      <header className="hml-page-header">
+        <div>
+          <div className="hml-page-eyebrow">
+            <span>{config.eyebrow}</span>
+            {config.eyebrowMeta && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>{config.eyebrowMeta}</span>
+              </>
+            )}
+            <span aria-hidden="true">·</span>
+            <span>CLIENT · {clientName.toUpperCase()}</span>
+          </div>
+          <h1 className="hml-page-title">{config.title}</h1>
+          <div className="hml-page-subtitle">{config.subtitle}</div>
+          {driveBadge && (
+            <div className="os-hint" style={{ marginTop: 8 }}>
+              ◇ Google Drive context · {driveBadge} · will be included in the prompt.
+            </div>
+          )}
+        </div>
+        <div className="hml-page-header-actions">
           <button
             type="button"
-            className="drawer-close"
+            className="hml-btn"
             onClick={onClose}
             disabled={streaming}
             aria-label={`Close ${config.title}`}
-            style={{ marginLeft: 12 }}
           >
-            ×
+            Close
           </button>
         </div>
-        <h1>{config.title}</h1>
-        <p className="hero-body">{config.subtitle}</p>
-        {driveBadge && (
-          <p
-            className="hero-body"
-            style={{ marginTop: 8, fontSize: 13, color: "var(--text-muted)" }}
-          >
-            ◇ Google Drive context · {driveBadge} · will be included in the prompt.
-          </p>
-        )}
-      </section>
+      </header>
 
       {!saved && (
         <>
           {config.sections.map((section) => (
-            <section
-              key={section.title}
-              className="panel reveal reveal-2"
-              style={{ marginBottom: 24 }}
-            >
-              <div className="panel-head">
-                <span className="panel-title">{section.title}</span>
-                {section.meta && <span className="panel-meta">{section.meta}</span>}
+            <div key={section.title} className="os-card">
+              <div
+                className="os-card-eyebrow"
+                style={{ display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <span>▸ {section.title}</span>
+                {section.meta && (
+                  <span style={{ marginLeft: "auto", opacity: 0.75 }}>{section.meta}</span>
+                )}
               </div>
               <div style={{ display: "grid", gap: 14 }}>{renderFields(section.fields)}</div>
-            </section>
+            </div>
           ))}
 
-          {/* generate button — bottom of form, in flow (not sticky) */}
-          <div className="actions-row reveal reveal-3" style={{ marginBottom: 32 }}>
+          <div className="os-card-actions" style={{ margin: "4px 0 24px" }}>
             <button
               type="button"
-              className="action primary"
+              className="os-primary"
               onClick={handleRun}
               disabled={!canRun}
             >
               {streaming ? config.generatingLabel : config.generateLabel}
             </button>
-            <button type="button" className="action" onClick={onClose} disabled={streaming}>
+            <button
+              type="button"
+              className="hml-btn"
+              onClick={onClose}
+              disabled={streaming}
+            >
               Cancel
             </button>
             {!agent && (
-              <span
-                style={{
-                  marginLeft: 12,
-                  fontFamily: "var(--mono)",
-                  fontSize: 11.5,
-                  color: "var(--signal-stop)",
-                  letterSpacing: "0.04em",
-                  alignSelf: "center",
-                }}
-              >
+              <span className="os-warn" style={{ marginLeft: 8 }}>
                 {config.agentName.toUpperCase()} AGENT NOT FOUND IN agents/
               </span>
             )}
@@ -511,68 +572,69 @@ export function GenericFormGenerator({
       )}
 
       {(streaming || streamText) && !saved && (
-        <section className="panel reveal reveal-4" style={{ marginBottom: 32 }}>
-          <div className="panel-head">
-            <span className="panel-title">
-              ▸ {config.agentName.toUpperCase()} · DRAFTING
+        <div className="os-card">
+          <div
+            className="os-card-eyebrow"
+            style={{ display: "flex", alignItems: "center", gap: 10 }}
+          >
+            <span>▸ {config.agentName.toUpperCase()} · DRAFTING</span>
+            <span style={{ marginLeft: "auto", opacity: 0.75 }}>
+              {streaming ? "streaming" : "complete"}
             </span>
-            <span className="panel-meta">{streaming ? "streaming" : "complete"}</span>
           </div>
-          <div ref={transcriptRef} className="thread" style={{ maxHeight: 480, padding: 0, gap: 0 }}>
-            <div className="msg agent">
-              <div className="msg-label">{config.agentName.toUpperCase()} ›</div>
-              <div className="msg-body">
-                {streamText}
-                {streaming && <span className="caret" />}
-              </div>
-            </div>
+          <div ref={transcriptRef} style={{ maxHeight: 480, overflow: "auto" }}>
+            <FormOutput body={streamText} kind={config.kind} streaming />
+            {streaming && <span className="caret" />}
           </div>
-        </section>
+        </div>
       )}
 
       {error && (
-        <section
-          className="panel reveal"
-          style={{ marginBottom: 32, borderLeft: "2px solid var(--signal-stop)" }}
-        >
-          <div className="panel-head">
-            <span className="panel-title" style={{ color: "var(--signal-stop)" }}>
-              ▸ ERROR
-            </span>
-          </div>
-          <div style={{ fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--signal-stop)" }}>
-            {error}
-          </div>
-        </section>
+        <div className="os-error" style={{ margin: "12px 0" }}>
+          {error}
+        </div>
       )}
 
       {saved && (
         <>
-          <section className="panel reveal reveal-3" style={{ marginBottom: 24 }}>
-            <div className="panel-head">
-              <span className="panel-title">▸ {config.savedHeading.toUpperCase()}</span>
-              <span className="panel-meta">
+          <div className="os-card">
+            <div
+              className="os-card-eyebrow"
+              style={{ display: "flex", alignItems: "center", gap: 10 }}
+            >
+              <span>▸ {config.savedHeading.toUpperCase()}</span>
+              <span style={{ marginLeft: "auto", opacity: 0.75 }}>
                 {saved.path.split(/[\\/]/).slice(-2).join("/")}
               </span>
             </div>
-            <div className="diag-headline" style={{ marginBottom: 12 }}>
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 600,
+                color: "var(--hml-text-primary)",
+              }}
+            >
               {saved.title}
             </div>
             {saved.summary && (
               <p
-                className="hero-body"
-                style={{ marginBottom: 18, fontSize: 15, color: "var(--text-mid)" }}
+                style={{
+                  margin: 0,
+                  color: "var(--hml-text-secondary)",
+                  fontSize: 13.5,
+                  lineHeight: 1.55,
+                }}
               >
                 {saved.summary}
               </p>
             )}
-            <div className="actions-row">
-              <button type="button" className="action primary" onClick={onClose}>
+            <div className="os-card-actions">
+              <button type="button" className="os-primary" onClick={onClose}>
                 Back to dashboard
               </button>
               <button
                 type="button"
-                className="action"
+                className="hml-btn"
                 onClick={() => {
                   setSaved(null);
                   setStreamText("");
@@ -581,21 +643,124 @@ export function GenericFormGenerator({
               >
                 Run again
               </button>
+              {driveUploadUrl ? (
+                <button
+                  type="button"
+                  className="hml-btn"
+                  onClick={() =>
+                    openInAppWindow(
+                      driveUploadUrl,
+                      driveUploadFilename
+                        ? `${driveUploadFilename} · Drive`
+                        : `${clientName} · Drive`,
+                    )
+                  }
+                  title={driveUploadFilename ?? undefined}
+                >
+                  Open in Drive ↗
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="hml-btn"
+                  onClick={() => {
+                    setDriveOpen((v) => !v);
+                    setDriveFilename((cur) => (cur ? cur : saved?.title ?? ""));
+                  }}
+                  disabled={driveUploading}
+                >
+                  {driveUploading ? "Sending to Drive…" : "Send to Google Drive"}
+                </button>
+              )}
             </div>
-          </section>
 
-          <section className="panel reveal reveal-4" style={{ marginBottom: 32 }}>
-            <div className="panel-head">
-              <span className="panel-title">▸ FULL OUTPUT</span>
-              <span className="panel-meta">{config.agentName.toLowerCase()} · verbatim</span>
-            </div>
-            <div className="thread" style={{ maxHeight: 600, padding: 0, gap: 0 }}>
-              <div className="msg agent">
-                <div className="msg-label">{config.agentName.toUpperCase()} ›</div>
-                <div className="msg-body">{saved.body}</div>
+            {driveOpen && !driveUploadUrl && (
+              <div
+                style={{
+                  padding: 14,
+                  border: "1px solid var(--hml-border-subtle)",
+                  borderRadius: 6,
+                  background: "var(--hml-bg-elev-2)",
+                }}
+              >
+                <label className="os-field">
+                  <span className="os-label">
+                    Filename in Drive
+                    <span className="os-hint" style={{ marginLeft: 6 }}>
+                      · creates a Google Doc in {clientName}'s folder
+                    </span>
+                  </span>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      className="os-input"
+                      style={{ flex: 1 }}
+                      value={driveFilename}
+                      onChange={(e) => setDriveFilename(e.target.value)}
+                      placeholder={saved?.title ?? "Document name"}
+                      disabled={driveUploading}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !driveUploading) {
+                          e.preventDefault();
+                          handleSendToDrive();
+                        }
+                      }}
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      className="os-primary"
+                      onClick={handleSendToDrive}
+                      disabled={driveUploading || !driveFilename.trim()}
+                    >
+                      {driveUploading ? "Sending…" : "Upload"}
+                    </button>
+                    <button
+                      type="button"
+                      className="hml-btn"
+                      onClick={() => {
+                        setDriveOpen(false);
+                        setDriveUploadError(null);
+                      }}
+                      disabled={driveUploading}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </label>
+                {driveUploadError && (
+                  <div className="os-error" style={{ marginTop: 10 }}>
+                    {driveUploadError}
+                  </div>
+                )}
               </div>
+            )}
+
+            {driveUploadUrl && driveUploadFilename && (
+              <div className="os-hint">
+                ◇ Uploaded as <strong>{driveUploadFilename}</strong> · Google Doc in{" "}
+                {clientName}'s Drive folder.
+              </div>
+            )}
+
+            {driveUploadError && !driveOpen && (
+              <div className="os-error">Drive upload failed: {driveUploadError}</div>
+            )}
+          </div>
+
+          <div className="os-card">
+            <div
+              className="os-card-eyebrow"
+              style={{ display: "flex", alignItems: "center", gap: 10 }}
+            >
+              <span>▸ OUTPUT</span>
+              <span style={{ marginLeft: "auto", opacity: 0.75 }}>
+                {config.agentName.toLowerCase()}
+              </span>
             </div>
-          </section>
+            <div>
+              <FormOutput body={saved.body} kind={config.kind} showHeader={false} />
+            </div>
+          </div>
 
           <PastResults
             root={root}
@@ -611,6 +776,6 @@ export function GenericFormGenerator({
           />
         </>
       )}
-    </main>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import { openInAppWindow } from "../../lib/openInApp";
 import { AppSidebar } from "./AppSidebar";
 import type { WorkflowView } from "./Sidebar";
 import type { FormSurfaceId } from "../../lib/formConfigs";
+import type { AgentSummary } from "../../lib/types";
 import {
   IconArrowRight,
   IconBell,
@@ -40,6 +41,8 @@ import {
   ClientsTrackerPage,
   RevenueTrackerPage,
   TasksTrackerPage,
+  mondayYMD,
+  todayDow,
   todayYMD,
 } from "./OpsTrackers";
 import type {
@@ -80,6 +83,9 @@ interface MainDashboardProps {
   /** Switch the active client (persists slug). Called when the user clicks a
    *  client section in the sidebar so prompt context follows. */
   onSwitchClient?: (slug: string) => void;
+  /** Agent summaries. Needed by per-client surfaces that embed
+   *  GenericFormGenerator (e.g. the Media Buying Sequence tab). */
+  agents?: AgentSummary[];
 }
 
 type View =
@@ -111,6 +117,7 @@ export function MainDashboard({
   onInitialWorkflowApplied,
   onOpenForm,
   onSwitchClient,
+  agents,
 }: MainDashboardProps) {
   const [view, setView] = useState<View>(initialViewFromWorkflow(initialWorkflow));
 
@@ -340,6 +347,7 @@ export function MainDashboard({
             onSelectPersonalSection,
             onOpenForm,
             onProspectsChanged: refreshProspects,
+            agents: agents ?? [],
           })}
         </main>
       </div>
@@ -456,18 +464,16 @@ function sectionToLabel(s: ClientSection): string {
   switch (s) {
     case "dashboard":
       return "Dashboard";
+    case "sequence":
+      return "Sequence";
     case "onboarding":
       return "Onboarding";
     case "profile":
       return "Profile";
     case "memory":
       return "Memory";
-    case "drive":
-      return "Drive";
-    case "media-buying":
-      return "Media Buying";
-    case "website":
-      return "Website";
+    case "service-delivery":
+      return "Service Delivery";
     case "recordings":
       return "Recordings";
   }
@@ -505,6 +511,7 @@ interface RenderMainArgs {
   onSelectPersonalSection: (section: PersonalSection) => void;
   onOpenForm?: (id: FormSurfaceId, clientSlug: string, clientName: string) => void;
   onProspectsChanged: () => void;
+  agents: AgentSummary[];
 }
 
 function renderMain(args: RenderMainArgs): React.ReactNode {
@@ -624,6 +631,7 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
       client={c}
       section={view.section}
       root={root}
+      agents={args.agents}
       onSelectSection={(section) => onSelectClientSection(c.slug, section)}
       onOpenForm={
         args.onOpenForm ?? (() => undefined)
@@ -749,10 +757,21 @@ function DashboardSurface({
   }, [refreshTasks]);
 
   const today = todayYMD();
-  const dailyTasks = tasksFile.tasks.filter((t) => t.lane === "daily");
-  const dailyDoneCount = dailyTasks.filter(
-    (t) => t.lastCompletedDate === today,
-  ).length;
+  const monday = mondayYMD();
+  const dow = todayDow();
+  const dailyTasks = tasksFile.tasks.filter(
+    (t) =>
+      t.lane === "daily" ||
+      (t.lane === "weekly" && (t.weeklyDay ?? 1) === dow),
+  );
+  const isTaskDoneToday = useCallback(
+    (t: OpsTask) =>
+      t.lane === "weekly"
+        ? t.lastCompletedWeek === monday
+        : t.lastCompletedDate === today,
+    [monday, today],
+  );
+  const dailyDoneCount = dailyTasks.filter(isTaskDoneToday).length;
 
   const toggleDailyDone = useCallback(
     async (task: OpsTask, done: boolean) => {
@@ -760,7 +779,9 @@ function DashboardSurface({
       const next: OpsTasksFile = {
         tasks: tasksFile.tasks.map((t) =>
           t.id === task.id
-            ? { ...t, lastCompletedDate: done ? today : null }
+            ? task.lane === "weekly"
+              ? { ...t, lastCompletedWeek: done ? monday : null }
+              : { ...t, lastCompletedDate: done ? today : null }
             : t,
         ),
       };
@@ -772,7 +793,7 @@ function DashboardSurface({
         void refreshTasks();
       }
     },
-    [root, tasksFile, today, refreshTasks],
+    [root, tasksFile, today, monday, refreshTasks],
   );
 
   useEffect(() => {
@@ -1022,7 +1043,7 @@ function DashboardSurface({
             ) : (
               <ul className="hml-daily-list">
                 {dailyTasks.map((t) => {
-                  const done = t.lastCompletedDate === today;
+                  const done = isTaskDoneToday(t);
                   return (
                     <li
                       key={t.id}
