@@ -8,44 +8,44 @@ export interface StageColor {
 
 export const stageColors: Record<LeadStage, StageColor> = {
   new: {
-    bg: "bg-slate-100",
-    fg: "text-slate-700",
-    ring: "ring-slate-200",
+    bg: "bg-slate-700",
+    fg: "text-white",
+    ring: "ring-slate-800",
   },
   contacted: {
-    bg: "bg-blue-100",
-    fg: "text-blue-700",
-    ring: "ring-blue-200",
+    bg: "bg-indigo-600",
+    fg: "text-white",
+    ring: "ring-indigo-700",
   },
   "estimate-sent": {
-    bg: "bg-indigo-100",
-    fg: "text-indigo-700",
-    ring: "ring-indigo-200",
+    bg: "bg-violet-600",
+    fg: "text-white",
+    ring: "ring-violet-700",
   },
   consultation: {
-    bg: "bg-indigo-100",
-    fg: "text-indigo-700",
-    ring: "ring-indigo-200",
+    bg: "bg-fuchsia-600",
+    fg: "text-white",
+    ring: "ring-fuchsia-700",
   },
   booked: {
-    bg: "bg-amber-100",
-    fg: "text-amber-700",
-    ring: "ring-amber-200",
+    bg: "bg-amber-500",
+    fg: "text-white",
+    ring: "ring-amber-600",
   },
   won: {
-    bg: "bg-emerald-100",
-    fg: "text-emerald-700",
-    ring: "ring-emerald-200",
+    bg: "bg-emerald-600",
+    fg: "text-white",
+    ring: "ring-emerald-700",
   },
   lost: {
-    bg: "bg-red-100",
-    fg: "text-red-700",
-    ring: "ring-red-200",
+    bg: "bg-rose-600",
+    fg: "text-white",
+    ring: "ring-rose-700",
   },
   "no-show": {
-    bg: "bg-slate-200",
-    fg: "text-slate-600",
-    ring: "ring-slate-300",
+    bg: "bg-slate-500",
+    fg: "text-white",
+    ring: "ring-slate-600",
   },
 };
 

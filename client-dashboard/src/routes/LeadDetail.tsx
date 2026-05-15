@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Mail, Phone } from "lucide-react";
 import Shell from "../components/Shell";
 import StagePill from "../components/StagePill";
 import BackButton from "../components/BackButton";
 import OutcomeButton from "../components/OutcomeButton";
 import WonSheet from "../components/WonSheet";
+import Avatar from "../components/Avatar";
 import { useLeads } from "../context/LeadsContext";
 import { useClient } from "../context/ClientContext";
 import type { LeadStage } from "../types";
@@ -54,11 +56,13 @@ export default function LeadDetail() {
   if (!lead) {
     return (
       <Shell>
-        <header className="flex items-center gap-2 border-b border-slate-100 bg-white px-3 py-2">
+        <header className="flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2">
           <BackButton to="/dashboard" label="Dashboard" />
         </header>
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-          <h1 className="text-lg font-semibold text-slate-900">Lead not found</h1>
+          <h1 className="font-display text-xl font-bold text-slate-900">
+            Lead not found
+          </h1>
           <p className="text-sm text-slate-500">
             This lead may have been removed or the link is incorrect.
           </p>
@@ -87,55 +91,77 @@ export default function LeadDetail() {
     goBackWithToast("won", value);
   };
 
+  const telDigits = lead.phone.replace(/[^0-9+]/g, "");
+
   return (
     <Shell>
-      <header className="flex items-center justify-between gap-2 border-b border-slate-100 bg-white px-3 py-2">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2">
         <BackButton to="/dashboard" label="Dashboard" />
-        <StagePill stage={lead.stage} />
       </header>
 
-      <div className="flex flex-col gap-4 p-4">
-        <h1 className="text-2xl font-semibold text-slate-900">{lead.name}</h1>
+      <div className="flex flex-col gap-5 px-5 py-5">
+        <section className="flex items-center gap-4">
+          <Avatar name={lead.name} size="lg" />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900">
+                {lead.name}
+              </h1>
+              <StagePill stage={lead.stage} />
+            </div>
+            <div className="mt-1 truncate text-xs text-slate-500">
+              {lead.sourceAd} · {lead.sourceCampaign}
+            </div>
+          </div>
+        </section>
 
         <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4">
           <a
-            href={`tel:${lead.phone.replace(/[^0-9+]/g, "")}`}
-            className="text-base font-medium underline"
+            href={`tel:${telDigits}`}
+            className="flex items-center gap-3 text-base font-semibold underline"
             style={{ color: "var(--brand-primary)" }}
           >
-            {lead.phone}
+            <Phone size={16} aria-hidden="true" />
+            <span>{lead.phone}</span>
           </a>
           <a
             href={`mailto:${lead.email}`}
-            className="break-all text-base font-medium underline"
+            className="flex items-center gap-3 break-all text-base font-semibold underline"
             style={{ color: "var(--brand-primary)" }}
           >
-            {lead.email}
+            <Mail size={16} aria-hidden="true" />
+            <span>{lead.email}</span>
           </a>
           <dl className="flex flex-col gap-2 border-t border-slate-100 pt-3 text-sm">
             <div className="flex justify-between gap-3">
-              <dt className="text-slate-500">Ad</dt>
-              <dd className="text-right font-medium text-slate-900">{lead.sourceAd}</dd>
+              <dt className="label-cap">Ad</dt>
+              <dd className="text-right font-semibold text-slate-900">
+                {lead.sourceAd}
+              </dd>
             </div>
             <div className="flex justify-between gap-3">
-              <dt className="text-slate-500">Campaign</dt>
-              <dd className="text-right font-medium text-slate-900">{lead.sourceCampaign}</dd>
+              <dt className="label-cap">Campaign</dt>
+              <dd className="text-right font-semibold text-slate-900">
+                {lead.sourceCampaign}
+              </dd>
             </div>
             <div className="flex justify-between gap-3">
-              <dt className="text-slate-500">Created</dt>
-              <dd className="text-right font-medium text-slate-900">{formatCreated(lead.createdAt)}</dd>
+              <dt className="label-cap">Created</dt>
+              <dd className="text-right font-semibold text-slate-900">
+                {formatCreated(lead.createdAt)}
+              </dd>
             </div>
             <div className="flex justify-between gap-3">
-              <dt className="text-slate-500">Last activity</dt>
-              <dd className="text-right font-medium text-slate-900">{timeAgoVerbose(lead.lastActivityAt)}</dd>
+              <dt className="label-cap">Last activity</dt>
+              <dd className="text-right font-semibold text-slate-900">
+                {timeAgoVerbose(lead.lastActivityAt)}
+              </dd>
             </div>
           </dl>
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="px-1 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-            Mark outcome
-          </h2>
+          <h2 className="label-cap-strong px-1">Mark outcome</h2>
           <OutcomeButton
             variant="booked"
             disabled={lead.stage === "booked"}

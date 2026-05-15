@@ -22,28 +22,32 @@ export default function Login() {
 
   return (
     <Shell>
-      <div className="flex flex-1 items-center justify-center px-5">
-        <div className="w-full rounded-3xl bg-white p-7 shadow-sm">
+      <div className="flex flex-1 items-center justify-center px-5 py-12">
+        <div
+          className="w-full rounded-3xl border border-slate-200 bg-white p-8"
+          style={{ boxShadow: "0 24px 60px -30px rgba(15,23,42,0.18)" }}
+        >
           <div className="flex flex-col items-center text-center">
             <BrandedLogo size="lg" />
-            <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">
+            <span className="label-cap mt-6">Sign In</span>
+            <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-slate-900">
               {client.brand.appName}
             </h1>
-            <p className="mt-1 text-sm text-slate-500">Your leads, your pipeline.</p>
+            <p className="mt-2 text-sm text-slate-500">
+              Your leads, your pipeline.
+            </p>
           </div>
 
-          <form onSubmit={onSubmit} className="mt-7 space-y-3">
+          <form onSubmit={onSubmit} className="mt-8 space-y-4">
             <label className="block">
-              <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                Email
-              </span>
+              <span className="label-cap">Email</span>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@business.com"
                 required
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none"
+                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20"
               />
             </label>
 
@@ -53,7 +57,7 @@ export default function Login() {
           </form>
 
           {devMode() && (
-            <p className="mt-5 text-center text-xs text-slate-400">
+            <p className="mt-6 text-center text-xs text-slate-400">
               Demo mode. Any email signs you in.
             </p>
           )}

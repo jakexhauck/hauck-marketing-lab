@@ -1,3 +1,4 @@
+import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Props {
@@ -15,21 +16,11 @@ export default function BackButton({ to, label = "Back" }: Props) {
     <button
       type="button"
       onClick={handleClick}
-      className="inline-flex items-center gap-1 rounded-lg px-2 text-sm font-medium text-slate-700 active:bg-slate-100"
+      className="inline-flex items-center gap-1 rounded-lg px-2 text-sm font-semibold text-slate-700 transition-colors active:scale-[0.97] active:bg-slate-100"
       style={{ minHeight: "44px", minWidth: "44px" }}
     >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-5 w-5"
-      >
-        <polyline points="15 18 9 12 15 6" />
-      </svg>
-      {label}
+      <ChevronLeft size={18} aria-hidden="true" />
+      <span>{label}</span>
     </button>
   );
 }

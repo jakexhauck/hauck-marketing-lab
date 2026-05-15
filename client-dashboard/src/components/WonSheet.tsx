@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { useClient } from "../context/ClientContext";
 
 interface Props {
@@ -30,22 +31,38 @@ export default function WonSheet({ open, onCancel, onSave }: Props) {
         type="button"
         aria-label="Close"
         onClick={onCancel}
-        className="absolute inset-0 bg-slate-900/40"
+        className="absolute inset-0 bg-slate-900/50"
       />
       <div
-        className={`absolute inset-x-0 bottom-0 mx-auto max-w-md rounded-t-2xl bg-white shadow-xl transition-transform duration-200 ${
+        className={`absolute inset-x-0 bottom-0 mx-auto max-w-md rounded-t-3xl bg-white shadow-xl transition-transform duration-200 ease-out ${
           open ? "translate-y-0" : "translate-y-full"
         }`}
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
       >
-        <div className="flex flex-col gap-4 px-5 pt-5">
+        <div className="flex flex-col gap-5 px-6 pt-5">
           <div className="mx-auto h-1 w-10 rounded-full bg-slate-200" />
-          <h2 className="text-lg font-semibold text-slate-900">{valueLabel}</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <span className="label-cap-strong">Record</span>
+              <h2 className="font-display text-xl font-bold tracking-tight text-slate-900">
+                {valueLabel}
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={onCancel}
+              aria-label="Close"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 active:bg-slate-100"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+
           <label
-            className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 focus-within:border-slate-500"
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 focus-within:border-slate-500"
             aria-label={valueLabel}
           >
-            <span className="text-base font-medium text-slate-500">$</span>
+            <span className="font-display text-2xl font-bold text-slate-400">$</span>
             <input
               type="number"
               inputMode="decimal"
@@ -54,14 +71,16 @@ export default function WonSheet({ open, onCancel, onSave }: Props) {
               value={raw}
               onChange={(e) => setRaw(e.target.value)}
               placeholder="0"
-              className="w-full bg-transparent text-base text-slate-900 outline-none"
+              className="hero-num w-full bg-transparent text-2xl text-slate-900 outline-none placeholder:text-slate-300"
+              style={{ fontWeight: 800 }}
             />
           </label>
+
           <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-900 active:bg-slate-50"
+              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13px] font-bold uppercase tracking-wider text-slate-700 transition-transform active:scale-[0.98] active:bg-slate-50"
               style={{ minHeight: "52px" }}
             >
               Cancel
@@ -70,7 +89,7 @@ export default function WonSheet({ open, onCancel, onSave }: Props) {
               type="button"
               disabled={!valid}
               onClick={() => valid && onSave(numeric)}
-              className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white active:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-[13px] font-bold uppercase tracking-wider text-white transition-transform active:scale-[0.98] active:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
               style={{ minHeight: "52px" }}
             >
               Save

@@ -1,3 +1,5 @@
+import { CheckCircle2 } from "lucide-react";
+
 interface Props {
   message: string;
   onDismiss: () => void;
@@ -12,9 +14,10 @@ export default function Toast({ message, onDismiss }: Props) {
       <button
         type="button"
         onClick={onDismiss}
-        className="pointer-events-auto max-w-sm rounded-full bg-slate-900/95 px-4 py-2 text-sm font-medium text-white shadow-lg active:opacity-80"
+        className="pointer-events-auto inline-flex max-w-sm items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-opacity active:opacity-80"
       >
-        {message}
+        <CheckCircle2 size={16} className="text-emerald-400" aria-hidden="true" />
+        <span>{message}</span>
       </button>
     </div>
   );

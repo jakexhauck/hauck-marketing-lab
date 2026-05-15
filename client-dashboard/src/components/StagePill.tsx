@@ -15,7 +15,7 @@ export default function StagePill({ stage, className }: Props) {
   return (
     <span
       className={clsx(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-md px-2 py-1 text-[10px] font-bold uppercase leading-none tracking-wider",
         c.bg,
         c.fg,
         className

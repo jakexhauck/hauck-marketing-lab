@@ -73,7 +73,9 @@ export default function Dashboard() {
   const sorted = useMemo(
     () =>
       [...leads].sort(
-        (a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime()
+        (a, b) =>
+          new Date(b.lastActivityAt).getTime() -
+          new Date(a.lastActivityAt).getTime()
       ),
     [leads]
   );
@@ -101,19 +103,48 @@ export default function Dashboard() {
     return sorted.filter((l) => l.stage === active);
   }, [sorted, active]);
 
+  const inFlight = useMemo(
+    () =>
+      leads.filter(
+        (l) => l.stage !== "won" && l.stage !== "lost" && l.stage !== "no-show"
+      ).length,
+    [leads]
+  );
+
   return (
     <Shell>
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
       <TopBar />
-      <StatsStrip stats={stats} permissions={permissions} repWonValue={repWonValue} />
+      <StatsStrip
+        stats={stats}
+        permissions={permissions}
+        repWonValue={repWonValue}
+        repLeadsCount={leads.length}
+      />
+
+      <div className="mb-2 flex items-end justify-between px-5">
+        <div className="flex flex-col gap-1">
+          <span
+            className="label-cap-strong"
+            style={{ color: "var(--brand-primary)" }}
+          >
+            Active Pipeline
+          </span>
+          <h2 className="font-display text-xl font-bold tracking-tight text-slate-900">
+            {inFlight} {inFlight === 1 ? "lead" : "leads"} in flight
+          </h2>
+        </div>
+      </div>
+
       <StageFilter active={active} counts={counts} onChange={setActive} />
-      <main className="flex flex-1 flex-col">
+
+      <main className="flex flex-1 flex-col px-5 pb-6">
         {visible.length === 0 ? (
           <EmptyState message="No leads in this stage yet." />
         ) : (
-          <ul className="flex flex-col">
-            {visible.map((lead) => (
-              <li key={lead.id}>
+          <ul className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            {visible.map((lead, idx) => (
+              <li key={lead.id} className={idx === visible.length - 1 ? "[&_button]:border-b-0" : ""}>
                 <LeadRow lead={lead} onTap={(id) => navigate(`/lead/${id}`)} />
               </li>
             ))}

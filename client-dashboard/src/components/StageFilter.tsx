@@ -24,7 +24,7 @@ export default function StageFilter({ active, counts, onChange }: Props) {
 
   return (
     <div
-      className="flex gap-2 overflow-x-auto border-b border-slate-100 bg-white px-4 py-2"
+      className="no-scrollbar flex gap-2 overflow-x-auto bg-slate-50 px-5 pb-3 pt-1"
       style={{ scrollbarWidth: "none" }}
     >
       {chips.map((stage) => {
@@ -35,10 +35,10 @@ export default function StageFilter({ active, counts, onChange }: Props) {
             type="button"
             onClick={() => onChange(stage)}
             className={clsx(
-              "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+              "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors active:scale-[0.97]",
               isActive
                 ? "text-white"
-                : "bg-slate-100 text-slate-700 active:bg-slate-200"
+                : "border border-slate-200 bg-white text-slate-700"
             )}
             style={
               isActive
@@ -46,7 +46,15 @@ export default function StageFilter({ active, counts, onChange }: Props) {
                 : undefined
             }
           >
-            {labelFor(stage)} {counts[stage]}
+            <span>{labelFor(stage)}</span>
+            <span
+              className={clsx(
+                "tabular-figs font-bold",
+                isActive ? "text-white/80" : "text-slate-400"
+              )}
+            >
+              {counts[stage]}
+            </span>
           </button>
         );
       })}
