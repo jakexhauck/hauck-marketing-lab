@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "./context/ThemeContext";
 import { ClientProvider } from "./context/ClientContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LeadsProvider } from "./context/LeadsContext";
@@ -20,32 +21,34 @@ function RootRedirect() {
 
 export default function App() {
   return (
-    <ClientProvider>
-      <AuthProvider>
-        <LeadsProvider>
-          <Routes>
-          <Route path="/" element={<RootRedirect />} />
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/lead/:id"
-            element={
-              <ProtectedRoute>
-                <LeadDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<RootRedirect />} />
-          </Routes>
-        </LeadsProvider>
-      </AuthProvider>
-    </ClientProvider>
+    <ThemeProvider>
+      <ClientProvider>
+        <AuthProvider>
+          <LeadsProvider>
+            <Routes>
+              <Route path="/" element={<RootRedirect />} />
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lead/:id"
+                element={
+                  <ProtectedRoute>
+                    <LeadDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<RootRedirect />} />
+            </Routes>
+          </LeadsProvider>
+        </AuthProvider>
+      </ClientProvider>
+    </ThemeProvider>
   );
 }

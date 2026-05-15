@@ -8,7 +8,7 @@ interface StatCardProps {
 export default function StatCard({ label, value }: StatCardProps) {
   return (
     <div
-      className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3"
+      className="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3"
       role="group"
       aria-label={label}
     >

@@ -34,17 +34,17 @@ export default function WonSheet({ open, onCancel, onSave }: Props) {
         className="absolute inset-0 bg-slate-900/50"
       />
       <div
-        className={`absolute inset-x-0 bottom-0 mx-auto max-w-md rounded-t-3xl bg-white shadow-xl transition-transform duration-200 ease-out ${
+        className={`absolute inset-x-0 bottom-0 mx-auto max-w-md rounded-t-3xl bg-[var(--surface)] shadow-xl transition-transform duration-200 ease-out ${
           open ? "translate-y-0" : "translate-y-full"
         }`}
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}
       >
         <div className="flex flex-col gap-5 px-6 pt-5">
-          <div className="mx-auto h-1 w-10 rounded-full bg-slate-200" />
+          <div className="mx-auto h-1 w-10 rounded-full bg-[var(--border)]" />
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
               <span className="label-cap-strong">Record</span>
-              <h2 className="font-display text-xl font-bold tracking-tight text-slate-900">
+              <h2 className="font-display text-xl font-bold tracking-tight text-[var(--text)]">
                 {valueLabel}
               </h2>
             </div>
@@ -52,17 +52,17 @@ export default function WonSheet({ open, onCancel, onSave }: Props) {
               type="button"
               onClick={onCancel}
               aria-label="Close"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 active:bg-slate-100"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-muted)] active:bg-[var(--surface-2)]"
             >
               <X size={18} aria-hidden="true" />
             </button>
           </div>
 
           <label
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 focus-within:border-slate-500"
+            className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 focus-within:border-[var(--ring)]"
             aria-label={valueLabel}
           >
-            <span className="font-display text-2xl font-bold text-slate-400">$</span>
+            <span className="font-display text-2xl font-bold text-[var(--text-faint)]">$</span>
             <input
               type="number"
               inputMode="decimal"
@@ -71,7 +71,7 @@ export default function WonSheet({ open, onCancel, onSave }: Props) {
               value={raw}
               onChange={(e) => setRaw(e.target.value)}
               placeholder="0"
-              className="hero-num w-full bg-transparent text-2xl text-slate-900 outline-none placeholder:text-slate-300"
+              className="hero-num w-full bg-transparent text-2xl text-[var(--text)] outline-none placeholder:text-[var(--text-faint)]"
               style={{ fontWeight: 800 }}
             />
           </label>
@@ -80,7 +80,7 @@ export default function WonSheet({ open, onCancel, onSave }: Props) {
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13px] font-bold uppercase tracking-wider text-slate-700 transition-transform active:scale-[0.98] active:bg-slate-50"
+              className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[13px] font-bold uppercase tracking-wider text-[var(--text-muted)] transition-transform active:scale-[0.98] active:bg-[var(--surface-2)]"
               style={{ minHeight: "52px" }}
             >
               Cancel
@@ -89,7 +89,7 @@ export default function WonSheet({ open, onCancel, onSave }: Props) {
               type="button"
               disabled={!valid}
               onClick={() => valid && onSave(numeric)}
-              className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-[13px] font-bold uppercase tracking-wider text-white transition-transform active:scale-[0.98] active:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+              className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-[13px] font-bold uppercase tracking-wider text-white transition-transform active:scale-[0.98] active:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-[var(--surface-2)] disabled:text-[var(--text-faint)]"
               style={{ minHeight: "52px" }}
             >
               Save

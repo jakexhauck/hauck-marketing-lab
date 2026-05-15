@@ -24,7 +24,7 @@ export default function StageFilter({ active, counts, onChange }: Props) {
 
   return (
     <div
-      className="no-scrollbar flex gap-2 overflow-x-auto bg-slate-50 px-5 pb-3 pt-1"
+      className="no-scrollbar flex gap-2 overflow-x-auto bg-[var(--bg)] px-5 pb-3 pt-1"
       style={{ scrollbarWidth: "none" }}
     >
       {chips.map((stage) => {
@@ -38,7 +38,7 @@ export default function StageFilter({ active, counts, onChange }: Props) {
               "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors active:scale-[0.97]",
               isActive
                 ? "text-white"
-                : "border border-slate-200 bg-white text-slate-700"
+                : "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]"
             )}
             style={
               isActive
@@ -50,7 +50,7 @@ export default function StageFilter({ active, counts, onChange }: Props) {
             <span
               className={clsx(
                 "tabular-figs font-bold",
-                isActive ? "text-white/80" : "text-slate-400"
+                isActive ? "text-white/80" : "text-[var(--text-faint)]"
               )}
             >
               {counts[stage]}

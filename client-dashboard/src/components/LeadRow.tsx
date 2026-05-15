@@ -13,19 +13,19 @@ export default function LeadRow({ lead, onTap }: Props) {
     <button
       type="button"
       onClick={() => onTap(lead.id)}
-      className="flex w-full items-center gap-3 border-b border-slate-100 bg-white px-4 py-3.5 text-left transition-transform active:scale-[0.98] active:bg-slate-50"
+      className="flex w-full items-center gap-3 border-b border-[var(--divider)] bg-[var(--surface)] px-4 py-3.5 text-left transition-transform active:scale-[0.98] active:bg-[var(--surface-2)]"
       style={{ minHeight: "64px" }}
     >
       <Avatar name={lead.name} size="md" />
       <div className="min-w-0 flex-1">
-        <div className="truncate font-display text-[15px] font-bold text-slate-900">
+        <div className="truncate font-display text-[15px] font-bold text-[var(--text)]">
           {lead.name}
         </div>
-        <div className="mt-0.5 truncate text-xs text-slate-500">{lead.sourceAd}</div>
+        <div className="mt-0.5 truncate text-xs text-[var(--text-faint)]">{lead.sourceAd}</div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5">
         <StagePill stage={lead.stage} />
-        <span className="tabular-figs text-[10.5px] font-semibold text-slate-400">
+        <span className="tabular-figs text-[10.5px] font-semibold text-[var(--text-faint)]">
           {timeAgo(lead.lastActivityAt)}
         </span>
       </div>

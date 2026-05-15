@@ -16,7 +16,7 @@ export default function BackButton({ to, label = "Back" }: Props) {
     <button
       type="button"
       onClick={handleClick}
-      className="inline-flex items-center gap-1 rounded-lg px-2 text-sm font-semibold text-slate-700 transition-colors active:scale-[0.97] active:bg-slate-100"
+      className="inline-flex items-center gap-1 rounded-lg px-2 text-sm font-semibold text-[var(--text-muted)] transition-colors active:scale-[0.97] active:bg-[var(--surface-2)]"
       style={{ minHeight: "44px", minWidth: "44px" }}
     >
       <ChevronLeft size={18} aria-hidden="true" />

@@ -28,7 +28,7 @@ export default function OutcomeButton({
       disabled={disabled}
       {...rest}
       className={clsx(
-        "inline-flex w-full items-center justify-center rounded-xl px-4 text-[13px] font-bold uppercase tracking-wider text-white transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400",
+        "inline-flex w-full items-center justify-center rounded-xl px-4 text-[13px] font-bold uppercase tracking-wider text-white transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[var(--surface-2)] disabled:text-[var(--text-faint)]",
         VARIANT_CLASSES[variant],
         className
       )}

@@ -24,16 +24,15 @@ export default function Login() {
     <Shell>
       <div className="flex flex-1 items-center justify-center px-5 py-12">
         <div
-          className="w-full rounded-3xl border border-slate-200 bg-white p-8"
-          style={{ boxShadow: "0 24px 60px -30px rgba(15,23,42,0.18)" }}
+          className="w-full rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.18)] dark:shadow-none"
         >
           <div className="flex flex-col items-center text-center">
             <BrandedLogo size="lg" />
             <span className="label-cap mt-6">Sign In</span>
-            <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-slate-900">
+            <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-[var(--text)]">
               {client.brand.appName}
             </h1>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
               Your leads, your pipeline.
             </p>
           </div>
@@ -47,7 +46,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@business.com"
                 required
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20"
+                className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-base text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20"
               />
             </label>
 
@@ -57,7 +56,7 @@ export default function Login() {
           </form>
 
           {devMode() && (
-            <p className="mt-6 text-center text-xs text-slate-400">
+            <p className="mt-6 text-center text-xs text-[var(--text-faint)]">
               Demo mode. Any email signs you in.
             </p>
           )}

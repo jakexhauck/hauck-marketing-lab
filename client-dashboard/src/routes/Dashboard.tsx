@@ -130,7 +130,7 @@ export default function Dashboard() {
           >
             Active Pipeline
           </span>
-          <h2 className="font-display text-xl font-bold tracking-tight text-slate-900">
+          <h2 className="font-display text-xl font-bold tracking-tight text-[var(--text)]">
             {inFlight} {inFlight === 1 ? "lead" : "leads"} in flight
           </h2>
         </div>
@@ -142,7 +142,7 @@ export default function Dashboard() {
         {visible.length === 0 ? (
           <EmptyState message="No leads in this stage yet." />
         ) : (
-          <ul className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <ul className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
             {visible.map((lead, idx) => (
               <li key={lead.id} className={idx === visible.length - 1 ? "[&_button]:border-b-0" : ""}>
                 <LeadRow lead={lead} onTap={(id) => navigate(`/lead/${id}`)} />

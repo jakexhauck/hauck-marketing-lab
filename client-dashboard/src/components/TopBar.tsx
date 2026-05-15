@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import BrandedLogo from "./BrandedLogo";
 import UserChip from "./UserChip";
 import DevPanel from "./DevPanel";
+import ThemeToggle from "./ThemeToggle";
 
 export default function TopBar() {
   const { client } = useClient();
@@ -13,15 +14,16 @@ export default function TopBar() {
   });
 
   return (
-    <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-slate-200 bg-white px-5 py-3">
+    <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-5 py-3">
       <BrandedLogo size="sm" />
       <div className="min-w-0 flex-1">
         <div className="label-cap truncate">{client.brand.appName}</div>
-        <div className="mt-0.5 truncate font-display text-lg font-bold tracking-tight text-slate-900">
+        <div className="mt-0.5 truncate font-display text-lg font-bold tracking-tight text-[var(--text)]">
           {month}
         </div>
       </div>
       {currentUser && <UserChip user={currentUser} />}
+      <ThemeToggle />
       <DevPanel />
     </header>
   );

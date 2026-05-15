@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
   --brand-primary: #1a4d8f;
   --brand-primary-tint: #e8f0fa;
@@ -8,6 +10,30 @@
   --brand-bg: #f8fafc;
   --font-display: "Archivo", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Theme tokens (light) */
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-faint: #94a3b8;
+  --border: #e2e8f0;
+  --divider: #f1f5f9;
+  --ring: var(--brand-primary);
+}
+
+[data-theme="dark"] {
+  --brand-bg: #0b1220;
+  --bg: #0b1220;
+  --surface: #111827;
+  --surface-2: #1f2937;
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-faint: #64748b;
+  --border: #1f2937;
+  --divider: #1e293b;
+  --ring: var(--brand-primary);
 }
 
 html,
@@ -21,8 +47,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  background: var(--brand-bg);
-  color: #0f172a;
+  background: var(--bg);
+  color: var(--text);
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 .font-display {
@@ -40,7 +67,7 @@ body {
   letter-spacing: 0.08em;
   font-weight: 600;
   font-size: 10.5px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .label-cap-strong {
@@ -48,7 +75,7 @@ body {
   letter-spacing: 0.12em;
   font-weight: 700;
   font-size: 10.5px;
-  color: #475569;
+  color: var(--text-muted);
 }
 
 .label-cap-light {
@@ -72,7 +99,7 @@ body {
   font-family: var(--font-display);
   font-weight: 800;
   letter-spacing: -0.035em;
-  color: #0b1220;
+  color: var(--text);
   line-height: 1;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1, "ss01" 1;

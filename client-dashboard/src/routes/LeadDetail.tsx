@@ -56,14 +56,14 @@ export default function LeadDetail() {
   if (!lead) {
     return (
       <Shell>
-        <header className="flex items-center gap-2 border-b border-slate-200 bg-white px-3 py-2">
+        <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
           <BackButton to="/dashboard" label="Dashboard" />
         </header>
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-          <h1 className="font-display text-xl font-bold text-slate-900">
+          <h1 className="font-display text-xl font-bold text-[var(--text)]">
             Lead not found
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[var(--text-muted)]">
             This lead may have been removed or the link is incorrect.
           </p>
         </div>
@@ -95,7 +95,7 @@ export default function LeadDetail() {
 
   return (
     <Shell>
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
         <BackButton to="/dashboard" label="Dashboard" />
       </header>
 
@@ -104,18 +104,18 @@ export default function LeadDetail() {
           <Avatar name={lead.name} size="lg" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900">
+              <h1 className="font-display text-2xl font-bold tracking-tight text-[var(--text)]">
                 {lead.name}
               </h1>
               <StagePill stage={lead.stage} />
             </div>
-            <div className="mt-1 truncate text-xs text-slate-500">
+            <div className="mt-1 truncate text-xs text-[var(--text-muted)]">
               {lead.sourceAd} · {lead.sourceCampaign}
             </div>
           </div>
         </section>
 
-        <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
           <a
             href={`tel:${telDigits}`}
             className="flex items-center gap-3 text-base font-semibold underline"
@@ -132,28 +132,28 @@ export default function LeadDetail() {
             <Mail size={16} aria-hidden="true" />
             <span>{lead.email}</span>
           </a>
-          <dl className="flex flex-col gap-2 border-t border-slate-100 pt-3 text-sm">
+          <dl className="flex flex-col gap-2 border-t border-[var(--divider)] pt-3 text-sm">
             <div className="flex justify-between gap-3">
               <dt className="label-cap">Ad</dt>
-              <dd className="text-right font-semibold text-slate-900">
+              <dd className="text-right font-semibold text-[var(--text)]">
                 {lead.sourceAd}
               </dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="label-cap">Campaign</dt>
-              <dd className="text-right font-semibold text-slate-900">
+              <dd className="text-right font-semibold text-[var(--text)]">
                 {lead.sourceCampaign}
               </dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="label-cap">Created</dt>
-              <dd className="text-right font-semibold text-slate-900">
+              <dd className="text-right font-semibold text-[var(--text)]">
                 {formatCreated(lead.createdAt)}
               </dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="label-cap">Last activity</dt>
-              <dd className="text-right font-semibold text-slate-900">
+              <dd className="text-right font-semibold text-[var(--text)]">
                 {timeAgoVerbose(lead.lastActivityAt)}
               </dd>
             </div>

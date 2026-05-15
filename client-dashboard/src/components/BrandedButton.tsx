@@ -19,7 +19,7 @@ export default function BrandedButton({
         "inline-flex items-center justify-center rounded-xl px-4 py-3 text-[13px] font-bold uppercase tracking-wider transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
         variant === "primary" && "text-white",
         variant === "secondary" &&
-          "border border-slate-200 bg-white text-slate-900",
+          "border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]",
         className
       )}
       style={{
