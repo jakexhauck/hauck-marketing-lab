@@ -742,6 +742,7 @@ export default function App() {
       root={root}
       clientName={clientName}
       clientSlug={clientSlug}
+      agents={summary?.agents ?? []}
       onComplete={() => dismissOnboarding(clientSlug)}
     />
   ) : (

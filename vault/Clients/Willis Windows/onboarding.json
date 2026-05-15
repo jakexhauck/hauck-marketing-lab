@@ -10,10 +10,15 @@
     "01-brief",
     "01-offer",
     "01-contract",
-    "01-payment"
+    "01-payment",
+    "04-copy"
   ],
   "phaseDoneAt": {
     "0": "MAY 11"
   },
-  "updatedAt": "2026-05-14T19:37:13.168094700+00:00"
+  "updatedAt": "2026-05-15T21:52:25.594098700+00:00",
+  "sequence": {
+    "currentStep": "competitors",
+    "stepOutputs": {}
+  }
 }

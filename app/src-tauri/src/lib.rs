@@ -13,6 +13,7 @@ mod drive_upload;
 mod events;
 mod folder;
 mod frontmatter;
+mod gemini_image;
 mod generators;
 mod ghl;
 mod google_calendar;
@@ -85,6 +86,8 @@ pub fn run() {
             generators::save_generator_output,
             generators::list_generator_outputs,
             generators::read_latest_generator_output,
+            gemini_image::generate_nano_banana_image,
+            gemini_image::generate_creative_set,
             sync::git_sync,
             lead_scraper::run_lead_scraper,
             lead_scraper::list_prospect_files,

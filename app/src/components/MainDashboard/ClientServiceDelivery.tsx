@@ -1,17 +1,20 @@
 /**
- * ClientServiceDelivery. Consolidated tab that hosts the per-client delivery
- * surfaces (Forms, Websites, Drive) behind a single sub-nav. Replaces the
- * three separate ClientHub tabs that used to live at the top level.
+ * ClientFulfillment. Consolidated tab that hosts the per-client delivery
+ * surfaces (Forms, Websites, Drive, Recordings) behind a single sub-nav.
  *
- * Pure presentation: owns sub-tab state, defers rendering the active body to
- * a render-prop so the parent decides which component to mount and only the
- * active one runs.
+ * Pure presentation: owns sub-tab state, defers rendering the active body
+ * to a render-prop so the parent decides which component to mount and only
+ * the active one runs.
+ *
+ * (Previously called "Service Delivery". Kept the file name for now to
+ * minimise diff churn; the exported component is `ClientServiceDelivery`
+ * still, but the user-facing label is "Fulfillment".)
  */
 
 import { useState, type ReactNode } from "react";
-import { IconBarChart, IconFolder, IconGlobe } from "../icons";
+import { IconBarChart, IconFolder, IconGlobe, IconRecordings } from "../icons";
 
-export type ServiceDeliveryTab = "forms" | "websites" | "drive";
+export type ServiceDeliveryTab = "forms" | "websites" | "drive" | "recordings";
 
 interface ClientServiceDeliveryProps {
   clientName: string;
@@ -23,8 +26,14 @@ const TABS: { id: ServiceDeliveryTab; label: string; hint: string; Icon: typeof 
   {
     id: "forms",
     label: "Forms",
-    hint: "Run any agent form for this client. Grouped by onboarding phase.",
+    hint: "Run any agent form for this client. Grouped by purpose.",
     Icon: IconBarChart,
+  },
+  {
+    id: "recordings",
+    label: "Recordings",
+    hint: "Fathom call recordings for this client.",
+    Icon: IconRecordings,
   },
   {
     id: "websites",
@@ -50,7 +59,7 @@ export function ClientServiceDelivery({
 
   return (
     <div className="hml-content sd-wrap">
-      <nav className="sd-subnav" role="tablist" aria-label="Service delivery sections">
+      <nav className="sd-subnav" role="tablist" aria-label="Fulfillment sections">
         {TABS.map(({ id, label, Icon }) => (
           <button
             key={id}

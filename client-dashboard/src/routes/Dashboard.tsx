@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Sun } from "lucide-react";
 import Shell from "../components/Shell";
 import TopBar from "../components/TopBar";
 import StageFilter, { type StageFilterValue } from "../components/StageFilter";
 import StatsStrip from "../components/StatsStrip";
 import LeadRow from "../components/LeadRow";
+import SearchBar from "../components/SearchBar";
 import EmptyState from "../components/EmptyState";
 import Toast from "../components/Toast";
 import { useLeads } from "../context/LeadsContext";
@@ -24,6 +26,7 @@ export default function Dashboard() {
   const { client } = useClient();
   const { currentUser } = useAuth();
   const [active, setActive] = useState<StageFilterValue>("all");
+  const [query, setQuery] = useState<string>("");
 
   useEffect(() => {
     if (active === "all") return;
@@ -31,6 +34,12 @@ export default function Dashboard() {
       setActive("all");
     }
   }, [client.pipeline.stages, active]);
+
+  useEffect(() => {
+    if (currentUser?.role === "rep") {
+      navigate("/today", { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   const permissions = currentUser
     ? permissionsFor(currentUser.role)
@@ -98,10 +107,30 @@ export default function Dashboard() {
     return base;
   }, [leads]);
 
-  const visible = useMemo(() => {
+  const stageFiltered = useMemo(() => {
     if (active === "all") return sorted;
     return sorted.filter((l) => l.stage === active);
   }, [sorted, active]);
+
+  const trimmedQuery = query.trim();
+  const hasQuery = trimmedQuery.length > 0;
+
+  const visible = useMemo(() => {
+    if (!hasQuery) return stageFiltered;
+    const q = trimmedQuery.toLowerCase();
+    const qDigits = trimmedQuery.replace(/\D+/g, "");
+    return stageFiltered.filter((l) => {
+      if (l.name.toLowerCase().includes(q)) return true;
+      if (l.email.toLowerCase().includes(q)) return true;
+      if (l.sourceAd.toLowerCase().includes(q)) return true;
+      if (l.sourceCampaign.toLowerCase().includes(q)) return true;
+      if (qDigits.length > 0) {
+        const phoneDigits = l.phone.replace(/\D+/g, "");
+        if (phoneDigits.includes(qDigits)) return true;
+      }
+      return false;
+    });
+  }, [stageFiltered, hasQuery, trimmedQuery]);
 
   const inFlight = useMemo(
     () =>
@@ -131,21 +160,62 @@ export default function Dashboard() {
             Active Pipeline
           </span>
           <h2 className="font-display text-xl font-bold tracking-tight text-[var(--text)]">
-            {inFlight} {inFlight === 1 ? "lead" : "leads"} in flight
+            {hasQuery ? (
+              <>
+                {visible.length} of {leads.length}{" "}
+                {leads.length === 1 ? "lead" : "leads"}
+              </>
+            ) : (
+              <>
+                {inFlight} {inFlight === 1 ? "lead" : "leads"} in flight
+              </>
+            )}
           </h2>
         </div>
+        <button
+          type="button"
+          onClick={() => navigate("/today")}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition-colors active:scale-[0.97] active:bg-[var(--surface-2)]"
+          style={{ minHeight: "36px" }}
+        >
+          <Sun size={14} aria-hidden="true" />
+          Today
+        </button>
+      </div>
+
+      <div className="px-5 pt-4">
+        <SearchBar value={query} onChange={setQuery} />
       </div>
 
       <StageFilter active={active} counts={counts} onChange={setActive} />
 
       <main className="flex flex-1 flex-col px-5 pb-6">
         {visible.length === 0 ? (
-          <EmptyState message="No leads in this stage yet." />
+          hasQuery ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
+              <EmptyState message={`No leads match "${trimmedQuery}"`} />
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition-colors active:scale-[0.97] active:bg-[var(--surface-2)]"
+                style={{ minHeight: "36px" }}
+              >
+                Clear search
+              </button>
+            </div>
+          ) : (
+            <EmptyState message="No leads in this stage yet." />
+          )
         ) : (
           <ul className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
             {visible.map((lead, idx) => (
-              <li key={lead.id} className={idx === visible.length - 1 ? "[&_button]:border-b-0" : ""}>
-                <LeadRow lead={lead} onTap={(id) => navigate(`/lead/${id}`)} />
+              <li key={lead.id}>
+                <LeadRow
+                  lead={lead}
+                  onTap={(id) => navigate(`/lead/${id}`)}
+                  onAction={(message) => setToast(message)}
+                  isLast={idx === visible.length - 1}
+                />
               </li>
             ))}
           </ul>

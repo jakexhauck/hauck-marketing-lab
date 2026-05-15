@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Mail, Phone } from "lucide-react";
+import { Activity, Mail, MessageSquare, Phone } from "lucide-react";
 import Shell from "../components/Shell";
 import StagePill from "../components/StagePill";
 import BackButton from "../components/BackButton";
 import OutcomeButton from "../components/OutcomeButton";
 import WonSheet from "../components/WonSheet";
 import Avatar from "../components/Avatar";
+import BrandedButton from "../components/BrandedButton";
+import Toast from "../components/Toast";
 import { useLeads } from "../context/LeadsContext";
 import { useClient } from "../context/ClientContext";
-import type { LeadStage } from "../types";
+import { timeAgo } from "../lib/timeAgo";
+import { formatMoney } from "../lib/formatMoney";
+import type { LeadActivity, LeadStage } from "../types";
 
 const currencyFmt = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -43,15 +47,95 @@ function timeAgoVerbose(iso: string, now: number = Date.now()): string {
   return `${day} day${day === 1 ? "" : "s"} ago`;
 }
 
+function prettyStage(stage: LeadStage): string {
+  return stage
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+interface TimelineEntryProps {
+  entry: LeadActivity;
+  isLast: boolean;
+  wonLabel: string;
+}
+
+function TimelineEntry({ entry, isLast, wonLabel }: TimelineEntryProps) {
+  const dotColor =
+    entry.kind === "note" ? "var(--text-muted)" : "var(--brand-primary)";
+
+  let title = "";
+  let body: string | null = null;
+
+  if (entry.kind === "created") {
+    title = "Lead created";
+  } else if (entry.kind === "stage-change") {
+    const from = entry.fromStage ? prettyStage(entry.fromStage) : "";
+    const to = entry.toStage ? prettyStage(entry.toStage) : "";
+    title = `Stage: ${from} to ${to}`;
+  } else if (entry.kind === "note") {
+    title = "Note added";
+    body = entry.body ?? null;
+  } else if (entry.kind === "won-recorded") {
+    title = `Marked ${wonLabel}: ${formatMoney(entry.value ?? 0)}`;
+  }
+
+  const iso = new Date(entry.at).toISOString();
+
+  return (
+    <li className="relative flex gap-3 pb-4 last:pb-0">
+      <div className="flex flex-col items-center pt-1.5">
+        <span
+          aria-hidden="true"
+          className="h-2 w-2 rounded-full"
+          style={{ backgroundColor: dotColor }}
+        />
+        {!isLast && (
+          <span
+            aria-hidden="true"
+            className="mt-1 w-px flex-1"
+            style={{ backgroundColor: "var(--border)" }}
+          />
+        )}
+      </div>
+      <div className="min-w-0 flex-1 pb-1">
+        <div className="text-sm font-medium text-[var(--text)]">{title}</div>
+        {body && (
+          <div className="mt-1 whitespace-pre-wrap break-words text-sm text-[var(--text-muted)]">
+            {body}
+          </div>
+        )}
+        <div className="label-cap mt-1 text-[var(--text-faint)]">
+          {timeAgo(iso)}
+        </div>
+      </div>
+    </li>
+  );
+}
+
 export default function LeadDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getLead, markStage } = useLeads();
+  const { getLead, markStage, getActivitiesForLead, addNote } = useLeads();
   const { client } = useClient();
   const [wonOpen, setWonOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
+  const [showAllActivity, setShowAllActivity] = useState(false);
   const wonLabel = client.pipeline.wonLabel;
 
   const lead = id ? getLead(id) : undefined;
+
+  const activities = useMemo(
+    () => (lead ? getActivitiesForLead(lead.id) : []),
+    [lead, getActivitiesForLead]
+  );
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 2500);
+    return () => window.clearTimeout(t);
+  }, [toast]);
 
   if (!lead) {
     return (
@@ -91,10 +175,23 @@ export default function LeadDetail() {
     goBackWithToast("won", value);
   };
 
+  const handleAddNote = () => {
+    const trimmed = noteDraft.trim();
+    if (!trimmed) return;
+    addNote(lead.id, trimmed);
+    setNoteDraft("");
+    setToast("Note added");
+  };
+
   const telDigits = lead.phone.replace(/[^0-9+]/g, "");
+  const visibleActivities =
+    showAllActivity || activities.length <= 8
+      ? activities
+      : activities.slice(0, 8);
 
   return (
     <Shell>
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
       <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
         <BackButton to="/dashboard" label="Dashboard" />
       </header>
@@ -158,6 +255,71 @@ export default function LeadDetail() {
               </dd>
             </div>
           </dl>
+        </section>
+
+        <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+          <div className="flex items-center gap-2">
+            <MessageSquare
+              size={14}
+              aria-hidden="true"
+              className="text-[var(--text-muted)]"
+            />
+            <h2 className="label-cap">Notes</h2>
+          </div>
+          <textarea
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            placeholder="Add a quick note about this lead."
+            className="min-h-[80px] w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-faint)] focus:border-[var(--ring)]"
+          />
+          <BrandedButton
+            variant="primary"
+            onClick={handleAddNote}
+            disabled={noteDraft.trim().length === 0}
+            className="self-start"
+          >
+            Add note
+          </BrandedButton>
+        </section>
+
+        <section className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+          <div className="flex items-center gap-2">
+            <Activity
+              size={14}
+              aria-hidden="true"
+              className="text-[var(--text-muted)]"
+            />
+            <h2 className="label-cap">Activity</h2>
+          </div>
+          {activities.length === 0 ? (
+            <p className="text-sm text-[var(--text-muted)]">
+              No activity yet.
+            </p>
+          ) : (
+            <>
+              <ul className="flex flex-col">
+                {visibleActivities.map((entry, idx) => (
+                  <TimelineEntry
+                    key={entry.id}
+                    entry={entry}
+                    isLast={idx === visibleActivities.length - 1}
+                    wonLabel={wonLabel}
+                  />
+                ))}
+              </ul>
+              {activities.length > 8 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllActivity((v) => !v)}
+                  className="self-start text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] underline transition-colors active:text-[var(--text)]"
+                >
+                  {showAllActivity
+                    ? "Show recent"
+                    : `Show all (${activities.length})`}
+                </button>
+              )}
+            </>
+          )}
         </section>
 
         <section className="flex flex-col gap-3">

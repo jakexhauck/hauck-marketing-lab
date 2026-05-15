@@ -7,8 +7,20 @@ import {
   type OnboardingPhase,
   type OnboardingTask,
 } from "../lib/onboardingPlan";
+import {
+  MEDIA_BUYING_SEQUENCE,
+  emptySequenceState,
+  nextStepId,
+  type SequenceState,
+  type SequenceStep,
+  type SequenceStepId,
+} from "../lib/mediaBuyingSequence";
 import { syncOnboardingPhase } from "../lib/ghlSync";
 import { api } from "../lib/tauri";
+import { getFormConfig, type FormValues } from "../lib/formConfigs";
+import type { AgentSummary, GeneratorOutput, OnboardingState } from "../lib/types";
+import { GenericFormGenerator } from "./GenericFormGenerator";
+import { IconArrowRight } from "./icons";
 import "./onboarding-checklist.css";
 
 type GhlSyncStatus =
@@ -25,12 +37,14 @@ type Props = {
   root: string | null;
   clientName: string;
   clientSlug: string;
+  agents: AgentSummary[];
   onComplete: () => void;
 };
 
 type Persisted = {
   done: string[];
   phaseDoneAt: Record<string, string>;
+  sequence?: OnboardingState["sequence"];
 };
 
 function readLegacyLocal(slug: string): Persisted | null {
@@ -70,36 +84,51 @@ function todayYMD(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function extractJsonFromBody(body: string): Record<string, unknown> | null {
+  const start = body.indexOf("```json");
+  if (start === -1) return null;
+  const after = body.slice(start + "```json".length).replace(/^\n/, "");
+  const end = after.indexOf("```");
+  if (end === -1) return null;
+  try {
+    return JSON.parse(after.slice(0, end).trim()) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 /** Task ID that triggers writing `adsLaunchedAt` into the Client Dashboard
- *  (`ops/clients.json`) when first checked. Idempotent — only writes when
- *  the target column is empty.
- *
- *  Note: `startDate` is no longer driven by the checklist. As of 2026-05-14,
- *  contract + invoice tracking lives on the Client Hub as persistent flags
- *  (see `contractSignedAt` / `invoicePaidAt` on OpsClientRow). The retainer
- *  start date is now written when the invoice is marked paid. */
+ *  (`ops/clients.json`) when first checked. Idempotent. */
 const ADS_PUBLISH_TASK_ID = "06-publish";
 
-export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }: Props) {
+/** Map of checklistTaskId → SequenceStep, so a row can render a "Generate"
+ *  button if the task has a matching form. Built once at module load. */
+const STEP_BY_TASK: Map<string, SequenceStep> = new Map(
+  MEDIA_BUYING_SEQUENCE.map((s) => [s.checklistTaskId, s]),
+);
+
+export function OnboardingChecklist({ root, clientName, clientSlug, agents, onComplete }: Props) {
   const [doneSet, setDoneSet] = useState<Set<string>>(() => new Set());
   const [phaseDoneAt, setPhaseDoneAt] = useState<Record<string, string>>({});
+  const [sequenceState, setSequenceState] = useState<SequenceState>(() => emptySequenceState());
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [ghlSync, setGhlSync] = useState<GhlSyncStatus>({ kind: "idle" });
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [chainValues, setChainValues] = useState<Partial<FormValues>>({});
+  const [loadingChain, setLoadingChain] = useState(false);
   // Highest phase number already pushed to GHL for this client mount.
-  // Prevents re-firing on re-renders or when loading historical state.
   const lastSyncedPhase = useRef<number>(0);
-  // Suppress the persist effect until after the load resolves, so we don't
-  // race the initial empty state to disk.
+  // Suppress the persist effect until after the load resolves.
   const skipNextPersist = useRef(true);
   const saveTimer = useRef<number | null>(null);
 
-  // Load from disk (and migrate any legacy localStorage value) on mount /
-  // when the client slug changes.
+  // Load from disk on mount / client change.
   useEffect(() => {
     let cancelled = false;
     skipNextPersist.current = true;
     setSelectedIndex(null);
+    setOpenTaskId(null);
     void (async () => {
       let next: Persisted = { done: [], phaseDoneAt: {} };
       let needsMigrationWrite = false;
@@ -107,11 +136,14 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
       if (root) {
         try {
           const state = await api.readOnboardingState(root, clientSlug);
-          next = { done: state.done ?? [], phaseDoneAt: state.phaseDoneAt ?? {} };
+          next = {
+            done: state.done ?? [],
+            phaseDoneAt: state.phaseDoneAt ?? {},
+            sequence: state.sequence,
+          };
         } catch {
           next = { done: [], phaseDoneAt: {} };
         }
-        // If vault has nothing yet, migrate from the legacy localStorage key.
         if (next.done.length === 0 && Object.keys(next.phaseDoneAt).length === 0) {
           const legacy = readLegacyLocal(clientSlug);
           if (legacy && (legacy.done.length > 0 || Object.keys(legacy.phaseDoneAt).length > 0)) {
@@ -120,8 +152,6 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
           }
         }
       } else {
-        // No folder selected — fall back to legacy local read so the UI works
-        // standalone, but we won't write back until a root is available.
         const legacy = readLegacyLocal(clientSlug);
         if (legacy) next = legacy;
       }
@@ -129,9 +159,17 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
       if (cancelled) return;
       setDoneSet(new Set(next.done));
       setPhaseDoneAt(next.phaseDoneAt);
-      // Seed the sync watermark to the highest phase already stamped on disk,
-      // so re-opening the app for an in-flight client doesn't re-push every
-      // historical phase to GHL.
+      if (next.sequence) {
+        setSequenceState({
+          currentStep: next.sequence.currentStep as SequenceStepId,
+          stepOutputs: next.sequence.stepOutputs as SequenceState["stepOutputs"],
+          skipped: next.sequence.skipped as SequenceStepId[] | undefined,
+          launchedAt: next.sequence.launchedAt,
+          driveFolderId: next.sequence.driveFolderId,
+        });
+      } else {
+        setSequenceState(emptySequenceState());
+      }
       const seeded = Object.keys(next.phaseDoneAt)
         .map((k) => Number(k))
         .filter((n) => Number.isFinite(n));
@@ -147,7 +185,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
           });
           clearLegacyLocal(clientSlug);
         } catch {
-          // leave the legacy copy in place; we'll try again next mount
+          // leave the legacy copy; retry next mount
         }
       }
     })();
@@ -156,7 +194,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
     };
   }, [root, clientSlug]);
 
-  // Persist on every change, debounced 300ms.
+  // Persist on change, debounced 300ms.
   useEffect(() => {
     if (skipNextPersist.current) {
       skipNextPersist.current = false;
@@ -169,15 +207,15 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
         .writeOnboardingState(root, clientSlug, {
           done: Array.from(doneSet),
           phaseDoneAt,
+          sequence: sequenceState,
         })
         .catch((err) => {
           // eslint-disable-next-line no-console
           console.error("onboarding persist failed", err);
         });
     }, 300);
-  }, [root, clientSlug, doneSet, phaseDoneAt, loaded]);
+  }, [root, clientSlug, doneSet, phaseDoneAt, sequenceState, loaded]);
 
-  // Flush any pending save on unmount.
   useEffect(
     () => () => {
       if (saveTimer.current != null) window.clearTimeout(saveTimer.current);
@@ -186,9 +224,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
   );
 
   // Auto-populate `adsLaunchedAt` on the Workspace > Clients row when the
-  // publish task lands. Only writes when the column is empty, so manual edits
-  // and re-checks never clobber existing values. Other date fields (startDate,
-  // contractSignedAt, invoicePaidAt) are managed from the Client Hub directly.
+  // publish task lands. Only writes when empty.
   useEffect(() => {
     if (!root || !loaded) return;
     if (!doneSet.has(ADS_PUBLISH_TASK_ID)) return;
@@ -219,8 +255,6 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
   const total = useMemo(() => totalTasks(), []);
   const doneCount = doneSet.size;
 
-  // Derive each phase's state from the task set, and stamp phaseDoneAt when a
-  // phase completes for the first time.
   const phaseStates = useMemo(() => {
     return ONBOARDING_PLAN.map((p) => {
       const ids = phaseTaskIds(p);
@@ -229,13 +263,8 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
     });
   }, [doneSet]);
 
-  // Auto-derived active phase = first non-complete phase. Drives the progress
-  // strip "Phase N / M" indicator regardless of which phase the user is viewing.
   const activeIndex = phaseStates.findIndex((s) => s.completed < s.total);
 
-  // The phase shown expanded. User-selected phase wins; otherwise fall back to
-  // the auto-derived active phase. -1 means no phase is expanded (all done and
-  // nothing manually selected).
   const expandedIndex =
     selectedIndex !== null && selectedIndex >= 0 && selectedIndex < phaseStates.length
       ? selectedIndex
@@ -259,10 +288,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
     });
   }, [phaseStates]);
 
-  // GHL sync — when a new phase flips done, advance the matching opportunity
-  // stage in GoHighLevel. Idempotent: lastSyncedPhase ref is the watermark.
-  // The Rust side also no-ops when the opportunity is already at the target
-  // stage, so we're double-protected against duplicate fires.
+  // GHL sync.
   useEffect(() => {
     if (!loaded) return;
     const completedPhases = phaseStates
@@ -291,7 +317,6 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
           stageName: result.stageName ?? "",
         });
       } else {
-        // Roll the watermark back so a future tick retries.
         lastSyncedPhase.current = Math.max(0, target - 1);
         setGhlSync({ kind: "err", phase: target, message: result.message });
       }
@@ -304,7 +329,6 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
   const retryGhlSync = useCallback(() => {
     if (ghlSync.kind !== "err") return;
     lastSyncedPhase.current = Math.max(0, ghlSync.phase - 1);
-    // Nudge the effect to re-run by writing the same phaseDoneAt back.
     setPhaseDoneAt((prev) => ({ ...prev }));
   }, [ghlSync]);
 
@@ -317,9 +341,125 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
     });
   }, []);
 
+  /** Open the form attached to a task. Reads any chain-from outputs and seeds
+   *  the form. Mirrors the prior ClientSequence behavior. */
+  const openTaskForm = useCallback(
+    async (taskId: string) => {
+      const step = STEP_BY_TASK.get(taskId);
+      if (!step || !root) return;
+      setOpenTaskId(taskId);
+      setChainValues({});
+      if (!step.chainFrom) return;
+      const specs = Array.isArray(step.chainFrom) ? step.chainFrom : [step.chainFrom];
+      if (specs.length === 0) return;
+      setLoadingChain(true);
+      try {
+        const mapped: Partial<FormValues> = {};
+        for (const spec of specs) {
+          const priorRec = sequenceState.stepOutputs[spec.step];
+          if (!priorRec?.path) continue;
+          const note = await api.readVaultNote(root, priorRec.path);
+          const body = note?.body ?? "";
+          if (spec.rawBodyField) {
+            mapped[spec.rawBodyField] = body;
+          }
+          const parsed = extractJsonFromBody(body);
+          if (!parsed) continue;
+          for (const [sourceKey, targetField] of Object.entries(spec.fields)) {
+            const v = parsed[sourceKey];
+            if (typeof v === "string" || typeof v === "number") mapped[targetField] = v;
+            else if (Array.isArray(v)) mapped[targetField] = v.map(String);
+          }
+        }
+        setChainValues(mapped);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("chainFrom prefill failed:", e);
+      } finally {
+        setLoadingChain(false);
+      }
+    },
+    [root, sequenceState],
+  );
+
+  const closeForm = useCallback(() => {
+    setOpenTaskId(null);
+    setChainValues({});
+  }, []);
+
+  /** When a form saves, tick the task AND persist the sequence output so
+   *  downstream chain-prefill still works. */
+  const handleFormSaved = useCallback(
+    (output: GeneratorOutput) => {
+      if (!openTaskId) return;
+      const step = STEP_BY_TASK.get(openTaskId);
+      const now = new Date().toISOString();
+      setDoneSet((prev) => {
+        const n = new Set(prev);
+        n.add(openTaskId);
+        return n;
+      });
+      if (step) {
+        setSequenceState((prev) => ({
+          ...prev,
+          currentStep: nextStepId(step.id) ?? prev.currentStep,
+          stepOutputs: {
+            ...prev.stepOutputs,
+            [step.id]: { path: output.path, completedAt: now },
+          },
+        }));
+      }
+    },
+    [openTaskId],
+  );
+
   const fillPct = total === 0 ? 0 : Math.round((doneCount / total) * 100);
   const allDone = doneCount === total;
   const currentPhaseNum = activeIndex === -1 ? ONBOARDING_PLAN.length : ONBOARDING_PLAN[activeIndex].num;
+
+  // Render the form overlay when a task with a sequence step is opened.
+  const openStep = openTaskId ? STEP_BY_TASK.get(openTaskId) : null;
+  const openStepFormConfig = openStep ? getFormConfig(openStep.formId) : null;
+
+  if (openStep && openStepFormConfig && root) {
+    return (
+      <div className="ob-root">
+        <div className="ob-form-head">
+          <button type="button" className="ob-form-back" onClick={closeForm}>
+            ← Back to onboarding
+          </button>
+          <div className="ob-form-meta">
+            <span className="ob-form-task">{openStep.label}</span>
+            {loadingChain && <span className="ob-form-hint">Loading prior outputs,</span>}
+            {!loadingChain &&
+              openStep.chainFrom &&
+              Object.keys(chainValues).length > 0 && (
+                <span className="ob-form-hint">
+                  Prefilled from{" "}
+                  {(Array.isArray(openStep.chainFrom)
+                    ? openStep.chainFrom
+                    : [openStep.chainFrom]
+                  )
+                    .map((s) => s.step)
+                    .join(" + ")}
+                </span>
+              )}
+          </div>
+        </div>
+        <GenericFormGenerator
+          config={openStepFormConfig}
+          root={root}
+          agents={agents}
+          clientName={clientName}
+          clientSlug={clientSlug}
+          onClose={closeForm}
+          initialValues={chainValues}
+          onSaved={handleFormSaved}
+        />
+        <style>{FORM_OVERLAY_CSS}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="ob-root">
@@ -358,6 +498,8 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
                 doneSet={doneSet}
                 completed={s.completed}
                 onToggle={toggleTask}
+                onOpenForm={openTaskForm}
+                canOpenForm={!!root}
               />
             );
           }
@@ -404,6 +546,8 @@ export function OnboardingChecklist({ root, clientName, clientSlug, onComplete }
           </button>
         </div>
       )}
+
+      <style>{FORM_OVERLAY_CSS}</style>
     </div>
   );
 }
@@ -467,11 +611,15 @@ function ActiveCard({
   doneSet,
   completed,
   onToggle,
+  onOpenForm,
+  canOpenForm,
 }: {
   phase: OnboardingPhase;
   doneSet: Set<string>;
   completed: number;
   onToggle: (id: string) => void;
+  onOpenForm: (taskId: string) => void;
+  canOpenForm: boolean;
 }) {
   const total = phaseTaskCount(phase);
   return (
@@ -509,14 +657,20 @@ function ActiveCard({
                   {ssDone} / {ss.tasks.length}
                 </span>
               </div>
-              {ss.tasks.map((t) => (
-                <TaskRow
-                  key={t.id}
-                  task={t}
-                  checked={doneSet.has(t.id)}
-                  onToggle={() => onToggle(t.id)}
-                />
-              ))}
+              {ss.tasks.map((t) => {
+                const step = STEP_BY_TASK.get(t.id);
+                return (
+                  <TaskRow
+                    key={t.id}
+                    task={t}
+                    checked={doneSet.has(t.id)}
+                    step={step ?? null}
+                    canOpenForm={canOpenForm}
+                    onToggle={() => onToggle(t.id)}
+                    onOpenForm={() => onOpenForm(t.id)}
+                  />
+                );
+              })}
             </div>
           );
         })}
@@ -528,11 +682,17 @@ function ActiveCard({
 function TaskRow({
   task,
   checked,
+  step,
+  canOpenForm,
   onToggle,
+  onOpenForm,
 }: {
   task: OnboardingTask;
   checked: boolean;
+  step: SequenceStep | null;
+  canOpenForm: boolean;
   onToggle: () => void;
+  onOpenForm: () => void;
 }) {
   const howto = task.howto;
   return (
@@ -552,14 +712,34 @@ function TaskRow({
               <span dangerouslySetInnerHTML={{ __html: howto }} />
             ) : (
               <ol>
-                {howto.map((step, i) => (
-                  <li key={i} dangerouslySetInnerHTML={{ __html: step }} />
+                {howto.map((stepText, i) => (
+                  <li key={i} dangerouslySetInnerHTML={{ __html: stepText }} />
                 ))}
               </ol>
             )}
           </div>
         )}
       </div>
+      {step && canOpenForm && (
+        <button
+          type="button"
+          className="ob-task-action"
+          onClick={onOpenForm}
+          title={step.hint}
+        >
+          {checked ? (
+            <>
+              Re-run
+              <IconArrowRight size={10} />
+            </>
+          ) : (
+            <>
+              Open form
+              <IconArrowRight size={10} />
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }
@@ -597,3 +777,93 @@ function GhlSyncPill({
     </button>
   );
 }
+
+// Inline styles for the form overlay + the per-task action button.
+// Kept colocated so the unified checklist stays self-contained.
+const FORM_OVERLAY_CSS = `
+.ob-task {
+  grid-template-columns: 22px 1fr auto;
+}
+.ob-task-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--hml-accent-dim);
+  color: var(--hml-accent);
+  border: 1px solid var(--hml-accent-border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-family: var(--hml-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-top: 1px;
+  align-self: start;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ob-task-action:hover {
+  background: var(--hml-accent);
+  color: var(--hml-bg-base);
+  border-color: var(--hml-accent);
+}
+.ob-task.ob-complete .ob-task-action {
+  background: transparent;
+  color: var(--hml-text-tertiary);
+  border-color: var(--hml-border);
+}
+.ob-task.ob-complete .ob-task-action:hover {
+  color: var(--hml-text-primary);
+  border-color: var(--hml-border-strong);
+}
+
+.ob-form-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  background: var(--hml-bg-elev-1);
+  border: 1px solid var(--hml-border-subtle);
+  border-radius: 10px;
+}
+.ob-form-back {
+  background: transparent;
+  border: 1px solid var(--hml-border);
+  color: var(--hml-text-secondary);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s;
+}
+.ob-form-back:hover {
+  border-color: var(--hml-accent);
+  color: var(--hml-accent);
+}
+.ob-form-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.ob-form-task {
+  font-family: var(--hml-font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hml-text-primary);
+}
+.ob-form-hint {
+  font-family: var(--hml-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--hml-accent);
+  background: var(--hml-accent-dim);
+  border: 1px solid var(--hml-accent-border);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+`;

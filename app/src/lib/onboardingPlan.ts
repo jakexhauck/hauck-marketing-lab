@@ -70,19 +70,19 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     num: 2,
     name: "Technical Setup",
     purpose:
-      "Pixel firing, ad account funded, competitive intel pulled. Plumbing green before a dollar moves.",
-    hint: "Business Manager · pixel install + verify · payment method · competitor research.",
+      "Competitive intel pulled first (it feeds every downstream agent), then pixel firing and ad account funded. Plumbing green before a dollar moves.",
+    hint: "Competitor research · Business Manager · pixel install + verify · payment method.",
     meta: "Day 1 · 5 tasks",
     subsections: [
       {
         id: "2.1",
         title: "Accounts & tracking",
         tasks: [
+          task("03-competitors", "Research competitors first — output feeds audiences, brief, and ad copy."),
           task("03-bm-setup", "Set up or audit Meta Business Manager."),
           task("03-pixel", "Install Meta Pixel on their website."),
           task("03-pixel-verify", "Verify pixel is firing correctly."),
           task("03-payment", "Set up payment method on ad account."),
-          task("03-competitors", "Research competitors in the AI Audience Agent."),
         ],
       },
     ],
@@ -92,8 +92,8 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     name: "Creative Production",
     purpose:
       "Copy, creative, and audiences all built with the AI agents. Client signs off before anything ships.",
-    hint: "10+ ad copy variations · creative concepts · audiences · client approval.",
-    meta: "Days 2–3 · 4 tasks",
+    hint: "10+ ad copy variations · creative concepts · static creatives · audiences · client approval.",
+    meta: "Days 2–3 · 5 tasks",
     subsections: [
       {
         id: "3.1",
@@ -101,6 +101,7 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
         tasks: [
           task("04-copy", "Generate 10+ ad copy variations with AI Ad Copy Agent."),
           task("04-creative", "Generate creative concepts with AI Creative Agent."),
+          task("04-creatives", "Build static ad creatives (Nano Banana 2 prompts) from chosen ad copy."),
           task("04-audiences", "Build audiences with AI Audience Agent."),
           task("04-approval", "Send creatives to client for approval."),
         ],

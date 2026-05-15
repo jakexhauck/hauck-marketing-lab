@@ -195,6 +195,28 @@ export const api = {
       outputPath,
       filename,
     }),
+  generateNanoBananaImage: (
+    apiKey: string,
+    prompt: string,
+    aspectRatio: string,
+    outputPath: string,
+  ) =>
+    invoke<string>("generate_nano_banana_image", {
+      apiKey,
+      prompt,
+      aspectRatio,
+      outputPath,
+    }),
+  generateCreativeSet: (
+    apiKey: string,
+    prompts: import("./types").CreativePrompt[],
+    outputDir: string,
+  ) =>
+    invoke<import("./types").CreativeBatchResult>("generate_creative_set", {
+      apiKey,
+      prompts,
+      outputDir,
+    }),
   listBenchmarkSets: (root: string) =>
     invoke<BenchmarkSummary[]>("list_benchmark_sets", { root }),
   readBenchmarksForClient: (root: string, clientSlug: string) =>

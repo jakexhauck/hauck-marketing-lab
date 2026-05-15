@@ -2,9 +2,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::PathBuf;
 use std::process::Stdio;
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
+use tokio::sync::Mutex;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ClaudeCheck {
@@ -149,27 +151,30 @@ pub async fn invoke_claude(
     let stdout = child.stdout.take().ok_or("no stdout")?;
     let stderr = child.stderr.take();
 
-    let app_for_err = app.clone();
-    let id_for_err = id.clone();
-    if let Some(stderr) = stderr {
+    let stderr_buf: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
+    let stderr_handle = stderr.map(|stderr| {
+        let buf = Arc::clone(&stderr_buf);
+        let app_for_err = app.clone();
+        let id_for_err = id.clone();
         tauri::async_runtime::spawn(async move {
             let mut reader = BufReader::new(stderr).lines();
-            let mut buf = String::new();
             while let Ok(Some(line)) = reader.next_line().await {
-                buf.push_str(&line);
-                buf.push('\n');
+                let mut b = buf.lock().await;
+                b.push_str(&line);
+                b.push('\n');
             }
-            if !buf.trim().is_empty() {
+            let final_buf = buf.lock().await.clone();
+            if !final_buf.trim().is_empty() {
                 let _ = app_for_err.emit(
                     "claude://stream",
                     StreamEvent::Error {
                         id: id_for_err.clone(),
-                        message: buf,
+                        message: final_buf,
                     },
                 );
             }
-        });
-    }
+        })
+    });
 
     let mut reader = BufReader::new(stdout).lines();
     let mut full = String::new();
@@ -237,7 +242,35 @@ pub async fn invoke_claude(
         }
     }
 
-    let _status = child.wait().await.map_err(|e| format!("wait: {e}"))?;
+    let status = child.wait().await.map_err(|e| format!("wait: {e}"))?;
+
+    if let Some(handle) = stderr_handle {
+        let _ = handle.await;
+    }
+
+    if full.trim().is_empty() {
+        let stderr_text = stderr_buf.lock().await.clone();
+        let stderr_summary = if stderr_text.trim().is_empty() {
+            "(stderr empty)".to_string()
+        } else {
+            stderr_text.trim().to_string()
+        };
+        let exit_summary = match status.code() {
+            Some(c) => format!("exit code {c}"),
+            None => format!("terminated without exit code ({status})"),
+        };
+        let message = format!(
+            "claude -p produced no text. {exit_summary}. stderr: {stderr_summary}"
+        );
+        let _ = app.emit(
+            "claude://stream",
+            StreamEvent::Error {
+                id: id.clone(),
+                message: message.clone(),
+            },
+        );
+        return Err(message);
+    }
 
     let _ = app.emit(
         "claude://stream",

@@ -21,6 +21,7 @@ export type SequenceStepId =
   | "audiences"
   | "creative-brief"
   | "ad-copy"
+  | "ad-creative"
   | "approval-email"
   | "structure"
   | "live-message"
@@ -30,10 +31,16 @@ export type SequenceStepId =
 /**
  * Maps a prior step's output JSON keys to this step's form field keys.
  * Run AFTER prefillFromProfile so chained values take precedence over Profile.md.
+ *
+ * `rawBodyField` is an escape hatch for prior steps that emit pure markdown
+ * (no JSON block, e.g. ad-copy). When set, the entire markdown body of the
+ * prior step's saved file is mapped into that field key, in addition to any
+ * JSON-key mappings declared in `fields`.
  */
 export interface ChainSpec {
   step: SequenceStepId;
   fields: Record<string, string>;
+  rawBodyField?: string;
 }
 
 export interface SequenceStep {
@@ -44,10 +51,21 @@ export interface SequenceStep {
   phase: number;
   label: string;
   hint: string;
-  chainFrom?: ChainSpec | null;
+  /** One or more prior-step outputs to prefill from. Multiple specs are applied
+   *  in order; later sources can overwrite earlier ones if their target fields
+   *  collide. */
+  chainFrom?: ChainSpec | ChainSpec[] | null;
 }
 
 export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
+  {
+    id: "competitors",
+    formId: "competitors",
+    checklistTaskId: "03-competitors",
+    phase: 2,
+    label: "Research competitors",
+    hint: "Pull 5–10 competitors with angles, offers, and weaknesses. Runs first so its intel feeds every downstream step.",
+  },
   {
     id: "pixel-install",
     formId: "pixel-install",
@@ -57,20 +75,16 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
     hint: "Walk through installing the Meta Pixel on the client's site.",
   },
   {
-    id: "competitors",
-    formId: "competitors",
-    checklistTaskId: "03-competitors",
-    phase: 2,
-    label: "Research competitors",
-    hint: "Pull 5–10 competitors with angles, offers, and weaknesses.",
-  },
-  {
     id: "audiences",
     formId: "audiences",
     checklistTaskId: "04-audiences",
     phase: 3,
     label: "Build audiences",
-    hint: "3–5 Meta audiences: broad, interest, lookalike.",
+    hint: "3–5 Meta audiences: broad, interest, lookalike. Pre-seeded with competitor intel.",
+    chainFrom: {
+      step: "competitors",
+      fields: { key_takeaways: "competitor_intel" },
+    },
   },
   {
     id: "creative-brief",
@@ -78,11 +92,17 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
     checklistTaskId: "04-creative",
     phase: 3,
     label: "Write creative brief",
-    hint: "Lock the hook, message, proof, and CTA before copy.",
-    chainFrom: {
-      step: "audiences",
-      fields: { launch_first: "audience" },
-    },
+    hint: "Lock the hook, message, proof, and CTA. Informed by competitor white-space.",
+    chainFrom: [
+      {
+        step: "competitors",
+        fields: { key_takeaways: "competitor_intel" },
+      },
+      {
+        step: "audiences",
+        fields: { launch_first: "audience" },
+      },
+    ],
   },
   {
     id: "ad-copy",
@@ -90,7 +110,30 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
     checklistTaskId: "04-copy",
     phase: 3,
     label: "Generate ad copy",
-    hint: "10+ variations from the locked brief.",
+    hint: "10+ variations from the locked brief and competitor angles.",
+    chainFrom: {
+      step: "competitors",
+      fields: { key_takeaways: "competitor_intel" },
+    },
+  },
+  {
+    id: "ad-creative",
+    formId: "ad-creative",
+    checklistTaskId: "04-creatives",
+    phase: 3,
+    label: "Build static creatives",
+    hint: "Turn chosen ad-copy variations into Nano Banana 2 image prompts. Pick which ads, pick which dimensions, paste prompts into Google AI Studio.",
+    chainFrom: [
+      {
+        step: "ad-copy",
+        fields: {},
+        rawBodyField: "ad_copy_markdown",
+      },
+      {
+        step: "creative-brief",
+        fields: { visual_style: "visual_style", do_nots: "do_nots" },
+      },
+    ],
   },
   {
     id: "approval-email",
@@ -151,6 +194,11 @@ export interface SequenceState {
   /** Set once Jake clicks "Mark launched" on the final step. Mirrors adsLaunchedAt
    *  on the ops/clients.json row, but kept here for the local UI flag. */
   launchedAt?: string;
+  /** Google Drive folder ID for this client's creative assets. Sticky across
+   *  ad-creative runs so Jake doesn't re-paste it every time. The backend treats
+   *  the whole sequence block as opaque JSON, so adding a field here is a
+   *  TS-only change. */
+  driveFolderId?: string;
 }
 
 export function emptySequenceState(): SequenceState {

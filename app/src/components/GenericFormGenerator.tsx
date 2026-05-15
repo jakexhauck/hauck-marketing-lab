@@ -60,6 +60,111 @@ function extractJson(src: string): Record<string, unknown> | null {
   }
 }
 
+/** Sanitise a string for use as a vault folder name. Matches the Rust side
+ *  (vault_root + Clients/<name>); the client name is normally already safe
+ *  but stripping path separators belt-and-braces. */
+function safeFolder(name: string): string {
+  return name.replace(/[\\/:*?"<>|]/g, "").trim();
+}
+
+type ParsedCreativePrompt = {
+  filename?: string;
+  aspect_ratio?: string;
+  prompt?: string;
+};
+
+/** Pull the Nano Banana 2 prompts out of Claude's JSON block, call
+ *  generate_creative_set, and return a markdown results block to append to
+ *  the saved output. Catches everything so a Gemini failure does not block
+ *  the brief from saving. */
+async function runImageGeneration(
+  finalText: string,
+  parsedJson: Record<string, unknown> | null,
+  root: string,
+  clientName: string,
+  setStreamText: (updater: (prev: string) => string) => void,
+): Promise<string> {
+  setStreamText((p) => p + "\n\n[Calling Nano Banana 2 …]\n");
+
+  const promptsRaw = parsedJson?.prompts as unknown;
+  if (!Array.isArray(promptsRaw) || promptsRaw.length === 0) {
+    return "## Image generation\n\nSkipped: Claude did not emit a `prompts` array.";
+  }
+
+  const prompts = (promptsRaw as ParsedCreativePrompt[])
+    .filter(
+      (p): p is Required<ParsedCreativePrompt> =>
+        typeof p?.filename === "string" &&
+        typeof p?.aspect_ratio === "string" &&
+        typeof p?.prompt === "string",
+    )
+    .map((p) => ({
+      filename: p.filename,
+      aspect_ratio: p.aspect_ratio,
+      prompt: p.prompt,
+    }));
+
+  if (prompts.length === 0) {
+    return "## Image generation\n\nSkipped: no valid prompts in the JSON block.";
+  }
+
+  let apiKey: string | null = null;
+  try {
+    const cfg = await api.loadConfig();
+    apiKey = cfg.gemini_api_key ?? null;
+  } catch {
+    apiKey = null;
+  }
+  if (!apiKey) {
+    return "## Image generation\n\nSkipped: no Gemini API key on file. Settings → Google AI Studio.";
+  }
+
+  let vaultRoot: string;
+  try {
+    vaultRoot = await api.vaultRootPath(root);
+  } catch (e) {
+    return `## Image generation\n\nSkipped: could not resolve vault root (${String(e)}).`;
+  }
+
+  const date = new Date().toISOString().slice(0, 10);
+  const sep = vaultRoot.includes("\\") ? "\\" : "/";
+  const outputDir = [
+    vaultRoot,
+    "Clients",
+    safeFolder(clientName),
+    "Assets",
+    `${date}-creatives`,
+  ].join(sep);
+
+  try {
+    const result = await api.generateCreativeSet(apiKey, prompts, outputDir);
+    const lines: string[] = ["## Image generation"];
+    lines.push(`Rendered ${result.saved.length} / ${prompts.length} creatives via Nano Banana 2.`);
+    lines.push(`Output folder: \`${outputDir}\``);
+    lines.push("");
+    if (result.saved.length > 0) {
+      lines.push("### Saved");
+      for (const r of result.saved) {
+        lines.push(`- \`${r.filename}\` · ${r.aspect_ratio} → \`${r.saved_path}\``);
+      }
+    }
+    if (result.errors.length > 0) {
+      lines.push("");
+      lines.push("### Errors");
+      for (const e of result.errors) {
+        lines.push(`- \`${e.filename}\`: ${e.error}`);
+      }
+    }
+    setStreamText((p) => p + `\n[Done. ${result.saved.length} images saved, ${result.errors.length} errors.]\n`);
+    // `finalText` is already in the saved markdown — return only the new
+    // results block; the caller appends it.
+    void finalText;
+    return lines.join("\n");
+  } catch (e) {
+    return `## Image generation\n\nFailed: ${String(e)}`;
+  }
+}
+
 function clampNumber(s: string | number, min: number, max: number, fallback: number): number {
   const n = Math.round(Number(s));
   if (!Number.isFinite(n)) return fallback;
@@ -239,6 +344,34 @@ export function GenericFormGenerator({
     if (el) el.scrollTop = el.scrollHeight;
   }, [streamText]);
 
+  const progress = useMemo(() => {
+    const cfg = config.progress;
+    if (!cfg) return null;
+    let count = 0;
+    try {
+      const itemRe = new RegExp(cfg.itemPattern, "gm");
+      count = (streamText.match(itemRe) ?? []).length;
+    } catch {
+      count = 0;
+    }
+    let section: string | null = null;
+    if (cfg.sectionPattern) {
+      try {
+        const sectionRe = new RegExp(cfg.sectionPattern, "gm");
+        let last: RegExpExecArray | null = null;
+        let m: RegExpExecArray | null;
+        while ((m = sectionRe.exec(streamText)) !== null) last = m;
+        if (last) section = last[1] ?? last[0];
+      } catch {
+        section = null;
+      }
+    }
+    const done = Math.min(count, cfg.total);
+    const pct = cfg.total > 0 ? Math.round((done / cfg.total) * 100) : 0;
+    const unit = cfg.unitLabel + (done === 1 ? "" : "s");
+    return { done, total: cfg.total, pct, unit, section };
+  }, [config.progress, streamText]);
+
   const setField = (key: string, value: string | number | string[]) =>
     setValues((prev) => ({ ...prev, [key]: value }));
 
@@ -303,17 +436,44 @@ export function GenericFormGenerator({
     try {
       const full = await api.invokeClaude(id, prompt);
       const finalText = full || streamText;
+      if (!finalText.trim()) {
+        // Rust now throws Err when there's no text; fall back here only if
+        // somehow we still got an empty string. Preserve any stream-error.
+        setError(
+          (prev) =>
+            prev ??
+            "Generation finished but no text was returned. Try running again — if it keeps happening, run `claude --version` in a terminal to confirm the CLI is logged in and not rate-limited.",
+        );
+        return;
+      }
       const parsed = extractJson(finalText);
       const title =
         (parsed?.headline as string | undefined) ?? `${config.defaultTitle} · ${clientName}`;
       const summary = (parsed?.summary as string | undefined) ?? null;
+
+      // Image-generation post-processor: if the form is flagged, parse the
+      // JSON prompts block emitted by Claude, render each via Nano Banana 2,
+      // save the PNGs into the client's vault Assets folder, and append a
+      // results block to the markdown body before saving.
+      let finalBody = finalText;
+      if (config.imageGeneration?.provider === "nano-banana-2") {
+        const renderNote = await runImageGeneration(
+          finalText,
+          parsed,
+          root,
+          clientName,
+          setStreamText,
+        );
+        finalBody = `${finalText}\n\n${renderNote}`;
+      }
+
       const output = await api.saveGeneratorOutput({
         root,
         clientSlug,
         kind: config.kind,
         title,
         summary,
-        body: finalText,
+        body: finalBody,
         inputsYaml: buildInputsYaml(config, values),
       });
       setSaved(output);
@@ -579,9 +739,40 @@ export function GenericFormGenerator({
           >
             <span>▸ {config.agentName.toUpperCase()} · DRAFTING</span>
             <span style={{ marginLeft: "auto", opacity: 0.75 }}>
-              {streaming ? "streaming" : "complete"}
+              {progress
+                ? `${progress.done} of ${progress.total} ${progress.unit}${
+                    progress.section ? ` · ${progress.section}` : ""
+                  }`
+                : streaming
+                  ? "streaming"
+                  : "complete"}
             </span>
           </div>
+          {progress && (
+            <div
+              style={{
+                height: 4,
+                borderRadius: 2,
+                background: "rgba(255,255,255,0.06)",
+                overflow: "hidden",
+                margin: "2px 0 10px",
+              }}
+              role="progressbar"
+              aria-valuenow={progress.done}
+              aria-valuemin={0}
+              aria-valuemax={progress.total}
+              aria-label={`${progress.done} of ${progress.total} ${progress.unit} drafted`}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${progress.pct}%`,
+                  background: "var(--copper, #ec9849)",
+                  transition: "width 200ms ease-out",
+                }}
+              />
+            </div>
+          )}
           <div ref={transcriptRef} style={{ maxHeight: 480, overflow: "auto" }}>
             <FormOutput body={streamText} kind={config.kind} streaming />
             {streaming && <span className="caret" />}

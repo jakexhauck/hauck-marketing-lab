@@ -6,6 +6,9 @@ import { LeadsProvider } from "./context/LeadsContext";
 import Login from "./routes/Login";
 import Dashboard from "./routes/Dashboard";
 import LeadDetail from "./routes/LeadDetail";
+import Today from "./routes/Today";
+import Showroom from "./routes/Showroom";
+import Simulator from "./routes/Simulator";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -28,6 +31,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/showroom" element={<Showroom />} />
               <Route
                 path="/dashboard"
                 element={
@@ -37,10 +41,26 @@ export default function App() {
                 }
               />
               <Route
+                path="/today"
+                element={
+                  <ProtectedRoute>
+                    <Today />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/lead/:id"
                 element={
                   <ProtectedRoute>
                     <LeadDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/simulator"
+                element={
+                  <ProtectedRoute>
+                    <Simulator />
                   </ProtectedRoute>
                 }
               />

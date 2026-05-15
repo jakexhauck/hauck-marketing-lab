@@ -39,6 +39,10 @@ export function SettingsPage({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claude, setClaude] = useState<ClaudeCheck | null>(null);
+  const [geminiKeyDraft, setGeminiKeyDraft] = useState("");
+  const [geminiKeySaved, setGeminiKeySaved] = useState<string | null>(null);
+  const [geminiSaving, setGeminiSaving] = useState(false);
+  const [geminiReveal, setGeminiReveal] = useState(false);
 
   type UpdateUiState =
     | { phase: "idle" }
@@ -84,7 +88,50 @@ export function SettingsPage({
         setClaude(null);
       }
     })();
+    (async () => {
+      try {
+        const cfg = await api.loadConfig();
+        setGeminiKeySaved(cfg.gemini_api_key ?? null);
+      } catch {
+        setGeminiKeySaved(null);
+      }
+    })();
   }, []);
+
+  const handleSaveGeminiKey = async () => {
+    setError(null);
+    setGeminiSaving(true);
+    try {
+      const cfg = await api.loadConfig();
+      const next = { ...cfg, gemini_api_key: geminiKeyDraft.trim() || null };
+      await api.saveConfig(next);
+      setGeminiKeySaved(next.gemini_api_key);
+      setGeminiKeyDraft("");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setGeminiSaving(false);
+    }
+  };
+
+  const handleClearGeminiKey = async () => {
+    setError(null);
+    setGeminiSaving(true);
+    try {
+      const cfg = await api.loadConfig();
+      const next = { ...cfg, gemini_api_key: null };
+      await api.saveConfig(next);
+      setGeminiKeySaved(null);
+      setGeminiKeyDraft("");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setGeminiSaving(false);
+    }
+  };
+
+  const maskedKey = (key: string) =>
+    key.length <= 8 ? "•".repeat(key.length) : `${key.slice(0, 4)}…${key.slice(-4)}`;
 
   const resolvedDefaultSlug =
     defaultAgentSlug && agents.some((a) => a.slug === defaultAgentSlug)
@@ -294,6 +341,78 @@ export function SettingsPage({
 
           {/* GoHighLevel ──────────────────────────────────── */}
           <GhlSettings />
+
+          {/* Google AI Studio (Nano Banana 2) ─────────────── */}
+          <section className="hml-panel set-panel">
+            <div className="hml-panel-header">
+              <div className="hml-panel-title">
+                <span
+                  className="hml-dot"
+                  style={{ background: "var(--hml-accent)" }}
+                />
+                Google AI Studio
+              </div>
+              <span className="hml-panel-action">
+                Powers the Static Ad Creative Builder
+              </span>
+            </div>
+            <div className="hml-panel-body set-body">
+              {geminiKeySaved ? (
+                <div className="set-inline-row">
+                  <span className="set-inline-text">
+                    Key saved:{" "}
+                    <code className="set-code">
+                      {geminiReveal ? geminiKeySaved : maskedKey(geminiKeySaved)}
+                    </code>
+                  </span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      className="hml-btn"
+                      onClick={() => setGeminiReveal((v) => !v)}
+                    >
+                      {geminiReveal ? "Hide" : "Reveal"}
+                    </button>
+                    <button
+                      type="button"
+                      className="hml-btn"
+                      onClick={handleClearGeminiKey}
+                      disabled={geminiSaving}
+                    >
+                      {geminiSaving ? "Clearing…" : "Clear"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="set-path-row">
+                  <input
+                    type="password"
+                    className="set-path"
+                    style={{ whiteSpace: "normal" }}
+                    placeholder="Paste your Google AI Studio API key…"
+                    value={geminiKeyDraft}
+                    onChange={(e) => setGeminiKeyDraft(e.target.value)}
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    className="hml-btn"
+                    onClick={handleSaveGeminiKey}
+                    disabled={geminiSaving || !geminiKeyDraft.trim()}
+                  >
+                    {geminiSaving ? "Saving…" : "Save key"}
+                  </button>
+                </div>
+              )}
+              <p className="set-note">
+                Get a key at{" "}
+                <code>aistudio.google.com/apikey</code>. Stored locally in{" "}
+                <code>config.json</code>, never synced. Required by the Static
+                Ad Creative form to call Nano Banana 2{" "}
+                (<code>gemini-3-pro-image-preview</code>).
+              </p>
+            </div>
+          </section>
 
           {/* Shortcuts ────────────────────────────────────── */}
           <section className="hml-panel set-panel">

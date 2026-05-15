@@ -4,6 +4,31 @@ export type AppConfig = {
   default_agent_slug?: string | null;
   /** Agency-wide Google Drive folder URL that holds SOP docs. */
   sops_drive_folder_url?: string | null;
+  /** Google AI Studio API key for Nano Banana 2 image generation. */
+  gemini_api_key?: string | null;
+};
+
+/** Nano Banana 2 prompt shape consumed by `generate_creative_set`. */
+export type CreativePrompt = {
+  filename: string;
+  aspect_ratio: string;
+  prompt: string;
+};
+
+export type CreativeImageResult = {
+  filename: string;
+  saved_path: string;
+  aspect_ratio: string;
+};
+
+export type CreativeBatchError = {
+  filename: string;
+  error: string;
+};
+
+export type CreativeBatchResult = {
+  saved: CreativeImageResult[];
+  errors: CreativeBatchError[];
 };
 
 export type AgentSummary = {
@@ -144,6 +169,7 @@ export interface OnboardingState {
     stepOutputs: Record<string, { path: string; completedAt: string }>;
     skipped?: string[];
     launchedAt?: string;
+    driveFolderId?: string;
   };
 }
 

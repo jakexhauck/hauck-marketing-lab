@@ -92,6 +92,24 @@ export type FormConfig = {
   /** Optional: pre-fill these form fields from the active client's Profile.md.
    *  Map: form-field-key → ProfileFormValues key. */
   prefillFromProfile?: Partial<Record<string, keyof ProfileFormValues>>;
+  /** Optional: when set, the form post-processes Claude's output through an
+   *  image-generation pipeline (currently Nano Banana 2 via Google AI Studio).
+   *  Claude must emit a fenced ```json block with shape {prompts: [...]}, and
+   *  the post-processor calls Gemini for each entry, saving PNGs to the
+   *  client's vault assets folder. */
+  imageGeneration?: {
+    provider: "nano-banana-2";
+  };
+  /** Optional: drives the in-flight progress bar in the DRAFTING card.
+   *  `itemPattern` is matched against the streamed text with /gm flags; each
+   *  match counts as one drafted item. `sectionPattern` (optional) captures the
+   *  current section label from H2 headers as they stream in. */
+  progress?: {
+    total: number;
+    unitLabel: string;
+    itemPattern: string;
+    sectionPattern?: string;
+  };
 };
 
 // ── Vortex · Welcome Email ─────────────────────────────────────────
@@ -635,11 +653,11 @@ const COMPETITOR_RESEARCH: FormConfig = {
     },
   ],
   taskDescription:
-    "Produce a competitor intel brief covering the requested number of competitors in this niche and region. For each: company, primary angle, offer/pricing visible publicly, review themes (what customers love + complain about), landing-page CTA, and one weakness Jake can exploit in positioning. End with a synthesis: where the white space is.",
+    "Produce a competitor intel brief covering the requested number of competitors in this niche and region. For each: company, primary angle, offer/pricing visible publicly, review themes (what customers love + complain about), landing-page CTA, and one weakness Jake can exploit in positioning. End with a synthesis: where the white space is. Also produce a tight `key_takeaways` string (3-5 sentences, max ~600 chars) that downstream agents (Audiences, Creative Brief, Ad Copy) will receive as context: the dominant angles competitors are already running, the offers/price points on display, the recurring objections in reviews, and the angle/positioning gap Jake should attack. Be specific, concrete, and skimmable — this is the digest other agents act on.",
   outputSchema:
-    '{"headline":"…","summary":"…","competitors":[{"name":"…","angle":"…","offer":"…","weakness":"…"}],"white_space":"…"}',
+    '{"headline":"…","summary":"…","competitors":[{"name":"…","angle":"…","offer":"…","weakness":"…"}],"white_space":"…","key_takeaways":"…"}',
   outputInstructions:
-    "After the JSON, write the full brief — one section per competitor, then a closing white-space section with the 2-3 plays Jake can run that nobody else is running.",
+    "After the JSON, write the full brief — one section per competitor, then a closing white-space section with the 2-3 plays Jake can run that nobody else is running. The JSON `key_takeaways` field must stand alone — readable in isolation by another agent that has not seen the rest of the brief.",
   defaultTitle: "Competitor research brief",
 };
 
@@ -732,9 +750,24 @@ const AUDIENCE_BUILDER: FormConfig = {
         },
       ],
     },
+    {
+      title: "▸ COMPETITOR INTEL",
+      meta: "auto-filled from prior step",
+      fields: [
+        {
+          kind: "textarea",
+          key: "competitor_intel",
+          label: "Competitor intel",
+          promptLabel: "Competitor intel",
+          placeholder:
+            "Key takeaways from the competitor research brief. Auto-filled when this step runs after the Competitor Research step.",
+          minRows: 4,
+        },
+      ],
+    },
   ],
   taskDescription:
-    "Build 3-5 Meta ad-set audiences for this objective and customer. Always include one BROAD (let the algorithm decide), one INTEREST-STACKED, and one LOOKALIKE — plus any other variant that's smart for this niche. For each: geo, demo, interests, exclusions, expected reach band, and a one-paragraph reasoning. End with a recommendation on which to launch first.",
+    "Build 3-5 Meta ad-set audiences for this objective and customer. Always include one BROAD (let the algorithm decide), one INTEREST-STACKED, and one LOOKALIKE — plus any other variant that's smart for this niche. For each: geo, demo, interests, exclusions, expected reach band, and a one-paragraph reasoning. End with a recommendation on which to launch first. If competitor intel is provided, use it to (a) sharpen interest stacks around the angles competitors are NOT already saturating, (b) avoid audiences likely to have high ad-fatigue overlap with competitor spend, and (c) call out in each reasoning paragraph which competitive angle the audience attacks.",
   outputSchema:
     '{"headline":"…","summary":"…","audiences":[{"type":"broad|interest|lookalike|custom","name":"…","reach_band":"…","reasoning":"…"}],"launch_first":"…"}',
   outputInstructions:
@@ -1260,9 +1293,24 @@ const CREATIVE_BRIEF: FormConfig = {
         },
       ],
     },
+    {
+      title: "▸ COMPETITOR INTEL",
+      meta: "auto-filled from prior step",
+      fields: [
+        {
+          kind: "textarea",
+          key: "competitor_intel",
+          label: "Competitor intel",
+          promptLabel: "Competitor intel",
+          placeholder:
+            "Key takeaways from the competitor research brief. Auto-filled when this step runs after the Competitor Research step.",
+          minRows: 4,
+        },
+      ],
+    },
   ],
   taskDescription:
-    "Produce a complete creative brief a designer/editor can execute against. Follow the Vortex Creative Brief skill template — overview, audience, message, visual direction, technical specs, deliverables checklist. Be specific. No placeholders left unfilled.",
+    "Produce a complete creative brief a designer/editor can execute against. Follow the Vortex Creative Brief skill template — overview, audience, message, visual direction, technical specs, deliverables checklist. Be specific. No placeholders left unfilled. If competitor intel is provided, use it to position the hook + core message against the angles competitors are ALREADY running — the brief should explicitly own a different lane (different angle, different proof type, different visual treatment). Call out the competitive contrast in the brief's positioning section so the designer/editor understands what NOT to look like.",
   outputSchema:
     '{"headline":"…","summary":"…","format":"…","deliverables":["…","…"],"hook":"…","cta":"…"}',
   outputInstructions:
@@ -1348,6 +1396,21 @@ const AD_COPY: FormConfig = {
         },
       ],
     },
+    {
+      title: "▸ COMPETITOR INTEL",
+      meta: "auto-filled from prior step",
+      fields: [
+        {
+          kind: "textarea",
+          key: "competitor_intel",
+          label: "Competitor intel",
+          promptPlaceholder: "[COMPETITOR INTEL]",
+          placeholder:
+            "Key takeaways from the competitor research brief. Auto-filled when this step runs after the Competitor Research step.",
+          minRows: 4,
+        },
+      ],
+    },
   ],
   promptTemplate: `You are a world-class direct response copywriter. Write 12 ad copy variations for Facebook and Instagram ads.
 
@@ -1358,32 +1421,369 @@ USP: [UNIQUE SELLING PROPOSITION]
 CURRENT OFFER: [CURRENT OFFER]
 TONE: Casual and friendly
 
+COMPETITOR INTEL (use to differentiate, do NOT mimic):
+[COMPETITOR INTEL]
+
 RULES:
 1. ONE AD = ONE REASON TO BUY. Each ad must target a completely different motivation (different fear, desire, or angle). NOT variations of the same headline.
 2. Use these frameworks (3 ads each):
-   - PAS (Problem → Agitate → Solution)
-   - AIDA (Attention → Interest → Desire → Action)
-   - BAB (Before → After → Bridge)
-   - STORY (Character → Conflict → Resolution)
+   - PAS (Problem, Agitate, Solution)
+   - AIDA (Attention, Interest, Desire, Action)
+   - BAB (Before, After, Bridge)
+   - STORY (Character, Conflict, Resolution)
 3. Mix lengths:
-   - 3 short (under 50 words) — for Stories/Reels
-   - 6 medium (50-100 words) — for Feed ads
-   - 3 long (100-150 words) — for high-intent audiences
+   - 3 short (under 50 words), for Stories/Reels
+   - 6 medium (50-100 words), for Feed ads
+   - 3 long (100-150 words), for high-intent audiences
 4. ANTI-PATTERNS TO AVOID:
-   - No "Not X — It's Y" dramatic contrasts
+   - No "Not X, It's Y" dramatic contrasts
    - No triple parallel structures ("X. Y. And Z.")
    - No "Imagine this" or "Picture this" openers
    - No filler words: elevate, transform, unlock, game-changer, seamless, revolutionize
-   - No perfect grammar — use contractions, fragments, slang where natural
+   - No perfect grammar, use contractions, fragments, slang where natural
    - No question-then-answer cadence ("Tired of X? We have the solution.")
 5. Write like a human texting a friend, not a copywriter writing a brochure
-6. Include specific numbers, prices, and details — NOT generic claims
-7. Every ad ends with a clear CTA
+6. Include specific numbers, prices, and details, NOT generic claims
+7. Every ad ends with a clear CTA on its own line, with one emoji (👇 or 📲)
+8. NEVER use em dashes (—) anywhere. Not in copy, not in labels, not as separators. Use commas, periods, or parentheses instead.
 
-Label each ad with: [Framework] [Angle] [Length] [Word count]
+OUTPUT FORMAT (follow exactly):
+
+Group the 12 ads under three markdown H2 section headers, in this exact order, with a context tag separated by a middle dot (·):
+
+## Short Copy (under 50 words) · Feed & Story ads
+## Medium Copy (50-100 words) · Feed ads with See More
+## Long Copy (100+ words) · High-intent, storytelling
+
+Inside each section, each ad is formatted as a 3-line label block followed by the body. The label block is exactly three lines:
+
+  Line 1: FRAMEWORK name in ALL CAPS (PAS, AIDA, BAB, or STORY)
+  Line 2: Short angle descriptor (e.g. "Pain angle", "Social proof", "UGC style", "Origin story")
+  Line 3: Word count, in the form "N words"
+
+Force each of the three label lines onto its own visual line by ending lines 1 and 2 with a backslash (\\), which is markdown's hard line break. Do NOT bold the label. Do NOT put the label inside brackets. Do NOT prefix with "Ad N". Do NOT use commas or middle dots between the three label lines.
+
+Then a blank line, then the ad body. The hook is simply the first sentence of the first body paragraph, NOT bolded, NOT styled. Body paragraphs are separated by blank lines. The CTA is the last thing in the ad and ends with one emoji (👇 or 📲); it can be the tail of the final body paragraph or on its own line.
+
+A single blank line separates one ad from the next ad's label block. Do NOT use --- separators between ads.
+
+Example of the exact shape (generic structure only, do not reuse this wording, topic, or numbers):
+
+## Short Copy (under 50 words) · Feed & Story ads
+
+PAS\\
+Pain angle\\
+38 words
+
+Staring at an empty fridge again? Skip the grocery run. Tony's hand-tossed pizza, delivered hot in 20 minutes. Real Italian dough. Real ingredients. $12.99. Tap below 👇
+
+BAB\\
+Value angle\\
+32 words
+
+Before: $40 delivery pizza that arrives cold. After: $12.99 hand-tossed pizza at your door in 20 min, still steaming. Tony's Pizza. The upgrade your Tuesday needs.
 
 GO.`,
   defaultTitle: "Ad copy set",
+  progress: {
+    total: 12,
+    unitLabel: "ad",
+    itemPattern: "^(PAS|AIDA|BAB|STORY)\\b",
+    sectionPattern: "^##\\s+(Short Copy|Medium Copy|Long Copy)",
+  },
+};
+
+// ── Vortex · AI Static Ad Creative Builder ────────────────────────
+// Sits after AD_COPY in the media buying sequence. Pulls the 12 ad
+// variations as raw markdown via ChainSpec.rawBodyField, lets Jake pick
+// which ads to convert at which dimensions, then emits one ready-to-paste
+// Nano Banana 2 (Gemini 3 Pro Image) prompt per (ad × dimension) pair.
+// Static-only by design — video creatives come later.
+const AD_SLOT_OPTIONS = [
+  "Ad 1",
+  "Ad 2",
+  "Ad 3",
+  "Ad 4",
+  "Ad 5",
+  "Ad 6",
+  "Ad 7",
+  "Ad 8",
+  "Ad 9",
+  "Ad 10",
+  "Ad 11",
+  "Ad 12",
+];
+const AD_CREATIVE: FormConfig = {
+  id: "ad-creative",
+  title: "Static Ad Creative Builder",
+  subtitle:
+    "Picks ads from the prior copy step, turns each into a Nano Banana 2 prompt for Google AI Studio. Static only, home-services defaulted.",
+  eyebrow: "▸ AD CREATIVE · VORTEX",
+  eyebrowMeta: "TOOL · ANYTIME",
+  category: "misc",
+  agentSlug: "vortex",
+  agentName: "Vortex",
+  kind: "briefs",
+  savedHeading: "Creative prompt set saved",
+  generateLabel: "Build creative prompts",
+  generatingLabel: "Drafting prompts…",
+  prefillFromProfile: {
+    business_name: "business",
+    what_they_sell: "services",
+    brand_colors: "voice",
+    do_nots: "avoid",
+  },
+  sections: [
+    {
+      title: "▸ PRIOR AD COPY",
+      meta: "auto-filled from the ad-copy step",
+      fields: [
+        {
+          kind: "textarea",
+          key: "ad_copy_markdown",
+          label: "Ad copy variations (read-only reference)",
+          promptPlaceholder: "[AD COPY MARKDOWN]",
+          placeholder:
+            "Auto-filled from the prior Ad Copy step. The full 12-variation markdown lands here. Read it, then tick the ads you want as creatives below.",
+          minRows: 10,
+        },
+      ],
+    },
+    {
+      title: "▸ PICK ADS PER DIMENSION",
+      meta: "tick the ads to render at each size — same ad can appear in multiple groups",
+      fields: [
+        {
+          kind: "multi",
+          key: "ads_square",
+          label: "Square 1:1 · 1080×1080 · Feed",
+          promptPlaceholder: "[ADS SQUARE]",
+          options: AD_SLOT_OPTIONS,
+          defaults: [],
+        },
+        {
+          kind: "multi",
+          key: "ads_vertical",
+          label: "Vertical 9:16 · 1080×1920 · Stories & Reels",
+          promptPlaceholder: "[ADS VERTICAL]",
+          options: AD_SLOT_OPTIONS,
+          defaults: [],
+        },
+        {
+          kind: "multi",
+          key: "ads_portrait",
+          label: "Portrait 4:5 · 1080×1350 · Feed tall",
+          promptPlaceholder: "[ADS PORTRAIT]",
+          options: AD_SLOT_OPTIONS,
+          defaults: [],
+        },
+        {
+          kind: "multi",
+          key: "ads_landscape",
+          label: "Landscape 16:9 · 1200×628 · Desktop right-rail",
+          promptPlaceholder: "[ADS LANDSCAPE]",
+          options: AD_SLOT_OPTIONS,
+          defaults: [],
+        },
+      ],
+    },
+    {
+      title: "▸ VISUAL FORMATS",
+      meta: "tick the formats Claude should choose between when building each prompt",
+      fields: [
+        {
+          kind: "multi",
+          key: "visual_formats",
+          label: "Allowed visual formats",
+          promptPlaceholder: "[VISUAL FORMATS]",
+          options: [
+            "Before/after split-screen",
+            "Transformation close-up",
+            "Problem-state hero",
+            "UGC homeowner reaction",
+            "Results-stat card",
+            "Time-lapse still",
+          ],
+          defaults: ["Before/after split-screen", "Problem-state hero", "Results-stat card"],
+        },
+      ],
+    },
+    {
+      title: "▸ BUSINESS",
+      meta: "required",
+      fields: [
+        {
+          kind: "text",
+          key: "business_name",
+          label: "Business name",
+          promptPlaceholder: "[BUSINESS NAME]",
+          placeholder: "Willis Windows.",
+          required: true,
+        },
+        {
+          kind: "textarea",
+          key: "what_they_sell",
+          label: "What they sell",
+          promptPlaceholder: "[WHAT THEY SELL]",
+          placeholder: "Exterior window cleaning, single + multi-story homes.",
+          minRows: 2,
+          required: true,
+        },
+      ],
+    },
+    {
+      title: "▸ BRAND + GUARDRAILS",
+      meta: "look, palette, anti-AI-gloss notes",
+      fields: [
+        {
+          kind: "textarea",
+          key: "brand_colors",
+          label: "Brand colors + logo notes",
+          promptPlaceholder: "[BRAND COLORS]",
+          placeholder:
+            "Primary: navy #0B1E3F. Accent: lime #C5F04B. Logo: bottom-right corner, never centered.",
+          minRows: 2,
+        },
+        {
+          kind: "textarea",
+          key: "visual_style",
+          label: "Visual style direction",
+          promptPlaceholder: "[VISUAL STYLE]",
+          placeholder:
+            "Real-photo feel, phone-shot lighting, warm afternoon sun. Auto-filled from creative brief if available.",
+          minRows: 2,
+        },
+        {
+          kind: "textarea",
+          key: "do_nots",
+          label: "Do-nots",
+          promptPlaceholder: "[DO NOTS]",
+          placeholder:
+            "No stock-photo gloss. No fake-looking model shots. No generic AI sheen. Auto-filled from creative brief if available.",
+          minRows: 2,
+        },
+      ],
+    },
+    {
+      title: "▸ ASSETS",
+      meta: "where reference photos live + where final renders should sync",
+      fields: [
+        {
+          kind: "text",
+          key: "assets_path",
+          label: "Reference photo folder (vault path)",
+          promptPlaceholder: "[ASSETS PATH]",
+          placeholder: "vault/Clients/Willis Windows/Assets/",
+        },
+        {
+          kind: "text",
+          key: "drive_folder_id",
+          label: "Google Drive folder ID",
+          promptPlaceholder: "[DRIVE FOLDER ID]",
+          placeholder: "Sticky per client. Paste once, reused on every run.",
+        },
+      ],
+    },
+    {
+      title: "▸ COMPETITOR INTEL",
+      meta: "optional — used to differentiate the visual lane",
+      fields: [
+        {
+          kind: "textarea",
+          key: "competitor_intel",
+          label: "Competitor intel",
+          promptPlaceholder: "[COMPETITOR INTEL]",
+          placeholder:
+            "Key takeaways from the competitor research brief. Used to push the creatives into a different visual lane than competitors.",
+          minRows: 3,
+        },
+      ],
+    },
+  ],
+  promptTemplate: `You are a world-class direct response art director. You convert chosen ad-copy variations into Nano Banana 2 (Gemini 3 Pro Image) prompts that the app will then render directly via the Google AI Studio API. Static images only. No video, no motion language.
+
+BUSINESS: [BUSINESS NAME]
+WHAT THEY SELL: [WHAT THEY SELL]
+VERTICAL: Home services (real homes, real homeowners, real before/after).
+
+PRIOR AD COPY (12 variations, in order of appearance — "Ad 1" is the first in the markdown, "Ad 12" is the last):
+
+[AD COPY MARKDOWN]
+
+JAKE'S PICKS (one Nano Banana 2 prompt per (ad × dimension) pair listed here):
+- Square 1:1 (1080×1080): [ADS SQUARE]
+- Vertical 9:16 (1080×1920): [ADS VERTICAL]
+- Portrait 4:5 (1080×1350): [ADS PORTRAIT]
+- Landscape 16:9 (1200×628): [ADS LANDSCAPE]
+
+ALLOWED VISUAL FORMATS (choose the one that best fits each ad's angle):
+[VISUAL FORMATS]
+
+BRAND COLORS + LOGO: [BRAND COLORS]
+VISUAL STYLE: [VISUAL STYLE]
+DO NOTS: [DO NOTS]
+REFERENCE PHOTO FOLDER: [ASSETS PATH]
+COMPETITOR INTEL (push into a different visual lane): [COMPETITOR INTEL]
+
+RULES:
+1. ONE PROMPT = ONE (AD × DIMENSION) PAIR. If Jake picked "Ad 3" for both Square and Vertical, that is TWO prompts.
+2. Map each "Ad N" to the Nth ad in the prior markdown, counted top to bottom across all section headers.
+3. Each prompt MUST instruct Nano Banana 2 to render the on-image text IN THE IMAGE (Nano Banana 2 is excellent at typography). No post-production overlay.
+4. Pick exactly ONE visual format per prompt from the allowed list. Match the format to the ad's framework (PAS → problem-state hero, BAB → before/after split, AIDA hook → results-stat card, STORY → UGC reaction, etc.).
+5. Real-photo feel. Phone-shot lighting where it fits. NEVER stock-photo gloss, never fake-model sheen, never generic AI sleekness.
+6. Home-services context defaults: real exterior shots, real interiors, real tools, real homeowners. No corporate boardrooms.
+7. Bake brand colors into the design where appropriate (text box, CTA chip, accent stripe). Logo placement per the brand notes.
+8. NEVER use em dashes (—) anywhere in the output. Use commas, periods, or parentheses.
+
+OUTPUT FORMAT (follow EXACTLY, the app parses the JSON block to call Gemini):
+
+Begin with a fenced \`\`\`json block. Inside, an object with a single key "prompts" whose value is an array. One element per (ad × dimension) pair. Each element MUST have these exact keys:
+
+- ad_index: integer 1-12
+- framework: string ("PAS" | "AIDA" | "BAB" | "STORY")
+- visual_format: one of the allowed visual formats above
+- aspect_ratio: one of "1:1", "9:16", "4:5", "16:9"
+- filename: kebab-case PNG name, pattern "ad-{ad_index}-{aspect_token}.png" where aspect_token is "1x1" / "9x16" / "4x5" / "16x9"
+- source_copy_excerpt: one-line excerpt of the chosen ad's hook
+- on_image_text: object with keys headline, sub, cta_chip (all strings)
+- prompt: the full Nano Banana 2 prompt body as a single string. Must describe: scene, composition (cite the aspect ratio in plain words), lighting, props, brand palette anchors, exact on-image text to render and approximate placement, anti-stock-photo guardrails
+
+After the closing \`\`\` fence of the JSON block, write a one-line summary: "N prompts queued, M dimensions."
+
+Then a human-readable markdown body Jake can scan. Group blocks under H2 section headers by dimension, in this order (skip dimensions Jake did not pick):
+
+## Square 1:1 · 1080×1080
+## Vertical 9:16 · 1080×1920
+## Portrait 4:5 · 1080×1350
+## Landscape 16:9 · 1200×628
+
+Inside each dimension section, one block per ad, in numeric order:
+
+### Ad N · [FRAMEWORK] · [Visual format chosen] · \`ad-N-{aspect_token}.png\`
+
+**Source copy:** _Excerpt._
+
+**On-image text:**
+- Headline: …
+- Sub: …
+- CTA chip: …
+
+A single blank line separates blocks. Do NOT use --- dividers. Do NOT repeat the full Nano Banana prompt in the markdown body — it already lives in the JSON.
+
+End with a footer:
+
+---
+**Assets:** Renders will land in [ASSETS PATH]. Drive folder: \`[DRIVE FOLDER ID]\`.
+
+GO.`,
+  defaultTitle: "Static creatives",
+  imageGeneration: { provider: "nano-banana-2" },
+  progress: {
+    total: 12,
+    unitLabel: "prompt",
+    itemPattern: "^###\\s+Ad\\s+\\d+",
+    sectionPattern: "^##\\s+(Square|Vertical|Portrait|Landscape)",
+  },
 };
 
 // ── Nexus · Audience Research (Misc) ──────────────────────────────
@@ -1909,6 +2309,9 @@ Revenue:     $[REVENUE THIS]          $[REVENUE LAST]          [REVENUE CHANGE]
 // Ordered to match the onboarding sequence (onboardingPlan.ts):
 // 1. Close the Deal  → 2. Onboarding Call  → 3. Technical Setup
 // 4. Creative Production  → 5. Campaign Build + QA  → 6. Launch + Monitor
+// Within Technical Setup, COMPETITOR_RESEARCH lists before PIXEL_INSTALL
+// because its output now feeds Audiences / Creative Brief / Ad Copy via the
+// MEDIA_BUYING_SEQUENCE chain — it should be run first.
 // Misc tools (Hooks, Creative Brief) live below the phase forms and surface
 // in a separate "Misc" group in the sidebar + AgentFormsHub.
 export const ALL_FORM_CONFIGS: FormConfig[] = [
@@ -1916,8 +2319,8 @@ export const ALL_FORM_CONFIGS: FormConfig[] = [
   WELCOME_EMAIL,
   OFFER_CTA,
   EXPECTATIONS_EMAIL,
-  PIXEL_INSTALL,
   COMPETITOR_RESEARCH,
+  PIXEL_INSTALL,
   AUDIENCE_BUILDER,
   APPROVAL_EMAIL,
   CAMPAIGN_STRUCTURE,
@@ -1926,6 +2329,7 @@ export const ALL_FORM_CONFIGS: FormConfig[] = [
   HOOKS,
   CREATIVE_BRIEF,
   AD_COPY,
+  AD_CREATIVE,
   AUDIENCE_RESEARCH,
   WEEKLY_REPORT,
   MONTHLY_REPORT,

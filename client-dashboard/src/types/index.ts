@@ -57,6 +57,27 @@ export interface Lead {
   notes: string | null;
 }
 
+export type LeadActivityKind =
+  | "created"
+  | "stage-change"
+  | "note"
+  | "won-recorded";
+
+export interface LeadActivity {
+  id: string;
+  leadId: string;
+  kind: LeadActivityKind;
+  at: number; // epoch ms
+  authorUserId?: string;
+  // for stage-change:
+  fromStage?: LeadStage;
+  toStage?: LeadStage;
+  // for note:
+  body?: string;
+  // for won-recorded:
+  value?: number;
+}
+
 export interface Stats {
   leadsMtd: number;
   bookedMtd: number;

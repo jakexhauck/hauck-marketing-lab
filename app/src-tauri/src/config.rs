@@ -15,6 +15,11 @@ pub struct AppConfig {
     /// the Drive MCP tools (see sops.rs).
     #[serde(default)]
     pub sops_drive_folder_url: Option<String>,
+    /// Google AI Studio API key. Required by the AD_CREATIVE form to call
+    /// Nano Banana 2 (gemini-3-pro-image) for static ad generation. Lives
+    /// in plaintext in the per-user app config file; never committed.
+    #[serde(default)]
+    pub gemini_api_key: Option<String>,
 }
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {

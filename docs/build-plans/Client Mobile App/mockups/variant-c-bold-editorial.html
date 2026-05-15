@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Variant C: Bold Editorial</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root {
+    --brand: #1a4d8f;
+    --brand-deep: #0f3667;
+    --brand-ink: #0a223f;
+    --ink: #0b1220;
+    --muted: #6b7280;
+    --surface: #ffffff;
+    --page: #eef0f4;
+  }
+  html, body { background: var(--page); }
+  body {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .font-display {
+    font-family: 'Archivo', 'Inter', sans-serif;
+    font-stretch: 125%;
+    letter-spacing: -0.025em;
+  }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .tracking-micro { letter-spacing: 0.14em; }
+  .phone {
+    width: 414px;
+    height: 950px;
+    background: #ffffff;
+    border-radius: 44px;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.6) inset,
+      0 30px 60px -20px rgba(15, 23, 42, 0.35),
+      0 10px 30px -15px rgba(15, 23, 42, 0.25);
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+  }
+  .notch {
+    position: absolute;
+    top: 10px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 28px;
+    background: #0b1220;
+    border-radius: 999px;
+    z-index: 40;
+  }
+  .hero {
+    background:
+      radial-gradient(120% 80% at 100% 0%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 55%),
+      radial-gradient(80% 60% at 0% 100%, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0) 60%),
+      linear-gradient(140deg, #1a4d8f 0%, #14407a 55%, #0f3667 100%);
+    color: white;
+  }
+  .grain {
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 3px 3px;
+    mix-blend-mode: overlay;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .chip-active {
+    background: var(--brand);
+    color: #fff;
+    box-shadow: 0 6px 14px -6px rgba(26,77,143,0.55);
+  }
+  .stage-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: white;
+    line-height: 1;
+  }
+  .stage-booked   { background: #1a4d8f; }
+  .stage-sold     { background: #0a7a3b; }
+  .stage-new      { background: #b4530a; }
+  .stage-contact  { background: #5b2bd9; }
+  .stage-estimate { background: #c2410c; }
+  .stage-lost     { background: #4b5563; }
+
+  .divider { border-top: 1px solid rgba(15,23,42,0.06); }
+  .avatar {
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-weight: 800;
+    font-family: 'Archivo', sans-serif;
+    letter-spacing: 0;
+    font-size: 15px;
+    box-shadow: 0 6px 14px -8px rgba(15,23,42,0.45);
+  }
+  .scroll-x::-webkit-scrollbar { display: none; }
+  .scroll-x { scrollbar-width: none; }
+
+  .label-cap {
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-weight: 700;
+    font-size: 10.5px;
+    color: #6b7280;
+  }
+  .label-cap-light {
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    font-size: 10px;
+    color: rgba(255,255,255,0.75);
+  }
+  .stat-num {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: #0b1220;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-num {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.055em;
+    line-height: 0.92;
+    font-variant-numeric: tabular-nums;
+  }
+  .brand-logo {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(160deg, #1a4d8f, #0f3667);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    letter-spacing: 0;
+    font-size: 13px;
+    box-shadow: 0 8px 16px -8px rgba(26,77,143,0.55), inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+  .ring-soft { box-shadow: 0 1px 0 rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.04); }
+  .frame-label {
+    font-family: 'Archivo', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-weight: 700;
+    font-size: 11px;
+    color: #475569;
+  }
+  .note-card {
+    background: white;
+    border: 1px solid rgba(15,23,42,0.06);
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #334155;
+    line-height: 1.45;
+  }
+  .note-card strong { color: #0b1220; font-weight: 700; }
+</style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-12 px-4">
+
+  <div class="mb-4 flex items-center gap-3">
+    <span class="frame-label">Variant C</span>
+    <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+    <span class="frame-label" style="color:#1a4d8f;">Bold Editorial</span>
+  </div>
+
+  <div class="phone">
+    <div class="notch"></div>
+
+    <!-- Status bar spacer -->
+    <div class="h-12"></div>
+
+    <!-- TopBar -->
+    <div class="px-5 pt-2 pb-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="brand-logo">SR</div>
+        <div class="flex flex-col leading-none">
+          <span class="tracking-micro text-[10px] font-bold text-slate-500 uppercase">Smith Roofing</span>
+          <span class="font-display text-[18px] font-extrabold text-slate-900 mt-1">May 2026</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-slate-100 ring-soft">
+          <div class="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-white text-[10px] font-bold flex items-center justify-center">DS</div>
+          <div class="flex flex-col leading-none pr-1">
+            <span class="text-[11px] font-semibold text-slate-900">Daniel Smith</span>
+            <span class="text-[9px] uppercase tracking-wider text-slate-500 font-bold mt-0.5">Owner</span>
+          </div>
+        </div>
+        <button class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 ring-soft">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Hero KPI -->
+    <div class="px-5">
+      <div class="hero relative rounded-2xl overflow-hidden p-5" style="height:188px;">
+        <div class="grain"></div>
+        <div class="relative z-10 h-full flex flex-col justify-between">
+          <div class="flex items-start justify-between">
+            <span class="label-cap-light">Revenue this month</span>
+            <div class="flex items-center gap-1 px-2 py-1 rounded-full bg-white/10 backdrop-blur">
+              <i data-lucide="trending-up" class="w-3 h-3 text-emerald-300"></i>
+              <span class="text-[10px] font-bold text-white tabular tracking-wide">+42%</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="hero-num text-white" style="font-size:64px;">$32,500</div>
+            <div class="mt-2 text-[12px] font-semibold text-white/85 tabular flex items-center gap-1.5">
+              <span class="font-display font-bold text-white">13.0×</span>
+              <span class="text-white/60">ROAS</span>
+              <span class="text-white/40 px-1">·</span>
+              <span class="text-white">3</span><span class="text-white/60">deals closed</span>
+              <span class="text-white/40 px-1">·</span>
+              <span class="text-white">$833</span><span class="text-white/60">CPA</span>
+            </div>
+          </div>
+
+          <!-- Sparkline -->
+          <div class="absolute right-4 bottom-4 left-4">
+            <svg viewBox="0 0 320 32" class="w-full h-8" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="sparkFill" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(255,255,255,0.25)" />
+                  <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+                </linearGradient>
+              </defs>
+              <path d="M0,26 L20,24 L40,25 L60,21 L80,22 L100,18 L120,19 L140,15 L160,16 L180,12 L200,14 L220,9 L240,11 L260,7 L280,8 L300,4 L320,2 L320,32 L0,32 Z" fill="url(#sparkFill)"/>
+              <path d="M0,26 L20,24 L40,25 L60,21 L80,22 L100,18 L120,19 L140,15 L160,16 L180,12 L200,14 L220,9 L240,11 L260,7 L280,8 L300,4 L320,2"
+                    fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+              <circle cx="320" cy="2" r="2.5" fill="white"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Secondary stat row -->
+    <div class="px-5 mt-3 grid grid-cols-3 gap-2">
+      <div class="bg-white rounded-xl p-3 ring-soft border border-slate-100">
+        <div class="label-cap">Leads</div>
+        <div class="stat-num mt-1.5" style="font-size:28px;">24</div>
+      </div>
+      <div class="bg-white rounded-xl p-3 ring-soft border border-slate-100">
+        <div class="label-cap">Booked</div>
+        <div class="stat-num mt-1.5" style="font-size:28px;">8</div>
+      </div>
+      <div class="bg-white rounded-xl p-3 ring-soft border border-slate-100">
+        <div class="label-cap">Contacted</div>
+        <div class="stat-num mt-1.5" style="font-size:28px;">5</div>
+      </div>
+    </div>
+
+    <!-- Section label -->
+    <div class="px-5 mt-5 flex items-end justify-between">
+      <div>
+        <div class="label-cap" style="color:#1a4d8f;">Active Pipeline</div>
+        <div class="font-display font-extrabold text-slate-900 mt-1" style="font-size:22px; letter-spacing:-0.03em;">20 leads in flight</div>
+      </div>
+      <button class="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+        Sort <i data-lucide="chevron-down" class="w-3 h-3"></i>
+      </button>
+    </div>
+
+    <!-- Stage chips -->
+    <div class="mt-3 pl-5 overflow-x-auto scroll-x">
+      <div class="flex items-center gap-2 pr-5">
+        <button class="chip-active px-3 py-1.5 rounded-full text-[12px] font-bold whitespace-nowrap flex items-center gap-1.5">
+          All <span class="opacity-80 tabular">20</span>
+        </button>
+        <button class="px-3 py-1.5 rounded-full text-[12px] font-bold whitespace-nowrap text-slate-700 bg-white border border-slate-200 flex items-center gap-1.5">
+          New <span class="text-slate-400 tabular">6</span>
+        </button>
+        <button class="px-3 py-1.5 rounded-full text-[12px] font-bold whitespace-nowrap text-slate-700 bg-white border border-slate-200 flex items-center gap-1.5">
+          Contacted <span class="text-slate-400 tabular">5</span>
+        </button>
+        <button class="px-3 py-1.5 rounded-full text-[12px] font-bold whitespace-nowrap text-slate-700 bg-white border border-slate-200 flex items-center gap-1.5">
+          Estimate Sent <span class="text-slate-400 tabular">2</span>
+        </button>
+        <button class="px-3 py-1.5 rounded-full text-[12px] font-bold whitespace-nowrap text-slate-700 bg-white border border-slate-200 flex items-center gap-1.5">
+          Booked <span class="text-slate-400 tabular">4</span>
+        </button>
+        <button class="px-3 py-1.5 rounded-full text-[12px] font-bold whitespace-nowrap text-slate-700 bg-white border border-slate-200 flex items-center gap-1.5">
+          Sold <span class="text-slate-400 tabular">2</span>
+        </button>
+        <button class="px-3 py-1.5 rounded-full text-[12px] font-bold whitespace-nowrap text-slate-700 bg-white border border-slate-200 flex items-center gap-1.5">
+          Lost <span class="text-slate-400 tabular">1</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Lead list -->
+    <div class="mt-3 mx-5 bg-white rounded-2xl border border-slate-100 ring-soft overflow-hidden">
+
+      <!-- Row 1 -->
+      <div class="flex items-center gap-3 px-3.5 py-3.5">
+        <div class="avatar" style="background:linear-gradient(160deg,#1a4d8f,#0f3667);">BA</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-display font-bold text-slate-900 text-[15px] truncate">Bob Anderson</span>
+          </div>
+          <div class="text-[11.5px] text-slate-500 mt-0.5 truncate">Spring Roof Promo</div>
+        </div>
+        <div class="flex flex-col items-end gap-1.5">
+          <span class="stage-pill stage-booked">Booked</span>
+          <span class="text-[10.5px] text-slate-400 font-semibold tabular">23m ago</span>
+        </div>
+      </div>
+      <div class="divider mx-3.5"></div>
+
+      <!-- Row 2 -->
+      <div class="flex items-center gap-3 px-3.5 py-3.5">
+        <div class="avatar" style="background:linear-gradient(160deg,#b45309,#7c2d12);">LM</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-display font-bold text-slate-900 text-[15px] truncate">Linda Murphy</span>
+          </div>
+          <div class="text-[11.5px] text-slate-500 mt-0.5 truncate">Storm Damage Inspection</div>
+        </div>
+        <div class="flex flex-col items-end gap-1.5">
+          <span class="stage-pill stage-new">New</span>
+          <span class="text-[10.5px] text-slate-400 font-semibold tabular">1h ago</span>
+        </div>
+      </div>
+      <div class="divider mx-3.5"></div>
+
+      <!-- Row 3 -->
+      <div class="flex items-center gap-3 px-3.5 py-3.5">
+        <div class="avatar" style="background:linear-gradient(160deg,#5b21b6,#3b0764);">JB</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-display font-bold text-slate-900 text-[15px] truncate">James Bennett</span>
+          </div>
+          <div class="text-[11.5px] text-slate-500 mt-0.5 truncate">Spring Roof Promo</div>
+        </div>
+        <div class="flex flex-col items-end gap-1.5">
+          <span class="stage-pill stage-contact">Contacted</span>
+          <span class="text-[10.5px] text-slate-400 font-semibold tabular">3h ago</span>
+        </div>
+      </div>
+      <div class="divider mx-3.5"></div>
+
+      <!-- Row 4 -->
+      <div class="flex items-center gap-3 px-3.5 py-3.5">
+        <div class="avatar" style="background:linear-gradient(160deg,#047857,#064e3b);">SC</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-display font-bold text-slate-900 text-[15px] truncate">Susan Cooper</span>
+          </div>
+          <div class="text-[11.5px] text-slate-500 mt-0.5 truncate">Free Estimate Ad</div>
+        </div>
+        <div class="flex flex-col items-end gap-1.5">
+          <span class="stage-pill stage-sold">Sold</span>
+          <span class="text-[10.5px] text-slate-400 font-semibold tabular">Yesterday</span>
+        </div>
+      </div>
+      <div class="divider mx-3.5"></div>
+
+      <!-- Row 5 -->
+      <div class="flex items-center gap-3 px-3.5 py-3.5">
+        <div class="avatar" style="background:linear-gradient(160deg,#0369a1,#0c4a6e);">MD</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-display font-bold text-slate-900 text-[15px] truncate">Mark Diaz</span>
+          </div>
+          <div class="text-[11.5px] text-slate-500 mt-0.5 truncate">Spring Roof Promo</div>
+        </div>
+        <div class="flex flex-col items-end gap-1.5">
+          <span class="stage-pill stage-estimate">Estimate Sent</span>
+          <span class="text-[10.5px] text-slate-400 font-semibold tabular">2d ago</span>
+        </div>
+      </div>
+      <div class="divider mx-3.5"></div>
+
+      <!-- Row 6 -->
+      <div class="flex items-center gap-3 px-3.5 py-3.5">
+        <div class="avatar" style="background:linear-gradient(160deg,#be123c,#7f1d1d);">DE</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-display font-bold text-slate-900 text-[15px] truncate">Diane Edwards</span>
+          </div>
+          <div class="text-[11.5px] text-slate-500 mt-0.5 truncate">Storm Damage Inspection</div>
+        </div>
+        <div class="flex flex-col items-end gap-1.5">
+          <span class="stage-pill stage-lost">Lost</span>
+          <span class="text-[10.5px] text-slate-400 font-semibold tabular">3d ago</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom safe area indicator -->
+    <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 rounded-full bg-slate-900/80"></div>
+  </div>
+
+  <!-- Notes -->
+  <div class="mt-8 w-[414px] space-y-2.5">
+    <div class="note-card">
+      <strong>Hero block anchors the screen.</strong> A full-width navy KPI card with a 64px display number (Archivo 900, tight tracking) frames revenue as the lead story, with a white sparkline grounding the bottom edge.
+    </div>
+    <div class="note-card">
+      <strong>Magazine hierarchy.</strong> All-caps micro labels at 10.5px sit above oversized display numbers throughout, secondary stats live in slim white cards, the lead list reads as an editorial spread, not a card grid.
+    </div>
+    <div class="note-card">
+      <strong>Decisive color blocks for stages.</strong> Pills use solid saturated backgrounds (navy, emerald, violet, amber, slate) with white uppercase labels, no pastels, no outlines, stage status reads at a glance.
+    </div>
+  </div>
+
+<script>
+  // Render Lucide icons after DOM is parsed
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+  });
+</script>
+</body>
+</html>
