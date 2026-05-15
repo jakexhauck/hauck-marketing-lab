@@ -18,7 +18,8 @@ export type WorkspaceView =
   | "habits"
   | "recordings"
   | "sops"
-  | "resources";
+  | "resources"
+  | "ads";
 
 /** Top-level surfaces inside the Outreach pillar. */
 export type OutreachSection =
@@ -32,22 +33,21 @@ export type OutreachSection =
 export type PersonalSection = "overview" | "hygiene" | "clothing";
 
 /** Per-client tabs inside a ClientDashboard.
- *  `service-delivery` is the consolidated tab that holds Forms, Websites, and
- *  Drive as sub-tabs (see ClientServiceDelivery.tsx). */
+ *  `service-delivery` is the consolidated Fulfillment tab that holds Forms,
+ *  Recordings, Websites, and Drive as sub-tabs (see ClientServiceDelivery.tsx). */
 export type ClientSection =
   | "dashboard"
-  | "sequence"
   | "onboarding"
+  | "ads"
   | "service-delivery"
-  | "recordings"
   | "profile"
   | "memory";
 
 /** First section to open when the user clicks a client. Pre-launch clients
- *  land on the Media Buying Sequence (guided wizard); everyone else lands on
- *  the dashboard. The plain checklist remains accessible as its own tab. */
+ *  land on the unified Onboarding tab (checklist + per-task forms); everyone
+ *  else lands on the dashboard. */
 export function defaultClientSection(status: "pre-launch" | "live" | "paused"): ClientSection {
-  return status === "pre-launch" ? "sequence" : "dashboard";
+  return status === "pre-launch" ? "onboarding" : "dashboard";
 }
 
 /**

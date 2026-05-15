@@ -156,6 +156,12 @@ export function AppSidebar({
             onClick={() => onSelectWorkspace("calendar")}
           />
           <NavItem
+            label="Ads Manager"
+            Icon={IconBarChart}
+            active={activeWorkspace === "ads"}
+            onClick={() => onSelectWorkspace("ads")}
+          />
+          <NavItem
             label="Tasks"
             Icon={IconTasks}
             active={activeWorkspace === "tasks"}

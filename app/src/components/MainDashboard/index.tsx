@@ -31,6 +31,7 @@ import { CalendarPage } from "./CalendarPage";
 import { LeadScraperPage } from "./LeadScraperPage";
 import { WebDesignerPage } from "./WebDesignerPage";
 import { ClientDashboard } from "./ClientDashboard";
+import { AdsManagerPage } from "./AdsManagerPage";
 import { OutreachHub } from "./OutreachHub";
 import { OutreachProspectPage } from "./OutreachProspectPage";
 import { OutreachSequencePage } from "./OutreachSequencePage";
@@ -464,18 +465,16 @@ function sectionToLabel(s: ClientSection): string {
   switch (s) {
     case "dashboard":
       return "Dashboard";
-    case "sequence":
-      return "Sequence";
     case "onboarding":
       return "Onboarding";
+    case "ads":
+      return "Ads";
     case "profile":
       return "Profile";
     case "memory":
       return "Memory";
     case "service-delivery":
-      return "Service Delivery";
-    case "recordings":
-      return "Recordings";
+      return "Fulfillment";
   }
 }
 
@@ -565,6 +564,14 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
     if (view.tab === "resources") return <ResourcesPage root={root} />;
     if (view.tab === "calendar")
       return <CalendarPage root={root} onBack={args.onBack} clients={realClients} />;
+    if (view.tab === "ads")
+      return (
+        <AdsManagerPage
+          mode="global"
+          clients={realClients}
+          activeClientSlug={activeClientSlug}
+        />
+      );
     return null;
   }
 

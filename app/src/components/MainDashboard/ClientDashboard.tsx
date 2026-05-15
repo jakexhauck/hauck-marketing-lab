@@ -2,8 +2,12 @@
  * ClientDashboard — per-client surface with sub-nav.
  *
  * Tab order (status-aware):
- *   pre-launch → Onboarding · Drive · Media Buying · Website · Recordings · Profile · Memory*
- *   live/paused → Dashboard · Drive · Media Buying · Website · Recordings · Profile · Memory*
+ *   pre-launch → Onboarding · Service Delivery · Recordings · Profile · Memory*
+ *   live/paused → Dashboard · Service Delivery · Recordings · Profile · Memory*
+ *
+ * The Onboarding tab is the unified surface: it tracks task completion AND
+ * houses the per-task form buttons that used to live in a separate Sequence
+ * tab (form opens inline, saving auto-ticks the matching task).
  *
  * Memory tab only shows when vault/Clients/<name>/Memory.md actually has content.
  */
@@ -39,8 +43,8 @@ import { ClientMediaBuying } from "./ClientMediaBuying";
 import { WebDesignerPage } from "./WebDesignerPage";
 import { recordingsPageCSS, openFathomInApp } from "./RecordingsPage";
 import { OnboardingChecklist } from "../OnboardingChecklist";
-import { ClientSequence } from "./ClientSequence";
 import { ClientServiceDelivery } from "./ClientServiceDelivery";
+import { AdsManagerPage } from "./AdsManagerPage";
 import {
   IconBarChart,
   IconChevronRight,
@@ -51,7 +55,6 @@ import {
   IconMore,
   IconPen,
   IconRecordings,
-  IconTarget,
   IconTasks,
   IconUser,
 } from "../icons";
@@ -69,20 +72,19 @@ interface ClientDashboardProps {
 type TabDef = { id: ClientSection; label: string; Icon: typeof IconUser };
 
 /** Build the ordered tab list given client status + whether memory has content.
- *  Pre-launch clients see a Sequence tab (guided wizard) and an Onboarding tab
- *  (raw checklist). Both disappear once the client goes live. */
+ *  Pre-launch clients see a single Onboarding tab (checklist + per-task forms,
+ *  unified). It disappears once the client goes live. */
 function buildTabs(status: ClientEntry["status"], hasMemory: boolean): TabDef[] {
   const tabs: TabDef[] = [];
   if (status === "pre-launch") {
-    tabs.push({ id: "sequence", label: "Sequence", Icon: IconTarget });
     tabs.push({ id: "onboarding", label: "Onboarding", Icon: IconTasks });
   } else {
     tabs.push({ id: "dashboard", label: "Dashboard", Icon: IconDashboard });
   }
 
   tabs.push(
-    { id: "service-delivery", label: "Service Delivery", Icon: IconBarChart },
-    { id: "recordings", label: "Recordings", Icon: IconRecordings },
+    { id: "ads", label: "Ads", Icon: IconBarChart },
+    { id: "service-delivery", label: "Fulfillment", Icon: IconBarChart },
     { id: "profile", label: "Profile", Icon: IconUser },
   );
   if (hasMemory) {
@@ -232,6 +234,7 @@ export function ClientDashboard({
             root={root}
             clientSlug={client.slug}
             clientName={client.name}
+            agents={agents}
             onComplete={() => {
               // Switch to Dashboard if the client has graduated out of
               // pre-launch (otherwise Dashboard isn't in the tab list and
@@ -240,13 +243,11 @@ export function ClientDashboard({
             }}
           />
         )}
-        {section === "sequence" && root && (
-          <ClientSequence
-            root={root}
-            clientSlug={client.slug}
-            clientName={client.name}
-            agents={agents}
-            onLaunched={() => onSelectSection("dashboard")}
+        {section === "ads" && (
+          <AdsManagerPage
+            mode="client"
+            clients={[client]}
+            activeClientSlug={client.slug}
           />
         )}
         {section === "profile" && (
@@ -263,6 +264,15 @@ export function ClientDashboard({
                   <ClientMediaBuying
                     clientName={client.name}
                     onOpenForm={(id) => onOpenForm(id, client.slug, client.name)}
+                  />
+                );
+              }
+              if (active === "recordings") {
+                return (
+                  <ClientRecordingsView
+                    root={root}
+                    clientSlug={client.slug}
+                    clientName={client.name}
                   />
                 );
               }
@@ -284,9 +294,6 @@ export function ClientDashboard({
               );
             }}
           </ClientServiceDelivery>
-        )}
-        {section === "recordings" && (
-          <ClientRecordingsView root={root} clientSlug={client.slug} clientName={client.name} />
         )}
       </div>
     </div>
