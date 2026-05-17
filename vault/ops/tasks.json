@@ -1,14 +1,6 @@
 {
   "tasks": [
     {
-      "id": "3667c0de-a21b-4e43-b354-289e4aa3da26",
-      "title": "Apply For A2P In GHL",
-      "clientSlug": "willis-windows",
-      "assignedTo": "ME",
-      "status": "todo",
-      "createdAt": 1778692347674
-    },
-    {
       "id": "9836651d-02c6-40d1-8c98-a422bf3bc787",
       "title": "Jersey Income Tracker",
       "status": "todo",
@@ -67,26 +59,32 @@
       "lane": "active"
     },
     {
-      "id": "ff36c847-5d2c-4b8f-8b66-9bc4f3c02895",
-      "title": "Setup AD's Manager",
-      "clientSlug": "willis-windows",
+      "id": "6851f66d-8027-49cc-9c47-749c36f8817e",
+      "title": "Setup Meta AD's MCP Within HML",
       "status": "todo",
-      "createdAt": 1778885083544,
+      "createdAt": 1778892317479,
       "lane": "active"
     },
     {
-      "id": "1a75afcf-6064-47c0-8601-60a5d26906d7",
-      "title": "Invite Myself Into WW Business Suite",
-      "clientSlug": "willis-windows",
+      "id": "e21bfb08-7eca-4821-9f31-ab6dbe633b11",
+      "title": "Stripe Setup",
       "status": "todo",
-      "createdAt": 1778885091100,
+      "createdAt": 1778960895703,
       "lane": "active"
     },
     {
-      "id": "d2af7c66-04d9-40dc-a364-9c485686b52f",
-      "title": "File For EIN",
+      "id": "d6545dc7-6a4e-428a-928c-f506f5ae4c29",
+      "title": "Tell Josh To Add Payment Method",
+      "clientSlug": "willis-windows",
       "status": "todo",
-      "createdAt": 1778887405890,
+      "createdAt": 1779026116203,
+      "lane": "active"
+    },
+    {
+      "id": "06dd8595-185a-4ed1-9105-06c6233f4535",
+      "title": "Update Meta Portion",
+      "status": "todo",
+      "createdAt": 1779054199087,
       "lane": "active"
     }
   ]

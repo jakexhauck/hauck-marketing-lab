@@ -18,20 +18,120 @@
  * real `api.metaListAdsInsights(...)` call. The component shape stays the same.
  */
 
-import { useMemo, useState } from "react";
-import type { ClientEntry } from "../../lib/types";
+import { useEffect, useMemo, useState } from "react";
+import type { ClientEntry, TrackingAudit } from "../../lib/types";
 import {
   adStatusPill,
-  getMockAdsAccount,
-  getMockAdsAccountsForClients,
   type AdStatus,
   type MetaAd,
   type MetaAdsAccount,
   type MetaCampaign,
 } from "../../lib/mockMetaAds";
+import { useAdsAccounts } from "../../lib/useAdsAccounts";
+import { api } from "../../lib/tauri";
 import { IconBarChart, IconChevronRight, IconRefresh } from "../icons";
 
-type WindowDays = 7 | 14 | 30;
+// ── date range presets ────────────────────────────────────────
+type RangePreset =
+  | "yesterday"
+  | "last7"
+  | "last14"
+  | "last30"
+  | "mtd"
+  | "lastmonth"
+  | "custom";
+
+interface ResolvedRange {
+  windowDays: number;
+  startDate: string | null;
+  endDate: string | null;
+  label: string;
+}
+
+function pad(n: number): string {
+  return n < 10 ? `0${n}` : String(n);
+}
+function ymd(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+function resolveRange(
+  preset: RangePreset,
+  customStart: string,
+  customEnd: string,
+): ResolvedRange {
+  const today = new Date();
+  switch (preset) {
+    case "yesterday": {
+      const y = new Date(today);
+      y.setDate(y.getDate() - 1);
+      const s = ymd(y);
+      return { windowDays: 0, startDate: s, endDate: s, label: "Yesterday" };
+    }
+    case "last7":
+      return { windowDays: 7, startDate: null, endDate: null, label: "Last 7d" };
+    case "last14":
+      return { windowDays: 14, startDate: null, endDate: null, label: "Last 14d" };
+    case "last30":
+      return { windowDays: 30, startDate: null, endDate: null, label: "Last 30d" };
+    case "mtd": {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      return {
+        windowDays: 0,
+        startDate: ymd(start),
+        endDate: ymd(today),
+        label: "Month-to-date",
+      };
+    }
+    case "lastmonth": {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const end = new Date(today.getFullYear(), today.getMonth(), 0);
+      return {
+        windowDays: 0,
+        startDate: ymd(start),
+        endDate: ymd(end),
+        label: "Last month",
+      };
+    }
+    case "custom": {
+      if (customStart && customEnd) {
+        return {
+          windowDays: 0,
+          startDate: customStart,
+          endDate: customEnd,
+          label: `${customStart} → ${customEnd}`,
+        };
+      }
+      return { windowDays: 7, startDate: null, endDate: null, label: "Last 7d" };
+    }
+  }
+}
+
+// ── attribution presets ───────────────────────────────────────
+type AttrPreset = "7d_click_1d_view" | "7d_click" | "1d_click";
+const ATTR_OPTIONS: Array<{ value: AttrPreset; label: string; windows: string[] }> = [
+  { value: "7d_click_1d_view", label: "7d click + 1d view", windows: ["7d_click", "1d_view"] },
+  { value: "7d_click", label: "7d click only", windows: ["7d_click"] },
+  { value: "1d_click", label: "1d click only", windows: ["1d_click"] },
+];
+
+// ── tracking pill tone mapping ────────────────────────────────
+function trackingPillTone(audit: TrackingAudit | null): {
+  bg: string;
+  fg: string;
+  label: string;
+} {
+  if (!audit) return { bg: "rgba(255,255,255,0.06)", fg: "#999", label: "unknown" };
+  const worst =
+    audit.pixel_status === "missing" || audit.capi_status === "missing"
+      ? "missing"
+      : audit.pixel_status === "warning" || audit.capi_status === "warning"
+        ? "warning"
+        : "ok";
+  if (worst === "ok") return { bg: "rgba(95,230,153,0.12)", fg: "#5fe699", label: "OK" };
+  if (worst === "warning")
+    return { bg: "rgba(245,158,11,0.14)", fg: "#f59e0b", label: "WARN" };
+  return { bg: "rgba(255,107,107,0.14)", fg: "#ff6b6b", label: "MISSING" };
+}
 
 interface AdsManagerPageProps {
   mode: "global" | "client";
@@ -49,27 +149,49 @@ export function AdsManagerPage({
   activeClientSlug,
   onSelectClient,
 }: AdsManagerPageProps) {
-  const [windowDays, setWindowDays] = useState<WindowDays>(7);
+  const [rangePreset, setRangePreset] = useState<RangePreset>("last7");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const [attrPreset, setAttrPreset] = useState<AttrPreset>("7d_click_1d_view");
   const [filterSlug, setFilterSlug] = useState<string | null>(
     mode === "client" ? activeClientSlug ?? null : activeClientSlug ?? null,
   );
 
+  const range = useMemo(
+    () => resolveRange(rangePreset, customStart, customEnd),
+    [rangePreset, customStart, customEnd],
+  );
+  const attr = ATTR_OPTIONS.find((o) => o.value === attrPreset) ?? ATTR_OPTIONS[0];
+  // `windowDays` kept as a local for backwards compat with downstream sub-
+  // components that still expect a day count for label strings. Real range
+  // is threaded through the hook via startDate/endDate when set.
+  const windowDays = range.windowDays > 0 ? range.windowDays : 30;
+
   // In client mode the filter is always the active client.
   const effectiveSlug = mode === "client" ? activeClientSlug ?? null : filterSlug;
 
-  const accounts: MetaAdsAccount[] = useMemo(() => {
+  // Decide which client subset feeds the hook. The hook itself handles the
+  // connected-vs-mock split per client based on `meta_ad_account_id`.
+  const targetClients = useMemo(() => {
     if (mode === "client") {
       if (!activeClientSlug) return [];
-      const c = clients.find((c) => c.slug === activeClientSlug);
-      if (!c) return [];
-      return [getMockAdsAccount(c.slug, c.name, windowDays)];
+      return clients.filter((c) => c.slug === activeClientSlug);
     }
     if (effectiveSlug) {
-      const c = clients.find((c) => c.slug === effectiveSlug);
-      if (c) return [getMockAdsAccount(c.slug, c.name, windowDays)];
+      return clients.filter((c) => c.slug === effectiveSlug);
     }
-    return getMockAdsAccountsForClients(clients, windowDays);
-  }, [mode, clients, effectiveSlug, activeClientSlug, windowDays]);
+    return clients;
+  }, [mode, clients, effectiveSlug, activeClientSlug]);
+
+  const { accounts, loading, errors, refresh } = useAdsAccounts(targetClients, {
+    windowDays: range.windowDays > 0 ? range.windowDays : 30,
+    startDate: range.startDate,
+    endDate: range.endDate,
+    attributionWindows: attr.windows,
+  });
+  const errorList = Object.entries(errors);
+  // At least one selected client has a real ad account wired up?
+  const hasConnected = accounts.some((a) => a.source === "connected");
 
   // Aggregate KPIs across visible accounts (1 account when filtered).
   const totals = useMemo(() => aggregate(accounts), [accounts]);
@@ -123,6 +245,36 @@ export function AdsManagerPage({
     if (slug && mode === "global") onSelectClient?.(slug);
   };
 
+  // ── tracking audit pill (single selected client only) ─────────
+  const trackedSlug =
+    mode === "client"
+      ? activeClientSlug ?? null
+      : effectiveSlug;
+  const [tracking, setTracking] = useState<TrackingAudit | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!trackedSlug) {
+      setTracking(null);
+      return;
+    }
+    (async () => {
+      try {
+        const cfg = await api.loadConfig();
+        const root = cfg.media_buying_path;
+        if (!root) return;
+        const audit = await api.readTrackingAudit(root, trackedSlug);
+        if (!cancelled) setTracking(audit);
+      } catch {
+        if (!cancelled) setTracking(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [trackedSlug]);
+
+  const trackingTone = trackingPillTone(tracking);
+
   return (
     <div className="hml-content hml-ads">
       <style>{ADS_CSS}</style>
@@ -142,34 +294,116 @@ export function AdsManagerPage({
                 : "All clients"}
           </h1>
           <div className="hml-ads-sub">
-            <span className="hml-mock-badge">
-              <span className="hml-mock-dot" />
-              MOCK DATA · Meta Ads MCP not yet connected
-            </span>
+            {hasConnected ? (
+              <span className="hml-mock-badge" style={{ background: "rgba(95,230,153,0.12)", color: "#5fe699" }}>
+                <span className="hml-mock-dot" style={{ background: "#5fe699" }} />
+                {loading ? "REFRESHING…" : "LIVE · Meta Marketing API"}
+              </span>
+            ) : (
+              <span className="hml-mock-badge">
+                <span className="hml-mock-dot" />
+                MOCK DATA · no ad account wired
+              </span>
+            )}
             {accounts[0]?.accountId && (
               <>
                 <span className="hml-ads-dim">·</span>
                 <span className="hml-ads-mono">{accounts[0].accountId}</span>
               </>
             )}
+            {errorList.length > 0 && (
+              <>
+                <span className="hml-ads-dim">·</span>
+                <span
+                  className="hml-ads-mono"
+                  style={{ color: "#ff6b6b" }}
+                  title={errorList.map(([s, e]) => `${s}: ${e}`).join("\n")}
+                >
+                  {errorList.length} API error{errorList.length === 1 ? "" : "s"}
+                </span>
+              </>
+            )}
+            {tracking && trackedSlug && (
+              <>
+                <span className="hml-ads-dim">·</span>
+                <span
+                  className="hml-mock-badge"
+                  style={{ background: trackingTone.bg, color: trackingTone.fg }}
+                  title={`Pixel: ${tracking.pixel_status} · CAPI: ${tracking.capi_status}${
+                    tracking.emq_score != null ? ` · EMQ ${tracking.emq_score.toFixed(1)}` : ""
+                  }${tracking.pulse_note ? ` · ${tracking.pulse_note}` : ""}`}
+                >
+                  <span className="hml-mock-dot" style={{ background: trackingTone.fg }} />
+                  TRACKING: {trackingTone.label}
+                </span>
+              </>
+            )}
           </div>
         </div>
         <div className="hml-ads-controls">
           <div className="hml-ads-window">
-            {([7, 14, 30] as WindowDays[]).map((d) => (
+            {(
+              [
+                ["yesterday", "Yest"],
+                ["last7", "7d"],
+                ["last14", "14d"],
+                ["last30", "30d"],
+                ["mtd", "MTD"],
+                ["lastmonth", "Last mo"],
+                ["custom", "Custom"],
+              ] as Array<[RangePreset, string]>
+            ).map(([value, label]) => (
               <button
-                key={d}
+                key={value}
                 type="button"
-                className={`hml-ads-window-btn${windowDays === d ? " hml-active" : ""}`}
-                onClick={() => setWindowDays(d)}
+                className={`hml-ads-window-btn${rangePreset === value ? " hml-active" : ""}`}
+                onClick={() => setRangePreset(value)}
+                title={value === "custom" ? "Pick custom date range below" : ""}
               >
-                {d}d
+                {label}
               </button>
             ))}
           </div>
-          <button type="button" className="hml-btn hml-ghost" title="Refresh (mock)">
+          {rangePreset === "custom" && (
+            <div className="hml-ads-custom-range">
+              <input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="hml-ads-date-input"
+                aria-label="Start date"
+              />
+              <span className="hml-ads-dim">→</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="hml-ads-date-input"
+                aria-label="End date"
+              />
+            </div>
+          )}
+          <select
+            className="hml-ads-attr-select"
+            value={attrPreset}
+            onChange={(e) => setAttrPreset(e.target.value as AttrPreset)}
+            title="Attribution window"
+          >
+            {ATTR_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="hml-btn hml-ghost"
+            title="Refetch from Meta (bypasses 15-min cache)"
+            onClick={refresh}
+            disabled={loading}
+          >
             <IconRefresh size={12} />
-            <span>Refresh</span>
+            <span>{loading ? "Loading…" : "Refresh"}</span>
           </button>
         </div>
       </section>
@@ -320,7 +554,11 @@ export function AdsManagerPage({
         {/* Detail rail */}
         <aside className="hml-ads-detail">
           {activeRow ? (
-            <CampaignDetail account={activeRow.account} campaign={activeRow.campaign} />
+            <CampaignDetail
+              account={activeRow.account}
+              campaign={activeRow.campaign}
+              onMutated={refresh}
+            />
           ) : (
             <div className="hml-empty">
               <div className="hml-empty-title">Pick a campaign</div>
@@ -433,7 +671,15 @@ function DailyBars({ accounts }: { accounts: MetaAdsAccount[] }) {
   );
 }
 
-function CampaignDetail({ account, campaign }: { account: MetaAdsAccount; campaign: MetaCampaign }) {
+function CampaignDetail({
+  account,
+  campaign,
+  onMutated,
+}: {
+  account: MetaAdsAccount;
+  campaign: MetaCampaign;
+  onMutated: () => void;
+}) {
   const topAd = useMemo<MetaAd | null>(() => {
     let best: MetaAd | null = null;
     for (const aset of campaign.adSets) {
@@ -443,6 +689,59 @@ function CampaignDetail({ account, campaign }: { account: MetaAdsAccount; campai
     }
     return best;
   }, [campaign]);
+
+  // Only allow management actions for accounts wired to real Meta.
+  const isLive = account.source === "connected";
+  const [busy, setBusy] = useState<null | "pause" | "resume" | "duplicate" | "budget">(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const [budgetDraft, setBudgetDraft] = useState(String(campaign.budgetDaily || 0));
+
+  const runAction = async (
+    kind: "pause" | "resume" | "duplicate",
+    fn: () => Promise<unknown>,
+  ) => {
+    setBusy(kind);
+    setActionError(null);
+    try {
+      await fn();
+      onMutated();
+    } catch (e) {
+      setActionError(String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onPause = () =>
+    runAction("pause", () => api.metaPauseCampaign(campaign.id));
+  const onResume = () =>
+    runAction("resume", () => api.metaResumeCampaign(campaign.id));
+  const onDuplicate = () =>
+    runAction("duplicate", () => api.metaDuplicateCampaign(campaign.id));
+
+  const onSaveBudget = async () => {
+    const next = Number(budgetDraft);
+    if (!Number.isFinite(next) || next <= 0) {
+      setActionError("Budget must be a positive number");
+      return;
+    }
+    setBusy("budget");
+    setActionError(null);
+    try {
+      await api.metaUpdateCampaignBudget(campaign.id, Math.round(next * 100));
+      setBudgetOpen(false);
+      onMutated();
+    } catch (e) {
+      setActionError(String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const status = campaign.status;
+  const canPause = status === "active" || status === "learning";
+  const canResume = status === "paused" || status === "off";
 
   return (
     <div className="hml-ads-detail-inner">
@@ -457,6 +756,105 @@ function CampaignDetail({ account, campaign }: { account: MetaAdsAccount; campai
         </div>
         <StatusPill status={campaign.status} />
       </div>
+
+      {isLive && (
+        <div className="hml-ads-actions">
+          {canPause && (
+            <button
+              type="button"
+              className="hml-ads-action-btn"
+              onClick={onPause}
+              disabled={busy !== null}
+              title="Pause campaign (reversible)"
+            >
+              {busy === "pause" ? "Pausing…" : "Pause"}
+            </button>
+          )}
+          {canResume && (
+            <button
+              type="button"
+              className="hml-ads-action-btn hml-ads-action-primary"
+              onClick={onResume}
+              disabled={busy !== null}
+              title="Resume campaign"
+            >
+              {busy === "resume" ? "Resuming…" : "Resume"}
+            </button>
+          )}
+          <button
+            type="button"
+            className="hml-ads-action-btn"
+            onClick={() => {
+              setBudgetDraft(String(campaign.budgetDaily || 0));
+              setBudgetOpen(true);
+              setActionError(null);
+            }}
+            disabled={busy !== null}
+            title="Edit daily budget"
+          >
+            Budget: ${campaign.budgetDaily.toFixed(0)}
+          </button>
+          <button
+            type="button"
+            className="hml-ads-action-btn"
+            onClick={onDuplicate}
+            disabled={busy !== null}
+            title="Duplicate (creates a PAUSED copy)"
+          >
+            {busy === "duplicate" ? "Duplicating…" : "Duplicate"}
+          </button>
+        </div>
+      )}
+
+      {actionError && (
+        <div
+          className="hml-ads-action-err"
+          title={actionError}
+          onClick={() => setActionError(null)}
+        >
+          {actionError.slice(0, 220)}{actionError.length > 220 ? "…" : ""}
+        </div>
+      )}
+
+      {budgetOpen && (
+        <div className="hml-ads-budget-confirm">
+          <div className="hml-ads-budget-row">
+            <span className="hml-ads-detail-stat-l">New daily budget</span>
+            <div className="hml-ads-budget-input-wrap">
+              <span className="hml-ads-budget-prefix">$</span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={budgetDraft}
+                onChange={(e) => setBudgetDraft(e.target.value)}
+                className="hml-ads-budget-input"
+                autoFocus
+              />
+            </div>
+          </div>
+          <div className="hml-ads-budget-actions">
+            <button
+              type="button"
+              className="hml-ads-action-btn"
+              onClick={() => setBudgetOpen(false)}
+              disabled={busy !== null}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="hml-ads-action-btn hml-ads-action-primary"
+              onClick={onSaveBudget}
+              disabled={busy !== null}
+            >
+              {busy === "budget"
+                ? "Saving…"
+                : `Set to $${Number(budgetDraft || 0).toFixed(0)}/day`}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="hml-ads-detail-stats">
         <div>
@@ -666,6 +1064,107 @@ const ADS_CSS = `
 .hml-ads-window-btn.hml-active {
   background: var(--hml-bg-elev-2, rgba(255,255,255,0.07));
   color: var(--hml-text-primary);
+}
+.hml-ads-custom-range {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--hml-bg-elev-1, rgba(255,255,255,0.04));
+  border: 1px solid var(--hml-border, rgba(255,255,255,0.08));
+}
+.hml-ads-date-input {
+  background: transparent;
+  border: 0;
+  color: var(--hml-text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  padding: 2px 4px;
+  color-scheme: dark;
+}
+.hml-ads-attr-select {
+  background: var(--hml-bg-elev-1, rgba(255,255,255,0.04));
+  border: 1px solid var(--hml-border, rgba(255,255,255,0.08));
+  color: var(--hml-text-primary);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.hml-ads-attr-select:hover {
+  background: var(--hml-bg-elev-2, rgba(255,255,255,0.07));
+}
+
+.hml-ads-actions {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: 12px 0 4px;
+}
+.hml-ads-action-btn {
+  background: var(--hml-bg-elev-1, rgba(255,255,255,0.05));
+  border: 1px solid var(--hml-border, rgba(255,255,255,0.08));
+  color: var(--hml-text-primary);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.hml-ads-action-btn:hover:not(:disabled) {
+  background: var(--hml-bg-elev-2, rgba(255,255,255,0.09));
+  border-color: rgba(255,255,255,0.18);
+}
+.hml-ads-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.hml-ads-action-primary {
+  background: rgba(255,107,0,0.18);
+  border-color: rgba(255,107,0,0.45);
+  color: #FF6B00;
+}
+.hml-ads-action-primary:hover:not(:disabled) {
+  background: rgba(255,107,0,0.28);
+}
+.hml-ads-action-err {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(255,107,107,0.10);
+  border: 1px solid rgba(255,107,107,0.35);
+  border-radius: 8px;
+  color: #ff8b8b;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-word;
+}
+.hml-ads-budget-confirm {
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  background: var(--hml-bg-elev-1, rgba(255,255,255,0.04));
+  border: 1px solid var(--hml-border, rgba(255,255,255,0.10));
+  border-radius: 10px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.hml-ads-budget-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.hml-ads-budget-input-wrap {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--hml-bg-elev-2, rgba(255,255,255,0.06));
+  border: 1px solid var(--hml-border, rgba(255,255,255,0.10));
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+.hml-ads-budget-prefix { color: var(--hml-text-secondary); font-size: 12px; }
+.hml-ads-budget-input {
+  background: transparent; border: 0; color: var(--hml-text-primary);
+  font-family: inherit; font-size: 13px; outline: none; width: 90px;
+}
+.hml-ads-budget-actions {
+  display: flex; gap: 6px; justify-content: flex-end;
 }
 
 .hml-ads-clientrow {

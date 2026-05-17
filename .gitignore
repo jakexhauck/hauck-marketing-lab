@@ -47,6 +47,9 @@ lead-scraper/credentials*.json
 # Google Calendar OAuth client (desktop-app creds, but keep out of repo for push protection)
 app/src-tauri/src/google_oauth_secrets.rs
 
+# Meta Marketing API System User token (full ads_read on Hauck business portfolio — never commit)
+app/src-tauri/src/meta_oauth_secrets.rs
+
 # Claude Code per-developer state
 .claude/settings.local.json
 .claude/worktrees/

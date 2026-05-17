@@ -185,6 +185,12 @@ export type ClientEntry = {
   benchmarks?: string | null;
   /** URL to this client's Google Drive folder. */
   drive_folder_url?: string | null;
+  /** Meta Marketing API ad account ID (`act_…` or bare digits). When set,
+   *  AdsManagerPage swaps the mock generator for real insights. */
+  meta_ad_account_id?: string | null;
+  /** Override the conversion-action allowlist for this client. Single Meta
+   *  `action_type` string. When set, only that action counts as a "Result". */
+  meta_conversion_action?: string | null;
 };
 
 export type DriveIndex = {

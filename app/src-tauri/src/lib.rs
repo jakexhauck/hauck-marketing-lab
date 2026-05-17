@@ -21,6 +21,9 @@ mod google_oauth_secrets;
 mod knowledge;
 mod kpi;
 mod lead_scraper;
+mod meta_actions;
+mod meta_ads;
+mod meta_oauth_secrets;
 mod onboarding;
 mod ops;
 mod personal;
@@ -150,6 +153,21 @@ pub fn run() {
             ghl::ghl_list_appointments,
             ghl::ghl_get_contact,
             ghl::ghl_advance_opportunity,
+            meta_ads::meta_list_ads_insights,
+            meta_ads::meta_clear_ads_cache,
+            meta_ads::meta_backfill_kpis,
+            meta_ads::meta_backfill_if_needed,
+            meta_actions::meta_pause_campaign,
+            meta_actions::meta_resume_campaign,
+            meta_actions::meta_pause_ad,
+            meta_actions::meta_resume_ad,
+            meta_actions::meta_pause_ad_set,
+            meta_actions::meta_resume_ad_set,
+            meta_actions::meta_update_campaign_budget,
+            meta_actions::meta_update_ad_set_budget,
+            meta_actions::meta_duplicate_campaign,
+            meta_actions::meta_duplicate_ad_set,
+            meta_actions::meta_duplicate_ad,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

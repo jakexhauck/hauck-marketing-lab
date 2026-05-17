@@ -29,6 +29,18 @@ pub struct ClientEntry {
     /// human shortcut and the pointer agents use when loading client context.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drive_folder_url: Option<String>,
+    /// Meta Marketing API ad account ID (`act_…` or bare digits). When set,
+    /// the Ads Manager dashboard fetches real insights via `meta_ads.rs`
+    /// instead of falling back to the mock generator.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub meta_ad_account_id: Option<String>,
+    /// Override the conversion-action allowlist for this client. Accepts a
+    /// single Meta `action_type` string (e.g. `leadgen.other`,
+    /// `offsite_conversion.custom.123`). When set, the Ads Manager dashboard
+    /// only counts events of this type towards "Results" / "Revenue".
+    /// When unset, falls back to the default purchase/lead/registration allowlist.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub meta_conversion_action: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -54,6 +66,8 @@ pub fn read_clients_file(root: &str) -> Result<Vec<ClientEntry>, String> {
             created_at: None,
             benchmarks: None,
             drive_folder_url: None,
+            meta_ad_account_id: None,
+            meta_conversion_action: None,
         }]);
     }
     let raw = fs::read_to_string(&path).map_err(|e| format!("read clients: {e}"))?;
@@ -163,6 +177,8 @@ pub fn set_client_status(
                 created_at: Some(chrono::Utc::now().to_rfc3339()),
                 benchmarks: None,
                 drive_folder_url: None,
+                meta_ad_account_id: None,
+                meta_conversion_action: None,
             });
         }
     }
@@ -220,6 +236,8 @@ pub fn add_client(
         created_at: Some(chrono::Utc::now().to_rfc3339()),
         benchmarks: None,
         drive_folder_url: normalized_drive,
+        meta_ad_account_id: None,
+        meta_conversion_action: None,
     };
 
     clients.push(entry.clone());

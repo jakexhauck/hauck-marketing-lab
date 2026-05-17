@@ -496,4 +496,77 @@ export const api = {
     invoke<GhlContactLite>("ghl_get_contact", { contactId }),
   ghlAdvanceOpportunity: (args: GhlAdvanceArgs) =>
     invoke<GhlAdvanceResult>("ghl_advance_opportunity", { args }),
+  metaListAdsInsights: (args: {
+    adAccountId: string;
+    clientSlug: string;
+    clientName: string;
+    windowDays: number;
+    forceRefresh?: boolean;
+    /** YYYY-MM-DD. When set together with endDate, overrides windowDays. */
+    startDate?: string | null;
+    endDate?: string | null;
+    /** Meta attribution windows, e.g. ["7d_click","1d_view"]. */
+    attributionWindows?: string[] | null;
+    /** Single Meta `action_type` to count as a result. Overrides allowlist. */
+    conversionAction?: string | null;
+    /** Media buying root. When set, a daily KPI snapshot is written on success. */
+    root?: string | null;
+  }) =>
+    invoke<import("./mockMetaAds").MetaAdsAccount>("meta_list_ads_insights", {
+      adAccountId: args.adAccountId,
+      clientSlug: args.clientSlug,
+      clientName: args.clientName,
+      windowDays: args.windowDays,
+      forceRefresh: args.forceRefresh ?? false,
+      startDate: args.startDate ?? null,
+      endDate: args.endDate ?? null,
+      attributionWindows: args.attributionWindows ?? null,
+      conversionAction: args.conversionAction ?? null,
+      root: args.root ?? null,
+    }),
+  metaClearAdsCache: () => invoke<void>("meta_clear_ads_cache"),
+  metaBackfillKpis: (args: {
+    adAccountId: string;
+    clientSlug: string;
+    clientName: string;
+    days?: number | null;
+    conversionAction?: string | null;
+    root: string;
+  }) =>
+    invoke<{ written: number; skipped: number }>("meta_backfill_kpis", {
+      adAccountId: args.adAccountId,
+      clientSlug: args.clientSlug,
+      clientName: args.clientName,
+      days: args.days ?? null,
+      conversionAction: args.conversionAction ?? null,
+      root: args.root,
+    }),
+  metaBackfillIfNeeded: (root: string) =>
+    invoke<{ backfilled: string[]; skipped: string[] }>(
+      "meta_backfill_if_needed",
+      { root },
+    ),
+  metaPauseCampaign: (campaignId: string) =>
+    invoke<void>("meta_pause_campaign", { campaignId }),
+  metaResumeCampaign: (campaignId: string) =>
+    invoke<void>("meta_resume_campaign", { campaignId }),
+  metaPauseAd: (adId: string) => invoke<void>("meta_pause_ad", { adId }),
+  metaResumeAd: (adId: string) => invoke<void>("meta_resume_ad", { adId }),
+  metaPauseAdSet: (adsetId: string) =>
+    invoke<void>("meta_pause_ad_set", { adsetId }),
+  metaResumeAdSet: (adsetId: string) =>
+    invoke<void>("meta_resume_ad_set", { adsetId }),
+  metaUpdateCampaignBudget: (campaignId: string, dailyBudgetCents: number) =>
+    invoke<void>("meta_update_campaign_budget", {
+      campaignId,
+      dailyBudgetCents,
+    }),
+  metaUpdateAdSetBudget: (adsetId: string, dailyBudgetCents: number) =>
+    invoke<void>("meta_update_ad_set_budget", { adsetId, dailyBudgetCents }),
+  metaDuplicateCampaign: (campaignId: string) =>
+    invoke<{ newId: string }>("meta_duplicate_campaign", { campaignId }),
+  metaDuplicateAdSet: (adsetId: string) =>
+    invoke<{ newId: string }>("meta_duplicate_ad_set", { adsetId }),
+  metaDuplicateAd: (adId: string) =>
+    invoke<{ newId: string }>("meta_duplicate_ad", { adId }),
 };
