@@ -11,6 +11,9 @@ import type { Lead, LeadActivity, LeadStage } from "../types";
 import { getLeadsForClient } from "../mock";
 import { useClient } from "./ClientContext";
 import { useAuth } from "./AuthContext";
+import { useLeadsQuery, usePipelineQuery, useUpdateLead } from "../hooks/useApi";
+import { mapGhlStage } from "../lib/stageMap";
+import type { ApiLead } from "../lib/api";
 
 interface LeadsContextValue {
   leads: Lead[];
@@ -19,6 +22,8 @@ interface LeadsContextValue {
   advanceStage: (leadId: string, toStage: LeadStage) => void;
   getActivitiesForLead: (leadId: string) => LeadActivity[];
   addNote: (leadId: string, body: string) => void;
+  isLoading: boolean;
+  error: Error | null;
 }
 
 const LeadsContext = createContext<LeadsContextValue | null>(null);
@@ -28,6 +33,29 @@ function newId(): string {
     return crypto.randomUUID();
   }
   return `id-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
+}
+
+function adaptApiLead(
+  a: ApiLead,
+  pipelineStages: { id: string; name: string }[] | undefined,
+  fallbackClientId: string,
+): Lead {
+  const stageName = pipelineStages?.find((s) => s.id === a.pipelineStageId)?.name;
+  return {
+    id: a.id,
+    clientId: fallbackClientId,
+    assignedUserId: null,
+    name: a.name || "Unknown",
+    phone: a.phone,
+    email: a.email,
+    sourceAd: "",
+    sourceCampaign: "",
+    stage: mapGhlStage(stageName, a.status),
+    value: a.value,
+    createdAt: a.createdAt,
+    lastActivityAt: a.lastActivityAt,
+    notes: a.notes,
+  };
 }
 
 function seedActivitiesForLead(lead: Lead): LeadActivity[] {
@@ -70,33 +98,60 @@ function seedActivities(leads: Lead[]): LeadActivity[] {
 
 export function LeadsProvider({ children }: { children: ReactNode }) {
   const { client } = useClient();
-  const { currentUser } = useAuth();
-  const [leads, setLeads] = useState<Lead[]>(() => getLeadsForClient(client.id));
+  const { currentUser, session } = useAuth();
+  const useReal = Boolean(session);
+
+  const pipelineQuery = usePipelineQuery(useReal);
+  const leadsQuery = useLeadsQuery(useReal);
+  const updateLead = useUpdateLead();
+
+  const [mockLeads, setMockLeads] = useState<Lead[]>(() =>
+    useReal ? [] : getLeadsForClient(client.id),
+  );
   const [activities, setActivities] = useState<LeadActivity[]>(() =>
-    seedActivities(getLeadsForClient(client.id))
+    useReal ? [] : seedActivities(getLeadsForClient(client.id)),
   );
 
   useEffect(() => {
+    if (useReal) return;
     const next = getLeadsForClient(client.id);
-    setLeads(next);
+    setMockLeads(next);
     setActivities(seedActivities(next));
-  }, [client.id]);
+  }, [client.id, useReal]);
 
-  const getLead = useCallback(
-    (id: string) => leads.find((l) => l.id === id),
-    [leads]
-  );
+  const realLeads = useMemo<Lead[]>(() => {
+    if (!useReal || !leadsQuery.data) return [];
+    return leadsQuery.data.leads.map((a) =>
+      adaptApiLead(a, pipelineQuery.data?.stages, client.id),
+    );
+  }, [useReal, leadsQuery.data, pipelineQuery.data?.stages, client.id]);
+
+  useEffect(() => {
+    if (!useReal || realLeads.length === 0) return;
+    setActivities((prev) => {
+      const seeded = seedActivities(realLeads);
+      const localOnly = prev.filter((a) => !a.id.endsWith("-seed-created") && !a.id.endsWith("-seed-stage") && !a.id.endsWith("-seed-won"));
+      return [...localOnly, ...seeded].sort((a, b) => b.at - a.at);
+    });
+  }, [useReal, realLeads]);
+
+  const leads = useReal ? realLeads : mockLeads;
 
   const appendActivities = useCallback((entries: LeadActivity[]) => {
     if (entries.length === 0) return;
     setActivities((a) => [...entries, ...a].sort((x, y) => y.at - x.at));
   }, []);
 
-  const markStage = useCallback(
+  const getLead = useCallback(
+    (id: string) => leads.find((l) => l.id === id),
+    [leads],
+  );
+
+  const applyMockStage = useCallback(
     (leadId: string, stage: LeadStage, value?: number) => {
       const at = Date.now();
       const authorUserId = currentUser?.id;
-      setLeads((prev) => {
+      setMockLeads((prev) => {
         const target = prev.find((l) => l.id === leadId);
         if (!target) return prev;
         const fromStage = target.stage;
@@ -136,38 +191,63 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
         });
       });
     },
-    [currentUser, appendActivities]
+    [currentUser, appendActivities],
+  );
+
+  const markStage = useCallback(
+    (leadId: string, stage: LeadStage, value?: number) => {
+      const at = Date.now();
+      const authorUserId = currentUser?.id;
+      if (useReal) {
+        appendActivities([
+          {
+            id: newId(),
+            leadId,
+            kind: "stage-change",
+            at,
+            authorUserId,
+            fromStage: leads.find((l) => l.id === leadId)?.stage ?? "new",
+            toStage: stage,
+          },
+          ...(stage === "won" && typeof value === "number"
+            ? [
+                {
+                  id: newId(),
+                  leadId,
+                  kind: "won-recorded" as const,
+                  at,
+                  authorUserId,
+                  value,
+                },
+              ]
+            : []),
+        ]);
+        updateLead.mutate({
+          leadId,
+          appStage: stage,
+          value: value ?? null,
+          pipelineStages: pipelineQuery.data?.stages,
+        });
+      } else {
+        applyMockStage(leadId, stage, value);
+      }
+    },
+    [
+      useReal,
+      currentUser,
+      leads,
+      pipelineQuery.data?.stages,
+      updateLead,
+      appendActivities,
+      applyMockStage,
+    ],
   );
 
   const advanceStage = useCallback(
     (leadId: string, toStage: LeadStage) => {
-      const at = Date.now();
-      const authorUserId = currentUser?.id;
-      setLeads((prev) => {
-        const target = prev.find((l) => l.id === leadId);
-        if (!target) return prev;
-        const fromStage = target.stage;
-        if (fromStage !== toStage) {
-          appendActivities([
-            {
-              id: newId(),
-              leadId,
-              kind: "stage-change",
-              at,
-              authorUserId,
-              fromStage,
-              toStage,
-            },
-          ]);
-        }
-        return prev.map((l) =>
-          l.id === leadId
-            ? { ...l, stage: toStage, lastActivityAt: new Date(at).toISOString() }
-            : l
-        );
-      });
+      markStage(leadId, toStage);
     },
-    [currentUser, appendActivities]
+    [markStage],
   );
 
   const addNote = useCallback(
@@ -185,15 +265,19 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
           body: trimmed,
         },
       ]);
-      setLeads((prev) =>
-        prev.map((l) =>
-          l.id === leadId
-            ? { ...l, lastActivityAt: new Date(at).toISOString() }
-            : l
-        )
-      );
+      if (useReal) {
+        updateLead.mutate({ leadId, notes: trimmed });
+      } else {
+        setMockLeads((prev) =>
+          prev.map((l) =>
+            l.id === leadId
+              ? { ...l, lastActivityAt: new Date(at).toISOString() }
+              : l,
+          ),
+        );
+      }
     },
-    [currentUser, appendActivities]
+    [useReal, currentUser, appendActivities, updateLead],
   );
 
   const getActivitiesForLead = useCallback(
@@ -201,7 +285,7 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       activities
         .filter((a) => a.leadId === leadId)
         .sort((a, b) => b.at - a.at),
-    [activities]
+    [activities],
   );
 
   const value = useMemo(
@@ -212,8 +296,26 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
       advanceStage,
       getActivitiesForLead,
       addNote,
+      isLoading: useReal && (leadsQuery.isLoading || pipelineQuery.isLoading),
+      error:
+        (useReal &&
+          ((leadsQuery.error as Error | null) ??
+            (pipelineQuery.error as Error | null))) ||
+        null,
     }),
-    [leads, getLead, markStage, advanceStage, getActivitiesForLead, addNote]
+    [
+      leads,
+      getLead,
+      markStage,
+      advanceStage,
+      getActivitiesForLead,
+      addNote,
+      useReal,
+      leadsQuery.isLoading,
+      leadsQuery.error,
+      pipelineQuery.isLoading,
+      pipelineQuery.error,
+    ],
   );
 
   return <LeadsContext.Provider value={value}>{children}</LeadsContext.Provider>;

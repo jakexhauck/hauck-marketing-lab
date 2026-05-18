@@ -46,10 +46,17 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest}"],
+        navigateFallbackDenylist: [/^\/api\//],
       },
     }),
   ],
   server: {
     port: 5173,
+    proxy: {
+      "/api": {
+        target: "http://localhost:8788",
+        changeOrigin: true,
+      },
+    },
   },
 });
