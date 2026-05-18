@@ -4,6 +4,7 @@ import { ClientProvider } from "./context/ClientContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LeadsProvider } from "./context/LeadsContext";
 import Login from "./routes/Login";
+import AuthCallback from "./routes/AuthCallback";
 import Dashboard from "./routes/Dashboard";
 import LeadDetail from "./routes/LeadDetail";
 import Today from "./routes/Today";
@@ -25,12 +26,13 @@ function RootRedirect() {
 export default function App() {
   return (
     <ThemeProvider>
-      <ClientProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <ClientProvider>
           <LeadsProvider>
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/showroom" element={<Showroom />} />
               <Route
                 path="/dashboard"
@@ -67,8 +69,8 @@ export default function App() {
               <Route path="*" element={<RootRedirect />} />
             </Routes>
           </LeadsProvider>
-        </AuthProvider>
-      </ClientProvider>
+        </ClientProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
