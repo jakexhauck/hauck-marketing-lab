@@ -12,9 +12,14 @@ export default function AuthCallback() {
       navigate("/login?error=not-configured", { replace: true });
       return;
     }
-    const url = new URL(window.location.href);
-    const code = url.searchParams.get("code");
-    const errParam = url.searchParams.get("error_description") ?? url.searchParams.get("error");
+
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const queryParams = new URL(window.location.href).searchParams;
+    const errParam =
+      hashParams.get("error_description") ??
+      hashParams.get("error") ??
+      queryParams.get("error_description") ??
+      queryParams.get("error");
 
     if (errParam) {
       setError(errParam);
@@ -22,22 +27,39 @@ export default function AuthCallback() {
       return () => clearTimeout(t);
     }
 
-    if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ error: exErr }) => {
-        if (exErr) {
-          setError(exErr.message);
-          setTimeout(() => navigate(`/login?error=${encodeURIComponent(exErr.message)}`, { replace: true }), 1200);
-        } else {
-          navigate("/dashboard", { replace: true });
-        }
-      });
-      return;
-    }
+    let settled = false;
+    const goAuthed = () => {
+      if (settled) return;
+      settled = true;
+      navigate("/dashboard", { replace: true });
+    };
+    const goUnauthed = () => {
+      if (settled) return;
+      settled = true;
+      navigate("/login?error=sign-in-link-expired", { replace: true });
+    };
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, sess) => {
+      if (sess && (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED")) {
+        goAuthed();
+      }
+    });
 
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate("/dashboard", { replace: true });
-      else navigate("/login?error=missing-code", { replace: true });
+      if (data.session) goAuthed();
     });
+
+    const fallback = setTimeout(() => {
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) goAuthed();
+        else goUnauthed();
+      });
+    }, 2500);
+
+    return () => {
+      sub.subscription.unsubscribe();
+      clearTimeout(fallback);
+    };
   }, [navigate]);
 
   return (
