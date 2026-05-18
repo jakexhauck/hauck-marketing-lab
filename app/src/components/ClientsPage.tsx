@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/tauri";
 import { openInAppWindow } from "../lib/openInApp";
 import type { BenchmarkSummary, ClientEntry } from "../lib/types";
+import type { PlaybookSummary } from "../lib/playbooks";
 import { ClientProfileForm } from "./ClientProfileForm";
 
 type Props = {
@@ -27,6 +28,8 @@ export function ClientsPage({
   const [adding, setAdding] = useState(Boolean(startInAddMode));
   const [newName, setNewName] = useState("");
   const [newDriveUrl, setNewDriveUrl] = useState("");
+  const [newNiche, setNewNiche] = useState<string>("");
+  const [playbooks, setPlaybooks] = useState<PlaybookSummary[]>([]);
   const [renamingSlug, setRenamingSlug] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [editingDriveSlug, setEditingDriveSlug] = useState<string | null>(null);
@@ -35,7 +38,7 @@ export function ClientsPage({
   const [error, setError] = useState<string | null>(null);
   const [benchmarkSets, setBenchmarkSets] = useState<BenchmarkSummary[]>([]);
   const [profileFor, setProfileFor] = useState<
-    { client: ClientEntry; mode: "new" | "edit" } | null
+    { client: ClientEntry; mode: "new" | "edit"; niche?: string | null } | null
   >(null);
   const newInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -54,6 +57,21 @@ export function ClientsPage({
       })
       .catch(() => {
         if (!cancelled) setBenchmarkSets([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [root]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .listPlaybooks(root)
+      .then((list) => {
+        if (!cancelled) setPlaybooks(list);
+      })
+      .catch(() => {
+        if (!cancelled) setPlaybooks([]);
       });
     return () => {
       cancelled = true;
@@ -81,12 +99,18 @@ export function ClientsPage({
     try {
       // Pass an empty slug so the backend slugifies + de-collides.
       const created = await api.addClient(root, "", name, driveUrl || null);
+      const nicheSlug = newNiche.trim();
       setNewName("");
       setNewDriveUrl("");
+      setNewNiche("");
       setAdding(false);
       await refresh();
       // Immediately open the structured Profile form for the new client.
-      setProfileFor({ client: created, mode: "new" });
+      setProfileFor({
+        client: created,
+        mode: "new",
+        niche: nicheSlug || null,
+      });
     } catch (e) {
       setError(String(e));
     } finally {
@@ -163,6 +187,7 @@ export function ClientsPage({
         root={root}
         client={profileFor.client}
         mode={profileFor.mode}
+        initialNiche={profileFor.niche ?? null}
         onClose={() => setProfileFor(null)}
         onSaved={async () => {
           const saved = profileFor;
@@ -267,11 +292,34 @@ export function ClientsPage({
                         setAdding(false);
                         setNewName("");
                         setNewDriveUrl("");
+                        setNewNiche("");
                         setError(null);
                       }
                     }}
                     disabled={busy}
                   />
+                </div>
+                <div className="hml-form-field">
+                  <label className="hml-form-label">Niche</label>
+                  <select
+                    className="hml-form-select"
+                    value={newNiche}
+                    onChange={(e) => setNewNiche(e.target.value)}
+                    disabled={busy}
+                  >
+                    <option value="">— Custom (no playbook) —</option>
+                    {playbooks.map((p) => (
+                      <option key={p.slug} value={p.slug}>
+                        {p.display_name}
+                        {p.complete ? "" : " (incomplete)"}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="hml-form-help">
+                    Pre-fills audience, offers, angles, creative brief, and competitor
+                    intel on every form using this client's niche playbook. Custom
+                    leaves forms blank.
+                  </div>
                 </div>
                 <div className="cp-add-actions">
                   <button

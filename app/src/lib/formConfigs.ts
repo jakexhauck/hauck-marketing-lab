@@ -3,6 +3,7 @@
 // The shared GenericFormGenerator renders + runs these.
 
 import type { ProfileFormValues } from "./clientProfile";
+import type { PlaybookFieldKey } from "./playbooks";
 import type { GeneratorKind } from "./types";
 
 export type FormFieldBase = {
@@ -92,6 +93,11 @@ export type FormConfig = {
   /** Optional: pre-fill these form fields from the active client's Profile.md.
    *  Map: form-field-key → ProfileFormValues key. */
   prefillFromProfile?: Partial<Record<string, keyof ProfileFormValues>>;
+  /** Optional: pre-fill these form fields from the active client's niche
+   *  playbook when Profile.md does not already supply a value. Map: form-field-key
+   *  → playbook field (`audience` | `offers` | `angles` | `creative-brief` |
+   *  `competitors`). Precedence: explicit > Profile.md > playbook > empty. */
+  prefillFromPlaybook?: Partial<Record<string, PlaybookFieldKey>>;
   /** Optional: when set, the form post-processes Claude's output through an
    *  image-generation pipeline (currently Nano Banana 2 via Google AI Studio).
    *  Claude must emit a fenced ```json block with shape {prompts: [...]}, and
@@ -1058,6 +1064,11 @@ const HOOKS: FormConfig = {
     offer: "offers",
     audience: "target",
   },
+  prefillFromPlaybook: {
+    offer: "offers",
+    audience: "audience",
+    seed: "angles",
+  },
   sections: [
     {
       title: "▸ BRIEF",
@@ -1154,6 +1165,13 @@ const CREATIVE_BRIEF: FormConfig = {
     audience: "target",
     visual_style: "voice",
     do_nots: "avoid",
+  },
+  prefillFromPlaybook: {
+    audience: "audience",
+    core_message: "angles",
+    visual_style: "creative-brief",
+    do_nots: "creative-brief",
+    competitor_intel: "competitors",
   },
   sections: [
     {
@@ -1338,6 +1356,12 @@ const AD_COPY: FormConfig = {
     what_they_sell: "services",
     target_customer: "target",
     current_offer: "offers",
+  },
+  prefillFromPlaybook: {
+    target_customer: "audience",
+    current_offer: "offers",
+    usp: "angles",
+    competitor_intel: "competitors",
   },
   sections: [
     {

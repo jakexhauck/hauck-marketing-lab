@@ -1,0 +1,5 @@
+- 7-day free pass, no card required (top-of-funnel, highest opt-in rate, the workhorse offer)
+- 21-day transformation: $99 for 3 weeks of unlimited classes + intro consult (converts hottest leads, prequalifies on payment)
+- $1 first month + no contract (price-anchor offer, best for cold cohorts)
+- Bring-a-friend free month (referral driver, runs continuously)
+- Founding member discount (new locations only, urgency built in)

@@ -1,0 +1,7 @@
+{
+  "cpl_target": 25,
+  "cpm_min": 12,
+  "cpm_max": 28,
+  "ctr_floor": 1.5,
+  "roas_target": 3
+}

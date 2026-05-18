@@ -27,6 +27,7 @@ mod meta_oauth_secrets;
 mod onboarding;
 mod ops;
 mod personal;
+mod playbooks;
 mod prospects;
 mod sops;
 mod sync;
@@ -168,6 +169,12 @@ pub fn run() {
             meta_actions::meta_duplicate_campaign,
             meta_actions::meta_duplicate_ad_set,
             meta_actions::meta_duplicate_ad,
+            playbooks::list_playbooks,
+            playbooks::read_playbook,
+            playbooks::read_playbook_field,
+            playbooks::save_playbook,
+            playbooks::delete_playbook,
+            playbooks::validate_playbooks,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

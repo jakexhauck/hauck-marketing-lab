@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../lib/tauri";
 import { openInAppWindow } from "../lib/openInApp";
 import {
+  nicheFromFront,
   parseProfileBody,
   profilePathFor,
-  type ProfileFormValues,
 } from "../lib/clientProfile";
 import {
   defaultValuesFor,
@@ -12,6 +12,7 @@ import {
   type FormField,
   type FormValues,
 } from "../lib/formConfigs";
+import { resolvePrefills, type PrefillSource } from "../lib/playbooks";
 import { assembleGenericPrompt, buildInputsYaml } from "../lib/genericPrompt";
 import type {
   AgentSummary,
@@ -236,37 +237,63 @@ export function GenericFormGenerator({
     setDriveUploadError(null);
   }, [saved]);
 
-  // pre-fill from Profile.md when the form opts in via config.prefillFromProfile
+  // Tracks per-field prefill provenance so the form can render
+  // `auto · profile` / `auto · <niche> playbook` badges next to each field.
+  // Cleared when the user types into a field (the override wins).
+  const [prefillSources, setPrefillSources] = useState<
+    Record<string, PrefillSource>
+  >({});
+
+  // pre-fill from Profile.md + niche playbook when the form opts in
   useEffect(() => {
-    const mapping = config.prefillFromProfile;
-    if (!mapping) return;
+    const profileMap = config.prefillFromProfile;
+    const playbookMap = config.prefillFromPlaybook;
+    if (!profileMap && !playbookMap) return;
     let cancelled = false;
     (async () => {
+      let vaultRoot = root;
+      try {
+        vaultRoot = await api.vaultRootPath(root);
+      } catch {
+        vaultRoot = root;
+      }
+      let profileValues: ReturnType<typeof parseProfileBody> | null = null;
+      let niche: string | null = null;
       try {
         const note = await api.readVaultNote(
           root,
-          profilePathFor(root, {
+          profilePathFor(vaultRoot, {
             slug: clientSlug,
             name: clientName,
             status: "pre-launch",
           }),
         );
-        if (cancelled || !note?.body) return;
-        const profile = parseProfileBody(note.body);
-        setValues((prev) => {
-          const next = { ...prev };
-          for (const [fieldKey, profileKey] of Object.entries(mapping)) {
-            if (!profileKey) continue;
-            const v = profile[profileKey as keyof ProfileFormValues];
-            if (typeof v === "string" && v.trim().length > 0) {
-              next[fieldKey] = v;
-            }
-          }
-          return next;
-        });
+        if (note?.body) profileValues = parseProfileBody(note.body);
+        niche = nicheFromFront(note?.front);
       } catch {
         // No Profile.md (or unreadable) — defaults stand; user can still type.
       }
+      if (cancelled) return;
+      const resolved = await resolvePrefills({
+        root,
+        niche,
+        profile: profileValues,
+        profileMap,
+        playbookMap,
+      });
+      if (cancelled) return;
+      setValues((prev) => {
+        const next = { ...prev };
+        for (const [fieldKey, entry] of Object.entries(resolved)) {
+          next[fieldKey] = entry.value;
+        }
+        return next;
+      });
+      setPrefillSources(
+        Object.fromEntries(
+          Object.entries(resolved).map(([k, v]) => [k, v.source]),
+        ),
+      );
     })();
     return () => {
       cancelled = true;
@@ -372,8 +399,19 @@ export function GenericFormGenerator({
     return { done, total: cfg.total, pct, unit, section };
   }, [config.progress, streamText]);
 
-  const setField = (key: string, value: string | number | string[]) =>
+  const clearPrefillSource = (key: string) => {
+    setPrefillSources((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const setField = (key: string, value: string | number | string[]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
+    clearPrefillSource(key);
+  };
 
   const toggleMulti = (key: string, option: string) => {
     setValues((prev) => {
@@ -383,6 +421,7 @@ export function GenericFormGenerator({
         : [...current, option];
       return { ...prev, [key]: next };
     });
+    clearPrefillSource(key);
   };
 
   const handleRun = async () => {
@@ -595,6 +634,35 @@ export function GenericFormGenerator({
     }
   };
 
+  const sourceTag = (key: string) => {
+    const src = prefillSources[key];
+    if (!src) return null;
+    const text =
+      src.kind === "profile"
+        ? "auto · profile"
+        : `auto · ${src.slug} playbook`;
+    return (
+      <span
+        title="Pre-filled. Typing overrides this."
+        style={{
+          marginLeft: 8,
+          fontFamily: "var(--hml-font-mono)",
+          fontSize: 9.5,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "var(--hml-accent, #ec9849)",
+          padding: "1px 6px",
+          border: "1px solid var(--hml-accent-border, rgba(236,152,73,0.35))",
+          background: "var(--hml-accent-dim, rgba(236,152,73,0.08))",
+          borderRadius: 4,
+          verticalAlign: "middle",
+        }}
+      >
+        {text}
+      </span>
+    );
+  };
+
   const renderFields = (fields: FormField[]) => {
     // Group fields that have inline=true with the previous one into a grid row.
     const groups: FormField[][] = [];
@@ -609,6 +677,7 @@ export function GenericFormGenerator({
           <label key={f.key} className="os-field">
             <span className="os-label">
               {f.label}
+              {sourceTag(f.key)}
               {f.hint && <span className="os-hint" style={{ marginLeft: 6 }}>· {f.hint}</span>}
             </span>
             {renderField(f)}
@@ -628,6 +697,7 @@ export function GenericFormGenerator({
             <label key={f.key} className="os-field">
               <span className="os-label">
                 {f.label}
+                {sourceTag(f.key)}
                 {f.hint && <span className="os-hint" style={{ marginLeft: 6 }}>· {f.hint}</span>}
               </span>
               {renderField(f)}

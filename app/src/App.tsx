@@ -277,6 +277,28 @@ export default function App() {
     };
   }, [root, loadFolder]);
 
+  // Validate the vault Playbooks directory on root change; soft-fail with a
+  // console warning per incomplete niche so Jake notices missing files without
+  // anything blocking the app from booting.
+  useEffect(() => {
+    if (!root) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const warnings = await api.validatePlaybooks(root);
+        if (cancelled) return;
+        for (const w of warnings) {
+          console.warn(`[playbooks] ${w}`);
+        }
+      } catch (e) {
+        if (!cancelled) console.warn(`[playbooks] validation failed: ${e}`);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root]);
+
   // ⌘K / Ctrl+K palette
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
