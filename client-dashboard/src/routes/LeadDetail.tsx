@@ -11,8 +11,12 @@ import BrandedButton from "../components/BrandedButton";
 import Toast from "../components/Toast";
 import { useLeads } from "../context/LeadsContext";
 import { useClient } from "../context/ClientContext";
+import { useAuth } from "../context/AuthContext";
 import { timeAgo } from "../lib/timeAgo";
 import { formatMoney } from "../lib/formatMoney";
+import { e164, formatPhone } from "../lib/phone";
+import ConversationThread from "../components/ConversationThread";
+import MessageComposer from "../components/MessageComposer";
 import type { LeadActivity, LeadStage } from "../types";
 
 const currencyFmt = new Intl.NumberFormat("en-US", {
@@ -118,6 +122,7 @@ export default function LeadDetail() {
   const navigate = useNavigate();
   const { getLead, markStage, getActivitiesForLead, addNote } = useLeads();
   const { client } = useClient();
+  const { session } = useAuth();
   const [wonOpen, setWonOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [toast, setToast] = useState<string | null>(null);
@@ -183,7 +188,9 @@ export default function LeadDetail() {
     setToast("Note added");
   };
 
-  const telDigits = lead.phone.replace(/[^0-9+]/g, "");
+  const telDigits = e164(lead.phone);
+  const phoneDisplay = formatPhone(lead.phone) || lead.phone;
+  const hasPhone = telDigits.replace(/[^0-9]/g, "").length >= 10;
   const visibleActivities =
     showAllActivity || activities.length <= 8
       ? activities
@@ -213,14 +220,16 @@ export default function LeadDetail() {
         </section>
 
         <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <a
-            href={`tel:${telDigits}`}
-            className="flex items-center gap-3 text-base font-semibold underline"
-            style={{ color: "var(--brand-primary)" }}
-          >
-            <Phone size={16} aria-hidden="true" />
-            <span>{lead.phone}</span>
-          </a>
+          {hasPhone && (
+            <a
+              href={`tel:${telDigits}`}
+              className="flex items-center gap-3 text-base font-semibold underline"
+              style={{ color: "var(--brand-primary)" }}
+            >
+              <Phone size={16} aria-hidden="true" />
+              <span>{phoneDisplay}</span>
+            </a>
+          )}
           <a
             href={`mailto:${lead.email}`}
             className="flex items-center gap-3 break-all text-base font-semibold underline"
@@ -256,6 +265,26 @@ export default function LeadDetail() {
             </div>
           </dl>
         </section>
+
+        {session && (
+          <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+            <div className="flex items-center gap-2">
+              <MessageSquare
+                size={14}
+                aria-hidden="true"
+                className="text-[var(--text-muted)]"
+              />
+              <h2 className="label-cap">Messages</h2>
+            </div>
+            <ConversationThread leadId={lead.id} />
+            <MessageComposer leadId={lead.id} disabled={!hasPhone} />
+            {!hasPhone && (
+              <p className="text-xs text-[var(--text-muted)]">
+                No phone number on file. Add one in GHL to send SMS.
+              </p>
+            )}
+          </section>
+        )}
 
         <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
           <div className="flex items-center gap-2">

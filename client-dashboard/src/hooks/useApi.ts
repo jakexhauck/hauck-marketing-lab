@@ -33,7 +33,9 @@ export function useMessagesQuery(id: string | null, enabled: boolean) {
   return useQuery({
     queryKey: ["lead", id, "messages"],
     enabled: enabled && !!id,
-    staleTime: 5_000,
+    staleTime: 0,
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
     queryFn: () =>
       api<{ conversationId?: string; messages: ApiMessage[] }>(
         `/api/leads/${id}/messages`,
