@@ -12,9 +12,9 @@ Public URL goal: `hauck-dashboard.pages.dev` (or pick another name during setup)
    - **Project name**: `hauck-dashboard` (becomes the `*.pages.dev` subdomain)
    - **Production branch**: `main`
    - **Framework preset**: `None`
-   - **Build command**: `cd client-dashboard && corepack enable && pnpm install --frozen-lockfile && pnpm build`
-   - **Build output directory**: `client-dashboard/dist`
-   - **Root directory (advanced)**: leave blank
+   - **Build command**: `corepack enable && pnpm install --frozen-lockfile && pnpm build`
+   - **Build output directory**: `dist`
+   - **Root directory (advanced)**: `client-dashboard`
 4. Environment variables (under "Variables and Secrets"):
    - `NODE_VERSION` = `20`
    - `PNPM_VERSION` = `9`
