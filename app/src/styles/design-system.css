@@ -1020,6 +1020,30 @@
   text-decoration-color: var(--hml-text-quaternary);
 }
 
+.hml-daily-cat-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 4px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--hml-text-tertiary);
+  border-bottom: 1px solid var(--hml-border-subtle, rgba(255,255,255,0.04));
+}
+
+.hml-daily-cat-header:first-child { padding-top: 2px; }
+
+.hml-daily-cat-name { flex: 1; min-width: 0; }
+
+.hml-daily-cat-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--hml-text-quaternary);
+  letter-spacing: 0;
+}
+
 .hml-cal-event-title {
   font-size: 13px;
   color: var(--hml-text-primary);

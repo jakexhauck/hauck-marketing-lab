@@ -8,12 +8,6 @@
       "lane": "backburner"
     },
     {
-      "id": "6049c27a-ac75-4136-9c17-caabd54b0d1d",
-      "title": "Create SOP's From Brez Course & Important Info",
-      "status": "todo",
-      "createdAt": 1778693032032
-    },
-    {
       "id": "77f113eb-a45a-4f59-b2c3-1beaf5cfa898",
       "title": "Create Contracts + Automate It",
       "status": "todo",
@@ -51,14 +45,6 @@
       "createdAt": 1778761441448
     },
     {
-      "id": "1f4f55ba-d10f-4b29-aab6-24e382e41b95",
-      "title": "Setup Meta Business Verification",
-      "clientSlug": "willis-windows",
-      "status": "todo",
-      "createdAt": 1778882705063,
-      "lane": "active"
-    },
-    {
       "id": "6851f66d-8027-49cc-9c47-749c36f8817e",
       "title": "Setup Meta AD's MCP Within HML",
       "status": "todo",
@@ -85,6 +71,27 @@
       "title": "Update Meta Portion",
       "status": "todo",
       "createdAt": 1779054199087,
+      "lane": "active"
+    },
+    {
+      "id": "c6728126-2e5a-4109-95ee-ff697394c979",
+      "title": "Respond Too A2P Wizard",
+      "status": "todo",
+      "createdAt": 1779112666133,
+      "lane": "active"
+    },
+    {
+      "id": "8f32f3d8-28e8-4e53-8e37-dd8f7db30d70",
+      "title": "Finish Mobile App & Send Login Too Josh/Jayse",
+      "status": "todo",
+      "createdAt": 1779113657933,
+      "lane": "active"
+    },
+    {
+      "id": "9ba4dee0-cea2-43a0-9f15-6642e6084b07",
+      "title": "Make New Google Account For Google Studio",
+      "status": "todo",
+      "createdAt": 1779115134926,
       "lane": "active"
     }
   ]

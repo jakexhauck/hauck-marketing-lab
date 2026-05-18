@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./main-dashboard.css";
 import { openInAppWindow } from "../../lib/openInApp";
 import { AppSidebar } from "./AppSidebar";
@@ -766,16 +766,47 @@ function DashboardSurface({
   const today = todayYMD();
   const monday = mondayYMD();
   const dow = todayDow();
-  const dailyTasks = tasksFile.tasks.filter(
+  const scheduledDailyTasks = tasksFile.tasks.filter(
     (t) =>
       t.lane === "daily" ||
       (t.lane === "weekly" && (t.weeklyDay ?? 1) === dow),
   );
+  // Fallback: when nothing is scheduled for today, surface Active-lane tasks
+  // so the dashboard widget still has something to chew on. Keep done rows in
+  // the list so checking one crosses it out instead of making it vanish.
+  const activeFallbackTasks = tasksFile.tasks.filter(
+    (t) => t.lane === "active" || t.lane === undefined,
+  );
+  const usingActiveFallback =
+    scheduledDailyTasks.length === 0 && activeFallbackTasks.length > 0;
+  const dailyTasks = usingActiveFallback ? activeFallbackTasks : scheduledDailyTasks;
+
+  const knownClientSlugs = useMemo(
+    () => new Set(clients.map((c) => c.slug)),
+    [clients],
+  );
+  const fallbackCategories = useMemo(() => {
+    if (!usingActiveFallback) return [];
+    const categoryOf = (t: OpsTask): string | null =>
+      t.clientSlug && knownClientSlugs.has(t.clientSlug) ? t.clientSlug : null;
+    const order: { slug: string | null; name: string }[] = [
+      { slug: null, name: "Internal" },
+      ...clients.map((c) => ({ slug: c.slug as string | null, name: c.name })),
+    ];
+    return order
+      .map((cat) => ({
+        ...cat,
+        tasks: dailyTasks.filter((t) => categoryOf(t) === cat.slug),
+      }))
+      .filter((cat) => cat.tasks.length > 0);
+  }, [usingActiveFallback, clients, dailyTasks, knownClientSlugs]);
   const isTaskDoneToday = useCallback(
     (t: OpsTask) =>
       t.lane === "weekly"
         ? t.lastCompletedWeek === monday
-        : t.lastCompletedDate === today,
+        : t.lane === "daily"
+          ? t.lastCompletedDate === today
+          : t.status === "done",
     [monday, today],
   );
   const dailyDoneCount = dailyTasks.filter(isTaskDoneToday).length;
@@ -788,7 +819,9 @@ function DashboardSurface({
           t.id === task.id
             ? task.lane === "weekly"
               ? { ...t, lastCompletedWeek: done ? monday : null }
-              : { ...t, lastCompletedDate: done ? today : null }
+              : task.lane === "daily"
+                ? { ...t, lastCompletedDate: done ? today : null }
+                : { ...t, status: done ? "done" : "todo" }
             : t,
         ),
       };
@@ -1035,7 +1068,9 @@ function DashboardSurface({
             <span className="hml-panel-action">
               {dailyTasks.length === 0
                 ? "Add in Tasks"
-                : `${dailyDoneCount} / ${dailyTasks.length} done`}
+                : usingActiveFallback
+                  ? `From Active · ${dailyDoneCount} / ${dailyTasks.length} done`
+                  : `${dailyDoneCount} / ${dailyTasks.length} done`}
             </span>
           </div>
           <div className="hml-panel-body">
@@ -1047,6 +1082,41 @@ function DashboardSurface({
                   They'll show up here every day.
                 </div>
               </div>
+            ) : usingActiveFallback ? (
+              <ul className="hml-daily-list">
+                {fallbackCategories.map((cat) => (
+                  <Fragment key={cat.slug ?? "__internal__"}>
+                    <li className="hml-daily-cat-header">
+                      <span className="hml-daily-cat-name">{cat.name}</span>
+                      <span className="hml-daily-cat-count">
+                        {cat.tasks.length}
+                      </span>
+                    </li>
+                    {cat.tasks.map((t) => {
+                      const done = isTaskDoneToday(t);
+                      return (
+                        <li
+                          key={t.id}
+                          className={`hml-daily-row${done ? " hml-daily-done" : ""}`}
+                        >
+                          <input
+                            type="checkbox"
+                            className="hml-daily-check"
+                            checked={done}
+                            onChange={(e) => {
+                              void toggleDailyDone(t, e.target.checked);
+                            }}
+                            aria-label={`Mark "${t.title || "untitled"}" done`}
+                          />
+                          <span className="hml-daily-title">
+                            {t.title.trim() || <em>(untitled)</em>}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </Fragment>
+                ))}
+              </ul>
             ) : (
               <ul className="hml-daily-list">
                 {dailyTasks.map((t) => {
