@@ -209,4 +209,48 @@ Not blocking. When ready: add the `UrlFetchApp.fetch` block in `doPost()` per th
 - **Saved briefs**: `media-buying/data/<client>/briefs/`
 - **Vault client assets**: `vault/Clients/<Name>/Assets/`
 - **Activity log file**: `vault/ops/activity.jsonl`
+
+---
+
+## 09 · Split View (shipped 2026-05-18)
+
+### What's in the app now
+- **Split button** in the top-right pane chrome of the primary pane. One click opens a second pane on the right. Default split is 50/50; min pane width is 480px.
+- **Draggable divider** between panes. Drag left/right to resize. Cursor changes to `col-resize` on hover.
+- **Per-pane independence**: each pane has its own active page, active client, sidebar selection, modals, scroll position, chat drawer, and command palette. The left pane is the primary — only it writes the persisted active client back to disk.
+- **Compact mode (<800px)**: sidebar collapses to an icon rail, top-bar buttons go icon-only, clock + breadcrumb segments hide, hub banner / stat / col-2 grids stack vertically, forms force single-column. Triggered automatically by `usePaneWidth` + the `.hml-pane--compact` class.
+- **Pop Out** (↗ icon, secondary pane chrome): opens a new Tauri window seeded with the pane's current client, removes the pane from the main window. The popped-out window is a full app instance with its own sidebar and top bar. The pane chrome shows a small DETACHED badge.
+- **Return to main window** (↙ icon, popped-out window chrome): re-attaches the pane to the main window and closes the popped-out window.
+- **Drag-to-tear-off**: mousedown on the secondary pane's chrome strip and drag the cursor more than ~100px past the main window's bounds — the pop-out fires at the cursor location.
+- **File-watcher sync** (`notify` crate): the Rust side watches the configured root recursively and emits `vault://changed` events classified by kind (client / about / ops / knowledge / playbooks / recordings / clients). All webviews (main + every popped-out window) subscribe; data hooks refetch, and the affected pane briefly pulses (`.hml-vault-pulse`) so the cross-pane sync is visible.
+
+### Your action items
+1. **Try a real split with your active client.** Open the app, click the Split icon (two rectangles, top-right), drag the divider, then load Onboarding Checklist on the left and the Welcome Email form on the right. Edit a recording or memory note on the right pane and confirm the left pane updates within a second.
+2. **Pop out to your second monitor.** With the split active, click the ↗ icon on the right pane. The new window should boot directly into the same client's dashboard. Drag it to your second monitor; both windows should stay in sync via file-watcher.
+3. **Eyeball compact mode for pages that pinch.** The plan called out OpsTrackers, ClientCredentials, ClientProfileForm, and ClientDashboard as likely first offenders. Specifically check:
+   - Tasks tracker and Revenue tracker at ~600-700px wide — note any columns that overlap or text that truncates badly.
+   - Ads Manager (Workspace → Ads) in compact mode — the Meta insights tables may need column-hide rules added.
+   - Sequence wizard (per-client) when compact — its step grid wasn't audited.
+   Anything that pinches gets a one-line fix in `app/src/components/MainDashboard/main-dashboard.css` under the `/* COMPACT MODE */` block.
+4. **Confirm pop-out windows look right after a Tauri auto-update.** The updater restarts the main window only; popped-out windows die. No graceful re-attach on update — if you live with the app open across a release, you'll need to re-pop-out manually. Flag if this becomes a daily nuisance.
+5. **Test drag-to-tear-off carefully.** Phase 6 is the most fragile per the spec. Mousedown the right-pane chrome strip (the area around the buttons, not the buttons themselves) and drag the cursor past the window edge. Threshold is ~100px; below that, releasing does nothing. If it triggers when you didn't intend it to, lower the priority or remove the chrome mousedown handler in `AppPane.tsx`.
+
+### Still parked
+- **No recursive split**: a popped-out window cannot itself be split. Intentional, per spec.
+- **Split state does not persist across restarts**: by design. The app always opens unsplit.
+- **Two media-buying overlays at once**: the second media-buying pane works but the chrome is busy. If you find yourself wanting one-at-a-time media-buying, scope it as a global singleton later.
+- **Drag-to-tear-off ghost outline**: spec mentions a ghost outline following the cursor during drag. Not implemented — the cursor change + the actual tear-off threshold are the only feedback right now.
+- **Tauri auto-updater + popped-out windows**: no graceful re-attach (see action item 4).
+
+### Files in this build
+- **AppPane component**: `app/src/components/AppPane.tsx`
+- **Pane context + width hook**: `app/src/lib/PaneContext.tsx`, `app/src/lib/usePaneWidth.ts`
+- **Pop-out URL encoder**: `app/src/lib/popout.ts`
+- **Drag detection**: `app/src/lib/dragToPopout.ts`
+- **App root (pane container, divider, pop-out wiring)**: `app/src/App.tsx`
+- **Split layout + compact CSS**: `app/src/components/MainDashboard/main-dashboard.css` (search for `SPLIT VIEW` and `COMPACT MODE`)
+- **File watcher (Rust)**: `app/src-tauri/src/watcher.rs`
+- **Capability update for pane-* windows**: `app/src-tauri/capabilities/default.json`
+- **Tauri command + frontend helper**: `app/src-tauri/src/lib.rs` (handler), `app/src/lib/tauri.ts` (`watchRoot`, `onVaultChanged`)
+- **Split + close + return-to-main icons**: `app/src/components/icons.tsx`
 - **Bell unread state**: `vault/ops/activity_state.json`
