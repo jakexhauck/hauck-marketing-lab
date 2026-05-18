@@ -5,6 +5,7 @@ import {
   type ApiPipeline,
   type ApiMessage,
   type ApiContact,
+  type ApiConversation,
 } from "../lib/api";
 import type { LeadStage } from "../types";
 import { reverseMapStage } from "../lib/stageMap";
@@ -33,6 +34,61 @@ export function useContactsQuery(enabled: boolean) {
     staleTime: 60_000,
     queryFn: () =>
       api<{ contacts: ApiContact[]; total: number }>("/api/contacts"),
+  });
+}
+
+export function useConversationsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["conversations"],
+    enabled,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    queryFn: () =>
+      api<{ conversations: ApiConversation[]; total: number }>(
+        "/api/conversations",
+      ),
+  });
+}
+
+export function useConversationMessagesQuery(
+  contactId: string | null,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: ["conversation", contactId, "messages"],
+    enabled: enabled && !!contactId,
+    staleTime: 0,
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
+    queryFn: () =>
+      api<{ conversationId?: string; messages: ApiMessage[] }>(
+        `/api/conversations/${contactId}/messages`,
+      ),
+  });
+}
+
+interface SendConversationSmsInput {
+  contactId: string;
+  body: string;
+}
+
+export function useSendConversationSms() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SendConversationSmsInput) =>
+      api<{ ok: boolean; messageId?: string }>(
+        `/api/conversations/${input.contactId}/sms`,
+        {
+          method: "POST",
+          body: JSON.stringify({ body: input.body }),
+        },
+      ),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({
+        queryKey: ["conversation", vars.contactId, "messages"],
+      });
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
   });
 }
 

@@ -82,3 +82,13 @@ export interface ApiContact {
   createdAt: string;
   lastActivityAt: string;
 }
+
+export interface ApiConversation {
+  id: string;
+  contactId: string;
+  name: string;
+  preview: string;
+  lastMessageType: string;
+  lastMessageAt: string;
+  unreadCount: number;
+}

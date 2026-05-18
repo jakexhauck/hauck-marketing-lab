@@ -3,7 +3,7 @@ import type { LeadStage } from "../types";
 import { stageLabels } from "../lib/stageColors";
 import { useClient } from "../context/ClientContext";
 
-export type StageFilterValue = "all" | LeadStage;
+export type StageFilterValue = LeadStage;
 
 interface Props {
   active: StageFilterValue;
@@ -14,10 +14,9 @@ interface Props {
 export default function StageFilter({ active, counts, onChange }: Props) {
   const { client } = useClient();
 
-  const chips: StageFilterValue[] = ["all", ...client.pipeline.stages];
+  const chips: StageFilterValue[] = client.pipeline.stages;
 
   const labelFor = (stage: StageFilterValue): string => {
-    if (stage === "all") return "All";
     if (stage === "won") return client.pipeline.wonLabel;
     return stageLabels[stage];
   };

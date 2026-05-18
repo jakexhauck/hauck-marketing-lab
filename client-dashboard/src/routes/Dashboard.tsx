@@ -26,13 +26,14 @@ export default function Dashboard() {
   const { leads: allLeads } = useLeads();
   const { client } = useClient();
   const { currentUser } = useAuth();
-  const [active, setActive] = useState<StageFilterValue>("all");
+  const [active, setActive] = useState<StageFilterValue>(
+    () => client.pipeline.stages[0] ?? "new",
+  );
   const [query, setQuery] = useState<string>("");
 
   useEffect(() => {
-    if (active === "all") return;
     if (!client.pipeline.stages.includes(active)) {
-      setActive("all");
+      setActive(client.pipeline.stages[0] ?? "new");
     }
   }, [client.pipeline.stages, active]);
 
@@ -92,7 +93,6 @@ export default function Dashboard() {
 
   const counts = useMemo(() => {
     const base: Record<StageFilterValue, number> = {
-      all: leads.length,
       new: 0,
       contacted: 0,
       "estimate-sent": 0,
@@ -108,10 +108,10 @@ export default function Dashboard() {
     return base;
   }, [leads]);
 
-  const stageFiltered = useMemo(() => {
-    if (active === "all") return sorted;
-    return sorted.filter((l) => l.stage === active);
-  }, [sorted, active]);
+  const stageFiltered = useMemo(
+    () => sorted.filter((l) => l.stage === active),
+    [sorted, active],
+  );
 
   const trimmedQuery = query.trim();
   const hasQuery = trimmedQuery.length > 0;

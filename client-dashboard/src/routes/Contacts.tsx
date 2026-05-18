@@ -50,7 +50,7 @@ export default function Contacts() {
             className="label-cap-strong"
             style={{ color: "var(--brand-primary)" }}
           >
-            CRM
+            Contact Status
           </span>
           <h2 className="font-display text-xl font-bold tracking-tight text-[var(--text)]">
             {query.isLoading ? (

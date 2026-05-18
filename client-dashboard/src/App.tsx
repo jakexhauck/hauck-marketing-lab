@@ -7,6 +7,8 @@ import Login from "./routes/Login";
 import AuthCallback from "./routes/AuthCallback";
 import Dashboard from "./routes/Dashboard";
 import Contacts from "./routes/Contacts";
+import Conversations from "./routes/Conversations";
+import ConversationDetail from "./routes/ConversationDetail";
 import LeadDetail from "./routes/LeadDetail";
 import Today from "./routes/Today";
 import Showroom from "./routes/Showroom";
@@ -48,6 +50,22 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Contacts />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/conversations"
+                element={
+                  <ProtectedRoute>
+                    <Conversations />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/conversations/:contactId"
+                element={
+                  <ProtectedRoute>
+                    <ConversationDetail />
                   </ProtectedRoute>
                 }
               />

@@ -3,11 +3,25 @@ import { useLocation, useNavigate } from "react-router-dom";
 type Tab = {
   to: string;
   label: string;
+  match: (pathname: string) => boolean;
 };
 
 const TABS: Tab[] = [
-  { to: "/dashboard", label: "Leads" },
-  { to: "/contacts", label: "Contacts" },
+  {
+    to: "/conversations",
+    label: "Conversations",
+    match: (p) => p.startsWith("/conversations"),
+  },
+  {
+    to: "/contacts",
+    label: "Contact Status",
+    match: (p) => p.startsWith("/contacts"),
+  },
+  {
+    to: "/dashboard",
+    label: "Opportunities",
+    match: (p) => p.startsWith("/dashboard") || p.startsWith("/lead/"),
+  },
 ];
 
 export default function ViewTabs() {
@@ -20,7 +34,7 @@ export default function ViewTabs() {
       className="sticky top-[57px] z-10 flex items-center gap-1 border-b border-[var(--border)] bg-[var(--surface)] px-5"
     >
       {TABS.map((tab) => {
-        const active = location.pathname === tab.to;
+        const active = tab.match(location.pathname);
         return (
           <button
             key={tab.to}
