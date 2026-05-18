@@ -1,0 +1,5 @@
+- Free consultation + $100 off first treatment (workhorse offer, runs year-round, prequalifies on the consult)
+- New-patient botox package: $10/unit (anchor below market, captures price-shoppers, upsells in chair)
+- Membership pricing: $99/mo for credit toward any treatment (highest LTV, retains for 12+ months)
+- Bridal party bundle: 4+ people, 15% off all treatments (high-AOV, books out months in advance)
+- Body sculpting package: 4 sessions for the price of 3 (high-ticket, captures the body cohort)

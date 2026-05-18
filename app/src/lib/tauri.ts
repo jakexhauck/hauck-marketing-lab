@@ -630,4 +630,18 @@ export const api = {
       invited: boolean;
       alreadyExisted: boolean;
     }>("provision_mobile_tenant", { input }),
+
+  // Niche playbooks
+  listPlaybooks: (root: string) =>
+    invoke<import("./playbooks").PlaybookSummary[]>("list_playbooks", { root }),
+  readPlaybook: (root: string, slug: string) =>
+    invoke<import("./playbooks").PlaybookContent>("read_playbook", { root, slug }),
+  readPlaybookField: (root: string, slug: string, field: string) =>
+    invoke<string | null>("read_playbook_field", { root, slug, field }),
+  savePlaybook: (root: string, input: import("./playbooks").PlaybookSaveInput) =>
+    invoke<import("./playbooks").PlaybookContent>("save_playbook", { root, input }),
+  deletePlaybook: (root: string, slug: string) =>
+    invoke<void>("delete_playbook", { root, slug }),
+  validatePlaybooks: (root: string) =>
+    invoke<string[]>("validate_playbooks", { root }),
 };

@@ -239,8 +239,27 @@ export default function App() {
     };
   }, [root, loadFolder]);
 
-  // Phase 4: file-watcher sync. Install once root is known and listen for
-  // cross-pane vault changes so data hooks refetch.
+  // Validate the vault Playbooks directory on root change.
+  useEffect(() => {
+    if (!root) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const warnings = await api.validatePlaybooks(root);
+        if (cancelled) return;
+        for (const w of warnings) {
+          console.warn(`[playbooks] ${w}`);
+        }
+      } catch (e) {
+        if (!cancelled) console.warn(`[playbooks] validation failed: ${e}`);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root]);
+
+  // Phase 4 file-watcher sync. Install once root is known.
   useEffect(() => {
     if (!root) return;
     let unlisten: (() => void) | null = null;

@@ -203,6 +203,12 @@ export function AppSidebar({
             active={activeWorkspace === "resources"}
             onClick={() => onSelectWorkspace("resources")}
           />
+          <NavItem
+            label="Niche Playbooks"
+            Icon={IconStar}
+            active={activeWorkspace === "playbooks"}
+            onClick={() => onSelectWorkspace("playbooks")}
+          />
         </div>
 
         {/* OUTREACH ──────────────────────────────────── */}

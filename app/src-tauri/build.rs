@@ -33,5 +33,21 @@ fn main() {
         std::fs::write(meta_secrets, stub).expect("write meta_oauth_secrets.rs stub");
     }
 
+    // Supabase service-role key for the client-dashboard project. Used to
+    // provision tenants + tenant_users when onboarding a new client. The
+    // service role bypasses RLS, so the file is gitignored.
+    // mobile_app_provision.rs returns an error if either value is missing.
+    let supabase_secrets = Path::new("src/supabase_secrets.rs");
+    if !supabase_secrets.exists() {
+        let stub = "// Auto-generated stub. Paste the Supabase URL + service role\n\
+                    // key from the client-dashboard project (Supabase dashboard ->\n\
+                    // Project Settings -> API) to enable mobile app provisioning.\n\
+                    #[allow(dead_code)]\n\
+                    pub const SUPABASE_URL: &str = \"\";\n\
+                    #[allow(dead_code)]\n\
+                    pub const SUPABASE_SERVICE_ROLE_KEY: &str = \"\";\n";
+        std::fs::write(supabase_secrets, stub).expect("write supabase_secrets.rs stub");
+    }
+
     tauri_build::build()
 }

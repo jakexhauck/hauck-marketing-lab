@@ -1,0 +1,5 @@
+- Free professional whitening with new-patient exam + cleaning (anchor offer, runs year-round)
+- $99 new-patient special: exam, X-rays, cleaning (price-led, best for cold traffic)
+- Free Invisalign consultation + $500 off if started within 30 days (cosmetic cohort)
+- Free second opinion on a treatment plan (capture patients shopping a competitor)
+- Same-week emergency appointment guarantee (high-intent, low-volume but premium pricing)

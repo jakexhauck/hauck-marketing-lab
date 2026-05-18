@@ -31,6 +31,7 @@ mod ops;
 mod ops_activity;
 mod personal;
 mod pitch_decks;
+mod playbooks;
 mod prospects;
 mod sops;
 mod sync;
@@ -183,6 +184,12 @@ pub fn run() {
             meta_actions::meta_duplicate_ad,
             mobile_app_provision::provision_mobile_tenant,
             watcher::watch_root,
+            playbooks::list_playbooks,
+            playbooks::read_playbook,
+            playbooks::read_playbook_field,
+            playbooks::save_playbook,
+            playbooks::delete_playbook,
+            playbooks::validate_playbooks,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

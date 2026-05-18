@@ -67,15 +67,41 @@ export function buildProfileBody(client: ClientEntry, form: ProfileFormValues): 
   ].join("\n");
 }
 
-/** Build the frontmatter for a client profile. */
-export function buildProfileFront(client: ClientEntry): NoteFront {
-  return {
+/** Build the frontmatter for a client profile. Optionally carries a `niche`
+ *  slug (e.g. "dental") that maps to a `vault/Playbooks/<niche>/` folder; when
+ *  set, forms with `prefillFromPlaybook` configured will pull niche defaults
+ *  for any field not already filled from Profile.md. */
+export function buildProfileFront(
+  client: ClientEntry,
+  niche: string | null = null,
+): NoteFront {
+  const front: NoteFront = {
     type: "profile",
     client: client.slug,
     agent: "all",
     tags: ["client", "profile"],
     status: client.status,
   };
+  if (niche && niche.trim().length > 0) {
+    // NoteFront has a typed shape on the Rust side; the `niche` field lives
+    // in the `extra` BTreeMap so older notes round-trip unchanged.
+    (front as NoteFront & { niche?: string }).niche = niche.trim();
+  }
+  return front;
+}
+
+/** Read the niche slug from a NoteFront, regardless of whether it was parsed
+ *  into the typed shape or fell through into `extra`. Returns null when unset. */
+export function nicheFromFront(front: NoteFront | null | undefined): string | null {
+  if (!front) return null;
+  const raw =
+    (front as NoteFront & { niche?: unknown }).niche ??
+    (front as NoteFront & { extra?: Record<string, unknown> }).extra?.niche;
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  return null;
 }
 
 /**

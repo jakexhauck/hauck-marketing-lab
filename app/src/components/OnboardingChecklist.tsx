@@ -20,6 +20,7 @@ import { api } from "../lib/tauri";
 import { getFormConfig, type FormValues } from "../lib/formConfigs";
 import type { AgentSummary, GeneratorOutput, OnboardingState } from "../lib/types";
 import { GenericFormGenerator } from "./GenericFormGenerator";
+import ProvisionMobileAppForm from "./ProvisionMobileAppForm";
 import { IconArrowRight } from "./icons";
 import "./onboarding-checklist.css";
 
@@ -100,6 +101,11 @@ function extractJsonFromBody(body: string): Record<string, unknown> | null {
 /** Task ID that triggers writing `adsLaunchedAt` into the Client Dashboard
  *  (`ops/clients.json`) when first checked. Idempotent. */
 const ADS_PUBLISH_TASK_ID = "06-publish";
+
+/** Task ID for "Provision mobile app". Opens a custom form that calls the
+ *  `provision_mobile_tenant` Tauri command instead of the GenericFormGenerator
+ *  Claude-driven flow. */
+const PROVISION_MOBILE_APP_TASK_ID = "04app-provision";
 
 /** Map of checklistTaskId → SequenceStep, so a row can render a "Generate"
  *  button if the task has a matching form. Built once at module load. */
@@ -345,6 +351,11 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
    *  the form. Mirrors the prior ClientSequence behavior. */
   const openTaskForm = useCallback(
     async (taskId: string) => {
+      if (taskId === PROVISION_MOBILE_APP_TASK_ID) {
+        setOpenTaskId(taskId);
+        setChainValues({});
+        return;
+      }
       const step = STEP_BY_TASK.get(taskId);
       if (!step || !root) return;
       setOpenTaskId(taskId);
@@ -420,6 +431,34 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
   // Render the form overlay when a task with a sequence step is opened.
   const openStep = openTaskId ? STEP_BY_TASK.get(openTaskId) : null;
   const openStepFormConfig = openStep ? getFormConfig(openStep.formId) : null;
+
+  if (openTaskId === PROVISION_MOBILE_APP_TASK_ID) {
+    return (
+      <div className="ob-root">
+        <div className="ob-form-head">
+          <button type="button" className="ob-form-back" onClick={closeForm}>
+            ← Back to onboarding
+          </button>
+          <div className="ob-form-meta">
+            <span className="ob-form-task">Provision mobile app</span>
+          </div>
+        </div>
+        <ProvisionMobileAppForm
+          clientName={clientName}
+          clientSlug={clientSlug}
+          onClose={closeForm}
+          onProvisioned={() => {
+            setDoneSet((prev) => {
+              const n = new Set(prev);
+              n.add(PROVISION_MOBILE_APP_TASK_ID);
+              return n;
+            });
+          }}
+        />
+        <style>{FORM_OVERLAY_CSS}</style>
+      </div>
+    );
+  }
 
   if (openStep && openStepFormConfig && root) {
     return (
@@ -659,12 +698,20 @@ function ActiveCard({
               </div>
               {ss.tasks.map((t) => {
                 const step = STEP_BY_TASK.get(t.id);
+                const isMobileAppTask = t.id === PROVISION_MOBILE_APP_TASK_ID;
                 return (
                   <TaskRow
                     key={t.id}
                     task={t}
                     checked={doneSet.has(t.id)}
                     step={step ?? null}
+                    showActionButton={Boolean(step) || isMobileAppTask}
+                    actionLabel={isMobileAppTask ? "Open form" : undefined}
+                    actionHint={
+                      isMobileAppTask
+                        ? "Provision Supabase tenant + invite client."
+                        : step?.hint
+                    }
                     canOpenForm={canOpenForm}
                     onToggle={() => onToggle(t.id)}
                     onOpenForm={() => onOpenForm(t.id)}
@@ -683,6 +730,9 @@ function TaskRow({
   task,
   checked,
   step,
+  showActionButton,
+  actionLabel,
+  actionHint,
   canOpenForm,
   onToggle,
   onOpenForm,
@@ -690,10 +740,16 @@ function TaskRow({
   task: OnboardingTask;
   checked: boolean;
   step: SequenceStep | null;
+  showActionButton?: boolean;
+  actionLabel?: string;
+  actionHint?: string;
   canOpenForm: boolean;
   onToggle: () => void;
   onOpenForm: () => void;
 }) {
+  const shouldShowAction = (showActionButton ?? Boolean(step)) && canOpenForm;
+  const hint = actionHint ?? step?.hint;
+  const label = actionLabel ?? "Open form";
   const howto = task.howto;
   return (
     <div className={"ob-task" + (checked ? " ob-complete" : "")}>
@@ -720,12 +776,12 @@ function TaskRow({
           </div>
         )}
       </div>
-      {step && canOpenForm && (
+      {shouldShowAction && (
         <button
           type="button"
           className="ob-task-action"
           onClick={onOpenForm}
-          title={step.hint}
+          title={hint}
         >
           {checked ? (
             <>
@@ -734,7 +790,7 @@ function TaskRow({
             </>
           ) : (
             <>
-              Open form
+              {label}
               <IconArrowRight size={10} />
             </>
           )}

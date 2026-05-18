@@ -50,6 +50,9 @@ app/src-tauri/src/google_oauth_secrets.rs
 # Meta Marketing API System User token (full ads_read on Hauck business portfolio — never commit)
 app/src-tauri/src/meta_oauth_secrets.rs
 
+# Supabase service-role key for client-dashboard provisioning (bypasses RLS — never commit)
+app/src-tauri/src/supabase_secrets.rs
+
 # Claude Code per-developer state
 .claude/settings.local.json
 .claude/worktrees/

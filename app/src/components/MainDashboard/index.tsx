@@ -25,6 +25,7 @@ import { ConnectCalendarModal } from "./ConnectCalendarModal";
 import { RecordingsPage } from "./RecordingsPage";
 import { HabitsPage } from "./HabitsPage";
 import { ResourcesPage } from "./ResourcesPage";
+import { NichePlaybooksPage } from "./NichePlaybooksPage";
 import { SOPsPage } from "./SOPsPage";
 import { CalendarPage } from "./CalendarPage";
 import { LeadScraperPage } from "./LeadScraperPage";
@@ -398,7 +399,10 @@ function buildBreadcrumb(
         </>
       );
     }
-    const label = view.tab.charAt(0).toUpperCase() + view.tab.slice(1);
+    const label =
+      view.tab === "playbooks"
+        ? "Niche Playbooks"
+        : view.tab.charAt(0).toUpperCase() + view.tab.slice(1);
     return (
       <>
         <span className="hml-seg">Workspace</span>
@@ -586,6 +590,7 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
     if (view.tab === "recordings") return <RecordingsPage root={root} clients={realClients} />;
     if (view.tab === "sops") return <SOPsPage root={root} />;
     if (view.tab === "resources") return <ResourcesPage root={root} />;
+    if (view.tab === "playbooks") return <NichePlaybooksPage root={root} />;
     if (view.tab === "calendar")
       return <CalendarPage root={root} onBack={args.onBack} clients={realClients} />;
     if (view.tab === "ads")

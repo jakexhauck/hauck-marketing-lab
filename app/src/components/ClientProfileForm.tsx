@@ -5,22 +5,36 @@ import {
   buildProfileBody,
   buildProfileFront,
   emptyProfileFormValues,
+  nicheFromFront,
   parseProfileBody,
   profilePathFor,
   type ProfileFormValues,
 } from "../lib/clientProfile";
+import type { PlaybookSummary } from "../lib/playbooks";
 
 type Props = {
   root: string;
   client: ClientEntry;
   /** "new" = just created, "edit" = pre-load existing Profile.md */
   mode: "new" | "edit";
+  /** Niche slug picked at add-client time. Saved to Profile.md frontmatter
+   *  on first save so the picker selection propagates without an extra step. */
+  initialNiche?: string | null;
   onClose: () => void;
   onSaved: () => void;
 };
 
-export function ClientProfileForm({ root, client, mode, onClose, onSaved }: Props) {
+export function ClientProfileForm({
+  root,
+  client,
+  mode,
+  initialNiche,
+  onClose,
+  onSaved,
+}: Props) {
   const [values, setValues] = useState<ProfileFormValues>(() => emptyProfileFormValues());
+  const [niche, setNiche] = useState<string>(initialNiche ?? "");
+  const [playbooks, setPlaybooks] = useState<PlaybookSummary[]>([]);
   const [loading, setLoading] = useState(mode === "edit");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +57,8 @@ export function ClientProfileForm({ root, client, mode, onClose, onSaved }: Prop
         if (profileNote) {
           const parsed = parseProfileBody(profileNote.body);
           if (!cancelled) setValues(parsed);
+          const existingNiche = nicheFromFront(profileNote.front ?? null);
+          if (!cancelled && existingNiche) setNiche(existingNiche);
         }
       } catch (e) {
         if (!cancelled) setError(String(e));
@@ -59,6 +75,21 @@ export function ClientProfileForm({ root, client, mode, onClose, onSaved }: Prop
     if (!loading) firstInputRef.current?.focus();
   }, [loading]);
 
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .listPlaybooks(root)
+      .then((list) => {
+        if (!cancelled) setPlaybooks(list);
+      })
+      .catch(() => {
+        if (!cancelled) setPlaybooks([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [root]);
+
   const update = <K extends keyof ProfileFormValues>(key: K, value: ProfileFormValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
   };
@@ -68,7 +99,7 @@ export function ClientProfileForm({ root, client, mode, onClose, onSaved }: Prop
     setError(null);
     try {
       const body = buildProfileBody(client, values);
-      const front = buildProfileFront(client);
+      const front = buildProfileFront(client, niche.trim() || null);
       const vaultRoot = await api.vaultRootPath(root);
       const path = profilePathFor(vaultRoot, client);
       await api.writeVaultNote(root, path, front, body);
@@ -236,11 +267,31 @@ export function ClientProfileForm({ root, client, mode, onClose, onSaved }: Prop
                 >
                   <input
                     className="hml-form-input"
-                    placeholder="e.g. North suburbs of Chicago — 20 mi radius from 60062"
+                    placeholder="e.g. North suburbs of Chicago, 20 mi radius from 60062"
                     value={values.geography}
                     onChange={(e) => update("geography", e.target.value)}
                     disabled={busy}
                   />
+                </Field>
+
+                <Field
+                  label="Niche"
+                  hint="Picks the playbook that pre-fills audience, offers, angles, creative brief, and competitor intel on every form for this client."
+                >
+                  <select
+                    className="hml-form-select"
+                    value={niche}
+                    onChange={(e) => setNiche(e.target.value)}
+                    disabled={busy}
+                  >
+                    <option value="">— Custom (no playbook) —</option>
+                    {playbooks.map((p) => (
+                      <option key={p.slug} value={p.slug}>
+                        {p.display_name}
+                        {p.complete ? "" : " (incomplete)"}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
 
                 <div className="hml-form-footer">

@@ -20,6 +20,7 @@ export type WorkspaceView =
   | "recordings"
   | "sops"
   | "resources"
+  | "playbooks"
   | "ads";
 
 /** Top-level surfaces inside the Outreach pillar. */
