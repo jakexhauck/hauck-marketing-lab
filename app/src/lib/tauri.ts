@@ -297,6 +297,24 @@ export const api = {
       kind,
     }),
 
+  savePitchDeck: (
+    root: string,
+    clientSlug: string,
+    title: string,
+    summary: string | null,
+    body: string,
+  ) =>
+    invoke<GeneratorOutput>("save_pitch_deck", {
+      root,
+      clientSlug,
+      title,
+      summary,
+      body,
+    }),
+  listPitchDecks: (root: string, clientSlug: string, limit: number) =>
+    invoke<GeneratorOutput[]>("list_pitch_decks", { root, clientSlug, limit }),
+  openPitchDeck: (path: string) => invoke<void>("open_pitch_deck", { path }),
+
   readDashboardState: (root: string) =>
     invoke<DashboardState>("read_dashboard_state", { root }),
   writeDashboardState: (root: string, state: DashboardState) =>

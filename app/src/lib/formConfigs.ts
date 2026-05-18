@@ -3,6 +3,7 @@
 // The shared GenericFormGenerator renders + runs these.
 
 import type { ProfileFormValues } from "./clientProfile";
+import { PITCH_DECK_PROMPT } from "./pitchDeckPrompt";
 import type { GeneratorKind } from "./types";
 
 export type FormFieldBase = {
@@ -2720,6 +2721,144 @@ const META_BLOOMBERG: FormConfig = {
   defaultTitle: "Bloomberg dashboard",
 };
 
+// ── Vortex · Pitch Deck Generator ─────────────────────────────────
+// Single-prompt 12-slide HTML deck for client proposals. Saves to
+// media-buying/data/<client>/decks/<timestamp>-pitch.html and opens in
+// the default browser. Lives in phase 1 alongside Contract / Welcome.
+const PITCH_DECK: FormConfig = {
+  id: "pitch-deck",
+  title: "Pitch Deck Builder",
+  subtitle: "12-slide HTML deck for client proposals. Snap-scroll, glassmorphism, no JS.",
+  eyebrow: "▸ PITCH DECK · VORTEX",
+  eyebrowMeta: "SALES · PRE-CONTRACT",
+  phase: 1,
+  phaseName: "Close the Deal",
+  phaseMeta: "Sales",
+  agentSlug: "vortex",
+  agentName: "Vortex",
+  kind: "html",
+  savedHeading: "Pitch deck saved",
+  generateLabel: "Generate deck",
+  generatingLabel: "Generating…",
+  prefillFromProfile: {
+    clientName: "business",
+    city: "geography",
+  },
+  sections: [
+    {
+      title: "▸ CLIENT",
+      meta: "required",
+      fields: [
+        {
+          kind: "text",
+          key: "clientName",
+          label: "Client name",
+          promptPlaceholder: "[CLIENT NAME]",
+          placeholder: "Willis Windows.",
+          required: true,
+        },
+        {
+          kind: "text",
+          key: "agencyName",
+          label: "Agency name",
+          promptPlaceholder: "[AGENCY NAME]",
+          placeholder: "Hauck Marketing",
+          inline: true,
+        },
+        {
+          kind: "text",
+          key: "niche",
+          label: "Niche",
+          promptPlaceholder: "[NICHE]",
+          placeholder: "Window cleaning, home services, dental, etc.",
+          required: true,
+        },
+        {
+          kind: "text",
+          key: "city",
+          label: "City",
+          promptPlaceholder: "[CITY]",
+          placeholder: "Austin, TX.",
+          inline: true,
+        },
+        {
+          kind: "textarea",
+          key: "opportunity",
+          label: "The opportunity (one stat + sentence)",
+          promptPlaceholder: "[OPPORTUNITY]",
+          placeholder:
+            "73% of homeowners search online before booking a service. Most window cleaners have no ads.",
+          minRows: 2,
+        },
+        {
+          kind: "textarea",
+          key: "observations",
+          label: "3 honest observations about where they are now",
+          promptPlaceholder: "[OBSERVATIONS]",
+          placeholder:
+            "No paid traffic. Website converts at <1%. No follow-up sequence for unbooked leads.",
+          minRows: 3,
+        },
+        {
+          kind: "textarea",
+          key: "outcomes",
+          label: "3 targets for 90 days",
+          promptPlaceholder: "[OUTCOMES]",
+          placeholder:
+            "40 booked jobs/mo at $35 CPL. 30% lead-to-booking close rate. $25k MRR from ads.",
+          minRows: 3,
+        },
+      ],
+    },
+    {
+      title: "▸ PRICING",
+      meta: "required",
+      fields: [
+        {
+          kind: "textarea",
+          key: "tiers",
+          label: "Pricing tiers (mark recommended with *)",
+          promptPlaceholder: "[TIERS]",
+          placeholder:
+            "Starter $1,500/mo. Growth $2,500/mo *. Scale $4,500/mo. Setup fee $500 one-time.",
+          minRows: 3,
+        },
+        {
+          kind: "text",
+          key: "guarantee",
+          label: "Guarantee line",
+          promptPlaceholder: "[GUARANTEE]",
+          placeholder: "10 qualified leads in the first 30 days or the next month is free.",
+        },
+      ],
+    },
+    {
+      title: "▸ STYLE",
+      meta: "optional",
+      fields: [
+        {
+          kind: "text",
+          key: "accent",
+          label: "Accent color (hex)",
+          promptPlaceholder: "[ACCENT]",
+          placeholder: "#4d8eff",
+          inline: true,
+        },
+        {
+          kind: "select",
+          key: "vibe",
+          label: "Vibe",
+          promptPlaceholder: "[VIBE]",
+          options: ["Editorial", "Tech", "Luxe", "Gritty"],
+          default: "Editorial",
+        },
+      ],
+    },
+  ],
+  promptTemplate: PITCH_DECK_PROMPT,
+  defaultTitle: "Pitch deck",
+};
+
 // Ordered to match the onboarding sequence (onboardingPlan.ts):
 // 1. Close the Deal  → 2. Onboarding Call  → 3. Technical Setup
 // 4. Creative Production  → 5. Campaign Build + QA  → 6. Launch + Monitor
@@ -2730,6 +2869,7 @@ const META_BLOOMBERG: FormConfig = {
 // in a separate "Misc" group in the sidebar + AgentFormsHub.
 export const ALL_FORM_CONFIGS: FormConfig[] = [
   CONTRACT,
+  PITCH_DECK,
   WELCOME_EMAIL,
   OFFER_CTA,
   EXPECTATIONS_EMAIL,

@@ -190,6 +190,37 @@ Not blocking. When ready: add the `UrlFetchApp.fetch` block in `doPost()` per th
 
 ---
 
+## 07 · Pitch Deck Generator (shipped 2026-05-18)
+
+### What's in the app now
+- New **Pitch Deck Builder** form under phase 1 ("Close the Deal") on the Client Hub.
+- Single-prompt, single-HTML output. Twelve fullscreen snap-scroll slides: cover, opportunity, where they are now, 90-day outcomes, strategy funnel, Month 1/2/3, sample creative (placeholders for v1), team, tiered investment, guarantee + sign-here CTA.
+- Form fields: client name (prefills from Profile.md `business`), agency name (defaults to "Hauck Marketing"), niche, city (prefills from Profile.md `geography`), opportunity, 3 observations, 3 outcomes, pricing tiers (mark recommended with `*`), guarantee line, accent hex, vibe (Editorial / Tech / Luxe / Gritty).
+- Output saves to `media-buying/data/<client>/decks/<timestamp>-pitch.html` and opens in your default browser automatically. The saved card also has an **Open in browser** button.
+- Past decks for a client list under PAST RESULTS like every other form. Click a row, then **Open in browser** to relaunch.
+
+### Files
+- `app/src/lib/pitchDeckPrompt.ts` — verbatim master prompt + appended context block.
+- `app/src/lib/formConfigs.ts` — `PITCH_DECK` config, registered in `ALL_FORM_CONFIGS`.
+- `app/src-tauri/src/pitch_decks.rs` — `save_pitch_deck`, `list_pitch_decks`, `open_pitch_deck` commands.
+- `app/src/components/GenericFormGenerator.tsx` — branches on `config.kind === "html"` to skip JSON extraction and route through the new save/open path.
+- `app/src/components/generators/PastResults.tsx` — uses `list_pitch_decks` when the kind is HTML.
+
+### Your action items
+1. **Smoke-test one deck end-to-end.** Open Willis Windows → Pitch Deck Builder → fill the three required fields (client name, niche, pricing tiers) → Generate. Watch for the deck to pop in your default browser within ~60 sec. Scroll through all 12 slides. Confirm snap-scroll works.
+2. **Drop in a real accent hex** for at least one of your typical niches. Defaults to `#4d8eff`; brand-match it once and it ships to every deck.
+3. **Pick a vibe** that lands for your usual pitch. Editorial is the default; flip to Tech / Luxe / Gritty if your prospects skew differently.
+4. **If a deck looks wrong**, regenerate. There's no slide editor; cheaper to rerun the prompt with tighter inputs (sharper observations, real outcome numbers) than to manually edit.
+5. **Manually screenshot or PDF-print** a deck if you want to leave one behind. Browser → print → save as PDF until the export pipeline ships.
+
+### Still parked
+- **PDF export.** Out of scope for v1. Screen-shared pitches + browser print-to-PDF cover the use case.
+- **Editable slides post-generation.** No slide editor. Regenerate instead.
+- **Auto-fill observations + opportunity from pre-pitch audit.** Hooks for the Meta Ads pre-pitch audit are not wired into the deck form yet; today it's all manual entry.
+- **Real ad PNGs on slide 9.** Static placeholders for v1. When Ad Creative outputs flow into a per-client gallery, slide 9 can hot-link the three most recent.
+
+---
+
 ## Quick reference: where things live
 
 - **Form configs**: `app/src/lib/formConfigs.ts`
@@ -207,6 +238,9 @@ Not blocking. When ready: add the `UrlFetchApp.fetch` block in `doPost()` per th
 - **Phase 1 cascade**: `app/src/lib/cascades.ts`, `app/src/components/Phase1CascadeModal.tsx`
 - **Onboarding sequence**: `app/src/lib/onboardingSequence.ts`, `app/src/components/MainDashboard/pages/ClientSequence.tsx`
 - **Saved briefs**: `media-buying/data/<client>/briefs/`
+- **Saved decks**: `media-buying/data/<client>/decks/`
+- **Pitch deck prompt**: `app/src/lib/pitchDeckPrompt.ts`
+- **Pitch deck save/open backend**: `app/src-tauri/src/pitch_decks.rs`
 - **Vault client assets**: `vault/Clients/<Name>/Assets/`
 - **Activity log file**: `vault/ops/activity.jsonl`
 
