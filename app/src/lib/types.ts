@@ -331,7 +331,8 @@ export type GeneratorKind =
   | "reports"
   | "scale_checks"
   | "audits"
-  | "workflows";
+  | "workflows"
+  | "html";
 
 export type GeneratorOutput = {
   kind: GeneratorKind;

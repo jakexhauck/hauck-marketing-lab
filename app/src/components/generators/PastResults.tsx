@@ -47,7 +47,10 @@ export function PastResults({
     setLoading(true);
     setErr(null);
     try {
-      const list = await api.listGeneratorOutputs(root, clientSlug, kind, limit);
+      const list =
+        kind === "html"
+          ? await api.listPitchDecks(root, clientSlug, limit)
+          : await api.listGeneratorOutputs(root, clientSlug, kind, limit);
       setItems(list);
     } catch (e) {
       setErr(String(e));

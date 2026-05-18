@@ -446,6 +446,18 @@ export function GenericFormGenerator({
         );
         return;
       }
+      // HTML kind (Pitch Deck): write raw HTML to <root>/data/<slug>/decks/
+      // and pop the file open in the default browser. Skip JSON extraction,
+      // image generation, and the standard generator-output save path.
+      if (config.kind === "html") {
+        const title = `${config.defaultTitle} · ${clientName}`;
+        const output = await api.savePitchDeck(root, clientSlug, title, null, finalText);
+        setSaved(output);
+        setPastRefresh((n) => n + 1);
+        onSaved?.(output);
+        return;
+      }
+
       const parsed = extractJson(finalText);
       const title =
         (parsed?.headline as string | undefined) ?? `${config.defaultTitle} · ${clientName}`;
@@ -774,7 +786,15 @@ export function GenericFormGenerator({
             </div>
           )}
           <div ref={transcriptRef} style={{ maxHeight: 480, overflow: "auto" }}>
-            <FormOutput body={streamText} kind={config.kind} streaming />
+            {config.kind === "html" ? (
+              <div className="form-out form-out-streaming">
+                <div className="form-out-shimmer">
+                  Drafting HTML deck… {streamText.length.toLocaleString()} chars in
+                </div>
+              </div>
+            ) : (
+              <FormOutput body={streamText} kind={config.kind} streaming />
+            )}
             {streaming && <span className="caret" />}
           </div>
         </div>
@@ -834,7 +854,18 @@ export function GenericFormGenerator({
               >
                 Run again
               </button>
-              {driveUploadUrl ? (
+              {config.kind === "html" ? (
+                <button
+                  type="button"
+                  className="hml-btn"
+                  onClick={() => {
+                    void api.openPitchDeck(saved.path);
+                  }}
+                  title={saved.path}
+                >
+                  Open in browser ↗
+                </button>
+              ) : driveUploadUrl ? (
                 <button
                   type="button"
                   className="hml-btn"
@@ -938,20 +969,41 @@ export function GenericFormGenerator({
             )}
           </div>
 
-          <div className="os-card">
-            <div
-              className="os-card-eyebrow"
-              style={{ display: "flex", alignItems: "center", gap: 10 }}
-            >
-              <span>▸ OUTPUT</span>
-              <span style={{ marginLeft: "auto", opacity: 0.75 }}>
-                {config.agentName.toLowerCase()}
-              </span>
+          {config.kind === "html" ? (
+            <div className="os-card">
+              <div
+                className="os-card-eyebrow"
+                style={{ display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <span>▸ DECK FILE</span>
+                <span style={{ marginLeft: "auto", opacity: 0.75 }}>
+                  {(saved.body.length / 1024).toFixed(1)} KB · HTML
+                </span>
+              </div>
+              <div style={{ fontSize: 13.5, color: "var(--hml-text-secondary)" }}>
+                Sir, the deck is saved at
+                {" "}
+                <code style={{ fontFamily: "var(--mono)" }}>{saved.path}</code>. It should already
+                be open in your default browser. Use Run again above to regenerate with different
+                inputs.
+              </div>
             </div>
-            <div>
-              <FormOutput body={saved.body} kind={config.kind} showHeader={false} />
+          ) : (
+            <div className="os-card">
+              <div
+                className="os-card-eyebrow"
+                style={{ display: "flex", alignItems: "center", gap: 10 }}
+              >
+                <span>▸ OUTPUT</span>
+                <span style={{ marginLeft: "auto", opacity: 0.75 }}>
+                  {config.agentName.toLowerCase()}
+                </span>
+              </div>
+              <div>
+                <FormOutput body={saved.body} kind={config.kind} showHeader={false} />
+              </div>
             </div>
-          </div>
+          )}
 
           <PastResults
             root={root}

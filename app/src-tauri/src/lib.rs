@@ -27,6 +27,7 @@ mod meta_oauth_secrets;
 mod onboarding;
 mod ops;
 mod personal;
+mod pitch_decks;
 mod prospects;
 mod sops;
 mod sync;
@@ -89,6 +90,9 @@ pub fn run() {
             generators::save_generator_output,
             generators::list_generator_outputs,
             generators::read_latest_generator_output,
+            pitch_decks::save_pitch_deck,
+            pitch_decks::list_pitch_decks,
+            pitch_decks::open_pitch_deck,
             gemini_image::generate_nano_banana_image,
             gemini_image::generate_creative_set,
             sync::git_sync,
