@@ -45,6 +45,9 @@ import { recordingsPageCSS, openFathomInApp } from "./RecordingsPage";
 import { OnboardingChecklist } from "../OnboardingChecklist";
 import { ClientServiceDelivery } from "./ClientServiceDelivery";
 import { AdsManagerPage } from "./AdsManagerPage";
+import { ClientSequence } from "./pages/ClientSequence";
+import { Phase1CascadeModal } from "../Phase1CascadeModal";
+import { loadSequenceState, sequenceComplete } from "../../lib/onboardingSequence";
 import {
   IconBarChart,
   IconChevronRight,
@@ -71,12 +74,20 @@ interface ClientDashboardProps {
 
 type TabDef = { id: ClientSection; label: string; Icon: typeof IconUser };
 
-/** Build the ordered tab list given client status + whether memory has content.
- *  Pre-launch clients see a single Onboarding tab (checklist + per-task forms,
- *  unified). It disappears once the client goes live. */
-function buildTabs(status: ClientEntry["status"], hasMemory: boolean): TabDef[] {
+/** Build the ordered tab list given client status, memory presence, and
+ *  whether the onboarding sequence is still active. Pre-launch clients see
+ *  the Sequence wizard until they're launched; after launch it disappears
+ *  and Onboarding becomes the primary tab. */
+function buildTabs(
+  status: ClientEntry["status"],
+  hasMemory: boolean,
+  sequenceActive: boolean,
+): TabDef[] {
   const tabs: TabDef[] = [];
   if (status === "pre-launch") {
+    if (sequenceActive) {
+      tabs.push({ id: "sequence", label: "Sequence", Icon: IconTasks });
+    }
     tabs.push({ id: "onboarding", label: "Onboarding", Icon: IconTasks });
   } else {
     tabs.push({ id: "dashboard", label: "Dashboard", Icon: IconDashboard });
@@ -119,6 +130,30 @@ export function ClientDashboard({
 }: ClientDashboardProps) {
   const pill = clientPill(client.status);
 
+  // Cascade modal toggle (Day-0 cascade fired from "Mark client Won").
+  const [cascadeOpen, setCascadeOpen] = useState(false);
+
+  // Onboarding sequence active flag — drives Sequence tab visibility.
+  const [sequenceActive, setSequenceActive] = useState(true);
+  const [sequenceProbed, setSequenceProbed] = useState(false);
+  useEffect(() => {
+    if (!root || client.status !== "pre-launch") {
+      setSequenceActive(false);
+      setSequenceProbed(true);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const seq = await loadSequenceState(root, client.slug);
+      if (cancelled) return;
+      setSequenceActive(!sequenceComplete(seq));
+      setSequenceProbed(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, client.slug, client.status, section]);
+
   // Memory tab visibility — async probe for any non-empty Memory.md
   const [hasMemory, setHasMemory] = useState(false);
   useEffect(() => {
@@ -145,7 +180,10 @@ export function ClientDashboard({
     };
   }, [root, client.slug]);
 
-  const tabs = useMemo(() => buildTabs(client.status, hasMemory), [client.status, hasMemory]);
+  const tabs = useMemo(
+    () => buildTabs(client.status, hasMemory, sequenceActive && sequenceProbed),
+    [client.status, hasMemory, sequenceActive, sequenceProbed],
+  );
 
   // If the active section is no longer in the visible tab set (e.g. status
   // flipped, or memory was emptied), bounce to the first tab.
@@ -169,6 +207,16 @@ export function ClientDashboard({
             </span>
           </div>
           <div className="hml-client-actions">
+            {client.status === "pre-launch" && root && (
+              <button
+                type="button"
+                className="hml-btn hml-accent"
+                onClick={() => setCascadeOpen(true)}
+                title="Open the Day-0 cascade: welcome email, contract, kickoff invite, etc."
+              >
+                Mark client Won
+              </button>
+            )}
             {client.drive_folder_url && onOpenDrive && (
               <button type="button" className="hml-btn" onClick={onOpenDrive}>
                 <IconFolder size={13} />
@@ -229,6 +277,9 @@ export function ClientDashboard({
         {section === "dashboard" && (
           <ClientOverviewPanel client={client} root={root} />
         )}
+        {section === "sequence" && root && (
+          <ClientSequence root={root} client={client} agents={agents} />
+        )}
         {section === "onboarding" && (
           <OnboardingChecklist
             root={root}
@@ -255,6 +306,14 @@ export function ClientDashboard({
         )}
         {section === "memory" && (
           <ClientNoteView root={root} clientSlug={client.slug} match="memory" emptyLabel="No Memory.md found yet." />
+        )}
+        {cascadeOpen && root && (
+          <Phase1CascadeModal
+            root={root}
+            client={client}
+            agents={agents}
+            onClose={() => setCascadeOpen(false)}
+          />
         )}
         {section === "service-delivery" && (
           <ClientServiceDelivery clientName={client.name}>

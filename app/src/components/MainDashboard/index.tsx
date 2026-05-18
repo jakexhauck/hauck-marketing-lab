@@ -7,7 +7,6 @@ import type { FormSurfaceId } from "../../lib/formConfigs";
 import type { AgentSummary } from "../../lib/types";
 import {
   IconArrowRight,
-  IconBell,
   IconPlus,
   IconSettings,
   IconTarget,
@@ -29,6 +28,8 @@ import { ResourcesPage } from "./ResourcesPage";
 import { SOPsPage } from "./SOPsPage";
 import { CalendarPage } from "./CalendarPage";
 import { LeadScraperPage } from "./LeadScraperPage";
+import { ActivityFeedPanel } from "./ActivityFeedPanel";
+import { NotificationsBell } from "./NotificationsBell";
 import { WebDesignerPage } from "./WebDesignerPage";
 import { ClientDashboard } from "./ClientDashboard";
 import { AdsManagerPage } from "./AdsManagerPage";
@@ -314,9 +315,7 @@ export function MainDashboard({
                   {syncLabel}
                 </button>
               )}
-              <button type="button" className="hml-icon-btn" title="Notifications">
-                <IconBell size={15} />
-              </button>
+              <NotificationsBell root={root ?? null} />
               {onSettings && (
                 <button
                   type="button"
@@ -467,6 +466,8 @@ function sectionToLabel(s: ClientSection): string {
       return "Dashboard";
     case "onboarding":
       return "Onboarding";
+    case "sequence":
+      return "Sequence";
     case "ads":
       return "Ads";
     case "profile":
@@ -1217,6 +1218,10 @@ function DashboardSurface({
             )}
           </div>
         </div>
+      </section>
+
+      <section style={{ marginTop: 16 }}>
+        <ActivityFeedPanel root={root ?? null} limit={20} />
       </section>
 
       <ConnectCalendarModal

@@ -38,16 +38,18 @@ export type PersonalSection = "overview" | "hygiene" | "clothing";
 export type ClientSection =
   | "dashboard"
   | "onboarding"
+  | "sequence"
   | "ads"
   | "service-delivery"
   | "profile"
   | "memory";
 
 /** First section to open when the user clicks a client. Pre-launch clients
- *  land on the unified Onboarding tab (checklist + per-task forms); everyone
- *  else lands on the dashboard. */
+ *  land on the Sequence wizard when it's still active (visibility is governed
+ *  by ClientDashboard from onboarding.json); they fall back to Onboarding once
+ *  the sequence is complete. Live/paused clients land on the dashboard. */
 export function defaultClientSection(status: "pre-launch" | "live" | "paused"): ClientSection {
-  return status === "pre-launch" ? "onboarding" : "dashboard";
+  return status === "pre-launch" ? "sequence" : "dashboard";
 }
 
 /**

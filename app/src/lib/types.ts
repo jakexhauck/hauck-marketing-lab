@@ -170,6 +170,9 @@ export interface OnboardingState {
     skipped?: string[];
     launchedAt?: string;
     driveFolderId?: string;
+    /** Set when the Onboarding Sequence Wizard's "Mark launched" button fires.
+     *  When true, the Sequence tab on the Client Hub disappears. */
+    sequenceComplete?: boolean;
   };
 }
 
@@ -323,7 +326,10 @@ export type DataKind =
   | "reports"
   | "scale_checks"
   | "audits"
-  | "workflows";
+  | "workflows"
+  | "dashboard_state"
+  | "vault"
+  | "activity";
 
 export type GeneratorKind =
   | "hooks"
