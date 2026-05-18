@@ -71,3 +71,14 @@ export interface ApiMessage {
   type: string;
   at: string;
 }
+
+export interface ApiContact {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  source: string;
+  tags: string[];
+  createdAt: string;
+  lastActivityAt: string;
+}

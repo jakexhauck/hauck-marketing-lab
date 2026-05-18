@@ -6,6 +6,7 @@ import { LeadsProvider } from "./context/LeadsContext";
 import Login from "./routes/Login";
 import AuthCallback from "./routes/AuthCallback";
 import Dashboard from "./routes/Dashboard";
+import Contacts from "./routes/Contacts";
 import LeadDetail from "./routes/LeadDetail";
 import Today from "./routes/Today";
 import Showroom from "./routes/Showroom";
@@ -39,6 +40,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/contacts"
+                element={
+                  <ProtectedRoute>
+                    <Contacts />
                   </ProtectedRoute>
                 }
               />

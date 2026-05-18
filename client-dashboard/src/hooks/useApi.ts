@@ -1,5 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type ApiLead, type ApiPipeline, type ApiMessage } from "../lib/api";
+import {
+  api,
+  type ApiLead,
+  type ApiPipeline,
+  type ApiMessage,
+  type ApiContact,
+} from "../lib/api";
 import type { LeadStage } from "../types";
 import { reverseMapStage } from "../lib/stageMap";
 
@@ -17,6 +23,16 @@ export function useLeadsQuery(enabled: boolean) {
     queryKey: ["leads"],
     enabled,
     queryFn: () => api<{ leads: ApiLead[]; total: number }>("/api/leads"),
+  });
+}
+
+export function useContactsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["contacts"],
+    enabled,
+    staleTime: 60_000,
+    queryFn: () =>
+      api<{ contacts: ApiContact[]; total: number }>("/api/contacts"),
   });
 }
 

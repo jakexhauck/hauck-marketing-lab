@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Sun } from "lucide-react";
 import Shell from "../components/Shell";
 import TopBar from "../components/TopBar";
+import ViewTabs from "../components/ViewTabs";
 import StageFilter, { type StageFilterValue } from "../components/StageFilter";
 import StatsStrip from "../components/StatsStrip";
 import LeadRow from "../components/LeadRow";
@@ -144,6 +145,7 @@ export default function Dashboard() {
     <Shell>
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
       <TopBar />
+      <ViewTabs />
       <StatsStrip
         stats={stats}
         permissions={permissions}
