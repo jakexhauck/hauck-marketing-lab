@@ -30,6 +30,7 @@ import { CalendarPage } from "./CalendarPage";
 import { LeadScraperPage } from "./LeadScraperPage";
 import { ActivityFeedPanel } from "./ActivityFeedPanel";
 import { NotificationsBell } from "./NotificationsBell";
+import { MorningBriefing } from "./MorningBriefing";
 import { WebDesignerPage } from "./WebDesignerPage";
 import { ClientDashboard } from "./ClientDashboard";
 import { AdsManagerPage } from "./AdsManagerPage";
@@ -370,6 +371,15 @@ function buildBreadcrumb(
     );
   }
   if (view.kind === "workspace") {
+    if (view.tab === "today") {
+      return (
+        <>
+          <span className="hml-seg">Workspace</span>
+          <span className="hml-sep">/</span>
+          <span className="hml-current">Today</span>
+        </>
+      );
+    }
     if (view.tab === "sales") {
       return (
         <>
@@ -551,6 +561,19 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
   }
 
   if (view.kind === "workspace") {
+    if (view.tab === "today")
+      return (
+        <MorningBriefing
+          root={root}
+          clients={realClients}
+          onOpenClient={(slug) => {
+            const target = realClients.find((c) => c.slug === slug);
+            if (target) {
+              onSelectClientSection(slug, defaultClientSection(target.status));
+            }
+          }}
+        />
+      );
     if (view.tab === "clients")
       return <ClientsTrackerPage root={root} clients={realClients} />;
     if (view.tab === "sales") return <SalesHubPage root={root} />;

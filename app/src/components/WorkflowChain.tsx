@@ -21,6 +21,8 @@ import {
   useStreamListener,
 } from "./generators/GeneratorChrome";
 import { PastResults } from "./generators/PastResults";
+import { logActivity } from "../lib/activity";
+import { writeBackMemory } from "../lib/memoryWriteback";
 
 type Props = {
   root: string;
@@ -260,6 +262,21 @@ export function WorkflowChain({
           });
           setSaved(output);
           setPastRefresh((n) => n + 1);
+
+          void logActivity(root, {
+            type: "form.run",
+            summary: `${kind.toUpperCase()} workflow: ${output.title}`,
+            clientSlug,
+            refPath: output.path,
+          });
+          void writeBackMemory({
+            root,
+            clientSlug,
+            clientName,
+            outputPath: output.path,
+            formTitle: `${kind.toUpperCase()} workflow`,
+            body: composedBody,
+          });
         }
       } catch (e) {
         setRuns((p) => ({

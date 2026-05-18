@@ -155,6 +155,41 @@ Not blocking. When ready: add the `UrlFetchApp.fetch` block in `doPost()` per th
 
 ---
 
+## 06 · Today briefing (shipped 2026-05-18)
+
+### What's in the app now
+- New **Today** tab as the first item under Workspace in the sidebar. Lands on a single page that aggregates across every active client.
+- Five collapsed sections, each with a count badge:
+  1. **Inbox needing reply** (placeholder; Gmail MCP wiring still parked)
+  2. **CPL drift alerts** (live, when Profile.md frontmatter declares a CPL target)
+  3. **Creative awaiting approval > 48h** (reads creative-flavoured `form.run` events older than 48h)
+  4. **Onboarding slippage** (pre-launch clients whose phase-day has passed without a checked-off task)
+  5. **Yesterday's wins** (counter pulled from activity.jsonl: leads, form runs, creatives, outreach sent, replies)
+- Pure aggregator at `app/src/lib/briefing.ts`. Takes clients + activity tail + profile meta + KPI snapshots + onboarding state, returns a typed `BriefingPayload`. No I/O inside — page loads the data, function pivots it.
+- Refresh button + auto-refresh on window focus. Empty sections collapse to `▸ all clear` (or `quiet day` for Yesterday's wins).
+
+### Your action items
+1. **Open the Today tab** (first item under Workspace) and confirm every section renders. With no CPL targets set yet, the CPL drift section should read "all clear". Same for awaiting-approval until 48h has passed on a creative form run.
+2. **Add CPL targets** to each live client's `Profile.md` frontmatter so the drift section can flag breaches. Accepted keys: `cplTarget` (preferred), `cpl_target`, `cpl`, or `target_cpl`. Optional per-client override: `cplDriftPct` (defaults to 20% above target). Example:
+   ```yaml
+   ---
+   type: profile
+   client: willis-windows
+   cplTarget: 35
+   aov: 280
+   ---
+   ```
+3. **Smoke-test the deep links**: click a CPL drift row or an onboarding slip row, confirm it jumps to the right client's surface.
+4. **Decide whether to push notifications** later. Tauri notification plugin is out of scope for v1; revisit when you want OS-level pings on green → red transitions.
+
+### Still parked
+- Gmail MCP inbox count (currently hardcoded to 0 with a TODO in `MorningBriefing.tsx`). Wire via `claude -p` once the outreach + scheduled-jobs build lands.
+- Explicit `creative.approved` activity event so the awaiting-approval section can flip rows to "done" instead of relying on the 48h timer. Out of scope for v1.
+- System notifications on state transitions (Tauri notification plugin). Phase 2.
+- Historical trend / weekly digest view. Today only by design.
+
+---
+
 ## Quick reference: where things live
 
 - **Form configs**: `app/src/lib/formConfigs.ts`
@@ -167,6 +202,10 @@ Not blocking. When ready: add the `UrlFetchApp.fetch` block in `doPost()` per th
 - **Memory write-back (TS)**: `app/src/lib/memoryWriteback.ts`
 - **Activity feed panel**: `app/src/components/MainDashboard/ActivityFeedPanel.tsx`
 - **Notifications bell**: `app/src/components/MainDashboard/NotificationsBell.tsx`
+- **Today briefing aggregator**: `app/src/lib/briefing.ts`
+- **Today briefing page**: `app/src/components/MainDashboard/MorningBriefing.tsx`
+- **Phase 1 cascade**: `app/src/lib/cascades.ts`, `app/src/components/Phase1CascadeModal.tsx`
+- **Onboarding sequence**: `app/src/lib/onboardingSequence.ts`, `app/src/components/MainDashboard/pages/ClientSequence.tsx`
 - **Saved briefs**: `media-buying/data/<client>/briefs/`
 - **Vault client assets**: `vault/Clients/<Name>/Assets/`
 - **Activity log file**: `vault/ops/activity.jsonl`

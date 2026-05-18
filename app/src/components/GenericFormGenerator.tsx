@@ -12,6 +12,7 @@ import {
   type FormField,
   type FormValues,
 } from "../lib/formConfigs";
+import { mapInsightsToFormFields } from "../lib/metaAutoFill";
 import { assembleGenericPrompt, buildInputsYaml } from "../lib/genericPrompt";
 import type {
   AgentSummary,
@@ -21,6 +22,11 @@ import type {
 } from "../lib/types";
 import { PastResults } from "./generators/PastResults";
 import { FormOutput } from "./forms/FormOutput";
+import { logActivity } from "../lib/activity";
+import {
+  writeBackMemory,
+  MEMORY_WRITEBACK_ID_PREFIX,
+} from "../lib/memoryWriteback";
 
 type Props = {
   config: FormConfig;
@@ -175,6 +181,14 @@ function isRequired(field: FormField): boolean {
   return field.required === true;
 }
 
+function timeAgo(ts: number): string {
+  const secs = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  return `${Math.floor(mins / 60)}h ago`;
+}
+
 function isFilled(field: FormField, value: unknown): boolean {
   if (field.kind === "multi") return Array.isArray(value) && (value as string[]).length > 0;
   if (value === undefined || value === null) return false;
@@ -204,6 +218,9 @@ export function GenericFormGenerator({
   const [driveUploadUrl, setDriveUploadUrl] = useState<string | null>(null);
   const [driveUploadFilename, setDriveUploadFilename] = useState<string | null>(null);
   const [driveUploadError, setDriveUploadError] = useState<string | null>(null);
+  const [metaAutoFilling, setMetaAutoFilling] = useState(false);
+  const [metaAutoFilledAt, setMetaAutoFilledAt] = useState<number | null>(null);
+  const [metaAutoFillError, setMetaAutoFillError] = useState<string | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const agent = useMemo(() => findAgent(agents, config.agentSlug), [agents, config.agentSlug]);
@@ -273,6 +290,42 @@ export function GenericFormGenerator({
     };
   }, [config, root, clientName, clientSlug]);
 
+  const handleMetaAutoFill = async () => {
+    if (!config.metaAutoFill) return;
+    setMetaAutoFilling(true);
+    setMetaAutoFillError(null);
+    try {
+      const clients = await api.listClients(root);
+      const client = clients.find((c) => c.slug === clientSlug);
+      if (!client) {
+        throw new Error(`Client "${clientSlug}" not found in clients.yaml`);
+      }
+      if (!client.meta_ad_account_id || client.meta_ad_account_id.trim() === "") {
+        throw new Error(
+          `${client.name} has no meta_ad_account_id set. Add one in clients.yaml.`,
+        );
+      }
+      const account = await api.metaListAdsInsights({
+        adAccountId: client.meta_ad_account_id,
+        clientSlug: client.slug,
+        clientName: client.name,
+        windowDays: config.metaAutoFill.windowDays,
+        forceRefresh: true,
+        conversionAction: client.meta_conversion_action ?? null,
+        root,
+      });
+      const patch = mapInsightsToFormFields(account, config.metaAutoFill.fieldMap, {
+        bestAdMinSpend: config.metaAutoFill.bestAdMinSpend,
+      });
+      setValues((prev) => ({ ...prev, ...patch }));
+      setMetaAutoFilledAt(Date.now());
+    } catch (e) {
+      setMetaAutoFillError(String(e instanceof Error ? e.message : e));
+    } finally {
+      setMetaAutoFilling(false);
+    }
+  };
+
   // Apply caller-supplied initialValues last so they override both
   // defaultValuesFor and prefillFromProfile. Re-runs on identity change so
   // a sequence stepper can swap chained values when the user revisits.
@@ -326,6 +379,8 @@ export function GenericFormGenerator({
     api
       .onClaudeStream((evt: StreamEvent) => {
         if (!mounted) return;
+        // Ignore background memory-writeback streams that share this listener.
+        if (evt.id?.startsWith(MEMORY_WRITEBACK_ID_PREFIX)) return;
         if (evt.kind === "delta") setStreamText((p) => p + evt.text);
         else if (evt.kind === "error") setError(evt.message);
       })
@@ -479,6 +534,21 @@ export function GenericFormGenerator({
       setSaved(output);
       setPastRefresh((n) => n + 1);
       onSaved?.(output);
+
+      void logActivity(root, {
+        type: "form.run",
+        summary: `${config.title}: ${output.title}`,
+        clientSlug,
+        refPath: output.path,
+      });
+      void writeBackMemory({
+        root,
+        clientSlug,
+        clientName,
+        outputPath: output.path,
+        formTitle: config.title,
+        body: finalBody,
+      });
     } catch (e) {
       setError(String(e));
     } finally {
@@ -676,6 +746,33 @@ export function GenericFormGenerator({
 
       {!saved && (
         <>
+          {config.metaAutoFill && (
+            <div
+              className="os-card"
+              style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
+            >
+              <button
+                type="button"
+                className="hml-btn"
+                onClick={handleMetaAutoFill}
+                disabled={metaAutoFilling || streaming}
+              >
+                {metaAutoFilling
+                  ? "Pulling…"
+                  : `Pull last ${config.metaAutoFill.windowDays} days from Meta`}
+              </button>
+              {metaAutoFilledAt && !metaAutoFillError && (
+                <span style={{ opacity: 0.75, fontSize: 12 }}>
+                  auto · pulled {timeAgo(metaAutoFilledAt)} · your edits win
+                </span>
+              )}
+              {metaAutoFillError && (
+                <span className="os-warn" style={{ fontSize: 12 }}>
+                  {metaAutoFillError}
+                </span>
+              )}
+            </div>
+          )}
           {config.sections.map((section) => (
             <div key={section.title} className="os-card">
               <div

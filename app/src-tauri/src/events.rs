@@ -19,6 +19,7 @@ pub enum DataKind {
     Workflows,
     DashboardState,
     Vault,
+    Activity,
 }
 
 #[derive(Debug, Serialize, Clone)]

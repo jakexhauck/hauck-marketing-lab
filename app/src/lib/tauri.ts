@@ -318,6 +318,17 @@ export const api = {
   writeOpsAppointments: (root: string, file: OpsAppointmentsFile) =>
     invoke<void>("write_ops_appointments", { root, file }),
 
+  appendActivity: (
+    root: string,
+    event: import("./activity").ActivityEvent,
+  ) => invoke<void>("append_activity", { root, event }),
+  tailActivity: (root: string, limit: number) =>
+    invoke<import("./activity").ActivityTail>("tail_activity", { root, limit }),
+  readActivityState: (root: string) =>
+    invoke<import("./activity").ActivityState>("read_activity_state", { root }),
+  markActivitySeen: (root: string) =>
+    invoke<void>("mark_activity_seen", { root }),
+
   readPersonalHub: (root: string) =>
     invoke<PersonalHubFile>("read_personal_hub", { root }),
   writePersonalHub: (root: string, file: PersonalHubFile) =>

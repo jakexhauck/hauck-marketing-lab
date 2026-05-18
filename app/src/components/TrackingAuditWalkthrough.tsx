@@ -20,6 +20,8 @@ import {
   useStreamListener,
 } from "./generators/GeneratorChrome";
 import { PastResults } from "./generators/PastResults";
+import { logActivity } from "../lib/activity";
+import { writeBackMemory } from "../lib/memoryWriteback";
 
 type Props = {
   root: string;
@@ -239,6 +241,21 @@ export function TrackingAuditWalkthrough({
       });
       setSaved(output);
       setPastRefresh((n) => n + 1);
+
+      void logActivity(root, {
+        type: "form.run",
+        summary: `Tracking audit: ${output.title}`,
+        clientSlug,
+        refPath: output.path,
+      });
+      void writeBackMemory({
+        root,
+        clientSlug,
+        clientName,
+        outputPath: output.path,
+        formTitle: "Tracking audit",
+        body: finalText,
+      });
     } catch (e) {
       setError(String(e));
     } finally {

@@ -144,6 +144,12 @@ export function AppSidebar({
             <span>Workspace</span>
           </div>
           <NavItem
+            label="Today"
+            Icon={IconStar}
+            active={activeWorkspace === "today"}
+            onClick={() => onSelectWorkspace("today")}
+          />
+          <NavItem
             label="Dashboard"
             Icon={IconDashboard}
             active={activeWorkspace === "dashboard"}

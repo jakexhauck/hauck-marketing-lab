@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { openPath, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { api } from "../../lib/tauri";
 import type { ProspectFile, ScraperEvent } from "../../lib/types";
+import { logActivity } from "../../lib/activity";
 
 interface LeadScraperPageProps {
   root: string | null;
@@ -36,6 +37,7 @@ export function LeadScraperPage({ root }: LeadScraperPageProps) {
   const [prospectsDir, setProspectsDir] = useState<string | null>(null);
   const logEndRef = useRef<HTMLDivElement | null>(null);
   const runIdRef = useRef<string>("");
+  const runMetaRef = useRef<{ niche: string; city: string }>({ niche: "", city: "" });
 
   const refreshFiles = useCallback(async () => {
     if (!root) return;
@@ -81,6 +83,14 @@ export function LeadScraperPage({ root }: LeadScraperPageProps) {
           ]);
           setDoneCsv(evt.csv_path);
           void refreshFiles();
+          if (evt.exit_code === 0) {
+            const { niche: nm, city: ct } = runMetaRef.current;
+            void logActivity(root, {
+              type: "scraper.run",
+              summary: `Scraped leads (${nm} · ${ct})`,
+              refPath: evt.csv_path ?? undefined,
+            });
+          }
         } else if (evt.kind === "error") {
           setError(evt.message);
           setRunning(false);
@@ -90,7 +100,7 @@ export function LeadScraperPage({ root }: LeadScraperPageProps) {
     return () => {
       if (unlisten) unlisten();
     };
-  }, [refreshFiles]);
+  }, [refreshFiles, root]);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -114,6 +124,7 @@ export function LeadScraperPage({ root }: LeadScraperPageProps) {
     setRunning(true);
     const id = `lead-${Date.now().toString(36)}`;
     runIdRef.current = id;
+    runMetaRef.current = { niche: n, city: c };
     try {
       await api.runLeadScraper(id, root, n, c);
     } catch (err) {

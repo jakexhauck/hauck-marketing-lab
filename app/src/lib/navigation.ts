@@ -8,6 +8,7 @@
  */
 
 export type WorkspaceView =
+  | "today"
   | "dashboard"
   | "calendar"
   | "clients"

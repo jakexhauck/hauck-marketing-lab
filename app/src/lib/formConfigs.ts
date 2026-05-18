@@ -21,8 +21,8 @@ export type FormFieldBase = {
 };
 
 export type FormField =
-  | (FormFieldBase & { kind: "text"; placeholder?: string })
-  | (FormFieldBase & { kind: "textarea"; placeholder?: string; minRows?: number })
+  | (FormFieldBase & { kind: "text"; placeholder?: string; default?: string })
+  | (FormFieldBase & { kind: "textarea"; placeholder?: string; minRows?: number; default?: string })
   | (FormFieldBase & {
       kind: "number";
       min?: number;
@@ -99,6 +99,14 @@ export type FormConfig = {
    *  client's vault assets folder. */
   imageGeneration?: {
     provider: "nano-banana-2";
+  };
+  /** Optional: surface a "Pull from Meta Ads" button that fills the listed
+   *  form fields from `meta_list_ads_insights`. Keys are form field keys,
+   *  values are MetaAutoFillSource identifiers (see metaAutoFill.ts). */
+  metaAutoFill?: {
+    windowDays: number;
+    fieldMap: Record<string, string>;
+    bestAdMinSpend?: number;
   };
   /** Optional: drives the in-flight progress bar in the DRAFTING card.
    *  `itemPattern` is matched against the streamed text with /gm flags; each
@@ -2021,6 +2029,16 @@ Hey [CLIENT NAME]! Here's your weekly ads update:
 
 Questions? Let me know!`,
   defaultTitle: "Weekly ads report",
+  metaAutoFill: {
+    windowDays: 7,
+    fieldMap: {
+      total_spend: "spend",
+      total_leads: "leads",
+      cost_per_lead: "cpl",
+      best_ad_name: "best_ad_name",
+      best_ad_cpl: "best_ad_cpl",
+    },
+  },
 };
 
 // ── Zenith · Monthly Ads Report (Reports) ─────────────────────────
@@ -2304,6 +2322,402 @@ Revenue:     $[REVENUE THIS]          $[REVENUE LAST]          [REVENUE CHANGE]
 💡 RECOMMENDATION
 [RECOMMENDATION]`,
   defaultTitle: "Monthly ads report",
+  metaAutoFill: {
+    windowDays: 30,
+    fieldMap: {
+      spend_this: "spend",
+      leads_this: "leads",
+      cpl_this: "cpl",
+      revenue_this: "revenue",
+      roas: "roas",
+    },
+  },
+};
+
+// ── Vortex · V3 HTML Composite Ad Forms ───────────────────────────
+// Six niche-specific composite-ad generators per
+// docs/build-plans/Agency Desktop App/High Priority/02-ad-creatives.md §V3.
+// Each form ships the verbatim niche promptTemplate from adTemplates.ts
+// after substituting [CITY] / [NEIGHBORHOOD] / headline + CTA overrides.
+// Output: a single fenced ```html block Jake can copy into a .html file.
+
+import { AD_TEMPLATES, AD_TEMPLATE_DEFAULTS, AD_TEMPLATE_ORDER, type AdNiche } from "./adTemplates";
+
+function buildHtmlCompositeForm(niche: AdNiche): FormConfig {
+  const template = AD_TEMPLATES[niche];
+  const defaults = AD_TEMPLATE_DEFAULTS[niche];
+  const id = `ad-html-${niche}`;
+  return {
+    id,
+    title: `HTML Ad · ${template.label}`,
+    subtitle: `${template.dimensions} composite ad. Self-contained HTML with inline CSS, ready to screenshot.`,
+    eyebrow: `▸ HTML COMPOSITE · ${template.label.toUpperCase()}`,
+    eyebrowMeta: `STATIC · ${template.dimensions}`,
+    category: "misc",
+    agentSlug: "vortex",
+    agentName: "Vortex",
+    kind: "briefs",
+    savedHeading: `${template.label} composite saved`,
+    generateLabel: "Generate HTML ad",
+    generatingLabel: "Designing…",
+    sections: [
+      {
+        title: "▸ LOCATION",
+        meta: "required",
+        fields: [
+          {
+            kind: "text",
+            key: "city",
+            label: "City",
+            promptPlaceholder: "[CITY]",
+            placeholder: "Tacoma.",
+            required: true,
+          },
+          ...(niche === "real-estate"
+            ? [
+                {
+                  kind: "text" as const,
+                  key: "neighborhood",
+                  label: "Neighborhood",
+                  promptPlaceholder: "[NEIGHBORHOOD]",
+                  placeholder: "North End.",
+                  required: true,
+                  inline: true,
+                },
+              ]
+            : []),
+        ],
+      },
+      {
+        title: "▸ COPY (overrides optional)",
+        meta: "blank = use the default",
+        fields: [
+          {
+            kind: "textarea",
+            key: "headline",
+            label: "Headline",
+            promptPlaceholder: "[HEADLINE]",
+            placeholder: defaults.headline,
+            default: defaults.headline,
+            minRows: 2,
+          },
+          {
+            kind: "text",
+            key: "cta",
+            label: "CTA",
+            promptPlaceholder: "[CTA]",
+            placeholder: defaults.cta,
+            default: defaults.cta,
+          },
+        ],
+      },
+    ],
+    promptTemplate: template.promptTemplate,
+    defaultTitle: `${template.label} HTML ad`,
+  };
+}
+
+const AD_HTML_DENTIST = buildHtmlCompositeForm("dentist");
+const AD_HTML_GYM = buildHtmlCompositeForm("gym");
+const AD_HTML_RESTAURANT = buildHtmlCompositeForm("restaurant");
+const AD_HTML_REAL_ESTATE = buildHtmlCompositeForm("real-estate");
+const AD_HTML_HAIR_SALON = buildHtmlCompositeForm("hair-salon");
+const AD_HTML_PLUMBER = buildHtmlCompositeForm("plumber");
+
+// ── Meta Ads · Live Report Forms ──────────────────────────────────
+// Eight verbatim-prompt forms from docs/build-plans/Agency Desktop App/High
+// Priority/01-meta-ads.md §"Verbatim prompts: the eight live reports".
+// Each form pipes through claude -p; when the meta-ads MCP is registered the
+// prompts read real account data, otherwise they compose against pasted data.
+
+const META_ACCOUNT_FIELD: FormField = {
+  kind: "text",
+  key: "account_id",
+  label: "Meta ad account ID",
+  promptPlaceholder: "[ACCOUNT_ID]",
+  placeholder: "act_1234567890 (find in Ads Manager URL)",
+  required: true,
+};
+
+const META_CLIENT_FIELD: FormField = {
+  kind: "text",
+  key: "client_name",
+  label: "Client name",
+  promptPlaceholder: "[CLIENT_NAME]",
+  placeholder: "Willis Windows.",
+  required: true,
+};
+
+const META_DAILY_PULSE: FormConfig = {
+  id: "meta-daily-pulse",
+  title: "Meta · Daily Pulse",
+  subtitle:
+    "Yesterday's performance, campaign-by-campaign, with red/yellow/green status cards. Single self-contained HTML dashboard.",
+  eyebrow: "▸ DAILY PULSE · STRATOS",
+  eyebrowMeta: "REPORT · DAILY",
+  category: "reports",
+  agentSlug: "stratos",
+  agentName: "Stratos",
+  kind: "reports",
+  savedHeading: "Daily pulse saved",
+  generateLabel: "Generate daily pulse",
+  generatingLabel: "Pulling…",
+  prefillFromProfile: { client_name: "business" },
+  sections: [
+    {
+      title: "▸ ACCOUNT",
+      meta: "required",
+      fields: [META_ACCOUNT_FIELD, META_CLIENT_FIELD],
+    },
+  ],
+  promptTemplate: `Use the meta-ads MCP to pull yesterday's performance for ad account [ACCOUNT_ID]. Group by campaign. For each row show: spend, CPM, CTR, CPA, conversions, vs the 7-day average. Then build me an HTML dashboard with red/yellow/green status cards. Add a summary at the top: biggest winner today, biggest concern, what to do. Use my agency colors: primary #FF6B00, bg #0A0A0A. Output a single self-contained HTML file.`,
+  defaultTitle: "Daily pulse",
+};
+
+const META_FRIDAY_CLIENT_REPORT: FormConfig = {
+  id: "meta-friday-client",
+  title: "Meta · Friday Client Report",
+  subtitle:
+    "7-day client-facing HTML one-pager. Spend vs target, leads, CPL trend, top 3 ads, anomalies. Confident, no jargon.",
+  eyebrow: "▸ FRIDAY REPORT · STRATOS",
+  eyebrowMeta: "REPORT · WEEKLY",
+  category: "reports",
+  agentSlug: "stratos",
+  agentName: "Stratos",
+  kind: "reports",
+  savedHeading: "Friday report saved",
+  generateLabel: "Generate Friday report",
+  generatingLabel: "Pulling…",
+  prefillFromProfile: { client_name: "business" },
+  sections: [
+    {
+      title: "▸ ACCOUNT",
+      meta: "required",
+      fields: [
+        META_ACCOUNT_FIELD,
+        META_CLIENT_FIELD,
+        {
+          kind: "text",
+          key: "agency_name",
+          label: "Agency name",
+          promptPlaceholder: "[AGENCY_NAME]",
+          placeholder: "Hauck Marketing.",
+          required: true,
+        },
+      ],
+    },
+  ],
+  promptTemplate: `Pull the last 7 days of data for ad account [ACCOUNT_ID]. Generate an HTML one-pager I can send to my client [CLIENT_NAME] tonight. Include: spend vs target, leads (or purchases), CPL trend line, top 3 ads by ROAS with their thumbnails if available, anomalies flagged by ads_insights_anomaly_signal. Tone: confident, no jargon. Brand it with [AGENCY_NAME] header at the top. Output as single HTML.`,
+  defaultTitle: "Friday client report",
+};
+
+const META_ANDROMEDA_CLEANUP: FormConfig = {
+  id: "meta-andromeda-cleanup",
+  title: "Meta · Andromeda Cleanup Audit",
+  subtitle:
+    "14-day ad-set audit. Flags extended Learning Phase, low conversions, and CPA > 1.5× account avg. Outputs a kill/keep/scale table.",
+  eyebrow: "▸ ANDROMEDA · STRATOS",
+  eyebrowMeta: "AUDIT · 14D",
+  category: "reports",
+  agentSlug: "stratos",
+  agentName: "Stratos",
+  kind: "reports",
+  savedHeading: "Andromeda audit saved",
+  generateLabel: "Run audit",
+  generatingLabel: "Auditing…",
+  sections: [
+    {
+      title: "▸ ACCOUNT",
+      meta: "required",
+      fields: [META_ACCOUNT_FIELD],
+    },
+  ],
+  promptTemplate: `Pull the last 14 days of all ad sets in account [ACCOUNT_ID]. Flag: ad sets in extended Learning Phase, ones with fewer than 50 conversions/week, and any with CPA > 1.5× the account average. Output a kill/keep/scale table with one-line reasoning for each row. Sort by spend descending.`,
+  defaultTitle: "Andromeda cleanup audit",
+};
+
+const META_CATALOG_HEALTH: FormConfig = {
+  id: "meta-catalog-health",
+  title: "Meta · Catalog Health Check",
+  subtitle:
+    "Pulls catalog diagnostics, prioritises errors by severity + revenue-impact tier. Hand-offable checklist for client devs.",
+  eyebrow: "▸ CATALOG · STRATOS",
+  eyebrowMeta: "DIAGNOSTIC",
+  category: "reports",
+  agentSlug: "stratos",
+  agentName: "Stratos",
+  kind: "reports",
+  savedHeading: "Catalog audit saved",
+  generateLabel: "Run diagnostics",
+  generatingLabel: "Diagnosing…",
+  sections: [
+    {
+      title: "▸ CATALOG",
+      meta: "required",
+      fields: [
+        {
+          kind: "text",
+          key: "catalog_id",
+          label: "Meta catalog ID",
+          promptPlaceholder: "[CATALOG_ID]",
+          placeholder: "1234567890123456",
+          required: true,
+        },
+      ],
+    },
+  ],
+  promptTemplate: `Run ads_catalog_get_diagnostics on catalog [CATALOG_ID]. Pull every error and warning. Build me a prioritized fix list grouped by severity, and estimate revenue-impact tier (high / medium / low) for each error type. Format as a checklist I can hand off to my client's developer.`,
+  defaultTitle: "Catalog health check",
+};
+
+const META_ANOMALY_SLACK: FormConfig = {
+  id: "meta-anomaly-slack",
+  title: "Meta · Anomaly Slack Alert",
+  subtitle:
+    "24h anomaly signals → plain-English explanation + suggested action. Slack-pasteable summary.",
+  eyebrow: "▸ ANOMALY · STRATOS",
+  eyebrowMeta: "ALERT · 24H",
+  category: "reports",
+  agentSlug: "stratos",
+  agentName: "Stratos",
+  kind: "reports",
+  savedHeading: "Anomaly alert saved",
+  generateLabel: "Check anomalies",
+  generatingLabel: "Scanning…",
+  sections: [
+    {
+      title: "▸ ACCOUNT",
+      meta: "required",
+      fields: [
+        META_ACCOUNT_FIELD,
+        {
+          kind: "text",
+          key: "client_slug_label",
+          label: "Slack channel slug",
+          promptPlaceholder: "[NAME]",
+          placeholder: "willis-windows",
+          required: true,
+        },
+      ],
+    },
+  ],
+  promptTemplate: `Run ads_insights_anomaly_signal on account [ACCOUNT_ID]. For anything flagged in the last 24h, write a one-line plain-English explanation + a one-line suggested action. Format the whole thing as a Slack-pasteable summary I can drop in #client-[NAME] right now.`,
+  defaultTitle: "Anomaly Slack alert",
+};
+
+const META_AUCTION_EDGE: FormConfig = {
+  id: "meta-auction-edge",
+  title: "Meta · Auction Edge Report",
+  subtitle:
+    "Top-10 ads by spend. Quality / engagement / conversion ranking vs the auction. Identifies what's dragging losing ads.",
+  eyebrow: "▸ AUCTION · STRATOS",
+  eyebrowMeta: "RANKING",
+  category: "reports",
+  agentSlug: "stratos",
+  agentName: "Stratos",
+  kind: "reports",
+  savedHeading: "Auction report saved",
+  generateLabel: "Run benchmarks",
+  generatingLabel: "Benchmarking…",
+  sections: [
+    {
+      title: "▸ ACCOUNT",
+      meta: "required",
+      fields: [META_ACCOUNT_FIELD],
+    },
+  ],
+  promptTemplate: `Pull ads_insights_auction_ranking_benchmarks for the top 10 ads by spend in account [ACCOUNT_ID]. For each, show our quality / engagement / conversion ranking vs the auction. Identify which ads are losing the auction and explain what's likely dragging us, quality, relevance, or bid strategy. Output as a ranked table.`,
+  defaultTitle: "Auction edge report",
+};
+
+const META_PRE_PITCH_AUDIT: FormConfig = {
+  id: "meta-pre-pitch-audit",
+  title: "Meta · Pre-Pitch Account Audit",
+  subtitle:
+    "1-pager state-of-their-advertising for cold outreach. Uses account access if available, falls back to public Ad Library.",
+  eyebrow: "▸ PRE-PITCH · STRATOS",
+  eyebrowMeta: "PROSPECT AUDIT",
+  category: "reports",
+  agentSlug: "stratos",
+  agentName: "Stratos",
+  kind: "reports",
+  savedHeading: "Pre-pitch audit saved",
+  generateLabel: "Audit account",
+  generatingLabel: "Auditing…",
+  sections: [
+    {
+      title: "▸ PROSPECT",
+      meta: "required",
+      fields: [
+        {
+          kind: "text",
+          key: "business_name",
+          label: "Business name",
+          promptPlaceholder: "[BUSINESS_NAME]",
+          placeholder: "Sterling Auto Body.",
+          required: true,
+        },
+        {
+          kind: "text",
+          key: "industry",
+          label: "Industry",
+          promptPlaceholder: "[INDUSTRY]",
+          placeholder: "Collision repair · auto services.",
+          required: true,
+        },
+      ],
+    },
+  ],
+  promptTemplate: `I'm pitching [BUSINESS_NAME] tomorrow. Use the meta-ads MCP to query the ad opportunity score for their account if I have access, and benchmark them against ads_insights_industry_benchmark for [INDUSTRY]. If I don't have account access, query their public Meta Ad Library footprint instead. Output a "state of their advertising" 1-pager I can use to anchor the pitch, what's working, what's broken, where I'd start.`,
+  defaultTitle: "Pre-pitch audit",
+};
+
+const META_BLOOMBERG: FormConfig = {
+  id: "meta-bloomberg",
+  title: "Meta · Bloomberg-Style Live Dashboard",
+  subtitle:
+    "Dense terminal-look HTML dashboard. Today's KPIs, 7-day revenue chart, top 5 ads, anomaly feed. Self-refreshing every 5min.",
+  eyebrow: "▸ BLOOMBERG · STRATOS",
+  eyebrowMeta: "LIVE DASHBOARD",
+  category: "reports",
+  agentSlug: "stratos",
+  agentName: "Stratos",
+  kind: "reports",
+  savedHeading: "Bloomberg dashboard saved",
+  generateLabel: "Build dashboard",
+  generatingLabel: "Building…",
+  sections: [
+    {
+      title: "▸ ACCOUNT",
+      meta: "required",
+      fields: [META_ACCOUNT_FIELD],
+    },
+    {
+      title: "▸ BRAND",
+      meta: "agency colors",
+      fields: [
+        {
+          kind: "text",
+          key: "hex_primary",
+          label: "Primary hex",
+          promptPlaceholder: "[HEX_PRIMARY]",
+          placeholder: "#FF6B00",
+          required: true,
+        },
+        {
+          kind: "text",
+          key: "hex_bg",
+          label: "Background hex",
+          promptPlaceholder: "[HEX_BG]",
+          placeholder: "#0A0A0A",
+          required: true,
+          inline: true,
+        },
+      ],
+    },
+  ],
+  promptTemplate: `Build me a self-refreshing HTML dashboard for ad account [ACCOUNT_ID]. Top row = today's spend / leads / ROAS as huge numbers with up/down arrows vs yesterday. Middle = bar chart of last 7 days revenue. Bottom-left = top 5 ads with thumbnails + CPA. Bottom-right = anomaly feed (latest first). Use my agency colors [HEX_PRIMARY] / [HEX_BG]. Make it look like a Bloomberg terminal, dense, monospace, dark. Refresh every 5 minutes via a meta-tag refresh. Single self-contained HTML file.`,
+  defaultTitle: "Bloomberg dashboard",
 };
 
 // Ordered to match the onboarding sequence (onboardingPlan.ts):
@@ -2333,7 +2747,24 @@ export const ALL_FORM_CONFIGS: FormConfig[] = [
   AUDIENCE_RESEARCH,
   WEEKLY_REPORT,
   MONTHLY_REPORT,
+  META_DAILY_PULSE,
+  META_FRIDAY_CLIENT_REPORT,
+  META_ANDROMEDA_CLEANUP,
+  META_CATALOG_HEALTH,
+  META_ANOMALY_SLACK,
+  META_AUCTION_EDGE,
+  META_PRE_PITCH_AUDIT,
+  META_BLOOMBERG,
+  AD_HTML_DENTIST,
+  AD_HTML_GYM,
+  AD_HTML_RESTAURANT,
+  AD_HTML_REAL_ESTATE,
+  AD_HTML_HAIR_SALON,
+  AD_HTML_PLUMBER,
 ];
+
+// Silence unused-warning for the niche order export (used by other UI surfaces).
+void AD_TEMPLATE_ORDER;
 
 export type FormSurfaceId = (typeof ALL_FORM_CONFIGS)[number]["id"];
 
@@ -2404,7 +2835,7 @@ export function defaultValuesFor(config: FormConfig): FormValues {
       if (f.kind === "number") out[f.key] = f.default ?? "";
       else if (f.kind === "segmented" || f.kind === "select") out[f.key] = f.default ?? f.options[0];
       else if (f.kind === "multi") out[f.key] = f.defaults ?? [];
-      else out[f.key] = "";
+      else if (f.kind === "text" || f.kind === "textarea") out[f.key] = f.default ?? "";
     }
   }
   return out;

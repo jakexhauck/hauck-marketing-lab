@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { openPath, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { api } from "../../lib/tauri";
 import type { WebDesignerEvent, WebsiteFile } from "../../lib/types";
+import { logActivity } from "../../lib/activity";
 
 interface WebDesignerPageProps {
   root: string | null;
@@ -355,11 +356,17 @@ export function WebDesignerPage({ root, clientSlug, clientName }: WebDesignerPag
           setScope(null);
           setView("edit");
         }
+        void logActivity(root, {
+          type: "mockup.generated",
+          summary: `Mockup generated for ${clientName}`,
+          clientSlug,
+          refPath: path,
+        });
       } catch (e) {
         console.warn("post-run load failed", e);
       }
     },
-    [refreshRecents, root, clientSlug, loadFile],
+    [refreshRecents, root, clientSlug, clientName, loadFile],
   );
 
   const onSubmitBuild = async (e: React.FormEvent) => {

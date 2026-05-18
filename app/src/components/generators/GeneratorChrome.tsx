@@ -27,6 +27,7 @@ export function useStreamListener(
     api
       .onClaudeStream((evt: StreamEvent) => {
         if (!mounted) return;
+        if (evt.id?.startsWith("memwriteback-")) return;
         if (evt.kind === "delta") onDelta(evt.text);
         else if (evt.kind === "error") onError(evt.message);
       })

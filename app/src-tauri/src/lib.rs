@@ -26,6 +26,7 @@ mod meta_ads;
 mod meta_oauth_secrets;
 mod onboarding;
 mod ops;
+mod ops_activity;
 mod personal;
 mod prospects;
 mod sops;
@@ -111,6 +112,10 @@ pub fn run() {
             ops::write_ops_revenue,
             ops::read_ops_appointments,
             ops::write_ops_appointments,
+            ops_activity::append_activity,
+            ops_activity::tail_activity,
+            ops_activity::read_activity_state,
+            ops_activity::mark_activity_seen,
             personal::read_personal_hub,
             personal::write_personal_hub,
             vault::read_vault_note,
