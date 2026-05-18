@@ -13,5 +13,6 @@ export interface ApiData {
   userId: string;
   email: string;
   tenant: TenantRow;
+  isAdmin?: boolean;
   [k: string]: unknown;
 }
