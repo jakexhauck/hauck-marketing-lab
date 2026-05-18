@@ -10,20 +10,33 @@ import Contacts from "./routes/Contacts";
 import Conversations from "./routes/Conversations";
 import ConversationDetail from "./routes/ConversationDetail";
 import LeadDetail from "./routes/LeadDetail";
+import Admin from "./routes/Admin";
 import Today from "./routes/Today";
 import Showroom from "./routes/Showroom";
 import Simulator from "./routes/Simulator";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { currentUser } = useAuth();
+  const { currentUser, isAdmin, adminChecked } = useAuth();
   if (!currentUser) return <Navigate to="/login" replace />;
+  if (!adminChecked) return null;
+  if (isAdmin) return <Navigate to="/admin" replace />;
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: ReactNode }) {
+  const { currentUser, isAdmin, adminChecked } = useAuth();
+  if (!currentUser) return <Navigate to="/login" replace />;
+  if (!adminChecked) return null;
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
 function RootRedirect() {
-  const { currentUser } = useAuth();
-  return <Navigate to={currentUser ? "/dashboard" : "/login"} replace />;
+  const { currentUser, isAdmin, adminChecked } = useAuth();
+  if (!currentUser) return <Navigate to="/login" replace />;
+  if (!adminChecked) return null;
+  return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
 }
 
 export default function App() {
@@ -37,6 +50,14 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/showroom" element={<Showroom />} />
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <Admin />
+                  </AdminRoute>
+                }
+              />
               <Route
                 path="/dashboard"
                 element={

@@ -92,3 +92,17 @@ export interface ApiConversation {
   lastMessageAt: string;
   unreadCount: number;
 }
+
+export interface AdminClient {
+  id: string;
+  slug: string;
+  name: string;
+  niche: string;
+  brandColor: string;
+  brandInitials: string;
+  appName: string;
+  ghlLocationId: string;
+  monthlySpend: number;
+  memberCount: number;
+  createdAt: string;
+}

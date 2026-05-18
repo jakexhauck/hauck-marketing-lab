@@ -17,6 +17,8 @@ interface AuthContextValue {
   session: Session | null;
   authUser: SupabaseUser | null;
   status: AuthStatus;
+  isAdmin: boolean;
+  adminChecked: boolean;
   signInWithEmail: (email: string) => Promise<{ ok: boolean; error?: string }>;
   signOut: () => Promise<void>;
   currentUser: User | null;
@@ -37,6 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     SUPABASE_CONFIGURED ? "loading" : "unauthenticated",
   );
   const [override, setOverride] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [adminChecked, setAdminChecked] = useState<boolean>(false);
 
   useEffect(() => {
     if (!SUPABASE_CONFIGURED) {
@@ -58,6 +62,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sub.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!SUPABASE_CONFIGURED) {
+      setAdminChecked(true);
+      return;
+    }
+    const userId = session?.user?.id;
+    if (!userId) {
+      setIsAdmin(false);
+      setAdminChecked(true);
+      return;
+    }
+    setAdminChecked(false);
+    let cancelled = false;
+    supabase
+      .from("admins")
+      .select("user_id")
+      .eq("user_id", userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setIsAdmin(Boolean(data));
+        setAdminChecked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
 
   const signInWithEmail = useCallback(async (email: string) => {
     if (!SUPABASE_CONFIGURED) {
@@ -113,13 +145,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       authUser: session?.user ?? null,
       status,
+      isAdmin,
+      adminChecked,
       signInWithEmail,
       signOut,
       currentUser,
       setUser,
       signIn,
     }),
-    [session, status, signInWithEmail, signOut, currentUser, setUser, signIn],
+    [
+      session,
+      status,
+      isAdmin,
+      adminChecked,
+      signInWithEmail,
+      signOut,
+      currentUser,
+      setUser,
+      signIn,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

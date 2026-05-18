@@ -6,6 +6,7 @@ import {
   type ApiMessage,
   type ApiContact,
   type ApiConversation,
+  type AdminClient,
 } from "../lib/api";
 import type { LeadStage } from "../types";
 import { reverseMapStage } from "../lib/stageMap";
@@ -70,6 +71,16 @@ export function useConversationMessagesQuery(
 interface SendConversationSmsInput {
   contactId: string;
   body: string;
+}
+
+export function useAdminClientsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["admin", "clients"],
+    enabled,
+    staleTime: 60_000,
+    queryFn: () =>
+      api<{ clients: AdminClient[]; total: number }>("/api/admin/clients"),
+  });
 }
 
 export function useSendConversationSms() {

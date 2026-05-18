@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../lib/env";
 import { verifyBearer } from "../lib/jwt";
 import { getTenantForUser } from "../lib/tenant";
+import { isUserAdmin } from "../lib/admin";
 
 const allowedOrigins = new Set([
   "http://localhost:5173",
@@ -48,12 +49,21 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
     const auth = await verifyBearer(ctx.request, ctx.env);
     if (!auth) return json(401, { error: "unauthorized" }, origin);
 
-    const tenant = await getTenantForUser(auth.userId, ctx.env);
-    if (!tenant) return json(403, { error: "no tenant" }, origin);
+    const isAdminPath = url.pathname.startsWith("/api/admin/");
 
-    ctx.data.userId = auth.userId;
-    ctx.data.email = auth.email;
-    ctx.data.tenant = tenant;
+    if (isAdminPath) {
+      const isAdmin = await isUserAdmin(auth.userId, ctx.env);
+      if (!isAdmin) return json(403, { error: "not admin" }, origin);
+      ctx.data.userId = auth.userId;
+      ctx.data.email = auth.email;
+      ctx.data.isAdmin = true;
+    } else {
+      const tenant = await getTenantForUser(auth.userId, ctx.env);
+      if (!tenant) return json(403, { error: "no tenant" }, origin);
+      ctx.data.userId = auth.userId;
+      ctx.data.email = auth.email;
+      ctx.data.tenant = tenant;
+    }
   }
 
   try {
