@@ -19,6 +19,7 @@ import { getFormConfig, type FormSurfaceId } from "../lib/formConfigs";
 import { api } from "../lib/tauri";
 import { PaneContext } from "../lib/PaneContext";
 import { usePaneWidth } from "../lib/usePaneWidth";
+import { startDragToPopout } from "../lib/dragToPopout";
 import type {
   AgentSummary,
   ChatFile,
@@ -403,8 +404,18 @@ export function AppPane(props: AppPaneProps) {
   // Pane chrome buttons rendered into the MainDashboard top-bar via DOM portal? No — we inject via a small floating button row.
   // Simpler: render a thin pane control strip absolutely positioned at the top right corner of the pane.
 
+  const onChromeMouseDown = (e: React.MouseEvent) => {
+    if (!onPopOut) return;
+    // Only fire on plain left clicks against the chrome strip itself (not the buttons).
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button")) return;
+    e.preventDefault();
+    startDragToPopout({ onTearOff: () => onPopOut() });
+  };
+
   const paneControls = (
-    <div className="hml-pane-controls">
+    <div className="hml-pane-controls" onMouseDown={onChromeMouseDown}>
       {canSplit && onSplit && (
         <button
           type="button"
