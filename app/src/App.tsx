@@ -239,6 +239,40 @@ export default function App() {
     };
   }, [root, loadFolder]);
 
+  // Phase 4: file-watcher sync. Install once root is known and listen for
+  // cross-pane vault changes so data hooks refetch.
+  useEffect(() => {
+    if (!root) return;
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      try {
+        await api.watchRoot(root);
+      } catch (e) {
+        console.warn("watch_root failed", e);
+      }
+      try {
+        unlisten = await api.onVaultChanged((evt) => {
+          // Coarse refresh of the global folder summary + clients on any
+          // vault hit. Pane-level components also subscribe directly for
+          // narrower refetches (e.g. client status).
+          if (
+            evt.kind === "client" ||
+            evt.kind === "about" ||
+            evt.kind === "ops" ||
+            evt.kind === "clients"
+          ) {
+            loadFolder(root);
+          }
+        });
+      } catch (e) {
+        console.warn("onVaultChanged subscribe failed", e);
+      }
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [root, loadFolder]);
+
   // Detached-window: listen for a "return to main" event sent by ourselves.
   // The main window listens for `pane://return` and re-attaches the pane.
   useEffect(() => {

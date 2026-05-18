@@ -24,7 +24,9 @@ mod lead_scraper;
 mod meta_actions;
 mod meta_ads;
 mod meta_oauth_secrets;
+mod mobile_app_provision;
 mod onboarding;
+mod supabase_secrets;
 mod ops;
 mod ops_activity;
 mod personal;
@@ -33,6 +35,7 @@ mod sops;
 mod sync;
 mod tracking;
 mod vault;
+mod watcher;
 mod web_designer;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -42,6 +45,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .manage(watcher::WatcherState::new())
         .invoke_handler(tauri::generate_handler![
             config::load_config,
             config::save_config,
@@ -173,6 +177,8 @@ pub fn run() {
             meta_actions::meta_duplicate_campaign,
             meta_actions::meta_duplicate_ad_set,
             meta_actions::meta_duplicate_ad,
+            mobile_app_provision::provision_mobile_tenant,
+            watcher::watch_root,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

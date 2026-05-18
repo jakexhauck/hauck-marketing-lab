@@ -163,6 +163,7 @@ export function AppPane(props: AppPaneProps) {
   // Refetch client status when global vault changes for this client.
   useEffect(() => {
     let unlisten: (() => void) | null = null;
+    let unlistenVault: (() => void) | null = null;
     (async () => {
       unlisten = await api.onDataChanged((evt) => {
         if (
@@ -181,9 +182,30 @@ export function AppPane(props: AppPaneProps) {
           })();
         }
       });
+      unlistenVault = await api.onVaultChanged((evt) => {
+        if (evt.kind === "client" && evt.client_slug === activeClientSlug) {
+          (async () => {
+            try {
+              const status = await api.readClientStatus(root, activeClientSlug);
+              setClientStatus(status);
+              const el = paneRootRef.current?.querySelector(
+                `[data-client-slug="${activeClientSlug}"]`,
+              );
+              if (el) {
+                el.classList.remove("hml-vault-pulse");
+                void (el as HTMLElement).offsetWidth;
+                el.classList.add("hml-vault-pulse");
+              }
+            } catch {
+              // ignore
+            }
+          })();
+        }
+      });
     })();
     return () => {
       if (unlisten) unlisten();
+      if (unlistenVault) unlistenVault();
     };
   }, [root, activeClientSlug]);
 

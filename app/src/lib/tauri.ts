@@ -454,6 +454,15 @@ export const api = {
   onDataChanged: (handler: (e: DataChangedEvent) => void): Promise<UnlistenFn> =>
     listen<DataChangedEvent>("data://changed", (evt) => handler(evt.payload)),
 
+  watchRoot: (root: string) => invoke<void>("watch_root", { root }),
+  onVaultChanged: (
+    handler: (e: { kind: string; path: string; client_slug: string | null }) => void,
+  ): Promise<UnlistenFn> =>
+    listen<{ kind: string; path: string; client_slug: string | null }>(
+      "vault://changed",
+      (evt) => handler(evt.payload),
+    ),
+
   googleCalendarConnect: () => invoke<void>("google_calendar_connect"),
   googleCalendarDisconnect: () => invoke<void>("google_calendar_disconnect"),
   googleCalendarIsConnected: () => invoke<boolean>("google_calendar_is_connected"),
@@ -580,4 +589,27 @@ export const api = {
     invoke<{ newId: string }>("meta_duplicate_ad_set", { adsetId }),
   metaDuplicateAd: (adId: string) =>
     invoke<{ newId: string }>("meta_duplicate_ad", { adId }),
+
+  provisionMobileTenant: (input: {
+    clientEmail: string;
+    slug: string;
+    name: string;
+    niche: string;
+    brandColor: string;
+    brandInitials: string;
+    appName: string;
+    wonLabel: string;
+    valueLabel: string;
+    ghlLocationId: string;
+    ghlToken: string;
+    monthlySpend: number;
+    sendInvite: boolean;
+  }) =>
+    invoke<{
+      tenantId: string;
+      userId: string;
+      userEmail: string;
+      invited: boolean;
+      alreadyExisted: boolean;
+    }>("provision_mobile_tenant", { input }),
 };
