@@ -3250,3 +3250,210 @@ select.ops-input {
   padding: 10px 4px 2px;
 }
 
+/* ═══════════════ SPLIT VIEW ═══════════════ */
+
+.hml-pane-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+.hml-pane-shell--split {
+  display: grid;
+  /* set inline via style — leaves room for divider */
+}
+
+.hml-pane {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 480px;
+  min-height: 0;
+}
+.hml-pane-shell--split .hml-pane {
+  border-left: 1px solid var(--border);
+}
+.hml-pane-shell--split .hml-pane:first-child {
+  border-left: none;
+}
+
+.hml-pane > .hml-app,
+.hml-pane > .md-root {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.hml-pane-divider {
+  background: var(--border, #20242c);
+  cursor: col-resize;
+  user-select: none;
+  transition: background 120ms ease;
+  border-left: 1px solid rgba(0, 0, 0, 0.4);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+}
+.hml-pane-divider:hover,
+.hml-pane-divider:active {
+  background: var(--copper, #c08456);
+}
+
+.hml-pane-controls {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 200;
+}
+.hml-pane-ctl {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  border: 1px solid var(--border, #20242c);
+  background: rgba(8, 9, 13, 0.85);
+  color: var(--text-faint, #6b7280);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+.hml-pane-ctl:hover {
+  color: var(--copper, #c08456);
+  border-color: var(--copper, #c08456);
+}
+.hml-pane-ctl-close:hover {
+  color: var(--hml-red, #e25b5b);
+  border-color: var(--hml-red, #e25b5b);
+}
+
+.hml-pane-detached-tag {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  z-index: 200;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  color: var(--copper, #c08456);
+  border: 1px solid var(--copper, #c08456);
+  border-radius: 4px;
+  padding: 2px 6px;
+  background: rgba(8, 9, 13, 0.85);
+  text-transform: uppercase;
+}
+
+/* Scope fixed-position overlays to the pane in split mode. We override
+   .drawer, .hml-overlay, .ask-dock when inside .hml-pane so they stick to
+   the pane's bounding box, not the whole viewport. */
+.hml-pane {
+  contain: layout;
+}
+.hml-pane .hml-overlay,
+.hml-pane .hml-overlay--pane {
+  position: absolute;
+}
+.hml-pane .drawer {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  bottom: 0;
+  left: auto;
+}
+.hml-pane .ask-dock {
+  position: absolute;
+}
+.hml-pane .kpi-modal-overlay {
+  position: absolute;
+}
+.hml-pane .hml-modal-backdrop {
+  position: absolute;
+}
+
+/* ═══════════════ COMPACT MODE ═══════════════ */
+
+.hml-pane--compact .hml-sidebar {
+  width: 56px;
+  min-width: 56px;
+}
+.hml-pane--compact .hml-sidebar .hml-brand-name,
+.hml-pane--compact .hml-sidebar .hml-search-bar .hml-placeholder,
+.hml-pane--compact .hml-sidebar .hml-search-bar .hml-kbd,
+.hml-pane--compact .hml-sidebar .hml-section-label,
+.hml-pane--compact .hml-sidebar .hml-nav-item span,
+.hml-pane--compact .hml-sidebar .hml-nav-add span,
+.hml-pane--compact .hml-sidebar .hml-pill,
+.hml-pane--compact .hml-sidebar .hml-user-info,
+.hml-pane--compact .hml-sidebar .hml-badge {
+  display: none;
+}
+.hml-pane--compact .hml-sidebar .hml-nav-item,
+.hml-pane--compact .hml-sidebar .hml-nav-add {
+  justify-content: center;
+  padding: 8px 6px;
+}
+.hml-pane--compact .hml-sidebar .hml-search-bar {
+  justify-content: center;
+  padding: 6px;
+}
+.hml-pane--compact .hml-sidebar .hml-brand {
+  justify-content: center;
+  padding: 0 6px;
+}
+.hml-pane--compact .hml-sidebar .hml-sidebar-footer {
+  justify-content: center;
+}
+
+/* Top-bar buttons: icon-only when compact. */
+.hml-pane--compact .hml-topbar .hml-btn {
+  font-size: 0;
+  padding: 5px 8px;
+}
+.hml-pane--compact .hml-topbar .hml-btn > svg {
+  font-size: 13px;
+}
+
+/* Forms: single-column. */
+.hml-pane--compact .hml-form-grid,
+.hml-pane--compact .hml-form-row,
+.hml-pane--compact .hml-form-two-col,
+.hml-pane--compact .form-row,
+.hml-pane--compact .form-grid {
+  grid-template-columns: 1fr !important;
+  flex-direction: column !important;
+}
+
+/* Hub banners stack. */
+.hml-pane--compact .hml-hub-banners,
+.hml-pane--compact .hml-col-2,
+.hml-pane--compact .hml-stat-row {
+  grid-template-columns: 1fr !important;
+  flex-direction: column !important;
+}
+
+/* Ops trackers: hide secondary columns. */
+.hml-pane--compact .ops-col-secondary,
+.hml-pane--compact .ops-table th.ops-col-secondary,
+.hml-pane--compact .ops-table td.ops-col-secondary {
+  display: none;
+}
+
+/* Client dashboard: stack cards. */
+.hml-pane--compact .client-card-grid,
+.hml-pane--compact .hml-client-grid {
+  grid-template-columns: 1fr !important;
+}
+
+/* Vault-pulse animation for cards that just synced. */
+@keyframes hml-pane-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(192, 132, 86, 0.55); }
+  60% { box-shadow: 0 0 0 6px rgba(192, 132, 86, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(192, 132, 86, 0); }
+}
+.hml-vault-pulse {
+  animation: hml-pane-pulse 900ms ease-out;
+}
+

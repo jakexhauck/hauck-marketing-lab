@@ -1,38 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { AgentFormsHub } from "./components/AgentFormsHub";
-import { AskDock } from "./components/AskDock";
-import { ChatDrawer } from "./components/ChatDrawer";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { AppPane } from "./components/AppPane";
 import { ClientsPage } from "./components/ClientsPage";
-import { CommandPalette } from "./components/CommandPalette";
-import { Dashboard } from "./components/Dashboard";
-import { DiagnosisForm } from "./components/DiagnosisForm";
 import { FolderPicker } from "./components/FolderPicker";
-import { GenericFormGenerator } from "./components/GenericFormGenerator";
-import { KnowledgeBrowser } from "./components/KnowledgeBrowser";
-import { MainDashboard } from "./components/MainDashboard";
-import { Sidebar, type WorkspaceView, type WorkflowView } from "./components/MainDashboard/Sidebar";
-import { TopBar } from "./components/MainDashboard/TopBar";
-import { TroubleshootingPage } from "./components/MainDashboard/TroubleshootingPage";
-import "./components/MainDashboard/main-dashboard.css";
-import { OnboardingChecklist } from "./components/OnboardingChecklist";
 import { SettingsPage } from "./components/SettingsPage";
-import { TrackingAuditWalkthrough } from "./components/TrackingAuditWalkthrough";
 import { UpdaterPrompt } from "./components/UpdaterPrompt";
-import { WorkflowChain } from "./components/WorkflowChain";
-import { getFormConfig, type FormSurfaceId } from "./lib/formConfigs";
+import "./components/MainDashboard/main-dashboard.css";
+import {
+  decodePaneStateFromHash,
+  encodePaneStateToUrl,
+  popoutWindowLabel,
+} from "./lib/popout";
 import { api } from "./lib/tauri";
-import type {
-  AgentSummary,
-  ChatFile,
-  ChatSummary,
-  ClientEntry,
-  ClientStatus,
-  FolderSummary,
-  KnowledgeChunk,
-  KnowledgeTitle,
-  SkillEntry,
-} from "./lib/types";
+import type { ClientEntry, ClientStatus, FolderSummary } from "./lib/types";
 
 const DEFAULT_CLIENT: ClientEntry = {
   slug: "willis-windows",
@@ -40,53 +21,40 @@ const DEFAULT_CLIENT: ClientEntry = {
   status: "pre-launch",
 };
 
+const MIN_PANE_WIDTH = 480;
+const DEFAULT_SPLIT_FRACTION = 0.5;
+
+type PaneEntry = {
+  id: string;
+  clientSlug: string;
+};
+
+const ONBOARDING_DISMISS_KEY = "hml-onboarding-dismissed-v1";
+
 export default function App() {
+  const detached = useMemo(() => decodePaneStateFromHash(), []);
+  const isDetachedWindow = detached.kind === "detached";
+
   const [bootError, setBootError] = useState<string | null>(null);
   const [root, setRoot] = useState<string | null>(null);
   const [summary, setSummary] = useState<FolderSummary | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeAgent, setActiveAgent] = useState<AgentSummary | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [currentChat, setCurrentChat] = useState<ChatFile | null>(null);
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [diagnosisOpen, setDiagnosisOpen] = useState(false);
-  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
-  const [knowledgeChunkId, setKnowledgeChunkId] = useState<string | null>(null);
-  const [pendingInput, setPendingInput] = useState<string | undefined>(undefined);
-  const pendingInputTick = useRef(0);
   const [bootDone, setBootDone] = useState(false);
-  const [clientStatus, setClientStatus] = useState<ClientStatus>("pre-launch");
+  const [_clientStatusGlobal, setClientStatusGlobal] = useState<ClientStatus>("pre-launch");
 
-  // Multi-client state
   const [clients, setClients] = useState<ClientEntry[]>([DEFAULT_CLIENT]);
   const [activeClientSlug, setActiveClientSlug] = useState<string>(DEFAULT_CLIENT.slug);
   const [clientsPageOpen, setClientsPageOpen] = useState(false);
   const [clientsPageStartInAdd, setClientsPageStartInAdd] = useState(false);
 
-  // Settings
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [defaultAgentSlug, setDefaultAgentSlug] = useState<string | null>(null);
 
-  // Main Dashboard vs Media Buying — boots into the Main Dashboard.
-  const [view, setView] = useState<"main" | "media-buying">("main");
-  // When set, the Main Dashboard lands directly on this workflow (e.g. when
-  // the user clicks Lead Scraper from inside the media-buying shell).
-  const [pendingWorkflow, setPendingWorkflow] = useState<WorkflowView | null>(null);
-
-  // Troubleshooting page (media-buying section only)
-  const [troubleshootingOpen, setTroubleshootingOpen] = useState(false);
-
-  // Git sync state
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<"idle" | "ok" | "error">("idle");
   const [syncTooltip, setSyncTooltip] = useState<string>("Sync with GitHub");
   const syncTimerRef = useRef<number | null>(null);
 
-  // Per-client onboarding-dismissed flag — localStorage-backed for v1.
-  // Set when the user clicks "Skip" or "Onboarding complete" inside the
-  // OnboardingChecklist; until set, a pre-launch client lands on the checklist
-  // instead of the existing pre-launch Dashboard.
-  const ONBOARDING_DISMISS_KEY = "hml-onboarding-dismissed-v1";
   const [onboardingDismissed, setOnboardingDismissed] = useState<Record<string, boolean>>(() => {
     try {
       const raw = localStorage.getItem(ONBOARDING_DISMISS_KEY);
@@ -120,28 +88,16 @@ export default function App() {
     });
   }, []);
 
-  // Generator surface — null = dashboard, otherwise the open generator.
-  // Form surface ids (welcome-email, contract, hooks, creative-brief, audiences,
-  // etc.) all route to the shared GenericFormGenerator via getFormConfig.
-  // A handful of multi-step surfaces (tracking audit, workflows) keep bespoke
-  // components for now.
-  type GeneratorSurface =
-    | "audit"
-    | "workflow-launch"
-    | "workflow-optimize"
-    | "workflow-scale"
-    | FormSurfaceId;
-  const [generator, setGenerator] = useState<GeneratorSurface | null>(null);
-
-  // Forms hub for a non-Aurelius specialist agent. When set, clicking the
-  // agent in the sidebar lands here instead of a chat drawer. Aurelius keeps
-  // his chat. Selecting a form here opens the generator on top of the hub;
-  // closing the form returns to the hub.
-  const [agentFormsHub, setAgentFormsHub] = useState<AgentSummary | null>(null);
-  const isChatAgent = (slug: string) => slug.toLowerCase() === "aurelius";
-
-  const activeClient =
-    clients.find((c) => c.slug === activeClientSlug) ?? clients[0] ?? DEFAULT_CLIENT;
+  // ── Pane array. Single pane by default; split appends a second.
+  const [panes, setPanes] = useState<PaneEntry[]>(() => {
+    if (isDetachedWindow) {
+      return [{ id: "detached", clientSlug: detached.slug ?? DEFAULT_CLIENT.slug }];
+    }
+    return [{ id: "primary", clientSlug: DEFAULT_CLIENT.slug }];
+  });
+  const [splitFraction, setSplitFraction] = useState<number>(DEFAULT_SPLIT_FRACTION);
+  const dragRef = useRef<{ startX: number; startFrac: number } | null>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
 
   const loadFolder = useCallback(
     async (path: string, clientSlugOverride?: string) => {
@@ -149,14 +105,6 @@ export default function App() {
       try {
         const next = await api.parseFolder(path);
         setSummary(next);
-        setActiveAgent((prev) => {
-          if (prev) {
-            const stillThere = next.agents.find((a) => a.slug === prev.slug);
-            return stillThere ?? next.agents[0] ?? null;
-          }
-          return next.agents[0] ?? null;
-        });
-        // Refresh clients registry alongside folder parse
         let latestClients: ClientEntry[] = [];
         try {
           latestClients = await api.listClients(path);
@@ -173,9 +121,9 @@ export default function App() {
             : latestClients[0]?.slug ?? DEFAULT_CLIENT.slug);
         try {
           const status = await api.readClientStatus(path, resolvedSlug);
-          setClientStatus(status);
+          setClientStatusGlobal(status);
         } catch {
-          setClientStatus("pre-launch");
+          setClientStatusGlobal("pre-launch");
         }
         setBootError(null);
         return next;
@@ -188,6 +136,11 @@ export default function App() {
     },
     [activeClientSlug],
   );
+
+  const loadFolderForActive = useCallback(async () => {
+    if (!root) return;
+    await loadFolder(root);
+  }, [root, loadFolder]);
 
   const onSync = useCallback(async () => {
     if (syncing) return;
@@ -232,6 +185,11 @@ export default function App() {
           const persistedSlug = cfg.active_client_slug ?? undefined;
           if (persistedSlug) {
             setActiveClientSlug(persistedSlug);
+            setPanes((prev) =>
+              prev.map((p, idx) =>
+                idx === 0 ? { ...p, clientSlug: detached.slug ?? persistedSlug } : p,
+              ),
+            );
           }
           await loadFolder(cfg.media_buying_path, persistedSlug ?? undefined);
         }
@@ -261,13 +219,17 @@ export default function App() {
     };
   }, [root, loadFolder]);
 
-  // refresh folder summary when chats are written (e.g. via CLI)
+  // refresh folder summary when chats are written or vault changes
   useEffect(() => {
     if (!root) return;
     let unlisten: (() => void) | null = null;
     (async () => {
       unlisten = await api.onDataChanged((evt) => {
-        if (evt.kind === "chat") {
+        if (
+          evt.kind === "chat" ||
+          evt.kind === "client" ||
+          evt.kind === "vault"
+        ) {
           loadFolder(root);
         }
       });
@@ -277,17 +239,25 @@ export default function App() {
     };
   }, [root, loadFolder]);
 
-  // ⌘K / Ctrl+K palette
+  // Detached-window: listen for a "return to main" event sent by ourselves.
+  // The main window listens for `pane://return` and re-attaches the pane.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        setPaletteOpen((p) => !p);
-      }
+    if (isDetachedWindow) return;
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      const win = getCurrentWindow();
+      unlisten = await win.listen<{ slug: string }>("pane://return", (evt) => {
+        const slug = evt.payload?.slug ?? activeClientSlug;
+        setPanes((prev) => {
+          if (prev.length >= 2) return prev;
+          return [...prev, { id: `pane-${Date.now()}`, clientSlug: slug }];
+        });
+      });
+    })();
+    return () => {
+      if (unlisten) unlisten();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [isDetachedWindow, activeClientSlug]);
 
   const onFolderPicked = async (path: string) => {
     setRoot(path);
@@ -299,298 +269,138 @@ export default function App() {
     await loadFolder(path);
   };
 
-  const openDrawer = (agent: AgentSummary, chat: ChatFile | null = null) => {
-    setActiveAgent(agent);
-    setCurrentChat(chat);
-    setDrawerOpen(true);
-  };
-
-  const onAgentSelect = (agent: AgentSummary) => {
-    setActiveAgent(agent);
-    if (isChatAgent(agent.slug)) {
-      // Aurelius keeps the chat surface
-      setAgentFormsHub(null);
-      if (drawerOpen) {
-        // already chatting — start a fresh thread with Aurelius
-        setCurrentChat(null);
-      } else {
-        openDrawer(agent);
-      }
-      return;
-    }
-    // Specialist agent — show their forms hub. Close any active chat so the
-    // two surfaces don't overlap.
-    setDrawerOpen(false);
-    setCurrentChat(null);
-    setGenerator(null);
-    setSettingsOpen(false);
-    setClientsPageOpen(false);
-    setDiagnosisOpen(false);
-    setKnowledgeOpen(false);
-    setTroubleshootingOpen(false);
-    setAgentFormsHub(agent);
-  };
-
-  const onOpenChatFromList = async (chat: ChatSummary) => {
-    try {
-      const file = await api.readChat(chat.path);
-      const agent =
-        summary?.agents.find((a) => a.slug === chat.agent || a.name === chat.agent) ??
-        activeAgent ??
-        summary?.agents[0];
-      if (!agent) return;
-      openDrawer(agent, file);
-    } catch (e) {
-      setBootError(String(e));
-    }
-  };
-
-  const onAskDock = () => {
-    // Chat is Aurelius-only. The dock always routes there if he's present;
-    // otherwise fall back to active/default/first agent so the dock isn't dead.
-    const aurelius = summary?.agents.find((a) => isChatAgent(a.slug));
-    const fallback =
-      aurelius ??
-      activeAgent ??
-      (defaultAgentSlug
-        ? summary?.agents.find((a) => a.slug === defaultAgentSlug)
-        : undefined) ??
-      summary?.agents[0];
-    if (fallback) openDrawer(fallback, null);
-  };
-
-  const onChatSaved = async () => {
-    if (!root) return;
-    await loadFolder(root);
-  };
-
-  const onPaletteChat = async (chat: ChatSummary) => {
-    setPaletteOpen(false);
-    await onOpenChatFromList(chat);
-  };
-
-  const onPaletteSkill = (skill: SkillEntry) => {
-    setPaletteOpen(false);
-    pendingInputTick.current += 1;
-    setPendingInput(`Run the ${skill.name} skill.`);
-    const agent = activeAgent ?? summary?.agents[0];
-    if (agent) openDrawer(agent, currentChat);
-  };
-
-  const onPaletteKnowledge = (item: KnowledgeTitle) => {
-    setPaletteOpen(false);
-    setKnowledgeChunkId(item.id);
-    setKnowledgeOpen(true);
-  };
-
-  const onOpenKnowledgeBrowser = () => {
-    setPaletteOpen(false);
-    setKnowledgeChunkId(null);
-    setKnowledgeOpen(true);
-  };
-
-  const onCloseKnowledge = () => {
-    setKnowledgeOpen(false);
-    setKnowledgeChunkId(null);
-  };
-
-  const onPinKnowledgeToChat = (chunk: KnowledgeChunk) => {
-    const agent = activeAgent ?? summary?.agents[0];
-    if (!agent) return;
-    setKnowledgeOpen(false);
-    setKnowledgeChunkId(null);
-    pendingInputTick.current += 1;
-    setPendingInput(
-      `Reference this knowledge chunk in your reply:\n\n## ${chunk.id} — ${chunk.title}\n${chunk.body}\n\n`,
-    );
-    openDrawer(agent, null);
-  };
-
-  const onOpenDiagnosis = () => {
-    setPaletteOpen(false);
-    setDiagnosisOpen(true);
-  };
-
-  const onCloseDiagnosis = () => {
-    setDiagnosisOpen(false);
-    if (root) loadFolder(root);
-  };
-
-  const openGenerator = (surface: GeneratorSurface) => {
-    setPaletteOpen(false);
-    setDiagnosisOpen(false);
-    setKnowledgeOpen(false);
-    setSettingsOpen(false);
-    setClientsPageOpen(false);
-    setTroubleshootingOpen(false);
-    setGenerator(surface);
-  };
-
-  const openTroubleshooting = () => {
-    setPaletteOpen(false);
-    setDiagnosisOpen(false);
-    setKnowledgeOpen(false);
-    setSettingsOpen(false);
-    setClientsPageOpen(false);
-    setGenerator(null);
-    setAgentFormsHub(null);
-    setDrawerOpen(false);
-    setTroubleshootingOpen(true);
-  };
-
-  const closeGenerator = () => {
-    setGenerator(null);
-    if (root) loadFolder(root);
-  };
-
-  const onAgentChangeInDrawer = (agent: AgentSummary) => {
-    setActiveAgent(agent);
-    setCurrentChat(null);
-  };
-
-  // ── client switching ──────────────────────────────────
-  const switchClient = async (slug: string) => {
-    // Always close any open surface so clicking a client routes back to that
-    // client's dashboard or onboarding checklist — even when the slug matches
-    // the already-active client (e.g. user has a form open and wants to get
-    // back to the client view).
-    setSettingsOpen(false);
-    setClientsPageOpen(false);
-    setKnowledgeOpen(false);
-    setDiagnosisOpen(false);
-    setGenerator(null);
-    setAgentFormsHub(null);
-    setCurrentChat(null);
-    setTroubleshootingOpen(false);
-
-    if (slug === activeClientSlug || !root) {
-      setActiveClientSlug(slug);
-      return;
-    }
-    setActiveClientSlug(slug);
-    try {
-      await api.saveConfig({
-        media_buying_path: root,
-        active_client_slug: slug,
-        default_agent_slug: defaultAgentSlug ?? null,
-      });
-    } catch (e) {
-      console.error("persist active client failed", e);
-    }
-    await loadFolder(root, slug);
-  };
-
-  const onOpenAddClient = () => {
-    setClientsPageStartInAdd(true);
-    setClientsPageOpen(true);
-  };
-
   const onClientsChanged = (next: ClientEntry[]) => {
     setClients(next.length === 0 ? [DEFAULT_CLIENT] : next);
-    // If the active client was deleted, fall back to the first remaining one.
     if (!next.some((c) => c.slug === activeClientSlug) && next[0]) {
-      void switchClient(next[0].slug);
+      setActiveClientSlug(next[0].slug);
+      setPanes((prev) =>
+        prev.map((p, idx) => (idx === 0 ? { ...p, clientSlug: next[0].slug } : p)),
+      );
     }
   };
 
-  if (view === "main") {
-    if (clientsPageOpen && summary && root) {
-      return (
-        <>
-          <ClientsPage
-            root={root}
-            clients={clients}
-            activeSlug={activeClientSlug}
-            onClose={() => setClientsPageOpen(false)}
-            onClientsChanged={onClientsChanged}
-            onSelectClient={(slug) => {
-              void switchClient(slug);
-            }}
-            startInAddMode={clientsPageStartInAdd}
-          />
-          <UpdaterPrompt />
-        </>
+  // ── Pane-level callbacks ────────────────────────────────
+  const onActiveClientChanged = useCallback(
+    async (paneIdx: number, slug: string, persist: boolean) => {
+      setPanes((prev) =>
+        prev.map((p, idx) => (idx === paneIdx ? { ...p, clientSlug: slug } : p)),
       );
-    }
-    if (settingsOpen && summary && root) {
-      const mainClient = clients.find((c) => c.slug === activeClientSlug) ?? clients[0] ?? DEFAULT_CLIENT;
-      return (
-        <>
-          <SettingsPage
-            root={root}
-            agents={summary.agents}
-            clients={clients}
-            defaultAgentSlug={defaultAgentSlug}
-            activeClientSlug={mainClient.slug}
-            activeClientName={mainClient.name}
-            onClose={() => setSettingsOpen(false)}
-            onFolderChanged={async (path) => {
-              setRoot(path);
-              await loadFolder(path);
-            }}
-            onDefaultAgentChanged={(slug) => setDefaultAgentSlug(slug)}
-            onManageClients={() => {
-              setSettingsOpen(false);
-              setClientsPageStartInAdd(false);
-              setClientsPageOpen(true);
-            }}
-          />
-          <UpdaterPrompt />
-        </>
-      );
-    }
-    return (
-      <>
-        <MainDashboard
-          onOpenMediaBuying={() => setView("media-buying")}
-          root={root}
-          clients={clients}
-          activeClientSlug={activeClientSlug}
-          onSync={onSync}
-          syncing={syncing}
-          syncStatus={syncStatus}
-          syncTooltip={syncTooltip}
-          onSettings={summary && root ? () => setSettingsOpen(true) : undefined}
-          onAddClient={summary && root ? onOpenAddClient : undefined}
-          onManageClients={
-            summary && root
-              ? () => {
-                  setClientsPageStartInAdd(false);
-                  setClientsPageOpen(true);
-                }
-              : undefined
+      if (persist) {
+        setActiveClientSlug(slug);
+        if (root) {
+          try {
+            await api.saveConfig({
+              media_buying_path: root,
+              active_client_slug: slug,
+              default_agent_slug: defaultAgentSlug ?? null,
+            });
+          } catch (e) {
+            console.error("persist active client failed", e);
           }
-          initialWorkflow={pendingWorkflow}
-          onInitialWorkflowApplied={() => setPendingWorkflow(null)}
-          agents={summary?.agents ?? []}
-          onOpenForm={(id, slug) => {
-            // Switch active client + open the form generator overlay.
-            void switchClient(slug);
-            openGenerator(id);
-          }}
-          onSwitchClient={(slug) => void switchClient(slug)}
-        />
-        {generator && getFormConfig(generator) && root && summary && (
-          <div className="hml-overlay" onClick={(e) => {
-            if (e.target === e.currentTarget) closeGenerator();
-          }}>
-            <div className="hml-overlay-content">
-              <GenericFormGenerator
-                config={getFormConfig(generator)!}
-                root={root}
-                agents={summary.agents}
-                clientName={activeClient.name}
-                clientSlug={activeClient.slug}
-                onClose={closeGenerator}
-              />
-            </div>
-          </div>
-        )}
-        <UpdaterPrompt />
-      </>
-    );
-  }
+          await loadFolder(root, slug);
+        }
+      }
+    },
+    [root, defaultAgentSlug, loadFolder],
+  );
 
+  const onOpenAddClient = useCallback(() => {
+    setClientsPageStartInAdd(true);
+    setClientsPageOpen(true);
+  }, []);
+
+  const onOpenManageClients = useCallback(() => {
+    setClientsPageStartInAdd(false);
+    setClientsPageOpen(true);
+  }, []);
+
+  const onOpenSettings = useCallback(() => {
+    setClientsPageOpen(false);
+    setSettingsOpen(true);
+  }, []);
+
+  // ── Split / pop-out / drag-to-tear-off ────────────────────
+  const onSplit = useCallback(() => {
+    setPanes((prev) => {
+      if (prev.length >= 2) return prev;
+      // Option C: inherit active client, blank dashboard view (default).
+      return [...prev, { id: `pane-${Date.now()}`, clientSlug: prev[0]?.clientSlug ?? activeClientSlug }];
+    });
+    setSplitFraction(DEFAULT_SPLIT_FRACTION);
+  }, [activeClientSlug]);
+
+  const onClosePane = useCallback((idx: number) => {
+    setPanes((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx)));
+  }, []);
+
+  const onPopOut = useCallback(
+    async (idx: number) => {
+      const pane = panes[idx];
+      if (!pane) return;
+      try {
+        const label = popoutWindowLabel();
+        const url = encodePaneStateToUrl({ kind: "detached", slug: pane.clientSlug });
+        new WebviewWindow(label, {
+          url,
+          title: "Hauck Marketing Lab — Detached",
+          width: 1200,
+          height: 900,
+        });
+        // Remove popped pane from main window if not the primary.
+        if (idx !== 0) {
+          setPanes((prev) => prev.filter((_, i) => i !== idx));
+        }
+      } catch (err) {
+        console.error("pop out failed", err);
+      }
+    },
+    [panes],
+  );
+
+  const onReturnFromDetached = useCallback(async () => {
+    try {
+      const slug = panes[0]?.clientSlug ?? activeClientSlug;
+      // Find the main window and emit pane://return with the slug.
+      // Tauri doesn't directly emit to a named window from JS pre-2; use
+      // the global emitter via the current window's app handle.
+      const win = getCurrentWindow();
+      await win.emitTo("main", "pane://return", { slug });
+      await win.close();
+    } catch (err) {
+      console.error("return to main failed", err);
+    }
+  }, [panes, activeClientSlug]);
+
+  // ── Drag divider ─────────────────────────────────────────
+  const onDividerMouseDown = (e: React.MouseEvent) => {
+    if (panes.length < 2) return;
+    e.preventDefault();
+    const shell = shellRef.current;
+    if (!shell) return;
+    dragRef.current = { startX: e.clientX, startFrac: splitFraction };
+    const shellRect = shell.getBoundingClientRect();
+    const totalW = shellRect.width;
+
+    const onMove = (mv: MouseEvent) => {
+      if (!dragRef.current) return;
+      const dx = mv.clientX - dragRef.current.startX;
+      let next = dragRef.current.startFrac + dx / totalW;
+      const minFrac = MIN_PANE_WIDTH / totalW;
+      const maxFrac = 1 - minFrac;
+      if (next < minFrac) next = minFrac;
+      if (next > maxFrac) next = maxFrac;
+      setSplitFraction(next);
+    };
+    const onUp = () => {
+      dragRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  // ── Renders ──────────────────────────────────────────────
   if (!bootDone) {
     return (
       <div className="picker-shell">
@@ -619,244 +429,121 @@ export default function App() {
     );
   }
 
-  // Dock advertises the chat agent (Aurelius). If not found, fall back to the
-  // active or default agent so the surface stays usable.
-  const dockAgent =
-    summary.agents.find((a) => isChatAgent(a.slug)) ??
-    activeAgent ??
-    (defaultAgentSlug
-      ? summary.agents.find((a) => a.slug === defaultAgentSlug) ?? summary.agents[0]
-      : summary.agents[0]);
-  const clientName = activeClient.name;
-  const clientSlug = activeClient.slug;
+  // Full-screen global overlays — render instead of panes.
+  if (clientsPageOpen) {
+    return (
+      <>
+        <ClientsPage
+          root={root}
+          clients={clients}
+          activeSlug={activeClientSlug}
+          onClose={() => setClientsPageOpen(false)}
+          onClientsChanged={onClientsChanged}
+          onSelectClient={(slug) => {
+            setActiveClientSlug(slug);
+            setPanes((prev) =>
+              prev.map((p, idx) => (idx === 0 ? { ...p, clientSlug: slug } : p)),
+            );
+            setClientsPageOpen(false);
+          }}
+          startInAddMode={clientsPageStartInAdd}
+        />
+        <UpdaterPrompt />
+      </>
+    );
+  }
+  if (settingsOpen) {
+    const mainClient = clients.find((c) => c.slug === activeClientSlug) ?? clients[0] ?? DEFAULT_CLIENT;
+    return (
+      <>
+        <SettingsPage
+          root={root}
+          agents={summary.agents}
+          clients={clients}
+          defaultAgentSlug={defaultAgentSlug}
+          activeClientSlug={mainClient.slug}
+          activeClientName={mainClient.name}
+          onClose={() => setSettingsOpen(false)}
+          onFolderChanged={async (path) => {
+            setRoot(path);
+            await loadFolder(path);
+          }}
+          onDefaultAgentChanged={(slug) => setDefaultAgentSlug(slug)}
+          onManageClients={() => {
+            setSettingsOpen(false);
+            setClientsPageStartInAdd(false);
+            setClientsPageOpen(true);
+          }}
+        />
+        <UpdaterPrompt />
+      </>
+    );
+  }
 
-  const onSelectWorkspaceFromShell = (tab: WorkspaceView) => {
-    // Any workspace pick exits media-buying back to the main dashboard.
-    setView("main");
-    if (tab !== "dashboard") {
-      // Calendar/Tasks are still wired by MainDashboard's own state, which
-      // resets to dashboard on mount — the click intent is preserved in spirit
-      // by simply returning to main.
-    }
-  };
-  const onSelectWorkflowFromShell = (tab: WorkflowView) => {
-    if (tab === "media-buying") return;
-    if (tab === "lead-scraper" || tab === "web-designer") {
-      setPendingWorkflow(tab);
-      setView("main");
-    }
-  };
-
-  const paneContent = settingsOpen ? (
-    <SettingsPage
-      root={root}
-      agents={summary.agents}
-      clients={clients}
-      defaultAgentSlug={defaultAgentSlug}
-      activeClientSlug={clientSlug}
-      activeClientName={clientName}
-      onClose={() => setSettingsOpen(false)}
-      onFolderChanged={async (path) => {
-        setRoot(path);
-        await loadFolder(path);
-      }}
-      onDefaultAgentChanged={(slug) => setDefaultAgentSlug(slug)}
-      onManageClients={() => {
-        setSettingsOpen(false);
-        setClientsPageStartInAdd(false);
-        setClientsPageOpen(true);
-      }}
-    />
-  ) : clientsPageOpen ? (
-    <ClientsPage
-      root={root}
-      clients={clients}
-      activeSlug={clientSlug}
-      onClose={() => setClientsPageOpen(false)}
-      onClientsChanged={onClientsChanged}
-      onSelectClient={(slug) => {
-        void switchClient(slug);
-      }}
-      startInAddMode={clientsPageStartInAdd}
-    />
-  ) : diagnosisOpen ? (
-    <DiagnosisForm
-      root={root}
-      agents={summary.agents}
-      clientName={clientName}
-      clientSlug={clientSlug}
-      onClose={onCloseDiagnosis}
-    />
-  ) : knowledgeOpen ? (
-    <KnowledgeBrowser
-      root={root}
-      initialChunkId={knowledgeChunkId}
-      onClose={onCloseKnowledge}
-      onPinToChat={onPinKnowledgeToChat}
-    />
-  ) : generator === "audit" ? (
-    <TrackingAuditWalkthrough
-      root={root}
-      agents={summary.agents}
-      clientName={clientName}
-      clientSlug={clientSlug}
-      onClose={closeGenerator}
-    />
-  ) : generator === "workflow-launch" ||
-    generator === "workflow-optimize" ||
-    generator === "workflow-scale" ? (
-    <WorkflowChain
-      root={root}
-      agents={summary.agents}
-      clientName={clientName}
-      clientSlug={clientSlug}
-      onClose={closeGenerator}
-      initialKind={
-        generator === "workflow-launch"
-          ? "launch"
-          : generator === "workflow-optimize"
-            ? "optimize"
-            : "scale"
-      }
-    />
-  ) : generator && getFormConfig(generator) ? (
-    <GenericFormGenerator
-      config={getFormConfig(generator)!}
-      root={root}
-      agents={summary.agents}
-      clientName={clientName}
-      clientSlug={clientSlug}
-      onClose={closeGenerator}
-    />
-  ) : agentFormsHub ? (
-    <AgentFormsHub
-      agent={agentFormsHub}
-      clientName={clientName}
-      onOpenForm={(id) => openGenerator(id)}
-      onClose={() => setAgentFormsHub(null)}
-    />
-  ) : troubleshootingOpen ? (
-    <TroubleshootingPage />
-  ) : clientStatus === "pre-launch" && !onboardingDismissed[clientSlug] ? (
-    <OnboardingChecklist
-      root={root}
-      clientName={clientName}
-      clientSlug={clientSlug}
-      agents={summary?.agents ?? []}
-      onComplete={() => dismissOnboarding(clientSlug)}
-    />
-  ) : (
-    <Dashboard
-      summary={summary}
-      clientName={clientName}
-      clientSlug={clientSlug}
-      clientStatus={clientStatus}
-      root={root}
-      drawerOpen={drawerOpen}
-      onOpenChat={onOpenChatFromList}
-      onOpenDiagnosis={onOpenDiagnosis}
-      onBackToOnboarding={() => restoreOnboarding(clientSlug)}
-      onOpenHookGenerator={() => openGenerator("hooks")}
-      onOpenCreativeBrief={() => openGenerator("creative-brief")}
-      onOpenTrackingAudit={() => openGenerator("audit")}
-      onOpenWorkflowLaunch={() => openGenerator("workflow-launch")}
-      onOpenWorkflowOptimize={() => openGenerator("workflow-optimize")}
-      onOpenWorkflowScale={() => openGenerator("workflow-scale")}
-    />
-  );
+  const canSplit = !isDetachedWindow && panes.length < 2;
+  const isSplit = panes.length >= 2;
 
   return (
     <>
-      <div className="md-root">
-        <TopBar
-          onBrandClick={() => setView("main")}
-          onCommand={() => setPaletteOpen(true)}
-          onSettings={() => {
-            setClientsPageOpen(false);
-            setDiagnosisOpen(false);
-            setSettingsOpen(true);
-          }}
-          onRefresh={() => loadFolder(root)}
-          refreshing={refreshing}
-          onSync={onSync}
-          syncing={syncing}
-          syncStatus={syncStatus}
-          syncTooltip={syncTooltip}
-          rightLabel={clientName.toUpperCase()}
-        />
-        <div className="md-shell">
-          <Sidebar
-            activeWorkspace={null}
-            activeWorkflow="media-buying"
-            clients={clients}
-            agents={summary.agents}
-            activeAgentSlug={drawerOpen ? activeAgent?.slug ?? null : null}
-            activeClientSlug={clientSlug}
-            activeFormId={generator}
-            onSelectWorkspace={onSelectWorkspaceFromShell}
-            onSelectWorkflow={onSelectWorkflowFromShell}
-            onSelectClient={(slug) => void switchClient(slug)}
-            onSelectAgent={(agent) => onAgentSelect(agent)}
-            onSelectForm={(id) => openGenerator(id)}
-            onOpenAureliusChat={onAskDock}
-            onOpenTroubleshooting={openTroubleshooting}
-            activeTroubleshooting={troubleshootingOpen}
-            onAddClient={onOpenAddClient}
-          />
-          <main className="md-main md-main--mb">{paneContent}</main>
-        </div>
+      <div
+        ref={shellRef}
+        className={`hml-pane-shell${isSplit ? " hml-pane-shell--split" : ""}`}
+        style={
+          isSplit
+            ? {
+                gridTemplateColumns: `${splitFraction * 100}% 6px ${(1 - splitFraction) * 100}%`,
+              }
+            : undefined
+        }
+      >
+        {panes.map((pane, idx) => {
+          const primary = idx === 0;
+          return (
+            <>
+              {idx > 0 && (
+                <div
+                  key={`divider-${idx}`}
+                  className="hml-pane-divider"
+                  onMouseDown={onDividerMouseDown}
+                  title="Drag to resize"
+                  role="separator"
+                />
+              )}
+              <AppPane
+                key={pane.id}
+                paneId={pane.id}
+                isPrimary={primary}
+                isDetached={isDetachedWindow}
+                root={root}
+                summary={summary}
+                clients={clients}
+                defaultAgentSlug={defaultAgentSlug}
+                syncing={syncing}
+                syncStatus={syncStatus}
+                syncTooltip={syncTooltip}
+                refreshing={refreshing}
+                initialClientSlug={pane.clientSlug}
+                onboardingDismissed={onboardingDismissed}
+                dismissOnboarding={dismissOnboarding}
+                restoreOnboarding={restoreOnboarding}
+                onActiveClientChanged={(slug, persist) =>
+                  onActiveClientChanged(idx, slug, persist)
+                }
+                loadFolder={loadFolderForActive}
+                onSync={onSync}
+                onOpenSettings={onOpenSettings}
+                onOpenAddClient={onOpenAddClient}
+                onOpenManageClients={onOpenManageClients}
+                canSplit={primary && canSplit}
+                onSplit={primary && canSplit ? onSplit : undefined}
+                onClosePane={!primary && !isDetachedWindow ? () => onClosePane(idx) : undefined}
+                onPopOut={!isDetachedWindow && !primary ? () => onPopOut(idx) : undefined}
+                onReturnToMain={isDetachedWindow && primary ? onReturnFromDetached : undefined}
+              />
+            </>
+          );
+        })}
       </div>
-
-      {!drawerOpen &&
-        !clientsPageOpen &&
-        !settingsOpen &&
-        !knowledgeOpen &&
-        !generator &&
-        !agentFormsHub &&
-        !troubleshootingOpen && (
-          <AskDock
-            agentName={dockAgent.name}
-            agentInitial={dockAgent.initial}
-            onClick={onAskDock}
-          />
-        )}
-
-      {drawerOpen && activeAgent && (
-        <ChatDrawer
-          key={`drawer-${pendingInputTick.current}`}
-          root={root}
-          agents={summary.agents}
-          activeAgent={activeAgent}
-          clientName={clientName}
-          clientSlug={activeClientSlug}
-          initialChat={currentChat}
-          initialInput={pendingInput}
-          onClose={() => {
-            setDrawerOpen(false);
-            setPendingInput(undefined);
-          }}
-          onAgentChange={onAgentChangeInDrawer}
-          onChatSaved={onChatSaved}
-          onOpenPalette={() => setPaletteOpen(true)}
-        />
-      )}
-
-      <CommandPalette
-        open={paletteOpen}
-        root={root}
-        chats={summary.chats}
-        onClose={() => setPaletteOpen(false)}
-        onOpenChat={onPaletteChat}
-        onScaffoldSkill={onPaletteSkill}
-        onOpenKnowledge={onPaletteKnowledge}
-        onOpenDiagnosis={onOpenDiagnosis}
-        onOpenKnowledgeBrowser={onOpenKnowledgeBrowser}
-        onOpenTrackingAudit={() => openGenerator("audit")}
-        onOpenWorkflowLaunch={() => openGenerator("workflow-launch")}
-        onOpenWorkflowOptimize={() => openGenerator("workflow-optimize")}
-        onOpenWorkflowScale={() => openGenerator("workflow-scale")}
-        onOpenForm={(id) => openGenerator(id)}
-      />
       <UpdaterPrompt />
     </>
   );

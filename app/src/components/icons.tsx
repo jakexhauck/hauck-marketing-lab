@@ -429,6 +429,33 @@ export function IconExternalLink(p: IconProps) {
   );
 }
 
+export function IconClose(p: IconProps) {
+  return (
+    <I {...p}>
+      <path d="M6 6l12 12" />
+      <path d="M18 6L6 18" />
+    </I>
+  );
+}
+
+export function IconSplit(p: IconProps) {
+  return (
+    <I {...p}>
+      <rect x="3" y="4" width="8" height="16" rx="1.5" />
+      <rect x="13" y="4" width="8" height="16" rx="1.5" />
+    </I>
+  );
+}
+
+export function IconReturnLeft(p: IconProps) {
+  return (
+    <I {...p}>
+      <path d="M9 14l-4 -4l4 -4" />
+      <path d="M5 10h11a4 4 0 0 1 4 4v0a4 4 0 0 1 -4 4h-7" />
+    </I>
+  );
+}
+
 export function IconGrip(p: IconProps) {
   return (
     <I {...p} strokeWidth={1.8}>
