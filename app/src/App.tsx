@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { AppPane } from "./components/AppPane";
@@ -533,10 +533,9 @@ export default function App() {
         {panes.map((pane, idx) => {
           const primary = idx === 0;
           return (
-            <>
+            <Fragment key={pane.id}>
               {idx > 0 && (
                 <div
-                  key={`divider-${idx}`}
                   className="hml-pane-divider"
                   onMouseDown={onDividerMouseDown}
                   title="Drag to resize"
@@ -544,7 +543,6 @@ export default function App() {
                 />
               )}
               <AppPane
-                key={pane.id}
                 paneId={pane.id}
                 isPrimary={primary}
                 isDetached={isDetachedWindow}
@@ -574,7 +572,7 @@ export default function App() {
                 onPopOut={!isDetachedWindow && !primary ? () => onPopOut(idx) : undefined}
                 onReturnToMain={isDetachedWindow && primary ? onReturnFromDetached : undefined}
               />
-            </>
+            </Fragment>
           );
         })}
       </div>
