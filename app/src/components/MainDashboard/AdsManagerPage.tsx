@@ -141,6 +141,14 @@ interface AdsManagerPageProps {
   activeClientSlug?: string | null;
   /** Called when the user picks a different client tile in global mode. */
   onSelectClient?: (slug: string) => void;
+  /** "minimal" hides the attribution selector, daily-spend bar chart, tracking
+   *  pill, mock-data badge, and (in global mode) the client filter pill row.
+   *  Used by the new AdsManagerWorkspace landing flow. Defaults to "full". */
+  variant?: "full" | "minimal";
+  /** Optional back-affordance rendered in the top-left of the header. Used by
+   *  AdsManagerWorkspace to return to the client picker. */
+  onBack?: () => void;
+  backLabel?: string;
 }
 
 export function AdsManagerPage({
@@ -148,7 +156,11 @@ export function AdsManagerPage({
   clients,
   activeClientSlug,
   onSelectClient,
+  variant = "full",
+  onBack,
+  backLabel = "Back",
 }: AdsManagerPageProps) {
+  const isMinimal = variant === "minimal";
   const [rangePreset, setRangePreset] = useState<RangePreset>("last7");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
@@ -282,6 +294,11 @@ export function AdsManagerPage({
       {/* Header strip: title + window selector + mock badge */}
       <section className="hml-ads-header">
         <div>
+          {onBack && (
+            <button type="button" className="hml-ads-back" onClick={onBack}>
+              ← {backLabel}
+            </button>
+          )}
           <div className="hml-ads-eyebrow">
             <IconBarChart size={12} />
             <span>{mode === "client" ? "Client ads" : "Ads Manager"}</span>
@@ -293,52 +310,62 @@ export function AdsManagerPage({
                 ? `${accounts[0]?.clientName ?? "—"}`
                 : "All clients"}
           </h1>
-          <div className="hml-ads-sub">
-            {hasConnected ? (
+          {!isMinimal && (
+            <div className="hml-ads-sub">
+              {hasConnected ? (
+                <span className="hml-mock-badge" style={{ background: "rgba(95,230,153,0.12)", color: "#5fe699" }}>
+                  <span className="hml-mock-dot" style={{ background: "#5fe699" }} />
+                  {loading ? "REFRESHING…" : "LIVE · Meta Marketing API"}
+                </span>
+              ) : (
+                <span className="hml-mock-badge">
+                  <span className="hml-mock-dot" />
+                  MOCK DATA · no ad account wired
+                </span>
+              )}
+              {accounts[0]?.accountId && (
+                <>
+                  <span className="hml-ads-dim">·</span>
+                  <span className="hml-ads-mono">{accounts[0].accountId}</span>
+                </>
+              )}
+              {errorList.length > 0 && (
+                <>
+                  <span className="hml-ads-dim">·</span>
+                  <span
+                    className="hml-ads-mono"
+                    style={{ color: "#ff6b6b" }}
+                    title={errorList.map(([s, e]) => `${s}: ${e}`).join("\n")}
+                  >
+                    {errorList.length} API error{errorList.length === 1 ? "" : "s"}
+                  </span>
+                </>
+              )}
+              {tracking && trackedSlug && (
+                <>
+                  <span className="hml-ads-dim">·</span>
+                  <span
+                    className="hml-mock-badge"
+                    style={{ background: trackingTone.bg, color: trackingTone.fg }}
+                    title={`Pixel: ${tracking.pixel_status} · CAPI: ${tracking.capi_status}${
+                      tracking.emq_score != null ? ` · EMQ ${tracking.emq_score.toFixed(1)}` : ""
+                    }${tracking.pulse_note ? ` · ${tracking.pulse_note}` : ""}`}
+                  >
+                    <span className="hml-mock-dot" style={{ background: trackingTone.fg }} />
+                    TRACKING: {trackingTone.label}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+          {isMinimal && hasConnected && (
+            <div className="hml-ads-sub">
               <span className="hml-mock-badge" style={{ background: "rgba(95,230,153,0.12)", color: "#5fe699" }}>
                 <span className="hml-mock-dot" style={{ background: "#5fe699" }} />
-                {loading ? "REFRESHING…" : "LIVE · Meta Marketing API"}
+                {loading ? "REFRESHING…" : "LIVE"}
               </span>
-            ) : (
-              <span className="hml-mock-badge">
-                <span className="hml-mock-dot" />
-                MOCK DATA · no ad account wired
-              </span>
-            )}
-            {accounts[0]?.accountId && (
-              <>
-                <span className="hml-ads-dim">·</span>
-                <span className="hml-ads-mono">{accounts[0].accountId}</span>
-              </>
-            )}
-            {errorList.length > 0 && (
-              <>
-                <span className="hml-ads-dim">·</span>
-                <span
-                  className="hml-ads-mono"
-                  style={{ color: "#ff6b6b" }}
-                  title={errorList.map(([s, e]) => `${s}: ${e}`).join("\n")}
-                >
-                  {errorList.length} API error{errorList.length === 1 ? "" : "s"}
-                </span>
-              </>
-            )}
-            {tracking && trackedSlug && (
-              <>
-                <span className="hml-ads-dim">·</span>
-                <span
-                  className="hml-mock-badge"
-                  style={{ background: trackingTone.bg, color: trackingTone.fg }}
-                  title={`Pixel: ${tracking.pixel_status} · CAPI: ${tracking.capi_status}${
-                    tracking.emq_score != null ? ` · EMQ ${tracking.emq_score.toFixed(1)}` : ""
-                  }${tracking.pulse_note ? ` · ${tracking.pulse_note}` : ""}`}
-                >
-                  <span className="hml-mock-dot" style={{ background: trackingTone.fg }} />
-                  TRACKING: {trackingTone.label}
-                </span>
-              </>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         <div className="hml-ads-controls">
           <div className="hml-ads-window">
@@ -383,18 +410,20 @@ export function AdsManagerPage({
               />
             </div>
           )}
-          <select
-            className="hml-ads-attr-select"
-            value={attrPreset}
-            onChange={(e) => setAttrPreset(e.target.value as AttrPreset)}
-            title="Attribution window"
-          >
-            {ATTR_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          {!isMinimal && (
+            <select
+              className="hml-ads-attr-select"
+              value={attrPreset}
+              onChange={(e) => setAttrPreset(e.target.value as AttrPreset)}
+              title="Attribution window"
+            >
+              {ATTR_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             type="button"
             className="hml-btn hml-ghost"
@@ -408,8 +437,8 @@ export function AdsManagerPage({
         </div>
       </section>
 
-      {/* Client filter row — only in global mode */}
-      {mode === "global" && clients.length > 0 && (
+      {/* Client filter row — only in global mode (and not the minimal variant) */}
+      {mode === "global" && !isMinimal && clients.length > 0 && (
         <section className="hml-ads-clientrow">
           <button
             type="button"
@@ -454,7 +483,7 @@ export function AdsManagerPage({
       </section>
 
       {/* Mini daily-spend chart */}
-      {accounts.length > 0 && (
+      {!isMinimal && accounts.length > 0 && (
         <section className="hml-ads-chart-panel">
           <div className="hml-ads-chart-head">
             <div className="hml-ads-chart-title">Daily spend · last {windowDays}d</div>
@@ -1005,6 +1034,21 @@ const ADS_CSS = `
   color: var(--hml-text-tertiary, #95a0b3);
   margin-bottom: 6px;
 }
+.hml-ads-back {
+  background: transparent;
+  border: 0;
+  color: var(--hml-text-tertiary, #95a0b3);
+  font-family: inherit;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  padding: 0;
+  margin-bottom: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.hml-ads-back:hover { color: var(--hml-text-primary, #f6f6f6); }
 .hml-ads-title {
   font-family: var(--hml-font-sans);
   font-size: 26px;

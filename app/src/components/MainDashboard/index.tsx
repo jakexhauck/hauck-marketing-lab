@@ -37,7 +37,7 @@ import { LeadScraperPage } from "./LeadScraperPage";
 import { NotificationsBell } from "./NotificationsBell";
 import { WebDesignerPage } from "./WebDesignerPage";
 import { ClientDashboard } from "./ClientDashboard";
-import { AdsManagerPage } from "./AdsManagerPage";
+import { AdsManagerWorkspace } from "./AdsManagerWorkspace";
 import { OutreachHub } from "./OutreachHub";
 import { OutreachProspectPage } from "./OutreachProspectPage";
 import { OutreachSequencePage } from "./OutreachSequencePage";
@@ -548,13 +548,7 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
     if (view.tab === "calendar")
       return <CalendarPage root={root} onBack={args.onBack} clients={realClients} />;
     if (view.tab === "ads")
-      return (
-        <AdsManagerPage
-          mode="global"
-          clients={realClients}
-          activeClientSlug={activeClientSlug}
-        />
-      );
+      return <AdsManagerWorkspace clients={realClients} />;
     return null;
   }
 
