@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Forms Lifecycle · Hauck Marketing Lab</title>
+<style>
+  :root {
+    --bg-base: #0a0a0c;
+    --bg-elev-1: #131318;
+    --bg-elev-2: #191920;
+    --bg-elev-3: #1f1f28;
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --border: rgba(255, 255, 255, 0.085);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --text-1: #ececf0;
+    --text-2: #9c9ca8;
+    --text-3: #6a6a76;
+    --text-4: #494954;
+    --accent: #d4a574;
+    --accent-bright: #e2b585;
+    --accent-dim: rgba(212, 165, 116, 0.12);
+    --accent-border: rgba(212, 165, 116, 0.28);
+    --green: #7fb285;
+    --green-bg: rgba(127, 178, 133, 0.10);
+    --green-border: rgba(127, 178, 133, 0.25);
+    --blue: #7ba8c4;
+    --blue-bg: rgba(123, 168, 196, 0.10);
+    --blue-border: rgba(123, 168, 196, 0.25);
+    --plum: #b48ac4;
+    --plum-bg: rgba(180, 138, 196, 0.10);
+    --plum-border: rgba(180, 138, 196, 0.25);
+    --teal: #7fc4b9;
+    --teal-bg: rgba(127, 196, 185, 0.10);
+    --teal-border: rgba(127, 196, 185, 0.25);
+    --red: #c4847b;
+    --red-bg: rgba(196, 132, 123, 0.10);
+    --red-border: rgba(196, 132, 123, 0.25);
+    --neutral: #888894;
+    --neutral-bg: rgba(136, 136, 148, 0.08);
+    --neutral-border: rgba(136, 136, 148, 0.22);
+    --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
+    --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg-base);
+    color: var(--text-1);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.003em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    position: relative;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 700px 400px at 18% -10%, rgba(212, 165, 116, 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 500px 400px at 100% 110%, rgba(123, 168, 196, 0.04) 0%, transparent 60%);
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 56px 32px 96px;
+    position: relative;
+  }
+
+  /* Top header */
+  header.head { margin-bottom: 32px; }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-size: 38px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+    color: var(--text-1);
+  }
+  .sub {
+    color: var(--text-2);
+    max-width: 720px;
+    font-size: 15px;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 22px;
+  }
+
+  /* Top-level section (Media Buying / Forms) */
+  .section-head {
+    margin: 56px 0 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .section-tag {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 4px 10px;
+    border: 1px solid var(--accent-border);
+    background: var(--accent-dim);
+    border-radius: 4px;
+  }
+  .section-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    color: var(--text-1);
+    margin: 10px 0 0;
+  }
+  .section-sub {
+    color: var(--text-3);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  /* Stage block */
+  .stage {
+    margin-top: 18px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg-elev-1);
+    overflow: hidden;
+  }
+  .stage-head {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .stage-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid;
+    white-space: nowrap;
+    display: inline-block;
+  }
+  .stage-title {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin: 8px 0 4px;
+  }
+  .stage-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.06em;
+  }
+  .stage-body { padding: 18px 24px 24px; }
+
+  /* Card grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+  }
+  .card {
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .card:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-elev-3);
+  }
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .card-name {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-1);
+    letter-spacing: -0.005em;
+  }
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .b-vortex   { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); }
+  .b-stratos  { color: var(--blue);   border-color: var(--blue-border);   background: var(--blue-bg); }
+  .b-nexus    { color: var(--teal);   border-color: var(--teal-border);   background: var(--teal-bg); }
+  .b-zenith   { color: var(--plum);   border-color: var(--plum-border);   background: var(--plum-bg); }
+  .b-misc     { color: var(--text-3); border-color: var(--neutral-border); background: var(--neutral-bg); }
+  .b-report   { color: var(--green);  border-color: var(--green-border);  background: var(--green-bg); }
+  .b-auto     { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); }
+
+  .card-id {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-3);
+    letter-spacing: 0.02em;
+    margin-bottom: 6px;
+  }
+  .card-desc {
+    font-size: 12.5px;
+    color: var(--text-2);
+    line-height: 1.45;
+  }
+
+  /* Stage accents */
+  .s-1 .stage-tag, .s-2 .stage-tag { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); }
+  .s-3 .stage-tag { color: var(--blue); border-color: var(--blue-border); background: var(--blue-bg); }
+  .s-4 .stage-tag { color: var(--plum); border-color: var(--plum-border); background: var(--plum-bg); }
+  .s-5 .stage-tag { color: var(--blue); border-color: var(--blue-border); background: var(--blue-bg); }
+  .s-6 .stage-tag { color: var(--teal); border-color: var(--teal-border); background: var(--teal-bg); }
+  .s-test .stage-tag  { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+  .s-recap .stage-tag { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+  .s-forms .stage-tag { color: var(--text-2); border-color: var(--border-strong); background: var(--bg-elev-2); }
+
+  .subgroup {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin: 18px 0 8px;
+    padding-left: 2px;
+  }
+  .subgroup:first-child { margin-top: 0; }
+
+  /* Automation callout */
+  .auto-note {
+    margin-bottom: 14px;
+    padding: 12px 14px 13px;
+    border: 1px solid var(--accent-border);
+    background: var(--accent-dim);
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: var(--text-2);
+  }
+  .auto-note b { color: var(--accent-bright); font-weight: 600; }
+  .auto-note code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-1);
+    background: rgba(0,0,0,0.25);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-subtle);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <div class="eyebrow">▸ Hauck Marketing Lab</div>
+    <h1>Forms Lifecycle</h1>
+    <div class="sub">The Media Buying flow is the spine — every form fires in order from signing to ongoing reporting. The Forms section holds standalone tools that don't belong to the per-client lifecycle.</div>
+
+    <div class="legend">
+      <span class="badge b-vortex">Vortex</span>
+      <span class="badge b-stratos">Stratos</span>
+      <span class="badge b-nexus">Nexus</span>
+      <span class="badge b-zenith">Zenith</span>
+      <span class="badge b-misc">Misc tool</span>
+      <span class="badge b-report">Report</span>
+      <span class="badge b-auto">Auto-run</span>
+    </div>
+  </header>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 1 · MEDIA BUYING                                      -->
+  <!-- ============================================================ -->
+  <div class="section-head">
+    <div>
+      <div class="section-tag">Section 1</div>
+      <div class="section-title">Media Buying</div>
+      <div class="section-sub">Per-client lifecycle: signing → onboarding → launch → testing → ongoing reporting.</div>
+    </div>
+  </div>
+
+  <!-- PHASE 1 -->
+  <section class="stage s-1">
+    <div class="stage-head">
+      <span class="stage-tag">Phase 1 · Close the Deal</span>
+      <div class="stage-title">Contract + welcome</div>
+      <div class="stage-meta">Day 0</div>
+    </div>
+    <div class="stage-body">
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Contract Drafter</span><span class="badge b-stratos">Stratos</span></div>
+          <div class="card-id">contract</div>
+          <div class="card-desc">Terms + scope, ready for signature.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Welcome Email Builder</span><span class="badge b-vortex">Vortex</span></div>
+          <div class="card-id">welcome-email</div>
+          <div class="card-desc">Day-0 confirmation, books the kickoff call.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHASE 2 -->
+  <section class="stage s-2">
+    <div class="stage-head">
+      <span class="stage-tag">Phase 2 · Onboarding Call</span>
+      <div class="stage-title">Lock the offer + expectations</div>
+      <div class="stage-meta">Day 1</div>
+    </div>
+    <div class="stage-body">
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Offer + CTA Builder</span><span class="badge b-vortex">Vortex</span></div>
+          <div class="card-id">offer-cta</div>
+          <div class="card-desc">Offer, hook angle, primary CTA locked.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Expectations Email</span><span class="badge b-vortex">Vortex</span></div>
+          <div class="card-id">expectations-email</div>
+          <div class="card-desc">Week-1 plan + what we need from them.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHASE 3 -->
+  <section class="stage s-3">
+    <div class="stage-head">
+      <span class="stage-tag">Phase 3 · Technical Setup</span>
+      <div class="stage-title">Intel + tracking</div>
+      <div class="stage-meta">Day 2</div>
+    </div>
+    <div class="stage-body">
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Competitor Research Brief</span><span class="badge b-stratos">Stratos</span></div>
+          <div class="card-id">competitors</div>
+          <div class="card-desc">5–10 competitors with angles, offers, ad-library breadcrumbs.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Pixel Install Walkthrough</span><span class="badge b-nexus">Nexus</span></div>
+          <div class="card-id">pixel-install</div>
+          <div class="card-desc">Platform-specific snippets + event tracking guide.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHASE 4 -->
+  <section class="stage s-4">
+    <div class="stage-head">
+      <span class="stage-tag">Phase 4 · Creative Production</span>
+      <div class="stage-title">Audiences + brief + ads</div>
+      <div class="stage-meta">Days 3–4</div>
+    </div>
+    <div class="stage-body">
+      <div class="subgroup">▸ Research</div>
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Audience Research</span><span class="badge b-misc">Misc</span></div>
+          <div class="card-id">audience-research</div>
+          <div class="card-desc">Deep teardown: psychographics, pains, language.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Audience Builder</span><span class="badge b-stratos">Stratos</span></div>
+          <div class="card-id">audiences</div>
+          <div class="card-desc">3–5 Meta audience configs (broad / interest / lookalike).</div>
+        </div>
+      </div>
+
+      <div class="subgroup">▸ Brief + Copy</div>
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Creative Brief Builder</span><span class="badge b-misc">Misc</span></div>
+          <div class="card-id">creative-brief</div>
+          <div class="card-desc">The brief everything else flows from.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Hooks Generator</span><span class="badge b-misc">Misc</span></div>
+          <div class="card-id">hooks</div>
+          <div class="card-desc">Volume of hook variants for testing.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Ad Copy Generator</span><span class="badge b-misc">Misc</span></div>
+          <div class="card-id">ad-copy</div>
+          <div class="card-desc">Primary, headline, and description copy sets.</div>
+        </div>
+      </div>
+
+      <div class="subgroup">▸ Creative</div>
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Static Ad Creative Builder</span><span class="badge b-misc">Misc</span></div>
+          <div class="card-id">ad-creative</div>
+          <div class="card-desc">Static ad designs across formats.</div>
+        </div>
+      </div>
+
+      <div class="subgroup">▸ Sign-off</div>
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Creative Approval Email</span><span class="badge b-vortex">Vortex</span></div>
+          <div class="card-id">approval-email</div>
+          <div class="card-desc">Packages copy + creative for client sign-off.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHASE 5 -->
+  <section class="stage s-5">
+    <div class="stage-head">
+      <span class="stage-tag">Phase 5 · Campaign Build + QA</span>
+      <div class="stage-title">Structure the account</div>
+      <div class="stage-meta">Days 5–6</div>
+    </div>
+    <div class="stage-body">
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Campaign Structure Planner</span><span class="badge b-stratos">Stratos</span></div>
+          <div class="card-id">structure</div>
+          <div class="card-desc">CBO vs ABO, ad-set split, creatives-per-set.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHASE 6 -->
+  <section class="stage s-6">
+    <div class="stage-head">
+      <span class="stage-tag">Phase 6 · Launch + Monitor</span>
+      <div class="stage-title">Go live, set guardrails</div>
+      <div class="stage-meta">Day 7</div>
+    </div>
+    <div class="stage-body">
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Optimizer Config</span><span class="badge b-zenith">Zenith</span></div>
+          <div class="card-id">optimizer</div>
+          <div class="card-desc">Kill/scale rules + alert thresholds for this account.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Ads Are Live Message</span><span class="badge b-vortex">Vortex</span></div>
+          <div class="card-id">live-message</div>
+          <div class="card-desc">Short "we're live" note to the client.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEST + ONGOING -->
+  <section class="stage s-test">
+    <div class="stage-head">
+      <span class="stage-tag">Stage 7 · Testing + Ongoing</span>
+      <div class="stage-title">Watch, prune, learn</div>
+      <div class="stage-meta">Daily + weekly cadence</div>
+    </div>
+    <div class="stage-body">
+      <div class="auto-note">
+        <b>Auto-run candidates.</b> The MCP only fetches data when asked — it doesn't watch the account 24/7. To get these "just reporting back to you," wire a scheduler (<code>/schedule</code> or Trigger.dev) to fire each form on a cadence. Suggested: <code>daily-pulse</code> 9:00am, <code>anomaly-slack</code> every 30 min during US business hours, <code>andromeda-cleanup</code> Mondays 8:00am.
+      </div>
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Meta · Daily Pulse</span><span class="badge b-auto">Auto · daily</span></div>
+          <div class="card-id">meta-daily-pulse</div>
+          <div class="card-desc">Yesterday's numbers, campaign-by-campaign, red/yellow/green.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Meta · Anomaly Slack Alert</span><span class="badge b-auto">Auto · 30m</span></div>
+          <div class="card-id">meta-anomaly-slack</div>
+          <div class="card-desc">Flags sudden CPC / CPM / CTR spikes.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Meta · Andromeda Cleanup</span><span class="badge b-auto">Auto · weekly</span></div>
+          <div class="card-id">meta-andromeda-cleanup</div>
+          <div class="card-desc">Kill underperformers, prune the account.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Meta · Auction Edge Report</span><span class="badge b-report">Report</span></div>
+          <div class="card-id">meta-auction-edge</div>
+          <div class="card-desc">Auction-side diagnostics on what's winning placements.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Weekly Ads Report</span><span class="badge b-report">Report</span></div>
+          <div class="card-id">weekly-report</div>
+          <div class="card-desc">What's working, what we changed, next week's plan.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECAP -->
+  <section class="stage s-recap">
+    <div class="stage-head">
+      <span class="stage-tag">Stage 8 · Client Recaps</span>
+      <div class="stage-title">Keep the client informed</div>
+      <div class="stage-meta">Weekly + monthly</div>
+    </div>
+    <div class="stage-body">
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Meta · Friday Client Report</span><span class="badge b-report">Report</span></div>
+          <div class="card-id">meta-friday-client</div>
+          <div class="card-desc">Weekly client-facing recap.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Monthly Ads Report</span><span class="badge b-report">Report</span></div>
+          <div class="card-id">monthly-report</div>
+          <div class="card-desc">End-of-month wrap: wins, challenges, next month, the ask.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 2 · FORMS                                            -->
+  <!-- ============================================================ -->
+  <div class="section-head">
+    <div>
+      <div class="section-tag">Section 2</div>
+      <div class="section-title">Forms</div>
+      <div class="section-sub">Standalone tools that don't belong to the per-client lifecycle. Run them on demand.</div>
+    </div>
+  </div>
+
+  <!-- OUTREACH -->
+  <section class="stage s-forms">
+    <div class="stage-head">
+      <span class="stage-tag">Outreach</span>
+      <div class="stage-title">Prospecting tools</div>
+      <div class="stage-meta">Pre-contract</div>
+    </div>
+    <div class="stage-body">
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Meta · Pre-Pitch Account Audit</span><span class="badge b-report">Report</span></div>
+          <div class="card-id">meta-pre-pitch-audit</div>
+          <div class="card-desc">Pull a prospect's ad account, find leaks, build the pitch angle.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SALES -->
+  <section class="stage s-forms">
+    <div class="stage-head">
+      <span class="stage-tag">Sales</span>
+      <div class="stage-title">Pitch materials</div>
+      <div class="stage-meta">Close the deal</div>
+    </div>
+    <div class="stage-body">
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Pitch Deck Builder</span><span class="badge b-vortex">Vortex</span></div>
+          <div class="card-id">pitch-deck</div>
+          <div class="card-desc">12-slide HTML deck for the proposal call.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NICHE AD TEMPLATES -->
+  <section class="stage s-forms">
+    <div class="stage-head">
+      <span class="stage-tag">Niche Ad Templates</span>
+      <div class="stage-title">HTML composite ads</div>
+      <div class="stage-meta">Pre-built templates by industry</div>
+    </div>
+    <div class="stage-body">
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">HTML Ad · Dentist</span><span class="badge b-misc">Misc</span></div>
+          <div class="card-id">ad-html-dentist</div>
+          <div class="card-desc">Niche composite. Self-contained HTML, ready to screenshot.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">HTML Ad · Gym</span><span class="badge b-misc">Misc</span></div>
+          <div class="card-id">ad-html-gym</div>
+          <div class="card-desc">Niche composite.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">HTML Ad · Restaurant</span><span class="badge b-misc">Misc</span></div>
+          <div class="card-id">ad-html-restaurant</div>
+          <div class="card-desc">Niche composite.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">HTML Ad · Real Estate</span><span class="badge b-misc">Misc</span></div>
+          <div class="card-id">ad-html-real-estate</div>
+          <div class="card-desc">Niche composite.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">HTML Ad · Hair Salon</span><span class="badge b-misc">Misc</span></div>
+          <div class="card-id">ad-html-hair-salon</div>
+          <div class="card-desc">Niche composite.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">HTML Ad · Plumber</span><span class="badge b-misc">Misc</span></div>
+          <div class="card-id">ad-html-plumber</div>
+          <div class="card-desc">Niche composite.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPECIALTY DASHBOARDS -->
+  <section class="stage s-forms">
+    <div class="stage-head">
+      <span class="stage-tag">Specialty Dashboards</span>
+      <div class="stage-title">Situational reports</div>
+      <div class="stage-meta">On demand · not part of every client</div>
+    </div>
+    <div class="stage-body">
+      <div class="grid">
+        <div class="card">
+          <div class="card-top"><span class="card-name">Meta · Catalog Health Check</span><span class="badge b-report">Report</span></div>
+          <div class="card-id">meta-catalog-health</div>
+          <div class="card-desc">For ecom clients scaling DPAs.</div>
+        </div>
+        <div class="card">
+          <div class="card-top"><span class="card-name">Meta · Bloomberg-Style Live Dashboard</span><span class="badge b-report">Report</span></div>
+          <div class="card-id">meta-bloomberg</div>
+          <div class="card-desc">Always-on dashboard once spend is meaningful.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>Hauck Marketing Lab · forms lifecycle</div>
+    <div>Media Buying · 8 stages · Forms · 4 groups</div>
+  </footer>
+
+</div>
+</body>
+</html>

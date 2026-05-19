@@ -10,6 +10,7 @@ import {
 import {
   MEDIA_BUYING_SEQUENCE,
   emptySequenceState,
+  formatHooksForAdCopy,
   nextStepId,
   type SequenceState,
   type SequenceStep,
@@ -21,6 +22,7 @@ import { getFormConfig, type FormValues } from "../lib/formConfigs";
 import type { AgentSummary, GeneratorOutput, OnboardingState } from "../lib/types";
 import { GenericFormGenerator } from "./GenericFormGenerator";
 import ProvisionMobileAppForm from "./ProvisionMobileAppForm";
+import { AdsSequenceWizard } from "./AdsSequenceWizard";
 import { IconArrowRight } from "./icons";
 import "./onboarding-checklist.css";
 
@@ -107,10 +109,17 @@ const ADS_PUBLISH_TASK_ID = "06-publish";
  *  Claude-driven flow. */
 const PROVISION_MOBILE_APP_TASK_ID = "04app-provision";
 
+/** Master task ID for the consolidated Ads sequence. Opens AdsSequenceWizard
+ *  (three-column launcher over MEDIA_BUYING_SEQUENCE) instead of a single form. */
+const ADS_MASTER_TASK_ID = "06-ads";
+
 /** Map of checklistTaskId → SequenceStep, so a row can render a "Generate"
- *  button if the task has a matching form. Built once at module load. */
+ *  button if the task has a matching form. Built once at module load.
+ *  Sequence steps without a checklistTaskId are skipped. */
 const STEP_BY_TASK: Map<string, SequenceStep> = new Map(
-  MEDIA_BUYING_SEQUENCE.map((s) => [s.checklistTaskId, s]),
+  MEDIA_BUYING_SEQUENCE.filter((s): s is SequenceStep & { checklistTaskId: string } =>
+    Boolean(s.checklistTaskId),
+  ).map((s) => [s.checklistTaskId, s]),
 );
 
 export function OnboardingChecklist({ root, clientName, clientSlug, agents, onComplete }: Props) {
@@ -351,7 +360,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
    *  the form. Mirrors the prior ClientSequence behavior. */
   const openTaskForm = useCallback(
     async (taskId: string) => {
-      if (taskId === PROVISION_MOBILE_APP_TASK_ID) {
+      if (taskId === PROVISION_MOBILE_APP_TASK_ID || taskId === ADS_MASTER_TASK_ID) {
         setOpenTaskId(taskId);
         setChainValues({});
         return;
@@ -375,6 +384,9 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
             mapped[spec.rawBodyField] = body;
           }
           const parsed = extractJsonFromBody(body);
+          if (spec.transform === "hooks-to-adcopy" && spec.transformTargetField && parsed) {
+            mapped[spec.transformTargetField] = formatHooksForAdCopy(parsed);
+          }
           if (!parsed) continue;
           for (const [sourceKey, targetField] of Object.entries(spec.fields)) {
             const v = parsed[sourceKey];
@@ -431,6 +443,31 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
   // Render the form overlay when a task with a sequence step is opened.
   const openStep = openTaskId ? STEP_BY_TASK.get(openTaskId) : null;
   const openStepFormConfig = openStep ? getFormConfig(openStep.formId) : null;
+
+  if (openTaskId === ADS_MASTER_TASK_ID && root) {
+    return (
+      <div className="ob-root">
+        <AdsSequenceWizard
+          root={root}
+          clientName={clientName}
+          clientSlug={clientSlug}
+          agents={agents}
+          sequenceState={sequenceState}
+          onSequenceChange={(next) => setSequenceState(next)}
+          onTaskTick={(taskId) =>
+            setDoneSet((prev) => {
+              if (prev.has(taskId)) return prev;
+              const n = new Set(prev);
+              n.add(taskId);
+              return n;
+            })
+          }
+          onClose={closeForm}
+        />
+        <style>{FORM_OVERLAY_CSS}</style>
+      </div>
+    );
+  }
 
   if (openTaskId === PROVISION_MOBILE_APP_TASK_ID) {
     return (
@@ -699,19 +736,28 @@ function ActiveCard({
               {ss.tasks.map((t) => {
                 const step = STEP_BY_TASK.get(t.id);
                 const isMobileAppTask = t.id === PROVISION_MOBILE_APP_TASK_ID;
+                const isAdsTask = t.id === ADS_MASTER_TASK_ID;
+                let actionLabel: string | undefined;
+                let actionHint: string | undefined;
+                if (isAdsTask) {
+                  actionLabel = "Open Ads sequence →";
+                  actionHint =
+                    "10 forms, one at a time. Completed ones tuck into the side rail; you can reopen any of them to edit.";
+                } else if (isMobileAppTask) {
+                  actionLabel = "Open form";
+                  actionHint = "Provision Supabase tenant + invite client.";
+                } else {
+                  actionHint = step?.hint;
+                }
                 return (
                   <TaskRow
                     key={t.id}
                     task={t}
                     checked={doneSet.has(t.id)}
                     step={step ?? null}
-                    showActionButton={Boolean(step) || isMobileAppTask}
-                    actionLabel={isMobileAppTask ? "Open form" : undefined}
-                    actionHint={
-                      isMobileAppTask
-                        ? "Provision Supabase tenant + invite client."
-                        : step?.hint
-                    }
+                    showActionButton={Boolean(step) || isMobileAppTask || isAdsTask}
+                    actionLabel={actionLabel}
+                    actionHint={actionHint}
                     canOpenForm={canOpenForm}
                     onToggle={() => onToggle(t.id)}
                     onOpenForm={() => onOpenForm(t.id)}

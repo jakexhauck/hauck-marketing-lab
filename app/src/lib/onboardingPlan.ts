@@ -35,6 +35,26 @@ function task(id: string, label: string, howto?: OnboardingTask["howto"]): Onboa
 // "Contract due / Invoice due" status flags. The welcome email moved to a
 // GHL workflow that fires when the intake form submission lands.
 //
+// 2026-05-19: pruned Phase 1 down to memory + credentials. Vault folder,
+// Drive URL, Profile.md, and ops/clients.json are all handled by the
+// Add Client modal + ClientProfileForm, so they don't belong in the
+// checklist anymore.
+//
+// 2026-05-19 (later): reshuffled Phase 1 and Phase 2 around the onboarding
+// call. Competitor research and the 10 offer/CTA options moved into Phase 1
+// (pre-call) so we walk into the call with concrete options. Memory.md seed
+// moved into Phase 2 as a post-call task with a `/remember` shortcut.
+// Phase 3 (GHL) trimmed: pipelines + calendar come in via the standard
+// snapshot, so the only manual steps are sub-account, snapshot import,
+// token, and verify. Phase 5 lost 03-competitors (now Phase 1).
+//
+// 2026-05-19 (latest): merged GHL Setup and Mobile App Setup into the
+// Onboarding Call as subsections 2.2 and 2.3. The plan is to walk the
+// client through standing up their sub-account, importing the snapshot,
+// and installing the PWA live on the call so they see their dashboard
+// come online instead of getting a cold invite email after the fact.
+// Phases 5/6/7/8 renumber down to 3/4/5/6.
+//
 // Task IDs (02-call, 03-bm-setup, etc.) kept their original numeric prefixes
 // for stable on-disk persistence even after the 8-phase reorg. New IDs use
 // a topic prefix (01ag-, 03ghl-, 04app-) so phase number can change without
@@ -43,45 +63,40 @@ function task(id: string, label: string, howto?: OnboardingTask["howto"]): Onboa
 export const ONBOARDING_PLAN: OnboardingPhase[] = [
   {
     num: 1,
-    name: "Agency Setup",
+    name: "Pre-Call Prep",
     purpose:
-      "Stand up the client inside our own systems before any external setup. Vault, Drive, profile, memory, ops registry — every later phase reads from these.",
-    hint: "Vault folder · Drive folder · Profile.md · Memory.md · ops/clients.json · credentials.yaml.",
-    meta: "Day 0 · 6 tasks",
+      "Everything that should already be done before you dial the client. Credentials slot saved, competitor pass run, 10 offer/CTA options drafted so you have something concrete to put in front of the business owner on the call.",
+    hint: "Paste credentials · competitor research · 10 offer/CTA options ready for the call.",
+    meta: "Day 0 · 3 tasks",
     subsections: [
       {
         id: "1.1",
-        title: "Internal provisioning",
+        title: "Credentials",
         tasks: [
           task(
-            "01ag-vault",
-            "Create client folder in the vault.",
-            "Done automatically when you Add Client. Verify <code>vault/Clients/&lt;Name&gt;/</code> exists.",
-          ),
-          task(
-            "01ag-drive",
-            "Connect a Google Drive folder for the client.",
-            "Client Hub → Drive → paste the shared Drive folder URL. Used for creative uploads + brand assets.",
-          ),
-          task(
-            "01ag-profile",
-            "Fill out Profile.md (business, voice, target customer, offer).",
-            "Open <code>vault/Clients/&lt;Name&gt;/Profile.md</code>. Every downstream agent reads from this.",
-          ),
-          task(
-            "01ag-memory",
-            "Initialize Memory.md with anything the client told you on the discovery call.",
-            "<code>vault/Clients/&lt;Name&gt;/Memory.md</code>. Append-only log of facts about this client.",
-          ),
-          task(
-            "01ag-ops",
-            "Add client to ops/clients.json (Client Hub row) and clients.yaml (Meta + GHL credentials map).",
-            "ops/clients.json is auto-populated when you Add Client. Confirm clients.yaml has a stanza for the new slug.",
-          ),
-          task(
             "01ag-credentials",
-            "Create a credentials.yaml stub at data/&lt;slug&gt;/credentials.yaml.",
-            "Gitignored. Holds Meta access_token, ad_account_id, pixel_id, business_id, plus the GHL token/location captured in Phase 3.",
+            "Paste Meta + GHL credentials into the Client Hub.",
+            [
+              "Client Hub → <strong>Credentials</strong> panel. Paste Meta <code>access_token</code>, <code>ad_account_id</code>, <code>pixel_id</code>, <code>business_id</code>. Saved locally to <code>data/&lt;slug&gt;/credentials.yaml</code> (gitignored).",
+              "GHL token + location ID get pasted in <strong>Settings → GHL</strong> after Phase 3.",
+              "No YAML editing required — the form writes the file for you.",
+            ],
+          ),
+        ],
+      },
+      {
+        id: "1.2",
+        title: "Pre-call research",
+        tasks: [
+          task(
+            "03-competitors",
+            "Run competitor research — output feeds audiences, brief, ad copy, and the offer options below.",
+            "Open the Competitor Research form. Output saves to the vault; every downstream agent reads it.",
+          ),
+          task(
+            "02-offer-options",
+            "Draft 10 offer/CTA options to show the business owner on the call.",
+            "Run the Offer Options form (or the Ads sequence offer step). Bring the list to the onboarding call so the client picks one live instead of going back-and-forth over email.",
           ),
         ],
       },
@@ -89,93 +104,70 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
   },
   {
     num: 2,
-    name: "Discovery Call",
+    name: "Onboarding Call",
     purpose:
-      "30 minutes on Zoom. Collect every access and asset, lock the offer, set expectations.",
-    hint: "30-min call · BM, site, GA access · brand assets · offer + CTA · expectations.",
-    meta: "Day 0 · 8 tasks",
+      "Long-form Zoom with the client. Walk the offer options, lock the offer + CTA, collect access + assets, then do the GHL and mobile app setup live so the client sees it stand up. End with a memory dump of everything you heard.",
+    hint: "Offer + CTA locked · BM, site, GA access · brand assets · GHL sub-account + token · mobile app provisioned + PWA installed · memory dump.",
+    meta: "Day 0 · 15 tasks",
     subsections: [
       {
         id: "2.1",
         title: "Call & access collection",
         tasks: [
-          task("02-call", "Conduct 30-min onboarding call."),
+          task("02-call", "Conduct the onboarding call (Zoom)."),
+          task("02-offer", "Lock the primary offer + CTA (pick from the 10 options)."),
           task("02-bm", "Collect Meta Business Manager access."),
           task("02-site", "Collect website access for pixel installation."),
           task("02-ga", "Collect Google Analytics access (if they have it)."),
           task("02-brand", "Get their brand assets."),
-          task(
-            "02-offer-options",
-            "Create 10 different offer/CTA options before the call to show the business owner.",
-          ),
-          task("02-offer", "Define the primary offer + CTA."),
           task("02-expect", "Set clear expectations."),
         ],
       },
-    ],
-  },
-  {
-    num: 3,
-    name: "GHL Setup",
-    purpose:
-      "Stand up the client's GoHighLevel sub-account so leads have somewhere to land. Pipelines, calendars, and a private integration token wired to the desktop app.",
-    hint: "Sub-account · sales + onboarding pipelines · booking calendar · private token · location ID.",
-    meta: "Day 1 · 6 tasks",
-    subsections: [
       {
-        id: "3.1",
-        title: "Sub-account, pipelines, token",
+        id: "2.2",
+        title: "GHL setup (on the call)",
         tasks: [
           task(
             "03ghl-subaccount",
-            "Create a new GHL sub-account for the client.",
-            "GHL agency view → Sub-Accounts → Create. Use the client's business name. Apply the standard snapshot.",
+            "Create a new GHL sub-account.",
+            "GHL agency view → Sub-Accounts → Create. Use the client's business name.",
           ),
           task(
-            "03ghl-pipeline-sales",
-            "Build the sales pipeline with stages matching the mobile app (New, Contacted, Estimate Sent, Consultation, Booked, Won, Lost, No-Show).",
-            "Sub-account → Opportunities → Pipelines → Create. Stage names must match exactly so the dashboard map works.",
-          ),
-          task(
-            "03ghl-pipeline-onboarding",
-            "Build the onboarding pipeline that mirrors this checklist.",
-            "Same place. Stages: Discovery, Setup, Creative, Launch. Used so the agency can see at a glance where each client is.",
-          ),
-          task(
-            "03ghl-calendar",
-            "Set up a booking calendar for the client's consultation/quote calls.",
-            "Sub-account → Calendars → Create. Connect to the client's email if they want bookings on their own calendar.",
+            "03ghl-snapshot",
+            "Import the standard client snapshot.",
+            "Agency view → Snapshots → load the Hauck Marketing snapshot onto the new sub-account. Brings over pipelines, calendars, and workflows so we don't rebuild them per client.",
           ),
           task(
             "03ghl-token",
-            "Generate a Private Integration Token with read+write on contacts, opportunities, conversations.",
-            "Sub-account → Settings → Private Integrations → New. Save the token AND the location ID — both are needed in Phase 4.",
+            "Generate a Private Integration Token with read + write on contacts, opportunities, and conversations.",
+            [
+              "<strong>Step 1.</strong> Open the new sub-account → <em>Settings</em> (gear icon, bottom-left).",
+              "<strong>Step 2.</strong> Sidebar → <em>Private Integrations</em> → <em>Create new integration</em>.",
+              "<strong>Step 3.</strong> Name it <code>Hauck Marketing Lab</code>. Description optional.",
+              "<strong>Step 4.</strong> In the <em>Scopes</em> picker, tick all six:",
+              "&nbsp;&nbsp;• <code>View Contacts</code> &nbsp;+&nbsp; <code>Edit Contacts</code>",
+              "&nbsp;&nbsp;• <code>View Opportunities</code> &nbsp;+&nbsp; <code>Edit Opportunities</code>",
+              "&nbsp;&nbsp;• <code>View Conversations</code> &nbsp;+&nbsp; <code>Edit Conversations</code>",
+              "<strong>Step 5.</strong> Click <em>Create</em>. The token shows <strong>once</strong> — copy it now.",
+              "<strong>Step 6.</strong> Grab the location ID from the URL while you're in the sub-account: <code>app.gohighlevel.com/v2/location/<u>LOCATION_ID</u>/…</code>",
+              "<strong>Step 7.</strong> In the desktop app, paste both into <em>Settings → GHL</em>. Token + location go into <code>data/&lt;slug&gt;/credentials.yaml</code>.",
+            ],
           ),
           task(
             "03ghl-verify",
             "Verify GHL data flows into the desktop app and the mobile app reads it.",
-            "Desktop: open the client's Sales Hub, confirm pipeline + contacts load. Mobile: skip until Phase 4 provisions the tenant.",
+            "Desktop: open the client's Sales Hub, confirm pipeline + contacts load. Mobile: verified in 2.3 below.",
           ),
         ],
       },
-    ],
-  },
-  {
-    num: 4,
-    name: "Mobile App Setup",
-    purpose:
-      "Provision the client's leads app and confirm they can sign in. Without this, the client doesn't see their leads on their phone.",
-    hint: "Provision tenant (form) · client invite email · confirm sign-in · walk through PWA install.",
-    meta: "Day 1 · 3 tasks",
-    subsections: [
       {
-        id: "4.1",
-        title: "Provision & verify",
+        id: "2.3",
+        title: "Mobile app setup (on the call)",
         tasks: [
           task(
             "04app-provision",
             "Provision the client's mobile app (Supabase tenant + invite).",
-            "Opens a form. Paste the GHL location ID + private integration token from Phase 3. Submitting creates the tenant in the client-dashboard project, links the client's email as owner, and emails them an invite.",
+            "Opens a form. Paste the GHL location ID + private integration token from 2.2. Submitting creates the tenant in the client-dashboard project, links the client's email as owner, and emails them an invite.",
           ),
           task(
             "04app-walkthrough",
@@ -189,21 +181,34 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
           ),
         ],
       },
+      {
+        id: "2.4",
+        title: "Post-call",
+        tasks: [
+          task(
+            "01ag-memory",
+            "Dump everything you heard on the call into Memory.",
+            [
+              "Fastest path: open the Chat drawer for this client and type <code>/remember &lt;fact&gt;</code> — appends to <code>vault/Clients/&lt;Name&gt;/Memory.md</code> with today's date.",
+              "Or paste raw notes straight into <code>Memory.md</code>; format doesn't matter, agents read the lot.",
+            ],
+          ),
+        ],
+      },
     ],
   },
   {
-    num: 5,
+    num: 3,
     name: "Technical Setup",
     purpose:
-      "Competitive intel pulled first (it feeds every downstream agent), then pixel firing and ad account funded. Plumbing green before a dollar moves.",
-    hint: "Competitor research · Business Manager · pixel install + verify · payment method.",
-    meta: "Day 2 · 5 tasks",
+      "Pixel firing and ad account funded. Plumbing green before a dollar moves.",
+    hint: "Business Manager · pixel install + verify · payment method.",
+    meta: "Day 2 · 4 tasks",
     subsections: [
       {
-        id: "5.1",
+        id: "3.1",
         title: "Accounts & tracking",
         tasks: [
-          task("03-competitors", "Research competitors first — output feeds audiences, brief, and ad copy."),
           task("03-bm-setup", "Set up or audit Meta Business Manager."),
           task("03-pixel", "Install Meta Pixel on their website."),
           task("03-pixel-verify", "Verify pixel is firing correctly."),
@@ -213,28 +218,28 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     ],
   },
   {
-    num: 6,
+    num: 4,
     name: "Creative Production",
     purpose:
       "Copy, creative, and audiences all built with the AI agents. Client signs off before anything ships.",
-    hint: "10+ ad copy variations · creative concepts · static creatives · audiences · client approval.",
-    meta: "Days 3–4 · 5 tasks",
+    hint: "Open the Ads sequence: offer → competitors → pixel → audience research → brief → hooks → copy → creative → structure → optimizer.",
+    meta: "Days 3–4 · 1 task",
     subsections: [
       {
-        id: "6.1",
-        title: "Build & approve",
+        id: "4.1",
+        title: "Ads",
         tasks: [
-          task("04-copy", "Generate 10+ ad copy variations with AI Ad Copy Agent."),
-          task("04-creative", "Generate creative concepts with AI Creative Agent."),
-          task("04-creatives", "Build static ad creatives (Nano Banana 2 prompts) from chosen ad copy."),
-          task("04-audiences", "Build audiences with AI Audience Agent."),
-          task("04-approval", "Send creatives to client for approval."),
+          task(
+            "06-ads",
+            "Ads.",
+            "Opens the Ads sequence wizard: offer + CTA, competitor research, pixel install, audience research, creative brief, hooks, ad copy, static ad creatives, campaign structure, optimizer config. One form at a time; completed forms tuck into the side rail.",
+          ),
         ],
       },
     ],
   },
   {
-    num: 7,
+    num: 5,
     name: "Campaign Build + QA",
     purpose:
       "Build the campaign structure in Ads Manager, upload every creative as its own ad, QA before launch.",
@@ -242,7 +247,7 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     meta: "Days 5–6 · 3 tasks",
     subsections: [
       {
-        id: "7.1",
+        id: "5.1",
         title: "Build & QA",
         tasks: [
           task("05-structure", "Build campaign structure in Ads Manager."),
@@ -253,7 +258,7 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     ],
   },
   {
-    num: 8,
+    num: 6,
     name: "Launch + Monitor",
     purpose:
       "Go live, tell the client, hand it off to the AI optimizer, schedule the first Monday report.",
@@ -261,7 +266,7 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     meta: "Day 7 · 4 tasks",
     subsections: [
       {
-        id: "8.1",
+        id: "6.1",
         title: "Go live",
         tasks: [
           task("06-publish", "Publish all campaigns."),

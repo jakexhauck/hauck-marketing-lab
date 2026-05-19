@@ -1,4 +1,11 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import "./main-dashboard.css";
 import { openInAppWindow } from "../../lib/openInApp";
 import { AppSidebar } from "./AppSidebar";
@@ -23,15 +30,11 @@ import {
 } from "../../lib/navigation";
 import { ConnectCalendarModal } from "./ConnectCalendarModal";
 import { RecordingsPage } from "./RecordingsPage";
-import { HabitsPage } from "./HabitsPage";
 import { ResourcesPage } from "./ResourcesPage";
-import { NichePlaybooksPage } from "./NichePlaybooksPage";
 import { SOPsPage } from "./SOPsPage";
 import { CalendarPage } from "./CalendarPage";
 import { LeadScraperPage } from "./LeadScraperPage";
-import { ActivityFeedPanel } from "./ActivityFeedPanel";
 import { NotificationsBell } from "./NotificationsBell";
-import { MorningBriefing } from "./MorningBriefing";
 import { WebDesignerPage } from "./WebDesignerPage";
 import { ClientDashboard } from "./ClientDashboard";
 import { AdsManagerPage } from "./AdsManagerPage";
@@ -93,8 +96,7 @@ interface MainDashboardProps {
 }
 
 type View =
-  | { kind: "dashboard" }
-  | { kind: "workspace"; tab: Exclude<WorkspaceView, "dashboard"> }
+  | { kind: "workspace"; tab: WorkspaceView }
   | { kind: "outreach"; section: OutreachSection; prospectSlug?: string }
   | { kind: "client"; slug: string; section: ClientSection }
   | { kind: "personal"; section: PersonalSection };
@@ -102,7 +104,7 @@ type View =
 function initialViewFromWorkflow(w: WorkflowView | null | undefined): View {
   if (w === "lead-scraper") return { kind: "outreach", section: "lead-scraper" };
   if (w === "web-designer") return { kind: "outreach", section: "web-designer" };
-  return { kind: "dashboard" };
+  return { kind: "workspace", tab: "dashboard" };
 }
 
 export function MainDashboard({
@@ -213,15 +215,12 @@ export function MainDashboard({
     return prospects.find((p) => p.slug === view.prospectSlug) ?? null;
   }, [view, prospects]);
 
-  const goDashboard = () => setView({ kind: "dashboard" });
-
   const onSelectWorkspace = (tab: WorkspaceView) => {
-    if (tab === "dashboard") {
-      goDashboard();
-    } else {
-      setView({ kind: "workspace", tab });
-    }
+    setView({ kind: "workspace", tab });
   };
+
+  /** Brand click / "back" target. Lands on the Dashboard. */
+  const goHome = () => setView({ kind: "workspace", tab: "dashboard" });
 
   const onSelectOutreachSection = (
     section: "overview" | "lead-scraper" | "web-designer" | "sequence",
@@ -247,11 +246,7 @@ export function MainDashboard({
 
   // Sidebar active-state derivations ─────────────────────────
   const activeWorkspace: WorkspaceView | null =
-    view.kind === "dashboard"
-      ? "dashboard"
-      : view.kind === "workspace"
-        ? view.tab
-        : null;
+    view.kind === "workspace" ? view.tab : null;
 
   const activeOutreach: OutreachSection | null =
     view.kind === "outreach" ? view.section : null;
@@ -297,7 +292,7 @@ export function MainDashboard({
           onSelectPersonalSection={onSelectPersonalSection}
           onAddClient={onAddClient}
           onOpenSettings={onSettings}
-          onBrandClick={goDashboard}
+          onBrandClick={goHome}
           appVersion="v1.4"
         />
         <main className="hml-main">
@@ -336,7 +331,7 @@ export function MainDashboard({
           </header>
           {renderMain({
             view,
-            onBack: goDashboard,
+            onBack: goHome,
             realClients,
             root: root ?? null,
             activeClientSlug: activeClientSlug ?? null,
@@ -362,47 +357,26 @@ function buildBreadcrumb(
   clients: ClientEntry[],
   prospects: ProspectEntry[],
 ): React.ReactNode {
-  if (view.kind === "dashboard") {
-    return (
-      <>
-        <span className="hml-seg">Workspace</span>
-        <span className="hml-sep">/</span>
-        <span className="hml-current">Dashboard</span>
-      </>
-    );
-  }
   if (view.kind === "workspace") {
-    if (view.tab === "today") {
-      return (
-        <>
-          <span className="hml-seg">Workspace</span>
-          <span className="hml-sep">/</span>
-          <span className="hml-current">Today</span>
-        </>
-      );
-    }
     if (view.tab === "sales") {
       return (
         <>
-          <span className="hml-seg">Sales</span>
+          <span className="hml-seg">Agency</span>
           <span className="hml-sep">/</span>
-          <span className="hml-current">Sales Hub</span>
+          <span className="hml-current">Sales pipeline</span>
         </>
       );
     }
     if (view.tab === "onboarding") {
       return (
         <>
-          <span className="hml-seg">Onboarding</span>
+          <span className="hml-seg">Agency</span>
           <span className="hml-sep">/</span>
-          <span className="hml-current">Onboarding Hub</span>
+          <span className="hml-current">Onboarding pipeline</span>
         </>
       );
     }
-    const label =
-      view.tab === "playbooks"
-        ? "Niche Playbooks"
-        : view.tab.charAt(0).toUpperCase() + view.tab.slice(1);
+    const label = view.tab.charAt(0).toUpperCase() + view.tab.slice(1);
     return (
       <>
         <span className="hml-seg">Workspace</span>
@@ -480,8 +454,6 @@ function sectionToLabel(s: ClientSection): string {
       return "Dashboard";
     case "onboarding":
       return "Onboarding";
-    case "sequence":
-      return "Sequence";
     case "ads":
       return "Ads";
     case "profile":
@@ -543,39 +515,23 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
     onSelectPersonalSection,
   } = args;
 
-  if (view.kind === "dashboard") {
-    return (
-      <DashboardSurface
-        clientCount={realClients.length}
-        root={root}
-        clients={realClients}
-        prospects={prospects}
-        onOpenClientsHub={() => {
-          // Land on the first client's profile (or the active one if set).
-          const target =
-            realClients.find((c) => c.slug === activeClientSlug) ??
-            realClients[0];
-          if (target) {
-            onSelectClientSection(target.slug, defaultClientSection(target.status));
-          }
-        }}
-        onOpenOutreachHub={() => onSelectOutreachSection("overview")}
-      />
-    );
-  }
-
   if (view.kind === "workspace") {
-    if (view.tab === "today")
+    if (view.tab === "dashboard")
       return (
-        <MorningBriefing
+        <DashboardSurface
+          clientCount={realClients.length}
           root={root}
           clients={realClients}
-          onOpenClient={(slug) => {
-            const target = realClients.find((c) => c.slug === slug);
+          prospects={prospects}
+          onOpenClientsHub={() => {
+            const target =
+              realClients.find((c) => c.slug === activeClientSlug) ??
+              realClients[0];
             if (target) {
-              onSelectClientSection(slug, defaultClientSection(target.status));
+              onSelectClientSection(target.slug, defaultClientSection(target.status));
             }
           }}
+          onOpenOutreachHub={() => onSelectOutreachSection("overview")}
         />
       );
     if (view.tab === "clients")
@@ -586,11 +542,9 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
       return <TasksTrackerPage root={root} clients={realClients} />;
     if (view.tab === "revenue")
       return <RevenueTrackerPage root={root} clients={realClients} />;
-    if (view.tab === "habits") return <HabitsPage />;
     if (view.tab === "recordings") return <RecordingsPage root={root} clients={realClients} />;
     if (view.tab === "sops") return <SOPsPage root={root} />;
     if (view.tab === "resources") return <ResourcesPage root={root} />;
-    if (view.tab === "playbooks") return <NichePlaybooksPage root={root} />;
     if (view.tab === "calendar")
       return <CalendarPage root={root} onBack={args.onBack} clients={realClients} />;
     if (view.tab === "ads")
@@ -681,14 +635,6 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
       }
     />
   );
-}
-
-function greetingForHour(hour: number): string {
-  if (hour < 5) return "Late night";
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  if (hour < 21) return "Good evening";
-  return "Good night";
 }
 
 function DashboardSurface({
@@ -1248,10 +1194,6 @@ function DashboardSurface({
         </div>
       </section>
 
-      <section style={{ marginTop: 16 }}>
-        <ActivityFeedPanel root={root ?? null} limit={20} />
-      </section>
-
       <ConnectCalendarModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -1259,4 +1201,12 @@ function DashboardSurface({
       />
     </div>
   );
+}
+
+function greetingForHour(hour: number): string {
+  if (hour < 5) return "Late night";
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  if (hour < 21) return "Good evening";
+  return "Good night";
 }

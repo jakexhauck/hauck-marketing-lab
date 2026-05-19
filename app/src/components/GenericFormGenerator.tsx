@@ -42,6 +42,10 @@ type Props = {
   /** Fires the moment a generator output is saved to disk. Lets parent
    *  surfaces (e.g. ClientSequence) advance the stepper without polling. */
   onSaved?: (output: GeneratorOutput) => void;
+  /** When true, the PastResults panel is suppressed. Used by the Ads sequence
+   *  wizard so each step stays scoped to the current sequence run (unrelated
+   *  prior outputs would be confusing in that context). */
+  hidePastResults?: boolean;
 };
 
 function findAgent(agents: AgentSummary[], slug: string): AgentSummary | null {
@@ -205,6 +209,7 @@ export function GenericFormGenerator({
   onClose,
   initialValues,
   onSaved,
+  hidePastResults,
 }: Props) {
   const [values, setValues] = useState<FormValues>(() => defaultValuesFor(config));
   const [streaming, setStreaming] = useState(false);
@@ -894,7 +899,7 @@ export function GenericFormGenerator({
             )}
           </div>
 
-          {!streaming && !streamText && (
+          {!streaming && !streamText && !hidePastResults && (
             <PastResults
               root={root}
               clientSlug={clientSlug}
@@ -1172,18 +1177,20 @@ export function GenericFormGenerator({
             </div>
           )}
 
-          <PastResults
-            root={root}
-            clientSlug={clientSlug}
-            kind={config.kind}
-            refreshKey={pastRefresh}
-            activePath={saved.path}
-            onSelect={(out) => {
-              setSaved(out);
-              setStreamText("");
-              setError(null);
-            }}
-          />
+          {!hidePastResults && (
+            <PastResults
+              root={root}
+              clientSlug={clientSlug}
+              kind={config.kind}
+              refreshKey={pastRefresh}
+              activePath={saved.path}
+              onSelect={(out) => {
+                setSaved(out);
+                setStreamText("");
+                setError(null);
+              }}
+            />
+          )}
         </>
       )}
     </div>

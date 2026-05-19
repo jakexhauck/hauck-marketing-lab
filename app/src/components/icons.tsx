@@ -340,15 +340,6 @@ export function IconLightning(p: IconProps) {
   );
 }
 
-export function IconHabits(p: IconProps) {
-  return (
-    <I {...p}>
-      <path d="M12 3c-1.5 3-4.5 4-4.5 7.5a4.5 4.5 0 0 0 9 0c0-2-1-3-2-4.5" />
-      <path d="M12 21v-3" />
-    </I>
-  );
-}
-
 export function IconPersonal(p: IconProps) {
   return (
     <I {...p}>

@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import {
   ALL_FORM_CONFIGS,
-  groupFormsByCategory,
   type FormConfig,
   type FormSurfaceId,
 } from "../lib/formConfigs";
+import { ADS_SEQUENCE_FORM_IDS, MEDIA_BUYING_SEQUENCE } from "../lib/mediaBuyingSequence";
 import type { AgentSummary } from "../lib/types";
 
 type Props = {
@@ -88,10 +88,20 @@ export function AgentFormsHub({ agent, clientName, onOpenForm, onClose }: Props)
     [agent.slug],
   );
 
-  const { phaseGroups, miscGroup, reportsGroup } = useMemo(
-    () => groupFormsByCategory(forms),
-    [forms],
-  );
+  /** Split this agent's forms into two buckets: Ads sequence (in execution
+   *  order from MEDIA_BUYING_SEQUENCE) + everything else ("Other onboarding
+   *  forms"). The phase/misc/reports grouping is deliberately bypassed here —
+   *  we'll reorganize the "Other" bucket later. */
+  const { adsForms, otherForms } = useMemo(() => {
+    const byId = new Map(forms.map((f) => [f.id, f]));
+    const ads: FormConfig[] = [];
+    for (const step of MEDIA_BUYING_SEQUENCE) {
+      const cfg = byId.get(step.formId);
+      if (cfg) ads.push(cfg);
+    }
+    const other = forms.filter((f) => !ADS_SEQUENCE_FORM_IDS.has(f.id));
+    return { adsForms: ads, otherForms: other };
+  }, [forms]);
 
   return (
     <main className="main" style={{ position: "relative" }}>
@@ -135,184 +145,93 @@ export function AgentFormsHub({ agent, clientName, onOpenForm, onClose }: Props)
         </section>
       ) : (
         <section className="reveal reveal-2" style={{ marginBottom: 32 }}>
-          {phaseGroups.map((group) => (
-            <div key={group.phase} style={{ marginBottom: 28 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  gap: 10,
-                  marginBottom: 12,
-                  paddingBottom: 8,
-                  borderBottom: "1px solid var(--border, rgba(180,200,240,0.08))",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--mono)",
-                    fontSize: 11,
-                    letterSpacing: "0.08em",
-                    color: "var(--copper, #ec9849)",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  ▸ Phase {String(group.phase).padStart(2, "0")}
-                </span>
-                <span
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "var(--text)",
-                  }}
-                >
-                  {group.phaseName}
-                </span>
-                <span
-                  style={{
-                    marginLeft: "auto",
-                    fontFamily: "var(--mono)",
-                    fontSize: 11,
-                    color: "var(--text-faint)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  {group.phaseMeta}
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-                  gap: 14,
-                }}
-              >
-                {group.forms.map((cfg) => (
-                  <FormCard key={cfg.id} cfg={cfg} onOpen={onOpenForm} />
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {miscGroup && (
-            <div style={{ marginBottom: 28 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  gap: 10,
-                  marginBottom: 12,
-                  paddingBottom: 8,
-                  borderBottom: "1px solid var(--border, rgba(180,200,240,0.08))",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--mono)",
-                    fontSize: 11,
-                    letterSpacing: "0.08em",
-                    color: "var(--copper, #ec9849)",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  ▸ Misc
-                </span>
-                <span
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "var(--text)",
-                  }}
-                >
-                  Tools
-                </span>
-                <span
-                  style={{
-                    marginLeft: "auto",
-                    fontFamily: "var(--mono)",
-                    fontSize: 11,
-                    color: "var(--text-faint)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  anytime
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-                  gap: 14,
-                }}
-              >
-                {miscGroup.forms.map((cfg) => (
-                  <FormCard key={cfg.id} cfg={cfg} onOpen={onOpenForm} />
-                ))}
-              </div>
-            </div>
+          {adsForms.length > 0 && (
+            <FormGroup
+              eyebrow="▸ Ads Sequence"
+              title="Per-client onboarding"
+              meta="run in order"
+              forms={adsForms}
+              onOpenForm={onOpenForm}
+            />
           )}
-
-          {reportsGroup && (
-            <div style={{ marginBottom: 28 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  gap: 10,
-                  marginBottom: 12,
-                  paddingBottom: 8,
-                  borderBottom: "1px solid var(--border, rgba(180,200,240,0.08))",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--mono)",
-                    fontSize: 11,
-                    letterSpacing: "0.08em",
-                    color: "var(--copper, #ec9849)",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  ▸ Reports
-                </span>
-                <span
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "var(--text)",
-                  }}
-                >
-                  Client deliverables
-                </span>
-                <span
-                  style={{
-                    marginLeft: "auto",
-                    fontFamily: "var(--mono)",
-                    fontSize: 11,
-                    color: "var(--text-faint)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  recurring
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-                  gap: 14,
-                }}
-              >
-                {reportsGroup.forms.map((cfg) => (
-                  <FormCard key={cfg.id} cfg={cfg} onOpen={onOpenForm} />
-                ))}
-              </div>
-            </div>
+          {otherForms.length > 0 && (
+            <FormGroup
+              eyebrow="▸ Other onboarding forms"
+              title="Standalone tools"
+              meta="anytime"
+              forms={otherForms}
+              onOpenForm={onOpenForm}
+            />
           )}
         </section>
       )}
     </main>
+  );
+}
+
+function FormGroup({
+  eyebrow,
+  title,
+  meta,
+  forms,
+  onOpenForm,
+}: {
+  eyebrow: string;
+  title: string;
+  meta: string;
+  forms: FormConfig[];
+  onOpenForm: (id: FormSurfaceId) => void;
+}) {
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 10,
+          marginBottom: 12,
+          paddingBottom: 8,
+          borderBottom: "1px solid var(--border, rgba(180,200,240,0.08))",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "var(--mono)",
+            fontSize: 11,
+            letterSpacing: "0.08em",
+            color: "var(--copper, #ec9849)",
+            textTransform: "uppercase",
+          }}
+        >
+          {eyebrow}
+        </span>
+        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
+          {title}
+        </span>
+        <span
+          style={{
+            marginLeft: "auto",
+            fontFamily: "var(--mono)",
+            fontSize: 11,
+            color: "var(--text-faint)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {meta}
+        </span>
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+          gap: 14,
+        }}
+      >
+        {forms.map((cfg) => (
+          <FormCard key={cfg.id} cfg={cfg} onOpen={onOpenForm} />
+        ))}
+      </div>
+    </div>
   );
 }

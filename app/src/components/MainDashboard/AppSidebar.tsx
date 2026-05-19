@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ClientEntry } from "../../lib/types";
 import {
   defaultClientSection,
@@ -11,8 +11,8 @@ import {
 import {
   IconBarChart,
   IconCalendar,
+  IconChevronRight,
   IconDashboard,
-  IconHabits,
   IconPersonal,
   IconPlus,
   IconRecordings,
@@ -106,8 +106,16 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const outreachActive = activeOutreach !== null && activeOutreach !== undefined;
   const clientsHubActive = activeWorkspace === "clients";
+  const inActiveClient = activeClient !== null && activeClient !== undefined;
 
   const prospectsList = useMemo(() => prospects ?? [], [prospects]);
+
+  /** Clients dropdown defaults open if you're already inside a client (so the
+   *  active client is visible) or on the Clients Hub page. Otherwise collapsed. */
+  const [clientsOpen, setClientsOpen] = useState<boolean>(
+    () => clientsHubActive || inActiveClient,
+  );
+  const toggleClients = () => setClientsOpen((x) => !x);
 
   return (
     <aside className="hml-sidebar">
@@ -138,34 +146,172 @@ export function AppSidebar({
       </button>
 
       <nav className="hml-nav">
-        {/* WORKSPACE ─────────────────────────────────── */}
-        <div className="hml-nav-section">
-          <div className="hml-section-label">
-            <span>Workspace</span>
-          </div>
-          <NavItem
-            label="Today"
-            Icon={IconStar}
-            active={activeWorkspace === "today"}
-            onClick={() => onSelectWorkspace("today")}
-          />
+        {/* DASHBOARD ─────────────────────────────────── (ungrouped, top) */}
+        <div className="hml-nav-section" style={{ marginBottom: 4 }}>
           <NavItem
             label="Dashboard"
             Icon={IconDashboard}
             active={activeWorkspace === "dashboard"}
             onClick={() => onSelectWorkspace("dashboard")}
           />
-          <NavItem
-            label="Calendar"
-            Icon={IconCalendar}
-            active={activeWorkspace === "calendar"}
-            onClick={() => onSelectWorkspace("calendar")}
-          />
+        </div>
+
+        {/* AGENCY ────────────────────────────────────── */}
+        <div className="hml-nav-section">
+          <div className="hml-section-label">
+            <span>Agency</span>
+          </div>
           <NavItem
             label="Ads Manager"
             Icon={IconBarChart}
             active={activeWorkspace === "ads"}
             onClick={() => onSelectWorkspace("ads")}
+          />
+          <NavItem
+            label="Outreach Hub"
+            Icon={IconTarget}
+            active={outreachActive}
+            onClick={() => onSelectOutreachSection("overview")}
+            badge={
+              prospectsList.length > 0 ? String(prospectsList.length) : undefined
+            }
+          />
+          <NavItem
+            label="Sales pipeline"
+            Icon={IconBarChart}
+            active={activeWorkspace === "sales"}
+            onClick={() => onSelectWorkspace("sales")}
+          />
+          <NavItem
+            label="Onboarding pipeline"
+            Icon={IconUsers}
+            active={activeWorkspace === "onboarding"}
+            onClick={() => onSelectWorkspace("onboarding")}
+          />
+
+          {/* Clients Hub — caret toggles dropdown, label navigates to hub page. */}
+          <button
+            type="button"
+            className={`hml-nav-item${clientsHubActive ? " hml-active" : ""}`}
+            onClick={() => {
+              onSelectWorkspace("clients");
+              setClientsOpen(true);
+            }}
+            title="Clients Hub"
+          >
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label={clientsOpen ? "Collapse clients" : "Expand clients"}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleClients();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  toggleClients();
+                }
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 14,
+                height: 14,
+                marginRight: 2,
+                cursor: "pointer",
+                transform: clientsOpen ? "rotate(90deg)" : "none",
+                transition: "transform 120ms ease",
+              }}
+            >
+              <IconChevronRight size={12} />
+            </span>
+            <IconUsers size={14} />
+            <span style={{ flex: 1, textAlign: "left" }}>Clients Hub</span>
+            {clients.length > 0 && (
+              <span className="hml-nav-badge">{clients.length}</span>
+            )}
+          </button>
+
+          {clientsOpen && (
+            <>
+              {clients.map((c) => {
+                const pill = clientStatusPill(c.status);
+                const isActive = activeClient?.slug === c.slug;
+                return (
+                  <button
+                    key={c.slug}
+                    type="button"
+                    className={`hml-nav-item${isActive ? " hml-active" : ""}`}
+                    onClick={() =>
+                      onSelectClientSection(c.slug, defaultClientSection(c.status))
+                    }
+                    title={c.name}
+                    style={{ paddingLeft: 26 }}
+                  >
+                    <span
+                      className="hml-client-avatar"
+                      style={{
+                        width: 18,
+                        height: 18,
+                        fontSize: 9.5,
+                        borderRadius: 4,
+                      }}
+                    >
+                      {avatarText(c.name)}
+                    </span>
+                    <span
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
+                      {c.name}
+                    </span>
+                    <span
+                      className={`hml-pill ${pill.className}`}
+                      style={{
+                        marginLeft: "auto",
+                        padding: "1px 6px",
+                        fontSize: 9,
+                      }}
+                    >
+                      <span className="hml-pill-dot" />
+                      {pill.label}
+                    </span>
+                  </button>
+                );
+              })}
+              {onAddClient && (
+                <button
+                  type="button"
+                  className="hml-nav-add"
+                  onClick={onAddClient}
+                  style={{ paddingLeft: 26 }}
+                >
+                  <IconPlus size={13} />
+                  <span>Add client</span>
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* WORKSPACE ─────────────────────────────────── */}
+        <div className="hml-nav-section">
+          <div className="hml-section-label">
+            <span>Workspace</span>
+          </div>
+          <NavItem
+            label="Calendar"
+            Icon={IconCalendar}
+            active={activeWorkspace === "calendar"}
+            onClick={() => onSelectWorkspace("calendar")}
           />
           <NavItem
             label="Tasks"
@@ -178,12 +324,6 @@ export function AppSidebar({
             Icon={IconBarChart}
             active={activeWorkspace === "revenue"}
             onClick={() => onSelectWorkspace("revenue")}
-          />
-          <NavItem
-            label="Habits"
-            Icon={IconHabits}
-            active={activeWorkspace === "habits"}
-            onClick={() => onSelectWorkspace("habits")}
           />
           <NavItem
             label="Recordings"
@@ -203,137 +343,15 @@ export function AppSidebar({
             active={activeWorkspace === "resources"}
             onClick={() => onSelectWorkspace("resources")}
           />
-          <NavItem
-            label="Niche Playbooks"
-            Icon={IconStar}
-            active={activeWorkspace === "playbooks"}
-            onClick={() => onSelectWorkspace("playbooks")}
-          />
-        </div>
-
-        {/* OUTREACH ──────────────────────────────────── */}
-        <div className="hml-nav-section">
-          <div className="hml-section-label">
-            <span>Outreach</span>
-          </div>
-          <NavItem
-            label="Outreach Hub"
-            Icon={IconTarget}
-            active={outreachActive}
-            onClick={() => onSelectOutreachSection("overview")}
-            badge={
-              prospectsList.length > 0 ? String(prospectsList.length) : undefined
-            }
-          />
-        </div>
-
-        {/* ONBOARDING ────────────────────────────────── */}
-        <div className="hml-nav-section">
-          <div className="hml-section-label">
-            <span>Onboarding</span>
-          </div>
-          <NavItem
-            label="Onboarding Hub"
-            Icon={IconUsers}
-            active={activeWorkspace === "onboarding"}
-            onClick={() => onSelectWorkspace("onboarding")}
-          />
-        </div>
-
-        {/* SALES ─────────────────────────────────────── */}
-        <div className="hml-nav-section">
-          <div className="hml-section-label">
-            <span>Sales</span>
-          </div>
-          <NavItem
-            label="Sales Hub"
-            Icon={IconBarChart}
-            active={activeWorkspace === "sales"}
-            onClick={() => onSelectWorkspace("sales")}
-          />
-        </div>
-
-        {/* CLIENTS ───────────────────────────────────── */}
-        <div className="hml-nav-section">
-          <div className="hml-section-label">
-            <span>Clients</span>
-          </div>
-          <NavItem
-            label="Clients Hub"
-            Icon={IconUsers}
-            active={clientsHubActive}
-            onClick={() => onSelectWorkspace("clients")}
-            badge={clients.length > 0 ? String(clients.length) : undefined}
-          />
-          {clients.map((c) => {
-            const pill = clientStatusPill(c.status);
-            const isActive = activeClient?.slug === c.slug;
-            return (
-              <button
-                key={c.slug}
-                type="button"
-                className={`hml-nav-item${isActive ? " hml-active" : ""}`}
-                onClick={() => onSelectClientSection(c.slug, defaultClientSection(c.status))}
-                title={c.name}
-              >
-                <span
-                  className="hml-client-avatar"
-                  style={{
-                    width: 18,
-                    height: 18,
-                    fontSize: 9.5,
-                    borderRadius: 4,
-                  }}
-                >
-                  {avatarText(c.name)}
-                </span>
-                <span
-                  style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    flex: 1,
-                    minWidth: 0,
-                  }}
-                >
-                  {c.name}
-                </span>
-                <span
-                  className={`hml-pill ${pill.className}`}
-                  style={{
-                    marginLeft: "auto",
-                    padding: "1px 6px",
-                    fontSize: 9,
-                  }}
-                >
-                  <span className="hml-pill-dot" />
-                  {pill.label}
-                </span>
-              </button>
-            );
-          })}
-          {onAddClient && (
-            <button type="button" className="hml-nav-add" onClick={onAddClient}>
-              <IconPlus size={13} />
-              <span>Add client</span>
-            </button>
-          )}
-        </div>
-
-        {/* PERSONAL ──────────────────────────────────── */}
-        {onSelectPersonalSection && (
-          <div className="hml-nav-section">
-            <div className="hml-section-label">
-              <span>Personal</span>
-            </div>
+          {onSelectPersonalSection && (
             <NavItem
               label="Personal Hub"
               Icon={IconPersonal}
               active={activePersonal !== null && activePersonal !== undefined}
               onClick={() => onSelectPersonalSection("overview")}
             />
-          </div>
-        )}
+          )}
+        </div>
       </nav>
 
       {/* Footer ─────────────────────────────────────── */}

@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hooks → Ad Copy · Flow</title>
+<style>
+  :root {
+    --bg-base: #0a0a0c;
+    --bg-elev-1: #131318;
+    --bg-elev-2: #191920;
+    --bg-elev-3: #1f1f28;
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --border: rgba(255, 255, 255, 0.085);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --text-1: #ececf0;
+    --text-2: #9c9ca8;
+    --text-3: #6a6a76;
+    --text-4: #494954;
+    --accent: #d4a574;
+    --accent-bright: #e2b585;
+    --accent-dim: rgba(212, 165, 116, 0.12);
+    --accent-border: rgba(212, 165, 116, 0.28);
+    --green: #7fb285;
+    --green-bg: rgba(127, 178, 133, 0.10);
+    --green-border: rgba(127, 178, 133, 0.25);
+    --blue: #7ba8c4;
+    --blue-bg: rgba(123, 168, 196, 0.10);
+    --blue-border: rgba(123, 168, 196, 0.25);
+    --plum: #b48ac4;
+    --plum-bg: rgba(180, 138, 196, 0.10);
+    --plum-border: rgba(180, 138, 196, 0.25);
+    --teal: #7fc4b9;
+    --teal-bg: rgba(127, 196, 185, 0.10);
+    --teal-border: rgba(127, 196, 185, 0.25);
+    --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
+    --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg-base);
+    color: var(--text-1);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.003em;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    position: relative;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 700px 400px at 18% -10%, rgba(212, 165, 116, 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 500px 400px at 100% 110%, rgba(123, 168, 196, 0.04) 0%, transparent 60%);
+  }
+
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 48px 28px 96px;
+    position: relative;
+  }
+
+  /* Header */
+  header.head { margin-bottom: 40px; }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    margin: 0 0 10px;
+  }
+  .sub {
+    color: var(--text-2);
+    font-size: 14px;
+    max-width: 720px;
+  }
+
+  /* Stage card */
+  .stage {
+    border: 1px solid var(--border);
+    background: var(--bg-elev-1);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .stage.is-active {
+    border-color: var(--accent-border);
+    box-shadow:
+      0 1px 0 rgba(212, 165, 116, 0.08) inset,
+      0 24px 60px -28px rgba(212, 165, 116, 0.18);
+  }
+  .stage-head {
+    padding: 18px 22px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .stage-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--accent-border);
+    background: var(--accent-dim);
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: inline-block;
+  }
+  .stage-title {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin: 4px 0 4px;
+  }
+  .stage-meta {
+    color: var(--text-2);
+    font-size: 13px;
+  }
+  .agent-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid var(--blue-border);
+    background: var(--blue-bg);
+    color: var(--blue);
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .stage-body { padding: 20px 22px 22px; }
+
+  /* Two-column layout for input + output */
+  .panel-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 920px) {
+    .panel-row { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .panel-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--text-3);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* Form fields look */
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-label {
+    font-size: 11px;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .field-value {
+    background: var(--bg-elev-3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--text-1);
+  }
+  .field-value.mono { font-family: var(--font-mono); font-size: 12px; }
+  .field-value.tag { display: inline-block; }
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* Code-like display */
+  .codeblock {
+    background: var(--bg-elev-3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-1);
+    overflow-x: auto;
+    line-height: 1.55;
+    white-space: pre-wrap;
+  }
+  .codeblock .k { color: var(--accent); }       /* keys */
+  .codeblock .s { color: var(--green); }        /* strings */
+  .codeblock .c { color: var(--text-3); font-style: italic; } /* comments */
+  .codeblock .pri { color: var(--accent-bright); font-weight: 600; }
+  .codeblock .num { color: var(--blue); }
+
+  /* Arrow / transform pill between stages */
+  .pipe {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 6px 0 14px;
+    gap: 12px;
+  }
+  .pipe-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-border), transparent);
+    max-width: 280px;
+  }
+  .pipe-tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 6px 12px;
+    border: 1px solid var(--accent-border);
+    background: var(--accent-dim);
+    border-radius: 999px;
+  }
+  .pipe-tag .arrow { margin: 0 4px; opacity: 0.7; }
+
+  /* Ad card (output) */
+  .ad-card {
+    background: var(--bg-elev-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .ad-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-2);
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+  .ad-label .fw { color: var(--accent); font-weight: 600; letter-spacing: 0.1em; }
+  .ad-label .hook-ref { color: var(--accent-bright); font-weight: 600; }
+  .ad-label .wc { color: var(--text-3); }
+  .ad-body {
+    font-size: 13px;
+    color: var(--text-1);
+    line-height: 1.55;
+  }
+  .ad-body .hook {
+    color: var(--accent-bright);
+    background: var(--accent-dim);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  /* Headings inside panels */
+  .panel-section {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--text-3);
+    text-transform: uppercase;
+    margin: 14px 0 8px;
+  }
+  .panel-section:first-child { margin-top: 0; }
+  .panel-section.priority { color: var(--accent-bright); }
+
+  /* Step number badge */
+  .step-num {
+    display: inline-grid;
+    place-items: center;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--accent-border);
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 10px;
+  }
+
+  /* Footer note */
+  .note {
+    margin-top: 32px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    background: var(--bg-elev-1);
+    border-radius: 10px;
+    font-size: 12.5px;
+    color: var(--text-2);
+  }
+  .note b { color: var(--text-1); font-weight: 600; }
+  .note code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: var(--bg-elev-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text-1);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <div class="eyebrow">▸ Ads Sequence · Hooks → Ad Copy</div>
+    <h1>How they work together</h1>
+    <div class="sub">
+      Walk-through of how the Hooks step's output gets parsed, structured, and
+      piped into the Ad Copy step, then how Vortex returns 12 ads that each
+      reference the hook that opened them.
+    </div>
+  </header>
+
+  <!-- STAGE 1 · HOOKS · INPUT -->
+  <section class="stage">
+    <div class="stage-head">
+      <div>
+        <span class="stage-tag"><span class="step-num">1</span> Hooks · Inputs</span>
+        <div class="stage-title">You fill in the Hooks form</div>
+        <div class="stage-meta">Offer + audience + how many angles × how many hooks per angle. Pre-filled from Profile.md where possible.</div>
+      </div>
+      <div class="agent-tag">Vortex</div>
+    </div>
+    <div class="stage-body">
+      <div class="panel-row">
+        <div class="panel">
+          <div class="panel-eyebrow">▸ Brief</div>
+          <div class="field">
+            <div class="field-label">Offer</div>
+            <div class="field-value">$50 off first window clean. Free streak-free guarantee.</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Target audience</div>
+            <div class="field-value">2-story homeowners, $80k+ HH income, time-poor parents.</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Awareness</div>
+            <div class="field-value tag">cold</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-eyebrow">▸ Volume</div>
+          <div class="field-row">
+            <div class="field">
+              <div class="field-label">Angles</div>
+              <div class="field-value">4</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Hooks per angle</div>
+              <div class="field-value">5</div>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">Seed (optional)</div>
+            <div class="field-value">"Tired homeowners on Sunday nights." — Jake's inbox.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 2 · HOOKS · OUTPUT -->
+  <section class="stage">
+    <div class="stage-head">
+      <div>
+        <span class="stage-tag"><span class="step-num">2</span> Hooks · Saved output</span>
+        <div class="stage-title">Vortex writes 20 hooks + names the top picks</div>
+        <div class="stage-meta">Saved to the client's vault as a markdown file with a fenced JSON block. The wizard records the path in <code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-elev-2);padding:1px 5px;border-radius:3px;">sequence.stepOutputs.hooks.path</code>.</div>
+      </div>
+    </div>
+    <div class="stage-body">
+<div class="codeblock"><span class="c">// saved hooks.json (inside the markdown body, as a fenced ```json block)</span>
+{
+  <span class="k">"headline"</span>: <span class="s">"Window cleaning hooks — 4 angles × 5"</span>,
+  <span class="k">"angles"</span>: [
+    {
+      <span class="k">"name"</span>: <span class="s">"Urgency"</span>,
+      <span class="k">"category"</span>: <span class="s">"urgency"</span>,
+      <span class="k">"hooks"</span>: [
+        <span class="s">"Stop washing your windows yourself."</span>,
+        <span class="s">"Last weekend you said you'd do it. So did the one before."</span>,
+        <span class="s">"Your Saturday is worth more than $50."</span>,
+        ...
+      ]
+    },
+    {
+      <span class="k">"name"</span>: <span class="s">"Transformation"</span>,
+      <span class="k">"category"</span>: <span class="s">"transformation"</span>,
+      <span class="k">"hooks"</span>: [
+        <span class="s">"Your house looks tired from the curb. It doesn't have to."</span>,
+        ...
+      ]
+    },
+    { <span class="c">/* social_proof */</span> ... },
+    { <span class="c">/* curiosity */</span> ... }
+  ],
+  <span class="k">"top_picks"</span>: [
+    { <span class="k">"hook"</span>: <span class="s">"Stop washing your windows yourself."</span>, <span class="k">"why"</span>: <span class="s">"Direct, command-tone, taps homeowner guilt"</span> },
+    { <span class="k">"hook"</span>: <span class="s">"Your house looks tired from the curb. It doesn't have to."</span>, <span class="k">"why"</span>: <span class="s">"Visual + transformation framing"</span> },
+    { <span class="k">"hook"</span>: <span class="s">"4 out of 5 of your neighbors already booked."</span>, <span class="k">"why"</span>: <span class="s">"Social proof, hyper-local"</span> }
+  ]
+}</div>
+    </div>
+  </section>
+
+  <!-- TRANSFORM PIPE -->
+  <div class="pipe">
+    <div class="pipe-line"></div>
+    <div class="pipe-tag">wizard <span class="arrow">→</span> formatHooksForAdCopy(parsed) <span class="arrow">→</span> hooks_markdown</div>
+    <div class="pipe-line"></div>
+  </div>
+
+  <!-- STAGE 3 · AD COPY · AUTO-FILLED INPUT -->
+  <section class="stage is-active">
+    <div class="stage-head">
+      <div>
+        <span class="stage-tag"><span class="step-num">3</span> Ad Copy · Auto-filled</span>
+        <div class="stage-title">Wizard structures the hooks into a numbered list</div>
+        <div class="stage-meta">Top picks lead the numbering as <b>PRIORITY</b>. The rest follow as <b>FULL HOOK LIST</b> with their angle category tagged. The cleaned list lands in the Ad Copy form's <code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-elev-2);padding:1px 5px;border-radius:3px;">hooks_markdown</code> field before you click Generate.</div>
+      </div>
+      <div class="agent-tag">Vortex</div>
+    </div>
+    <div class="stage-body">
+      <div class="panel">
+        <div class="panel-eyebrow">▸ Hooks · auto-filled from prior step</div>
+<div class="codeblock"><span class="pri">PRIORITY (use each at least once across the 12 ads):</span>
+<span class="num">#1</span> · urgency · <span class="s">Stop washing your windows yourself.</span>
+<span class="num">#2</span> · transformation · <span class="s">Your house looks tired from the curb. It doesn't have to.</span>
+<span class="num">#3</span> · social_proof · <span class="s">4 out of 5 of your neighbors already booked.</span>
+
+FULL HOOK LIST (use to fill remaining slots):
+<span class="num">#4</span> · urgency · <span class="s">Last weekend you said you'd do it. So did the one before.</span>
+<span class="num">#5</span> · urgency · <span class="s">Your Saturday is worth more than $50.</span>
+<span class="num">#6</span> · transformation · <span class="s">The view from your kitchen isn't supposed to look like that.</span>
+<span class="num">#7</span> · transformation · <span class="s">Light hits a clean window differently.</span>
+<span class="num">#8</span> · social_proof · <span class="s">Most of the block already books in October.</span>
+<span class="num">#9</span> · curiosity · <span class="s">There's a streak you can't see from inside.</span>
+<span class="num">#10</span> · curiosity · <span class="s">Why your windows look worse when it rains.</span>
+<span class="num">#11</span> · curiosity · <span class="s">Three things every dirty window has in common.</span>
+<span class="num">#12</span> · curiosity · <span class="s">The 90-second test for "they need cleaning."</span>
+<span class="num">#13</span> · urgency · <span class="s">It's about to be peak grime season.</span>
+...
+</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 4 · AD COPY · OUTPUT -->
+  <section class="stage">
+    <div class="stage-head">
+      <div>
+        <span class="stage-tag"><span class="step-num">4</span> Ad Copy · Output</span>
+        <div class="stage-title">Vortex writes 12 ads, each tagged with its hook</div>
+        <div class="stage-meta">Every priority hook opens at least one ad. ≥ 8 of 12 openers are lifted from the numbered list (light adaptation allowed). Each ad's label shows the framework, the hook reference, and the word count — so you can trace any winning ad back to the hook that opened it.</div>
+      </div>
+      <div class="agent-tag">Vortex</div>
+    </div>
+    <div class="stage-body">
+
+      <div class="panel-section">▸ Short Copy (under 50 words) · Feed & Story ads</div>
+
+      <div class="ad-card">
+        <div class="ad-label">
+          <span class="fw">PAS</span><br/>
+          <span class="hook-ref">HOOK #1 · urgency</span><br/>
+          <span class="wc">38 words</span>
+        </div>
+        <div class="ad-body">
+          <span class="hook">Stop washing your windows yourself.</span> Last Saturday turned into raking, then mowing, then dinner. Your time is worth more than $50. Streak-free guarantee, same-day booking, veteran-owned. $50 off your first clean. Tap below 👇
+        </div>
+      </div>
+
+      <div class="ad-card">
+        <div class="ad-label">
+          <span class="fw">BAB</span><br/>
+          <span class="hook-ref">HOOK #2 · transformation</span><br/>
+          <span class="wc">42 words</span>
+        </div>
+        <div class="ad-body">
+          <span class="hook">Your house looks tired from the curb. It doesn't have to.</span> Before: streaked panes, hazy light, $40 of supplies in the garage. After: glass so clean the trees move through it. $50 off this week. 📲
+        </div>
+      </div>
+
+      <div class="panel-section">▸ Medium Copy (50–100 words) · Feed ads with See More</div>
+
+      <div class="ad-card">
+        <div class="ad-label">
+          <span class="fw">AIDA</span><br/>
+          <span class="hook-ref">HOOK #3 · social_proof</span><br/>
+          <span class="wc">82 words</span>
+        </div>
+        <div class="ad-body">
+          <span class="hook">4 out of 5 of your neighbors already booked.</span> Window season hit early this year and the schedule on Maplewood is filling up. We're a veteran-owned local crew. Streak-free guarantee on every pane, inside and out. We bring the ladders, the soap, the squeegees — you bring a cup of coffee and pick where we should start.<br/><br/>
+          $50 off your first clean if you book before Friday. 📲
+        </div>
+      </div>
+
+      <div class="ad-card">
+        <div class="ad-label">
+          <span class="fw">STORY</span><br/>
+          <span class="hook-ref">HOOK #9 · curiosity</span><br/>
+          <span class="wc">73 words</span>
+        </div>
+        <div class="ad-body">
+          <span class="hook">There's a streak you can't see from inside.</span> Most homeowners don't notice it for years. Then one fall afternoon the sun hits at the right angle and suddenly every window in the house looks foggy. That was me last October.<br/><br/>
+          The fix is two hours and $200, less with the $50 off coupon. Streak-free guarantee. Book this week 👇
+        </div>
+      </div>
+
+      <div class="panel-section">▸ Long Copy (100+ words) · High-intent, storytelling</div>
+
+      <div class="ad-card">
+        <div class="ad-label">
+          <span class="fw">PAS</span><br/>
+          <span class="hook-ref">HOOK #4 · urgency</span><br/>
+          <span class="wc">128 words</span>
+        </div>
+        <div class="ad-body">
+          <span class="hook">Last weekend you said you'd do it. So did the one before.</span> The ladder is still leaning where you put it. The bucket is still half full of dirty water in the garage. Every Saturday the list grows: gutters, yard, garage, dinner. And the windows just… stay on the list.<br/><br/>
+          Here's the math: a Saturday is worth more than $50. A streak-free guarantee is worth more than a YouTube tutorial. A veteran-owned local crew shows up with everything they need, cleans every pane inside and out, and is gone before lunch.<br/><br/>
+          $50 off your first clean. Book this week and we're at your house by Saturday. 👇
+        </div>
+      </div>
+
+      <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-3); letter-spacing: 0.04em; text-align: center; margin-top: 12px;">
+        … 7 more ads, each tagged with the hook it used.
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER NOTE -->
+  <div class="note">
+    <b>What this gets you.</b> Every ad in the output names the hook that opened it
+    (e.g. <code>HOOK #3 · social_proof</code>). When ads run live, the winners can be
+    traced straight back to the hooks that drove them — which informs the next Hooks run.
+    If you skip the Hooks step or run Ad Copy outside the wizard, the label simply reads
+    <code>FRESH HOOK · &lt;category&gt;</code> and Vortex writes its own openers in the
+    same voice. The chain is opportunistic, never blocking.
+  </div>
+
+</div>
+</body>
+</html>

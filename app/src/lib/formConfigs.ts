@@ -955,7 +955,8 @@ const PIXEL_INSTALL: FormConfig = {
 const OPTIMIZER_CONFIG: FormConfig = {
   id: "optimizer",
   title: "Optimizer Config",
-  subtitle: "Defines the kill/scale rules and alert thresholds Zenith uses to monitor this account.",
+  subtitle:
+    "Sets the thresholds Zenith uses to flag kill + scale candidates in the Ads Manager view. Advisory only — Zenith never pauses, scales, or edits ads. Jake makes every call.",
   eyebrow: "▸ OPTIMIZER · ZENITH",
   eyebrowMeta: "ONBOARDING · DAY 7",
   phase: 6,
@@ -964,8 +965,8 @@ const OPTIMIZER_CONFIG: FormConfig = {
   agentSlug: "zenith",
   agentName: "Zenith",
   kind: "reports",
-  savedHeading: "Optimizer config saved",
-  generateLabel: "Generate rules",
+  savedHeading: "Watchlist config saved",
+  generateLabel: "Generate watchlist config",
   generatingLabel: "Generating…",
   sections: [
     {
@@ -1000,13 +1001,13 @@ const OPTIMIZER_CONFIG: FormConfig = {
       ],
     },
     {
-      title: "▸ KILL & SCALE RULES",
-      meta: "thresholds Zenith will enforce",
+      title: "▸ KILL & SCALE FLAGS",
+      meta: "thresholds Zenith uses to flag — never to act",
       fields: [
         {
           kind: "number",
           key: "kill_threshold_days",
-          label: "Kill after N days underperforming",
+          label: "Flag for kill after N days underperforming",
           default: 3,
           min: 1,
           max: 14,
@@ -1014,7 +1015,7 @@ const OPTIMIZER_CONFIG: FormConfig = {
         {
           kind: "number",
           key: "scale_step_pct",
-          label: "Scale step %",
+          label: "Suggested scale step %",
           default: 20,
           min: 5,
           max: 50,
@@ -1023,7 +1024,7 @@ const OPTIMIZER_CONFIG: FormConfig = {
         {
           kind: "number",
           key: "frequency_cap",
-          label: "Frequency cap",
+          label: "Frequency cap (flag above)",
           default: 3,
           min: 1,
           max: 10,
@@ -1031,27 +1032,28 @@ const OPTIMIZER_CONFIG: FormConfig = {
         {
           kind: "multi",
           key: "alert_channels",
-          label: "Alert channels",
+          label: "Notify Jake via",
           options: ["Email", "SMS", "In-app", "Slack"],
           defaults: ["Email", "In-app"],
         },
         {
           kind: "textarea",
           key: "client_specifics",
-          label: "Client-specific rules",
-          placeholder: "e.g. never pause on Friday-Sunday · always keep V2 live · etc.",
+          label: "Client-specific notes",
+          placeholder:
+            "e.g. don't flag on Friday-Sunday · keep V2 visible regardless · etc.",
           minRows: 3,
         },
       ],
     },
   ],
   taskDescription:
-    "Compile Zenith's monitoring config for this account: explicit kill/scale rules, alert thresholds, and the cadence Zenith will check. Each rule must be unambiguous (numeric or boolean), so it can run unattended. Flag any rule that conflicts with the others.",
+    "Compile Zenith's WATCHLIST config for this account: the thresholds Zenith uses to surface kill candidates and scale candidates in the Ads Manager view. Zenith is advisory only — it MUST NOT auto-pause, auto-scale, or edit ads. Every output condition must produce a recommendation phrased as 'flag for review' or 'suggest kill / suggest scale', never as an automated action. If a rule reads like execution, rewrite it as a flag.",
   outputSchema:
-    '{"headline":"…","summary":"…","kill_rules":[{"condition":"…","action":"…"}],"scale_rules":[{"condition":"…","action":"…"}],"alerts":[{"trigger":"…","channels":["…"]}],"check_cadence":"…"}',
+    '{"headline":"…","summary":"…","kill_flags":[{"condition":"…","recommendation":"…"}],"scale_flags":[{"condition":"…","recommendation":"…"}],"alerts":[{"trigger":"…","channels":["…"]}],"check_cadence":"…"}',
   outputInstructions:
-    "After the JSON, write the full ruleset as a clear list. End with a 'first 14 days' note: what Zenith will or won't do during the learning window.",
-  defaultTitle: "Optimizer config",
+    "After the JSON, write the full watchlist as a clear list. Every line must be advisory (e.g. 'Surface in Ads Manager review · suggest pausing') — never 'pause' or 'scale' as a verb Zenith does. End with a 'first 14 days' note describing what Zenith will and will NOT flag during learning, and a one-line reminder that all execution is Jake's call.",
+  defaultTitle: "Optimizer watchlist",
 };
 
 // ── Vortex · Hooks (Misc) ─────────────────────────────────────────
@@ -1113,14 +1115,14 @@ const HOOKS: FormConfig = {
     },
     {
       title: "▸ VOLUME",
-      meta: "how many hooks",
+      meta: "matched to the 12-ad output of Ad Copy",
       fields: [
         {
           kind: "number",
           key: "angle_count",
           label: "Angles",
           promptLabel: "Angle count",
-          default: 4,
+          default: 3,
           min: 1,
           max: 12,
         },
@@ -1129,7 +1131,7 @@ const HOOKS: FormConfig = {
           key: "hooks_per_angle",
           label: "Hooks per angle",
           promptLabel: "Hooks per angle",
-          default: 5,
+          default: 4,
           min: 1,
           max: 25,
           inline: true,
@@ -1444,6 +1446,21 @@ const AD_COPY: FormConfig = {
         },
       ],
     },
+    {
+      title: "▸ HOOKS",
+      meta: "auto-filled from the Hooks step",
+      fields: [
+        {
+          kind: "textarea",
+          key: "hooks_markdown",
+          label: "Approved hooks (PRIORITY + full list)",
+          promptPlaceholder: "[HOOKS]",
+          placeholder:
+            "Numbered hook list auto-filled when this step runs after the Hooks Generator. Top picks appear under PRIORITY (each must be used at least once). Remaining hooks under FULL HOOK LIST fill the rest. Leave blank to have Vortex write fresh openers.",
+          minRows: 6,
+        },
+      ],
+    },
   ],
   promptTemplate: `You are a world-class direct response copywriter. Write 12 ad copy variations for Facebook and Instagram ads.
 
@@ -1456,6 +1473,18 @@ TONE: Casual and friendly
 
 COMPETITOR INTEL (use to differentiate, do NOT mimic):
 [COMPETITOR INTEL]
+
+APPROVED HOOKS (from the upstream Hooks step; may be empty):
+[HOOKS]
+
+HOW TO USE THE HOOKS:
+- The list above is split into two sections: "PRIORITY" (top picks) and "FULL HOOK LIST". Each hook is numbered, e.g. "#7 · urgency · Staring at an empty fridge again?".
+- One-to-one rule: every ad opens with exactly one hook from the numbered list. PRIORITY hooks first, then full list in order. Spread across short/medium/long so no single tier hogs the priorities.
+- If the numbered list has 12 hooks (the default), each hook opens exactly one ad and every hook is used. No fresh openers, no duplicates.
+- If the list has fewer than 12 hooks, use every hook once, then reuse PRIORITY hooks for the remaining slots (different framework / different length each time).
+- If the list has more than 12 hooks, use the top 12 by PRIORITY first then numbered order; the rest stay unused this run.
+- If APPROVED HOOKS is empty, generate fresh openers in the Vortex voice — and label them "FRESH HOOK" in the per-ad header (see OUTPUT FORMAT below).
+- The hook IS the first sentence of the ad body. Do NOT print the numbered list back in your output. Do NOT change the meaning of a hook — light wording adjustments only.
 
 RULES:
 1. ONE AD = ONE REASON TO BUY. Each ad must target a completely different motivation (different fear, desire, or angle). NOT variations of the same headline.
@@ -1491,7 +1520,7 @@ Group the 12 ads under three markdown H2 section headers, in this exact order, w
 Inside each section, each ad is formatted as a 3-line label block followed by the body. The label block is exactly three lines:
 
   Line 1: FRAMEWORK name in ALL CAPS (PAS, AIDA, BAB, or STORY)
-  Line 2: Short angle descriptor (e.g. "Pain angle", "Social proof", "UGC style", "Origin story")
+  Line 2: Hook reference. Format: "HOOK #N · category" if the opener was lifted from the numbered hook list (e.g. "HOOK #7 · urgency"). If APPROVED HOOKS was empty and you wrote a fresh opener, use "FRESH HOOK · <one-word category>" (e.g. "FRESH HOOK · curiosity").
   Line 3: Word count, in the form "N words"
 
 Force each of the three label lines onto its own visual line by ending lines 1 and 2 with a backslash (\\), which is markdown's hard line break. Do NOT bold the label. Do NOT put the label inside brackets. Do NOT prefix with "Ad N". Do NOT use commas or middle dots between the three label lines.
@@ -1505,13 +1534,13 @@ Example of the exact shape (generic structure only, do not reuse this wording, t
 ## Short Copy (under 50 words) · Feed & Story ads
 
 PAS\\
-Pain angle\\
+HOOK #7 · urgency\\
 38 words
 
 Staring at an empty fridge again? Skip the grocery run. Tony's hand-tossed pizza, delivered hot in 20 minutes. Real Italian dough. Real ingredients. $12.99. Tap below 👇
 
 BAB\\
-Value angle\\
+HOOK #3 · transformation\\
 32 words
 
 Before: $40 delivery pizza that arrives cold. After: $12.99 hand-tossed pizza at your door in 20 min, still steaming. Tony's Pizza. The upgrade your Tuesday needs.

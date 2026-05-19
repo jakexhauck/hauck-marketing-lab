@@ -8,7 +8,6 @@
  */
 
 export type WorkspaceView =
-  | "today"
   | "dashboard"
   | "calendar"
   | "clients"
@@ -16,11 +15,9 @@ export type WorkspaceView =
   | "onboarding"
   | "tasks"
   | "revenue"
-  | "habits"
   | "recordings"
   | "sops"
   | "resources"
-  | "playbooks"
   | "ads";
 
 /** Top-level surfaces inside the Outreach pillar. */
@@ -40,18 +37,17 @@ export type PersonalSection = "overview" | "hygiene" | "clothing";
 export type ClientSection =
   | "dashboard"
   | "onboarding"
-  | "sequence"
   | "ads"
   | "service-delivery"
   | "profile"
   | "memory";
 
 /** First section to open when the user clicks a client. Pre-launch clients
- *  land on the Sequence wizard when it's still active (visibility is governed
- *  by ClientDashboard from onboarding.json); they fall back to Onboarding once
- *  the sequence is complete. Live/paused clients land on the dashboard. */
+ *  land on the Onboarding checklist (the Ads sequence wizard is launched from
+ *  the "Ads" task inside that checklist). Live/paused clients land on the
+ *  dashboard. */
 export function defaultClientSection(status: "pre-launch" | "live" | "paused"): ClientSection {
-  return status === "pre-launch" ? "sequence" : "dashboard";
+  return status === "pre-launch" ? "onboarding" : "dashboard";
 }
 
 /**
