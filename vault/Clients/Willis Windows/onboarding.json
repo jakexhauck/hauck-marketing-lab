@@ -1,24 +1,14 @@
 {
-  "done": [
-    "00-folder",
-    "00-subfolders",
-    "00-contract",
-    "00-clients-json",
-    "00-benchmarks",
-    "01-form",
-    "01-call",
-    "01-brief",
-    "01-offer",
-    "01-contract",
-    "01-payment",
-    "04-copy"
-  ],
+  "done": [],
   "phaseDoneAt": {
     "0": "MAY 11"
   },
-  "updatedAt": "2026-05-18T23:54:10.587096300+00:00",
+  "updatedAt": "2026-05-19T20:02:49.439250100+00:00",
   "sequence": {
-    "currentStep": "competitors",
+    "currentStep": "audience",
+    "skipped": [
+      "calendar"
+    ],
     "stepOutputs": {}
   }
 }

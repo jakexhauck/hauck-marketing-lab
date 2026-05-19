@@ -8,12 +8,6 @@
       "lane": "backburner"
     },
     {
-      "id": "77f113eb-a45a-4f59-b2c3-1beaf5cfa898",
-      "title": "Create Contracts + Automate It",
-      "status": "todo",
-      "createdAt": 1778693604541
-    },
-    {
       "id": "9d0622d8-e522-450b-819c-2d753fedb5fe",
       "title": "Website Changes",
       "clientSlug": "willis-windows",
@@ -24,25 +18,8 @@
       "id": "29d837e4-bbba-4f02-9852-19192e20bf65",
       "title": "Government Assignment",
       "status": "todo",
-      "createdAt": 1778697133153
-    },
-    {
-      "id": "2bcd06eb-a4ce-43f1-93a8-a40606ba3a34",
-      "title": "Create Every Improvement Within The \"Agency Desktop\" Folder In The Docs",
-      "status": "todo",
-      "createdAt": 1778700895101
-    },
-    {
-      "id": "38fd361d-697c-44ea-b5b6-5e759431c5a0",
-      "title": "Integrate GHL Within The APP Entirely",
-      "status": "todo",
-      "createdAt": 1778706770842
-    },
-    {
-      "id": "500c099e-9374-4ebb-bb98-a1eda683cdee",
-      "title": "Taylor Study Guide",
-      "status": "todo",
-      "createdAt": 1778761441448
+      "createdAt": 1778697133153,
+      "lane": "backburner"
     },
     {
       "id": "6851f66d-8027-49cc-9c47-749c36f8817e",
@@ -53,7 +30,7 @@
     },
     {
       "id": "e21bfb08-7eca-4821-9f31-ab6dbe633b11",
-      "title": "Stripe Setup",
+      "title": "Stripe Setup - Need Dad",
       "status": "todo",
       "createdAt": 1778960895703,
       "lane": "active"
@@ -74,13 +51,6 @@
       "lane": "active"
     },
     {
-      "id": "c6728126-2e5a-4109-95ee-ff697394c979",
-      "title": "Respond Too A2P Wizard",
-      "status": "todo",
-      "createdAt": 1779112666133,
-      "lane": "active"
-    },
-    {
       "id": "8f32f3d8-28e8-4e53-8e37-dd8f7db30d70",
       "title": "Finish Mobile App & Send Login Too Josh/Jayse",
       "status": "todo",
@@ -88,10 +58,11 @@
       "lane": "active"
     },
     {
-      "id": "9ba4dee0-cea2-43a0-9f15-6642e6084b07",
-      "title": "Make New Google Account For Google Studio",
+      "id": "5a17e61e-465a-4e3c-a782-bba444021cfa",
+      "title": "Resubmit A2P When Account Wipes",
+      "clientSlug": "willis-windows",
       "status": "todo",
-      "createdAt": 1779115134926,
+      "createdAt": 1779152083379,
       "lane": "active"
     }
   ]
