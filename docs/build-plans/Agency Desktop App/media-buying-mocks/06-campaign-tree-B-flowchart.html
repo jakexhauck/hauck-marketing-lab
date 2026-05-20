@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Campaign Tree · Flowchart · Sunrise HVAC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07090f;
+    --bg-2: #0e1219;
+    --bg-3: #161c28;
+    --bg-card: #121823;
+    --line: #1f2738;
+    --line-2: #2a3450;
+    --text: #e8ecf3;
+    --text-2: #9aa3b8;
+    --text-3: #6b7591;
+    --campaign: #5ea3ff;
+    --campaign-glow: rgba(94, 163, 255, 0.35);
+    --adset: #b07bff;
+    --adset-glow: rgba(176, 123, 255, 0.35);
+    --ad: #54d68f;
+    --ad-glow: rgba(84, 214, 143, 0.35);
+    --signal-g: #54d68f;
+    --signal-r: #ff5d57;
+    --signal-a: #f7b14d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .app { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
+
+  /* Top bar */
+  .topbar {
+    padding: 14px 28px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 24px;
+    align-items: center;
+  }
+  .brand { display: flex; gap: 10px; align-items: center; }
+  .brand .dot {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--campaign), var(--adset), var(--ad));
+    border-radius: 50%;
+    box-shadow: 0 0 24px var(--campaign-glow);
+  }
+  .brand h1 {
+    font-size: 17px; font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .brand .sub {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 2px;
+  }
+  .stats {
+    display: flex; gap: 24px;
+    justify-self: end;
+    margin-right: 16px;
+  }
+  .stats .item {
+    font-size: 12px;
+    text-align: right;
+  }
+  .stats .k { color: var(--text-3); display: block; margin-bottom: 3px; font-size: 11px; }
+  .stats .v { color: var(--text); font-size: 15px; font-weight: 600; }
+  .stats .v.go { color: var(--signal-g); }
+  .stats .v.warn { color: var(--signal-a); }
+
+  .toolbar { display: flex; gap: 8px; }
+  .btn {
+    padding: 8px 16px;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    color: var(--text);
+    font-family: 'Inter'; font-size: 13px; font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--line-2); }
+
+  /* Canvas */
+  .canvas {
+    position: relative;
+    overflow: auto;
+    padding: 40px 32px 60px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(94, 163, 255, 0.06), transparent 50%),
+      radial-gradient(circle at 25% 60%, rgba(176, 123, 255, 0.05), transparent 40%),
+      radial-gradient(circle at 75% 60%, rgba(84, 214, 143, 0.05), transparent 40%),
+      var(--bg);
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .flow {
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 0;
+    min-width: 1280px;
+  }
+
+  /* Campaign node */
+  .campaign-node {
+    background: var(--bg-card);
+    border: 1.5px solid var(--campaign);
+    border-radius: 12px;
+    padding: 22px 32px;
+    box-shadow: 0 0 40px var(--campaign-glow), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    min-width: 560px;
+    text-align: center;
+    position: relative;
+  }
+  .campaign-node .label {
+    font-size: 12px;
+    color: var(--campaign);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .campaign-node .name {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 12px;
+  }
+  .campaign-node .meta {
+    display: flex; gap: 22px; justify-content: center;
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  .campaign-node .meta b { color: var(--text); font-weight: 600; }
+
+  /* Connectors */
+  .vline {
+    width: 2px; height: 32px;
+    background: linear-gradient(180deg, var(--campaign), var(--adset));
+    margin: 0 auto;
+  }
+  .branch {
+    width: 100%;
+    height: 24px;
+    position: relative;
+    margin: 0;
+  }
+  .branch::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 25%; right: 25%;
+    height: 1.5px;
+    background: var(--adset);
+    box-shadow: 0 0 8px var(--adset-glow);
+  }
+  .branch::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 25%;
+    width: 1.5px; height: 100%;
+    background: var(--adset);
+  }
+  .branch .right-stub {
+    position: absolute;
+    top: 0; right: 25%;
+    width: 1.5px; height: 100%;
+    background: var(--adset);
+  }
+
+  .vline-purple { width: 2px; height: 24px; background: var(--adset); margin: 0 auto; }
+
+  /* Ad-set row */
+  .adset-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    width: 100%;
+    align-items: start;
+  }
+
+  .adset-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+  .adset-node {
+    background: var(--bg-card);
+    border: 1.5px solid var(--adset);
+    border-radius: 10px;
+    padding: 18px 24px;
+    box-shadow: 0 0 32px var(--adset-glow), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    width: 100%;
+    max-width: 440px;
+    text-align: center;
+    position: relative;
+  }
+  .adset-node .targeting-type {
+    font-size: 13px;
+    color: var(--adset);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .adset-node .targeting-spec {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    margin-bottom: 10px;
+  }
+  .adset-node .params {
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .adset-node .params b { color: var(--text); font-weight: 600; }
+  .adset-node .params .pill {
+    background: var(--bg-3);
+    padding: 4px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line-2);
+  }
+
+  /* Vertical line down from ad set */
+  .v-purple-to-green { width: 1.5px; height: 24px; background: linear-gradient(180deg, var(--adset), var(--ad)); margin: 0 auto; }
+
+  /* Ad branch for 3 children */
+  .ad-branch {
+    width: 100%;
+    height: 22px;
+    position: relative;
+    margin-bottom: 0;
+  }
+  .ad-branch::before {
+    content: '';
+    position: absolute;
+    top: 0; left: calc(50% / 3); right: calc(50% / 3);
+    height: 1.5px;
+    background: var(--ad);
+  }
+  .ad-branch .stub {
+    position: absolute; top: 0;
+    width: 1.5px; height: 100%;
+    background: var(--ad);
+  }
+  .ad-branch .s1 { left: calc(50% / 3); }
+  .ad-branch .s2 { left: 50%; transform: translateX(-50%); }
+  .ad-branch .s3 { right: calc(50% / 3); }
+
+  /* Ad row */
+  .ads-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .ad-node {
+    background: var(--bg-card);
+    border: 1.5px solid var(--ad);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 18px var(--ad-glow);
+    display: flex;
+    flex-direction: column;
+  }
+  .ad-node.empty {
+    border-color: var(--text-3);
+    border-style: dashed;
+    box-shadow: none;
+    background: var(--bg-2);
+  }
+
+  .ad-node .head {
+    background: rgba(84, 214, 143, 0.1);
+    padding: 10px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--line);
+  }
+  .ad-node.empty .head { background: rgba(107, 117, 145, 0.08); }
+  .ad-node .head .pill {
+    font-size: 12px;
+    color: var(--ad);
+    font-weight: 600;
+  }
+  .ad-node.empty .head .pill { color: var(--text-3); }
+  .ad-node .head .num {
+    font-size: 12px;
+    color: var(--text-2);
+    font-weight: 600;
+  }
+
+  .ad-node .body {
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .ad-node .thumb {
+    width: 64px; height: 64px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    position: relative;
+  }
+  .ad-node .thumb img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .ad-node .thumb .badge {
+    position: absolute; bottom: 0; right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 10px;
+    padding: 2px 5px;
+    font-weight: 600;
+  }
+  .ad-node .thumb.empty-thumb {
+    display: flex; align-items: center; justify-content: center;
+    border-style: dashed;
+    color: var(--text-3);
+    font-size: 22px;
+  }
+  .ad-node .info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .ad-node .info .angle {
+    display: inline-block;
+    font-size: 11px;
+    background: rgba(94, 163, 255, 0.12);
+    color: var(--campaign);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    align-self: flex-start;
+  }
+  .ad-node .info .hook {
+    font-size: 14px; font-weight: 500;
+    color: var(--text);
+    line-height: 1.35;
+  }
+  .ad-node .info .hook.muted { color: var(--text-3); font-style: italic; }
+
+  .ad-node .foot {
+    border-top: 1px solid var(--line);
+    padding: 10px 14px;
+    display: flex; justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .ad-node .foot .status {
+    display: inline-flex; gap: 5px; align-items: center;
+    color: var(--signal-g); font-weight: 600;
+  }
+  .ad-node.empty .foot .status { color: var(--signal-a); }
+  .ad-node .foot .status .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  /* Mirror connector between two ad set blocks (visual cue: same creatives) */
+  .mirror-bridge {
+    position: relative;
+    height: 0;
+    margin: -6px 0;
+  }
+  .mirror-bridge::before {
+    content: 'Same 3 ads · testing audience, not creative';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg);
+    border: 1px dashed var(--line-2);
+    color: var(--text-3);
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 12px 28px;
+    background: var(--bg-2);
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .footer b { color: var(--text); font-weight: 600; }
+  .footer .right { margin-left: auto; display: flex; gap: 18px; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 5px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="dot"></div>
+      <div>
+        <h1>Campaign Skeleton · Flowchart</h1>
+        <div class="sub">Sunrise HVAC · Media Buying</div>
+      </div>
+    </div>
+    <div></div>
+    <div class="stats">
+      <div class="item"><span class="k">Build</span><span class="v warn">83%</span></div>
+      <div class="item"><span class="k">Ads ready</span><span class="v">5 / 6</span></div>
+      <div class="item"><span class="k">Daily budget</span><span class="v">$25</span></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn">Back to form</button>
+    </div>
+  </header>
+
+  <main class="canvas">
+    <div class="flow">
+
+      <!-- CAMPAIGN -->
+      <div class="campaign-node">
+        <div class="label">Campaign · Leads · ABO</div>
+        <div class="name">Sunrise HVAC · Spring '26 Learning Phase</div>
+        <div class="meta">
+          <span>Objective <b>Leads</b></span>
+          <span>Budget <b>ABO (ad-set level)</b></span>
+          <span>Daily <b>$25</b></span>
+        </div>
+      </div>
+
+      <div class="vline"></div>
+
+      <div class="branch"><div class="right-stub"></div></div>
+
+      <!-- AD SETS ROW -->
+      <div class="adset-row">
+
+        <!-- AD SET 1 -->
+        <div class="adset-col">
+          <div class="adset-node">
+            <div class="targeting-type">Ad Set 1 · Broad</div>
+            <div class="targeting-spec">Austin TX · 10mi · 25 to 55</div>
+            <div class="params">
+              <span class="pill">$12/day</span>
+              <span class="pill">no interests</span>
+              <span class="pill">Meta AI targeting</span>
+            </div>
+          </div>
+
+          <div class="v-purple-to-green"></div>
+          <div class="ad-branch"><div class="stub s1"></div><div class="stub s2"></div><div class="stub s3"></div></div>
+
+          <div class="ads-row">
+
+            <!-- BROAD AD 1 -->
+            <div class="ad-node">
+              <div class="head">
+                <span class="pill">Image · Angle A</span>
+                <span class="num">AD 1</span>
+              </div>
+              <div class="body">
+                <div class="thumb">
+                  <img src="https://picsum.photos/seed/hvac-broad-1/200/200" alt="">
+                  <span class="badge">1:1</span>
+                </div>
+                <div class="info">
+                  <span class="angle">Price anchor</span>
+                  <div class="hook">"$49 gets your AC ready for a Texas summer."</div>
+                </div>
+              </div>
+              <div class="foot">
+                <span>V1</span>
+                <span class="status"><span class="dot"></span>Ready</span>
+              </div>
+            </div>
+
+            <!-- BROAD AD 2 -->
+            <div class="ad-node">
+              <div class="head">
+                <span class="pill">Image · Angle B</span>
+                <span class="num">AD 2</span>
+              </div>
+              <div class="body">
+                <div class="thumb">
+                  <img src="https://picsum.photos/seed/hvac-broad-2/200/200" alt="">
+                  <span class="badge">1:1</span>
+                </div>
+                <div class="info">
+                  <span class="angle">Fear · urgency</span>
+                  <div class="hook">"Your AC will die in this heat. Catch it first for $49."</div>
+                </div>
+              </div>
+              <div class="foot">
+                <span>V1</span>
+                <span class="status"><span class="dot"></span>Ready</span>
+              </div>
+            </div>
+
+            <!-- BROAD AD 3 -->
+            <div class="ad-node">
+              <div class="head">
+                <span class="pill">Video · Testimonial</span>
+                <span class="num">AD 3</span>
+              </div>
+              <div class="body">
+                <div class="thumb">
+                  <img src="https://picsum.photos/seed/hvac-broad-3/200/200" alt="">
+                  <span class="badge">0:24</span>
+                </div>
+                <div class="info">
+                  <span class="angle">Social proof</span>
+                  <div class="hook">"They caught a leak my last guy missed." — Janelle</div>
+                </div>
+              </div>
+              <div class="foot">
+                <span>V1</span>
+                <span class="status"><span class="dot"></span>Ready</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- AD SET 2 -->
+        <div class="adset-col">
+          <div class="adset-node">
+            <div class="targeting-type">Ad Set 2 · Interest</div>
+            <div class="targeting-spec">Home Improvement + Homeowners</div>
+            <div class="params">
+              <span class="pill">$13/day</span>
+              <span class="pill">Austin TX · 25mi</span>
+              <span class="pill">25 to 55</span>
+            </div>
+          </div>
+
+          <div class="v-purple-to-green"></div>
+          <div class="ad-branch"><div class="stub s1"></div><div class="stub s2"></div><div class="stub s3"></div></div>
+
+          <div class="ads-row">
+
+            <!-- INTEREST AD 1 -->
+            <div class="ad-node">
+              <div class="head">
+                <span class="pill">Image · Angle A</span>
+                <span class="num">AD 1</span>
+              </div>
+              <div class="body">
+                <div class="thumb">
+                  <img src="https://picsum.photos/seed/hvac-broad-1/200/200" alt="">
+                  <span class="badge">1:1</span>
+                </div>
+                <div class="info">
+                  <span class="angle">Price anchor</span>
+                  <div class="hook">"$49 gets your AC ready for a Texas summer."</div>
+                </div>
+              </div>
+              <div class="foot">
+                <span>Mirrored</span>
+                <span class="status"><span class="dot"></span>Ready</span>
+              </div>
+            </div>
+
+            <!-- INTEREST AD 2 -->
+            <div class="ad-node">
+              <div class="head">
+                <span class="pill">Image · Angle B</span>
+                <span class="num">AD 2</span>
+              </div>
+              <div class="body">
+                <div class="thumb">
+                  <img src="https://picsum.photos/seed/hvac-broad-2/200/200" alt="">
+                  <span class="badge">1:1</span>
+                </div>
+                <div class="info">
+                  <span class="angle">Fear · urgency</span>
+                  <div class="hook">"Your AC will die in this heat. Catch it first for $49."</div>
+                </div>
+              </div>
+              <div class="foot">
+                <span>Mirrored</span>
+                <span class="status"><span class="dot"></span>Ready</span>
+              </div>
+            </div>
+
+            <!-- INTEREST AD 3 - empty -->
+            <div class="ad-node empty">
+              <div class="head">
+                <span class="pill">Video · Testimonial</span>
+                <span class="num">AD 3</span>
+              </div>
+              <div class="body">
+                <div class="thumb empty-thumb">+</div>
+                <div class="info">
+                  <span class="angle">Social proof</span>
+                  <div class="hook muted">Awaiting Janelle testimonial video upload</div>
+                </div>
+              </div>
+              <div class="foot">
+                <span>V1</span>
+                <span class="status" style="color: var(--signal-a);"><span class="dot"></span>Missing</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span>Skeleton · <b>1 campaign</b> · <b>2 ad sets</b> · <b>6 ad slots</b> (3 unique creatives, mirrored)</span>
+    <span>Test thesis · <b style="color: var(--campaign);">audience, not creative</b></span>
+    <span class="right">
+      <span>Auto-save · 2s ago</span>
+      <span>HML v0.4.2</span>
+    </span>
+  </footer>
+
+</div>
+</body>
+</html>

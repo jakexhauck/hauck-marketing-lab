@@ -1,35 +1,37 @@
 /**
- * OutreachSequencePage — guided 4-step campaign wizard.
+ * OutreachSequencePage — guided cold-call campaign wizard.
  *
- *   1. Scrape   — run lead-scraper, capture the CSV
- *   2. Mockups  — pick prospects to build revamp HTML for (optional)
- *   3. DMs      — feed CSV to copywriter, produce DM markdown table
- *   4. Summary  — review everything created, links + DM table inline
+ *   1. Scrape     — run lead-scraper, capture the CSV
+ *   2. Cold Call  — every lead on one page; click "Booked" on the ones that
+ *                   pick up and agree to a discovery, the lead gets promoted
+ *                   to a scheduled prospect with their info pre-filled. Others
+ *                   stay ephemeral and disappear when the session ends.
+ *   3. Websites   — build revamp HTML only for the leads that booked
+ *   4. Summary    — review what got booked + sites built
  *
- * Steps share campaign state so the user can flip back and forth via the
- * stepper at the top without losing work. Mockups and DMs are saved to disk,
- * so the wizard can be closed and resumed (by re-picking the CSV).
+ * The DM workflow used to live here as a step; it now has its own page
+ * (OutreachDmsPage) reachable from a tab on the OutreachHub. Cold calling is
+ * the main path; DMs are a side-channel.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { openPath, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { api } from "../../lib/tauri";
 import type {
-  CopywriterEvent,
-  DmFile,
   ProspectFile,
   ScraperEvent,
   WebDesignerEvent,
 } from "../../lib/types";
+import type { ProspectStatus } from "../../lib/navigation";
 import {
   IconArrowRight,
   IconChevronRight,
   IconLayout,
+  IconPhone,
   IconTarget,
-  IconPen,
 } from "../icons";
 
-type Step = "scrape" | "mockup" | "dm" | "summary";
+type Step = "scrape" | "call" | "mockup" | "summary";
 
 interface CsvRow {
   raw: Record<string, string>;
@@ -41,6 +43,18 @@ interface CsvRow {
   reviews: string;
   runningAds: string;
   facebook: string;
+}
+
+type CallDisposition = "pending" | "booked" | "no-answer" | "not-interested";
+
+interface CallRecord {
+  rowKey: string;
+  disposition: CallDisposition;
+  prospectSlug?: string;
+  contactName?: string;
+  contactEmail?: string;
+  scheduledAt?: string;
+  notes?: string;
 }
 
 interface MockupRecord {
@@ -56,19 +70,6 @@ interface OutreachSequencePageProps {
   root: string | null;
   onExit: () => void;
 }
-
-const DEFAULT_DM_PROMPT = `I have this list of local businesses I want to reach out to about running ads for them.
-
-For each business, write a short personalized DM (2-3 sentences max) that:
-- References something specific about their business
-- Points out a gap or opportunity (bad website, no ads, etc.)
-- Ends with a soft ask to jump on a quick call
-
-Keep it casual and conversational, not salesy. Sound like a real person who genuinely noticed something about their business, not like a template blast.
-
-Output as a markdown table with exactly these columns: Business Name | Platform | Message
-Where Platform is one of: Instagram, Email, SMS — pick the channel most likely to land for that business.
-Output ONLY the markdown table — no preamble, no commentary after.`;
 
 const NICHE_COLORS: Record<string, string> = {
   dental: "#3B82F6",
@@ -112,8 +113,6 @@ function slugify(name: string): string {
   return out || "prospect";
 }
 
-/** Minimal CSV parser. Handles quoted values that contain commas and escaped
- *  quotes. Returns header row + records. */
 function parseCsv(body: string): { headers: string[]; rows: Record<string, string>[] } {
   const rows: string[][] = [];
   let current: string[] = [];
@@ -193,9 +192,6 @@ function toCsvRow(raw: Record<string, string>): CsvRow {
 }
 
 function parseFilenameMeta(name: string): { niche: string; city: string; date: string } {
-  // Files come from scraper as `<city>-<state>-<niche>-<date>.csv`, e.g.
-  // tampa-fl-dentists-2026-05-12.csv. Pull off the date suffix and reverse-
-  // engineer the niche + city. Cheap heuristic — falls back to "" on miss.
   const stem = name.replace(/\.csv$/i, "");
   const parts = stem.split("-");
   if (parts.length < 4) return { niche: "", city: stem, date: "" };
@@ -223,41 +219,15 @@ function fmtWhen(unix: number): string {
   });
 }
 
-interface DmTableRow {
-  business: string;
-  platform: string;
-  message: string;
-}
-
-function parseDmTable(body: string): DmTableRow[] {
-  const lines = body.split(/\r?\n/);
-  let start = -1;
-  for (let i = 0; i < lines.length - 1; i++) {
-    const row = lines[i].trim();
-    const sep = lines[i + 1].trim();
-    if (
-      row.startsWith("|") &&
-      row.endsWith("|") &&
-      sep.startsWith("|") &&
-      sep.includes("---")
-    ) {
-      start = i;
-      break;
-    }
+function fmtPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
   }
-  if (start < 0) return [];
-  const rows: DmTableRow[] = [];
-  for (let j = start + 2; j < lines.length; j++) {
-    const row = lines[j].trim();
-    if (!row.startsWith("|") || !row.endsWith("|")) break;
-    const cells = row
-      .slice(1, -1)
-      .split("|")
-      .map((c) => c.trim());
-    if (cells.length < 3) continue;
-    rows.push({ business: cells[0], platform: cells[1], message: cells.slice(2).join(" | ") });
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
   }
-  return rows;
+  return raw;
 }
 
 export function OutreachSequencePage({ root, onExit }: OutreachSequencePageProps) {
@@ -266,16 +236,13 @@ export function OutreachSequencePage({ root, onExit }: OutreachSequencePageProps
   // Campaign state ─────────────────────────────────────────
   const [csvFile, setCsvFile] = useState<ProspectFile | null>(null);
   const [csvRows, setCsvRows] = useState<CsvRow[]>([]);
-  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvMeta, setCsvMeta] = useState<{ niche: string; city: string; date: string }>({
     niche: "",
     city: "",
     date: "",
   });
+  const [calls, setCalls] = useState<Record<string, CallRecord>>({});
   const [mockups, setMockups] = useState<MockupRecord[]>([]);
-  const [dmFile, setDmFile] = useState<DmFile | null>(null);
-  const [dmBody, setDmBody] = useState<string>("");
-  const dmTable = useMemo(() => parseDmTable(dmBody), [dmBody]);
 
   // History (so user can resume an existing campaign)
   const [csvHistory, setCsvHistory] = useState<ProspectFile[]>([]);
@@ -293,39 +260,19 @@ export function OutreachSequencePage({ root, onExit }: OutreachSequencePageProps
     void refreshHistory();
   }, [refreshHistory]);
 
-  // Loading a CSV (either freshly scraped or picked from history)
-  const loadCsv = useCallback(
-    async (file: ProspectFile) => {
-      try {
-        const body = await api.readDmFile(file.path);
-        const parsed = parseCsv(body);
-        setCsvFile(file);
-        setCsvHeaders(parsed.headers);
-        setCsvRows(parsed.rows.map(toCsvRow));
-        setCsvMeta(parseFilenameMeta(file.name));
-        // Try to find a previously-generated DM file for the same CSV.
-        try {
-          const dms = await api.listDmFiles(root!);
-          const stem = file.name.replace(/\.csv$/i, "").replace(/^leads-/, "");
-          const match = dms.find((d) => d.name === `dms-${stem}.md`);
-          if (match) {
-            setDmFile(match);
-            const dmBodyStr = await api.readDmFile(match.path);
-            setDmBody(dmBodyStr);
-          } else {
-            setDmFile(null);
-            setDmBody("");
-          }
-        } catch {
-          setDmFile(null);
-          setDmBody("");
-        }
-      } catch (e) {
-        console.warn("loadCsv failed:", e);
-      }
-    },
-    [root],
-  );
+  const loadCsv = useCallback(async (file: ProspectFile) => {
+    try {
+      const body = await api.readDmFile(file.path);
+      const parsed = parseCsv(body);
+      setCsvFile(file);
+      setCsvRows(parsed.rows.map(toCsvRow));
+      setCsvMeta(parseFilenameMeta(file.name));
+      setCalls({});
+      setMockups([]);
+    } catch (e) {
+      console.warn("loadCsv failed:", e);
+    }
+  }, []);
 
   // ─── Step 1: Scrape ───────────────────────────────────
   const [scrapeNiche, setScrapeNiche] = useState("");
@@ -355,7 +302,6 @@ export function OutreachSequencePage({ root, onExit }: OutreachSequencePageProps
               : `✗ Scraper exited with code ${evt.exit_code}.`,
           ]);
           if (evt.csv_path && evt.exit_code === 0) {
-            // Refresh history, find the new CSV, auto-load it, advance.
             void (async () => {
               await refreshHistory();
               if (!root) return;
@@ -365,7 +311,7 @@ export function OutreachSequencePage({ root, onExit }: OutreachSequencePageProps
                 const fresh = list.find((f) => f.path === evt.csv_path);
                 if (fresh) {
                   await loadCsv(fresh);
-                  setStep("mockup");
+                  setStep("call");
                 }
               } catch (e) {
                 console.warn("post-scrape load failed", e);
@@ -411,7 +357,67 @@ export function OutreachSequencePage({ root, onExit }: OutreachSequencePageProps
     }
   };
 
-  // ─── Step 2: Mockups ──────────────────────────────────
+  // ─── Step 2: Cold Call ────────────────────────────────
+  const setDisposition = (rowKey: string, disposition: CallDisposition) => {
+    setCalls((prev) => {
+      const existing = prev[rowKey] ?? { rowKey, disposition: "pending" };
+      return { ...prev, [rowKey]: { ...existing, disposition } };
+    });
+  };
+
+  const bookProspect = async (
+    row: CsvRow,
+    fields: {
+      contactName: string;
+      contactEmail: string;
+      scheduledAt: string;
+      notes: string;
+    },
+  ) => {
+    if (!root) {
+      throw new Error("No media-buying folder configured. Pick one in Settings.");
+    }
+    const scheduledRfc = fields.scheduledAt
+      ? new Date(fields.scheduledAt).toISOString()
+      : null;
+    const created = await api.addProspect(root, {
+      name: row.businessName,
+      niche: csvMeta.niche || null,
+      url: row.website || null,
+      contactName: fields.contactName.trim() || null,
+      contactPhone: row.phone || null,
+      contactEmail: fields.contactEmail.trim() || null,
+      scheduledAt: scheduledRfc,
+      status: "scheduled" as ProspectStatus,
+      notes: fields.notes.trim() || null,
+    });
+    setCalls((prev) => ({
+      ...prev,
+      [row.businessName]: {
+        rowKey: row.businessName,
+        disposition: "booked",
+        prospectSlug: created?.slug,
+        contactName: fields.contactName,
+        contactEmail: fields.contactEmail,
+        scheduledAt: fields.scheduledAt,
+        notes: fields.notes,
+      },
+    }));
+  };
+
+  const bookedCount = useMemo(
+    () => Object.values(calls).filter((c) => c.disposition === "booked").length,
+    [calls],
+  );
+  const bookedRows = useMemo(
+    () =>
+      csvRows.filter(
+        (r) => calls[r.businessName]?.disposition === "booked",
+      ),
+    [csvRows, calls],
+  );
+
+  // ─── Step 3: Mockups ──────────────────────────────────
   const [mockupRowKey, setMockupRowKey] = useState<string | null>(null);
   const [mockupMode, setMockupMode] = useState<"build" | "revamp">("revamp");
   const [mockupAccent, setMockupAccent] = useState<string>("#5eead4");
@@ -473,19 +479,20 @@ export function OutreachSequencePage({ root, onExit }: OutreachSequencePageProps
     setMockupError(null);
     setMockupLog("");
     const rowKey = row.businessName;
-    // 1. Promote lead to prospect so the slug exists and Web Designer can
-    //    save under vault/Outreach/<slug>/revamp/.
-    let prospectSlug = slugify(row.businessName);
-    try {
-      const created = await api.promoteLeadToProspect(root, {
-        name: row.businessName,
-        niche: csvMeta.niche || null,
-        url: row.website || null,
-      });
-      if (created?.slug) prospectSlug = created.slug;
-    } catch (e) {
-      // Non-fatal — fall back to local slugify.
-      console.warn("promoteLeadToProspect failed, using local slug:", e);
+    // Booked leads already have a prospect slug from the call step. Fall back
+    // to a fresh promote if for some reason that's missing.
+    let prospectSlug = calls[rowKey]?.prospectSlug ?? slugify(row.businessName);
+    if (!calls[rowKey]?.prospectSlug) {
+      try {
+        const created = await api.promoteLeadToProspect(root, {
+          name: row.businessName,
+          niche: csvMeta.niche || null,
+          url: row.website || null,
+        });
+        if (created?.slug) prospectSlug = created.slug;
+      } catch (e) {
+        console.warn("promoteLeadToProspect failed, using local slug:", e);
+      }
     }
 
     const mode = row.website ? "revamp" : "build";
@@ -509,93 +516,30 @@ export function OutreachSequencePage({ root, onExit }: OutreachSequencePageProps
     }
   };
 
-  // ─── Step 3: Copywriter / DMs ─────────────────────────
-  const [dmInstructions, setDmInstructions] = useState<string>(DEFAULT_DM_PROMPT);
-  const [dmRunning, setDmRunning] = useState(false);
-  const [dmLog, setDmLog] = useState<string>("");
-  const [dmError, setDmError] = useState<string | null>(null);
-  const dmIdRef = useRef<string>("");
-
-  useEffect(() => {
-    let unlisten: (() => void) | null = null;
-    (async () => {
-      unlisten = await api.onCopywriterStream((evt: CopywriterEvent) => {
-        if (evt.id !== dmIdRef.current) return;
-        if (evt.kind === "started") {
-          setDmLog("▸ Copywriter running…\n");
-        } else if (evt.kind === "delta") {
-          setDmLog((prev) => prev + evt.text);
-        } else if (evt.kind === "done") {
-          setDmRunning(false);
-          if (evt.ok && evt.path && evt.body) {
-            setDmBody(evt.body);
-            void (async () => {
-              if (!root) return;
-              try {
-                const list = await api.listDmFiles(root);
-                const match = list.find((d) => d.path === evt.path);
-                if (match) setDmFile(match);
-              } catch {
-                /* ignore */
-              }
-            })();
-          } else if (evt.message) {
-            setDmError(evt.message);
-          }
-        } else if (evt.kind === "error") {
-          setDmRunning(false);
-          setDmError(evt.message);
-        }
-      });
-    })();
-    return () => {
-      if (unlisten) unlisten();
-    };
-  }, [root]);
-
-  const onRunCopywriter = async () => {
-    if (!root || !csvFile) return;
-    setDmError(null);
-    setDmLog("");
-    setDmRunning(true);
-    const id = `seq-dm-${Date.now().toString(36)}`;
-    dmIdRef.current = id;
-    try {
-      await api.runCopywriter(id, root, csvFile.path, dmInstructions);
-    } catch (e) {
-      setDmRunning(false);
-      setDmError(String(e));
-    }
-  };
-
   // ─── Step navigation ─────────────────────────────────
   const stepperItems: { id: Step; label: string; sub: string; Icon: typeof IconTarget }[] = [
     { id: "scrape", label: "Scrape", sub: "Find leads", Icon: IconTarget },
-    { id: "mockup", label: "Mockups", sub: "Build proofs", Icon: IconLayout },
-    { id: "dm", label: "DMs", sub: "Write outreach", Icon: IconPen },
+    { id: "call", label: "Cold Call", sub: "Dial the list", Icon: IconPhone },
+    { id: "mockup", label: "Websites", sub: "Build for booked", Icon: IconLayout },
     { id: "summary", label: "Summary", sub: "Wrap up", Icon: IconArrowRight },
   ];
 
   const stepIndex = stepperItems.findIndex((s) => s.id === step);
 
-  const goStep = (next: Step) => {
-    // Allow free navigation between steps — work persists on disk.
-    setStep(next);
-  };
+  const goStep = (next: Step) => setStep(next);
 
-  // ─── Render ──────────────────────────────────────────
   return (
     <div className="hml-content">
       <section className="hml-page-header">
         <div>
           <div className="hml-page-eyebrow">
-            <IconTarget size={11} />
-            Outreach Sequence
+            <IconPhone size={11} />
+            Cold Call Sequence
           </div>
-          <h1 className="hml-page-title">Run a full outreach pass.</h1>
+          <h1 className="hml-page-title">Run a full cold-call pass.</h1>
           <div className="hml-page-subtitle">
-            Scrape leads → build mockups for the ones you want to pitch → write personalized DMs → review.
-            Skip any step you don't need; everything saves to disk so you can come back.
+            Scrape leads, dial through the list, book the ones that pick up, and build websites only for the bookings.
+            Unbooked leads stay ephemeral; everything you book persists to Prospects.
           </div>
         </div>
         <div className="hml-page-header-actions">
@@ -635,7 +579,6 @@ export function OutreachSequencePage({ root, onExit }: OutreachSequencePageProps
         })}
       </section>
 
-      {/* Step bodies */}
       {step === "scrape" && (
         <ScrapeStep
           niche={scrapeNiche}
@@ -651,16 +594,30 @@ export function OutreachSequencePage({ root, onExit }: OutreachSequencePageProps
           activeCsv={csvFile}
           onPickCsv={async (f) => {
             await loadCsv(f);
-            setStep("mockup");
+            setStep("call");
           }}
           rootMissing={!root}
+        />
+      )}
+
+      {step === "call" && (
+        <CallStep
+          csvFile={csvFile}
+          rows={csvRows}
+          meta={csvMeta}
+          calls={calls}
+          bookedCount={bookedCount}
+          onDispose={setDisposition}
+          onBook={bookProspect}
+          onContinue={() => setStep("mockup")}
+          onBack={() => setStep("scrape")}
         />
       )}
 
       {step === "mockup" && (
         <MockupStep
           csvFile={csvFile}
-          rows={csvRows}
+          rows={bookedRows}
           mockups={mockups}
           meta={csvMeta}
           accent={mockupAccent}
@@ -671,29 +628,8 @@ export function OutreachSequencePage({ root, onExit }: OutreachSequencePageProps
           mode={mockupMode}
           error={mockupError}
           onBuild={onBuildMockup}
-          onContinue={() => setStep("dm")}
-          onBack={() => setStep("scrape")}
-        />
-      )}
-
-      {step === "dm" && (
-        <DmStep
-          csvFile={csvFile}
-          rows={csvRows}
-          headers={csvHeaders}
-          instructions={dmInstructions}
-          setInstructions={setDmInstructions}
-          running={dmRunning}
-          log={dmLog}
-          error={dmError}
-          dmFile={dmFile}
-          dmTable={dmTable}
-          dmBody={dmBody}
-          history={csvHistory}
-          onSwitchCsv={loadCsv}
-          onRun={onRunCopywriter}
           onContinue={() => setStep("summary")}
-          onBack={() => setStep("mockup")}
+          onBack={() => setStep("call")}
         />
       )}
 
@@ -702,19 +638,17 @@ export function OutreachSequencePage({ root, onExit }: OutreachSequencePageProps
           csvFile={csvFile}
           rows={csvRows}
           meta={csvMeta}
+          calls={calls}
           mockups={mockups}
-          dmFile={dmFile}
-          dmTable={dmTable}
+          bookedRows={bookedRows}
           onRestart={() => {
             setCsvFile(null);
             setCsvRows([]);
-            setCsvHeaders([]);
+            setCalls({});
             setMockups([]);
-            setDmFile(null);
-            setDmBody("");
             setStep("scrape");
           }}
-          onBack={() => setStep("dm")}
+          onBack={() => setStep("mockup")}
           accent={colorForNiche(csvMeta.niche)}
         />
       )}
@@ -762,7 +696,7 @@ function ScrapeStep({
       <div className="os-pane-head">
         <div>
           <h2>Step 1 · Scrape leads</h2>
-          <p>Pull a fresh list of local businesses by niche and city — or pick up where you left off with an existing CSV.</p>
+          <p>Pull a fresh list of local businesses by niche and city, or pick up where you left off with an existing CSV.</p>
         </div>
       </div>
 
@@ -862,7 +796,379 @@ function ScrapeStep({
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Step 2 — Mockups
+// Step 2 — Cold Call
+// ═══════════════════════════════════════════════════════════════
+
+interface CallStepProps {
+  csvFile: ProspectFile | null;
+  rows: CsvRow[];
+  meta: { niche: string; city: string; date: string };
+  calls: Record<string, CallRecord>;
+  bookedCount: number;
+  onDispose: (rowKey: string, disposition: CallDisposition) => void;
+  onBook: (
+    row: CsvRow,
+    fields: {
+      contactName: string;
+      contactEmail: string;
+      scheduledAt: string;
+      notes: string;
+    },
+  ) => Promise<void>;
+  onContinue: () => void;
+  onBack: () => void;
+}
+
+function CallStep({
+  csvFile,
+  rows,
+  meta,
+  calls,
+  bookedCount,
+  onDispose,
+  onBook,
+  onContinue,
+  onBack,
+}: CallStepProps) {
+  const [filter, setFilter] = useState<"all" | "pending" | "booked">("all");
+  const [openBookingFor, setOpenBookingFor] = useState<string | null>(null);
+
+  if (!csvFile) {
+    return (
+      <section className="os-step-pane">
+        <div className="os-empty">
+          <div className="os-empty-title">No CSV loaded</div>
+          <div className="os-empty-sub">Go back to step 1 and either scrape a new list or pick an existing CSV.</div>
+          <button type="button" className="os-primary" onClick={onBack} style={{ marginTop: 12 }}>
+            ‹ Back to scrape
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  const filtered = rows.filter((r) => {
+    const d = calls[r.businessName]?.disposition ?? "pending";
+    if (filter === "pending") return d === "pending";
+    if (filter === "booked") return d === "booked";
+    return true;
+  });
+
+  return (
+    <section className="os-step-pane">
+      <div className="os-pane-head">
+        <div>
+          <h2>Step 2 · Cold call the list</h2>
+          <p>
+            {rows.length} lead{rows.length === 1 ? "" : "s"} loaded from <code>{csvFile.name}</code>.
+            Dial each one. When someone picks up and agrees to a discovery, click <strong>Book appointment</strong> —
+            the lead becomes a scheduled prospect. Mark the rest <em>No answer</em> or <em>Not interested</em> and move on.
+          </p>
+        </div>
+        <div className="os-pane-actions">
+          <button type="button" className="hml-btn" onClick={onBack}>
+            ‹ Back
+          </button>
+          <button
+            type="button"
+            className="os-primary"
+            onClick={onContinue}
+            disabled={bookedCount === 0}
+            title={bookedCount === 0 ? "Book at least one lead first" : "Continue to websites"}
+          >
+            Continue to websites →
+          </button>
+        </div>
+      </div>
+
+      <div className="os-call-summary">
+        <div className="os-call-stat">
+          <span className="os-call-stat-num">{bookedCount}</span>
+          <span className="os-call-stat-label">Booked</span>
+        </div>
+        <div className="os-call-stat">
+          <span className="os-call-stat-num">
+            {rows.filter((r) => (calls[r.businessName]?.disposition ?? "pending") === "pending").length}
+          </span>
+          <span className="os-call-stat-label">Pending</span>
+        </div>
+        <div className="os-call-stat">
+          <span className="os-call-stat-num">
+            {rows.filter((r) => calls[r.businessName]?.disposition === "no-answer").length}
+          </span>
+          <span className="os-call-stat-label">No answer</span>
+        </div>
+        <div className="os-call-stat">
+          <span className="os-call-stat-num">
+            {rows.filter((r) => calls[r.businessName]?.disposition === "not-interested").length}
+          </span>
+          <span className="os-call-stat-label">Not interested</span>
+        </div>
+        <div className="os-call-filter">
+          <button
+            type="button"
+            className={`os-mini-btn${filter === "all" ? " os-mini-btn-primary" : ""}`}
+            onClick={() => setFilter("all")}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            className={`os-mini-btn${filter === "pending" ? " os-mini-btn-primary" : ""}`}
+            onClick={() => setFilter("pending")}
+          >
+            Pending only
+          </button>
+          <button
+            type="button"
+            className={`os-mini-btn${filter === "booked" ? " os-mini-btn-primary" : ""}`}
+            onClick={() => setFilter("booked")}
+          >
+            Booked only
+          </button>
+        </div>
+      </div>
+
+      <div className="os-call-list">
+        {filtered.map((r) => {
+          const rec = calls[r.businessName];
+          const disposition: CallDisposition = rec?.disposition ?? "pending";
+          const isOpen = openBookingFor === r.businessName;
+          return (
+            <div
+              key={r.businessName}
+              className={`os-call-card os-call-card-${disposition}`}
+            >
+              <div className="os-call-card-main">
+                <div className="os-call-card-head">
+                  <div className="os-call-card-name">
+                    {r.businessName || "—"}
+                    {r.rating && (
+                      <span className="os-call-card-rating">
+                        {r.rating}★ {r.reviews && `(${r.reviews})`}
+                      </span>
+                    )}
+                  </div>
+                  <DispositionBadge disposition={disposition} />
+                </div>
+                <div className="os-call-card-phone">
+                  {r.phone ? (
+                    <a href={`tel:${r.phone.replace(/\D/g, "")}`}>{fmtPhone(r.phone)}</a>
+                  ) : (
+                    <span className="os-call-card-phone-empty">No phone on file</span>
+                  )}
+                </div>
+                <div className="os-call-card-meta">
+                  {r.address && <span>{r.address}</span>}
+                  {r.website && (
+                    <span>
+                      ·{" "}
+                      <a
+                        href={r.website}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {r.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                      </a>
+                    </span>
+                  )}
+                  {r.runningAds && <span>· Ads: {r.runningAds}</span>}
+                </div>
+              </div>
+              <div className="os-call-card-actions">
+                {disposition === "booked" ? (
+                  <button
+                    type="button"
+                    className="os-mini-btn"
+                    onClick={() => onDispose(r.businessName, "pending")}
+                    title="Undo booking (does not delete the prospect)"
+                  >
+                    Undo booked
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="os-mini-btn os-mini-btn-primary"
+                      onClick={() => setOpenBookingFor(isOpen ? null : r.businessName)}
+                    >
+                      {isOpen ? "Cancel" : "Book appointment"}
+                    </button>
+                    <button
+                      type="button"
+                      className={`os-mini-btn${disposition === "no-answer" ? " os-mini-btn-on" : ""}`}
+                      onClick={() =>
+                        onDispose(
+                          r.businessName,
+                          disposition === "no-answer" ? "pending" : "no-answer",
+                        )
+                      }
+                    >
+                      No answer
+                    </button>
+                    <button
+                      type="button"
+                      className={`os-mini-btn${disposition === "not-interested" ? " os-mini-btn-on" : ""}`}
+                      onClick={() =>
+                        onDispose(
+                          r.businessName,
+                          disposition === "not-interested" ? "pending" : "not-interested",
+                        )
+                      }
+                    >
+                      Not interested
+                    </button>
+                  </>
+                )}
+              </div>
+              {isOpen && disposition !== "booked" && (
+                <BookingForm
+                  row={r}
+                  meta={meta}
+                  onCancel={() => setOpenBookingFor(null)}
+                  onSubmit={async (fields) => {
+                    await onBook(r, fields);
+                    setOpenBookingFor(null);
+                  }}
+                />
+              )}
+            </div>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div className="os-empty">
+            <div className="os-empty-title">No leads in this filter</div>
+            <div className="os-empty-sub">Switch to "All" to see the full list.</div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function DispositionBadge({ disposition }: { disposition: CallDisposition }) {
+  if (disposition === "booked") {
+    return <span className="hml-pill hml-green"><span className="hml-pill-dot" />Booked</span>;
+  }
+  if (disposition === "no-answer") {
+    return <span className="hml-pill hml-neutral"><span className="hml-pill-dot" />No answer</span>;
+  }
+  if (disposition === "not-interested") {
+    return <span className="hml-pill hml-neutral"><span className="hml-pill-dot" />Not interested</span>;
+  }
+  return null;
+}
+
+function BookingForm({
+  row,
+  meta: _meta,
+  onCancel,
+  onSubmit,
+}: {
+  row: CsvRow;
+  meta: { niche: string; city: string; date: string };
+  onCancel: () => void;
+  onSubmit: (fields: {
+    contactName: string;
+    contactEmail: string;
+    scheduledAt: string;
+    notes: string;
+  }) => Promise<void>;
+}) {
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  return (
+    <form
+      className="os-call-card-booking"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setErr(null);
+        setSubmitting(true);
+        try {
+          await onSubmit({ contactName, contactEmail, scheduledAt, notes });
+        } catch (e2) {
+          setErr(e2 instanceof Error ? e2.message : String(e2));
+        } finally {
+          setSubmitting(false);
+        }
+      }}
+    >
+      <div className="os-card-eyebrow">▸ Book {row.businessName}</div>
+      <div className="os-call-card-booking-grid">
+        <label className="os-field">
+          <span className="os-label">Contact name</span>
+          <input
+            type="text"
+            className="os-input"
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+            placeholder="Dr. Sarah Kim"
+            autoFocus
+          />
+        </label>
+        <label className="os-field">
+          <span className="os-label">Contact email</span>
+          <input
+            type="email"
+            className="os-input"
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
+            placeholder="sarah@business.com"
+          />
+        </label>
+        <label className="os-field">
+          <span className="os-label">Discovery call time</span>
+          <input
+            type="datetime-local"
+            className="os-input"
+            value={scheduledAt}
+            onChange={(e) => setScheduledAt(e.target.value)}
+          />
+        </label>
+        <label className="os-field">
+          <span className="os-label">Phone</span>
+          <input
+            type="text"
+            className="os-input"
+            value={fmtPhone(row.phone)}
+            disabled
+          />
+        </label>
+        <label className="os-field os-field-full">
+          <span className="os-label">Notes from the call</span>
+          <textarea
+            className="os-input"
+            rows={3}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="What they said, pain points, what to send before the call."
+          />
+        </label>
+      </div>
+      {err && <div className="os-error">{err}</div>}
+      <div className="os-call-card-booking-actions">
+        <button type="button" className="hml-btn" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="os-primary"
+          disabled={submitting}
+        >
+          {submitting ? "Saving…" : "Save booking"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Step 3 — Websites (mockups for booked leads only)
 // ═══════════════════════════════════════════════════════════════
 
 interface MockupStepProps {
@@ -918,15 +1224,31 @@ function MockupStep({
     );
   }
 
+  if (rows.length === 0) {
+    return (
+      <section className="os-step-pane">
+        <div className="os-empty">
+          <div className="os-empty-title">No booked leads yet</div>
+          <div className="os-empty-sub">
+            Websites are built only for prospects you booked in step 2. Go back and book at least one.
+          </div>
+          <button type="button" className="os-primary" onClick={onBack} style={{ marginTop: 12 }}>
+            ‹ Back to cold call
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="os-step-pane">
       <div className="os-pane-head">
         <div>
-          <h2>Step 2 · Build mockups</h2>
+          <h2>Step 3 · Build websites for booked prospects</h2>
           <p>
-            {rows.length} lead{rows.length === 1 ? "" : "s"} loaded from <code>{csvFile.name}</code>.
-            Click "Build mockup" on any row you want to send a proof to.
-            <span className="os-pane-hint"> Optional — skip ahead to DMs if you want a no-mockup pass.</span>
+            {rows.length} booked prospect{rows.length === 1 ? "" : "s"}.
+            Build a revamp HTML for each so you can show it on the discovery call.
+            <span className="os-pane-hint"> Optional — skip ahead if you'd rather build sites later.</span>
           </p>
         </div>
         <div className="os-pane-actions">
@@ -934,7 +1256,7 @@ function MockupStep({
             ‹ Back
           </button>
           <button type="button" className="os-primary" onClick={onContinue}>
-            Continue to DMs →
+            Continue to summary →
           </button>
         </div>
       </div>
@@ -969,7 +1291,7 @@ function MockupStep({
       </div>
 
       <div className="os-card">
-        <div className="os-card-eyebrow">▸ Leads · {rows.length}</div>
+        <div className="os-card-eyebrow">▸ Booked prospects · {rows.length}</div>
         <div className="os-leads-table">
           <div className="os-leads-header">
             <span>Business</span>
@@ -985,7 +1307,7 @@ function MockupStep({
             return (
               <div key={r.businessName} className="os-leads-row">
                 <span className="os-leads-name">{r.businessName || "—"}</span>
-                <span className="os-leads-meta">{r.phone || "—"}</span>
+                <span className="os-leads-meta">{fmtPhone(r.phone) || "—"}</span>
                 <span className="os-leads-meta os-leads-url">
                   {r.website ? r.website.replace(/^https?:\/\//, "").replace(/\/$/, "") : "—"}
                 </span>
@@ -1067,229 +1389,6 @@ function MockupStep({
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Step 3 — DMs
-// ═══════════════════════════════════════════════════════════════
-
-interface DmStepProps {
-  csvFile: ProspectFile | null;
-  rows: CsvRow[];
-  headers: string[];
-  instructions: string;
-  setInstructions: (v: string) => void;
-  running: boolean;
-  log: string;
-  error: string | null;
-  dmFile: DmFile | null;
-  dmTable: DmTableRow[];
-  dmBody: string;
-  history: ProspectFile[];
-  onSwitchCsv: (f: ProspectFile) => Promise<void>;
-  onRun: () => void;
-  onContinue: () => void;
-  onBack: () => void;
-}
-
-function DmStep({
-  csvFile,
-  rows,
-  headers,
-  instructions,
-  setInstructions,
-  running,
-  log,
-  error,
-  dmFile,
-  dmTable,
-  dmBody,
-  history,
-  onSwitchCsv,
-  onRun,
-  onContinue,
-  onBack,
-}: DmStepProps) {
-  const [switching, setSwitching] = useState(false);
-
-  if (!csvFile) {
-    return (
-      <section className="os-step-pane">
-        <div className="os-empty">
-          <div className="os-empty-title">No CSV loaded</div>
-          <div className="os-empty-sub">Back up and pick a CSV first.</div>
-          <button type="button" className="os-primary" onClick={onBack} style={{ marginTop: 12 }}>
-            ‹ Back
-          </button>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="os-step-pane">
-      <div className="os-pane-head">
-        <div>
-          <h2>Step 3 · Write DMs</h2>
-          <p>
-            The copywriter agent reads the campaign CSV and produces a personalized DM for each business.
-            Tune the instructions below if you want to change tone, length, or output columns.
-          </p>
-        </div>
-        <div className="os-pane-actions">
-          <button type="button" className="hml-btn" onClick={onBack}>
-            ‹ Back
-          </button>
-          <button
-            type="button"
-            className="os-primary"
-            onClick={onContinue}
-            disabled={!dmFile}
-            title={!dmFile ? "Run the copywriter first" : "Continue"}
-          >
-            Continue to summary →
-          </button>
-        </div>
-      </div>
-
-      <div className="os-card">
-        <div className="os-card-eyebrow">▸ Campaign CSV</div>
-        <div className="os-csv-summary">
-          <div>
-            <strong>{csvFile.name}</strong>
-            <div className="os-hint">
-              {rows.length} lead{rows.length === 1 ? "" : "s"} · columns: {headers.slice(0, 6).join(" · ")}
-              {headers.length > 6 ? "…" : ""}
-            </div>
-          </div>
-          <button
-            type="button"
-            className="os-link"
-            onClick={() => setSwitching((v) => !v)}
-          >
-            {switching ? "Cancel swap" : "Use a different CSV"}
-          </button>
-        </div>
-        {switching && (
-          <div className="os-file-list" style={{ marginTop: 8 }}>
-            {history.map((f) => (
-              <button
-                key={f.path}
-                type="button"
-                className={`os-file-row${f.path === csvFile.path ? " os-file-row-active" : ""}`}
-                onClick={async () => {
-                  await onSwitchCsv(f);
-                  setSwitching(false);
-                }}
-              >
-                <span className="os-file-name">{f.name}</span>
-                <span className="os-file-meta">{fmtWhen(f.modified_unix)}</span>
-                <span className="os-file-arrow">
-                  Use →
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="os-card">
-        <div className="os-card-eyebrow">▸ DM instructions</div>
-        <textarea
-          className="os-input os-textarea"
-          rows={12}
-          value={instructions}
-          onChange={(e) => setInstructions(e.target.value)}
-          disabled={running}
-          spellCheck={false}
-        />
-        <div className="os-hint">
-          The CSV is appended automatically below your instructions when the run starts.
-        </div>
-        <div className="os-card-actions">
-          <button
-            type="button"
-            className="os-primary"
-            onClick={onRun}
-            disabled={running}
-          >
-            {running ? "Writing DMs…" : dmFile ? "Re-run copywriter" : "Run copywriter →"}
-          </button>
-          {dmFile && (
-            <button
-              type="button"
-              className="hml-btn"
-              onClick={() => void openPath(dmFile.path)}
-            >
-              Open .md file
-            </button>
-          )}
-        </div>
-        {error && <div className="os-error">{error}</div>}
-      </div>
-
-      {running && (
-        <div className="os-card">
-          <div className="os-card-eyebrow">▸ Live output</div>
-          <pre className="os-log">{log || "Thinking…"}</pre>
-        </div>
-      )}
-
-      {dmTable.length > 0 && (
-        <div className="os-card">
-          <div className="os-card-eyebrow">▸ Generated DMs · {dmTable.length}</div>
-          <DmTable rows={dmTable} />
-        </div>
-      )}
-      {dmTable.length === 0 && dmBody && !running && (
-        <div className="os-card">
-          <div className="os-card-eyebrow">▸ Raw output</div>
-          <pre className="os-log">{dmBody}</pre>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function DmTable({ rows }: { rows: DmTableRow[] }) {
-  const [copied, setCopied] = useState<number | null>(null);
-  const copy = async (i: number, text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(i);
-      setTimeout(() => setCopied(null), 1400);
-    } catch (e) {
-      console.warn(e);
-    }
-  };
-  return (
-    <div className="os-dm-table">
-      <div className="os-dm-header">
-        <span>Business</span>
-        <span>Channel</span>
-        <span>Message</span>
-        <span style={{ textAlign: "right" }}>Copy</span>
-      </div>
-      {rows.map((r, i) => (
-        <div key={i} className="os-dm-row">
-          <span className="os-dm-business">{r.business}</span>
-          <span className={`os-dm-platform os-dm-platform-${r.platform.toLowerCase()}`}>
-            {r.platform}
-          </span>
-          <span className="os-dm-msg">{r.message}</span>
-          <span className="os-dm-action">
-            <button
-              type="button"
-              className="os-mini-btn"
-              onClick={() => void copy(i, r.message)}
-            >
-              {copied === i ? "✓ Copied" : "Copy"}
-            </button>
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
 // Step 4 — Summary
 // ═══════════════════════════════════════════════════════════════
 
@@ -1297,9 +1396,9 @@ interface SummaryStepProps {
   csvFile: ProspectFile | null;
   rows: CsvRow[];
   meta: { niche: string; city: string; date: string };
+  calls: Record<string, CallRecord>;
   mockups: MockupRecord[];
-  dmFile: DmFile | null;
-  dmTable: DmTableRow[];
+  bookedRows: CsvRow[];
   onRestart: () => void;
   onBack: () => void;
   accent: string;
@@ -1309,26 +1408,29 @@ function SummaryStep({
   csvFile,
   rows,
   meta,
+  calls,
   mockups,
-  dmFile,
-  dmTable,
+  bookedRows,
   onRestart,
   onBack,
   accent,
 }: SummaryStepProps) {
+  const noAnswer = Object.values(calls).filter((c) => c.disposition === "no-answer").length;
+  const notInterested = Object.values(calls).filter((c) => c.disposition === "not-interested").length;
+
   return (
     <section className="os-step-pane">
       <div className="os-pane-head">
         <div>
           <h2>Step 4 · Summary</h2>
-          <p>Here's everything this campaign produced. Click any step in the stepper above to revisit.</p>
+          <p>Here's what this cold-call pass produced. Booked prospects are saved to your Prospects list; unbooked leads stay ephemeral.</p>
         </div>
         <div className="os-pane-actions">
           <button type="button" className="hml-btn" onClick={onBack}>
-            ‹ Back to DMs
+            ‹ Back to websites
           </button>
           <button type="button" className="os-primary" onClick={onRestart}>
-            Start a new campaign →
+            Start a new pass →
           </button>
         </div>
       </div>
@@ -1348,16 +1450,24 @@ function SummaryStep({
             <span className="os-summary-val">{meta.city || "—"}</span>
           </div>
           <div className="os-summary-row">
-            <span className="os-summary-key">Leads</span>
+            <span className="os-summary-key">Leads dialed</span>
             <span className="os-summary-val">{rows.length}</span>
           </div>
           <div className="os-summary-row">
-            <span className="os-summary-key">Mockups built</span>
-            <span className="os-summary-val">{mockups.length}</span>
+            <span className="os-summary-key">Booked</span>
+            <span className="os-summary-val">{bookedRows.length}</span>
           </div>
           <div className="os-summary-row">
-            <span className="os-summary-key">DMs written</span>
-            <span className="os-summary-val">{dmTable.length || (dmFile ? "—" : 0)}</span>
+            <span className="os-summary-key">No answer</span>
+            <span className="os-summary-val">{noAnswer}</span>
+          </div>
+          <div className="os-summary-row">
+            <span className="os-summary-key">Not interested</span>
+            <span className="os-summary-val">{notInterested}</span>
+          </div>
+          <div className="os-summary-row">
+            <span className="os-summary-key">Websites built</span>
+            <span className="os-summary-val">{mockups.length}</span>
           </div>
         </div>
 
@@ -1374,17 +1484,6 @@ function SummaryStep({
               <span className="os-file-arrow">Open →</span>
             </button>
           )}
-          {dmFile && (
-            <button
-              type="button"
-              className="os-file-row"
-              onClick={() => void openPath(dmFile.path)}
-            >
-              <span className="os-file-name">✉️ {dmFile.name}</span>
-              <span className="os-file-meta">DMs</span>
-              <span className="os-file-arrow">Open →</span>
-            </button>
-          )}
           {mockups.map((m) => (
             <button
               key={m.rowKey}
@@ -1397,7 +1496,7 @@ function SummaryStep({
               <span className="os-file-arrow">Open →</span>
             </button>
           ))}
-          {!csvFile && !dmFile && mockups.length === 0 && (
+          {!csvFile && mockups.length === 0 && (
             <div className="os-empty">
               <div className="os-empty-title">Nothing yet</div>
               <div className="os-empty-sub">Run through the steps above.</div>
@@ -1406,10 +1505,50 @@ function SummaryStep({
         </div>
       </div>
 
-      {dmTable.length > 0 && (
+      {bookedRows.length > 0 && (
         <div className="os-card">
-          <div className="os-card-eyebrow">▸ DMs · {dmTable.length}</div>
-          <DmTable rows={dmTable} />
+          <div className="os-card-eyebrow">▸ Booked prospects · {bookedRows.length}</div>
+          <div className="os-leads-table">
+            <div className="os-leads-header">
+              <span>Business</span>
+              <span>Phone</span>
+              <span>Scheduled</span>
+              <span style={{ textAlign: "right" }}>Site</span>
+            </div>
+            {bookedRows.map((r) => {
+              const rec = calls[r.businessName];
+              const mock = mockups.find((m) => m.rowKey === r.businessName);
+              return (
+                <div key={r.businessName} className="os-leads-row">
+                  <span className="os-leads-name">{r.businessName}</span>
+                  <span className="os-leads-meta">{fmtPhone(r.phone) || "—"}</span>
+                  <span className="os-leads-meta">
+                    {rec?.scheduledAt
+                      ? new Date(rec.scheduledAt).toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "—"}
+                  </span>
+                  <span className="os-leads-action">
+                    {mock ? (
+                      <button
+                        type="button"
+                        className="os-mini-btn"
+                        onClick={() => void openPath(mock.path)}
+                      >
+                        Open
+                      </button>
+                    ) : (
+                      <span className="os-mini-running">No site yet</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </section>

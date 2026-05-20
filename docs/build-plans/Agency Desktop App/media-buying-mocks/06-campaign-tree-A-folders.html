@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Campaign Tree · Folders · Sunrise HVAC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0d14;
+    --bg-2: #11151f;
+    --bg-3: #1a2030;
+    --bg-card: #141a26;
+    --line: #1f2738;
+    --line-2: #2a3450;
+    --text: #e8ecf3;
+    --text-2: #9aa3b8;
+    --text-3: #6b7591;
+    --campaign: #5ea3ff;
+    --adset: #b07bff;
+    --ad: #54d68f;
+    --copy: #f7d34d;
+    --creative: #ff8959;
+    --signal-g: #54d68f;
+    --signal-r: #ff5d57;
+    --signal-a: #f7b14d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .app { display: grid; grid-template-rows: auto auto 1fr auto; height: 100vh; }
+
+  /* Title bar */
+  .titlebar {
+    padding: 18px 28px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 28px;
+    align-items: center;
+  }
+  .crest { display: flex; gap: 12px; align-items: center; }
+  .crest .symbol {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--campaign), var(--adset));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px; color: white;
+  }
+  .crest h1 {
+    font-size: 16px; font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .crest .sub {
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    color: var(--text-3); letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .meta-row {
+    display: flex; gap: 28px;
+  }
+  .meta-row .item {
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .meta-row .k { color: var(--text-3); display: block; margin-bottom: 2px; }
+  .meta-row .v { color: var(--text); font-size: 12px; font-weight: 500; }
+  .actions { display: flex; gap: 8px; }
+  .btn {
+    padding: 7px 14px;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    color: var(--text);
+    font-family: 'Inter'; font-size: 11px; font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.12s ease-out;
+  }
+  .btn:hover { background: var(--line-2); }
+  .btn.primary { background: var(--campaign); border-color: var(--campaign); color: #0a0d14; }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .btn.green { background: var(--ad); border-color: var(--ad); color: #0a0d14; }
+
+  /* Sub-bar */
+  .subbar {
+    padding: 10px 28px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    color: var(--text-3); letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .subbar .legend { display: flex; gap: 14px; align-items: center; }
+  .subbar .legend .item { display: inline-flex; gap: 6px; align-items: center; }
+  .subbar .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .subbar .breadcrumb { color: var(--text-2); }
+  .subbar .breadcrumb b { color: var(--text); font-weight: 600; }
+  .subbar .right { margin-left: auto; display: flex; gap: 12px; }
+  .toggle {
+    background: transparent; border: 1px solid var(--line-2);
+    color: var(--text-2); padding: 4px 10px;
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    border-radius: 4px; cursor: pointer;
+  }
+  .toggle:hover { color: var(--text); border-color: var(--text-2); }
+  .toggle.on { background: var(--bg-3); color: var(--text); border-color: var(--line-2); }
+
+  /* Main tree area */
+  .tree {
+    overflow-y: auto;
+    padding: 24px 32px 80px;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(94, 163, 255, 0.04), transparent 40%),
+      radial-gradient(circle at 80% 100%, rgba(176, 123, 255, 0.04), transparent 40%);
+  }
+
+  .node { position: relative; }
+  .node.has-children { padding-left: 0; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 18px auto 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s ease-out;
+  }
+  .row:hover { background: var(--bg-2); }
+  .row .caret {
+    color: var(--text-3); font-size: 10px;
+    transition: transform 0.15s ease-out;
+    user-select: none;
+  }
+  .row.open .caret { transform: rotate(90deg); }
+  .row .icon {
+    width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .row .label {
+    font-weight: 700; letter-spacing: 0.02em;
+    text-transform: uppercase;
+    font-size: 13px;
+  }
+  .row .label .light { font-weight: 400; color: var(--text-3); text-transform: none; letter-spacing: 0; }
+  .row .badge {
+    font-family: 'JetBrains Mono'; font-size: 9px;
+    color: var(--text-3); letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .row .stat {
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    color: var(--text-2);
+    background: var(--bg-2);
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+
+  /* Campaign row */
+  .campaign-row .label { color: var(--campaign); }
+  .campaign-row .icon { color: var(--campaign); }
+
+  /* Ad-set row */
+  .adset-row .label { color: var(--adset); }
+  .adset-row .icon { color: var(--adset); }
+  .adset-row .label .sub { color: var(--text-2); font-weight: 400; font-size: 11px; letter-spacing: 0; text-transform: none; margin-left: 4px; }
+
+  /* Ad row */
+  .ad-row .label { color: var(--ad); font-size: 12px; text-transform: none; font-weight: 600; }
+  .ad-row .icon { color: var(--ad); }
+
+  .children {
+    margin-left: 26px;
+    border-left: 1px solid var(--line);
+    padding-left: 14px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    position: relative;
+  }
+  .children::before {
+    content: '';
+    position: absolute;
+    left: -1px; top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(180deg, var(--line) 0%, var(--line) 90%, transparent 100%);
+  }
+
+  /* Expanded ad detail */
+  .ad-detail {
+    display: grid;
+    grid-template-columns: 96px 1fr 220px;
+    gap: 16px;
+    margin: 6px 8px 14px 36px;
+    padding: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--ad);
+    border-radius: 8px;
+  }
+  .ad-detail .thumb {
+    width: 96px; height: 96px;
+    border-radius: 6px;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    overflow: hidden;
+    position: relative;
+  }
+  .ad-detail .thumb img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .ad-detail .thumb .tag {
+    position: absolute; top: 6px; right: 6px;
+    background: rgba(10, 13, 20, 0.85);
+    color: white;
+    font-family: 'JetBrains Mono'; font-size: 8px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .ad-detail .thumb.empty {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono'; font-size: 9px;
+    text-align: center;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-style: dashed;
+  }
+
+  .ad-detail .body {
+    display: flex; flex-direction: column;
+    gap: 8px;
+  }
+  .ad-detail .field-row {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .ad-detail .field-row .k {
+    font-family: 'JetBrains Mono'; font-size: 9px;
+    color: var(--text-3); letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding-top: 2px;
+  }
+  .ad-detail .field-row .v {
+    color: var(--text); font-size: 13px;
+    line-height: 1.4;
+  }
+  .ad-detail .field-row .v.empty {
+    color: var(--text-3); font-style: italic;
+  }
+  .ad-detail .field-row .v .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    border-radius: 12px;
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    color: var(--text-2);
+    margin-right: 4px;
+  }
+  .ad-detail .field-row .v .pill.angle {
+    background: rgba(94, 163, 255, 0.1);
+    border-color: rgba(94, 163, 255, 0.3);
+    color: var(--campaign);
+  }
+
+  .ad-detail .side {
+    border-left: 1px solid var(--line);
+    padding-left: 14px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .ad-detail .side .row-line {
+    display: flex; justify-content: space-between;
+    font-family: 'JetBrains Mono'; font-size: 10px;
+  }
+  .ad-detail .side .k { color: var(--text-3); letter-spacing: 0.06em; text-transform: uppercase; }
+  .ad-detail .side .v { color: var(--text); font-weight: 600; }
+  .ad-detail .side .v.go { color: var(--signal-g); }
+  .ad-detail .side .v.warn { color: var(--signal-a); }
+  .ad-detail .side .v.bad { color: var(--signal-r); }
+  .ad-detail .side .progress {
+    margin-top: 8px;
+    height: 4px;
+    background: var(--bg-3);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .ad-detail .side .progress .fill {
+    height: 100%;
+    background: var(--ad);
+    border-radius: 2px;
+  }
+
+  /* Empty/placeholder card style */
+  .ad-detail.empty {
+    border-left-color: var(--text-3);
+    background: linear-gradient(180deg, var(--bg-card), var(--bg-2));
+  }
+  .ad-detail.empty .field-row .v { color: var(--text-3); }
+  .row.empty .label { color: var(--text-3); font-style: italic; }
+  .row.empty .icon { color: var(--text-3); }
+  .row.empty .icon svg { opacity: 0.4; }
+
+  /* Status dots */
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .status-dot.go { background: var(--signal-g); box-shadow: 0 0 8px rgba(84, 214, 143, 0.5); }
+  .status-dot.wait { background: var(--signal-a); }
+  .status-dot.empty { background: var(--text-3); }
+
+  /* Footer */
+  .footer {
+    padding: 12px 28px;
+    background: var(--bg-2);
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    color: var(--text-3); letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .footer b { color: var(--text); }
+  .footer .right { margin-left: auto; display: flex; gap: 18px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="titlebar">
+    <div class="crest">
+      <div class="symbol">H</div>
+      <div>
+        <h1>Campaign Skeleton</h1>
+        <div class="sub">Media Buying · Live Visualization</div>
+      </div>
+    </div>
+    <div class="meta-row">
+      <div class="item">
+        <span class="k">Client</span>
+        <span class="v">Sunrise HVAC</span>
+      </div>
+      <div class="item">
+        <span class="k">Offer</span>
+        <span class="v">$49 21-Point Tune-Up</span>
+      </div>
+      <div class="item">
+        <span class="k">Daily budget</span>
+        <span class="v">$25 / day</span>
+      </div>
+      <div class="item">
+        <span class="k">Status</span>
+        <span class="v" style="color: var(--signal-a);">Draft · 5 of 6 ads ready</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn">Back to form</button>
+      <button class="btn green">Push to Meta</button>
+    </div>
+  </header>
+
+  <div class="subbar">
+    <div class="breadcrumb">Workspace › <b>Sunrise HVAC</b> › Media Buying › <b>Campaign Tree</b></div>
+    <div class="legend">
+      <div class="item"><span class="dot" style="background: var(--campaign);"></span>Campaign</div>
+      <div class="item"><span class="dot" style="background: var(--adset);"></span>Ad set</div>
+      <div class="item"><span class="dot" style="background: var(--ad);"></span>Ad</div>
+      <div class="item"><span class="dot" style="background: var(--text-3);"></span>Empty</div>
+    </div>
+    <div class="right">
+      <button class="toggle on">Expand all</button>
+      <button class="toggle">Collapse all</button>
+      <button class="toggle">Hide empty</button>
+    </div>
+  </div>
+
+  <main class="tree">
+
+    <!-- CAMPAIGN -->
+    <div class="node">
+      <div class="row campaign-row open">
+        <span class="caret">▶</span>
+        <span class="icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 3.5a2 2 0 0 1 2-2h2.586a2 2 0 0 1 1.414.586L8.914 3.5H12.5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9z"/></svg>
+        </span>
+        <span class="label">CAMPAIGN: SUNRISE HVAC · LEADS · ABO TESTING</span>
+        <span class="stat">Objective: Leads | Budget: ABO (ad set level) | $25/day total</span>
+      </div>
+
+      <div class="children">
+
+        <!-- AD SET 1: BROAD -->
+        <div class="node">
+          <div class="row adset-row open">
+            <span class="caret">▶</span>
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 3.5a2 2 0 0 1 2-2h2.586a2 2 0 0 1 1.414.586L8.914 3.5H12.5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9z"/></svg>
+            </span>
+            <span class="label">AD SET 1: BROAD · AUSTIN 10MI · 25-55<span class="sub">$12/day · let Meta find the right people</span></span>
+            <span class="stat"><span class="status-dot go"></span>3 of 3 ads ready</span>
+          </div>
+
+          <div class="children">
+
+            <!-- AD 1 -->
+            <div class="node">
+              <div class="row ad-row open">
+                <span class="caret">▶</span>
+                <span class="icon">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M2 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V4.414a1 1 0 0 0-.293-.707L9.293 1.293A1 1 0 0 0 8.586 1H2z"/></svg>
+                </span>
+                <span class="label">Ad 1 · Image · Offer Angle A · V1</span>
+                <span class="stat"><span class="status-dot go"></span>Ready</span>
+              </div>
+
+              <div class="ad-detail">
+                <div class="thumb">
+                  <img src="https://picsum.photos/seed/hvac-a1/200/200" alt="">
+                  <span class="tag">Image</span>
+                </div>
+                <div class="body">
+                  <div class="field-row">
+                    <span class="k">Angle</span>
+                    <span class="v"><span class="pill angle">Price anchor</span> — lead with the low-friction $49 number</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="k">Hook</span>
+                    <span class="v">"$49 gets your AC ready for a Texas summer."</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="k">Body</span>
+                    <span class="v">21-point inspection, refrigerant check, coil clean. Book online in 60 seconds.</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="k">CTA</span>
+                    <span class="v"><span class="pill">Book Now</span></span>
+                  </div>
+                </div>
+                <div class="side">
+                  <div class="row-line"><span class="k">Status</span><span class="v go">Ready</span></div>
+                  <div class="row-line"><span class="k">Copy lock</span><span class="v go">Yes</span></div>
+                  <div class="row-line"><span class="k">Creative</span><span class="v go">Uploaded</span></div>
+                  <div class="row-line"><span class="k">Policy scan</span><span class="v go">Clear</span></div>
+                  <div class="progress"><div class="fill" style="width: 100%;"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- AD 2 -->
+            <div class="node">
+              <div class="row ad-row open">
+                <span class="caret">▶</span>
+                <span class="icon">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M2 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V4.414a1 1 0 0 0-.293-.707L9.293 1.293A1 1 0 0 0 8.586 1H2z"/></svg>
+                </span>
+                <span class="label">Ad 2 · Image · Offer Angle B · V1</span>
+                <span class="stat"><span class="status-dot go"></span>Ready</span>
+              </div>
+
+              <div class="ad-detail">
+                <div class="thumb">
+                  <img src="https://picsum.photos/seed/hvac-a2/200/200" alt="">
+                  <span class="tag">Image</span>
+                </div>
+                <div class="body">
+                  <div class="field-row">
+                    <span class="k">Angle</span>
+                    <span class="v"><span class="pill angle">Fear / urgency</span> — the cost of waiting until it breaks</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="k">Hook</span>
+                    <span class="v">"Your AC will die in this heat. Catch it first for $49."</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="k">Body</span>
+                    <span class="v">$8,000 replacement vs. $49 catch-it-early. Pick one.</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="k">CTA</span>
+                    <span class="v"><span class="pill">Get the $49 Check</span></span>
+                  </div>
+                </div>
+                <div class="side">
+                  <div class="row-line"><span class="k">Status</span><span class="v go">Ready</span></div>
+                  <div class="row-line"><span class="k">Copy lock</span><span class="v go">Yes</span></div>
+                  <div class="row-line"><span class="k">Creative</span><span class="v go">Uploaded</span></div>
+                  <div class="row-line"><span class="k">Policy scan</span><span class="v go">Clear</span></div>
+                  <div class="progress"><div class="fill" style="width: 100%;"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- AD 3 -->
+            <div class="node">
+              <div class="row ad-row open">
+                <span class="caret">▶</span>
+                <span class="icon">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M2 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V4.414a1 1 0 0 0-.293-.707L9.293 1.293A1 1 0 0 0 8.586 1H2z"/></svg>
+                </span>
+                <span class="label">Ad 3 · Video · Testimonial / BTS · V1</span>
+                <span class="stat"><span class="status-dot go"></span>Ready</span>
+              </div>
+
+              <div class="ad-detail">
+                <div class="thumb">
+                  <img src="https://picsum.photos/seed/hvac-a3/200/200" alt="">
+                  <span class="tag">Video 0:24</span>
+                </div>
+                <div class="body">
+                  <div class="field-row">
+                    <span class="k">Angle</span>
+                    <span class="v"><span class="pill angle">Social proof</span> — real customer, real Austin neighborhood</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="k">Hook</span>
+                    <span class="v">"They caught a leak my last guy missed. Saved me thousands." — Janelle, Cedar Park</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="k">Body</span>
+                    <span class="v">24-sec testimonial, raw vertical, captions on. Format: ROI story.</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="k">CTA</span>
+                    <span class="v"><span class="pill">Book Now</span></span>
+                  </div>
+                </div>
+                <div class="side">
+                  <div class="row-line"><span class="k">Status</span><span class="v go">Ready</span></div>
+                  <div class="row-line"><span class="k">Copy lock</span><span class="v go">Yes</span></div>
+                  <div class="row-line"><span class="k">Creative</span><span class="v go">Uploaded</span></div>
+                  <div class="row-line"><span class="k">Policy scan</span><span class="v go">Clear</span></div>
+                  <div class="progress"><div class="fill" style="width: 100%;"></div></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- AD SET 2: INTEREST -->
+        <div class="node">
+          <div class="row adset-row open">
+            <span class="caret">▶</span>
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 3.5a2 2 0 0 1 2-2h2.586a2 2 0 0 1 1.414.586L8.914 3.5H12.5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9z"/></svg>
+            </span>
+            <span class="label">AD SET 2: INTEREST · HOME IMPROVEMENT + HOMEOWNERS · 25-55<span class="sub">$13/day · same 3 ads, testing audience not creatives</span></span>
+            <span class="stat"><span class="status-dot wait"></span>2 of 3 ads ready</span>
+          </div>
+
+          <div class="children">
+
+            <!-- AD 1 (mirror) -->
+            <div class="node">
+              <div class="row ad-row open">
+                <span class="caret">▶</span>
+                <span class="icon">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M2 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V4.414a1 1 0 0 0-.293-.707L9.293 1.293A1 1 0 0 0 8.586 1H2z"/></svg>
+                </span>
+                <span class="label">Ad 1 · Image · Offer Angle A · V1 <span style="color: var(--text-3); font-weight: 400; font-size: 10px;">(mirrors Ad Set 1)</span></span>
+                <span class="stat"><span class="status-dot go"></span>Mirrored</span>
+              </div>
+            </div>
+
+            <!-- AD 2 (mirror) -->
+            <div class="node">
+              <div class="row ad-row open">
+                <span class="caret">▶</span>
+                <span class="icon">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M2 1a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V4.414a1 1 0 0 0-.293-.707L9.293 1.293A1 1 0 0 0 8.586 1H2z"/></svg>
+                </span>
+                <span class="label">Ad 2 · Image · Offer Angle B · V1 <span style="color: var(--text-3); font-weight: 400; font-size: 10px;">(mirrors Ad Set 1)</span></span>
+                <span class="stat"><span class="status-dot go"></span>Mirrored</span>
+              </div>
+            </div>
+
+            <!-- AD 3 - empty / awaiting -->
+            <div class="node">
+              <div class="row ad-row open empty">
+                <span class="caret">▶</span>
+                <span class="icon">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2,2"><rect x="1.5" y="1.5" width="11" height="11" rx="1"/></svg>
+                </span>
+                <span class="label">Ad 3 · Video · Testimonial / BTS · V1</span>
+                <span class="stat"><span class="status-dot wait"></span>Awaiting creative upload</span>
+              </div>
+
+              <div class="ad-detail empty">
+                <div class="thumb empty">
+                  <span>Drop<br>video<br>here</span>
+                </div>
+                <div class="body">
+                  <div class="field-row">
+                    <span class="k">Angle</span>
+                    <span class="v"><span class="pill angle">Social proof</span> — same as Broad Ad 3</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="k">Hook</span>
+                    <span class="v">"They caught a leak my last guy missed. Saved me thousands." — Janelle, Cedar Park</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="k">Body</span>
+                    <span class="v empty">— awaiting video file from client (Janelle testimonial, 0:24 vertical)</span>
+                  </div>
+                  <div class="field-row">
+                    <span class="k">CTA</span>
+                    <span class="v"><span class="pill">Book Now</span></span>
+                  </div>
+                </div>
+                <div class="side">
+                  <div class="row-line"><span class="k">Status</span><span class="v warn">Awaiting</span></div>
+                  <div class="row-line"><span class="k">Copy lock</span><span class="v go">Yes</span></div>
+                  <div class="row-line"><span class="k">Creative</span><span class="v warn">Missing file</span></div>
+                  <div class="row-line"><span class="k">Policy scan</span><span class="v" style="color: var(--text-3);">Pending</span></div>
+                  <div class="progress"><div class="fill" style="width: 65%; background: var(--signal-a);"></div></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    <span>Tree · <b>1 campaign</b> · <b>2 ad sets</b> · <b>6 ads</b> (3 unique creatives)</span>
+    <span>Build progress · <b style="color: var(--signal-a);">83%</b></span>
+    <span>Estimated launch · <b>after 1 video upload</b></span>
+    <span class="right">
+      <span>Auto-save · 2s ago</span>
+      <span>HML v0.4.2</span>
+    </span>
+  </footer>
+
+</div>
+</body>
+</html>

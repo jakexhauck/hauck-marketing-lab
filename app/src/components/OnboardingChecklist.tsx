@@ -18,7 +18,7 @@ import {
 } from "../lib/mediaBuyingSequence";
 import { syncOnboardingPhase } from "../lib/ghlSync";
 import { api } from "../lib/tauri";
-import { getFormConfig, type FormValues } from "../lib/formConfigs";
+import { getFormConfig, type FormValues, type FormSurfaceId } from "../lib/formConfigs";
 import type { AgentSummary, GeneratorOutput, OnboardingState } from "../lib/types";
 import { GenericFormGenerator } from "./GenericFormGenerator";
 import ProvisionMobileAppForm from "./ProvisionMobileAppForm";
@@ -121,6 +121,14 @@ const STEP_BY_TASK: Map<string, SequenceStep> = new Map(
     Boolean(s.checklistTaskId),
   ).map((s) => [s.checklistTaskId, s]),
 );
+
+/** Standalone checklist tasks that open a form directly (not part of the Ads
+ *  sequence). Used for Pre-Call Prep, where Offer + CTA and Competitor Research
+ *  live outside the sequence wizard but still need a "Open form" button. */
+const FORM_BY_TASK: Map<string, FormSurfaceId> = new Map([
+  ["02-offer-options", "offer-cta"],
+  ["03-competitors", "competitors"],
+]);
 
 export function OnboardingChecklist({ root, clientName, clientSlug, agents, onComplete }: Props) {
   const [doneSet, setDoneSet] = useState<Set<string>>(() => new Set());
@@ -366,7 +374,14 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
         return;
       }
       const step = STEP_BY_TASK.get(taskId);
-      if (!step || !root) return;
+      if (!step) {
+        if (FORM_BY_TASK.has(taskId)) {
+          setOpenTaskId(taskId);
+          setChainValues({});
+        }
+        return;
+      }
+      if (!root) return;
       setOpenTaskId(taskId);
       setChainValues({});
       if (!step.chainFrom) return;
@@ -443,6 +458,13 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
   // Render the form overlay when a task with a sequence step is opened.
   const openStep = openTaskId ? STEP_BY_TASK.get(openTaskId) : null;
   const openStepFormConfig = openStep ? getFormConfig(openStep.formId) : null;
+  const standaloneFormId = openTaskId && !openStep ? FORM_BY_TASK.get(openTaskId) ?? null : null;
+  const standaloneFormConfig = standaloneFormId ? getFormConfig(standaloneFormId) : null;
+  const standaloneFormLabel = openTaskId
+    ? ONBOARDING_PLAN.flatMap((p) => p.subsections.flatMap((s) => s.tasks)).find(
+        (t) => t.id === openTaskId,
+      )?.label ?? "Open form"
+    : "Open form";
 
   if (openTaskId === ADS_MASTER_TASK_ID && root) {
     return (
@@ -530,6 +552,31 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
           clientSlug={clientSlug}
           onClose={closeForm}
           initialValues={chainValues}
+          onSaved={handleFormSaved}
+        />
+        <style>{FORM_OVERLAY_CSS}</style>
+      </div>
+    );
+  }
+
+  if (standaloneFormConfig && root) {
+    return (
+      <div className="ob-root">
+        <div className="ob-form-head">
+          <button type="button" className="ob-form-back" onClick={closeForm}>
+            ← Back to onboarding
+          </button>
+          <div className="ob-form-meta">
+            <span className="ob-form-task">{standaloneFormLabel}</span>
+          </div>
+        </div>
+        <GenericFormGenerator
+          config={standaloneFormConfig}
+          root={root}
+          agents={agents}
+          clientName={clientName}
+          clientSlug={clientSlug}
+          onClose={closeForm}
           onSaved={handleFormSaved}
         />
         <style>{FORM_OVERLAY_CSS}</style>
@@ -735,6 +782,7 @@ function ActiveCard({
               </div>
               {ss.tasks.map((t) => {
                 const step = STEP_BY_TASK.get(t.id);
+                const standaloneFormForTask = !step ? FORM_BY_TASK.get(t.id) ?? null : null;
                 const isMobileAppTask = t.id === PROVISION_MOBILE_APP_TASK_ID;
                 const isAdsTask = t.id === ADS_MASTER_TASK_ID;
                 let actionLabel: string | undefined;
@@ -742,10 +790,12 @@ function ActiveCard({
                 if (isAdsTask) {
                   actionLabel = "Open Ads sequence →";
                   actionHint =
-                    "10 forms, one at a time. Completed ones tuck into the side rail; you can reopen any of them to edit.";
+                    "8 forms, one at a time. Completed ones tuck into the side rail; you can reopen any of them to edit.";
                 } else if (isMobileAppTask) {
                   actionLabel = "Open form";
                   actionHint = "Provision Supabase tenant + invite client.";
+                } else if (standaloneFormForTask) {
+                  actionLabel = "Open form";
                 } else {
                   actionHint = step?.hint;
                 }
@@ -755,7 +805,9 @@ function ActiveCard({
                     task={t}
                     checked={doneSet.has(t.id)}
                     step={step ?? null}
-                    showActionButton={Boolean(step) || isMobileAppTask || isAdsTask}
+                    showActionButton={
+                      Boolean(step) || isMobileAppTask || isAdsTask || Boolean(standaloneFormForTask)
+                    }
                     actionLabel={actionLabel}
                     actionHint={actionHint}
                     canOpenForm={canOpenForm}

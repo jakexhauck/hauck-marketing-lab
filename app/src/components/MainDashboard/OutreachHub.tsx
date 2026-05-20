@@ -15,11 +15,12 @@ import { prospectStatusPill } from "../../lib/navigation";
 import { api } from "../../lib/tauri";
 import {
   IconArrowRight,
-  IconBroadcast,
   IconChevronRight,
   IconFilter,
   IconLayout,
   IconList,
+  IconPen,
+  IconPhone,
   IconPlus,
   IconTarget,
   IconUsers,
@@ -35,9 +36,11 @@ interface OutreachHubProps {
   onProspectsChanged: () => void;
 }
 
-/* Tile order on the hub: Sequence is the new "happy path" entry — guided
- * 4-step wizard that chains scrape → mockups → DMs. The original three tiles
- * stay below for one-shot access to each tool. */
+/* Hub layout (cold-call first):
+ *   - Headline tile: Cold Call Sequence (scrape -> dial -> book -> websites)
+ *   - Three tool tiles: Lead Scraper, Web Designer, Prospects (booked list)
+ *   - Booked-calls table
+ *   - Footer: Personalized DMs tab (kept around but not part of the main flow) */
 
 function avatarText(name: string): string {
   return name
@@ -185,16 +188,16 @@ export function OutreachHub({
       <section className="hml-page-header">
         <div>
           <div className="hml-page-eyebrow">
-            <IconBroadcast size={11} />
-            Outreach
+            <IconPhone size={11} />
+            Cold-call outreach
           </div>
-          <h1 className="hml-page-title">Prospecting workspace.</h1>
+          <h1 className="hml-page-title">Cold-call workspace.</h1>
           <div className="hml-page-subtitle">
             {prospects.length} prospect{prospects.length === 1 ? "" : "s"}
             {bookedProspects.length > 0
               ? ` · ${bookedProspects.length} booked call${bookedProspects.length === 1 ? "" : "s"}`
               : ""}
-            . Cold-call your way to a booking, then add it here to keep track.
+            . Scrape a list, dial through it, book the ones that pick up.
           </div>
         </div>
         <div className="hml-page-header-actions">
@@ -213,7 +216,7 @@ export function OutreachHub({
         </div>
       </section>
 
-      {/* Headline tile: full-bleed outreach sequence */}
+      {/* Headline tile: full-bleed cold-call sequence */}
       <section className="hml-action-tiles hml-action-tiles-3" style={{ gridTemplateColumns: "1fr" }}>
         <button
           type="button"
@@ -222,82 +225,17 @@ export function OutreachHub({
         >
           <div className="hml-action-tile-top">
             <div className="hml-action-tile-icon">
-              <IconBroadcast size={18} />
+              <IconPhone size={18} />
             </div>
             <span className="hml-action-tile-flag">RECOMMENDED</span>
           </div>
-          <div className="hml-action-tile-title">Outreach Sequence</div>
+          <div className="hml-action-tile-title">Cold Call Sequence</div>
           <div className="hml-action-tile-desc">
-            Guided 4-step pass: scrape leads → build mockups → write personalized DMs → review.
-            Each step's output feeds the next. Skip steps you don't need; work persists between sessions.
+            Guided 4-step pass: scrape leads, cold-call the list, book the ones that pick up, build websites for the bookings.
+            Unbooked leads stay ephemeral; bookings persist to Prospects.
           </div>
           <div className="hml-action-tile-cta">
             Start a sequence
-            <IconArrowRight size={11} className="hml-arrow" />
-          </div>
-        </button>
-      </section>
-
-      {/* Three tool tiles */}
-      <section className="hml-action-tiles hml-action-tiles-3">
-        <button
-          type="button"
-          className="hml-action-tile"
-          onClick={() => onSelectSection("lead-scraper")}
-        >
-          <div className="hml-action-tile-top">
-            <div className="hml-action-tile-icon">
-              <IconTarget size={18} />
-            </div>
-          </div>
-          <div className="hml-action-tile-title">Lead Scraper</div>
-          <div className="hml-action-tile-desc">
-            Pull contact details for businesses by niche and city — Google Places
-            backed.
-          </div>
-          <div className="hml-action-tile-cta">
-            Start a run
-            <IconArrowRight size={11} className="hml-arrow" />
-          </div>
-        </button>
-        <button
-          type="button"
-          className="hml-action-tile"
-          onClick={() => onSelectSection("web-designer")}
-        >
-          <div className="hml-action-tile-top">
-            <div className="hml-action-tile-icon">
-              <IconLayout size={18} />
-            </div>
-          </div>
-          <div className="hml-action-tile-title">Web Designer</div>
-          <div className="hml-action-tile-desc">
-            Build a one-page mockup of a prospect's site to attach to a pitch.
-            ~90 seconds.
-          </div>
-          <div className="hml-action-tile-cta">
-            Choose a prospect
-            <IconArrowRight size={11} className="hml-arrow" />
-          </div>
-        </button>
-        <button
-          type="button"
-          className="hml-action-tile"
-          onClick={scrollToTable}
-        >
-          <div className="hml-action-tile-top">
-            <div className="hml-action-tile-icon">
-              <IconUsers size={18} />
-            </div>
-          </div>
-          <div className="hml-action-tile-title">Prospects</div>
-          <div className="hml-action-tile-desc">
-            Booked discovery calls — manually added when a cold call lands.
-          </div>
-          <div className="hml-action-tile-cta">
-            {bookedProspects.length === 0
-              ? "No bookings yet"
-              : `${bookedProspects.length} booked`}
             <IconArrowRight size={11} className="hml-arrow" />
           </div>
         </button>
@@ -546,6 +484,82 @@ export function OutreachHub({
             })}
           </>
         )}
+      </section>
+
+      {/* Side-channel tools — direct entry into each sub-workflow without
+       *  going through the guided cold-call sequence. Same dashed style across
+       *  the row so they read as auxiliary rather than primary actions. */}
+      <section className="hml-outreach-aux hml-outreach-aux-grid">
+        <button
+          type="button"
+          className="hml-outreach-aux-tab"
+          onClick={() => onSelectSection("lead-scraper")}
+          title="Open the lead scraper"
+        >
+          <span className="hml-outreach-aux-icon">
+            <IconTarget size={14} />
+          </span>
+          <span className="hml-outreach-aux-body">
+            <span className="hml-outreach-aux-title">Lead Scraper</span>
+            <span className="hml-outreach-aux-sub">
+              Pull contact details for businesses by niche and city. Google Places backed.
+            </span>
+          </span>
+          <IconArrowRight size={12} className="hml-arrow" />
+        </button>
+        <button
+          type="button"
+          className="hml-outreach-aux-tab"
+          onClick={() => onSelectSection("web-designer")}
+          title="Open the web designer"
+        >
+          <span className="hml-outreach-aux-icon">
+            <IconLayout size={14} />
+          </span>
+          <span className="hml-outreach-aux-body">
+            <span className="hml-outreach-aux-title">Web Designer</span>
+            <span className="hml-outreach-aux-sub">
+              Build a one-page mockup of a prospect's site to attach to a pitch. ~90 seconds.
+            </span>
+          </span>
+          <IconArrowRight size={12} className="hml-arrow" />
+        </button>
+        <button
+          type="button"
+          className="hml-outreach-aux-tab"
+          onClick={scrollToTable}
+          title="Jump to the booked-calls table"
+        >
+          <span className="hml-outreach-aux-icon">
+            <IconUsers size={14} />
+          </span>
+          <span className="hml-outreach-aux-body">
+            <span className="hml-outreach-aux-title">Prospects</span>
+            <span className="hml-outreach-aux-sub">
+              {bookedProspects.length === 0
+                ? "No bookings yet. Jump to the booked-calls table."
+                : `${bookedProspects.length} booked. Jump to the table above.`}
+            </span>
+          </span>
+          <IconArrowRight size={12} className="hml-arrow" />
+        </button>
+        <button
+          type="button"
+          className="hml-outreach-aux-tab"
+          onClick={() => onSelectSection("dms")}
+          title="Open the personalized DMs workflow"
+        >
+          <span className="hml-outreach-aux-icon">
+            <IconPen size={14} />
+          </span>
+          <span className="hml-outreach-aux-body">
+            <span className="hml-outreach-aux-title">Personalized DMs</span>
+            <span className="hml-outreach-aux-sub">
+              Bulk-write a DM per business from any scraped CSV. Side-channel; not part of the cold-call flow.
+            </span>
+          </span>
+          <IconArrowRight size={12} className="hml-arrow" />
+        </button>
       </section>
 
       {/* Other (non-booked) prospects, if any — e.g. scraped or mockup-ready */}

@@ -44,7 +44,7 @@ export interface AppSidebarProps {
   // ── callbacks ─────────────────────────────────────────────
   onSelectWorkspace: (tab: WorkspaceView) => void;
   onSelectOutreachSection: (
-    section: "overview" | "lead-scraper" | "web-designer" | "sequence",
+    section: "overview" | "lead-scraper" | "web-designer" | "sequence" | "dms",
   ) => void;
   onSelectClientSection: (slug: string, section: ClientSection) => void;
   onSelectPersonalSection?: (section: PersonalSection) => void;

@@ -26,6 +26,7 @@ export type OutreachSection =
   | "lead-scraper"
   | "web-designer"
   | "sequence"
+  | "dms" // standalone personalized-DMs workflow (lives outside the main cold-call sequence)
   | "prospect"; // when `prospect`, `slug` field on the view discriminator names which one
 
 /** Top-level surfaces inside the Personal pillar. */

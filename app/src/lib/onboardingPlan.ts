@@ -96,7 +96,7 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
           task(
             "02-offer-options",
             "Draft 10 offer/CTA options to show the business owner on the call.",
-            "Run the Offer Options form (or the Ads sequence offer step). Bring the list to the onboarding call so the client picks one live instead of going back-and-forth over email.",
+            "Open the Offer + CTA Builder form. Bring the list to the onboarding call so the client picks one live instead of going back-and-forth over email.",
           ),
         ],
       },
@@ -222,7 +222,7 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     name: "Creative Production",
     purpose:
       "Copy, creative, and audiences all built with the AI agents. Client signs off before anything ships.",
-    hint: "Open the Ads sequence: offer → competitors → pixel → audience research → brief → hooks → copy → creative → structure → optimizer.",
+    hint: "Open the Ads sequence: pixel → audience research → brief → hooks → copy → creative → structure → optimizer. Offer + competitor research happen earlier in Pre-Call Prep.",
     meta: "Days 3–4 · 1 task",
     subsections: [
       {
@@ -232,7 +232,7 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
           task(
             "06-ads",
             "Ads.",
-            "Opens the Ads sequence wizard: offer + CTA, competitor research, pixel install, audience research, creative brief, hooks, ad copy, static ad creatives, campaign structure, optimizer config. One form at a time; completed forms tuck into the side rail.",
+            "Opens the Ads sequence wizard: pixel install, audience research, creative brief, hooks, ad copy, static ad creatives, campaign structure, optimizer config. One form at a time; completed forms tuck into the side rail. (Offer + CTA and competitor research are owned by Pre-Call Prep, Phase 1.2.)",
           ),
         ],
       },

@@ -19,8 +19,6 @@
 import type { FormSurfaceId } from "./formConfigs";
 
 export type SequenceStepId =
-  | "offer-cta"
-  | "competitors"
   | "pixel-install"
   | "audience-research"
   | "creative-brief"
@@ -122,6 +120,103 @@ export function formatHooksForAdCopy(parsed: Record<string, unknown>): string {
   return lines.join("\n");
 }
 
+/** One-line "what got produced" for the wizard rail. Reads the parsed JSON
+ *  block from the saved output (if any) plus the raw markdown body, and
+ *  returns a short headline ("12 hooks · 4 picks", "$25/day · 2 ad sets"),
+ *  or null if there's nothing useful to surface. The wizard falls back to
+ *  the step's saved timestamp when this returns null. */
+export function summarizeStepOutput(
+  stepId: SequenceStepId,
+  parsed: Record<string, unknown> | null,
+  rawBody: string,
+): string | null {
+  const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+  const str = (v: unknown): string => (typeof v === "string" ? v : "");
+  const num = (v: unknown): number => (typeof v === "number" ? v : 0);
+  const truncate = (s: string, n: number) =>
+    s.length <= n ? s : s.slice(0, n - 1).trimEnd() + "…";
+
+  switch (stepId) {
+    case "pixel-install": {
+      const platform = str(parsed?.platform).trim();
+      const steps = arr(parsed?.steps).length;
+      if (platform && steps) return `${platform} · ${steps} steps`;
+      if (platform) return platform;
+      if (steps) return `${steps} install steps`;
+      return null;
+    }
+    case "audience-research": {
+      const audiences = arr(parsed?.audiences);
+      const launchFirst = str(parsed?.launch_first).trim();
+      if (audiences.length && launchFirst) {
+        return `${audiences.length} audiences · launch: ${truncate(launchFirst, 32)}`;
+      }
+      if (audiences.length) return `${audiences.length} audiences`;
+      if (launchFirst) return `Launch: ${truncate(launchFirst, 40)}`;
+      return null;
+    }
+    case "creative-brief": {
+      const format = str(parsed?.format).trim();
+      const hook = str(parsed?.hook).trim();
+      if (format && hook) return `${format} · ${truncate(hook, 40)}`;
+      if (hook) return truncate(hook, 60);
+      if (format) return format;
+      return null;
+    }
+    case "hooks": {
+      const angles = arr(parsed?.angles);
+      const totalHooks = angles.reduce<number>((acc, a) => {
+        const rec = a as Record<string, unknown> | null;
+        return acc + arr(rec?.hooks).length;
+      }, 0);
+      const picks = arr(parsed?.top_picks).length;
+      if (totalHooks && picks) return `${totalHooks} hooks · ${picks} priority`;
+      if (totalHooks) return `${totalHooks} hooks`;
+      return null;
+    }
+    case "ad-copy": {
+      // Ad copy is free-form markdown — no JSON block. Count "Ad N" headers.
+      const matches = rawBody.match(/^#{1,4}\s*Ad\s*\d+/gim);
+      const count = matches?.length ?? 0;
+      if (count > 0) return `${count} ad variations`;
+      return null;
+    }
+    case "ad-creative": {
+      // Free-form markdown of Nano Banana prompts. Count prompt blocks.
+      const promptMatches = rawBody.match(/^#{1,4}\s*(Prompt|Ad)\s*\d+/gim);
+      const count = promptMatches?.length ?? 0;
+      if (count > 0) return `${count} creative prompts`;
+      return null;
+    }
+    case "structure": {
+      const adSets = arr(parsed?.ad_sets);
+      const cbo = str(parsed?.cbo_or_abo).trim().toUpperCase();
+      const totalBudget = adSets.reduce<number>((acc, s) => {
+        const rec = s as Record<string, unknown> | null;
+        return acc + num(rec?.budget);
+      }, 0);
+      const adsTotal = adSets.reduce<number>((acc, s) => {
+        const rec = s as Record<string, unknown> | null;
+        return acc + num(rec?.creatives);
+      }, 0);
+      const parts: string[] = [];
+      if (cbo) parts.push(cbo);
+      if (adSets.length) parts.push(`${adSets.length} ad sets`);
+      if (adsTotal) parts.push(`${adsTotal} ads`);
+      if (totalBudget) parts.push(`$${totalBudget}/day`);
+      return parts.length ? parts.join(" · ") : null;
+    }
+    case "optimizer": {
+      const kills = arr(parsed?.kill_flags).length;
+      const scales = arr(parsed?.scale_flags).length;
+      if (kills || scales) return `${kills} kill · ${scales} scale flags`;
+      return null;
+    }
+    default:
+      return null;
+  }
+}
+
 export interface SequenceStep {
   id: SequenceStepId;
   formId: FormSurfaceId;
@@ -140,22 +235,6 @@ export interface SequenceStep {
 
 export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
   {
-    id: "offer-cta",
-    formId: "offer-cta",
-    checklistTaskId: "02-offer",
-    phase: 2,
-    label: "Lock the offer + CTA",
-    hint: "Nail the offer and primary CTA. Everything downstream reads from this.",
-  },
-  {
-    id: "competitors",
-    formId: "competitors",
-    checklistTaskId: "03-competitors",
-    phase: 5,
-    label: "Research competitors",
-    hint: "Pull 5–10 competitors with angles, offers, and weaknesses. Feeds every downstream step.",
-  },
-  {
     id: "pixel-install",
     formId: "pixel-install",
     checklistTaskId: "03-pixel",
@@ -169,11 +248,7 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
     checklistTaskId: "04-audiences",
     phase: 6,
     label: "Audience research",
-    hint: "Deep voice-of-customer teardown: psychographics, pains, language. Seeds the brief and copy.",
-    chainFrom: {
-      step: "competitors",
-      fields: { key_takeaways: "competitor_intel" },
-    },
+    hint: "Deep voice-of-customer teardown: psychographics, pains, language. Seeds the brief and copy. Competitor research from pre-call prep is read off Profile.md, not chained here.",
   },
   {
     id: "creative-brief",
@@ -181,12 +256,8 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
     checklistTaskId: "04-creative",
     phase: 6,
     label: "Write creative brief",
-    hint: "Lock the hook, message, proof, and CTA. Informed by competitor white-space + audience research.",
+    hint: "Lock the hook, message, proof, and CTA. Pulls audience research from the prior step; competitor white-space comes from Profile.md.",
     chainFrom: [
-      {
-        step: "competitors",
-        fields: { key_takeaways: "competitor_intel" },
-      },
       {
         step: "audience-research",
         fields: { summary: "audience_summary" },
@@ -210,12 +281,8 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
     checklistTaskId: "04-copy",
     phase: 6,
     label: "Generate ad copy",
-    hint: "10+ variations from the locked brief, hooks, and competitor angles.",
+    hint: "10+ variations from the locked brief and hooks. Competitor angles come in via Profile.md.",
     chainFrom: [
-      {
-        step: "competitors",
-        fields: { key_takeaways: "competitor_intel" },
-      },
       {
         step: "hooks",
         fields: {},
@@ -273,6 +340,58 @@ export interface SequenceStepRecord {
   completedAt: string;
 }
 
+/** Ad-level cell in the campaign tree. Format is free-form so a slot can be any
+ *  combo of image/video/carousel + angle label (no fixed "image must be Angle A"). */
+export type AdFormat = "Image" | "Video" | "Carousel";
+
+export interface CampaignSkeletonAd {
+  format: AdFormat;
+  angleLabel: string;
+  hook: string;
+}
+
+export interface CampaignSkeletonAdSet {
+  name: string;
+  targeting: string;
+  dailyBudget: number;
+  ads: CampaignSkeletonAd[];
+}
+
+/** Editable campaign tree backing the CampaignTreeView. Edits flow into the
+ *  matching forms via chainValues (see AdsSequenceWizard). */
+export interface CampaignSkeleton {
+  dailyBudget: number;
+  adSets: CampaignSkeletonAdSet[];
+}
+
+/** Defaults match the Learning Phase framework: 1 campaign · 2 ad sets
+ *  (Broad + Interest) · 3 ads each. Same 3 ads mirrored across both sets —
+ *  testing audience, not creative. */
+export function defaultCampaignSkeleton(): CampaignSkeleton {
+  const ads: CampaignSkeletonAd[] = [
+    { format: "Image", angleLabel: "Price anchor", hook: "" },
+    { format: "Image", angleLabel: "Fear · urgency", hook: "" },
+    { format: "Video", angleLabel: "Social proof", hook: "" },
+  ];
+  return {
+    dailyBudget: 25,
+    adSets: [
+      {
+        name: "Ad Set 1 · Broad",
+        targeting: "Local 10mi · 25 to 55",
+        dailyBudget: 12,
+        ads: ads.map((a) => ({ ...a })),
+      },
+      {
+        name: "Ad Set 2 · Interest",
+        targeting: "Home Improvement + Homeowners",
+        dailyBudget: 13,
+        ads: ads.map((a) => ({ ...a })),
+      },
+    ],
+  };
+}
+
 /**
  * Stored as the optional `sequence` block on OnboardingState (onboarding.json).
  * Absent = step 1, no outputs yet.
@@ -289,6 +408,8 @@ export interface SequenceState {
    *  the whole sequence block as opaque JSON, so adding a field here is a
    *  TS-only change. */
   driveFolderId?: string;
+  /** Editable campaign tree (CampaignTreeView). Absent = use defaults. */
+  campaignSkeleton?: CampaignSkeleton;
 }
 
 export function emptySequenceState(): SequenceState {

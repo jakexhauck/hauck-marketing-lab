@@ -39,6 +39,7 @@ import { WebDesignerPage } from "./WebDesignerPage";
 import { ClientDashboard } from "./ClientDashboard";
 import { AdsManagerWorkspace } from "./AdsManagerWorkspace";
 import { OutreachHub } from "./OutreachHub";
+import { OutreachDmsPage } from "./OutreachDmsPage";
 import { OutreachProspectPage } from "./OutreachProspectPage";
 import { OutreachSequencePage } from "./OutreachSequencePage";
 import { SalesHubPage } from "./SalesHubPage";
@@ -223,7 +224,7 @@ export function MainDashboard({
   const goHome = () => setView({ kind: "workspace", tab: "dashboard" });
 
   const onSelectOutreachSection = (
-    section: "overview" | "lead-scraper" | "web-designer" | "sequence",
+    section: "overview" | "lead-scraper" | "web-designer" | "sequence" | "dms",
   ) => {
     setView({ kind: "outreach", section });
   };
@@ -410,7 +411,9 @@ function buildBreadcrumb(
         ? "Lead Scraper"
         : view.section === "web-designer"
           ? "Web Designer"
-          : "Outreach Sequence";
+          : view.section === "dms"
+            ? "Personalized DMs"
+            : "Cold Call Sequence";
     return (
       <>
         <span className="hml-seg">Outreach</span>
@@ -490,7 +493,7 @@ interface RenderMainArgs {
   activeClient: ClientEntry | null;
   activeProspect: ProspectEntry | null;
   onSelectOutreachSection: (
-    section: "overview" | "lead-scraper" | "web-designer" | "sequence",
+    section: "overview" | "lead-scraper" | "web-designer" | "sequence" | "dms",
   ) => void;
   onSelectProspect: (slug: string) => void;
   onSelectClientSection: (slug: string, section: ClientSection) => void;
@@ -581,6 +584,14 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
     if (view.section === "sequence") {
       return (
         <OutreachSequencePage
+          root={root}
+          onExit={() => onSelectOutreachSection("overview")}
+        />
+      );
+    }
+    if (view.section === "dms") {
+      return (
+        <OutreachDmsPage
           root={root}
           onExit={() => onSelectOutreachSection("overview")}
         />

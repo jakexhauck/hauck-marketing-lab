@@ -23,6 +23,7 @@ import type {
 } from "../lib/types";
 import { PastResults } from "./generators/PastResults";
 import { FormOutput } from "./forms/FormOutput";
+import { AdCopyQCChecklist } from "./AdCopyQCChecklist";
 import { logActivity } from "../lib/activity";
 import {
   writeBackMemory,
@@ -46,6 +47,9 @@ type Props = {
    *  wizard so each step stays scoped to the current sequence run (unrelated
    *  prior outputs would be confusing in that context). */
   hidePastResults?: boolean;
+  /** When true, the page-header block (eyebrow + title + subtitle + close
+   *  button) is not rendered. The parent surface owns the heading. */
+  hideHeader?: boolean;
 };
 
 function findAgent(agents: AgentSummary[], slug: string): AgentSummary | null {
@@ -210,6 +214,7 @@ export function GenericFormGenerator({
   initialValues,
   onSaved,
   hidePastResults,
+  hideHeader,
 }: Props) {
   const [values, setValues] = useState<FormValues>(() => defaultValuesFor(config));
   const [streaming, setStreaming] = useState(false);
@@ -795,41 +800,52 @@ export function GenericFormGenerator({
     });
   };
 
+  const showAdCopyChecklist =
+    config.id === "ad-copy" && (streaming || !!streamText || !!saved);
+
   return (
     <div className="hml-content">
-      <header className="hml-page-header">
-        <div>
-          <div className="hml-page-eyebrow">
-            <span>{config.eyebrow}</span>
-            {config.eyebrowMeta && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span>{config.eyebrowMeta}</span>
-              </>
-            )}
-            <span aria-hidden="true">·</span>
-            <span>CLIENT · {clientName.toUpperCase()}</span>
-          </div>
-          <h1 className="hml-page-title">{config.title}</h1>
-          <div className="hml-page-subtitle">{config.subtitle}</div>
-          {driveBadge && (
-            <div className="os-hint" style={{ marginTop: 8 }}>
-              ◇ Google Drive context · {driveBadge} · will be included in the prompt.
+      {showAdCopyChecklist && <AdCopyQCChecklist />}
+      {!hideHeader && (
+        <header className="hml-page-header">
+          <div>
+            <div className="hml-page-eyebrow">
+              <span>{config.eyebrow}</span>
+              {config.eyebrowMeta && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{config.eyebrowMeta}</span>
+                </>
+              )}
+              <span aria-hidden="true">·</span>
+              <span>CLIENT · {clientName.toUpperCase()}</span>
             </div>
-          )}
+            <h1 className="hml-page-title">{config.title}</h1>
+            <div className="hml-page-subtitle">{config.subtitle}</div>
+            {driveBadge && (
+              <div className="os-hint" style={{ marginTop: 8 }}>
+                ◇ Google Drive context · {driveBadge} · will be included in the prompt.
+              </div>
+            )}
+          </div>
+          <div className="hml-page-header-actions">
+            <button
+              type="button"
+              className="hml-btn"
+              onClick={onClose}
+              disabled={streaming}
+              aria-label={`Close ${config.title}`}
+            >
+              Close
+            </button>
+          </div>
+        </header>
+      )}
+      {hideHeader && driveBadge && (
+        <div className="os-hint" style={{ marginTop: 8, marginBottom: 14 }}>
+          ◇ Google Drive context · {driveBadge} · will be included in the prompt.
         </div>
-        <div className="hml-page-header-actions">
-          <button
-            type="button"
-            className="hml-btn"
-            onClick={onClose}
-            disabled={streaming}
-            aria-label={`Close ${config.title}`}
-          >
-            Close
-          </button>
-        </div>
-      </header>
+      )}
 
       {!saved && (
         <>

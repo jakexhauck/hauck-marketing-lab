@@ -1,7 +1,8 @@
 /**
- * Ads Sequence Wizard. Three-column launcher for the 10-step Ads sequence
+ * Ads Sequence Wizard. Three-column launcher for the 8-step Ads sequence
  * defined in MEDIA_BUYING_SEQUENCE. Opens from the "Ads" task in the
- * OnboardingChecklist.
+ * OnboardingChecklist. Offer + CTA and Competitor Research are owned by
+ * Pre-Call Prep (Phase 1.2) and are not part of this sequence.
  *
  *   ┌──────────┬──────────────────┬──────────┐
  *   │ DONE     │  ACTIVE FORM     │ UP NEXT  │
@@ -22,7 +23,8 @@ import {
   MEDIA_BUYING_SEQUENCE,
   formatHooksForAdCopy,
   nextStepId,
-  stepIndex,
+  summarizeStepOutput,
+  type CampaignSkeleton,
   type SequenceState,
   type SequenceStep,
   type SequenceStepId,
@@ -31,6 +33,7 @@ import { getFormConfig, type FormValues, type FormConfig } from "../lib/formConf
 import { api } from "../lib/tauri";
 import type { AgentSummary, GeneratorOutput } from "../lib/types";
 import { GenericFormGenerator } from "./GenericFormGenerator";
+import { CampaignTreeView } from "./CampaignTreeView";
 
 type Props = {
   root: string;
@@ -70,12 +73,6 @@ function resolveInitialStepId(state: SequenceState): SequenceStepId {
   return (firstUndone ?? MEDIA_BUYING_SEQUENCE[0]).id;
 }
 
-/** Unique ordered phase numbers the Ads sequence touches. Used to render the
- *  phase-strip pills above the active panel. */
-const SEQUENCE_PHASES: number[] = Array.from(
-  new Set(MEDIA_BUYING_SEQUENCE.map((s) => s.phase)),
-).sort((a, b) => a - b);
-
 export function AdsSequenceWizard({
   root,
   clientName,
@@ -91,6 +88,10 @@ export function AdsSequenceWizard({
   );
   const [chainValues, setChainValues] = useState<Partial<FormValues>>({});
   const [loadingChain, setLoadingChain] = useState(false);
+  const [treeOpen, setTreeOpen] = useState(false);
+  /** Per-step "what got produced" headline cached after reading the saved
+   *  output. Keyed by step id. Null/missing = no summary available. */
+  const [summaries, setSummaries] = useState<Partial<Record<SequenceStepId, string>>>({});
 
   const activeStep = useMemo<SequenceStep | undefined>(
     () => MEDIA_BUYING_SEQUENCE.find((s) => s.id === activeStepId),
@@ -100,41 +101,27 @@ export function AdsSequenceWizard({
     ? getFormConfig(activeStep.formId)
     : undefined;
 
-  const completedSteps = useMemo(
-    () => MEDIA_BUYING_SEQUENCE.filter((s) => isStepDone(sequenceState, s.id)),
+  const doneCount = useMemo(
+    () => MEDIA_BUYING_SEQUENCE.filter((s) => isStepDone(sequenceState, s.id)).length,
     [sequenceState],
   );
-  const upcomingSteps = useMemo(
-    () => MEDIA_BUYING_SEQUENCE.filter((s) => !isStepDone(sequenceState, s.id)),
-    [sequenceState],
-  );
-
-  const doneCount = completedSteps.length;
   const total = MEDIA_BUYING_SEQUENCE.length;
-  const remaining = total - doneCount;
   const pct = Math.round((doneCount / total) * 100);
 
-  /** For each unique phase, decide complete/active/upcoming for the strip. */
-  const phaseStripStates = useMemo(() => {
-    const activePhase = activeStep?.phase;
-    return SEQUENCE_PHASES.map((p) => {
-      const stepsInPhase = MEDIA_BUYING_SEQUENCE.filter((s) => s.phase === p);
-      const allDone = stepsInPhase.every((s) => isStepDone(sequenceState, s.id));
-      const isActive = activePhase === p && !allDone;
-      return { phase: p, state: allDone ? "complete" : isActive ? "active" : "upcoming" };
-    });
-  }, [sequenceState, activeStep]);
-
-  // Load chain values for the active step.
+  // Load chain values for the active step. Runs chainFrom prior-step lookups
+  // first, then merges in any overrides from the editable campaign skeleton
+  // (skeleton wins — user just touched it in the tree).
   useEffect(() => {
     let cancelled = false;
     setChainValues({});
-    if (!activeStep || !activeStep.chainFrom) return;
-    const specs = Array.isArray(activeStep.chainFrom)
-      ? activeStep.chainFrom
-      : [activeStep.chainFrom];
-    if (specs.length === 0) return;
-    setLoadingChain(true);
+    if (!activeStep) return;
+    const specs = activeStep.chainFrom
+      ? Array.isArray(activeStep.chainFrom)
+        ? activeStep.chainFrom
+        : [activeStep.chainFrom]
+      : [];
+    const hasChain = specs.length > 0;
+    if (hasChain) setLoadingChain(true);
     void (async () => {
       const mapped: Partial<FormValues> = {};
       for (const spec of specs) {
@@ -158,15 +145,97 @@ export function AdsSequenceWizard({
           console.warn("AdsSequenceWizard: chainFrom load failed", spec.step, e);
         }
       }
+
+      // Skeleton overrides. Skeleton edits flow into the matching form's
+      // prefill (skeleton wins over chainFrom — user just touched it in
+      // the tree). Only fields the user directly edits in the tree should
+      // land here.
+      const skel = sequenceState.campaignSkeleton;
+      if (skel) {
+        const firstSet = skel.adSets[0];
+        const uniqueAds = firstSet?.ads.length ?? 0;
+        const distinctAngles = firstSet
+          ? new Set(
+              firstSet.ads
+                .map((a) => a.angleLabel.trim())
+                .filter((s) => s.length > 0),
+            ).size
+          : 0;
+        const filledHooks = skel.adSets
+          .flatMap((s) => s.ads.map((a) => a.hook.trim()))
+          .filter((h) => h.length > 0);
+        const dedupedHooks = Array.from(new Set(filledHooks));
+
+        if (activeStep.formId === "structure") {
+          mapped.daily_budget = skel.dailyBudget;
+          if (skel.adSets.length > 0) mapped.audience_count = skel.adSets.length;
+          if (uniqueAds > 0) mapped.creative_count = uniqueAds;
+        }
+        if (activeStep.formId === "hooks") {
+          if (distinctAngles > 0) mapped.angle_count = distinctAngles;
+          if (dedupedHooks.length > 0) mapped.seed = dedupedHooks.join("\n");
+        }
+        if (activeStep.formId === "creative-brief") {
+          const primaryHook = firstSet?.ads[0]?.hook.trim();
+          if (primaryHook) mapped.hook = primaryHook;
+          if (uniqueAds > 0) mapped.quantity = uniqueAds;
+        }
+      }
+
       if (!cancelled) {
         setChainValues(mapped);
-        setLoadingChain(false);
+        if (hasChain) setLoadingChain(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [activeStep, sequenceState.stepOutputs, root]);
+  }, [
+    activeStep,
+    sequenceState.stepOutputs,
+    sequenceState.campaignSkeleton,
+    root,
+  ]);
+
+  // Load summaries for every completed step. Re-runs when stepOutputs change
+  // (e.g. after a save). Only touches steps with a real saved path — skipped
+  // steps surface "Skipped" inline at render time.
+  useEffect(() => {
+    let cancelled = false;
+    const entries = Object.entries(sequenceState.stepOutputs) as Array<
+      [SequenceStepId, { path: string; completedAt: string } | undefined]
+    >;
+    if (entries.length === 0) {
+      setSummaries({});
+      return;
+    }
+    void (async () => {
+      const next: Partial<Record<SequenceStepId, string>> = {};
+      for (const [id, rec] of entries) {
+        if (!rec?.path) continue;
+        try {
+          const note = await api.readVaultNote(root, rec.path);
+          const body = note?.body ?? "";
+          const parsed = extractJsonFromBody(body);
+          const summary = summarizeStepOutput(id, parsed, body);
+          if (summary) next[id] = summary;
+        } catch {
+          // Summary is best-effort; rail still shows "Done" as a fallback.
+        }
+      }
+      if (!cancelled) setSummaries(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sequenceState.stepOutputs, root]);
+
+  const handleSkeletonChange = useCallback(
+    (next: CampaignSkeleton) => {
+      onSequenceChange({ ...sequenceState, campaignSkeleton: next });
+    },
+    [sequenceState, onSequenceChange],
+  );
 
   const handleSaved = useCallback(
     (output: GeneratorOutput) => {
@@ -191,27 +260,67 @@ export function AdsSequenceWizard({
     [activeStep, sequenceState, onSequenceChange, onTaskTick],
   );
 
+  /** Mark this step done without generating output. Used when the step isn't
+   *  applicable to this client (e.g. pixel already installed) or Jake just
+   *  wants to skip the generator. Adds to `skipped[]` (which counts as done
+   *  in `isStepDone`) and advances to the next step. */
+  const handleMarkDone = useCallback(() => {
+    if (!activeStep) return;
+    const wasCurrent = sequenceState.currentStep === activeStep.id;
+    const nextSkipped = Array.from(
+      new Set([...(sequenceState.skipped ?? []), activeStep.id]),
+    );
+    const next: SequenceState = {
+      ...sequenceState,
+      skipped: nextSkipped,
+      currentStep: wasCurrent
+        ? nextStepId(activeStep.id) ?? sequenceState.currentStep
+        : sequenceState.currentStep,
+    };
+    onSequenceChange(next);
+    if (activeStep.checklistTaskId) onTaskTick(activeStep.checklistTaskId);
+    const advanceTo = nextStepId(activeStep.id);
+    if (advanceTo) setActiveStepId(advanceTo);
+  }, [activeStep, sequenceState, onSequenceChange, onTaskTick]);
+
+  /** Undo a mark-done / skip on the active step (only relevant when the step
+   *  was marked done without a saved output). Keeps a generated output if
+   *  one exists. */
+  const handleUnmark = useCallback(() => {
+    if (!activeStep) return;
+    const skipped = (sequenceState.skipped ?? []).filter((id) => id !== activeStep.id);
+    const next: SequenceState = { ...sequenceState, skipped };
+    onSequenceChange(next);
+  }, [activeStep, sequenceState, onSequenceChange]);
+
+  const isActiveDone = activeStep ? isStepDone(sequenceState, activeStep.id) : false;
+  const isActiveSkipped = activeStep
+    ? Boolean(sequenceState.skipped?.includes(activeStep.id))
+    : false;
+
   return (
     <div className="aw-root">
       {/* Topbar */}
       <div className="aw-topbar">
         <div>
-          <div className="aw-eyebrow">▸ {clientName} · Media Buying</div>
-          <h1 className="aw-h1">Onboarding Sequence</h1>
-          <div className="aw-sub">
-            One form at a time. Completed forms tuck into the left rail, still editable.
-            Upcoming forms queue on the right.
-          </div>
+          <div className="aw-eyebrow">▸ {clientName} · Ads</div>
+          <h1 className="aw-h1">Ads Sequence</h1>
         </div>
         <div className="aw-meta-cluster">
-          <div>
-            <b>Step {Math.min(stepIndex(activeStepId) + 1, total)}</b> / {total}
+          <div className="aw-count-pill">
+            <b>{doneCount}</b> / {total} done
           </div>
-          <div>
-            <b>{doneCount}</b> done · <b>{remaining}</b> to go
-          </div>
+          <button
+            type="button"
+            className="aw-tree-btn"
+            onClick={() => setTreeOpen(true)}
+            title="Visualize the campaign skeleton being built"
+          >
+            <span className="aw-tree-dot" />
+            Campaign tree
+          </button>
           <button type="button" className="aw-close" onClick={onClose}>
-            ← Back to onboarding
+            ← Back
           </button>
         </div>
       </div>
@@ -221,61 +330,51 @@ export function AdsSequenceWizard({
         <div className="aw-track">
           <div className="aw-fill" style={{ width: `${pct}%` }} />
         </div>
-        <div className="aw-progress-meta">
-          <span>
-            {doneCount} of {total} complete
-          </span>
-          <span>~{pct}%</span>
-        </div>
       </div>
 
-      {/* Columns */}
+      {/* Two columns: rail + active form */}
       <div className="aw-columns">
-        {/* LEFT · COMPLETED */}
+        {/* LEFT · STEPS RAIL */}
         <div>
-          <div className="aw-col-head">
-            Completed <span className="aw-count">{completedSteps.length}</span>
-          </div>
-          {completedSteps.length === 0 && (
-            <div className="aw-rail-empty">No forms completed yet.</div>
-          )}
-          {completedSteps.map((s) => {
+          {MEDIA_BUYING_SEQUENCE.map((s, idx) => {
             const isActive = s.id === activeStepId;
-            const cfg = getFormConfig(s.formId);
+            const done = isStepDone(sequenceState, s.id);
+            const skipped = sequenceState.skipped?.includes(s.id) ?? false;
+            const summary = skipped
+              ? "Skipped"
+              : summaries[s.id] ?? (done ? "Done" : null);
             return (
               <button
                 key={s.id}
                 type="button"
-                className={"aw-rail-card done" + (isActive ? " is-active" : "")}
+                className={
+                  "aw-rail-card" +
+                  (done ? " done" : " upcoming") +
+                  (isActive ? " is-active" : "")
+                }
                 onClick={() => setActiveStepId(s.id)}
               >
-                <div className="aw-check done">✓</div>
+                <div className={"aw-check " + (done ? "done" : "next")}>
+                  {done ? "✓" : idx + 1}
+                </div>
                 <div className="aw-rail-body">
                   <div className="aw-rail-name">{s.label}</div>
-                  <div className="aw-rail-meta">
-                    Phase {s.phase}
-                    {cfg ? ` · ${cfg.agentName}` : ""}
-                  </div>
+                  {summary && (
+                    <div
+                      className={"aw-rail-summary" + (skipped ? " is-skipped" : "")}
+                      title={summary}
+                    >
+                      {summary}
+                    </div>
+                  )}
                 </div>
-                <div className="aw-rail-edit">Edit</div>
               </button>
             );
           })}
         </div>
 
-        {/* CENTER · ACTIVE FORM */}
+        {/* RIGHT · ACTIVE FORM */}
         <div className="aw-center">
-          {/* Phase strip */}
-          <div className="aw-phase-strip">
-            {phaseStripStates.map((p) => (
-              <div
-                key={p.phase}
-                className={`aw-phase-pill aw-${p.state}`}
-                title={`Phase ${p.phase}`}
-              />
-            ))}
-          </div>
-
           {!activeStep ? (
             <div className="aw-empty">
               <p>All steps complete.</p>
@@ -294,30 +393,37 @@ export function AdsSequenceWizard({
             <div className="aw-active">
               <div className="aw-active-head">
                 <div>
-                  <div className="aw-active-eyebrow">
-                    ▸ Phase {activeStep.phase} · Step {stepIndex(activeStep.id) + 1} of{" "}
-                    {total}
-                  </div>
                   <h2 className="aw-active-title">{activeStep.label}</h2>
                   <div className="aw-active-sub">{activeStep.hint}</div>
                   {loadingChain && (
                     <div className="aw-chain-note">Loading prior outputs…</div>
                   )}
-                  {!loadingChain &&
-                    activeStep.chainFrom &&
-                    Object.keys(chainValues).length > 0 && (
-                      <div className="aw-chain-note">
-                        Prefilled from{" "}
-                        {(Array.isArray(activeStep.chainFrom)
-                          ? activeStep.chainFrom
-                          : [activeStep.chainFrom]
-                        )
-                          .map((s) => s.step)
-                          .join(" + ")}
-                      </div>
-                    )}
                 </div>
-                <div className="aw-agent-tag">{activeFormConfig.agentName}</div>
+                <div className="aw-active-actions">
+                  {isActiveDone ? (
+                    isActiveSkipped ? (
+                      <button
+                        type="button"
+                        className="aw-ghost"
+                        onClick={handleUnmark}
+                        title="Undo the manual mark-done"
+                      >
+                        Unmark done
+                      </button>
+                    ) : (
+                      <span className="aw-done-pill">✓ Done</span>
+                    )
+                  ) : (
+                    <button
+                      type="button"
+                      className="aw-ghost"
+                      onClick={handleMarkDone}
+                      title="Mark this step done without generating output (e.g. not applicable to this client)"
+                    >
+                      Mark done
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="aw-active-body">
                 <GenericFormGenerator
@@ -331,53 +437,22 @@ export function AdsSequenceWizard({
                   initialValues={chainValues}
                   onSaved={handleSaved}
                   hidePastResults
+                  hideHeader
                 />
               </div>
             </div>
           )}
         </div>
-
-        {/* RIGHT · UPCOMING */}
-        <div>
-          <div className="aw-col-head">
-            Up next <span className="aw-count">{upcomingSteps.length}</span>
-          </div>
-          {upcomingSteps.length === 0 && (
-            <div className="aw-rail-empty">No upcoming steps.</div>
-          )}
-          {upcomingSteps.map((s) => {
-            const pos = stepIndex(s.id) + 1;
-            const cfg = getFormConfig(s.formId);
-            const isActive = s.id === activeStepId;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                className={"aw-rail-card upcoming" + (isActive ? " is-active" : "")}
-                onClick={() => setActiveStepId(s.id)}
-              >
-                <div className="aw-check next">{pos}</div>
-                <div className="aw-rail-body">
-                  <div className="aw-rail-name">{s.label}</div>
-                  <div className="aw-rail-meta">
-                    Phase {s.phase}
-                    {cfg ? ` · ${cfg.agentName}` : ""}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
       </div>
 
-      {/* Bottom note */}
-      <div className="aw-note">
-        <b>How this works.</b> Each form pulls context from the ones before it (Creative
-        Brief reads <code>competitors</code> + <code>audience-research</code>; Ad Copy
-        reads <code>hooks</code>; etc). Every form auto-saves to the client's vault —
-        click any completed card on the left to reopen it for edits. The Up Next rail
-        activates one-by-one as you finish each form.
-      </div>
+      {treeOpen && (
+        <CampaignTreeView
+          clientName={clientName}
+          sequenceState={sequenceState}
+          onSkeletonChange={handleSkeletonChange}
+          onClose={() => setTreeOpen(false)}
+        />
+      )}
 
       <style>{WIZ_CSS}</style>
     </div>
@@ -416,22 +491,52 @@ const WIZ_CSS = `
   margin: 0;
   color: var(--hml-text-primary);
 }
-.aw-sub {
-  color: var(--hml-text-tertiary);
-  font-size: 13px;
-  margin-top: 4px;
-  max-width: 640px;
-}
 .aw-meta-cluster {
   display: flex;
-  gap: 18px;
+  gap: 12px;
   font-family: var(--hml-font-mono);
   font-size: 11px;
   color: var(--hml-text-tertiary);
   letter-spacing: 0.05em;
   align-items: center;
 }
-.aw-meta-cluster b { color: var(--hml-text-primary); font-weight: 600; }
+.aw-count-pill {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--hml-bg-elev-2);
+  border: 1px solid var(--hml-border-subtle);
+  color: var(--hml-text-secondary);
+  letter-spacing: 0.08em;
+}
+.aw-count-pill b { color: var(--hml-text-primary); font-weight: 600; }
+.aw-tree-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--hml-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  background: var(--hml-bg-elev-2);
+  border: 1px solid var(--hml-border);
+  color: var(--hml-text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+.aw-tree-btn:hover {
+  border-color: var(--hml-border-strong);
+  color: var(--hml-text-primary);
+  background: var(--hml-bg-elev-3);
+}
+.aw-tree-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5ea3ff, #b07bff, #54d68f);
+  box-shadow: 0 0 6px rgba(94, 163, 255, 0.6);
+}
+
 .aw-close {
   font-family: var(--hml-font-mono);
   font-size: 11px;
@@ -453,7 +558,7 @@ const WIZ_CSS = `
 /* Progress */
 .aw-progress { margin-bottom: 22px; }
 .aw-track {
-  height: 4px;
+  height: 3px;
   background: var(--hml-bg-elev-2);
   border-radius: 2px;
   overflow: hidden;
@@ -463,51 +568,16 @@ const WIZ_CSS = `
   background: linear-gradient(90deg, var(--hml-accent), var(--hml-accent-bright));
   transition: width 320ms cubic-bezier(.4,.2,.2,1);
 }
-.aw-progress-meta {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--hml-font-mono);
-  font-size: 10.5px;
-  color: var(--hml-text-tertiary);
-  letter-spacing: 0.06em;
-  margin-top: 8px;
-}
 
-/* Three-column layout */
+/* Two-column layout */
 .aw-columns {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) 260px;
-  gap: 20px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 24px;
   align-items: flex-start;
 }
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
   .aw-columns { grid-template-columns: 1fr; }
-}
-
-.aw-col-head {
-  font-family: var(--hml-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--hml-text-tertiary);
-  margin: 0 0 10px 4px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.aw-count {
-  color: var(--hml-text-secondary);
-  background: var(--hml-bg-elev-2);
-  padding: 2px 7px;
-  border-radius: 3px;
-  font-size: 9.5px;
-  letter-spacing: 0.06em;
-}
-.aw-rail-empty {
-  font-size: 12px;
-  color: var(--hml-text-quaternary);
-  font-style: italic;
-  padding: 6px 4px;
 }
 
 /* Rail cards */
@@ -571,76 +641,43 @@ const WIZ_CSS = `
   color: var(--hml-text-primary);
   line-height: 1.3;
 }
-.aw-rail-meta {
+.aw-rail-summary {
   font-family: var(--hml-font-mono);
-  font-size: 9.5px;
+  font-size: 10px;
   color: var(--hml-text-tertiary);
-  letter-spacing: 0.04em;
-  margin-top: 2px;
+  letter-spacing: 0.02em;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.aw-rail-edit {
-  font-family: var(--hml-font-mono);
-  font-size: 9.5px;
-  color: var(--hml-accent);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0;
-  transition: opacity 120ms ease;
+.aw-rail-summary.is-skipped {
+  font-style: italic;
+  opacity: 0.7;
 }
-.aw-rail-card.done:hover .aw-rail-edit { opacity: 1; }
 
 /* Center column */
 .aw-center {
   min-width: 0;
 }
-.aw-phase-strip {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 14px;
-}
-.aw-phase-pill {
-  flex: 1;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--hml-bg-elev-2);
-}
-.aw-phase-pill.aw-complete {
-  background: var(--hml-accent);
-  opacity: 0.7;
-}
-.aw-phase-pill.aw-active {
-  background: var(--hml-accent-bright);
-  box-shadow: 0 0 12px rgba(226, 181, 133, 0.5);
-}
 
 /* Active panel */
 .aw-active {
-  border: 1px solid var(--hml-accent-border);
+  border: 1px solid var(--hml-border-subtle);
   background: var(--hml-bg-elev-1);
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow:
-    0 1px 0 rgba(212, 165, 116, 0.08) inset,
-    0 24px 60px -28px rgba(212, 165, 116, 0.18);
 }
 .aw-active-head {
-  padding: 22px 26px 18px;
+  padding: 20px 24px 16px;
   border-bottom: 1px solid var(--hml-border-subtle);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
 }
-.aw-active-eyebrow {
-  font-family: var(--hml-font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
-  color: var(--hml-accent);
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
 .aw-active-title {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.018em;
   margin: 0 0 4px;
@@ -649,29 +686,52 @@ const WIZ_CSS = `
 .aw-active-sub {
   color: var(--hml-text-secondary);
   font-size: 13px;
+  max-width: 640px;
 }
 .aw-chain-note {
   font-family: var(--hml-font-mono);
   font-size: 11px;
   color: var(--hml-text-tertiary);
-  margin-top: 10px;
+  margin-top: 8px;
   letter-spacing: 0.04em;
 }
-.aw-agent-tag {
+.aw-active-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.aw-ghost {
   font-family: var(--hml-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
+  font-size: 11px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 4px 10px;
-  border: 1px solid var(--hml-blue-border);
-  background: var(--hml-blue-bg);
-  color: var(--hml-blue);
-  border-radius: 4px;
-  white-space: nowrap;
-  align-self: flex-start;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid var(--hml-border);
+  color: var(--hml-text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+.aw-ghost:hover {
+  border-color: var(--hml-border-strong);
+  color: var(--hml-text-primary);
+  background: var(--hml-bg-elev-2);
+}
+.aw-done-pill {
+  font-family: var(--hml-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--hml-green-border);
+  background: var(--hml-green-bg);
+  color: var(--hml-green);
 }
 .aw-active-body {
-  padding: 0;
+  padding: 18px 24px 22px;
 }
 
 .aw-empty {
@@ -704,25 +764,6 @@ const WIZ_CSS = `
   color: var(--hml-accent-bright);
 }
 
-/* Bottom note */
-.aw-note {
-  margin-top: 28px;
-  padding: 14px 16px;
-  border: 1px solid var(--hml-border);
-  background: var(--hml-bg-elev-1);
-  border-radius: 10px;
-  font-size: 12.5px;
-  color: var(--hml-text-secondary);
-}
-.aw-note b { color: var(--hml-text-primary); font-weight: 600; }
-.aw-note code {
-  font-family: var(--hml-font-mono);
-  font-size: 11.5px;
-  background: var(--hml-bg-elev-2);
-  padding: 1px 5px;
-  border-radius: 3px;
-  color: var(--hml-text-primary);
-}
 `;
 
 export default AdsSequenceWizard;
