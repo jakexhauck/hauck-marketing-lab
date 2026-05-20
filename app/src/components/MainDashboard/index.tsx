@@ -13,7 +13,6 @@ import type { WorkflowView } from "./Sidebar";
 import type { FormSurfaceId } from "../../lib/formConfigs";
 import type { AgentSummary } from "../../lib/types";
 import {
-  IconArrowRight,
   IconPlus,
   IconSettings,
   IconTarget,
@@ -21,7 +20,6 @@ import {
   IconUser,
 } from "../icons";
 import {
-  defaultClientSection,
   type ClientSection,
   type OutreachSection,
   type PersonalSection,
@@ -66,6 +64,7 @@ import {
   loadAppointmentEvents,
   mergeEvents,
   runSync as runGhlCalendarSync,
+  SYNC_EVENT as GHL_SYNC_EVENT,
 } from "../../lib/ghlCalendarSync";
 
 interface MainDashboardProps {
@@ -526,15 +525,6 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
           root={root}
           clients={realClients}
           prospects={prospects}
-          onOpenClientsHub={() => {
-            const target =
-              realClients.find((c) => c.slug === activeClientSlug) ??
-              realClients[0];
-            if (target) {
-              onSelectClientSection(target.slug, defaultClientSection(target.status));
-            }
-          }}
-          onOpenOutreachHub={() => onSelectOutreachSection("overview")}
         />
       );
     if (view.tab === "clients")
@@ -647,15 +637,11 @@ function DashboardSurface({
   root,
   clients,
   prospects,
-  onOpenClientsHub,
-  onOpenOutreachHub,
 }: {
   clientCount: number;
   root: string | null;
   clients: ClientEntry[];
   prospects: ProspectEntry[];
-  onOpenClientsHub: () => void;
-  onOpenOutreachHub: () => void;
 }) {
   const now = new Date();
   const hour = now.getHours();
@@ -830,10 +816,17 @@ function DashboardSurface({
     const onFocus = () => {
       void refresh();
     };
+    // When the background GHL sync writes a new/changed/cancelled booking,
+    // pull the Today panel back in step without waiting for the 10-min tick.
+    const onSync = () => {
+      void refresh();
+    };
     window.addEventListener("focus", onFocus);
+    window.addEventListener(GHL_SYNC_EVENT, onSync);
     return () => {
       window.clearInterval(interval);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener(GHL_SYNC_EVENT, onSync);
     };
   }, [root, refresh]);
 
@@ -866,18 +859,6 @@ function DashboardSurface({
 
   const todayEvents = eventsOn(events, new Date());
 
-  // Hub banner derived stats
-  const liveCount = clients.filter((c) => c.status === "live").length;
-  const preLaunchCount = clients.filter((c) => c.status === "pre-launch").length;
-  const pausedCount = clients.filter((c) => c.status === "paused").length;
-  const prospectCount = prospects.length;
-  const bookedCount = prospects.filter(
-    (p) => p.status === "scheduled" || p.status === "showed",
-  ).length;
-  const mockupReadyCount = prospects.filter(
-    (p) => p.status === "mockup-ready",
-  ).length;
-
   // "Calls booked today" — count of prospects newly moved into the
   // `scheduled` state whose lastTouchedAt falls on today. Best signal we have
   // until a proper bookings log exists.
@@ -907,76 +888,6 @@ function DashboardSurface({
           <span className="hml-divider" />
           <span className="hml-mono">{stamp}</span>
         </div>
-      </section>
-
-      {/* Hub entry banners ──────────────────────────────────── */}
-      <section className="hml-hub-banners">
-        <button
-          type="button"
-          className="hml-hub-banner hml-hub-clients"
-          onClick={onOpenClientsHub}
-        >
-          <div className="hml-hub-banner-icon">
-            <IconUser size={18} />
-          </div>
-          <div className="hml-hub-banner-body">
-            <div className="hml-hub-banner-eyebrow">Hub</div>
-            <div className="hml-hub-banner-title">Clients hub</div>
-            <div className="hml-hub-banner-stat">
-              <span className="hml-em">
-                {clientCount} client{clientCount === 1 ? "" : "s"}
-              </span>
-              <span className="hml-sep">·</span>
-              <span className="hml-em hml-green-em">{liveCount} live</span>
-              <span className="hml-sep">·</span>
-              <span>
-                {preLaunchCount} pre-launch
-                {pausedCount > 0 ? ` · ${pausedCount} paused` : ""}
-              </span>
-            </div>
-          </div>
-          <div className="hml-hub-banner-arrow">
-            <IconArrowRight size={14} />
-          </div>
-        </button>
-
-        <button
-          type="button"
-          className="hml-hub-banner hml-hub-outreach"
-          onClick={onOpenOutreachHub}
-        >
-          <div className="hml-hub-banner-icon">
-            <IconTarget size={18} />
-          </div>
-          <div className="hml-hub-banner-body">
-            <div className="hml-hub-banner-eyebrow">Hub</div>
-            <div className="hml-hub-banner-title">Outreach hub</div>
-            <div className="hml-hub-banner-stat">
-              <span className="hml-em">
-                {prospectCount} prospect{prospectCount === 1 ? "" : "s"}
-              </span>
-              {mockupReadyCount > 0 && (
-                <>
-                  <span className="hml-sep">·</span>
-                  <span className="hml-em hml-accent-em">
-                    {mockupReadyCount} mockup-ready
-                  </span>
-                </>
-              )}
-              {bookedCount > 0 && (
-                <>
-                  <span className="hml-sep">·</span>
-                  <span className="hml-em hml-green-em">
-                    {bookedCount} booked
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="hml-hub-banner-arrow">
-            <IconArrowRight size={14} />
-          </div>
-        </button>
       </section>
 
       {/* Stat row ──────────────────────────────────────────── */}

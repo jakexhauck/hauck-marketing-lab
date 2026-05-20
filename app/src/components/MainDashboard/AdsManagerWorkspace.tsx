@@ -273,7 +273,7 @@ const WORKSPACE_CSS = `
 }
 .hml-amw-card:hover {
   background: var(--hml-bg-elev-2, rgba(255,255,255,0.06));
-  border-color: rgba(255, 107, 0, 0.4);
+  border-color: rgba(180, 120, 255, 0.4);
   transform: translateY(-1px);
 }
 .hml-amw-card-name {
@@ -292,7 +292,7 @@ const WORKSPACE_CSS = `
   display: inline-flex;
   align-items: center;
 }
-.hml-amw-card:hover .hml-amw-card-arrow { color: #FF6B00; }
+.hml-amw-card:hover .hml-amw-card-arrow { color: #b478ff; }
 
 .hml-amw-status {
   display: inline-flex;

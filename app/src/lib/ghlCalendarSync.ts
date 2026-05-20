@@ -90,6 +90,14 @@ export interface SyncSummary {
   message: string;
 }
 
+/** Window event name fired whenever runSync mutates ops/appointments.json.
+ *  Listeners (dashboard Today panel, CalendarPage) use this to reload without
+ *  waiting for their own poll interval. The detail carries the SyncSummary
+ *  so banners can also reflect ok/error state. */
+export const SYNC_EVENT = "hml:ghl-calendar-sync";
+
+export type SyncEventDetail = SyncSummary;
+
 const EMPTY_SUMMARY = (message: string, ok = true): SyncSummary => ({
   ok,
   processed: 0,
@@ -404,7 +412,7 @@ export async function runSync(root: string | null): Promise<SyncSummary> {
         : `Up to date · ${appointments.length} appt${appointments.length === 1 ? "" : "s"}`
       : `${created} new · ${rescheduled} moved · ${cancelled} cancelled`;
 
-  return {
+  const summary: SyncSummary = {
     ok: errors.length === 0,
     processed: appointments.length,
     created,
@@ -414,4 +422,14 @@ export async function runSync(root: string | null): Promise<SyncSummary> {
     errors,
     message,
   };
+
+  // Fire on any real change OR on error, so listeners can refresh their view
+  // / surface a failure. Quiet no-ops stay quiet to avoid log spam.
+  if (typeof window !== "undefined" && (dirty || !summary.ok)) {
+    window.dispatchEvent(
+      new CustomEvent<SyncEventDetail>(SYNC_EVENT, { detail: summary }),
+    );
+  }
+
+  return summary;
 }

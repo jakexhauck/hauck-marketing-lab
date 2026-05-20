@@ -44,7 +44,7 @@ const AGENT_ACCENT: Record<string, string> = {
   stratos: "#f59e0b",
   nexus: "#38bdf8",
   zenith: "#5fe699",
-  aurelius: "#ec9849",
+  aurelius: "#b478ff",
 };
 
 function statusToV1(status: ClientEntry["status"]): ClientV1["status"] {

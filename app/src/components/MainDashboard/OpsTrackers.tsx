@@ -655,7 +655,7 @@ const PC_CSS = `
   align-items: center;
   padding: 0 0 12px 0;
 }
-.pc-section-collapsible:hover .pc-toggle { color: var(--copper, #d4a574); }
+.pc-section-collapsible:hover .pc-toggle { color: var(--copper, #b478ff); }
 .pc-section-eyebrow {
   display: inline-flex;
   align-items: center;
@@ -704,11 +704,11 @@ const PC_CSS = `
 .pc-row {
   position: relative;
   display: grid;
-  grid-template-columns: 220px 1fr 280px 140px 110px;
+  grid-template-columns: 190px minmax(0, 1fr) 280px 120px 84px;
   grid-template-areas:
     "id metrics reports call actions"
     "notes notes notes notes notes";
-  column-gap: 24px;
+  column-gap: 18px;
   row-gap: 10px;
   align-items: center;
   background: var(--bg-surface, #131318);
@@ -717,7 +717,7 @@ const PC_CSS = `
   padding: 14px 18px 12px 22px;
   transition: border-color 140ms ease;
 }
-.pc-row:hover { border-color: rgba(212, 165, 116, 0.18); }
+.pc-row:hover { border-color: rgba(180, 120, 255, 0.18); }
 .pc-row-dim { opacity: 0.62; }
 .pc-row-dim:hover { opacity: 1; }
 .pc-row-stripe {
@@ -743,9 +743,9 @@ const PC_CSS = `
   width: 40px;
   height: 40px;
   border-radius: 9px;
-  background: linear-gradient(135deg, rgba(212,165,116,0.18), rgba(212,165,116,0.04));
-  border: 1px solid rgba(212, 165, 116, 0.22);
-  color: var(--copper, #d4a574);
+  background: linear-gradient(135deg, rgba(180,120,255,0.18), rgba(180,120,255,0.04));
+  border: 1px solid rgba(180, 120, 255, 0.22);
+  color: var(--copper, #b478ff);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -764,10 +764,11 @@ const PC_CSS = `
 .pc-row-reports {
   grid-area: reports;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
+  min-width: 0;
 }
-.pc-row-call { grid-area: call; }
+.pc-row-call { grid-area: call; min-width: 0; }
 .pc-row-actions {
   grid-area: actions;
   display: flex;
@@ -789,6 +790,9 @@ const PC_CSS = `
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint, #6a6a76);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pc-input {
@@ -807,12 +811,18 @@ const PC_CSS = `
 .pc-input:hover { background: rgba(255,255,255,0.035); }
 .pc-input:focus {
   background: rgba(255,255,255,0.04);
-  border-color: rgba(212, 165, 116, 0.4);
+  border-color: rgba(180, 120, 255, 0.4);
 }
 .pc-input-date {
   font-family: var(--mono);
   font-size: 12px;
   color-scheme: dark;
+  min-width: 0;
+}
+.pc-input-date::-webkit-inner-spin-button,
+.pc-input-date::-webkit-clear-button {
+  display: none;
+  -webkit-appearance: none;
 }
 .pc-input-call::-webkit-calendar-picker-indicator {
   filter: invert(0.8) sepia(0.4) saturate(2) hue-rotate(2deg);
@@ -836,7 +846,7 @@ const PC_CSS = `
   border-color: rgba(196, 132, 123, 0.32);
   background: rgba(196, 132, 123, 0.06);
 }
-.pc-report-soon { border-color: rgba(212, 165, 116, 0.22); }
+.pc-report-soon { border-color: rgba(180, 120, 255, 0.22); }
 .pc-report-disabled { opacity: 0.5; }
 
 .pc-report-check {
@@ -850,7 +860,7 @@ const PC_CSS = `
   transition: background 120ms ease, transform 120ms ease;
 }
 .pc-report-check:hover:not(:disabled) {
-  background: rgba(212, 165, 116, 0.12);
+  background: rgba(180, 120, 255, 0.12);
   transform: scale(1.05);
 }
 .pc-report-check:disabled { cursor: not-allowed; }
@@ -871,8 +881,8 @@ const PC_CSS = `
   letter-spacing: 0.04em;
 }
 .pc-badge-copper {
-  background: rgba(212, 165, 116, 0.18);
-  color: var(--copper, #d4a574);
+  background: rgba(180, 120, 255, 0.18);
+  color: var(--copper, #b478ff);
 }
 
 .pc-report-body { min-width: 0; flex: 1; }
@@ -882,6 +892,9 @@ const PC_CSS = `
   text-transform: uppercase;
   color: var(--text-faint, #6a6a76);
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .pc-report-date {
   font-size: 12.5px;
@@ -892,6 +905,9 @@ const PC_CSS = `
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .pc-overdue-flag {
   font-size: 9px;
@@ -918,7 +934,7 @@ const PC_CSS = `
 .pc-row .ops-money:hover { background: rgba(255,255,255,0.035); }
 .pc-row .ops-money:focus-within {
   background: rgba(255,255,255,0.04);
-  border-color: rgba(212, 165, 116, 0.4);
+  border-color: rgba(180, 120, 255, 0.4);
 }
 .pc-row .ops-money-prefix {
   font-size: 12px;
@@ -932,16 +948,29 @@ const PC_CSS = `
   font-size: 13px;
   color: var(--text, #ececf0);
   font-variant-numeric: tabular-nums;
+  min-width: 0;
+  width: 100%;
 }
 .pc-row .ops-money .ops-input:focus { outline: none; }
+/* Kill native number-input spinners — they crowd the cell and look broken. */
+.pc-row .ops-money .ops-input::-webkit-outer-spin-button,
+.pc-row .ops-money .ops-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.pc-row .ops-money .ops-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
 
-@media (max-width: 1200px) {
+@media (max-width: 1280px) {
   .pc-row {
-    grid-template-columns: 200px 1fr 240px;
+    grid-template-columns: 200px minmax(0, 1fr) 230px;
     grid-template-areas:
       "id metrics reports"
       "id call    actions"
       "notes notes notes";
+    column-gap: 18px;
   }
 }
 `;

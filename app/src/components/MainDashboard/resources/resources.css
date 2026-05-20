@@ -130,7 +130,7 @@
 .rsx-rail-list button.rsx-active {
   color: var(--copper);
   border-left-color: var(--copper);
-  background: rgba(212, 165, 116, 0.10);
+  background: rgba(180, 120, 255, 0.10);
 }
 
 .rsx-rail-empty {
@@ -270,7 +270,7 @@
 /* ── key takeaway ── */
 .rsx-takeaway {
   border-left: 3px solid var(--copper);
-  background: rgba(212, 165, 116, 0.10);
+  background: rgba(180, 120, 255, 0.10);
   padding: 18px 22px;
   margin: 28px 0 0;
 }
@@ -345,10 +345,10 @@
   align-items: center;
   transition: border-color 120ms;
 }
-.rsx-funnel-bar:hover { border-color: rgba(212, 165, 116, 0.4); }
+.rsx-funnel-bar:hover { border-color: rgba(180, 120, 255, 0.4); }
 .rsx-funnel-bar-final {
-  background: rgba(212, 165, 116, 0.10);
-  border-color: rgba(212, 165, 116, 0.4);
+  background: rgba(180, 120, 255, 0.10);
+  border-color: rgba(180, 120, 255, 0.4);
 }
 .rsx-funnel-bar-final .rsx-funnel-desc { color: var(--text); font-weight: 500; }
 .rsx-funnel-tier-num {
@@ -376,13 +376,13 @@
 /* ── hero stat row ── */
 .rsx-hero-stats {
   display: grid;
-  border: 1px solid rgba(212, 165, 116, 0.4);
-  background: rgba(212, 165, 116, 0.10);
+  border: 1px solid rgba(180, 120, 255, 0.4);
+  background: rgba(180, 120, 255, 0.10);
   margin: 8px 0 12px;
 }
 .rsx-hero-stat {
   padding: 28px 22px 24px;
-  border-right: 1px solid rgba(212, 165, 116, 0.4);
+  border-right: 1px solid rgba(180, 120, 255, 0.4);
   text-align: center;
 }
 .rsx-hero-stat:last-child { border-right: none; }
@@ -505,7 +505,7 @@
   text-align: left;
   color: var(--text);
 }
-.rsx-pager:hover:not(:disabled) { border-color: rgba(212, 165, 116, 0.4); }
+.rsx-pager:hover:not(:disabled) { border-color: rgba(180, 120, 255, 0.4); }
 .rsx-pager:disabled {
   opacity: 0.3;
   cursor: default;

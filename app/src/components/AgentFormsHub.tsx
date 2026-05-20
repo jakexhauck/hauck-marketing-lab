@@ -36,7 +36,7 @@ function FormCard({
         padding: 0,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "var(--copper, #ec9849)";
+        e.currentTarget.style.borderColor = "var(--copper, #b478ff)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor =
@@ -67,7 +67,7 @@ function FormCard({
             marginTop: 14,
             fontFamily: "var(--mono)",
             fontSize: 11,
-            color: "var(--copper, #ec9849)",
+            color: "var(--copper, #b478ff)",
             letterSpacing: "0.06em",
             textTransform: "uppercase",
           }}
@@ -199,7 +199,7 @@ function FormGroup({
             fontFamily: "var(--mono)",
             fontSize: 11,
             letterSpacing: "0.08em",
-            color: "var(--copper, #ec9849)",
+            color: "var(--copper, #b478ff)",
             textTransform: "uppercase",
           }}
         >

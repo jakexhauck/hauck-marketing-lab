@@ -99,7 +99,7 @@ export interface MetaAdsAccount {
   campaigns: MetaCampaign[];
 }
 
-const PALETTE = ["#FF6B00", "#5fe699", "#38bdf8", "#a78bfa", "#f59e0b", "#ec9849", "#22d3ee"];
+const PALETTE = ["#b478ff", "#5fe699", "#38bdf8", "#a78bfa", "#f59e0b", "#b478ff", "#22d3ee"];
 
 function hashSlug(slug: string): number {
   let h = 2166136261;

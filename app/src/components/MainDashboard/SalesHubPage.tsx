@@ -15,6 +15,11 @@ import type {
   GhlConfigStatus,
   OpsAppointmentRow,
 } from "../../lib/types";
+import {
+  runSync as runGhlCalendarSync,
+  SYNC_EVENT as GHL_SYNC_EVENT,
+  type SyncSummary,
+} from "../../lib/ghlCalendarSync";
 import { PipelineHubPage } from "./PipelineHubPage";
 
 interface SalesHubPageProps {
@@ -25,7 +30,7 @@ export function SalesHubPage({ root }: SalesHubPageProps) {
   const appointmentsByOpp = useAppointmentsByOpportunity(root);
   return (
     <div>
-      <BookingCalendarBanner />
+      <BookingCalendarBanner root={root} />
       <PipelineHubPage
         hubKey="sales"
         title="Sales Hub"
@@ -94,8 +99,38 @@ type BannerState =
     }
   | { kind: "error"; message: string };
 
-function BookingCalendarBanner() {
+function BookingCalendarBanner({ root }: { root: string | null }) {
   const [state, setState] = useState<BannerState>({ kind: "loading" });
+  const [lastSync, setLastSync] = useState<SyncSummary | null>(null);
+  const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
+  const [manualBusy, setManualBusy] = useState(false);
+
+  // Mirror the background sync's last result so the banner can surface
+  // "Up to date · N appts" or any errors the swallowed tick wrapper hid.
+  useEffect(() => {
+    const onSync = (ev: Event) => {
+      const detail = (ev as CustomEvent<SyncSummary>).detail;
+      if (!detail) return;
+      setLastSync(detail);
+      setLastSyncAt(new Date());
+    };
+    window.addEventListener(GHL_SYNC_EVENT, onSync);
+    return () => window.removeEventListener(GHL_SYNC_EVENT, onSync);
+  }, []);
+
+  const runManualSync = useCallback(async () => {
+    if (!root || manualBusy) return;
+    setManualBusy(true);
+    try {
+      const summary = await runGhlCalendarSync(root);
+      // Banner state isn't fed by the event-listener when the sync is a quiet
+      // no-op (no changes, no errors), so push it here directly.
+      setLastSync(summary);
+      setLastSyncAt(new Date());
+    } finally {
+      setManualBusy(false);
+    }
+  }, [root, manualBusy]);
 
   const load = useCallback(async () => {
     setState({ kind: "loading" });
@@ -321,6 +356,19 @@ function BookingCalendarBanner() {
   }
 
   // Collapsed mode: just show the current selection + a Change link.
+  const syncStatusColor = lastSync
+    ? lastSync.ok
+      ? "var(--text-faint)"
+      : "var(--hml-red, #f7768e)"
+    : "var(--text-faint)";
+  const syncStatusText = manualBusy
+    ? "Syncing…"
+    : lastSync
+      ? lastSync.ok
+        ? `Last sync · ${formatSyncTime(lastSyncAt)} · ${lastSync.message}`
+        : `Sync failed · ${lastSync.errors[0] ?? lastSync.message}`
+      : "Auto-syncs every 90s while open.";
+
   return (
     <section
       style={{
@@ -332,38 +380,81 @@ function BookingCalendarBanner() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
+        gap: 12,
         fontSize: 12.5,
       }}
     >
-      <div>
-        <span style={{ opacity: 0.6, marginRight: 8, letterSpacing: "0.04em" }}>
-          📅 BOOKING CALENDAR
-        </span>
-        <span style={{ fontWeight: 600 }}>
-          {selected?.name ?? "(none)"}
-        </span>
-        <span style={{ opacity: 0.55, marginLeft: 10 }}>
-          New bookings auto-advance to{" "}
-          <span style={{ fontWeight: 600 }}>Call Booked</span>.
-        </span>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div>
+          <span style={{ opacity: 0.6, marginRight: 8, letterSpacing: "0.04em" }}>
+            📅 BOOKING CALENDAR
+          </span>
+          <span style={{ fontWeight: 600 }}>
+            {selected?.name ?? "(none)"}
+          </span>
+          <span style={{ opacity: 0.55, marginLeft: 10 }}>
+            New bookings auto-advance to{" "}
+            <span style={{ fontWeight: 600 }}>Call Booked</span>.
+          </span>
+        </div>
+        <div
+          style={{
+            marginTop: 4,
+            fontSize: 11,
+            color: syncStatusColor,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+          title={syncStatusText}
+        >
+          {syncStatusText}
+        </div>
       </div>
-      <button
-        type="button"
-        onClick={() => {
-          if (state.kind === "ready") setState({ ...state, pickerOpen: true });
-        }}
-        style={{
-          background: "transparent",
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          color: "var(--text)",
-          cursor: "pointer",
-          fontSize: 11.5,
-          padding: "4px 10px",
-        }}
-      >
-        Change
-      </button>
+      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+        <button
+          type="button"
+          onClick={() => void runManualSync()}
+          disabled={manualBusy || !root}
+          style={{
+            background: "transparent",
+            border: "1px solid var(--border)",
+            borderRadius: 6,
+            color: "var(--text)",
+            cursor: manualBusy || !root ? "wait" : "pointer",
+            fontSize: 11.5,
+            padding: "4px 10px",
+          }}
+          title="Pull the latest from GoHighLevel now"
+        >
+          {manualBusy ? "Syncing…" : "Sync now"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (state.kind === "ready") setState({ ...state, pickerOpen: true });
+          }}
+          style={{
+            background: "transparent",
+            border: "1px solid var(--border)",
+            borderRadius: 6,
+            color: "var(--text)",
+            cursor: "pointer",
+            fontSize: 11.5,
+            padding: "4px 10px",
+          }}
+        >
+          Change
+        </button>
+      </div>
     </section>
   );
+}
+
+function formatSyncTime(d: Date | null): string {
+  if (!d) return "—";
+  return d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }

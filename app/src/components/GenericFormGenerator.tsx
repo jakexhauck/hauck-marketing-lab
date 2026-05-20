@@ -742,10 +742,10 @@ export function GenericFormGenerator({
           fontSize: 9.5,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: "var(--hml-accent, #ec9849)",
+          color: "var(--hml-accent, #b478ff)",
           padding: "1px 6px",
-          border: "1px solid var(--hml-accent-border, rgba(236,152,73,0.35))",
-          background: "var(--hml-accent-dim, rgba(236,152,73,0.08))",
+          border: "1px solid var(--hml-accent-border, rgba(180,120,255,0.35))",
+          background: "var(--hml-accent-dim, rgba(180,120,255,0.08))",
           borderRadius: 4,
           verticalAlign: "middle",
         }}
@@ -967,7 +967,7 @@ export function GenericFormGenerator({
                 style={{
                   height: "100%",
                   width: `${progress.pct}%`,
-                  background: "var(--copper, #ec9849)",
+                  background: "var(--copper, #b478ff)",
                   transition: "width 200ms ease-out",
                 }}
               />

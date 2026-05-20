@@ -25,7 +25,7 @@ const CARDS: CardDef[] = [
     label: (w) => `SPEND · ${w}`,
     meta: "of $2,500 cap",
     format: (v) => `$${Math.round(v).toLocaleString()}`,
-    color: "#ec9849",
+    color: "#b478ff",
     deltaInversion: "neutral",
   },
   {

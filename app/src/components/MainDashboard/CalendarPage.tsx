@@ -8,6 +8,7 @@ import {
 import {
   loadAppointmentEvents,
   mergeEvents,
+  SYNC_EVENT as GHL_SYNC_EVENT,
 } from "../../lib/ghlCalendarSync";
 import type {
   CalendarConnection,
@@ -251,6 +252,16 @@ export function CalendarPage({ root, onBack, clients = [] }: CalendarPageProps) 
 
   useEffect(() => {
     void loadAll();
+  }, [loadAll]);
+
+  // Reload the grid whenever the background GHL sync writes a change. Without
+  // this, fresh bookings only surface after a manual Refresh click.
+  useEffect(() => {
+    const onSync = () => {
+      void loadAll();
+    };
+    window.addEventListener(GHL_SYNC_EVENT, onSync);
+    return () => window.removeEventListener(GHL_SYNC_EVENT, onSync);
   }, [loadAll]);
 
   const refreshOauthStatus = useCallback(async () => {

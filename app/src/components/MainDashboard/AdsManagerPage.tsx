@@ -488,7 +488,7 @@ export function AdsManagerPage({
           <div className="hml-ads-chart-head">
             <div className="hml-ads-chart-title">Daily spend · last {windowDays}d</div>
             <div className="hml-ads-chart-legend">
-              <span className="hml-ads-legend-dot" style={{ background: "#FF6B00" }} />
+              <span className="hml-ads-legend-dot" style={{ background: "#b478ff" }} />
               <span>Spend</span>
               <span className="hml-ads-legend-dot" style={{ background: "#5fe699" }} />
               <span>Revenue</span>
@@ -690,7 +690,7 @@ function DailyBars({ accounts }: { accounts: MetaAdsAccount[] }) {
           <div key={p.date} className="hml-ads-bar-col" title={`${p.date}\nSpend ${fmtMoney(p.spend)}\nRev ${fmtMoney(p.revenue)}`}>
             <div className="hml-ads-bar-stack">
               <div className="hml-ads-bar" style={{ height: revH, background: "#5fe69988" }} />
-              <div className="hml-ads-bar" style={{ height: spendH, background: "#FF6B00" }} />
+              <div className="hml-ads-bar" style={{ height: spendH, background: "#b478ff" }} />
             </div>
             <div className="hml-ads-bar-label">{label}</div>
           </div>
@@ -1165,12 +1165,12 @@ const ADS_CSS = `
   cursor: not-allowed;
 }
 .hml-ads-action-primary {
-  background: rgba(255,107,0,0.18);
-  border-color: rgba(255,107,0,0.45);
-  color: #FF6B00;
+  background: rgba(180,120,255,0.18);
+  border-color: rgba(180,120,255,0.45);
+  color: #b478ff;
 }
 .hml-ads-action-primary:hover:not(:disabled) {
-  background: rgba(255,107,0,0.28);
+  background: rgba(180,120,255,0.28);
 }
 .hml-ads-action-err {
   margin-top: 8px;
@@ -1228,7 +1228,7 @@ const ADS_CSS = `
 .hml-ads-pill.hml-active {
   background: var(--hml-bg-elev-2, rgba(255,255,255,0.10));
   color: var(--hml-text-primary);
-  border-color: rgba(255, 107, 0, 0.4);
+  border-color: rgba(180, 120, 255, 0.4);
 }
 .hml-ads-pill-dot {
   width: 6px; height: 6px; border-radius: 50%;
@@ -1370,7 +1370,7 @@ const ADS_CSS = `
   color: var(--hml-text-primary);
 }
 .hml-ads-row:hover { background: rgba(255,255,255,0.025); }
-.hml-ads-row.hml-active { background: rgba(255, 107, 0, 0.06); }
+.hml-ads-row.hml-active { background: rgba(180, 120, 255, 0.06); }
 .hml-ads-row-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .hml-ads-row-title {
   font-size: 13px;
@@ -1491,7 +1491,7 @@ const ADS_CSS = `
   flex-shrink: 0;
   display: flex; align-items: flex-end; justify-content: flex-start;
   padding: 4px 6px;
-  background: linear-gradient(135deg, #FF6B00, #ff8836);
+  background: linear-gradient(135deg, #b478ff, #ff8836);
 }
 .hml-ads-creative-format {
   font-family: var(--hml-font-mono, ui-monospace, monospace);

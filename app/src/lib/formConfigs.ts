@@ -2524,7 +2524,7 @@ const META_DAILY_PULSE: FormConfig = {
       fields: [META_ACCOUNT_FIELD, META_CLIENT_FIELD],
     },
   ],
-  promptTemplate: `Use the meta-ads MCP to pull yesterday's performance for ad account [ACCOUNT_ID]. Group by campaign. For each row show: spend, CPM, CTR, CPA, conversions, vs the 7-day average. Then build me an HTML dashboard with red/yellow/green status cards. Add a summary at the top: biggest winner today, biggest concern, what to do. Use my agency colors: primary #FF6B00, bg #0A0A0A. Output a single self-contained HTML file.`,
+  promptTemplate: `Use the meta-ads MCP to pull yesterday's performance for ad account [ACCOUNT_ID]. Group by campaign. For each row show: spend, CPM, CTR, CPA, conversions, vs the 7-day average. Then build me an HTML dashboard with red/yellow/green status cards. Add a summary at the top: biggest winner today, biggest concern, what to do. Use my agency colors: primary #b478ff, bg #0A0A0A. Output a single self-contained HTML file.`,
   defaultTitle: "Daily pulse",
 };
 
@@ -2755,7 +2755,7 @@ const META_BLOOMBERG: FormConfig = {
           key: "hex_primary",
           label: "Primary hex",
           promptPlaceholder: "[HEX_PRIMARY]",
-          placeholder: "#FF6B00",
+          placeholder: "#b478ff",
           required: true,
         },
         {

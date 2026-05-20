@@ -163,7 +163,7 @@
 }
 .md-nav-item.md-active {
   color: var(--copper);
-  background: linear-gradient(90deg, rgba(236, 152, 73, 0.08), transparent 70%);
+  background: linear-gradient(90deg, rgba(180, 120, 255, 0.08), transparent 70%);
   border-left-color: var(--copper);
 }
 .md-nav-item .md-glyph {
@@ -276,7 +276,7 @@
   text-transform: uppercase;
   color: var(--copper);
   padding: 1px 6px;
-  border: 1px solid rgba(236, 152, 73, 0.28);
+  border: 1px solid rgba(180, 120, 255, 0.28);
   border-radius: 1px;
 }
 .md-client-sub-item .md-badge.md-warn {
@@ -383,7 +383,7 @@
 .md-greeting-card {
   border: 1px solid var(--border);
   background:
-    radial-gradient(circle at 90% 10%, rgba(236, 152, 73, 0.08), transparent 55%),
+    radial-gradient(circle at 90% 10%, rgba(180, 120, 255, 0.08), transparent 55%),
     var(--bg-surface);
   padding: 28px 32px;
   margin-bottom: 32px;
@@ -571,7 +571,7 @@
 }
 .md-call-action.md-live {
   color: var(--copper);
-  border-color: rgba(236, 152, 73, 0.32);
+  border-color: rgba(180, 120, 255, 0.32);
 }
 
 /* calendar widget */
@@ -760,7 +760,7 @@
 /* flat client row in media-buying mode (no expand tree) */
 .md-client-row.md-active-client {
   color: var(--copper);
-  background: linear-gradient(90deg, rgba(236, 152, 73, 0.06), transparent 70%);
+  background: linear-gradient(90deg, rgba(180, 120, 255, 0.06), transparent 70%);
 }
 .md-client-row .md-active-mark {
   margin-left: auto;
@@ -784,8 +784,8 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--copper);
-  background: rgba(236, 152, 73, 0.06);
-  border: 1px solid rgba(236, 152, 73, 0.22);
+  background: rgba(180, 120, 255, 0.06);
+  border: 1px solid rgba(180, 120, 255, 0.22);
   border-radius: 2px;
   letter-spacing: -0.02em;
 }
@@ -934,9 +934,9 @@
   font-size: 9.5px;
   letter-spacing: 0.22em;
   color: var(--copper);
-  border: 1px solid rgba(236, 152, 73, 0.36);
+  border: 1px solid rgba(180, 120, 255, 0.36);
   padding: 2px 8px;
-  background: rgba(236, 152, 73, 0.06);
+  background: rgba(180, 120, 255, 0.06);
 }
 .md-overview-card {
   margin-top: 18px;
@@ -974,15 +974,15 @@
   letter-spacing: 0.1em;
   color: var(--copper);
   text-decoration: none;
-  border: 1px solid rgba(236, 152, 73, 0.36);
-  background: rgba(236, 152, 73, 0.06);
+  border: 1px solid rgba(180, 120, 255, 0.36);
+  background: rgba(180, 120, 255, 0.06);
   padding: 6px 12px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 .md-card-cta:hover:not(:disabled) {
   border-color: var(--copper);
-  background: rgba(236, 152, 73, 0.14);
+  background: rgba(180, 120, 255, 0.14);
 }
 .md-card-cta:disabled {
   opacity: 0.45;
@@ -1728,10 +1728,10 @@
 .md-cal-page-cell.md-selected {
   border-left-color: var(--copper);
   border-left-width: 3px;
-  background: rgba(236, 152, 73, 0.06);
+  background: rgba(180, 120, 255, 0.06);
 }
 .md-cal-page-cell.md-selected:hover {
-  background: rgba(236, 152, 73, 0.1);
+  background: rgba(180, 120, 255, 0.1);
 }
 .md-cal-page-cell-num {
   font-family: var(--mono);
@@ -1763,13 +1763,13 @@
   line-height: 1.3;
 }
 .md-cal-page-chip-timed {
-  background: rgba(236, 152, 73, 0.1);
+  background: rgba(180, 120, 255, 0.1);
   color: var(--text-mid);
 }
 .md-cal-page-chip-allday {
   border: 1px solid var(--copper);
   color: var(--copper);
-  background: rgba(236, 152, 73, 0.04);
+  background: rgba(180, 120, 255, 0.04);
 }
 .md-cal-page-chip-time {
   color: var(--copper);
@@ -1868,8 +1868,8 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--copper);
-  background: rgba(212, 165, 116, 0.12);
-  border: 1px solid rgba(212, 165, 116, 0.28);
+  background: rgba(180, 120, 255, 0.12);
+  border: 1px solid rgba(180, 120, 255, 0.28);
   border-radius: 4px;
   vertical-align: 1px;
 }
@@ -1903,7 +1903,7 @@
 }
 .md-cal-page-detail-assign-select:hover,
 .md-cal-page-detail-assign-select:focus {
-  border-color: rgba(212, 165, 116, 0.4);
+  border-color: rgba(180, 120, 255, 0.4);
 }
 .md-cal-page-detail-more {
   font-family: var(--mono);
@@ -2211,7 +2211,7 @@
   font-family: var(--mono);
   font-size: 12.5px;
   color: var(--copper);
-  background: rgba(236, 152, 73, 0.08);
+  background: rgba(180, 120, 255, 0.08);
   padding: 1px 6px;
   border-radius: 3px;
 }

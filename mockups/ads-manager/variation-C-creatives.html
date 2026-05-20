@@ -1,0 +1,2481 @@
+<!--
+  Ads Manager, Variation C: Creative-first AI Recommendations
+  Creative strategist view for a single client account (Acme Dental Studio).
+  LED purple accent. Static mockup, calm editorial.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HML OS · Ads Manager · Creatives</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-base:      #0a0a0c;
+    --bg-sidebar:   #0d0d11;
+    --bg-elev-1:    #131318;
+    --bg-elev-2:    #191920;
+    --bg-elev-3:    #1f1f28;
+
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --border:        rgba(255, 255, 255, 0.085);
+    --border-strong: rgba(255, 255, 255, 0.14);
+
+    --text-primary:    #ececf0;
+    --text-secondary:  #9c9ca8;
+    --text-tertiary:   #6a6a76;
+    --text-quaternary: #494954;
+
+    --accent:        #b478ff;
+    --accent-bright: #c594ff;
+    --accent-deep:   #7a3fd9;
+    --accent-dim:    rgba(180, 120, 255, 0.12);
+    --accent-border: rgba(180, 120, 255, 0.32);
+    --accent-glow:   rgba(180, 120, 255, 0.45);
+
+    --green:  #5fe699;  --green-bg:  rgba(95,230,153,0.12);  --green-border: rgba(95,230,153,0.25);
+    --red:    #ef6b6b;  --red-bg:    rgba(239,107,107,0.12); --red-border:   rgba(239,107,107,0.25);
+    --blue:   #7ba8c4;  --blue-bg:   rgba(123,168,196,0.12); --blue-border:  rgba(123,168,196,0.25);
+    --amber:  #f59e0b;  --amber-bg:  rgba(245,158,11,0.12);  --amber-border: rgba(245,158,11,0.25);
+
+    --font-sans: 'Geist', -apple-system, system-ui, sans-serif;
+    --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+    --sidebar-w: 252px;
+    --drawer-w:  408px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.003em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+    position: relative;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 720px 480px at 18% -10%, rgba(180, 120, 255, 0.055) 0%, transparent 60%),
+      radial-gradient(ellipse 600px 600px at 100% 110%, rgba(180, 120, 255, 0.035) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  button { font-family: inherit; cursor: pointer; background: none; border: none; color: inherit; }
+  a { color: inherit; text-decoration: none; }
+
+  /* SHELL */
+  .shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px 14px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    user-select: none;
+  }
+  .brand-mark {
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 12px; color: #1a0a2e;
+    letter-spacing: -0.02em;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.18) inset,
+      0 4px 14px var(--accent-glow);
+  }
+  .brand-name {
+    font-weight: 500; font-size: 13px; letter-spacing: -0.01em;
+    color: var(--text-primary);
+    display: flex; flex-direction: column; line-height: 1.15;
+  }
+  .brand-sub {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--text-quaternary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 400;
+    margin-top: 1px;
+  }
+  .search-bar {
+    margin: 10px 12px 6px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 6px 8px 6px 10px;
+    font-size: 12.5px;
+    color: var(--text-tertiary);
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer;
+  }
+  .search-bar:hover { background: var(--bg-elev-2); border-color: var(--border); }
+  .search-placeholder { flex: 1; }
+  .kbd {
+    font-family: var(--font-mono);
+    font-size: 10px; color: var(--text-tertiary);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-subtle);
+    border-radius: 3px;
+    padding: 1px 5px;
+    letter-spacing: 0.02em;
+  }
+
+  .nav { flex: 1; overflow-y: auto; padding: 4px 8px 12px; }
+  .nav-section { margin-top: 14px; }
+  .nav-section:first-child { margin-top: 4px; }
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 9.5px; font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    color: var(--text-quaternary);
+    padding: 6px 10px 5px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: var(--text-secondary);
+    font-size: 13px; font-weight: 400;
+    width: 100%;
+    text-align: left;
+    transition: background 0.12s ease, color 0.12s ease;
+    position: relative;
+    user-select: none;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.025); color: var(--text-primary); }
+  .nav-item.active {
+    background: var(--bg-elev-2);
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: -8px; top: 50%;
+    transform: translateY(-50%);
+    width: 2px; height: 14px;
+    background: var(--accent);
+    border-radius: 0 2px 2px 0;
+    box-shadow: 0 0 10px var(--accent-glow), 0 0 18px var(--accent-glow);
+  }
+  .nav-icon { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.85; }
+  .nav-badge {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    padding: 1px 5px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 4px;
+  }
+  .nav-item.active .nav-badge {
+    background: var(--accent-dim);
+    color: var(--accent-bright);
+  }
+  .sidebar-foot {
+    border-top: 1px solid var(--border-subtle);
+    padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .user-avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3a2454, #1a0a2e);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    color: var(--text-primary);
+  }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 12.5px; font-weight: 500; color: var(--text-primary); }
+  .user-status {
+    font-family: var(--font-mono);
+    font-size: 10px; color: var(--text-tertiary);
+    display: flex; align-items: center; gap: 5px;
+    letter-spacing: 0.02em;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(95,230,153,0.5); }
+    50%      { box-shadow: 0 0 0 4px rgba(95,230,153,0); }
+  }
+  .foot-btn {
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-tertiary);
+    border: 1px solid transparent;
+    background: transparent;
+  }
+  .foot-btn:hover {
+    background: var(--bg-elev-1);
+    color: var(--text-primary);
+    border-color: var(--border-subtle);
+  }
+
+  /* MAIN */
+  .main {
+    overflow: hidden;
+    background: var(--bg-base);
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 28px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(10, 10, 12, 0.78);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    min-height: 49px;
+  }
+  .breadcrumb {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--text-secondary);
+  }
+  .breadcrumb .seg { cursor: pointer; }
+  .breadcrumb .seg:hover { color: var(--text-primary); }
+  .breadcrumb .sep { color: var(--text-quaternary); font-size: 11px; }
+  .breadcrumb .current { color: var(--text-primary); font-weight: 500; }
+
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+  .date-picker {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 10px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+    cursor: pointer;
+  }
+  .date-picker:hover { background: var(--bg-elev-2); border-color: var(--border); }
+  .date-picker .caret { color: var(--text-tertiary); }
+
+  .icon-btn {
+    width: 30px; height: 30px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-tertiary);
+    background: transparent;
+    border: 1px solid transparent;
+    transition: background 0.12s, color 0.12s, border 0.12s;
+  }
+  .icon-btn:hover {
+    background: var(--bg-elev-1);
+    color: var(--text-primary);
+    border-color: var(--border-subtle);
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 11px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 12.5px; font-weight: 500;
+  }
+  .btn:hover { background: var(--bg-elev-3); border-color: var(--border-strong); }
+  .btn.ghost {
+    background: transparent;
+    border-color: var(--border-subtle);
+    color: var(--text-secondary);
+  }
+  .btn.ghost:hover {
+    background: var(--bg-elev-1);
+    border-color: var(--border);
+    color: var(--text-primary);
+  }
+  .btn.accent {
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+    border-color: rgba(0,0,0,0.35);
+    color: #fff;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.18) inset,
+      0 2px 6px rgba(0,0,0,0.3),
+      0 0 24px var(--accent-glow);
+  }
+  .btn.accent:hover {
+    background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.22) inset,
+      0 2px 8px rgba(0,0,0,0.35),
+      0 0 30px var(--accent-glow);
+  }
+
+  /* SUB-TABS */
+  .subtabs {
+    display: flex; align-items: stretch;
+    padding: 0 22px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-base);
+    gap: 4px;
+    height: 40px;
+  }
+  .subtab {
+    position: relative;
+    padding: 0 14px;
+    display: flex; align-items: center;
+    color: var(--text-tertiary);
+    font-size: 12.5px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: color 120ms;
+    letter-spacing: -0.003em;
+  }
+  .subtab:hover { color: var(--text-secondary); }
+  .subtab.active {
+    color: var(--text-primary);
+    border-bottom-color: var(--accent);
+    box-shadow: 0 4px 22px -10px var(--accent-glow);
+  }
+  .subtab.active::after {
+    content: "";
+    position: absolute;
+    left: 14px; right: 14px;
+    bottom: -2px;
+    height: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow), 0 0 18px var(--accent-glow);
+  }
+  .subtab .badge-mini {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    margin-left: 7px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.04);
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+  }
+  .subtab.active .badge-mini {
+    background: var(--accent-dim);
+    color: var(--accent-bright);
+  }
+
+  /* CONTENT FRAME (grid + drawer) */
+  .content-frame {
+    display: grid;
+    grid-template-columns: 1fr var(--drawer-w);
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .grid-col {
+    overflow-y: auto;
+    padding: 22px 26px 60px;
+    min-width: 0;
+  }
+  .grid-col > * {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: rise 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  .grid-col > *:nth-child(1) { animation-delay: 0.02s; }
+  .grid-col > *:nth-child(2) { animation-delay: 0.10s; }
+  .grid-col > *:nth-child(3) { animation-delay: 0.18s; }
+  .grid-col > *:nth-child(4) { animation-delay: 0.26s; }
+  .grid-col > *:nth-child(5) { animation-delay: 0.34s; }
+  @keyframes rise {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SECTION HEAD */
+  .section-head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 16px;
+  }
+  .section-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    margin-bottom: 6px;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .eyebrow-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent), 0 0 18px var(--accent-glow);
+  }
+  .section-title {
+    font-size: 16px; font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.012em;
+    line-height: 1.2;
+  }
+  .section-sub {
+    font-size: 12.8px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+  .section-action {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 5px;
+    background: transparent; border: none;
+  }
+  .section-action:hover { color: var(--accent); }
+
+  /* STRATEGY PANEL */
+  .strategy { margin-bottom: 26px; }
+  .strategy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.15fr;
+    gap: 14px;
+  }
+  .strat-card {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 16px 18px 16px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+    display: flex; flex-direction: column;
+    min-height: 196px;
+  }
+  .strat-card:hover {
+    border-color: var(--border);
+    background: var(--bg-elev-2);
+    transform: translateY(-1px);
+  }
+  .strat-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--text-quaternary);
+  }
+  .strat-card.win::before { background: var(--green); box-shadow: 0 0 12px rgba(95,230,153,0.4); }
+  .strat-card.tired::before { background: var(--red); box-shadow: 0 0 12px rgba(239,107,107,0.4); }
+  .strat-card.brief {
+    background:
+      radial-gradient(ellipse 360px 260px at 75% 20%, rgba(180,120,255,0.16) 0%, transparent 65%),
+      linear-gradient(180deg, rgba(180,120,255,0.06) 0%, rgba(180,120,255,0.02) 100%),
+      var(--bg-elev-1);
+    border-color: var(--accent-border);
+  }
+  .strat-card.brief::before {
+    background: var(--accent);
+    box-shadow: 0 0 14px var(--accent-glow), 0 0 22px var(--accent-glow);
+  }
+
+  .strat-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .strat-icon {
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent-bright);
+    filter: drop-shadow(0 0 6px var(--accent-glow));
+  }
+  .strat-card.win .strat-icon {
+    background: var(--green-bg); border-color: var(--green-border); color: var(--green);
+    filter: drop-shadow(0 0 6px rgba(95,230,153,0.35));
+  }
+  .strat-card.tired .strat-icon {
+    background: var(--red-bg); border-color: var(--red-border); color: var(--red);
+    filter: drop-shadow(0 0 6px rgba(239,107,107,0.35));
+  }
+  .sev-row {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    color: var(--text-tertiary);
+  }
+  .sev-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-quaternary);
+  }
+  .strat-card.win .sev-row { color: var(--green); }
+  .strat-card.win .sev-dot { background: var(--green); box-shadow: 0 0 6px rgba(95,230,153,0.6); }
+  .strat-card.tired .sev-row { color: var(--red); }
+  .strat-card.tired .sev-dot { background: var(--red); box-shadow: 0 0 8px rgba(239,107,107,0.7); animation: pulse-red 2.6s ease-in-out infinite; }
+  @keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 6px rgba(239,107,107,0.6); }
+    50%      { box-shadow: 0 0 12px rgba(239,107,107,0.9); }
+  }
+  .strat-card.brief .sev-row { color: var(--accent-bright); }
+  .strat-card.brief .sev-dot { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+
+  .strat-title {
+    font-size: 13.5px; font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+    line-height: 1.35;
+  }
+  .strat-body {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin-bottom: 12px;
+    flex: 1;
+  }
+  .strat-body .em { color: var(--text-primary); font-weight: 500; }
+  .strat-body .mono { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-primary); }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    letter-spacing: 0.01em;
+  }
+  .strat-card.win .tag {
+    background: var(--green-bg);
+    border-color: var(--green-border);
+    color: var(--green);
+  }
+  .strat-card.tired .tag {
+    background: var(--red-bg);
+    border-color: var(--red-border);
+    color: var(--red);
+  }
+  .strat-card.brief .tag {
+    background: var(--accent-dim);
+    border-color: var(--accent-border);
+    color: var(--accent-bright);
+  }
+
+  .brief-actions {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 14px;
+  }
+  .btn-mini {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 11px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 500;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-elev-2);
+    color: var(--text-secondary);
+    font-family: inherit;
+  }
+  .btn-mini:hover { background: var(--bg-elev-3); color: var(--text-primary); border-color: var(--border); }
+  .btn-mini.apply {
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+    border-color: rgba(0,0,0,0.35);
+    color: #fff;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.16) inset,
+      0 1px 4px rgba(0,0,0,0.3),
+      0 0 18px var(--accent-glow);
+  }
+  .btn-mini.apply:hover {
+    background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.22) inset,
+      0 1px 6px rgba(0,0,0,0.35),
+      0 0 26px var(--accent-glow);
+  }
+
+  /* TOOLBAR */
+  .toolbar {
+    display: flex; align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .chip-group {
+    display: inline-flex;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .chip {
+    padding: 5px 11px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    background: transparent;
+    transition: color 120ms, background 120ms;
+    display: inline-flex; align-items: center; gap: 6px;
+    letter-spacing: -0.003em;
+  }
+  .chip:hover { color: var(--text-secondary); }
+  .chip .count {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-quaternary);
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.03);
+    letter-spacing: 0.02em;
+  }
+  .chip.active {
+    background: var(--accent-dim);
+    color: var(--accent-bright);
+    box-shadow: inset 0 0 0 1px var(--accent-border), 0 0 16px -4px var(--accent-glow);
+  }
+  .chip.active .count {
+    background: rgba(180,120,255,0.18);
+    color: var(--accent-bright);
+  }
+  .chip.solid {
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+    color: #fff;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.18) inset,
+      0 0 18px var(--accent-glow);
+    border: 1px solid rgba(0,0,0,0.35);
+  }
+  .chip.solid:hover { color: #fff; }
+
+  .tool-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+  .sort {
+    height: 30px;
+    padding: 0 11px;
+    border-radius: 7px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 12px;
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+  .sort:hover { background: var(--bg-elev-2); border-color: var(--border); color: var(--text-primary); }
+  .sort .lbl { color: var(--text-tertiary); }
+  .sort .val { color: var(--text-primary); }
+
+  .view-toggle {
+    display: inline-flex;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 7px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .view-toggle button {
+    width: 26px; height: 24px;
+    border-radius: 5px;
+    color: var(--text-tertiary);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .view-toggle button:hover { color: var(--text-secondary); }
+  .view-toggle button.on {
+    background: var(--accent-dim);
+    color: var(--accent-bright);
+    box-shadow: inset 0 0 0 1px var(--accent-border), 0 0 14px -4px var(--accent-glow);
+  }
+
+  /* CREATIVE GRID */
+  .creative-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .creative-card {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    display: flex; flex-direction: column;
+    transition: border-color 0.18s, background 0.18s, transform 0.18s, box-shadow 0.18s;
+  }
+  .creative-card:hover {
+    border-color: var(--border);
+    background: var(--bg-elev-2);
+    transform: translateY(-2px);
+  }
+  .creative-card.selected {
+    border: 2px solid var(--accent);
+    box-shadow:
+      0 0 0 1px rgba(180,120,255,0.15),
+      0 0 28px -4px var(--accent-glow),
+      0 0 48px -10px var(--accent-glow);
+  }
+
+  /* preview block */
+  .preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .preview .blob {
+    position: absolute;
+    width: 70%; height: 70%;
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    filter: blur(28px);
+    opacity: 0.85;
+  }
+  .preview .blob.b2 {
+    width: 45%; height: 45%;
+    top: 30%; left: 70%;
+    filter: blur(36px);
+    opacity: 0.55;
+  }
+  .preview .overlay-bar {
+    position: absolute;
+    left: 12px; right: 12px; bottom: 12px;
+    height: 8px;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 3px;
+  }
+  .preview .overlay-bar::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 55%;
+    background: rgba(255,255,255,0.45);
+    border-radius: 3px;
+  }
+  .preview .overlay-text {
+    position: absolute;
+    left: 12px; bottom: 28px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: rgba(255,255,255,0.78);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+  }
+  .preview .overlay-headline {
+    position: absolute;
+    left: 12px; right: 12px;
+    bottom: 44px;
+    font-size: 13px; font-weight: 600;
+    color: #fff;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.55);
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  /* preview gradient variants (photo content tints) */
+  .preview.t-teal { background: linear-gradient(135deg, #0e3a3a 0%, #1f6c63 60%, #2c8a82 100%); }
+  .preview.t-teal .blob { background: radial-gradient(circle, #6fe6c3, #2c8a82); }
+  .preview.t-teal .blob.b2 { background: radial-gradient(circle, #c5f5e6, transparent 70%); }
+
+  .preview.t-coral { background: linear-gradient(135deg, #4a1a22 0%, #b34a4a 55%, #f08066 100%); }
+  .preview.t-coral .blob { background: radial-gradient(circle, #ffb8a3, #b34a4a); }
+  .preview.t-coral .blob.b2 { background: radial-gradient(circle, #ffe1d4, transparent 70%); }
+
+  .preview.t-blue { background: linear-gradient(135deg, #142547 0%, #2a4f8a 55%, #5a8bcc 100%); }
+  .preview.t-blue .blob { background: radial-gradient(circle, #9cc4f5, #2a4f8a); }
+  .preview.t-blue .blob.b2 { background: radial-gradient(circle, #e2efff, transparent 70%); }
+
+  .preview.t-pink { background: linear-gradient(135deg, #3a1538 0%, #883372 55%, #d96aaa 100%); }
+  .preview.t-pink .blob { background: radial-gradient(circle, #ffb3d9, #883372); }
+  .preview.t-pink .blob.b2 { background: radial-gradient(circle, #ffd9ec, transparent 70%); }
+
+  .preview.t-green { background: linear-gradient(135deg, #14361b 0%, #2d6b3a 55%, #6abf7a 100%); }
+  .preview.t-green .blob { background: radial-gradient(circle, #b4ecbf, #2d6b3a); }
+  .preview.t-green .blob.b2 { background: radial-gradient(circle, #def8e4, transparent 70%); }
+
+  .preview.t-sand { background: linear-gradient(135deg, #4a3a1f 0%, #b88c3f 55%, #f0c46d 100%); }
+  .preview.t-sand .blob { background: radial-gradient(circle, #ffe5a8, #b88c3f); }
+  .preview.t-sand .blob.b2 { background: radial-gradient(circle, #fff2d4, transparent 70%); }
+
+  .preview.t-violet { background: linear-gradient(135deg, #2a1547 0%, #56347e 55%, #8c6bc2 100%); }
+  .preview.t-violet .blob { background: radial-gradient(circle, #d4b8ff, #56347e); }
+  .preview.t-violet .blob.b2 { background: radial-gradient(circle, #ede0ff, transparent 70%); }
+
+  .preview.t-ocean { background: linear-gradient(135deg, #0d2a3a 0%, #1f5773 55%, #4a9bb8 100%); }
+  .preview.t-ocean .blob { background: radial-gradient(circle, #a0d8e8, #1f5773); }
+  .preview.t-ocean .blob.b2 { background: radial-gradient(circle, #d4eef5, transparent 70%); }
+
+  .preview.t-rose { background: linear-gradient(135deg, #4a1f2e 0%, #a64361 55%, #e88299 100%); }
+  .preview.t-rose .blob { background: radial-gradient(circle, #ffc9d4, #a64361); }
+  .preview.t-rose .blob.b2 { background: radial-gradient(circle, #ffe1e8, transparent 70%); }
+
+  .preview.t-mint { background: linear-gradient(135deg, #1a3a30 0%, #3a8068 55%, #7ec9ad 100%); }
+  .preview.t-mint .blob { background: radial-gradient(circle, #bff5dc, #3a8068); }
+  .preview.t-mint .blob.b2 { background: radial-gradient(circle, #dffaec, transparent 70%); }
+
+  .preview.t-slate { background: linear-gradient(135deg, #2a2a3a 0%, #4a4a58 55%, #5a5a6a 100%); }
+  .preview.t-slate .blob { background: radial-gradient(circle, #a8a8b8, #5a5a6a); }
+  .preview.t-slate .blob.b2 { background: radial-gradient(circle, #d4d4dc, transparent 70%); }
+
+  .preview.t-bronze { background: linear-gradient(135deg, #3a2a1a 0%, #6a4a30 55%, #8a6a4a 100%); }
+  .preview.t-bronze .blob { background: radial-gradient(circle, #d4a878, #8a6a4a); }
+  .preview.t-bronze .blob.b2 { background: radial-gradient(circle, #f0d8b8, transparent 70%); }
+
+  .preview.t-forest { background: linear-gradient(135deg, #1a3a1a 0%, #3a6a3a 55%, #5a8a5a 100%); }
+  .preview.t-forest .blob { background: radial-gradient(circle, #a8d4a8, #5a8a5a); }
+  .preview.t-forest .blob.b2 { background: radial-gradient(circle, #d4ecd4, transparent 70%); }
+
+  .preview.t-cobalt { background: linear-gradient(135deg, #1a2a5a 0%, #2f4a90 55%, #4a6ac4 100%); }
+  .preview.t-cobalt .blob { background: radial-gradient(circle, #8eaaff, #4a6ac4); }
+  .preview.t-cobalt .blob.b2 { background: radial-gradient(circle, #d4def8, transparent 70%); }
+
+  /* format pill on preview */
+  .fmt-pill {
+    position: absolute;
+    top: 10px; right: 10px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: rgba(10,10,12,0.65);
+    color: rgba(255,255,255,0.86);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.12);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+  }
+
+  /* AI badge (top-left) */
+  .ai-badge {
+    position: absolute;
+    top: 10px; left: 10px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(10,10,12,0.55);
+    color: var(--accent-bright);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--accent-border);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 5px;
+    box-shadow: 0 0 14px -2px var(--accent-glow);
+  }
+  .ai-badge .spark {
+    width: 8px; height: 8px;
+    color: var(--accent-bright);
+    filter: drop-shadow(0 0 4px var(--accent-glow));
+  }
+
+  /* card body */
+  .card-body {
+    padding: 12px 13px 12px;
+    display: flex; flex-direction: column;
+    gap: 10px;
+  }
+  .card-top {
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .card-titleblock {
+    flex: 1; min-width: 0;
+  }
+  .card-headline {
+    font-size: 13px; font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-body-line {
+    font-size: 11.5px;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* AI score ring */
+  .ring-wrap {
+    position: relative;
+    width: 40px; height: 40px;
+    flex-shrink: 0;
+  }
+  .ring-wrap svg {
+    width: 100%; height: 100%;
+    transform: rotate(-90deg);
+    filter: drop-shadow(0 0 8px var(--accent-glow));
+  }
+  .ring-wrap .track {
+    fill: none;
+    stroke: rgba(255,255,255,0.07);
+    stroke-width: 3.5;
+  }
+  .ring-wrap .arc {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 3.5;
+    stroke-linecap: round;
+  }
+  .ring-wrap.high .arc { stroke: var(--green); }
+  .ring-wrap.high svg { filter: drop-shadow(0 0 8px rgba(95,230,153,0.5)); }
+  .ring-wrap.low .arc { stroke: var(--red); }
+  .ring-wrap.low svg { filter: drop-shadow(0 0 8px rgba(239,107,107,0.5)); }
+  .ring-score {
+    position: absolute;
+    inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+
+  /* status pill */
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    width: fit-content;
+  }
+  .status-pill .d { width: 5px; height: 5px; border-radius: 50%; background: var(--text-tertiary); }
+  .status-pill.active { color: var(--green); background: var(--green-bg); border-color: var(--green-border); }
+  .status-pill.active .d { background: var(--green); box-shadow: 0 0 6px rgba(95,230,153,0.6); }
+  .status-pill.fatigued { color: var(--red); background: var(--red-bg); border-color: var(--red-border); }
+  .status-pill.fatigued .d { background: var(--red); box-shadow: 0 0 6px rgba(239,107,107,0.6); }
+  .status-pill.learning { color: var(--blue); background: var(--blue-bg); border-color: var(--blue-border); }
+  .status-pill.learning .d { background: var(--blue); box-shadow: 0 0 6px rgba(123,168,196,0.6); }
+  .status-pill.paused { color: var(--text-tertiary); }
+
+  /* status row (pill + running days) */
+  .status-row {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .status-row .run-days {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+  }
+
+  /* stat tiles */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 8px 0 0;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .stat-tile {
+    display: flex; flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .stat-lbl {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-quaternary);
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+  }
+  .stat-val {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  /* action row */
+  .action-row {
+    display: flex; align-items: center; gap: 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-subtle);
+    position: relative;
+  }
+  .icon-mini {
+    width: 26px; height: 26px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-tertiary);
+    background: transparent;
+    border: 1px solid transparent;
+    transition: color 120ms, background 120ms, border 120ms;
+  }
+  .icon-mini:hover {
+    color: var(--text-primary);
+    background: var(--bg-elev-2);
+    border-color: var(--border-subtle);
+  }
+  .action-row .spacer { flex: 1; }
+
+  .ai-fix {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 9px;
+    border-radius: 5px;
+    font-family: inherit;
+    font-size: 11px; font-weight: 500;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+    color: #fff;
+    border: 1px solid rgba(0,0,0,0.35);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.16) inset,
+      0 0 14px var(--accent-glow);
+    opacity: 0;
+    transform: translateX(4px);
+    pointer-events: none;
+    transition: opacity 0.18s, transform 0.18s;
+  }
+  .creative-card:hover .ai-fix.has-fix {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+  .ai-fix .ico { filter: drop-shadow(0 0 4px var(--accent-glow)); }
+
+  /* DRAWER */
+  .drawer-col {
+    border-left: 1px solid var(--border-subtle);
+    background: var(--bg-sidebar);
+    overflow-y: auto;
+    min-width: 0;
+    display: flex; flex-direction: column;
+  }
+  .drawer-head {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0;
+    background: var(--bg-sidebar);
+    z-index: 2;
+  }
+  .drawer-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .drawer-close {
+    width: 26px; height: 26px;
+    border-radius: 5px;
+    color: var(--text-tertiary);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .drawer-close:hover { color: var(--text-primary); background: var(--bg-elev-1); }
+
+  .drawer-body {
+    padding: 16px 20px 24px;
+    display: flex; flex-direction: column;
+    gap: 18px;
+  }
+
+  .drawer-preview {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--border-subtle);
+  }
+
+  .drawer-meta-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .drawer-titleblock { min-width: 0; flex: 1; }
+  .drawer-headline-text {
+    font-size: 15px; font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.012em;
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+  .drawer-id {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+  }
+
+  .field-block {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .field-lbl {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .field-edit {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-quaternary);
+    letter-spacing: 0.06em;
+  }
+  .field-edit:hover { color: var(--accent); }
+  .field-val {
+    font-size: 12.8px;
+    color: var(--text-primary);
+    line-height: 1.45;
+  }
+  .field-val.cta {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--accent-bright);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .drawer-section-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .drawer-section-title .accent { color: var(--accent); }
+
+  /* mini chart */
+  .mini-chart-wrap {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 12px 12px 8px;
+  }
+  .mini-chart-meta {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .mc-val {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+  .mc-delta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 0.02em;
+  }
+  .mini-chart {
+    width: 100%; height: 64px;
+    display: block;
+  }
+
+  /* recs */
+  .rec-list { display: flex; flex-direction: column; gap: 8px; }
+  .rec-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 10px 12px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .rec-item:hover { border-color: var(--border); background: var(--bg-elev-2); }
+  .rec-bullet {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-border);
+    color: var(--accent-bright);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 6px var(--accent-glow));
+  }
+  .rec-content { flex: 1; min-width: 0; }
+  .rec-text {
+    font-size: 12.5px;
+    color: var(--text-primary);
+    line-height: 1.45;
+    margin-bottom: 6px;
+  }
+  .rec-text .em { color: var(--accent-bright); font-weight: 500; }
+  .rec-text .mono { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-secondary); }
+  .rec-actions {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-xs {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 5px;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+  .btn-xs:hover { background: var(--bg-elev-3); color: var(--text-primary); border-color: var(--border); }
+  .btn-xs.apply {
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+    color: #fff;
+    border-color: rgba(0,0,0,0.35);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.18) inset,
+      0 0 12px var(--accent-glow);
+  }
+  .btn-xs.apply:hover {
+    background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.22) inset,
+      0 0 18px var(--accent-glow);
+  }
+
+  /* variants */
+  .variants {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .variant {
+    background: var(--bg-elev-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: border-color 0.15s;
+  }
+  .variant:hover { border-color: var(--border); }
+  .variant.winner {
+    border-color: var(--green-border);
+    box-shadow: 0 0 12px -2px rgba(95,230,153,0.18);
+  }
+  .variant-thumb {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    position: relative;
+    overflow: hidden;
+  }
+  .variant-info {
+    padding: 8px 10px 10px;
+    display: flex; flex-direction: column;
+    gap: 3px;
+  }
+  .variant-lbl {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .variant.winner .variant-lbl .tag-win {
+    color: var(--green);
+    background: var(--green-bg);
+    border: 1px solid var(--green-border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 8.5px;
+    letter-spacing: 0.10em;
+  }
+  .variant-conv {
+    display: flex; align-items: baseline; gap: 5px;
+  }
+  .variant-num {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .variant-unit {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+  }
+  .variant.winner .variant-num { color: var(--green); }
+
+  .drawer-foot-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 7px;
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+  .drawer-foot-btn:hover {
+    background: var(--bg-elev-1);
+    border-color: var(--border);
+    color: var(--text-primary);
+  }
+
+  /* FOOTER STRIP */
+  .footer-strip {
+    border-top: 1px solid var(--border-subtle);
+    padding: 10px 26px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(10,10,12,0.6);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+    grid-column: 1 / -1;
+  }
+  .footer-strip .left, .footer-strip .right, .footer-strip .center {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .footer-strip .em { color: var(--text-secondary); }
+  .footer-strip .sep { color: var(--text-quaternary); }
+  .footer-strip .agent-mark {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--accent-bright);
+  }
+  .footer-strip .agent-mark .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  /* selected anchor for drawer scrollable card area */
+  .grid-col { display: flex; flex-direction: column; }
+  .grid-col > .footer-strip { margin-top: auto; }
+
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">H</div>
+      <div class="brand-name">
+        Hauck Marketing
+        <span class="brand-sub">Lab · v0.9</span>
+      </div>
+    </div>
+
+    <div class="search-bar">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <span class="search-placeholder">Search anything</span>
+      <span class="kbd">⌘K</span>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section">
+        <div class="section-label">Workspace</div>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Dashboard
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 7h18M3 12h18M3 17h12"/></svg>
+          Daily Plan
+          <span class="nav-badge">7</span>
+        </button>
+      </div>
+
+      <div class="nav-section">
+        <div class="section-label">Clients <span class="kbd" style="font-size:9px">4</span></div>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg>
+          Acme Dental Studio
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg>
+          Northgate Realty
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg>
+          Beacon Law Group
+        </button>
+      </div>
+
+      <div class="nav-section">
+        <div class="section-label">Tools</div>
+        <button class="nav-item active">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/><circle cx="18" cy="7" r="1.2" fill="currentColor"/></svg>
+          Ads Manager
+          <span class="nav-badge">LIVE</span>
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 5h16v10H7l-3 3z"/></svg>
+          Outreach
+          <span class="nav-badge">12</span>
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+          Calendar
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="18" cy="18" r="1.5"/></svg>
+          Knowledge Vault
+        </button>
+      </div>
+
+      <div class="nav-section">
+        <div class="section-label">System</div>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </button>
+      </div>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="user-avatar">JH</div>
+      <div class="user-info">
+        <div class="user-name">Jake Hauck</div>
+        <div class="user-status"><span class="status-dot"></span>online</div>
+      </div>
+      <button class="foot-btn" title="Notifications">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="breadcrumb">
+        <span class="seg">Clients</span>
+        <span class="sep">›</span>
+        <span class="seg">Acme Dental</span>
+        <span class="sep">›</span>
+        <span class="seg">Ads Manager</span>
+        <span class="sep">›</span>
+        <span class="current">Creatives</span>
+      </div>
+      <div class="topbar-right">
+        <button class="date-picker">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+          <span>Apr 20 to May 20, 2026</span>
+          <svg class="caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <button class="icon-btn" title="Refresh">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+        </button>
+        <button class="btn ghost">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Upload creatives
+        </button>
+        <button class="btn accent">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>
+          Ask AI
+        </button>
+      </div>
+    </div>
+
+    <!-- SUB-TABS -->
+    <div class="subtabs">
+      <button class="subtab">Overview</button>
+      <button class="subtab">Explorer</button>
+      <button class="subtab active">Creatives<span class="badge-mini">12</span></button>
+      <button class="subtab">Audiences</button>
+      <button class="subtab">Pixel</button>
+    </div>
+
+    <!-- CONTENT (grid + drawer) -->
+    <div class="content-frame">
+
+      <!-- GRID COLUMN -->
+      <div class="grid-col">
+
+        <!-- STRATEGY PANEL -->
+        <section class="strategy">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">
+                <span class="eyebrow-dot"></span>
+                Creative Strategy · Aurelius
+              </div>
+              <div class="section-title">3 readouts on creative performance, fresh as of 6 minutes ago</div>
+              <div class="section-sub">What is working, what is tired, and what to ship this week.</div>
+            </div>
+            <button class="section-action">
+              Strategy log <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+          </div>
+
+          <div class="strategy-grid">
+
+            <!-- WIN -->
+            <div class="strat-card win">
+              <div class="strat-top">
+                <div class="strat-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2 15 9l7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>
+                </div>
+                <div class="sev-row"><span class="sev-dot"></span>Working</div>
+              </div>
+              <div class="strat-title">What is working</div>
+              <div class="strat-body">
+                Personal transformation Reels are running <span class="mono">2.7x</span> the account CTR average. Patient testimonial UGC is outperforming polished studio shots by a wide margin on cost per lead.
+              </div>
+              <div class="tag-row">
+                <span class="tag">Reels</span>
+                <span class="tag">UGC</span>
+                <span class="tag">Before / After</span>
+              </div>
+            </div>
+
+            <!-- TIRED -->
+            <div class="strat-card tired">
+              <div class="strat-top">
+                <div class="strat-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+                </div>
+                <div class="sev-row"><span class="sev-dot"></span>Fatigued</div>
+              </div>
+              <div class="strat-title">What is tired</div>
+              <div class="strat-body">
+                4 creatives have been live over <span class="mono">21d</span>. The whitening promo carousel is down <span class="mono">-42%</span> CTR week over week and frequency is now <span class="mono">5.1</span>. Rotate this week.
+              </div>
+              <div class="tag-row">
+                <span class="tag">Carousel</span>
+                <span class="tag">Studio</span>
+                <span class="tag">Whitening</span>
+              </div>
+            </div>
+
+            <!-- BRIEF -->
+            <div class="strat-card brief">
+              <div class="strat-top">
+                <div class="strat-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4h12l4 4v12H4z"/><path d="M16 4v4h4"/><path d="M8 13h8M8 17h6"/></svg>
+                </div>
+                <div class="sev-row"><span class="sev-dot"></span>Brief ready</div>
+              </div>
+              <div class="strat-title">Brief the team</div>
+              <div class="strat-body">
+                Ship 3 new Reels this week. Theme: real patient stories. Hook ideas: "I avoided the dentist for 7 years.", "Day 1 vs Day 14 whitening.", "My veneer reveal made my mum cry." Lean handheld, daylight, native captions.
+              </div>
+              <div class="tag-row">
+                <span class="tag">3 Reels</span>
+                <span class="tag">UGC tone</span>
+                <span class="tag">Ship by Fri</span>
+              </div>
+              <div class="brief-actions">
+                <button class="btn-mini apply">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
+                  Send to Copywriter
+                </button>
+                <button class="btn-mini">Open brief</button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+          <div class="chip-group">
+            <button class="chip solid">All <span class="count">14</span></button>
+            <button class="chip">Top performers <span class="count">3</span></button>
+            <button class="chip">Fatigued <span class="count">2</span></button>
+            <button class="chip">New <span class="count">1</span></button>
+            <button class="chip">Pending review <span class="count">1</span></button>
+            <button class="chip">Paused <span class="count">1</span></button>
+          </div>
+          <div class="chip-group">
+            <button class="chip solid">All formats</button>
+            <button class="chip">Image</button>
+            <button class="chip">Reel</button>
+            <button class="chip">Video</button>
+            <button class="chip">Carousel</button>
+          </div>
+          <div class="tool-right">
+            <button class="sort">
+              <span class="lbl">Sort:</span>
+              <span class="val">AI Score</span>
+              <span style="color: var(--text-tertiary);">↓</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="view-toggle">
+              <button class="on" title="Grid view">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              </button>
+              <button title="List view">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CREATIVE GRID (12 cards) -->
+        <div class="creative-grid">
+
+          <!-- Card 1: Smile Reveal v3 (Reel, Top performer, AI Scale 2x) -->
+          <article class="creative-card">
+            <div class="preview t-teal">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="ai-badge"><svg class="spark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>AI: Scale 2x</span>
+              <span class="fmt-pill">Reel</span>
+              <div class="overlay-text">15s · 1080×1350</div>
+              <div class="overlay-headline">She finally smiled in a photo.</div>
+              <div class="overlay-bar"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="card-titleblock">
+                  <div class="card-headline">Smile Reveal v3</div>
+                  <div class="card-body-line">She finally smiled in a photo, here is how.</div>
+                </div>
+                <div class="ring-wrap high" title="AI Score 94">
+                  <svg viewBox="0 0 40 40">
+                    <circle class="track" cx="20" cy="20" r="16"/>
+                    <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="6.0"/>
+                  </svg>
+                  <div class="ring-score">94</div>
+                </div>
+              </div>
+              <div class="status-row">
+                <span class="status-pill active"><span class="d"></span>Active</span>
+                <span class="run-days">8d</span>
+              </div>
+              <div class="stat-row">
+                <div class="stat-tile"><div class="stat-lbl">CTR</div><div class="stat-val">3.1%</div></div>
+                <div class="stat-tile"><div class="stat-lbl">CPR</div><div class="stat-val">$58</div></div>
+                <div class="stat-tile"><div class="stat-lbl">Spend</div><div class="stat-val">$4,820</div></div>
+              </div>
+              <div class="action-row">
+                <button class="icon-mini" title="Duplicate">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                </button>
+                <button class="icon-mini" title="Pause">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+                </button>
+                <div class="spacer"></div>
+                <button class="ai-fix has-fix">
+                  <svg class="ico" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>
+                  Apply AI fix
+                </button>
+                <button class="icon-mini" title="More">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 2: Patient Story, Jenna (Reel, SELECTED) -->
+          <article class="creative-card selected">
+            <div class="preview t-pink">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="fmt-pill">Reel</span>
+              <div class="overlay-text">28s · 1080×1350</div>
+              <div class="overlay-headline">"I waited 5 years. Wish I hadn't."</div>
+              <div class="overlay-bar"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="card-titleblock">
+                  <div class="card-headline">Patient Story, Jenna</div>
+                  <div class="card-body-line">Real before/after testimonial.</div>
+                </div>
+                <div class="ring-wrap high" title="AI Score 89">
+                  <svg viewBox="0 0 40 40">
+                    <circle class="track" cx="20" cy="20" r="16"/>
+                    <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="11.1"/>
+                  </svg>
+                  <div class="ring-score">89</div>
+                </div>
+              </div>
+              <div class="status-row">
+                <span class="status-pill active"><span class="d"></span>Active</span>
+                <span class="run-days">12d</span>
+              </div>
+              <div class="stat-row">
+                <div class="stat-tile"><div class="stat-lbl">CTR</div><div class="stat-val">2.6%</div></div>
+                <div class="stat-tile"><div class="stat-lbl">CPR</div><div class="stat-val">$72</div></div>
+                <div class="stat-tile"><div class="stat-lbl">Spend</div><div class="stat-val">$3,140</div></div>
+              </div>
+              <div class="action-row">
+                <button class="icon-mini" title="Duplicate">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                </button>
+                <button class="icon-mini" title="Pause">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+                </button>
+                <button class="icon-mini" title="More">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 3: Whitening Day 1 vs Day 14 (Reel, Fatigued, AI Refresh) -->
+          <article class="creative-card">
+            <div class="preview t-coral">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="ai-badge"><svg class="spark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>AI: Refresh</span>
+              <span class="fmt-pill">Reel</span>
+              <div class="overlay-text">12s · 1080×1350</div>
+              <div class="overlay-headline">Day 1 vs Day 14, real teeth.</div>
+              <div class="overlay-bar"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="card-titleblock">
+                  <div class="card-headline">Whitening Day 1 vs Day 14</div>
+                  <div class="card-body-line">Side-by-side transformation.</div>
+                </div>
+                <div class="ring-wrap low" title="AI Score 38">
+                  <svg viewBox="0 0 40 40">
+                    <circle class="track" cx="20" cy="20" r="16"/>
+                    <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="62.3"/>
+                  </svg>
+                  <div class="ring-score">38</div>
+                </div>
+              </div>
+              <div class="status-row">
+                <span class="status-pill fatigued"><span class="d"></span>Fatigued</span>
+                <span class="run-days">24d</span>
+              </div>
+              <div class="stat-row">
+                <div class="stat-tile"><div class="stat-lbl">CTR</div><div class="stat-val">0.8%</div></div>
+                <div class="stat-tile"><div class="stat-lbl">CPR</div><div class="stat-val">$94</div></div>
+                <div class="stat-tile"><div class="stat-lbl">Spend</div><div class="stat-val">$2,180</div></div>
+              </div>
+              <div class="action-row">
+                <button class="icon-mini" title="Duplicate"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+                <button class="icon-mini" title="Pause"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
+                <div class="spacer"></div>
+                <button class="ai-fix has-fix">
+                  <svg class="ico" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>
+                  Apply AI fix
+                </button>
+                <button class="icon-mini" title="More"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 4: Veneer Reveal (Reel, Active, no badge) -->
+          <article class="creative-card">
+            <div class="preview t-mint">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="fmt-pill">Reel</span>
+              <div class="overlay-text">22s · 1080×1350</div>
+              <div class="overlay-headline">Premium veneer reveal.</div>
+              <div class="overlay-bar"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="card-titleblock">
+                  <div class="card-headline">Veneer Reveal</div>
+                  <div class="card-body-line">Premium audience Reel.</div>
+                </div>
+                <div class="ring-wrap" title="AI Score 76">
+                  <svg viewBox="0 0 40 40">
+                    <circle class="track" cx="20" cy="20" r="16"/>
+                    <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="24.1"/>
+                  </svg>
+                  <div class="ring-score">76</div>
+                </div>
+              </div>
+              <div class="status-row">
+                <span class="status-pill active"><span class="d"></span>Active</span>
+                <span class="run-days">6d</span>
+              </div>
+              <div class="stat-row">
+                <div class="stat-tile"><div class="stat-lbl">CTR</div><div class="stat-val">1.9%</div></div>
+                <div class="stat-tile"><div class="stat-lbl">CPR</div><div class="stat-val">$68</div></div>
+                <div class="stat-tile"><div class="stat-lbl">Spend</div><div class="stat-val">$1,940</div></div>
+              </div>
+              <div class="action-row">
+                <button class="icon-mini" title="Duplicate"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+                <button class="icon-mini" title="Pause"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
+                <button class="icon-mini" title="More"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 5: Before/After Composite 4 (Image, Active, no badge) -->
+          <article class="creative-card">
+            <div class="preview t-blue">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="fmt-pill">Image</span>
+              <div class="overlay-text">Static · 1080×1350</div>
+              <div class="overlay-headline">4 real before / after results.</div>
+              <div class="overlay-bar"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="card-titleblock">
+                  <div class="card-headline">Before/After Composite 4</div>
+                  <div class="card-body-line">High-contrast still.</div>
+                </div>
+                <div class="ring-wrap high" title="AI Score 85">
+                  <svg viewBox="0 0 40 40">
+                    <circle class="track" cx="20" cy="20" r="16"/>
+                    <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="15.1"/>
+                  </svg>
+                  <div class="ring-score">85</div>
+                </div>
+              </div>
+              <div class="status-row">
+                <span class="status-pill active"><span class="d"></span>Active</span>
+                <span class="run-days">4d</span>
+              </div>
+              <div class="stat-row">
+                <div class="stat-tile"><div class="stat-lbl">CTR</div><div class="stat-val">2.2%</div></div>
+                <div class="stat-tile"><div class="stat-lbl">CPR</div><div class="stat-val">$61</div></div>
+                <div class="stat-tile"><div class="stat-lbl">Spend</div><div class="stat-val">$1,680</div></div>
+              </div>
+              <div class="action-row">
+                <button class="icon-mini" title="Duplicate"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+                <button class="icon-mini" title="Pause"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
+                <button class="icon-mini" title="More"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 6: Doctor Headshot CTA (Image, Active) -->
+          <article class="creative-card">
+            <div class="preview t-slate">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="fmt-pill">Image</span>
+              <div class="overlay-text">Static · 1080×1080</div>
+              <div class="overlay-headline">Meet Dr. Lee, book a free consult.</div>
+              <div class="overlay-bar"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="card-titleblock">
+                  <div class="card-headline">Doctor Headshot CTA</div>
+                  <div class="card-body-line">Doctor portrait, brand color.</div>
+                </div>
+                <div class="ring-wrap" title="AI Score 64">
+                  <svg viewBox="0 0 40 40">
+                    <circle class="track" cx="20" cy="20" r="16"/>
+                    <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="36.2"/>
+                  </svg>
+                  <div class="ring-score">64</div>
+                </div>
+              </div>
+              <div class="status-row">
+                <span class="status-pill active"><span class="d"></span>Active</span>
+                <span class="run-days">11d</span>
+              </div>
+              <div class="stat-row">
+                <div class="stat-tile"><div class="stat-lbl">CTR</div><div class="stat-val">1.4%</div></div>
+                <div class="stat-tile"><div class="stat-lbl">CPR</div><div class="stat-val">$79</div></div>
+                <div class="stat-tile"><div class="stat-lbl">Spend</div><div class="stat-val">$1,240</div></div>
+              </div>
+              <div class="action-row">
+                <button class="icon-mini" title="Duplicate"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+                <button class="icon-mini" title="Pause"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
+                <button class="icon-mini" title="More"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 7: Studio Suite Tour (Image, Learning, AI A/B test) -->
+          <article class="creative-card">
+            <div class="preview t-sand">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="ai-badge"><svg class="spark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>AI: A/B test</span>
+              <span class="fmt-pill">Image</span>
+              <div class="overlay-text">Static · 1080×1080</div>
+              <div class="overlay-headline">Step into the suite.</div>
+              <div class="overlay-bar"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="card-titleblock">
+                  <div class="card-headline">Studio Suite Tour</div>
+                  <div class="card-body-line">Office interior.</div>
+                </div>
+                <div class="ring-wrap" title="AI Score 52">
+                  <svg viewBox="0 0 40 40">
+                    <circle class="track" cx="20" cy="20" r="16"/>
+                    <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="48.2"/>
+                  </svg>
+                  <div class="ring-score">52</div>
+                </div>
+              </div>
+              <div class="status-row">
+                <span class="status-pill learning"><span class="d"></span>Learning</span>
+                <span class="run-days">3d</span>
+              </div>
+              <div class="stat-row">
+                <div class="stat-tile"><div class="stat-lbl">CTR</div><div class="stat-val">1.1%</div></div>
+                <div class="stat-tile"><div class="stat-lbl">CPR</div><div class="stat-val">$88</div></div>
+                <div class="stat-tile"><div class="stat-lbl">Spend</div><div class="stat-val">$480</div></div>
+              </div>
+              <div class="action-row">
+                <button class="icon-mini" title="Duplicate"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+                <button class="icon-mini" title="Pause"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
+                <div class="spacer"></div>
+                <button class="ai-fix has-fix">
+                  <svg class="ico" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>
+                  Apply AI fix
+                </button>
+                <button class="icon-mini" title="More"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 8: Smile Quiz Hero (Image, Paused) -->
+          <article class="creative-card">
+            <div class="preview t-violet">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="fmt-pill">Image</span>
+              <div class="overlay-text">Static · 1080×1350</div>
+              <div class="overlay-headline">Which smile fits your face?</div>
+              <div class="overlay-bar"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="card-titleblock">
+                  <div class="card-headline">Smile Quiz Hero</div>
+                  <div class="card-body-line">Quiz funnel landing image.</div>
+                </div>
+                <div class="ring-wrap low" title="AI Score 41">
+                  <svg viewBox="0 0 40 40">
+                    <circle class="track" cx="20" cy="20" r="16"/>
+                    <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="59.3"/>
+                  </svg>
+                  <div class="ring-score">41</div>
+                </div>
+              </div>
+              <div class="status-row">
+                <span class="status-pill paused"><span class="d"></span>Paused</span>
+                <span class="run-days">18d</span>
+              </div>
+              <div class="stat-row">
+                <div class="stat-tile"><div class="stat-lbl">CTR</div><div class="stat-val">0.9%</div></div>
+                <div class="stat-tile"><div class="stat-lbl">CPR</div><div class="stat-val">$95</div></div>
+                <div class="stat-tile"><div class="stat-lbl">Spend</div><div class="stat-val">$920</div></div>
+              </div>
+              <div class="action-row">
+                <button class="icon-mini" title="Duplicate"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+                <button class="icon-mini" title="Resume"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 4l14 8-14 8z"/></svg></button>
+                <button class="icon-mini" title="More"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 9: Veneer Process 6-step (Carousel, Fatigued, AI Refresh) -->
+          <article class="creative-card">
+            <div class="preview t-bronze">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="ai-badge"><svg class="spark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>AI: Refresh</span>
+              <span class="fmt-pill">Carousel</span>
+              <div class="overlay-text">6 cards · 1080×1080</div>
+              <div class="overlay-headline">The 6-step veneer process.</div>
+              <div class="overlay-bar"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="card-titleblock">
+                  <div class="card-headline">Veneer Process 6-step</div>
+                  <div class="card-body-line">Step-by-step explainer.</div>
+                </div>
+                <div class="ring-wrap low" title="AI Score 33">
+                  <svg viewBox="0 0 40 40">
+                    <circle class="track" cx="20" cy="20" r="16"/>
+                    <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="67.3"/>
+                  </svg>
+                  <div class="ring-score">33</div>
+                </div>
+              </div>
+              <div class="status-row">
+                <span class="status-pill fatigued"><span class="d"></span>Fatigued</span>
+                <span class="run-days">27d</span>
+              </div>
+              <div class="stat-row">
+                <div class="stat-tile"><div class="stat-lbl">CTR</div><div class="stat-val">0.6%</div></div>
+                <div class="stat-tile"><div class="stat-lbl">CPR</div><div class="stat-val">$92</div></div>
+                <div class="stat-tile"><div class="stat-lbl">Spend</div><div class="stat-val">$1,140</div></div>
+              </div>
+              <div class="action-row">
+                <button class="icon-mini" title="Duplicate"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+                <button class="icon-mini" title="Pause"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
+                <div class="spacer"></div>
+                <button class="ai-fix has-fix">
+                  <svg class="ico" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>
+                  Apply AI fix
+                </button>
+                <button class="icon-mini" title="More"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 10: Whitening Options 3-card (Carousel, Active, no badge) -->
+          <article class="creative-card">
+            <div class="preview t-ocean">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="fmt-pill">Carousel</span>
+              <div class="overlay-text">3 cards · 1080×1080</div>
+              <div class="overlay-headline">3 ways to whiten, real prices.</div>
+              <div class="overlay-bar"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="card-titleblock">
+                  <div class="card-headline">Whitening Options 3-card</div>
+                  <div class="card-body-line">3-card pricing tiers.</div>
+                </div>
+                <div class="ring-wrap" title="AI Score 70">
+                  <svg viewBox="0 0 40 40">
+                    <circle class="track" cx="20" cy="20" r="16"/>
+                    <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="30.2"/>
+                  </svg>
+                  <div class="ring-score">70</div>
+                </div>
+              </div>
+              <div class="status-row">
+                <span class="status-pill active"><span class="d"></span>Active</span>
+                <span class="run-days">9d</span>
+              </div>
+              <div class="stat-row">
+                <div class="stat-tile"><div class="stat-lbl">CTR</div><div class="stat-val">1.6%</div></div>
+                <div class="stat-tile"><div class="stat-lbl">CPR</div><div class="stat-val">$74</div></div>
+                <div class="stat-tile"><div class="stat-lbl">Spend</div><div class="stat-val">$1,580</div></div>
+              </div>
+              <div class="action-row">
+                <button class="icon-mini" title="Duplicate"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+                <button class="icon-mini" title="Pause"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
+                <button class="icon-mini" title="More"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 11: Office Tour 30s (Video, Learning) -->
+          <article class="creative-card">
+            <div class="preview t-forest">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="fmt-pill">Video</span>
+              <div class="overlay-text">30s · 1920×1080</div>
+              <div class="overlay-headline">30 seconds inside Acme Dental.</div>
+              <div class="overlay-bar"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="card-titleblock">
+                  <div class="card-headline">Office Tour 30s</div>
+                  <div class="card-body-line">Behind-the-scenes video.</div>
+                </div>
+                <div class="ring-wrap" title="AI Score 58">
+                  <svg viewBox="0 0 40 40">
+                    <circle class="track" cx="20" cy="20" r="16"/>
+                    <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="42.2"/>
+                  </svg>
+                  <div class="ring-score">58</div>
+                </div>
+              </div>
+              <div class="status-row">
+                <span class="status-pill learning"><span class="d"></span>Learning</span>
+                <span class="run-days">5d</span>
+              </div>
+              <div class="stat-row">
+                <div class="stat-tile"><div class="stat-lbl">CTR</div><div class="stat-val">1.3%</div></div>
+                <div class="stat-tile"><div class="stat-lbl">CPR</div><div class="stat-val">$82</div></div>
+                <div class="stat-tile"><div class="stat-lbl">Spend</div><div class="stat-val">$640</div></div>
+              </div>
+              <div class="action-row">
+                <button class="icon-mini" title="Duplicate"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+                <button class="icon-mini" title="Pause"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
+                <button class="icon-mini" title="More"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 12: Welcome from Dr Lee 45s (Video, Active, AI Scale) -->
+          <article class="creative-card">
+            <div class="preview t-cobalt">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="ai-badge"><svg class="spark" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>AI: Scale</span>
+              <span class="fmt-pill">Video</span>
+              <div class="overlay-text">45s · 1080×1080</div>
+              <div class="overlay-headline">"Hi, I'm Dr. Lee. Welcome."</div>
+              <div class="overlay-bar"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-top">
+                <div class="card-titleblock">
+                  <div class="card-headline">Welcome from Dr Lee 45s</div>
+                  <div class="card-body-line">Doctor on-camera intro.</div>
+                </div>
+                <div class="ring-wrap" title="AI Score 72">
+                  <svg viewBox="0 0 40 40">
+                    <circle class="track" cx="20" cy="20" r="16"/>
+                    <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="28.1"/>
+                  </svg>
+                  <div class="ring-score">72</div>
+                </div>
+              </div>
+              <div class="status-row">
+                <span class="status-pill active"><span class="d"></span>Active</span>
+                <span class="run-days">7d</span>
+              </div>
+              <div class="stat-row">
+                <div class="stat-tile"><div class="stat-lbl">CTR</div><div class="stat-val">1.8%</div></div>
+                <div class="stat-tile"><div class="stat-lbl">CPR</div><div class="stat-val">$69</div></div>
+                <div class="stat-tile"><div class="stat-lbl">Spend</div><div class="stat-val">$1,820</div></div>
+              </div>
+              <div class="action-row">
+                <button class="icon-mini" title="Duplicate"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+                <button class="icon-mini" title="Pause"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg></button>
+                <div class="spacer"></div>
+                <button class="ai-fix has-fix">
+                  <svg class="ico" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>
+                  Apply AI fix
+                </button>
+                <button class="icon-mini" title="More"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></button>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+        <!-- FOOTER STRIP -->
+        <div class="footer-strip">
+          <div class="left">
+            <span><span class="em">14</span> creatives</span>
+            <span class="sep">·</span>
+            <span><span class="em">7</span> active</span>
+            <span class="sep">·</span>
+            <span><span class="em">2</span> fatigued</span>
+            <span class="sep">·</span>
+            <span><span class="em">1</span> paused</span>
+          </div>
+          <div class="center">
+            <span>Last upload: <span class="em">Welcome from Dr Lee 45s</span>, 2h ago</span>
+          </div>
+          <div class="right">
+            <span class="agent-mark"><span class="dot"></span>Creative insights by Aurelius</span>
+            <span class="sep">·</span>
+            <span><span class="em">v0.4.2</span></span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- DRAWER -->
+      <aside class="drawer-col">
+
+        <div class="drawer-head">
+          <div class="drawer-eyebrow">
+            <span class="eyebrow-dot"></span>
+            PATIENT STORY · JENNA
+          </div>
+          <button class="drawer-close" title="Close">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="drawer-body">
+
+          <div class="drawer-preview">
+            <div class="preview t-pink" style="position: absolute; inset: 0; aspect-ratio: auto; border: none; border-radius: 0;">
+              <div class="blob"></div>
+              <div class="blob b2"></div>
+              <span class="fmt-pill">Reel</span>
+              <div class="overlay-text">28s · 1080×1350</div>
+              <div class="overlay-headline">"I waited 5 years. Wish I hadn't."</div>
+              <div class="overlay-bar"></div>
+            </div>
+          </div>
+
+          <div class="drawer-meta-row">
+            <div class="drawer-titleblock">
+              <div class="drawer-headline-text">Real before/after testimonial Reel</div>
+              <div class="drawer-id">Created 12d ago · by Aurelius</div>
+            </div>
+            <div class="ring-wrap high" title="AI Score 89" style="width: 52px; height: 52px;">
+              <svg viewBox="0 0 40 40">
+                <circle class="track" cx="20" cy="20" r="16"/>
+                <circle class="arc" cx="20" cy="20" r="16" stroke-dasharray="100.5" stroke-dashoffset="11.1"/>
+              </svg>
+              <div class="ring-score" style="font-size: 13px;">89</div>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <div class="field-lbl">
+              <span>HEADLINE</span>
+              <button class="field-edit">Edit</button>
+            </div>
+            <div class="field-val">I waited 5 years. Wish I hadn't.</div>
+          </div>
+
+          <div class="field-block">
+            <div class="field-lbl">
+              <span>PRIMARY TEXT</span>
+              <button class="field-edit">Edit</button>
+            </div>
+            <div class="field-val">Jenna spent years hiding her smile. 90 minutes at Acme Dental Studio changed that. Watch her story.</div>
+          </div>
+
+          <div class="field-block">
+            <div class="field-lbl">
+              <span>CTA</span>
+              <button class="field-edit">Edit</button>
+            </div>
+            <div class="field-val cta">Book a free consult ›</div>
+          </div>
+
+          <!-- mini chart -->
+          <div>
+            <div class="drawer-section-title">
+              <span>Performance, last 30 days</span>
+              <span class="accent">CTR 2.6%</span>
+            </div>
+            <div class="mini-chart-wrap">
+              <div class="mini-chart-meta">
+                <div>
+                  <div class="mc-val">$3,140</div>
+                  <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-tertiary); letter-spacing: 0.06em; text-transform: uppercase;">Spend, last 30d</div>
+                </div>
+                <div class="mc-delta">+38% vs prior</div>
+              </div>
+              <svg class="mini-chart" viewBox="0 0 320 64" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="areaPurple" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#b478ff" stop-opacity="0.45"/>
+                    <stop offset="100%" stop-color="#b478ff" stop-opacity="0"/>
+                  </linearGradient>
+                  <filter id="glow30" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="2" result="b"/>
+                    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+                <path d="M0,48 L12,46 L24,44 L36,42 L48,40 L60,42 L72,38 L84,34 L96,36 L108,32 L120,28 L132,30 L144,24 L156,22 L168,26 L180,20 L192,18 L204,16 L216,20 L228,14 L240,12 L252,16 L264,10 L276,12 L288,8 L300,10 L312,6 L320,4 L320,64 L0,64 Z"
+                      fill="url(#areaPurple)"/>
+                <path d="M0,48 L12,46 L24,44 L36,42 L48,40 L60,42 L72,38 L84,34 L96,36 L108,32 L120,28 L132,30 L144,24 L156,22 L168,26 L180,20 L192,18 L204,16 L216,20 L228,14 L240,12 L252,16 L264,10 L276,12 L288,8 L300,10 L312,6 L320,4"
+                      fill="none" stroke="#b478ff" stroke-width="1.5" stroke-linejoin="round" filter="url(#glow30)"/>
+                <circle cx="50" cy="40" r="2.4" fill="#9c9ca8"/>
+                <text x="56" y="36" fill="#9c9ca8" font-family="Geist Mono" font-size="8" letter-spacing="0.05">$214 CPR</text>
+                <text x="56" y="44" fill="#6a6a76" font-family="Geist Mono" font-size="6.5" letter-spacing="0.05">May 5</text>
+                <circle cx="180" cy="20" r="3.4" fill="#b478ff" filter="url(#glow30)"/>
+                <circle cx="180" cy="20" r="1.4" fill="#fff"/>
+                <text x="186" y="16" fill="#c594ff" font-family="Geist Mono" font-size="8" letter-spacing="0.05">$72 CPR</text>
+                <text x="186" y="24" fill="#9c9ca8" font-family="Geist Mono" font-size="6.5" letter-spacing="0.05">May 17</text>
+              </svg>
+            </div>
+          </div>
+
+          <!-- recs -->
+          <div>
+            <div class="drawer-section-title">
+              <span>AI Recommendations</span>
+              <span class="accent">3 ready</span>
+            </div>
+            <div class="rec-list">
+              <div class="rec-item">
+                <div class="rec-bullet">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>
+                </div>
+                <div class="rec-content">
+                  <div class="rec-text">
+                    Scale budget <span class="em">+50%</span> on the <span class="mono">Spring Whitening, LAL 2%</span> ad set. ROAS is holding above <span class="mono">3.4</span> with frequency at <span class="mono">2.1</span>.
+                  </div>
+                  <div class="rec-actions">
+                    <button class="btn-xs apply">Apply</button>
+                    <button class="btn-xs">Review</button>
+                  </div>
+                </div>
+              </div>
+              <div class="rec-item">
+                <div class="rec-bullet">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>
+                </div>
+                <div class="rec-content">
+                  <div class="rec-text">
+                    Duplicate into <span class="em">Mums 28-44</span> audience. Predicted CPR <span class="mono">$24</span> based on lookalike resemblance.
+                  </div>
+                  <div class="rec-actions">
+                    <button class="btn-xs apply">Apply</button>
+                    <button class="btn-xs">Review</button>
+                  </div>
+                </div>
+              </div>
+              <div class="rec-item">
+                <div class="rec-bullet">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>
+                </div>
+                <div class="rec-content">
+                  <div class="rec-text">
+                    A/B test a <span class="em">shorter hook</span> (cut first 1.4s, lead on "7 years"). Predicted CTR lift <span class="mono">+12%</span>.
+                  </div>
+                  <div class="rec-actions">
+                    <button class="btn-xs apply">Apply</button>
+                    <button class="btn-xs">Review</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- variants -->
+          <div>
+            <div class="drawer-section-title">
+              <span>A/B Variants</span>
+              <span class="accent">2 live</span>
+            </div>
+            <div class="variants">
+              <div class="variant winner">
+                <div class="variant-thumb">
+                  <div class="preview t-coral" style="position: absolute; inset: 0; aspect-ratio: auto; border: none; border-radius: 0;">
+                    <div class="blob"></div>
+                    <div class="blob b2"></div>
+                    <div class="overlay-text" style="font-size: 8px;">VAR A</div>
+                  </div>
+                </div>
+                <div class="variant-info">
+                  <div class="variant-lbl"><span>Variant A</span><span class="tag-win">WINS</span></div>
+                  <div class="variant-conv"><span class="variant-num">2.84%</span><span class="variant-unit">CTR</span></div>
+                  <div class="variant-conv"><span class="variant-num" style="color: var(--text-primary); font-size: 12px;">$27</span><span class="variant-unit">CPR</span></div>
+                </div>
+              </div>
+              <div class="variant">
+                <div class="variant-thumb">
+                  <div class="preview t-rose" style="position: absolute; inset: 0; aspect-ratio: auto; border: none; border-radius: 0;">
+                    <div class="blob"></div>
+                    <div class="blob b2"></div>
+                    <div class="overlay-text" style="font-size: 8px;">VAR B</div>
+                  </div>
+                </div>
+                <div class="variant-info">
+                  <div class="variant-lbl"><span>Variant B</span><span style="font-size: 8.5px; color: var(--text-quaternary);">···</span></div>
+                  <div class="variant-conv"><span class="variant-num">1.92%</span><span class="variant-unit">CTR</span></div>
+                  <div class="variant-conv"><span class="variant-num" style="font-size: 12px;">$41</span><span class="variant-unit">CPR</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button class="drawer-foot-btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+            View in Meta Ads Manager
+          </button>
+
+        </div>
+
+      </aside>
+
+    </div>
+
+  </main>
+
+</div>
+
+<script>
+  // filter chip toggling, visual only
+  document.querySelectorAll('.chip-group').forEach(group => {
+    group.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        // first group uses .active, second uses .solid for "filled" style
+        const isFormat = chip.parentElement.querySelector('.solid') !== null
+                       || ['All formats','Image','Reel','Video','Carousel'].includes(chip.textContent.trim());
+        group.querySelectorAll('.chip').forEach(c => {
+          c.classList.remove('active');
+          c.classList.remove('solid');
+        });
+        if (isFormat) {
+          chip.classList.add('solid');
+        } else {
+          chip.classList.add('active');
+        }
+      });
+    });
+  });
+
+  // creative card hover preview state (subtle, visual only)
+  document.querySelectorAll('.creative-card').forEach(card => {
+    card.addEventListener('mouseenter', () => card.classList.add('hov'));
+    card.addEventListener('mouseleave', () => card.classList.remove('hov'));
+  });
+
+  // sub-tab switching (visual only)
+  document.querySelectorAll('.subtab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>

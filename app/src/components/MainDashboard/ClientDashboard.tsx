@@ -1045,6 +1045,11 @@ function ClientRecordingsView({
   clientName: string;
 }) {
   const [recordings, setRecordings] = useState<FathomRecording[]>([]);
+  const [allRecordings, setAllRecordings] = useState<FathomRecording[]>([]);
+  const [clientNameBySlug, setClientNameBySlug] = useState<Map<string, string>>(
+    () => new Map(),
+  );
+  const [subTab, setSubTab] = useState<"mine" | "all">("mine");
   const [loading, setLoading] = useState(true);
   const skipSave = useRef(true);
   const saveTimer = useRef<number | null>(null);
@@ -1067,6 +1072,7 @@ function ClientRecordingsView({
           const state = await api.readDashboardState(root);
           if (cancelled) return;
           const all = Array.isArray(state.recordings) ? state.recordings : [];
+          setAllRecordings(all);
           setRecordings(all.filter((r) => r.clientSlug === clientSlug));
         } catch (err) {
           console.warn("Failed to read dashboard state for client recordings:", err);
@@ -1074,10 +1080,22 @@ function ClientRecordingsView({
             try {
               const raw = localStorage.getItem(lsKey);
               setRecordings(raw ? JSON.parse(raw) : []);
+              setAllRecordings([]);
             } catch {
               setRecordings([]);
+              setAllRecordings([]);
             }
           }
+        }
+        try {
+          const list = await api.listClients(root);
+          if (!cancelled) {
+            const m = new Map<string, string>();
+            for (const c of list) m.set(c.slug, c.name);
+            setClientNameBySlug(m);
+          }
+        } catch (err) {
+          console.warn("Failed to list clients for recordings view:", err);
         }
       } else {
         try {
@@ -1086,6 +1104,7 @@ function ClientRecordingsView({
         } catch {
           if (!cancelled) setRecordings([]);
         }
+        if (!cancelled) setAllRecordings([]);
       }
       if (!cancelled) setLoading(false);
     };
@@ -1140,6 +1159,15 @@ function ClientRecordingsView({
     () => [...recordings].sort((a, b) => b.createdAt - a.createdAt),
     [recordings],
   );
+  const mergedAllRecordings = useMemo(() => {
+    const others = allRecordings.filter((r) => r.clientSlug !== clientSlug);
+    return [...others, ...recordings];
+  }, [allRecordings, recordings, clientSlug]);
+  const sortedAllRecordings = useMemo(
+    () => [...mergedAllRecordings].sort((a, b) => b.createdAt - a.createdAt),
+    [mergedAllRecordings],
+  );
+  const visibleRecordings = subTab === "all" ? sortedAllRecordings : sortedRecordings;
 
   const recUrlValid = !recUrl.trim() || parseFathomUrl(recUrl) !== null;
 
@@ -1189,66 +1217,102 @@ function ClientRecordingsView({
     );
   };
 
+  const isAll = subTab === "all";
+
   return (
     <div className="md-recordings-page">
       <style>{recordingsPageCSS}</style>
+      <style>{RECORDINGS_SUBTAB_CSS}</style>
 
-      <div className="md-panel md-recordings-panel">
-        <div className="md-panel-head">
-          <span className="md-panel-title">▸ New Recording — {clientName}</span>
-          <span className="md-panel-meta">{recordings.length} SAVED</span>
-        </div>
+      <div className="md-rec-subtabs" role="tablist" aria-label="Recordings scope">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={!isAll}
+          className={`md-rec-subtab${!isAll ? " is-active" : ""}`}
+          onClick={() => setSubTab("mine")}
+        >
+          {clientName}
+          <span className="md-rec-subtab-count">{sortedRecordings.length}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={isAll}
+          className={`md-rec-subtab${isAll ? " is-active" : ""}`}
+          onClick={() => setSubTab("all")}
+        >
+          All recordings
+          <span className="md-rec-subtab-count">{sortedAllRecordings.length}</span>
+        </button>
+      </div>
 
-        <div className="md-rec-form">
-          <input
-            className={`md-rec-input ${recUrl && !recUrlValid ? "is-invalid" : ""}`}
-            type="url"
-            placeholder="Paste fathom.video link…"
-            value={recUrl}
-            onChange={(e) => {
-              setRecUrl(e.target.value);
-              if (recError) setRecError(null);
-            }}
-          />
-          <input
-            className="md-rec-input"
-            type="text"
-            placeholder="Title"
-            value={recTitle}
-            onChange={(e) => {
-              setRecTitle(e.target.value);
-              if (recError) setRecError(null);
-            }}
-          />
-          <textarea
-            className="md-rec-description"
-            placeholder="Description (optional)"
-            value={recDescription}
-            onChange={(e) => setRecDescription(e.target.value)}
-            rows={2}
-          />
-          <div className="md-rec-form-actions">
-            {recError ? <span className="md-rec-error">{recError}</span> : <span />}
-            <button
-              type="button"
-              className="md-rec-add"
-              onClick={addRecording}
-              disabled={!recUrl.trim() || !recTitle.trim()}
-            >
-              Save recording
-            </button>
+      {!isAll && (
+        <div className="md-panel md-recordings-panel">
+          <div className="md-panel-head">
+            <span className="md-panel-title">▸ New Recording — {clientName}</span>
+            <span className="md-panel-meta">{recordings.length} SAVED</span>
+          </div>
+
+          <div className="md-rec-form">
+            <input
+              className={`md-rec-input ${recUrl && !recUrlValid ? "is-invalid" : ""}`}
+              type="url"
+              placeholder="Paste fathom.video link…"
+              value={recUrl}
+              onChange={(e) => {
+                setRecUrl(e.target.value);
+                if (recError) setRecError(null);
+              }}
+            />
+            <input
+              className="md-rec-input"
+              type="text"
+              placeholder="Title"
+              value={recTitle}
+              onChange={(e) => {
+                setRecTitle(e.target.value);
+                if (recError) setRecError(null);
+              }}
+            />
+            <textarea
+              className="md-rec-description"
+              placeholder="Description (optional)"
+              value={recDescription}
+              onChange={(e) => setRecDescription(e.target.value)}
+              rows={2}
+            />
+            <div className="md-rec-form-actions">
+              {recError ? <span className="md-rec-error">{recError}</span> : <span />}
+              <button
+                type="button"
+                className="md-rec-add"
+                onClick={addRecording}
+                disabled={!recUrl.trim() || !recTitle.trim()}
+              >
+                Save recording
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {loading ? (
         <div className="md-rec-empty">Loading…</div>
-      ) : sortedRecordings.length === 0 ? (
-        <div className="md-rec-empty">No recordings for {clientName} yet, Sir.</div>
+      ) : visibleRecordings.length === 0 ? (
+        <div className="md-rec-empty">
+          {isAll
+            ? "No recordings on file yet, Sir."
+            : `No recordings for ${clientName} yet, Sir.`}
+        </div>
       ) : (
         <ul className="md-rec-list">
-          {sortedRecordings.map((r) => {
+          {visibleRecordings.map((r) => {
             const parsed = parseFathomUrl(r.url);
+            const ownedByThisClient = r.clientSlug === clientSlug;
+            const ownerName = r.clientSlug
+              ? clientNameBySlug.get(r.clientSlug) ?? r.clientSlug
+              : "Unassigned";
             return (
               <li key={r.id} className="md-rec-item md-panel">
                 {parsed ? (
@@ -1264,7 +1328,7 @@ function ClientRecordingsView({
                 ) : (
                   <div className="md-rec-card md-rec-card-invalid">
                     <span className="md-rec-card-label">
-                      Invalid Fathom URL —{" "}
+                      Invalid Fathom URL,{" "}
                       <a href={r.url} target="_blank" rel="noreferrer">
                         {r.url}
                       </a>
@@ -1272,22 +1336,32 @@ function ClientRecordingsView({
                   </div>
                 )}
                 <div className="md-rec-body">
-                  <input
-                    className="md-rec-title-input"
-                    type="text"
-                    value={r.title}
-                    onChange={(e) => updateRecordingTitle(r.id, e.target.value)}
-                    placeholder="Title"
-                  />
-                  <textarea
-                    className="md-rec-description-input"
-                    value={r.description ?? ""}
-                    onChange={(e) =>
-                      updateRecordingDescription(r.id, e.target.value)
-                    }
-                    placeholder="Description (optional)"
-                    rows={2}
-                  />
+                  {isAll && !ownedByThisClient ? (
+                    <div className="md-rec-title-readonly">{r.title}</div>
+                  ) : (
+                    <input
+                      className="md-rec-title-input"
+                      type="text"
+                      value={r.title}
+                      onChange={(e) => updateRecordingTitle(r.id, e.target.value)}
+                      placeholder="Title"
+                    />
+                  )}
+                  {isAll && !ownedByThisClient ? (
+                    r.description ? (
+                      <div className="md-rec-description-readonly">{r.description}</div>
+                    ) : null
+                  ) : (
+                    <textarea
+                      className="md-rec-description-input"
+                      value={r.description ?? ""}
+                      onChange={(e) =>
+                        updateRecordingDescription(r.id, e.target.value)
+                      }
+                      placeholder="Description (optional)"
+                      rows={2}
+                    />
+                  )}
                   <div className="md-rec-meta-row">
                     <a
                       className="md-rec-link"
@@ -1297,14 +1371,28 @@ function ClientRecordingsView({
                     >
                       Open in Fathom ↗
                     </a>
+                    {isAll && (
+                      <span
+                        className={`md-rec-owner-tag${ownedByThisClient ? " is-mine" : ""}`}
+                        title={
+                          ownedByThisClient
+                            ? "Belongs to the active client"
+                            : `Belongs to ${ownerName}`
+                        }
+                      >
+                        {ownerName}
+                      </span>
+                    )}
                     <span className="md-panel-meta">{formatRecStamp(r.createdAt)}</span>
-                    <button
-                      type="button"
-                      className="md-rec-delete"
-                      onClick={() => removeRecording(r.id)}
-                    >
-                      Delete
-                    </button>
+                    {(!isAll || ownedByThisClient) && (
+                      <button
+                        type="button"
+                        className="md-rec-delete"
+                        onClick={() => removeRecording(r.id)}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               </li>
@@ -1315,6 +1403,81 @@ function ClientRecordingsView({
     </div>
   );
 }
+
+const RECORDINGS_SUBTAB_CSS = `
+.md-rec-subtabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-surface, var(--hml-bg-elev-1));
+  border: 1px solid var(--border, var(--hml-border-subtle));
+  margin-bottom: 14px;
+  align-self: flex-start;
+}
+.md-rec-subtab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 6px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+.md-rec-subtab:hover { color: var(--text); }
+.md-rec-subtab.is-active {
+  color: var(--copper);
+  border-color: var(--copper);
+  background: rgba(184, 115, 51, 0.08);
+}
+.md-rec-subtab-count {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.md-rec-subtab.is-active .md-rec-subtab-count {
+  color: var(--copper);
+  border-color: var(--copper);
+}
+.md-rec-owner-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+}
+.md-rec-owner-tag.is-mine {
+  color: var(--copper);
+  border-color: var(--copper);
+}
+.md-rec-title-readonly {
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 4px 6px;
+  margin: -4px -6px;
+}
+.md-rec-description-readonly {
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  padding: 6px;
+  margin: -6px;
+  white-space: pre-wrap;
+}
+`;
 
 function ClientDriveView({
   root,

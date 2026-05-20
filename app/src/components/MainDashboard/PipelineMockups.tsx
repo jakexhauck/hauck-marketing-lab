@@ -737,8 +737,8 @@ const MOCKUP_CSS = `
   width: 32px;
   height: 32px;
   border-radius: 7px;
-  background: linear-gradient(135deg, rgba(212,165,116,0.18), rgba(212,165,116,0.04));
-  border: 1px solid rgba(212, 165, 116, 0.22);
+  background: linear-gradient(135deg, rgba(180,120,255,0.18), rgba(180,120,255,0.04));
+  border: 1px solid rgba(180, 120, 255, 0.22);
   color: var(--hml-accent);
   display: inline-flex;
   align-items: center;
