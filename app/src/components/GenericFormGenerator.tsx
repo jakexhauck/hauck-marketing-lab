@@ -217,6 +217,7 @@ export function GenericFormGenerator({
   hideHeader,
 }: Props) {
   const [values, setValues] = useState<FormValues>(() => defaultValuesFor(config));
+  const [attemptName, setAttemptName] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [streamText, setStreamText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -249,6 +250,7 @@ export function GenericFormGenerator({
   // reset values when switching forms while the component is mounted
   useEffect(() => {
     setValues(defaultValuesFor(config));
+    setAttemptName("");
     setSaved(null);
     setStreamText("");
     setError(null);
@@ -553,9 +555,19 @@ export function GenericFormGenerator({
       // HTML kind (Pitch Deck): write raw HTML to <root>/data/<slug>/decks/
       // and pop the file open in the default browser. Skip JSON extraction,
       // image generation, and the standard generator-output save path.
+      const customName = attemptName.trim();
       if (config.kind === "html") {
-        const title = `${config.defaultTitle} · ${clientName}`;
-        const output = await api.savePitchDeck(root, clientSlug, title, null, finalText);
+        const title = customName || `${config.defaultTitle} · ${clientName}`;
+        let output = await api.savePitchDeck(root, clientSlug, title, null, finalText);
+        if (customName) {
+          // Pitch decks use a sidecar for the display title; persist it.
+          try {
+            await api.renameGeneratorOutput(root, output.path, customName);
+            output = { ...output, title: customName };
+          } catch {
+            // non-fatal — display falls back to the filename-derived title
+          }
+        }
         setSaved(output);
         setPastRefresh((n) => n + 1);
         onSaved?.(output);
@@ -564,7 +576,9 @@ export function GenericFormGenerator({
 
       const parsed = extractJson(finalText);
       const title =
-        (parsed?.headline as string | undefined) ?? `${config.defaultTitle} · ${clientName}`;
+        customName ||
+        (parsed?.headline as string | undefined) ||
+        `${config.defaultTitle} · ${clientName}`;
       const summary = (parsed?.summary as string | undefined) ?? null;
 
       // Image-generation post-processor: if the form is flagged, parse the
@@ -891,6 +905,30 @@ export function GenericFormGenerator({
             </div>
           ))}
 
+          <div
+            className="os-card"
+            style={{ marginBottom: 0, padding: "12px 14px" }}
+          >
+            <label
+              className="os-card-eyebrow"
+              htmlFor="attempt-name"
+              style={{ display: "block", marginBottom: 6 }}
+            >
+              ▸ ATTEMPT NAME{" "}
+              <span style={{ opacity: 0.6, fontWeight: 400 }}>(optional)</span>
+            </label>
+            <input
+              id="attempt-name"
+              type="text"
+              value={attemptName}
+              onChange={(e) => setAttemptName(e.target.value)}
+              placeholder="Leave blank to auto-name"
+              disabled={streaming}
+              className="os-input"
+              style={{ width: "100%" }}
+            />
+          </div>
+
           <div className="os-card-actions" style={{ margin: "4px 0 24px" }}>
             <button
               type="button"
@@ -925,6 +963,9 @@ export function GenericFormGenerator({
                 setSaved(out);
                 setStreamText("");
                 setError(null);
+              }}
+              onRename={(path, newTitle) => {
+                if (saved?.path === path) setSaved({ ...saved, title: newTitle });
               }}
             />
           )}
@@ -1204,6 +1245,15 @@ export function GenericFormGenerator({
                 setSaved(out);
                 setStreamText("");
                 setError(null);
+              }}
+              onDelete={(path) => {
+                if (saved?.path === path) {
+                  setSaved(null);
+                  setStreamText("");
+                }
+              }}
+              onRename={(path, newTitle) => {
+                if (saved?.path === path) setSaved({ ...saved, title: newTitle });
               }}
             />
           )}

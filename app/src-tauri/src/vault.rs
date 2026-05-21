@@ -127,6 +127,23 @@ pub fn write_vault_note(
 }
 
 #[tauri::command]
+pub fn delete_vault_note(app: AppHandle, root: String, path: String) -> Result<(), String> {
+    let vault = vault_root(&root);
+    let p = PathBuf::from(&path);
+    let canonical_vault = vault.canonicalize().unwrap_or_else(|_| vault.clone());
+    let canonical_target = p.canonicalize().map_err(|e| format!("canonicalize: {e}"))?;
+    if !canonical_target.starts_with(&canonical_vault) {
+        return Err("Refusing to delete: path is outside vault root".into());
+    }
+    if !canonical_target.is_file() {
+        return Err(format!("Not a file: {path}"));
+    }
+    fs::remove_file(&canonical_target).map_err(|e| format!("delete note: {e}"))?;
+    emit_changed(&app, DataKind::Vault, None, Some(path));
+    Ok(())
+}
+
+#[tauri::command]
 pub fn append_to_memory(
     app: AppHandle,
     root: String,

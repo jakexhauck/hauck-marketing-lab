@@ -104,6 +104,7 @@ export function WorkflowChain({
 }: Props) {
   const [kind, setKind] = useState<WorkflowKind>(initialKind);
   const [brief, setBrief] = useState("");
+  const [attemptName, setAttemptName] = useState("");
   const [runs, setRuns] = useState<Record<string, StepRun>>({});
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<GeneratorOutput | null>(null);
@@ -240,8 +241,10 @@ export function WorkflowChain({
           const parsed = extractJson(finalText);
           const v = (parsed?.verdict as string | undefined) ?? null;
           setVerdict(v);
+          const customName = attemptName.trim();
           const title =
-            (parsed?.headline as string | undefined) ??
+            customName ||
+            (parsed?.headline as string | undefined) ||
             `${kind.toUpperCase()} workflow · ${v ?? "complete"}`;
           const summary = (parsed?.summary as string | undefined) ?? null;
           const composedBody = composeWorkflowBody(kind, brief, [
@@ -390,6 +393,22 @@ export function WorkflowChain({
             </div>
           )}
         </div>
+
+        <div className="panel">
+          <div className="panel-head">
+            <span className="panel-title">▸ ATTEMPT NAME</span>
+            <span className="panel-meta">optional</span>
+          </div>
+          <input
+            type="text"
+            className="os-input"
+            placeholder="Leave blank to auto-name"
+            value={attemptName}
+            onChange={(e) => setAttemptName(e.target.value)}
+            disabled={running || !!saved}
+            style={{ width: "100%" }}
+          />
+        </div>
       </section>
 
       {!saved && (
@@ -414,6 +433,9 @@ export function WorkflowChain({
           clientSlug={clientSlug}
           kind="workflows"
           refreshKey={pastRefresh}
+          onRename={(path, newTitle) => {
+            if (saved?.path === path) setSaved({ ...saved, title: newTitle });
+          }}
           onSelect={(out) => {
             setSaved(out);
             setError(null);
@@ -486,6 +508,7 @@ export function WorkflowChain({
               setVerdict(null);
               setRuns({});
               setBrief("");
+              setAttemptName("");
             }}
             badge={verdict ? verdict.replace("_", " ") : null}
             badgeTone={verdict ? KIND_TONE[verdict] : undefined}
@@ -503,6 +526,15 @@ export function WorkflowChain({
               const parsed = extractJson(out.body);
               const v = (parsed?.verdict as string | undefined) ?? null;
               setVerdict(v);
+            }}
+            onDelete={(path) => {
+              if (saved?.path === path) {
+                setSaved(null);
+                setVerdict(null);
+              }
+            }}
+            onRename={(path, newTitle) => {
+              if (saved?.path === path) setSaved({ ...saved, title: newTitle });
             }}
           />
         </>

@@ -195,6 +195,9 @@ export type KnowledgeTitle = {
 
 export interface OnboardingState {
   done: string[];
+  /** Optional task IDs the user marked "N/A" — rendered crossed out and
+   *  ignored for completion. Required tasks should never appear here. */
+  skippedOptional?: string[];
   /** Phase number (as string) → human-readable completion date (e.g. "12 MAY"). */
   phaseDoneAt: Record<string, string>;
   /** ISO-8601 timestamp stamped by the backend on every write. */
@@ -232,7 +235,133 @@ export type ClientEntry = {
   /** Override the conversion-action allowlist for this client. Single Meta
    *  `action_type` string. When set, only that action counts as a "Result". */
   meta_conversion_action?: string | null;
+  /** Per-kind default Drive folder targets for the in-app documents system.
+   *  Populated via the Documents tab's "Default folders" card. */
+  doc_folder_defaults?: DocFolderDefaults | null;
+  /** Per-step default Drive folder targets for the Ads Sequence wizard's
+   *  auto-push. Configured via the gear modal on the Ads Sequence topbar. */
+  sequence_folder_defaults?: SequenceFolderDefaults | null;
+  /** Average customer value in USD (LTV). Drives the derived target CPA the
+   *  optimizer uses: target_cpa = avg_customer_value / target_roas. Unset
+   *  means the optimizer skips this client. */
+  avg_customer_value?: number | null;
+  /** Target ROAS multiple. When null/unset, defaults to 3.0 (the lesson 3.2
+   *  "client is happy" floor). */
+  target_roas?: number | null;
+  /** Manual override of the computed target CPA in USD. Wins over the
+   *  LTV-based math when set. Rare — for niches where the formula doesn't
+   *  fit. */
+  target_cpa_override?: number | null;
+  /** Optimizer mode. `off` (or unset) skips the client. `suggest` runs the
+   *  6-hour decision loop and writes verdicts to the Recommendations panel
+   *  without auto-executing. */
+  optimizer_mode?: OptimizerMode | null;
 };
+
+export type OptimizerMode = "off" | "suggest";
+
+/** Per-ad snapshot row written to vault/Clients/<Name>/ads-log/YYYY-MM.csv. */
+export interface AdsLogRow {
+  ts: string;
+  date: string;
+  adId: string;
+  adName: string;
+  campaignId: string;
+  campaignName: string;
+  adSetId: string;
+  adSetName: string;
+  spend: number;
+  results: number;
+  cpl: number;
+  ctr: number;
+  cpm: number;
+  frequency: number;
+  ageHours: number;
+  parentAdSetBudget: number;
+  verdict: string;
+  verdictReason: string;
+  actionTaken: string;
+}
+
+// ── Per-client documents (in-app + Drive sync) ────────────────
+
+export type DocKind = "ad-copy" | "brief" | "notes" | "report" | "other";
+
+export interface DocFolderTarget {
+  id: string;
+  name: string;
+}
+
+export interface DocFolderDefaults {
+  "ad-copy"?: DocFolderTarget;
+  brief?: DocFolderTarget;
+  notes?: DocFolderTarget;
+  report?: DocFolderTarget;
+  other?: DocFolderTarget;
+}
+
+/** Per-step default Drive folder targets for the Ads Sequence wizard's
+ *  auto-push. Keys match `SequenceStepId` from mediaBuyingSequence.ts.
+ *  Every entry is optional; unset steps fall back to doc_folder_defaults
+ *  (mapped by kind) and finally the client root. */
+export interface SequenceFolderDefaults {
+  "audience-research"?: DocFolderTarget;
+  "creative-brief"?: DocFolderTarget;
+  hooks?: DocFolderTarget;
+  "ad-copy"?: DocFolderTarget;
+  "ad-creative"?: DocFolderTarget;
+  structure?: DocFolderTarget;
+}
+
+/** Result of pushing a sequence step's saved output to Drive. */
+export interface SequencePushResult {
+  docId: string;
+  driveUrl: string;
+  driveFileId: string;
+  folderId: string;
+  folderName: string | null;
+}
+
+/** Result of uploading a native binary file to Drive (PNG, etc.). */
+export interface UploadedFile {
+  fileId: string;
+  webViewLink: string;
+  mimeType: string;
+  name: string;
+}
+
+export interface DocSummary {
+  id: string;
+  title: string;
+  kind: DocKind;
+  clientSlug: string;
+  createdAt: string;
+  updatedAt: string;
+  syncedAt: string | null;
+  currentDriveUrl: string | null;
+  currentDriveFileId: string | null;
+  currentVersion: number;
+  isDirty: boolean;
+  driveFolderId: string | null;
+  driveFolderName: string | null;
+  unsweptOrphanCount: number;
+}
+
+export interface ClientDoc extends DocSummary {
+  body: string;
+}
+
+export interface DocSummaryWithClient extends DocSummary {
+  clientName: string;
+}
+
+export interface CreateDocPayload {
+  title: string;
+  kind: DocKind;
+  body?: string;
+  driveFolderId?: string;
+  driveFolderName?: string;
+}
 
 export type DriveIndex = {
   client: string;

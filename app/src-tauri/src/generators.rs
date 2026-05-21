@@ -214,3 +214,121 @@ pub fn read_latest_generator_output(
     let mut items = list_generator_outputs(root, client_slug, kind, 1)?;
     Ok(items.pop())
 }
+
+fn replace_title_line(yaml: &str, new_title: &str) -> String {
+    let quoted = yaml_quote(new_title);
+    let mut found = false;
+    let mut out = String::with_capacity(yaml.len() + new_title.len());
+    for line in yaml.lines() {
+        if !found && line.trim_start().starts_with("title:") {
+            let indent: String = line.chars().take_while(|c| c.is_whitespace()).collect();
+            out.push_str(&indent);
+            out.push_str(&format!("title: {}", quoted));
+            out.push('\n');
+            found = true;
+        } else {
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    if !found {
+        out.push_str(&format!("title: {}\n", quoted));
+    }
+    out
+}
+
+#[tauri::command]
+pub fn rename_generator_output(
+    app: AppHandle,
+    root: String,
+    path: String,
+    new_title: String,
+) -> Result<String, String> {
+    let trimmed = new_title.trim();
+    if trimmed.is_empty() {
+        return Err("name cannot be empty".into());
+    }
+
+    let target = std::path::Path::new(&path);
+    if !target.exists() {
+        return Err("file not found".into());
+    }
+    let root_canon = fs::canonicalize(&root).map_err(|e| format!("canonicalize root: {e}"))?;
+    let target_canon = fs::canonicalize(target).map_err(|e| format!("canonicalize target: {e}"))?;
+    if !target_canon.starts_with(&root_canon) {
+        return Err("refusing to rename file outside project root".into());
+    }
+
+    let ext = target_canon
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_string();
+
+    match ext.as_str() {
+        "md" => {
+            let raw = fs::read_to_string(&target_canon).map_err(|e| format!("read file: {e}"))?;
+            let (front_yaml, body) =
+                crate::frontmatter::split(&raw).ok_or("missing frontmatter")?;
+            let new_front = replace_title_line(&front_yaml, trimmed);
+            let mut out_text = String::new();
+            out_text.push_str("---\n");
+            out_text.push_str(&new_front);
+            out_text.push_str("---\n\n");
+            out_text.push_str(&body);
+            fs::write(&target_canon, out_text).map_err(|e| format!("write file: {e}"))?;
+
+            // Best-effort change event so other surfaces refresh.
+            let kind_from_dir = target_canon
+                .parent()
+                .and_then(|p| p.file_name())
+                .and_then(|n| n.to_str())
+                .unwrap_or("");
+            if let Some(dk) = data_kind_from(kind_from_dir) {
+                emit_changed(&app, dk, None, Some(target_canon.to_string_lossy().into_owned()));
+            }
+            Ok(target_canon.to_string_lossy().into_owned())
+        }
+        "html" => {
+            // Pitch decks: derive display title from a sidecar "<path>.title"
+            // file. We never rename the .html itself, so links and Drive
+            // pushes stay stable.
+            let sidecar = target_canon.with_extension("html.title");
+            fs::write(&sidecar, trimmed).map_err(|e| format!("write title sidecar: {e}"))?;
+            emit_changed(
+                &app,
+                DataKind::Briefs,
+                None,
+                Some(target_canon.to_string_lossy().into_owned()),
+            );
+            Ok(target_canon.to_string_lossy().into_owned())
+        }
+        other => Err(format!("cannot rename .{other} file")),
+    }
+}
+
+#[tauri::command]
+pub fn delete_generator_output(root: String, path: String) -> Result<(), String> {
+    let target = std::path::Path::new(&path);
+    if !target.exists() {
+        return Ok(());
+    }
+    let root_canon = fs::canonicalize(&root).map_err(|e| format!("canonicalize root: {e}"))?;
+    let target_canon = fs::canonicalize(target).map_err(|e| format!("canonicalize target: {e}"))?;
+    if !target_canon.starts_with(&root_canon) {
+        return Err("refusing to delete file outside project root".into());
+    }
+    let ext = target_canon
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+    if !matches!(ext, "md" | "html") {
+        return Err(format!("refusing to delete non-output file: .{ext}"));
+    }
+    fs::remove_file(&target_canon).map_err(|e| format!("delete file: {e}"))?;
+    if ext == "html" {
+        let sidecar = target_canon.with_extension("html.title");
+        let _ = fs::remove_file(&sidecar);
+    }
+    Ok(())
+}

@@ -480,12 +480,12 @@ function sectionToLabel(s: ClientSection): string {
       return "Onboarding";
     case "ads":
       return "Ads";
+    case "documents":
+      return "Drive";
     case "recordings":
       return "Recordings";
     case "websites":
       return "Websites";
-    case "drive":
-      return "Drive";
     case "reporting":
       return "Reporting";
     case "settings":

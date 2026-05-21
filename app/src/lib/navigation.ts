@@ -50,15 +50,16 @@ export type PersonalSection = "overview" | "hygiene" | "clothing";
 /** Per-client tabs rendered as the nested sidebar list under the active client.
  *  Order in the sidebar:
  *    Onboarding (only when status === pre-launch) · Dashboard · Ads ·
- *    Recordings · Websites · Drive · Reporting · Settings
- *  Settings holds the Profile editor + Memory view. */
+ *    Drive · Recordings · Websites · Reporting · Settings
+ *  The "Drive" tab is internally `documents` and handles both the Drive folder
+ *  browser and the local doc editor. Settings holds the Profile + Memory view. */
 export type ClientSection =
   | "dashboard"
   | "onboarding"
   | "ads"
+  | "documents"
   | "recordings"
   | "websites"
-  | "drive"
   | "reporting"
   | "settings";
 

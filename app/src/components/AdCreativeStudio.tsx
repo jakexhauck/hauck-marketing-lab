@@ -21,8 +21,10 @@
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../lib/tauri";
+import { parseDriveFolders, type DriveFolder } from "../lib/driveIndex";
 import type { FormValues } from "../lib/formConfigs";
 import type {
+  DocFolderTarget,
   GeneratorOutput,
   ReplicateModel,
   ReplicateModelDetail,
@@ -63,6 +65,10 @@ interface SavedCreative {
   adNumber: number | null;
   aspect: string;
   promptExcerpt: string;
+  /** Web view link returned by Drive after a successful push. */
+  driveUrl?: string;
+  /** Last push failure for this PNG. Cleared on retry success. */
+  drivePushError?: string;
 }
 
 interface Props {
@@ -333,6 +339,129 @@ export function AdCreativeStudio({
   const [savedThisSession, setSavedThisSession] = useState<SavedCreative[]>([]);
   const [saving, setSaving] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Drive push state. Folder choice is loaded once at mount from
+  // sequence_folder_defaults["ad-creative"] and stays editable via the
+  // dropdown above the saved-this-session list. Per-PNG push status keyed by
+  // savedPath in `pushingPaths`.
+  const [driveFolders, setDriveFolders] = useState<DriveFolder[]>([]);
+  const [folderTarget, setFolderTarget] = useState<DocFolderTarget | null>(null);
+  const [pushingPaths, setPushingPaths] = useState<Set<string>>(new Set());
+  const [pushAllInFlight, setPushAllInFlight] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+
+  // Load the client's per-step folder default + drive index folders once.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [clients, idx] = await Promise.all([
+          api.listClients(root),
+          api.readDriveIndex(root, clientSlug),
+        ]);
+        if (cancelled) return;
+        const folders = idx ? parseDriveFolders(idx.body) : [];
+        setDriveFolders(folders);
+        const client = clients.find((c) => c.slug === clientSlug);
+        const preset = client?.sequence_folder_defaults?.["ad-creative"] ?? null;
+        // Only honour the preset if the folder still exists in the index.
+        if (preset && folders.some((f) => f.id === preset.id)) {
+          setFolderTarget(preset);
+        } else if (folders.length > 0) {
+          // Mild default: first folder in the index. User can change before pushing.
+          setFolderTarget({ id: folders[0].id, name: folders[0].name });
+        }
+      } catch (e) {
+        // Non-fatal — the user can still pick manually once folders load.
+        console.warn("AdCreativeStudio: load drive folders failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, clientSlug]);
+
+  const onPickFolder = useCallback(
+    (folderId: string) => {
+      if (!folderId) {
+        setFolderTarget(null);
+        return;
+      }
+      const f = driveFolders.find((x) => x.id === folderId);
+      if (f) setFolderTarget({ id: f.id, name: f.name });
+    },
+    [driveFolders],
+  );
+
+  /** Push a single saved PNG to the currently-selected Drive folder. Updates
+   *  `savedThisSession` in place with driveUrl / drivePushError on completion. */
+  const pushOne = useCallback(
+    async (entry: SavedCreative) => {
+      if (!folderTarget) {
+        setPushError(
+          "Pick a Drive folder first (dropdown above the saved list).",
+        );
+        return;
+      }
+      setPushError(null);
+      setPushingPaths((curr) => {
+        const next = new Set(curr);
+        next.add(entry.savedPath);
+        return next;
+      });
+      try {
+        const result = await api.uploadLocalFileToDrive({
+          folderId: folderTarget.id,
+          sourcePath: entry.savedPath,
+          filename: entry.filename,
+          mimeType: "image/png",
+        });
+        setSavedThisSession((curr) =>
+          curr.map((s) =>
+            s.savedPath === entry.savedPath
+              ? { ...s, driveUrl: result.webViewLink, drivePushError: undefined }
+              : s,
+          ),
+        );
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setSavedThisSession((curr) =>
+          curr.map((s) =>
+            s.savedPath === entry.savedPath
+              ? { ...s, drivePushError: msg }
+              : s,
+          ),
+        );
+      } finally {
+        setPushingPaths((curr) => {
+          const next = new Set(curr);
+          next.delete(entry.savedPath);
+          return next;
+        });
+      }
+    },
+    [folderTarget],
+  );
+
+  const pushAllUnsynced = useCallback(async () => {
+    if (!folderTarget) {
+      setPushError(
+        "Pick a Drive folder first (dropdown above the saved list).",
+      );
+      return;
+    }
+    setPushAllInFlight(true);
+    setPushError(null);
+    try {
+      const queue = savedThisSession.filter((s) => !s.driveUrl);
+      // Serial uploads keep Drive happy and surface errors one at a time.
+      for (const entry of queue) {
+        await pushOne(entry);
+      }
+    } finally {
+      setPushAllInFlight(false);
+    }
+  }, [savedThisSession, folderTarget, pushOne]);
 
   const isDefaultModel =
     model?.owner === DEFAULT_MODEL.owner && model?.name === DEFAULT_MODEL.name;
@@ -997,19 +1126,92 @@ export function AdCreativeStudio({
 
           {savedThisSession.length > 0 && (
             <div className="acs-saved">
-              <div className="acs-saved-title">
-                Saved this session ({savedThisSession.length})
+              <div className="acs-saved-head">
+                <div className="acs-saved-title">
+                  Saved this session ({savedThisSession.length})
+                </div>
+                <div className="acs-drive-target">
+                  <label className="acs-drive-label">Drive folder</label>
+                  <select
+                    className="acs-drive-select"
+                    value={folderTarget?.id ?? ""}
+                    onChange={(e) => onPickFolder(e.target.value)}
+                  >
+                    <option value="">Not set</option>
+                    {driveFolders.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="acs-btn acs-btn-accent acs-btn-sm"
+                    onClick={() => void pushAllUnsynced()}
+                    disabled={
+                      pushAllInFlight ||
+                      !folderTarget ||
+                      savedThisSession.every((s) => Boolean(s.driveUrl))
+                    }
+                    title="Push every saved PNG that hasn't been pushed yet."
+                  >
+                    {pushAllInFlight ? "Pushing…" : "Push all to Drive"}
+                  </button>
+                </div>
               </div>
               <ul>
-                {savedThisSession.map((s) => (
-                  <li key={s.savedPath}>
-                    <code>{s.filename}</code>{" "}
-                    <span className="acs-saved-meta">
-                      · {s.adNumber != null ? `Ad ${s.adNumber}` : "Freeform"} · {s.aspect}
-                    </span>
-                  </li>
-                ))}
+                {savedThisSession.map((s) => {
+                  const pushing = pushingPaths.has(s.savedPath);
+                  return (
+                    <li key={s.savedPath} className="acs-saved-row">
+                      <div className="acs-saved-meta-line">
+                        <code>{s.filename}</code>{" "}
+                        <span className="acs-saved-meta">
+                          · {s.adNumber != null ? `Ad ${s.adNumber}` : "Freeform"} · {s.aspect}
+                        </span>
+                      </div>
+                      <div className="acs-saved-actions">
+                        {s.driveUrl ? (
+                          <a
+                            href={s.driveUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="acs-drive-pill is-ok"
+                            title="Open in Drive"
+                          >
+                            ✓ Drive
+                          </a>
+                        ) : s.drivePushError ? (
+                          <button
+                            type="button"
+                            className="acs-drive-pill is-error"
+                            title={s.drivePushError}
+                            onClick={() => void pushOne(s)}
+                            disabled={pushing || !folderTarget}
+                          >
+                            ↻ Retry
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="acs-btn acs-btn-sm"
+                            onClick={() => void pushOne(s)}
+                            disabled={pushing || !folderTarget}
+                            title={
+                              folderTarget
+                                ? "Push this PNG to the selected Drive folder."
+                                : "Pick a Drive folder first."
+                            }
+                          >
+                            {pushing ? "Pushing…" : "Push to Drive"}
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
+              {pushError && <div className="acs-error acs-error-sm">{pushError}</div>}
             </div>
           )}
 
@@ -1640,20 +1842,61 @@ const ACS_CSS = `
   border: 1px solid var(--hml-border-subtle);
   border-radius: 8px;
 }
+.acs-saved-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
 .acs-saved-title {
   font-family: var(--hml-font-mono);
   font-size: 10.5px;
   letter-spacing: 0.06em;
   color: var(--hml-text-tertiary);
   text-transform: uppercase;
-  margin-bottom: 6px;
+}
+.acs-drive-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.acs-drive-label {
+  font-family: var(--hml-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--hml-text-tertiary);
+  text-transform: uppercase;
+}
+.acs-drive-select {
+  font-family: var(--hml-font-sans);
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--hml-border);
+  background: var(--hml-bg-elev-1);
+  color: var(--hml-text-primary);
+  min-width: 160px;
 }
 .acs-saved ul {
   margin: 0;
-  padding-left: 16px;
+  padding-left: 0;
+  list-style: none;
   font-size: 12px;
   color: var(--hml-text-secondary);
 }
+.acs-saved-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px;
+  border-top: 1px solid var(--hml-border-subtle);
+}
+.acs-saved-row:first-child { border-top: none; }
+.acs-saved-meta-line { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acs-saved-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .acs-saved code {
   font-family: var(--hml-font-mono);
   font-size: 11px;
@@ -1662,6 +1905,41 @@ const ACS_CSS = `
 .acs-saved-meta {
   color: var(--hml-text-quaternary);
   font-size: 11px;
+}
+.acs-btn-sm {
+  font-size: 10.5px;
+  padding: 5px 10px;
+}
+.acs-drive-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--hml-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 1.5;
+}
+.acs-drive-pill.is-ok {
+  border-color: var(--hml-green-border);
+  background: var(--hml-green-bg);
+  color: var(--hml-green);
+}
+.acs-drive-pill.is-ok:hover { filter: brightness(1.15); }
+.acs-drive-pill.is-error {
+  border-color: var(--hml-amber-border, var(--hml-border));
+  background: var(--hml-amber-bg, var(--hml-bg-elev-3));
+  color: var(--hml-amber, var(--hml-text-secondary));
+}
+.acs-drive-pill.is-error:hover { filter: brightness(1.1); }
+.acs-error-sm {
+  margin-top: 8px;
+  font-size: 12px;
+  padding: 8px 10px;
 }
 
 .acs-logs {

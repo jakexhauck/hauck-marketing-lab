@@ -2,5 +2,22 @@ clients:
 - slug: willis-windows
   name: Willis Windows
   status: pre-launch
-  drive_folder_url: https://drive.google.com/drive/folders/1hgGRDyEJ9cmXvnj2AjLfGgyH6Vi7c4Bu?usp=sharing
+  drive_folder_url: https://drive.google.com/drive/folders/1ya0NgEZu5snPMM2eZRgqg6D2FipE5Sxa?usp=drive_link
   meta_ad_account_id: act_4396590353913166
+  doc_folder_defaults:
+    ad-copy:
+      id: 1RtvJIE3at0Xn0Y0DzQ46YY0VWAC8pQ1Z
+      name: Assets
+    brief:
+      id: 1RtvJIE3at0Xn0Y0DzQ46YY0VWAC8pQ1Z
+      name: Assets
+    notes:
+      id: 1RtvJIE3at0Xn0Y0DzQ46YY0VWAC8pQ1Z
+      name: Assets
+    report:
+      id: 18Ufv9lPOwtBo3xURoTgxB8Q8RKKQyICG
+      name: Reports
+    other:
+      id: 1RtvJIE3at0Xn0Y0DzQ46YY0VWAC8pQ1Z
+      name: Assets
+  optimizer_mode: suggest

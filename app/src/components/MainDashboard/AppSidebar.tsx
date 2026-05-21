@@ -89,12 +89,12 @@ function clientSectionIcon(section: ClientSection) {
       return IconBarChart;
     case "onboarding":
       return IconCheck;
+    case "documents":
+      return IconFolder;
     case "recordings":
       return IconRecordings;
     case "websites":
       return IconGlobe;
-    case "drive":
-      return IconFolder;
     case "reporting":
       return IconFile;
     case "settings":
@@ -110,12 +110,12 @@ function clientSectionLabel(section: ClientSection) {
       return "Ads";
     case "onboarding":
       return "Onboarding";
+    case "documents":
+      return "Drive";
     case "recordings":
       return "Recordings";
     case "websites":
       return "Websites";
-    case "drive":
-      return "Drive";
     case "reporting":
       return "Reporting";
     case "settings":
@@ -126,7 +126,14 @@ function clientSectionLabel(section: ClientSection) {
 /** Build the per-client sidebar list. Onboarding appears only while the
  *  client is still pre-launch; Settings is always last. */
 function clientSectionsForStatus(status: ClientEntry["status"]): ClientSection[] {
-  const base: ClientSection[] = ["dashboard", "ads", "recordings", "websites", "drive", "reporting"];
+  const base: ClientSection[] = [
+    "dashboard",
+    "ads",
+    "documents",
+    "recordings",
+    "websites",
+    "reporting",
+  ];
   return status === "pre-launch" ? ["onboarding", ...base, "settings"] : [...base, "settings"];
 }
 

@@ -1,20 +1,20 @@
-/**
+﻿/**
  * ClientDashboard, per-client surface.
  *
  * No sub-nav of its own. The left sidebar (AppSidebar) renders the per-client
- * section list (Onboarding · Dashboard · Ads · Recordings · Websites · Drive
- * · Reporting · Settings) and drives `section`. We just render the active
+ * section list (Onboarding Â· Dashboard Â· Ads Â· Recordings Â· Websites Â· Drive
+ * Â· Reporting Â· Settings) and drives `section`. We just render the active
  * pane based on it.
  *
  * Section map:
- *   onboarding → OnboardingChecklist (pre-launch only, sidebar hides it after)
- *   dashboard  → ClientOverviewPanel (stats, account status, key dates)
- *   ads        → Meta Ads Manager on top + non-reporting forms underneath
- *   recordings → Fathom transcript ingest + per-client recordings list
- *   websites   → WebDesignerPage
- *   drive      → ClientDriveView
- *   reporting  → Weekly + Monthly report forms only
- *   settings   → Profile editor + Memory.md view
+ *   onboarding â†’ OnboardingChecklist (pre-launch only, sidebar hides it after)
+ *   dashboard  â†’ ClientOverviewPanel (stats, account status, key dates)
+ *   ads        â†’ Meta Ads Manager on top + non-reporting forms underneath
+ *   recordings â†’ Fathom transcript ingest + per-client recordings list
+ *   websites   â†’ WebDesignerPage
+ *   drive      â†’ ClientDriveView
+ *   reporting  â†’ Weekly + Monthly report forms only
+ *   settings   â†’ Profile editor + Memory.md view
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -30,13 +30,6 @@ import type { ClientSection } from "../../lib/navigation";
 import type { FormSurfaceId } from "../../lib/formConfigs";
 import { api } from "../../lib/tauri";
 import {
-  driveNodeUrl,
-  parseDriveFolders,
-  parseDriveTree,
-  type DriveFolder,
-  type DriveNode,
-} from "../../lib/driveIndex";
-import {
   buildProfileBody,
   buildProfileFront,
   emptyProfileFormValues,
@@ -45,17 +38,16 @@ import {
   type ProfileFormValues,
 } from "../../lib/clientProfile";
 import { ClientMediaBuying } from "./ClientMediaBuying";
+import { ClientDocuments } from "./pages/ClientDocuments";
 import { WebDesignerPage } from "./WebDesignerPage";
 import { recordingsPageCSS, openFathomInApp } from "./RecordingsPage";
 import { TranscriptIngestPanel } from "./TranscriptIngestPanel";
 import { OnboardingChecklist } from "../OnboardingChecklist";
 import { AdsManagerPage } from "./AdsManagerPage";
+import { deriveTargetCpa } from "../../lib/adsOptimizer";
 import { Phase1CascadeModal } from "../Phase1CascadeModal";
 import {
   IconBarChart,
-  IconChevronRight,
-  IconExternalLink,
-  IconFile,
   IconFolder,
   IconMore,
   IconRecordings,
@@ -90,7 +82,7 @@ function clientPill(status: ClientEntry["status"]) {
 }
 
 function avatarChar(name: string): string {
-  return name?.charAt(0)?.toUpperCase() ?? "•";
+  return name?.charAt(0)?.toUpperCase() ?? "â€¢";
 }
 
 export function ClientDashboard({
@@ -163,7 +155,7 @@ export function ClientDashboard({
                   })}
                 </span>
               </div>
-              <span className="hml-sep">·</span>
+              <span className="hml-sep">Â·</span>
             </>
           )}
           <div className="hml-item">
@@ -172,7 +164,7 @@ export function ClientDashboard({
           </div>
           {client.benchmarks && (
             <>
-              <span className="hml-sep">·</span>
+              <span className="hml-sep">Â·</span>
               <div className="hml-item">
                 <span className="hml-label">Benchmarks</span>
                 <span className="hml-v">{client.benchmarks}</span>
@@ -203,6 +195,7 @@ export function ClientDashboard({
               mode="client"
               clients={[client]}
               activeClientSlug={client.slug}
+              root={root}
             />
             <ClientMediaBuying
               clientName={client.name}
@@ -211,6 +204,18 @@ export function ClientDashboard({
               compact
             />
           </div>
+        )}
+        {section === "documents" && (
+          root ? (
+            <ClientDocuments client={client} root={root} />
+          ) : (
+            <div className="hml-empty">
+              <div className="hml-empty-title">Pick a media-buying folder</div>
+              <div className="hml-empty-sub">
+                The documents tab needs the vault root to read and write docs.
+              </div>
+            </div>
+          )
         )}
         {section === "recordings" && (
           <ClientRecordingsView
@@ -224,13 +229,6 @@ export function ClientDashboard({
             root={root}
             clientSlug={client.slug}
             clientName={client.name}
-          />
-        )}
-        {section === "drive" && (
-          <ClientDriveView
-            root={root}
-            clientSlug={client.slug}
-            driveUrl={client.drive_folder_url ?? null}
           />
         )}
         {section === "reporting" && (
@@ -274,6 +272,7 @@ function ClientSettingsPanel({
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <ClientOptimizerSettings client={client} root={root} />
       <ClientProfileInlineEditor client={client} root={root} />
       <ClientNoteView
         root={root}
@@ -285,7 +284,388 @@ function ClientSettingsPanel({
   );
 }
 
-/** Per-client overview surface — status snapshot, ops row stats, latest activity. */
+/**
+ * Optimizer settings â€” operator enters LTV (avg customer value), the app
+ * derives target CPA as LTV / target_ROAS. Default ROAS is 3.0 (lesson 3.2's
+ * "client is happy" floor). Optional override for niches the math doesn't
+ * fit. Until LTV (or override) is set, the optimizer skips this client.
+ */
+function ClientOptimizerSettings({
+  client,
+  root,
+}: {
+  client: ClientEntry;
+  root: string | null;
+}) {
+  const numStr = (n: number | null | undefined) =>
+    typeof n === "number" && n > 0 ? String(n) : "";
+
+  const initialLtv = numStr(client.avg_customer_value);
+  const initialRoas = numStr(client.target_roas);
+  const initialOverride = numStr(client.target_cpa_override);
+  const initialMode: "off" | "suggest" =
+    client.optimizer_mode === "suggest" ? "suggest" : "off";
+
+  const [ltvStr, setLtvStr] = useState(initialLtv);
+  const [roasStr, setRoasStr] = useState(initialRoas);
+  const [overrideStr, setOverrideStr] = useState(initialOverride);
+  const [mode, setMode] = useState<"off" | "suggest">(initialMode);
+  const [showAdvanced, setShowAdvanced] = useState(
+    initialOverride !== "" || initialRoas !== "",
+  );
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  // Resync on client switch.
+  useEffect(() => {
+    setLtvStr(initialLtv);
+    setRoasStr(initialRoas);
+    setOverrideStr(initialOverride);
+    setMode(initialMode);
+    setShowAdvanced(initialOverride !== "" || initialRoas !== "");
+    setErr(null);
+    setSavedAt(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client.slug]);
+
+  const parsePositive = (s: string): number | null | typeof Number.NaN => {
+    const t = s.trim();
+    if (!t) return null;
+    const n = Number(t);
+    if (!Number.isFinite(n) || n <= 0) return Number.NaN;
+    return n;
+  };
+
+  const ltvParsed = parsePositive(ltvStr);
+  const roasParsed = parsePositive(roasStr);
+  const overrideParsed = parsePositive(overrideStr);
+
+  const anyInvalid =
+    ltvParsed === Number.NaN ||
+    roasParsed === Number.NaN ||
+    overrideParsed === Number.NaN;
+
+  const derived = useMemo(() => {
+    return deriveTargetCpa({
+      avgCustomerValue: typeof ltvParsed === "number" ? ltvParsed : null,
+      targetRoas: typeof roasParsed === "number" ? roasParsed : null,
+      targetCpaOverride: typeof overrideParsed === "number" ? overrideParsed : null,
+    });
+  }, [ltvParsed, roasParsed, overrideParsed]);
+
+  const initialLtvNum = client.avg_customer_value ?? null;
+  const initialRoasNum = client.target_roas ?? null;
+  const initialOverrideNum = client.target_cpa_override ?? null;
+
+  const valOrNull = (v: number | null | typeof Number.NaN): number | null =>
+    typeof v === "number" ? v : null;
+
+  const dirty =
+    valOrNull(ltvParsed) !== initialLtvNum ||
+    valOrNull(roasParsed) !== initialRoasNum ||
+    valOrNull(overrideParsed) !== initialOverrideNum ||
+    mode !== initialMode;
+
+  const canSave = !busy && !!root && !anyInvalid && dirty;
+
+  const handleSave = async () => {
+    if (!root) return;
+    if (anyInvalid) {
+      setErr("Values must be positive numbers, or empty.");
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      await api.setClientOptimizer(
+        root,
+        client.slug,
+        valOrNull(ltvParsed),
+        valOrNull(roasParsed),
+        valOrNull(overrideParsed),
+        mode === "off" ? "off" : "suggest",
+      );
+      setSavedAt(Date.now());
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const fmtMoney = (n: number) =>
+    `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+
+  return (
+    <section
+      style={{
+        background: "var(--hml-bg-elev-1, rgba(255,255,255,0.03))",
+        border: "1px solid var(--hml-border, rgba(255,255,255,0.08))",
+        borderRadius: 10,
+        padding: "16px 18px",
+      }}
+    >
+      <header style={{ marginBottom: 12 }}>
+        <div
+          style={{
+            fontSize: 10.5,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: "var(--hml-text-tertiary)",
+            marginBottom: 4,
+          }}
+        >
+          Optimizer
+        </div>
+        <div style={{ fontSize: 14, color: "var(--hml-text-primary)", fontWeight: 600 }}>
+          24/7 campaign optimizer
+        </div>
+        <div style={{ fontSize: 12, color: "var(--hml-text-tertiary)", marginTop: 4 }}>
+          KILL at 3Ã— target CPA Â· WATCH at 1.5-3Ã— Â· SCALE +25% at â‰¤target Â· REFRESH at freq 3.0+
+        </div>
+      </header>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "200px 1fr",
+          gap: 12,
+          alignItems: "center",
+        }}
+      >
+        <label style={{ fontSize: 12, color: "var(--hml-text-secondary)" }}>
+          Average customer value ($)
+        </label>
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          inputMode="decimal"
+          placeholder="e.g. 80 â€” LTV per customer"
+          value={ltvStr}
+          onChange={(e) => setLtvStr(e.target.value)}
+          disabled={busy}
+          style={inputStyle}
+        />
+
+        <label style={{ fontSize: 12, color: "var(--hml-text-secondary)" }}>
+          Mode
+        </label>
+        <select
+          value={mode}
+          onChange={(e) => setMode(e.target.value as "off" | "suggest")}
+          disabled={busy}
+          style={inputStyle}
+        >
+          <option value="off">Off â€” skip this client</option>
+          <option value="suggest">Suggest â€” show verdicts, no auto-execute</option>
+        </select>
+      </div>
+
+      {/* Live computed target CPA chip */}
+      <div
+        style={{
+          marginTop: 14,
+          padding: "10px 12px",
+          background: derived.value
+            ? "rgba(180, 120, 255, 0.10)"
+            : "var(--hml-bg-elev-2, rgba(255,255,255,0.03))",
+          border: `1px solid ${
+            derived.value
+              ? "rgba(180, 120, 255, 0.30)"
+              : "var(--hml-border, rgba(255,255,255,0.08))"
+          }`,
+          borderRadius: 7,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--hml-text-tertiary)",
+            }}
+          >
+            Derived target CPA
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--hml-font-sans)",
+              fontSize: 20,
+              fontWeight: 600,
+              color: derived.value
+                ? "var(--hml-text-primary)"
+                : "var(--hml-text-tertiary)",
+              marginTop: 2,
+            }}
+          >
+            {derived.value ? fmtMoney(derived.value) : "â€”"}
+          </div>
+        </div>
+        <div
+          style={{
+            fontSize: 11.5,
+            color: "var(--hml-text-tertiary)",
+            textAlign: "right",
+            maxWidth: 340,
+            lineHeight: 1.5,
+          }}
+        >
+          {derived.source === "override" && (
+            <>Manual override active. LTV math ignored.</>
+          )}
+          {derived.source === "ltv" && typeof ltvParsed === "number" && (
+            <>
+              {fmtMoney(ltvParsed)} LTV Ã· {derived.effectiveRoas.toFixed(1)}Ã— target ROAS.
+              KILL triggers at {fmtMoney(derived.value! * 3)}.
+            </>
+          )}
+          {derived.source === "missing" && (
+            <>Enter average customer value to activate the optimizer.</>
+          )}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 10 }}>
+        <button
+          type="button"
+          onClick={() => setShowAdvanced((v) => !v)}
+          style={{
+            background: "transparent",
+            border: 0,
+            color: "var(--hml-text-tertiary)",
+            fontFamily: "inherit",
+            fontSize: 11.5,
+            cursor: "pointer",
+            padding: 0,
+            letterSpacing: "0.02em",
+          }}
+        >
+          {showAdvanced ? "Hide advanced" : "Advancedâ€¦"}
+        </button>
+      </div>
+
+      {showAdvanced && (
+        <div
+          style={{
+            marginTop: 12,
+            display: "grid",
+            gridTemplateColumns: "200px 1fr",
+            gap: 12,
+            alignItems: "center",
+            paddingTop: 10,
+            borderTop: "1px solid var(--hml-border-subtle, rgba(255,255,255,0.05))",
+          }}
+        >
+          <label style={{ fontSize: 12, color: "var(--hml-text-secondary)" }}>
+            Target ROAS (default 3.0Ã—)
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            inputMode="decimal"
+            placeholder="3"
+            value={roasStr}
+            onChange={(e) => setRoasStr(e.target.value)}
+            disabled={busy}
+            style={inputStyle}
+          />
+
+          <label style={{ fontSize: 12, color: "var(--hml-text-secondary)" }}>
+            Manual CPA override ($)
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            inputMode="decimal"
+            placeholder="Leave empty to use LTV math"
+            value={overrideStr}
+            onChange={(e) => setOverrideStr(e.target.value)}
+            disabled={busy}
+            style={inputStyle}
+          />
+        </div>
+      )}
+
+      {err && (
+        <div
+          style={{
+            marginTop: 10,
+            padding: "8px 11px",
+            background: "rgba(239, 107, 107, 0.10)",
+            border: "1px solid rgba(239, 107, 107, 0.32)",
+            borderRadius: 7,
+            color: "#ff8b8b",
+            fontSize: 12,
+          }}
+        >
+          {err}
+        </div>
+      )}
+
+      <div
+        style={{
+          marginTop: 14,
+          display: "flex",
+          gap: 10,
+          alignItems: "center",
+          justifyContent: "flex-end",
+        }}
+      >
+        {savedAt && (
+          <span style={{ fontSize: 11, color: "var(--hml-text-tertiary)" }}>
+            Saved.
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={() => void handleSave()}
+          disabled={!canSave}
+          style={{
+            background: canSave
+              ? "rgba(180, 120, 255, 0.22)"
+              : "var(--hml-bg-elev-2, rgba(255,255,255,0.04))",
+            border: `1px solid ${
+              canSave ? "rgba(180, 120, 255, 0.5)" : "var(--hml-border, rgba(255,255,255,0.10))"
+            }`,
+            color: canSave ? "#d6bdff" : "var(--hml-text-tertiary)",
+            borderRadius: 6,
+            padding: "7px 14px",
+            fontSize: 12,
+            fontWeight: 500,
+            fontFamily: "inherit",
+            cursor: canSave ? "pointer" : "not-allowed",
+            letterSpacing: "0.02em",
+          }}
+        >
+          {busy ? "Savingâ€¦" : "Save"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+const inputStyle: React.CSSProperties = {
+  background: "var(--hml-bg-elev-2, rgba(255,255,255,0.06))",
+  border: "1px solid var(--hml-border, rgba(255,255,255,0.10))",
+  color: "var(--hml-text-primary)",
+  borderRadius: 6,
+  padding: "8px 11px",
+  fontSize: 13,
+  fontFamily: "inherit",
+  outline: "none",
+  maxWidth: 280,
+};
+
+/** Per-client overview surface â€” status snapshot, ops row stats, latest activity. */
 function ClientOverviewPanel({
   client,
   root,
@@ -334,9 +714,9 @@ function ClientOverviewPanel({
   }, [root, client.slug]);
 
   const fmtMoney = (n: number | null | undefined) =>
-    n == null ? "—" : `$${n.toLocaleString()}`;
+    n == null ? "â€”" : `$${n.toLocaleString()}`;
   const fmtDate = (iso: string | null | undefined) => {
-    if (!iso) return "—";
+    if (!iso) return "â€”";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, {
@@ -348,7 +728,7 @@ function ClientOverviewPanel({
 
   // Patch a partial OpsClientRow into ops/clients.json and reflect in local
   // state. When `invoicePaidAt` is set for the first time, retainer
-  // `startDate` is auto-filled to the same date — the engagement officially
+  // `startDate` is auto-filled to the same date â€” the engagement officially
   // begins when the first invoice clears.
   async function patchOpsRow(patch: Partial<OpsClientRow>) {
     if (!root) return;
@@ -409,7 +789,7 @@ function ClientOverviewPanel({
           <div className="hml-stat-value">
             {recCount ?? 0}
             <span className="hml-stat-delta hml-flat">
-              {recCount && recCount > 0 ? "on file" : "— none yet"}
+              {recCount && recCount > 0 ? "on file" : "â€” none yet"}
             </span>
           </div>
         </div>
@@ -572,7 +952,7 @@ function KvRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** One row of the Account Status panel — Contract or Invoice.
+/** One row of the Account Status panel â€” Contract or Invoice.
  *  Shows an amber "due" pill + action button when undated; flips to a green
  *  done pill with the date and a small clear/undo affordance once marked. */
 function StatusRow({
@@ -619,7 +999,7 @@ function StatusRow({
         </span>
         <span className={`hml-pill ${isDone ? "hml-green" : "hml-amber"}`}>
           <span className="hml-pill-dot" />
-          {isDone ? `${doneLabel} · ${fmtDate(date)}` : dueLabel}
+          {isDone ? `${doneLabel} Â· ${fmtDate(date)}` : dueLabel}
         </span>
       </div>
       {isDone ? (
@@ -635,7 +1015,7 @@ function StatusRow({
             padding: "4px 8px",
             borderRadius: 4,
           }}
-          title="Clear — mark as not yet completed"
+          title="Clear â€” mark as not yet completed"
         >
           Clear
         </button>
@@ -661,7 +1041,7 @@ function StatusRow({
   );
 }
 
-/** Profile.md editor — embedded form for in-place edits. Mirrors the standalone
+/** Profile.md editor â€” embedded form for in-place edits. Mirrors the standalone
  *  ClientProfileForm but without the modal chrome. */
 function ClientProfileInlineEditor({
   client,
@@ -735,7 +1115,7 @@ function ClientProfileInlineEditor({
   };
 
   if (loading) {
-    return <div className="hml-empty"><div className="hml-empty-sub">Loading profile…</div></div>;
+    return <div className="hml-empty"><div className="hml-empty-sub">Loading profileâ€¦</div></div>;
   }
 
   return (
@@ -787,7 +1167,7 @@ function ClientProfileInlineEditor({
           <textarea
             className="hml-form-textarea"
             rows={3}
-            placeholder="Homeowners 35–65, $120k+ HHI, neighborhoods with HOA pressure to keep curb appeal up."
+            placeholder="Homeowners 35â€“65, $120k+ HHI, neighborhoods with HOA pressure to keep curb appeal up."
             value={values.target}
             onChange={(e) => update("target", e.target.value)}
             disabled={busy}
@@ -830,7 +1210,7 @@ function ClientProfileInlineEditor({
         <Field label="Geography" hint="Service area, ZIP codes, radius.">
           <input
             className="hml-form-input"
-            placeholder="e.g. North suburbs of Chicago — 20 mi radius from 60062"
+            placeholder="e.g. North suburbs of Chicago â€” 20 mi radius from 60062"
             value={values.geography}
             onChange={(e) => update("geography", e.target.value)}
             disabled={busy}
@@ -850,7 +1230,7 @@ function ClientProfileInlineEditor({
             disabled={busy || !root}
             style={{ marginLeft: "auto" }}
           >
-            {busy ? "Saving…" : "Save changes"}
+            {busy ? "Savingâ€¦" : "Save changes"}
           </button>
         </div>
       </div>
@@ -876,7 +1256,7 @@ function Field({
   );
 }
 
-/** Lightweight vault-note display for the Memory tab — read-only for now. */
+/** Lightweight vault-note display for the Memory tab â€” read-only for now. */
 function ClientNoteView({
   root,
   clientSlug,
@@ -916,7 +1296,7 @@ function ClientNoteView({
   }, [root, clientSlug]);
 
   if (notes === null) {
-    return <div className="hml-empty"><div className="hml-empty-sub">Loading…</div></div>;
+    return <div className="hml-empty"><div className="hml-empty-sub">Loadingâ€¦</div></div>;
   }
 
   const note = notes.find((n) => {
@@ -992,7 +1372,7 @@ function formatRecStamp(ts: number): string {
   const d = new Date(ts);
   const date = d.toLocaleDateString(undefined, { day: "2-digit", month: "short" });
   const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  return `${date} · ${time}`.toUpperCase();
+  return `${date} Â· ${time}`.toUpperCase();
 }
 
 function ClientRecordingsView({
@@ -1218,7 +1598,7 @@ function ClientRecordingsView({
       {!isAll && (
         <div className="md-panel md-recordings-panel">
           <div className="md-panel-head">
-            <span className="md-panel-title">▸ New Recording — {clientName}</span>
+            <span className="md-panel-title">â–¸ New Recording â€” {clientName}</span>
             <span className="md-panel-meta">{recordings.length} SAVED</span>
           </div>
 
@@ -1226,7 +1606,7 @@ function ClientRecordingsView({
             <input
               className={`md-rec-input ${recUrl && !recUrlValid ? "is-invalid" : ""}`}
               type="url"
-              placeholder="Paste fathom.video link…"
+              placeholder="Paste fathom.video linkâ€¦"
               value={recUrl}
               onChange={(e) => {
                 setRecUrl(e.target.value);
@@ -1266,7 +1646,7 @@ function ClientRecordingsView({
       )}
 
       {loading ? (
-        <div className="md-rec-empty">Loading…</div>
+        <div className="md-rec-empty">Loadingâ€¦</div>
       ) : visibleRecordings.length === 0 ? (
         <div className="md-rec-empty">
           {isAll
@@ -1290,7 +1670,7 @@ function ClientRecordingsView({
                     onClick={() => openFathomInApp(r.url, r.title)}
                     title="Play recording"
                   >
-                    <span className="md-rec-card-play" aria-hidden="true">▶</span>
+                    <span className="md-rec-card-play" aria-hidden="true">â–¶</span>
                     <span className="md-rec-card-label">Play recording</span>
                   </button>
                 ) : (
@@ -1337,7 +1717,7 @@ function ClientRecordingsView({
                       target="_blank"
                       rel="noreferrer"
                     >
-                      Open in Fathom ↗
+                      Open in Fathom â†—
                     </a>
                     {isAll && (
                       <span
@@ -1446,301 +1826,3 @@ const RECORDINGS_SUBTAB_CSS = `
   white-space: pre-wrap;
 }
 `;
-
-function ClientDriveView({
-  root,
-  clientSlug,
-  driveUrl,
-}: {
-  root: string | null;
-  clientSlug: string;
-  driveUrl: string | null;
-}) {
-  const [tree, setTree] = useState<DriveNode | null | undefined>(undefined);
-  const [folders, setFolders] = useState<DriveFolder[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  // Stack of folder IDs descended into from the root. Empty = at root.
-  const [path, setPath] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (!root) {
-      setFolders([]);
-      setTree(null);
-      return;
-    }
-    let cancelled = false;
-    setFolders(null);
-    setTree(undefined);
-    setError(null);
-    setPath([]);
-    api
-      .readDriveIndex(root, clientSlug)
-      .then((idx) => {
-        if (cancelled) return;
-        if (!idx) {
-          setFolders([]);
-          setTree(null);
-          return;
-        }
-        setFolders(parseDriveFolders(idx.body));
-        setTree(parseDriveTree(idx.body));
-      })
-      .catch((e) => {
-        if (cancelled) return;
-        setError(e instanceof Error ? e.message : String(e));
-        setFolders([]);
-        setTree(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [root, clientSlug]);
-
-  if (folders === null || tree === undefined) {
-    return <div className="hml-empty"><div className="hml-empty-sub">Loading Drive index…</div></div>;
-  }
-
-  if (!driveUrl && (!folders || folders.length === 0)) {
-    return (
-      <div className="hml-empty">
-        <div className="hml-empty-title">No Drive folder linked</div>
-        <div className="hml-empty-sub">
-          Link a Drive folder from Settings, then refresh the index here.
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="hml-empty">
-        <div className="hml-empty-title">Couldn't load Drive index</div>
-        <div className="hml-empty-sub">{error}</div>
-      </div>
-    );
-  }
-
-  // Tree path: array of nodes from root down to the currently viewed folder.
-  // Empty when the index has no `## Tree` block — we fall back to the flat
-  // folder list (older clients that haven't been re-indexed yet).
-  const trail: DriveNode[] = [];
-  if (tree) {
-    trail.push(tree);
-    let cursor: DriveNode | undefined = tree;
-    for (const id of path) {
-      const next: DriveNode | undefined = cursor?.children?.find(
-        (c) => c.id === id && c.type === "folder",
-      );
-      if (!next) break;
-      trail.push(next);
-      cursor = next;
-    }
-  }
-  const current = trail.length > 0 ? trail[trail.length - 1] : null;
-  const children = current?.children ?? [];
-
-  return (
-    <div className="hml-panel">
-      <div className="hml-panel-header">
-        <div className="hml-panel-title">
-          <span className="hml-dot" style={{ background: "var(--hml-blue)" }} />
-          {trail.length > 1 ? (
-            <DriveBreadcrumb trail={trail} onJump={(depth) => setPath(path.slice(0, depth))} />
-          ) : (
-            "Drive folders"
-          )}
-        </div>
-        {current && current.id ? (
-          <a
-            href={driveNodeUrl(current)}
-            target="_blank"
-            rel="noreferrer"
-            className="hml-panel-action"
-            onClick={(e) => {
-              e.preventDefault();
-              window.open(driveNodeUrl(current), "_blank", "noopener,noreferrer");
-            }}
-          >
-            Open in Drive ↗
-          </a>
-        ) : driveUrl ? (
-          <a
-            href={driveUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="hml-panel-action"
-            onClick={(e) => {
-              e.preventDefault();
-              window.open(driveUrl, "_blank", "noopener,noreferrer");
-            }}
-          >
-            Open in Drive ↗
-          </a>
-        ) : null}
-      </div>
-      <div className="hml-panel-body">
-        {tree ? (
-          children.length === 0 ? (
-            <div className="hml-empty">
-              <div className="hml-empty-sub">This folder is empty.</div>
-            </div>
-          ) : (
-            <DriveChildren
-              nodes={children}
-              onOpenFolder={(id) => setPath([...path, id])}
-            />
-          )
-        ) : folders.length === 0 ? (
-          <div className="hml-empty">
-            <div className="hml-empty-sub">
-              No folders indexed yet. Run the Drive index refresh from Settings.
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="hml-empty" style={{ paddingBottom: 8 }}>
-              <div className="hml-empty-sub">
-                This index is from before in-app browsing — refresh it from Settings to enable drill-down.
-              </div>
-            </div>
-            {folders.map((f) => (
-              <a
-                key={f.id}
-                href={f.url}
-                target="_blank"
-                rel="noreferrer"
-                className="hml-activity"
-                style={{ textDecoration: "none" }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.open(f.url, "_blank", "noopener,noreferrer");
-                }}
-              >
-                <div className="hml-activity-icon hml-blue">
-                  <IconFolder size={13} />
-                </div>
-                <div className="hml-activity-body">
-                  <div className="hml-activity-title">
-                    <span className="hml-em">{f.name}</span>
-                  </div>
-                </div>
-              </a>
-            ))}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function DriveBreadcrumb({
-  trail,
-  onJump,
-}: {
-  trail: DriveNode[];
-  onJump: (depth: number) => void;
-}) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-      {trail.map((node, i) => {
-        const isLast = i === trail.length - 1;
-        return (
-          <span key={node.id} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-            {isLast ? (
-              <span>{node.name}</span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => onJump(i)}
-                className="hml-link"
-                style={{ background: "none", border: 0, padding: 0, cursor: "pointer" }}
-              >
-                {node.name}
-              </button>
-            )}
-            {!isLast && (
-              <span style={{ opacity: 0.5, display: "inline-flex" }}>
-                <IconChevronRight size={12} />
-              </span>
-            )}
-          </span>
-        );
-      })}
-    </span>
-  );
-}
-
-function DriveChildren({
-  nodes,
-  onOpenFolder,
-}: {
-  nodes: DriveNode[];
-  onOpenFolder: (id: string) => void;
-}) {
-  // Folders first, then files; each group alphabetized.
-  const sorted = [...nodes].sort((a, b) => {
-    if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
-  return (
-    <>
-      {sorted.map((node) => {
-        if (node.type === "folder") {
-          return (
-            <button
-              key={node.id}
-              type="button"
-              onClick={() => onOpenFolder(node.id)}
-              className="hml-activity"
-              style={{
-                textDecoration: "none",
-                background: "none",
-                border: 0,
-                width: "100%",
-                textAlign: "left",
-                cursor: "pointer",
-              }}
-            >
-              <div className="hml-activity-icon hml-blue">
-                <IconFolder size={13} />
-              </div>
-              <div className="hml-activity-body">
-                <div className="hml-activity-title">
-                  <span className="hml-em">{node.name}</span>
-                </div>
-              </div>
-              <div style={{ opacity: 0.5, display: "inline-flex", alignItems: "center" }}>
-                <IconChevronRight size={14} />
-              </div>
-            </button>
-          );
-        }
-        const url = driveNodeUrl(node);
-        return (
-          <a
-            key={node.id}
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="hml-activity"
-            style={{ textDecoration: "none" }}
-            onClick={(e) => {
-              e.preventDefault();
-              window.open(url, "_blank", "noopener,noreferrer");
-            }}
-          >
-            <div className="hml-activity-icon">
-              <IconFile size={13} />
-            </div>
-            <div className="hml-activity-body">
-              <div className="hml-activity-title">{node.name}</div>
-            </div>
-            <div style={{ opacity: 0.5, display: "inline-flex", alignItems: "center" }}>
-              <IconExternalLink size={13} />
-            </div>
-          </a>
-        );
-      })}
-    </>
-  );
-}

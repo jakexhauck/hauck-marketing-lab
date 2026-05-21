@@ -57,7 +57,7 @@ const GROUPS: FormGroupSpec[] = [
     id: "campaigns",
     label: "Campaign Management",
     hint: "Operate the live ad account: structure, optimization rules, tracking.",
-    formIds: ["structure", "optimizer", "pixel-install"],
+    formIds: ["structure", "pixel-install"],
   },
   {
     id: "comms",

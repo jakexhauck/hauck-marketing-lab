@@ -1,12 +1,16 @@
-// Google Calendar OAuth + write access.
+// Google OAuth (Calendar + Drive).
 //
 // Flow: PKCE auth-code with a transient localhost listener. Tokens live in
 // the app config dir (NOT the synced media-buying folder), so each machine
 // authenticates once. Refresh-on-expiry happens transparently before each
 // write.
 //
+// This module's OAuth now also covers `drive.file` (per-file Drive access).
+// The on-disk token store (`google_calendar_tokens.json`) is shared with
+// `drive_api.rs`, which borrows access tokens via `google_access_token`.
+//
 // NOTE on the "client secret": Google's own docs say desktop-app client
-// secrets are not actually secrets — PKCE is what protects the flow. They
+// secrets are not actually secrets, PKCE is what protects the flow. They
 // live in the gitignored `google_oauth_secrets.rs` module because GitHub
 // push protection won't let them sit in the tree. Rotate via the Cloud
 // Console if ever needed.
@@ -31,6 +35,7 @@ const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 const SCOPES: &[&str] = &[
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/drive.file",
 ];
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -152,6 +157,13 @@ async fn refresh(refresh_token: &str) -> Result<TokenResponse, String> {
     resp.json()
         .await
         .map_err(|e| format!("parse refresh response: {e}"))
+}
+
+/// Sibling-module entry point for fetching a fresh Google access token.
+/// Named `google_access_token` because the underlying OAuth now covers
+/// Calendar + Drive (drive.file). Thin wrapper over `access_token`.
+pub(crate) async fn google_access_token(app: &AppHandle) -> Result<String, String> {
+    access_token(app).await
 }
 
 /// Returns a valid access token, refreshing if it's expired or near-expiry.

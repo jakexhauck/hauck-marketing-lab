@@ -24,8 +24,7 @@ export type SequenceStepId =
   | "hooks"
   | "ad-copy"
   | "ad-creative"
-  | "structure"
-  | "optimizer";
+  | "structure";
 
 /**
  * Maps a prior step's output JSON keys to this step's form field keys.
@@ -197,12 +196,6 @@ export function summarizeStepOutput(
       if (totalBudget) parts.push(`$${totalBudget}/day`);
       return parts.length ? parts.join(" · ") : null;
     }
-    case "optimizer": {
-      const kills = arr(parsed?.kill_flags).length;
-      const scales = arr(parsed?.scale_flags).length;
-      if (kills || scales) return `${kills} kill · ${scales} scale flags`;
-      return null;
-    }
     default:
       return null;
   }
@@ -316,13 +309,6 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
     label: "Plan campaign structure",
     hint: "CBO vs ABO, ad-set split, creatives-per-ad-set. Output is the spec you'll build from in Phase 5.",
   },
-  {
-    id: "optimizer",
-    formId: "optimizer",
-    phase: 8,
-    label: "Set optimizer watchlist",
-    hint: "Thresholds Zenith uses to flag kill + scale candidates in Ads Manager. Advisory only, Zenith never touches the ads. You make every call.",
-  },
 ];
 
 /** The set of FormConfig.id values that participate in the Ads sequence.
@@ -357,14 +343,24 @@ export const SEQUENCE_GROUPS: SequenceGroup[] = [
   {
     id: "launch",
     label: "Launch & Monitor",
-    stepIds: ["structure", "optimizer"],
+    stepIds: ["structure"],
   },
 ];
 
-/** Per-step persisted record. `path` points at the saved generator output on disk. */
+/** Per-step persisted record. `path` points at the saved generator output on disk.
+ *  Drive fields are populated by the auto-push pipeline (see AdsSequenceWizard
+ *  `handleSaved`). `driveUrl` set = green pill in the rail; `drivePushError`
+ *  set = amber pill with a Retry button. They are independently optional so a
+ *  successful save with a failed push still records the local path. */
 export interface SequenceStepRecord {
   path: string;
   completedAt: string;
+  /** Most recent successful push. Cleared on regenerate, refreshed on every retry. */
+  driveUrl?: string;
+  driveFileId?: string;
+  drivePushAt?: string;
+  /** Last push failure message. Cleared as soon as a push succeeds. */
+  drivePushError?: string;
 }
 
 /** Ad-level cell in the campaign tree. Format is free-form so a slot can be any

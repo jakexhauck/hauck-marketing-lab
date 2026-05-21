@@ -7,12 +7,20 @@ import type {
   ChatFile,
   ChatTurn,
   ClaudeCheck,
+  ClientDoc,
   CopywriterEvent,
+  CreateDocPayload,
   DashboardState,
   ClientCredentialsFile,
   ClientEntry,
   ClientStatus,
   CreativesManifest,
+  DocFolderTarget,
+  DocKind,
+  DocSummary,
+  DocSummaryWithClient,
+  SequencePushResult,
+  UploadedFile,
   GhlAdvanceArgs,
   GhlAdvanceResult,
   GhlAppointment,
@@ -40,8 +48,10 @@ import type {
   KnowledgeTitle,
   KnowledgeQuery,
   KpiEntry,
+  AdsLogRow,
   OnboardingState,
   NoteFront,
+  OptimizerMode,
   ParsedBenchmarks,
   ProspectFile,
   ScraperEvent,
@@ -179,8 +189,175 @@ export const api = {
     invoke<void>("set_client_benchmarks", { root, clientSlug, filename }),
   setClientDriveFolder: (root: string, clientSlug: string, url: string | null) =>
     invoke<void>("set_client_drive_folder", { root, clientSlug, url }),
+  setClientOptimizer: (
+    root: string,
+    clientSlug: string,
+    avgCustomerValue: number | null,
+    targetRoas: number | null,
+    targetCpaOverride: number | null,
+    optimizerMode: OptimizerMode | null,
+  ) =>
+    invoke<void>("set_client_optimizer", {
+      root,
+      clientSlug,
+      avgCustomerValue,
+      targetRoas,
+      targetCpaOverride,
+      optimizerMode,
+    }),
+  writeAdsLogSnapshot: (root: string, clientSlug: string, rows: AdsLogRow[]) =>
+    invoke<number>("write_ads_log_snapshot", { root, clientSlug, rows }),
+  readAdsLog: (root: string, clientSlug: string, daysBack: number) =>
+    invoke<AdsLogRow[]>("read_ads_log", { root, clientSlug, daysBack }),
   readDriveIndex: (root: string, clientSlug: string) =>
     invoke<DriveIndex | null>("read_drive_index", { root, clientSlug }),
+
+  // ── Per-client documents (vault Docs/ folder; Drive sync wired later) ──
+  listClientDocs: (root: string, clientSlug: string) =>
+    invoke<DocSummary[]>("list_client_docs", { root, clientSlug }),
+  listAllDocs: (root: string) =>
+    invoke<DocSummaryWithClient[]>("list_all_docs", { root }),
+  readClientDoc: (root: string, clientSlug: string, docId: string) =>
+    invoke<ClientDoc>("read_client_doc", { root, clientSlug, docId }),
+  createClientDoc: (root: string, clientSlug: string, payload: CreateDocPayload) =>
+    invoke<ClientDoc>("create_client_doc", { root, clientSlug, payload }),
+  updateClientDocBody: (
+    root: string,
+    clientSlug: string,
+    docId: string,
+    body: string,
+  ) =>
+    invoke<ClientDoc>("update_client_doc_body", {
+      root,
+      clientSlug,
+      docId,
+      body,
+    }),
+  renameClientDoc: (
+    root: string,
+    clientSlug: string,
+    docId: string,
+    newTitle: string,
+  ) =>
+    invoke<ClientDoc>("rename_client_doc", {
+      root,
+      clientSlug,
+      docId,
+      newTitle,
+    }),
+  setClientDocTargetFolder: (
+    root: string,
+    clientSlug: string,
+    docId: string,
+    folderId: string | null,
+    folderName: string | null,
+  ) =>
+    invoke<ClientDoc>("set_client_doc_target_folder", {
+      root,
+      clientSlug,
+      docId,
+      folderId,
+      folderName,
+    }),
+  deleteClientDoc: (root: string, clientSlug: string, docId: string) =>
+    invoke<void>("delete_client_doc", { root, clientSlug, docId }),
+  setClientDocFolderDefault: (
+    root: string,
+    clientSlug: string,
+    kind: DocKind,
+    folder: DocFolderTarget | null,
+  ) =>
+    invoke<void>("set_client_doc_folder_default", {
+      root,
+      clientSlug,
+      kind,
+      folder,
+    }),
+  /** Set (or clear) the per-step Drive folder for the Ads Sequence wizard. */
+  setClientSequenceFolderDefault: (
+    root: string,
+    clientSlug: string,
+    stepId: string,
+    folder: DocFolderTarget | null,
+  ) =>
+    invoke<void>("set_client_sequence_folder_default", {
+      root,
+      clientSlug,
+      stepId,
+      folder,
+    }),
+  /** Push the saved output of a single Ads Sequence step to Drive. Creates or
+   *  updates the per-client Doc record + pushes via the existing pipeline.
+   *  `folderOverride` pins this push to a specific folder. */
+  pushSequenceStepToDrive: (args: {
+    root: string;
+    clientSlug: string;
+    stepId: string;
+    vaultPath: string;
+    title: string;
+    folderOverride?: DocFolderTarget | null;
+  }) =>
+    invoke<SequencePushResult>("push_sequence_step_to_drive", {
+      root: args.root,
+      clientSlug: args.clientSlug,
+      stepId: args.stepId,
+      vaultPath: args.vaultPath,
+      title: args.title,
+      folderOverride: args.folderOverride ?? null,
+    }),
+  /** Upload a local file (PNG, JPG, etc.) to a Drive folder as a native binary.
+   *  Used by AdCreativeStudio to push saved PNGs into the client's Creatives
+   *  subfolder without Doc conversion. */
+  uploadLocalFileToDrive: (args: {
+    folderId: string;
+    sourcePath: string;
+    filename?: string | null;
+    mimeType: string;
+  }) =>
+    invoke<UploadedFile>("upload_local_file_to_drive", {
+      folderId: args.folderId,
+      sourcePath: args.sourcePath,
+      filename: args.filename ?? null,
+      mimeType: args.mimeType,
+    }),
+  /** Upload a base64-encoded byte buffer to Drive. For binaries the frontend
+   *  generates in-memory (e.g. campaign tree SVG rasterised to PNG). */
+  uploadBytesToDrive: (args: {
+    folderId: string;
+    filename: string;
+    base64Bytes: string;
+    mimeType: string;
+  }) =>
+    invoke<UploadedFile>("upload_bytes_to_drive", {
+      folderId: args.folderId,
+      filename: args.filename,
+      base64Bytes: args.base64Bytes,
+      mimeType: args.mimeType,
+    }),
+  pushClientDocToDrive: (root: string, clientSlug: string, docId: string) =>
+    invoke<DocSummary>("push_client_doc_to_drive", {
+      root,
+      clientSlug,
+      docId,
+    }),
+  pullClientDocFromDrive: (
+    root: string,
+    clientSlug: string,
+    docId: string,
+    createBackup: boolean,
+  ) =>
+    invoke<ClientDoc>("pull_client_doc_from_drive", {
+      root,
+      clientSlug,
+      docId,
+      createBackup,
+    }),
+  sweepDriveDeletedDocs: (root: string, clientSlug: string) =>
+    invoke<{
+      removedDocIds: string[];
+      skippedDocIds: string[];
+      stillPresentDocIds: string[];
+    }>("sweep_drive_deleted_docs", { root, clientSlug }),
   refreshDriveIndex: (root: string, clientSlug: string) =>
     invoke<DriveIndex>("refresh_drive_index", { root, clientSlug }),
   uploadOutputToDrive: (
@@ -329,6 +506,10 @@ export const api = {
       clientSlug,
       kind,
     }),
+  deleteGeneratorOutput: (root: string, path: string) =>
+    invoke<void>("delete_generator_output", { root, path }),
+  renameGeneratorOutput: (root: string, path: string, newTitle: string) =>
+    invoke<string>("rename_generator_output", { root, path, newTitle }),
 
   savePitchDeck: (
     root: string,
@@ -399,6 +580,8 @@ export const api = {
     invoke<VaultNote>("read_vault_note", { root, path }),
   writeVaultNote: (root: string, path: string, front: NoteFront, body: string) =>
     invoke<VaultNote>("write_vault_note", { root, path, front, body }),
+  deleteVaultNote: (root: string, path: string) =>
+    invoke<void>("delete_vault_note", { root, path }),
   appendToMemory: (root: string, clientSlug: string, fact: string) =>
     invoke<VaultNote>("append_to_memory", { root, clientSlug, fact }),
   appendFactsToMemory: (

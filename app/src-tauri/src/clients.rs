@@ -41,6 +41,101 @@ pub struct ClientEntry {
     /// When unset, falls back to the default purchase/lead/registration allowlist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub meta_conversion_action: Option<String>,
+    /// Per-kind default Drive folder targets for the client docs system. See
+    /// `client_docs.rs`. Each kind is independently optional so users can
+    /// configure just `ad-copy` and leave the rest unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub doc_folder_defaults: Option<DocFolderDefaults>,
+    /// Per-step default Drive folder targets for the Ads Sequence wizard's
+    /// auto-push. Falls back to `doc_folder_defaults` (mapped from step kind),
+    /// then to the client's root `drive_folder_url` when unset. Configured via
+    /// the gear modal on the Ads Sequence topbar.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sequence_folder_defaults: Option<SequenceFolderDefaults>,
+    /// Average customer value in USD (LTV). Drives the derived target CPA the
+    /// optimizer uses: target_cpa = avg_customer_value / target_roas. When
+    /// unset, the optimizer skips this client.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub avg_customer_value: Option<f64>,
+    /// Target ROAS multiple. Default 3.0 (lesson 3.2's "client is happy"
+    /// floor). Override per-client when running aggressive or conservative
+    /// economics.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_roas: Option<f64>,
+    /// Optional manual override of the computed target CPA in USD. When set,
+    /// takes precedence over the LTV/ROAS math. Use sparingly — only for
+    /// niches where the LTV-based math doesn't fit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_cpa_override: Option<f64>,
+    /// Optimizer mode. `off` skips the client entirely. `suggest` runs the
+    /// 6-hour decision loop and writes verdicts to the Recommendations panel
+    /// but never auto-executes anything. Auto modes reserved for v2.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub optimizer_mode: Option<OptimizerMode>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum OptimizerMode {
+    Off,
+    Suggest,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct DocFolderDefaults {
+    #[serde(default, rename = "ad-copy", skip_serializing_if = "Option::is_none")]
+    pub ad_copy: Option<DocFolderTarget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub brief: Option<DocFolderTarget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<DocFolderTarget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub report: Option<DocFolderTarget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub other: Option<DocFolderTarget>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DocFolderTarget {
+    pub id: String,
+    pub name: String,
+}
+
+/// Per-step Drive folder targets for the Ads Sequence wizard. Field names
+/// match the `SequenceStepId` values from `mediaBuyingSequence.ts` so the YAML
+/// reads top-to-bottom in sequence order.
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct SequenceFolderDefaults {
+    #[serde(
+        default,
+        rename = "audience-research",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub audience_research: Option<DocFolderTarget>,
+    #[serde(
+        default,
+        rename = "creative-brief",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub creative_brief: Option<DocFolderTarget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hooks: Option<DocFolderTarget>,
+    #[serde(
+        default,
+        rename = "ad-copy",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ad_copy: Option<DocFolderTarget>,
+    #[serde(
+        default,
+        rename = "ad-creative",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ad_creative: Option<DocFolderTarget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub structure: Option<DocFolderTarget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub optimizer: Option<DocFolderTarget>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -68,6 +163,12 @@ pub fn read_clients_file(root: &str) -> Result<Vec<ClientEntry>, String> {
             drive_folder_url: None,
             meta_ad_account_id: None,
             meta_conversion_action: None,
+            doc_folder_defaults: None,
+            sequence_folder_defaults: None,
+            avg_customer_value: None,
+            target_roas: None,
+            target_cpa_override: None,
+            optimizer_mode: None,
         }]);
     }
     let raw = fs::read_to_string(&path).map_err(|e| format!("read clients: {e}"))?;
@@ -179,6 +280,12 @@ pub fn set_client_status(
                 drive_folder_url: None,
                 meta_ad_account_id: None,
                 meta_conversion_action: None,
+                doc_folder_defaults: None,
+                sequence_folder_defaults: None,
+                avg_customer_value: None,
+                target_roas: None,
+                target_cpa_override: None,
+                optimizer_mode: None,
             });
         }
     }
@@ -238,6 +345,12 @@ pub fn add_client(
         drive_folder_url: normalized_drive,
         meta_ad_account_id: None,
         meta_conversion_action: None,
+        doc_folder_defaults: None,
+        sequence_folder_defaults: None,
+        avg_customer_value: None,
+        target_roas: None,
+        target_cpa_override: None,
+        optimizer_mode: None,
     };
 
     clients.push(entry.clone());
@@ -312,6 +425,131 @@ pub fn set_client_drive_folder(
         Some(existing) => existing.drive_folder_url = normalized,
         None => return Err(format!("No client with slug '{client_slug}'.")),
     }
+    write_clients_file(&root, &clients)?;
+    emit_changed(&app, DataKind::Client, Some(client_slug), None);
+    Ok(())
+}
+
+/// Set (or clear) the per-kind default Drive folder for a client.
+/// `kind` is one of: `ad-copy` | `brief` | `notes` | `report` | `other`.
+/// Passing `folder = None` clears that kind's default.
+#[tauri::command]
+pub fn set_client_doc_folder_default(
+    app: AppHandle,
+    root: String,
+    client_slug: String,
+    kind: String,
+    folder: Option<DocFolderTarget>,
+) -> Result<(), String> {
+    let mut clients = read_clients_file(&root)?;
+    let entry = clients
+        .iter_mut()
+        .find(|c| c.slug == client_slug)
+        .ok_or_else(|| format!("No client with slug '{client_slug}'."))?;
+    let defaults = entry
+        .doc_folder_defaults
+        .get_or_insert_with(DocFolderDefaults::default);
+    match kind.as_str() {
+        "ad-copy" => defaults.ad_copy = folder,
+        "brief" => defaults.brief = folder,
+        "notes" => defaults.notes = folder,
+        "report" => defaults.report = folder,
+        "other" => defaults.other = folder,
+        other => {
+            return Err(format!(
+                "Invalid doc kind '{other}'. Expected one of: ad-copy, brief, notes, report, other."
+            ));
+        }
+    }
+    // If every slot is None, drop the parent struct to keep the YAML clean.
+    let all_empty = defaults.ad_copy.is_none()
+        && defaults.brief.is_none()
+        && defaults.notes.is_none()
+        && defaults.report.is_none()
+        && defaults.other.is_none();
+    if all_empty {
+        entry.doc_folder_defaults = None;
+    }
+    write_clients_file(&root, &clients)?;
+    emit_changed(&app, DataKind::Client, Some(client_slug), None);
+    Ok(())
+}
+
+/// Set (or clear) the per-step default Drive folder for the Ads Sequence
+/// wizard. `step_id` must be one of the SequenceStepId values:
+/// `audience-research` | `creative-brief` | `hooks` | `ad-copy` |
+/// `ad-creative` | `structure` | `optimizer`. Passing `folder = None` clears
+/// that step's default.
+#[tauri::command]
+pub fn set_client_sequence_folder_default(
+    app: AppHandle,
+    root: String,
+    client_slug: String,
+    step_id: String,
+    folder: Option<DocFolderTarget>,
+) -> Result<(), String> {
+    let mut clients = read_clients_file(&root)?;
+    let entry = clients
+        .iter_mut()
+        .find(|c| c.slug == client_slug)
+        .ok_or_else(|| format!("No client with slug '{client_slug}'."))?;
+    let defaults = entry
+        .sequence_folder_defaults
+        .get_or_insert_with(SequenceFolderDefaults::default);
+    match step_id.as_str() {
+        "audience-research" => defaults.audience_research = folder,
+        "creative-brief" => defaults.creative_brief = folder,
+        "hooks" => defaults.hooks = folder,
+        "ad-copy" => defaults.ad_copy = folder,
+        "ad-creative" => defaults.ad_creative = folder,
+        "structure" => defaults.structure = folder,
+        "optimizer" => defaults.optimizer = folder,
+        other => {
+            return Err(format!(
+                "Invalid sequence step id '{other}'. Expected one of: audience-research, creative-brief, hooks, ad-copy, ad-creative, structure, optimizer."
+            ));
+        }
+    }
+    let all_empty = defaults.audience_research.is_none()
+        && defaults.creative_brief.is_none()
+        && defaults.hooks.is_none()
+        && defaults.ad_copy.is_none()
+        && defaults.ad_creative.is_none()
+        && defaults.structure.is_none()
+        && defaults.optimizer.is_none();
+    if all_empty {
+        entry.sequence_folder_defaults = None;
+    }
+    write_clients_file(&root, &clients)?;
+    emit_changed(&app, DataKind::Client, Some(client_slug), None);
+    Ok(())
+}
+
+/// Set or clear the optimizer settings (LTV math + mode) for a client.
+/// Any positive-finite check is enforced server-side; pass `None` to clear
+/// a field. `target_cpa_override` and `target_roas` default to None — the
+/// effective target CPA is computed downstream as
+/// `target_cpa_override OR (avg_customer_value / (target_roas OR 3.0))`.
+#[tauri::command]
+pub fn set_client_optimizer(
+    app: AppHandle,
+    root: String,
+    client_slug: String,
+    avg_customer_value: Option<f64>,
+    target_roas: Option<f64>,
+    target_cpa_override: Option<f64>,
+    optimizer_mode: Option<OptimizerMode>,
+) -> Result<(), String> {
+    let mut clients = read_clients_file(&root)?;
+    let entry = clients
+        .iter_mut()
+        .find(|c| c.slug == client_slug)
+        .ok_or_else(|| format!("No client with slug '{client_slug}'."))?;
+    let positive = |v: Option<f64>| v.filter(|n| n.is_finite() && *n > 0.0);
+    entry.avg_customer_value = positive(avg_customer_value);
+    entry.target_roas = positive(target_roas);
+    entry.target_cpa_override = positive(target_cpa_override);
+    entry.optimizer_mode = optimizer_mode;
     write_clients_file(&root, &clients)?;
     emit_changed(&app, DataKind::Client, Some(client_slug), None);
     Ok(())

@@ -11,6 +11,10 @@
  * reflect which sequence forms have a saved output.
  */
 
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toPng } from "html-to-image";
+import { api } from "../lib/tauri";
+import { parseDriveFolders, type DriveFolder } from "../lib/driveIndex";
 import {
   defaultCampaignSkeleton,
   isStepDone,
@@ -20,12 +24,18 @@ import {
   type CampaignSkeletonAdSet,
   type SequenceState,
 } from "../lib/mediaBuyingSequence";
+import type { DocFolderTarget } from "../lib/types";
 
 type Props = {
   clientName: string;
   sequenceState: SequenceState;
   onSkeletonChange: (next: CampaignSkeleton) => void;
   onClose: () => void;
+  /** When provided, the "Snapshot to Drive" button is enabled and pushes to
+   *  the resolved folder. Without these, the snapshot button is hidden — keeps
+   *  CampaignTreeView usable in contexts that don't have a client. */
+  root?: string;
+  clientSlug?: string;
 };
 
 const AD_FORMATS: AdFormat[] = ["Image", "Video", "Carousel"];
@@ -35,6 +45,8 @@ export function CampaignTreeView({
   sequenceState,
   onSkeletonChange,
   onClose,
+  root,
+  clientSlug,
 }: Props) {
   const skeleton = sequenceState.campaignSkeleton ?? defaultCampaignSkeleton();
 
@@ -42,6 +54,98 @@ export function CampaignTreeView({
   const copyReady = isStepDone(sequenceState, "ad-copy");
   const creativesReady = isStepDone(sequenceState, "ad-creative");
   const structureReady = isStepDone(sequenceState, "structure");
+
+  // Snapshot-to-Drive state. Hidden entirely when caller didn't pass root/slug.
+  const snapshotEnabled = Boolean(root && clientSlug);
+  const canvasRef = useRef<HTMLElement | null>(null);
+  const [driveFolders, setDriveFolders] = useState<DriveFolder[]>([]);
+  const [folderTarget, setFolderTarget] = useState<DocFolderTarget | null>(null);
+  const [snapping, setSnapping] = useState(false);
+  const [snapDriveUrl, setSnapDriveUrl] = useState<string | null>(null);
+  const [snapError, setSnapError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!snapshotEnabled || !root || !clientSlug) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [clients, idx] = await Promise.all([
+          api.listClients(root),
+          api.readDriveIndex(root, clientSlug),
+        ]);
+        if (cancelled) return;
+        const folders = idx ? parseDriveFolders(idx.body) : [];
+        setDriveFolders(folders);
+        const client = clients.find((c) => c.slug === clientSlug);
+        const preset = client?.sequence_folder_defaults?.structure ?? null;
+        if (preset && folders.some((f) => f.id === preset.id)) {
+          setFolderTarget(preset);
+        } else if (folders.length > 0) {
+          setFolderTarget({ id: folders[0].id, name: folders[0].name });
+        }
+      } catch (e) {
+        console.warn("CampaignTreeView: load drive folders failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [snapshotEnabled, root, clientSlug]);
+
+  const onPickFolder = useCallback(
+    (folderId: string) => {
+      if (!folderId) {
+        setFolderTarget(null);
+        return;
+      }
+      const f = driveFolders.find((x) => x.id === folderId);
+      if (f) setFolderTarget({ id: f.id, name: f.name });
+    },
+    [driveFolders],
+  );
+
+  /** Rasterise the visible campaign tree to PNG (via html-to-image), encode
+   *  it base64, and upload to the selected Drive folder. */
+  const snapshotToDrive = useCallback(async () => {
+    if (!folderTarget) {
+      setSnapError("Pick a Drive folder above the snapshot button first.");
+      return;
+    }
+    const node = canvasRef.current;
+    if (!node) {
+      setSnapError("Snapshot target not mounted. Try reopening the tree.");
+      return;
+    }
+    setSnapError(null);
+    setSnapDriveUrl(null);
+    setSnapping(true);
+    try {
+      // html-to-image returns a data:image/png;base64,<...> URL. We strip
+      // the prefix and pass the raw base64 bytes to the Rust binary uploader.
+      const dataUrl = await toPng(node as HTMLElement, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: getComputedStyle(node).backgroundColor || "#0d0f12",
+      });
+      const commaIdx = dataUrl.indexOf(",");
+      if (commaIdx < 0) throw new Error("toPng returned an unexpected payload");
+      const base64 = dataUrl.slice(commaIdx + 1);
+      const safeClient = clientName.replace(/[^A-Za-z0-9._-]+/g, "-");
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const filename = `${safeClient}-campaign-tree-${stamp}.png`;
+      const result = await api.uploadBytesToDrive({
+        folderId: folderTarget.id,
+        filename,
+        base64Bytes: base64,
+        mimeType: "image/png",
+      });
+      setSnapDriveUrl(result.webViewLink);
+    } catch (e) {
+      setSnapError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSnapping(false);
+    }
+  }, [folderTarget, clientName]);
 
   const adReadyState = (
     adSetIdx: number,
@@ -105,12 +209,54 @@ export function CampaignTreeView({
             waitLabel="Pending"
           />
         </div>
+        {snapshotEnabled && (
+          <div className="ct-snap">
+            <select
+              className="ct-snap-select"
+              value={folderTarget?.id ?? ""}
+              onChange={(e) => onPickFolder(e.target.value)}
+              title="Drive folder for the snapshot PNG."
+            >
+              <option value="">Snapshot folder…</option>
+              {driveFolders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+            {snapDriveUrl ? (
+              <a
+                href={snapDriveUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="ct-snap-pill is-ok"
+                title="Open the snapshot in Drive"
+              >
+                ✓ In Drive
+              </a>
+            ) : (
+              <button
+                type="button"
+                className="ct-snap-btn"
+                onClick={() => void snapshotToDrive()}
+                disabled={snapping || !folderTarget}
+                title={
+                  folderTarget
+                    ? "Rasterise the tree to PNG and upload to the selected folder."
+                    : "Pick a Drive folder first."
+                }
+              >
+                {snapping ? "Snapping…" : "Snapshot to Drive"}
+              </button>
+            )}
+          </div>
+        )}
         <button type="button" className="ct-back" onClick={onClose}>
           ← Back to sequence
         </button>
       </header>
 
-      <main className="ct-canvas">
+      <main className="ct-canvas" ref={canvasRef}>
         <div className="ct-flow">
           {/* CAMPAIGN */}
           <div className="ct-campaign-node">
@@ -187,6 +333,8 @@ export function CampaignTreeView({
         </span>
         <span className="ct-footer-right">Edits sync to matching forms</span>
       </footer>
+
+      {snapError && <div className="ct-snap-err">{snapError}</div>}
 
       <style>{CT_CSS}</style>
     </div>
@@ -454,6 +602,65 @@ const CT_CSS = `
 .ct-back:hover {
   border-color: var(--hml-border-strong);
   color: var(--hml-text-primary);
+}
+
+.ct-snap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ct-snap-select {
+  font-family: var(--hml-font-sans);
+  font-size: 12px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--hml-border);
+  background: var(--hml-bg-elev-1);
+  color: var(--hml-text-primary);
+  min-width: 150px;
+}
+.ct-snap-btn {
+  font-family: var(--hml-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--hml-accent-border);
+  background: var(--hml-accent-dim);
+  color: var(--hml-accent-bright);
+  transition: border-color 120ms ease, filter 120ms ease;
+}
+.ct-snap-btn:hover { filter: brightness(1.1); }
+.ct-snap-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ct-snap-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--hml-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 6px 11px;
+  border-radius: 999px;
+  text-decoration: none;
+  border: 1px solid var(--hml-green-border);
+  background: var(--hml-green-bg);
+  color: var(--hml-green);
+}
+.ct-snap-pill:hover { filter: brightness(1.15); }
+.ct-snap-err {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--hml-red-bg, var(--hml-bg-elev-3));
+  border: 1px solid var(--hml-red-border, var(--hml-border-strong));
+  color: var(--hml-red, var(--hml-text-primary));
+  font-size: 12.5px;
+  max-width: 360px;
+  z-index: 1100;
 }
 
 /* Canvas */

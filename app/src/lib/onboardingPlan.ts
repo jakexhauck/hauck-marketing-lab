@@ -80,29 +80,12 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     num: 1,
     name: "Pre-Call Prep",
     purpose:
-      "Everything that should already be done before you dial the client. Credentials slot saved, competitor pass run, 10 offer/CTA options drafted so you have something concrete to put in front of the business owner on the call.",
-    hint: "Paste credentials · competitor research · 10 offer/CTA options ready for the call.",
-    meta: "Day 0 · 3 tasks",
+      "Everything that should already be done before you dial the client. Competitor pass run and 10 offer/CTA options drafted so you have something concrete to put in front of the business owner on the call.",
+    hint: "Competitor research · 10 offer/CTA options ready for the call.",
+    meta: "Day 0 · 2 tasks",
     subsections: [
       {
         id: "1.1",
-        title: "Credentials",
-        tasks: [
-          task(
-            "01ag-credentials",
-            "Paste Meta credentials into the Client Hub.",
-            [
-              "<strong>Step 1.</strong> Open the Client Hub for this client → <em>Credentials</em> panel.",
-              "<strong>Step 2.</strong> Paste the Meta <code>access_token</code> (from business.facebook.com → <em>System Users</em>).",
-              "<strong>Step 3.</strong> Paste the <code>ad_account_id</code>, <code>pixel_id</code>, and <code>business_id</code> (all from Business Settings).",
-              "<strong>Step 4.</strong> Click <em>Save</em>. Values land in <code>data/&lt;slug&gt;/credentials.yaml</code> (gitignored).",
-              "GHL credentials get pasted later on the call (Phase 2.2 → step 03ghl-token).",
-            ],
-          ),
-        ],
-      },
-      {
-        id: "1.2",
         title: "Pre-call research",
         tasks: [
           task(
@@ -300,14 +283,25 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     num: 3,
     name: "Technical Setup",
     purpose:
-      "Pixel firing and ad account funded. Plumbing green before a dollar moves.",
-    hint: "Pixel install + verify · payment method.",
-    meta: "Day 2 · 3 tasks",
+      "Credentials pasted, pixel firing, and ad account funded. Plumbing green before a dollar moves.",
+    hint: "Meta credentials · pixel install + verify · payment method.",
+    meta: "Day 2 · 4 tasks",
     subsections: [
       {
         id: "3.1",
         title: "Accounts & tracking",
         tasks: [
+          task(
+            "01ag-credentials",
+            "Paste Meta credentials into the Client Hub.",
+            [
+              "Do this after the client accepts the BM partner invite from 2.1 (step 02-bm). Until then you can't see the IDs.",
+              "<strong>Step 1.</strong> Open the Client Hub for this client → <em>Credentials</em> panel.",
+              "<strong>Step 2.</strong> Paste the Meta <code>access_token</code> (from business.facebook.com → <em>System Users</em>).",
+              "<strong>Step 3.</strong> Paste the <code>ad_account_id</code>, <code>pixel_id</code>, and <code>business_id</code> (all from Business Settings).",
+              "<strong>Step 4.</strong> Click <em>Save</em>. Values land in <code>data/&lt;slug&gt;/credentials.yaml</code> (gitignored). The pixel install and payment steps below both read from here.",
+            ],
+          ),
           task(
             "03-pixel",
             "Install Meta Pixel on their website.",
@@ -418,9 +412,9 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
     num: 6,
     name: "Launch + Monitor",
     purpose:
-      "Go live, tell the client, hand it off to the AI optimizer, schedule the first Monday report.",
-    hint: "Publish · 'ads are live' message · AI Campaign Optimizer · first weekly report.",
-    meta: "Day 7 · 4 tasks",
+      "Go live, tell the client, schedule the first Monday report. The auto-optimizer takes over from here on its own cadence.",
+    hint: "Publish · 'ads are live' message · first weekly report.",
+    meta: "Day 7 · 3 tasks",
     subsections: [
       {
         id: "6.1",
@@ -444,16 +438,6 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
               "<strong>Step 1.</strong> Open the GHL sub-account → <em>Conversations</em> → new message to the client.",
               "<strong>Step 2.</strong> Use this template (paste verbatim, tweak the name):<br/>&nbsp;&nbsp;<em>Hi [Name] — ads just went live. First 5 to 7 days are the learning phase, so expect noisy numbers. First weekly report lands Monday with the real read. Reach out any time before then if questions pop up.</em>",
               "<strong>Step 3.</strong> Send. Don't promise lead volume in this message, set expectations toward Monday.",
-            ],
-          ),
-          task(
-            "06-optimizer",
-            "Set up AI Campaign Optimizer monitoring.",
-            [
-              "<strong>Step 1.</strong> Confirm <code>vault/Clients/&lt;Name&gt;/Ads/optimizer.md</code> exists (Phase 4 wizard step 7 wrote it).",
-              "<strong>Step 2.</strong> Open the desktop app → client's <em>Ads Manager</em> workspace → <em>Optimizer</em> tab.",
-              "<strong>Step 3.</strong> Confirm Zenith reads the watchlist and shows any current kill/scale candidates.",
-              "<strong>Step 4.</strong> Read through the flagged candidates. Zenith is advisory only — it never touches the ads, every call is yours.",
             ],
           ),
           task(

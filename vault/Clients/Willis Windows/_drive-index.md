@@ -1,7 +1,7 @@
 ---
 client: willis-windows
 drive_folder_url: "https://drive.google.com/drive/folders/1hgGRDyEJ9cmXvnj2AjLfGgyH6Vi7c4Bu?usp=sharing"
-updated_at: "2026-05-12T20:19:59.268606100+00:00"
+updated_at: "2026-05-21T21:27:50.915958100+00:00"
 ---
 
 # Willis Windows — Client Context
@@ -18,9 +18,10 @@ updated_at: "2026-05-12T20:19:59.268606100+00:00"
 
 ## Snapshot
 
-- **Status:** Pre-launch. Drive workspace is freshly scaffolded (all five subfolders created 2026-05-12, all empty). No assets, creatives, notes, onboarding docs, or reports have been uploaded yet.
+- **Status:** Pre-launch. Drive workspace is scaffolded but still empty across all five subfolders.
 - **Drive owner:** contact.jakehauck@gmail.com
 - **Source of truth for now:** the vault profile at `vault/Clients/Willis Windows/Profile.md` — Drive has no content to supplement it.
+- **Drive AI access:** the root folder and its subfolders are flagged ineligible for generative-AI reads by Google; structure is known from the prior index but file contents cannot be enumerated through Drive tooling.
 
 ## Business
 
@@ -40,24 +41,65 @@ updated_at: "2026-05-12T20:19:59.268606100+00:00"
 
 ## Offers
 
-- **Current promo:** $100 off + free screen cleaning.
+- **Current promo:** $100 off + free screen cleaning. Largest visible offer in Metro Detroit (competitors top out around $25–$50 off).
 
 ## Brand voice / tone
 
-- Positioning: **"young hustlers"** — energetic, hands-on, scrappy.
-- **Avoid:** fake urgency. Don't lean on "act now!" gimmicks or manufactured scarcity.
+- Positioning: **"young hustlers"** — energetic, hands-on, scrappy. Blue-collar, on-the-truck, real Detroit homes; no stock footage, no corporate polish.
+- **Avoid:** fake urgency, manufactured scarcity, "act now" gimmicks.
 
 ## Brand assets
 
-- None on Drive yet. Logos, fonts, and photography still need to be collected and dropped into `Assets/`.
+- None on Drive yet. Logos, fonts, photography still need to be collected and dropped into `Assets/`.
 
 ## Past creative / reporting
 
 - None on Drive. No prior ads, mockups, or performance reports exist in this workspace.
 
-## Notes for future agents
+## Strategic notes
 
-- This is essentially a greenfield client folder — anything you create can be the first deposit in the relevant subfolder.
-- Before producing copy or creatives, request brand assets (logo, photos, any preferred fonts/colors) since none are available.
-- The "young hustlers" voice is the only stylistic hook on record — write punchy, direct, blue-collar-friendly; skip corporate polish and skip fake-urgency tropes.
-- Local service business in Metro Detroit — geo-targeted Meta/Google Local Service ads and seasonal angles (spring cleaning, pre-holiday, post-winter grime) are likely natural fits.
+- Candidate differentiator pending ops confirmation: same-week scheduling guarantee ("on your driveway within 5 days or the cleaning is free"), aimed at the top review complaint across competitors.
+- Geo-targeted Meta/Google Local Service ads with seasonal angles (spring cleaning, pre-holiday shine, post-winter grime) are the natural fit for a local service business of this size.
+- Before producing copy or creatives, request brand assets (logo, photos, any preferred fonts/colors) since none are on record.
+
+## Tree
+
+```json
+{
+  "id": "1hgGRDyEJ9cmXvnj2AjLfGgyH6Vi7c4Bu",
+  "name": "Willis Windows",
+  "type": "folder",
+  "children": [
+    {
+      "id": "1RtvJIE3at0Xn0Y0DzQ46YY0VWAC8pQ1Z",
+      "name": "Assets",
+      "type": "folder",
+      "children": []
+    },
+    {
+      "id": "1tvCE12-NoGTAYgc7QR9OVHqvw0H8m-xq",
+      "name": "Creatives",
+      "type": "folder",
+      "children": []
+    },
+    {
+      "id": "1wAeX5jr5rE-L-aO1Pb1q5usq3tcRLOTW",
+      "name": "Notes",
+      "type": "folder",
+      "children": []
+    },
+    {
+      "id": "1LyKYsZFo5tGCoEpGjQUH4dGcpi-D7itT",
+      "name": "Onboarding",
+      "type": "folder",
+      "children": []
+    },
+    {
+      "id": "18Ufv9lPOwtBo3xURoTgxB8Q8RKKQyICG",
+      "name": "Reports",
+      "type": "folder",
+      "children": []
+    }
+  ]
+}
+```

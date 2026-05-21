@@ -113,6 +113,7 @@ export function TrackingAuditWalkthrough({
   onClose,
 }: Props) {
   const [form, setForm] = useState<TrackingAuditWalkInputs>(empty);
+  const [attemptName, setAttemptName] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [streamText, setStreamText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -226,8 +227,10 @@ export function TrackingAuditWalkthrough({
       const parsed = extractJson(finalText);
       const ready = (parsed?.launch_ready as string | undefined) ?? null;
       setLaunchReady(ready);
+      const customName = attemptName.trim();
       const title =
-        (parsed?.headline as string | undefined) ??
+        customName ||
+        (parsed?.headline as string | undefined) ||
         `Tracking audit · ${clientName}`;
       const summary = (parsed?.summary as string | undefined) ?? null;
       const output = await api.saveGeneratorOutput({
@@ -461,6 +464,22 @@ export function TrackingAuditWalkthrough({
             style={{ minHeight: 140 }}
           />
         </div>
+
+        <div className="panel">
+          <div className="panel-head">
+            <span className="panel-title">▸ ATTEMPT NAME</span>
+            <span className="panel-meta">optional</span>
+          </div>
+          <input
+            type="text"
+            className="os-input"
+            placeholder="Leave blank to auto-name"
+            value={attemptName}
+            onChange={(e) => setAttemptName(e.target.value)}
+            disabled={streaming || !!saved}
+            style={{ width: "100%" }}
+          />
+        </div>
       </section>
 
       {!saved && (
@@ -490,6 +509,9 @@ export function TrackingAuditWalkthrough({
           clientSlug={clientSlug}
           kind="audits"
           refreshKey={pastRefresh}
+          onRename={(path, newTitle) => {
+            if (saved?.path === path) setSaved({ ...saved, title: newTitle });
+          }}
           onSelect={(out) => {
             setSaved(out);
             setStreamText("");
@@ -513,6 +535,7 @@ export function TrackingAuditWalkthrough({
               setStreamText("");
               setLaunchReady(null);
               setForm(empty());
+              setAttemptName("");
             }}
             badge={launchReady ? `LAUNCH READY · ${launchReady}` : null}
             badgeTone={launchReady ? READY_TONE[launchReady] : undefined}
@@ -531,6 +554,15 @@ export function TrackingAuditWalkthrough({
               const parsed = extractJson(out.body);
               const ready = (parsed?.launch_ready as string | undefined) ?? null;
               setLaunchReady(ready);
+            }}
+            onDelete={(path) => {
+              if (saved?.path === path) {
+                setSaved(null);
+                setLaunchReady(null);
+              }
+            }}
+            onRename={(path, newTitle) => {
+              if (saved?.path === path) setSaved({ ...saved, title: newTitle });
             }}
           />
         </>

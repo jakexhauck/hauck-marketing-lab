@@ -2,7 +2,7 @@
  * Ads Sequence Wizard. Three-column launcher for the 8-step Ads sequence
  * defined in MEDIA_BUYING_SEQUENCE. Opens from the "Ads" task in the
  * OnboardingChecklist. Offer + CTA and Competitor Research are owned by
- * Pre-Call Prep (Phase 1.2) and are not part of this sequence.
+ * Pre-Call Prep (Phase 1.1) and are not part of this sequence.
  *
  *   ┌──────────┬──────────────────┬──────────┐
  *   │ DONE     │  ACTIVE FORM     │ UP NEXT  │
@@ -38,6 +38,22 @@ import type { AgentSummary, GeneratorOutput } from "../lib/types";
 import { GenericFormGenerator } from "./GenericFormGenerator";
 import { CampaignTreeView } from "./CampaignTreeView";
 import { AdCreativeStudio } from "./AdCreativeStudio";
+import { AdsSequenceFolderConfigurator } from "./AdsSequenceFolderConfigurator";
+import { AdsSequenceAdvisor, type AdvisorSuggestion } from "./AdsSequenceAdvisor";
+import { readAggregatedCompetitorIntel } from "../lib/competitorIntel";
+import { FormOutput } from "./forms/FormOutput";
+
+/** Strip leading YAML frontmatter (`--- ... ---`) from a vault note body so
+ *  the saved view doesn't open with a wall of metadata. Mirrors the Rust
+ *  `strip_vault_frontmatter` helper in drive_upload.rs. */
+function stripFrontmatter(raw: string): string {
+  const trimmed = raw.trimStart();
+  if (!trimmed.startsWith("---")) return raw;
+  const after = trimmed.slice(3);
+  const endIdx = after.indexOf("\n---");
+  if (endIdx === -1) return raw;
+  return after.slice(endIdx + 4).replace(/^[\r\n]+/, "");
+}
 
 type Props = {
   root: string;
@@ -102,9 +118,32 @@ export function AdsSequenceWizard({
   const [chainValues, setChainValues] = useState<Partial<FormValues>>({});
   const [loadingChain, setLoadingChain] = useState(false);
   const [treeOpen, setTreeOpen] = useState(false);
+  const [foldersOpen, setFoldersOpen] = useState(false);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
+  /** Per-step cache of advisor suggestions. Keeps reopen instant; Refresh
+   *  inside the drawer explicitly bypasses this. */
+  const [advisorCache, setAdvisorCache] = useState<
+    Partial<Record<SequenceStepId, AdvisorSuggestion>>
+  >({});
   /** Per-step "what got produced" headline cached after reading the saved
    *  output. Keyed by step id. Null/missing = no summary available. */
   const [summaries, setSummaries] = useState<Partial<Record<SequenceStepId, string>>>({});
+  /** Loaded saved-view body for the currently active done step. Lets the user
+   *  read what was produced inline instead of bouncing to Drive. Null until
+   *  the file is fetched; reset whenever activeStepId changes. */
+  const [savedView, setSavedView] = useState<{
+    stepId: SequenceStepId;
+    body: string;
+  } | null>(null);
+  const [savedViewLoading, setSavedViewLoading] = useState(false);
+  const [savedViewError, setSavedViewError] = useState<string | null>(null);
+  /** Per-step "Drive push in flight" flag, separate from done/dirty state. */
+  const [pushingStep, setPushingStep] = useState<SequenceStepId | null>(null);
+  /** Transient toast surface for auto-push outcomes. Cleared after 4s. */
+  const [toast, setToast] = useState<{
+    kind: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const activeStep = useMemo<SequenceStep | undefined>(
     () => MEDIA_BUYING_SEQUENCE.find((s) => s.id === activeStepId),
@@ -159,6 +198,21 @@ export function AdsSequenceWizard({
         }
       }
 
+      // Competitor research lives outside MEDIA_BUYING_SEQUENCE (it's a
+      // Phase 3 Technical Setup form), so chainFrom can't reach it. If the
+      // active form has a `competitor_intel` field and the chain didn't
+      // already populate it, pull the latest saved brief for this client and
+      // inject it. Client-specific intel wins over the niche playbook prefill
+      // that fires later on the form side.
+      const formConfig = getFormConfig(activeStep.formId);
+      const hasCompetitorField = formConfig?.sections.some((sec) =>
+        sec.fields.some((f) => f.key === "competitor_intel"),
+      );
+      if (hasCompetitorField && !mapped.competitor_intel) {
+        const intel = await readAggregatedCompetitorIntel(root, clientSlug);
+        if (intel) mapped.competitor_intel = intel;
+      }
+
       // Skeleton overrides. Skeleton edits flow into the matching form's
       // prefill (skeleton wins over chainFrom — user just touched it in
       // the tree). Only fields the user directly edits in the tree should
@@ -208,6 +262,7 @@ export function AdsSequenceWizard({
     sequenceState.stepOutputs,
     sequenceState.campaignSkeleton,
     root,
+    clientSlug,
   ]);
 
   // Load summaries for every completed step. Re-runs when stepOutputs change
@@ -243,6 +298,44 @@ export function AdsSequenceWizard({
     };
   }, [sequenceState.stepOutputs, root]);
 
+  // Load the saved body for the active step whenever it's a completed,
+  // non-skipped step. Renders inline as a polished doc view so Jake can read
+  // the brief / hooks / ad copy without leaving the wizard.
+  useEffect(() => {
+    if (!activeStep) {
+      setSavedView(null);
+      setSavedViewError(null);
+      return;
+    }
+    const record = sequenceState.stepOutputs[activeStep.id];
+    const skipped = sequenceState.skipped?.includes(activeStep.id) ?? false;
+    if (!record?.path || skipped) {
+      setSavedView(null);
+      setSavedViewError(null);
+      return;
+    }
+    let cancelled = false;
+    setSavedViewLoading(true);
+    setSavedViewError(null);
+    void (async () => {
+      try {
+        const note = await api.readVaultNote(root, record.path);
+        if (cancelled) return;
+        const body = stripFrontmatter(note?.body ?? "").trim();
+        setSavedView({ stepId: activeStep.id, body });
+      } catch (e) {
+        if (cancelled) return;
+        setSavedView(null);
+        setSavedViewError(String(e));
+      } finally {
+        if (!cancelled) setSavedViewLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeStep, sequenceState.stepOutputs, sequenceState.skipped, root]);
+
   const handleSkeletonChange = useCallback(
     (next: CampaignSkeleton) => {
       onSequenceChange({ ...sequenceState, campaignSkeleton: next });
@@ -250,27 +343,149 @@ export function AdsSequenceWizard({
     [sequenceState, onSequenceChange],
   );
 
+  /** Steps whose output is text and can flow through `push_sequence_step_to_drive`.
+   *  ad-creative and structure produce binaries; they get separate push paths. */
+  const TEXT_AUTOPUSH_STEPS: ReadonlySet<SequenceStepId> = useMemo(
+    () =>
+      new Set<SequenceStepId>([
+        "audience-research",
+        "creative-brief",
+        "hooks",
+        "ad-copy",
+      ]),
+    [],
+  );
+
+  /** Show a transient toast and clear it after a few seconds. Replaces any
+   *  in-flight toast so the user always sees the latest push outcome. */
+  const flashToast = useCallback((kind: "success" | "error", text: string) => {
+    setToast({ kind, text });
+    const handle = window.setTimeout(() => setToast(null), 4500);
+    return () => window.clearTimeout(handle);
+  }, []);
+
+  /** Auto-push a text step's saved output to Drive. Mutates the local
+   *  sequence state with the push outcome (driveUrl / driveFileId on success,
+   *  drivePushError on failure). Local save is never blocked; if Drive fails,
+   *  the step still counts as done. */
+  const autoPushText = useCallback(
+    async (
+      stepId: SequenceStepId,
+      record: { path: string; completedAt: string },
+      stateAfterSave: SequenceState,
+    ): Promise<SequenceState> => {
+      if (!TEXT_AUTOPUSH_STEPS.has(stepId)) return stateAfterSave;
+      const step = getStep(stepId);
+      if (!step) return stateAfterSave;
+      setPushingStep(stepId);
+      try {
+        const title = `${clientName} · ${step.label}`;
+        const result = await api.pushSequenceStepToDrive({
+          root,
+          clientSlug,
+          stepId,
+          vaultPath: record.path,
+          title,
+        });
+        const folderLabel = result.folderName ?? "Drive";
+        flashToast("success", `Pushed ${step.label} to ${folderLabel}.`);
+        const next: SequenceState = {
+          ...stateAfterSave,
+          stepOutputs: {
+            ...stateAfterSave.stepOutputs,
+            [stepId]: {
+              path: record.path,
+              completedAt: record.completedAt,
+              driveUrl: result.driveUrl,
+              driveFileId: result.driveFileId,
+              drivePushAt: new Date().toISOString(),
+              drivePushError: undefined,
+            },
+          },
+        };
+        onSequenceChange(next);
+        return next;
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        flashToast("error", `${step.label}: ${message}`);
+        const next: SequenceState = {
+          ...stateAfterSave,
+          stepOutputs: {
+            ...stateAfterSave.stepOutputs,
+            [stepId]: {
+              path: record.path,
+              completedAt: record.completedAt,
+              drivePushError: message,
+            },
+          },
+        };
+        onSequenceChange(next);
+        return next;
+      } finally {
+        setPushingStep((curr) => (curr === stepId ? null : curr));
+      }
+    },
+    [
+      TEXT_AUTOPUSH_STEPS,
+      clientName,
+      clientSlug,
+      flashToast,
+      onSequenceChange,
+      root,
+    ],
+  );
+
+  /** Retry the auto-push for a step that previously failed. Reads the saved
+   *  vault path from the existing step record. */
+  const retryPushStep = useCallback(
+    async (stepId: SequenceStepId) => {
+      const rec = sequenceState.stepOutputs[stepId];
+      if (!rec?.path) return;
+      await autoPushText(
+        stepId,
+        { path: rec.path, completedAt: rec.completedAt },
+        sequenceState,
+      );
+    },
+    [sequenceState, autoPushText],
+  );
+
   const handleSaved = useCallback(
     (output: GeneratorOutput) => {
       if (!activeStep) return;
       const now = new Date().toISOString();
       const wasCurrent = sequenceState.currentStep === activeStep.id;
+      const stepIdAtSave = activeStep.id;
+      const record = { path: output.path, completedAt: now };
       const next: SequenceState = {
         ...sequenceState,
         stepOutputs: {
           ...sequenceState.stepOutputs,
-          [activeStep.id]: { path: output.path, completedAt: now },
+          [stepIdAtSave]: record,
         },
         currentStep: wasCurrent
-          ? nextStepId(activeStep.id) ?? sequenceState.currentStep
+          ? nextStepId(stepIdAtSave) ?? sequenceState.currentStep
           : sequenceState.currentStep,
       };
       onSequenceChange(next);
       if (activeStep.checklistTaskId) onTaskTick(activeStep.checklistTaskId);
-      const advanceTo = nextStepId(activeStep.id);
+      const advanceTo = nextStepId(stepIdAtSave);
       if (advanceTo) setActiveStepId(advanceTo);
+      // Fire-and-forget the Drive auto-push for text steps. Failures land in
+      // the step record's drivePushError; the rail card surfaces a retry pill.
+      // Binary steps (ad-creative, structure) handle their own push paths.
+      if (TEXT_AUTOPUSH_STEPS.has(stepIdAtSave)) {
+        void autoPushText(stepIdAtSave, record, next);
+      }
     },
-    [activeStep, sequenceState, onSequenceChange, onTaskTick],
+    [
+      activeStep,
+      sequenceState,
+      onSequenceChange,
+      onTaskTick,
+      TEXT_AUTOPUSH_STEPS,
+      autoPushText,
+    ],
   );
 
   /** Mark this step done without generating output. Used when the step isn't
@@ -361,6 +576,15 @@ export function AdsSequenceWizard({
             <span className="aw-tree-dot" />
             Campaign tree
           </button>
+          <button
+            type="button"
+            className="aw-gear-btn"
+            onClick={() => setFoldersOpen(true)}
+            title="Pick the Drive subfolder each step pushes to."
+            aria-label="Drive folders"
+          >
+            ⚙
+          </button>
           <button type="button" className="aw-close" onClick={onClose}>
             ← Back
           </button>
@@ -419,6 +643,24 @@ export function AdsSequenceWizard({
                     ? "Skipped"
                     : summaries[s.id] ?? (done ? "Done" : null);
                   const preview = !done ? chainPreview(s) : null;
+                  const record = sequenceState.stepOutputs[s.id];
+                  const pushingThis = pushingStep === s.id;
+                  const drivePill = pushingThis
+                    ? { kind: "pending" as const, label: "Drive…", url: null }
+                    : record?.drivePushError
+                      ? {
+                          kind: "error" as const,
+                          label: "Drive failed",
+                          url: null as string | null,
+                          tooltip: record.drivePushError,
+                        }
+                      : record?.driveUrl
+                        ? {
+                            kind: "ok" as const,
+                            label: "Drive",
+                            url: record.driveUrl,
+                          }
+                        : null;
                   return (
                     <button
                       key={s.id}
@@ -448,6 +690,48 @@ export function AdsSequenceWizard({
                         {!summary && preview && (
                           <div className="aw-rail-preview" title={preview}>
                             {preview}
+                          </div>
+                        )}
+                        {drivePill && (
+                          <div className="aw-rail-drive">
+                            {drivePill.kind === "ok" && drivePill.url && (
+                              <a
+                                href={drivePill.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="aw-drive-pill is-ok"
+                                onClick={(e) => e.stopPropagation()}
+                                title="Open in Drive"
+                              >
+                                ✓ {drivePill.label}
+                              </a>
+                            )}
+                            {drivePill.kind === "pending" && (
+                              <span className="aw-drive-pill is-pending">
+                                ⟳ {drivePill.label}
+                              </span>
+                            )}
+                            {drivePill.kind === "error" && (
+                              <span
+                                role="button"
+                                tabIndex={0}
+                                className="aw-drive-pill is-error"
+                                title={drivePill.tooltip}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void retryPushStep(s.id);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    void retryPushStep(s.id);
+                                  }
+                                }}
+                              >
+                                ↻ {drivePill.label}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -492,6 +776,16 @@ export function AdsSequenceWizard({
                   )}
                 </div>
                 <div className="aw-active-actions">
+                  <button
+                    type="button"
+                    className="aw-advisor-btn"
+                    onClick={() => setAdvisorOpen(true)}
+                    title={`Ask ${activeFormConfig?.agentName ?? "the agent"} for suggestions based on prior steps`}
+                    aria-label="Open advisor"
+                  >
+                    <span className="aw-advisor-glyph">💡</span>
+                    Advisor
+                  </button>
                   {isActiveDone ? (
                     <>
                       {isActiveSkipped ? (
@@ -540,19 +834,38 @@ export function AdsSequenceWizard({
                     onSaved={handleSaved}
                   />
                 ) : activeFormConfig ? (
-                  <GenericFormGenerator
-                    key={activeStep.id}
-                    config={activeFormConfig}
-                    root={root}
-                    agents={agents}
-                    clientName={clientName}
-                    clientSlug={clientSlug}
-                    onClose={onClose}
-                    initialValues={chainValues}
-                    onSaved={handleSaved}
-                    hidePastResults
-                    hideHeader
-                  />
+                  isActiveDone &&
+                  !isActiveSkipped &&
+                  savedView?.stepId === activeStep.id &&
+                  savedView.body ? (
+                    <div className="aw-saved-view">
+                      <FormOutput
+                        body={savedView.body}
+                        kind={activeFormConfig.kind}
+                        showHeader={false}
+                      />
+                    </div>
+                  ) : isActiveDone && !isActiveSkipped && savedViewLoading ? (
+                    <div className="aw-saved-loading">Loading saved output…</div>
+                  ) : isActiveDone && !isActiveSkipped && savedViewError ? (
+                    <div className="aw-saved-error">
+                      Couldn't load saved output: {savedViewError}
+                    </div>
+                  ) : (
+                    <GenericFormGenerator
+                      key={activeStep.id}
+                      config={activeFormConfig}
+                      root={root}
+                      agents={agents}
+                      clientName={clientName}
+                      clientSlug={clientSlug}
+                      onClose={onClose}
+                      initialValues={chainValues}
+                      onSaved={handleSaved}
+                      hidePastResults
+                      hideHeader
+                    />
+                  )
                 ) : null}
               </div>
             </div>
@@ -566,7 +879,44 @@ export function AdsSequenceWizard({
           sequenceState={sequenceState}
           onSkeletonChange={handleSkeletonChange}
           onClose={() => setTreeOpen(false)}
+          root={root}
+          clientSlug={clientSlug}
         />
+      )}
+
+      {foldersOpen && (
+        <AdsSequenceFolderConfigurator
+          root={root}
+          clientSlug={clientSlug}
+          onClose={() => setFoldersOpen(false)}
+        />
+      )}
+
+      {activeStep && (
+        <AdsSequenceAdvisor
+          open={advisorOpen}
+          step={activeStep}
+          root={root}
+          clientName={clientName}
+          clientSlug={clientSlug}
+          agents={agents}
+          sequenceState={sequenceState}
+          cached={advisorCache[activeStep.id] ?? null}
+          onCache={(id, value) =>
+            setAdvisorCache((prev) => ({ ...prev, [id]: value }))
+          }
+          onClose={() => setAdvisorOpen(false)}
+        />
+      )}
+
+      {toast && (
+        <div
+          className={"aw-toast is-" + toast.kind}
+          role="status"
+          onClick={() => setToast(null)}
+        >
+          {toast.text}
+        </div>
       )}
 
       <style>{WIZ_CSS}</style>
@@ -679,6 +1029,25 @@ const WIZ_CSS = `
 .aw-close:hover {
   border-color: var(--hml-border-strong);
   color: var(--hml-text-primary);
+}
+.aw-gear-btn {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: var(--hml-bg-elev-2);
+  border: 1px solid var(--hml-border);
+  color: var(--hml-text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+.aw-gear-btn:hover {
+  border-color: var(--hml-border-strong);
+  color: var(--hml-text-primary);
+  background: var(--hml-bg-elev-3);
 }
 
 /* Progress */
@@ -846,6 +1215,64 @@ const WIZ_CSS = `
 }
 .aw-rail-card.is-active .aw-rail-preview { opacity: 1; }
 
+.aw-rail-drive { margin-top: 5px; }
+.aw-drive-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--hml-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 1.5;
+}
+.aw-drive-pill.is-ok {
+  border-color: var(--hml-green-border);
+  background: var(--hml-green-bg);
+  color: var(--hml-green);
+}
+.aw-drive-pill.is-ok:hover { filter: brightness(1.15); }
+.aw-drive-pill.is-pending {
+  border-color: var(--hml-border);
+  background: var(--hml-bg-elev-3);
+  color: var(--hml-text-tertiary);
+  cursor: default;
+}
+.aw-drive-pill.is-error {
+  border-color: var(--hml-amber-border, var(--hml-border));
+  background: var(--hml-amber-bg, var(--hml-bg-elev-3));
+  color: var(--hml-amber, var(--hml-text-secondary));
+}
+.aw-drive-pill.is-error:hover { filter: brightness(1.1); }
+
+.aw-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  max-width: 420px;
+  cursor: pointer;
+  z-index: 1100;
+  box-shadow: 0 12px 36px -10px rgba(0,0,0,0.5);
+  font-family: var(--hml-font-sans);
+}
+.aw-toast.is-success {
+  background: var(--hml-green-bg);
+  border: 1px solid var(--hml-green-border);
+  color: var(--hml-green);
+}
+.aw-toast.is-error {
+  background: var(--hml-red-bg, var(--hml-bg-elev-3));
+  border: 1px solid var(--hml-red-border, var(--hml-border-strong));
+  color: var(--hml-red, var(--hml-text-primary));
+}
+
 /* Center column */
 .aw-center {
   min-width: 0;
@@ -924,6 +1351,28 @@ const WIZ_CSS = `
   color: var(--hml-text-primary);
   background: var(--hml-bg-elev-2);
 }
+.aw-advisor-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--hml-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 12px;
+  background: var(--hml-accent-dim);
+  border: 1px solid var(--hml-accent-border);
+  color: var(--hml-accent-bright, var(--hml-accent));
+  border-radius: 6px;
+  cursor: pointer;
+  transition: filter 120ms ease, border-color 120ms ease;
+}
+.aw-advisor-btn:hover {
+  filter: brightness(1.15);
+  border-color: var(--hml-accent);
+}
+.aw-advisor-glyph { font-size: 13px; line-height: 1; }
+
 .aw-done-pill {
   font-family: var(--hml-font-mono);
   font-size: 11px;
@@ -946,6 +1395,29 @@ const WIZ_CSS = `
   padding: 40px 32px;
   text-align: center;
   color: var(--hml-text-secondary);
+}
+
+.aw-saved-view {
+  background: var(--hml-bg-elev-1);
+  border: 1px solid var(--hml-border-subtle);
+  border-radius: 12px;
+  padding: 22px 26px;
+}
+
+.aw-saved-loading,
+.aw-saved-error {
+  border: 1px dashed var(--hml-border);
+  background: var(--hml-bg-elev-1);
+  border-radius: 12px;
+  padding: 28px 24px;
+  color: var(--hml-text-secondary);
+  font-size: 13px;
+}
+
+.aw-saved-error {
+  border-color: var(--hml-red-border);
+  background: var(--hml-red-bg);
+  color: var(--hml-red);
 }
 .aw-empty code {
   font-family: var(--hml-font-mono);

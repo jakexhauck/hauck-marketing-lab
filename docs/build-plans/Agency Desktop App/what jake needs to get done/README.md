@@ -295,6 +295,92 @@ Not blocking. When ready: add the `UrlFetchApp.fetch` block in `doPost()` per th
 
 ---
 
+## 10 · Internal Documents + Google Drive sync (shipped 2026-05-21)
+
+### What's in the app now
+
+- New **Documents** tab on every Client Hub (between Ads and Recordings).
+- Per-client document store at `vault/Clients/<Name>/Docs/<slug>.md`. Markdown body with full frontmatter (id, kind, title, sync state, version history, orphan tracking). Folder = source of truth, same as the rest of the vault.
+- Five doc kinds: `ad-copy`, `brief`, `notes`, `report`, `other`.
+- **Default Folders card** at the top of each client's Documents tab. Picks the default Drive subfolder per kind, stored on the client record in `clients.yaml` as `doc_folder_defaults`. Auto-expands until all five are mapped, then collapses to an "Edit defaults" link.
+- **Document editor**: title input, kind selector (read-only in v1), folder picker (reads `_drive-index.md`), debounced autosave (1s), live markdown preview, status chip (unsynced / dirty / synced), version counter, orphan count if any.
+- **Push to Drive**: converts the markdown body to a native Google Doc inside the resolved subfolder. Resolution order: per-doc folder override > client default for kind > client root Drive folder. Old version (if any) gets deleted via the new direct Drive REST API helper.
+- **Open in Docs**: external launch of the live Google Doc.
+- **Pull from Drive**: reads the Doc body back, backs up the local copy to `Docs/.backup/<id>-<timestamp>.md`, then overwrites the local markdown body. Confirm modal explains the trade.
+- **OAuth scope expanded**: existing `google_calendar_connect` flow now also requests `drive.file` (narrow per-file scope; does NOT grant access to your entire Drive). Single re-consent unlocks both Calendar and Drive going forward.
+- **Orphan tracking**: if the Drive delete fails after a successful new-doc push, the old file ID is appended to `unswept_orphans` in the doc's frontmatter and surfaced as an amber count in the editor header.
+
+### Files
+
+- `app/src-tauri/src/client_docs.rs` — storage layer.
+- `app/src-tauri/src/drive_api.rs` — Drive REST helper, currently just `drive_delete_file`.
+- `app/src-tauri/src/drive_upload.rs` — extended with `push_client_doc_to_drive` and `pull_client_doc_from_drive`.
+- `app/src-tauri/src/google_calendar.rs` — added `drive.file` to `SCOPES`, exposed `google_access_token` for cross-module use.
+- `app/src-tauri/src/clients.rs` — added `doc_folder_defaults` field on `ClientEntry` and the `set_client_doc_folder_default` command.
+- `app/src/lib/clientDocs.ts` (types in `types.ts`, wrappers in `tauri.ts`) — frontend API surface.
+- `app/src/components/DocumentEditor.tsx` — the editor.
+- `app/src/components/MainDashboard/pages/ClientDocuments.tsx` — per-client master/detail tab.
+
+### Your action items (in order)
+
+1. **Re-consent to pick up the new Drive scope.** This is the only blocking step.
+   - Open the app.
+   - Go to wherever Google Calendar is connected today (Settings or the Onboarding calendar card).
+   - Click **Disconnect Google Calendar**, then **Connect Google Calendar** again.
+   - A Google consent screen opens in your browser listing three permissions: Calendar events, Calendar (read-only), and "See, edit, create, and delete only the specific Google Drive files you use with this app". The third is `drive.file`. It sounds broad but it only grants access to files this app creates or that you explicitly open with it.
+   - Click Allow. Browser tab closes itself.
+
+2. **Set default folders for Willis Windows.**
+   - Open Client Hub > Willis Windows > **Documents** tab.
+   - The Default Folders card is expanded. Pick a Drive subfolder for each of the five kinds. Suggested mapping:
+     - Ad Copy → Creatives
+     - Brief → Notes
+     - Notes → Notes
+     - Report → Reports
+     - Other → Notes
+   - Each pick auto-saves; the card collapses once all five are mapped.
+
+3. **Smoke-test push.**
+   - Click **+ New Document**.
+   - Title: `Test push (safe to delete)`. Kind: Ad Copy.
+   - Type two paragraphs and a bullet list into the body. Wait until the "Saved" indicator appears.
+   - Click **Push to Drive**. First push may take 30 to 60 seconds (it spawns `claude -p`).
+   - When the status chip flips to green ("Synced") and the version counter shows v1, click **Open in Docs**.
+   - Verify the Doc opens in docs.google.com as a **native Google Doc** (not a `.docx`), and that it lives in Willis Windows > Creatives folder in Drive.
+
+4. **Smoke-test update (the delete path).**
+   - Edit the body of the same doc, add another paragraph.
+   - Click **Push to Drive** again.
+   - Verify the version counter goes to v2, **Open in Docs** still works, the title in Drive is unchanged, and the **old Doc is no longer in the Creatives folder** (delete worked).
+   - If the orphan count badge ever appears, click into the doc and the editor header will show the count. Drive delete failed for some reason; the new push still succeeded. Tell me when this happens.
+
+5. **Smoke-test pull.**
+   - In the Drive Doc, edit something (add a line, change a word).
+   - Back in the app, click **Pull from Drive**, confirm.
+   - The local body should refresh to the Drive content. Old local body is backed up to `Docs/.backup/`.
+
+6. **Clean up.**
+   - Delete the test doc locally. The Drive copy stays (intentional in v1; cleanup of Drive on local-delete will land later).
+
+### Still parked
+
+- **Global Documents page** in the sidebar (cross-client view). Not built yet; per-client tab covers daily use.
+- **Ad Copy form "Save as Document" output mode.** Not wired yet; for now you can copy the form output and paste it into a new doc manually.
+- **"Sweep orphans" cleanup command.** If a Drive delete fails repeatedly, the orphans pile up in frontmatter. No bulk sweep button yet.
+- **Auto-push on save (file watcher).** Click-to-push only in v1.
+- **Bidirectional live sync** (real-time). Pull is on-demand only.
+- **Kind selector commit.** Read-only in v1; change kind by creating a new doc and copying content over.
+
+### If something breaks
+
+- "Google authentication expired or missing the Drive scope" → re-do step 1.
+- "Document body is empty" → add content before pushing.
+- "Drive folder ID could not be parsed" → set folder defaults in the Default Folders card.
+- "Could not find a Google Doc URL in the agent response" → `claude -p` returned without the sentinel. Check `claude /mcp` to confirm `claude.ai Google Drive` MCP is connected. Retry.
+- Push hangs forever → `claude -p` may have stalled. Kill the app and reopen. The doc's local body is fine (it's already saved). Try again.
+
+---
+
 ## 08 · Niche Playbooks (shipped 2026-05-18)
 
 The niche playbook framework is live. Three starter playbooks ship: `dental`, `gym-fitness`, `med-spa`.

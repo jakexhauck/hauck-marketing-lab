@@ -49,6 +49,7 @@ type Props = {
 
 type Persisted = {
   done: string[];
+  skippedOptional: string[];
   phaseDoneAt: Record<string, string>;
   sequence?: OnboardingState["sequence"];
 };
@@ -60,6 +61,9 @@ function readLegacyLocal(slug: string): Persisted | null {
     const parsed = JSON.parse(raw);
     return {
       done: Array.isArray(parsed.done) ? parsed.done : [],
+      skippedOptional: Array.isArray(parsed.skippedOptional)
+        ? parsed.skippedOptional
+        : [],
       phaseDoneAt:
         parsed.phaseDoneAt && typeof parsed.phaseDoneAt === "object"
           ? parsed.phaseDoneAt
@@ -136,6 +140,7 @@ const FORM_BY_TASK: Map<string, FormSurfaceId> = new Map([
 
 export function OnboardingChecklist({ root, clientName, clientSlug, agents, onComplete }: Props) {
   const [doneSet, setDoneSet] = useState<Set<string>>(() => new Set());
+  const [skippedSet, setSkippedSet] = useState<Set<string>>(() => new Set());
   const [phaseDoneAt, setPhaseDoneAt] = useState<Record<string, string>>({});
   const [onboardingDay, setOnboardingDay] = useState<number | null>(null);
   const [sequenceState, setSequenceState] = useState<SequenceState>(() => emptySequenceState());
@@ -158,7 +163,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
     setSelectedIndex(null);
     setOpenTaskId(null);
     void (async () => {
-      let next: Persisted = { done: [], phaseDoneAt: {} };
+      let next: Persisted = { done: [], skippedOptional: [], phaseDoneAt: {} };
       let needsMigrationWrite = false;
 
       if (root) {
@@ -166,11 +171,12 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
           const state = await api.readOnboardingState(root, clientSlug);
           next = {
             done: state.done ?? [],
+            skippedOptional: state.skippedOptional ?? [],
             phaseDoneAt: state.phaseDoneAt ?? {},
             sequence: state.sequence,
           };
         } catch {
-          next = { done: [], phaseDoneAt: {} };
+          next = { done: [], skippedOptional: [], phaseDoneAt: {} };
         }
         if (next.done.length === 0 && Object.keys(next.phaseDoneAt).length === 0) {
           const legacy = readLegacyLocal(clientSlug);
@@ -186,6 +192,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
 
       if (cancelled) return;
       setDoneSet(new Set(next.done));
+      setSkippedSet(new Set(next.skippedOptional));
       setPhaseDoneAt(next.phaseDoneAt);
       if (next.sequence) {
         setSequenceState({
@@ -209,6 +216,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
         try {
           await api.writeOnboardingState(root, clientSlug, {
             done: next.done,
+            skippedOptional: next.skippedOptional,
             phaseDoneAt: next.phaseDoneAt,
           });
           clearLegacyLocal(clientSlug);
@@ -234,6 +242,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
       void api
         .writeOnboardingState(root, clientSlug, {
           done: Array.from(doneSet),
+          skippedOptional: Array.from(skippedSet),
           phaseDoneAt,
           sequence: sequenceState,
         })
@@ -242,7 +251,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
           console.error("onboarding persist failed", err);
         });
     }, 300);
-  }, [root, clientSlug, doneSet, phaseDoneAt, sequenceState, loaded]);
+  }, [root, clientSlug, doneSet, skippedSet, phaseDoneAt, sequenceState, loaded]);
 
   useEffect(
     () => () => {
@@ -434,6 +443,29 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+    // Ticking a task clears any prior N/A flag — done wins over skipped.
+    setSkippedSet((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSkip = useCallback((id: string) => {
+    setSkippedSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    // Marking N/A also clears the checked state to avoid contradictory UI.
+    setDoneSet((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
       return next;
     });
   }, []);
@@ -698,8 +730,10 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
                 key={s.phase.num}
                 phase={s.phase}
                 doneSet={doneSet}
+                skippedSet={skippedSet}
                 completed={s.completed}
                 onToggle={toggleTask}
+                onToggleSkip={toggleSkip}
                 onOpenForm={openTaskForm}
                 canOpenForm={!!root}
                 adsSubProgress={adsSubProgress}
@@ -823,16 +857,20 @@ function UpcomingCard({ phase, onSelect }: { phase: OnboardingPhase; onSelect: (
 function ActiveCard({
   phase,
   doneSet,
+  skippedSet,
   completed,
   onToggle,
+  onToggleSkip,
   onOpenForm,
   canOpenForm,
   adsSubProgress,
 }: {
   phase: OnboardingPhase;
   doneSet: Set<string>;
+  skippedSet: Set<string>;
   completed: number;
   onToggle: (id: string) => void;
+  onToggleSkip: (id: string) => void;
   onOpenForm: (taskId: string) => void;
   canOpenForm: boolean;
   adsSubProgress: { done: number; total: number };
@@ -900,6 +938,7 @@ function ActiveCard({
                     key={t.id}
                     task={t}
                     checked={doneSet.has(t.id)}
+                    skipped={skippedSet.has(t.id)}
                     step={step ?? null}
                     showActionButton={
                       Boolean(step) || isMobileAppTask || isAdsTask || Boolean(standaloneFormForTask)
@@ -909,6 +948,7 @@ function ActiveCard({
                     canOpenForm={canOpenForm}
                     subProgress={subProgress}
                     onToggle={() => onToggle(t.id)}
+                    onToggleSkip={() => onToggleSkip(t.id)}
                     onOpenForm={() => onOpenForm(t.id)}
                   />
                 );
@@ -924,6 +964,7 @@ function ActiveCard({
 function TaskRow({
   task,
   checked,
+  skipped,
   step,
   showActionButton,
   actionLabel,
@@ -931,10 +972,12 @@ function TaskRow({
   canOpenForm,
   subProgress,
   onToggle,
+  onToggleSkip,
   onOpenForm,
 }: {
   task: OnboardingTask;
   checked: boolean;
+  skipped: boolean;
   step: SequenceStep | null;
   showActionButton?: boolean;
   actionLabel?: string;
@@ -942,23 +985,53 @@ function TaskRow({
   canOpenForm: boolean;
   subProgress?: { done: number; total: number };
   onToggle: () => void;
+  onToggleSkip: () => void;
   onOpenForm: () => void;
 }) {
-  const shouldShowAction = (showActionButton ?? Boolean(step)) && canOpenForm;
+  const shouldShowAction =
+    (showActionButton ?? Boolean(step)) && canOpenForm && !skipped;
   const hint = actionHint ?? step?.hint;
   const label = actionLabel ?? "Open form";
   const howto = task.howto;
+  const rowClass =
+    "ob-task" +
+    (checked ? " ob-complete" : "") +
+    (skipped ? " ob-skipped" : "");
   return (
-    <div className={"ob-task" + (checked ? " ob-complete" : "")}>
+    <div className={rowClass}>
       <button
         type="button"
         className={"ob-check-box" + (checked ? " ob-checked" : "")}
         onClick={onToggle}
+        disabled={skipped}
         aria-label={checked ? "Mark task incomplete" : "Mark task complete"}
       />
       <div className="ob-task-body">
         <span dangerouslySetInnerHTML={{ __html: task.label }} />
-        {task.optional && <span className="ob-optional-chip">optional</span>}
+        {task.optional &&
+          (skipped ? (
+            <button
+              type="button"
+              className="ob-na-chip ob-na-chip-on"
+              onClick={onToggleSkip}
+              title="Restore this optional task"
+            >
+              N/A
+              <span className="ob-na-x" aria-hidden="true">×</span>
+            </button>
+          ) : (
+            <>
+              <span className="ob-optional-chip">optional</span>
+              <button
+                type="button"
+                className="ob-na-btn"
+                onClick={onToggleSkip}
+                title="Don't have this — cross it out"
+              >
+                N/A
+              </button>
+            </>
+          ))}
         {subProgress && subProgress.total > 0 && (
           <span className="ob-subprogress">
             {subProgress.done} / {subProgress.total} sub-steps done

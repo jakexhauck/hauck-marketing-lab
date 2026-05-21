@@ -20,6 +20,7 @@ type Props = {
   onFolderChanged: (path: string) => Promise<void> | void;
   onDefaultAgentChanged: (slug: string) => void;
   onManageClients: () => void;
+  onClientsChanged: (next: ClientEntry[]) => void;
 };
 
 const APP_VERSION = "0.1.1";
@@ -35,10 +36,14 @@ export function SettingsPage({
   onFolderChanged,
   onDefaultAgentChanged,
   onManageClients,
+  onClientsChanged,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claude, setClaude] = useState<ClaudeCheck | null>(null);
+  const [editingDriveSlug, setEditingDriveSlug] = useState<string | null>(null);
+  const [driveDraft, setDriveDraft] = useState("");
+  const [driveBusySlug, setDriveBusySlug] = useState<string | null>(null);
   const [geminiKeyDraft, setGeminiKeyDraft] = useState("");
   const [geminiKeySaved, setGeminiKeySaved] = useState<string | null>(null);
   const [geminiSaving, setGeminiSaving] = useState(false);
@@ -211,6 +216,34 @@ export function SettingsPage({
     }
   };
 
+  const handleStartEditDrive = (slug: string, current: string | null | undefined) => {
+    setEditingDriveSlug(slug);
+    setDriveDraft(current ?? "");
+    setError(null);
+  };
+
+  const handleCancelEditDrive = () => {
+    setEditingDriveSlug(null);
+    setDriveDraft("");
+  };
+
+  const handleSaveDrive = async (slug: string) => {
+    setDriveBusySlug(slug);
+    setError(null);
+    try {
+      const trimmed = driveDraft.trim();
+      await api.setClientDriveFolder(root, slug, trimmed || null);
+      const next = await api.listClients(root);
+      onClientsChanged(next);
+      setEditingDriveSlug(null);
+      setDriveDraft("");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setDriveBusySlug(null);
+    }
+  };
+
   const handleOpenBacklog = async () => {
     try {
       const parts = root.replace(/\\/g, "/").split("/");
@@ -367,6 +400,112 @@ export function SettingsPage({
                   <IconArrowRight size={12} />
                 </button>
               </div>
+            </div>
+          </section>
+
+          {/* Client Drive folders ────────────────────────── */}
+          <section className="hml-panel set-panel">
+            <div className="hml-panel-header">
+              <div className="hml-panel-title">
+                <span
+                  className="hml-dot"
+                  style={{ background: "var(--hml-blue)" }}
+                />
+                Client Drive folders
+              </div>
+              <span className="hml-panel-action">
+                Where each client's docs, briefs, and reports get saved
+              </span>
+            </div>
+            <div className="hml-panel-body set-body">
+              {clients.length === 0 ? (
+                <p className="set-note" style={{ margin: 0 }}>
+                  No clients yet. Add one via Manage clients.
+                </p>
+              ) : (
+                <ul className="set-drive-list">
+                  {clients.map((c) => {
+                    const isEditing = editingDriveSlug === c.slug;
+                    const rowBusy = driveBusySlug === c.slug;
+                    return (
+                      <li key={c.slug} className="set-drive-row">
+                        <div className="set-drive-meta">
+                          <span className="set-drive-name">{c.name}</span>
+                          <span className="set-drive-slug">{c.slug}</span>
+                        </div>
+                        {isEditing ? (
+                          <div className="set-drive-edit">
+                            <input
+                              type="text"
+                              className="set-path"
+                              placeholder="https://drive.google.com/drive/folders/…"
+                              value={driveDraft}
+                              onChange={(e) => setDriveDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveDrive(c.slug);
+                                if (e.key === "Escape") handleCancelEditDrive();
+                              }}
+                              disabled={rowBusy}
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              className="hml-btn hml-accent"
+                              onClick={() => handleSaveDrive(c.slug)}
+                              disabled={rowBusy}
+                            >
+                              {rowBusy ? "Saving…" : "Save"}
+                            </button>
+                            <button
+                              type="button"
+                              className="hml-btn hml-ghost"
+                              onClick={handleCancelEditDrive}
+                              disabled={rowBusy}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : c.drive_folder_url ? (
+                          <div className="set-drive-view">
+                            <code
+                              className="set-code set-drive-url"
+                              title={c.drive_folder_url}
+                            >
+                              {c.drive_folder_url}
+                            </code>
+                            <button
+                              type="button"
+                              className="hml-btn hml-ghost"
+                              onClick={() =>
+                                handleStartEditDrive(c.slug, c.drive_folder_url)
+                              }
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="set-drive-view">
+                            <span className="set-inline-text set-drive-empty">
+                              No folder set
+                            </span>
+                            <button
+                              type="button"
+                              className="hml-btn"
+                              onClick={() => handleStartEditDrive(c.slug, "")}
+                            >
+                              + Set folder
+                            </button>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              <p className="set-note">
+                Paste the full Google Drive folder URL. Changes persist to{" "}
+                <code>media-buying/data/clients.yaml</code>.
+              </p>
             </div>
           </section>
 
@@ -950,5 +1089,70 @@ const settingsCSS = `
 .set-link:hover .set-code {
   color: var(--hml-accent);
   border-color: var(--hml-accent-border);
+}
+
+.set-drive-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.set-drive-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  background: var(--hml-bg-elev-2);
+  border: 1px solid var(--hml-border-subtle);
+  border-radius: 8px;
+}
+
+.set-drive-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.set-drive-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--hml-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.set-drive-slug {
+  font-family: var(--hml-font-mono);
+  font-size: 10.5px;
+  color: var(--hml-text-quaternary);
+  letter-spacing: 0.02em;
+}
+
+.set-drive-view,
+.set-drive-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.set-drive-url {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.set-drive-empty {
+  flex: 1;
+  color: var(--hml-text-tertiary);
+  font-style: italic;
 }
 `;

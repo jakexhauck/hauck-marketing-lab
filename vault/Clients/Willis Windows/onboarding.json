@@ -1,63 +1,50 @@
 {
-  "done": [],
+  "done": [
+    "02-offer",
+    "02-site",
+    "03-competitors",
+    "02-offer-options"
+  ],
+  "skippedOptional": [],
   "phaseDoneAt": {
-    "0": "MAY 11"
+    "0": "MAY 11",
+    "1": "MAY 21"
   },
-  "updatedAt": "2026-05-20T20:39:49.443711100+00:00",
+  "updatedAt": "2026-05-21T22:02:03.447096600+00:00",
   "sequence": {
-    "campaignSkeleton": {
-      "adSets": [
-        {
-          "ads": [
-            {
-              "angleLabel": "Price anchor",
-              "format": "Image",
-              "hook": ""
-            },
-            {
-              "angleLabel": "Fear · urgency",
-              "format": "Image",
-              "hook": ""
-            },
-            {
-              "angleLabel": "Social proof",
-              "format": "Video",
-              "hook": ""
-            }
-          ],
-          "dailyBudget": 15,
-          "name": "Ad Set 1 · Broad",
-          "targeting": "Local 10mi · 25 to 55"
-        },
-        {
-          "ads": [
-            {
-              "angleLabel": "Price anchor",
-              "format": "Image",
-              "hook": ""
-            },
-            {
-              "angleLabel": "Fear · urgency",
-              "format": "Image",
-              "hook": ""
-            },
-            {
-              "angleLabel": "Social proof",
-              "format": "Video",
-              "hook": ""
-            }
-          ],
-          "dailyBudget": 15,
-          "name": "Ad Set 2 · Interest",
-          "targeting": "Home Improvement + Homeowners"
-        }
-      ],
-      "dailyBudget": 30
-    },
     "currentStep": "audience",
     "skipped": [
       "calendar"
     ],
-    "stepOutputs": {}
+    "stepOutputs": {
+      "ad-copy": {
+        "completedAt": "2026-05-21T21:57:49.689Z",
+        "driveFileId": "15CqGWbl5yMY6kX-_yQt5QAPKatCFj23fqto0hxBJGvA",
+        "drivePushAt": "2026-05-21T21:57:53.653Z",
+        "driveUrl": "https://docs.google.com/document/d/15CqGWbl5yMY6kX-_yQt5QAPKatCFj23fqto0hxBJGvA/edit?usp=drivesdk",
+        "path": "C:\\Users\\games\\Desktop\\hauck-marketing-lab\\media-buying\\outputs\\briefs\\2026-05-21-willis-windows-3.md"
+      },
+      "audience-research": {
+        "completedAt": "2026-05-21T21:42:44.650Z",
+        "driveFileId": "1_50vYPk1vjHsERLKpew2XMax6Yd1LEaUus1_jfTu6zs",
+        "drivePushAt": "2026-05-21T21:42:47.923Z",
+        "driveUrl": "https://docs.google.com/document/d/1_50vYPk1vjHsERLKpew2XMax6Yd1LEaUus1_jfTu6zs/edit?usp=drivesdk",
+        "path": "C:\\Users\\games\\Desktop\\hauck-marketing-lab\\media-buying\\outputs\\briefs\\2026-05-21-willis-windows.md"
+      },
+      "creative-brief": {
+        "completedAt": "2026-05-21T21:50:13.953Z",
+        "driveFileId": "1ijsmxL0GjK63IYpMiapPeGeKuSfN24W4ihBkTCHhgkQ",
+        "drivePushAt": "2026-05-21T21:50:16.905Z",
+        "driveUrl": "https://docs.google.com/document/d/1ijsmxL0GjK63IYpMiapPeGeKuSfN24W4ihBkTCHhgkQ/edit?usp=drivesdk",
+        "path": "C:\\Users\\games\\Desktop\\hauck-marketing-lab\\media-buying\\outputs\\briefs\\2026-05-21-willis-windows-2.md"
+      },
+      "hooks": {
+        "completedAt": "2026-05-21T21:53:49.524Z",
+        "driveFileId": "1Uo1Ta5K72ySCt1TvLXIwI1P8_KpdDSMKExGno_ehm1k",
+        "drivePushAt": "2026-05-21T21:53:52.369Z",
+        "driveUrl": "https://docs.google.com/document/d/1Uo1Ta5K72ySCt1TvLXIwI1P8_KpdDSMKExGno_ehm1k/edit?usp=drivesdk",
+        "path": "C:\\Users\\games\\Desktop\\hauck-marketing-lab\\media-buying\\outputs\\hooks\\2026-05-21-willis-windows.md"
+      }
+    }
   }
 }

@@ -20,6 +20,11 @@ pub struct OnboardingState {
     /// IDs of completed tasks, ordered by completion.
     #[serde(default)]
     pub done: Vec<String>,
+    /// IDs of optional tasks the user marked N/A. UI-only signal — crossed
+    /// out and excluded from completion counts. Required tasks must never
+    /// land here; the front end gates the toggle on `task.optional`.
+    #[serde(default)]
+    pub skipped_optional: Vec<String>,
     /// Keyed by phase number (as string) → human-readable completion date.
     #[serde(default)]
     pub phase_done_at: BTreeMap<String, String>,
@@ -79,6 +84,7 @@ pub fn write_onboarding_state(
     }
     let stamped = OnboardingState {
         done: state.done,
+        skipped_optional: state.skipped_optional,
         phase_done_at: state.phase_done_at,
         updated_at: Utc::now().to_rfc3339(),
         sequence: state.sequence,

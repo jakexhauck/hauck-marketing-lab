@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../lib/tauri";
 import type { GeneratorOutput, GeneratorKind } from "../../lib/types";
 
@@ -11,6 +11,11 @@ type Props = {
   /** Path of the currently-displayed output (so it can be highlighted). */
   activePath?: string | null;
   onSelect: (output: GeneratorOutput) => void;
+  /** Fired after a row is deleted. Parent can use this to clear the active
+   *  output if it was the one removed. */
+  onDelete?: (path: string) => void;
+  /** Fired after a row is renamed. Parent can sync its active output title. */
+  onRename?: (path: string, newTitle: string) => void;
   /** Override the panel title; defaults to "PAST RESULTS". */
   title?: string;
   limit?: number;
@@ -36,12 +41,81 @@ export function PastResults({
   refreshKey = 0,
   activePath,
   onSelect,
+  onDelete,
+  onRename,
   title = "PAST RESULTS",
   limit = 20,
 }: Props) {
   const [items, setItems] = useState<GeneratorOutput[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [renamingPath, setRenamingPath] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  const beginRename = useCallback((output: GeneratorOutput) => {
+    setRenamingPath(output.path);
+    setRenameDraft(output.title || "");
+  }, []);
+
+  const cancelRename = useCallback(() => {
+    if (renameSaving) return;
+    setRenamingPath(null);
+    setRenameDraft("");
+  }, [renameSaving]);
+
+  const commitRename = useCallback(
+    async (output: GeneratorOutput) => {
+      const next = renameDraft.trim();
+      if (!next || next === output.title) {
+        setRenamingPath(null);
+        return;
+      }
+      setRenameSaving(true);
+      try {
+        await api.renameGeneratorOutput(root, output.path, next);
+        setItems((prev) =>
+          prev.map((it) => (it.path === output.path ? { ...it, title: next } : it)),
+        );
+        onRename?.(output.path, next);
+        setRenamingPath(null);
+        setRenameDraft("");
+      } catch (e) {
+        setErr(String(e));
+      } finally {
+        setRenameSaving(false);
+      }
+    },
+    [renameDraft, root, onRename],
+  );
+
+  useEffect(() => {
+    if (renamingPath && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [renamingPath]);
+
+  const handleDelete = useCallback(
+    async (output: GeneratorOutput) => {
+      const label = output.title?.trim() || "this result";
+      const ok = window.confirm(`Delete "${label}"? This cannot be undone.`);
+      if (!ok) return;
+      setDeleting(output.path);
+      try {
+        await api.deleteGeneratorOutput(root, output.path);
+        setItems((prev) => prev.filter((it) => it.path !== output.path));
+        onDelete?.(output.path);
+      } catch (e) {
+        setErr(String(e));
+      } finally {
+        setDeleting(null);
+      }
+    },
+    [root, onDelete],
+  );
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -88,11 +162,21 @@ export function PastResults({
       <div style={{ display: "grid", gap: 8 }}>
         {items.map((it) => {
           const isActive = activePath && it.path === activePath;
+          const isDeleting = deleting === it.path;
+          const isRenaming = renamingPath === it.path;
           return (
-            <button
+            <div
               key={it.path}
-              type="button"
-              onClick={() => onSelect(it)}
+              role={isRenaming ? undefined : "button"}
+              tabIndex={isRenaming ? undefined : 0}
+              onClick={isRenaming ? undefined : () => onSelect(it)}
+              onKeyDown={(e) => {
+                if (isRenaming) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelect(it);
+                }
+              }}
               className="past-result-row"
               style={{
                 textAlign: "left",
@@ -104,46 +188,127 @@ export function PastResults({
                 }`,
                 borderRadius: 6,
                 padding: "10px 12px",
-                cursor: "pointer",
+                cursor: isRenaming ? "default" : "pointer",
                 color: "inherit",
                 display: "grid",
                 gap: 4,
+                opacity: isDeleting ? 0.5 : 1,
               }}
             >
               <div
                 style={{
                   display: "flex",
-                  alignItems: "baseline",
+                  alignItems: "center",
                   gap: 10,
                   justifyContent: "space-between",
                 }}
               >
-                <span style={{ fontWeight: 600, fontSize: 14 }}>{it.title || "Untitled"}</span>
+                {isRenaming ? (
+                  <input
+                    ref={renameInputRef}
+                    type="text"
+                    value={renameDraft}
+                    disabled={renameSaving}
+                    onChange={(e) => setRenameDraft(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void commitRename(it);
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelRename();
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!renameSaving) void commitRename(it);
+                    }}
+                    style={{
+                      flex: 1,
+                      fontWeight: 600,
+                      fontSize: 14,
+                      background: "var(--surface-2, rgba(255,255,255,0.04))",
+                      border: "1px solid var(--accent, rgba(95, 230, 153, 0.5))",
+                      borderRadius: 4,
+                      color: "inherit",
+                      padding: "4px 8px",
+                      outline: "none",
+                    }}
+                  />
+                ) : (
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>
+                    {it.title || "Untitled"}
+                  </span>
+                )}
                 <span
                   style={{
-                    fontFamily: "var(--mono)",
-                    fontSize: 11,
-                    color: "var(--text-faint)",
-                    whiteSpace: "nowrap",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
                   }}
                 >
-                  {formatStamp(it.created_at)}
+                  {!isRenaming && (
+                    <span
+                      style={{
+                        fontFamily: "var(--mono)",
+                        fontSize: 11,
+                        color: "var(--text-faint)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {formatStamp(it.created_at)}
+                    </span>
+                  )}
+                  {!isRenaming && (
+                    <button
+                      type="button"
+                      aria-label="Rename this result"
+                      title="Rename"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        beginRename(it);
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "1px solid var(--border, rgba(255,255,255,0.08))",
+                        borderRadius: 4,
+                        color: "var(--text-faint)",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        lineHeight: 1,
+                        padding: "3px 7px",
+                      }}
+                    >
+                      Rename
+                    </button>
+                  )}
+                  {!isRenaming && (
+                    <button
+                      type="button"
+                      aria-label="Delete this result"
+                      title="Delete this result"
+                      disabled={isDeleting}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDelete(it);
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "1px solid var(--border, rgba(255,255,255,0.08))",
+                        borderRadius: 4,
+                        color: "var(--text-faint)",
+                        cursor: isDeleting ? "wait" : "pointer",
+                        fontSize: 14,
+                        lineHeight: 1,
+                        padding: "2px 7px",
+                      }}
+                    >
+                      {isDeleting ? "…" : "×"}
+                    </button>
+                  )}
                 </span>
               </div>
-              {it.summary && (
-                <span
-                  style={{
-                    fontSize: 13,
-                    color: "var(--text-mid)",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                  }}
-                >
-                  {it.summary}
-                </span>
-              )}
               <span
                 style={{
                   fontFamily: "var(--mono)",
@@ -153,7 +318,7 @@ export function PastResults({
               >
                 {it.path.split(/[\\/]/).slice(-2).join("/")}
               </span>
-            </button>
+            </div>
           );
         })}
       </div>

@@ -1,6 +1,8 @@
+mod ads_log;
 mod benchmarks;
 mod chat;
 mod claude;
+mod client_docs;
 mod clients;
 mod config;
 mod copywriter;
@@ -8,6 +10,7 @@ mod creatives;
 mod credentials;
 mod dashboard_state;
 mod diagnosis;
+mod drive_api;
 mod drive_index;
 mod drive_upload;
 mod events;
@@ -78,9 +81,29 @@ pub fn run() {
             clients::delete_client,
             clients::set_client_benchmarks,
             clients::set_client_drive_folder,
+            clients::set_client_doc_folder_default,
+            clients::set_client_sequence_folder_default,
+            clients::set_client_optimizer,
+            ads_log::write_ads_log_snapshot,
+            ads_log::read_ads_log,
+            client_docs::list_client_docs,
+            client_docs::list_all_docs,
+            client_docs::read_client_doc,
+            client_docs::create_client_doc,
+            client_docs::update_client_doc_body,
+            client_docs::rename_client_doc,
+            client_docs::set_client_doc_target_folder,
+            client_docs::delete_client_doc,
             drive_index::read_drive_index,
             drive_index::refresh_drive_index,
             drive_upload::upload_output_to_drive,
+            drive_upload::push_client_doc_to_drive,
+            drive_upload::pull_client_doc_from_drive,
+            drive_upload::push_sequence_step_to_drive,
+            drive_api::drive_delete_file,
+            drive_api::sweep_drive_deleted_docs,
+            drive_api::upload_local_file_to_drive,
+            drive_api::upload_bytes_to_drive,
             benchmarks::list_benchmark_sets,
             benchmarks::read_benchmarks_for_client,
             kpi::read_latest_kpis,
@@ -98,6 +121,8 @@ pub fn run() {
             generators::save_generator_output,
             generators::list_generator_outputs,
             generators::read_latest_generator_output,
+            generators::delete_generator_output,
+            generators::rename_generator_output,
             pitch_decks::save_pitch_deck,
             pitch_decks::list_pitch_decks,
             pitch_decks::open_pitch_deck,
@@ -136,6 +161,7 @@ pub fn run() {
             personal::write_personal_hub,
             vault::read_vault_note,
             vault::write_vault_note,
+            vault::delete_vault_note,
             vault::append_to_memory,
             vault::append_facts_to_memory,
             vault::commit_memory_changes,

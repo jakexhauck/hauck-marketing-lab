@@ -111,7 +111,12 @@ pub fn list_pitch_decks(
     let mut out: Vec<GeneratorOutput> = Vec::new();
     for (file_name, path) in candidates.into_iter().take(limit.max(1)) {
         let body = fs::read_to_string(&path).unwrap_or_default();
-        let title = file_name.trim_end_matches(".html").to_string();
+        let sidecar = path.with_extension("html.title");
+        let title = fs::read_to_string(&sidecar)
+            .ok()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| file_name.trim_end_matches(".html").to_string());
         let meta = fs::metadata(&path).ok();
         let created_at = meta
             .and_then(|m| m.modified().ok())

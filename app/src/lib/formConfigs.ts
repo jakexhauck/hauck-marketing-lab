@@ -951,111 +951,6 @@ const PIXEL_INSTALL: FormConfig = {
   defaultTitle: "Pixel install guide",
 };
 
-// ── Zenith · Optimizer Config ──────────────────────────────────────
-const OPTIMIZER_CONFIG: FormConfig = {
-  id: "optimizer",
-  title: "Optimizer Config",
-  subtitle:
-    "Sets the thresholds Zenith uses to flag kill + scale candidates in the Ads Manager view. Advisory only — Zenith never pauses, scales, or edits ads. Jake makes every call.",
-  eyebrow: "▸ OPTIMIZER · ZENITH",
-  eyebrowMeta: "ONBOARDING · DAY 7",
-  phase: 6,
-  phaseName: "Launch + Monitor",
-  phaseMeta: "Day 7",
-  agentSlug: "zenith",
-  agentName: "Zenith",
-  kind: "reports",
-  savedHeading: "Watchlist config saved",
-  generateLabel: "Generate watchlist config",
-  generatingLabel: "Generating…",
-  sections: [
-    {
-      title: "▸ TARGETS",
-      meta: "required",
-      fields: [
-        {
-          kind: "number",
-          key: "target_roas",
-          label: "Target ROAS (x)",
-          default: 3,
-          min: 0,
-          step: 0.1,
-        },
-        {
-          kind: "number",
-          key: "target_cpa",
-          label: "Target CPA ($)",
-          default: 50,
-          min: 0,
-          step: 1,
-          inline: true,
-        },
-        {
-          kind: "number",
-          key: "max_daily_spend",
-          label: "Max daily spend ($)",
-          default: 200,
-          min: 10,
-          step: 10,
-        },
-      ],
-    },
-    {
-      title: "▸ KILL & SCALE FLAGS",
-      meta: "thresholds Zenith uses to flag — never to act",
-      fields: [
-        {
-          kind: "number",
-          key: "kill_threshold_days",
-          label: "Flag for kill after N days underperforming",
-          default: 3,
-          min: 1,
-          max: 14,
-        },
-        {
-          kind: "number",
-          key: "scale_step_pct",
-          label: "Suggested scale step %",
-          default: 20,
-          min: 5,
-          max: 50,
-          inline: true,
-        },
-        {
-          kind: "number",
-          key: "frequency_cap",
-          label: "Frequency cap (flag above)",
-          default: 3,
-          min: 1,
-          max: 10,
-        },
-        {
-          kind: "multi",
-          key: "alert_channels",
-          label: "Notify Jake via",
-          options: ["Email", "SMS", "In-app", "Slack"],
-          defaults: ["Email", "In-app"],
-        },
-        {
-          kind: "textarea",
-          key: "client_specifics",
-          label: "Client-specific notes",
-          placeholder:
-            "e.g. don't flag on Friday-Sunday · keep V2 visible regardless · etc.",
-          minRows: 3,
-        },
-      ],
-    },
-  ],
-  taskDescription:
-    "Compile Zenith's WATCHLIST config for this account: the thresholds Zenith uses to surface kill candidates and scale candidates in the Ads Manager view. Zenith is advisory only — it MUST NOT auto-pause, auto-scale, or edit ads. Every output condition must produce a recommendation phrased as 'flag for review' or 'suggest kill / suggest scale', never as an automated action. If a rule reads like execution, rewrite it as a flag.",
-  outputSchema:
-    '{"headline":"…","summary":"…","kill_flags":[{"condition":"…","recommendation":"…"}],"scale_flags":[{"condition":"…","recommendation":"…"}],"alerts":[{"trigger":"…","channels":["…"]}],"check_cadence":"…"}',
-  outputInstructions:
-    "After the JSON, write the full watchlist as a clear list. Every line must be advisory (e.g. 'Surface in Ads Manager review · suggest pausing') — never 'pause' or 'scale' as a verb Zenith does. End with a 'first 14 days' note describing what Zenith will and will NOT flag during learning, and a one-line reminder that all execution is Jake's call.",
-  defaultTitle: "Optimizer watchlist",
-};
-
 // ── Vortex · Hooks (Misc) ─────────────────────────────────────────
 const HOOKS: FormConfig = {
   id: "hooks",
@@ -1146,9 +1041,24 @@ const HOOKS: FormConfig = {
         },
       ],
     },
+    {
+      title: "▸ COMPETITOR INTEL",
+      meta: "auto-filled from all saved competitor briefs",
+      fields: [
+        {
+          kind: "textarea",
+          key: "competitor_intel",
+          label: "Competitor intel",
+          promptLabel: "Competitor intel",
+          placeholder:
+            "Aggregated digest of every competitor brief saved for this client. Auto-filled. Use it to write hooks that attack angles competitors are missing.",
+          minRows: 4,
+        },
+      ],
+    },
   ],
   taskDescription:
-    "Generate hooks using the 100 Hook Framework. Cover the requested number of distinct angles with the requested hooks per angle. Diverse categories for algorithm variety — urgency, social proof, problem, curiosity, transformation, tactical, disruption. End with a short list of top picks Jake should test first.",
+    "Generate hooks using the 100 Hook Framework. Cover the requested number of distinct angles with the requested hooks per angle. Diverse categories for algorithm variety — urgency, social proof, problem, curiosity, transformation, tactical, disruption. End with a short list of top picks Jake should test first. If competitor intel is provided, synthesize across the briefs — angles, offers, or pains that appear in multiple competitor briefs are signal worth attacking from a different angle. Avoid hooks that mirror angles competitors are already saturating; lean into the white space.",
   outputSchema:
     '{"headline":"…","summary":"…","angles":[{"name":"…","category":"urgency|social_proof|problem|curiosity|transformation|tactical|disruption","hooks":["hook 1","hook 2"]}],"top_picks":[{"hook":"…","why":"…"}]}',
   outputInstructions:
@@ -1622,21 +1532,41 @@ const AUDIENCE_RESEARCH: FormConfig = {
         },
       ],
     },
+    {
+      title: "▸ COMPETITOR INTEL",
+      meta: "auto-filled from all saved competitor briefs",
+      fields: [
+        {
+          kind: "textarea",
+          key: "competitor_intel",
+          label: "Competitor intel",
+          promptPlaceholder: "[COMPETITOR INTEL]",
+          placeholder:
+            "Aggregated digest of every competitor brief saved for this client. Auto-filled. Use it to sharpen the audience research against what competitors are already saying.",
+          minRows: 4,
+        },
+      ],
+    },
   ],
-  promptTemplate: `I'm running Facebook/Instagram ads for a local business. I need to deeply understand their target audience — NOT for targeting settings (I'm using broad targeting), but to write better ad copy and create better visuals.
+  promptTemplate: `I'm running Facebook/Instagram ads for a local business. I need to deeply understand their target audience, NOT for targeting settings (I'm using broad targeting), but to write better ad copy and create better visuals.
 
 BUSINESS: [Business name]
 WHAT THEY SELL: [Product/service]
 LOCATION: [City, state]
 PRICE RANGE: [Average ticket]
 
+COMPETITOR INTEL (synthesized from every competitor brief saved for this client; may be empty on first run):
+[COMPETITOR INTEL]
+
 Give me:
-1. The top 10 REASONS someone would buy this (not features — emotional motivations)
+1. The top 10 REASONS someone would buy this (not features, emotional motivations)
 2. The top 5 OBJECTIONS they'd have before buying
 3. The top 5 MOMENTS when they'd think about this product (triggers)
 4. What language/slang does this audience actually use?
 5. Who are they comparing this business to? (competitors + alternatives)
 6. What does their day look like? (daily routine relevant to the product)
+
+If competitor intel is provided, weight the answers against it: which motivations are competitors NOT speaking to, which objections do competitor reviews repeatedly surface, which language patterns appear across multiple competitor briefs. Synthesize, do not just restate.
 
 Be specific. Use real examples. No generic marketing talk.`,
   defaultTitle: "Audience research",
@@ -2645,7 +2575,6 @@ export const ALL_FORM_CONFIGS: FormConfig[] = [
   APPROVAL_EMAIL,
   CAMPAIGN_STRUCTURE,
   LIVE_MESSAGE,
-  OPTIMIZER_CONFIG,
   HOOKS,
   CREATIVE_BRIEF,
   AD_COPY,

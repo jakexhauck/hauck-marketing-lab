@@ -24,7 +24,17 @@ import {
   type MetaCampaign,
 } from "../../lib/mockMetaAds";
 import { useAdsAccounts } from "../../lib/useAdsAccounts";
+import { useOptimizerVerdicts } from "../../lib/useOptimizerVerdicts";
+import {
+  verdictLabel,
+  verdictPillClass,
+  type AccountVerdict,
+  type Verdict,
+  type VerdictKind,
+} from "../../lib/adsOptimizer";
+import { api } from "../../lib/tauri";
 import { IconBarChart, IconRefresh } from "../icons";
+import { AdsKeyView } from "./AdsKeyView";
 
 // ── date range presets ────────────────────────────────────────
 type RangePreset =
@@ -125,6 +135,9 @@ interface AdsManagerPageProps {
    *  AdsManagerWorkspace to return to the client picker. */
   onBack?: () => void;
   backLabel?: string;
+  /** Vault root, needed to load the Key reference cards from
+   *  vault/Knowledge/Ads Key/. When null the Key button is hidden. */
+  root?: string | null;
 }
 
 export function AdsManagerPage({
@@ -135,7 +148,9 @@ export function AdsManagerPage({
   variant: _variant = "full",
   onBack: _onBack,
   backLabel: _backLabel = "Back",
+  root = null,
 }: AdsManagerPageProps) {
+  const [showKey, setShowKey] = useState(false);
   const [rangePreset, setRangePreset] = useState<RangePreset>("last7");
   // Custom date range setters intentionally unused since the stripped layout
   // exposes only preset ranges; kept here so the resolver type stays stable.
@@ -172,6 +187,8 @@ export function AdsManagerPage({
     endDate: range.endDate,
     attributionWindows: attr.windows,
   });
+
+  const optimizer = useOptimizerVerdicts(accounts, targetClients, root);
 
   const totals = useMemo(() => aggregate(accounts), [accounts]);
 
@@ -214,6 +231,10 @@ export function AdsManagerPage({
   const prevCpr = totals.cpr > 0 ? totals.cpr * 1.06 : 0;
   const prevCtr = totals.ctr > 0 ? totals.ctr + 0.14 : 0;
 
+  if (showKey) {
+    return <AdsKeyView root={root} onBack={() => setShowKey(false)} />;
+  }
+
   return (
     <div className="hml-content hml-ads">
       <style>{ADS_CSS}</style>
@@ -239,6 +260,16 @@ export function AdsManagerPage({
           </h1>
         </div>
         <div className="hml-ads-controls hml-ads-controls-stripped">
+          {root && (
+            <button
+              type="button"
+              className="hml-ads-key-btn-top"
+              title="Open the Ads Key: jargon, frameworks, and reference cards"
+              onClick={() => setShowKey(true)}
+            >
+              Key
+            </button>
+          )}
           <select
             className="hml-ads-range-select"
             value={rangePreset}
@@ -365,7 +396,13 @@ export function AdsManagerPage({
       {accounts.length > 0 && (
         <section className="hml-ads-insights">
           <NotableShiftsPanel />
-          <RecommendationsPanel />
+          <RecommendationsPanel
+            verdicts={optimizer.verdicts}
+            lastSnapshotAt={optimizer.lastSnapshotAt}
+            busy={optimizer.busy}
+            onRunNow={() => void optimizer.runNow()}
+            onRefreshAds={refresh}
+          />
         </section>
       )}
     </div>
@@ -813,59 +850,237 @@ function NotableShiftsPanel() {
   );
 }
 
-/** Recommendations panel, Variation F. Hardcoded mock for now; later this
- *  will be backed by an Aurelius-generated review of the daily series. */
-function RecommendationsPanel() {
-  const recs = [
-    {
-      title: "Scale Implant Awareness budget by +$40/day",
-      body: "CPR is 32% below target and frequency is healthy at 1.86. Projected: +9 leads over the next 7 days at similar cost.",
-      apply: "Apply",
-      conf: 0.86,
-    },
-    {
-      title: "Refresh creative on Retargeting",
-      body: "Frequency 4.18 and CTR slipping (2.40 to 1.78). Generate 2 fresh variants with Vortex.",
-      apply: "Generate",
-      conf: 0.74,
-    },
-    {
-      title: "Consolidate two underperforming ad sets",
-      body: "Interest-based ad sets in New Patient Cold both spending under $15/day with weak signal. Merge into broad lookalike.",
-      apply: "Apply",
-      conf: 0.69,
-    },
-  ];
+/**
+ * Recommendations panel — real verdicts from the optimizer engine.
+ *
+ * Renders one card per non-silent verdict, sorted KILL > REFRESH > SCALE >
+ * WATCH. Each card surfaces the one-button action the lesson prescribes
+ * (Pause / Generate creatives / Scale +25%). Buttons hit Tauri commands;
+ * after success we trigger a Meta-side refresh so the row reflects the new
+ * state on the next render.
+ *
+ * When no client on screen has the optimizer enabled, the panel renders an
+ * empty-state pointing at Client Hub → Settings.
+ */
+function RecommendationsPanel({
+  verdicts,
+  lastSnapshotAt,
+  busy,
+  onRunNow,
+  onRefreshAds,
+}: {
+  verdicts: Map<string, AccountVerdict>;
+  lastSnapshotAt: number | null;
+  busy: boolean;
+  onRunNow: () => void;
+  onRefreshAds: () => void;
+}) {
+  const flat = useMemo(() => {
+    const out: Array<{
+      clientName: string;
+      campaignName: string;
+      adSetName: string;
+      adSetId: string;
+      adId: string;
+      adName: string;
+      verdict: Verdict;
+    }> = [];
+    for (const account of verdicts.values()) {
+      for (const r of account.recommendations) {
+        out.push({
+          clientName: account.clientName,
+          campaignName: r.campaignName,
+          adSetName: r.adSetName,
+          adSetId: r.adSetId,
+          adId: r.adId,
+          adName: r.adName,
+          verdict: r.verdict,
+        });
+      }
+    }
+    return out;
+  }, [verdicts]);
+
+  const counts = useMemo(() => {
+    const c: Partial<Record<VerdictKind, number>> = {};
+    for (const f of flat) c[f.verdict.kind] = (c[f.verdict.kind] ?? 0) + 1;
+    return c;
+  }, [flat]);
+
+  const ranAt = lastSnapshotAt
+    ? new Date(lastSnapshotAt).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
   return (
     <div className="hml-ads-card">
       <div className="hml-ads-card-head">
         <div>
           <div className="hml-ads-card-eyebrow">
             <span className="hml-ads-card-led" />
-            Recommendations
+            Optimizer
           </div>
-          <div className="hml-ads-card-title">{recs.length} actions ready to apply</div>
+          <div className="hml-ads-card-title">
+            {flat.length === 0
+              ? "All ads on target"
+              : `${flat.length} action${flat.length === 1 ? "" : "s"} ready`}
+          </div>
         </div>
-        <button type="button" className="hml-ads-card-link">
-          Dismiss all
+        <button
+          type="button"
+          className="hml-ads-card-link"
+          onClick={onRunNow}
+          disabled={busy}
+          title={ranAt ? `Last run ${ranAt}. 6h auto-cadence active.` : "Run snapshot now"}
+        >
+          {busy ? "Running…" : ranAt ? `Run now · last ${ranAt}` : "Run now"}
         </button>
       </div>
-      <div className="hml-ads-recs">
-        {recs.map((r, i) => (
-          <div key={i} className="hml-ads-rec">
-            <div className="hml-ads-rec-title">{r.title}</div>
-            <div className="hml-ads-rec-body">{r.body}</div>
-            <div className="hml-ads-rec-row">
-              <button type="button" className="hml-ads-rec-apply">
-                {r.apply}
-              </button>
-              <button type="button" className="hml-ads-rec-ghost">
-                Adjust
-              </button>
-              <span className="hml-ads-rec-meta">conf · {r.conf.toFixed(2)}</span>
+
+      {flat.length === 0 ? (
+        <div className="hml-ads-recs">
+          <div className="hml-ads-rec" style={{ opacity: 0.7 }}>
+            <div className="hml-ads-rec-body">
+              {verdicts.size === 0
+                ? "Optimizer is off for every client on screen. Turn it on in Client Hub → Settings (Target CPL + Mode = Suggest)."
+                : "Every active ad is in the comfort band or hold state. Nothing to do — check back after the next 6-hour run."}
+              {Object.keys(counts).length > 0 && (
+                <span style={{ marginLeft: 8, color: "var(--hml-text-tertiary)" }}>
+                  {Object.entries(counts)
+                    .map(([k, v]) => `${k} ${v}`)
+                    .join(" · ")}
+                </span>
+              )}
             </div>
           </div>
-        ))}
+        </div>
+      ) : (
+        <div className="hml-ads-recs">
+          {flat.map((r) => (
+            <RecCard
+              key={`${r.adId}-${r.verdict.kind}`}
+              row={r}
+              onAfterAction={() => {
+                onRefreshAds();
+                onRunNow();
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A single verdict card. Owns the action-execution call + busy state. */
+function RecCard({
+  row,
+  onAfterAction,
+}: {
+  row: {
+    clientName: string;
+    campaignName: string;
+    adSetName: string;
+    adSetId: string;
+    adId: string;
+    adName: string;
+    verdict: Verdict;
+  };
+  onAfterAction: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const handleAction = async () => {
+    if (!row.verdict.action) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      if (row.verdict.kind === "KILL") {
+        await api.metaPauseAd(row.adId);
+      } else if (row.verdict.kind === "SCALE" && row.verdict.action.newDailyBudget) {
+        await api.metaUpdateAdSetBudget(
+          row.adSetId,
+          Math.round(row.verdict.action.newDailyBudget * 100),
+        );
+      } else if (row.verdict.kind === "REFRESH") {
+        // Hand-off to the Ads Sequence Wizard happens in a follow-up wire-up.
+        // For now surface a clear message so the operator opens it manually.
+        setErr(
+          "Refresh hand-off lands in the next pass. Open the Ads Sequence Wizard from the Ads tab and generate 5 fresh creatives for this audience.",
+        );
+        setBusy(false);
+        return;
+      }
+      onAfterAction();
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const action = row.verdict.action;
+  const canAct = !!action && row.verdict.kind !== "WATCH";
+
+  return (
+    <div className="hml-ads-rec">
+      <div className="hml-ads-rec-title">
+        <span
+          className={`hml-pill ${verdictPillClass(row.verdict.kind)}`}
+          style={{ marginRight: 8 }}
+        >
+          {verdictLabel(row.verdict.kind)}
+        </span>
+        {row.adName}
+      </div>
+      <div
+        className="hml-ads-rec-body"
+        style={{ fontSize: 11.5, color: "var(--hml-text-tertiary)" }}
+      >
+        {row.clientName} · {row.campaignName} → {row.adSetName}
+      </div>
+      <div className="hml-ads-rec-body">{row.verdict.reason}</div>
+      {action?.detail && (
+        <div
+          className="hml-ads-rec-body"
+          style={{ fontSize: 11.5, color: "var(--hml-text-tertiary)" }}
+        >
+          {action.detail}
+        </div>
+      )}
+      {err && (
+        <div
+          className="hml-ads-rec-body"
+          style={{
+            color: "#ff8b8b",
+            fontSize: 11.5,
+            background: "rgba(239, 107, 107, 0.08)",
+            padding: "6px 9px",
+            borderRadius: 5,
+            cursor: "pointer",
+          }}
+          onClick={() => setErr(null)}
+        >
+          {err}
+        </div>
+      )}
+      <div className="hml-ads-rec-row">
+        {canAct ? (
+          <button
+            type="button"
+            className="hml-ads-rec-apply"
+            onClick={() => void handleAction()}
+            disabled={busy}
+          >
+            {busy ? "Working…" : action!.label}
+          </button>
+        ) : (
+          <span className="hml-ads-rec-meta">No action — monitor only</span>
+        )}
+        <span className="hml-ads-rec-meta">conf · {row.verdict.confidence.toFixed(2)}</span>
       </div>
     </div>
   );
@@ -1798,6 +2013,49 @@ const ADS_CSS = `
 .hml-ads-icon-btn:hover {
   background: var(--hml-bg-elev-2, rgba(255,255,255,0.04));
   color: var(--hml-text-primary);
+}
+.hml-ads-key-btn-top {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 7px;
+  background: rgba(180, 120, 255, 0.14);
+  border: 1px solid rgba(180, 120, 255, 0.35);
+  color: #cba9ff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.hml-ads-key-btn-top:hover {
+  background: rgba(180, 120, 255, 0.22);
+  border-color: rgba(180, 120, 255, 0.5);
+  color: #d6bdff;
+}
+.hml-pill.hml-verdict-kill {
+  background: rgba(239, 107, 107, 0.14);
+  color: #ff8b8b;
+  border: 1px solid rgba(239, 107, 107, 0.35);
+}
+.hml-pill.hml-verdict-watch {
+  background: rgba(245, 158, 11, 0.14);
+  color: #f3b562;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.hml-pill.hml-verdict-scale {
+  background: rgba(95, 230, 153, 0.12);
+  color: #6fe6a0;
+  border: 1px solid rgba(95, 230, 153, 0.32);
+}
+.hml-pill.hml-verdict-refresh {
+  background: rgba(180, 120, 255, 0.16);
+  color: #cba9ff;
+  border: 1px solid rgba(180, 120, 255, 0.4);
+}
+.hml-pill.hml-verdict-hold {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--hml-text-tertiary);
+  border: 1px solid var(--hml-border, rgba(255, 255, 255, 0.10));
 }
 
 /* KPI tiles, stripped layout */
