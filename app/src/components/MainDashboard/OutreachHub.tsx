@@ -14,16 +14,11 @@ import type {
 import { prospectStatusPill } from "../../lib/navigation";
 import { api } from "../../lib/tauri";
 import {
-  IconArrowRight,
   IconChevronRight,
   IconFilter,
-  IconLayout,
   IconList,
-  IconPen,
   IconPhone,
   IconPlus,
-  IconTarget,
-  IconUsers,
 } from "../icons";
 
 interface OutreachHubProps {
@@ -179,10 +174,6 @@ export function OutreachHub({
     }
   };
 
-  const scrollToTable = () => {
-    tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   return (
     <div className="hml-content">
       <section className="hml-page-header">
@@ -214,31 +205,6 @@ export function OutreachHub({
             {formOpen ? "Close" : "Add booked call"}
           </button>
         </div>
-      </section>
-
-      {/* Headline tile: full-bleed cold-call sequence */}
-      <section className="hml-action-tiles hml-action-tiles-3" style={{ gridTemplateColumns: "1fr" }}>
-        <button
-          type="button"
-          className="hml-action-tile hml-action-tile-feature"
-          onClick={() => onSelectSection("sequence")}
-        >
-          <div className="hml-action-tile-top">
-            <div className="hml-action-tile-icon">
-              <IconPhone size={18} />
-            </div>
-            <span className="hml-action-tile-flag">RECOMMENDED</span>
-          </div>
-          <div className="hml-action-tile-title">Cold Call Sequence</div>
-          <div className="hml-action-tile-desc">
-            Guided 4-step pass: scrape leads, cold-call the list, book the ones that pick up, build websites for the bookings.
-            Unbooked leads stay ephemeral; bookings persist to Prospects.
-          </div>
-          <div className="hml-action-tile-cta">
-            Start a sequence
-            <IconArrowRight size={11} className="hml-arrow" />
-          </div>
-        </button>
       </section>
 
       {/* Inline "Add booked call" form */}
@@ -486,173 +452,106 @@ export function OutreachHub({
         )}
       </section>
 
-      {/* Side-channel tools — direct entry into each sub-workflow without
-       *  going through the guided cold-call sequence. Same dashed style across
-       *  the row so they read as auxiliary rather than primary actions. */}
-      <section className="hml-outreach-aux hml-outreach-aux-grid">
-        <button
-          type="button"
-          className="hml-outreach-aux-tab"
-          onClick={() => onSelectSection("lead-scraper")}
-          title="Open the lead scraper"
-        >
-          <span className="hml-outreach-aux-icon">
-            <IconTarget size={14} />
-          </span>
-          <span className="hml-outreach-aux-body">
-            <span className="hml-outreach-aux-title">Lead Scraper</span>
-            <span className="hml-outreach-aux-sub">
-              Pull contact details for businesses by niche and city. Google Places backed.
-            </span>
-          </span>
-          <IconArrowRight size={12} className="hml-arrow" />
-        </button>
-        <button
-          type="button"
-          className="hml-outreach-aux-tab"
-          onClick={() => onSelectSection("web-designer")}
-          title="Open the web designer"
-        >
-          <span className="hml-outreach-aux-icon">
-            <IconLayout size={14} />
-          </span>
-          <span className="hml-outreach-aux-body">
-            <span className="hml-outreach-aux-title">Web Designer</span>
-            <span className="hml-outreach-aux-sub">
-              Build a one-page mockup of a prospect's site to attach to a pitch. ~90 seconds.
-            </span>
-          </span>
-          <IconArrowRight size={12} className="hml-arrow" />
-        </button>
-        <button
-          type="button"
-          className="hml-outreach-aux-tab"
-          onClick={scrollToTable}
-          title="Jump to the booked-calls table"
-        >
-          <span className="hml-outreach-aux-icon">
-            <IconUsers size={14} />
-          </span>
-          <span className="hml-outreach-aux-body">
-            <span className="hml-outreach-aux-title">Prospects</span>
-            <span className="hml-outreach-aux-sub">
-              {bookedProspects.length === 0
-                ? "No bookings yet. Jump to the booked-calls table."
-                : `${bookedProspects.length} booked. Jump to the table above.`}
-            </span>
-          </span>
-          <IconArrowRight size={12} className="hml-arrow" />
-        </button>
-        <button
-          type="button"
-          className="hml-outreach-aux-tab"
-          onClick={() => onSelectSection("dms")}
-          title="Open the personalized DMs workflow"
-        >
-          <span className="hml-outreach-aux-icon">
-            <IconPen size={14} />
-          </span>
-          <span className="hml-outreach-aux-body">
-            <span className="hml-outreach-aux-title">Personalized DMs</span>
-            <span className="hml-outreach-aux-sub">
-              Bulk-write a DM per business from any scraped CSV. Side-channel; not part of the cold-call flow.
-            </span>
-          </span>
-          <IconArrowRight size={12} className="hml-arrow" />
-        </button>
-      </section>
-
-      {/* Other (non-booked) prospects, if any — e.g. scraped or mockup-ready */}
-      {otherProspects.length > 0 && (
-        <section className="hml-table" style={{ marginTop: 18 }}>
-          <div className="hml-table-meta">
-            <div className="hml-table-meta-title">
-              <span
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: "50%",
-                  background: "var(--hml-accent)",
-                  display: "inline-block",
-                }}
-              />
-              Other prospects · {otherProspects.length}
-            </div>
-            <div className="hml-table-meta-actions">
-              <button
-                type="button"
-                className="hml-btn"
-                onClick={() => onSelectSection("lead-scraper")}
-                style={{ fontSize: 11 }}
-              >
-                <IconList size={11} />
-                Lead scraper
-              </button>
+      {/* Prospects list (everything that isn't a booked call) */}
+      <section className="hml-table" style={{ marginTop: 18 }}>
+        <div className="hml-table-meta">
+          <div className="hml-table-meta-title">
+            <span
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: "50%",
+                background: "var(--hml-accent)",
+                display: "inline-block",
+              }}
+            />
+            Prospects · {otherProspects.length}
+          </div>
+          <div className="hml-table-meta-actions">
+            <button
+              type="button"
+              className="hml-btn"
+              onClick={() => onSelectSection("lead-scraper")}
+              style={{ fontSize: 11 }}
+            >
+              <IconList size={11} />
+              Lead scraper
+            </button>
+          </div>
+        </div>
+        {otherProspects.length === 0 ? (
+          <div className="hml-empty">
+            <div className="hml-empty-title">No prospects yet</div>
+            <div className="hml-empty-sub">
+              Scrape a list via Lead scraper, or run a Cold call sequence to populate the pipeline.
             </div>
           </div>
-          <div className="hml-table-header-row">
-            <span>Prospect</span>
-            <span>Niche</span>
-            <span>Status</span>
-            <span>Last touch</span>
-            <span style={{ textAlign: "right" }}>Action</span>
-          </div>
-          {otherProspects.map((p) => {
-            const pill = prospectStatusPill(p.status);
-            return (
-              <button
-                key={p.slug}
-                type="button"
-                className="hml-table-row"
-                onClick={() => onSelectProspect(p.slug)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  borderBottom: "1px solid var(--hml-border-subtle)",
-                  textAlign: "left",
-                  font: "inherit",
-                  color: "inherit",
-                  width: "100%",
-                }}
-              >
-                <div className="hml-table-row-name">
-                  <div className="hml-table-row-avatar">{avatarText(p.name)}</div>
-                  <div>
-                    <div className="hml-table-row-name-text">{p.name}</div>
-                    {p.url && (
-                      <div
-                        className="hml-table-row-meta"
-                        style={{ fontSize: 10.5 }}
-                      >
-                        {p.url.replace(/^https?:\/\//, "")}
-                      </div>
-                    )}
+        ) : (
+          <>
+            <div className="hml-table-header-row">
+              <span>Prospect</span>
+              <span>Niche</span>
+              <span>Status</span>
+              <span>Last touch</span>
+              <span style={{ textAlign: "right" }}>Action</span>
+            </div>
+            {otherProspects.map((p) => {
+              const pill = prospectStatusPill(p.status);
+              return (
+                <button
+                  key={p.slug}
+                  type="button"
+                  className="hml-table-row"
+                  onClick={() => onSelectProspect(p.slug)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: "1px solid var(--hml-border-subtle)",
+                    textAlign: "left",
+                    font: "inherit",
+                    color: "inherit",
+                    width: "100%",
+                  }}
+                >
+                  <div className="hml-table-row-name">
+                    <div className="hml-table-row-avatar">{avatarText(p.name)}</div>
+                    <div>
+                      <div className="hml-table-row-name-text">{p.name}</div>
+                      {p.url && (
+                        <div
+                          className="hml-table-row-meta"
+                          style={{ fontSize: 10.5 }}
+                        >
+                          {p.url.replace(/^https?:\/\//, "")}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="hml-table-row-meta">{p.niche ?? "—"}</div>
-                <div>
-                  <span className={`hml-pill ${pill.className}`}>
-                    <span className="hml-pill-dot" />
-                    {pill.label}
-                  </span>
-                </div>
-                <div className="hml-table-row-meta">
-                  {p.lastTouchedAt
-                    ? new Date(p.lastTouchedAt).toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                      })
-                    : "—"}
-                </div>
-                <div className="hml-table-action">
-                  Open
-                  <IconChevronRight size={10} />
-                </div>
-              </button>
-            );
-          })}
-        </section>
-      )}
+                  <div className="hml-table-row-meta">{p.niche ?? "—"}</div>
+                  <div>
+                    <span className={`hml-pill ${pill.className}`}>
+                      <span className="hml-pill-dot" />
+                      {pill.label}
+                    </span>
+                  </div>
+                  <div className="hml-table-row-meta">
+                    {p.lastTouchedAt
+                      ? new Date(p.lastTouchedAt).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        })
+                      : "—"}
+                  </div>
+                  <div className="hml-table-action">
+                    Open
+                    <IconChevronRight size={10} />
+                  </div>
+                </button>
+              );
+            })}
+          </>
+        )}
+      </section>
     </div>
   );
 }

@@ -277,6 +277,14 @@ export function IconList(p: IconProps) {
   );
 }
 
+export function IconZap(p: IconProps) {
+  return (
+    <I {...p}>
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </I>
+  );
+}
+
 export function IconClock(p: IconProps) {
   return (
     <I {...p}>

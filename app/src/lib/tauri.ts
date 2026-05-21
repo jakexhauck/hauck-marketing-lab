@@ -217,6 +217,39 @@ export const api = {
       prompts,
       outputDir,
     }),
+  searchReplicateModels: (token: string, query: string) =>
+    invoke<import("./types").ReplicateModel[]>("search_replicate_models", {
+      token,
+      query,
+    }),
+  getReplicateModel: (token: string, owner: string, name: string) =>
+    invoke<import("./types").ReplicateModelDetail>("get_replicate_model", {
+      token,
+      owner,
+      name,
+    }),
+  runReplicatePrediction: (
+    token: string,
+    owner: string,
+    name: string,
+    inputs: Record<string, unknown>,
+  ) =>
+    invoke<import("./types").ReplicatePredictionResult>(
+      "run_replicate_prediction",
+      { token, owner, name, inputs },
+    ),
+  saveReplicateOutput: (
+    url: string,
+    outputDir: string,
+    filenameStem: string,
+  ) =>
+    invoke<import("./types").ReplicateSavedOutput>("save_replicate_output", {
+      url,
+      outputDir,
+      filenameStem,
+    }),
+  fileToDataUri: (path: string) =>
+    invoke<string>("file_to_data_uri", { path }),
   listBenchmarkSets: (root: string) =>
     invoke<BenchmarkSummary[]>("list_benchmark_sets", { root }),
   readBenchmarksForClient: (root: string, clientSlug: string) =>
@@ -368,6 +401,40 @@ export const api = {
     invoke<VaultNote>("write_vault_note", { root, path, front, body }),
   appendToMemory: (root: string, clientSlug: string, fact: string) =>
     invoke<VaultNote>("append_to_memory", { root, clientSlug, fact }),
+  appendFactsToMemory: (
+    root: string,
+    clientSlug: string,
+    facts: { bucket: string; text: string; source?: string }[],
+  ) => invoke<VaultNote>("append_facts_to_memory", { root, clientSlug, facts }),
+  commitMemoryChanges: (
+    root: string,
+    clientSlug: string,
+    additions: { bucket: string; text: string; source?: string }[],
+    supersedes: { oldSnippet: string; newText: string; bucket: string; source?: string }[],
+  ) =>
+    invoke<VaultNote>("commit_memory_changes", {
+      root,
+      clientSlug,
+      additions,
+      supersedes,
+    }),
+  saveTranscript: (
+    root: string,
+    clientSlug: string,
+    filename: string,
+    body: string,
+  ) =>
+    invoke<{ path: string; filename: string }>("save_transcript", {
+      root,
+      clientSlug,
+      filename,
+      body,
+    }),
+  fetchFathomTranscript: (url: string) =>
+    invoke<{ url: string; text: string; byteLen: number; sourceHint: string }>(
+      "fetch_fathom_transcript",
+      { url },
+    ),
   readAboutNotes: (root: string) =>
     invoke<VaultNote[]>("read_about_notes", { root }),
   readClientNotes: (root: string, clientSlug: string) =>

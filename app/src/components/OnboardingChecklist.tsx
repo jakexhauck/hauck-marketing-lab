@@ -3,6 +3,7 @@ import {
   ONBOARDING_PLAN,
   phaseTaskCount,
   phaseTaskIds,
+  requiredPhaseTaskIds,
   totalTasks,
   type OnboardingPhase,
   type OnboardingTask,
@@ -11,7 +12,9 @@ import {
   MEDIA_BUYING_SEQUENCE,
   emptySequenceState,
   formatHooksForAdCopy,
+  isStepDone,
   nextStepId,
+  sequenceComplete,
   type SequenceState,
   type SequenceStep,
   type SequenceStepId,
@@ -128,11 +131,13 @@ const STEP_BY_TASK: Map<string, SequenceStep> = new Map(
 const FORM_BY_TASK: Map<string, FormSurfaceId> = new Map([
   ["02-offer-options", "offer-cta"],
   ["03-competitors", "competitors"],
+  ["03-pixel", "pixel-install"],
 ]);
 
 export function OnboardingChecklist({ root, clientName, clientSlug, agents, onComplete }: Props) {
   const [doneSet, setDoneSet] = useState<Set<string>>(() => new Set());
   const [phaseDoneAt, setPhaseDoneAt] = useState<Record<string, string>>({});
+  const [onboardingDay, setOnboardingDay] = useState<number | null>(null);
   const [sequenceState, setSequenceState] = useState<SequenceState>(() => emptySequenceState());
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -246,6 +251,52 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
     [],
   );
 
+  // Read the client's onboarding start date from ops/clients.json so the
+  // progress strip can show "Day N." Prefers invoicePaidAt (real onboarding
+  // start) and falls back to startDate. Re-runs whenever doneSet changes so
+  // a fresh paid invoice gets picked up without a full reload.
+  useEffect(() => {
+    if (!root) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const ops = await api.readOpsClients(root);
+        const row = ops.rows[clientSlug] ?? {};
+        const start = row.invoicePaidAt ?? row.startDate;
+        if (!start) {
+          if (!cancelled) setOnboardingDay(null);
+          return;
+        }
+        const startMs = new Date(start).getTime();
+        if (!Number.isFinite(startMs)) {
+          if (!cancelled) setOnboardingDay(null);
+          return;
+        }
+        const days = Math.max(0, Math.floor((Date.now() - startMs) / 86400000));
+        if (!cancelled) setOnboardingDay(days);
+      } catch {
+        if (!cancelled) setOnboardingDay(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, clientSlug, doneSet]);
+
+  // Auto-tick the 06-ads parent task when every wizard step is done. Wizard
+  // steps don't tick checklist tasks directly anymore (the 04-* IDs they used
+  // to reference were phantoms), so this is how Phase 4 closes out.
+  useEffect(() => {
+    if (!loaded) return;
+    if (!sequenceComplete(sequenceState)) return;
+    setDoneSet((prev) => {
+      if (prev.has(ADS_MASTER_TASK_ID)) return prev;
+      const next = new Set(prev);
+      next.add(ADS_MASTER_TASK_ID);
+      return next;
+    });
+  }, [sequenceState, loaded]);
+
   // Auto-populate `adsLaunchedAt` on the Workspace > Clients row when the
   // publish task lands. Only writes when empty.
   useEffect(() => {
@@ -278,15 +329,37 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
   const total = useMemo(() => totalTasks(), []);
   const doneCount = doneSet.size;
 
+  // Sub-progress for the Ads task (06-ads). Phase 4 looks like 1 task on the
+  // surface but masks an 8-step wizard, so surface the wizard's progress on
+  // the task row to keep the checklist honest.
+  const adsSubProgress = useMemo(() => {
+    const done = MEDIA_BUYING_SEQUENCE.filter((s) =>
+      isStepDone(sequenceState, s.id),
+    ).length;
+    return { done, total: MEDIA_BUYING_SEQUENCE.length };
+  }, [sequenceState]);
+
   const phaseStates = useMemo(() => {
     return ONBOARDING_PLAN.map((p) => {
       const ids = phaseTaskIds(p);
+      const requiredIds = requiredPhaseTaskIds(p);
       const completed = ids.filter((id) => doneSet.has(id)).length;
-      return { phase: p, completed, total: ids.length };
+      const requiredCompleted = requiredIds.filter((id) => doneSet.has(id)).length;
+      return {
+        phase: p,
+        completed,
+        total: ids.length,
+        requiredCompleted,
+        requiredTotal: requiredIds.length,
+      };
     });
   }, [doneSet]);
 
-  const activeIndex = phaseStates.findIndex((s) => s.completed < s.total);
+  // A phase is "done" when every REQUIRED task is ticked. Optional tasks are
+  // tracked but don't block phase completion (e.g. GA access).
+  const activeIndex = phaseStates.findIndex(
+    (s) => s.requiredCompleted < s.requiredTotal,
+  );
 
   const expandedIndex =
     selectedIndex !== null && selectedIndex >= 0 && selectedIndex < phaseStates.length
@@ -299,10 +372,11 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
       const next = { ...prev };
       for (const s of phaseStates) {
         const key = String(s.phase.num);
-        if (s.completed === s.total && !next[key]) {
+        const phaseDone = s.requiredCompleted === s.requiredTotal;
+        if (phaseDone && !next[key]) {
           next[key] = formatToday();
           changed = true;
-        } else if (s.completed < s.total && next[key]) {
+        } else if (!phaseDone && next[key]) {
           delete next[key];
           changed = true;
         }
@@ -315,7 +389,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
   useEffect(() => {
     if (!loaded) return;
     const completedPhases = phaseStates
-      .filter((s) => s.completed === s.total)
+      .filter((s) => s.requiredCompleted === s.requiredTotal)
       .map((s) => s.phase.num);
     if (completedPhases.length === 0) return;
     const maxCompleted = Math.max(...completedPhases);
@@ -605,6 +679,11 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
           <span className="ob-progress-count">
             Phase <em>{Math.min(currentPhaseNum, ONBOARDING_PLAN.length - 1)}</em> / {ONBOARDING_PLAN.length}
           </span>
+          {onboardingDay !== null && (
+            <span className="ob-progress-count" title="Days since invoice paid">
+              Day <em>{onboardingDay}</em>
+            </span>
+          )}
           <GhlSyncPill status={ghlSync} onRetry={retryGhlSync} />
         </div>
       </div>
@@ -623,6 +702,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
                 onToggle={toggleTask}
                 onOpenForm={openTaskForm}
                 canOpenForm={!!root}
+                adsSubProgress={adsSubProgress}
               />
             );
           }
@@ -663,8 +743,19 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
       </div>
 
       {!allDone && (
-        <div className="ob-graduate">
-          <button type="button" onClick={onComplete}>
+        <div className="ob-graduate ob-graduate-skip">
+          <button
+            type="button"
+            onClick={() => {
+              const remaining = total - doneCount;
+              const ok = window.confirm(
+                `Skip to the client dashboard?\n\n${remaining} onboarding task${
+                  remaining === 1 ? "" : "s"
+                } still open. You can come back to onboarding any time from the client's tabs.`,
+              );
+              if (ok) onComplete();
+            }}
+          >
             Skip to client dashboard →
           </button>
         </div>
@@ -736,6 +827,7 @@ function ActiveCard({
   onToggle,
   onOpenForm,
   canOpenForm,
+  adsSubProgress,
 }: {
   phase: OnboardingPhase;
   doneSet: Set<string>;
@@ -743,6 +835,7 @@ function ActiveCard({
   onToggle: (id: string) => void;
   onOpenForm: (taskId: string) => void;
   canOpenForm: boolean;
+  adsSubProgress: { done: number; total: number };
 }) {
   const total = phaseTaskCount(phase);
   return (
@@ -788,9 +881,11 @@ function ActiveCard({
                 let actionLabel: string | undefined;
                 let actionHint: string | undefined;
                 if (isAdsTask) {
-                  actionLabel = "Open Ads sequence →";
-                  actionHint =
-                    "8 forms, one at a time. Completed ones tuck into the side rail; you can reopen any of them to edit.";
+                  actionLabel =
+                    adsSubProgress.done > 0
+                      ? `Resume sequence (${adsSubProgress.done}/${adsSubProgress.total}) →`
+                      : "Open Ads sequence →";
+                  actionHint = `${adsSubProgress.total} forms grouped Research / Creative / Launch. One at a time; finished ones tuck into the side rail.`;
                 } else if (isMobileAppTask) {
                   actionLabel = "Open form";
                   actionHint = "Provision Supabase tenant + invite client.";
@@ -799,6 +894,7 @@ function ActiveCard({
                 } else {
                   actionHint = step?.hint;
                 }
+                const subProgress = isAdsTask ? adsSubProgress : undefined;
                 return (
                   <TaskRow
                     key={t.id}
@@ -811,6 +907,7 @@ function ActiveCard({
                     actionLabel={actionLabel}
                     actionHint={actionHint}
                     canOpenForm={canOpenForm}
+                    subProgress={subProgress}
                     onToggle={() => onToggle(t.id)}
                     onOpenForm={() => onOpenForm(t.id)}
                   />
@@ -832,6 +929,7 @@ function TaskRow({
   actionLabel,
   actionHint,
   canOpenForm,
+  subProgress,
   onToggle,
   onOpenForm,
 }: {
@@ -842,6 +940,7 @@ function TaskRow({
   actionLabel?: string;
   actionHint?: string;
   canOpenForm: boolean;
+  subProgress?: { done: number; total: number };
   onToggle: () => void;
   onOpenForm: () => void;
 }) {
@@ -859,6 +958,12 @@ function TaskRow({
       />
       <div className="ob-task-body">
         <span dangerouslySetInnerHTML={{ __html: task.label }} />
+        {task.optional && <span className="ob-optional-chip">optional</span>}
+        {subProgress && subProgress.total > 0 && (
+          <span className="ob-subprogress">
+            {subProgress.done} / {subProgress.total} sub-steps done
+          </span>
+        )}
         {howto && (
           <div className="ob-task-howto">
             <span className="ob-howto-label">▸ How to</span>

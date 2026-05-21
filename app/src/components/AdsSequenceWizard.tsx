@@ -21,7 +21,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MEDIA_BUYING_SEQUENCE,
+  SEQUENCE_GROUPS,
   formatHooksForAdCopy,
+  getStep,
+  isStepDone,
   nextStepId,
   summarizeStepOutput,
   type CampaignSkeleton,
@@ -34,6 +37,7 @@ import { api } from "../lib/tauri";
 import type { AgentSummary, GeneratorOutput } from "../lib/types";
 import { GenericFormGenerator } from "./GenericFormGenerator";
 import { CampaignTreeView } from "./CampaignTreeView";
+import { AdCreativeStudio } from "./AdCreativeStudio";
 
 type Props = {
   root: string;
@@ -59,9 +63,18 @@ function extractJsonFromBody(body: string): Record<string, unknown> | null {
   }
 }
 
-function isStepDone(state: SequenceState, id: SequenceStepId): boolean {
-  if (state.skipped?.includes(id)) return true;
-  return !!state.stepOutputs[id]?.path;
+/** Friendly "Pulls from X + Y" preview for a step's chainFrom config. Resolves
+ *  source step IDs to their labels so the rail can tell the user what data
+ *  this step is about to consume BEFORE they click in. Returns null when the
+ *  step has no chainFrom. */
+function chainPreview(step: SequenceStep): string | null {
+  if (!step.chainFrom) return null;
+  const specs = Array.isArray(step.chainFrom) ? step.chainFrom : [step.chainFrom];
+  const labels = specs
+    .map((s) => getStep(s.step)?.label)
+    .filter((l): l is string => Boolean(l));
+  if (labels.length === 0) return null;
+  return `Pulls from ${labels.join(" + ")}`;
 }
 
 /** Resolve the step to render in the center. Defaults to the persisted
@@ -293,6 +306,28 @@ export function AdsSequenceWizard({
     onSequenceChange(next);
   }, [activeStep, sequenceState, onSequenceChange]);
 
+  /** Throw away the saved output for this step and clear any skip flag so the
+   *  user gets a fresh form. The on-disk vault file is left in place (saving
+   *  again will overwrite). Used when a generated output is wrong and the
+   *  user wants to start over instead of editing inline. */
+  const handleRegenerate = useCallback(() => {
+    if (!activeStep) return;
+    const ok = window.confirm(
+      "Regenerate this step?\n\nThis clears the saved output so you start with a fresh form. The vault file stays where it is until you save again.",
+    );
+    if (!ok) return;
+    const nextOutputs = { ...sequenceState.stepOutputs };
+    delete nextOutputs[activeStep.id];
+    const skipped = (sequenceState.skipped ?? []).filter((id) => id !== activeStep.id);
+    const next: SequenceState = {
+      ...sequenceState,
+      stepOutputs: nextOutputs,
+      skipped,
+      currentStep: activeStep.id,
+    };
+    onSequenceChange(next);
+  }, [activeStep, sequenceState, onSequenceChange]);
+
   const isActiveDone = activeStep ? isStepDone(sequenceState, activeStep.id) : false;
   const isActiveSkipped = activeStep
     ? Boolean(sequenceState.skipped?.includes(activeStep.id))
@@ -312,9 +347,16 @@ export function AdsSequenceWizard({
           </div>
           <button
             type="button"
-            className="aw-tree-btn"
+            className={
+              "aw-tree-btn" +
+              (activeStep?.formId === "structure" ? " is-suggested" : "")
+            }
             onClick={() => setTreeOpen(true)}
-            title="Visualize the campaign skeleton being built"
+            title={
+              activeStep?.formId === "structure"
+                ? "Open the campaign tree alongside the Structure form for a live preview."
+                : "Visualize the campaign skeleton being built"
+            }
           >
             <span className="aw-tree-dot" />
             Campaign tree
@@ -334,41 +376,85 @@ export function AdsSequenceWizard({
 
       {/* Two columns: rail + active form */}
       <div className="aw-columns">
-        {/* LEFT · STEPS RAIL */}
+        {/* LEFT · STEPS RAIL (grouped: Setup / Creative / Launch) */}
         <div>
-          {MEDIA_BUYING_SEQUENCE.map((s, idx) => {
-            const isActive = s.id === activeStepId;
-            const done = isStepDone(sequenceState, s.id);
-            const skipped = sequenceState.skipped?.includes(s.id) ?? false;
-            const summary = skipped
-              ? "Skipped"
-              : summaries[s.id] ?? (done ? "Done" : null);
+          {SEQUENCE_GROUPS.map((group, groupIdx) => {
+            const groupSteps = group.stepIds
+              .map((id) => MEDIA_BUYING_SEQUENCE.find((s) => s.id === id))
+              .filter((s): s is SequenceStep => Boolean(s));
+            const groupDoneCount = groupSteps.filter((s) =>
+              isStepDone(sequenceState, s.id),
+            ).length;
+            const groupIsDone = groupDoneCount === groupSteps.length;
+            const groupIsCurrent =
+              !groupIsDone &&
+              groupSteps.some((s) => s.id === activeStepId);
             return (
-              <button
-                key={s.id}
-                type="button"
+              <div
+                key={group.id}
                 className={
-                  "aw-rail-card" +
-                  (done ? " done" : " upcoming") +
-                  (isActive ? " is-active" : "")
+                  "aw-rail-group" +
+                  (groupIsDone ? " is-done" : "") +
+                  (groupIsCurrent ? " is-current" : "")
                 }
-                onClick={() => setActiveStepId(s.id)}
               >
-                <div className={"aw-check " + (done ? "done" : "next")}>
-                  {done ? "✓" : idx + 1}
+                <div className="aw-group-head">
+                  <div className="aw-group-num">{groupIdx + 1}</div>
+                  <div className="aw-group-name">{group.label}</div>
+                  <div className="aw-group-count">
+                    {groupDoneCount} / {groupSteps.length}
+                  </div>
                 </div>
-                <div className="aw-rail-body">
-                  <div className="aw-rail-name">{s.label}</div>
-                  {summary && (
-                    <div
-                      className={"aw-rail-summary" + (skipped ? " is-skipped" : "")}
-                      title={summary}
+                {groupSteps.map((s) => {
+                  // Step number within the overall sequence (1-based) so the
+                  // visual ordering still matches the original flat list.
+                  const overallIdx = MEDIA_BUYING_SEQUENCE.findIndex(
+                    (x) => x.id === s.id,
+                  );
+                  const isActive = s.id === activeStepId;
+                  const done = isStepDone(sequenceState, s.id);
+                  const skipped =
+                    sequenceState.skipped?.includes(s.id) ?? false;
+                  const summary = skipped
+                    ? "Skipped"
+                    : summaries[s.id] ?? (done ? "Done" : null);
+                  const preview = !done ? chainPreview(s) : null;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      className={
+                        "aw-rail-card" +
+                        (done ? " done" : " upcoming") +
+                        (isActive ? " is-active" : "")
+                      }
+                      onClick={() => setActiveStepId(s.id)}
                     >
-                      {summary}
-                    </div>
-                  )}
-                </div>
-              </button>
+                      <div className={"aw-check " + (done ? "done" : "next")}>
+                        {done ? "✓" : overallIdx + 1}
+                      </div>
+                      <div className="aw-rail-body">
+                        <div className="aw-rail-name">{s.label}</div>
+                        {summary && (
+                          <div
+                            className={
+                              "aw-rail-summary" + (skipped ? " is-skipped" : "")
+                            }
+                            title={summary}
+                          >
+                            {summary}
+                          </div>
+                        )}
+                        {!summary && preview && (
+                          <div className="aw-rail-preview" title={preview}>
+                            {preview}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             );
           })}
         </div>
@@ -382,7 +468,7 @@ export function AdsSequenceWizard({
                 ← Back to onboarding
               </button>
             </div>
-          ) : !activeFormConfig ? (
+          ) : activeStep.id !== "ad-creative" && !activeFormConfig ? (
             <div className="aw-empty">
               <p>
                 Form <code>{activeStep.formId}</code> not found. Edit{" "}
@@ -395,24 +481,42 @@ export function AdsSequenceWizard({
                 <div>
                   <h2 className="aw-active-title">{activeStep.label}</h2>
                   <div className="aw-active-sub">{activeStep.hint}</div>
+                  {activeStep.checklistTaskId && (
+                    <div className="aw-active-meta">
+                      Saving ticks{" "}
+                      <code>{activeStep.checklistTaskId}</code> in onboarding.
+                    </div>
+                  )}
                   {loadingChain && (
                     <div className="aw-chain-note">Loading prior outputs…</div>
                   )}
                 </div>
                 <div className="aw-active-actions">
                   {isActiveDone ? (
-                    isActiveSkipped ? (
-                      <button
-                        type="button"
-                        className="aw-ghost"
-                        onClick={handleUnmark}
-                        title="Undo the manual mark-done"
-                      >
-                        Unmark done
-                      </button>
-                    ) : (
-                      <span className="aw-done-pill">✓ Done</span>
-                    )
+                    <>
+                      {isActiveSkipped ? (
+                        <button
+                          type="button"
+                          className="aw-ghost"
+                          onClick={handleUnmark}
+                          title="Undo the manual mark-done"
+                        >
+                          Unmark done
+                        </button>
+                      ) : (
+                        <>
+                          <span className="aw-done-pill">✓ Done</span>
+                          <button
+                            type="button"
+                            className="aw-ghost"
+                            onClick={handleRegenerate}
+                            title="Clear the saved output and start over with a fresh form."
+                          >
+                            Regenerate
+                          </button>
+                        </>
+                      )}
+                    </>
                   ) : (
                     <button
                       type="button"
@@ -426,19 +530,30 @@ export function AdsSequenceWizard({
                 </div>
               </div>
               <div className="aw-active-body">
-                <GenericFormGenerator
-                  key={activeStep.id}
-                  config={activeFormConfig}
-                  root={root}
-                  agents={agents}
-                  clientName={clientName}
-                  clientSlug={clientSlug}
-                  onClose={onClose}
-                  initialValues={chainValues}
-                  onSaved={handleSaved}
-                  hidePastResults
-                  hideHeader
-                />
+                {activeStep.id === "ad-creative" ? (
+                  <AdCreativeStudio
+                    key={activeStep.id}
+                    root={root}
+                    clientName={clientName}
+                    clientSlug={clientSlug}
+                    initialValues={chainValues}
+                    onSaved={handleSaved}
+                  />
+                ) : activeFormConfig ? (
+                  <GenericFormGenerator
+                    key={activeStep.id}
+                    config={activeFormConfig}
+                    root={root}
+                    agents={agents}
+                    clientName={clientName}
+                    clientSlug={clientSlug}
+                    onClose={onClose}
+                    initialValues={chainValues}
+                    onSaved={handleSaved}
+                    hidePastResults
+                    hideHeader
+                  />
+                ) : null}
               </div>
             </div>
           )}
@@ -530,6 +645,17 @@ const WIZ_CSS = `
   color: var(--hml-text-primary);
   background: var(--hml-bg-elev-3);
 }
+.aw-tree-btn.is-suggested {
+  border-color: var(--hml-accent-border);
+  background: var(--hml-accent-dim);
+  color: var(--hml-accent);
+  box-shadow: 0 0 0 1px var(--hml-accent-border), 0 0 18px -8px var(--hml-accent);
+}
+.aw-tree-btn.is-suggested:hover {
+  border-color: var(--hml-accent);
+  background: var(--hml-accent-dim);
+  color: var(--hml-accent-bright);
+}
 .aw-tree-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
@@ -578,6 +704,58 @@ const WIZ_CSS = `
 }
 @media (max-width: 900px) {
   .aw-columns { grid-template-columns: 1fr; }
+}
+
+/* Rail groups */
+.aw-rail-group {
+  margin-bottom: 16px;
+}
+.aw-rail-group:last-child { margin-bottom: 0; }
+.aw-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+.aw-group-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--hml-bg-elev-2);
+  border: 1px solid var(--hml-border-subtle);
+  font-family: var(--hml-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  color: var(--hml-text-tertiary);
+}
+.aw-group-name {
+  font-family: var(--hml-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hml-text-tertiary);
+  font-weight: 500;
+  flex: 1;
+}
+.aw-group-count {
+  font-family: var(--hml-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--hml-text-quaternary);
+}
+.aw-rail-group.is-current .aw-group-num {
+  background: var(--hml-accent-dim);
+  border-color: var(--hml-accent-border);
+  color: var(--hml-accent);
+}
+.aw-rail-group.is-current .aw-group-name { color: var(--hml-accent); }
+.aw-rail-group.is-done .aw-group-num {
+  background: var(--hml-green-bg);
+  border-color: var(--hml-green-border);
+  color: var(--hml-green);
 }
 
 /* Rail cards */
@@ -655,6 +833,18 @@ const WIZ_CSS = `
   font-style: italic;
   opacity: 0.7;
 }
+.aw-rail-preview {
+  font-family: var(--hml-font-mono);
+  font-size: 10px;
+  color: var(--hml-accent);
+  letter-spacing: 0.02em;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+.aw-rail-card.is-active .aw-rail-preview { opacity: 1; }
 
 /* Center column */
 .aw-center {
@@ -694,6 +884,21 @@ const WIZ_CSS = `
   color: var(--hml-text-tertiary);
   margin-top: 8px;
   letter-spacing: 0.04em;
+}
+.aw-active-meta {
+  font-family: var(--hml-font-mono);
+  font-size: 10.5px;
+  color: var(--hml-text-tertiary);
+  letter-spacing: 0.04em;
+  margin-top: 8px;
+}
+.aw-active-meta code {
+  background: var(--hml-bg-elev-2);
+  border: 1px solid var(--hml-border-subtle);
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--hml-text-secondary);
+  font-size: 10.5px;
 }
 .aw-active-actions {
   display: flex;

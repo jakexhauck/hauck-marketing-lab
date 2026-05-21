@@ -15,20 +15,6 @@
       "createdAt": 1778694212210
     },
     {
-      "id": "29d837e4-bbba-4f02-9852-19192e20bf65",
-      "title": "Government Assignment",
-      "status": "todo",
-      "createdAt": 1778697133153,
-      "lane": "backburner"
-    },
-    {
-      "id": "6851f66d-8027-49cc-9c47-749c36f8817e",
-      "title": "Setup Meta AD's MCP Within HML",
-      "status": "todo",
-      "createdAt": 1778892317479,
-      "lane": "active"
-    },
-    {
       "id": "e21bfb08-7eca-4821-9f31-ab6dbe633b11",
       "title": "Stripe Setup - Need Dad",
       "status": "todo",
@@ -44,13 +30,6 @@
       "lane": "active"
     },
     {
-      "id": "06dd8595-185a-4ed1-9105-06c6233f4535",
-      "title": "Update Meta Portion",
-      "status": "todo",
-      "createdAt": 1779054199087,
-      "lane": "active"
-    },
-    {
       "id": "8f32f3d8-28e8-4e53-8e37-dd8f7db30d70",
       "title": "Finish Mobile App & Send Login Too Josh/Jayse",
       "status": "done",
@@ -63,6 +42,49 @@
       "clientSlug": "willis-windows",
       "status": "todo",
       "createdAt": 1779152083379,
+      "lane": "active"
+    },
+    {
+      "id": "3a3aa179-5869-43b2-ba9a-86ca187ac9a5",
+      "title": "Hit Up Dom on Snap For Possible New Client",
+      "status": "todo",
+      "createdAt": 1779297331477,
+      "lane": "active"
+    },
+    {
+      "id": "f97bf20a-bd70-44a6-886d-8a48bb7c4e7f",
+      "title": "Switch Creative Studio To Ads Sequence",
+      "status": "todo",
+      "createdAt": 1779301729264,
+      "lane": "active"
+    },
+    {
+      "id": "6d0d0529-a47a-4c59-880b-5ce4ef2e64c6",
+      "title": "Finish New Client Snapshot - Review Management & Workflows",
+      "status": "todo",
+      "createdAt": 1779313668222,
+      "lane": "active"
+    },
+    {
+      "id": "7dc3d823-4a48-4d71-8b28-c1ea5413cf64",
+      "title": "Redo Review Management & Workflows Based On New Client Snapshot",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1779313717960,
+      "lane": "active"
+    },
+    {
+      "id": "e01c10da-3112-414a-bd1f-2dcb8f78804f",
+      "title": "Redo the Website Form For WW & Snapshot",
+      "status": "todo",
+      "createdAt": 1779316325609,
+      "lane": "active"
+    },
+    {
+      "id": "4190725e-8019-440a-aaff-2d172ee73b80",
+      "title": "Combine Company Phone And GHL Phone Custom Value Inside Of Workflows For Client Snapshot & WW",
+      "status": "todo",
+      "createdAt": 1779316337613,
       "lane": "active"
     }
   ]

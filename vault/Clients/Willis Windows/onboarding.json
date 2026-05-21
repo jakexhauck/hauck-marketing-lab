@@ -3,8 +3,57 @@
   "phaseDoneAt": {
     "0": "MAY 11"
   },
-  "updatedAt": "2026-05-20T14:22:46.788230+00:00",
+  "updatedAt": "2026-05-20T20:39:49.443711100+00:00",
   "sequence": {
+    "campaignSkeleton": {
+      "adSets": [
+        {
+          "ads": [
+            {
+              "angleLabel": "Price anchor",
+              "format": "Image",
+              "hook": ""
+            },
+            {
+              "angleLabel": "Fear · urgency",
+              "format": "Image",
+              "hook": ""
+            },
+            {
+              "angleLabel": "Social proof",
+              "format": "Video",
+              "hook": ""
+            }
+          ],
+          "dailyBudget": 15,
+          "name": "Ad Set 1 · Broad",
+          "targeting": "Local 10mi · 25 to 55"
+        },
+        {
+          "ads": [
+            {
+              "angleLabel": "Price anchor",
+              "format": "Image",
+              "hook": ""
+            },
+            {
+              "angleLabel": "Fear · urgency",
+              "format": "Image",
+              "hook": ""
+            },
+            {
+              "angleLabel": "Social proof",
+              "format": "Video",
+              "hook": ""
+            }
+          ],
+          "dailyBudget": 15,
+          "name": "Ad Set 2 · Interest",
+          "targeting": "Home Improvement + Homeowners"
+        }
+      ],
+      "dailyBudget": 30
+    },
     "currentStep": "audience",
     "skipped": [
       "calendar"

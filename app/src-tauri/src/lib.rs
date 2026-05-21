@@ -11,6 +11,7 @@ mod diagnosis;
 mod drive_index;
 mod drive_upload;
 mod events;
+mod fathom;
 mod folder;
 mod frontmatter;
 mod gemini_image;
@@ -33,6 +34,7 @@ mod personal;
 mod pitch_decks;
 mod playbooks;
 mod prospects;
+mod replicate;
 mod sops;
 mod sync;
 mod tracking;
@@ -101,6 +103,11 @@ pub fn run() {
             pitch_decks::open_pitch_deck,
             gemini_image::generate_nano_banana_image,
             gemini_image::generate_creative_set,
+            replicate::search_replicate_models,
+            replicate::get_replicate_model,
+            replicate::run_replicate_prediction,
+            replicate::save_replicate_output,
+            replicate::file_to_data_uri,
             sync::git_sync,
             lead_scraper::run_lead_scraper,
             lead_scraper::list_prospect_files,
@@ -130,6 +137,10 @@ pub fn run() {
             vault::read_vault_note,
             vault::write_vault_note,
             vault::append_to_memory,
+            vault::append_facts_to_memory,
+            vault::commit_memory_changes,
+            vault::save_transcript,
+            fathom::fetch_fathom_transcript,
             vault::read_about_notes,
             vault::read_client_notes,
             vault::find_knowledge_notes,

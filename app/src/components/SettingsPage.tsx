@@ -43,6 +43,10 @@ export function SettingsPage({
   const [geminiKeySaved, setGeminiKeySaved] = useState<string | null>(null);
   const [geminiSaving, setGeminiSaving] = useState(false);
   const [geminiReveal, setGeminiReveal] = useState(false);
+  const [replicateKeyDraft, setReplicateKeyDraft] = useState("");
+  const [replicateKeySaved, setReplicateKeySaved] = useState<string | null>(null);
+  const [replicateSaving, setReplicateSaving] = useState(false);
+  const [replicateReveal, setReplicateReveal] = useState(false);
 
   type UpdateUiState =
     | { phase: "idle" }
@@ -92,8 +96,10 @@ export function SettingsPage({
       try {
         const cfg = await api.loadConfig();
         setGeminiKeySaved(cfg.gemini_api_key ?? null);
+        setReplicateKeySaved(cfg.replicate_api_token ?? null);
       } catch {
         setGeminiKeySaved(null);
+        setReplicateKeySaved(null);
       }
     })();
   }, []);
@@ -127,6 +133,38 @@ export function SettingsPage({
       setError(String(e));
     } finally {
       setGeminiSaving(false);
+    }
+  };
+
+  const handleSaveReplicateKey = async () => {
+    setError(null);
+    setReplicateSaving(true);
+    try {
+      const cfg = await api.loadConfig();
+      const next = { ...cfg, replicate_api_token: replicateKeyDraft.trim() || null };
+      await api.saveConfig(next);
+      setReplicateKeySaved(next.replicate_api_token);
+      setReplicateKeyDraft("");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setReplicateSaving(false);
+    }
+  };
+
+  const handleClearReplicateKey = async () => {
+    setError(null);
+    setReplicateSaving(true);
+    try {
+      const cfg = await api.loadConfig();
+      const next = { ...cfg, replicate_api_token: null };
+      await api.saveConfig(next);
+      setReplicateKeySaved(null);
+      setReplicateKeyDraft("");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setReplicateSaving(false);
     }
   };
 
@@ -407,9 +445,82 @@ export function SettingsPage({
               <p className="set-note">
                 Get a key at{" "}
                 <code>aistudio.google.com/apikey</code>. Stored locally in{" "}
-                <code>config.json</code>, never synced. Required by the Static
-                Ad Creative form to call Nano Banana 2{" "}
-                (<code>gemini-3-pro-image-preview</code>).
+                <code>config.json</code>, never synced. Legacy path; the
+                Creative Studio uses Replicate (below).
+              </p>
+            </div>
+          </section>
+
+          {/* Replicate (Creative Studio) ──────────────────── */}
+          <section className="hml-panel set-panel">
+            <div className="hml-panel-header">
+              <div className="hml-panel-title">
+                <span
+                  className="hml-dot"
+                  style={{ background: "var(--hml-teal)" }}
+                />
+                Replicate
+              </div>
+              <span className="hml-panel-action">
+                Powers the Creative Studio playground
+              </span>
+            </div>
+            <div className="hml-panel-body set-body">
+              {replicateKeySaved ? (
+                <div className="set-inline-row">
+                  <span className="set-inline-text">
+                    Token saved:{" "}
+                    <code className="set-code">
+                      {replicateReveal
+                        ? replicateKeySaved
+                        : maskedKey(replicateKeySaved)}
+                    </code>
+                  </span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      className="hml-btn"
+                      onClick={() => setReplicateReveal((v) => !v)}
+                    >
+                      {replicateReveal ? "Hide" : "Reveal"}
+                    </button>
+                    <button
+                      type="button"
+                      className="hml-btn"
+                      onClick={handleClearReplicateKey}
+                      disabled={replicateSaving}
+                    >
+                      {replicateSaving ? "Clearing…" : "Clear"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="set-path-row">
+                  <input
+                    type="password"
+                    className="set-path"
+                    style={{ whiteSpace: "normal" }}
+                    placeholder="Paste your Replicate API token (r8_...)"
+                    value={replicateKeyDraft}
+                    onChange={(e) => setReplicateKeyDraft(e.target.value)}
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    className="hml-btn"
+                    onClick={handleSaveReplicateKey}
+                    disabled={replicateSaving || !replicateKeyDraft.trim()}
+                  >
+                    {replicateSaving ? "Saving…" : "Save token"}
+                  </button>
+                </div>
+              )}
+              <p className="set-note">
+                Get a token at{" "}
+                <code>replicate.com/account/api-tokens</code>. Stored locally in{" "}
+                <code>config.json</code>, never synced. Powers the Creative
+                Studio playground (search any model on Replicate, run, save the
+                output to a client folder).
               </p>
             </div>
           </section>

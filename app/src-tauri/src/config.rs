@@ -15,11 +15,16 @@ pub struct AppConfig {
     /// the Drive MCP tools (see sops.rs).
     #[serde(default)]
     pub sops_drive_folder_url: Option<String>,
-    /// Google AI Studio API key. Required by the AD_CREATIVE form to call
-    /// Nano Banana 2 (gemini-3-pro-image) for static ad generation. Lives
-    /// in plaintext in the per-user app config file; never committed.
+    /// Google AI Studio API key. Required by the legacy AD_CREATIVE path to
+    /// call Nano Banana 2 (gemini-3-pro-image) directly. Kept for backward
+    /// compatibility; the Creative Studio screen uses Replicate instead.
     #[serde(default)]
     pub gemini_api_key: Option<String>,
+    /// Replicate API token. Powers the Creative Studio playground: search
+    /// for any model on replicate.com, run predictions, save outputs. Stored
+    /// in plaintext in the per-user app config file; never committed.
+    #[serde(default)]
+    pub replicate_api_token: Option<String>,
 }
 
 fn config_path(app: &AppHandle) -> Result<PathBuf, String> {

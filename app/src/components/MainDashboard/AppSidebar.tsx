@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import type { ClientEntry } from "../../lib/types";
 import {
   defaultClientSection,
@@ -6,13 +6,17 @@ import {
   type OutreachSection,
   type PersonalSection,
   type ProspectEntry,
+  type SubApp,
   type WorkspaceView,
 } from "../../lib/navigation";
 import {
   IconBarChart,
   IconCalendar,
-  IconChevronRight,
+  IconCheck,
   IconDashboard,
+  IconFile,
+  IconFolder,
+  IconGlobe,
   IconPersonal,
   IconPlus,
   IconRecordings,
@@ -22,26 +26,21 @@ import {
   IconStar,
   IconTarget,
   IconTasks,
-  IconUsers,
+  IconZap,
 } from "../icons";
 
 export interface AppSidebarProps {
+  currentSubApp: SubApp;
+
   /** Workspace pillar active tab. */
   activeWorkspace?: WorkspaceView | null;
-  /** Outreach pillar — either a section, or null when not in outreach. */
   activeOutreach?: OutreachSection | null;
-  /** Currently open client + section, or null. */
   activeClient?: { slug: string; section: ClientSection } | null;
-  /** Personal pillar active section, or null when not in Personal. */
   activePersonal?: PersonalSection | null;
 
-  /** Real clients loaded from disk. */
   clients: ClientEntry[];
-  /** Prospects discovered via the lead scraper / outreach folder. Used for
-   *  the sidebar count badge on the Outreach Hub button. */
   prospects?: ProspectEntry[];
 
-  // ── callbacks ─────────────────────────────────────────────
   onSelectWorkspace: (tab: WorkspaceView) => void;
   onSelectOutreachSection: (
     section: "overview" | "lead-scraper" | "web-designer" | "sequence" | "dms",
@@ -53,12 +52,13 @@ export interface AppSidebarProps {
   onSearch?: () => void;
   onBrandClick?: () => void;
 
-  // ── footer ────────────────────────────────────────────────
   userName?: string;
   userInitials?: string;
   userStatusLabel?: string;
   appVersion?: string;
 }
+
+type ClientFilter = "all" | "live" | "pre-launch" | "paused";
 
 function avatarText(name: string): string {
   if (!name) return "•";
@@ -70,70 +70,151 @@ function avatarText(name: string): string {
     .join("");
 }
 
-function clientStatusPill(status: ClientEntry["status"]): {
-  className: string;
-  label: string;
-} {
+function clientStatusPill(status: ClientEntry["status"]) {
   switch (status) {
     case "live":
       return { className: "hml-green", label: "Live" };
     case "pre-launch":
-      return { className: "hml-amber", label: "Pre-launch" };
+      return { className: "hml-blue", label: "Pre" };
     case "paused":
       return { className: "hml-neutral", label: "Paused" };
   }
 }
 
-export function AppSidebar({
-  activeWorkspace,
-  activeOutreach,
-  activeClient,
-  activePersonal,
-  clients,
-  prospects,
-  onSelectWorkspace,
-  onSelectOutreachSection,
-  onSelectClientSection,
-  onSelectPersonalSection,
-  onAddClient,
-  onOpenSettings,
-  onSearch,
-  onBrandClick,
-  userName = "Jake Hauck",
-  userInitials = "JH",
-  userStatusLabel = "Aurelius online",
-  appVersion,
-}: AppSidebarProps) {
-  const outreachActive = activeOutreach !== null && activeOutreach !== undefined;
-  const clientsHubActive = activeWorkspace === "clients";
-  const inActiveClient = activeClient !== null && activeClient !== undefined;
+function clientSectionIcon(section: ClientSection) {
+  switch (section) {
+    case "dashboard":
+      return IconDashboard;
+    case "ads":
+      return IconBarChart;
+    case "onboarding":
+      return IconCheck;
+    case "recordings":
+      return IconRecordings;
+    case "websites":
+      return IconGlobe;
+    case "drive":
+      return IconFolder;
+    case "reporting":
+      return IconFile;
+    case "settings":
+      return IconSettings;
+  }
+}
 
+function clientSectionLabel(section: ClientSection) {
+  switch (section) {
+    case "dashboard":
+      return "Dashboard";
+    case "ads":
+      return "Ads";
+    case "onboarding":
+      return "Onboarding";
+    case "recordings":
+      return "Recordings";
+    case "websites":
+      return "Websites";
+    case "drive":
+      return "Drive";
+    case "reporting":
+      return "Reporting";
+    case "settings":
+      return "Settings";
+  }
+}
+
+/** Build the per-client sidebar list. Onboarding appears only while the
+ *  client is still pre-launch; Settings is always last. */
+function clientSectionsForStatus(status: ClientEntry["status"]): ClientSection[] {
+  const base: ClientSection[] = ["dashboard", "ads", "recordings", "websites", "drive", "reporting"];
+  return status === "pre-launch" ? ["onboarding", ...base, "settings"] : [...base, "settings"];
+}
+
+function subAppDisplay(subApp: SubApp): { name: string; eyebrow: string } {
+  switch (subApp) {
+    case "dashboard":
+      return { name: "Dashboard", eyebrow: "Sub-app" };
+    case "clients":
+      return { name: "Clients", eyebrow: "Sub-app" };
+    case "outreach":
+      return { name: "Outreach", eyebrow: "Sub-app" };
+    case "sales":
+      return { name: "Sales Pipeline", eyebrow: "Sub-app" };
+    case "onboarding":
+      return { name: "Onboarding Pipeline", eyebrow: "Sub-app" };
+    case "workspace":
+      return { name: "Workspace", eyebrow: "Sub-app" };
+    case "settings":
+      return { name: "Settings", eyebrow: "Sub-app" };
+  }
+}
+
+export function AppSidebar(props: AppSidebarProps) {
+  const {
+    currentSubApp,
+    activeWorkspace,
+    activeOutreach,
+    activeClient,
+    activePersonal,
+    clients,
+    prospects,
+    onSelectWorkspace,
+    onSelectOutreachSection,
+    onSelectClientSection,
+    onSelectPersonalSection,
+    onAddClient,
+    onOpenSettings,
+    onSearch,
+    userName = "Jake Hauck",
+    userInitials = "JH",
+    userStatusLabel = "Aurelius online",
+  } = props;
+
+  const display = subAppDisplay(currentSubApp);
   const prospectsList = useMemo(() => prospects ?? [], [prospects]);
 
-  /** Clients dropdown defaults open if you're already inside a client (so the
-   *  active client is visible) or on the Clients Hub page. Otherwise collapsed. */
-  const [clientsOpen, setClientsOpen] = useState<boolean>(
-    () => clientsHubActive || inActiveClient,
+  const liveCount = useMemo(
+    () => clients.filter((c) => c.status === "live").length,
+    [clients],
   );
-  const toggleClients = () => setClientsOpen((x) => !x);
+  const preLaunchCount = useMemo(
+    () => clients.filter((c) => c.status === "pre-launch").length,
+    [clients],
+  );
+
+  let countBadge: { label: string; className: string } | null = null;
+  if (currentSubApp === "clients" && liveCount > 0) {
+    countBadge = { label: `${liveCount} live`, className: "hml-green" };
+  } else if (currentSubApp === "outreach" && prospectsList.length > 0) {
+    countBadge = {
+      label: String(prospectsList.length),
+      className: "hml-blue",
+    };
+  } else if (currentSubApp === "onboarding" && preLaunchCount > 0) {
+    countBadge = {
+      label: `${preLaunchCount} pending`,
+      className: "hml-amber",
+    };
+  }
+
+  if (currentSubApp === "dashboard") {
+    return null;
+  }
 
   return (
     <aside className="hml-sidebar">
-      {/* Brand ──────────────────────────────────────── */}
-      <button
-        type="button"
-        className="hml-brand"
-        onClick={onBrandClick}
-        title="Back to dashboard"
-      >
-        <div className="hml-brand-mark">H</div>
-        <div className="hml-brand-name">
-          Hauck Marketing
-          <span className="hml-sub">Lab{appVersion ? ` · ${appVersion}` : ""}</span>
+      <div className="hml-sub-head">
+        <div>
+          <span className="hml-sub-eyebrow">{display.eyebrow}</span>
+          <div className="hml-sub-name">{display.name}</div>
         </div>
-      </button>
+        {countBadge && (
+          <span className={`hml-sub-count ${countBadge.className}`}>
+            {countBadge.label}
+          </span>
+        )}
+      </div>
 
-      {/* Search placeholder (opens command palette) ── */}
       <button
         type="button"
         className="hml-search-bar"
@@ -146,215 +227,53 @@ export function AppSidebar({
       </button>
 
       <nav className="hml-nav">
-        {/* DASHBOARD ─────────────────────────────────── (ungrouped, top) */}
-        <div className="hml-nav-section" style={{ marginBottom: 4 }}>
-          <NavItem
-            label="Dashboard"
-            Icon={IconDashboard}
-            active={activeWorkspace === "dashboard"}
-            onClick={() => onSelectWorkspace("dashboard")}
+        {currentSubApp === "clients" && (
+          <ClientsBody
+            clients={clients}
+            activeClient={activeClient ?? null}
+            onSelectClientSection={onSelectClientSection}
+            onAddClient={onAddClient}
+            onOpenLanding={() => onSelectWorkspace("clients")}
+            landingActive={activeWorkspace === "clients"}
           />
-        </div>
+        )}
 
-        {/* AGENCY ────────────────────────────────────── */}
-        <div className="hml-nav-section">
-          <div className="hml-section-label">
-            <span>Agency</span>
-          </div>
-          <NavItem
-            label="Ads Manager"
-            Icon={IconBarChart}
-            active={activeWorkspace === "ads"}
-            onClick={() => onSelectWorkspace("ads")}
+        {currentSubApp === "outreach" && (
+          <OutreachBody
+            activeOutreach={activeOutreach ?? null}
+            onSelectOutreachSection={onSelectOutreachSection}
+            prospects={prospectsList}
           />
-          <NavItem
-            label="Outreach Hub"
-            Icon={IconTarget}
-            active={outreachActive}
-            onClick={() => onSelectOutreachSection("overview")}
-            badge={
-              prospectsList.length > 0 ? String(prospectsList.length) : undefined
-            }
-          />
-          <NavItem
-            label="Sales pipeline"
-            Icon={IconBarChart}
-            active={activeWorkspace === "sales"}
-            onClick={() => onSelectWorkspace("sales")}
-          />
-          <NavItem
-            label="Onboarding pipeline"
-            Icon={IconUsers}
-            active={activeWorkspace === "onboarding"}
-            onClick={() => onSelectWorkspace("onboarding")}
-          />
+        )}
 
-          {/* Clients Hub — caret toggles dropdown, label navigates to hub page. */}
-          <button
-            type="button"
-            className={`hml-nav-item${clientsHubActive ? " hml-active" : ""}`}
-            onClick={() => {
-              onSelectWorkspace("clients");
-              setClientsOpen(true);
-            }}
-            title="Clients Hub"
-          >
-            <span
-              role="button"
-              tabIndex={0}
-              aria-label={clientsOpen ? "Collapse clients" : "Expand clients"}
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleClients();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  toggleClients();
-                }
-              }}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 14,
-                height: 14,
-                marginRight: 2,
-                cursor: "pointer",
-                transform: clientsOpen ? "rotate(90deg)" : "none",
-                transition: "transform 120ms ease",
-              }}
-            >
-              <IconChevronRight size={12} />
-            </span>
-            <IconUsers size={14} />
-            <span style={{ flex: 1, textAlign: "left" }}>Clients Hub</span>
-            {clients.length > 0 && (
-              <span className="hml-nav-badge">{clients.length}</span>
-            )}
-          </button>
+        {currentSubApp === "sales" && (
+          <SalesBody />
+        )}
 
-          {clientsOpen && (
-            <>
-              {clients.map((c) => {
-                const pill = clientStatusPill(c.status);
-                const isActive = activeClient?.slug === c.slug;
-                return (
-                  <button
-                    key={c.slug}
-                    type="button"
-                    className={`hml-nav-item${isActive ? " hml-active" : ""}`}
-                    onClick={() =>
-                      onSelectClientSection(c.slug, defaultClientSection(c.status))
-                    }
-                    title={c.name}
-                    style={{ paddingLeft: 26 }}
-                  >
-                    <span
-                      className="hml-client-avatar"
-                      style={{
-                        width: 18,
-                        height: 18,
-                        fontSize: 9.5,
-                        borderRadius: 4,
-                      }}
-                    >
-                      {avatarText(c.name)}
-                    </span>
-                    <span
-                      style={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        flex: 1,
-                        minWidth: 0,
-                      }}
-                    >
-                      {c.name}
-                    </span>
-                    <span
-                      className={`hml-pill ${pill.className}`}
-                      style={{
-                        marginLeft: "auto",
-                        padding: "1px 6px",
-                        fontSize: 9,
-                      }}
-                    >
-                      <span className="hml-pill-dot" />
-                      {pill.label}
-                    </span>
-                  </button>
-                );
-              })}
-              {onAddClient && (
-                <button
-                  type="button"
-                  className="hml-nav-add"
-                  onClick={onAddClient}
-                  style={{ paddingLeft: 26 }}
-                >
-                  <IconPlus size={13} />
-                  <span>Add client</span>
-                </button>
-              )}
-            </>
-          )}
-        </div>
+        {currentSubApp === "onboarding" && (
+          <OnboardingBody
+            clients={clients}
+            activeClient={activeClient ?? null}
+            onSelectClientSection={onSelectClientSection}
+            onOpenLanding={() => onSelectWorkspace("onboarding")}
+            landingActive={activeWorkspace === "onboarding"}
+          />
+        )}
 
-        {/* WORKSPACE ─────────────────────────────────── */}
-        <div className="hml-nav-section">
-          <div className="hml-section-label">
-            <span>Workspace</span>
-          </div>
-          <NavItem
-            label="Calendar"
-            Icon={IconCalendar}
-            active={activeWorkspace === "calendar"}
-            onClick={() => onSelectWorkspace("calendar")}
+        {currentSubApp === "workspace" && (
+          <WorkspaceBody
+            activeWorkspace={activeWorkspace}
+            activePersonal={activePersonal ?? null}
+            onSelectWorkspace={onSelectWorkspace}
+            onSelectPersonalSection={onSelectPersonalSection}
           />
-          <NavItem
-            label="Tasks"
-            Icon={IconTasks}
-            active={activeWorkspace === "tasks"}
-            onClick={() => onSelectWorkspace("tasks")}
-          />
-          <NavItem
-            label="Revenue"
-            Icon={IconBarChart}
-            active={activeWorkspace === "revenue"}
-            onClick={() => onSelectWorkspace("revenue")}
-          />
-          <NavItem
-            label="Recordings"
-            Icon={IconRecordings}
-            active={activeWorkspace === "recordings"}
-            onClick={() => onSelectWorkspace("recordings")}
-          />
-          <NavItem
-            label="SOPs"
-            Icon={IconSOPs}
-            active={activeWorkspace === "sops"}
-            onClick={() => onSelectWorkspace("sops")}
-          />
-          <NavItem
-            label="Resources"
-            Icon={IconStar}
-            active={activeWorkspace === "resources"}
-            onClick={() => onSelectWorkspace("resources")}
-          />
-          {onSelectPersonalSection && (
-            <NavItem
-              label="Personal Hub"
-              Icon={IconPersonal}
-              active={activePersonal !== null && activePersonal !== undefined}
-              onClick={() => onSelectPersonalSection("overview")}
-            />
-          )}
-        </div>
+        )}
+
+        {currentSubApp === "settings" && (
+          <div className="hml-empty-hint">Settings opens in a modal.</div>
+        )}
       </nav>
 
-      {/* Footer ─────────────────────────────────────── */}
       <div className="hml-sidebar-footer">
         <div className="hml-user-avatar">{userInitials}</div>
         <div className="hml-user-info">
@@ -379,7 +298,328 @@ export function AppSidebar({
   );
 }
 
-// ─── helpers ──────────────────────────────────────────
+// ─── Sub-app body components ──────────────────────────────────────────────
+
+interface ClientsBodyProps {
+  clients: ClientEntry[];
+  activeClient: { slug: string; section: ClientSection } | null;
+  onSelectClientSection: (slug: string, section: ClientSection) => void;
+  onAddClient?: () => void;
+  onOpenLanding: () => void;
+  landingActive: boolean;
+}
+
+function ClientsBody(props: ClientsBodyProps) {
+  const {
+    clients,
+    activeClient,
+    onSelectClientSection,
+    onAddClient,
+    onOpenLanding,
+    landingActive,
+  } = props;
+  const [filter, setFilter] = useState<ClientFilter>("all");
+
+  const filtered = useMemo(() => {
+    if (filter === "all") return clients;
+    return clients.filter((c) => c.status === filter);
+  }, [clients, filter]);
+
+  const filters: { id: ClientFilter; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "live", label: "Live" },
+    { id: "pre-launch", label: "Pre" },
+    { id: "paused", label: "Paused" },
+  ];
+
+  return (
+    <>
+      <button
+        type="button"
+        className={`hml-nav-item${landingActive && !activeClient ? " hml-active" : ""}`}
+        onClick={onOpenLanding}
+        title="All clients overview"
+      >
+        <IconBarChart className="hml-nav-icon" />
+        <span>All clients</span>
+      </button>
+
+      <div className="hml-chips">
+        {filters.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            className={`hml-chip-f${filter === f.id ? " hml-chip-on" : ""}`}
+            onClick={() => setFilter(f.id)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="hml-clients-list">
+        {filtered.map((c) => {
+          const pill = clientStatusPill(c.status);
+          const isActive = activeClient?.slug === c.slug;
+          return (
+            <Fragment key={c.slug}>
+              <button
+                type="button"
+                className={`hml-cli-row${isActive ? " hml-cli-active" : ""}`}
+                onClick={() =>
+                  onSelectClientSection(c.slug, defaultClientSection(c.status))
+                }
+                title={c.name}
+              >
+                <span className="hml-cli-mark">
+                  {avatarText(c.name)}
+                </span>
+                <span className="hml-cli-name">{c.name}</span>
+                <span className={`hml-pill-mini ${pill.className}`}>
+                  {pill.label}
+                </span>
+              </button>
+
+              {isActive && (
+                <div className="hml-nested-tabs">
+                  {clientSectionsForStatus(c.status).map((section) => {
+                    const Icon = clientSectionIcon(section);
+                    const tabActive = activeClient.section === section;
+                    return (
+                      <button
+                        key={section}
+                        type="button"
+                        className={`hml-nested-tab${tabActive ? " hml-nested-active" : ""}`}
+                        onClick={() => onSelectClientSection(c.slug, section)}
+                      >
+                        <Icon size={13} className="hml-nested-ico" />
+                        <span>{clientSectionLabel(section)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </Fragment>
+          );
+        })}
+
+        {filtered.length === 0 && (
+          <div className="hml-empty-hint">No clients match.</div>
+        )}
+
+        {onAddClient && (
+          <button
+            type="button"
+            className="hml-add-client"
+            onClick={onAddClient}
+          >
+            <IconPlus size={13} />
+            <span>Add client</span>
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
+
+interface OutreachBodyProps {
+  activeOutreach: OutreachSection | null;
+  onSelectOutreachSection: (
+    section: "overview" | "lead-scraper" | "web-designer" | "sequence" | "dms",
+  ) => void;
+  prospects: ProspectEntry[];
+}
+
+function OutreachBody({
+  activeOutreach,
+  onSelectOutreachSection,
+  prospects,
+}: OutreachBodyProps) {
+  return (
+    <div className="hml-nav-section">
+      <div className="hml-nav-label">Outreach</div>
+      <NavItem
+        label="Overview"
+        Icon={IconTarget}
+        active={activeOutreach === "overview"}
+        onClick={() => onSelectOutreachSection("overview")}
+      />
+      <NavItem
+        label="Cold call sequence"
+        Icon={IconBarChart}
+        active={activeOutreach === "sequence"}
+        onClick={() => onSelectOutreachSection("sequence")}
+      />
+      <NavItem
+        label="Lead scraper"
+        Icon={IconSearch}
+        active={activeOutreach === "lead-scraper"}
+        onClick={() => onSelectOutreachSection("lead-scraper")}
+      />
+      <NavItem
+        label="Web designer"
+        Icon={IconStar}
+        active={activeOutreach === "web-designer"}
+        onClick={() => onSelectOutreachSection("web-designer")}
+      />
+      <NavItem
+        label="Personalized DMs"
+        Icon={IconTasks}
+        active={activeOutreach === "dms"}
+        onClick={() => onSelectOutreachSection("dms")}
+      />
+      {prospects.length > 0 && (
+        <div className="hml-nav-label" style={{ marginTop: 14 }}>
+          Prospects ({prospects.length})
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SalesBody() {
+  return (
+    <div className="hml-nav-section">
+      <div className="hml-nav-label">Sales</div>
+      <div className="hml-empty-hint">
+        Sales pipeline lives in the main pane.
+      </div>
+    </div>
+  );
+}
+
+interface OnboardingBodyProps {
+  clients: ClientEntry[];
+  activeClient: { slug: string; section: ClientSection } | null;
+  onSelectClientSection: (slug: string, section: ClientSection) => void;
+  onOpenLanding: () => void;
+  landingActive: boolean;
+}
+
+function OnboardingBody({
+  clients,
+  activeClient,
+  onSelectClientSection,
+  onOpenLanding,
+  landingActive,
+}: OnboardingBodyProps) {
+  const preLaunch = clients.filter((c) => c.status === "pre-launch");
+  return (
+    <>
+      <button
+        type="button"
+        className={`hml-nav-item${landingActive && !activeClient ? " hml-active" : ""}`}
+        onClick={onOpenLanding}
+      >
+        <IconCheck className="hml-nav-icon" />
+        <span>Pipeline overview</span>
+      </button>
+
+      <div className="hml-nav-label" style={{ marginTop: 14 }}>
+        Pre-launch clients
+      </div>
+      <div className="hml-clients-list">
+        {preLaunch.length === 0 ? (
+          <div className="hml-empty-hint">No pre-launch clients.</div>
+        ) : (
+          preLaunch.map((c) => {
+            const isActive = activeClient?.slug === c.slug;
+            return (
+              <button
+                key={c.slug}
+                type="button"
+                className={`hml-cli-row${isActive ? " hml-cli-active" : ""}`}
+                onClick={() => onSelectClientSection(c.slug, "onboarding")}
+              >
+                <span className="hml-cli-mark">
+                  {avatarText(c.name)}
+                </span>
+                <span className="hml-cli-name">{c.name}</span>
+                <span className="hml-pill-mini hml-blue">Pre</span>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </>
+  );
+}
+
+interface WorkspaceBodyProps {
+  activeWorkspace?: WorkspaceView | null;
+  activePersonal: PersonalSection | null;
+  onSelectWorkspace: (tab: WorkspaceView) => void;
+  onSelectPersonalSection?: (section: PersonalSection) => void;
+}
+
+function WorkspaceBody({
+  activeWorkspace,
+  activePersonal,
+  onSelectWorkspace,
+  onSelectPersonalSection,
+}: WorkspaceBodyProps) {
+  return (
+    <div className="hml-nav-section">
+      <div className="hml-nav-label">Workspace</div>
+      <NavItem
+        label="Calendar"
+        Icon={IconCalendar}
+        active={activeWorkspace === "calendar"}
+        onClick={() => onSelectWorkspace("calendar")}
+      />
+      <NavItem
+        label="Tasks"
+        Icon={IconTasks}
+        active={activeWorkspace === "tasks"}
+        onClick={() => onSelectWorkspace("tasks")}
+      />
+      <NavItem
+        label="Revenue"
+        Icon={IconBarChart}
+        active={activeWorkspace === "revenue"}
+        onClick={() => onSelectWorkspace("revenue")}
+      />
+      <NavItem
+        label="Recordings"
+        Icon={IconRecordings}
+        active={activeWorkspace === "recordings"}
+        onClick={() => onSelectWorkspace("recordings")}
+      />
+      <NavItem
+        label="SOPs"
+        Icon={IconSOPs}
+        active={activeWorkspace === "sops"}
+        onClick={() => onSelectWorkspace("sops")}
+      />
+      <NavItem
+        label="Resources"
+        Icon={IconStar}
+        active={activeWorkspace === "resources"}
+        onClick={() => onSelectWorkspace("resources")}
+      />
+      <NavItem
+        label="Creative Studio"
+        Icon={IconTarget}
+        active={activeWorkspace === "creative-studio"}
+        onClick={() => onSelectWorkspace("creative-studio")}
+      />
+      <NavItem
+        label="Automations"
+        Icon={IconZap}
+        active={activeWorkspace === "automations"}
+        onClick={() => onSelectWorkspace("automations")}
+      />
+      {onSelectPersonalSection && (
+        <NavItem
+          label="Personal Hub"
+          Icon={IconPersonal}
+          active={activePersonal !== null}
+          onClick={() => onSelectPersonalSection("overview")}
+        />
+      )}
+    </div>
+  );
+}
 
 interface NavItemProps {
   label: string;
@@ -402,4 +642,3 @@ function NavItem({ label, Icon, active, badge, onClick }: NavItemProps) {
     </button>
   );
 }
-

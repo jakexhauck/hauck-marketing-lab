@@ -9,13 +9,20 @@
 import { useMemo } from "react";
 import { ALL_FORM_CONFIGS, type FormConfig, type FormSurfaceId } from "../../lib/formConfigs";
 
+/** Display group for a form. Ordering of this array == display order in the UI. */
+export type FormGroupId = "reports" | "creative" | "audiences" | "campaigns" | "comms";
+
 interface ClientMediaBuyingProps {
   clientName: string;
   onOpenForm: (id: FormSurfaceId) => void;
+  /** Restrict the panel to a subset of groups. When omitted, all groups
+   *  plus the "Other" fallback render. Used by the Ads tab (everything
+   *  except reports) and the Reporting tab (reports only). */
+  includeGroups?: FormGroupId[];
+  /** When true, hide the sticky header + jump chips for a more compact
+   *  embed (e.g. when stacked under the Ads Manager dashboard). */
+  compact?: boolean;
 }
-
-/** Display group for a form. Ordering of this array == display order in the UI. */
-type FormGroupId = "reports" | "creative" | "audiences" | "campaigns" | "comms";
 
 type FormGroupSpec = {
   id: FormGroupId;
@@ -38,7 +45,7 @@ const GROUPS: FormGroupSpec[] = [
     id: "creative",
     label: "Creative",
     hint: "Generate ad copy, creative briefs, and static creatives.",
-    formIds: ["ad-copy", "ad-creative", "hooks", "creative-brief"],
+    formIds: ["ad-copy", "hooks", "creative-brief"],
   },
   {
     id: "audiences",
@@ -123,8 +130,21 @@ function FormCardView({
 export function ClientMediaBuying({
   clientName: _clientName,
   onOpenForm,
+  includeGroups,
+  compact,
 }: ClientMediaBuyingProps) {
-  const { groups, other } = useMemo(() => buildGroups(), []);
+  const { groups: allGroups, other: allOther } = useMemo(() => buildGroups(), []);
+  const groups = useMemo(
+    () =>
+      includeGroups
+        ? allGroups.filter((g) => includeGroups.includes(g.spec.id))
+        : allGroups,
+    [allGroups, includeGroups],
+  );
+  // The "Other" bucket only shows when no filter is applied — otherwise it's
+  // a fallback for uncategorised forms that has no business inside a scoped
+  // panel.
+  const other = includeGroups ? [] : allOther;
   const totalForms =
     groups.reduce((n, g) => n + g.forms.length, 0) + other.length;
 
@@ -132,34 +152,36 @@ export function ClientMediaBuying({
     <div className="fl-wrap">
       <style>{FULFILLMENT_CSS}</style>
 
-      <header className="fl-header">
-        <div>
-          <div className="fl-header-eyebrow">Forms</div>
-          <div className="fl-header-title">
-            {totalForms} form{totalForms === 1 ? "" : "s"} · grouped by purpose
+      {!compact && (
+        <header className="fl-header">
+          <div>
+            <div className="fl-header-eyebrow">Forms</div>
+            <div className="fl-header-title">
+              {totalForms} form{totalForms === 1 ? "" : "s"} · grouped by purpose
+            </div>
           </div>
-        </div>
-        <nav className="fl-jump">
-          {groups.map((g) =>
-            g.forms.length === 0 ? null : (
-              <a
-                key={g.spec.id}
-                href={`#fl-group-${g.spec.id}`}
-                className="fl-jump-chip"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document
-                    .getElementById(`fl-group-${g.spec.id}`)
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              >
-                {g.spec.label}
-                <span className="fl-jump-count">{g.forms.length}</span>
-              </a>
-            ),
-          )}
-        </nav>
-      </header>
+          <nav className="fl-jump">
+            {groups.map((g) =>
+              g.forms.length === 0 ? null : (
+                <a
+                  key={g.spec.id}
+                  href={`#fl-group-${g.spec.id}`}
+                  className="fl-jump-chip"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document
+                      .getElementById(`fl-group-${g.spec.id}`)
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                >
+                  {g.spec.label}
+                  <span className="fl-jump-count">{g.forms.length}</span>
+                </a>
+              ),
+            )}
+          </nav>
+        </header>
+      )}
 
       {groups.map((g) =>
         g.forms.length === 0 ? null : (

@@ -4,8 +4,46 @@ export type AppConfig = {
   default_agent_slug?: string | null;
   /** Agency-wide Google Drive folder URL that holds SOP docs. */
   sops_drive_folder_url?: string | null;
-  /** Google AI Studio API key for Nano Banana 2 image generation. */
+  /** Google AI Studio API key for Nano Banana 2 image generation (legacy). */
   gemini_api_key?: string | null;
+  /** Replicate API token. Powers the Creative Studio playground. */
+  replicate_api_token?: string | null;
+};
+
+/** Replicate model summary returned by search_replicate_models. */
+export type ReplicateModel = {
+  owner: string;
+  name: string;
+  description: string | null;
+  cover_image_url: string | null;
+  latest_version_id: string | null;
+  run_count: number | null;
+};
+
+/** Replicate model details including OpenAPI input schema. */
+export type ReplicateModelDetail = {
+  owner: string;
+  name: string;
+  description: string | null;
+  cover_image_url: string | null;
+  latest_version_id: string | null;
+  input_schema: Record<string, unknown>;
+};
+
+/** Result of a Replicate prediction. */
+export type ReplicatePredictionResult = {
+  id: string;
+  status: string;
+  output: unknown;
+  error: string | null;
+  logs: string | null;
+};
+
+/** Saved Replicate output file. */
+export type ReplicateSavedOutput = {
+  saved_path: string;
+  filename: string;
+  source_url: string;
 };
 
 /** Nano Banana 2 prompt shape consumed by `generate_creative_set`. */

@@ -19,7 +19,6 @@
 import type { FormSurfaceId } from "./formConfigs";
 
 export type SequenceStepId =
-  | "pixel-install"
   | "audience-research"
   | "creative-brief"
   | "hooks"
@@ -137,14 +136,6 @@ export function summarizeStepOutput(
     s.length <= n ? s : s.slice(0, n - 1).trimEnd() + "…";
 
   switch (stepId) {
-    case "pixel-install": {
-      const platform = str(parsed?.platform).trim();
-      const steps = arr(parsed?.steps).length;
-      if (platform && steps) return `${platform} · ${steps} steps`;
-      if (platform) return platform;
-      if (steps) return `${steps} install steps`;
-      return null;
-    }
     case "audience-research": {
       const audiences = arr(parsed?.audiences);
       const launchFirst = str(parsed?.launch_first).trim();
@@ -217,9 +208,15 @@ export function summarizeStepOutput(
   }
 }
 
+/** Form surface a sequence step resolves to. Most steps use a real
+ *  FormConfig.id; "ad-creative" is a sentinel — that step renders the
+ *  AdCreativeStudio component directly instead of going through the
+ *  generic form pipeline. */
+export type SequenceFormSurface = FormSurfaceId | "ad-creative";
+
 export interface SequenceStep {
   id: SequenceStepId;
-  formId: FormSurfaceId;
+  formId: SequenceFormSurface;
   /** OnboardingChecklist task ID to auto-tick on form save. Optional — some
    *  sequence steps (e.g. hooks) don't have a 1:1 task in the plan. */
   checklistTaskId?: string;
@@ -233,19 +230,24 @@ export interface SequenceStep {
   chainFrom?: ChainSpec | ChainSpec[] | null;
 }
 
+// Pixel install used to be step 1 of this sequence. Moved out 2026-05-20 into
+// Phase 3 (Technical Setup) since it's plumbing, not creative work. The
+// `pixel-install` form is still wired, but now via FORM_BY_TASK on the
+// 03-pixel checklist row in OnboardingChecklist.tsx.
+//
+// `checklistTaskId` was stripped from every step in the same pass:
+//   - 04-audiences / 04-creative / 04-copy / 04-creatives were phantom IDs
+//     (no matching task in onboardingPlan.ts).
+//   - 05-structure / 06-optimizer auto-ticked Phase 5 + Phase 6 tasks that
+//     describe MANUAL build/monitoring work distinct from saving the wizard's
+//     plan file. Auto-ticking them on save was misleading.
+// The wizard now ticks nothing in the checklist directly. Instead, OnboardingChecklist
+// watches `sequenceComplete(sequenceState)` and auto-ticks 06-ads when every
+// wizard step is done.
 export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
-  {
-    id: "pixel-install",
-    formId: "pixel-install",
-    checklistTaskId: "03-pixel",
-    phase: 5,
-    label: "Install pixel",
-    hint: "Walk through installing the Meta Pixel on the client's site.",
-  },
   {
     id: "audience-research",
     formId: "audience-research",
-    checklistTaskId: "04-audiences",
     phase: 6,
     label: "Audience research",
     hint: "Deep voice-of-customer teardown: psychographics, pains, language. Seeds the brief and copy. Competitor research from pre-call prep is read off Profile.md, not chained here.",
@@ -253,7 +255,6 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
   {
     id: "creative-brief",
     formId: "creative-brief",
-    checklistTaskId: "04-creative",
     phase: 6,
     label: "Write creative brief",
     hint: "Lock the hook, message, proof, and CTA. Pulls audience research from the prior step; competitor white-space comes from Profile.md.",
@@ -278,7 +279,6 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
   {
     id: "ad-copy",
     formId: "ad-copy",
-    checklistTaskId: "04-copy",
     phase: 6,
     label: "Generate ad copy",
     hint: "10+ variations from the locked brief and hooks. Competitor angles come in via Profile.md.",
@@ -294,7 +294,6 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
   {
     id: "ad-creative",
     formId: "ad-creative",
-    checklistTaskId: "04-creatives",
     phase: 6,
     label: "Build static creatives",
     hint: "Turn chosen ad-copy variations into Nano Banana 2 image prompts.",
@@ -313,18 +312,16 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
   {
     id: "structure",
     formId: "structure",
-    checklistTaskId: "05-structure",
     phase: 7,
     label: "Plan campaign structure",
-    hint: "CBO vs ABO, ad-set split, creatives-per-ad-set.",
+    hint: "CBO vs ABO, ad-set split, creatives-per-ad-set. Output is the spec you'll build from in Phase 5.",
   },
   {
     id: "optimizer",
     formId: "optimizer",
-    checklistTaskId: "06-optimizer",
     phase: 8,
     label: "Set optimizer watchlist",
-    hint: "Thresholds Zenith uses to flag kill + scale candidates in Ads Manager. Advisory only — Zenith never touches the ads. You make every call.",
+    hint: "Thresholds Zenith uses to flag kill + scale candidates in Ads Manager. Advisory only, Zenith never touches the ads. You make every call.",
   },
 ];
 
@@ -333,6 +330,36 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
 export const ADS_SEQUENCE_FORM_IDS: ReadonlySet<string> = new Set(
   MEDIA_BUYING_SEQUENCE.map((s) => s.formId),
 );
+
+/** Visual grouping for the wizard rail. Purely presentational — the underlying
+ *  step order, IDs, formIds, and chainFrom plumbing are unchanged. Adding or
+ *  re-ordering steps still happens in MEDIA_BUYING_SEQUENCE above; this just
+ *  decides which group header a step sits under. */
+export type SequenceGroupId = "research" | "creative" | "launch";
+
+export interface SequenceGroup {
+  id: SequenceGroupId;
+  label: string;
+  stepIds: SequenceStepId[];
+}
+
+export const SEQUENCE_GROUPS: SequenceGroup[] = [
+  {
+    id: "research",
+    label: "Research",
+    stepIds: ["audience-research", "creative-brief"],
+  },
+  {
+    id: "creative",
+    label: "Creative",
+    stepIds: ["hooks", "ad-copy", "ad-creative"],
+  },
+  {
+    id: "launch",
+    label: "Launch & Monitor",
+    stepIds: ["structure", "optimizer"],
+  },
+];
 
 /** Per-step persisted record. `path` points at the saved generator output on disk. */
 export interface SequenceStepRecord {

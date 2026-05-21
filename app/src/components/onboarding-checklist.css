@@ -297,6 +297,50 @@ button.ob-ghl-pill { cursor: pointer; }
   text-decoration-color: rgba(255, 255, 255, 0.12);
 }
 .ob-task-body strong { color: var(--hml-text-primary); font-weight: 600; }
+
+.ob-optional-chip {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  font-family: var(--hml-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hml-text-tertiary);
+  background: var(--hml-bg-elev-2);
+  border: 1px solid var(--hml-border-subtle);
+  border-radius: 999px;
+  vertical-align: 2px;
+  font-weight: 500;
+}
+
+.ob-subprogress {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 9px;
+  font-family: var(--hml-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--hml-accent);
+  background: var(--hml-accent-dim);
+  border: 1px solid var(--hml-accent-border);
+  border-radius: 999px;
+  vertical-align: 2px;
+  font-weight: 500;
+}
+
+.ob-graduate-skip button {
+  opacity: 0.55;
+  background: transparent;
+  border-color: var(--hml-border);
+  color: var(--hml-text-tertiary);
+}
+.ob-graduate-skip button:hover {
+  opacity: 1;
+  background: var(--hml-bg-elev-2);
+  color: var(--hml-text-primary);
+  border-color: var(--hml-border-strong);
+}
 .ob-task-howto {
   margin-top: 7px;
   padding: 10px 14px 11px;

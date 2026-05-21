@@ -9,6 +9,7 @@ import {
 import "./main-dashboard.css";
 import { openInAppWindow } from "../../lib/openInApp";
 import { AppSidebar } from "./AppSidebar";
+import { IconRail } from "./IconRail";
 import type { WorkflowView } from "./Sidebar";
 import type { FormSurfaceId } from "../../lib/formConfigs";
 import type { AgentSummary } from "../../lib/types";
@@ -20,13 +21,18 @@ import {
   IconUser,
 } from "../icons";
 import {
+  subAppToDefaultView,
+  viewToSubApp,
   type ClientSection,
   type OutreachSection,
   type PersonalSection,
   type ProspectEntry,
+  type SubApp,
   type WorkspaceView,
 } from "../../lib/navigation";
 import { ConnectCalendarModal } from "./ConnectCalendarModal";
+import { AutomationsPage } from "./AutomationsPage";
+import { CreativeStudio } from "./CreativeStudio";
 import { RecordingsPage } from "./RecordingsPage";
 import { ResourcesPage } from "./ResourcesPage";
 import { SOPsPage } from "./SOPsPage";
@@ -35,7 +41,7 @@ import { LeadScraperPage } from "./LeadScraperPage";
 import { NotificationsBell } from "./NotificationsBell";
 import { WebDesignerPage } from "./WebDesignerPage";
 import { ClientDashboard } from "./ClientDashboard";
-import { AdsManagerWorkspace } from "./AdsManagerWorkspace";
+import { ClientsLanding } from "./ClientsLanding";
 import { OutreachHub } from "./OutreachHub";
 import { OutreachDmsPage } from "./OutreachDmsPage";
 import { OutreachProspectPage } from "./OutreachProspectPage";
@@ -44,7 +50,6 @@ import { SalesHubPage } from "./SalesHubPage";
 import { OnboardingHubPage } from "./OnboardingHubPage";
 import { PersonalHubPage } from "./PersonalHubPage";
 import {
-  ClientsTrackerPage,
   RevenueTrackerPage,
   TasksTrackerPage,
   mondayYMD,
@@ -244,6 +249,17 @@ export function MainDashboard({
     setView({ kind: "personal", section });
   };
 
+  const currentSubApp: SubApp = viewToSubApp(view);
+
+  const onPickSubApp = (subApp: SubApp) => {
+    if (subApp === "settings") {
+      onSettings?.();
+      return;
+    }
+    const next = subAppToDefaultView(subApp);
+    if (next) setView(next as View);
+  };
+
   // Sidebar active-state derivations ─────────────────────────
   const activeWorkspace: WorkspaceView | null =
     view.kind === "workspace" ? view.tab : null;
@@ -276,10 +292,15 @@ export function MainDashboard({
         ? "⇅ Sync"
         : "⇅ Sync";
 
+  const shellClass =
+    "hml-shell" + (currentSubApp === "dashboard" ? " hml-shell-no-sidebar" : "");
+
   return (
     <div className="md-root hml-app">
-      <div className="hml-shell">
+      <div className={shellClass}>
+        <IconRail current={currentSubApp} onPick={onPickSubApp} />
         <AppSidebar
+          currentSubApp={currentSubApp}
           activeWorkspace={activeWorkspace}
           activeOutreach={activeOutreach}
           activeClient={activeClientForSidebar}
@@ -343,6 +364,7 @@ export function MainDashboard({
             onSelectClientSection,
             onSelectPersonalSection,
             onOpenForm,
+            onAddClient,
             onProspectsChanged: refreshProspects,
             agents: agents ?? [],
           })}
@@ -458,12 +480,16 @@ function sectionToLabel(s: ClientSection): string {
       return "Onboarding";
     case "ads":
       return "Ads";
-    case "profile":
-      return "Profile";
-    case "memory":
-      return "Memory";
-    case "service-delivery":
-      return "Fulfillment";
+    case "recordings":
+      return "Recordings";
+    case "websites":
+      return "Websites";
+    case "drive":
+      return "Drive";
+    case "reporting":
+      return "Reporting";
+    case "settings":
+      return "Settings";
   }
 }
 
@@ -498,6 +524,7 @@ interface RenderMainArgs {
   onSelectClientSection: (slug: string, section: ClientSection) => void;
   onSelectPersonalSection: (section: PersonalSection) => void;
   onOpenForm?: (id: FormSurfaceId, clientSlug: string, clientName: string) => void;
+  onAddClient?: () => void;
   onProspectsChanged: () => void;
   agents: AgentSummary[];
 }
@@ -527,8 +554,15 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
           prospects={prospects}
         />
       );
-    if (view.tab === "clients")
-      return <ClientsTrackerPage root={root} clients={realClients} />;
+    if (view.tab === "clients" || view.tab === "ads")
+      return (
+        <ClientsLanding
+          clients={realClients}
+          root={root}
+          onSelectClientSection={onSelectClientSection}
+          onAddClient={args.onAddClient}
+        />
+      );
     if (view.tab === "sales") return <SalesHubPage root={root} />;
     if (view.tab === "onboarding") return <OnboardingHubPage />;
     if (view.tab === "tasks")
@@ -538,10 +572,17 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
     if (view.tab === "recordings") return <RecordingsPage root={root} clients={realClients} />;
     if (view.tab === "sops") return <SOPsPage root={root} />;
     if (view.tab === "resources") return <ResourcesPage root={root} />;
+    if (view.tab === "creative-studio")
+      return root ? (
+        <CreativeStudio
+          root={root}
+          clients={realClients}
+          activeClientSlug={activeClientSlug ?? null}
+        />
+      ) : null;
+    if (view.tab === "automations") return <AutomationsPage />;
     if (view.tab === "calendar")
       return <CalendarPage root={root} onBack={args.onBack} clients={realClients} />;
-    if (view.tab === "ads")
-      return <AdsManagerWorkspace clients={realClients} />;
     return null;
   }
 

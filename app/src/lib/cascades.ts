@@ -77,7 +77,6 @@ export const PHASE_1_CASCADE: CascadeSpec = {
       formId: null,
       action: "calendar-invite",
       activitySummary: "Phase 1: kickoff calendar invite sent",
-      checklistTaskId: "02-call",
     },
     {
       id: "intake-form-share",

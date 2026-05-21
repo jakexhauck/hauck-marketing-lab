@@ -1,15 +1,20 @@
 /**
- * ClientDashboard — per-client surface with sub-nav.
+ * ClientDashboard, per-client surface.
  *
- * Tab order (status-aware):
- *   pre-launch → Onboarding · Service Delivery · Recordings · Profile · Memory*
- *   live/paused → Dashboard · Service Delivery · Recordings · Profile · Memory*
+ * No sub-nav of its own. The left sidebar (AppSidebar) renders the per-client
+ * section list (Onboarding · Dashboard · Ads · Recordings · Websites · Drive
+ * · Reporting · Settings) and drives `section`. We just render the active
+ * pane based on it.
  *
- * The Onboarding tab is the unified surface: it tracks task completion AND
- * houses the per-task form buttons that used to live in a separate Sequence
- * tab (form opens inline, saving auto-ticks the matching task).
- *
- * Memory tab only shows when vault/Clients/<name>/Memory.md actually has content.
+ * Section map:
+ *   onboarding → OnboardingChecklist (pre-launch only, sidebar hides it after)
+ *   dashboard  → ClientOverviewPanel (stats, account status, key dates)
+ *   ads        → Meta Ads Manager on top + non-reporting forms underneath
+ *   recordings → Fathom transcript ingest + per-client recordings list
+ *   websites   → WebDesignerPage
+ *   drive      → ClientDriveView
+ *   reporting  → Weekly + Monthly report forms only
+ *   settings   → Profile editor + Memory.md view
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -42,22 +47,18 @@ import {
 import { ClientMediaBuying } from "./ClientMediaBuying";
 import { WebDesignerPage } from "./WebDesignerPage";
 import { recordingsPageCSS, openFathomInApp } from "./RecordingsPage";
+import { TranscriptIngestPanel } from "./TranscriptIngestPanel";
 import { OnboardingChecklist } from "../OnboardingChecklist";
-import { ClientServiceDelivery } from "./ClientServiceDelivery";
 import { AdsManagerPage } from "./AdsManagerPage";
 import { Phase1CascadeModal } from "../Phase1CascadeModal";
 import {
   IconBarChart,
   IconChevronRight,
-  IconDashboard,
   IconExternalLink,
   IconFile,
   IconFolder,
   IconMore,
-  IconPen,
   IconRecordings,
-  IconTasks,
-  IconUser,
 } from "../icons";
 
 interface ClientDashboardProps {
@@ -70,28 +71,11 @@ interface ClientDashboardProps {
   onOpenDrive?: () => void;
 }
 
-type TabDef = { id: ClientSection; label: string; Icon: typeof IconUser };
-
-/** Build the ordered tab list given client status + memory presence.
- *  Pre-launch clients see Onboarding; live/paused see the dashboard. The Ads
- *  sequence wizard is launched from inside the Onboarding checklist. */
-function buildTabs(status: ClientEntry["status"], hasMemory: boolean): TabDef[] {
-  const tabs: TabDef[] = [];
-  if (status === "pre-launch") {
-    tabs.push({ id: "onboarding", label: "Onboarding", Icon: IconTasks });
-  } else {
-    tabs.push({ id: "dashboard", label: "Dashboard", Icon: IconDashboard });
-  }
-
-  tabs.push(
-    { id: "ads", label: "Ads", Icon: IconBarChart },
-    { id: "service-delivery", label: "Fulfillment", Icon: IconBarChart },
-    { id: "profile", label: "Profile", Icon: IconUser },
-  );
-  if (hasMemory) {
-    tabs.push({ id: "memory", label: "Memory", Icon: IconPen });
-  }
-  return tabs;
+/** Sections valid for a given client status. Used to bounce the user off a
+ *  section the sidebar would hide (e.g. Onboarding on a live client). */
+function isSectionAllowed(section: ClientSection, status: ClientEntry["status"]): boolean {
+  if (section === "onboarding") return status === "pre-launch";
+  return true;
 }
 
 function clientPill(status: ClientEntry["status"]) {
@@ -123,45 +107,15 @@ export function ClientDashboard({
   // Cascade modal toggle (Day-0 cascade fired from "Mark client Won").
   const [cascadeOpen, setCascadeOpen] = useState(false);
 
-  // Memory tab visibility — async probe for any non-empty Memory.md
-  const [hasMemory, setHasMemory] = useState(false);
+  // Bounce off disallowed sections (e.g. landing on Onboarding for a live
+  // client). The sidebar handles which sections render; this just keeps the
+  // route honest.
   useEffect(() => {
-    if (!root) {
-      setHasMemory(false);
-      return;
-    }
-    let cancelled = false;
-    api
-      .readClientNotes(root, client.slug)
-      .then((notes) => {
-        if (cancelled) return;
-        const mem = notes.find((n) => {
-          const lower = n.path.toLowerCase();
-          return lower.endsWith("/memory.md") || lower.endsWith("\\memory.md");
-        });
-        setHasMemory(!!mem && mem.body.trim().length > 0);
-      })
-      .catch(() => {
-        if (!cancelled) setHasMemory(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [root, client.slug]);
-
-  const tabs = useMemo(
-    () => buildTabs(client.status, hasMemory),
-    [client.status, hasMemory],
-  );
-
-  // If the active section is no longer in the visible tab set (e.g. status
-  // flipped, or memory was emptied), bounce to the first tab.
-  useEffect(() => {
-    if (!tabs.some((t) => t.id === section)) {
-      onSelectSection(tabs[0].id);
+    if (!isSectionAllowed(section, client.status)) {
+      onSelectSection(client.status === "pre-launch" ? "onboarding" : "dashboard");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabs, section]);
+  }, [section, client.status]);
 
   return (
     <div className="hml-content">
@@ -228,20 +182,6 @@ export function ClientDashboard({
         </div>
       </section>
 
-      <nav className="hml-subnav">
-        {tabs.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            type="button"
-            className={`hml-subnav-item${section === id ? " hml-active" : ""}`}
-            onClick={() => onSelectSection(id)}
-          >
-            <Icon className="hml-nav-icon" />
-            {label}
-          </button>
-        ))}
-      </nav>
-
       <div>
         {section === "dashboard" && (
           <ClientOverviewPanel client={client} root={root} />
@@ -253,25 +193,59 @@ export function ClientDashboard({
             clientName={client.name}
             agents={agents}
             onComplete={() => {
-              // Switch to Dashboard if the client has graduated out of
-              // pre-launch (otherwise Dashboard isn't in the tab list and
-              // the tab bounce-back would land us back here anyway).
               if (client.status !== "pre-launch") onSelectSection("dashboard");
             }}
           />
         )}
         {section === "ads" && (
-          <AdsManagerPage
-            mode="client"
-            clients={[client]}
-            activeClientSlug={client.slug}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <AdsManagerPage
+              mode="client"
+              clients={[client]}
+              activeClientSlug={client.slug}
+            />
+            <ClientMediaBuying
+              clientName={client.name}
+              onOpenForm={(id) => onOpenForm(id, client.slug, client.name)}
+              includeGroups={["creative", "audiences", "campaigns", "comms"]}
+              compact
+            />
+          </div>
+        )}
+        {section === "recordings" && (
+          <ClientRecordingsView
+            root={root}
+            clientSlug={client.slug}
+            clientName={client.name}
           />
         )}
-        {section === "profile" && (
-          <ClientProfileInlineEditor client={client} root={root} />
+        {section === "websites" && (
+          <WebDesignerPage
+            root={root}
+            clientSlug={client.slug}
+            clientName={client.name}
+          />
         )}
-        {section === "memory" && (
-          <ClientNoteView root={root} clientSlug={client.slug} match="memory" emptyLabel="No Memory.md found yet." />
+        {section === "drive" && (
+          <ClientDriveView
+            root={root}
+            clientSlug={client.slug}
+            driveUrl={client.drive_folder_url ?? null}
+          />
+        )}
+        {section === "reporting" && (
+          <ClientMediaBuying
+            clientName={client.name}
+            onOpenForm={(id) => onOpenForm(id, client.slug, client.name)}
+            includeGroups={["reports"]}
+          />
+        )}
+        {section === "settings" && (
+          <ClientSettingsPanel
+            client={client}
+            root={root}
+            clientSlug={client.slug}
+          />
         )}
         {cascadeOpen && root && (
           <Phase1CascadeModal
@@ -281,46 +255,32 @@ export function ClientDashboard({
             onClose={() => setCascadeOpen(false)}
           />
         )}
-        {section === "service-delivery" && (
-          <ClientServiceDelivery clientName={client.name}>
-            {(active) => {
-              if (active === "forms") {
-                return (
-                  <ClientMediaBuying
-                    clientName={client.name}
-                    onOpenForm={(id) => onOpenForm(id, client.slug, client.name)}
-                  />
-                );
-              }
-              if (active === "recordings") {
-                return (
-                  <ClientRecordingsView
-                    root={root}
-                    clientSlug={client.slug}
-                    clientName={client.name}
-                  />
-                );
-              }
-              if (active === "websites") {
-                return (
-                  <WebDesignerPage
-                    root={root}
-                    clientSlug={client.slug}
-                    clientName={client.name}
-                  />
-                );
-              }
-              return (
-                <ClientDriveView
-                  root={root}
-                  clientSlug={client.slug}
-                  driveUrl={client.drive_folder_url ?? null}
-                />
-              );
-            }}
-          </ClientServiceDelivery>
-        )}
       </div>
+    </div>
+  );
+}
+
+/** Settings pane: Profile editor on top, Memory.md view below. Lives behind
+ *  the per-client "Settings" sidebar entry, replacing the old Profile + Memory
+ *  top-level tabs. */
+function ClientSettingsPanel({
+  client,
+  root,
+  clientSlug,
+}: {
+  client: ClientEntry;
+  root: string | null;
+  clientSlug: string;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <ClientProfileInlineEditor client={client} root={root} />
+      <ClientNoteView
+        root={root}
+        clientSlug={clientSlug}
+        match="memory"
+        emptyLabel="No Memory.md yet."
+      />
     </div>
   );
 }
@@ -1246,6 +1206,14 @@ function ClientRecordingsView({
           <span className="md-rec-subtab-count">{sortedAllRecordings.length}</span>
         </button>
       </div>
+
+      {!isAll && (
+        <TranscriptIngestPanel
+          root={root}
+          clientSlug={clientSlug}
+          clientName={clientName}
+        />
+      )}
 
       {!isAll && (
         <div className="md-panel md-recordings-panel">
