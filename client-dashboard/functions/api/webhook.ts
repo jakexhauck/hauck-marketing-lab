@@ -1,5 +1,4 @@
 import type { Env } from "../lib/env";
-import { admin } from "../lib/supabase-admin";
 
 async function hmacHex(secret: string, body: string): Promise<string> {
   const enc = new TextEncoder();
@@ -54,26 +53,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     console.warn("[webhook] non-json body");
   }
 
-  const locationId = event.locationId;
-  let tenantId: string | null = null;
-  if (locationId) {
-    const { data } = await admin(ctx.env)
-      .from("tenants")
-      .select("id")
-      .eq("ghl_location_id", locationId)
-      .maybeSingle();
-    tenantId = (data?.id as string | undefined) ?? null;
-  }
-
-  if (tenantId) {
-    await admin(ctx.env).from("activity_log").insert({
-      tenant_id: tenantId,
-      action: `webhook.${event.type ?? "unknown"}`,
-      lead_id: (event.opportunityId as string) ?? null,
-      payload: event,
-    });
-  }
-
-  console.log("[webhook]", event.type ?? "unknown", "tenant:", tenantId ?? "none");
+  console.log(
+    "[webhook]",
+    event.type ?? "unknown",
+    "location:",
+    event.locationId ?? "none",
+  );
   return new Response("ok", { status: 200 });
 };

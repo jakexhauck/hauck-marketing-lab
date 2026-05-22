@@ -7,19 +7,18 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
 import type { Role, User } from "../types";
-import { supabase, SUPABASE_CONFIGURED } from "../lib/supabase";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
 interface AuthContextValue {
-  session: Session | null;
-  authUser: SupabaseUser | null;
   status: AuthStatus;
+  session: { authenticated: true } | null;
   isAdmin: boolean;
   adminChecked: boolean;
-  signInWithEmail: (email: string) => Promise<{ ok: boolean; error?: string }>;
+  signInWithPassword: (
+    password: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
   signOut: () => Promise<void>;
   currentUser: User | null;
   setUser: (user: User | null) => void;
@@ -28,137 +27,121 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const redirectTo = (): string =>
-  typeof window !== "undefined"
-    ? `${window.location.origin}/auth/callback`
-    : "/auth/callback";
+const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "";
+
+async function checkSession(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/me`, {
+      credentials: "include",
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [status, setStatus] = useState<AuthStatus>(
-    SUPABASE_CONFIGURED ? "loading" : "unauthenticated",
-  );
+  const [status, setStatus] = useState<AuthStatus>("loading");
   const [override, setOverride] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [adminChecked, setAdminChecked] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!SUPABASE_CONFIGURED) {
-      setStatus("unauthenticated");
-      return;
-    }
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
+    checkSession().then((ok) => {
       if (!mounted) return;
-      setSession(data.session ?? null);
-      setStatus(data.session ? "authenticated" : "unauthenticated");
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
-      setSession(sess);
-      setStatus(sess ? "authenticated" : "unauthenticated");
+      setStatus(ok ? "authenticated" : "unauthenticated");
     });
     return () => {
       mounted = false;
-      sub.subscription.unsubscribe();
     };
   }, []);
 
-  useEffect(() => {
-    if (!SUPABASE_CONFIGURED) {
-      setAdminChecked(true);
-      return;
-    }
-    const userId = session?.user?.id;
-    if (!userId) {
-      setIsAdmin(false);
-      setAdminChecked(true);
-      return;
-    }
-    setAdminChecked(false);
-    let cancelled = false;
-    supabase
-      .from("admins")
-      .select("user_id")
-      .eq("user_id", userId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return;
-        setIsAdmin(Boolean(data));
-        setAdminChecked(true);
+  const signInWithPassword = useCallback(async (password: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ password }),
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [session?.user?.id]);
-
-  const signInWithEmail = useCallback(async (email: string) => {
-    if (!SUPABASE_CONFIGURED) {
-      return { ok: false, error: "Supabase not configured" };
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        return {
+          ok: false,
+          error: body?.error ?? `Sign-in failed (${res.status})`,
+        };
+      }
+      setStatus("authenticated");
+      return { ok: true };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : "Network error",
+      };
     }
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: redirectTo() },
-    });
-    if (error) return { ok: false, error: error.message };
-    return { ok: true };
   }, []);
 
   const signOut = useCallback(async () => {
     setOverride(null);
-    if (SUPABASE_CONFIGURED) await supabase.auth.signOut();
-    setSession(null);
+    try {
+      await fetch(`${API_BASE}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // ignore
+    }
     setStatus("unauthenticated");
-  }, []);
-
-  const signIn = useCallback((email: string) => {
-    const synthetic: User = {
-      id: "dev-user",
-      clientId: "demo",
-      name: email.split("@")[0] || "Dev",
-      email,
-      role: "owner",
-    };
-    setOverride(synthetic);
   }, []);
 
   const setUser = useCallback((user: User | null) => {
     setOverride(user);
   }, []);
 
+  const signIn = useCallback((email: string) => {
+    setOverride({
+      id: "dev-user",
+      clientId: "demo",
+      name: email.split("@")[0] || "Dev",
+      email,
+      role: "owner" as Role,
+    });
+  }, []);
+
   const currentUser = useMemo<User | null>(() => {
     if (override) return override;
-    if (!session?.user) return null;
-    const meta = session.user.user_metadata ?? {};
-    const fullName =
-      typeof meta.full_name === "string" ? meta.full_name : undefined;
+    if (status !== "authenticated") return null;
     return {
-      id: session.user.id,
+      id: "owner",
       clientId: "",
-      name: fullName || session.user.email || "User",
-      email: session.user.email ?? "",
+      name: "Owner",
+      email: "",
       role: "owner" as Role,
     };
-  }, [override, session]);
+  }, [override, status]);
+
+  const session = useMemo<{ authenticated: true } | null>(
+    () => (status === "authenticated" ? { authenticated: true } : null),
+    [status],
+  );
 
   const value = useMemo(
     () => ({
-      session,
-      authUser: session?.user ?? null,
       status,
-      isAdmin,
-      adminChecked,
-      signInWithEmail,
+      session,
+      isAdmin: false,
+      adminChecked: true,
+      signInWithPassword,
       signOut,
       currentUser,
       setUser,
       signIn,
     }),
     [
-      session,
       status,
-      isAdmin,
-      adminChecked,
-      signInWithEmail,
+      session,
+      signInWithPassword,
       signOut,
       currentUser,
       setUser,

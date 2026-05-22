@@ -4,39 +4,28 @@ import { ClientProvider } from "./context/ClientContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LeadsProvider } from "./context/LeadsContext";
 import Login from "./routes/Login";
-import AuthCallback from "./routes/AuthCallback";
 import Dashboard from "./routes/Dashboard";
 import Contacts from "./routes/Contacts";
 import Conversations from "./routes/Conversations";
 import ConversationDetail from "./routes/ConversationDetail";
 import LeadDetail from "./routes/LeadDetail";
-import Admin from "./routes/Admin";
 import Today from "./routes/Today";
 import Showroom from "./routes/Showroom";
 import Simulator from "./routes/Simulator";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { currentUser, isAdmin, adminChecked } = useAuth();
+  const { status, currentUser } = useAuth();
+  if (status === "loading") return null;
   if (!currentUser) return <Navigate to="/login" replace />;
-  if (!adminChecked) return null;
-  if (isAdmin) return <Navigate to="/admin" replace />;
-  return <>{children}</>;
-}
-
-function AdminRoute({ children }: { children: ReactNode }) {
-  const { currentUser, isAdmin, adminChecked } = useAuth();
-  if (!currentUser) return <Navigate to="/login" replace />;
-  if (!adminChecked) return null;
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
 function RootRedirect() {
-  const { currentUser, isAdmin, adminChecked } = useAuth();
+  const { status, currentUser } = useAuth();
+  if (status === "loading") return null;
   if (!currentUser) return <Navigate to="/login" replace />;
-  if (!adminChecked) return null;
-  return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 export default function App() {
@@ -48,16 +37,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/showroom" element={<Showroom />} />
-              <Route
-                path="/admin"
-                element={
-                  <AdminRoute>
-                    <Admin />
-                  </AdminRoute>
-                }
-              />
               <Route
                 path="/dashboard"
                 element={

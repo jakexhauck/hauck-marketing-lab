@@ -1,5 +1,3 @@
-import { supabase } from "./supabase";
-
 export class ApiError extends Error {
   status: number;
   body: unknown;
@@ -16,15 +14,16 @@ export async function api<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
   const headers = new Headers(init.headers);
-  if (token) headers.set("Authorization", `Bearer ${token}`);
   if (init.body && !headers.has("content-type")) {
     headers.set("content-type", "application/json");
   }
 
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers,
+    credentials: "include",
+  });
   const text = await res.text();
   let body: unknown = null;
   if (text) {

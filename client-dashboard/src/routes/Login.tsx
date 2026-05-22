@@ -1,50 +1,30 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, type FormEvent } from "react";
 import Shell from "../components/Shell";
 import BrandedButton from "../components/BrandedButton";
 import BrandedLogo from "../components/BrandedLogo";
 import { useAuth } from "../context/AuthContext";
 import { useClient } from "../context/ClientContext";
-import { SUPABASE_CONFIGURED } from "../lib/supabase";
 
-type Phase = "idle" | "submitting" | "sent" | "error";
+type Phase = "idle" | "submitting" | "error";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { signInWithEmail } = useAuth();
+  const { signInWithPassword } = useAuth();
   const { client } = useClient();
-
-  useEffect(() => {
-    const e = searchParams.get("error");
-    if (e) {
-      setPhase("error");
-      setErrorMsg(decodeURIComponent(e));
-      searchParams.delete("error");
-      setSearchParams(searchParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const trimmed = email.trim();
+    const trimmed = password.trim();
     if (!trimmed) return;
     setPhase("submitting");
     setErrorMsg(null);
-    const res = await signInWithEmail(trimmed);
-    if (res.ok) {
-      setPhase("sent");
-    } else {
+    const res = await signInWithPassword(trimmed);
+    if (!res.ok) {
       setPhase("error");
       setErrorMsg(res.error ?? "Sign-in failed");
     }
-  };
-
-  const reset = () => {
-    setPhase("idle");
-    setErrorMsg(null);
   };
 
   return (
@@ -62,58 +42,35 @@ export default function Login() {
             </p>
           </div>
 
-          {phase === "sent" ? (
-            <div className="mt-8 space-y-4 text-center">
-              <p className="text-base text-[var(--text)]">
-                Check your inbox.
+          <form onSubmit={onSubmit} className="mt-8 space-y-4">
+            <label className="block">
+              <span className="label-cap">Password</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
+                autoComplete="current-password"
+                required
+                disabled={phase === "submitting"}
+                className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-base text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 disabled:opacity-60"
+              />
+            </label>
+
+            {phase === "error" && errorMsg && (
+              <p className="text-sm text-rose-600 dark:text-rose-400">
+                {errorMsg}
               </p>
-              <p className="text-sm text-[var(--text-muted)]">
-                We sent a sign-in link to <span className="font-medium text-[var(--text)]">{email}</span>.
-              </p>
-              <button
-                type="button"
-                onClick={reset}
-                className="text-sm text-[var(--brand)] underline-offset-4 hover:underline"
-              >
-                Use a different email
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={onSubmit} className="mt-8 space-y-4">
-              <label className="block">
-                <span className="label-cap">Email</span>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@business.com"
-                  required
-                  disabled={phase === "submitting"}
-                  className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-base text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 disabled:opacity-60"
-                />
-              </label>
+            )}
 
-              {phase === "error" && errorMsg && (
-                <p className="text-sm text-rose-600 dark:text-rose-400">
-                  {errorMsg}
-                </p>
-              )}
-
-              <BrandedButton
-                type="submit"
-                className="w-full"
-                disabled={phase === "submitting" || !email.trim()}
-              >
-                {phase === "submitting" ? "Sending..." : "Send sign-in link"}
-              </BrandedButton>
-
-              {!SUPABASE_CONFIGURED && (
-                <p className="text-center text-xs text-[var(--text-faint)]">
-                  Supabase not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
-                </p>
-              )}
-            </form>
-          )}
+            <BrandedButton
+              type="submit"
+              className="w-full"
+              disabled={phase === "submitting" || !password.trim()}
+            >
+              {phase === "submitting" ? "Signing in..." : "Send sign-in link"}
+            </BrandedButton>
+          </form>
         </div>
       </div>
     </Shell>

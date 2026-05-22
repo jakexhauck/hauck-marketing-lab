@@ -1,6 +1,5 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { ghlJson } from "../../../lib/ghl";
-import { admin } from "../../../lib/supabase-admin";
 
 interface SendBody {
   body: string;
@@ -43,16 +42,6 @@ export const onRequestPost: PagesFunction<Env, "id", ApiData> = async (ctx) => {
       }),
     },
   );
-
-  await admin(ctx.env)
-    .from("activity_log")
-    .insert({
-      tenant_id: t.id,
-      user_id: ctx.data.userId,
-      action: "sms.send",
-      lead_id: id,
-      payload: { contactId, length: body.body.length, ghl: sent },
-    });
 
   return Response.json({
     ok: true,

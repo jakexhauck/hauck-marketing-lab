@@ -1,6 +1,5 @@
 import type { Env, ApiData } from "../../lib/env";
 import { ghlFetch, ghlJson, shapeOpportunity, type GhlOpportunity } from "../../lib/ghl";
-import { admin } from "../../lib/supabase-admin";
 
 interface PatchBody {
   pipelineStageId?: string;
@@ -35,16 +34,6 @@ export const onRequestPatch: PagesFunction<Env, "id", ApiData> = async (ctx) => 
     `/opportunities/${encodeURIComponent(id)}`,
     { method: "PUT", body: JSON.stringify(ghlBody) },
   );
-
-  await admin(ctx.env)
-    .from("activity_log")
-    .insert({
-      tenant_id: t.id,
-      user_id: ctx.data.userId,
-      action: "lead.update",
-      lead_id: id,
-      payload: { request: body, ghlStatus: res.status },
-    });
 
   if (!res.ok) {
     const text = await res.text();

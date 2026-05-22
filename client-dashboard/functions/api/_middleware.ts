@@ -1,7 +1,5 @@
 import type { Env, ApiData } from "../lib/env";
-import { verifyBearer } from "../lib/jwt";
-import { getTenantForUser } from "../lib/tenant";
-import { isUserAdmin } from "../lib/admin";
+import { verifySession } from "../lib/session";
 
 const allowedOrigins = new Set([
   "http://localhost:5173",
@@ -18,14 +16,20 @@ function corsHeaders(origin: string | null): HeadersInit {
   return {
     "access-control-allow-origin": allowed,
     "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
-    "access-control-allow-headers": "authorization,content-type,x-tenant-slug",
+    "access-control-allow-headers": "content-type",
     "access-control-allow-credentials": "true",
     "access-control-max-age": "86400",
     vary: "origin",
   };
 }
 
-const PUBLIC_PATHS = new Set(["/api/health", "/api/webhook"]);
+const PUBLIC_PATHS = new Set([
+  "/api/health",
+  "/api/webhook",
+  "/api/auth/login",
+  "/api/auth/logout",
+  "/api/auth/me",
+]);
 
 function json(status: number, body: unknown, origin: string | null) {
   return new Response(JSON.stringify(body), {
@@ -46,24 +50,16 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
   }
 
   if (!PUBLIC_PATHS.has(url.pathname)) {
-    const auth = await verifyBearer(ctx.request, ctx.env);
-    if (!auth) return json(401, { error: "unauthorized" }, origin);
+    const ok = await verifySession(ctx.request, ctx.env);
+    if (!ok) return json(401, { error: "unauthorized" }, origin);
 
-    const isAdminPath = url.pathname.startsWith("/api/admin/");
-
-    if (isAdminPath) {
-      const isAdmin = await isUserAdmin(auth.userId, ctx.env);
-      if (!isAdmin) return json(403, { error: "not admin" }, origin);
-      ctx.data.userId = auth.userId;
-      ctx.data.email = auth.email;
-      ctx.data.isAdmin = true;
-    } else {
-      const tenant = await getTenantForUser(auth.userId, ctx.env);
-      if (!tenant) return json(403, { error: "no tenant" }, origin);
-      ctx.data.userId = auth.userId;
-      ctx.data.email = auth.email;
-      ctx.data.tenant = tenant;
+    if (!ctx.env.GHL_LOCATION_ID || !ctx.env.GHL_TOKEN) {
+      return json(500, { error: "GHL env vars not configured" }, origin);
     }
+    ctx.data.tenant = {
+      ghl_location_id: ctx.env.GHL_LOCATION_ID,
+      ghl_token: ctx.env.GHL_TOKEN,
+    };
   }
 
   try {
