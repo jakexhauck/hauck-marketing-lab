@@ -14,13 +14,6 @@ function constantTimeEqual(a: string, b: string): boolean {
 }
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const livePassword = ctx.env.APP_PASSWORD;
-  if (!livePassword) {
-    return Response.json(
-      { error: "APP_PASSWORD not configured" },
-      { status: 500 },
-    );
-  }
   let body: Body = {};
   try {
     body = (await ctx.request.json()) as Body;
@@ -32,12 +25,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({ error: "incorrect password" }, { status: 401 });
   }
 
-  const testPassword = ctx.env.TEST_APP_PASSWORD;
   let mode: SessionMode;
   if (body.mode === "test") {
+    const testPassword = ctx.env.TEST_APP_PASSWORD;
     if (!testPassword) {
       return Response.json(
-        { error: "test account not configured" },
+        { error: "TEST_APP_PASSWORD not configured" },
         { status: 500 },
       );
     }
@@ -46,6 +39,13 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     }
     mode = "test";
   } else {
+    const livePassword = ctx.env.APP_PASSWORD;
+    if (!livePassword) {
+      return Response.json(
+        { error: "APP_PASSWORD not configured" },
+        { status: 500 },
+      );
+    }
     if (!constantTimeEqual(supplied, livePassword)) {
       return Response.json({ error: "incorrect password" }, { status: 401 });
     }
