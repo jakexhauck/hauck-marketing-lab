@@ -1,5 +1,11 @@
 import type { Env } from "./env";
 
+export type SessionMode = "live" | "test";
+
+export interface SessionData {
+  mode: SessionMode;
+}
+
 const COOKIE_NAME = "hml_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
@@ -42,10 +48,13 @@ function constantTimeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export async function mintSessionCookie(env: Env): Promise<string> {
+export async function mintSessionCookie(
+  env: Env,
+  mode: SessionMode = "live",
+): Promise<string> {
   const secret = env.SESSION_SECRET || env.APP_PASSWORD || "dev-secret";
   const exp = Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS;
-  const payload = b64urlEncode(new TextEncoder().encode(String(exp)));
+  const payload = b64urlEncode(new TextEncoder().encode(`${exp}.${mode}`));
   const sig = await hmac(secret, payload);
   const value = `${payload}.${sig}`;
   return `${COOKIE_NAME}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${MAX_AGE_SECONDS}`;
@@ -68,23 +77,25 @@ function readCookie(req: Request, name: string): string | null {
 export async function verifySession(
   req: Request,
   env: Env,
-): Promise<boolean> {
+): Promise<SessionData | null> {
   const raw = readCookie(req, COOKIE_NAME);
-  if (!raw) return false;
+  if (!raw) return null;
   const dot = raw.indexOf(".");
-  if (dot < 0) return false;
+  if (dot < 0) return null;
   const payload = raw.slice(0, dot);
   const sig = raw.slice(dot + 1);
   const secret = env.SESSION_SECRET || env.APP_PASSWORD || "dev-secret";
   const expected = await hmac(secret, payload);
-  if (!constantTimeEqual(sig, expected)) return false;
+  if (!constantTimeEqual(sig, expected)) return null;
   try {
-    const expStr = new TextDecoder().decode(b64urlDecode(payload));
+    const decoded = new TextDecoder().decode(b64urlDecode(payload));
+    const [expStr, modeStr] = decoded.split(".");
     const exp = Number(expStr);
-    if (!Number.isFinite(exp)) return false;
-    if (exp < Math.floor(Date.now() / 1000)) return false;
+    if (!Number.isFinite(exp)) return null;
+    if (exp < Math.floor(Date.now() / 1000)) return null;
+    const mode: SessionMode = modeStr === "test" ? "test" : "live";
+    return { mode };
   } catch {
-    return false;
+    return null;
   }
-  return true;
 }

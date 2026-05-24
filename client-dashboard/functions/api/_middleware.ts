@@ -50,16 +50,26 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
   }
 
   if (!PUBLIC_PATHS.has(url.pathname)) {
-    const ok = await verifySession(ctx.request, ctx.env);
-    if (!ok) return json(401, { error: "unauthorized" }, origin);
+    const session = await verifySession(ctx.request, ctx.env);
+    if (!session) return json(401, { error: "unauthorized" }, origin);
 
-    if (!ctx.env.GHL_LOCATION_ID || !ctx.env.GHL_TOKEN) {
-      return json(500, { error: "GHL env vars not configured" }, origin);
+    if (session.mode === "test") {
+      if (!ctx.env.TEST_GHL_LOCATION_ID || !ctx.env.TEST_GHL_TOKEN) {
+        return json(500, { error: "test GHL env vars not configured" }, origin);
+      }
+      ctx.data.tenant = {
+        ghl_location_id: ctx.env.TEST_GHL_LOCATION_ID,
+        ghl_token: ctx.env.TEST_GHL_TOKEN,
+      };
+    } else {
+      if (!ctx.env.GHL_LOCATION_ID || !ctx.env.GHL_TOKEN) {
+        return json(500, { error: "GHL env vars not configured" }, origin);
+      }
+      ctx.data.tenant = {
+        ghl_location_id: ctx.env.GHL_LOCATION_ID,
+        ghl_token: ctx.env.GHL_TOKEN,
+      };
     }
-    ctx.data.tenant = {
-      ghl_location_id: ctx.env.GHL_LOCATION_ID,
-      ghl_token: ctx.env.GHL_TOKEN,
-    };
   }
 
   try {

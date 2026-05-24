@@ -3,6 +3,9 @@ export interface Env {
   SESSION_SECRET?: string;
   GHL_LOCATION_ID: string;
   GHL_TOKEN: string;
+  TEST_APP_PASSWORD?: string;
+  TEST_GHL_LOCATION_ID?: string;
+  TEST_GHL_TOKEN?: string;
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
   WEBHOOK_SECRET?: string;

@@ -1,8 +1,9 @@
 import type { Env } from "../../lib/env";
-import { mintSessionCookie } from "../../lib/session";
+import { mintSessionCookie, type SessionMode } from "../../lib/session";
 
 interface Body {
   password?: string;
+  mode?: SessionMode;
 }
 
 function constantTimeEqual(a: string, b: string): boolean {
@@ -13,8 +14,8 @@ function constantTimeEqual(a: string, b: string): boolean {
 }
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const expected = ctx.env.APP_PASSWORD;
-  if (!expected) {
+  const livePassword = ctx.env.APP_PASSWORD;
+  if (!livePassword) {
     return Response.json(
       { error: "APP_PASSWORD not configured" },
       { status: 500 },
@@ -27,11 +28,32 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({ error: "invalid body" }, { status: 400 });
   }
   const supplied = (body.password ?? "").trim();
-  if (!supplied || !constantTimeEqual(supplied, expected)) {
+  if (!supplied) {
     return Response.json({ error: "incorrect password" }, { status: 401 });
   }
-  const cookie = await mintSessionCookie(ctx.env);
-  return new Response(JSON.stringify({ ok: true }), {
+
+  const testPassword = ctx.env.TEST_APP_PASSWORD;
+  let mode: SessionMode;
+  if (body.mode === "test") {
+    if (!testPassword) {
+      return Response.json(
+        { error: "test account not configured" },
+        { status: 500 },
+      );
+    }
+    if (!constantTimeEqual(supplied, testPassword)) {
+      return Response.json({ error: "incorrect password" }, { status: 401 });
+    }
+    mode = "test";
+  } else {
+    if (!constantTimeEqual(supplied, livePassword)) {
+      return Response.json({ error: "incorrect password" }, { status: 401 });
+    }
+    mode = "live";
+  }
+
+  const cookie = await mintSessionCookie(ctx.env, mode);
+  return new Response(JSON.stringify({ ok: true, mode }), {
     status: 200,
     headers: {
       "content-type": "application/json",

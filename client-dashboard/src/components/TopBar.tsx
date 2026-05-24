@@ -10,7 +10,7 @@ import ThemeToggle from "./ThemeToggle";
 
 export default function TopBar() {
   const { client } = useClient();
-  const { currentUser } = useAuth();
+  const { currentUser, mode } = useAuth();
   const navigate = useNavigate();
   const month = new Date().toLocaleString("en-US", {
     month: "long",
@@ -26,7 +26,14 @@ export default function TopBar() {
     <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-5 py-3">
       <BrandedLogo size="sm" />
       <div className="min-w-0 flex-1">
-        <div className="label-cap truncate">{client.brand.appName}</div>
+        <div className="flex items-center gap-2">
+          <span className="label-cap truncate">{client.brand.appName}</span>
+          {mode === "test" && (
+            <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+              Test
+            </span>
+          )}
+        </div>
         <div className="mt-0.5 truncate font-display text-lg font-bold tracking-tight text-[var(--text)]">
           {month}
         </div>

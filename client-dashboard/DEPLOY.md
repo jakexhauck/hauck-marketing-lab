@@ -20,9 +20,14 @@ Public URL goal: `hauck-dashboard.pages.dev` (or pick another name during setup)
    - `PNPM_VERSION` = `9` (plain variable, not a secret)
    - `APP_PASSWORD` = the password you'll type on the login screen
    - `SESSION_SECRET` = any random 32+ char string (used to sign session cookies; rotate to log everyone out)
-   - `GHL_LOCATION_ID` = the test sub-account's Location ID (GHL → Settings → Business Profile)
-   - `GHL_TOKEN` = the Private Integration token from the test sub-account (GHL → Settings → Integrations → Private Integrations → grant `opportunities.read/write`, `contacts.read/write`, `conversations.read/write`)
-5. Save and deploy. First build takes ~2 minutes.
+   - `GHL_LOCATION_ID` = the live client sub-account's Location ID (GHL → Settings → Business Profile)
+   - `GHL_TOKEN` = the Private Integration token from the live client sub-account (GHL → Settings → Integrations → Private Integrations → grant `opportunities.read/write`, `contacts.read/write`, `conversations.read/write`)
+5. Test account (optional, for previewing changes against your snapshot/staging sub-account before they reach clients). Add these three as Secrets too:
+   - `TEST_APP_PASSWORD` = the password typed after tapping "Log into test account" on the login screen. Must differ from `APP_PASSWORD`.
+   - `TEST_GHL_LOCATION_ID` = the test sub-account's Location ID.
+   - `TEST_GHL_TOKEN` = the Private Integration token from the test sub-account (same scopes as above).
+   If these are unset, the test login simply returns "test account not configured" and the live login is unaffected.
+6. Save and deploy. First build takes ~2 minutes.
 
 ## Verifying after the first deploy
 
@@ -45,7 +50,7 @@ If you want `dash.hauckmarketing.com`:
 ## What's deployed
 
 - Frontend PWA + Cloudflare Pages Functions for the GHL bridge.
-- Auth: shared `APP_PASSWORD`. Successful login sets an HttpOnly session cookie signed with `SESSION_SECRET`; cookie is good for 30 days.
-- All `/api/*` calls (except `/api/health`, `/api/webhook`, and the three `/api/auth/*` endpoints) require a valid session cookie. The Worker injects the env-configured GHL location + token into every request — the app is locked to one sub-account by configuration.
-- To swap to a different sub-account: update `GHL_LOCATION_ID` and `GHL_TOKEN` in the Pages env vars. To force-logout everyone (e.g., after sharing the password too widely): rotate `SESSION_SECRET`.
+- Auth: shared `APP_PASSWORD` (live) plus optional `TEST_APP_PASSWORD` (test). Successful login sets an HttpOnly session cookie signed with `SESSION_SECRET`; the cookie records which mode you logged in as and is good for 30 days.
+- All `/api/*` calls (except `/api/health`, `/api/webhook`, and the three `/api/auth/*` endpoints) require a valid session cookie. The Worker injects the GHL location + token for that session's mode into every request — live sessions hit `GHL_*`, test sessions hit `TEST_GHL_*`. The app is locked to those sub-accounts by configuration.
+- To swap the live sub-account: update `GHL_LOCATION_ID` and `GHL_TOKEN`. To swap the test sub-account: update `TEST_GHL_LOCATION_ID` and `TEST_GHL_TOKEN`. To force-logout everyone (e.g., after sharing the password too widely): rotate `SESSION_SECRET`.
 - Push-to-`main` triggers an automatic rebuild and deploy. No manual step.
