@@ -22,8 +22,13 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 }
 
 function RootRedirect() {
-  const { status } = useAuth();
+  const { status, mode } = useAuth();
   if (status === "loading") return null;
+  // Live sessions (clients) stay logged in and skip straight to the
+  // dashboard. Test sessions (internal) always land on the login screen.
+  if (status === "authenticated" && mode === "live") {
+    return <Navigate to="/dashboard" replace />;
+  }
   return <Navigate to="/login" replace />;
 }
 
