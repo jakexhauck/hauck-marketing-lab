@@ -50,6 +50,12 @@ type Props = {
   /** When true, the page-header block (eyebrow + title + subtitle + close
    *  button) is not rendered. The parent surface owns the heading. */
   hideHeader?: boolean;
+  /** When provided, ad-copy cards in the output render a hover "+ send to
+   *  tree" button. The callback receives the (possibly edited) ad body, the
+   *  source kind, and a short angle hint that can become the destination ad's
+   *  angleLabel. Standalone callers (AppPane) typically route this into a
+   *  global pick-mode overlay; the wizard handles it directly. */
+  onSendSnippetToTree?: (snippet: string, source: "ad_copy", angleLabel?: string) => void;
 };
 
 function findAgent(agents: AgentSummary[], slug: string): AgentSummary | null {
@@ -215,6 +221,7 @@ export function GenericFormGenerator({
   onSaved,
   hidePastResults,
   hideHeader,
+  onSendSnippetToTree,
 }: Props) {
   const [values, setValues] = useState<FormValues>(() => defaultValuesFor(config));
   const [attemptName, setAttemptName] = useState("");
@@ -1229,7 +1236,62 @@ export function GenericFormGenerator({
                 </span>
               </div>
               <div>
-                <FormOutput body={saved.body} kind={config.kind} showHeader={false} />
+                <FormOutput
+                  body={saved.body}
+                  kind={config.kind}
+                  showHeader={false}
+                  editorScopeKey={`adcopy:${clientSlug}:${config.id}`}
+                  onSendToTree={onSendSnippetToTree}
+                  onSendVariationToDrive={async (v) => {
+                    const stamp = new Date().toISOString().slice(0, 10);
+                    const angleBits = [v.framework, v.hookRef.trim()]
+                      .filter(Boolean)
+                      .join(" — ");
+                    const title = angleBits
+                      ? `${clientName} · Ad copy · ${angleBits} · ${stamp}`
+                      : `${clientName} · Ad copy · ${stamp}`;
+                    const result = await api.pushAdVariationToDrive({
+                      root,
+                      clientSlug,
+                      title,
+                      bodyMarkdown: v.body,
+                      framework: v.framework || undefined,
+                      hookRef: v.hookRef.trim() || undefined,
+                      wordCount: v.wordCount || undefined,
+                    });
+                    // Promote to a past result so it shows up alongside
+                    // full-run outputs in this form's history.
+                    const summary = angleBits || null;
+                    const pastBody = [
+                      angleBits ? `**${angleBits}**` : null,
+                      v.wordCount ? `_${v.wordCount}_` : null,
+                      "",
+                      v.body,
+                      "",
+                      `_Pushed to Drive: ${result.driveUrl}_`,
+                    ]
+                      .filter((s) => s !== null)
+                      .join("\n");
+                    try {
+                      await api.saveGeneratorOutput({
+                        root,
+                        clientSlug,
+                        kind: config.kind,
+                        title,
+                        summary,
+                        body: pastBody,
+                        inputsYaml: null,
+                      });
+                      setPastRefresh((n) => n + 1);
+                    } catch (saveErr) {
+                      console.warn(
+                        "GenericFormGenerator: past-result save failed",
+                        saveErr,
+                      );
+                    }
+                    return { driveUrl: result.driveUrl };
+                  }}
+                />
               </div>
             </div>
           )}

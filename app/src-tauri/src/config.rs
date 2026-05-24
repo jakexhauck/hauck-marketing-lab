@@ -15,6 +15,11 @@ pub struct AppConfig {
     /// the Drive MCP tools (see sops.rs).
     #[serde(default)]
     pub sops_drive_folder_url: Option<String>,
+    /// URL to the agency-wide Google Drive folder that holds every client's
+    /// subfolder. When set, the per-client Drive picker lists subfolders here
+    /// so each client can be wired up with a click instead of a paste.
+    #[serde(default)]
+    pub agency_drive_folder_url: Option<String>,
     /// Google AI Studio API key. Required by the legacy AD_CREATIVE path to
     /// call Nano Banana 2 (gemini-3-pro-image) directly. Kept for backward
     /// compatibility; the Creative Studio screen uses Replicate instead.

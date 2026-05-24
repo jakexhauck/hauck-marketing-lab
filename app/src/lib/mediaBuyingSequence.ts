@@ -21,7 +21,6 @@ import type { FormSurfaceId } from "./formConfigs";
 export type SequenceStepId =
   | "audience-research"
   | "creative-brief"
-  | "hooks"
   | "ad-copy"
   | "ad-creative"
   | "structure";
@@ -34,88 +33,11 @@ export type SequenceStepId =
  * (no JSON block, e.g. ad-copy). When set, the entire markdown body of the
  * prior step's saved file is mapped into that field key, in addition to any
  * JSON-key mappings declared in `fields`.
- *
- * `transform` runs a named formatter against the prior step's parsed JSON
- * and writes the result into `transformTargetField`. Use when the
- * structure-to-string mapping is too gnarly for the simple `fields` map.
- * Currently the only transform is `"hooks-to-adcopy"` (numbered priority
- * list + full hook list).
  */
-export type ChainTransform = "hooks-to-adcopy";
-
 export interface ChainSpec {
   step: SequenceStepId;
   fields: Record<string, string>;
   rawBodyField?: string;
-  transform?: ChainTransform;
-  transformTargetField?: string;
-}
-
-/** Format hooks-step JSON into the structured list the ad-copy prompt expects.
- *  Top picks lead the numbering as "PRIORITY"; remaining hooks follow with
- *  their angle category attached. Numbers are stable: priority picks get
- *  #1, #2, …; the rest continue the count. Used as `transform: "hooks-to-adcopy"`. */
-export function formatHooksForAdCopy(parsed: Record<string, unknown>): string {
-  type Entry = { n: number; hook: string; category?: string; priority: boolean };
-  const entries: Entry[] = [];
-  const seen = new Set<string>();
-
-  const angles: Array<{ category?: string; hooks: string[] }> = [];
-  if (Array.isArray(parsed.angles)) {
-    for (const a of parsed.angles) {
-      if (!a || typeof a !== "object") continue;
-      const rec = a as Record<string, unknown>;
-      const category = typeof rec.category === "string" ? rec.category : undefined;
-      const hooks = Array.isArray(rec.hooks)
-        ? (rec.hooks.filter((h) => typeof h === "string") as string[])
-        : [];
-      angles.push({ category, hooks });
-    }
-  }
-  const categoryFor = (hook: string): string | undefined => {
-    for (const a of angles) {
-      if (a.hooks.includes(hook)) return a.category;
-    }
-    return undefined;
-  };
-
-  let n = 1;
-  if (Array.isArray(parsed.top_picks)) {
-    for (const p of parsed.top_picks) {
-      if (!p || typeof p !== "object") continue;
-      const hook = (p as Record<string, unknown>).hook;
-      if (typeof hook !== "string" || seen.has(hook)) continue;
-      entries.push({ n: n++, hook, category: categoryFor(hook), priority: true });
-      seen.add(hook);
-    }
-  }
-  for (const a of angles) {
-    for (const hook of a.hooks) {
-      if (seen.has(hook)) continue;
-      entries.push({ n: n++, hook, category: a.category, priority: false });
-      seen.add(hook);
-    }
-  }
-
-  const lines: string[] = [];
-  const priority = entries.filter((e) => e.priority);
-  const rest = entries.filter((e) => !e.priority);
-  if (priority.length > 0) {
-    lines.push("PRIORITY (use each at least once across the 12 ads):");
-    for (const e of priority) {
-      const cat = e.category ? ` · ${e.category}` : "";
-      lines.push(`#${e.n}${cat} · ${e.hook}`);
-    }
-    lines.push("");
-  }
-  if (rest.length > 0) {
-    lines.push("FULL HOOK LIST (use to fill remaining slots):");
-    for (const e of rest) {
-      const cat = e.category ? ` · ${e.category}` : "";
-      lines.push(`#${e.n}${cat} · ${e.hook}`);
-    }
-  }
-  return lines.join("\n");
 }
 
 /** One-line "what got produced" for the wizard rail. Reads the parsed JSON
@@ -151,17 +73,6 @@ export function summarizeStepOutput(
       if (format && hook) return `${format} · ${truncate(hook, 40)}`;
       if (hook) return truncate(hook, 60);
       if (format) return format;
-      return null;
-    }
-    case "hooks": {
-      const angles = arr(parsed?.angles);
-      const totalHooks = angles.reduce<number>((acc, a) => {
-        const rec = a as Record<string, unknown> | null;
-        return acc + arr(rec?.hooks).length;
-      }, 0);
-      const picks = arr(parsed?.top_picks).length;
-      if (totalHooks && picks) return `${totalHooks} hooks · ${picks} priority`;
-      if (totalHooks) return `${totalHooks} hooks`;
       return null;
     }
     case "ad-copy": {
@@ -259,28 +170,15 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
     ],
   },
   {
-    id: "hooks",
-    formId: "hooks",
-    phase: 6,
-    label: "Generate hooks",
-    hint: "Volume of hook variants on the locked angle. Feeds ad copy.",
-    chainFrom: {
-      step: "creative-brief",
-      fields: { hook: "primary_hook", angle: "angle" },
-    },
-  },
-  {
     id: "ad-copy",
     formId: "ad-copy",
     phase: 6,
     label: "Generate ad copy",
-    hint: "10+ variations from the locked brief and hooks. Competitor angles come in via Profile.md.",
+    hint: "12 ad variations across PAS, AIDA, BAB, STORY. Aurelius writes its own openers, no separate Hooks step.",
     chainFrom: [
       {
-        step: "hooks",
-        fields: {},
-        transform: "hooks-to-adcopy",
-        transformTargetField: "hooks_markdown",
+        step: "audience-research",
+        fields: { summary: "target_customer" },
       },
     ],
   },
@@ -338,7 +236,7 @@ export const SEQUENCE_GROUPS: SequenceGroup[] = [
   {
     id: "creative",
     label: "Creative",
-    stepIds: ["hooks", "ad-copy", "ad-creative"],
+    stepIds: ["ad-copy", "ad-creative"],
   },
   {
     id: "launch",
@@ -371,6 +269,25 @@ export interface CampaignSkeletonAd {
   format: AdFormat;
   angleLabel: string;
   hook: string;
+  /** Absolute path of the creative saved/imported via AdCreativeStudio. Drives
+   *  the ad-card thumbnail in CampaignTreeView when set. */
+  creativePath?: string;
+  /** Display-friendly basename for the creative; shown as a caption beside the
+   *  thumbnail. */
+  creativeFilename?: string;
+  /** Inline preview source — remote URL for Replicate saves, data URI for
+   *  imports. Used directly by the <img> in the ad card. */
+  creativePreviewUrl?: string;
+  /** Frames 2..N for Carousel format. Frame 0 lives on the primary
+   *  creativePath/Filename/PreviewUrl fields so single-image and carousel ads
+   *  share the same wire shape until you add a second frame. Ignored for
+   *  Image/Video formats but kept on the model so flipping the format back to
+   *  Carousel doesn't drop the stack. */
+  extraFrames?: Array<{
+    creativePath?: string;
+    creativeFilename?: string;
+    creativePreviewUrl?: string;
+  }>;
 }
 
 export interface CampaignSkeletonAdSet {

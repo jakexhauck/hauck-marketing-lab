@@ -5,7 +5,7 @@
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
 use rand::RngCore;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
 use std::path::Path;
@@ -29,6 +29,131 @@ fn is_valid_file_id(id: &str) -> bool {
         && id
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+/// Pull the bare folder ID out of a Drive folder URL, or pass through if the
+/// caller already supplied a bare ID. Returns None if nothing usable is found.
+fn extract_drive_folder_id(input: &str) -> Option<String> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if let Some(rest) = trimmed.split("/folders/").nth(1) {
+        let id: String = rest
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+            .collect();
+        if is_valid_file_id(&id) {
+            return Some(id);
+        }
+    }
+    if is_valid_file_id(trimmed) {
+        return Some(trimmed.to_string());
+    }
+    None
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DriveSubfolder {
+    pub id: String,
+    pub name: String,
+    pub web_view_link: String,
+}
+
+/// List immediate subfolders of the given Drive folder. `parent` may be a full
+/// Drive URL (`https://drive.google.com/drive/folders/<id>`) or a bare folder
+/// ID. Returns folders sorted by name.
+#[tauri::command]
+pub async fn list_drive_subfolders(
+    app: AppHandle,
+    parent: String,
+) -> Result<Vec<DriveSubfolder>, String> {
+    let parent_id = extract_drive_folder_id(&parent)
+        .ok_or_else(|| format!("Could not extract a Drive folder ID from: {parent:?}"))?;
+
+    let token = google_access_token(&app).await?;
+    let client = reqwest::Client::new();
+
+    // Drive `files.list` with a folder-children + folder-type filter.
+    let q = format!(
+        "'{parent_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+    );
+    let url = "https://www.googleapis.com/drive/v3/files";
+
+    let mut all = Vec::new();
+    let mut page_token: Option<String> = None;
+    loop {
+        let mut req = client
+            .get(url)
+            .bearer_auth(&token)
+            .query(&[
+                ("q", q.as_str()),
+                ("fields", "nextPageToken,files(id,name,webViewLink)"),
+                ("orderBy", "name"),
+                ("pageSize", "200"),
+                ("supportsAllDrives", "true"),
+                ("includeItemsFromAllDrives", "true"),
+            ]);
+        if let Some(pt) = page_token.as_deref() {
+            req = req.query(&[("pageToken", pt)]);
+        }
+
+        let resp = req.send().await.map_err(|e| format!("drive list request: {e}"))?;
+        let status = resp.status();
+        let body = resp.text().await.map_err(|e| format!("drive list body: {e}"))?;
+
+        if !status.is_success() {
+            if status.as_u16() == 401 {
+                return Err(
+                    "Google authentication expired or missing the drive.metadata.readonly scope. Reconnect Google in Settings > Google Calendar."
+                        .to_string(),
+                );
+            }
+            if status.as_u16() == 403 {
+                return Err(format!(
+                    "Drive denied the list call ({status}). Check that the agency folder is shared with the same Google account you connected. Body: {body}"
+                ));
+            }
+            return Err(format!("drive list failed ({status}): {body}"));
+        }
+
+        #[derive(Deserialize)]
+        struct RawFile {
+            id: String,
+            name: String,
+            #[serde(default, rename = "webViewLink")]
+            web_view_link: Option<String>,
+        }
+        #[derive(Deserialize)]
+        struct RawResp {
+            files: Vec<RawFile>,
+            #[serde(default, rename = "nextPageToken")]
+            next_page_token: Option<String>,
+        }
+
+        let parsed: RawResp = serde_json::from_str(&body)
+            .map_err(|e| format!("parse drive list JSON: {e}; body: {body}"))?;
+
+        for f in parsed.files {
+            let link = f
+                .web_view_link
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| format!("https://drive.google.com/drive/folders/{}", f.id));
+            all.push(DriveSubfolder {
+                id: f.id,
+                name: f.name,
+                web_view_link: link,
+            });
+        }
+
+        match parsed.next_page_token {
+            Some(t) if !t.is_empty() => page_token = Some(t),
+            _ => break,
+        }
+    }
+
+    Ok(all)
 }
 
 #[tauri::command]

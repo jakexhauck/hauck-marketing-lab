@@ -2,7 +2,7 @@ clients:
 - slug: willis-windows
   name: Willis Windows
   status: pre-launch
-  drive_folder_url: https://drive.google.com/drive/folders/1ya0NgEZu5snPMM2eZRgqg6D2FipE5Sxa?usp=drive_link
+  drive_folder_url: https://drive.google.com/drive/folders/1ya0NgEZu5snPMM2eZRgqg6D2FipE5Sxa
   meta_ad_account_id: act_4396590353913166
   doc_folder_defaults:
     ad-copy:
@@ -20,4 +20,20 @@ clients:
     other:
       id: 1RtvJIE3at0Xn0Y0DzQ46YY0VWAC8pQ1Z
       name: Assets
+  sequence_folder_defaults:
+    audience-research:
+      id: 1yJc29TKogXyLCH8ZVhgD5ylEc5QN-hCY
+      name: 2. AD's - Creatives, AD Copy, Angles, Etc
+    creative-brief:
+      id: 1yJc29TKogXyLCH8ZVhgD5ylEc5QN-hCY
+      name: 2. AD's - Creatives, AD Copy, Angles, Etc
+    ad-copy:
+      id: 1yJc29TKogXyLCH8ZVhgD5ylEc5QN-hCY
+      name: 2. AD's - Creatives, AD Copy, Angles, Etc
+    ad-creative:
+      id: 1yJc29TKogXyLCH8ZVhgD5ylEc5QN-hCY
+      name: 2. AD's - Creatives, AD Copy, Angles, Etc
+    structure:
+      id: 1yJc29TKogXyLCH8ZVhgD5ylEc5QN-hCY
+      name: 2. AD's - Creatives, AD Copy, Angles, Etc
   optimizer_mode: suggest

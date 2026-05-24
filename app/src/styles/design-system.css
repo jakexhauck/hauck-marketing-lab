@@ -111,6 +111,40 @@
   position: relative;
 }
 
+/* Themed scrollbars — replaces the OS default gray/white bar with a slim
+ * track that matches the purple/black aesthetic. Scoped to .hml-app so it
+ * styles every scrollable surface inside the shell without leaking out. */
+.hml-app *,
+.hml-app {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(180, 120, 255, 0.28) transparent;
+}
+.hml-app *::-webkit-scrollbar,
+.hml-app::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.hml-app *::-webkit-scrollbar-track,
+.hml-app::-webkit-scrollbar-track {
+  background: transparent;
+}
+.hml-app *::-webkit-scrollbar-thumb,
+.hml-app::-webkit-scrollbar-thumb {
+  background: rgba(180, 120, 255, 0.22);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+.hml-app *::-webkit-scrollbar-thumb:hover,
+.hml-app::-webkit-scrollbar-thumb:hover {
+  background: rgba(180, 120, 255, 0.48);
+  background-clip: padding-box;
+}
+.hml-app *::-webkit-scrollbar-corner,
+.hml-app::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Ambient warmth */
 .hml-app::before {
   content: '';
@@ -541,6 +575,14 @@
   transition: color 0.12s ease;
 }
 .hml-breadcrumb .hml-seg:hover { color: var(--hml-text-primary); }
+.hml-breadcrumb .hml-seg-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
 .hml-breadcrumb .hml-sep { color: var(--hml-text-quaternary); font-size: 11px; }
 .hml-breadcrumb .hml-current {
   color: var(--hml-text-primary);
@@ -636,6 +678,19 @@
   padding: 30px 30px 64px;
   max-width: 1240px;
   margin: 0 auto;
+}
+
+/* Per-client surface (ClientDashboard). Bypasses the .hml-content frame so
+ * every client section (Dashboard, Onboarding, Ads, Documents, Recordings,
+ * Websites, Reporting, Settings) renders edge-to-edge in the right pane —
+ * no max-width box, no outer padding, no rise animation creating a fixed-
+ * positioning trap for overlays like CampaignTreeView. */
+.hml-client-shell {
+  width: 100%;
+  min-height: 100%;
+  padding: 18px 22px 28px;
+  margin: 0;
+  max-width: none;
 }
 
 .hml-content > * {

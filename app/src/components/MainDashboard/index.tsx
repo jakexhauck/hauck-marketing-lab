@@ -15,7 +15,6 @@ import type { FormSurfaceId } from "../../lib/formConfigs";
 import type { AgentSummary } from "../../lib/types";
 import {
   IconPlus,
-  IconSettings,
   IconTarget,
   IconTasks,
   IconUser,
@@ -278,11 +277,29 @@ export function MainDashboard({
     view.kind === "personal" ? view.section : null;
 
   // Topbar breadcrumb ─────────────────────────────────────────
-  const breadcrumb = useMemo(() => buildBreadcrumb(view, realClients, prospects), [
-    view,
-    realClients,
-    prospects,
-  ]);
+  const onBreadcrumbBack = useCallback(() => {
+    if (view.kind === "workspace") {
+      goHome();
+      return;
+    }
+    if (view.kind === "outreach") {
+      setView({ kind: "outreach", section: "overview" });
+      return;
+    }
+    if (view.kind === "personal") {
+      setView({ kind: "personal", section: "overview" });
+      return;
+    }
+    if (view.kind === "client") {
+      setView({ kind: "workspace", tab: "clients" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
+
+  const breadcrumb = useMemo(
+    () => buildBreadcrumb(view, realClients, prospects, onBreadcrumbBack),
+    [view, realClients, prospects, onBreadcrumbBack],
+  );
 
   const syncLabel = syncing
     ? "⇅ Syncing…"
@@ -312,7 +329,6 @@ export function MainDashboard({
           onSelectClientSection={onSelectClientSection}
           onSelectPersonalSection={onSelectPersonalSection}
           onAddClient={onAddClient}
-          onOpenSettings={onSettings}
           onBrandClick={goHome}
           appVersion="v1.4"
         />
@@ -334,16 +350,6 @@ export function MainDashboard({
                 </button>
               )}
               <NotificationsBell root={root ?? null} />
-              {onSettings && (
-                <button
-                  type="button"
-                  className="hml-icon-btn"
-                  onClick={onSettings}
-                  title="Settings"
-                >
-                  <IconSettings size={15} />
-                </button>
-              )}
               <button type="button" className="hml-btn" title="New">
                 <IconPlus size={13} />
                 New
@@ -378,12 +384,24 @@ function buildBreadcrumb(
   view: View,
   clients: ClientEntry[],
   prospects: ProspectEntry[],
+  onBack: () => void,
 ): React.ReactNode {
+  const Crumb = ({ label }: { label: string }) => (
+    <button
+      type="button"
+      className="hml-seg hml-seg-btn"
+      onClick={onBack}
+      title="Back"
+    >
+      {label}
+    </button>
+  );
+
   if (view.kind === "workspace") {
     if (view.tab === "sales") {
       return (
         <>
-          <span className="hml-seg">Agency</span>
+          <Crumb label="Agency" />
           <span className="hml-sep">/</span>
           <span className="hml-current">Sales pipeline</span>
         </>
@@ -392,7 +410,7 @@ function buildBreadcrumb(
     if (view.tab === "onboarding") {
       return (
         <>
-          <span className="hml-seg">Agency</span>
+          <Crumb label="Agency" />
           <span className="hml-sep">/</span>
           <span className="hml-current">Onboarding pipeline</span>
         </>
@@ -401,7 +419,7 @@ function buildBreadcrumb(
     const label = view.tab.charAt(0).toUpperCase() + view.tab.slice(1);
     return (
       <>
-        <span className="hml-seg">Workspace</span>
+        <Crumb label="Workspace" />
         <span className="hml-sep">/</span>
         <span className="hml-current">{label}</span>
       </>
@@ -411,7 +429,7 @@ function buildBreadcrumb(
     if (view.section === "overview") {
       return (
         <>
-          <span className="hml-seg">Outreach</span>
+          <Crumb label="Outreach" />
           <span className="hml-sep">/</span>
           <span className="hml-current">Overview</span>
         </>
@@ -421,7 +439,7 @@ function buildBreadcrumb(
       const p = prospects.find((p) => p.slug === view.prospectSlug);
       return (
         <>
-          <span className="hml-seg">Outreach</span>
+          <Crumb label="Outreach" />
           <span className="hml-sep">/</span>
           <span className="hml-current">{p?.name ?? view.prospectSlug ?? "Prospect"}</span>
         </>
@@ -437,7 +455,7 @@ function buildBreadcrumb(
             : "Cold Call Sequence";
     return (
       <>
-        <span className="hml-seg">Outreach</span>
+        <Crumb label="Outreach" />
         <span className="hml-sep">/</span>
         <span className="hml-current">{label}</span>
       </>
@@ -452,7 +470,7 @@ function buildBreadcrumb(
           : "Overview";
     return (
       <>
-        <span className="hml-seg">Personal</span>
+        <Crumb label="Personal" />
         <span className="hml-sep">/</span>
         <span className="hml-current">{label}</span>
       </>
@@ -463,7 +481,7 @@ function buildBreadcrumb(
   const sectionLabel = sectionToLabel(view.section);
   return (
     <>
-      <span className="hml-seg">Clients</span>
+      <Crumb label="Clients" />
       <span className="hml-sep">/</span>
       <span className="hml-seg">{c?.name ?? view.slug}</span>
       <span className="hml-sep">/</span>

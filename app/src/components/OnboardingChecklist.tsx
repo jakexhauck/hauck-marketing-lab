@@ -1,17 +1,24 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import {
   ONBOARDING_PLAN,
   phaseTaskCount,
   phaseTaskIds,
   requiredPhaseTaskIds,
   totalTasks,
+  type OnboardingInlineField,
   type OnboardingPhase,
   type OnboardingTask,
 } from "../lib/onboardingPlan";
 import {
   MEDIA_BUYING_SEQUENCE,
   emptySequenceState,
-  formatHooksForAdCopy,
   isStepDone,
   nextStepId,
   sequenceComplete,
@@ -107,6 +114,41 @@ function extractJsonFromBody(body: string): Record<string, unknown> | null {
   }
 }
 
+/** Profile.md H2 heading written for each inline-field kind. */
+const PROFILE_SECTION_BY_KIND: Record<string, string> = {
+  "profile-budget": "Monthly Budget",
+  "profile-offer-cta": "Offer + CTA",
+};
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Pull the body text of an H2 section out of a markdown body. Returns "" when
+ *  the heading is absent. Trims surrounding whitespace. */
+function readSection(body: string, heading: string): string {
+  const re = new RegExp(
+    `(?:^|\\n)##\\s+${escapeRegex(heading)}\\s*\\n([\\s\\S]*?)(?=\\n##\\s+|\\s*$)`,
+    "i",
+  );
+  const m = re.exec(body);
+  return m ? m[1].trim() : "";
+}
+
+/** Replace the body of an H2 section with `content`, or append a new section
+ *  at the end of `body` when the heading is missing. */
+function upsertSection(body: string, heading: string, content: string): string {
+  const re = new RegExp(
+    `((?:^|\\n)##\\s+${escapeRegex(heading)}\\s*\\n)([\\s\\S]*?)(?=\\n##\\s+|\\s*$)`,
+    "i",
+  );
+  if (re.test(body)) {
+    return body.replace(re, `$1${content}\n`);
+  }
+  const trimmed = body.replace(/\s+$/, "");
+  return `${trimmed}\n\n## ${heading}\n${content}\n`;
+}
+
 /** Task ID that triggers writing `adsLaunchedAt` into the Client Dashboard
  *  (`ops/clients.json`) when first checked. Idempotent. */
 const ADS_PUBLISH_TASK_ID = "06-publish";
@@ -150,6 +192,14 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [chainValues, setChainValues] = useState<Partial<FormValues>>({});
   const [loadingChain, setLoadingChain] = useState(false);
+  // Inline field state: per-task draft text, last-saved snapshot (so we can
+  // show "Saved" vs "Unsaved" without re-reading the vault), and a transient
+  // saving/error flag. Keys are task IDs.
+  const [inlineDraft, setInlineDraft] = useState<Record<string, string>>({});
+  const [inlineSaved, setInlineSaved] = useState<Record<string, string>>({});
+  const [inlineStatus, setInlineStatus] = useState<
+    Record<string, "idle" | "saving" | "error">
+  >({});
   // Highest phase number already pushed to GHL for this client mount.
   const lastSyncedPhase = useRef<number>(0);
   // Suppress the persist effect until after the load resolves.
@@ -162,6 +212,9 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
     skipNextPersist.current = true;
     setSelectedIndex(null);
     setOpenTaskId(null);
+    setInlineDraft({});
+    setInlineSaved({});
+    setInlineStatus({});
     void (async () => {
       let next: Persisted = { done: [], skippedOptional: [], phaseDoneAt: {} };
       let needsMigrationWrite = false;
@@ -201,6 +254,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
           skipped: next.sequence.skipped as SequenceStepId[] | undefined,
           launchedAt: next.sequence.launchedAt,
           driveFolderId: next.sequence.driveFolderId,
+          campaignSkeleton: next.sequence.campaignSkeleton as SequenceState["campaignSkeleton"],
         });
       } else {
         setSequenceState(emptySequenceState());
@@ -334,6 +388,96 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
       cancelled = true;
     };
   }, [root, clientSlug, doneSet, loaded]);
+
+  // Preload inline-field values from Profile.md so the inputs show what's
+  // already on disk. Memory.md isn't preloaded — the Fathom field is
+  // append-only, no "current value" to surface. Best-effort; if the read
+  // fails (no profile yet, fresh client) we silently leave the inputs blank.
+  useEffect(() => {
+    if (!root || !loaded) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const note = await api.readVaultNote(
+          root,
+          `Clients/${clientName}/Profile.md`,
+        );
+        if (cancelled) return;
+        const body = note?.body ?? "";
+        const initial: Record<string, string> = {};
+        for (const phase of ONBOARDING_PLAN) {
+          for (const ss of phase.subsections) {
+            for (const t of ss.tasks) {
+              const f = t.inlineField;
+              if (!f) continue;
+              const heading = PROFILE_SECTION_BY_KIND[f.kind];
+              if (!heading) continue;
+              const v = readSection(body, heading);
+              if (v) initial[t.id] = v;
+            }
+          }
+        }
+        setInlineSaved((prev) => ({ ...initial, ...prev }));
+        setInlineDraft((prev) => {
+          const next = { ...prev };
+          for (const [k, v] of Object.entries(initial)) {
+            if (next[k] == null) next[k] = v;
+          }
+          return next;
+        });
+      } catch {
+        // no profile yet; leave blank
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, clientName, loaded]);
+
+  const saveInlineField = useCallback(
+    async (taskId: string, field: OnboardingInlineField, raw: string) => {
+      if (!root) return;
+      const value = raw.trim();
+      if (!value) return;
+      setInlineStatus((prev) => ({ ...prev, [taskId]: "saving" }));
+      try {
+        if (field.kind === "memory-fathom") {
+          await api.appendToMemory(
+            root,
+            clientSlug,
+            `Fathom recording: ${value}`,
+          );
+        } else {
+          const heading = PROFILE_SECTION_BY_KIND[field.kind];
+          if (!heading) throw new Error(`unknown inline field kind: ${field.kind}`);
+          const path = `Clients/${clientName}/Profile.md`;
+          const note = await api.readVaultNote(root, path);
+          const nextBody = upsertSection(note.body ?? "", heading, value);
+          await api.writeVaultNote(root, path, note.front, nextBody);
+        }
+        setInlineSaved((prev) => ({ ...prev, [taskId]: value }));
+        setInlineDraft((prev) => ({ ...prev, [taskId]: value }));
+        setInlineStatus((prev) => ({ ...prev, [taskId]: "idle" }));
+        setDoneSet((prev) => {
+          if (prev.has(taskId)) return prev;
+          const next = new Set(prev);
+          next.add(taskId);
+          return next;
+        });
+        setSkippedSet((prev) => {
+          if (!prev.has(taskId)) return prev;
+          const next = new Set(prev);
+          next.delete(taskId);
+          return next;
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error("inline field save failed", err);
+        setInlineStatus((prev) => ({ ...prev, [taskId]: "error" }));
+      }
+    },
+    [root, clientName, clientSlug],
+  );
 
   const total = useMemo(() => totalTasks(), []);
   const doneCount = doneSet.size;
@@ -505,9 +649,6 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
             mapped[spec.rawBodyField] = body;
           }
           const parsed = extractJsonFromBody(body);
-          if (spec.transform === "hooks-to-adcopy" && spec.transformTargetField && parsed) {
-            mapped[spec.transformTargetField] = formatHooksForAdCopy(parsed);
-          }
           if (!parsed) continue;
           for (const [sourceKey, targetField] of Object.entries(spec.fields)) {
             const v = parsed[sourceKey];
@@ -737,6 +878,13 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
                 onOpenForm={openTaskForm}
                 canOpenForm={!!root}
                 adsSubProgress={adsSubProgress}
+                inlineDraft={inlineDraft}
+                inlineSaved={inlineSaved}
+                inlineStatus={inlineStatus}
+                onInlineChange={(taskId, value) =>
+                  setInlineDraft((prev) => ({ ...prev, [taskId]: value }))
+                }
+                onInlineSave={saveInlineField}
               />
             );
           }
@@ -864,6 +1012,11 @@ function ActiveCard({
   onOpenForm,
   canOpenForm,
   adsSubProgress,
+  inlineDraft,
+  inlineSaved,
+  inlineStatus,
+  onInlineChange,
+  onInlineSave,
 }: {
   phase: OnboardingPhase;
   doneSet: Set<string>;
@@ -874,6 +1027,15 @@ function ActiveCard({
   onOpenForm: (taskId: string) => void;
   canOpenForm: boolean;
   adsSubProgress: { done: number; total: number };
+  inlineDraft: Record<string, string>;
+  inlineSaved: Record<string, string>;
+  inlineStatus: Record<string, "idle" | "saving" | "error">;
+  onInlineChange: (taskId: string, value: string) => void;
+  onInlineSave: (
+    taskId: string,
+    field: OnboardingInlineField,
+    value: string,
+  ) => void | Promise<void>;
 }) {
   const total = phaseTaskCount(phase);
   return (
@@ -933,6 +1095,7 @@ function ActiveCard({
                   actionHint = step?.hint;
                 }
                 const subProgress = isAdsTask ? adsSubProgress : undefined;
+                const inlineField = t.inlineField ?? null;
                 return (
                   <TaskRow
                     key={t.id}
@@ -947,6 +1110,19 @@ function ActiveCard({
                     actionHint={actionHint}
                     canOpenForm={canOpenForm}
                     subProgress={subProgress}
+                    inlineField={inlineField}
+                    inlineDraft={inlineDraft[t.id] ?? ""}
+                    inlineSaved={inlineSaved[t.id] ?? ""}
+                    inlineStatus={inlineStatus[t.id] ?? "idle"}
+                    onInlineChange={(value) => onInlineChange(t.id, value)}
+                    onInlineSave={() => {
+                      if (!inlineField) return;
+                      void onInlineSave(
+                        t.id,
+                        inlineField,
+                        inlineDraft[t.id] ?? "",
+                      );
+                    }}
                     onToggle={() => onToggle(t.id)}
                     onToggleSkip={() => onToggleSkip(t.id)}
                     onOpenForm={() => onOpenForm(t.id)}
@@ -971,6 +1147,12 @@ function TaskRow({
   actionHint,
   canOpenForm,
   subProgress,
+  inlineField,
+  inlineDraft,
+  inlineSaved,
+  inlineStatus,
+  onInlineChange,
+  onInlineSave,
   onToggle,
   onToggleSkip,
   onOpenForm,
@@ -984,6 +1166,12 @@ function TaskRow({
   actionHint?: string;
   canOpenForm: boolean;
   subProgress?: { done: number; total: number };
+  inlineField?: OnboardingInlineField | null;
+  inlineDraft?: string;
+  inlineSaved?: string;
+  inlineStatus?: "idle" | "saving" | "error";
+  onInlineChange?: (value: string) => void;
+  onInlineSave?: () => void;
   onToggle: () => void;
   onToggleSkip: () => void;
   onOpenForm: () => void;
@@ -1051,6 +1239,17 @@ function TaskRow({
             )}
           </div>
         )}
+        {inlineField && !skipped && (
+          <InlineFieldEditor
+            field={inlineField}
+            draft={inlineDraft ?? ""}
+            saved={inlineSaved ?? ""}
+            status={inlineStatus ?? "idle"}
+            disabled={!canOpenForm}
+            onChange={(v) => onInlineChange?.(v)}
+            onSave={() => onInlineSave?.()}
+          />
+        )}
       </div>
       {shouldShowAction && (
         <button
@@ -1071,6 +1270,79 @@ function TaskRow({
             </>
           )}
         </button>
+      )}
+    </div>
+  );
+}
+
+function InlineFieldEditor({
+  field,
+  draft,
+  saved,
+  status,
+  disabled,
+  onChange,
+  onSave,
+}: {
+  field: OnboardingInlineField;
+  draft: string;
+  saved: string;
+  status: "idle" | "saving" | "error";
+  disabled: boolean;
+  onChange: (value: string) => void;
+  onSave: () => void;
+}) {
+  const trimmedDraft = draft.trim();
+  const isAppendOnly = field.kind === "memory-fathom";
+  const isDirty = trimmedDraft !== saved.trim();
+  const canSave =
+    !disabled && status !== "saving" && trimmedDraft.length > 0 && isDirty;
+  const handleKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && canSave) {
+      e.preventDefault();
+      onSave();
+    }
+  };
+  return (
+    <div className="ob-inline-field">
+      <label className="ob-inline-label">{field.label}</label>
+      <div className="ob-inline-row">
+        <input
+          type={field.inputType ?? "text"}
+          className="ob-inline-input"
+          value={draft}
+          placeholder={field.placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKey}
+          disabled={disabled || status === "saving"}
+          spellCheck={false}
+        />
+        <button
+          type="button"
+          className="ob-inline-save"
+          onClick={onSave}
+          disabled={!canSave}
+          title={
+            disabled
+              ? "Pick a vault folder in Settings first"
+              : isAppendOnly
+                ? "Append to Memory.md"
+                : "Write to Profile.md"
+          }
+        >
+          {status === "saving" ? "Saving…" : isAppendOnly ? "Append" : "Save"}
+        </button>
+      </div>
+      {status === "error" && (
+        <span className="ob-inline-hint ob-inline-err">
+          Save failed. Try again.
+        </span>
+      )}
+      {status !== "error" && saved && !isAppendOnly && !isDirty && (
+        <span className="ob-inline-hint">Saved to Profile.md</span>
+      )}
+      {status !== "error" && isAppendOnly && saved && !isDirty && (
+        <span className="ob-inline-hint">Appended to Memory.md</span>
       )}
     </div>
   );
@@ -1197,5 +1469,81 @@ const FORM_OVERLAY_CSS = `
   border: 1px solid var(--hml-accent-border);
   padding: 2px 8px;
   border-radius: 999px;
+}
+
+.ob-inline-field {
+  margin-top: 8px;
+  padding: 9px 12px 10px;
+  background: var(--hml-bg-elev-1);
+  border: 1px solid var(--hml-border-subtle);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.ob-inline-label {
+  font-family: var(--hml-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hml-text-tertiary);
+  font-weight: 500;
+}
+.ob-inline-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.ob-inline-input {
+  flex: 1;
+  background: var(--hml-bg-base);
+  border: 1px solid var(--hml-border);
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-family: var(--hml-font-sans);
+  font-size: 13px;
+  color: var(--hml-text-primary);
+  outline: none;
+  min-width: 0;
+}
+.ob-inline-input:focus {
+  border-color: var(--hml-accent);
+}
+.ob-inline-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ob-inline-save {
+  background: var(--hml-accent-dim);
+  color: var(--hml-accent);
+  border: 1px solid var(--hml-accent-border);
+  border-radius: 5px;
+  padding: 5px 12px;
+  font-family: var(--hml-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ob-inline-save:hover:not(:disabled) {
+  background: var(--hml-accent);
+  color: var(--hml-bg-base);
+  border-color: var(--hml-accent);
+}
+.ob-inline-save:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.ob-inline-hint {
+  font-family: var(--hml-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hml-text-tertiary);
+}
+.ob-inline-err {
+  color: #ff7676;
 }
 `;

@@ -22,7 +22,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MEDIA_BUYING_SEQUENCE,
   SEQUENCE_GROUPS,
-  formatHooksForAdCopy,
   getStep,
   isStepDone,
   nextStepId,
@@ -36,12 +35,17 @@ import { getFormConfig, type FormValues, type FormConfig } from "../lib/formConf
 import { api } from "../lib/tauri";
 import type { AgentSummary, GeneratorOutput } from "../lib/types";
 import { GenericFormGenerator } from "./GenericFormGenerator";
-import { CampaignTreeView } from "./CampaignTreeView";
+import {
+  CampaignTreeView,
+  type PendingCreativePick,
+  type PendingSnippet,
+} from "./CampaignTreeView";
 import { AdCreativeStudio } from "./AdCreativeStudio";
 import { AdsSequenceFolderConfigurator } from "./AdsSequenceFolderConfigurator";
 import { AdsSequenceAdvisor, type AdvisorSuggestion } from "./AdsSequenceAdvisor";
 import { readAggregatedCompetitorIntel } from "../lib/competitorIntel";
 import { FormOutput } from "./forms/FormOutput";
+import { PastResults } from "./generators/PastResults";
 
 /** Strip leading YAML frontmatter (`--- ... ---`) from a vault note body so
  *  the saved view doesn't open with a wall of metadata. Mirrors the Rust
@@ -118,6 +122,14 @@ export function AdsSequenceWizard({
   const [chainValues, setChainValues] = useState<Partial<FormValues>>({});
   const [loadingChain, setLoadingChain] = useState(false);
   const [treeOpen, setTreeOpen] = useState(false);
+  /** When set, the campaign tree opens in "pick mode" — every ad slot glows
+   *  and clicking one inserts this snippet into that ad's hook. Sourced from
+   *  the FormOutput "+ to tree" affordance in the saved-view doc. */
+  const [pendingSnippet, setPendingSnippet] = useState<PendingSnippet | null>(null);
+  /** Mirror of `pendingSnippet` for static creatives sent from
+   *  AdCreativeStudio's saved-this-session list. */
+  const [pendingCreativePick, setPendingCreativePick] =
+    useState<PendingCreativePick | null>(null);
   const [foldersOpen, setFoldersOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
   /** Per-step cache of advisor suggestions. Keeps reopen instant; Refresh
@@ -139,6 +151,10 @@ export function AdsSequenceWizard({
   const [savedViewError, setSavedViewError] = useState<string | null>(null);
   /** Per-step "Drive push in flight" flag, separate from done/dirty state. */
   const [pushingStep, setPushingStep] = useState<SequenceStepId | null>(null);
+  /** Bumped every time a single ad variation is pushed to Drive (which also
+   *  writes a past-result file). The saved-view PastResults panel watches
+   *  this to re-fetch the list immediately. */
+  const [pastResultsRefresh, setPastResultsRefresh] = useState(0);
   /** Transient toast surface for auto-push outcomes. Cleared after 4s. */
   const [toast, setToast] = useState<{
     kind: "success" | "error";
@@ -184,9 +200,6 @@ export function AdsSequenceWizard({
           const body = note?.body ?? "";
           if (spec.rawBodyField) mapped[spec.rawBodyField] = body;
           const parsed = extractJsonFromBody(body);
-          if (spec.transform === "hooks-to-adcopy" && spec.transformTargetField && parsed) {
-            mapped[spec.transformTargetField] = formatHooksForAdCopy(parsed);
-          }
           if (!parsed) continue;
           for (const [sourceKey, targetField] of Object.entries(spec.fields)) {
             const v = parsed[sourceKey];
@@ -238,15 +251,15 @@ export function AdsSequenceWizard({
           if (skel.adSets.length > 0) mapped.audience_count = skel.adSets.length;
           if (uniqueAds > 0) mapped.creative_count = uniqueAds;
         }
-        if (activeStep.formId === "hooks") {
-          if (distinctAngles > 0) mapped.angle_count = distinctAngles;
-          if (dedupedHooks.length > 0) mapped.seed = dedupedHooks.join("\n");
-        }
         if (activeStep.formId === "creative-brief") {
           const primaryHook = firstSet?.ads[0]?.hook.trim();
           if (primaryHook) mapped.hook = primaryHook;
           if (uniqueAds > 0) mapped.quantity = uniqueAds;
         }
+        // distinctAngles / dedupedHooks were consumed by the retired Hooks
+        // step; keep computed inputs around for future use.
+        void distinctAngles;
+        void dedupedHooks;
       }
 
       if (!cancelled) {
@@ -350,7 +363,6 @@ export function AdsSequenceWizard({
       new Set<SequenceStepId>([
         "audience-research",
         "creative-brief",
-        "hooks",
         "ad-copy",
       ]),
     [],
@@ -379,7 +391,7 @@ export function AdsSequenceWizard({
       if (!step) return stateAfterSave;
       setPushingStep(stepId);
       try {
-        const title = `${clientName} · ${step.label}`;
+        const title = `Learning Phase - ${step.label}`;
         const result = await api.pushSequenceStepToDrive({
           root,
           clientSlug,
@@ -554,7 +566,7 @@ export function AdsSequenceWizard({
       <div className="aw-topbar">
         <div>
           <div className="aw-eyebrow">▸ {clientName} · Ads</div>
-          <h1 className="aw-h1">Ads Sequence</h1>
+          <h1 className="aw-h1">Ads Sequence - Learning Phase</h1>
         </div>
         <div className="aw-meta-cluster">
           <div className="aw-count-pill">
@@ -832,6 +844,11 @@ export function AdsSequenceWizard({
                     clientSlug={clientSlug}
                     initialValues={chainValues}
                     onSaved={handleSaved}
+                    onSendCreativeToTree={(pick) => {
+                      setPendingCreativePick(pick);
+                      setPendingSnippet(null);
+                      setTreeOpen(true);
+                    }}
                   />
                 ) : activeFormConfig ? (
                   isActiveDone &&
@@ -843,7 +860,98 @@ export function AdsSequenceWizard({
                         body={savedView.body}
                         kind={activeFormConfig.kind}
                         showHeader={false}
+                        editorScopeKey={`adcopy:${clientSlug}:${activeStep.id}`}
+                        onSendToTree={(text, source, angleLabel) => {
+                          setPendingSnippet({ text, source, angleLabel });
+                          setTreeOpen(true);
+                        }}
+                        onSendVariationToDrive={async (v) => {
+                          const stamp = new Date()
+                            .toISOString()
+                            .slice(0, 10);
+                          const angleBits = [v.framework, v.hookRef.trim()]
+                            .filter(Boolean)
+                            .join(" — ");
+                          const title = angleBits
+                            ? `${clientName} · Ad copy · ${angleBits} · ${stamp}`
+                            : `${clientName} · Ad copy · ${stamp}`;
+                          try {
+                            const result = await api.pushAdVariationToDrive({
+                              root,
+                              clientSlug,
+                              title,
+                              bodyMarkdown: v.body,
+                              framework: v.framework || undefined,
+                              hookRef: v.hookRef.trim() || undefined,
+                              wordCount: v.wordCount || undefined,
+                            });
+                            // Mirror the push as a past result so the variation
+                            // shows up in the standalone Ad Copy form's past
+                            // results list. If this Drive push happened, Jake
+                            // is using the copy — promote it from a one-off to
+                            // an archived run.
+                            const summary = angleBits || null;
+                            const pastBody = [
+                              angleBits ? `**${angleBits}**` : null,
+                              v.wordCount ? `_${v.wordCount}_` : null,
+                              "",
+                              v.body,
+                              "",
+                              `_Pushed to Drive: ${result.driveUrl}_`,
+                            ]
+                              .filter((s) => s !== null)
+                              .join("\n");
+                            try {
+                              await api.saveGeneratorOutput({
+                                root,
+                                clientSlug,
+                                kind: activeFormConfig.kind,
+                                title,
+                                summary,
+                                body: pastBody,
+                                inputsYaml: null,
+                              });
+                              setPastResultsRefresh((n) => n + 1);
+                            } catch (saveErr) {
+                              console.warn(
+                                "AdsSequenceWizard: past-result save failed",
+                                saveErr,
+                              );
+                            }
+                            flashToast(
+                              "success",
+                              `Pushed "${angleBits || title}" to ${result.folderName ?? "Drive"} and saved to past results.`,
+                            );
+                            return { driveUrl: result.driveUrl };
+                          } catch (err) {
+                            const msg = err instanceof Error ? err.message : String(err);
+                            flashToast("error", `Drive push failed: ${msg}`);
+                            throw err;
+                          }
+                        }}
                       />
+                      <div className="aw-saved-past">
+                        <PastResults
+                          root={root}
+                          clientSlug={clientSlug}
+                          kind={activeFormConfig.kind}
+                          refreshKey={pastResultsRefresh}
+                          title="DRIVE-PUSHED VARIATIONS"
+                          limit={15}
+                          onSelect={(output) => {
+                            // Past-result entries created by send-to-drive
+                            // embed a `_Pushed to Drive: <url>_` footer line.
+                            // Click → open the Doc in a new window so Jake
+                            // can jump back to the live Drive copy.
+                            const match =
+                              output.body?.match(/Pushed to Drive:\s*(\S+)/);
+                            const url = match?.[1]?.replace(/[)_]+$/, "");
+                            if (url && /^https?:\/\//.test(url)) {
+                              window.open(url, "_blank", "noreferrer");
+                            }
+                          }}
+                        />
+                      </div>
                     </div>
                   ) : isActiveDone && !isActiveSkipped && savedViewLoading ? (
                     <div className="aw-saved-loading">Loading saved output…</div>
@@ -864,6 +972,10 @@ export function AdsSequenceWizard({
                       onSaved={handleSaved}
                       hidePastResults
                       hideHeader
+                      onSendSnippetToTree={(text, source, angleLabel) => {
+                        setPendingSnippet({ text, source, angleLabel });
+                        setTreeOpen(true);
+                      }}
                     />
                   )
                 ) : null}
@@ -878,9 +990,34 @@ export function AdsSequenceWizard({
           clientName={clientName}
           sequenceState={sequenceState}
           onSkeletonChange={handleSkeletonChange}
-          onClose={() => setTreeOpen(false)}
+          onClose={() => {
+            setTreeOpen(false);
+            setPendingSnippet(null);
+            setPendingCreativePick(null);
+          }}
           root={root}
           clientSlug={clientSlug}
+          pendingSnippet={pendingSnippet}
+          onPickSlot={(setIdx, adIdx) => {
+            const where = `Ad set ${setIdx + 1} · Ad ${adIdx + 1}`;
+            const preview =
+              pendingSnippet && pendingSnippet.text.length > 48
+                ? pendingSnippet.text.slice(0, 48) + "…"
+                : pendingSnippet?.text ?? "";
+            setPendingSnippet(null);
+            setTreeOpen(false);
+            flashToast("success", `Dropped "${preview}" into ${where}.`);
+          }}
+          onCancelPick={() => setPendingSnippet(null)}
+          pendingCreativePick={pendingCreativePick}
+          onPickCreativeSlot={(setIdx, adIdx) => {
+            const where = `Ad set ${setIdx + 1} · Ad ${adIdx + 1}`;
+            const name = pendingCreativePick?.filename ?? "creative";
+            setPendingCreativePick(null);
+            setTreeOpen(false);
+            flashToast("success", `Attached ${name} to ${where}.`);
+          }}
+          onCancelCreativePick={() => setPendingCreativePick(null)}
         />
       )}
 

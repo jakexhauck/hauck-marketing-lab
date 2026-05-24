@@ -594,10 +594,16 @@ const CONTRACT: FormConfig = {
 };
 
 // ── Stratos · Competitor Research ──────────────────────────────────
+// Synthesis-style form: Jake opens Meta Ad Library himself, copies the raw
+// ad data for 5-10 long-running competitor ads, pastes them in. Stratos
+// then synthesizes patterns, common angles/offers, white space, and the
+// digest downstream forms consume. Stratos does NOT research competitors
+// from the web — that path produced hallucinated Page IDs and inferred
+// "ad angles" from website copy rather than actual ads.
 const COMPETITOR_RESEARCH: FormConfig = {
   id: "competitors",
   title: "Competitor Research Brief",
-  subtitle: "Maps the 5-10 most relevant competitors with angles, offers, and ad-library breadcrumbs.",
+  subtitle: "Paste real ads from Meta Ad Library. Stratos synthesizes the patterns, white space, and the digest downstream forms use.",
   eyebrow: "▸ COMPETITOR INTEL · STRATOS",
   eyebrowMeta: "ONBOARDING · DAY 2",
   phase: 3,
@@ -607,8 +613,8 @@ const COMPETITOR_RESEARCH: FormConfig = {
   agentName: "Stratos",
   kind: "scale_checks",
   savedHeading: "Competitor brief saved",
-  generateLabel: "Run research",
-  generatingLabel: "Researching…",
+  generateLabel: "Synthesize intel",
+  generatingLabel: "Synthesizing…",
   sections: [
     {
       title: "▸ TARGET MARKET",
@@ -625,17 +631,24 @@ const COMPETITOR_RESEARCH: FormConfig = {
           kind: "text",
           key: "region",
           label: "Region",
-          placeholder: "Boise metro + 25mi.",
+          placeholder: "Detroit metro + 25mi.",
           required: true,
           inline: true,
         },
+      ],
+    },
+    {
+      title: "▸ COMPETITOR ADS — paste from Meta Ad Library",
+      meta: "required · open facebook.com/ads/library, search the niche + region, copy 5-10 ads that have been running 30+ days",
+      fields: [
         {
-          kind: "number",
-          key: "count",
-          label: "How many competitors",
-          default: 5,
-          min: 3,
-          max: 12,
+          kind: "textarea",
+          key: "ad_paste",
+          label: "Raw ad data",
+          placeholder:
+            "One ad (or one competitor) per block, separated by a blank line or '---'. Loose format is fine, include whatever you can grab:\n\nCrystal Panes Window Cleaning · 84 days running, started 2026-02-28\nHeadline: $50 OFF First Cleaning\nPrimary text: Seattle's #1 window cleaners since 1985. Free estimates. No contract. Book today, sparkle tomorrow.\nOffer: $50 off first clean\nCTA: Book Now\nFormat: Static image, before/after split\n---\nChinook Services · 62 days, started 2026-03-21\nHeadline: Get Your Windows Done Right\n…",
+          minRows: 18,
+          required: true,
         },
       ],
     },
@@ -646,16 +659,16 @@ const COMPETITOR_RESEARCH: FormConfig = {
         {
           kind: "multi",
           key: "extract",
-          label: "What to pull on each",
+          label: "What to surface",
           options: [
             "Ad angles",
             "Offers / pricing",
-            "Review themes",
-            "Landing-page CTA",
-            "Service stack",
+            "CTAs",
+            "Hook patterns",
+            "Format mix",
             "Social proof claims",
           ],
-          defaults: ["Ad angles", "Offers / pricing", "Review themes"],
+          defaults: ["Ad angles", "Offers / pricing", "CTAs"],
         },
         {
           kind: "textarea",
@@ -668,11 +681,11 @@ const COMPETITOR_RESEARCH: FormConfig = {
     },
   ],
   taskDescription:
-    "Produce a competitor intel brief covering the requested number of competitors in this niche and region. For each: company, primary angle, offer/pricing visible publicly, review themes (what customers love + complain about), landing-page CTA, and one weakness Jake can exploit in positioning. End with a synthesis: where the white space is. Also produce a tight `key_takeaways` string (3-5 sentences, max ~600 chars) that downstream agents (Audiences, Creative Brief, Ad Copy) will receive as context: the dominant angles competitors are already running, the offers/price points on display, the recurring objections in reviews, and the angle/positioning gap Jake should attack. Be specific, concrete, and skimmable — this is the digest other agents act on.",
+    "Jake pasted real ad data he copied from Meta Ad Library. Your job is to synthesize across the ads he provided — find the dominant angles, offer patterns, hook structures, and the positioning white space Jake can attack. CRITICAL: work strictly from the pasted data. Do NOT invent competitors he didn't paste, do NOT fabricate longevity numbers, do NOT pull in 'industry knowledge' about businesses he didn't include, do NOT infer angles from anything other than the actual ad copy he provided. If the paste is thin, unclear, or doesn't contain enough signal to synthesize from, say so plainly in the `summary` field and ask Jake for more ads — do not pad the brief with guesses. For each distinct competitor present in the paste: company name (exactly as Jake wrote it), the angle their ads lean on (quote a specific line from their ad copy where you can — that's how Jake knows you read what he gave you), the offer / price points visible in their ads, and one weakness Jake can exploit in positioning. Then a cross-competitor synthesis: which angles appear across MULTIPLE competitors (those are the market's proven winners, since long-running ads are the ones that didn't get killed), which offers anchor the market, which hooks or opening lines repeat, and where the white space is — the angle, offer, or format nobody in the paste is running. Produce a tight `key_takeaways` string (3-5 sentences, max ~600 chars) that downstream agents (Audiences, Creative Brief, Ad Copy) will receive as context. The takeaways must stand alone — readable by an agent who has not seen the rest of the brief — and must reflect only what's in the pasted ads.",
   outputSchema:
-    '{"headline":"…","summary":"…","competitors":[{"name":"…","angle":"…","offer":"…","weakness":"…"}],"white_space":"…","key_takeaways":"…"}',
+    '{"headline":"…","summary":"…","competitors":[{"name":"…","angle":"…","offer":"…","weakness":"…"}],"common_angles":["…"],"common_offers":["…"],"white_space":"…","key_takeaways":"…"}',
   outputInstructions:
-    "After the JSON, write the full brief — one section per competitor, then a closing white-space section with the 2-3 plays Jake can run that nobody else is running. The JSON `key_takeaways` field must stand alone — readable in isolation by another agent that has not seen the rest of the brief.",
+    "After the JSON, write the full brief: one section per competitor (angle, offer, weakness as bullets — quote a specific line from their ad copy under the angle bullet), then a synthesis section covering common angles, common offers, and the 2-3 plays Jake can run that nobody in the paste is running. The JSON `key_takeaways` field must stand alone, readable in isolation by another agent that has not seen the rest of the brief. Every claim in the brief should be traceable to a specific line in the paste — if it isn't, leave it out.",
   defaultTitle: "Competitor research brief",
 };
 
@@ -951,120 +964,11 @@ const PIXEL_INSTALL: FormConfig = {
   defaultTitle: "Pixel install guide",
 };
 
-// ── Vortex · Hooks (Misc) ─────────────────────────────────────────
-const HOOKS: FormConfig = {
-  id: "hooks",
-  title: "Hooks Generator",
-  subtitle:
-    "Generates scroll-stopping hooks across multiple angles using the 100-Hook Framework. Pre-filled from this client's Profile.",
-  eyebrow: "▸ HOOKS · VORTEX",
-  eyebrowMeta: "TOOL · ANYTIME",
-  category: "misc",
-  agentSlug: "vortex",
-  agentName: "Vortex",
-  kind: "hooks",
-  savedHeading: "Hooks saved",
-  generateLabel: "Generate hooks",
-  generatingLabel: "Generating…",
-  prefillFromProfile: {
-    offer: "offers",
-    audience: "target",
-  },
-  prefillFromPlaybook: {
-    offer: "offers",
-    audience: "audience",
-    seed: "angles",
-  },
-  sections: [
-    {
-      title: "▸ BRIEF",
-      meta: "required",
-      fields: [
-        {
-          kind: "textarea",
-          key: "offer",
-          label: "Offer",
-          promptLabel: "Offer",
-          placeholder: "What you're selling. (Pre-filled from Profile.md if available.)",
-          minRows: 2,
-          required: true,
-        },
-        {
-          kind: "textarea",
-          key: "audience",
-          label: "Target audience",
-          promptLabel: "Target audience",
-          placeholder: "Who buys this — demo, mindset, situation.",
-          minRows: 2,
-          required: true,
-        },
-        {
-          kind: "segmented",
-          key: "awareness",
-          label: "Awareness level",
-          promptLabel: "Awareness level",
-          options: ["cold", "warm", "retargeting"],
-          default: "cold",
-        },
-      ],
-    },
-    {
-      title: "▸ VOLUME",
-      meta: "matched to the 12-ad output of Ad Copy",
-      fields: [
-        {
-          kind: "number",
-          key: "angle_count",
-          label: "Angles",
-          promptLabel: "Angle count",
-          default: 3,
-          min: 1,
-          max: 12,
-        },
-        {
-          kind: "number",
-          key: "hooks_per_angle",
-          label: "Hooks per angle",
-          promptLabel: "Hooks per angle",
-          default: 4,
-          min: 1,
-          max: 25,
-          inline: true,
-        },
-        {
-          kind: "textarea",
-          key: "seed",
-          label: "Seed / inspiration (optional)",
-          promptLabel: "Seed",
-          placeholder: "Any direction, raw notes, or hooks Jake wants iterated on.",
-          minRows: 3,
-        },
-      ],
-    },
-    {
-      title: "▸ COMPETITOR INTEL",
-      meta: "auto-filled from all saved competitor briefs",
-      fields: [
-        {
-          kind: "textarea",
-          key: "competitor_intel",
-          label: "Competitor intel",
-          promptLabel: "Competitor intel",
-          placeholder:
-            "Aggregated digest of every competitor brief saved for this client. Auto-filled. Use it to write hooks that attack angles competitors are missing.",
-          minRows: 4,
-        },
-      ],
-    },
-  ],
-  taskDescription:
-    "Generate hooks using the 100 Hook Framework. Cover the requested number of distinct angles with the requested hooks per angle. Diverse categories for algorithm variety — urgency, social proof, problem, curiosity, transformation, tactical, disruption. End with a short list of top picks Jake should test first. If competitor intel is provided, synthesize across the briefs — angles, offers, or pains that appear in multiple competitor briefs are signal worth attacking from a different angle. Avoid hooks that mirror angles competitors are already saturating; lean into the white space.",
-  outputSchema:
-    '{"headline":"…","summary":"…","angles":[{"name":"…","category":"urgency|social_proof|problem|curiosity|transformation|tactical|disruption","hooks":["hook 1","hook 2"]}],"top_picks":[{"hook":"…","why":"…"}]}',
-  outputInstructions:
-    "After the JSON, write a Vortex-style hook list grouped by angle with bold headers and a 1-line rationale on each top pick.",
-  defaultTitle: "Hooks set",
-};
+// HOOKS formConfig removed 2026-05-22. The Hooks Generator was retired when
+// ad-copy was retooled to write its own openers under each framework (lesson
+// 3.8 build). Existing client `Hooks/` vault notes are left in place on disk
+// but no UI surfaces them anymore. The `kind: "hooks"` GeneratorKind stays in
+// types.ts so legacy saved files still typecheck.
 
 // ── Vortex · Creative Brief (Misc) ────────────────────────────────
 const CREATIVE_BRIEF: FormConfig = {
@@ -1257,17 +1161,27 @@ const CREATIVE_BRIEF: FormConfig = {
   defaultTitle: "Creative brief",
 };
 
-// ── Vortex · Ad Copy (Misc) ───────────────────────────────────────
+// ── Aurelius · Ad Copy (Misc) ─────────────────────────────────────
+// Lesson 3.8 build (https://ai-advertiser-course.vercel.app/classes/3.8-ai-ad-copy-generator).
+// Form layout + prompt template mirror the lesson's "Aurelius Prompt Builder"
+// surface. The hooks step that used to feed [HOOKS] was retired 2026-05-22:
+// the ad copy prompt now writes its own openers under each framework, so
+// there's no chainFrom from a Hooks generator (which no longer exists).
+//
+// House em-dash rule: em dashes in the lesson prompt prose are swapped for
+// commas/colons. The "Not X, It's Y" anti-pattern is kept with a comma so the
+// rule still describes a real dramatic-contrast cliché. Arrows (→) inside
+// framework names stay since they're framework notation, not em dashes.
 const AD_COPY: FormConfig = {
   id: "ad-copy",
-  title: "Ad Copy Generator",
+  title: "Aurelius Prompt Builder",
   subtitle:
-    "12 Facebook/Instagram ad variations across PAS, AIDA, BAB, STORY — one reason to buy per ad.",
-  eyebrow: "▸ AD COPY · VORTEX",
+    "12 ad copy variations across PAS, AIDA, BAB, and STORY. One reason to buy per ad. Mirrors lesson 3.8.",
+  eyebrow: "▸ AURELIUS PROMPT BUILDER",
   eyebrowMeta: "TOOL · ANYTIME",
   category: "misc",
-  agentSlug: "vortex",
-  agentName: "Vortex",
+  agentSlug: "aurelius",
+  agentName: "Aurelius",
   kind: "briefs",
   savedHeading: "Ad copy saved",
   generateLabel: "Generate ad copy",
@@ -1282,28 +1196,26 @@ const AD_COPY: FormConfig = {
     target_customer: "audience",
     current_offer: "offers",
     usp: "angles",
-    competitor_intel: "competitors",
   },
   sections: [
     {
-      title: "▸ BUSINESS",
-      meta: "required",
+      title: "▸ AURELIUS PROMPT BUILDER",
+      meta: "every field feeds the prompt",
       fields: [
         {
           kind: "text",
           key: "business_name",
           label: "Business name",
           promptPlaceholder: "[BUSINESS NAME]",
-          placeholder: "Willis Windows.",
+          placeholder: "Tony's Pizza",
           required: true,
         },
         {
-          kind: "textarea",
+          kind: "text",
           key: "what_they_sell",
-          label: "What they sell",
+          label: "What they sell / do",
           promptPlaceholder: "[WHAT THEY SELL]",
-          placeholder: "Exterior window cleaning, single + multi-story homes.",
-          minRows: 2,
+          placeholder: "Hand-tossed pizza delivery in Curitiba",
           required: true,
         },
         {
@@ -1311,98 +1223,75 @@ const AD_COPY: FormConfig = {
           key: "target_customer",
           label: "Target customer",
           promptPlaceholder: "[TARGET CUSTOMER]",
-          placeholder: "Homeowners, 2-story homes, $80k+ HH income. Time-poor.",
+          placeholder:
+            "Families in Curitiba Centro, 25-45, busy parents who don't have time to cook",
           minRows: 3,
           required: true,
         },
-      ],
-    },
-    {
-      title: "▸ THE ANGLE",
-      meta: "required",
-      fields: [
         {
-          kind: "textarea",
+          kind: "text",
           key: "usp",
-          label: "Unique selling proposition",
+          label: "What makes them different (USP)",
           promptPlaceholder: "[UNIQUE SELLING PROPOSITION]",
-          placeholder: "Streak-free guarantee · same-day service · veteran-owned.",
-          minRows: 3,
+          placeholder:
+            "Imported Italian ingredients, 20-min delivery, 15 years in business",
           required: true,
         },
         {
-          kind: "textarea",
+          kind: "text",
           key: "current_offer",
-          label: "Current offer",
+          label: "Current offer / promotion",
           promptPlaceholder: "[CURRENT OFFER]",
-          placeholder: "$50 off first clean. Free in-home estimate. Book this week.",
-          minRows: 2,
+          placeholder: "2 large pizzas + 4 drinks for $19.99",
           required: true,
         },
-      ],
-    },
-    {
-      title: "▸ COMPETITOR INTEL",
-      meta: "auto-filled from prior step",
-      fields: [
         {
-          kind: "textarea",
-          key: "competitor_intel",
-          label: "Competitor intel",
-          promptPlaceholder: "[COMPETITOR INTEL]",
-          placeholder:
-            "Key takeaways from the competitor research brief. Auto-filled when this step runs after the Competitor Research step.",
-          minRows: 4,
+          kind: "select",
+          key: "tone",
+          label: "Tone / voice",
+          promptPlaceholder: "[TONE]",
+          options: [
+            "Casual & Friendly",
+            "Professional",
+            "Urgent",
+            "Luxury",
+            "Fun",
+            "Local",
+          ],
+          default: "Casual & Friendly",
         },
-      ],
-    },
-    {
-      title: "▸ HOOKS",
-      meta: "auto-filled from the Hooks step",
-      fields: [
         {
-          kind: "textarea",
-          key: "hooks_markdown",
-          label: "Approved hooks (PRIORITY + full list)",
-          promptPlaceholder: "[HOOKS]",
-          placeholder:
-            "Numbered hook list auto-filled when this step runs after the Hooks Generator. Top picks appear under PRIORITY (each must be used at least once). Remaining hooks under FULL HOOK LIST fill the rest. Leave blank to have Vortex write fresh openers.",
-          minRows: 6,
+          kind: "select",
+          key: "platform",
+          label: "Platform",
+          promptPlaceholder: "[PLATFORM]",
+          options: [
+            "Facebook and Instagram ads",
+            "Google ads",
+            "TikTok ads",
+          ],
+          default: "Facebook and Instagram ads",
+          inline: true,
         },
       ],
     },
   ],
-  promptTemplate: `You are a world-class direct response copywriter. Write 12 ad copy variations for Facebook and Instagram ads.
+  promptTemplate: `You are a world-class direct response copywriter. Write 12 ad copy variations for [PLATFORM].
 
 BUSINESS: [BUSINESS NAME]
 WHAT THEY SELL: [WHAT THEY SELL]
 TARGET CUSTOMER: [TARGET CUSTOMER]
 USP: [UNIQUE SELLING PROPOSITION]
 CURRENT OFFER: [CURRENT OFFER]
-TONE: Casual and friendly
-
-COMPETITOR INTEL (use to differentiate, do NOT mimic):
-[COMPETITOR INTEL]
-
-APPROVED HOOKS (from the upstream Hooks step; may be empty):
-[HOOKS]
-
-HOW TO USE THE HOOKS:
-- The list above is split into two sections: "PRIORITY" (top picks) and "FULL HOOK LIST". Each hook is numbered, e.g. "#7 · urgency · Staring at an empty fridge again?".
-- One-to-one rule: every ad opens with exactly one hook from the numbered list. PRIORITY hooks first, then full list in order. Spread across short/medium/long so no single tier hogs the priorities.
-- If the numbered list has 12 hooks (the default), each hook opens exactly one ad and every hook is used. No fresh openers, no duplicates.
-- If the list has fewer than 12 hooks, use every hook once, then reuse PRIORITY hooks for the remaining slots (different framework / different length each time).
-- If the list has more than 12 hooks, use the top 12 by PRIORITY first then numbered order; the rest stay unused this run.
-- If APPROVED HOOKS is empty, generate fresh openers in the Vortex voice — and label them "FRESH HOOK" in the per-ad header (see OUTPUT FORMAT below).
-- The hook IS the first sentence of the ad body. Do NOT print the numbered list back in your output. Do NOT change the meaning of a hook — light wording adjustments only.
+TONE: [TONE]
 
 RULES:
 1. ONE AD = ONE REASON TO BUY. Each ad must target a completely different motivation (different fear, desire, or angle). NOT variations of the same headline.
 2. Use these frameworks (3 ads each):
-   - PAS (Problem, Agitate, Solution)
-   - AIDA (Attention, Interest, Desire, Action)
-   - BAB (Before, After, Bridge)
-   - STORY (Character, Conflict, Resolution)
+   - PAS (Problem → Agitate → Solution)
+   - AIDA (Attention → Interest → Desire → Action)
+   - BAB (Before → After → Bridge)
+   - STORY (Character → Conflict → Resolution)
 3. Mix lengths:
    - 3 short (under 50 words), for Stories/Reels
    - 6 medium (50-100 words), for Feed ads
@@ -1416,44 +1305,27 @@ RULES:
    - No question-then-answer cadence ("Tired of X? We have the solution.")
 5. Write like a human texting a friend, not a copywriter writing a brochure
 6. Include specific numbers, prices, and details, NOT generic claims
-7. Every ad ends with a clear CTA on its own line, with one emoji (👇 or 📲)
-8. NEVER use em dashes (—) anywhere. Not in copy, not in labels, not as separators. Use commas, periods, or parentheses instead.
+7. Every ad ends with a clear CTA
+8. NEVER use em dashes anywhere in the ad copy. Use commas, periods, or parentheses instead.
 
-OUTPUT FORMAT (follow exactly):
+FORMAT (use this EXACT layout for every ad, no deviations):
 
-Group the 12 ads under three markdown H2 section headers, in this exact order, with a context tag separated by a middle dot (·):
+**Ad N** | FRAMEWORK | Angle description | Length | NN words
+<blank line>
+<ad body>
+<blank line>
+---
+<blank line>
 
-## Short Copy (under 50 words) · Feed & Story ads
-## Medium Copy (50-100 words) · Feed ads with See More
-## Long Copy (100+ words) · High-intent, storytelling
+Where FRAMEWORK is one of PAS / AIDA / BAB / STORY, and Length is one of Short / Medium / Long. Use literal pipe characters (|) as separators, NOT brackets. Numbering runs 1 through 12. Separate every ad with a "---" line.
 
-Inside each section, each ad is formatted as a 3-line label block followed by the body. The label block is exactly three lines:
+EXAMPLE (first ad only, copy this shape):
 
-  Line 1: FRAMEWORK name in ALL CAPS (PAS, AIDA, BAB, or STORY)
-  Line 2: Hook reference. Format: "HOOK #N · category" if the opener was lifted from the numbered hook list (e.g. "HOOK #7 · urgency"). If APPROVED HOOKS was empty and you wrote a fresh opener, use "FRESH HOOK · <one-word category>" (e.g. "FRESH HOOK · curiosity").
-  Line 3: Word count, in the form "N words"
+**Ad 1** | PAS | DIY streaks | Short | 38 words
 
-Force each of the three label lines onto its own visual line by ending lines 1 and 2 with a backslash (\\), which is markdown's hard line break. Do NOT bold the label. Do NOT put the label inside brackets. Do NOT prefix with "Ad N". Do NOT use commas or middle dots between the three label lines.
+Three hours of vinegar and paper towels and your windows still look worse than when you started. Streaks for days. Skip it. Our crew handles it for $100 off plus free screens. Tap to book in 60 seconds.
 
-Then a blank line, then the ad body. The hook is simply the first sentence of the first body paragraph, NOT bolded, NOT styled. Body paragraphs are separated by blank lines. The CTA is the last thing in the ad and ends with one emoji (👇 or 📲); it can be the tail of the final body paragraph or on its own line.
-
-A single blank line separates one ad from the next ad's label block. Do NOT use --- separators between ads.
-
-Example of the exact shape (generic structure only, do not reuse this wording, topic, or numbers):
-
-## Short Copy (under 50 words) · Feed & Story ads
-
-PAS\\
-HOOK #7 · urgency\\
-38 words
-
-Staring at an empty fridge again? Skip the grocery run. Tony's hand-tossed pizza, delivered hot in 20 minutes. Real Italian dough. Real ingredients. $12.99. Tap below 👇
-
-BAB\\
-HOOK #3 · transformation\\
-32 words
-
-Before: $40 delivery pizza that arrives cold. After: $12.99 hand-tossed pizza at your door in 20 min, still steaming. Tony's Pizza. The upgrade your Tuesday needs.
+---
 
 GO.`,
   defaultTitle: "Ad copy set",
@@ -1461,7 +1333,6 @@ GO.`,
     total: 12,
     unitLabel: "ad",
     itemPattern: "^(PAS|AIDA|BAB|STORY)\\b",
-    sectionPattern: "^##\\s+(Short Copy|Medium Copy|Long Copy)",
   },
 };
 
@@ -2575,7 +2446,6 @@ export const ALL_FORM_CONFIGS: FormConfig[] = [
   APPROVAL_EMAIL,
   CAMPAIGN_STRUCTURE,
   LIVE_MESSAGE,
-  HOOKS,
   CREATIVE_BRIEF,
   AD_COPY,
   AUDIENCE_RESEARCH,

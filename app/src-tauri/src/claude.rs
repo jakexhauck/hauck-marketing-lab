@@ -51,6 +51,11 @@ fn locate_claude() -> Option<PathBuf> {
 fn build_command(claude_path: &PathBuf) -> Command {
     #[cfg(windows)]
     {
+        // CREATE_NO_WINDOW — prevents the child from trying to attach to a
+        // console when the Tauri GUI process has none. Without this, spawning
+        // cmd.exe from a windowed app can fail with STATUS_DLL_INIT_FAILED
+        // (0xC0000142) before the child can even print to stderr.
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
         let ext = claude_path
             .extension()
             .and_then(|e| e.to_str())
@@ -58,9 +63,14 @@ fn build_command(claude_path: &PathBuf) -> Command {
         if matches!(ext.as_deref(), Some("cmd") | Some("bat") | Some("ps1")) {
             let mut c = Command::new("cmd");
             c.arg("/C").arg(claude_path);
+            c.creation_flags(CREATE_NO_WINDOW);
             return c;
         }
+        let mut c = Command::new(claude_path);
+        c.creation_flags(CREATE_NO_WINDOW);
+        return c;
     }
+    #[cfg(not(windows))]
     Command::new(claude_path)
 }
 

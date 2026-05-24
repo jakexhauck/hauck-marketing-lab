@@ -32,4 +32,4 @@ young hustlers
 - fake urgency
 
 ## Geography
-Metro Detroit Michigan, 30 mile radius
+Metro Detroit Michigan, 48136, 30 mile radius

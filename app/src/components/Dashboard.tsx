@@ -18,7 +18,6 @@ type Props = {
   onOpenChat: (chat: ChatSummary) => void;
   onOpenDiagnosis: () => void;
   onBackToOnboarding?: () => void;
-  onOpenHookGenerator?: () => void;
   onOpenCreativeBrief?: () => void;
   onOpenTrackingAudit?: () => void;
   onOpenWorkflowLaunch?: () => void;
@@ -36,7 +35,6 @@ export function Dashboard({
   onOpenChat,
   onOpenDiagnosis,
   onBackToOnboarding,
-  onOpenHookGenerator,
   onOpenCreativeBrief,
   onOpenTrackingAudit,
   onOpenWorkflowLaunch,
@@ -56,7 +54,6 @@ export function Dashboard({
           onBackToOnboarding={onBackToOnboarding}
         />
         <GeneratorRail
-          onOpenHookGenerator={onOpenHookGenerator}
           onOpenCreativeBrief={onOpenCreativeBrief}
           onOpenTrackingAudit={onOpenTrackingAudit}
           onOpenWorkflowLaunch={onOpenWorkflowLaunch}
@@ -82,7 +79,6 @@ export function Dashboard({
       />
       <Kpis root={root} clientSlug={clientSlug} />
       <GeneratorRail
-        onOpenHookGenerator={onOpenHookGenerator}
         onOpenCreativeBrief={onOpenCreativeBrief}
         onOpenTrackingAudit={onOpenTrackingAudit}
         onOpenWorkflowLaunch={onOpenWorkflowLaunch}
@@ -239,14 +235,12 @@ function NotLaunchedYet({
 }
 
 function GeneratorRail({
-  onOpenHookGenerator,
   onOpenCreativeBrief,
   onOpenTrackingAudit,
   onOpenWorkflowLaunch,
   onOpenWorkflowOptimize,
   onOpenWorkflowScale,
 }: {
-  onOpenHookGenerator?: () => void;
   onOpenCreativeBrief?: () => void;
   onOpenTrackingAudit?: () => void;
   onOpenWorkflowLaunch?: () => void;
@@ -260,12 +254,6 @@ function GeneratorRail({
     onClick?: () => void;
     accent?: string;
   }> = [
-    {
-      label: "Generate hooks",
-      agent: "VORTEX",
-      blurb: "Angles × hooks · 100-hook framework",
-      onClick: onOpenHookGenerator,
-    },
     {
       label: "Creative brief",
       agent: "VORTEX",

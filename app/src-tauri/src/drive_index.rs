@@ -1,12 +1,11 @@
 use crate::clients::read_clients_file;
 use crate::events::{emit_changed, DataKind};
+use crate::google_calendar::google_access_token;
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use std::fs;
 use std::path::PathBuf;
-use std::process::Stdio;
 use tauri::AppHandle;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::process::Command;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DriveIndex {
@@ -58,44 +57,6 @@ fn client_name_for(root: &str, slug: &str) -> String {
     }
 }
 
-fn locate_claude() -> Option<PathBuf> {
-    if let Ok(p) = which::which("claude") {
-        return Some(p);
-    }
-    let mut candidates: Vec<PathBuf> = Vec::new();
-    if let Some(home) = dirs::home_dir() {
-        #[cfg(windows)]
-        {
-            candidates.push(home.join("AppData").join("Roaming").join("npm").join("claude.cmd"));
-            candidates.push(home.join("AppData").join("Roaming").join("npm").join("claude.ps1"));
-            candidates.push(home.join("AppData").join("Local").join("Programs").join("claude").join("claude.exe"));
-        }
-        #[cfg(not(windows))]
-        {
-            candidates.push(home.join(".local").join("bin").join("claude"));
-            candidates.push(PathBuf::from("/opt/homebrew/bin/claude"));
-            candidates.push(PathBuf::from("/usr/local/bin/claude"));
-        }
-    }
-    candidates.into_iter().find(|p| p.exists())
-}
-
-fn build_command(claude_path: &PathBuf) -> Command {
-    #[cfg(windows)]
-    {
-        let ext = claude_path
-            .extension()
-            .and_then(|e| e.to_str())
-            .map(|s| s.to_lowercase());
-        if matches!(ext.as_deref(), Some("cmd") | Some("bat") | Some("ps1")) {
-            let mut c = Command::new("cmd");
-            c.arg("/C").arg(claude_path);
-            return c;
-        }
-    }
-    Command::new(claude_path)
-}
-
 #[tauri::command]
 pub fn read_drive_index(root: String, client_slug: String) -> Result<Option<DriveIndex>, String> {
     let path = drive_index_path(&root, &client_slug);
@@ -138,13 +99,201 @@ pub fn read_drive_index(root: String, client_slug: String) -> Result<Option<Driv
     }))
 }
 
+/// Extract a bare Drive folder ID from a URL or pass-through if already an ID.
+fn extract_folder_id(input: &str) -> Option<String> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if let Some(rest) = trimmed.split("/folders/").nth(1) {
+        let id: String = rest
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+            .collect();
+        if !id.is_empty() {
+            return Some(id);
+        }
+    }
+    if trimmed
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        && trimmed.len() >= 20
+    {
+        return Some(trimmed.to_string());
+    }
+    None
+}
+
+#[derive(Deserialize)]
+struct DriveFileRaw {
+    id: String,
+    name: String,
+    #[serde(rename = "mimeType")]
+    mime_type: String,
+    #[serde(default, rename = "webViewLink")]
+    web_view_link: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ListResp {
+    files: Vec<DriveFileRaw>,
+    #[serde(default, rename = "nextPageToken")]
+    next_page_token: Option<String>,
+}
+
+/// List the immediate children (files + folders) of a folder. Direct REST.
+async fn list_children(
+    client: &reqwest::Client,
+    token: &str,
+    folder_id: &str,
+) -> Result<Vec<DriveFileRaw>, String> {
+    let q = format!("'{folder_id}' in parents and trashed = false");
+    let mut out = Vec::new();
+    let mut page_token: Option<String> = None;
+    loop {
+        let mut req = client
+            .get("https://www.googleapis.com/drive/v3/files")
+            .bearer_auth(token)
+            .query(&[
+                ("q", q.as_str()),
+                ("fields", "nextPageToken,files(id,name,mimeType,webViewLink)"),
+                ("orderBy", "folder,name"),
+                ("pageSize", "200"),
+                ("supportsAllDrives", "true"),
+                ("includeItemsFromAllDrives", "true"),
+            ]);
+        if let Some(pt) = page_token.as_deref() {
+            req = req.query(&[("pageToken", pt)]);
+        }
+        let resp = req
+            .send()
+            .await
+            .map_err(|e| format!("drive list request: {e}"))?;
+        let status = resp.status();
+        let body = resp
+            .text()
+            .await
+            .map_err(|e| format!("drive list body: {e}"))?;
+        if !status.is_success() {
+            if status.as_u16() == 401 {
+                return Err(
+                    "Google auth expired or missing drive.metadata.readonly scope. Reconnect Google in main Settings.".to_string()
+                );
+            }
+            return Err(format!("drive list failed ({status}): {body}"));
+        }
+        let parsed: ListResp = serde_json::from_str(&body)
+            .map_err(|e| format!("parse drive list JSON: {e}; body: {body}"))?;
+        out.extend(parsed.files);
+        match parsed.next_page_token {
+            Some(t) if !t.is_empty() => page_token = Some(t),
+            _ => break,
+        }
+    }
+    Ok(out)
+}
+
+const FOLDER_MIME: &str = "application/vnd.google-apps.folder";
+
+fn file_url_for(f: &DriveFileRaw) -> String {
+    if let Some(link) = f.web_view_link.as_deref() {
+        if !link.is_empty() {
+            return link.to_string();
+        }
+    }
+    if f.mime_type == FOLDER_MIME {
+        format!("https://drive.google.com/drive/folders/{}", f.id)
+    } else if f.mime_type.starts_with("application/vnd.google-apps.") {
+        format!("https://docs.google.com/document/d/{}/edit", f.id)
+    } else {
+        format!("https://drive.google.com/file/d/{}/view", f.id)
+    }
+}
+
+/// Recursively build the tree JSON for a folder.
+/// Boxed because the future references itself.
+fn build_tree<'a>(
+    client: &'a reqwest::Client,
+    token: &'a str,
+    folder_id: &'a str,
+    folder_name: &'a str,
+    depth: u32,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value, String>> + Send + 'a>> {
+    Box::pin(async move {
+        const MAX_DEPTH: u32 = 8;
+        let mut node = json!({
+            "id": folder_id,
+            "name": folder_name,
+            "type": "folder",
+            "children": []
+        });
+
+        if depth >= MAX_DEPTH {
+            return Ok(node);
+        }
+
+        let children = list_children(client, token, folder_id).await?;
+        let mut child_nodes: Vec<Value> = Vec::with_capacity(children.len());
+        for c in &children {
+            if c.mime_type == FOLDER_MIME {
+                let sub = build_tree(client, token, &c.id, &c.name, depth + 1).await?;
+                child_nodes.push(sub);
+            } else {
+                child_nodes.push(json!({
+                    "id": c.id,
+                    "name": c.name,
+                    "type": "file",
+                    "mimeType": c.mime_type,
+                    "url": file_url_for(c),
+                }));
+            }
+        }
+        node["children"] = Value::Array(child_nodes);
+        Ok(node)
+    })
+}
+
+/// Build the markdown body for `_drive-index.md`. Same shape the old claude -p
+/// path produced (subfolders table + `## Tree` JSON block), just without the
+/// LLM-written context briefing.
+fn build_index_body(client_name: &str, root_tree: &Value) -> String {
+    let mut s = String::new();
+    s.push_str(&format!("# {client_name} — Client Context\n\n"));
+
+    s.push_str("## Subfolders\n\n");
+    s.push_str("| Subfolder | Folder ID | Notes |\n");
+    s.push_str("|---|---|---|\n");
+    let mut subfolder_count = 0;
+    if let Some(children) = root_tree.get("children").and_then(|v| v.as_array()) {
+        for c in children {
+            if c.get("type").and_then(|v| v.as_str()) == Some("folder") {
+                let name = c.get("name").and_then(|v| v.as_str()).unwrap_or("?");
+                let id = c.get("id").and_then(|v| v.as_str()).unwrap_or("?");
+                s.push_str(&format!("| {name} | `{id}` | |\n"));
+                subfolder_count += 1;
+            }
+        }
+    }
+    if subfolder_count == 0 {
+        s.push_str("| _(empty root)_ | `` | No subfolders found |\n");
+    }
+    s.push('\n');
+
+    s.push_str("## Tree\n\n```json\n");
+    s.push_str(
+        &serde_json::to_string_pretty(root_tree)
+            .unwrap_or_else(|_| "{}".to_string()),
+    );
+    s.push_str("\n```\n");
+    s
+}
+
 #[tauri::command]
 pub async fn refresh_drive_index(
     app: AppHandle,
     root: String,
     client_slug: String,
 ) -> Result<DriveIndex, String> {
-    // Look up the client + Drive URL
     let clients = read_clients_file(&root)?;
     let client = clients
         .iter()
@@ -155,113 +304,18 @@ pub async fn refresh_drive_index(
         .drive_folder_url
         .clone()
         .ok_or_else(|| {
-            "This client has no Google Drive folder URL. Add one on the Clients page first."
-                .to_string()
+            "This client has no Google Drive folder URL. Set one on the client's Settings tab first.".to_string()
         })?;
 
-    let claude = locate_claude().ok_or_else(|| {
-        "Claude Code not detected on PATH. Install it and log in, then restart.".to_string()
-    })?;
+    let folder_id = extract_folder_id(&drive_url)
+        .ok_or_else(|| format!("Could not extract a Drive folder ID from: {drive_url:?}"))?;
 
-    let prompt = format!(
-        "You have access to Google Drive tools (mcp__claude_ai_Google_Drive__*). \
-         The client \"{name}\" has a Google Drive folder at: {url}\n\n\
-         Please:\n\
-         1. Use the Drive tools to list the immediate subfolders of that root folder, \
-         then read the relevant contents of those subfolders.\n\
-         2. Produce a concise context briefing in markdown that future agents can read \
-         to quickly understand this client. Cover: \
-         brand voice/tone if found, key brand assets available (logos, fonts, photos), \
-         products/services, target audience, any past creative or reporting that exists, \
-         and anything else important you notice.\n\
-         3. Format the output as clean markdown. Start with a single H1 \"# {name} — Client Context\".\n\
-         4. IMMEDIATELY after the H1 (before any other section), include a section titled \
-         \"## Subfolders\" with a markdown table of the immediate subfolders of the root folder. \
-         The table MUST use exactly this format (the folder ID column wrapped in backticks is required \
-         — the desktop app parses this table to render sidebar links):\n\n\
-         | Subfolder | Folder ID | Notes |\n\
-         |---|---|---|\n\
-         | Assets | `1AbCdEf...` | brief note |\n\
-         | Creatives | `1XyZ...` | brief note |\n\n\
-         Use the real folder IDs returned by the Drive list call (each ID is typically 25+ chars, \
-         alphanumeric with dashes/underscores). One row per immediate subfolder. \
-         If the root has no subfolders, still include the table header with a single row \
-         saying the root is empty.\n\
-         5. At the very END of your output (after every other section), include a section titled \
-         \"## Tree\" containing a single fenced ```json code block with the FULL recursive \
-         contents of the root folder. The desktop app parses this to let the user browse \
-         folders in-app and open files externally. The JSON shape MUST be exactly:\n\n\
-         ```json\n\
-         {{\n\
-           \"id\": \"<root folder id>\",\n\
-           \"name\": \"{name}\",\n\
-           \"type\": \"folder\",\n\
-           \"children\": [\n\
-             {{\n\
-               \"id\": \"<subfolder id>\",\n\
-               \"name\": \"Assets\",\n\
-               \"type\": \"folder\",\n\
-               \"children\": [\n\
-                 {{ \"id\": \"<file id>\", \"name\": \"logo.png\", \"type\": \"file\", \"mimeType\": \"image/png\", \"url\": \"https://drive.google.com/file/d/<file id>/view\" }}\n\
-               ]\n\
-             }}\n\
-           ]\n\
-         }}\n\
-         ```\n\n\
-         Rules for the tree:\n\
-         - Walk EVERY folder reachable from the root, depth-first, no depth limit. \
-         Each folder must list its complete `children` array (empty array `[]` if the folder is empty).\n\
-         - Every node has `id`, `name`, and `type` (\"folder\" or \"file\"). Folders also have \
-         `children`. Files also have `mimeType` and `url` (use the Drive `webViewLink`; if absent, \
-         construct `https://drive.google.com/file/d/<id>/view` for binary files or \
-         `https://docs.google.com/document/d/<id>/edit` for Google Docs / Sheets / Slides as appropriate).\n\
-         - Use the real Drive IDs and names. Do not invent or summarize. Do not include trashed items.\n\
-         - Output ONLY the JSON inside the fenced block — no commentary inside the block.\n\
-         6. Do not include any tool-call chatter, only the final briefing.\n",
-        name = client.name,
-        url = drive_url
-    );
+    let token = google_access_token(&app).await?;
+    let http = reqwest::Client::new();
 
-    let mut cmd = build_command(&claude);
-    cmd.arg("-p")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true);
-
-    let mut child = cmd.spawn().map_err(|e| format!("spawn claude: {e}"))?;
-
-    if let Some(mut stdin) = child.stdin.take() {
-        let p = prompt.clone();
-        tauri::async_runtime::spawn(async move {
-            let _ = stdin.write_all(p.as_bytes()).await;
-            let _ = stdin.shutdown().await;
-        });
-    }
-
-    let mut stdout = child.stdout.take().ok_or("no stdout")?;
-    let mut body = String::new();
-    stdout
-        .read_to_string(&mut body)
-        .await
-        .map_err(|e| format!("read stdout: {e}"))?;
-
-    let status = child.wait().await.map_err(|e| format!("wait: {e}"))?;
-    if !status.success() {
-        let mut err_buf = String::new();
-        if let Some(mut stderr) = child.stderr.take() {
-            let _ = stderr.read_to_string(&mut err_buf).await;
-        }
-        return Err(format!(
-            "claude -p exited {status}. {}",
-            err_buf.trim()
-        ));
-    }
-
-    let body = body.trim().to_string();
-    if body.is_empty() {
-        return Err("claude returned an empty response.".to_string());
-    }
+    // Build the tree
+    let tree = build_tree(&http, &token, &folder_id, &client.name, 0).await?;
+    let body = build_index_body(&client.name, &tree);
 
     let updated_at = chrono::Utc::now().to_rfc3339();
     let frontmatter = format!(
@@ -272,8 +326,6 @@ pub async fn refresh_drive_index(
     );
     let file_body = format!("{frontmatter}\n{body}\n");
 
-    // Refreshes always write to the canonical vault location so the file
-    // ends up next to the client's Profile/Memory under vault/Clients/<Name>/.
     let path = drive_index_write_path(&root, &client_slug);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("create client dir: {e}"))?;

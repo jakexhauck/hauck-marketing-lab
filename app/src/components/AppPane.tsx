@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AgentFormsHub } from "./AgentFormsHub";
 import { AskDock } from "./AskDock";
+import { CampaignTreePickOverlay } from "./CampaignTreePickOverlay";
+import type { PendingSnippet } from "./CampaignTreeView";
 import { ChatDrawer } from "./ChatDrawer";
 import { CommandPalette } from "./CommandPalette";
 import { Dashboard } from "./Dashboard";
@@ -134,6 +136,13 @@ export function AppPane(props: AppPaneProps) {
   const [troubleshootingOpen, setTroubleshootingOpen] = useState(false);
   const [generator, setGenerator] = useState<GeneratorSurface | null>(initialGenerator);
   const [agentFormsHub, setAgentFormsHub] = useState<AgentSummary | null>(null);
+  /** When set, a full-screen CampaignTreePickOverlay is mounted for the active
+   *  client with this snippet pre-loaded. Cleared when the user picks a slot
+   *  or dismisses the overlay. Driven by the "+ send to tree" button on
+   *  AdCopyCards inside any FormOutput. */
+  const [pendingTreeSnippet, setPendingTreeSnippet] = useState<PendingSnippet | null>(null);
+  /** Transient toast surface for cross-context pick confirmations. */
+  const [treeToast, setTreeToast] = useState<string | null>(null);
 
   const isChatAgent = (slug: string) => slug.toLowerCase() === "aurelius";
 
@@ -503,6 +512,10 @@ export function AppPane(props: AppPaneProps) {
                 clientName={clientName}
                 clientSlug={clientSlug}
                 onClose={closeGenerator}
+                onSendSnippetToTree={(text, source, angleLabel) => {
+                  setPendingTreeSnippet({ text, source, angleLabel });
+                  closeGenerator();
+                }}
               />
             </div>
           </div>
@@ -559,6 +572,10 @@ export function AppPane(props: AppPaneProps) {
         clientName={clientName}
         clientSlug={clientSlug}
         onClose={closeGenerator}
+        onSendSnippetToTree={(text, source, angleLabel) => {
+          setPendingTreeSnippet({ text, source, angleLabel });
+          closeGenerator();
+        }}
       />
     ) : agentFormsHub ? (
       <AgentFormsHub
@@ -588,7 +605,6 @@ export function AppPane(props: AppPaneProps) {
         onOpenChat={onOpenChatFromList}
         onOpenDiagnosis={onOpenDiagnosis}
         onBackToOnboarding={() => restoreOnboarding(clientSlug)}
-        onOpenHookGenerator={() => openGenerator("hooks")}
         onOpenCreativeBrief={() => openGenerator("creative-brief")}
         onOpenTrackingAudit={() => openGenerator("audit")}
         onOpenWorkflowLaunch={() => openGenerator("workflow-launch")}
@@ -710,6 +726,44 @@ export function AppPane(props: AppPaneProps) {
         {paneControls}
         {detachedNotice}
         {body}
+        {pendingTreeSnippet && root && (
+          <CampaignTreePickOverlay
+            root={root}
+            clientName={clientName}
+            clientSlug={clientSlug}
+            snippet={pendingTreeSnippet}
+            onPicked={(toast) => {
+              setPendingTreeSnippet(null);
+              setTreeToast(toast);
+              window.setTimeout(() => setTreeToast(null), 4500);
+            }}
+            onClose={() => setPendingTreeSnippet(null)}
+          />
+        )}
+        {treeToast && (
+          <div
+            role="status"
+            onClick={() => setTreeToast(null)}
+            style={{
+              position: "fixed",
+              bottom: 24,
+              right: 24,
+              padding: "12px 16px",
+              borderRadius: 10,
+              fontSize: 13,
+              maxWidth: 420,
+              cursor: "pointer",
+              zIndex: 1100,
+              boxShadow: "0 12px 36px -10px rgba(0,0,0,0.5)",
+              fontFamily: "var(--hml-font-sans)",
+              background: "var(--hml-green-bg)",
+              border: "1px solid var(--hml-green-border)",
+              color: "var(--hml-green)",
+            }}
+          >
+            {treeToast}
+          </div>
+        )}
       </div>
     </PaneContext.Provider>
   );

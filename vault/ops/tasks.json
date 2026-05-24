@@ -8,8 +8,16 @@
       "lane": "backburner"
     },
     {
+      "id": "d969d07a-57d0-4eb2-9852-0a6770cf9e42",
+      "title": "1. Get On A Call With Go High Level About A2P",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1779493197936,
+      "lane": "active"
+    },
+    {
       "id": "9d0622d8-e522-450b-819c-2d753fedb5fe",
-      "title": "Website Changes",
+      "title": "5. Ask Josh For Website Changes & Tell Him To Add Payment Method",
       "clientSlug": "willis-windows",
       "status": "todo",
       "createdAt": 1778694212210
@@ -19,116 +27,55 @@
       "title": "Stripe Setup - Need Dad",
       "status": "todo",
       "createdAt": 1778960895703,
-      "lane": "active"
-    },
-    {
-      "id": "d6545dc7-6a4e-428a-928c-f506f5ae4c29",
-      "title": "Tell Josh To Add Payment Method",
-      "clientSlug": "willis-windows",
-      "status": "todo",
-      "createdAt": 1779026116203,
-      "lane": "active"
-    },
-    {
-      "id": "8f32f3d8-28e8-4e53-8e37-dd8f7db30d70",
-      "title": "Finish Mobile App & Send Login Too Josh/Jayse",
-      "status": "done",
-      "createdAt": 1779113657933,
-      "lane": "active"
-    },
-    {
-      "id": "5a17e61e-465a-4e3c-a782-bba444021cfa",
-      "title": "Resubmit A2P When Account Wipes",
-      "clientSlug": "willis-windows",
-      "status": "done",
-      "createdAt": 1779152083379,
-      "lane": "active"
+      "lane": "backburner"
     },
     {
       "id": "3a3aa179-5869-43b2-ba9a-86ca187ac9a5",
       "title": "Hit Up Dom on Snap For Possible New Client",
       "status": "todo",
       "createdAt": 1779297331477,
-      "lane": "active"
+      "lane": "backburner"
     },
     {
-      "id": "f97bf20a-bd70-44a6-886d-8a48bb7c4e7f",
-      "title": "Switch Creative Studio To Ads Sequence",
-      "status": "done",
-      "createdAt": 1779301729264,
-      "lane": "active"
-    },
-    {
-      "id": "6d0d0529-a47a-4c59-880b-5ce4ef2e64c6",
-      "title": "Finish New Client Snapshot - Review Management & Workflows",
-      "status": "done",
-      "createdAt": 1779313668222,
-      "lane": "active"
-    },
-    {
-      "id": "7dc3d823-4a48-4d71-8b28-c1ea5413cf64",
-      "title": "Redo Review Management & Workflows Based On New Client Snapshot",
-      "clientSlug": "willis-windows",
-      "status": "done",
-      "createdAt": 1779313717960,
-      "lane": "active"
-    },
-    {
-      "id": "e01c10da-3112-414a-bd1f-2dcb8f78804f",
-      "title": "Redo the Website Chat Follow Ups For WW & Snapshot",
-      "status": "done",
-      "createdAt": 1779316325609,
-      "lane": "active"
-    },
-    {
-      "id": "4190725e-8019-440a-aaff-2d172ee73b80",
-      "title": "Combine Company Phone And GHL Phone Custom Value Inside Of Workflows For Client Snapshot & WW",
-      "status": "done",
-      "createdAt": 1779316337613,
-      "lane": "active"
-    },
-    {
-      "id": "9c69a39e-c83f-426a-8699-1e80f0b1b05b",
-      "title": "Create Specific Pipelines Within New Client Snapshot",
-      "status": "done",
-      "createdAt": 1779382057654,
-      "lane": "active"
-    },
-    {
-      "id": "824828fd-aa20-48f4-9fa4-a10410778a84",
-      "title": "Implement New Client Snapshot Into WW",
-      "clientSlug": "willis-windows",
+      "id": "124f0e4e-0cf2-466a-9fee-906ef14fe54c",
+      "title": "2. Buy Sam Darby AD Course & Go Through",
       "status": "todo",
-      "createdAt": 1779382079451,
+      "createdAt": 1779584497830,
       "lane": "active"
     },
     {
-      "id": "2e5d004a-2dd5-4515-9346-567a50f1fe16",
-      "title": "Go Through Upwork & Sales Masterclass",
+      "id": "c2cccf65-cb06-4329-bca8-564596e20260",
+      "title": "Submit A2P For Hauck Marketing",
       "status": "todo",
-      "createdAt": 1779387885023,
+      "createdAt": 1779493530891,
+      "lane": "backburner"
+    },
+    {
+      "id": "5cd0b24a-8108-48c2-ab8a-9797b22ec374",
+      "title": "3. Create Test Mobile Account & Update With Changes From Test Sub Account",
+      "status": "todo",
+      "createdAt": 1779485900957,
       "lane": "active"
     },
     {
-      "id": "47e54f83-4da4-4314-9245-456b17cf5e4f",
-      "title": "Get on a call with GoHighLevel about A2P",
+      "id": "e6d1eb70-79ad-4016-8370-d1a450613763",
+      "title": "Figure Out Main Channel For Lead Gen",
       "status": "todo",
-      "createdAt": 1779400807993,
-      "lane": "active"
+      "createdAt": 1779493590879,
+      "lane": "backburner"
     },
     {
-      "id": "60df9dcf-68f1-4b65-8564-9ea7c6363632",
-      "title": "Continue Optimizing AD Output",
+      "id": "b07bd52f-be14-4eb8-bdc0-8b97773a8881",
+      "title": "Upwork & Sales Masterclass",
       "status": "todo",
-      "createdAt": 1779401313181,
-      "lane": "active"
+      "createdAt": 1779493609675,
+      "lane": "backburner"
     },
     {
-      "id": "e7c8a808-176a-47c8-8153-b059ed93eab2",
-      "title": "Finish AD's & Implement To Google Drive",
-      "clientSlug": "willis-windows",
+      "id": "7793130d-a4dd-4d6b-8b3b-851cf90f3232",
+      "title": "4. Further Optimize Mobile Account",
       "status": "todo",
-      "createdAt": 1779401347674,
+      "createdAt": 1779584585427,
       "lane": "active"
     }
   ]

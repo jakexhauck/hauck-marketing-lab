@@ -4,6 +4,9 @@ export type AppConfig = {
   default_agent_slug?: string | null;
   /** Agency-wide Google Drive folder URL that holds SOP docs. */
   sops_drive_folder_url?: string | null;
+  /** Agency-wide Drive folder that holds every client's subfolder. Used by
+   *  the per-client Drive picker to enumerate subfolders for selection. */
+  agency_drive_folder_url?: string | null;
   /** Google AI Studio API key for Nano Banana 2 image generation (legacy). */
   gemini_api_key?: string | null;
   /** Replicate API token. Powers the Creative Studio playground. */
@@ -214,6 +217,11 @@ export interface OnboardingState {
     /** Set when the Onboarding Sequence Wizard's "Mark launched" button fires.
      *  When true, the Sequence tab on the Client Hub disappears. */
     sequenceComplete?: boolean;
+    /** Editable campaign skeleton from CampaignTreeView. Loosely typed here;
+     *  the canonical shape is `CampaignSkeleton` in mediaBuyingSequence.ts.
+     *  Stored so the wizard's tree edits + standalone pick-overlay drops
+     *  survive reload. */
+    campaignSkeleton?: unknown;
   };
 }
 
@@ -307,7 +315,6 @@ export interface DocFolderDefaults {
 export interface SequenceFolderDefaults {
   "audience-research"?: DocFolderTarget;
   "creative-brief"?: DocFolderTarget;
-  hooks?: DocFolderTarget;
   "ad-copy"?: DocFolderTarget;
   "ad-creative"?: DocFolderTarget;
   structure?: DocFolderTarget;
@@ -369,6 +376,12 @@ export type DriveIndex = {
   updated_at: string;
   body: string;
   path: string;
+};
+
+export type DriveSubfolder = {
+  id: string;
+  name: string;
+  webViewLink: string;
 };
 
 export type DriveUploadResult = {

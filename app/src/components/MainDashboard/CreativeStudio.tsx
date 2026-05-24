@@ -11,6 +11,7 @@
  */
 
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../lib/tauri";
 import type {
@@ -477,7 +478,7 @@ export function CreativeStudio({ root, clients, activeClientSlug }: Props) {
                         <button
                           type="button"
                           className="cs-btn"
-                          onClick={() => window.open(url, "_blank")}
+                          onClick={() => void openUrl(url)}
                         >
                           Open
                         </button>

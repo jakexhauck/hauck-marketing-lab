@@ -50,7 +50,6 @@ type StepId = (typeof MEDIA_BUYING_SEQUENCE)[number]["id"];
 const STEP_FIELD: Record<StepId, keyof SequenceFolderDefaults> = {
   "audience-research": "audience-research",
   "creative-brief": "creative-brief",
-  hooks: "hooks",
   "ad-copy": "ad-copy",
   "ad-creative": "ad-creative",
   structure: "structure",

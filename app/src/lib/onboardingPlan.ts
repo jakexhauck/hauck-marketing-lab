@@ -3,6 +3,27 @@
 // 2026-05-18 to cover the full agency onboarding (vault, GHL, mobile app, not
 // just media buying).
 
+/** Inline field rendered directly on a task row, beneath the "How to" block.
+ *  Lets the user lock a single piece of data (a budget number, the chosen
+ *  offer + CTA, a Fathom link) without leaving the checklist. The value is
+ *  written into the appropriate vault file when the user hits Save; the task
+ *  auto-ticks on success.
+ *
+ *  - `profile-budget` and `profile-offer-cta` upsert an H2 section in
+ *    `vault/Clients/<Name>/Profile.md`.
+ *  - `memory-fathom` appends a fact line to `vault/Clients/<Name>/Memory.md`. */
+export type OnboardingInlineFieldKind =
+  | "profile-budget"
+  | "profile-offer-cta"
+  | "memory-fathom";
+
+export type OnboardingInlineField = {
+  kind: OnboardingInlineFieldKind;
+  label: string;
+  placeholder?: string;
+  inputType?: "text" | "url";
+};
+
 export type OnboardingTask = {
   id: string;
   label: string;
@@ -13,6 +34,8 @@ export type OnboardingTask = {
    *  Excluded from `phaseTaskIds` for "is phase done" math but included in
    *  visible totals. */
   optional?: boolean;
+  /** Inline data field — see OnboardingInlineField. */
+  inlineField?: OnboardingInlineField;
 };
 
 export type OnboardingSubsection = {
@@ -35,9 +58,15 @@ function task(
   id: string,
   label: string,
   howto?: OnboardingTask["howto"],
-  opts?: { optional?: boolean },
+  opts?: { optional?: boolean; inlineField?: OnboardingInlineField },
 ): OnboardingTask {
-  return { id, label, howto, optional: opts?.optional };
+  return {
+    id,
+    label,
+    howto,
+    optional: opts?.optional,
+    inlineField: opts?.inlineField,
+  };
 }
 
 // Phase numbering note: contract signing + first payment used to be Phase 1
@@ -120,18 +149,32 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
             "Set clear expectations (do this first on the call).",
             [
               "Cover up front: launch timeline (7 days), learning phase (first 5 to 7 days post-launch are noisy), weekly Monday report cadence, how to reach you between reports.",
-              "Lock the budget number live. Write it into <code>Profile.md</code> under <em>Monthly Budget</em>.",
+              "Lock the budget number live. Type it in the field below, hit save, and it writes to <code>Profile.md</code> under <em>Monthly Budget</em>.",
               "Confirm they won't pause ads or tweak Ads Manager themselves once live.",
             ],
+            {
+              inlineField: {
+                kind: "profile-budget",
+                label: "Monthly budget",
+                placeholder: "$1,500/mo",
+              },
+            },
           ),
           task(
             "02-offer",
             "Lock the primary offer + CTA (pick from the 10 options).",
             [
               "Walk the 10 options live. Don't email them the list, owners stall when they read alone.",
-              "Pick exactly one offer + one CTA. Write the winner into <code>vault/Clients/&lt;Name&gt;/Profile.md</code> under <em>Offer</em> + <em>CTA</em>.",
+              "Pick exactly one offer + one CTA. Type the winner in the field below and hit save, it writes to <code>Profile.md</code> under <em>Offer + CTA</em>.",
               "If they hate all 10, regenerate live with the Offer + CTA Builder form on the spot.",
             ],
+            {
+              inlineField: {
+                kind: "profile-offer-cta",
+                label: "Winner offer + CTA",
+                placeholder: "$100 off + free screen cleaning · Get a free quote",
+              },
+            },
           ),
           task(
             "02-bm",
@@ -271,9 +314,17 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
             "01ag-memory",
             "Dump everything you heard on the call into Memory.",
             [
-              "Fastest path: open the Chat drawer for this client and type <code>/remember &lt;fact&gt;</code> — appends to <code>vault/Clients/&lt;Name&gt;/Memory.md</code> with today's date.",
-              "Or paste raw notes straight into <code>Memory.md</code>; format doesn't matter, agents read the lot.",
+              "Fastest path: paste the Fathom recording link in the field below and hit save — it appends to <code>Memory.md</code> with today's date.",
+              "Or open the Chat drawer and type <code>/remember &lt;fact&gt;</code> for one-off facts, or paste raw notes straight into <code>Memory.md</code>; format doesn't matter, agents read the lot.",
             ],
+            {
+              inlineField: {
+                kind: "memory-fathom",
+                label: "Fathom recording link",
+                placeholder: "https://fathom.video/calls/...",
+                inputType: "url",
+              },
+            },
           ),
         ],
       },
@@ -308,7 +359,9 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
             [
               "Open the Pixel Install form (button to the right). It walks the platform-specific install steps for WordPress / Shopify / GTM / raw HTML.",
               "You'll need the <code>pixel_id</code> from credentials and the website access collected in 02-site.",
+              "Optional, skip if this client is running Meta lead forms only (no landing page traffic to track).",
             ],
+            { optional: true },
           ),
           task(
             "03-pixel-verify",
@@ -319,7 +372,9 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
               "<strong>Step 3.</strong> Confirm the pixel ID matches the client's, and that <em>PageView</em> is firing.",
               "<strong>Step 4.</strong> Cross-check in business.facebook.com → <em>Events Manager</em> → the pixel. Real-time activity should appear within 60s of the test load.",
               "<strong>If nothing fires:</strong> the snippet is probably in <code>&lt;body&gt;</code> instead of <code>&lt;head&gt;</code>, or a cookie/consent banner is blocking it.",
+              "Optional, skip if 03-pixel was skipped (lead-form-only client).",
             ],
+            { optional: true },
           ),
           task(
             "03-payment",

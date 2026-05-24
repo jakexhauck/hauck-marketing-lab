@@ -1,7 +1,7 @@
 ---
 client: willis-windows
-drive_folder_url: "https://drive.google.com/drive/folders/1hgGRDyEJ9cmXvnj2AjLfGgyH6Vi7c4Bu?usp=sharing"
-updated_at: "2026-05-21T21:27:50.915958100+00:00"
+drive_folder_url: "https://drive.google.com/drive/folders/1ya0NgEZu5snPMM2eZRgqg6D2FipE5Sxa"
+updated_at: "2026-05-22T23:38:33.059764200+00:00"
 ---
 
 # Willis Windows — Client Context
@@ -10,96 +10,95 @@ updated_at: "2026-05-21T21:27:50.915958100+00:00"
 
 | Subfolder | Folder ID | Notes |
 |---|---|---|
-| Assets | `1RtvJIE3at0Xn0Y0DzQ46YY0VWAC8pQ1Z` | Empty — destination for logos, fonts, brand photos |
-| Creatives | `1tvCE12-NoGTAYgc7QR9OVHqvw0H8m-xq` | Empty — destination for ads, mockups, finished creative |
-| Notes | `1wAeX5jr5rE-L-aO1Pb1q5usq3tcRLOTW` | Empty — meeting notes, brainstorms, working docs |
-| Onboarding | `1LyKYsZFo5tGCoEpGjQUH4dGcpi-D7itT` | Empty — intake forms, kickoff materials |
-| Reports | `18Ufv9lPOwtBo3xURoTgxB8Q8RKKQyICG` | Empty — performance reports and analytics |
-
-## Snapshot
-
-- **Status:** Pre-launch. Drive workspace is scaffolded but still empty across all five subfolders.
-- **Drive owner:** contact.jakehauck@gmail.com
-- **Source of truth for now:** the vault profile at `vault/Clients/Willis Windows/Profile.md` — Drive has no content to supplement it.
-- **Drive AI access:** the root folder and its subfolders are flagged ineligible for generative-AI reads by Google; structure is known from the prior index but file contents cannot be enumerated through Drive tooling.
-
-## Business
-
-- **What they do:** Window cleaning company.
-- **Geography:** Metro Detroit, Michigan — ~30 mile radius.
-
-## Services
-
-- Residential window cleaning (interior + exterior)
-- Screen cleaning
-- Gutter cleaning
-- Commercial window cleaning
-
-## Target audience
-
-- Homeowners aged 25–65+ in Metro Detroit.
-
-## Offers
-
-- **Current promo:** $100 off + free screen cleaning. Largest visible offer in Metro Detroit (competitors top out around $25–$50 off).
-
-## Brand voice / tone
-
-- Positioning: **"young hustlers"** — energetic, hands-on, scrappy. Blue-collar, on-the-truck, real Detroit homes; no stock footage, no corporate polish.
-- **Avoid:** fake urgency, manufactured scarcity, "act now" gimmicks.
-
-## Brand assets
-
-- None on Drive yet. Logos, fonts, photography still need to be collected and dropped into `Assets/`.
-
-## Past creative / reporting
-
-- None on Drive. No prior ads, mockups, or performance reports exist in this workspace.
-
-## Strategic notes
-
-- Candidate differentiator pending ops confirmation: same-week scheduling guarantee ("on your driveway within 5 days or the cleaning is free"), aimed at the top review complaint across competitors.
-- Geo-targeted Meta/Google Local Service ads with seasonal angles (spring cleaning, pre-holiday shine, post-winter grime) are the natural fit for a local service business of this size.
-- Before producing copy or creatives, request brand assets (logo, photos, any preferred fonts/colors) since none are on record.
+| 1. Onboarding - Contracts & Business Info | `1_RPR28-Azzj3IqU7c4HLV2cBTDBgRQuD` | |
+| 2. AD's - Creatives, AD Copy, Angles, Etc | `1yJc29TKogXyLCH8ZVhgD5ylEc5QN-hCY` | |
+| 3. Reports - Monthly & Weekly | `1xZByzmCmg1028QyKPBYle-lxWyrjztgI` | |
+| 5. Notes - Call Notes & Strategy Docs | `1R78NzZeLlfZa0mgtw7BtG1N6HwtD2uSL` | |
 
 ## Tree
 
 ```json
 {
-  "id": "1hgGRDyEJ9cmXvnj2AjLfGgyH6Vi7c4Bu",
-  "name": "Willis Windows",
-  "type": "folder",
   "children": [
     {
-      "id": "1RtvJIE3at0Xn0Y0DzQ46YY0VWAC8pQ1Z",
-      "name": "Assets",
-      "type": "folder",
-      "children": []
+      "children": [
+        {
+          "id": "1Mx2QTy-qsQJM1RaLbo1mSC9453ZjADnv2BsFMJJVETk",
+          "mimeType": "application/vnd.google-apps.document",
+          "name": "Business Information",
+          "type": "file",
+          "url": "https://docs.google.com/document/d/1Mx2QTy-qsQJM1RaLbo1mSC9453ZjADnv2BsFMJJVETk/edit?usp=drivesdk"
+        },
+        {
+          "id": "1gBA2EgT-LU0SQsOcH6KTatsSC1nYG_Ur",
+          "mimeType": "application/vnd.google-apps.shortcut",
+          "name": "Client Spreadsheet",
+          "type": "file",
+          "url": "https://drive.google.com/file/d/1gBA2EgT-LU0SQsOcH6KTatsSC1nYG_Ur/view?usp=drivesdk"
+        },
+        {
+          "id": "1GhPDkDQK4evj15eamvjbFgfFlZj3JGfh0KXPPaz4nnE",
+          "mimeType": "application/vnd.google-apps.document",
+          "name": "OLD - Client Setup Checklist",
+          "type": "file",
+          "url": "https://docs.google.com/document/d/1GhPDkDQK4evj15eamvjbFgfFlZj3JGfh0KXPPaz4nnE/edit?usp=drivesdk"
+        }
+      ],
+      "id": "1_RPR28-Azzj3IqU7c4HLV2cBTDBgRQuD",
+      "name": "1. Onboarding - Contracts & Business Info",
+      "type": "folder"
     },
     {
-      "id": "1tvCE12-NoGTAYgc7QR9OVHqvw0H8m-xq",
-      "name": "Creatives",
-      "type": "folder",
-      "children": []
+      "children": [
+        {
+          "id": "1iCnpwxmSL0VsdVGivPVkLtzAnNAV5YF6",
+          "mimeType": "image/png",
+          "name": "7162bd21-4b7b-4bcb-a1b0-d5d1401a13d5.png",
+          "type": "file",
+          "url": "https://drive.google.com/file/d/1iCnpwxmSL0VsdVGivPVkLtzAnNAV5YF6/view?usp=drivesdk"
+        },
+        {
+          "id": "1C49musPoK_klVf8UUZRNj9ifDveXOpJ8",
+          "mimeType": "image/png",
+          "name": "Willis-Windows-campaign-tree-2026-05-22T17-27-39.png",
+          "type": "file",
+          "url": "https://drive.google.com/file/d/1C49musPoK_klVf8UUZRNj9ifDveXOpJ8/view?usp=drivesdk"
+        },
+        {
+          "id": "1-OhJOox7sTtr0yl06s2aJrf8RIWkMUvu",
+          "mimeType": "image/jpeg",
+          "name": "willis_windows static ad $100 off.jpg",
+          "type": "file",
+          "url": "https://drive.google.com/file/d/1-OhJOox7sTtr0yl06s2aJrf8RIWkMUvu/view?usp=drivesdk"
+        }
+      ],
+      "id": "1yJc29TKogXyLCH8ZVhgD5ylEc5QN-hCY",
+      "name": "2. AD's - Creatives, AD Copy, Angles, Etc",
+      "type": "folder"
     },
     {
-      "id": "1wAeX5jr5rE-L-aO1Pb1q5usq3tcRLOTW",
-      "name": "Notes",
-      "type": "folder",
-      "children": []
+      "children": [],
+      "id": "1xZByzmCmg1028QyKPBYle-lxWyrjztgI",
+      "name": "3. Reports - Monthly & Weekly",
+      "type": "folder"
     },
     {
-      "id": "1LyKYsZFo5tGCoEpGjQUH4dGcpi-D7itT",
-      "name": "Onboarding",
-      "type": "folder",
-      "children": []
+      "id": "170naUJkG5nERJ6kvo9V6w0WSs_GvH1zh",
+      "mimeType": "application/vnd.google-apps.shortcut",
+      "name": "4. Assets - Logos, Fonts, Photos, Etc",
+      "type": "file",
+      "url": "https://drive.google.com/file/d/170naUJkG5nERJ6kvo9V6w0WSs_GvH1zh/view?usp=drivesdk"
     },
     {
-      "id": "18Ufv9lPOwtBo3xURoTgxB8Q8RKKQyICG",
-      "name": "Reports",
-      "type": "folder",
-      "children": []
+      "children": [],
+      "id": "1R78NzZeLlfZa0mgtw7BtG1N6HwtD2uSL",
+      "name": "5. Notes - Call Notes & Strategy Docs",
+      "type": "folder"
     }
-  ]
+  ],
+  "id": "1ya0NgEZu5snPMM2eZRgqg6D2FipE5Sxa",
+  "name": "Willis Windows",
+  "type": "folder"
 }
 ```
+

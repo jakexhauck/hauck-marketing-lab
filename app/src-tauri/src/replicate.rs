@@ -369,6 +369,41 @@ pub async fn file_to_data_uri(path: String) -> Result<String, String> {
     Ok(format!("data:{mime};base64,{encoded}"))
 }
 
+/// Copy a local image/video into the client's creatives folder using the same
+/// naming + return shape as `save_replicate_output`. Lets the user import ad
+/// creatives they generated elsewhere (Gemini, Midjourney, phone screenshots)
+/// into the wizard's save/Drive-push flow without round-tripping through
+/// Replicate.
+#[tauri::command]
+pub async fn import_local_creative(
+    source_path: String,
+    output_dir: String,
+    filename_stem: String,
+) -> Result<ReplicateSavedOutput, String> {
+    let src = PathBuf::from(&source_path);
+    if !src.exists() {
+        return Err(format!("source not found: {source_path}"));
+    }
+    let ext = src
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "png".to_string());
+
+    let dir = PathBuf::from(&output_dir);
+    fs::create_dir_all(&dir).map_err(|e| format!("create output dir: {e}"))?;
+
+    let filename = format!("{filename_stem}.{ext}");
+    let out_path = dir.join(&filename);
+    fs::copy(&src, &out_path).map_err(|e| format!("copy file: {e}"))?;
+
+    Ok(ReplicateSavedOutput {
+        saved_path: out_path.to_string_lossy().into_owned(),
+        filename,
+        source_url: source_path,
+    })
+}
+
 fn mime_from_path(p: &PathBuf) -> &'static str {
     let lower = p
         .extension()

@@ -44,12 +44,12 @@ import { recordingsPageCSS, openFathomInApp } from "./RecordingsPage";
 import { TranscriptIngestPanel } from "./TranscriptIngestPanel";
 import { OnboardingChecklist } from "../OnboardingChecklist";
 import { AdsManagerPage } from "./AdsManagerPage";
+import { AdsSequenceWizard } from "../AdsSequenceWizard";
+import { emptySequenceState, type SequenceState } from "../../lib/mediaBuyingSequence";
 import { deriveTargetCpa } from "../../lib/adsOptimizer";
-import { Phase1CascadeModal } from "../Phase1CascadeModal";
+import { ClientDriveSettings } from "../ClientDriveSettings";
 import {
   IconBarChart,
-  IconFolder,
-  IconMore,
   IconRecordings,
 } from "../icons";
 
@@ -70,21 +70,6 @@ function isSectionAllowed(section: ClientSection, status: ClientEntry["status"])
   return true;
 }
 
-function clientPill(status: ClientEntry["status"]) {
-  switch (status) {
-    case "live":
-      return { className: "hml-green", label: "Live" };
-    case "pre-launch":
-      return { className: "hml-amber", label: "Pre-launch" };
-    case "paused":
-      return { className: "hml-neutral", label: "Paused" };
-  }
-}
-
-function avatarChar(name: string): string {
-  return name?.charAt(0)?.toUpperCase() ?? "â€¢";
-}
-
 export function ClientDashboard({
   client,
   section,
@@ -92,13 +77,7 @@ export function ClientDashboard({
   agents,
   onSelectSection,
   onOpenForm,
-  onOpenDrive,
 }: ClientDashboardProps) {
-  const pill = clientPill(client.status);
-
-  // Cascade modal toggle (Day-0 cascade fired from "Mark client Won").
-  const [cascadeOpen, setCascadeOpen] = useState(false);
-
   // Bounce off disallowed sections (e.g. landing on Onboarding for a live
   // client). The sidebar handles which sections render; this just keeps the
   // route honest.
@@ -110,86 +89,30 @@ export function ClientDashboard({
   }, [section, client.status]);
 
   return (
-    <div className="hml-content">
-      <section className="hml-client-header">
-        <div className="hml-client-header-top">
-          <div className="hml-client-avatar">{avatarChar(client.name)}</div>
-          <div className="hml-client-name-block">
-            <h1 className="hml-client-name">{client.name}</h1>
-            <span className={`hml-pill ${pill.className}`}>
-              <span className="hml-pill-dot" />
-              {pill.label}
-            </span>
-          </div>
-          <div className="hml-client-actions">
-            {client.status === "pre-launch" && root && (
-              <button
-                type="button"
-                className="hml-btn hml-accent"
-                onClick={() => setCascadeOpen(true)}
-                title="Open the Day-0 cascade: welcome email, contract, kickoff invite, etc."
-              >
-                Mark client Won
-              </button>
-            )}
-            {client.drive_folder_url && onOpenDrive && (
-              <button type="button" className="hml-btn" onClick={onOpenDrive}>
-                <IconFolder size={13} />
-                Open Drive
-              </button>
-            )}
-            <button type="button" className="hml-icon-btn" aria-label="More">
-              <IconMore size={14} />
-            </button>
-          </div>
-        </div>
-        <div className="hml-client-meta-row">
-          {client.created_at && (
-            <>
-              <div className="hml-item">
-                <span className="hml-label">Started</span>
-                <span className="hml-v">
-                  {new Date(client.created_at).toLocaleDateString(undefined, {
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-              <span className="hml-sep">Â·</span>
-            </>
-          )}
-          <div className="hml-item">
-            <span className="hml-label">Slug</span>
-            <span className="hml-v">{client.slug}</span>
-          </div>
-          {client.benchmarks && (
-            <>
-              <span className="hml-sep">Â·</span>
-              <div className="hml-item">
-                <span className="hml-label">Benchmarks</span>
-                <span className="hml-v">{client.benchmarks}</span>
-              </div>
-            </>
-          )}
-        </div>
-      </section>
-
-      <div>
-        {section === "dashboard" && (
-          <ClientOverviewPanel client={client} root={root} />
-        )}
-        {section === "onboarding" && (
-          <OnboardingChecklist
+    <div className="hml-client-shell">
+      {section === "dashboard" && (
+        <ClientOverviewPanel client={client} root={root} />
+      )}
+      {section === "onboarding" && (
+        <OnboardingChecklist
+          root={root}
+          clientSlug={client.slug}
+          clientName={client.name}
+          agents={agents}
+          onComplete={() => {
+            if (client.status !== "pre-launch") onSelectSection("dashboard");
+          }}
+        />
+      )}
+      {section === "ads" && (
+        client.status === "pre-launch" && root ? (
+          <OnboardingAdsSequenceTab
             root={root}
-            clientSlug={client.slug}
-            clientName={client.name}
+            client={client}
             agents={agents}
-            onComplete={() => {
-              if (client.status !== "pre-launch") onSelectSection("dashboard");
-            }}
+            onExit={() => onSelectSection("dashboard")}
           />
-        )}
-        {section === "ads" && (
+        ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <AdsManagerPage
               mode="client"
@@ -204,57 +127,170 @@ export function ClientDashboard({
               compact
             />
           </div>
-        )}
-        {section === "documents" && (
-          root ? (
-            <ClientDocuments client={client} root={root} />
-          ) : (
-            <div className="hml-empty">
-              <div className="hml-empty-title">Pick a media-buying folder</div>
-              <div className="hml-empty-sub">
-                The documents tab needs the vault root to read and write docs.
-              </div>
+        )
+      )}
+      {section === "documents" && (
+        root ? (
+          <ClientDocuments client={client} root={root} />
+        ) : (
+          <div className="hml-empty">
+            <div className="hml-empty-title">Pick a media-buying folder</div>
+            <div className="hml-empty-sub">
+              The documents tab needs the vault root to read and write docs.
             </div>
-          )
-        )}
-        {section === "recordings" && (
-          <ClientRecordingsView
-            root={root}
-            clientSlug={client.slug}
-            clientName={client.name}
-          />
-        )}
-        {section === "websites" && (
-          <WebDesignerPage
-            root={root}
-            clientSlug={client.slug}
-            clientName={client.name}
-          />
-        )}
-        {section === "reporting" && (
-          <ClientMediaBuying
-            clientName={client.name}
-            onOpenForm={(id) => onOpenForm(id, client.slug, client.name)}
-            includeGroups={["reports"]}
-          />
-        )}
-        {section === "settings" && (
-          <ClientSettingsPanel
-            client={client}
-            root={root}
-            clientSlug={client.slug}
-          />
-        )}
-        {cascadeOpen && root && (
-          <Phase1CascadeModal
-            root={root}
-            client={client}
-            agents={agents}
-            onClose={() => setCascadeOpen(false)}
-          />
-        )}
-      </div>
+          </div>
+        )
+      )}
+      {section === "recordings" && (
+        <ClientRecordingsView
+          root={root}
+          clientSlug={client.slug}
+          clientName={client.name}
+        />
+      )}
+      {section === "websites" && (
+        <WebDesignerPage
+          root={root}
+          clientSlug={client.slug}
+          clientName={client.name}
+        />
+      )}
+      {section === "reporting" && (
+        <ClientMediaBuying
+          clientName={client.name}
+          onOpenForm={(id) => onOpenForm(id, client.slug, client.name)}
+          includeGroups={["reports"]}
+        />
+      )}
+      {section === "settings" && (
+        <ClientSettingsPanel
+          client={client}
+          root={root}
+          clientSlug={client.slug}
+        />
+      )}
     </div>
+  );
+}
+
+/** Ads tab surface for clients still in onboarding. Loads the onboarding
+ *  state, hands the sequence block to AdsSequenceWizard, and persists changes
+ *  back to the same `onboarding.json` the OnboardingChecklist owns. Mirrors
+ *  the load/persist pattern in OnboardingChecklist so the two surfaces stay
+ *  in sync. */
+function OnboardingAdsSequenceTab({
+  root,
+  client,
+  agents,
+  onExit,
+}: {
+  root: string;
+  client: ClientEntry;
+  agents: AgentSummary[];
+  onExit: () => void;
+}) {
+  const [doneSet, setDoneSet] = useState<Set<string>>(() => new Set());
+  const [skippedSet, setSkippedSet] = useState<Set<string>>(() => new Set());
+  const [phaseDoneAt, setPhaseDoneAt] = useState<Record<string, string>>({});
+  const [sequenceState, setSequenceState] = useState<SequenceState>(() => emptySequenceState());
+  const [loaded, setLoaded] = useState(false);
+  const skipNextPersist = useRef(true);
+  const saveTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    skipNextPersist.current = true;
+    setLoaded(false);
+    void (async () => {
+      try {
+        const state = await api.readOnboardingState(root, client.slug);
+        if (cancelled) return;
+        setDoneSet(new Set(state.done ?? []));
+        setSkippedSet(new Set(state.skippedOptional ?? []));
+        setPhaseDoneAt(state.phaseDoneAt ?? {});
+        if (state.sequence) {
+          setSequenceState({
+            currentStep: state.sequence.currentStep as SequenceState["currentStep"],
+            stepOutputs: state.sequence.stepOutputs as SequenceState["stepOutputs"],
+            skipped: state.sequence.skipped as SequenceState["skipped"],
+            launchedAt: state.sequence.launchedAt,
+            driveFolderId: state.sequence.driveFolderId,
+            campaignSkeleton: state.sequence.campaignSkeleton as SequenceState["campaignSkeleton"],
+          });
+        } else {
+          setSequenceState(emptySequenceState());
+        }
+      } catch {
+        if (!cancelled) {
+          setDoneSet(new Set());
+          setSkippedSet(new Set());
+          setPhaseDoneAt({});
+          setSequenceState(emptySequenceState());
+        }
+      } finally {
+        if (!cancelled) setLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [root, client.slug]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    if (skipNextPersist.current) {
+      skipNextPersist.current = false;
+      return;
+    }
+    if (saveTimer.current != null) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      void api
+        .writeOnboardingState(root, client.slug, {
+          done: Array.from(doneSet),
+          skippedOptional: Array.from(skippedSet),
+          phaseDoneAt,
+          sequence: sequenceState,
+        })
+        .catch((err) => {
+          // eslint-disable-next-line no-console
+          console.error("ads-tab onboarding persist failed", err);
+        });
+    }, 300);
+  }, [root, client.slug, doneSet, skippedSet, phaseDoneAt, sequenceState, loaded]);
+
+  useEffect(
+    () => () => {
+      if (saveTimer.current != null) window.clearTimeout(saveTimer.current);
+    },
+    [],
+  );
+
+  if (!loaded) {
+    return (
+      <div className="hml-empty">
+        <div className="hml-empty-sub">Loading ads sequence…</div>
+      </div>
+    );
+  }
+
+  return (
+    <AdsSequenceWizard
+      root={root}
+      clientName={client.name}
+      clientSlug={client.slug}
+      agents={agents}
+      sequenceState={sequenceState}
+      onSequenceChange={(next) => setSequenceState(next)}
+      onTaskTick={(taskId) =>
+        setDoneSet((prev) => {
+          if (prev.has(taskId)) return prev;
+          const n = new Set(prev);
+          n.add(taskId);
+          return n;
+        })
+      }
+      onClose={onExit}
+    />
   );
 }
 
@@ -272,6 +308,7 @@ function ClientSettingsPanel({
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <ClientDriveSettings client={client} root={root} />
       <ClientOptimizerSettings client={client} root={root} />
       <ClientProfileInlineEditor client={client} root={root} />
       <ClientNoteView

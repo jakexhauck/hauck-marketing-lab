@@ -40,6 +40,7 @@ import type {
   DiagnosisInputs,
   DmFile,
   DriveIndex,
+  DriveSubfolder,
   DriveUploadResult,
   FolderSummary,
   GeneratorKind,
@@ -305,6 +306,36 @@ export const api = {
       title: args.title,
       folderOverride: args.folderOverride ?? null,
     }),
+  /** Push a single ad-copy variation to Drive as a native Google Doc. Fires
+   *  from the "send to drive" button on an AdCopyCard. Destination folder
+   *  defaults to the client's configured `ad-copy` folder (per
+   *  `sequence_folder_defaults`), with the same fallback chain as the
+   *  full-step push. */
+  pushAdVariationToDrive: (args: {
+    root: string;
+    clientSlug: string;
+    title: string;
+    bodyMarkdown: string;
+    framework?: string;
+    hookRef?: string;
+    wordCount?: string;
+    folderOverride?: DocFolderTarget | null;
+  }) =>
+    invoke<{
+      driveUrl: string;
+      driveFileId: string;
+      folderId: string;
+      folderName: string | null;
+    }>("push_ad_variation_to_drive", {
+      root: args.root,
+      clientSlug: args.clientSlug,
+      title: args.title,
+      bodyMarkdown: args.bodyMarkdown,
+      framework: args.framework ?? null,
+      hookRef: args.hookRef ?? null,
+      wordCount: args.wordCount ?? null,
+      folderOverride: args.folderOverride ?? null,
+    }),
   /** Upload a local file (PNG, JPG, etc.) to a Drive folder as a native binary.
    *  Used by AdCreativeStudio to push saved PNGs into the client's Creatives
    *  subfolder without Doc conversion. */
@@ -360,6 +391,8 @@ export const api = {
     }>("sweep_drive_deleted_docs", { root, clientSlug }),
   refreshDriveIndex: (root: string, clientSlug: string) =>
     invoke<DriveIndex>("refresh_drive_index", { root, clientSlug }),
+  listDriveSubfolders: (parent: string) =>
+    invoke<DriveSubfolder[]>("list_drive_subfolders", { parent }),
   uploadOutputToDrive: (
     root: string,
     clientSlug: string,
@@ -427,6 +460,16 @@ export const api = {
     }),
   fileToDataUri: (path: string) =>
     invoke<string>("file_to_data_uri", { path }),
+  importLocalCreative: (
+    sourcePath: string,
+    outputDir: string,
+    filenameStem: string,
+  ) =>
+    invoke<import("./types").ReplicateSavedOutput>("import_local_creative", {
+      sourcePath,
+      outputDir,
+      filenameStem,
+    }),
   listBenchmarkSets: (root: string) =>
     invoke<BenchmarkSummary[]>("list_benchmark_sets", { root }),
   readBenchmarksForClient: (root: string, clientSlug: string) =>

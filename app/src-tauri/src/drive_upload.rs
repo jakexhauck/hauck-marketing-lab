@@ -50,6 +50,8 @@ fn locate_claude() -> Option<PathBuf> {
 fn build_command(claude_path: &PathBuf) -> Command {
     #[cfg(windows)]
     {
+        // CREATE_NO_WINDOW — see claude.rs::build_command for rationale.
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
         let ext = claude_path
             .extension()
             .and_then(|e| e.to_str())
@@ -57,9 +59,14 @@ fn build_command(claude_path: &PathBuf) -> Command {
         if matches!(ext.as_deref(), Some("cmd") | Some("bat") | Some("ps1")) {
             let mut c = Command::new("cmd");
             c.arg("/C").arg(claude_path);
+            c.creation_flags(CREATE_NO_WINDOW);
             return c;
         }
+        let mut c = Command::new(claude_path);
+        c.creation_flags(CREATE_NO_WINDOW);
+        return c;
     }
+    #[cfg(not(windows))]
     Command::new(claude_path)
 }
 
@@ -851,6 +858,123 @@ pub async fn push_sequence_step_to_drive(
         doc_id,
         drive_url,
         drive_file_id,
+        folder_id,
+        folder_name,
+    })
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AdVariationPushResult {
+    pub drive_url: String,
+    pub drive_file_id: String,
+    pub folder_id: String,
+    pub folder_name: Option<String>,
+}
+
+fn ad_variation_html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+/// Push a single ad-copy variation to Drive as a native Google Doc. Unlike
+/// `push_sequence_step_to_drive`, this does NOT track the upload as an
+/// ongoing client doc — it's a one-shot snapshot of one ad variation Jake
+/// hand-picked from the saved-view ad-copy card.
+///
+/// The destination folder defaults to the same one configured for the
+/// `ad-copy` step in `sequence_folder_defaults`, falling back through the
+/// per-kind defaults and finally the client's root Drive folder. Pass
+/// `folder_override` to pin a specific folder instead.
+#[tauri::command]
+pub async fn push_ad_variation_to_drive(
+    app: AppHandle,
+    root: String,
+    client_slug: String,
+    title: String,
+    body_markdown: String,
+    framework: Option<String>,
+    hook_ref: Option<String>,
+    word_count: Option<String>,
+    folder_override: Option<DocFolderTarget>,
+) -> Result<AdVariationPushResult, String> {
+    let title = title.trim().to_string();
+    if title.is_empty() {
+        return Err("Push title cannot be empty.".to_string());
+    }
+    let body = body_markdown.trim().to_string();
+    if body.is_empty() {
+        return Err("Ad copy body is empty — nothing to push.".to_string());
+    }
+
+    let clients = read_clients_file(&root)?;
+    let client = clients
+        .iter()
+        .find(|c| c.slug == client_slug)
+        .ok_or_else(|| format!("No client with slug '{client_slug}'."))?;
+    let (folder_id, folder_name) =
+        resolve_sequence_folder("ad-copy", folder_override.as_ref(), client)?;
+
+    // Markdown -> HTML for the body so the Google Doc preserves the same
+    // formatting Jake sees on the card (line breaks, lists, bolds).
+    let mut opts = Options::empty();
+    opts.insert(Options::ENABLE_TABLES);
+    opts.insert(Options::ENABLE_STRIKETHROUGH);
+    let parser = Parser::new_ext(&body, opts);
+    let mut body_html = String::new();
+    cmark_html::push_html(&mut body_html, parser);
+
+    // Header line carries the variation metadata so the Doc reads the same
+    // way the saved-view card does (framework · hook ref · word count).
+    let mut header = String::new();
+    let framework_clean = framework
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let hook_clean = hook_ref
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let words_clean = word_count
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    if framework_clean.is_some() || hook_clean.is_some() || words_clean.is_some() {
+        header.push_str("<p>");
+        let mut first = true;
+        if let Some(f) = framework_clean.as_ref() {
+            header.push_str(&format!("<strong>{}</strong>", ad_variation_html_escape(f)));
+            first = false;
+        }
+        if let Some(h) = hook_clean.as_ref() {
+            if !first {
+                header.push_str(" — ");
+            }
+            header.push_str(&ad_variation_html_escape(h));
+            first = false;
+        }
+        if let Some(w) = words_clean.as_ref() {
+            if !first {
+                header.push_str(" · ");
+            }
+            header.push_str(&format!("<em>{}</em>", ad_variation_html_escape(w)));
+        }
+        header.push_str("</p>");
+    }
+
+    let html = format!(
+        "<h1>{}</h1>{}{}",
+        ad_variation_html_escape(&title),
+        header,
+        body_html,
+    );
+
+    let created = create_google_doc_from_html(&app, &title, &folder_id, &html).await?;
+    Ok(AdVariationPushResult {
+        drive_url: created.web_view_link,
+        drive_file_id: created.file_id,
         folder_id,
         folder_name,
     })

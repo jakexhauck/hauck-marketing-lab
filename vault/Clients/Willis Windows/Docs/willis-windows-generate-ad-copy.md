@@ -4,118 +4,81 @@ title: Willis Windows · Generate ad copy
 kind: ad-copy
 client_slug: willis-windows
 created_at: 2026-05-21T21:57:49.698938300+00:00
-updated_at: 2026-05-21T21:57:53.643775200+00:00
+updated_at: 2026-05-22T16:52:56.488390400+00:00
 drive_folder_id: 1RtvJIE3at0Xn0Y0DzQ46YY0VWAC8pQ1Z
 drive_folder_name: Assets
-current_drive_file_id: 15CqGWbl5yMY6kX-_yQt5QAPKatCFj23fqto0hxBJGvA
-current_drive_url: https://docs.google.com/document/d/15CqGWbl5yMY6kX-_yQt5QAPKatCFj23fqto0hxBJGvA/edit?usp=drivesdk
-current_version: 1
-synced_at: 2026-05-21T21:57:53.643775200+00:00
-synced_content_hash: 3d8aecb01bafbb5ff707ca5596f3548bff9752ad1c0e9caa7f164fb5f5f397c0
-previous_versions: []
+current_drive_file_id: 1DezKdo01pDQiW3xvRXNTFekFerqS4OKVSA3SYBvqrU0
+current_drive_url: https://docs.google.com/document/d/1DezKdo01pDQiW3xvRXNTFekFerqS4OKVSA3SYBvqrU0/edit?usp=drivesdk
+current_version: 2
+synced_at: 2026-05-22T16:52:56.488390400+00:00
+synced_content_hash: 52e45ba4eb48e56bddfc053c26987f5169d932c59dc252895bf34613cdbbdfda
+previous_versions:
+- drive_file_id: 15CqGWbl5yMY6kX-_yQt5QAPKatCFj23fqto0hxBJGvA
+  drive_url: https://docs.google.com/document/d/15CqGWbl5yMY6kX-_yQt5QAPKatCFj23fqto0hxBJGvA/edit?usp=drivesdk
+  version: 1
+  pushed_at: 2026-05-21T21:57:53.643775200+00:00
+  swept: true
+  drive_folder_id: 1RtvJIE3at0Xn0Y0DzQ46YY0VWAC8pQ1Z
+  drive_folder_name: Assets
 unswept_orphans: []
 ---
 
 
 
-## Short Copy (under 50 words) · Feed & Story ads
+**Ad 1** | PAS | DIY streaks | Short | 38 words
+Three hours of vinegar and paper towels and your windows still look worse than when you started. Streaks for days. Skip it. Our crew handles it for $100 off plus free screens. Tap to book in 60 seconds.
 
-PAS\
-HOOK #1 · urgency\
-43 words
+---
 
-$100 off your windows. Free screen cleaning. Nobody in Metro Detroit is matching this. Spring sun shows every streak, fingerprint, and pollen smear sitting on your glass. We're on your driveway within 5 days, 3-layer filtered water, 100% guarantee. Lock the slot before it's gone.
+**Ad 2** | PAS | Selling the house | Medium | 73 words
+Realtor coming Tuesday and your windows look like they belong in a horror movie. Buyers literally judge a house by how much light comes in. Dirty glass shaves thousands off the offer because the whole place feels dim and tired in the listing photos. We'll get every pane crystal clear before the shoot. $100 off plus free screen cleaning when you book this week. DM us your address and we'll send a quote.
 
-Book now 👇
+---
 
-BAB\
-HOOK #4 · urgency\
-35 words
+**Ad 3** | PAS | Spring pollen | Medium | 71 words
+That yellow film coating every window is pollen baking into the glass. Sun hits it, gets gummy, sticks for months. Hose water doesn't touch it and Windex just smears it around. Our team runs a deionized water system that actually lifts it off without scratching the pane or stripping the coating. Right now you get $100 off plus free screen cleaning. Slots in May are filling up fast. Tap to grab one.
 
-Your neighbor paid $25 off. You're getting $100 off plus free screens. Read that again. Same crew, bigger discount, ends when the route fills. Inside, outside, screens included. Three-layer water. Hundred percent guarantee.
+---
 
-Tap to claim 📲
+**Ad 4** | AIDA | Young hungry crew | Short | 47 words
+Two guys, both in our 20s, both hungry to build the best window cleaning company in this town. Every other crew does a half job and bounces. We do it right or we redo it free, no questions. $100 off plus free screens this month. Tap to book.
 
-STORY\
-HOOK #8 · disruption\
-42 words
+---
 
-We're not a 40-year-old franchise. We're young, hungry, and our reviews show it. Started with a ladder and a Subaru. Now we're booking out Metro Detroit with $100 off and free screens. Same crew every visit. Names, not uniforms.
+**Ad 5** | AIDA | Natural light makeover | Medium | 64 words
+You don't realize how much grime is on your windows until they're actually clean. Kitchen suddenly feels twice as bright. Living room looks like a different house. Most people we clean for say they had no idea their windows were that bad. $100 off your first clean plus free screen washing right now. Takes about 90 seconds to book a slot.
 
-Book the hustlers 👇
+---
 
-## Medium Copy (50-100 words) · Feed ads with See More
+**Ad 6** | AIDA | Busy weekend dad | Long | 119 words
+Saturday is the only day you actually get to rest and you're spending it on a ladder with a roll of paper towels. Kids inside watching cartoons, your back killing you, windows looking about 40% better than when you started. Pay someone. Seriously. We're two guys in our 20s who treat every house like it's our mom's. In and out in a couple hours, every pane gleaming inside and out, sills wiped, screens cleaned for free. $100 off your first job, no upsells, no surprise fees, no leaving early because we got a bigger gig down the street. Tap the link, grab a slot, get your weekend back.
 
-PAS\
-HOOK #2 · disruption\
-81 words
+---
 
-The big franchises send uniforms. We send a crew that actually cares if your windows squeak. The Fish and Window Genie guys are clocked in by 8 and on house #14 by lunch. By the time they pull into your driveway the squeegee is dry, the rags are gray, and the screens are an afterthought. We cap the route on purpose. Your house gets the same attention as the first one of the day. $100 off, free screens, three-layer filtered water.
+**Ad 7** | BAB | Curb appeal | Medium | 64 words
+Before: you drive up to your house and the windows look foggy from the street. Whole place feels run down even though the lawn is fresh and the paint is new. After: glass so clean it looks like it's not even there. Sunlight pouring in, neighbors asking what you changed. Bridge: us, this Saturday, $100 off, free screen cleaning included. Spots going quick.
 
-Lock your spot 👇
+---
 
-AIDA\
-HOOK #3 · problem\
-75 words
+**Ad 8** | BAB | Hard water stains | Long | 115 words
+Before: shower windows and outside panes covered in white crusty spots from your sprinklers and the dishwasher steam. You've tried CLR, vinegar, every magic eraser in the store. Nothing fully gets it off and now there are tiny scratches from scrubbing too hard. After: zero spots, no scratches, glass looks brand new. Bridge: we use a restoration treatment specifically for hard water mineral buildup that 99% of cleaners don't carry. Takes us about twice as long as a regular clean but the result lasts a full year if you let us seal them. $100 off and free screens if you book this week. Reply STAINS and we'll send a quote in under an hour.
 
-Booked a window cleaner who ghosted you? On your driveway within 5 days or it's free. We're sick of hearing the same story: you waited two weeks, the guy never called back, the windows still look like a pollen storm hit them. So we put it in writing. Five days, max. Three-layer filtered water means no streaks, even on the south side. $100 off plus free screens if you book this week.
+---
 
-Grab the slot 📲
+**Ad 9** | BAB | Ladder safety | Short | 39 words
+Before: you on a wobbly extension ladder cleaning second story windows. After: us on the wobbly extension ladder, you on the couch with iced coffee. $100 off plus free screens. Tap the link to book online in under a minute.
 
-BAB\
-HOOK #5 · urgency\
-74 words
+---
 
-Spring window slots are filling. $100 off plus free screens, while we still have route space. Before: you stare at the dust line on the inside, the pollen smear on the outside, and tell yourself you'll get to it eventually. After: crew shows up Tuesday, windows sparkle by lunch, screens dropped back in clean, $100 off the bill. The route fills by Friday most weeks. Bridge that gap before it's somebody else's slot.
+**Ad 10** | STORY | Lake view reveal | Medium | 78 words
+Mrs. Patterson over on Elm had us out last spring. Said her windows hadn't been professionally cleaned in 11 years. We pulled up, looked at the panes, got honestly excited. Spent four hours making them perfect. She called us almost in tears because she could finally see the lake from her kitchen sink again. Already booked us for fall. We're running $100 off plus free screen cleaning right now. Could be you next. Tap to grab a slot.
 
-Book this week 👇
+---
 
-STORY\
-HOOK #6 · urgency\
-80 words
+**Ad 11** | STORY | Founder origin | Long | 124 words
+Started this two summers ago because I was tired of working for a window cleaner that charged $400 and did a 45-minute job. Half the windows still had streaks. Owner didn't care, just wanted volume so he could chase the next house on the list. Me and my buddy went out on our own. Bought our own gear and water system. Learned every trick from veteran cleaners and old industry forums. Now we run a small crew of guys who finish the job and don't leave until it's right. Word of mouth got us through year one and we're trying to make year two even bigger. $100 off plus free screen cleaning if you book this month. Tap the link.
 
-Metro Detroit's biggest window-cleaning offer right now. Not a gimmick, just the math. The Window Genie guys do $25 off. Fish maxes out at $50. We're at $100 off plus screens free. Why? Because we're young, the overhead is light, and we'd rather fill the route than pad the margin. Two trucks, six guys, route caps at 40 houses a week. When the calendar's full it's gone. Book before someone in your neighborhood beats you to it.
+---
 
-Claim the deal 📲
-
-PAS\
-HOOK #7 · disruption\
-72 words
-
-Forget the corporate window guys. Real Detroit hustlers, on your driveway, doing it right. The franchises sub the work to whoever's free. You get a different guy every time, and half of them rush the screens. We're the crew. Same faces, every visit, born and raised here. Three-layer filtered water, 100% guarantee, and if you don't love it we come back free. $100 off plus screens cleaned this round.
-
-Book the locals 👇
-
-AIDA\
-HOOK #9 · disruption\
-83 words
-
-Tired of window guys who treat your house like job #14? Meet the crew that treats it like #1. We cap the day at four houses. Not eight, not fourteen. Four. So when we hit your driveway, nobody's rushing, the squeegee is wet, the screens come out, and the gutters get a peek too if you want a quote. Three-layer filtered water, zero streaks on the south side. Right now: $100 off plus free screen clean, all-in.
-
-Book the slot 📲
-
-## Long Copy (100+ words) · High-intent, storytelling
-
-BAB\
-HOOK #10 · problem\
-121 words
-
-Streaks, no-shows, surprise charges at the door. Here's how we're different, in 30 seconds. Before us, the typical Metro Detroit story: you book a "free estimate," the guy quotes $250, shows up two weeks late, then tells you screens are extra and hard water is extra and the upstairs is extra. You pay $400 for streaky glass. After us: flat number on the phone, $100 off applied before you even confirm, screens included free, three-layer filtered water so the south-facing windows don't streak when the sun hits, and a 100% satisfaction guarantee in writing. If something looks off when we leave, we come back. No upcharges at the door. Just clean windows.
-
-Book this week 👇
-
-STORY\
-HOOK #11 · problem\
-130 words
-
-Stop chasing window cleaners who don't call back. We show up within the week, guaranteed. Quick story. Last March, a lady in Royal Oak called us after three companies stood her up. She had a graduation party that weekend, second-story windows looked like a pollen storm hit them, and her sister-in-law was about to be insufferable about it. We had a crew on her driveway in 48 hours, three-layer water, inside and out, screens pulled and rinsed. She tipped the guys and put us on her Christmas card list. That's just how we run. We answer the phone, we text when we're 20 minutes out, we don't bail. $100 off and free screens are on the table right now while we still have route space.
-
-Lock your spot 📲
-
-AIDA\
-HOOK #12 · problem\
-133 words
-
-Three Detroit window companies cancelled on you? Welcome to the club. Around here, "free estimate" means a two-week wait, a guy who quotes $250 then tacks on screens, hard water, upstairs windows, and whatever else he can think of by the time he's packing up. We do it differently and we put it on paper: on your driveway within 5 days of booking or the job is free. 100% satisfaction or we come back and redo it, no questions asked. Flat price on the phone, no upcharges at the door. Right now: $100 off plus free screen cleaning, the biggest offer in Metro Detroit (Window Genie does $25, Fish does $50, do the math). Three-layer filtered water, no streaks even on south-side glass. Spring route is going fast.
-
-Grab a slot 👇
+**Ad 12** | STORY | Nursery before baby | Medium | 78 words
+Got a call from a dad in Ridgewood last week. Newborn coming home in two days, wife exhausted, windows hadn't been touched since they moved in. He wanted the nursery flooded with sunlight when the baby came through the door. We came out next morning, knocked it out in three hours. He sent us a photo of his daughter in the sunbeam by the window. Coolest text we've ever gotten. $100 off plus free screens, book this week.

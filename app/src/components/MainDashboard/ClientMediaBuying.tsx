@@ -45,7 +45,7 @@ const GROUPS: FormGroupSpec[] = [
     id: "creative",
     label: "Creative",
     hint: "Generate ad copy, creative briefs, and static creatives.",
-    formIds: ["ad-copy", "hooks", "creative-brief"],
+    formIds: ["ad-copy", "creative-brief"],
   },
   {
     id: "audiences",

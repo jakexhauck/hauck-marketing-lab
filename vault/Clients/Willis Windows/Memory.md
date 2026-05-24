@@ -30,4 +30,19 @@ Format: `- YYYY-MM-DD — fact (optional: source/tag)`
 - 2026-05-21, Current promotional offer: $100 off plus free screen cleaning, positioned as biggest in Metro Detroit vs Window Genie ($25 off) and Fish Window Cleaning ($50 off).
 - 2026-05-21, Operational guarantees in writing: on driveway within 5 days of booking or job is free, 100% satisfaction redo guarantee, flat price on phone with no door upcharges.
 - 2026-05-21, Route capacity: two trucks, six crew, capped at roughly 40 houses per week (about four houses per day), uses three-layer filtered water for streak-free south-facing glass.
+- 2026-05-22, Willis Windows is a two-person crew of guys in their 20s, founded ~2 years ago after the founder left a high-volume competitor that charged $400 for sloppy 45-minute jobs.
+- 2026-05-22, Standard current promo is $100 off first clean plus free screen cleaning, with a redo-free guarantee if work isn't right.
+- 2026-05-22, Service capabilities include a deionized water system for pollen removal and a hard-water mineral restoration treatment (with optional annual seal) that most competitors don't offer.
+- 2026-05-22, Seattle window-cleaning market has no competitor leading with a dollar discount: best visible offer is Husser's 10% bundle (windows + pressure wash), rest run "Free Estimate" CTAs with no price anchor.
+- 2026-05-22, No Seattle window-cleaning competitor promises a visit window or scheduling guarantee; recurring market gripe in reviews is vague scheduling and no-shows.
+- 2026-05-22, No Seattle competitor names their cleaning method (deionized/filtered/streak-free water) in their pitch, leaving the water-tech quality flex unclaimed.
+- 2026-05-23, Standard new-customer offer is $100 off first clean plus free screen wash (bundles with gutters for the same $100 off).
+- 2026-05-23, Service scope covers interior/exterior windows, screens, tracks, frames, and gutter cleaning, with commercial accounts billed monthly on weekly/biweekly/monthly cadences.
+- 2026-05-23, Brand voice leans on "young crew, fast, insured, show up when we say we will" as the core differentiator versus prior cleaners who ghosted or half-finished jobs.
+- 2026-05-23, Active spring 2026 promo: $100 off window cleaning plus free screen cleaning, used as the standing CTA across ads.
+- 2026-05-23, Founders are two recent high-school grads, two years in business, fully insured, no subcontracting (the owners do every job themselves).
+- 2026-05-23, Service scope spans residential windows (interior, exterior, screens in one visit), gutter cleaning, and recurring commercial storefront/office cleans with no contracts.
+- 2026-05-23, Willis Windows Meta budget is $30/day with only 3 creatives live, well below the 15-25 per ad set baseline; creative volume is the binding constraint, not budget.
+- 2026-05-23, Willis Windows has 2 prepped custom audiences held in reserve as future test cells, to be activated once creative count exceeds 10.
+- 2026-05-23, Open question on Willis Windows campaign objective: "Sales" may be wrong if the actual conversion is a free quote request, in which case Leads objective with calls/forms fits better.
 <!-- Add new facts above this line. When this file exceeds ~100 lines, older entries get moved to Memory-Archive.md. -->

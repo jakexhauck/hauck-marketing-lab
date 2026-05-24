@@ -48,13 +48,10 @@ export interface AppSidebarProps {
   onSelectClientSection: (slug: string, section: ClientSection) => void;
   onSelectPersonalSection?: (section: PersonalSection) => void;
   onAddClient?: () => void;
-  onOpenSettings?: () => void;
-  onSearch?: () => void;
   onBrandClick?: () => void;
 
   userName?: string;
   userInitials?: string;
-  userStatusLabel?: string;
   appVersion?: string;
 }
 
@@ -170,11 +167,8 @@ export function AppSidebar(props: AppSidebarProps) {
     onSelectClientSection,
     onSelectPersonalSection,
     onAddClient,
-    onOpenSettings,
-    onSearch,
     userName = "Jake Hauck",
     userInitials = "JH",
-    userStatusLabel = "Aurelius online",
   } = props;
 
   const display = subAppDisplay(currentSubApp);
@@ -221,17 +215,6 @@ export function AppSidebar(props: AppSidebarProps) {
           </span>
         )}
       </div>
-
-      <button
-        type="button"
-        className="hml-search-bar"
-        onClick={onSearch}
-        title="Open command palette"
-      >
-        <IconSearch size={13} />
-        <span className="hml-placeholder">Search…</span>
-        <span className="hml-kbd">⌘K</span>
-      </button>
 
       <nav className="hml-nav">
         {currentSubApp === "clients" && (
@@ -285,21 +268,7 @@ export function AppSidebar(props: AppSidebarProps) {
         <div className="hml-user-avatar">{userInitials}</div>
         <div className="hml-user-info">
           <div className="hml-user-name">{userName}</div>
-          <div className="hml-user-status">
-            <span className="hml-status-dot" />
-            {userStatusLabel}
-          </div>
         </div>
-        {onOpenSettings && (
-          <button
-            type="button"
-            className="hml-sidebar-foot-btn"
-            onClick={onOpenSettings}
-            title="Settings"
-          >
-            <IconSettings size={14} />
-          </button>
-        )}
       </div>
     </aside>
   );

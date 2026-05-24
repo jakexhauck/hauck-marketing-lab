@@ -527,7 +527,6 @@ export default function App() {
             setClientsPageStartInAdd(false);
             setClientsPageOpen(true);
           }}
-          onClientsChanged={onClientsChanged}
         />
         <UpdaterPrompt />
       </>

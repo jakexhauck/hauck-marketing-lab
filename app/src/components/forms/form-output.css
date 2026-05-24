@@ -277,6 +277,52 @@
   color: var(--text);
 }
 
+/* Link to the Meta Ad Library, scoped to this competitor's name. */
+.form-out-competitor-ad-library {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: rgba(24, 119, 242, 0.08);
+  color: #4f8ff7;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  text-decoration: none;
+  align-self: flex-start;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.form-out-competitor-ad-library:hover {
+  background: rgba(24, 119, 242, 0.16);
+  border-color: #4f8ff7;
+}
+.form-out-competitor-ad-library-glyph {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* Verified = Stratos found the actual page; bolder treatment. */
+.form-out-competitor-ad-library.is-verified {
+  background: rgba(24, 119, 242, 0.14);
+  border-color: rgba(79, 143, 247, 0.5);
+}
+
+/* Fallback = keyword search; dimmed so it's obviously the lesser version. */
+.form-out-competitor-ad-library.is-fallback {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: var(--border);
+  color: var(--text-mid);
+}
+.form-out-competitor-ad-library.is-fallback:hover {
+  background: rgba(24, 119, 242, 0.1);
+  color: #4f8ff7;
+}
+
 .form-out-whitespace p {
   font-size: 14.5px;
   line-height: 1.6;
@@ -429,4 +475,296 @@
 
 .form-out-md > :first-child {
   margin-top: 0;
+}
+
+/* ── "Send to campaign tree" pill ─────────────────────────────────────────
+ * Used by editable ad-copy cards (FormOutput.tsx > AdCopyCard) to ship the
+ * current textarea contents into the campaign tree. The pill sits inline in
+ * the card header. */
+.form-out-send-tree {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--copper);
+  background: rgba(180, 120, 255, 0.1);
+  color: var(--copper);
+  cursor: pointer;
+  transition: background 120ms ease;
+  flex-shrink: 0;
+  align-self: center;
+}
+.form-out-send-tree:hover {
+  background: rgba(180, 120, 255, 0.2);
+}
+.form-out-send-tree-glyph {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 600;
+}
+
+/* ── Ad copy cards (markdown-only payload) ──────────────────────────────── */
+.form-out-adcopy-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.form-out-adcopy-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-out-adcopy-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.form-out-adcopy-count {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.form-out-adcopy-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.form-out-adcopy-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--copper);
+  border-radius: 2px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.form-out-adcopy-card.is-pickable:hover {
+  background: rgba(180, 120, 255, 0.05);
+  border-color: var(--copper);
+}
+
+.form-out-adcopy-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.form-out-adcopy-framework {
+  color: var(--copper);
+  font-weight: 600;
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px solid var(--copper);
+  border-radius: 2px;
+}
+
+.form-out-adcopy-hookref {
+  color: var(--text-mid);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.form-out-adcopy-words {
+  color: var(--text-faint);
+  margin-left: auto;
+}
+
+/* Spacing for the send-to-tree pill at the right of an ad-copy card header. */
+.form-out-adcopy-card .form-out-adcopy-words + .form-out-send-tree {
+  margin-left: 8px;
+}
+
+.form-out-adcopy-body {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.form-out-adcopy-body .form-out-md {
+  gap: 8px;
+}
+
+/* ── Editable ad-copy fields ──────────────────────────────────────────────
+ * The body becomes a textarea Jake can hand-tune (paste in a different hook,
+ * rewrite the CTA, swap a line). Styled to look like the rendered card so the
+ * edit affordance is subtle but present.
+ */
+.form-out-adcopy-hookref-edit {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--text-mid);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  padding: 3px 6px;
+  flex: 1;
+  min-width: 0;
+  max-width: 320px;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.form-out-adcopy-hookref-edit:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--border);
+}
+.form-out-adcopy-hookref-edit:focus {
+  outline: none;
+  background: rgba(180, 120, 255, 0.06);
+  border-color: var(--copper);
+  color: var(--text);
+}
+
+.form-out-adcopy-body-edit {
+  font-family: var(--sans);
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 14px 16px;
+  width: 100%;
+  resize: vertical;
+  min-height: 100px;
+  overflow: hidden;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.form-out-adcopy-body-edit:hover {
+  background: rgba(255, 255, 255, 0.025);
+  border-color: var(--border-strong);
+}
+.form-out-adcopy-body-edit:focus {
+  outline: none;
+  background: rgba(180, 120, 255, 0.04);
+  border-color: var(--copper);
+}
+
+.form-out-adcopy-card.is-dirty {
+  border-left-color: #54d68f;
+}
+.form-out-adcopy-card.is-dirty .form-out-adcopy-body-edit {
+  border-color: rgba(84, 214, 143, 0.4);
+}
+
+.form-out-adcopy-reset {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.form-out-adcopy-reset:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.form-out-send-drive {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 163, 255, 0.55);
+  background: rgba(94, 163, 255, 0.1);
+  color: #5ea3ff;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.form-out-send-drive:hover:not(:disabled) {
+  background: rgba(94, 163, 255, 0.2);
+  border-color: rgba(94, 163, 255, 0.9);
+}
+.form-out-send-drive:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+.form-out-send-drive.is-pushing {
+  background: rgba(94, 163, 255, 0.18);
+  border-color: rgba(94, 163, 255, 0.9);
+}
+.form-out-send-drive.is-error {
+  background: rgba(237, 99, 99, 0.12);
+  border-color: rgba(237, 99, 99, 0.7);
+  color: #f47979;
+}
+.form-out-send-drive.is-saved {
+  background: rgba(84, 214, 143, 0.12);
+  border-color: rgba(84, 214, 143, 0.6);
+  color: #54d68f;
+}
+.form-out-send-drive.is-saved:hover {
+  background: rgba(84, 214, 143, 0.22);
+}
+.form-out-send-drive-glyph {
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 700;
+}
+.form-out-adcopy-save {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+.form-out-adcopy-save:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.form-out-adcopy-save.is-dirty {
+  color: #f7b14d;
+  border-color: rgba(247, 177, 77, 0.55);
+  background: rgba(247, 177, 77, 0.08);
+}
+.form-out-adcopy-save.is-dirty:hover {
+  color: #ffc879;
+  border-color: rgba(247, 177, 77, 0.85);
+}
+.form-out-adcopy-save.is-saved {
+  color: #54d68f;
+  border-color: rgba(84, 214, 143, 0.5);
+  background: rgba(84, 214, 143, 0.06);
+}
+.form-out-adcopy-save:disabled {
+  cursor: default;
 }
