@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import Shell from "../components/Shell";
 import BrandedButton from "../components/BrandedButton";
 import BrandedLogo from "../components/BrandedLogo";
@@ -13,8 +14,15 @@ export default function Login() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [mode, setMode] = useState<LoginMode>("live");
-  const { signInWithPassword } = useAuth();
+  const { signInWithPassword, status } = useAuth();
   const { client } = useClient();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [status, navigate]);
 
   const isTest = mode === "test";
 
