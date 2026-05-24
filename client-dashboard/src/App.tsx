@@ -22,10 +22,9 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 }
 
 function RootRedirect() {
-  const { status, currentUser } = useAuth();
+  const { status } = useAuth();
   if (status === "loading") return null;
-  if (!currentUser) return <Navigate to="/login" replace />;
-  return <Navigate to="/dashboard" replace />;
+  return <Navigate to="/login" replace />;
 }
 
 export default function App() {
