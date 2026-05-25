@@ -8,21 +8,6 @@
       "lane": "backburner"
     },
     {
-      "id": "d969d07a-57d0-4eb2-9852-0a6770cf9e42",
-      "title": "1. Get On A Call With Go High Level About A2P",
-      "clientSlug": "willis-windows",
-      "status": "todo",
-      "createdAt": 1779493197936,
-      "lane": "active"
-    },
-    {
-      "id": "9d0622d8-e522-450b-819c-2d753fedb5fe",
-      "title": "5. Ask Josh For Website Changes & Tell Him To Add Payment Method",
-      "clientSlug": "willis-windows",
-      "status": "todo",
-      "createdAt": 1778694212210
-    },
-    {
       "id": "e21bfb08-7eca-4821-9f31-ab6dbe633b11",
       "title": "Stripe Setup - Need Dad",
       "status": "todo",
@@ -37,13 +22,6 @@
       "lane": "backburner"
     },
     {
-      "id": "124f0e4e-0cf2-466a-9fee-906ef14fe54c",
-      "title": "2. Buy Sam Darby AD Course & Go Through",
-      "status": "todo",
-      "createdAt": 1779584497830,
-      "lane": "active"
-    },
-    {
       "id": "c2cccf65-cb06-4329-bca8-564596e20260",
       "title": "Submit A2P For Hauck Marketing",
       "status": "todo",
@@ -52,7 +30,7 @@
     },
     {
       "id": "5cd0b24a-8108-48c2-ab8a-9797b22ec374",
-      "title": "3. Create Test Mobile Account & Update With Changes From Test Sub Account",
+      "title": "2. Integrate Test Account Sub Account With Samuel Darby's",
       "status": "todo",
       "createdAt": 1779485900957,
       "lane": "active"
@@ -73,9 +51,63 @@
     },
     {
       "id": "7793130d-a4dd-4d6b-8b3b-851cf90f3232",
-      "title": "4. Further Optimize Mobile Account",
+      "title": "4. Finish Mobile App Using Test Account",
       "status": "todo",
       "createdAt": 1779584585427,
+      "lane": "active"
+    },
+    {
+      "id": "91383cf4-aa17-4722-aec1-b9f797effe59",
+      "title": "1. Finish AD's Entirely Using Modules",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1779661457011,
+      "lane": "active"
+    },
+    {
+      "id": "f4686d3f-a764-4777-8146-4af3fc21e8e1",
+      "title": "3. Implement New Snapshot Into Sub Account",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1779672061393,
+      "lane": "active"
+    },
+    {
+      "id": "2f2c560e-91a9-4e3a-b9ce-bf9e2b6b7d07",
+      "title": "5. Once Mobile App Is Done Integrate Into WW Mobile App",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1779672399544,
+      "lane": "active"
+    },
+    {
+      "id": "af217b3d-8b0b-4e0b-bcbb-fd4effd334cd",
+      "title": "6. Get Jayse & Josh Logged In Into Mobile App",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1779672124372,
+      "lane": "active"
+    },
+    {
+      "id": "9d0622d8-e522-450b-819c-2d753fedb5fe",
+      "title": "Make Changes Too Website - Wait For Josh To Send Video",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1778694212210
+    },
+    {
+      "id": "ec11643e-b77b-49f8-b750-d8c67510b168",
+      "title": "Pay Dad $150 For Other Half Of Course",
+      "status": "todo",
+      "createdAt": 1779672114734,
+      "lane": "active"
+    },
+    {
+      "id": "7192a54d-c8e1-4d24-824c-f6db885ddb4f",
+      "title": "Log In Ben Martinez Into Accounts",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1779672132187,
       "lane": "active"
     }
   ]
