@@ -77,6 +77,22 @@
       "status": "todo",
       "createdAt": 1779584585427,
       "lane": "active"
+    },
+    {
+      "id": "4cb9ea45-ad2d-4be3-b76d-f22930994944",
+      "title": "6. Send Josh GMB Info",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1779634612522,
+      "lane": "active"
+    },
+    {
+      "id": "53a45c4d-2f78-4388-9866-0ee186ad1c3b",
+      "title": "7. Update Jayse",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1779634674820,
+      "lane": "active"
     }
   ]
 }
