@@ -1,6 +1,6 @@
 ---
 name: copywriter
-description: Write high-converting ads, emails, DMs, and scripts in any client's exact voice. Builds a voice profile from existing content, then produces copy that sounds like a real person — not AI. Use for all client copy needs.
+description: Write high-converting ads, emails, DMs, and scripts in any client's exact voice. Builds a voice profile from existing content, applies the direct-response canon (awareness levels, market sophistication, mechanism), and produces copy that sounds like a real person, not AI. Includes an ad-platform compliance audit. Use for all client copy needs.
 ---
 
 # Copywriter Skill
@@ -14,6 +14,7 @@ description: Write high-converting ads, emails, DMs, and scripts in any client's
 /write-dms leads="leads-miami-dentist-2026-04-17.csv"
 /write-landing client="Miami Smiles Dental" service="Invisalign"
 /score-copy content="[paste copy here]"
+/check-compliance content="[paste copy here]" platform="meta"
 ```
 
 ## Voice Profile Workflow
@@ -38,6 +39,8 @@ Save as `[clientname]-voice-profile.md`
 ```
 /write-ads client="[NAME]" service="[SERVICE]" goal="[book call/visit/DM]" format="[talking-head/ugc/testimonial]" count=5
 ```
+
+Before writing: pick the prospect's awareness level (usually Unaware or Problem-aware for cold local traffic) and read the market sophistication. Lead with the problem or a unique mechanism, not the product. See Frameworks Reference below.
 
 Write 5 ad scripts each with a different hook angle:
 1. Problem-focused hook
@@ -122,3 +125,62 @@ Score on:
 5. **FTC compliance**: Flag any problematic claims
 
 For any score below 7, rewrite that element immediately.
+
+## Frameworks Reference
+
+Draw on the direct-response canon. Use these as tools, not as a checklist to cram into every piece.
+
+**Headlines (Caples, Ogilvy).**
+- Specificity: exact numbers and timeframes ("booked 23 roof jobs in 41 days").
+- Transformation: from [bad current state] to [desired state].
+- Question: a yes-question the right prospect can't help answering.
+- Reason-why: "The real reason your [thing] keeps [problem]."
+
+**Openings (Halbert, Collier).** Enter the conversation already running in their head. Start with a story, a confession, a specific result, or a contrarian claim. Never "Hey guys" or "In today's world".
+
+**Curiosity and open loops (Sugarman).** Open a loop in the first line, pay it off later so they keep reading. The only job of each sentence is to get the next one read (the slippery slide). Resolve every loop you open. No clickbait you don't deliver on.
+
+**Flow.** Use bucket brigades ("Here's the catch:", "But it gets better:") to pull the reader down the page. Vary sentence length. Short line for impact. Then a longer one that breathes.
+
+**Proof (Hopkins).** Reason-why copy: back every claim with a specific, checkable detail. Concrete beats clever.
+
+**CTA.** Tell them exactly what to do next, once. Reduce friction at the ask: how long it takes, what happens after, why it is low-risk.
+
+## Compliance Check Workflow
+
+```
+/check-compliance content="[paste copy here]" platform="[meta/google/tiktok/youtube/clickbank]"
+```
+
+Audit any ad, landing page, VSL, or email against platform policy before it runs. Default platform is Meta.
+
+**9-point checklist:**
+1. Personal attributes: no "you/your" copy that assumes the viewer's condition or implies their age, health, race, or finances.
+2. Sensational or negative language: flag ruin, destroy, kill, wreck, terrible, worse, and similar.
+3. Medical and health claims: soften to helps, supports, may, can. No disease names or cure claims.
+4. Income and financial claims: no guarantees, no "lifetime access" (ClickBank).
+5. Before and after: no side-by-side body comparisons (Meta). YouTube is more permissive.
+6. Open loops and clickbait: resolve every loop, the product or offer name must be visible.
+7. Trigger words: cross-check against the platform's known flagged terms.
+8. Landing page elements: product visible without forcing a VSL, working exit navigation, no fake countdown timers.
+9. Ad-to-page consistency: visuals and messaging match the destination, same domain, no bait-and-switch.
+
+**Severity:**
+- HIGH: likely rejection or account ban. Must fix.
+- MEDIUM: risky, could be flagged. Should fix.
+- LOW: minor, could catch a stricter review cycle.
+
+**Output one block per issue:**
+```
+### Issue N [SEVERITY]
+> "exact problematic text"
+Rule: which point is violated and why
+Rewrite: a compliant version that keeps the persuasive intent
+```
+
+**Score:** start at 10. Subtract 2 per HIGH, 1 per MEDIUM, 0.5 per LOW, floor at 0.
+- 8 to 10: ready to run
+- 5 to 7: needs fixes
+- 0 to 4: major rewrite required
+
+This checklist is adapted from Rob Palmer's Compliance Checker skill, used under CC-BY-4.0. Platform policies change. Treat this as a first-pass screen, not legal advice.
