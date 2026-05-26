@@ -174,7 +174,7 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
     formId: "ad-copy",
     phase: 6,
     label: "Generate ad copy",
-    hint: "12 ad variations across PAS, AIDA, BAB, STORY. Aurelius writes its own openers, no separate Hooks step.",
+    hint: "12 ad variations across PAS, AIDA, BAB, STORY, PERFORM (pick one or a mix). Aurelius writes its own openers, no separate Hooks step.",
     chainFrom: [
       {
         step: "audience-research",

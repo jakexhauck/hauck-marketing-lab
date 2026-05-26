@@ -45,4 +45,7 @@ Format: `- YYYY-MM-DD — fact (optional: source/tag)`
 - 2026-05-23, Willis Windows Meta budget is $30/day with only 3 creatives live, well below the 15-25 per ad set baseline; creative volume is the binding constraint, not budget.
 - 2026-05-23, Willis Windows has 2 prepped custom audiences held in reserve as future test cells, to be activated once creative count exceeds 10.
 - 2026-05-23, Open question on Willis Windows campaign objective: "Sales" may be wrong if the actual conversion is a free quote request, in which case Leads objective with calls/forms fits better.
+- 2026-05-25, Standard full-house window cleaning runs around $300+ in Willis Windows' market.
+- 2026-05-25, Willis Windows offers services beyond windows: gutter cleaning, screen washing, and acid-free hard-water mineral spot treatment, and customers often bundle gutters with windows.
+- 2026-05-25, Willis Windows positions as a young, local, fully insured crew that handles two and three-story homes, with 60+ five-star reviews.
 <!-- Add new facts above this line. When this file exceeds ~100 lines, older entries get moved to Memory-Archive.md. -->

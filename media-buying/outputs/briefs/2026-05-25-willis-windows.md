@@ -1,22 +1,18 @@
 ---
-id: doc_2026-05-25_6scfxe
-title: Learning Phase - Generate ad copy
-kind: ad-copy
-client_slug: willis-windows
-created_at: 2026-05-25T20:41:59.502272+00:00
-updated_at: 2026-05-25T20:42:02.711879800+00:00
-drive_folder_id: 1yJc29TKogXyLCH8ZVhgD5ylEc5QN-hCY
-drive_folder_name: 2. AD's - Creatives, AD Copy, Angles, Etc
-current_drive_file_id: 1y67VXrL28K81sHEF09EYk9jPFUsPyNmOdFWrT-_PsJc
-current_drive_url: https://docs.google.com/document/d/1y67VXrL28K81sHEF09EYk9jPFUsPyNmOdFWrT-_PsJc/edit?usp=drivesdk
-current_version: 1
-synced_at: 2026-05-25T20:42:02.711879800+00:00
-synced_content_hash: 9c638f10ff79b3bf061cb8438c2ba8b548e9cdbdf7b7f6bc716192960f165f92
-previous_versions: []
-unswept_orphans: []
+kind: briefs
+client: willis-windows
+created_at: 2026-05-25T20:41:59.487555100+00:00
+title: "PERFORM"
+inputs:
+  business_name: "Willis Windows"
+  what_they_sell: "residential interior and exterior window cleaning, screen cleaning, gutter cleaniing"
+  target_customer: "homeowners 25-65+"
+  usp: "Young hustlers"
+  current_offer: "$100 off + free screen cleaning"
+  framework_focus: "PERFORM only"
+  tone: "Local"
+  platform: "Facebook and Instagram ads"
 ---
-
-
 
 **Ad 1** | PERFORM | DIY streaks never come clean | Long | 108 words
 

@@ -19,7 +19,7 @@
     "1": "MAY 21",
     "4": "MAY 23"
   },
-  "updatedAt": "2026-05-23T22:38:47.396716700+00:00",
+  "updatedAt": "2026-05-25T20:42:03.470883500+00:00",
   "sequence": {
     "campaignSkeleton": {
       "adSets": [
@@ -82,11 +82,11 @@
     ],
     "stepOutputs": {
       "ad-copy": {
-        "completedAt": "2026-05-23T21:24:53.754Z",
-        "driveFileId": "1Dj_dV78X9ByATiCecetl3SzvKQwGndwYhSjEVnuGfxo",
-        "drivePushAt": "2026-05-23T21:24:57.260Z",
-        "driveUrl": "https://docs.google.com/document/d/1Dj_dV78X9ByATiCecetl3SzvKQwGndwYhSjEVnuGfxo/edit?usp=drivesdk",
-        "path": "C:\\Users\\games\\Desktop\\hauck-marketing-lab\\media-buying\\outputs\\briefs\\2026-05-23-willis-windows-6.md"
+        "completedAt": "2026-05-25T20:41:59.489Z",
+        "driveFileId": "1y67VXrL28K81sHEF09EYk9jPFUsPyNmOdFWrT-_PsJc",
+        "drivePushAt": "2026-05-25T20:42:02.728Z",
+        "driveUrl": "https://docs.google.com/document/d/1y67VXrL28K81sHEF09EYk9jPFUsPyNmOdFWrT-_PsJc/edit?usp=drivesdk",
+        "path": "C:\\Users\\games\\Desktop\\hauck-marketing-lab\\media-buying\\outputs\\briefs\\2026-05-25-willis-windows.md"
       },
       "ad-creative": {
         "completedAt": "2026-05-22T23:38:42.657Z",

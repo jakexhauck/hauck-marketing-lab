@@ -1176,7 +1176,7 @@ const AD_COPY: FormConfig = {
   id: "ad-copy",
   title: "Aurelius Prompt Builder",
   subtitle:
-    "12 ad copy variations across PAS, AIDA, BAB, and STORY. One reason to buy per ad. Mirrors lesson 3.8.",
+    "12 ad copy variations across PAS, AIDA, BAB, STORY, and PERFORM. Pick one framework or a mix. One reason to buy per ad.",
   eyebrow: "▸ AURELIUS PROMPT BUILDER",
   eyebrowMeta: "TOOL · ANYTIME",
   category: "misc",
@@ -1247,6 +1247,21 @@ const AD_COPY: FormConfig = {
         },
         {
           kind: "select",
+          key: "framework_focus",
+          label: "Framework focus",
+          promptPlaceholder: "[FRAMEWORK_FOCUS]",
+          options: [
+            "Mix of all frameworks",
+            "PAS only",
+            "AIDA only",
+            "BAB only",
+            "STORY only",
+            "PERFORM only",
+          ],
+          default: "Mix of all frameworks",
+        },
+        {
+          kind: "select",
           key: "tone",
           label: "Tone / voice",
           promptPlaceholder: "[TONE]",
@@ -1287,11 +1302,23 @@ TONE: [TONE]
 
 RULES:
 1. ONE AD = ONE REASON TO BUY. Each ad must target a completely different motivation (different fear, desire, or angle). NOT variations of the same headline.
-2. Use these frameworks (3 ads each):
+2. FRAMEWORK FOCUS: [FRAMEWORK_FOCUS]
+   - If FRAMEWORK FOCUS is "Mix of all frameworks": spread the 12 ads across all five frameworks below (2 to 3 ads each, every framework used at least twice).
+   - If FRAMEWORK FOCUS names a single framework (e.g. "PAS only", "PERFORM only"): write ALL 12 ads using ONLY that one framework. Each ad still targets a completely different reason to buy.
+   The frameworks:
    - PAS (Problem → Agitate → Solution)
    - AIDA (Attention → Interest → Desire → Action)
    - BAB (Before → After → Bridge)
    - STORY (Character → Conflict → Resolution)
+   - PERFORM, a 7-beat long-form framework, run the beats in order:
+       P: Problem (open on the pain, the hook)
+       E: Explanation (your solution and how it works)
+       R: Result (the transformation they walk away with)
+       F: Friction (name the obvious objection and crush it)
+       O: Others (proof: reviews, numbers, who else trusts them)
+       R: Request (the CTA)
+       M: Motive (the urgency or incentive to act now)
+     PERFORM runs long. For PERFORM ads, lean medium or long; if a short one is needed, compress the beats but keep all seven.
 3. Mix lengths:
    - 3 short (under 50 words), for Stories/Reels
    - 6 medium (50-100 words), for Feed ads
@@ -1317,7 +1344,7 @@ FORMAT (use this EXACT layout for every ad, no deviations):
 ---
 <blank line>
 
-Where FRAMEWORK is one of PAS / AIDA / BAB / STORY, and Length is one of Short / Medium / Long. Use literal pipe characters (|) as separators, NOT brackets. Numbering runs 1 through 12. Separate every ad with a "---" line.
+Where FRAMEWORK is one of PAS / AIDA / BAB / STORY / PERFORM, and Length is one of Short / Medium / Long. Use literal pipe characters (|) as separators, NOT brackets. Numbering runs 1 through 12. Separate every ad with a "---" line.
 
 EXAMPLE (first ad only, copy this shape):
 
@@ -1332,7 +1359,7 @@ GO.`,
   progress: {
     total: 12,
     unitLabel: "ad",
-    itemPattern: "^(PAS|AIDA|BAB|STORY)\\b",
+    itemPattern: "^(PAS|AIDA|BAB|STORY|PERFORM)\\b",
   },
 };
 

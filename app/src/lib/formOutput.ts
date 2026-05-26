@@ -200,7 +200,7 @@ export function asCompetitorPayload(p: unknown): CompetitorPayload | null {
  * optional — if the agent skipped them, everything lands in a single
  * "Ad copy variations" section. */
 
-export type AdCopyFramework = "PAS" | "AIDA" | "BAB" | "STORY";
+export type AdCopyFramework = "PAS" | "AIDA" | "BAB" | "STORY" | "PERFORM";
 export type AdCopyLength = "short" | "medium" | "long";
 
 export interface AdCopyVariation {
@@ -223,19 +223,19 @@ const AD_COPY_SECTION_RE = /^##\s+(Short|Medium|Long)\s+Copy[^\n]*$/i;
 /** Matches lines whose FIRST token is a framework name. The framework may
  *  stand alone ("PAS" / "PAS\") or be followed by an inline label
  *  ("PAS · Pain · 38 words"). */
-const AD_COPY_FRAMEWORK_RE = /^(PAS|AIDA|BAB|STORY)\b(.*)$/;
+const AD_COPY_FRAMEWORK_RE = /^(PAS|AIDA|BAB|STORY|PERFORM)\b(.*)$/;
 /** Pipe-delimited "table" format used by the Aurelius Prompt Builder:
  *    **Ad 1** | PAS | DIY streaks | Short | 38 words
  *  Followed by the ad body on subsequent lines until `---` or the next `**Ad N**`.
  *  Optional bold wrapping on the "Ad N" prefix; tolerant of extra spaces. */
 const AD_COPY_PIPE_RE =
-  /^\s*\*{0,2}\s*Ad\s+\d+\s*\*{0,2}\s*\|\s*(PAS|AIDA|BAB|STORY)\b\s*\|\s*([^|]*?)\s*\|\s*(Short|Medium|Long)\b\s*\|\s*(.*)$/i;
+  /^\s*\*{0,2}\s*Ad\s+\d+\s*\*{0,2}\s*\|\s*(PAS|AIDA|BAB|STORY|PERFORM)\b\s*\|\s*([^|]*?)\s*\|\s*(Short|Medium|Long)\b\s*\|\s*(.*)$/i;
 /** Bracket-delimited variant the model sometimes emits when it reads the
  *  prompt's `[Framework] [Angle] [Length] [Word count]` placeholders literally:
  *    **Ad 1** [PAS] [Hard water stains] [Short] [46 words]
  *  Same body-collection rules as the pipe form. */
 const AD_COPY_BRACKET_RE =
-  /^\s*\*{0,2}\s*Ad\s+\d+\s*\*{0,2}\s*\[\s*(PAS|AIDA|BAB|STORY)\s*\]\s*\[\s*([^\]]*?)\s*\]\s*\[\s*(Short|Medium|Long)\s*\]\s*\[\s*([^\]]*?)\s*\]\s*$/i;
+  /^\s*\*{0,2}\s*Ad\s+\d+\s*\*{0,2}\s*\[\s*(PAS|AIDA|BAB|STORY|PERFORM)\s*\]\s*\[\s*([^\]]*?)\s*\]\s*\[\s*(Short|Medium|Long)\s*\]\s*\[\s*([^\]]*?)\s*\]\s*$/i;
 /** Best-effort word-count extractor: "38 words", "100-150 words", "100 word". */
 const WORD_COUNT_RE = /(\d+(?:[-–]\d+)?\s*words?)/i;
 /** Horizontal rule used as inter-ad separator in the pipe format. */
