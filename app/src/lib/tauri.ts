@@ -75,6 +75,8 @@ export const api = {
   parseFolder: (root: string) => invoke<FolderSummary>("parse_folder", { root }),
   readAgentBody: (root: string, slug: string) =>
     invoke<string>("read_agent_body", { root, slug }),
+  readCopywriterSkill: (root: string) =>
+    invoke<string>("read_copywriter_skill", { root }),
   loadSkill: (root: string, category: string, skillId: string) =>
     invoke<SkillFile>("load_skill", { root, category, skillId }),
   listSkills: (root: string) => invoke<SkillEntry[]>("list_skills", { root }),

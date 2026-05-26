@@ -475,3 +475,36 @@ pub fn list_dm_files(root: String) -> Result<Vec<DmFile>, String> {
 pub fn read_dm_file(path: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| format!("read {path}: {e}"))
 }
+
+/// Return the copywriter skill's instructional text (CLAUDE.md + SKILL.md) so
+/// the frontend can use it as the persona body for a direct chat with the
+/// copywriter. Mirrors `skill_preamble`'s repo-root resolution: `root` is the
+/// media-buying dir, and the skill lives at `<repo>/copywriter/`.
+#[tauri::command]
+pub fn read_copywriter_skill(root: String) -> Result<String, String> {
+    let repo_root = PathBuf::from(&root)
+        .parent()
+        .map(|p| p.to_path_buf())
+        .ok_or_else(|| "could not determine repo root from media-buying path".to_string())?;
+    let skill_dir = repo_root.join("copywriter");
+    let mut parts: Vec<String> = Vec::new();
+    if let Ok(body) = std::fs::read_to_string(skill_dir.join("CLAUDE.md")) {
+        let t = body.trim();
+        if !t.is_empty() {
+            parts.push(t.to_string());
+        }
+    }
+    if let Ok(body) = std::fs::read_to_string(skill_dir.join("SKILL.md")) {
+        let t = body.trim();
+        if !t.is_empty() {
+            parts.push(t.to_string());
+        }
+    }
+    if parts.is_empty() {
+        return Err(format!(
+            "copywriter skill not found at {}",
+            skill_dir.display()
+        ));
+    }
+    Ok(parts.join("\n\n"))
+}

@@ -188,6 +188,7 @@ pub fn run() {
             copywriter::run_copywriter,
             copywriter::list_dm_files,
             copywriter::read_dm_file,
+            copywriter::read_copywriter_skill,
             google_calendar::google_calendar_connect,
             google_calendar::google_calendar_disconnect,
             google_calendar::google_calendar_is_connected,

@@ -35,6 +35,7 @@ import { getFormConfig, type FormValues, type FormConfig } from "../lib/formConf
 import { api } from "../lib/tauri";
 import type { AgentSummary, GeneratorOutput } from "../lib/types";
 import { GenericFormGenerator } from "./GenericFormGenerator";
+import { CopywriterChat } from "./CopywriterChat";
 import {
   CampaignTreeView,
   type PendingCreativePick,
@@ -959,6 +960,27 @@ export function AdsSequenceWizard({
                     <div className="aw-saved-error">
                       Couldn't load saved output: {savedViewError}
                     </div>
+                  ) : activeStep.id === "ad-copy" ? (
+                    <CopywriterChat
+                      key={activeStep.id}
+                      root={root}
+                      clientName={clientName}
+                      clientSlug={clientSlug}
+                      onClose={onClose}
+                      saveLabel="Save as this step's ad copy"
+                      onSaveReply={async (text) => {
+                        const output = await api.saveGeneratorOutput({
+                          root,
+                          clientSlug,
+                          kind: activeFormConfig.kind,
+                          title: `Ad copy · ${clientName}`,
+                          summary: null,
+                          body: text,
+                          inputsYaml: null,
+                        });
+                        handleSaved(output);
+                      }}
+                    />
                   ) : (
                     <GenericFormGenerator
                       key={activeStep.id}

@@ -1586,6 +1586,34 @@ body {
 }
 
 /* ── chat drawer ────────────────────────────────────────── */
+/* Copywriter chat — fills its container (full-height media-buying pane, or the
+   centered overlay where it falls back to min-height). Reuses .thread / .msg /
+   .input-wrap for the chat formatting; only the shell layout differs from the
+   side .drawer. */
+.cw-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: min(78vh, 760px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  position: relative;
+}
+.cw-chat::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--copper) 0%, transparent 60%);
+  opacity: 0.7;
+}
+.cw-chat .thread {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .drawer {
   position: fixed;
   top: 42px;

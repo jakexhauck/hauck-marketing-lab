@@ -5,6 +5,7 @@ import { CampaignTreePickOverlay } from "./CampaignTreePickOverlay";
 import type { PendingSnippet } from "./CampaignTreeView";
 import { ChatDrawer } from "./ChatDrawer";
 import { CommandPalette } from "./CommandPalette";
+import { CopywriterChat } from "./CopywriterChat";
 import { Dashboard } from "./Dashboard";
 import { DiagnosisForm } from "./DiagnosisForm";
 import { GenericFormGenerator } from "./GenericFormGenerator";
@@ -505,18 +506,27 @@ export function AppPane(props: AppPaneProps) {
             }}
           >
             <div className="hml-overlay-content">
-              <GenericFormGenerator
-                config={getFormConfig(generator)!}
-                root={root}
-                agents={summary.agents}
-                clientName={clientName}
-                clientSlug={clientSlug}
-                onClose={closeGenerator}
-                onSendSnippetToTree={(text, source, angleLabel) => {
-                  setPendingTreeSnippet({ text, source, angleLabel });
-                  closeGenerator();
-                }}
-              />
+              {generator === "ad-copy" ? (
+                <CopywriterChat
+                  root={root}
+                  clientName={clientName}
+                  clientSlug={clientSlug}
+                  onClose={closeGenerator}
+                />
+              ) : (
+                <GenericFormGenerator
+                  config={getFormConfig(generator)!}
+                  root={root}
+                  agents={summary.agents}
+                  clientName={clientName}
+                  clientSlug={clientSlug}
+                  onClose={closeGenerator}
+                  onSendSnippetToTree={(text, source, angleLabel) => {
+                    setPendingTreeSnippet({ text, source, angleLabel });
+                    closeGenerator();
+                  }}
+                />
+              )}
             </div>
           </div>
         )}
@@ -563,6 +573,13 @@ export function AppPane(props: AppPaneProps) {
               ? "optimize"
               : "scale"
         }
+      />
+    ) : generator === "ad-copy" ? (
+      <CopywriterChat
+        root={root}
+        clientName={clientName}
+        clientSlug={clientSlug}
+        onClose={closeGenerator}
       />
     ) : generator && getFormConfig(generator) ? (
       <GenericFormGenerator
