@@ -29,6 +29,17 @@ pub struct ClientEntry {
     /// human shortcut and the pointer agents use when loading client context.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drive_folder_url: Option<String>,
+    /// URL of this client's Google Sheet (their copy of the ad-copy template),
+    /// picked from the Drive folder via the Ads Sequence "Sheet" tab. The Sheet
+    /// stays the source of truth; the app only stores the link and surfaces it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub google_sheet_url: Option<String>,
+    /// Title of the tab inside `google_sheet_url` that holds the manual
+    /// competitor research / customer reviews. When set, the copywriter chat
+    /// auto-reads this tab and injects it into every prompt (no file upload).
+    /// Picked from a dropdown in the Ads Sequence "Sheet" tab.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub google_sheet_research_tab: Option<String>,
     /// Meta Marketing API ad account ID (`act_…` or bare digits). When set,
     /// the Ads Manager dashboard fetches real insights via `meta_ads.rs`
     /// instead of falling back to the mock generator.
@@ -161,6 +172,8 @@ pub fn read_clients_file(root: &str) -> Result<Vec<ClientEntry>, String> {
             created_at: None,
             benchmarks: None,
             drive_folder_url: None,
+            google_sheet_url: None,
+            google_sheet_research_tab: None,
             meta_ad_account_id: None,
             meta_conversion_action: None,
             doc_folder_defaults: None,
@@ -278,6 +291,8 @@ pub fn set_client_status(
                 created_at: Some(chrono::Utc::now().to_rfc3339()),
                 benchmarks: None,
                 drive_folder_url: None,
+                google_sheet_url: None,
+                google_sheet_research_tab: None,
                 meta_ad_account_id: None,
                 meta_conversion_action: None,
                 doc_folder_defaults: None,
@@ -343,6 +358,8 @@ pub fn add_client(
         created_at: Some(chrono::Utc::now().to_rfc3339()),
         benchmarks: None,
         drive_folder_url: normalized_drive,
+        google_sheet_url: None,
+        google_sheet_research_tab: None,
         meta_ad_account_id: None,
         meta_conversion_action: None,
         doc_folder_defaults: None,
@@ -423,6 +440,51 @@ pub fn set_client_drive_folder(
     });
     match clients.iter_mut().find(|c| c.slug == client_slug) {
         Some(existing) => existing.drive_folder_url = normalized,
+        None => return Err(format!("No client with slug '{client_slug}'.")),
+    }
+    write_clients_file(&root, &clients)?;
+    emit_changed(&app, DataKind::Client, Some(client_slug), None);
+    Ok(())
+}
+
+/// Set (or clear) the Google Sheet URL for a client.
+#[tauri::command]
+pub fn set_client_google_sheet(
+    app: AppHandle,
+    root: String,
+    client_slug: String,
+    url: Option<String>,
+) -> Result<(), String> {
+    let mut clients = read_clients_file(&root)?;
+    let normalized = url.and_then(|s| {
+        let t = s.trim().to_string();
+        if t.is_empty() { None } else { Some(t) }
+    });
+    match clients.iter_mut().find(|c| c.slug == client_slug) {
+        Some(existing) => existing.google_sheet_url = normalized,
+        None => return Err(format!("No client with slug '{client_slug}'.")),
+    }
+    write_clients_file(&root, &clients)?;
+    emit_changed(&app, DataKind::Client, Some(client_slug), None);
+    Ok(())
+}
+
+/// Set (or clear) the research-tab title within the client's linked Google
+/// Sheet. The copywriter chat reads this tab and injects it into prompts.
+#[tauri::command]
+pub fn set_client_sheet_research_tab(
+    app: AppHandle,
+    root: String,
+    client_slug: String,
+    tab: Option<String>,
+) -> Result<(), String> {
+    let mut clients = read_clients_file(&root)?;
+    let normalized = tab.and_then(|s| {
+        let t = s.trim().to_string();
+        if t.is_empty() { None } else { Some(t) }
+    });
+    match clients.iter_mut().find(|c| c.slug == client_slug) {
+        Some(existing) => existing.google_sheet_research_tab = normalized,
         None => return Err(format!("No client with slug '{client_slug}'.")),
     }
     write_clients_file(&root, &clients)?;

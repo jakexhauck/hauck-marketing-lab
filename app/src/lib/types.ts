@@ -112,8 +112,25 @@ export type ChatFile = {
   slug: string;
   title: string;
   agent: string | null;
+  client?: string | null;
   started_at: string;
   turns: ChatTurn[];
+};
+
+/** One entry in the chat right-rail conversation history. */
+export type ChatHistoryItem = {
+  path: string;
+  title: string;
+  agent: string | null;
+  started_at: string;
+  turns: number;
+};
+
+/** A global copy-paste prompt template (right-rail "Prompts" tab). */
+export type SavedPrompt = {
+  id: string;
+  title: string;
+  body: string;
 };
 
 export type ClaudeCheck = {
@@ -237,6 +254,13 @@ export type ClientEntry = {
   benchmarks?: string | null;
   /** URL to this client's Google Drive folder. */
   drive_folder_url?: string | null;
+  /** URL of this client's Google Sheet (their copy of the ad-copy template),
+   *  picked from the Drive folder via the Ads Sequence "Sheet" tab. */
+  google_sheet_url?: string | null;
+  /** Title of the tab inside `google_sheet_url` holding manual competitor
+   *  research / customer reviews. When set, the copywriter chat auto-reads it
+   *  and injects it into every prompt. Picked in the Ads Sequence "Sheet" tab. */
+  google_sheet_research_tab?: string | null;
   /** Meta Marketing API ad account ID (`act_…` or bare digits). When set,
    *  AdsManagerPage swaps the mock generator for real insights. */
   meta_ad_account_id?: string | null;
@@ -381,6 +405,13 @@ export type DriveIndex = {
 export type DriveSubfolder = {
   id: string;
   name: string;
+  webViewLink: string;
+};
+
+export type DriveSheet = {
+  id: string;
+  name: string;
+  /** The Sheets editor URL (docs.google.com/spreadsheets/d/<id>/edit). */
   webViewLink: string;
 };
 

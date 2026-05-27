@@ -33,6 +33,7 @@ import type { AgentSummary, GeneratorOutput, OnboardingState } from "../lib/type
 import { GenericFormGenerator } from "./GenericFormGenerator";
 import ProvisionMobileAppForm from "./ProvisionMobileAppForm";
 import { AdsSequenceWizard } from "./AdsSequenceWizard";
+import { SkillChat } from "./CopywriterChat";
 import { IconArrowRight } from "./icons";
 import "./onboarding-checklist.css";
 
@@ -162,6 +163,28 @@ const PROVISION_MOBILE_APP_TASK_ID = "04app-provision";
  *  (three-column launcher over MEDIA_BUYING_SEQUENCE) instead of a single form. */
 const ADS_MASTER_TASK_ID = "06-ads";
 
+/** Competitor research task. Opens a free-form chat with the data-analyst skill
+ *  (not a form): paste competitor Google reviews and it pulls out the recurring
+ *  pain points. Saving a reply persists it as the competitor artifact downstream
+ *  agents read. */
+const COMPETITOR_RESEARCH_TASK_ID = "03-competitors";
+
+/** Data-analyst persona for the competitor-research chat. Mirrors the inline
+ *  AgentSummary the copywriter chat uses; only the slug/name/labels differ. */
+const DATA_ANALYST_AGENT: AgentSummary = {
+  slug: "data-analyst",
+  name: "Data Analyst",
+  initial: "D",
+  short: "Data Analyst",
+  role: "Ad campaign data analyst",
+  description: "Data analyst skill",
+  path: "",
+};
+
+/** Stable loader for the data-analyst persona body. Module-level so its
+ *  reference never changes, otherwise the chat would re-fetch every render. */
+const loadDataAnalystSkill = (root: string) => api.readSkillBody(root, "data-analyst");
+
 /** Map of checklistTaskId → SequenceStep, so a row can render a "Generate"
  *  button if the task has a matching form. Built once at module load.
  *  Sequence steps without a checklistTaskId are skipped. */
@@ -176,7 +199,6 @@ const STEP_BY_TASK: Map<string, SequenceStep> = new Map(
  *  live outside the sequence wizard but still need a "Open form" button. */
 const FORM_BY_TASK: Map<string, FormSurfaceId> = new Map([
   ["02-offer-options", "offer-cta"],
-  ["03-competitors", "competitors"],
   ["03-pixel", "pixel-install"],
 ]);
 
@@ -618,7 +640,11 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
    *  the form. Mirrors the prior ClientSequence behavior. */
   const openTaskForm = useCallback(
     async (taskId: string) => {
-      if (taskId === PROVISION_MOBILE_APP_TASK_ID || taskId === ADS_MASTER_TASK_ID) {
+      if (
+        taskId === PROVISION_MOBILE_APP_TASK_ID ||
+        taskId === ADS_MASTER_TASK_ID ||
+        taskId === COMPETITOR_RESEARCH_TASK_ID
+      ) {
         setOpenTaskId(taskId);
         setChainValues({});
         return;
@@ -766,6 +792,34 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
     );
   }
 
+  if (openTaskId === COMPETITOR_RESEARCH_TASK_ID && root) {
+    return (
+      <div className="ob-root">
+        <div className="ob-form-head">
+          <button type="button" className="ob-form-back" onClick={closeForm}>
+            ← Back to onboarding
+          </button>
+          <div className="ob-form-meta">
+            <span className="ob-form-task">Competitor research</span>
+            <span className="ob-form-hint">
+              Paste competitor (and any client) Google reviews. The data analyst
+              pulls out the recurring pain points.
+            </span>
+          </div>
+        </div>
+        <SkillChat
+          root={root}
+          clientName={clientName}
+          clientSlug={clientSlug}
+          agent={DATA_ANALYST_AGENT}
+          loadSkill={loadDataAnalystSkill}
+          onClose={closeForm}
+        />
+        <style>{FORM_OVERLAY_CSS}</style>
+      </div>
+    );
+  }
+
   if (openStep && openStepFormConfig && root) {
     return (
       <div className="ob-root">
@@ -850,7 +904,7 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
             ))}
           </div>
           <span className="ob-progress-count">
-            Phase <em>{Math.min(currentPhaseNum, ONBOARDING_PLAN.length - 1)}</em> / {ONBOARDING_PLAN.length}
+            Phase <em>{Math.min(currentPhaseNum, ONBOARDING_PLAN.length)}</em> / {ONBOARDING_PLAN.length}
           </span>
           {onboardingDay !== null && (
             <span className="ob-progress-count" title="Days since invoice paid">
@@ -863,7 +917,11 @@ export function OnboardingChecklist({ root, clientName, clientSlug, agents, onCo
 
       <main className="ob-stack">
         {phaseStates.map((s, i) => {
-          const isDone = s.completed === s.total;
+          // Phase completion is gated on REQUIRED tasks only, matching
+          // activeIndex and phaseDoneAt. Optional tasks don't block it, so a
+          // phase with its required work done renders as Done even if an
+          // optional task is still unticked.
+          const isDone = s.requiredCompleted === s.requiredTotal;
           const isActive = i === expandedIndex;
           if (isActive) {
             return (
@@ -1078,6 +1136,7 @@ function ActiveCard({
                 const standaloneFormForTask = !step ? FORM_BY_TASK.get(t.id) ?? null : null;
                 const isMobileAppTask = t.id === PROVISION_MOBILE_APP_TASK_ID;
                 const isAdsTask = t.id === ADS_MASTER_TASK_ID;
+                const isCompetitorTask = t.id === COMPETITOR_RESEARCH_TASK_ID;
                 let actionLabel: string | undefined;
                 let actionHint: string | undefined;
                 if (isAdsTask) {
@@ -1089,6 +1148,9 @@ function ActiveCard({
                 } else if (isMobileAppTask) {
                   actionLabel = "Open form";
                   actionHint = "Provision Supabase tenant + invite client.";
+                } else if (isCompetitorTask) {
+                  actionLabel = "Open chat";
+                  actionHint = "Paste competitor reviews; the data analyst pulls the pain points.";
                 } else if (standaloneFormForTask) {
                   actionLabel = "Open form";
                 } else {
@@ -1104,7 +1166,11 @@ function ActiveCard({
                     skipped={skippedSet.has(t.id)}
                     step={step ?? null}
                     showActionButton={
-                      Boolean(step) || isMobileAppTask || isAdsTask || Boolean(standaloneFormForTask)
+                      Boolean(step) ||
+                      isMobileAppTask ||
+                      isAdsTask ||
+                      isCompetitorTask ||
+                      Boolean(standaloneFormForTask)
                     }
                     actionLabel={actionLabel}
                     actionHint={actionHint}

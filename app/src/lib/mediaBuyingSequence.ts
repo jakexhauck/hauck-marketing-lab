@@ -148,39 +148,19 @@ export interface SequenceStep {
 // The wizard now ticks nothing in the checklist directly. Instead, OnboardingChecklist
 // watches `sequenceComplete(sequenceState)` and auto-ticks 06-ads when every
 // wizard step is done.
+// Trimmed 2026-05-26: audience research, creative brief, and campaign structure
+// were removed from the sequence. Competitor research / reviews are now done by
+// hand into a tab of the client's linked Google Sheet, which the copywriter
+// reads automatically (see the Sheet tab's research-tab picker + prompt.ts).
+// The `SequenceStepId` union and the retired FormConfigs are intentionally kept
+// so unrelated code that references them still compiles.
 export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
-  {
-    id: "audience-research",
-    formId: "audience-research",
-    phase: 6,
-    label: "Audience research",
-    hint: "Deep voice-of-customer teardown: psychographics, pains, language. Seeds the brief and copy. Competitor research from pre-call prep is read off Profile.md, not chained here.",
-  },
-  {
-    id: "creative-brief",
-    formId: "creative-brief",
-    phase: 6,
-    label: "Write creative brief",
-    hint: "Lock the hook, message, proof, and CTA. Pulls audience research from the prior step; competitor white-space comes from Profile.md.",
-    chainFrom: [
-      {
-        step: "audience-research",
-        fields: { summary: "audience_summary" },
-      },
-    ],
-  },
   {
     id: "ad-copy",
     formId: "ad-copy",
     phase: 6,
     label: "Generate ad copy",
-    hint: "12 ad variations across PAS, AIDA, BAB, STORY, PERFORM (pick one or a mix). Aurelius writes its own openers, no separate Hooks step.",
-    chainFrom: [
-      {
-        step: "audience-research",
-        fields: { summary: "target_customer" },
-      },
-    ],
+    hint: "Direct copywriter chat, voice-matched to the client. Reviews and competitor research from the linked sheet's research tab are auto-attached to every message.",
   },
   {
     id: "ad-creative",
@@ -194,18 +174,7 @@ export const MEDIA_BUYING_SEQUENCE: SequenceStep[] = [
         fields: {},
         rawBodyField: "ad_copy_markdown",
       },
-      {
-        step: "creative-brief",
-        fields: { visual_style: "visual_style", do_nots: "do_nots" },
-      },
     ],
-  },
-  {
-    id: "structure",
-    formId: "structure",
-    phase: 7,
-    label: "Plan campaign structure",
-    hint: "CBO vs ABO, ad-set split, creatives-per-ad-set. Output is the spec you'll build from in Phase 5.",
   },
 ];
 
@@ -229,19 +198,9 @@ export interface SequenceGroup {
 
 export const SEQUENCE_GROUPS: SequenceGroup[] = [
   {
-    id: "research",
-    label: "Research",
-    stepIds: ["audience-research", "creative-brief"],
-  },
-  {
     id: "creative",
     label: "Creative",
     stepIds: ["ad-copy", "ad-creative"],
-  },
-  {
-    id: "launch",
-    label: "Launch & Monitor",
-    stepIds: ["structure"],
   },
 ];
 

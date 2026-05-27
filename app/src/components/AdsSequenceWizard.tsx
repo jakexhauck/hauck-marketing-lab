@@ -1,17 +1,17 @@
-/**
+﻿/**
  * Ads Sequence Wizard. Three-column launcher for the 8-step Ads sequence
  * defined in MEDIA_BUYING_SEQUENCE. Opens from the "Ads" task in the
  * OnboardingChecklist. Offer + CTA and Competitor Research are owned by
  * Pre-Call Prep (Phase 1.1) and are not part of this sequence.
  *
- *   ┌──────────┬──────────────────┬──────────┐
- *   │ DONE     │  ACTIVE FORM     │ UP NEXT  │
- *   │ (click   │  (eyebrow/title/ │ (dimmed) │
- *   │  to edit)│   GenericForm-   │          │
- *   │          │   Generator)     │          │
- *   └──────────┴──────────────────┴──────────┘
+ *   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+ *   â”‚ DONE     â”‚  ACTIVE FORM     â”‚ UP NEXT  â”‚
+ *   â”‚ (click   â”‚  (eyebrow/title/ â”‚ (dimmed) â”‚
+ *   â”‚  to edit)â”‚   GenericForm-   â”‚          â”‚
+ *   â”‚          â”‚   Generator)     â”‚          â”‚
+ *   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
  *
- * Visual contract mirrors docs/forms-sequence.html — same topbar, progress
+ * Visual contract mirrors docs/forms-sequence.html â€” same topbar, progress
  * bar, phase-strip pills, amber active panel, numbered upcoming rail.
  *
  * Reuses chainFrom prefill from the existing sequence and ticks each step's
@@ -35,6 +35,7 @@ import { getFormConfig, type FormValues, type FormConfig } from "../lib/formConf
 import { api } from "../lib/tauri";
 import type { AgentSummary, GeneratorOutput } from "../lib/types";
 import { GenericFormGenerator } from "./GenericFormGenerator";
+import { CopywriterChat } from "./CopywriterChat";
 import {
   CampaignTreeView,
   type PendingCreativePick,
@@ -122,7 +123,7 @@ export function AdsSequenceWizard({
   const [chainValues, setChainValues] = useState<Partial<FormValues>>({});
   const [loadingChain, setLoadingChain] = useState(false);
   const [treeOpen, setTreeOpen] = useState(false);
-  /** When set, the campaign tree opens in "pick mode" — every ad slot glows
+  /** When set, the campaign tree opens in "pick mode" â€” every ad slot glows
    *  and clicking one inserts this snippet into that ad's hook. Sourced from
    *  the FormOutput "+ to tree" affordance in the saved-view doc. */
   const [pendingSnippet, setPendingSnippet] = useState<PendingSnippet | null>(null);
@@ -178,7 +179,7 @@ export function AdsSequenceWizard({
 
   // Load chain values for the active step. Runs chainFrom prior-step lookups
   // first, then merges in any overrides from the editable campaign skeleton
-  // (skeleton wins — user just touched it in the tree).
+  // (skeleton wins â€” user just touched it in the tree).
   useEffect(() => {
     let cancelled = false;
     setChainValues({});
@@ -227,7 +228,7 @@ export function AdsSequenceWizard({
       }
 
       // Skeleton overrides. Skeleton edits flow into the matching form's
-      // prefill (skeleton wins over chainFrom — user just touched it in
+      // prefill (skeleton wins over chainFrom â€” user just touched it in
       // the tree). Only fields the user directly edits in the tree should
       // land here.
       const skel = sequenceState.campaignSkeleton;
@@ -279,7 +280,7 @@ export function AdsSequenceWizard({
   ]);
 
   // Load summaries for every completed step. Re-runs when stepOutputs change
-  // (e.g. after a save). Only touches steps with a real saved path — skipped
+  // (e.g. after a save). Only touches steps with a real saved path â€” skipped
   // steps surface "Skipped" inline at render time.
   useEffect(() => {
     let cancelled = false;
@@ -565,7 +566,7 @@ export function AdsSequenceWizard({
       {/* Topbar */}
       <div className="aw-topbar">
         <div>
-          <div className="aw-eyebrow">▸ {clientName} · Ads</div>
+          <div className="aw-eyebrow">â–¸ {clientName} Â· Ads</div>
           <h1 className="aw-h1">Ads Sequence - Learning Phase</h1>
         </div>
         <div className="aw-meta-cluster">
@@ -595,10 +596,10 @@ export function AdsSequenceWizard({
             title="Pick the Drive subfolder each step pushes to."
             aria-label="Drive folders"
           >
-            ⚙
+            âš™
           </button>
           <button type="button" className="aw-close" onClick={onClose}>
-            ← Back
+            â† Back
           </button>
         </div>
       </div>
@@ -612,7 +613,7 @@ export function AdsSequenceWizard({
 
       {/* Two columns: rail + active form */}
       <div className="aw-columns">
-        {/* LEFT · STEPS RAIL (grouped: Setup / Creative / Launch) */}
+        {/* LEFT Â· STEPS RAIL (grouped: Setup / Creative / Launch) */}
         <div>
           {SEQUENCE_GROUPS.map((group, groupIdx) => {
             const groupSteps = group.stepIds
@@ -658,7 +659,7 @@ export function AdsSequenceWizard({
                   const record = sequenceState.stepOutputs[s.id];
                   const pushingThis = pushingStep === s.id;
                   const drivePill = pushingThis
-                    ? { kind: "pending" as const, label: "Drive…", url: null }
+                    ? { kind: "pending" as const, label: "Driveâ€¦", url: null }
                     : record?.drivePushError
                       ? {
                           kind: "error" as const,
@@ -685,7 +686,7 @@ export function AdsSequenceWizard({
                       onClick={() => setActiveStepId(s.id)}
                     >
                       <div className={"aw-check " + (done ? "done" : "next")}>
-                        {done ? "✓" : overallIdx + 1}
+                        {done ? "âœ“" : overallIdx + 1}
                       </div>
                       <div className="aw-rail-body">
                         <div className="aw-rail-name">{s.label}</div>
@@ -715,12 +716,12 @@ export function AdsSequenceWizard({
                                 onClick={(e) => e.stopPropagation()}
                                 title="Open in Drive"
                               >
-                                ✓ {drivePill.label}
+                                âœ“ {drivePill.label}
                               </a>
                             )}
                             {drivePill.kind === "pending" && (
                               <span className="aw-drive-pill is-pending">
-                                ⟳ {drivePill.label}
+                                âŸ³ {drivePill.label}
                               </span>
                             )}
                             {drivePill.kind === "error" && (
@@ -741,7 +742,7 @@ export function AdsSequenceWizard({
                                   }
                                 }}
                               >
-                                ↻ {drivePill.label}
+                                â†» {drivePill.label}
                               </span>
                             )}
                           </div>
@@ -755,13 +756,13 @@ export function AdsSequenceWizard({
           })}
         </div>
 
-        {/* RIGHT · ACTIVE FORM */}
+        {/* RIGHT Â· ACTIVE FORM */}
         <div className="aw-center">
           {!activeStep ? (
             <div className="aw-empty">
               <p>All steps complete.</p>
               <button type="button" onClick={onClose} className="aw-primary">
-                ← Back to onboarding
+                â† Back to onboarding
               </button>
             </div>
           ) : activeStep.id !== "ad-creative" && !activeFormConfig ? (
@@ -784,7 +785,7 @@ export function AdsSequenceWizard({
                     </div>
                   )}
                   {loadingChain && (
-                    <div className="aw-chain-note">Loading prior outputs…</div>
+                    <div className="aw-chain-note">Loading prior outputsâ€¦</div>
                   )}
                 </div>
                 <div className="aw-active-actions">
@@ -795,7 +796,7 @@ export function AdsSequenceWizard({
                     title={`Ask ${activeFormConfig?.agentName ?? "the agent"} for suggestions based on prior steps`}
                     aria-label="Open advisor"
                   >
-                    <span className="aw-advisor-glyph">💡</span>
+                    <span className="aw-advisor-glyph">ðŸ’¡</span>
                     Advisor
                   </button>
                   {isActiveDone ? (
@@ -811,7 +812,7 @@ export function AdsSequenceWizard({
                         </button>
                       ) : (
                         <>
-                          <span className="aw-done-pill">✓ Done</span>
+                          <span className="aw-done-pill">âœ“ Done</span>
                           <button
                             type="button"
                             className="aw-ghost"
@@ -871,10 +872,10 @@ export function AdsSequenceWizard({
                             .slice(0, 10);
                           const angleBits = [v.framework, v.hookRef.trim()]
                             .filter(Boolean)
-                            .join(" — ");
+                            .join(" â€” ");
                           const title = angleBits
-                            ? `${clientName} · Ad copy · ${angleBits} · ${stamp}`
-                            : `${clientName} · Ad copy · ${stamp}`;
+                            ? `${clientName} Â· Ad copy Â· ${angleBits} Â· ${stamp}`
+                            : `${clientName} Â· Ad copy Â· ${stamp}`;
                           try {
                             const result = await api.pushAdVariationToDrive({
                               root,
@@ -888,7 +889,7 @@ export function AdsSequenceWizard({
                             // Mirror the push as a past result so the variation
                             // shows up in the standalone Ad Copy form's past
                             // results list. If this Drive push happened, Jake
-                            // is using the copy — promote it from a one-off to
+                            // is using the copy â€” promote it from a one-off to
                             // an archived run.
                             const summary = angleBits || null;
                             const pastBody = [
@@ -941,7 +942,7 @@ export function AdsSequenceWizard({
                           onSelect={(output) => {
                             // Past-result entries created by send-to-drive
                             // embed a `_Pushed to Drive: <url>_` footer line.
-                            // Click → open the Doc in a new window so Jake
+                            // Click â†’ open the Doc in a new window so Jake
                             // can jump back to the live Drive copy.
                             const match =
                               output.body?.match(/Pushed to Drive:\s*(\S+)/);
@@ -954,11 +955,32 @@ export function AdsSequenceWizard({
                       </div>
                     </div>
                   ) : isActiveDone && !isActiveSkipped && savedViewLoading ? (
-                    <div className="aw-saved-loading">Loading saved output…</div>
+                    <div className="aw-saved-loading">Loading saved outputâ€¦</div>
                   ) : isActiveDone && !isActiveSkipped && savedViewError ? (
                     <div className="aw-saved-error">
                       Couldn't load saved output: {savedViewError}
                     </div>
+                  ) : activeStep.id === "ad-copy" ? (
+                    <CopywriterChat
+                      key={activeStep.id}
+                      root={root}
+                      clientName={clientName}
+                      clientSlug={clientSlug}
+                      onClose={onClose}
+                      saveLabel="Save as this step's ad copy"
+                      onSaveReply={async (text) => {
+                        const output = await api.saveGeneratorOutput({
+                          root,
+                          clientSlug,
+                          kind: activeFormConfig.kind,
+                          title: `Ad copy Â· ${clientName}`,
+                          summary: null,
+                          body: text,
+                          inputsYaml: null,
+                        });
+                        handleSaved(output);
+                      }}
+                    />
                   ) : (
                     <GenericFormGenerator
                       key={activeStep.id}
@@ -999,10 +1021,10 @@ export function AdsSequenceWizard({
           clientSlug={clientSlug}
           pendingSnippet={pendingSnippet}
           onPickSlot={(setIdx, adIdx) => {
-            const where = `Ad set ${setIdx + 1} · Ad ${adIdx + 1}`;
+            const where = `Ad set ${setIdx + 1} Â· Ad ${adIdx + 1}`;
             const preview =
               pendingSnippet && pendingSnippet.text.length > 48
-                ? pendingSnippet.text.slice(0, 48) + "…"
+                ? pendingSnippet.text.slice(0, 48) + "â€¦"
                 : pendingSnippet?.text ?? "";
             setPendingSnippet(null);
             setTreeOpen(false);
@@ -1011,7 +1033,7 @@ export function AdsSequenceWizard({
           onCancelPick={() => setPendingSnippet(null)}
           pendingCreativePick={pendingCreativePick}
           onPickCreativeSlot={(setIdx, adIdx) => {
-            const where = `Ad set ${setIdx + 1} · Ad ${adIdx + 1}`;
+            const where = `Ad set ${setIdx + 1} Â· Ad ${adIdx + 1}`;
             const name = pendingCreativePick?.filename ?? "creative";
             setPendingCreativePick(null);
             setTreeOpen(false);
@@ -1577,6 +1599,7 @@ const WIZ_CSS = `
   background: var(--hml-accent-dim);
   color: var(--hml-accent-bright);
 }
+
 
 `;
 

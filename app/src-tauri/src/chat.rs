@@ -19,12 +19,35 @@ pub struct ChatFile {
     pub slug: String,
     pub title: String,
     pub agent: Option<String>,
+    /// Client slug this chat belongs to. Chats are stored under a per-client
+    /// subfolder so the right-rail history can be scoped to one client.
+    #[serde(default)]
+    pub client: Option<String>,
     pub started_at: String,
     pub turns: Vec<ChatTurn>,
 }
 
+/// One entry in the right-rail conversation history (no turn bodies).
+#[derive(Debug, Serialize, Clone)]
+pub struct ChatSummary {
+    pub path: String,
+    pub title: String,
+    pub agent: Option<String>,
+    pub started_at: String,
+    pub turns: usize,
+}
+
 fn chats_dir(root: &str) -> PathBuf {
     PathBuf::from(root).join("chats")
+}
+
+/// Chats live under `chats/<client_slug>/` when a client is known, else flat in
+/// `chats/`. Keeps each client's history separate.
+fn chat_target_dir(root: &str, client_slug: &Option<String>) -> PathBuf {
+    match client_slug {
+        Some(c) if !c.trim().is_empty() => chats_dir(root).join(c.trim()),
+        _ => chats_dir(root),
+    }
 }
 
 pub fn slugify(s: &str) -> String {
@@ -80,18 +103,16 @@ fn parse_turns(body: &str) -> Vec<ChatTurn> {
                  buf: &mut String,
                  turns: &mut Vec<ChatTurn>| {
         if let Some(r) = role.take() {
-            let body = buf.trim().to_string();
-            if !body.is_empty() {
-                turns.push(ChatTurn {
-                    role: r,
-                    agent: agent.take(),
-                    at: std::mem::take(at),
-                    body,
-                });
-            } else {
-                *agent = None;
-                *at = String::new();
-            }
+            // Keep turns even when the body is empty. A freshly appended agent
+            // placeholder is written with an empty body, and it must survive
+            // this read-back so `replace_last_turn` targets the placeholder
+            // rather than overwriting the user turn beneath it.
+            turns.push(ChatTurn {
+                role: r,
+                agent: agent.take(),
+                at: std::mem::take(at),
+                body: buf.trim().to_string(),
+            });
             buf.clear();
         }
     };
@@ -132,6 +153,11 @@ fn render_file(file: &ChatFile) -> String {
     if let Some(a) = &file.agent {
         s.push_str(&format!("agent: {a}\n"));
     }
+    if let Some(c) = &file.client {
+        if !c.is_empty() {
+            s.push_str(&format!("client: {c}\n"));
+        }
+    }
     s.push_str(&format!("started_at: {}\n", file.started_at));
     s.push_str(&format!("slug: {}\n", file.slug));
     s.push_str("---\n\n");
@@ -147,10 +173,11 @@ pub fn create_chat(
     root: String,
     agent: Option<String>,
     title: String,
+    client_slug: Option<String>,
 ) -> Result<ChatFile, String> {
     let date = chrono::Local::now().format("%Y-%m-%d").to_string();
     let slug = slugify(&title);
-    let dir = chats_dir(&root);
+    let dir = chat_target_dir(&root, &client_slug);
     fs::create_dir_all(&dir).map_err(|e| format!("create chats dir: {e}"))?;
 
     // ensure unique
@@ -167,11 +194,16 @@ pub fn create_chat(
     let path = dir.join(format!("{date}-{final_slug}.md"));
 
     let started_at = chrono::Local::now().to_rfc3339();
+    let normalized_client = client_slug.and_then(|c| {
+        let t = c.trim().to_string();
+        if t.is_empty() { None } else { Some(t) }
+    });
     let file = ChatFile {
         path: path.to_string_lossy().into_owned(),
         slug: format!("{date}-{final_slug}"),
         title,
         agent,
+        client: normalized_client,
         started_at,
         turns: Vec::new(),
     };
@@ -200,6 +232,7 @@ pub fn read_chat(path: String) -> Result<ChatFile, String> {
     struct FM {
         title: Option<String>,
         agent: Option<String>,
+        client: Option<String>,
         started_at: Option<String>,
         slug: Option<String>,
     }
@@ -215,9 +248,53 @@ pub fn read_chat(path: String) -> Result<ChatFile, String> {
         slug: front.slug.unwrap_or(slug.clone()),
         title: front.title.unwrap_or_else(|| slug.replace('-', " ")),
         agent: front.agent,
+        client: front.client,
         started_at: front.started_at.unwrap_or_default(),
         turns,
     })
+}
+
+/// List past conversations for a client (and optionally one agent), newest
+/// first. Backs the right-rail history. Scans `chats/<client_slug>/`.
+#[tauri::command]
+pub fn list_chats(
+    root: String,
+    client_slug: Option<String>,
+    agent: Option<String>,
+) -> Result<Vec<ChatSummary>, String> {
+    let dir = chat_target_dir(&root, &client_slug);
+    if !dir.exists() {
+        return Ok(Vec::new());
+    }
+    let mut out = Vec::new();
+    for entry in fs::read_dir(&dir).map_err(|e| format!("read chats dir: {e}"))? {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) != Some("md") {
+            continue;
+        }
+        let file = match read_chat(path.to_string_lossy().into_owned()) {
+            Ok(f) => f,
+            Err(_) => continue,
+        };
+        if let Some(a) = &agent {
+            if file.agent.as_deref() != Some(a.as_str()) {
+                continue;
+            }
+        }
+        out.push(ChatSummary {
+            path: file.path,
+            title: file.title,
+            agent: file.agent,
+            started_at: file.started_at,
+            turns: file.turns.len(),
+        });
+    }
+    out.sort_by(|a, b| b.started_at.cmp(&a.started_at));
+    Ok(out)
 }
 
 #[tauri::command]

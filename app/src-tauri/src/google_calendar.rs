@@ -37,6 +37,10 @@ const SCOPES: &[&str] = &[
     "https://www.googleapis.com/auth/calendar.readonly",
     "https://www.googleapis.com/auth/drive.file",
     "https://www.googleapis.com/auth/drive.metadata.readonly",
+    // Read-only access to the cell VALUES of a client's linked Google Sheet.
+    // drive.file only reaches files this app created; the client's sheet was
+    // made by hand, so reading its research tab needs this Sheets-API scope.
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
 ];
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

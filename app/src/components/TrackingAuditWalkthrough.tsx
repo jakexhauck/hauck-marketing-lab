@@ -509,9 +509,6 @@ export function TrackingAuditWalkthrough({
           clientSlug={clientSlug}
           kind="audits"
           refreshKey={pastRefresh}
-          onRename={(path, newTitle) => {
-            if (saved?.path === path) setSaved({ ...saved, title: newTitle });
-          }}
           onSelect={(out) => {
             setSaved(out);
             setStreamText("");

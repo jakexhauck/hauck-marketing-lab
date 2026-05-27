@@ -89,4 +89,27 @@ These are off the v1 plan but listed in case use exposes a real need.
 
 ---
 
-*Backlog last updated 2026-05-10. Update entries when you ship them or change your mind about deferring them.*
+## Known bugs (deferred 2026-05-26)
+
+Surfaced during a code-review bug sweep. Left untouched because each changes client-facing numbers or depends on Graph API behaviour that needs live testing. Jake chose to defer; decide per-item later.
+
+- [ ] **Meta conversion double-counting** (`app/src-tauri/src/meta_ads.rs`, `CONVERSION_ACTIONS` + `extract_actions_value`)
+  - **What:** With no per-client `conversion_action` override, `extract_actions_value` SUMS every matching action type. The allowlist contains overlapping types Meta reports for the same conversion (`purchase`, `omni_purchase`, `offsite_conversion.fb_pixel_purchase` are one sale counted three ways; same for the lead variants). Results / CPA / ROAS are inflated ~2-3x for affected clients.
+  - **Fix direction:** Iterate the allowlist in priority order and take the first matching type's value instead of summing.
+  - **Why deferred:** Cutting reported conversions sharply could flip the optimizer's KILL/SCALE verdicts, whose thresholds may be tuned against the current inflated numbers. Re-check `adsOptimizer.ts` thresholds when applying.
+  - **Size:** S to change, M to validate against real account data.
+
+- [ ] **`deep_copy=true` on ad-set/ad duplication** (`app/src-tauri/src/meta_actions.rs`, `duplicate_object`)
+  - **What:** `duplicate_object` sends `deep_copy=true` for all `/copies` calls. `deep_copy` may only be valid on campaign copies; ad-set and ad duplication could be failing.
+  - **Fix direction:** Branch on object kind, only send `deep_copy` for campaigns.
+  - **Why deferred:** Needs live Graph API testing to confirm the rejection.
+  - **Size:** S.
+
+- [ ] **Replicate polling returns success on timeout** (`app/src-tauri/src/replicate.rs`)
+  - **What:** When a prediction is still running at the iteration/time budget, the loop breaks and returns `Ok` with `status: "processing"` and empty output. Long video/image jobs look "done" with no result.
+  - **Fix direction:** After the loop, if status is non-terminal, return an explicit timeout error including the prediction id.
+  - **Size:** S.
+
+---
+
+*Backlog last updated 2026-05-26. Update entries when you ship them or change your mind about deferring them.*

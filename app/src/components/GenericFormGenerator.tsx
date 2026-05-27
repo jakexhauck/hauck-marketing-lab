@@ -971,9 +971,6 @@ export function GenericFormGenerator({
                 setStreamText("");
                 setError(null);
               }}
-              onRename={(path, newTitle) => {
-                if (saved?.path === path) setSaved({ ...saved, title: newTitle });
-              }}
             />
           )}
         </>

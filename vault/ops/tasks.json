@@ -30,7 +30,7 @@
     },
     {
       "id": "5cd0b24a-8108-48c2-ab8a-9797b22ec374",
-      "title": "2. Integrate Test Account Sub Account With Samuel Darby's",
+      "title": "3. Create Test Mobile Account & Update With Changes From Test Sub Account",
       "status": "todo",
       "createdAt": 1779485900957,
       "lane": "active"
@@ -51,7 +51,7 @@
     },
     {
       "id": "7793130d-a4dd-4d6b-8b3b-851cf90f3232",
-      "title": "4. Finish Mobile App Using Test Account",
+      "title": "4. Further Optimize Mobile Account",
       "status": "todo",
       "createdAt": 1779584585427,
       "lane": "active"
@@ -90,7 +90,7 @@
     },
     {
       "id": "9d0622d8-e522-450b-819c-2d753fedb5fe",
-      "title": "Make Changes Too Website - Wait For Josh To Send Video",
+      "title": "5. Ask Josh For Website Changes & Tell Him To Add Payment Method",
       "clientSlug": "willis-windows",
       "status": "todo",
       "createdAt": 1778694212210
@@ -108,6 +108,37 @@
       "clientSlug": "willis-windows",
       "status": "todo",
       "createdAt": 1779672132187,
+      "lane": "active"
+    },
+    {
+      "id": "d969d07a-57d0-4eb2-9852-0a6770cf9e42",
+      "title": "Get On A Call With Go High Level About A2P - 27",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1779493197936,
+      "lane": "active"
+    },
+    {
+      "id": "124f0e4e-0cf2-466a-9fee-906ef14fe54c",
+      "title": "2. Buy Sam Darby AD Course & Go Through",
+      "status": "todo",
+      "createdAt": 1779584497830,
+      "lane": "active"
+    },
+    {
+      "id": "4cb9ea45-ad2d-4be3-b76d-f22930994944",
+      "title": "6. Send Josh GMB Info",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1779634612522,
+      "lane": "active"
+    },
+    {
+      "id": "53a45c4d-2f78-4388-9866-0ee186ad1c3b",
+      "title": "7. Update Jayse",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1779634674820,
       "lane": "active"
     }
   ]

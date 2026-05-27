@@ -1,6 +1,9 @@
 mod ads_log;
+mod attachments;
 mod benchmarks;
 mod chat;
+mod chat_sheet_tabs;
+mod saved_prompts;
 mod claude;
 mod client_docs;
 mod clients;
@@ -69,6 +72,11 @@ pub fn run() {
             chat::read_chat,
             chat::append_turn,
             chat::replace_last_turn,
+            chat::list_chats,
+            chat_sheet_tabs::read_chat_sheet_tabs,
+            chat_sheet_tabs::write_chat_sheet_tabs,
+            saved_prompts::list_saved_prompts,
+            saved_prompts::save_saved_prompts,
             claude::check_claude,
             claude::invoke_claude,
             onboarding::read_onboarding_state,
@@ -81,6 +89,8 @@ pub fn run() {
             clients::delete_client,
             clients::set_client_benchmarks,
             clients::set_client_drive_folder,
+            clients::set_client_google_sheet,
+            clients::set_client_sheet_research_tab,
             clients::set_client_doc_folder_default,
             clients::set_client_sequence_folder_default,
             clients::set_client_optimizer,
@@ -106,6 +116,9 @@ pub fn run() {
             drive_api::upload_local_file_to_drive,
             drive_api::upload_bytes_to_drive,
             drive_api::list_drive_subfolders,
+            drive_api::list_drive_sheets,
+            drive_api::list_sheet_tabs,
+            drive_api::read_sheet_tab,
             benchmarks::list_benchmark_sets,
             benchmarks::read_benchmarks_for_client,
             kpi::read_latest_kpis,
@@ -188,6 +201,9 @@ pub fn run() {
             copywriter::run_copywriter,
             copywriter::list_dm_files,
             copywriter::read_dm_file,
+            copywriter::read_copywriter_skill,
+            copywriter::read_skill_body,
+            attachments::read_attachment_text,
             google_calendar::google_calendar_connect,
             google_calendar::google_calendar_disconnect,
             google_calendar::google_calendar_is_connected,
