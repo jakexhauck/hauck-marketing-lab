@@ -482,11 +482,20 @@ pub fn read_dm_file(path: String) -> Result<String, String> {
 /// media-buying dir, and the skill lives at `<repo>/copywriter/`.
 #[tauri::command]
 pub fn read_copywriter_skill(root: String) -> Result<String, String> {
+    read_skill_body(root, "copywriter".to_string())
+}
+
+/// Read an arbitrary skill's persona body (CLAUDE.md + SKILL.md, concatenated)
+/// so the frontend can use it as the persona for a direct chat with that skill.
+/// Generalizes `read_copywriter_skill`: `root` is the media-buying dir and the
+/// skill lives at `<repo>/<skill>/` (e.g. "copywriter", "data-analyst").
+#[tauri::command]
+pub fn read_skill_body(root: String, skill: String) -> Result<String, String> {
     let repo_root = PathBuf::from(&root)
         .parent()
         .map(|p| p.to_path_buf())
         .ok_or_else(|| "could not determine repo root from media-buying path".to_string())?;
-    let skill_dir = repo_root.join("copywriter");
+    let skill_dir = repo_root.join(&skill);
     let mut parts: Vec<String> = Vec::new();
     if let Ok(body) = std::fs::read_to_string(skill_dir.join("CLAUDE.md")) {
         let t = body.trim();
@@ -501,10 +510,7 @@ pub fn read_copywriter_skill(root: String) -> Result<String, String> {
         }
     }
     if parts.is_empty() {
-        return Err(format!(
-            "copywriter skill not found at {}",
-            skill_dir.display()
-        ));
+        return Err(format!("{} skill not found at {}", skill, skill_dir.display()));
     }
     Ok(parts.join("\n\n"))
 }

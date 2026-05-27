@@ -119,8 +119,8 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
         tasks: [
           task(
             "03-competitors",
-            "Run competitor research — output feeds audiences, brief, ad copy, and the offer options below.",
-            "Open the Competitor Research form. Output saves to the vault; every downstream agent reads it.",
+            "Run competitor research. Output feeds audiences, brief, ad copy, and the offer options below.",
+            "Open the chat and paste competitor (and any client) Google reviews. The data analyst pulls out the recurring pain points. Save the reply to the vault; every downstream agent reads it.",
           ),
           task(
             "02-offer-options",

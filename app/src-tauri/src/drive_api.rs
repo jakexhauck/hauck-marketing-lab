@@ -156,6 +156,275 @@ pub async fn list_drive_subfolders(
     Ok(all)
 }
 
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DriveSheet {
+    pub id: String,
+    pub name: String,
+    /// The Sheets editor URL (`https://docs.google.com/spreadsheets/d/<id>/edit`).
+    pub web_view_link: String,
+}
+
+/// List the Google Sheets directly inside the given Drive folder. `parent` may
+/// be a full Drive folder URL or a bare folder ID. Returns sheets sorted by
+/// name. Backs the Ads Sequence "Select Google Sheet" picker.
+#[tauri::command]
+pub async fn list_drive_sheets(
+    app: AppHandle,
+    parent: String,
+) -> Result<Vec<DriveSheet>, String> {
+    let parent_id = extract_drive_folder_id(&parent)
+        .ok_or_else(|| format!("Could not extract a Drive folder ID from: {parent:?}"))?;
+
+    let token = google_access_token(&app).await?;
+    let client = reqwest::Client::new();
+
+    let q = format!(
+        "'{parent_id}' in parents and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false"
+    );
+    let url = "https://www.googleapis.com/drive/v3/files";
+
+    let mut all = Vec::new();
+    let mut page_token: Option<String> = None;
+    loop {
+        let mut req = client
+            .get(url)
+            .bearer_auth(&token)
+            .query(&[
+                ("q", q.as_str()),
+                ("fields", "nextPageToken,files(id,name,webViewLink)"),
+                ("orderBy", "name"),
+                ("pageSize", "200"),
+                ("supportsAllDrives", "true"),
+                ("includeItemsFromAllDrives", "true"),
+            ]);
+        if let Some(pt) = page_token.as_deref() {
+            req = req.query(&[("pageToken", pt)]);
+        }
+
+        let resp = req.send().await.map_err(|e| format!("drive list request: {e}"))?;
+        let status = resp.status();
+        let body = resp.text().await.map_err(|e| format!("drive list body: {e}"))?;
+
+        if !status.is_success() {
+            if status.as_u16() == 401 {
+                return Err(
+                    "Google authentication expired or missing the drive.metadata.readonly scope. Reconnect Google in Settings > Google Calendar."
+                        .to_string(),
+                );
+            }
+            if status.as_u16() == 403 {
+                return Err(format!(
+                    "Drive denied the list call ({status}). Check that the client folder is shared with the same Google account you connected. Body: {body}"
+                ));
+            }
+            return Err(format!("drive list failed ({status}): {body}"));
+        }
+
+        #[derive(Deserialize)]
+        struct RawFile {
+            id: String,
+            name: String,
+            #[serde(default, rename = "webViewLink")]
+            web_view_link: Option<String>,
+        }
+        #[derive(Deserialize)]
+        struct RawResp {
+            files: Vec<RawFile>,
+            #[serde(default, rename = "nextPageToken")]
+            next_page_token: Option<String>,
+        }
+
+        let parsed: RawResp = serde_json::from_str(&body)
+            .map_err(|e| format!("parse drive list JSON: {e}; body: {body}"))?;
+
+        for f in parsed.files {
+            let link = f
+                .web_view_link
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| format!("https://docs.google.com/spreadsheets/d/{}/edit", f.id));
+            all.push(DriveSheet {
+                id: f.id,
+                name: f.name,
+                web_view_link: link,
+            });
+        }
+
+        match parsed.next_page_token {
+            Some(t) if !t.is_empty() => page_token = Some(t),
+            _ => break,
+        }
+    }
+
+    Ok(all)
+}
+
+/// Pull the bare spreadsheet ID out of a Google Sheets URL
+/// (`https://docs.google.com/spreadsheets/d/<id>/edit`), or pass through a
+/// bare ID. Returns None if nothing usable is found.
+fn extract_spreadsheet_id(input: &str) -> Option<String> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if let Some(rest) = trimmed.split("/spreadsheets/d/").nth(1) {
+        let id: String = rest
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+            .collect();
+        if is_valid_file_id(&id) {
+            return Some(id);
+        }
+    }
+    if is_valid_file_id(trimmed) {
+        return Some(trimmed.to_string());
+    }
+    None
+}
+
+/// Map a Sheets API failure to a friendly message. Shared by the two Sheets
+/// read commands so the "reconnect Google" hint stays consistent.
+fn sheets_error(status: reqwest::StatusCode, body: &str) -> String {
+    match status.as_u16() {
+        401 | 403 => "Google authentication is missing the Sheets read scope. \
+            Reconnect Google in Settings > Google Calendar to grant it (one-time)."
+            .to_string(),
+        404 => "Sheet not found. Re-link the client's Google Sheet in the Ads Sequence Sheet tab."
+            .to_string(),
+        _ => format!("Sheets API failed ({status}): {body}"),
+    }
+}
+
+/// List the tab (sub-sheet) titles inside a Google Sheet. `sheet` may be a full
+/// Sheets URL or a bare spreadsheet ID. Backs the "research tab" picker in the
+/// Ads Sequence Sheet tab.
+#[tauri::command]
+pub async fn list_sheet_tabs(app: AppHandle, sheet: String) -> Result<Vec<String>, String> {
+    let sheet_id = extract_spreadsheet_id(&sheet)
+        .ok_or_else(|| format!("Could not extract a spreadsheet ID from: {sheet:?}"))?;
+
+    let token = google_access_token(&app).await?;
+    let client = reqwest::Client::new();
+    let url = format!("https://sheets.googleapis.com/v4/spreadsheets/{sheet_id}");
+
+    let resp = client
+        .get(&url)
+        .bearer_auth(&token)
+        .query(&[("fields", "sheets.properties.title")])
+        .send()
+        .await
+        .map_err(|e| format!("sheets get request: {e}"))?;
+
+    let status = resp.status();
+    let body = resp.text().await.map_err(|e| format!("sheets get body: {e}"))?;
+    if !status.is_success() {
+        return Err(sheets_error(status, &body));
+    }
+
+    #[derive(Deserialize)]
+    struct Props {
+        #[serde(default)]
+        title: String,
+    }
+    #[derive(Deserialize)]
+    struct Sheet {
+        #[serde(default)]
+        properties: Option<Props>,
+    }
+    #[derive(Deserialize)]
+    struct Resp {
+        #[serde(default)]
+        sheets: Vec<Sheet>,
+    }
+
+    let parsed: Resp = serde_json::from_str(&body)
+        .map_err(|e| format!("parse sheets metadata JSON: {e}; body: {body}"))?;
+
+    let titles: Vec<String> = parsed
+        .sheets
+        .into_iter()
+        .filter_map(|s| s.properties.map(|p| p.title))
+        .filter(|t| !t.is_empty())
+        .collect();
+    Ok(titles)
+}
+
+/// Read the cell values of one tab in a Google Sheet and return them as plain
+/// text (tab-separated rows). `sheet` may be a full Sheets URL or a bare ID;
+/// `tab` is the tab title. Empty trailing cells are dropped per row. This is
+/// what gets injected into the copywriter prompt so it can see the reviews /
+/// competitor research without any file upload.
+#[tauri::command]
+pub async fn read_sheet_tab(
+    app: AppHandle,
+    sheet: String,
+    tab: String,
+) -> Result<String, String> {
+    let sheet_id = extract_spreadsheet_id(&sheet)
+        .ok_or_else(|| format!("Could not extract a spreadsheet ID from: {sheet:?}"))?;
+    let tab_trimmed = tab.trim();
+    if tab_trimmed.is_empty() {
+        return Err("read_sheet_tab: empty tab name".into());
+    }
+
+    let token = google_access_token(&app).await?;
+    let client = reqwest::Client::new();
+    // Range = the whole tab. Quote the title so tabs with spaces work.
+    let range = format!("'{}'", tab_trimmed.replace('\'', "''"));
+    let url = format!(
+        "https://sheets.googleapis.com/v4/spreadsheets/{sheet_id}/values/{}",
+        urlencoding::encode(&range)
+    );
+
+    let resp = client
+        .get(&url)
+        .bearer_auth(&token)
+        .query(&[
+            ("majorDimension", "ROWS"),
+            ("valueRenderOption", "FORMATTED_VALUE"),
+        ])
+        .send()
+        .await
+        .map_err(|e| format!("sheets values request: {e}"))?;
+
+    let status = resp.status();
+    let body = resp.text().await.map_err(|e| format!("sheets values body: {e}"))?;
+    if !status.is_success() {
+        return Err(sheets_error(status, &body));
+    }
+
+    #[derive(Deserialize)]
+    struct Resp {
+        #[serde(default)]
+        values: Vec<Vec<serde_json::Value>>,
+    }
+    let parsed: Resp = serde_json::from_str(&body)
+        .map_err(|e| format!("parse sheets values JSON: {e}; body: {body}"))?;
+
+    let mut lines: Vec<String> = Vec::with_capacity(parsed.values.len());
+    for row in parsed.values {
+        let mut cells: Vec<String> = row
+            .into_iter()
+            .map(|v| match v {
+                serde_json::Value::String(s) => s,
+                serde_json::Value::Null => String::new(),
+                other => other.to_string(),
+            })
+            .collect();
+        // Drop trailing empties so rows aren't padded with stray tabs.
+        while matches!(cells.last(), Some(c) if c.is_empty()) {
+            cells.pop();
+        }
+        lines.push(cells.join("\t"));
+    }
+    // Trim trailing blank rows.
+    while matches!(lines.last(), Some(l) if l.is_empty()) {
+        lines.pop();
+    }
+
+    Ok(lines.join("\n"))
+}
+
 #[tauri::command]
 pub async fn drive_delete_file(
     app: AppHandle,

@@ -343,6 +343,7 @@ pub fn append_facts_to_memory(
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct MemorySupersede {
     /// Substring of an existing line. The matched line's body gets wrapped
     /// in `~~ ~~` strikethrough markers; if absent, no error.

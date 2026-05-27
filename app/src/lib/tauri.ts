@@ -5,7 +5,9 @@ import type {
   AppConfig,
   BenchmarkSummary,
   ChatFile,
+  ChatHistoryItem,
   ChatTurn,
+  SavedPrompt,
   ClaudeCheck,
   ClientDoc,
   CopywriterEvent,
@@ -41,6 +43,7 @@ import type {
   DmFile,
   DriveIndex,
   DriveSubfolder,
+  DriveSheet,
   DriveUploadResult,
   FolderSummary,
   GeneratorKind,
@@ -77,18 +80,53 @@ export const api = {
     invoke<string>("read_agent_body", { root, slug }),
   readCopywriterSkill: (root: string) =>
     invoke<string>("read_copywriter_skill", { root }),
+  /** Read any skill's persona body (CLAUDE.md + SKILL.md) by folder name,
+   *  e.g. "copywriter" or "data-analyst". Backs the generic SkillChat. */
+  readSkillBody: (root: string, skill: string) =>
+    invoke<string>("read_skill_body", { root, skill }),
+  /** Read a local file's text so a chat can inline it into the prompt. Text
+   *  only (CSV/TSV/TXT/MD/JSON); binary files are rejected. Backs the SkillChat
+   *  attach button. */
+  readAttachmentText: (path: string, maxBytes?: number) =>
+    invoke<{ name: string; text: string; bytes: number; truncated: boolean }>(
+      "read_attachment_text",
+      { path, maxBytes: maxBytes ?? null },
+    ),
   loadSkill: (root: string, category: string, skillId: string) =>
     invoke<SkillFile>("load_skill", { root, category, skillId }),
   listSkills: (root: string) => invoke<SkillEntry[]>("list_skills", { root }),
   listKnowledgeTitles: (root: string) =>
     invoke<KnowledgeTitle[]>("list_knowledge_titles", { root }),
-  createChat: (root: string, agent: string | null, title: string) =>
-    invoke<ChatFile>("create_chat", { root, agent, title }),
+  createChat: (
+    root: string,
+    agent: string | null,
+    title: string,
+    clientSlug?: string | null,
+  ) =>
+    invoke<ChatFile>("create_chat", {
+      root,
+      agent,
+      title,
+      clientSlug: clientSlug ?? null,
+    }),
   readChat: (path: string) => invoke<ChatFile>("read_chat", { path }),
   appendTurn: (path: string, turn: ChatTurn) =>
     invoke<void>("append_turn", { path, turn }),
   replaceLastTurn: (path: string, turn: ChatTurn) =>
     invoke<void>("replace_last_turn", { path, turn }),
+  /** Past conversations for a client (optionally one agent), newest first.
+   *  Backs the chat right-rail history. */
+  listChats: (root: string, clientSlug?: string | null, agent?: string | null) =>
+    invoke<ChatHistoryItem[]>("list_chats", {
+      root,
+      clientSlug: clientSlug ?? null,
+      agent: agent ?? null,
+    }),
+  /** Global copy-paste prompt templates shown in the chat right-rail. */
+  listSavedPrompts: (root: string) =>
+    invoke<SavedPrompt[]>("list_saved_prompts", { root }),
+  saveSavedPrompts: (root: string, prompts: SavedPrompt[]) =>
+    invoke<void>("save_saved_prompts", { root, prompts }),
   checkClaude: () => invoke<ClaudeCheck>("check_claude"),
   invokeClaude: (id: string, prompt: string) =>
     invoke<string>("invoke_claude", { id, prompt }),
@@ -192,6 +230,14 @@ export const api = {
     invoke<void>("set_client_benchmarks", { root, clientSlug, filename }),
   setClientDriveFolder: (root: string, clientSlug: string, url: string | null) =>
     invoke<void>("set_client_drive_folder", { root, clientSlug, url }),
+  setClientGoogleSheet: (root: string, clientSlug: string, url: string | null) =>
+    invoke<void>("set_client_google_sheet", { root, clientSlug, url }),
+  /** Set (or clear) which tab in the linked sheet feeds the copywriter. */
+  setClientSheetResearchTab: (
+    root: string,
+    clientSlug: string,
+    tab: string | null,
+  ) => invoke<void>("set_client_sheet_research_tab", { root, clientSlug, tab }),
   setClientOptimizer: (
     root: string,
     clientSlug: string,
@@ -395,6 +441,24 @@ export const api = {
     invoke<DriveIndex>("refresh_drive_index", { root, clientSlug }),
   listDriveSubfolders: (parent: string) =>
     invoke<DriveSubfolder[]>("list_drive_subfolders", { parent }),
+  /** List the Google Sheets directly inside a client's Drive folder. Backs the
+   *  Ads Sequence "Select Google Sheet" picker. */
+  listDriveSheets: (parent: string) =>
+    invoke<DriveSheet[]>("list_drive_sheets", { parent }),
+  /** List the tab (sub-sheet) titles inside a Google Sheet. `sheet` may be a
+   *  full Sheets URL or a bare spreadsheet ID. */
+  listSheetTabs: (sheet: string) =>
+    invoke<string[]>("list_sheet_tabs", { sheet }),
+  /** Read one tab's cell values as tab-separated text. Injected into the
+   *  copywriter prompt so it sees the reviews without any file upload. */
+  readSheetTab: (sheet: string, tab: string) =>
+    invoke<string>("read_sheet_tab", { sheet, tab }),
+  /** Per-conversation sheet pages the copywriter may read (on top of the
+   *  client-wide tab). Keyed by chat-file path so it persists per conversation. */
+  readChatSheetTabs: (root: string, chatPath: string) =>
+    invoke<string[]>("read_chat_sheet_tabs", { root, chatPath }),
+  writeChatSheetTabs: (root: string, chatPath: string, tabs: string[]) =>
+    invoke<void>("write_chat_sheet_tabs", { root, chatPath, tabs }),
   uploadOutputToDrive: (
     root: string,
     clientSlug: string,

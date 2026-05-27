@@ -35,3 +35,4 @@ urlencoding = "2"
 notify = "6"
 notify-debouncer-mini = "0.4"
 pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
+pdf-extract = "0.10.0"

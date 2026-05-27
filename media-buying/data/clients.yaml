@@ -3,6 +3,7 @@ clients:
   name: Willis Windows
   status: pre-launch
   drive_folder_url: https://drive.google.com/drive/folders/1ya0NgEZu5snPMM2eZRgqg6D2FipE5Sxa
+  google_sheet_url: https://docs.google.com/spreadsheets/d/11c3iT6Auhs-JiR5zFK-jx3RDDa1suQjdYHWPvVCsN-k/edit?usp=drivesdk
   meta_ad_account_id: act_4396590353913166
   doc_folder_defaults:
     ad-copy:

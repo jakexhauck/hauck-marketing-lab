@@ -1,26 +1,36 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { api } from "../lib/tauri";
 import { assemblePrompt } from "../lib/prompt";
 import type {
   AgentSummary,
   ChatFile,
+  ChatHistoryItem,
   ChatTurn,
+  SavedPrompt,
   StreamEvent,
   VaultNote,
 } from "../lib/types";
 
 /**
- * CopywriterChat — a free-form chat with the copywriter skill itself
- * (copywriter/CLAUDE.md + SKILL.md), not a media-buying agent. Replaces the
- * old ad-copy form: you type whatever prompt you like and get a normal
- * streaming chat back, scoped to the active client so the skill can voice-match
- * from their Profile + Memory.
+ * CopywriterChat / SkillChat — a free-form chat with a skill persona itself
+ * (<skill>/CLAUDE.md + SKILL.md), not a media-buying agent. Replaces the old
+ * ad-copy form: you type whatever prompt you like and get a normal streaming
+ * chat back, scoped to the active client so the skill can use their Profile +
+ * Memory. Defaults to the copywriter; pass `agent` + `loadSkill` to drive a
+ * different persona (e.g. the data analyst for competitor-review pain-point
+ * extraction). The `SkillChat` export is the agent-agnostic alias.
  *
  * Reuses the existing chat plumbing: invoke_claude streaming over
  * `claude://stream`, the create_chat / append_turn / replace_last_turn chat
- * files (saved under the "copywriter" slug), and the shared .thread / .msg /
+ * files (saved under the agent's slug), and the shared .thread / .msg /
  * .input-wrap visual classes.
  */
+
+/** A file the user attached, already read into text by the backend. */
+type Attachment = { name: string; text: string; truncated: boolean };
 
 const COPYWRITER_AGENT: AgentSummary = {
   slug: "copywriter",
@@ -43,6 +53,12 @@ type Props = {
   onSaveReply?: (text: string) => Promise<void> | void;
   /** Label for the save button. Defaults to "Save". */
   saveLabel?: string;
+  /** The skill persona driving the chat. Defaults to the copywriter. Pass a
+   *  different agent (e.g. the data analyst) to repurpose the same chat shell. */
+  agent?: AgentSummary;
+  /** Loads the persona body (CLAUDE.md + SKILL.md). Defaults to the copywriter
+   *  skill loader. Pair with a matching `agent`. */
+  loadSkill?: (root: string) => Promise<string>;
 };
 
 export function CopywriterChat({
@@ -52,7 +68,11 @@ export function CopywriterChat({
   onClose,
   onSaveReply,
   saveLabel = "Save",
+  agent = COPYWRITER_AGENT,
+  loadSkill,
 }: Props) {
+  const loadSkillBody = loadSkill ?? api.readCopywriterSkill;
+  const agentLabel = agent.short.toUpperCase();
   const [chatFile, setChatFile] = useState<ChatFile | null>(null);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -60,26 +80,132 @@ export function CopywriterChat({
   const [error, setError] = useState<string | null>(null);
   const [skillBody, setSkillBody] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  // Right rail: past conversations (per client + agent) and global prompts.
+  const [railTab, setRailTab] = useState<"history" | "prompts">("history");
+  const [chatList, setChatList] = useState<ChatHistoryItem[]>([]);
+  const [prompts, setPrompts] = useState<SavedPrompt[]>([]);
+  const [promptDraft, setPromptDraft] = useState<{
+    id: string | null;
+    title: string;
+    body: string;
+  } | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const streamIdRef = useRef<string | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load the copywriter skill text once. This becomes the persona body.
+  const refreshChatList = useCallback(() => {
+    api
+      .listChats(root, clientSlug, agent.slug)
+      .then(setChatList)
+      .catch((e) => console.error("list chats failed", e));
+  }, [root, clientSlug, agent.slug]);
+
+  // Load conversation history + saved prompts on mount / client change.
+  useEffect(() => {
+    refreshChatList();
+  }, [refreshChatList]);
+
+  useEffect(() => {
+    api
+      .listSavedPrompts(root)
+      .then(setPrompts)
+      .catch((e) => console.error("list saved prompts failed", e));
+  }, [root]);
+
+  // Persist the prompt list whenever it changes (skip the initial empty load by
+  // only writing on user actions — handled in the mutators below).
+  const persistPrompts = useCallback(
+    (next: SavedPrompt[]) => {
+      setPrompts(next);
+      api
+        .saveSavedPrompts(root, next)
+        .catch((e) => setError(`Could not save prompts: ${e}`));
+    },
+    [root],
+  );
+
+  const loadPastChat = useCallback(
+    async (path: string) => {
+      if (streaming) return;
+      try {
+        const file = await api.readChat(path);
+        setChatFile(file);
+        setInput("");
+        setAttachments([]);
+        setStreamText("");
+        setError(null);
+      } catch (e) {
+        setError(String(e));
+      }
+    },
+    [streaming],
+  );
+
+  const startNewChat = useCallback(() => {
+    if (streaming) return;
+    setChatFile(null);
+    setInput("");
+    setAttachments([]);
+    setStreamText("");
+    setError(null);
+    inputRef.current?.focus();
+  }, [streaming]);
+
+  const copyPrompt = useCallback(async (p: SavedPrompt) => {
+    try {
+      await navigator.clipboard.writeText(p.body);
+      setCopiedId(p.id);
+      setTimeout(() => setCopiedId((cur) => (cur === p.id ? null : cur)), 1400);
+    } catch {
+      // clipboard can fail silently; nothing actionable to show.
+    }
+  }, []);
+
+  const savePromptDraft = useCallback(() => {
+    if (!promptDraft) return;
+    const title = promptDraft.title.trim() || "Untitled";
+    const body = promptDraft.body.trim();
+    if (!body) return;
+    if (promptDraft.id) {
+      persistPrompts(
+        prompts.map((p) =>
+          p.id === promptDraft.id ? { ...p, title, body } : p,
+        ),
+      );
+    } else {
+      persistPrompts([
+        ...prompts,
+        { id: crypto.randomUUID(), title, body },
+      ]);
+    }
+    setPromptDraft(null);
+  }, [promptDraft, prompts, persistPrompts]);
+
+  const deletePrompt = useCallback(
+    (id: string) => {
+      persistPrompts(prompts.filter((p) => p.id !== id));
+    },
+    [prompts, persistPrompts],
+  );
+
+  // Load the skill persona text once. This becomes the persona body.
   useEffect(() => {
     let cancelled = false;
-    api
-      .readCopywriterSkill(root)
+    loadSkillBody(root)
       .then((body) => {
         if (!cancelled) setSkillBody(body);
       })
       .catch((e) => {
-        if (!cancelled) setError(`Could not load the copywriter skill: ${e}`);
+        if (!cancelled) setError(`Could not load the ${agent.name} skill: ${e}`);
       });
     return () => {
       cancelled = true;
     };
-  }, [root]);
+  }, [root, loadSkillBody, agent.name]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -136,21 +262,71 @@ export function CopywriterChat({
     return turns;
   }, [turns, streaming]);
 
+  const pickFiles = useCallback(async () => {
+    try {
+      const picked = await openDialog({
+        multiple: true,
+        directory: false,
+        filters: [
+          { name: "Data / text / PDF", extensions: ["csv", "tsv", "tab", "txt", "md", "json", "pdf"] },
+          { name: "All files", extensions: ["*"] },
+        ],
+      });
+      if (!picked) return;
+      const paths = Array.isArray(picked) ? picked : [picked];
+      for (const p of paths) {
+        try {
+          const att = await api.readAttachmentText(p);
+          setAttachments((prev) => [
+            ...prev,
+            { name: att.name, text: att.text, truncated: att.truncated },
+          ]);
+        } catch (e) {
+          setError(String(e));
+        }
+      }
+    } catch (e) {
+      setError(String(e));
+    }
+  }, []);
+
+  const removeAttachment = useCallback((idx: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
+  }, []);
+
   const submit = async () => {
-    const value = input.trim();
-    if (!value || streaming) return;
+    const typed = input.trim();
+    const files = attachments;
+    if ((!typed && files.length === 0) || streaming) return;
     if (!skillBody) {
-      setError("Copywriter skill not loaded yet, give it a moment.");
+      setError(`${agent.name} skill not loaded yet, give it a moment.`);
       return;
     }
 
+    // The visible message stays clean (typed text + a list of file names); the
+    // full file contents only go into the prompt so the thread isn't flooded
+    // with a pasted CSV. Each turn's stored body matches what's shown.
+    const fileBlocks = files
+      .map(
+        (a) =>
+          `--- Attached file: ${a.name}${a.truncated ? " (truncated)" : ""} ---\n\`\`\`\n${a.text}\n\`\`\``,
+      )
+      .join("\n\n");
+    const promptInput = files.length
+      ? `${typed}${typed ? "\n\n" : ""}${fileBlocks}`
+      : typed;
+    const displayBody = files.length
+      ? `${typed}${typed ? "\n\n" : ""}📎 Attached: ${files.map((a) => a.name).join(", ")}`
+      : typed;
+
     setError(null);
     setInput("");
+    setAttachments([]);
 
     let file = chatFile;
     if (!file) {
       try {
-        file = await api.createChat(root, COPYWRITER_AGENT.slug, value);
+        file = await api.createChat(root, agent.slug, displayBody, clientSlug);
         setChatFile(file);
       } catch (e) {
         setError(String(e));
@@ -162,7 +338,7 @@ export function CopywriterChat({
       role: "user",
       agent: null,
       at: new Date().toISOString(),
-      body: value,
+      body: displayBody,
     };
     try {
       await api.appendTurn(file.path, userTurn);
@@ -176,7 +352,7 @@ export function CopywriterChat({
 
     const placeholder: ChatTurn = {
       role: "agent",
-      agent: COPYWRITER_AGENT.name,
+      agent: agent.name,
       at: new Date().toISOString(),
       body: "",
     };
@@ -205,10 +381,10 @@ export function CopywriterChat({
     }
 
     const prompt = assemblePrompt({
-      agent: COPYWRITER_AGENT,
+      agent,
       agentBody: skillBody,
       history: historyForPrompt,
-      userInput: value,
+      userInput: promptInput,
       clientName,
       aboutNotes,
       clientNotes,
@@ -218,13 +394,14 @@ export function CopywriterChat({
       const full = await api.invokeClaude(id, prompt);
       const finalTurn: ChatTurn = {
         role: "agent",
-        agent: COPYWRITER_AGENT.name,
+        agent: agent.name,
         at: new Date().toISOString(),
         body: full || streamText,
       };
       await api.replaceLastTurn(file.path, finalTurn);
       const refreshed = await api.readChat(file.path);
       setChatFile(refreshed);
+      refreshChatList();
     } catch (e) {
       setError(String(e));
     } finally {
@@ -255,11 +432,12 @@ export function CopywriterChat({
     : "new conversation — will save on first send";
 
   return (
-    <div className="cw-chat" role="dialog" aria-label="Chat with the copywriter">
+    <div className="cw-chat" role="dialog" aria-label={`Chat with the ${agent.name}`}>
+      <div className="cw-main">
       <div className="drawer-head">
         <div>
-          <div className="drawer-head-eye">▸ COPYWRITER</div>
-          <div className="drawer-head-title">Copywriter</div>
+          <div className="drawer-head-eye">▸ {agentLabel}</div>
+          <div className="drawer-head-title">{agent.name}</div>
           <div className="drawer-head-meta">
             {headerMeta} · voice-matched to {clientName}
           </div>
@@ -278,7 +456,7 @@ export function CopywriterChat({
           return (
             <div className={`msg ${t.role} reveal reveal-${Math.min(i + 1, 5)}`} key={i}>
               <div className="msg-label">
-                {t.role === "user" ? "YOU ›" : "COPYWRITER ›"}
+                {t.role === "user" ? "YOU ›" : `${agentLabel} ›`}
                 {isAgent && hasBody && onSaveReply && (
                   <span className="msg-actions">
                     <button
@@ -292,16 +470,22 @@ export function CopywriterChat({
                   </span>
                 )}
               </div>
-              <div className="msg-body">{t.body}</div>
+              <div className="msg-body">
+                {isAgent ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{t.body}</ReactMarkdown>
+                ) : (
+                  t.body
+                )}
+              </div>
             </div>
           );
         })}
 
         {streaming && (
           <div className="msg agent reveal">
-            <div className="msg-label">COPYWRITER ›</div>
+            <div className="msg-label">{agentLabel} ›</div>
             <div className="msg-body">
-              {streamText}
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamText}</ReactMarkdown>
               <span className="caret" />
             </div>
           </div>
@@ -338,31 +522,209 @@ export function CopywriterChat({
             }}
             disabled={streaming}
           />
+        </div>
+        {attachments.length > 0 && (
+          <div className="cw-attachments">
+            {attachments.map((a, i) => (
+              <span className="cw-chip" key={`${a.name}-${i}`} title={a.name}>
+                <span className="cw-chip-name">
+                  📎 {a.name}
+                  {a.truncated ? " (truncated)" : ""}
+                </span>
+                <button
+                  type="button"
+                  className="cw-chip-x"
+                  aria-label={`Remove ${a.name}`}
+                  onClick={() => removeAttachment(i)}
+                  disabled={streaming}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="input-footer">
+          <button
+            type="button"
+            className="input-attach-btn"
+            onClick={pickFiles}
+            disabled={streaming}
+            title="Attach a file (CSV works best)"
+          >
+            + File
+          </button>
+          <div className="input-hints">
+            <div className="left">
+              <span>
+                <span className="kbd kbd-action">↵</span>send
+              </span>
+              <span>
+                <span className="kbd">⇧ ↵</span>new line
+              </span>
+              <span>
+                <span className="kbd">Esc</span>close
+              </span>
+            </div>
+            <div className="right">
+              <span>{agent.short} · {streaming ? "drafting" : "ready"}</span>
+            </div>
+          </div>
           <button
             className="input-send"
             onClick={submit}
-            disabled={streaming || input.trim().length === 0}
+            disabled={streaming || (input.trim().length === 0 && attachments.length === 0)}
           >
             {streaming ? "…" : "Send"}
           </button>
         </div>
-        <div className="input-hints">
-          <div className="left">
-            <span>
-              <span className="kbd kbd-action">↵</span>send
-            </span>
-            <span>
-              <span className="kbd">⇧ ↵</span>new line
-            </span>
-            <span>
-              <span className="kbd">Esc</span>close
-            </span>
-          </div>
-          <div className="right">
-            <span>Copywriter · {streaming ? "drafting" : "ready"}</span>
-          </div>
-        </div>
       </div>
+      </div>
+
+      <aside className="cw-rail">
+        <div className="cw-rail-tabs">
+          <button
+            type="button"
+            className={"cw-rail-tab" + (railTab === "history" ? " is-active" : "")}
+            onClick={() => setRailTab("history")}
+          >
+            Conversations
+          </button>
+          <button
+            type="button"
+            className={"cw-rail-tab" + (railTab === "prompts" ? " is-active" : "")}
+            onClick={() => setRailTab("prompts")}
+          >
+            Saved prompts
+          </button>
+        </div>
+
+        {railTab === "history" ? (
+          <div className="cw-rail-body">
+            <button
+              type="button"
+              className="cw-rail-new"
+              onClick={startNewChat}
+              disabled={streaming}
+            >
+              + New conversation
+            </button>
+            {chatList.length === 0 ? (
+              <div className="cw-rail-empty">No past conversations for {clientName} yet.</div>
+            ) : (
+              chatList.map((c) => {
+                const active = chatFile?.path === c.path;
+                return (
+                  <button
+                    type="button"
+                    key={c.path}
+                    className={"cw-rail-item" + (active ? " is-active" : "")}
+                    disabled={streaming}
+                    onClick={() => void loadPastChat(c.path)}
+                    title={c.title}
+                  >
+                    <span className="cw-rail-item-title">{c.title}</span>
+                    <span className="cw-rail-item-meta">
+                      {c.started_at ? c.started_at.slice(0, 10) : ""} · {c.turns} msg
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          <div className="cw-rail-body">
+            {promptDraft ? (
+              <div className="cw-prompt-edit">
+                <input
+                  className="cw-prompt-input"
+                  placeholder="Title"
+                  value={promptDraft.title}
+                  onChange={(e) =>
+                    setPromptDraft({ ...promptDraft, title: e.target.value })
+                  }
+                />
+                <textarea
+                  className="cw-prompt-textarea"
+                  placeholder="Prompt text (copy-paste only — never sent automatically)"
+                  rows={6}
+                  value={promptDraft.body}
+                  onChange={(e) =>
+                    setPromptDraft({ ...promptDraft, body: e.target.value })
+                  }
+                />
+                <div className="cw-prompt-edit-actions">
+                  <button
+                    type="button"
+                    className="cw-rail-btn primary"
+                    onClick={savePromptDraft}
+                    disabled={promptDraft.body.trim().length === 0}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    className="cw-rail-btn"
+                    onClick={() => setPromptDraft(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="cw-rail-new"
+                onClick={() => setPromptDraft({ id: null, title: "", body: "" })}
+              >
+                + Add prompt
+              </button>
+            )}
+            {!promptDraft && prompts.length === 0 ? (
+              <div className="cw-rail-empty">No saved prompts yet.</div>
+            ) : (
+              !promptDraft &&
+              prompts.map((p) => (
+                <div className="cw-prompt-item" key={p.id}>
+                  <button
+                    type="button"
+                    className="cw-prompt-copy"
+                    onClick={() => void copyPrompt(p)}
+                    title="Copy to clipboard"
+                  >
+                    <span className="cw-prompt-title">{p.title}</span>
+                    <span className="cw-prompt-hint">
+                      {copiedId === p.id ? "Copied" : "Copy"}
+                    </span>
+                  </button>
+                  <div className="cw-prompt-row-actions">
+                    <button
+                      type="button"
+                      className="cw-prompt-mini"
+                      onClick={() =>
+                        setPromptDraft({ id: p.id, title: p.title, body: p.body })
+                      }
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="cw-prompt-mini"
+                      onClick={() => deletePrompt(p.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </aside>
     </div>
   );
 }
+
+/** Agent-agnostic alias. Same component; name reads honestly when driving a
+ *  non-copywriter persona (e.g. the data analyst). */
+export const SkillChat = CopywriterChat;

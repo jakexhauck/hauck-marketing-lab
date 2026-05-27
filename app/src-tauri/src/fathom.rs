@@ -20,7 +20,11 @@ fn is_fathom_url(url: &str) -> bool {
 /// entirely. Replaces remaining tags with whitespace. Decodes a handful of
 /// common HTML entities. Collapses runs of whitespace.
 fn html_to_text(html: &str) -> String {
-    let drop_blocks = Regex::new(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>").unwrap();
+    // Rust's regex crate has no backreferences, so each block tag is spelled out.
+    let drop_blocks = Regex::new(
+        r"(?is)<script[^>]*>.*?</script>|<style[^>]*>.*?</style>|<noscript[^>]*>.*?</noscript>",
+    )
+    .unwrap();
     let no_blocks = drop_blocks.replace_all(html, " ");
     let tag = Regex::new(r"(?s)<[^>]+>").unwrap();
     let no_tags = tag.replace_all(&no_blocks, " ");
