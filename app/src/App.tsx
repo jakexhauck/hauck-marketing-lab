@@ -395,7 +395,7 @@ export default function App() {
         const url = encodePaneStateToUrl({ kind: "detached", slug: pane.clientSlug });
         new WebviewWindow(label, {
           url,
-          title: "Hauck Marketing Lab — Detached",
+          title: "Hauck Marketing Lab (Detached)",
           width: 1200,
           height: 900,
         });

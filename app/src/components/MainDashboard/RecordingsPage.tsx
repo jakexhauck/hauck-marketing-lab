@@ -223,7 +223,7 @@ export function RecordingsPage({ root, clients = [] }: RecordingsPageProps) {
           </div>
           <h1 className="hml-page-title">Fathom Recordings</h1>
           <div className="hml-page-subtitle">
-            Saved share links from Fathom — paste the URL, give it a title, watch inline.
+            Saved share links from Fathom. Paste the URL, give it a title, watch inline.
           </div>
         </div>
       </section>
@@ -270,7 +270,7 @@ export function RecordingsPage({ root, clients = [] }: RecordingsPageProps) {
             onChange={(e) => setRecClientSlug(e.target.value)}
             title="Assign this recording to a client (also makes it show up under that client's Recordings tab)"
           >
-            <option value="">— No client (agency-wide) —</option>
+            <option value="">(No client, agency-wide)</option>
             {clients.map((c) => (
               <option key={c.slug} value={c.slug}>
                 {c.name}
@@ -314,7 +314,7 @@ export function RecordingsPage({ root, clients = [] }: RecordingsPageProps) {
                 ) : (
                   <div className="md-rec-card md-rec-card-invalid">
                     <span className="md-rec-card-label">
-                      Invalid Fathom URL —{" "}
+                      Invalid Fathom URL:{" "}
                       <a href={r.url} target="_blank" rel="noreferrer">
                         {r.url}
                       </a>
@@ -358,7 +358,7 @@ export function RecordingsPage({ root, clients = [] }: RecordingsPageProps) {
                             : "Agency-wide (no client)"
                         }
                       >
-                        <option value="">— Unassigned —</option>
+                        <option value="">(Unassigned)</option>
                         {clients.map((c) => (
                           <option key={c.slug} value={c.slug}>
                             {c.name}

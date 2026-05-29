@@ -116,7 +116,7 @@ export function AdsSequenceAdvisor({
 
   const runAdvisor = async (forceRefresh: boolean) => {
     if (!formConfig) {
-      setError("This step has no form config — advisor unavailable.");
+      setError("This step has no form config. Advisor unavailable.");
       return;
     }
     const agent = findAgent(agents, formConfig.agentSlug);

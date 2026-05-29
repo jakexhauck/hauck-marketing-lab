@@ -296,7 +296,7 @@ const OFFER_CTA: FormConfig = {
 const EXPECTATIONS_EMAIL: FormConfig = {
   id: "expectations-email",
   title: "Expectations Email",
-  subtitle: "After the kickoff call — what happens in week 1 and what Jake needs from them.",
+  subtitle: "After the kickoff call: what happens in week 1 and what Jake needs from them.",
   eyebrow: "▸ EXPECTATIONS · VORTEX",
   eyebrowMeta: "ONBOARDING · DAY 1",
   phase: 2,
@@ -339,7 +339,7 @@ const EXPECTATIONS_EMAIL: FormConfig = {
           kind: "text",
           key: "first_check_in",
           label: "First check-in",
-          placeholder: "Wednesday — quick Loom review.",
+          placeholder: "Wednesday: quick Loom review.",
         },
         {
           kind: "text",
@@ -638,7 +638,7 @@ const COMPETITOR_RESEARCH: FormConfig = {
       ],
     },
     {
-      title: "▸ COMPETITOR ADS — paste from Meta Ad Library",
+      title: "▸ COMPETITOR ADS: paste from Meta Ad Library",
       meta: "required · open facebook.com/ads/library, search the niche + region, copy 5-10 ads that have been running 30+ days",
       fields: [
         {
@@ -693,7 +693,7 @@ const COMPETITOR_RESEARCH: FormConfig = {
 const AUDIENCE_BUILDER: FormConfig = {
   id: "audiences",
   title: "Audience Builder",
-  subtitle: "Returns 3-5 Meta audience configurations — broad, interest-stacked, lookalike — with reasoning.",
+  subtitle: "Returns 3-5 Meta audience configurations (broad, interest-stacked, lookalike) with reasoning.",
   eyebrow: "▸ AUDIENCES · STRATOS",
   eyebrowMeta: "ONBOARDING · DAYS 3-4",
   phase: 4,
@@ -893,7 +893,7 @@ const CAMPAIGN_STRUCTURE: FormConfig = {
 const PIXEL_INSTALL: FormConfig = {
   id: "pixel-install",
   title: "Pixel Install Walkthrough",
-  subtitle: "Step-by-step install guide tailored to the website platform — copy-paste snippets included.",
+  subtitle: "Step-by-step install guide tailored to the website platform: copy-paste snippets included.",
   eyebrow: "▸ PIXEL INSTALL · NEXUS",
   eyebrowMeta: "ONBOARDING · DAY 2",
   phase: 3,
@@ -1080,7 +1080,7 @@ const CREATIVE_BRIEF: FormConfig = {
           key: "hook",
           label: "Lead hook (optional)",
           promptLabel: "Lead hook",
-          placeholder: "If Jake already has one — drop it here.",
+          placeholder: "If Jake already has one, drop it here.",
         },
         {
           kind: "textarea",
@@ -1124,7 +1124,7 @@ const CREATIVE_BRIEF: FormConfig = {
           key: "do_nots",
           label: "Do-nots",
           promptLabel: "Do-nots",
-          placeholder: "Anything off-limits — claims, imagery, tone. (Pre-filled from Profile.)",
+          placeholder: "Anything off-limits: claims, imagery, tone. (Pre-filled from Profile.)",
           minRows: 2,
         },
         {
@@ -1347,7 +1347,7 @@ const AUDIENCE_RESEARCH: FormConfig = {
   id: "audience-research",
   title: "Audience Research",
   subtitle:
-    "Voice-of-customer research — motivations, objections, triggers, language, competitors, daily routine. Informs copy + creative, not targeting.",
+    "Voice-of-customer research: motivations, objections, triggers, language, competitors, daily routine. Informs copy + creative, not targeting.",
   eyebrow: "▸ AUDIENCE RESEARCH · NEXUS",
   eyebrowMeta: "TOOL · ANYTIME",
   category: "misc",
@@ -1448,7 +1448,7 @@ const WEEKLY_REPORT: FormConfig = {
   id: "weekly-report",
   title: "Weekly Ads Report",
   subtitle:
-    "Client-ready weekly update — numbers, what's working, what changed, what's next.",
+    "Client-ready weekly update: numbers, what's working, what changed, what's next.",
   eyebrow: "▸ WEEKLY REPORT · ZENITH",
   eyebrowMeta: "REPORT · WEEKLY",
   category: "reports",
@@ -1493,7 +1493,7 @@ const WEEKLY_REPORT: FormConfig = {
           key: "best_ad_name",
           label: "Best performing ad",
           promptPlaceholder: "[BEST AD NAME]",
-          placeholder: "V3 — streak-free guarantee UGC.",
+          placeholder: "V3: streak-free guarantee UGC.",
           required: true,
         },
         {
@@ -1539,21 +1539,21 @@ const WEEKLY_REPORT: FormConfig = {
           key: "paused_ads",
           label: "Ads paused (too expensive)",
           promptPlaceholder: "[PAUSED ADS]",
-          placeholder: "V1, V4 — CPL > $80.",
+          placeholder: "V1, V4: CPL > $80.",
         },
         {
           kind: "text",
           key: "scaled_ad",
           label: "Ad scaled (budget +)",
           promptPlaceholder: "[SCALED AD]",
-          placeholder: "V3 — bumped daily from $40 → $80.",
+          placeholder: "V3: bumped daily from $40 → $80.",
         },
         {
           kind: "text",
           key: "new_creatives",
           label: "New creatives added",
           promptPlaceholder: "[NEW CREATIVES]",
-          placeholder: "V5, V6 — testimonial UGC + before/after.",
+          placeholder: "V5, V6: testimonial UGC + before/after.",
         },
       ],
     },
@@ -1581,7 +1581,7 @@ Hey [CLIENT NAME]! Here's your weekly ads update:
 • Total Spend: $[TOTAL SPEND]
 • Total Leads: [TOTAL LEADS]
 • Cost Per Lead: $[COST PER LEAD]
-• Best Performing Ad: [BEST AD NAME] — $[BEST AD CPL]
+• Best Performing Ad: [BEST AD NAME], $[BEST AD CPL]
 
 🟢 WHAT'S WORKING
 • [TOP AD WHY]
@@ -1589,7 +1589,7 @@ Hey [CLIENT NAME]! Here's your weekly ads update:
 
 🔴 WHAT WE CHANGED
 • Paused [PAUSED ADS] (too expensive)
-• Increased budget on [SCALED AD] — best performer
+• Increased budget on [SCALED AD], best performer
 • Added [NEW CREATIVES] to keep things fresh
 
 📅 NEXT WEEK'S PLAN
@@ -1614,7 +1614,7 @@ const MONTHLY_REPORT: FormConfig = {
   id: "monthly-report",
   title: "Monthly Ads Report",
   subtitle:
-    "Full monthly recap — big numbers, MoM comparison, wins, challenges, next-month plan, recommendation.",
+    "Full monthly recap: big numbers, MoM comparison, wins, challenges, next-month plan, recommendation.",
   eyebrow: "▸ MONTHLY REPORT · ZENITH",
   eyebrowMeta: "REPORT · MONTHLY",
   category: "reports",
@@ -1762,7 +1762,7 @@ const MONTHLY_REPORT: FormConfig = {
           key: "top_ad_win",
           label: "Best performing ad / angle (and why)",
           promptPlaceholder: "[TOP AD WIN]",
-          placeholder: "V3 streak-free guarantee UGC — drove 41% of leads at $24 CPL.",
+          placeholder: "V3 streak-free guarantee UGC, drove 41% of leads at $24 CPL.",
           minRows: 3,
           required: true,
         },
@@ -1771,7 +1771,7 @@ const MONTHLY_REPORT: FormConfig = {
           key: "record_wins",
           label: "Record days / weeks",
           promptPlaceholder: "[RECORD WINS]",
-          placeholder: "May 18 — 14 leads in one day, all-time high.",
+          placeholder: "May 18: 14 leads in one day, all-time high.",
           minRows: 2,
         },
         {
@@ -1793,7 +1793,7 @@ const MONTHLY_REPORT: FormConfig = {
           key: "challenges",
           label: "What didn't work (and what was learned)",
           promptPlaceholder: "[CHALLENGES]",
-          placeholder: "Long-form video underperformed — audience prefers 15s hooks.",
+          placeholder: "Long-form video underperformed, audience prefers 15s hooks.",
           minRows: 3,
         },
         {
@@ -1845,7 +1845,7 @@ const MONTHLY_REPORT: FormConfig = {
           key: "recommendation",
           label: "Recommendation",
           promptPlaceholder: "[RECOMMENDATION]",
-          placeholder: "Increase monthly ad budget to $6k — current scale is bottlenecked by spend, not demand.",
+          placeholder: "Increase monthly ad budget to $6k, current scale is bottlenecked by spend, not demand.",
           minRows: 3,
           required: true,
         },
@@ -1854,7 +1854,7 @@ const MONTHLY_REPORT: FormConfig = {
   ],
   promptTemplate: `Output the following monthly performance report exactly as written below, substituting the values in place. Preserve all spacing, line breaks, emojis, and the column alignment in the MoM table. No preamble, no commentary, no closing remarks — just the report itself.
 
-📊 MONTHLY PERFORMANCE REPORT — [MONTH YEAR]
+📊 MONTHLY PERFORMANCE REPORT: [MONTH YEAR]
 [BUSINESS NAME] | Prepared by Jake Hauck
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

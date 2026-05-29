@@ -113,7 +113,7 @@ export function OutreachProspectPage({
       </section>
 
       <div className="hml-empty">
-        <div className="hml-empty-title">Prospect surface — more soon</div>
+        <div className="hml-empty-title">Prospect surface: more soon</div>
         <div className="hml-empty-sub">
           Contact info, sequence status, reply tracking will appear here.
         </div>

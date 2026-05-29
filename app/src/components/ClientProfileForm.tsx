@@ -141,13 +141,13 @@ export function ClientProfileForm({
             <div>
               <div className="hml-page-eyebrow">
                 <span className="hml-eyebrow-dot" />
-                {mode === "new" ? "New client — profile" : "Edit client profile"}
+                {mode === "new" ? "New client profile" : "Edit client profile"}
               </div>
               <h1 className="hml-page-title">{client.name}</h1>
               <div className="hml-page-subtitle">
                 Saved to <code>vault/Clients/{client.name}/Profile.md</code>.
                 Used to brief agents on every chat involving this client. All
-                fields are optional — fill in what you know now and come back
+                fields are optional. Fill in what you know now and come back
                 via <strong>Edit profile</strong> later.
               </div>
             </div>
@@ -164,7 +164,7 @@ export function ClientProfileForm({
               <div className="hml-panel-body" style={{ padding: "18px 22px 22px" }}>
                 <Field
                   label="Business name"
-                  hint="From client registry — not editable here."
+                  hint="From client registry, not editable here."
                 >
                   <input
                     className="hml-form-input"
@@ -284,7 +284,7 @@ export function ClientProfileForm({
                     onChange={(e) => setNiche(e.target.value)}
                     disabled={busy}
                   >
-                    <option value="">— Custom (no playbook) —</option>
+                    <option value="">(Custom, no playbook)</option>
                     {playbooks.map((p) => (
                       <option key={p.slug} value={p.slug}>
                         {p.display_name}

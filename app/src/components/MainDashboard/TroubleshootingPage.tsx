@@ -24,7 +24,7 @@ const SECTIONS: Section[] = [
     number: "01",
     title: "Ad Account Disabled",
     intro:
-      "Meta disables accounts frequently. It affects most media buyers at some point and is usually fixable — don't panic.",
+      "Meta disables accounts frequently. It affects most media buyers at some point and is usually fixable. Don't panic.",
     blocks: [
       { kind: "heading", body: "Initial steps" },
       {
@@ -44,7 +44,7 @@ const SECTIONS: Section[] = [
           {
             label: "Escalate via live chat",
             body:
-              "If the appeal stalls, open live chat support through Business Manager — a human reviewer can often reverse a wrongful disable.",
+              "If the appeal stalls, open live chat support through Business Manager. A human reviewer can often reverse a wrongful disable.",
           },
           {
             label: "Backup ad account",
@@ -73,7 +73,7 @@ const SECTIONS: Section[] = [
           {
             label: "Before/after imagery",
             body:
-              "Don't show transformation comparisons. Demonstrate the methodology instead — the process, the work, the system.",
+              "Don't show transformation comparisons. Demonstrate the methodology instead: the process, the work, the system.",
           },
           {
             label: "Income / earnings claims",
@@ -109,9 +109,9 @@ const SECTIONS: Section[] = [
         kind: "bullets",
         items: [
           { label: "Under 7 days elapsed", body: "Learning needs time. Don't touch it before the window closes." },
-          { label: "Some conversions coming in", body: "Volume is low but non-zero — the algorithm is gathering signal." },
+          { label: "Some conversions coming in", body: "Volume is low but non-zero, the algorithm is gathering signal." },
           { label: "Cost-per-conversion acceptable", body: "Even on the high end of target range, hold the line." },
-          { label: "Minimal edits", body: "Each edit restarts Learning — if you've been patient, keep being patient." },
+          { label: "Minimal edits", body: "Each edit restarts Learning. If you've been patient, keep being patient." },
         ],
       },
       { kind: "heading", body: "Reset conditions" },
@@ -119,7 +119,7 @@ const SECTIONS: Section[] = [
         kind: "bullets",
         items: [
           { label: "10+ days without progress", body: "If Learning hasn't exited and conversions aren't trending, it's not coming back." },
-          { label: "Zero conversions", body: "No signal at all — the targeting or creative is the problem, not patience." },
+          { label: "Zero conversions", body: "No signal at all. The targeting or creative is the problem, not patience." },
           { label: "Cost-per-conversion 3x+ over target", body: "Bleeding budget on the wrong audience. Cut your losses." },
           { label: "Multiple edits already made", body: "Learning has been restarted enough times that it's never going to settle." },
         ],
@@ -127,7 +127,7 @@ const SECTIONS: Section[] = [
       {
         kind: "callout",
         body:
-          "Significant edits — budget increases over 20%, new creative, audience changes — restart the Learning cycle. Plan edits in batches, not one at a time.",
+          "Significant edits (budget increases over 20%, new creative, audience changes) restart the Learning cycle. Plan edits in batches, not one at a time.",
       },
     ],
   },
@@ -143,7 +143,7 @@ const SECTIONS: Section[] = [
           {
             label: "Creative fatigue",
             body:
-              "Frequency at 3+ means the audience has seen it too many times. Launch fresh creative — new hooks, new angles, new formats.",
+              "Frequency at 3+ means the audience has seen it too many times. Launch fresh creative: new hooks, new angles, new formats.",
           },
           {
             label: "Audience saturation",
@@ -153,7 +153,7 @@ const SECTIONS: Section[] = [
           {
             label: "Competition",
             body:
-              "Other advertisers are bidding the same auction harder. The fix is better creative — winning the auction with stronger performance, not higher bids.",
+              "Other advertisers are bidding the same auction harder. The fix is better creative: winning the auction with stronger performance, not higher bids.",
           },
           {
             label: "Seasonality",
@@ -174,7 +174,7 @@ const SECTIONS: Section[] = [
       {
         kind: "bullets",
         items: [
-          { label: "Click the live ad", body: "Verify the form opens — not a stale draft, not a broken creative." },
+          { label: "Click the live ad", body: "Verify the form opens, not a stale draft, not a broken creative." },
           { label: "Submit test data", body: "Run a real submission through the form yourself." },
           {
             label: "Check Leads Center",
@@ -190,7 +190,7 @@ const SECTIONS: Section[] = [
           },
           {
             label: "Mobile + desktop",
-            body: "Test on both platforms — mobile is where most leads come from, but desktop catches different bugs.",
+            body: "Test on both platforms: mobile is where most leads come from, but desktop catches different bugs.",
           },
         ],
       },
@@ -217,7 +217,7 @@ export function TroubleshootingPage() {
           Trouble<span className="md-copper-text">shooting</span>
         </h1>
         <p className="ts-subtitle">
-          Common Meta Ads issues and how to resolve them — diagnose fast, fix faster.
+          Common Meta Ads issues and how to resolve them. Diagnose fast, fix faster.
         </p>
       </div>
 

@@ -102,7 +102,7 @@ export function ClientOverview({ clientName, clientSlug, client, root, onBack }:
               Open in Drive ↗
             </a>
           ) : (
-            <span className="md-card-cta md-card-cta--ghost">— not linked —</span>
+            <span className="md-card-cta md-card-cta--ghost">(not linked)</span>
           )}
         </div>
         {driveUrl ? (

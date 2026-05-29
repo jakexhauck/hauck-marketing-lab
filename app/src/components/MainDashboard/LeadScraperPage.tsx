@@ -278,7 +278,7 @@ export function LeadScraperPage({ root }: LeadScraperPageProps) {
           </button>
         </div>
         {files.length === 0 ? (
-          <div className="ls-log-empty">No CSVs yet — run a search and they'll show up here.</div>
+          <div className="ls-log-empty">No CSVs yet. Run a search and they'll show up here.</div>
         ) : (
           <div className="ls-file-list">
             {files.map((f) => (

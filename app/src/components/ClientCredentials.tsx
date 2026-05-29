@@ -251,7 +251,7 @@ export function ClientCredentials({ root, clientSlug, clientName }: Props) {
                         ? f.sensitive && !isRevealed
                           ? mask(loadedVal)
                           : loadedVal
-                        : "— not set —"}
+                        : "(not set)"}
                     </code>
                     {hasStored && f.sensitive && (
                       <button

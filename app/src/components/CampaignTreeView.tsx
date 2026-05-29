@@ -816,7 +816,7 @@ function AdCard({
             fillHeight
             value={ad.hook}
             onChange={(v) => onChange({ hook: v })}
-            placeholder="Add a hook — feeds the hooks + ad-copy forms"
+            placeholder="Add a hook: feeds the hooks and ad-copy forms"
           />
         </div>
       </div>

@@ -208,7 +208,7 @@ function NotLaunchedYet({
           lineHeight: 1.55,
         }}
       >
-        Once the first campaign goes live, performance data will appear here —
+        Once the first campaign goes live, performance data will appear here:
         KPIs, diagnosis, tracking pulse, and creative signals.
       </p>
       {onBackToOnboarding && (

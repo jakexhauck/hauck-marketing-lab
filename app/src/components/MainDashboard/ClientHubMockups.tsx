@@ -53,7 +53,7 @@ const PLACEHOLDER_ROWS: MockRow[] = [
     retainerStartedAt: "2026-02-12",
     adsLaunchedAt: "2026-02-26",
     nextCall: "2026-05-20",
-    notes: "Asked for second-city pixel — pending.",
+    notes: "Asked for second-city pixel, pending.",
   },
   {
     slug: "_demo_harbor",
@@ -64,7 +64,7 @@ const PLACEHOLDER_ROWS: MockRow[] = [
     retainerStartedAt: "2026-05-01",
     adsLaunchedAt: null,
     nextCall: "2026-05-14",
-    notes: "Onboarding 4/6 — waiting on tracking pixel.",
+    notes: "Onboarding 4/6, waiting on tracking pixel.",
   },
   {
     slug: "_demo_oakmark",
@@ -75,7 +75,7 @@ const PLACEHOLDER_ROWS: MockRow[] = [
     retainerStartedAt: "2025-11-08",
     adsLaunchedAt: "2025-11-22",
     nextCall: null,
-    notes: "Paused for owner sabbatical — resume in June.",
+    notes: "Paused for owner sabbatical, resume in June.",
   },
 ];
 
@@ -122,7 +122,7 @@ export function ClientHubMockups({ clients }: PageProps) {
           </div>
           <h1 className="hml-page-title">Client Dashboard</h1>
           <div className="hml-page-subtitle">
-            Four variations — pick one to wire up for real. Placeholder clients
+            Four variations: pick one to wire up for real. Placeholder clients
             are mixed in so the layouts have variety. <strong>Read-only.</strong>
           </div>
         </div>

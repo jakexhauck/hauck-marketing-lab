@@ -53,7 +53,7 @@ export function TasksNotes({ root }: TasksNotesProps) {
           </div>
           <h1 className="hml-page-title">Tasks &amp; Notes</h1>
           <div className="hml-page-subtitle">
-            Quick-capture for what you're juggling. Local-only — never leaves your machine.
+            Quick-capture for what you're juggling. Local-only. Never leaves your machine.
           </div>
         </div>
       </section>

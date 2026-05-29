@@ -172,7 +172,7 @@ export function RecentThreads({ chats, onOpen }: Props) {
       </div>
 
       {chats.length === 0 ? (
-        <div className="feed-empty">No threads yet — your first chat will appear here.</div>
+        <div className="feed-empty">No threads yet. Your first chat will appear here.</div>
       ) : visible.length === 0 ? (
         <div className="feed-empty">No threads match your filters.</div>
       ) : (

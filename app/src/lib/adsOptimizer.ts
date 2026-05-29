@@ -179,7 +179,7 @@ export function decideAd(input: DecideInput): Verdict {
   if (snapshot.ageHours < HOLD_YOUNG_HOURS) {
     return {
       kind: "HOLD_YOUNG",
-      reason: `Ad is ${snapshot.ageHours.toFixed(0)}h old. Wait until ${HOLD_YOUNG_HOURS}h before judging — early CPL is noise.`,
+      reason: `Ad is ${snapshot.ageHours.toFixed(0)}h old. Wait until ${HOLD_YOUNG_HOURS}h before judging. Early CPL is noise.`,
       confidence: 1,
       silent: true,
     };
@@ -188,7 +188,7 @@ export function decideAd(input: DecideInput): Verdict {
   if (snapshot.adSet7dConversions < LEARNING_PHASE_MIN_CONVERSIONS_7D) {
     return {
       kind: "HOLD_LEARNING",
-      reason: `Ad set has ${snapshot.adSet7dConversions} conversions in last 7d (needs ${LEARNING_PHASE_MIN_CONVERSIONS_7D} to exit learning). Don't touch — Meta is still learning.`,
+      reason: `Ad set has ${snapshot.adSet7dConversions} conversions in last 7d (needs ${LEARNING_PHASE_MIN_CONVERSIONS_7D} to exit learning). Don't touch. Meta is still learning.`,
       confidence: 1,
       silent: true,
     };
@@ -232,7 +232,7 @@ export function decideAd(input: DecideInput): Verdict {
       confidence: 0.92,
       action: {
         label: "Pause ad",
-        detail: "Sends a pause request to Meta. Reversible — you can resume any time.",
+        detail: "Sends a pause request to Meta. Reversible. You can resume any time.",
       },
       silent: false,
     };

@@ -861,7 +861,7 @@ function CallStep({
           <h2>Step 2 · Cold call the list</h2>
           <p>
             {rows.length} lead{rows.length === 1 ? "" : "s"} loaded from <code>{csvFile.name}</code>.
-            Dial each one. When someone picks up and agrees to a discovery, click <strong>Book appointment</strong> —
+            Dial each one. When someone picks up and agrees to a discovery, click <strong>Book appointment</strong>,
             the lead becomes a scheduled prospect. Mark the rest <em>No answer</em> or <em>Not interested</em> and move on.
           </p>
         </div>
@@ -1248,7 +1248,7 @@ function MockupStep({
           <p>
             {rows.length} booked prospect{rows.length === 1 ? "" : "s"}.
             Build a revamp HTML for each so you can show it on the discovery call.
-            <span className="os-pane-hint"> Optional — skip ahead if you'd rather build sites later.</span>
+            <span className="os-pane-hint"> Optional: skip ahead if you'd rather build sites later.</span>
           </p>
         </div>
         <div className="os-pane-actions">

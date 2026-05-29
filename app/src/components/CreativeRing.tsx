@@ -71,7 +71,7 @@ export function CreativeRing({ root, clientSlug }: Props) {
             </div>
           </div>
           <div className="pulse-line dim" style={{ marginTop: 12, paddingTop: 12 }}>
-            <strong>No data</strong> — add creatives via Edit to populate this
+            <strong>No data</strong>: add creatives via Edit to populate this
             panel.
           </div>
         </div>

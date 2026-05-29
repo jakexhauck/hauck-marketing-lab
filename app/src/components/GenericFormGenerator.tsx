@@ -555,7 +555,7 @@ export function GenericFormGenerator({
         setError(
           (prev) =>
             prev ??
-            "Generation finished but no text was returned. Try running again — if it keeps happening, run `claude --version` in a terminal to confirm the CLI is logged in and not rate-limited.",
+            "Generation finished but no text was returned. Try running again. If it keeps happening, run `claude --version` in a terminal to confirm the CLI is logged in and not rate-limited.",
         );
         return;
       }
@@ -1243,7 +1243,7 @@ export function GenericFormGenerator({
                     const stamp = new Date().toISOString().slice(0, 10);
                     const angleBits = [v.framework, v.hookRef.trim()]
                       .filter(Boolean)
-                      .join(" — ");
+                      .join(", ");
                     const title = angleBits
                       ? `${clientName} · Ad copy · ${angleBits} · ${stamp}`
                       : `${clientName} · Ad copy · ${stamp}`;

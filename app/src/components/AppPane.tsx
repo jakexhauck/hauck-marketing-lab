@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AgentFormsHub } from "./AgentFormsHub";
 import { AskDock } from "./AskDock";
 import { CampaignTreePickOverlay } from "./CampaignTreePickOverlay";
@@ -118,6 +118,20 @@ export function AppPane(props: AppPaneProps) {
 
   const paneRootRef = useRef<HTMLDivElement>(null);
   const { width: paneWidth, compact } = usePaneWidth(paneRootRef);
+
+  // Stable PaneContext value so consumers don't re-render every time this pane
+  // re-renders for unrelated state. rootRef is a stable ref; the rest are primitives.
+  const paneContextValue = useMemo(
+    () => ({
+      paneId,
+      isPrimary,
+      isDetached,
+      width: paneWidth,
+      compact,
+      rootRef: paneRootRef,
+    }),
+    [paneId, isPrimary, isDetached, paneWidth, compact],
+  );
 
   const [activeClientSlug, setActiveClientSlug] = useState<string>(initialClientSlug);
   const [clientStatus, setClientStatus] = useState<ClientStatus>("pre-launch");
@@ -725,16 +739,7 @@ export function AppPane(props: AppPaneProps) {
   ) : null;
 
   return (
-    <PaneContext.Provider
-      value={{
-        paneId,
-        isPrimary,
-        isDetached,
-        width: paneWidth,
-        compact,
-        rootRef: paneRootRef,
-      }}
-    >
+    <PaneContext.Provider value={paneContextValue}>
       <div
         ref={paneRootRef}
         className={`hml-pane${compact ? " hml-pane--compact" : ""}${isDetached ? " hml-pane--detached" : ""}`}

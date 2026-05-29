@@ -122,11 +122,13 @@ export const api = {
       clientSlug: clientSlug ?? null,
       agent: agent ?? null,
     }),
-  /** Global copy-paste prompt templates shown in the chat right-rail. */
-  listSavedPrompts: (root: string) =>
-    invoke<SavedPrompt[]>("list_saved_prompts", { root }),
-  saveSavedPrompts: (root: string, prompts: SavedPrompt[]) =>
-    invoke<void>("save_saved_prompts", { root, prompts }),
+  /** Copy-paste prompt templates shown in the chat right-rail, scoped per
+   *  chatbot by agent slug (e.g. "copywriter" vs "data-analyst") so one
+   *  persona's prompts never show up in another's. */
+  listSavedPrompts: (root: string, slug: string) =>
+    invoke<SavedPrompt[]>("list_saved_prompts", { root, slug }),
+  saveSavedPrompts: (root: string, slug: string, prompts: SavedPrompt[]) =>
+    invoke<void>("save_saved_prompts", { root, slug, prompts }),
   checkClaude: () => invoke<ClaudeCheck>("check_claude"),
   invokeClaude: (id: string, prompt: string) =>
     invoke<string>("invoke_claude", { id, prompt }),

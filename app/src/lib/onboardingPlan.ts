@@ -253,7 +253,7 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
               "&nbsp;&nbsp;• <code>View Contacts</code> &nbsp;+&nbsp; <code>Edit Contacts</code>",
               "&nbsp;&nbsp;• <code>View Opportunities</code> &nbsp;+&nbsp; <code>Edit Opportunities</code>",
               "&nbsp;&nbsp;• <code>View Conversations</code> &nbsp;+&nbsp; <code>Edit Conversations</code>",
-              "<strong>Step 5.</strong> Click <em>Create</em>. The token shows <strong>once</strong> — copy it now.",
+              "<strong>Step 5.</strong> Click <em>Create</em>. The token shows <strong>once</strong>. Copy it now.",
               "<strong>Step 6.</strong> Grab the location ID from the URL while you're in the sub-account: <code>app.gohighlevel.com/v2/location/<u>LOCATION_ID</u>/…</code>",
               "<strong>Step 7.</strong> In the desktop app, paste both into <em>Settings → GHL</em>. Token + location go into <code>data/&lt;slug&gt;/credentials.yaml</code>.",
             ],
@@ -314,7 +314,7 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
             "01ag-memory",
             "Dump everything you heard on the call into Memory.",
             [
-              "Fastest path: paste the Fathom recording link in the field below and hit save — it appends to <code>Memory.md</code> with today's date.",
+              "Fastest path: paste the Fathom recording link in the field below and hit save. It appends to <code>Memory.md</code> with today's date.",
               "Or open the Chat drawer and type <code>/remember &lt;fact&gt;</code> for one-off facts, or paste raw notes straight into <code>Memory.md</code>; format doesn't matter, agents read the lot.",
             ],
             {
@@ -491,7 +491,7 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
             "Send <em>ads are live</em> message to client.",
             [
               "<strong>Step 1.</strong> Open the GHL sub-account → <em>Conversations</em> → new message to the client.",
-              "<strong>Step 2.</strong> Use this template (paste verbatim, tweak the name):<br/>&nbsp;&nbsp;<em>Hi [Name] — ads just went live. First 5 to 7 days are the learning phase, so expect noisy numbers. First weekly report lands Monday with the real read. Reach out any time before then if questions pop up.</em>",
+              "<strong>Step 2.</strong> Use this template (paste verbatim, tweak the name):<br/>&nbsp;&nbsp;<em>Hi [Name], ads just went live. First 5 to 7 days are the learning phase, so expect noisy numbers. First weekly report lands Monday with the real read. Reach out any time before then if questions pop up.</em>",
               "<strong>Step 3.</strong> Send. Don't promise lead volume in this message, set expectations toward Monday.",
             ],
           ),
@@ -499,7 +499,7 @@ export const ONBOARDING_PLAN: OnboardingPhase[] = [
             "06-report",
             "Schedule first weekly report (Monday).",
             [
-              "<strong>Step 1.</strong> Open your calendar. Add a reminder: <em>Run weekly report — [Client Name]</em>, next Monday 9am, recurring weekly.",
+              "<strong>Step 1.</strong> Open your calendar. Add a reminder: <em>Run weekly report: [Client Name]</em>, next Monday 9am, recurring weekly.",
               "<strong>Step 2.</strong> On Monday, run the Data Analyst skill against the client's Meta ad account (last 7 days).",
               "<strong>Step 3.</strong> Drop the output into a short message: top numbers + 1 takeaway. Don't dump the full table.",
               "<strong>Step 4.</strong> Deliver via the GHL sub-account → Conversations. First report is light (5 to 7 days of learning-phase data), frame as a baseline not performance.",

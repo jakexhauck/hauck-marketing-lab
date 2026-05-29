@@ -202,7 +202,7 @@ export function AboutSettings({ root }: Props) {
       <div className="hml-panel-body set-body">
         <p className="set-note about-intro">
           These notes are read into every chat turn as the agent's system
-          context. Edit the markdown directly — frontmatter at the top of each
+          context. Edit the markdown directly. Frontmatter at the top of each
           file is hidden from this form but round-tripped on save.
         </p>
 

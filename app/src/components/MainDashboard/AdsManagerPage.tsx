@@ -945,7 +945,7 @@ function RecommendationsPanel({
             <div className="hml-ads-rec-body">
               {verdicts.size === 0
                 ? "Optimizer is off for every client on screen. Turn it on in Client Hub → Settings (Target CPL + Mode = Suggest)."
-                : "Every active ad is in the comfort band or hold state. Nothing to do — check back after the next 6-hour run."}
+                : "Every active ad is in the comfort band or hold state. Nothing to do. Check back after the next 6-hour run."}
               {Object.keys(counts).length > 0 && (
                 <span style={{ marginLeft: 8, color: "var(--hml-text-tertiary)" }}>
                   {Object.entries(counts)
@@ -1078,7 +1078,7 @@ function RecCard({
             {busy ? "Working…" : action!.label}
           </button>
         ) : (
-          <span className="hml-ads-rec-meta">No action — monitor only</span>
+          <span className="hml-ads-rec-meta">No action: monitor only</span>
         )}
         <span className="hml-ads-rec-meta">conf · {row.verdict.confidence.toFixed(2)}</span>
       </div>

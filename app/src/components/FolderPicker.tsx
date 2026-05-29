@@ -37,7 +37,7 @@ export function FolderPicker({ initialError, onPicked }: Props) {
         <div className="picker-eye">▸ FIRST LAUNCH · FOLDER SELECT</div>
         <h1>Point me at your media-buying folder, Sir.</h1>
         <p>
-          The folder is the source of truth — agents, skills, knowledge chunks, and chats all live
+          The folder is the source of truth: agents, skills, knowledge chunks, and chats all live
           inside it. I'll read from it and write new conversations back to <code>chats/</code>.
         </p>
 

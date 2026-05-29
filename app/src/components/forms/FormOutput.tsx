@@ -367,7 +367,7 @@ function AdCopyCard({
               dirty
                 ? "Save these edits so they survive navigating away"
                 : savedAt !== null
-                  ? "Saved — leave the step and come back, the edits are still here"
+                  ? "Saved. Leave the step and come back, the edits are still here"
                   : "Make a change to enable save"
             }
           >
@@ -618,7 +618,7 @@ function CompetitorCards({ payload }: { payload: CompetitorPayload }) {
               const label = direct ? "View ads on Meta Ad Library" : "Search Meta Ad Library";
               const tip = direct
                 ? `Direct page link verified by Stratos`
-                : `Keyword search for "${c.name}" — agent could not confirm a specific page`;
+                : `Keyword search for "${c.name}": agent could not confirm a specific page`;
               return (
                 <a
                   className={

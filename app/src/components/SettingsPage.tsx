@@ -474,7 +474,7 @@ export function SettingsPage({
                   <strong>Subfolder list empty?</strong> Your Google
                   authentication needs the new <code>drive.metadata.readonly</code>
                   {" "}scope so the app can see folders it didn't create. Click
-                  below to disconnect + reconnect Google in one shot — takes ~10
+                  below to disconnect + reconnect Google in one shot. Takes ~10
                   seconds.
                 </div>
                 <button

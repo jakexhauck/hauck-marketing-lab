@@ -134,7 +134,7 @@ export function TrackingPulse({ root, clientSlug }: Props) {
         {note && <div className="pulse-line">{note}</div>}
         {!hasAudit && (
           <div className="pulse-line dim" style={{ marginTop: 12, paddingTop: 12 }}>
-            <strong>No data</strong> — run a tracking audit to populate pixel,
+            <strong>No data</strong>: run a tracking audit to populate pixel,
             CAPI, and EMQ status.
           </div>
         )}

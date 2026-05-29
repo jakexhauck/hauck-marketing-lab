@@ -143,7 +143,7 @@ export function ClientDriveSettings({ client, root }: Props) {
     setRefreshMsg(null);
     try {
       await api.refreshDriveIndex(root, client.slug);
-      setRefreshMsg("Drive index refreshed — the Drive tab will show this folder's contents now.");
+      setRefreshMsg("Drive index refreshed. The Drive tab will show this folder's contents now.");
     } catch (e) {
       setRefreshMsg(`Refresh failed: ${String(e)}`);
     } finally {
@@ -556,7 +556,7 @@ function FolderSelect({ folders, selectedId, disabled, onChange }: FolderSelectP
       }}
       disabled={disabled}
     >
-      <option value="">— Not set —</option>
+      <option value="">(Not set)</option>
       {folders.map((f) => (
         <option key={f.id} value={f.id}>
           {f.name}

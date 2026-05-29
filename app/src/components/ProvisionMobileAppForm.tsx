@@ -132,8 +132,8 @@ export default function ProvisionMobileAppForm({
               {status.result.alreadyExisted
                 ? "User already existed in Supabase, reused that account."
                 : status.result.invited
-                  ? "Invite email sent — client clicks the link to set up access."
-                  : "User created silently — client requests a magic link from the app login page."}
+                  ? "Invite email sent. Client clicks the link to set up access."
+                  : "User created silently. Client requests a magic link from the app login page."}
             </li>
             <li>
               Tenant record upserted with the brand + GHL credentials you
@@ -185,7 +185,7 @@ export default function ProvisionMobileAppForm({
                 />
                 <span>
                   Send Supabase invite email now (recommended). Uncheck to
-                  create silently — client requests a magic link themselves.
+                  create silently. Client requests a magic link themselves.
                 </span>
               </label>
             </div>

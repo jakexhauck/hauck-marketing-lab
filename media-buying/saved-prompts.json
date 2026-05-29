@@ -1,0 +1,46 @@
+{
+  "copywriter": [
+    {
+      "id": "f36ce083-8b31-44eb-aab8-c28ea7c686ae",
+      "title": "Prompt 1A",
+      "body": "I have done some review research and scraped and analyzed hundreds of reviews for a [COMPANY/NICHE] in [STATE]\n\nImagine you are a professional direct response media buyer (META)\n\nYou are working with a client called: [CLIENT WEBSITE]\n\nI have pulled a bunch of reviews from competitors and our [clients reviews - GET RID OF IF NO CLIENT REVIEWS] which are attached\n\nBased on those reviews, I have pulled the top [X] pain points customers have.\n\nWhat I want you to do is write me 5 strong, scroll stopping hooks for each of the pain points.\n\nMake sure you are not using any testimonials that aren’t real in the hooks\n\n[LIST PAIN POINTS FROM MAIN PAGE IN GOOGLE SHEET]"
+    },
+    {
+      "id": "42339a5c-5928-4f02-9ba5-7b4416d35337",
+      "title": "Prompt 1B",
+      "body": "Your next step is too write me video scripts for each of the following hooks.\n\nEach video script should be approximately 30-45 seconds in length.\n\nMake sure you are following this core format for each video script:\n- Hook\n- Problem\n- Agitate\n- Solution\n- Call to Action\n\nThough you re following this core format/framework - please send them in straight text format without the time stamps\n\nPlease add in some form of proof for each such as their reviews (if provided), credibility, publishings, etc. Please pull the proof from their website, or from information in your knowledge base on this client\n\nUse all of the same information provided in this thread.\n\n[LIST PAIN POINTS FROM MAIN PAGE IN GOOGLE SHEET]"
+    },
+    {
+      "id": "fe515eb1-3aaf-45f4-9df1-dca11dd439b1",
+      "title": "Prompt 2",
+      "body": "After doing extensive competitor research, I have compiled hundreds of reviews of competitors that do [NICHE] in [STATE]\n\nOut of those hundreds of reviews I have compiled [X] of the most powerful ones to use inside of an AD Campaign.\n\nI need you to do is analyze the [X] reviews.\n\nThen create a hook “5-10 words max” containing each review, I can use in my marketing."
+    },
+    {
+      "id": "37e7a36d-098b-4793-ae5d-5071e513e16d",
+      "title": "Prompt 3A",
+      "body": "I want you to imagine you are a highly experienced copywriter. \n\nI want you to write me 3 versions of a META ad’s primary text using the following information. \n\nFor each ad, I want it to be medium to long in length, and i want you to use natural line breaks, emojis for added effect, and also ensure to start the copy with a location specific callout. \n\nI also want you to follow this formula when structuring the copy: \n\nP — Problem (hook)\nE — Explanation (your solution)\nR — Result (transformation)\nF — Friction (objections)\nO — Others (proof)\nR — Request (CTA)\nM — Motive (urgency / incentive)\n\nProduct information: \n\nCompany website: [ADD COMPANY WEBSITE]\n\nOffer: [ADD OFFER DETAILS]\n\nLocation for callout: [LOCATION]\n\nReviews: [RATING + TOTAL GOOGLE REVIEWS]\n\nProduct benefits: \n\n[PULL FROM PRODUCT SPECIFIC BENEFITS PAGE]\n\nHook / pain point to focus on:\n\n[ADD IN 1 PAIN POINT FROM MAIN SHEET WITH INFORMATION]"
+    },
+    {
+      "id": "bda81df5-0a88-4262-9723-1f09db7bf1a9",
+      "title": "Prompt 3B",
+      "body": "I want you to write me 3 headlines for the META ad.\n\nI want each headline to be short (5-7 words) and I want it in as little words as possible, tell the person what do next and why.\n\nProvide me with 3 different headline styles I can test."
+    }
+  ],
+  "data-analyst": [
+    {
+      "id": "feea6462-ab08-4ecb-8be8-dfe6b355506a",
+      "title": "Prompt #1",
+      "body": "Hi - I have uploaded a pdf including over [X] reviews for [NICHE] in [STATE[.\n\nCan you pull the top 7 pain points these customers had, that was solved by their experience with their experience with the company."
+    },
+    {
+      "id": "14d9a87d-c252-4cd0-8048-44d83f927660",
+      "title": "Prompt #2",
+      "body": "Now I want you to hand pick the top 5 reviews that would be the most powerful to use in an ad campaign\n\nProvide those to me."
+    },
+    {
+      "id": "882323e3-72a8-440d-8111-eb53f8280d37",
+      "title": "Prompt #3",
+      "body": "Please analyze this website: [ADD CLIENT WEBSITE]\n\nAlso analyze the companies reviews which I have uploaded [ONLY ADD IN IF COMPANY HAS REVIEWS]\n\nI need to find the companies top 5 benefits which sets them apart from their competition."
+    }
+  ]
+}

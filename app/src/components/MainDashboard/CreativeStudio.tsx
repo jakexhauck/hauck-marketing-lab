@@ -325,7 +325,7 @@ export function CreativeStudio({ root, clients, activeClientSlug }: Props) {
         <input
           type="text"
           className="cs-search-input"
-          placeholder="Search Replicate models — try 'nano banana', 'flux', 'kontext'…"
+          placeholder="Search Replicate models: try 'nano banana', 'flux', 'kontext'…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -443,7 +443,7 @@ export function CreativeStudio({ root, clients, activeClientSlug }: Props) {
                   onChange={(e) => setTargetClientSlug(e.target.value)}
                   className="cs-select-inline"
                 >
-                  <option value="">— pick client —</option>
+                  <option value="">(pick client)</option>
                   {clients.map((c) => (
                     <option key={c.slug} value={c.slug}>
                       {c.name}

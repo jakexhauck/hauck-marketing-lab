@@ -33,7 +33,7 @@ type Props = {
 const SKILL_CHIPS: SkillChip[] = defaultSkillChips();
 
 function fallbackSkillPrompt(chip: SkillChip, clientName: string): string {
-  return `Run the ${chip.label} skill for ${clientName}.\n\n(Skill file not found at media-buying/skills/${chip.category}/${chip.skillId}/SKILL.md — proceed using your built-in knowledge of this skill.)`;
+  return `Run the ${chip.label} skill for ${clientName}.\n\n(Skill file not found at media-buying/skills/${chip.category}/${chip.skillId}/SKILL.md, proceed using your built-in knowledge of this skill.)`;
 }
 
 export function ChatDrawer({
@@ -160,8 +160,8 @@ export function ChatDrawer({
     if (value.startsWith("/")) {
       const helpText =
         "Available commands:\n" +
-        "  /remember <fact>  — save a fact to this client's memory\n" +
-        "  /help, /?         — show this list";
+        "  /remember <fact>  : save a fact to this client's memory\n" +
+        "  /help, /?         : show this list";
 
       if (value === "/help" || value === "/?") {
         setError(null);
@@ -337,7 +337,7 @@ export function ChatDrawer({
 
   const headerMeta = chatFile
     ? `thread saving → ${chatFile.path.split(/[\\/]/).slice(-2).join("/")}`
-    : "new conversation — will save on first send";
+    : "new conversation, will save on first send";
 
   return (
     <div className="drawer" role="dialog" aria-label={`Conversation with ${activeAgent.name}`}>
@@ -432,7 +432,7 @@ export function ChatDrawer({
       </div>
 
       <div className="chips-wrap">
-        <div className="chips-label">QUICK SKILLS — click to scaffold a prompt</div>
+        <div className="chips-label">QUICK SKILLS: click to scaffold a prompt</div>
         {skillForm && (
           <div
             className="skill-form"
@@ -639,7 +639,7 @@ export function ChatDrawer({
               <div className="kpi-form-err">{memoryDraft.error}</div>
             )}
             <div className="kpi-form-foot">
-              <span className="kpi-form-hint">Manual only — agents never auto-save facts.</span>
+              <span className="kpi-form-hint">Manual only. Agents never auto-save facts.</span>
               <div className="kpi-form-actions">
                 <button
                   className="kpi-form-btn"

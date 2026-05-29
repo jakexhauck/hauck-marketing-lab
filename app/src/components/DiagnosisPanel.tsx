@@ -76,7 +76,7 @@ export function DiagnosisPanel({ root, clientSlug }: Props) {
         </div>
 
         <div className="diag-headline">
-          <strong>No data</strong> — run a Zenith diagnosis to populate
+          <strong>No data</strong>: run a Zenith diagnosis to populate
           findings.
         </div>
 

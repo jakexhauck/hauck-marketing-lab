@@ -299,7 +299,7 @@ export function DiagnosisForm({ root, agents, clientName, clientSlug, onClose }:
           </div>
           <textarea
             className="kpi-form-textarea"
-            placeholder="paste a campaign snapshot here — any format. Ad set names, daily numbers, screenshots-of-tables-as-text, anything Zenith can chew on."
+            placeholder="paste a campaign snapshot here: any format. Ad set names, daily numbers, screenshots-of-tables-as-text, anything Zenith can chew on."
             value={paste}
             onChange={(e) => setPaste(e.target.value)}
             disabled={streaming || !!saved}

@@ -248,7 +248,7 @@ export function Sidebar({
               const aurelius = agents?.find((a) => a.slug.toLowerCase() === "aurelius");
               if (aurelius) onSelectAgent?.(aurelius);
             }}
-            title="Talk to Aurelius — the only chat agent"
+            title="Talk to Aurelius: the only chat agent"
           >
             <span
               className="md-agent-initial"
