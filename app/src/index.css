@@ -1610,6 +1610,15 @@ body {
   opacity: 0.7;
   z-index: 1;
 }
+/* The copywriter chat embeds inline in the Ads wizard's "Generate ad copy"
+   step. Its flex row layout collapsed into a stack there, so force an explicit
+   two-column grid (thread | history rail) with a bounded, scrollable height. */
+.aw-active-body .cw-chat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  height: 72vh;
+  min-height: 480px;
+}
 /* Main chat column sits left of the rail. */
 .cw-main {
   display: flex;

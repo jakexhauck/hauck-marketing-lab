@@ -56,3 +56,6 @@ app/src-tauri/src/supabase_secrets.rs
 # Claude Code per-developer state
 .claude/settings.local.json
 .claude/worktrees/
+
+# Playwright MCP browser session artifacts (console logs, profile)
+.playwright-mcp/

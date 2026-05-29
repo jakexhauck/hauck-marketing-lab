@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root{
+    --bg:#0d1117;--panel:#161b22;--panel2:#1c2230;--line:#30363d;--ink:#e6edf3;--mut:#8b949e;
+    --keep:#3fb950;--del:#f85149;--trig:#58a6ff;
+    --c1:#58a6ff;--c2:#3fb950;--c3:#bc8cff;--c4:#d29922;
+    --font:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font);width:1480px;padding:56px 64px 64px}
+  .kick{color:var(--c4);font-weight:600;letter-spacing:.14em;font-size:13px;text-transform:uppercase}
+  h1{font-size:36px;font-weight:600;margin:8px 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--mut);font-size:16px;margin-bottom:34px}
+  table{width:100%;border-collapse:separate;border-spacing:0 10px}
+  th{text-align:left;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);font-weight:600;padding:0 16px 6px}
+  td{background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 16px;vertical-align:top;font-size:13.5px}
+  td:first-child{border-left:1px solid var(--line);border-radius:12px 0 0 12px}
+  td:last-child{border-right:1px solid var(--line);border-radius:0 12px 12px 0}
+  .wf{font-weight:600;font-size:14.5px}
+  .layer{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;margin-bottom:6px}
+  .L1{background:rgba(88,166,255,.16);color:var(--c1)}
+  .L3{background:rgba(188,140,255,.16);color:var(--c3)}
+  .L4{background:rgba(210,153,34,.16);color:var(--c4)}
+  .src{color:var(--mut)}
+  .keep{color:var(--keep)} .del{color:var(--del)} .trig{color:var(--trig)}
+  .ic{font-weight:700;margin-right:6px}
+  .rule{margin-top:30px;display:flex;align-items:center;gap:14px;background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.4);border-radius:14px;padding:18px 22px}
+  .rule .big{font-weight:600;font-size:16px;color:var(--keep)}
+  .rule p{color:var(--ink);font-size:14px}
+  .pill{display:inline-block;font-weight:700;color:#0d1117;background:var(--keep);border-radius:999px;padding:2px 10px;font-size:12.5px}
+</style>
+</head>
+<body>
+  <div class="kick">Hauck Marketing &middot; Clone-and-Trim Recipe</div>
+  <h1>How each new workflow gets built</h1>
+  <div class="sub">Clone the source (copy carries over verbatim), then keep one job and delete the rest. Original is never touched.</div>
+
+  <table>
+    <thead><tr><th style="width:21%">New workflow</th><th style="width:17%">Clone from</th><th style="width:22%">Keep</th><th style="width:22%">Delete</th><th style="width:18%">Trigger</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="layer L1">1 INTAKE</span><div class="wf">Intake - FB Lead</div></td>
+        <td class="src">Lead Form Follow Up's</td>
+        <td class="keep"><span class="ic">+</span>Lead-in email + SMS alerts, FB Lead tag</td>
+        <td class="del"><span class="ic">&times;</span>the whole drip (Thanks, SMS 1/2, Email 2, Final, branches)</td>
+        <td class="trig">FB Lead Form submitted</td>
+      </tr>
+      <tr>
+        <td><span class="layer L1">1 INTAKE</span><div class="wf">Intake - FB Survey</div></td>
+        <td class="src">FB Survey / Quiz Submitted</td>
+        <td class="keep"><span class="ic">+</span>source tag + team notify</td>
+        <td class="del"><span class="ic">&times;</span>any follow-up steps</td>
+        <td class="trig">Survey submitted</td>
+      </tr>
+      <tr>
+        <td><span class="layer L1">1 INTAKE</span><div class="wf">Intake - Website</div></td>
+        <td class="src">Website Form</td>
+        <td class="keep"><span class="ic">+</span>Website tag + team notify</td>
+        <td class="del"><span class="ic">&times;</span>the drip</td>
+        <td class="trig">Website Form submitted</td>
+      </tr>
+      <tr>
+        <td><span class="layer L1">1 INTAKE</span><div class="wf">Intake - Chat</div></td>
+        <td class="src">Chat Widget</td>
+        <td class="keep"><span class="ic">+</span>Chat tag + team notify</td>
+        <td class="del"><span class="ic">&times;</span>the drip</td>
+        <td class="trig">Chat Widget reply</td>
+      </tr>
+      <tr>
+        <td><span class="layer L4">4 APPTS</span><div class="wf">Confirmation &amp; Reminders</div></td>
+        <td class="src">Intro Call Booked</td>
+        <td class="keep"><span class="ic">+</span>confirmation SMS, add 24h / 1h reminders</td>
+        <td class="del"><span class="ic">&times;</span>pipeline-move step, reply branches</td>
+        <td class="trig">Appointment booked</td>
+      </tr>
+      <tr>
+        <td><span class="layer L4">4 APPTS</span><div class="wf">Winback</div></td>
+        <td class="src">Intro Call Winback Sequence</td>
+        <td class="keep"><span class="ic">+</span>the multi-day SMS / Email drip</td>
+        <td class="del"><span class="ic">&times;</span>Update Pipeline + Move To Abandoned (broken)</td>
+        <td class="trig">Stage = Winback</td>
+      </tr>
+      <tr>
+        <td><span class="layer L4">4 APPTS</span><div class="wf">No-Show Recovery</div></td>
+        <td class="src">No-Show Alert REDO</td>
+        <td class="keep"><span class="ic">+</span>callback / rebook logic</td>
+        <td class="del"><span class="ic">&times;</span>fix the broken Update Pipeline step</td>
+        <td class="trig">Status = no-show</td>
+      </tr>
+      <tr>
+        <td><span class="layer L3">3 PIPELINE</span><div class="wf">FB Ads &rarr; Sales</div></td>
+        <td class="src">Estimate Reminders</td>
+        <td class="keep"><span class="ic">+</span>the pipeline-move logic</td>
+        <td class="del"><span class="ic">&times;</span>nothing (just rename it correctly)</td>
+        <td class="trig">Appointment status</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="rule">
+    <span class="big">The one rule</span>
+    <p>Every Intake ends by adding the <span class="pill">new-lead</span> tag. Speed-to-Lead is the only workflow that runs follow-ups, and it triggers on that tag. That single hand-off keeps the whole system congruent.</p>
+  </div>
+</body>
+</html>
