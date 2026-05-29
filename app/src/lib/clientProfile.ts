@@ -41,7 +41,7 @@ const debulletize = (text: string): string =>
 /** Build a Profile.md body from form values. */
 export function buildProfileBody(client: ClientEntry, form: ProfileFormValues): string {
   return [
-    `# ${client.name} — Profile`,
+    `# ${client.name}: Profile`,
     "",
     "## Business",
     form.business.trim(),

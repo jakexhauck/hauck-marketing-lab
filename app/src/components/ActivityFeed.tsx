@@ -37,7 +37,7 @@ export function ActivityFeed({ chats, knowledgeCount }: Props) {
 
       {recent.length === 0 ? (
         <div className="feed-empty">
-          No chats yet. Open the chat drawer to start the first conversation —
+          No chats yet. Open the chat drawer to start the first conversation,
           it will save to <code>chats/</code> as a markdown file.
         </div>
       ) : (

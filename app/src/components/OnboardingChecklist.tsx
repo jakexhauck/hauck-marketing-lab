@@ -1280,7 +1280,7 @@ function TaskRow({
                 type="button"
                 className="ob-na-btn"
                 onClick={onToggleSkip}
-                title="Don't have this — cross it out"
+                title="Don't have this: cross it out"
               >
                 N/A
               </button>

@@ -367,7 +367,7 @@ export function CalendarPage({ root, onBack, clients = [] }: CalendarPageProps) 
           </div>
           <h1 className="hml-page-title">Calendar</h1>
           <div className="hml-page-subtitle">
-            {connection?.label ?? "Google Calendar"} — read-only view of your schedule.
+            {connection?.label ?? "Google Calendar"}: read-only view of your schedule.
           </div>
         </div>
         <div className="hml-page-header-actions">
@@ -414,7 +414,7 @@ export function CalendarPage({ root, onBack, clients = [] }: CalendarPageProps) 
 
       {fetchError ? (
         <div className="md-cal-page-error">
-          Calendar fetch failed — {fetchError}
+          Calendar fetch failed: {fetchError}
         </div>
       ) : null}
 
@@ -594,7 +594,7 @@ export function CalendarPage({ root, onBack, clients = [] }: CalendarPageProps) 
                                 )
                               }
                             >
-                              <option value="">— Unassigned —</option>
+                              <option value="">(Unassigned)</option>
                               {clients.map((c) => (
                                 <option key={c.slug} value={c.slug}>
                                   {c.name}

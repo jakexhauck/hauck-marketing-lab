@@ -677,7 +677,7 @@ export function AdCreativeStudio({
               <input
                 type="text"
                 className="acs-input"
-                placeholder="Search Replicate models — 'flux', 'kontext', 'nano banana'…"
+                placeholder="Search Replicate models: 'flux', 'kontext', 'nano banana'…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -898,7 +898,7 @@ export function AdCreativeStudio({
                                 previewUrl: s.previewUrl,
                               })
                             }
-                            title="Send to campaign tree — click an ad slot to attach."
+                            title="Send to campaign tree: click an ad slot to attach."
                           >
                             ↗ To tree
                           </button>

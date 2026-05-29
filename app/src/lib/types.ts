@@ -126,7 +126,7 @@ export type ChatHistoryItem = {
   turns: number;
 };
 
-/** A global copy-paste prompt template (right-rail "Prompts" tab). */
+/** A copy-paste prompt template (right-rail "Prompts" tab), scoped per chatbot. */
 export type SavedPrompt = {
   id: string;
   title: string;

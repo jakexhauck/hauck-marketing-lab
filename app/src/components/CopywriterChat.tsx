@@ -82,7 +82,8 @@ export function CopywriterChat({
   const [saving, setSaving] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
 
-  // Right rail: past conversations (per client + agent) and global prompts.
+  // Right rail: past conversations (per client + agent) and saved prompts
+  // (per agent — each persona keeps its own set).
   const [railTab, setRailTab] = useState<"history" | "prompts">("history");
   const [chatList, setChatList] = useState<ChatHistoryItem[]>([]);
   const [prompts, setPrompts] = useState<SavedPrompt[]>([]);
@@ -111,10 +112,10 @@ export function CopywriterChat({
 
   useEffect(() => {
     api
-      .listSavedPrompts(root)
+      .listSavedPrompts(root, agent.slug)
       .then(setPrompts)
       .catch((e) => console.error("list saved prompts failed", e));
-  }, [root]);
+  }, [root, agent.slug]);
 
   // Persist the prompt list whenever it changes (skip the initial empty load by
   // only writing on user actions — handled in the mutators below).
@@ -122,10 +123,10 @@ export function CopywriterChat({
     (next: SavedPrompt[]) => {
       setPrompts(next);
       api
-        .saveSavedPrompts(root, next)
+        .saveSavedPrompts(root, agent.slug, next)
         .catch((e) => setError(`Could not save prompts: ${e}`));
     },
-    [root],
+    [root, agent.slug],
   );
 
   const loadPastChat = useCallback(
@@ -429,7 +430,7 @@ export function CopywriterChat({
 
   const headerMeta = chatFile
     ? `thread saving → ${chatFile.path.split(/[\\/]/).slice(-2).join("/")}`
-    : "new conversation — will save on first send";
+    : "new conversation, will save on first send";
 
   return (
     <div className="cw-chat" role="dialog" aria-label={`Chat with the ${agent.name}`}>
@@ -646,7 +647,7 @@ export function CopywriterChat({
                 />
                 <textarea
                   className="cw-prompt-textarea"
-                  placeholder="Prompt text (copy-paste only — never sent automatically)"
+                  placeholder="Prompt text (copy-paste only, never sent automatically)"
                   rows={6}
                   value={promptDraft.body}
                   onChange={(e) =>

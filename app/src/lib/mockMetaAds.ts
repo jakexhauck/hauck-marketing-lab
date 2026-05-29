@@ -146,11 +146,11 @@ function makeAd(
   const formats: AdCreative["format"][] = ["image", "video", "carousel"];
   const headlines = [
     "Free quote in under 60 seconds",
-    "Done in a day — no mess, no upsell",
+    "Done in a day, no mess, no upsell",
     "See why 200+ neighbors trust us",
     "Same-week service, every time",
     "Local crew. Real reviews. Real fast.",
-    "Spring special — limited slots",
+    "Spring special: limited slots",
     "We do this. You don't have to.",
   ];
   const primaries = [
@@ -162,7 +162,7 @@ function makeAd(
 
   return {
     id,
-    name: `Ad ${adIdx + 1} — ${headlines[(hashSlug(id) + adIdx) % headlines.length].slice(0, 28)}`,
+    name: `Ad ${adIdx + 1}: ${headlines[(hashSlug(id) + adIdx) % headlines.length].slice(0, 28)}`,
     status: rng() > 0.85 ? "paused" : rng() > 0.75 ? "learning" : "active",
     creative: {
       id: `cr-${id}`,
@@ -194,10 +194,10 @@ function makeAdSet(
 ): MetaAdSet {
   const audiences = [
     "Homeowners 35-65 · 25mi radius",
-    "Lookalike 1% — Past customers",
-    "Retargeting — Site visitors 30d",
-    "Interest stack — Home services",
-    "Broad — Local geo",
+    "Lookalike 1%: Past customers",
+    "Retargeting: Site visitors 30d",
+    "Interest stack: Home services",
+    "Broad: Local geo",
     "Engagement audience 180d",
   ];
   const id = `${campaignSlug}-as${idx}`;
@@ -238,7 +238,7 @@ function makeCampaign(
   const names = [
     "Win-Replacement-Q2",
     "Brand Awareness",
-    "Retargeting — 30d",
+    "Retargeting: 30d",
     "Spring Promo",
     "Lookalike Push",
     "Local Coverage",
@@ -316,7 +316,7 @@ function makeDailySeries(
  */
 const PER_CLIENT_OVERRIDES: Record<string, Partial<MetaAdsAccount> & { baseCpa?: number; baseRoas?: number }> = {
   "willis-windows": {
-    accountName: "Willis Windows — Meta Ads",
+    accountName: "Willis Windows: Meta Ads",
     accountId: "act_1234567890",
     baseCpa: 38,
     baseRoas: 4.2,
@@ -364,7 +364,7 @@ export function getMockAdsAccount(
 
   return {
     accountId: override.accountId ?? `act_${seed.toString().slice(-10)}`,
-    accountName: override.accountName ?? `${clientName} — Meta Ads`,
+    accountName: override.accountName ?? `${clientName}: Meta Ads`,
     currency: "USD",
     clientSlug,
     clientName,

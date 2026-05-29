@@ -1703,7 +1703,7 @@ function RevenueTracker({
           {indexedRows.length === 0 ? (
             <tr>
               <td colSpan={7} className="ops-empty-row">
-                No months tracked yet — add one below.
+                No months tracked yet. Add one below.
               </td>
             </tr>
           ) : (

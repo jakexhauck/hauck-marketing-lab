@@ -533,7 +533,7 @@ export function WebDesignerPage({ root, clientSlug, clientName }: WebDesignerPag
             <h1 className="hml-page-title">What are we building today?</h1>
             <div className="hml-page-subtitle">
               Pick a mode below. The agent generates a complete responsive landing
-              page using the info you provide — saved straight to{" "}
+              page using the info you provide, saved straight to{" "}
               <code style={{ fontFamily: "var(--hml-font-mono)", color: "var(--hml-accent)" }}>
                 vault/Clients/{clientName}/website/
               </code>.
@@ -554,7 +554,7 @@ export function WebDesignerPage({ root, clientSlug, clientName }: WebDesignerPag
             <div className="wd-tile-cmd">/build-site</div>
             <div className="wd-tile-desc">
               Generate a complete landing page from business name, niche, city, phone, and
-              services. Hero, trust, testimonials, contact — all included.
+              services. Hero, trust, testimonials, contact. All included.
             </div>
             <div className="wd-tile-meta">
               <span className="wd-meta-dur">~90s</span> · single HTML file
@@ -758,7 +758,7 @@ export function WebDesignerPage({ root, clientSlug, clientName }: WebDesignerPag
             <h3>Recent sites</h3>
             <span className="wd-recents-info">
               {recents.length === 0
-                ? "No sites yet — build one above."
+                ? "No sites yet. Build one above."
                 : `${recents.length} file${recents.length === 1 ? "" : "s"} · ${clientName}/websites/`}
             </span>
           </div>

@@ -91,7 +91,7 @@ export function Hero({ clientName, root, clientSlug, onOpenDiagnosis }: Props) {
       ) : (
         <>
           <h1>
-            <span className="tag">No data</span> — no diagnosis on file for{" "}
+            <span className="tag">No data</span>: no diagnosis on file for{" "}
             {clientName} yet.
           </h1>
           <p className="hero-body">

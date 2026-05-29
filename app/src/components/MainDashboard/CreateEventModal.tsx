@@ -115,7 +115,7 @@ export function CreateEventModal({ open, onClose, defaultDate, onCreated }: Prop
         <input
           type="text"
           className="md-modal-input"
-          placeholder="Deep work — outreach"
+          placeholder="Deep work: outreach"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           disabled={saving}

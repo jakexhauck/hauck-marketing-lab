@@ -273,7 +273,7 @@ export function Phase1CascadeModal({
         await runAction(step, s.draft, s.subject, { client, intakeFormUrl });
         await logActivity(root, {
           type: "outreach.sent",
-          summary: step.activitySummary + ` — ${client.name}`,
+          summary: step.activitySummary + `: ${client.name}`,
           clientSlug: client.slug,
           meta: { cascade: PHASE_1_CASCADE.id, step: step.id },
         });
@@ -569,7 +569,7 @@ async function runAction(
 ): Promise<void> {
   if (step.action === "gmail-draft") {
     const body = extractEmailBody(draft);
-    const sub = subject || `${step.label} — ${ctx.client.name}`;
+    const sub = subject || `${step.label}: ${ctx.client.name}`;
     const prompt = gmailDraftPrompt({ to: null, subject: sub, body });
     const id = crypto.randomUUID();
     await api.invokeClaude(id, prompt);
@@ -581,7 +581,7 @@ async function runAction(
     start.setHours(10, 0, 0, 0);
     const end = new Date(start.getTime() + 30 * 60 * 1000);
     await api.googleCalendarCreateEvent({
-      title: `Kickoff call — ${ctx.client.name}`,
+      title: `Kickoff call: ${ctx.client.name}`,
       startIso: start.toISOString(),
       endIso: end.toISOString(),
       description:

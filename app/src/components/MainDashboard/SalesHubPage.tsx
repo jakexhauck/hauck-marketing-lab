@@ -203,7 +203,7 @@ function BookingCalendarBanner({ root }: { root: string | null }) {
           borderRadius: 8,
         }}
       >
-        Booking calendar setup failed — {state.message}.{" "}
+        Booking calendar setup failed: {state.message}.{" "}
         <button
           type="button"
           onClick={() => void load()}

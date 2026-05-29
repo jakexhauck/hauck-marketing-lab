@@ -82,7 +82,7 @@ export function ResourcesPage(_props: ResourcesPageProps) {
               </div>
               <ul className="rsx-rail-list">
                 {items.length === 0 ? (
-                  <li className="rsx-rail-empty">— nothing here yet</li>
+                  <li className="rsx-rail-empty">Nothing here yet</li>
                 ) : (
                   items.map((art) => (
                     <li key={art.id}>

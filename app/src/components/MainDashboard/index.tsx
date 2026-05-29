@@ -683,7 +683,7 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
       onOpenDrive={
         c.drive_folder_url
           ? () => {
-              openInAppWindow(c.drive_folder_url!, `${c.name} — Drive`);
+              openInAppWindow(c.drive_folder_url!, `${c.name}: Drive`);
             }
           : undefined
       }
@@ -892,7 +892,7 @@ function DashboardSurface({
   const handleSaveConnection = useCallback(
     async (apiKey: string, calendarId: string, label: string) => {
       if (!root) {
-        throw new Error("No media-buying folder selected — pick a folder first.");
+        throw new Error("No media-buying folder selected. Pick a folder first.");
       }
       const current: DashboardState = await api.readDashboardState(root);
       const nextConn: CalendarConnection = {
@@ -958,7 +958,7 @@ function DashboardSurface({
           </div>
           <div className="hml-stat-value">
             {clientCount}
-            <span className="hml-stat-delta hml-flat">— stable</span>
+            <span className="hml-stat-delta hml-flat">stable</span>
           </div>
         </div>
         <div className="hml-stat-card">
@@ -971,7 +971,7 @@ function DashboardSurface({
             {callsBookedToday > 0 ? (
               <span className="hml-stat-delta hml-pos">today</span>
             ) : (
-              <span className="hml-stat-delta hml-flat">— none yet</span>
+              <span className="hml-stat-delta hml-flat">none yet</span>
             )}
           </div>
         </div>
@@ -985,7 +985,7 @@ function DashboardSurface({
             {todayEvents.length > 0 ? (
               <span className="hml-stat-delta hml-warn">on calendar</span>
             ) : (
-              <span className="hml-stat-delta hml-flat">— clear</span>
+              <span className="hml-stat-delta hml-flat">clear</span>
             )}
           </div>
         </div>
@@ -1003,7 +1003,7 @@ function DashboardSurface({
             background: "var(--hml-red-bg)",
           }}
         >
-          Calendar fetch failed — try Reconnect.
+          Calendar fetch failed. Try Reconnect.
         </div>
       ) : null}
 

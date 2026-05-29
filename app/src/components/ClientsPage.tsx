@@ -307,7 +307,7 @@ export function ClientsPage({
                     onChange={(e) => setNewNiche(e.target.value)}
                     disabled={busy}
                   >
-                    <option value="">— Custom (no playbook) —</option>
+                    <option value="">(Custom, no playbook)</option>
                     {playbooks.map((p) => (
                       <option key={p.slug} value={p.slug}>
                         {p.display_name}
@@ -396,7 +396,7 @@ export function ClientsPage({
                           }
                           disabled={busy}
                         >
-                          <option value="">— none (use defaults) —</option>
+                          <option value="">(none, use defaults)</option>
                           {benchmarkSets.map((b) => (
                             <option key={b.filename} value={b.filename}>
                               {b.title}
@@ -455,7 +455,7 @@ export function ClientsPage({
                               onClick={(e) => {
                                 e.preventDefault();
                                 if (c.drive_folder_url) {
-                                  openInAppWindow(c.drive_folder_url, `${c.name} — Drive`);
+                                  openInAppWindow(c.drive_folder_url, `${c.name}: Drive`);
                                 }
                               }}
                             >

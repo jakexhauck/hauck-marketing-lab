@@ -1,20 +1,20 @@
-﻿/**
+/**
  * ClientDashboard, per-client surface.
  *
  * No sub-nav of its own. The left sidebar (AppSidebar) renders the per-client
- * section list (Onboarding Â· Dashboard Â· Ads Â· Recordings Â· Websites Â· Drive
- * Â· Reporting Â· Settings) and drives `section`. We just render the active
+ * section list (Onboarding · Dashboard · Ads · Recordings · Websites · Drive
+ * · Reporting · Settings) and drives `section`. We just render the active
  * pane based on it.
  *
  * Section map:
- *   onboarding â†’ OnboardingChecklist (pre-launch only, sidebar hides it after)
- *   dashboard  â†’ ClientOverviewPanel (stats, account status, key dates)
- *   ads        â†’ Meta Ads Manager on top + non-reporting forms underneath
- *   recordings â†’ Fathom transcript ingest + per-client recordings list
- *   websites   â†’ WebDesignerPage
- *   drive      â†’ ClientDriveView
- *   reporting  â†’ Weekly + Monthly report forms only
- *   settings   â†’ Profile editor + Memory.md view
+ *   onboarding → OnboardingChecklist (pre-launch only, sidebar hides it after)
+ *   dashboard  → ClientOverviewPanel (stats, account status, key dates)
+ *   ads        → Meta Ads Manager on top + non-reporting forms underneath
+ *   recordings → Fathom transcript ingest + per-client recordings list
+ *   websites   → WebDesignerPage
+ *   drive      → ClientDriveView
+ *   reporting  → Weekly + Monthly report forms only
+ *   settings   → Profile editor + Memory.md view
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -322,7 +322,7 @@ function ClientSettingsPanel({
 }
 
 /**
- * Optimizer settings â€” operator enters LTV (avg customer value), the app
+ * Optimizer settings — operator enters LTV (avg customer value), the app
  * derives target CPA as LTV / target_ROAS. Default ROAS is 3.0 (lesson 3.2's
  * "client is happy" floor). Optional override for niches the math doesn't
  * fit. Until LTV (or override) is set, the optimizer skips this client.
@@ -459,7 +459,7 @@ function ClientOptimizerSettings({
           24/7 campaign optimizer
         </div>
         <div style={{ fontSize: 12, color: "var(--hml-text-tertiary)", marginTop: 4 }}>
-          KILL at 3Ã— target CPA Â· WATCH at 1.5-3Ã— Â· SCALE +25% at â‰¤target Â· REFRESH at freq 3.0+
+          KILL at 3× target CPA · WATCH at 1.5-3× · SCALE +25% at ≤target · REFRESH at freq 3.0+
         </div>
       </header>
 
@@ -479,7 +479,7 @@ function ClientOptimizerSettings({
           step="0.01"
           min="0"
           inputMode="decimal"
-          placeholder="e.g. 80 â€” LTV per customer"
+          placeholder="e.g. 80: LTV per customer"
           value={ltvStr}
           onChange={(e) => setLtvStr(e.target.value)}
           disabled={busy}
@@ -495,8 +495,8 @@ function ClientOptimizerSettings({
           disabled={busy}
           style={inputStyle}
         >
-          <option value="off">Off â€” skip this client</option>
-          <option value="suggest">Suggest â€” show verdicts, no auto-execute</option>
+          <option value="off">Off: skip this client</option>
+          <option value="suggest">Suggest: show verdicts, no auto-execute</option>
         </select>
       </div>
 
@@ -542,7 +542,7 @@ function ClientOptimizerSettings({
               marginTop: 2,
             }}
           >
-            {derived.value ? fmtMoney(derived.value) : "â€”"}
+            {derived.value ? fmtMoney(derived.value) : "—"}
           </div>
         </div>
         <div
@@ -559,7 +559,7 @@ function ClientOptimizerSettings({
           )}
           {derived.source === "ltv" && typeof ltvParsed === "number" && (
             <>
-              {fmtMoney(ltvParsed)} LTV Ã· {derived.effectiveRoas.toFixed(1)}Ã— target ROAS.
+              {fmtMoney(ltvParsed)} LTV ÷ {derived.effectiveRoas.toFixed(1)}× target ROAS.
               KILL triggers at {fmtMoney(derived.value! * 3)}.
             </>
           )}
@@ -584,7 +584,7 @@ function ClientOptimizerSettings({
             letterSpacing: "0.02em",
           }}
         >
-          {showAdvanced ? "Hide advanced" : "Advancedâ€¦"}
+          {showAdvanced ? "Hide advanced" : "Advanced…"}
         </button>
       </div>
 
@@ -601,7 +601,7 @@ function ClientOptimizerSettings({
           }}
         >
           <label style={{ fontSize: 12, color: "var(--hml-text-secondary)" }}>
-            Target ROAS (default 3.0Ã—)
+            Target ROAS (default 3.0×)
           </label>
           <input
             type="number"
@@ -683,7 +683,7 @@ function ClientOptimizerSettings({
             letterSpacing: "0.02em",
           }}
         >
-          {busy ? "Savingâ€¦" : "Save"}
+          {busy ? "Saving…" : "Save"}
         </button>
       </div>
     </section>
@@ -702,7 +702,7 @@ const inputStyle: React.CSSProperties = {
   maxWidth: 280,
 };
 
-/** Per-client overview surface â€” status snapshot, ops row stats, latest activity. */
+/** Per-client overview surface — status snapshot, ops row stats, latest activity. */
 function ClientOverviewPanel({
   client,
   root,
@@ -751,9 +751,9 @@ function ClientOverviewPanel({
   }, [root, client.slug]);
 
   const fmtMoney = (n: number | null | undefined) =>
-    n == null ? "â€”" : `$${n.toLocaleString()}`;
+    n == null ? "—" : `$${n.toLocaleString()}`;
   const fmtDate = (iso: string | null | undefined) => {
-    if (!iso) return "â€”";
+    if (!iso) return "—";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, {
@@ -765,7 +765,7 @@ function ClientOverviewPanel({
 
   // Patch a partial OpsClientRow into ops/clients.json and reflect in local
   // state. When `invoicePaidAt` is set for the first time, retainer
-  // `startDate` is auto-filled to the same date â€” the engagement officially
+  // `startDate` is auto-filled to the same date — the engagement officially
   // begins when the first invoice clears.
   async function patchOpsRow(patch: Partial<OpsClientRow>) {
     if (!root) return;
@@ -826,7 +826,7 @@ function ClientOverviewPanel({
           <div className="hml-stat-value">
             {recCount ?? 0}
             <span className="hml-stat-delta hml-flat">
-              {recCount && recCount > 0 ? "on file" : "â€” none yet"}
+              {recCount && recCount > 0 ? "on file" : "none yet"}
             </span>
           </div>
         </div>
@@ -989,7 +989,7 @@ function KvRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** One row of the Account Status panel â€” Contract or Invoice.
+/** One row of the Account Status panel — Contract or Invoice.
  *  Shows an amber "due" pill + action button when undated; flips to a green
  *  done pill with the date and a small clear/undo affordance once marked. */
 function StatusRow({
@@ -1036,7 +1036,7 @@ function StatusRow({
         </span>
         <span className={`hml-pill ${isDone ? "hml-green" : "hml-amber"}`}>
           <span className="hml-pill-dot" />
-          {isDone ? `${doneLabel} Â· ${fmtDate(date)}` : dueLabel}
+          {isDone ? `${doneLabel} · ${fmtDate(date)}` : dueLabel}
         </span>
       </div>
       {isDone ? (
@@ -1052,7 +1052,7 @@ function StatusRow({
             padding: "4px 8px",
             borderRadius: 4,
           }}
-          title="Clear â€” mark as not yet completed"
+          title="Clear: mark as not yet completed"
         >
           Clear
         </button>
@@ -1078,7 +1078,7 @@ function StatusRow({
   );
 }
 
-/** Profile.md editor â€” embedded form for in-place edits. Mirrors the standalone
+/** Profile.md editor — embedded form for in-place edits. Mirrors the standalone
  *  ClientProfileForm but without the modal chrome. */
 function ClientProfileInlineEditor({
   client,
@@ -1152,7 +1152,7 @@ function ClientProfileInlineEditor({
   };
 
   if (loading) {
-    return <div className="hml-empty"><div className="hml-empty-sub">Loading profileâ€¦</div></div>;
+    return <div className="hml-empty"><div className="hml-empty-sub">Loading profile…</div></div>;
   }
 
   return (
@@ -1204,7 +1204,7 @@ function ClientProfileInlineEditor({
           <textarea
             className="hml-form-textarea"
             rows={3}
-            placeholder="Homeowners 35â€“65, $120k+ HHI, neighborhoods with HOA pressure to keep curb appeal up."
+            placeholder="Homeowners 35–65, $120k+ HHI, neighborhoods with HOA pressure to keep curb appeal up."
             value={values.target}
             onChange={(e) => update("target", e.target.value)}
             disabled={busy}
@@ -1247,7 +1247,7 @@ function ClientProfileInlineEditor({
         <Field label="Geography" hint="Service area, ZIP codes, radius.">
           <input
             className="hml-form-input"
-            placeholder="e.g. North suburbs of Chicago â€” 20 mi radius from 60062"
+            placeholder="e.g. North suburbs of Chicago, 20 mi radius from 60062"
             value={values.geography}
             onChange={(e) => update("geography", e.target.value)}
             disabled={busy}
@@ -1267,7 +1267,7 @@ function ClientProfileInlineEditor({
             disabled={busy || !root}
             style={{ marginLeft: "auto" }}
           >
-            {busy ? "Savingâ€¦" : "Save changes"}
+            {busy ? "Saving…" : "Save changes"}
           </button>
         </div>
       </div>
@@ -1293,7 +1293,7 @@ function Field({
   );
 }
 
-/** Lightweight vault-note display for the Memory tab â€” read-only for now. */
+/** Lightweight vault-note display for the Memory tab — read-only for now. */
 function ClientNoteView({
   root,
   clientSlug,
@@ -1333,7 +1333,7 @@ function ClientNoteView({
   }, [root, clientSlug]);
 
   if (notes === null) {
-    return <div className="hml-empty"><div className="hml-empty-sub">Loadingâ€¦</div></div>;
+    return <div className="hml-empty"><div className="hml-empty-sub">Loading…</div></div>;
   }
 
   const note = notes.find((n) => {
@@ -1409,7 +1409,7 @@ function formatRecStamp(ts: number): string {
   const d = new Date(ts);
   const date = d.toLocaleDateString(undefined, { day: "2-digit", month: "short" });
   const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  return `${date} Â· ${time}`.toUpperCase();
+  return `${date} · ${time}`.toUpperCase();
 }
 
 function ClientRecordingsView({
@@ -1635,7 +1635,7 @@ function ClientRecordingsView({
       {!isAll && (
         <div className="md-panel md-recordings-panel">
           <div className="md-panel-head">
-            <span className="md-panel-title">â–¸ New Recording â€” {clientName}</span>
+            <span className="md-panel-title">▸ New Recording: {clientName}</span>
             <span className="md-panel-meta">{recordings.length} SAVED</span>
           </div>
 
@@ -1643,7 +1643,7 @@ function ClientRecordingsView({
             <input
               className={`md-rec-input ${recUrl && !recUrlValid ? "is-invalid" : ""}`}
               type="url"
-              placeholder="Paste fathom.video linkâ€¦"
+              placeholder="Paste fathom.video link…"
               value={recUrl}
               onChange={(e) => {
                 setRecUrl(e.target.value);
@@ -1683,7 +1683,7 @@ function ClientRecordingsView({
       )}
 
       {loading ? (
-        <div className="md-rec-empty">Loadingâ€¦</div>
+        <div className="md-rec-empty">Loading…</div>
       ) : visibleRecordings.length === 0 ? (
         <div className="md-rec-empty">
           {isAll
@@ -1707,7 +1707,7 @@ function ClientRecordingsView({
                     onClick={() => openFathomInApp(r.url, r.title)}
                     title="Play recording"
                   >
-                    <span className="md-rec-card-play" aria-hidden="true">â–¶</span>
+                    <span className="md-rec-card-play" aria-hidden="true">▶</span>
                     <span className="md-rec-card-label">Play recording</span>
                   </button>
                 ) : (
@@ -1754,7 +1754,7 @@ function ClientRecordingsView({
                       target="_blank"
                       rel="noreferrer"
                     >
-                      Open in Fathom â†—
+                      Open in Fathom ↗
                     </a>
                     {isAll && (
                       <span

@@ -49,16 +49,16 @@ type StepRun = {
 
 const CHAINS: Record<WorkflowKind, Step[]> = {
   launch: [
-    { id: "aurelius-1", agentSlug: "aurelius", agentName: "Aurelius", goal: "Frame the launch strategy — offer, audience, expected CPA/ROAS, success criteria." },
+    { id: "aurelius-1", agentSlug: "aurelius", agentName: "Aurelius", goal: "Frame the launch strategy: offer, audience, expected CPA/ROAS, success criteria." },
     { id: "stratos", agentSlug: "stratos", agentName: "Stratos", goal: "Validate the offer + landing path. Surface friction points and call out what must be fixed pre-launch." },
-    { id: "vortex", agentSlug: "vortex", agentName: "Vortex", goal: "Propose the opening creative slate — 3 angles × 3 hooks. Identify the lead creative." },
-    { id: "nexus", agentSlug: "nexus", agentName: "Nexus", goal: "Verify tracking is launch-ready — pixel, CAPI, dedup, EMQ. Block launch if anything is missing." },
+    { id: "vortex", agentSlug: "vortex", agentName: "Vortex", goal: "Propose the opening creative slate: 3 angles × 3 hooks. Identify the lead creative." },
+    { id: "nexus", agentSlug: "nexus", agentName: "Nexus", goal: "Verify tracking is launch-ready: pixel, CAPI, dedup, EMQ. Block launch if anything is missing." },
     { id: "aurelius-final", agentSlug: "aurelius", agentName: "Aurelius", goal: "Final GO / HOLD / NO-GO verdict with the top 3 next moves.", isFinal: true },
   ],
   optimize: [
     { id: "zenith", agentSlug: "zenith", agentName: "Zenith", goal: "Diagnose the current bottleneck. Pinpoint the layer (creative / offer / tracking / strategy)." },
     { id: "stratos", agentSlug: "stratos", agentName: "Stratos", goal: "If offer / landing is the bottleneck, propose the fix. Otherwise confirm the layer is clean." },
-    { id: "vortex", agentSlug: "vortex", agentName: "Vortex", goal: "Refresh creative — 2 new angles × 3 hooks to inject diversity." },
+    { id: "vortex", agentSlug: "vortex", agentName: "Vortex", goal: "Refresh creative: 2 new angles × 3 hooks to inject diversity." },
     { id: "aurelius-final", agentSlug: "aurelius", agentName: "Aurelius", goal: "Synthesize the optimize plan. Top 3 moves, in order, for the next 7 days.", isFinal: true },
   ],
   scale: [
@@ -308,8 +308,8 @@ export function WorkflowChain({
         closeDisabled={running}
         title={
           <>
-            <strong>{kind === "launch" ? "Launch campaign" : kind === "optimize" ? "Optimize campaign" : "Scale campaign"}</strong>{" "}
-            — orchestrated across {steps.length} agents, finishing with an Aurelius verdict.
+            <strong>{kind === "launch" ? "Launch campaign" : kind === "optimize" ? "Optimize campaign" : "Scale campaign"}</strong>:{" "}
+            orchestrated across {steps.length} agents, finishing with an Aurelius verdict.
           </>
         }
         body="Each agent passes their briefing to the next. Final memo is what you act on tomorrow morning."

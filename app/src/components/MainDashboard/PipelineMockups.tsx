@@ -296,7 +296,7 @@ export function PipelineMockups() {
           </div>
           <h1 className="hml-page-title">Pipeline</h1>
           <div className="hml-page-subtitle">
-            GoHighLevel mirror — pick a layout. Real wiring is webhooks in,
+            GoHighLevel mirror: pick a layout. Real wiring is webhooks in,
             API pulls on open. All data shown is placeholder.
           </div>
         </div>
