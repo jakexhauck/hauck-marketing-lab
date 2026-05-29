@@ -19,6 +19,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   MEDIA_BUYING_SEQUENCE,
   SEQUENCE_GROUPS,
@@ -152,6 +153,9 @@ export function AdsSequenceWizard({
   const [savedViewError, setSavedViewError] = useState<string | null>(null);
   /** Per-step "Drive push in flight" flag, separate from done/dirty state. */
   const [pushingStep, setPushingStep] = useState<SequenceStepId | null>(null);
+  /** The ad-copy step opens the copywriter chat as a full-screen overlay (the
+   *  inline embed was too cramped). This tracks whether that overlay is open. */
+  const [adCopyOpen, setAdCopyOpen] = useState(false);
   /** Bumped every time a single ad variation is pushed to Drive (which also
    *  writes a past-result file). The saved-view PastResults panel watches
    *  this to re-fetch the list immediately. */
@@ -961,26 +965,57 @@ export function AdsSequenceWizard({
                       Couldn't load saved output: {savedViewError}
                     </div>
                   ) : activeStep.id === "ad-copy" ? (
-                    <CopywriterChat
-                      key={activeStep.id}
-                      root={root}
-                      clientName={clientName}
-                      clientSlug={clientSlug}
-                      onClose={onClose}
-                      saveLabel="Save as this step's ad copy"
-                      onSaveReply={async (text) => {
-                        const output = await api.saveGeneratorOutput({
-                          root,
-                          clientSlug,
-                          kind: activeFormConfig.kind,
-                          title: `Ad copy · ${clientName}`,
-                          summary: null,
-                          body: text,
-                          inputsYaml: null,
-                        });
-                        handleSaved(output);
-                      }}
-                    />
+                    <>
+                      <div className="aw-chat-launch">
+                        <p className="aw-chat-launch-lead">
+                          Write ad copy with the copywriter, voice-matched to{" "}
+                          {clientName}. Reviews and competitor research are
+                          auto-attached to every message.
+                        </p>
+                        <button
+                          type="button"
+                          className="aw-primary"
+                          onClick={() => setAdCopyOpen(true)}
+                        >
+                          Open copywriter chat
+                        </button>
+                      </div>
+                      {adCopyOpen &&
+                        createPortal(
+                          <div
+                            className="hml-overlay"
+                            onClick={(e) => {
+                              if (e.target === e.currentTarget)
+                                setAdCopyOpen(false);
+                            }}
+                          >
+                            <div className="hml-overlay-content hml-overlay-content--chat">
+                              <CopywriterChat
+                                key={activeStep.id}
+                                root={root}
+                                clientName={clientName}
+                                clientSlug={clientSlug}
+                                onClose={() => setAdCopyOpen(false)}
+                                saveLabel="Save as this step's ad copy"
+                                onSaveReply={async (text) => {
+                                  const output = await api.saveGeneratorOutput({
+                                    root,
+                                    clientSlug,
+                                    kind: activeFormConfig.kind,
+                                    title: `Ad copy · ${clientName}`,
+                                    summary: null,
+                                    body: text,
+                                    inputsYaml: null,
+                                  });
+                                  setAdCopyOpen(false);
+                                  handleSaved(output);
+                                }}
+                              />
+                            </div>
+                          </div>,
+                          document.body,
+                        )}
+                    </>
                   ) : (
                     <GenericFormGenerator
                       key={activeStep.id}
@@ -1545,6 +1580,30 @@ const WIZ_CSS = `
 }
 .aw-active-body {
   padding: 18px 24px 22px;
+}
+/* Ad-copy step: a launcher that opens the copywriter chat as a full-screen
+   overlay. The inline two-pane chat was too cramped inside this column. */
+.aw-chat-launch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 28px 24px;
+  border: 1px dashed var(--hml-border);
+  border-radius: 12px;
+  background: var(--hml-bg-elev-1);
+}
+.aw-chat-launch-lead {
+  margin: 0;
+  max-width: 560px;
+  color: var(--hml-text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+/* Give the chat overlay more room than the default 760px form overlay so the
+   wide thread + history rail both breathe. */
+.hml-overlay-content--chat {
+  max-width: 1080px;
 }
 
 .aw-empty {

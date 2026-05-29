@@ -72,6 +72,7 @@ pub fn run() {
             chat::read_chat,
             chat::append_turn,
             chat::replace_last_turn,
+            chat::delete_chat,
             chat::list_chats,
             chat_sheet_tabs::read_chat_sheet_tabs,
             chat_sheet_tabs::write_chat_sheet_tabs,

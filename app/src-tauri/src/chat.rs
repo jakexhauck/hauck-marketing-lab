@@ -322,3 +322,26 @@ pub fn replace_last_turn(app: AppHandle, path: String, turn: ChatTurn) -> Result
     emit_changed(&app, DataKind::Chat, None, Some(path));
     Ok(())
 }
+
+/// Delete a single conversation file. Guarded so it can only remove a `.md`
+/// file that lives somewhere under a `chats` directory. It will never touch an
+/// arbitrary path handed in from the frontend.
+#[tauri::command]
+pub fn delete_chat(app: AppHandle, path: String) -> Result<(), String> {
+    let p = Path::new(&path);
+    if p.extension().and_then(|s| s.to_str()) != Some("md") {
+        return Err("refusing to delete: not a chat file".into());
+    }
+    let under_chats = p
+        .ancestors()
+        .any(|a| a.file_name().and_then(|s| s.to_str()) == Some("chats"));
+    if !under_chats {
+        return Err("refusing to delete: not inside a chats folder".into());
+    }
+    if !p.exists() {
+        return Ok(()); // already gone, treat as success so the UI stays in sync
+    }
+    fs::remove_file(p).map_err(|e| format!("delete chat: {e}"))?;
+    emit_changed(&app, DataKind::Chat, None, Some(path));
+    Ok(())
+}

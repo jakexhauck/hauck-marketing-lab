@@ -1721,6 +1721,38 @@ body {
   font-size: 10px;
   color: var(--text-faint);
 }
+/* History row: the conversation button plus a hover-revealed delete (×). */
+.cw-rail-item-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+.cw-rail-item-row .cw-rail-item {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cw-rail-del {
+  flex: 0 0 auto;
+  width: 28px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-faint);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+}
+.cw-rail-item-row:hover .cw-rail-del {
+  opacity: 1;
+}
+.cw-rail-del:hover:not(:disabled) {
+  color: var(--signal-stop);
+  border-color: var(--signal-stop);
+}
+.cw-rail-del:disabled {
+  cursor: not-allowed;
+}
 .cw-rail-btn {
   padding: 6px 12px;
   background: transparent;
@@ -1860,6 +1892,10 @@ body {
 }
 .cw-chat .input-field {
   width: 100%;
+  min-height: 140px;
+  max-height: 50vh;
+  resize: vertical;
+  overflow-y: auto;
 }
 .cw-chat .input-footer {
   display: flex;

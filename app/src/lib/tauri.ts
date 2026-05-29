@@ -114,6 +114,8 @@ export const api = {
     invoke<void>("append_turn", { path, turn }),
   replaceLastTurn: (path: string, turn: ChatTurn) =>
     invoke<void>("replace_last_turn", { path, turn }),
+  /** Delete a single conversation file. */
+  deleteChat: (path: string) => invoke<void>("delete_chat", { path }),
   /** Past conversations for a client (optionally one agent), newest first.
    *  Backs the chat right-rail history. */
   listChats: (root: string, clientSlug?: string | null, agent?: string | null) =>

@@ -147,14 +147,38 @@ export function CopywriterChat({
   );
 
   const startNewChat = useCallback(() => {
-    if (streaming) return;
+    // Abort whatever is in flight rather than bailing: clearing the stream id
+    // makes any late deltas and the in-flight submit's completion no-op (it
+    // checks streamIdRef before touching state), so a stuck "streaming" flag
+    // can never wedge this button.
+    streamIdRef.current = null;
+    setStreaming(false);
     setChatFile(null);
     setInput("");
     setAttachments([]);
     setStreamText("");
     setError(null);
     inputRef.current?.focus();
-  }, [streaming]);
+  }, []);
+
+  const deleteChat = useCallback(
+    async (path: string, title: string) => {
+      if (streaming) return;
+      if (!window.confirm(`Delete "${title}"? This can't be undone.`)) return;
+      try {
+        await api.deleteChat(path);
+        // Optimistically drop it from the rail; clear the view if it was open.
+        setChatList((prev) => prev.filter((c) => c.path !== path));
+        if (chatFile?.path === path) {
+          setChatFile(null);
+          setStreamText("");
+        }
+      } catch (e) {
+        setError(`Could not delete conversation: ${e}`);
+      }
+    },
+    [streaming, chatFile],
+  );
 
   const copyPrompt = useCallback(async (p: SavedPrompt) => {
     try {
@@ -393,6 +417,9 @@ export function CopywriterChat({
 
     try {
       const full = await api.invokeClaude(id, prompt);
+      // If the user started a new conversation (or switched away) mid-stream,
+      // streamIdRef no longer matches: persist the reply to its file but don't
+      // yank the now-cleared view back to this thread.
       const finalTurn: ChatTurn = {
         role: "agent",
         agent: agent.name,
@@ -400,15 +427,19 @@ export function CopywriterChat({
         body: full || streamText,
       };
       await api.replaceLastTurn(file.path, finalTurn);
-      const refreshed = await api.readChat(file.path);
-      setChatFile(refreshed);
+      if (streamIdRef.current === id) {
+        const refreshed = await api.readChat(file.path);
+        setChatFile(refreshed);
+      }
       refreshChatList();
     } catch (e) {
-      setError(String(e));
+      if (streamIdRef.current === id) setError(String(e));
     } finally {
-      setStreaming(false);
-      streamIdRef.current = null;
-      setStreamText("");
+      if (streamIdRef.current === id) {
+        setStreaming(false);
+        streamIdRef.current = null;
+        setStreamText("");
+      }
     }
   };
 
@@ -509,7 +540,7 @@ export function CopywriterChat({
           <textarea
             ref={inputRef}
             className="input-field"
-            rows={2}
+            rows={6}
             placeholder=""
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -606,7 +637,6 @@ export function CopywriterChat({
               type="button"
               className="cw-rail-new"
               onClick={startNewChat}
-              disabled={streaming}
             >
               + New conversation
             </button>
@@ -616,19 +646,30 @@ export function CopywriterChat({
               chatList.map((c) => {
                 const active = chatFile?.path === c.path;
                 return (
-                  <button
-                    type="button"
-                    key={c.path}
-                    className={"cw-rail-item" + (active ? " is-active" : "")}
-                    disabled={streaming}
-                    onClick={() => void loadPastChat(c.path)}
-                    title={c.title}
-                  >
-                    <span className="cw-rail-item-title">{c.title}</span>
-                    <span className="cw-rail-item-meta">
-                      {c.started_at ? c.started_at.slice(0, 10) : ""} · {c.turns} msg
-                    </span>
-                  </button>
+                  <div className="cw-rail-item-row" key={c.path}>
+                    <button
+                      type="button"
+                      className={"cw-rail-item" + (active ? " is-active" : "")}
+                      disabled={streaming}
+                      onClick={() => void loadPastChat(c.path)}
+                      title={c.title}
+                    >
+                      <span className="cw-rail-item-title">{c.title}</span>
+                      <span className="cw-rail-item-meta">
+                        {c.started_at ? c.started_at.slice(0, 10) : ""} · {c.turns} msg
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="cw-rail-del"
+                      disabled={streaming}
+                      title="Delete this conversation"
+                      aria-label={`Delete ${c.title}`}
+                      onClick={() => void deleteChat(c.path, c.title)}
+                    >
+                      ×
+                    </button>
+                  </div>
                 );
               })
             )}
