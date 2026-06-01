@@ -392,7 +392,10 @@ export function CopywriterChat({
     });
 
     try {
-      const full = await api.invokeClaude(id, prompt);
+      // Lock the persona chat to pure text: no built-in tools, so it can't
+      // invoke other skills (the Skill tool), read files, or hit the web. The
+      // copywriter/data-analyst persona is injected via the prompt only.
+      const full = await api.invokeClaude(id, prompt, "");
       const finalTurn: ChatTurn = {
         role: "agent",
         agent: agent.name,
@@ -509,7 +512,7 @@ export function CopywriterChat({
           <textarea
             ref={inputRef}
             className="input-field"
-            rows={2}
+            rows={5}
             placeholder=""
             value={input}
             onChange={(e) => setInput(e.target.value)}

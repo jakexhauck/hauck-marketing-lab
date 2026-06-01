@@ -130,8 +130,11 @@ export const api = {
   saveSavedPrompts: (root: string, slug: string, prompts: SavedPrompt[]) =>
     invoke<void>("save_saved_prompts", { root, slug, prompts }),
   checkClaude: () => invoke<ClaudeCheck>("check_claude"),
-  invokeClaude: (id: string, prompt: string) =>
-    invoke<string>("invoke_claude", { id, prompt }),
+  /** Run a one-shot `claude -p` turn. Pass `tools: ""` to disable all built-in
+   *  tools (locks a persona chat to text only, no Skill/Bash/Read/WebFetch);
+   *  omit it to leave the full toolset available. */
+  invokeClaude: (id: string, prompt: string, tools?: string) =>
+    invoke<string>("invoke_claude", { id, prompt, tools: tools ?? null }),
   matchKnowledgeChunks: (root: string, userInput: string) =>
     invoke<KnowledgeChunk[]>("match_knowledge_chunks", { root, userInput }),
   readKnowledgeChunk: (root: string, chunkId: string) =>

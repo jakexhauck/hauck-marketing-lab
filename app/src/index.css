@@ -1610,21 +1610,30 @@ body {
   opacity: 0.7;
   z-index: 1;
 }
-/* The copywriter chat embeds inline in the Ads wizard's "Generate ad copy"
-   step. Its flex row layout collapsed into a stack there, so force an explicit
-   two-column grid (thread | history rail) with a bounded, scrollable height. */
-.aw-active-body .cw-chat {
+/* The skill chat embeds inline in two places: the Ads wizard's "Generate ad
+   copy" step and the onboarding "Competitor research" task. In both, the parent
+   has no fixed height, so the flex row's `height: 100%` resolves to auto and the
+   layout collapses into a stack (rail floats up, input shrinks to a bare Send).
+   Force an explicit two-column grid (thread | history rail) with a bounded,
+   scrollable height in those embedded contexts. */
+.aw-active-body .cw-chat,
+.ob-root .cw-chat {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 260px;
   height: 72vh;
   min-height: 480px;
+  overflow: hidden;
 }
-/* Main chat column sits left of the rail. */
+/* Main chat column sits left of the rail. As a grid item its default
+   min-height:auto lets it grow to the full thread, pushing the input box below
+   the fold. min-height:0 bounds it to the row so the thread scrolls and the
+   input stays pinned at the bottom. */
 .cw-main {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
 }
 .cw-chat .thread {
   flex: 1 1 auto;
@@ -1869,6 +1878,8 @@ body {
 }
 .cw-chat .input-field {
   width: 100%;
+  min-height: 120px;
+  resize: vertical;
 }
 .cw-chat .input-footer {
   display: flex;

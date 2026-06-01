@@ -29,8 +29,22 @@
       "lane": "backburner"
     },
     {
+      "id": "663c1afd-cc86-4712-8cae-42364e2a4466",
+      "title": "4. Make Sure All Tags Are Properly Setup In Test Account",
+      "status": "todo",
+      "createdAt": 1780349853810,
+      "lane": "active"
+    },
+    {
+      "id": "5cfa49f8-5ae3-4a4f-9af3-22e1e11f1b17",
+      "title": "5. Make Sure Everything Works Together In Test Account",
+      "status": "todo",
+      "createdAt": 1780349874683,
+      "lane": "active"
+    },
+    {
       "id": "5cd0b24a-8108-48c2-ab8a-9797b22ec374",
-      "title": "3. Create Test Mobile Account & Update With Changes From Test Sub Account",
+      "title": "7. Create Mobile App From Test Account",
       "status": "todo",
       "createdAt": 1779485900957,
       "lane": "active"
@@ -50,95 +64,42 @@
       "lane": "backburner"
     },
     {
-      "id": "7793130d-a4dd-4d6b-8b3b-851cf90f3232",
-      "title": "4. Further Optimize Mobile Account",
-      "status": "todo",
-      "createdAt": 1779584585427,
-      "lane": "active"
-    },
-    {
-      "id": "91383cf4-aa17-4722-aec1-b9f797effe59",
-      "title": "1. Finish AD's Entirely Using Modules",
-      "clientSlug": "willis-windows",
-      "status": "todo",
-      "createdAt": 1779661457011,
-      "lane": "active"
-    },
-    {
       "id": "f4686d3f-a764-4777-8146-4af3fc21e8e1",
-      "title": "3. Implement New Snapshot Into Sub Account",
+      "title": "6. Implement New Snapshot Into Sub Account",
       "clientSlug": "willis-windows",
       "status": "todo",
       "createdAt": 1779672061393,
       "lane": "active"
     },
     {
-      "id": "2f2c560e-91a9-4e3a-b9ce-bf9e2b6b7d07",
-      "title": "5. Once Mobile App Is Done Integrate Into WW Mobile App",
-      "clientSlug": "willis-windows",
+      "id": "8e93a0bd-dc72-4d04-898d-fa945ab45677",
+      "title": "8. Go Through 1% AI Course - Cold Email",
       "status": "todo",
-      "createdAt": 1779672399544,
+      "createdAt": 1780349995122,
       "lane": "active"
     },
     {
-      "id": "af217b3d-8b0b-4e0b-bcbb-fd4effd334cd",
-      "title": "6. Get Jayse & Josh Logged In Into Mobile App",
+      "id": "064d4b56-58ac-446f-83cf-a76fc956d517",
+      "title": "1. Finish Primary Text",
       "clientSlug": "willis-windows",
       "status": "todo",
-      "createdAt": 1779672124372,
+      "createdAt": 1780355441542,
       "lane": "active"
     },
     {
-      "id": "9d0622d8-e522-450b-819c-2d753fedb5fe",
-      "title": "5. Ask Josh For Website Changes & Tell Him To Add Payment Method",
+      "id": "27fff9c1-605a-4b66-a9ec-c86c10addfa7",
+      "title": "2. Finish Headlines",
       "clientSlug": "willis-windows",
       "status": "todo",
-      "createdAt": 1778694212210
-    },
-    {
-      "id": "ec11643e-b77b-49f8-b750-d8c67510b168",
-      "title": "Pay Dad $150 For Other Half Of Course",
-      "status": "todo",
-      "createdAt": 1779672114734,
+      "createdAt": 1780355449096,
       "lane": "active"
     },
     {
-      "id": "7192a54d-c8e1-4d24-824c-f6db885ddb4f",
-      "title": "Log In Ben Martinez Into Accounts",
+      "id": "94a07d62-6063-4446-b201-ac2a855d6f48",
+      "title": "3. AD Creatives With Sam Darby",
       "clientSlug": "willis-windows",
       "status": "todo",
-      "createdAt": 1779672132187,
-      "lane": "active"
-    },
-    {
-      "id": "d969d07a-57d0-4eb2-9852-0a6770cf9e42",
-      "title": "Get On A Call With Go High Level About A2P - 27",
-      "clientSlug": "willis-windows",
-      "status": "todo",
-      "createdAt": 1779493197936,
-      "lane": "active"
-    },
-    {
-      "id": "124f0e4e-0cf2-466a-9fee-906ef14fe54c",
-      "title": "2. Buy Sam Darby AD Course & Go Through",
-      "status": "todo",
-      "createdAt": 1779584497830,
-      "lane": "active"
-    },
-    {
-      "id": "4cb9ea45-ad2d-4be3-b76d-f22930994944",
-      "title": "6. Send Josh GMB Info",
-      "clientSlug": "willis-windows",
-      "status": "todo",
-      "createdAt": 1779634612522,
-      "lane": "active"
-    },
-    {
-      "id": "53a45c4d-2f78-4388-9866-0ee186ad1c3b",
-      "title": "7. Update Jayse",
-      "clientSlug": "willis-windows",
-      "status": "todo",
-      "createdAt": 1779634674820,
+      "createdAt": 1780355458591,
       "lane": "active"
     }
   ]

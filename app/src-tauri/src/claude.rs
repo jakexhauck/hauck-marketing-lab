@@ -121,6 +121,11 @@ pub async fn invoke_claude(
     app: AppHandle,
     id: String,
     prompt: String,
+    // Optional value for claude's `--tools` flag. `Some("")` disables every
+    // built-in tool (Skill, Bash, Read, Write, WebFetch, ...), which locks a
+    // persona chat to pure text generation so it can't reach other skills.
+    // `None` (the default for most callers) leaves the full toolset available.
+    tools: Option<String>,
 ) -> Result<String, String> {
     let Some(path) = locate_claude() else {
         let _ = app.emit(
@@ -142,8 +147,13 @@ pub async fn invoke_claude(
     cmd.arg("-p")
         .arg("--output-format")
         .arg("stream-json")
-        .arg("--verbose")
-        .stdin(Stdio::piped())
+        .arg("--verbose");
+    if let Some(t) = tools.as_deref() {
+        // Pass through even when empty: `--tools ""` is claude's documented way
+        // to disable all built-in tools.
+        cmd.arg("--tools").arg(t);
+    }
+    cmd.stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);

@@ -117,10 +117,21 @@ fn parse_turns(body: &str) -> Vec<ChatTurn> {
         }
     };
 
-    for line in lines {
-        if let Some(rest) = line.strip_prefix("## ") {
+    let mut i = 0;
+    while i < lines.len() {
+        let line = lines[i];
+        // A "## " line is a turn header ONLY when render_turn's `<!-- at: ... -->`
+        // marker sits on the very next line. Agent replies are full of markdown
+        // headings (e.g. "## 1. No-shows"), and without this guard each one was
+        // misread as a new turn, shredding a single reply into fragments and
+        // swallowing its heading text. Body headings never carry the at-marker.
+        let is_turn_header = line.starts_with("## ")
+            && lines
+                .get(i + 1)
+                .is_some_and(|next| next.trim_start().starts_with("<!-- at:"));
+        if is_turn_header {
             flush(&mut current_role, &mut current_agent, &mut current_at, &mut buf, &mut turns);
-            let trimmed = rest.trim();
+            let trimmed = line[3..].trim();
             if trimmed.eq_ignore_ascii_case("you") {
                 current_role = Some("user".into());
                 current_agent = None;
@@ -128,19 +139,18 @@ fn parse_turns(body: &str) -> Vec<ChatTurn> {
                 current_role = Some("agent".into());
                 current_agent = Some(trimmed.to_string());
             }
-            current_at = String::new();
-            continue;
-        }
-        if line.starts_with("<!-- at:") {
-            if let Some(start) = line.find("at:") {
-                let val = &line[start + 3..];
-                let val = val.trim_end_matches("-->").trim();
-                current_at = val.to_string();
-            }
+            // Consume the at-marker line that we just peeked at.
+            let at_line = lines[i + 1];
+            current_at = at_line
+                .find("at:")
+                .map(|start| at_line[start + 3..].trim_end_matches("-->").trim().to_string())
+                .unwrap_or_default();
+            i += 2;
             continue;
         }
         buf.push_str(line);
         buf.push('\n');
+        i += 1;
     }
     flush(&mut current_role, &mut current_agent, &mut current_at, &mut buf, &mut turns);
     turns
@@ -321,4 +331,84 @@ pub fn replace_last_turn(app: AppHandle, path: String, turn: ChatTurn) -> Result
     fs::write(p, rendered).map_err(|e| format!("write chat: {e}"))?;
     emit_changed(&app, DataKind::Chat, None, Some(path));
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// An agent reply that uses markdown "## " section headings (the
+    /// data-analyst / copywriter chats do this constantly) must parse back as a
+    /// single turn with its headings intact, not get shredded into one fake
+    /// turn per heading.
+    #[test]
+    fn reply_with_markdown_headings_stays_one_turn() {
+        let file = ChatFile {
+            path: "x".into(),
+            slug: "x".into(),
+            title: "t".into(),
+            agent: Some("Copywriter".into()),
+            client: Some("willis-windows".into()),
+            started_at: "2026-06-01T00:00:00Z".into(),
+            turns: vec![
+                ChatTurn {
+                    role: "user".into(),
+                    agent: None,
+                    at: "2026-06-01T00:00:00Z".into(),
+                    body: "Write hooks for each pain point.".into(),
+                },
+                ChatTurn {
+                    role: "agent".into(),
+                    agent: Some("Copywriter".into()),
+                    at: "2026-06-01T00:00:01Z".into(),
+                    body: "Intro line.\n\n## 1. No-shows\n\nHook one.\n\n## 2. Streaks\n\nHook two."
+                        .into(),
+                },
+            ],
+        };
+        let rendered = render_file(&file);
+        let parsed = parse_turns(rendered.split("---\n\n").nth(1).unwrap());
+        assert_eq!(parsed.len(), 2, "expected exactly user + agent, got {parsed:?}");
+        assert_eq!(parsed[0].role, "user");
+        assert_eq!(parsed[1].role, "agent");
+        assert_eq!(parsed[1].agent.as_deref(), Some("Copywriter"));
+        // The body keeps its markdown headings rather than losing them to the
+        // turn splitter.
+        assert!(parsed[1].body.contains("## 1. No-shows"));
+        assert!(parsed[1].body.contains("## 2. Streaks"));
+        assert!(parsed[1].body.contains("Hook two."));
+    }
+
+    /// A freshly appended empty agent placeholder must survive read-back so
+    /// replace_last_turn targets it instead of the user turn.
+    #[test]
+    fn empty_agent_placeholder_survives() {
+        let file = ChatFile {
+            path: "x".into(),
+            slug: "x".into(),
+            title: "t".into(),
+            agent: Some("Data Analyst".into()),
+            client: None,
+            started_at: "2026-06-01T00:00:00Z".into(),
+            turns: vec![
+                ChatTurn {
+                    role: "user".into(),
+                    agent: None,
+                    at: "2026-06-01T00:00:00Z".into(),
+                    body: "hi".into(),
+                },
+                ChatTurn {
+                    role: "agent".into(),
+                    agent: Some("Data Analyst".into()),
+                    at: "2026-06-01T00:00:01Z".into(),
+                    body: String::new(),
+                },
+            ],
+        };
+        let rendered = render_file(&file);
+        let parsed = parse_turns(rendered.split("---\n\n").nth(1).unwrap());
+        assert_eq!(parsed.len(), 2);
+        assert_eq!(parsed[1].role, "agent");
+        assert!(parsed[1].body.is_empty());
+    }
 }
