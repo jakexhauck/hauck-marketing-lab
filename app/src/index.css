@@ -1594,7 +1594,7 @@ body {
   display: flex;
   flex-direction: row;
   height: 100%;
-  min-height: min(78vh, 760px);
+  min-height: min(86vh, 920px);
   background: var(--bg-surface);
   border: 1px solid var(--border-strong);
   position: relative;
@@ -1619,9 +1619,9 @@ body {
 .aw-active-body .cw-chat,
 .ob-root .cw-chat {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
-  height: 72vh;
-  min-height: 480px;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  height: 82vh;
+  min-height: 600px;
   overflow: hidden;
 }
 /* Main chat column sits left of the rail. As a grid item its default

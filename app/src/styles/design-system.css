@@ -1942,6 +1942,13 @@
   max-width: 760px;
 }
 
+/* The skill chat (copywriter / data analyst) needs more room than a form: it
+   has a thread column plus a history rail, and 760px leaves both cramped. Widen
+   the overlay only when it's wrapping the chat shell. */
+.hml-overlay-content:has(.cw-chat) {
+  max-width: 1180px;
+}
+
 /* ═══════════════ EMPTY ═══════════════ */
 
 .hml-empty {

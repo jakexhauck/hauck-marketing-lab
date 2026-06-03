@@ -295,6 +295,27 @@ export function CopywriterChat({
     setAttachments((prev) => prev.filter((_, i) => i !== idx));
   }, []);
 
+  // Replies render as markdown, so each paragraph/line is its own block element.
+  // The browser's default copy puts a rich HTML flavor on the clipboard, and
+  // Docs/Sheets turn every block gap into a doubled line break. Intercept the
+  // copy: hand over only normalized plain text and drop the HTML flavor. Keep a
+  // single blank line between paragraphs (collapse any run of 3+ newlines down
+  // to exactly one blank line) so the paste lands single-spaced, not bunched up.
+  const handleThreadCopy = useCallback(
+    (e: React.ClipboardEvent<HTMLDivElement>) => {
+      const text = window.getSelection()?.toString() ?? "";
+      if (!text) return;
+      const normalized = text
+        .replace(/\r\n/g, "\n")
+        .replace(/[ \t]+\n/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+      e.clipboardData.setData("text/plain", normalized);
+      e.preventDefault();
+    },
+    [],
+  );
+
   const submit = async () => {
     const typed = input.trim();
     const files = attachments;
@@ -453,7 +474,7 @@ export function CopywriterChat({
         </div>
       </div>
 
-      <div className="thread" ref={threadRef}>
+      <div className="thread" ref={threadRef} onCopy={handleThreadCopy}>
         {visibleTurns.map((t, i) => {
           const isAgent = t.role === "agent";
           const hasBody = (t.body ?? "").trim().length > 0;

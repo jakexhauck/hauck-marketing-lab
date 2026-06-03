@@ -79,27 +79,25 @@
       "lane": "active"
     },
     {
-      "id": "064d4b56-58ac-446f-83cf-a76fc956d517",
-      "title": "1. Finish Primary Text",
-      "clientSlug": "willis-windows",
-      "status": "todo",
-      "createdAt": 1780355441542,
-      "lane": "active"
-    },
-    {
-      "id": "27fff9c1-605a-4b66-a9ec-c86c10addfa7",
-      "title": "2. Finish Headlines",
-      "clientSlug": "willis-windows",
-      "status": "todo",
-      "createdAt": 1780355449096,
-      "lane": "active"
-    },
-    {
       "id": "94a07d62-6063-4446-b201-ac2a855d6f48",
       "title": "3. AD Creatives With Sam Darby",
       "clientSlug": "willis-windows",
       "status": "todo",
       "createdAt": 1780355458591,
+      "lane": "active"
+    },
+    {
+      "id": "1e1134ce-2107-4230-8b60-94ea8fdeba9c",
+      "title": "Apply For A2P For Hauck Marketing",
+      "status": "todo",
+      "createdAt": 1780416181948,
+      "lane": "active"
+    },
+    {
+      "id": "8aad5a34-0ab2-45ae-a4ea-e9d9fac32b94",
+      "title": "Tell Ben To - GMB Cover Photo 1024 × 576",
+      "status": "todo",
+      "createdAt": 1780497879173,
       "lane": "active"
     }
   ]

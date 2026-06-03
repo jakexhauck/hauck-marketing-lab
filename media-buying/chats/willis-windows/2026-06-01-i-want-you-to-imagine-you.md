@@ -304,3 +304,79 @@ All three sit in the "ready to run" band. The only thing I'd actually change bef
 
 Want me to apply the Issue 1 fix to all three and hand you final copy-paste versions, or leave the superlatives in and let them ride?
 
+## You
+<!-- at: 2026-06-02T14:07:03.073Z -->
+
+Now I want you to write 3 META ad headline variations for the ad copy you just created.
+
+The goal of each headline is to make someone understand what to do next and why they should care, using as few words as possible.
+
+Headline requirements:
+
+* Write 3 different headline options.
+* Each headline should be short, ideally 5–7 words.
+* Keep the headline punchy, clear, and easy to understand.
+* Make each headline feel different from the others.
+* Use direct-response language without sounding clickbait or exaggerated.
+* Do not use fake urgency, fake scarcity, unrealistic promises, or unsupported claims.
+* Do not imply the reader personally has a problem.
+* Do not use overly aggressive wording like “Fix your…” or “Stop struggling with…”
+* The headline should match the offer, pain point, and angle from the ad copy.
+* The CTA should imply clicking the ad button, not visiting a website.
+* Emojis are allowed only if they make the headline stronger, but do not force them.
+
+Give me 3 different headline styles to test:
+
+1. Direct CTA Headline
+   A clear action-based headline that tells people what to do next.
+
+2. Benefit-Driven Headline
+   A headline focused on the main result or transformation.
+
+3. Offer / Incentive Headline
+   A headline focused on the offer, deal, consultation, quote, discount, or incentive.
+
+Output format:
+
+Headline 1 - Direct CTA:
+[Headline]
+
+Headline 2 - Benefit-Driven:
+[Headline]
+
+Headline 3 - Offer / Incentive:
+[Headline]
+
+Then give me a short recommendation on which headline is most likely to perform best and why.
+
+## Copywriter
+<!-- at: 2026-06-02T14:07:20.003Z -->
+
+Headlines, Sir. All short, all in the "ready to run" band, none implying the reader personally has a problem.
+
+**Headline 1 - Direct CTA:**
+Tap to Lock In Your Spot
+
+**Headline 2 - Benefit-Driven:**
+Spotless Windows, Cleaners Who Show Up
+
+**Headline 3 - Offer / Incentive:**
+Get $100 Off + Free Screen Cleaning
+
+---
+
+### Recommendation
+
+Lead with **Headline 3 (Offer)**.
+
+For cold local Meta traffic, the dollar figure does the heaviest lifting. It's concrete, it's the biggest differentiator you've got in the metro, and it pairs cleanly with a "Get Offer" button so the reader knows exactly what the click gets them.
+
+Two notes:
+
+- **Headline 2** is the one I'd test against it. It's the only headline that carries the no-show angle into the headline itself ("Cleaners Who Show Up"), so it matches the body copy's pain point best. If the offer headline wins on cost per result but burns out, this is your rotation.
+- **Headline 1** is the safe control. Useful, but it asks for the click without giving a reason to care, so I'd expect it to come third.
+
+Headline length check: all three fit Meta's display limit comfortably, so none will truncate on mobile.
+
+Next decision, Sir: want me to pair each headline with a matching short description line (the 1-line under-headline field), or run a 5-variation headline set so you've got more to A/B?
+
