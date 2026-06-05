@@ -73,14 +73,14 @@
     },
     {
       "id": "8e93a0bd-dc72-4d04-898d-fa945ab45677",
-      "title": "8. Go Through 1% AI Course - Cold Email",
+      "title": "Setup Cold Email",
       "status": "todo",
       "createdAt": 1780349995122,
       "lane": "active"
     },
     {
       "id": "94a07d62-6063-4446-b201-ac2a855d6f48",
-      "title": "3. AD Creatives With Sam Darby",
+      "title": "Finish B&A Statics",
       "clientSlug": "willis-windows",
       "status": "todo",
       "createdAt": 1780355458591,
@@ -95,9 +95,17 @@
     },
     {
       "id": "8aad5a34-0ab2-45ae-a4ea-e9d9fac32b94",
-      "title": "Tell Ben To - GMB Cover Photo 1024 × 576",
+      "title": "Get GMB Cover From Ben",
       "status": "todo",
       "createdAt": 1780497879173,
+      "lane": "active"
+    },
+    {
+      "id": "97e2a6cd-d473-4916-bae9-fc22a3a8bc2d",
+      "title": "Finish Callout Statics",
+      "clientSlug": "willis-windows",
+      "status": "todo",
+      "createdAt": 1780673154350,
       "lane": "active"
     }
   ]
