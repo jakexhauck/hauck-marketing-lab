@@ -1,5 +1,6 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { ghlJson } from "../../../lib/ghl";
+import { channelMeta } from "../../../lib/messaging";
 
 interface SearchResp {
   conversations?: {
@@ -20,6 +21,12 @@ interface MessagesResp {
       messageType?: string;
     }[];
   };
+}
+
+function isSystemMessage(type?: string): boolean {
+  if (!type) return false;
+  const upper = type.toUpperCase();
+  return upper.includes("ACTIVITY") || upper.includes("OPPORTUNITY");
 }
 
 export const onRequestGet: PagesFunction<Env, "id", ApiData> = async (ctx) => {
@@ -47,14 +54,20 @@ export const onRequestGet: PagesFunction<Env, "id", ApiData> = async (ctx) => {
     `/conversations/${encodeURIComponent(conv.id)}/messages`,
   );
 
-  const list = (msgs.messages?.messages ?? []).map((m) => ({
-    id: m.id,
-    body: m.body ?? "",
-    direction: (m.direction ?? "outbound").toLowerCase(),
-    type: m.type ?? m.messageType ?? "SMS",
-    at: m.dateAdded ?? new Date().toISOString(),
-  }));
+  const list = (msgs.messages?.messages ?? [])
+    .filter((m) => !isSystemMessage(m.type ?? m.messageType))
+    .map((m) => ({
+      id: m.id,
+      body: m.body ?? "",
+      direction: (m.direction ?? "outbound").toLowerCase(),
+      type: m.type ?? m.messageType ?? "SMS",
+      at: m.dateAdded ?? new Date().toISOString(),
+    }));
   list.sort((a, b) => +new Date(a.at) - +new Date(b.at));
 
-  return Response.json({ conversationId: conv.id, messages: list });
+  return Response.json({
+    conversationId: conv.id,
+    messages: list,
+    ...channelMeta(list),
+  });
 };

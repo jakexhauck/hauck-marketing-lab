@@ -13,6 +13,15 @@ docs cover the work in two phases of numbered, dependency-ordered tasks:
   the app (notes, tasks, calendar, full messaging, pipeline board, billing, notifications).
   Each is independently shippable. Two of them complete features that are already partly built
   (messaging send and pipeline write-back both already work, see those docs).
+  - **Built (code-complete, pending live verification against the test account):** 08 (notes),
+    09 (tasks), 10 (calendar), 11 (multi-channel messaging), 12 (pipeline board), 13 (invoices
+    & payments). These pass typecheck + `pnpm build` and are wired into the app. They still need
+    a live walk-through in the test account, since the invoices/payments/calendar response
+    shapes were built defensively against the GHL docs, not a live response. Two caveats: the
+    pipeline board uses a tap-to-move "Move to stage" sheet rather than gesture drag-and-drop
+    (touch DnD across snap-scroll columns needs on-device testing first), and 14 (notification
+    center) is **blocked** because it depends on the deferred backend plans (03 store, 05
+    events, 06 push transport).
 
 ## Conventions used throughout
 

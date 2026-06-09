@@ -43,6 +43,13 @@ export async function ghlJson<T>(
   return (await res.json()) as T;
 }
 
+// GHL's billing APIs (invoices, payments) do not accept locationId like the
+// rest of the app. They take altId={locationId}&altType=location. Encode it once
+// so no route hand-builds it.
+export function altQuery(locationId: string): string {
+  return `altId=${encodeURIComponent(locationId)}&altType=location`;
+}
+
 export interface GhlOpportunity {
   id: string;
   name?: string;

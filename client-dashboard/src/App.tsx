@@ -13,6 +13,8 @@ import Conversations from "./routes/Conversations";
 import ConversationDetail from "./routes/ConversationDetail";
 import LeadDetail from "./routes/LeadDetail";
 import Today from "./routes/Today";
+import Billing from "./routes/Billing";
+import Calendar from "./routes/Calendar";
 import Showroom from "./routes/Showroom";
 import Simulator from "./routes/Simulator";
 import Shell from "./components/Shell";
@@ -112,6 +114,22 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Today />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/billing"
+                element={
+                  <ProtectedRoute>
+                    <Billing />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/calendar"
+                element={
+                  <ProtectedRoute>
+                    <Calendar />
                   </ProtectedRoute>
                 }
               />

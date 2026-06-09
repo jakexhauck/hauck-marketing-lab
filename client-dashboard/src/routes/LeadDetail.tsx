@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Activity, ChevronLeft, Mail, MessageSquare, Phone } from "lucide-react";
+import {
+  Activity,
+  CheckSquare,
+  ChevronLeft,
+  Mail,
+  MessageSquare,
+  Phone,
+} from "lucide-react";
 import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
 import { HeroIconButton } from "../components/HeroUi";
@@ -19,6 +26,7 @@ import { e164, formatPhone } from "../lib/phone";
 import ConversationThread from "../components/ConversationThread";
 import MessageComposer from "../components/MessageComposer";
 import NoteList from "../components/NoteList";
+import TaskList from "../components/TaskList";
 import type { LeadActivity, LeadStage } from "../types";
 
 const currencyFmt = new Intl.NumberFormat("en-US", {
@@ -344,6 +352,20 @@ export default function LeadDetail() {
             </>
           )}
         </section>
+
+        {session && lead.contactId && (
+          <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+            <div className="flex items-center gap-2">
+              <CheckSquare
+                size={14}
+                aria-hidden="true"
+                className="text-[var(--text-muted)]"
+              />
+              <h2 className="label-cap">Tasks</h2>
+            </div>
+            <TaskList contactId={lead.contactId} onToast={setToast} />
+          </section>
+        )}
 
         <section className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
           <div className="flex items-center gap-2">

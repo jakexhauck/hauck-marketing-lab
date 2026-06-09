@@ -1,5 +1,6 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { ghlJson } from "../../../lib/ghl";
+import { channelMeta } from "../../../lib/messaging";
 
 interface SearchResp {
   conversations?: { id: string; contactId?: string }[];
@@ -56,5 +57,9 @@ export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (
     }));
   list.sort((a, b) => +new Date(a.at) - +new Date(b.at));
 
-  return Response.json({ conversationId: conv.id, messages: list });
+  return Response.json({
+    conversationId: conv.id,
+    messages: list,
+    ...channelMeta(list),
+  });
 };

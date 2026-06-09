@@ -1,6 +1,13 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Filter, Search, TrendingUp } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronRight,
+  Filter,
+  Receipt,
+  Search,
+  TrendingUp,
+} from "lucide-react";
 import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
 import SplitHero, { HeroMark, HeroIconButton } from "../components/HeroUi";
@@ -223,6 +230,48 @@ export default function Home() {
                   </button>
                 </li>
               ))}
+            </ul>
+
+            {/* Quick links to secondary sections that do not earn a nav slot. */}
+            <div className="px-[22px] pb-2 pt-6">
+              <span className="sec-kicker">More</span>
+            </div>
+            <ul className="mx-[22px] overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
+              {[
+                { key: "calendar", label: "Calendar", sub: "Upcoming appointments", to: "/calendar", Icon: CalendarDays, color: "#7c3aed" },
+                { key: "billing", label: "Billing", sub: "Invoices and payments", to: "/billing", Icon: Receipt, color: "#15803d" },
+              ].map(
+                (link, idx, arr) => (
+                  <li key={link.key}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(link.to)}
+                      className={
+                        "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
+                        (idx === arr.length - 1
+                          ? ""
+                          : " border-b border-[var(--divider)]")
+                      }
+                    >
+                      <span
+                        className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl text-white"
+                        style={{ backgroundColor: link.color }}
+                      >
+                        <link.Icon size={18} strokeWidth={2} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-display text-[15px] font-bold text-[var(--text)]">
+                          {link.label}
+                        </div>
+                        <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">
+                          {link.sub}
+                        </div>
+                      </div>
+                      <ChevronRight size={18} className="text-[var(--text-faint)]" />
+                    </button>
+                  </li>
+                ),
+              )}
             </ul>
 
             {/* Recent activity (webhook-sourced). Empty until events arrive. */}

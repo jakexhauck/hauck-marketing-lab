@@ -10,6 +10,11 @@ import {
   type ApiConversation,
   type ApiActivity,
   type ApiNote,
+  type ApiTask,
+  type ApiInvoice,
+  type ApiInvoiceDetail,
+  type ApiTransaction,
+  type ApiCalendarEvent,
   type AdminClient,
 } from "../lib/api";
 import type { LeadStage } from "../types";
@@ -115,9 +120,12 @@ export function useConversationMessagesQuery(
     refetchInterval: 10_000,
     refetchIntervalInBackground: false,
     queryFn: () =>
-      api<{ conversationId?: string; messages: ApiMessage[] }>(
-        `/api/conversations/${contactId}/messages`,
-      ),
+      api<{
+        conversationId?: string;
+        messages: ApiMessage[];
+        defaultChannel?: string;
+        availableChannels?: string[];
+      }>(`/api/conversations/${contactId}/messages`),
   });
 }
 
@@ -156,6 +164,38 @@ export function useSendConversationSms() {
   });
 }
 
+interface SendChannelMessageInput {
+  contactId: string;
+  channel: string;
+  body: string;
+  subject?: string;
+}
+
+// Channel-aware send for the conversations path (SMS, Email, FB, IG, ...).
+export function useSendConversationMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SendChannelMessageInput) =>
+      api<{ ok: boolean; messageId?: string }>(
+        `/api/conversations/${input.contactId}/send`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            channel: input.channel,
+            body: input.body,
+            subject: input.subject,
+          }),
+        },
+      ),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({
+        queryKey: ["conversation", vars.contactId, "messages"],
+      });
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+}
+
 export function useLeadQuery(id: string | null, enabled: boolean) {
   return useQuery({
     queryKey: ["lead", id],
@@ -173,9 +213,12 @@ export function useMessagesQuery(id: string | null, enabled: boolean) {
     refetchInterval: 10_000,
     refetchIntervalInBackground: false,
     queryFn: () =>
-      api<{ conversationId?: string; messages: ApiMessage[] }>(
-        `/api/leads/${id}/messages`,
-      ),
+      api<{
+        conversationId?: string;
+        messages: ApiMessage[];
+        defaultChannel?: string;
+        availableChannels?: string[];
+      }>(`/api/leads/${id}/messages`),
   });
 }
 
@@ -215,6 +258,58 @@ export function useUpdateLead() {
   });
 }
 
+interface MoveLeadInput {
+  leadId: string;
+  pipelineStageId?: string;
+  status?: "open" | "won" | "lost";
+  value?: number;
+}
+
+// Board stage-move: PATCH a lead's stage/status directly by GHL id, with an
+// optimistic update on the active pipeline's lead list and rollback on error.
+export function useMoveLeadStage(pipelineId: string | null) {
+  const qc = useQueryClient();
+  const key = ["leads", "pipeline", pipelineId];
+  return useMutation({
+    mutationFn: (input: MoveLeadInput) =>
+      api<{ lead: ApiLead }>(`/api/leads/${input.leadId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          pipelineStageId: input.pipelineStageId,
+          status: input.status,
+          value: input.value,
+        }),
+      }),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<{ leads: ApiLead[]; total: number }>(key);
+      if (previous) {
+        qc.setQueryData(key, {
+          ...previous,
+          leads: previous.leads.map((l) =>
+            l.id === input.leadId
+              ? {
+                  ...l,
+                  pipelineStageId: input.pipelineStageId ?? l.pipelineStageId,
+                  status: input.status ?? l.status,
+                  value: input.value ?? l.value,
+                }
+              : l,
+          ),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(key, context.previous);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: key });
+      qc.invalidateQueries({ queryKey: ["summary"] });
+    },
+  });
+}
+
 interface SendSmsInput {
   leadId: string;
   body: string;
@@ -229,6 +324,35 @@ export function useSendSms() {
         {
           method: "POST",
           body: JSON.stringify({ body: input.body }),
+        },
+      ),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["lead", vars.leadId, "messages"] });
+    },
+  });
+}
+
+interface SendLeadMessageInput {
+  leadId: string;
+  channel: string;
+  body: string;
+  subject?: string;
+}
+
+// Channel-aware send for the leads path; mirrors useSendConversationMessage.
+export function useSendLeadMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SendLeadMessageInput) =>
+      api<{ ok: boolean; messageId?: string }>(
+        `/api/leads/${input.leadId}/send`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            channel: input.channel,
+            body: input.body,
+            subject: input.subject,
+          }),
         },
       ),
     onSuccess: (_data, vars) => {
@@ -287,5 +411,155 @@ export function useDeleteNote() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["notes", vars.contactId] });
     },
+  });
+}
+
+// Tasks attached to a contact (open-first, soonest-due), read/write through GHL.
+export function useTasksQuery(contactId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["tasks", contactId],
+    enabled: enabled && !!contactId,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<{ tasks: ApiTask[] }>(`/api/contacts/${contactId}/tasks`),
+  });
+}
+
+export function useCreateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      contactId: string;
+      title: string;
+      dueDate?: string;
+    }) =>
+      api<{ task: ApiTask | null }>(`/api/contacts/${input.contactId}/tasks`, {
+        method: "POST",
+        body: JSON.stringify({ title: input.title, dueDate: input.dueDate }),
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["tasks", vars.contactId] });
+    },
+  });
+}
+
+export function useUpdateTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      contactId: string;
+      taskId: string;
+      title: string;
+      dueDate?: string;
+    }) =>
+      api<{ task: ApiTask | null }>(
+        `/api/contacts/${input.contactId}/tasks/${input.taskId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ title: input.title, dueDate: input.dueDate }),
+        },
+      ),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["tasks", vars.contactId] });
+    },
+  });
+}
+
+// Optimistic completion: flip the checkbox immediately, roll back on error.
+export function useToggleTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      contactId: string;
+      taskId: string;
+      completed: boolean;
+    }) =>
+      api<{ task: ApiTask | null }>(
+        `/api/contacts/${input.contactId}/tasks/${input.taskId}/completed`,
+        { method: "PUT", body: JSON.stringify({ completed: input.completed }) },
+      ),
+    onMutate: async (vars) => {
+      const key = ["tasks", vars.contactId];
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<{ tasks: ApiTask[] }>(key);
+      if (previous) {
+        qc.setQueryData<{ tasks: ApiTask[] }>(key, {
+          tasks: previous.tasks.map((t) =>
+            t.id === vars.taskId ? { ...t, completed: vars.completed } : t,
+          ),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, vars, context) => {
+      if (context?.previous) {
+        qc.setQueryData(["tasks", vars.contactId], context.previous);
+      }
+    },
+    onSettled: (_data, _err, vars) => {
+      qc.invalidateQueries({ queryKey: ["tasks", vars.contactId] });
+    },
+  });
+}
+
+export function useDeleteTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { contactId: string; taskId: string }) =>
+      api<{ ok: boolean }>(
+        `/api/contacts/${input.contactId}/tasks/${input.taskId}`,
+        { method: "DELETE" },
+      ),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["tasks", vars.contactId] });
+    },
+  });
+}
+
+// Billing: invoices + payment transactions, read-only through GHL.
+export function useInvoicesQuery(status: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["invoices", status],
+    enabled,
+    staleTime: 60_000,
+    queryFn: () =>
+      api<{ invoices: ApiInvoice[]; total: number }>(
+        `/api/invoices${status && status !== "all" ? `?status=${encodeURIComponent(status)}` : ""}`,
+      ),
+  });
+}
+
+export function useInvoiceQuery(id: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["invoice", id],
+    enabled: enabled && !!id,
+    staleTime: 60_000,
+    queryFn: () => api<{ invoice: ApiInvoiceDetail }>(`/api/invoices/${id}`),
+  });
+}
+
+export function useTransactionsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["transactions"],
+    enabled,
+    staleTime: 60_000,
+    queryFn: () =>
+      api<{ transactions: ApiTransaction[]; total: number }>(
+        "/api/payments/transactions",
+      ),
+  });
+}
+
+// Upcoming appointments (now to +30d by default), read-only through GHL.
+export function useCalendarEventsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["calendar", "events"],
+    enabled,
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+    queryFn: () =>
+      api<{ events: ApiCalendarEvent[]; timezone: string | null }>(
+        "/api/calendar/events",
+      ),
   });
 }

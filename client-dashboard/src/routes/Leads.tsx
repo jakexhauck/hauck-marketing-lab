@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Columns3, List as ListIcon, Search } from "lucide-react";
 import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
 import SplitHero, { HeroMark, HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
 import BottomNav from "../components/BottomNav";
+import Board from "../components/Board";
 import PipelineSwitcher from "../components/PipelineSwitcher";
 import SearchBar from "../components/SearchBar";
 import Avatar from "../components/Avatar";
@@ -31,6 +32,7 @@ export default function Leads() {
   const [activeStage, setActiveStage] = useState<string>(ALL);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "board">("list");
 
   // Reset stage filter + search whenever the pipeline changes.
   useEffect(() => {
@@ -136,6 +138,53 @@ export default function Leads() {
       </NavyHero>
 
       <div className="flex-1 overflow-y-auto pb-28">
+        {/* List / Board view toggle */}
+        <div className="flex justify-end px-5 pt-4">
+          <div className="inline-flex overflow-hidden rounded-full border border-[var(--border)]">
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              aria-pressed={viewMode === "list"}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold transition-colors"
+              style={{
+                background:
+                  viewMode === "list" ? "var(--brand-primary)" : "transparent",
+                color: viewMode === "list" ? "#fff" : "var(--text-muted)",
+              }}
+            >
+              <ListIcon size={14} /> List
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("board")}
+              aria-pressed={viewMode === "board"}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold transition-colors"
+              style={{
+                background:
+                  viewMode === "board" ? "var(--brand-primary)" : "transparent",
+                color: viewMode === "board" ? "#fff" : "var(--text-muted)",
+              }}
+            >
+              <Columns3 size={14} /> Board
+            </button>
+          </div>
+        </div>
+
+        {viewMode === "board" ? (
+          leadsQuery.isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div
+                className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--brand-primary)]"
+                aria-hidden="true"
+              />
+            </div>
+          ) : stages.length === 0 ? (
+            <EmptyState message="No stages in this pipeline." />
+          ) : (
+            <Board leads={leads} stages={stages} pipelineId={selectedId} />
+          )
+        ) : (
+          <>
         {/* Search (revealed from the hero search button) */}
         {(showSearch || trimmed) && (
           <div className="px-5 pt-4">
@@ -235,6 +284,8 @@ export default function Leads() {
             </ul>
           )}
         </main>
+          </>
+        )}
       </div>
 
       <BottomNav active="leads" />

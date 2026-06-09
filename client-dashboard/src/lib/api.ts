@@ -119,6 +119,68 @@ export interface ApiNote {
   userId?: string;
 }
 
+export interface ApiTask {
+  id: string;
+  title: string;
+  body?: string;
+  dueDate?: string;
+  completed?: boolean;
+  assignedTo?: string;
+}
+
+export interface ApiInvoice {
+  id: string;
+  number: string;
+  contactName: string;
+  total: number;
+  status: string;
+  dueDate: string | null;
+  paidAt: string | null;
+}
+
+export interface ApiInvoiceLineItem {
+  name: string;
+  qty: number;
+  amount: number;
+}
+
+export interface ApiInvoiceDetail {
+  id: string;
+  number: string;
+  contactName: string;
+  status: string;
+  total: number;
+  amountPaid: number;
+  amountDue: number;
+  currency: string;
+  issueDate: string | null;
+  dueDate: string | null;
+  paidAt: string | null;
+  items: ApiInvoiceLineItem[];
+}
+
+export interface ApiTransaction {
+  id: string;
+  amount: number;
+  status: string;
+  contactName: string;
+  createdAt: string | null;
+  method: string;
+}
+
+export interface ApiCalendarEvent {
+  id: string;
+  title: string;
+  startTime: string | null;
+  endTime: string | null;
+  status: string;
+  contactId: string;
+  contactName: string;
+  address: string;
+  meetingUrl: string;
+  notes: string;
+}
+
 export interface ApiActivity {
   id: number;
   action: string;
