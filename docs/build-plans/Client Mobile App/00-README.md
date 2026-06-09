@@ -3,10 +3,12 @@
 The mobile PWA (`client-dashboard/`) is roughly 85% done and already deployable. These
 docs cover the work in two phases of numbered, dependency-ordered tasks:
 
-- **Phase 1 (01 to 07): finish the test account.** The remaining ~15% to make the existing
-  app feel like a finished product (deploy, data-loss fixes, backend, users, webhooks, push,
-  offline). We finish this in the **test account** first, then promote the same build into
-  real clients.
+- **Phase 1 (03 to 06): finish the test account.** The remaining work to make the existing
+  app feel like a finished product (backend, users, webhooks, push). We finish this in the
+  **test account** first, then promote the same build into real clients.
+  - **Done and shipped:** 01 (deploy + smoke test), 02 (pagination fix), and 07 (offline
+    caching) are complete and live; their docs have been removed. The app is deployed,
+    logging in against the test account, and showing real leads.
 - **Phase 2 (08 to 14): GHL feature expansion.** New sections that surface more of GHL inside
   the app (notes, tasks, calendar, full messaging, pipeline board, billing, notifications).
   Each is independently shippable. Two of them complete features that are already partly built
@@ -26,17 +28,15 @@ docs cover the work in two phases of numbered, dependency-ordered tasks:
 ## The dependency graph
 
 ```
-01 Deploy + smoke test  ──┐
-                          ├─ everything else needs a live test URL to verify
-02 Pagination fix  ───────┘   (PWA install, push, webhooks all need real HTTPS)
+01 Deploy + smoke test  ──── DONE (live HTTPS URL, app deployed)
+02 Pagination fix  ───────── DONE (100-record cap removed)
+07 Offline caching  ──────── DONE (stale-while-revalidate)
 
 03 Supabase wiring  ──────┬─ 04 Real user management   (reads tenant_users / admins)
    (foundation)           ├─ 05 Webhook processing     (writes activity_log)
                           └─ 06 Push notifications      (writes push_subscriptions)
 
 05 Webhook processing  ───── 06 Push notifications      (webhook triggers the send)
-
-07 Offline caching  ──────── independent polish, do any time after 02
 
 --- Phase 2: feature expansion (08+) -----------------------------------------
 
@@ -61,15 +61,14 @@ docs cover the work in two phases of numbered, dependency-ordered tasks:
 
 ### Phase 1: finish the test account
 
+Done: **01** (deploy + smoke test), **02** (pagination fix), **07** (offline caching). Remaining:
+
 | # | Doc | Blocks | Size | Why this order |
 |---|-----|--------|------|----------------|
-| 01 | Deploy + smoke test | all | S | You cannot test a PWA, push, or webhooks without a live HTTPS URL. Do this first even though the app "works locally." |
-| 02 | Pagination fix | none | S | Silent data-loss bug. Leads and conversations are hard-capped at 100. Fix before a client sees a half-empty list. |
 | 03 | Supabase wiring | 04, 05, 06, 14 | M | The schema already exists. Wiring the client once is the foundation for users, activity log, and push subscriptions. Build it once, not three times. |
 | 04 | Real user management | none | M | Replace mock users and `?dev=1` gating with real GHL team members + Supabase roles. |
 | 05 | Webhook processing | 06, 14 | S/M | Turn the logging-only webhook into something that writes an activity feed and invalidates caches. |
 | 06 | Push notifications | 14 | M | The single biggest "why is this an app" feature. Needs 03 (storage) and 05 (trigger). |
-| 07 | Offline API caching | none | S/M | Stale-while-revalidate so the app survives a dead zone. Pure polish. |
 
 ### Phase 2: GHL feature expansion
 
@@ -85,9 +84,9 @@ docs cover the work in two phases of numbered, dependency-ordered tasks:
 
 ## Minimum path to "test app feels finished"
 
-If you want the shortest route to a test app that feels like a real product and stop there:
-**01 → 02 → 03 → 06.** That gets you deployed, no data loss, a real backend, and push
-notifications. 04, 05, and 07 are quality and can follow.
+With 01, 02, and 07 done, the shortest remaining route to a test app that feels like a real
+product is **03 → 06.** That adds a real backend and push notifications on top of the already
+deployed, no-data-loss, offline-capable app. 04 and 05 are quality and can follow.
 
 Phase 2 (08 to 14) is feature work, not a path to "finished," so it has no minimum subset.
 Pick features by client demand. 08 and 09 are the cheapest wins; 10 (calendar) and 11
