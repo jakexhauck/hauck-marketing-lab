@@ -45,6 +45,7 @@ function adaptApiLead(
     id: a.id,
     clientId: fallbackClientId,
     assignedUserId: null,
+    contactId: a.contactId,
     name: a.name || "Unknown",
     phone: a.phone,
     email: a.email,

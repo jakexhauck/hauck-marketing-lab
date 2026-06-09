@@ -3,9 +3,13 @@ import {
   api,
   type ApiLead,
   type ApiPipeline,
+  type ApiPipelineSummary,
+  type ApiSummary,
   type ApiMessage,
   type ApiContact,
   type ApiConversation,
+  type ApiActivity,
+  type ApiNote,
   type AdminClient,
 } from "../lib/api";
 import type { LeadStage } from "../types";
@@ -20,11 +24,60 @@ export function usePipelineQuery(enabled: boolean) {
   });
 }
 
+// All pipelines for the tenant, each with its real stage list.
+export function usePipelinesQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["pipelines"],
+    enabled,
+    staleTime: 5 * 60_000,
+    queryFn: () =>
+      api<{ pipelines: ApiPipelineSummary[] }>("/api/pipelines"),
+  });
+}
+
 export function useLeadsQuery(enabled: boolean) {
   return useQuery({
     queryKey: ["leads"],
     enabled,
     queryFn: () => api<{ leads: ApiLead[]; total: number }>("/api/leads"),
+  });
+}
+
+// Leads for a single pipeline, filtered server-side by pipeline_id.
+export function usePipelineLeadsQuery(
+  pipelineId: string | null,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: ["leads", "pipeline", pipelineId],
+    enabled: enabled && !!pipelineId,
+    staleTime: 15_000,
+    queryFn: () =>
+      api<{ leads: ApiLead[]; total: number }>(
+        `/api/leads?pipelineId=${encodeURIComponent(pipelineId as string)}`,
+      ),
+  });
+}
+
+// Cross-pipeline counts for the Home dashboard.
+export function useSummaryQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["summary"],
+    enabled,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    queryFn: () => api<ApiSummary>("/api/summary"),
+  });
+}
+
+// Recent webhook-sourced events for the Home activity feed.
+export function useActivityQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["activity"],
+    enabled,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    queryFn: () => api<{ activity: ApiActivity[] }>("/api/activity"),
   });
 }
 
@@ -180,6 +233,59 @@ export function useSendSms() {
       ),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["lead", vars.leadId, "messages"] });
+    },
+  });
+}
+
+// Notes attached to a contact (newest-first), read/write through GHL.
+export function useNotesQuery(contactId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["notes", contactId],
+    enabled: enabled && !!contactId,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<{ notes: ApiNote[] }>(`/api/contacts/${contactId}/notes`),
+  });
+}
+
+export function useCreateNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { contactId: string; body: string }) =>
+      api<{ note: ApiNote | null }>(`/api/contacts/${input.contactId}/notes`, {
+        method: "POST",
+        body: JSON.stringify({ body: input.body }),
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["notes", vars.contactId] });
+    },
+  });
+}
+
+export function useUpdateNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { contactId: string; noteId: string; body: string }) =>
+      api<{ note: ApiNote | null }>(
+        `/api/contacts/${input.contactId}/notes/${input.noteId}`,
+        { method: "PUT", body: JSON.stringify({ body: input.body }) },
+      ),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["notes", vars.contactId] });
+    },
+  });
+}
+
+export function useDeleteNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { contactId: string; noteId: string }) =>
+      api<{ ok: boolean }>(
+        `/api/contacts/${input.contactId}/notes/${input.noteId}`,
+        { method: "DELETE" },
+      ),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["notes", vars.contactId] });
     },
   });
 }

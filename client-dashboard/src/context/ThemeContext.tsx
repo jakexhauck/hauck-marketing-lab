@@ -23,10 +23,13 @@ const STORAGE_KEY = "theme";
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readStoredTheme(): ThemePref {
-  if (typeof window === "undefined") return "system";
+  // The "dark split" design is light-only (navy heroes on a light body, no dark
+  // variant), so default to light rather than following the OS. A client whose
+  // phone is in dark mode would otherwise get a broken half-dark UI.
+  if (typeof window === "undefined") return "light";
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (raw === "light" || raw === "dark" || raw === "system") return raw;
-  return "system";
+  return "light";
 }
 
 function systemPrefersDark(): boolean {

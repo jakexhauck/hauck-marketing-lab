@@ -3,7 +3,10 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { ClientProvider } from "./context/ClientContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LeadsProvider } from "./context/LeadsContext";
+import { PipelinesProvider } from "./context/PipelinesContext";
 import Login from "./routes/Login";
+import Home from "./routes/Home";
+import Leads from "./routes/Leads";
 import Dashboard from "./routes/Dashboard";
 import Contacts from "./routes/Contacts";
 import Conversations from "./routes/Conversations";
@@ -12,12 +15,24 @@ import LeadDetail from "./routes/LeadDetail";
 import Today from "./routes/Today";
 import Showroom from "./routes/Showroom";
 import Simulator from "./routes/Simulator";
+import Shell from "./components/Shell";
+import IdentityPicker from "./components/IdentityPicker";
+import OfflineBanner from "./components/OfflineBanner";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { status, currentUser } = useAuth();
+  const { status, currentUser, needsIdentity, setIdentity } = useAuth();
   if (status === "loading") return null;
   if (!currentUser) return <Navigate to="/login" replace />;
+  // One-time "who are you?" step after the shared-password login. Skipping
+  // (or any failure) falls back to the hardcoded-owner default in AuthContext.
+  if (needsIdentity) {
+    return (
+      <Shell>
+        <IdentityPicker onPick={setIdentity} />
+      </Shell>
+    );
+  }
   return <>{children}</>;
 }
 
@@ -27,7 +42,7 @@ function RootRedirect() {
   // Live sessions (clients) stay logged in and skip straight to the
   // dashboard. Test sessions (internal) always land on the login screen.
   if (status === "authenticated" && mode === "live") {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/home" replace />;
   }
   return <Navigate to="/login" replace />;
 }
@@ -37,11 +52,29 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <ClientProvider>
+          <PipelinesProvider>
           <LeadsProvider>
+            <OfflineBanner />
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<Login />} />
               <Route path="/showroom" element={<Showroom />} />
+              <Route
+                path="/home"
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/leads"
+                element={
+                  <ProtectedRoute>
+                    <Leads />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/dashboard"
                 element={
@@ -101,6 +134,7 @@ export default function App() {
               <Route path="*" element={<RootRedirect />} />
             </Routes>
           </LeadsProvider>
+          </PipelinesProvider>
         </ClientProvider>
       </AuthProvider>
     </ThemeProvider>

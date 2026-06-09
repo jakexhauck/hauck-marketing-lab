@@ -64,6 +64,8 @@ export interface GhlOpportunity {
   };
   notes?: string;
   source?: string;
+  // GHL user id this opportunity is assigned to (drives rep-only filtering).
+  assignedTo?: string;
 }
 
 export interface ApiLead {
@@ -72,12 +74,15 @@ export interface ApiLead {
   phone: string;
   email: string;
   contactId: string;
+  pipelineId: string;
   pipelineStageId: string;
   status: string;
   value: number | null;
   createdAt: string;
   lastActivityAt: string;
   notes: string | null;
+  // GHL user id the opportunity is assigned to, or null if unassigned.
+  assignedUserId: string | null;
 }
 
 export function shapeOpportunity(o: GhlOpportunity): ApiLead {
@@ -90,6 +95,7 @@ export function shapeOpportunity(o: GhlOpportunity): ApiLead {
     phone: o.contact?.phone ?? "",
     email: o.contact?.email ?? "",
     contactId: o.contact?.id ?? o.contactId ?? "",
+    pipelineId: o.pipelineId ?? "",
     pipelineStageId: o.pipelineStageId ?? "",
     status: o.status ?? "open",
     value: typeof o.monetaryValue === "number" ? o.monetaryValue : null,
@@ -97,5 +103,6 @@ export function shapeOpportunity(o: GhlOpportunity): ApiLead {
     lastActivityAt:
       o.lastStatusChangeAt ?? o.updatedAt ?? o.createdAt ?? new Date().toISOString(),
     notes: o.notes ?? null,
+    assignedUserId: o.assignedTo ?? null,
   };
 }

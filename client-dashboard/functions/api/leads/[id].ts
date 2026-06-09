@@ -10,12 +10,29 @@ interface PatchBody {
 
 export const onRequestGet: PagesFunction<Env, "id", ApiData> = async (ctx) => {
   const t = ctx.data.tenant;
+  const gctx = { token: t.ghl_token, locationId: t.ghl_location_id };
   const id = ctx.params.id as string;
   const data = await ghlJson<{ opportunity: GhlOpportunity }>(
-    { token: t.ghl_token, locationId: t.ghl_location_id },
+    gctx,
     `/opportunities/${encodeURIComponent(id)}`,
   );
-  return Response.json({ lead: shapeOpportunity(data.opportunity) });
+  const lead = shapeOpportunity(data.opportunity);
+
+  // GHL's opportunity response omits the contact's phone/email, so the lead
+  // detail's call/email actions would be dead. Enrich from the contact record.
+  if (lead.contactId && (!lead.phone || !lead.email)) {
+    try {
+      const c = await ghlJson<{
+        contact: { phone?: string; email?: string };
+      }>(gctx, `/contacts/${encodeURIComponent(lead.contactId)}`);
+      lead.phone = lead.phone || c.contact?.phone || "";
+      lead.email = lead.email || c.contact?.email || "";
+    } catch {
+      // best-effort enrichment; leave blanks if the lookup fails
+    }
+  }
+
+  return Response.json({ lead });
 };
 
 export const onRequestPatch: PagesFunction<Env, "id", ApiData> = async (ctx) => {

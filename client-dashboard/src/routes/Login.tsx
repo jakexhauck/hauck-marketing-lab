@@ -4,7 +4,7 @@ import Shell from "../components/Shell";
 import BrandedButton from "../components/BrandedButton";
 import BrandedLogo from "../components/BrandedLogo";
 import { useAuth } from "../context/AuthContext";
-import { useClient } from "../context/ClientContext";
+import { APP_BRAND } from "../lib/appBrand";
 
 type Phase = "idle" | "submitting" | "error";
 type LoginMode = "live" | "test";
@@ -15,7 +15,6 @@ export default function Login() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [mode, setMode] = useState<LoginMode>("live");
   const { signInWithPassword } = useAuth();
-  const { client } = useClient();
   const navigate = useNavigate();
 
   const isTest = mode === "test";
@@ -35,7 +34,7 @@ export default function Login() {
     setErrorMsg(null);
     const res = await signInWithPassword(trimmed, mode);
     if (res.ok) {
-      navigate("/dashboard", { replace: true });
+      navigate("/home", { replace: true });
     } else {
       setPhase("error");
       setErrorMsg(res.error ?? "Sign-in failed");
@@ -44,15 +43,21 @@ export default function Login() {
 
   return (
     <Shell>
-      <div className="flex flex-1 items-center justify-center px-5 py-12">
-        <div className="w-full rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.18)] dark:shadow-none">
+      <div
+        className="flex flex-1 flex-col items-center justify-center px-5 py-12"
+        style={{
+          background: "linear-gradient(165deg, #13294a 0%, #0d1f38 100%)",
+          paddingTop: "calc(env(safe-area-inset-top) + 48px)",
+        }}
+      >
+        <div className="w-full rounded-3xl bg-white p-8 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)]">
           <div className="flex flex-col items-center text-center">
             <BrandedLogo size="lg" />
             <span className="label-cap mt-6">
               {isTest ? "Test Account" : "Sign In"}
             </span>
             <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-[var(--text)]">
-              {isTest ? "Test Account" : client.brand.appName}
+              {isTest ? "Test Account" : APP_BRAND.appName}
             </h1>
             <p className="mt-2 text-sm text-[var(--text-muted)]">
               {isTest
@@ -114,6 +119,9 @@ export default function Login() {
               {isTest ? "Back to client login" : "Log into test account"}
             </button>
           </div>
+        </div>
+        <div className="mt-6 text-center text-[11px] font-medium text-white/40">
+          Secured by Willis Marketing
         </div>
       </div>
     </Shell>

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Activity, Mail, MessageSquare, Phone } from "lucide-react";
+import { Activity, ChevronLeft, Mail, MessageSquare, Phone } from "lucide-react";
 import Shell from "../components/Shell";
-import StagePill from "../components/StagePill";
+import NavyHero from "../components/NavyHero";
+import { HeroIconButton } from "../components/HeroUi";
 import BackButton from "../components/BackButton";
 import OutcomeButton from "../components/OutcomeButton";
 import WonSheet from "../components/WonSheet";
@@ -17,6 +18,7 @@ import { formatMoney } from "../lib/formatMoney";
 import { e164, formatPhone } from "../lib/phone";
 import ConversationThread from "../components/ConversationThread";
 import MessageComposer from "../components/MessageComposer";
+import NoteList from "../components/NoteList";
 import type { LeadActivity, LeadStage } from "../types";
 
 const currencyFmt = new Intl.NumberFormat("en-US", {
@@ -146,7 +148,7 @@ export default function LeadDetail() {
     return (
       <Shell>
         <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-          <BackButton to="/dashboard" label="Dashboard" />
+          <BackButton to="/leads" label="Leads" />
         </header>
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
           <h1 className="font-display text-xl font-bold text-[var(--text)]">
@@ -172,7 +174,7 @@ export default function LeadDetail() {
           ? `Marked as ${wonLabel}, ${currencyFmt.format(value)}`
           : `Marked as ${wonLabel}`;
     }
-    navigate("/dashboard", { state: { toast: message } });
+    navigate("/leads", { state: { toast: message } });
   };
 
   const handleWonSave = (value: number) => {
@@ -199,25 +201,47 @@ export default function LeadDetail() {
   return (
     <Shell>
       {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-        <BackButton to="/dashboard" label="Dashboard" />
-      </header>
+      <NavyHero>
+        <div className="flex items-center justify-between">
+          <HeroIconButton label="Back to leads" onClick={() => navigate("/leads")}>
+            <ChevronLeft size={20} />
+          </HeroIconButton>
+          {hasPhone && (
+            <a
+              href={`tel:${telDigits}`}
+              aria-label={`Call ${lead.name}`}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-colors active:scale-[0.96]"
+              style={{ background: "rgba(255,255,255,0.14)" }}
+            >
+              <Phone size={18} />
+            </a>
+          )}
+        </div>
 
-      <div className="flex flex-col gap-5 px-5 py-5">
-        <section className="flex items-center gap-4">
+        <div className="mt-4 flex items-center gap-4">
           <Avatar name={lead.name} size="lg" />
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-display text-2xl font-bold tracking-tight text-[var(--text)]">
-                {lead.name}
-              </h1>
-              <StagePill stage={lead.stage} />
+            <h1 className="truncate font-display text-2xl font-bold tracking-tight text-white">
+              {lead.name}
+            </h1>
+            <div className="mt-1.5">
+              <span
+                className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-bold text-white"
+                style={{ background: "rgba(255,255,255,0.16)" }}
+              >
+                {prettyStage(lead.stage)}
+              </span>
             </div>
-            <div className="mt-1 truncate text-xs text-[var(--text-muted)]">
-              {lead.sourceAd} · {lead.sourceCampaign}
-            </div>
+            {(lead.sourceAd || lead.sourceCampaign) && (
+              <div className="mt-1.5 truncate text-xs text-white/60">
+                {[lead.sourceAd, lead.sourceCampaign].filter(Boolean).join(" · ")}
+              </div>
+            )}
           </div>
-        </section>
+        </div>
+      </NavyHero>
+
+      <div className="flex flex-col gap-5 px-5 py-5">
 
         <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
           {hasPhone && (
@@ -239,18 +263,22 @@ export default function LeadDetail() {
             <span>{lead.email}</span>
           </a>
           <dl className="flex flex-col gap-2 border-t border-[var(--divider)] pt-3 text-sm">
-            <div className="flex justify-between gap-3">
-              <dt className="label-cap">Ad</dt>
-              <dd className="text-right font-semibold text-[var(--text)]">
-                {lead.sourceAd}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="label-cap">Campaign</dt>
-              <dd className="text-right font-semibold text-[var(--text)]">
-                {lead.sourceCampaign}
-              </dd>
-            </div>
+            {lead.sourceAd && (
+              <div className="flex justify-between gap-3">
+                <dt className="label-cap">Ad</dt>
+                <dd className="text-right font-semibold text-[var(--text)]">
+                  {lead.sourceAd}
+                </dd>
+              </div>
+            )}
+            {lead.sourceCampaign && (
+              <div className="flex justify-between gap-3">
+                <dt className="label-cap">Campaign</dt>
+                <dd className="text-right font-semibold text-[var(--text)]">
+                  {lead.sourceCampaign}
+                </dd>
+              </div>
+            )}
             <div className="flex justify-between gap-3">
               <dt className="label-cap">Created</dt>
               <dd className="text-right font-semibold text-[var(--text)]">
@@ -295,20 +323,26 @@ export default function LeadDetail() {
             />
             <h2 className="label-cap">Notes</h2>
           </div>
-          <textarea
-            value={noteDraft}
-            onChange={(e) => setNoteDraft(e.target.value)}
-            placeholder="Add a quick note about this lead."
-            className="min-h-[80px] w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-faint)] focus:border-[var(--ring)]"
-          />
-          <BrandedButton
-            variant="primary"
-            onClick={handleAddNote}
-            disabled={noteDraft.trim().length === 0}
-            className="self-start"
-          >
-            Add note
-          </BrandedButton>
+          {session && lead.contactId ? (
+            <NoteList contactId={lead.contactId} onToast={setToast} />
+          ) : (
+            <>
+              <textarea
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                placeholder="Add a quick note about this lead."
+                className="min-h-[80px] w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-faint)] focus:border-[var(--ring)]"
+              />
+              <BrandedButton
+                variant="primary"
+                onClick={handleAddNote}
+                disabled={noteDraft.trim().length === 0}
+                className="self-start"
+              >
+                Add note
+              </BrandedButton>
+            </>
+          )}
         </section>
 
         <section className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">

@@ -25,6 +25,7 @@ function corsHeaders(origin: string | null): HeadersInit {
 
 const PUBLIC_PATHS = new Set([
   "/api/health",
+  "/api/health/supabase",
   "/api/webhook",
   "/api/auth/login",
   "/api/auth/logout",

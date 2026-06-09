@@ -49,6 +49,7 @@ export interface ApiLead {
   phone: string;
   email: string;
   contactId: string;
+  pipelineId: string;
   pipelineStageId: string;
   status: string;
   value: number | null;
@@ -61,6 +62,25 @@ export interface ApiPipeline {
   pipelineId: string | null;
   name: string | null;
   stages: { id: string; name: string }[];
+}
+
+export interface ApiPipelineSummary {
+  id: string;
+  name: string;
+  stages: { id: string; name: string }[];
+}
+
+export interface PipelineSummary {
+  id: string;
+  name: string;
+  total: number;
+  open: number;
+}
+
+export interface ApiSummary {
+  pipelines: PipelineSummary[];
+  newToday: number;
+  unreadConversations: number;
 }
 
 export interface ApiMessage {
@@ -90,6 +110,26 @@ export interface ApiConversation {
   lastMessageType: string;
   lastMessageAt: string;
   unreadCount: number;
+}
+
+export interface ApiNote {
+  id: string;
+  body: string;
+  dateAdded?: string;
+  userId?: string;
+}
+
+export interface ApiActivity {
+  id: number;
+  action: string;
+  lead_id: string | null;
+  payload: {
+    summary?: string;
+    contact_id?: string | null;
+    opportunity_id?: string | null;
+    raw?: unknown;
+  } | null;
+  created_at: string;
 }
 
 export interface AdminClient {

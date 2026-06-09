@@ -1,22 +1,27 @@
 import { useMemo, useState } from "react";
-import { Phone, Mail } from "lucide-react";
+import { Phone, Mail, Search } from "lucide-react";
 import Shell from "../components/Shell";
-import TopBar from "../components/TopBar";
-import ViewTabs from "../components/ViewTabs";
+import NavyHero from "../components/NavyHero";
+import { HeroMark, HeroIconButton } from "../components/HeroUi";
+import TestBanner from "../components/TestBanner";
+import BottomNav from "../components/BottomNav";
 import SearchBar from "../components/SearchBar";
 import Avatar from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
 import { useAuth } from "../context/AuthContext";
 import { useContactsQuery } from "../hooks/useApi";
+import { APP_BRAND } from "../lib/appBrand";
 import { formatPhone } from "../lib/phone";
 import { timeAgo } from "../lib/timeAgo";
 import type { ApiContact } from "../lib/api";
 
 export default function Contacts() {
-  const { session } = useAuth();
+  const { session, mode } = useAuth();
   const useReal = Boolean(session);
   const query = useContactsQuery(useReal);
   const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const isTest = mode === "test";
 
   const contacts: ApiContact[] = useMemo(
     () => query.data?.contacts ?? [],
@@ -41,39 +46,44 @@ export default function Contacts() {
 
   return (
     <Shell>
-      <TopBar />
-      <ViewTabs />
+      {isTest && <TestBanner />}
 
-      <div className="mb-2 mt-4 flex items-end justify-between px-5">
-        <div className="flex flex-col gap-1">
-          <span
-            className="label-cap-strong"
-            style={{ color: "var(--brand-primary)" }}
+      <NavyHero flushTop={isTest}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <HeroMark initials={APP_BRAND.initials} />
+            <div className="min-w-0">
+              <div className="truncate font-display text-[17px] font-bold text-white">
+                Contacts
+              </div>
+              <div className="truncate text-[12px] text-white/60">
+                {query.isLoading
+                  ? "Loading..."
+                  : `${contacts.length} ${contacts.length === 1 ? "contact" : "contacts"}`}
+              </div>
+            </div>
+          </div>
+          <HeroIconButton
+            label="Search contacts"
+            onClick={() => setShowSearch((v) => !v)}
+            pressed={showSearch}
           >
-            Contact Status
-          </span>
-          <h2 className="font-display text-xl font-bold tracking-tight text-[var(--text)]">
-            {query.isLoading ? (
-              <>Loading contacts...</>
-            ) : trimmed ? (
-              <>
-                {visible.length} of {contacts.length}{" "}
-                {contacts.length === 1 ? "contact" : "contacts"}
-              </>
-            ) : (
-              <>
-                {contacts.length} {contacts.length === 1 ? "contact" : "contacts"}
-              </>
-            )}
-          </h2>
+            <Search size={18} />
+          </HeroIconButton>
         </div>
-      </div>
+      </NavyHero>
 
-      <div className="px-5 pt-4">
-        <SearchBar value={search} onChange={setSearch} />
-      </div>
+      {(showSearch || trimmed) && (
+        <div className="px-5 pt-4">
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Search contacts"
+          />
+        </div>
+      )}
 
-      <main className="mt-4 flex flex-1 flex-col px-5 pb-6">
+      <main className="mt-4 flex flex-1 flex-col px-5 pb-28">
         {query.isError ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
             Failed to load contacts.{" "}
@@ -102,6 +112,7 @@ export default function Contacts() {
           </ul>
         )}
       </main>
+      <BottomNav active="contacts" />
     </Shell>
   );
 }

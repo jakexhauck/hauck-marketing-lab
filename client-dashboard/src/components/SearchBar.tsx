@@ -5,9 +5,15 @@ interface Props {
   value: string;
   onChange: (v: string) => void;
   onClear?: () => void;
+  placeholder?: string;
 }
 
-export default function SearchBar({ value, onChange, onClear }: Props) {
+export default function SearchBar({
+  value,
+  onChange,
+  onClear,
+  placeholder = "Search leads",
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleClear = () => {
@@ -32,8 +38,8 @@ export default function SearchBar({ value, onChange, onClear }: Props) {
         spellCheck={false}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Search leads"
-        aria-label="Search leads"
+        placeholder={placeholder}
+        aria-label={placeholder}
         className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] py-2.5 pl-10 pr-12 text-[15px] font-medium text-[var(--text)] placeholder:text-[var(--text-faint)] outline-none transition-colors focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20"
         style={{ minHeight: "44px" }}
       />

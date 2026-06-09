@@ -5,7 +5,8 @@ export default function Shell({ children }: { children: ReactNode }) {
     <div
       className="mx-auto flex min-h-dvh max-w-md flex-col bg-[var(--bg)]"
       style={{
-        paddingTop: "env(safe-area-inset-top)",
+        // Top safe-area is owned by each screen's top element (the navy hero
+        // bleeds under the status bar). Only the bottom inset lives here.
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >

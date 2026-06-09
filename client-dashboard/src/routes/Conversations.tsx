@@ -1,26 +1,37 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
 import Shell from "../components/Shell";
-import TopBar from "../components/TopBar";
-import ViewTabs from "../components/ViewTabs";
+import NavyHero from "../components/NavyHero";
+import { HeroMark, HeroIconButton } from "../components/HeroUi";
+import TestBanner from "../components/TestBanner";
+import BottomNav from "../components/BottomNav";
 import SearchBar from "../components/SearchBar";
 import Avatar from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "../hooks/useApi";
+import { APP_BRAND } from "../lib/appBrand";
 import { timeAgo } from "../lib/timeAgo";
 import type { ApiConversation } from "../lib/api";
 
 export default function Conversations() {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, mode } = useAuth();
   const useReal = Boolean(session);
   const query = useConversationsQuery(useReal);
   const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const isTest = mode === "test";
 
   const items: ApiConversation[] = useMemo(
     () => query.data?.conversations ?? [],
     [query.data],
+  );
+
+  const unreadTotal = useMemo(
+    () => items.reduce((n, c) => n + (c.unreadCount > 0 ? c.unreadCount : 0), 0),
+    [items],
   );
 
   const trimmed = search.trim();
@@ -36,39 +47,44 @@ export default function Conversations() {
 
   return (
     <Shell>
-      <TopBar />
-      <ViewTabs />
+      {isTest && <TestBanner />}
 
-      <div className="mb-2 mt-4 flex items-end justify-between px-5">
-        <div className="flex flex-col gap-1">
-          <span
-            className="label-cap-strong"
-            style={{ color: "var(--brand-primary)" }}
+      <NavyHero flushTop={isTest}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <HeroMark initials={APP_BRAND.initials} />
+            <div className="min-w-0">
+              <div className="truncate font-display text-[17px] font-bold text-white">
+                Chats
+              </div>
+              <div className="truncate text-[12px] text-white/60">
+                {query.isLoading
+                  ? "Loading..."
+                  : `${items.length} ${items.length === 1 ? "thread" : "threads"}, ${unreadTotal} unread`}
+              </div>
+            </div>
+          </div>
+          <HeroIconButton
+            label="Search conversations"
+            onClick={() => setShowSearch((v) => !v)}
+            pressed={showSearch}
           >
-            Conversations
-          </span>
-          <h2 className="font-display text-xl font-bold tracking-tight text-[var(--text)]">
-            {query.isLoading ? (
-              <>Loading conversations...</>
-            ) : trimmed ? (
-              <>
-                {visible.length} of {items.length}{" "}
-                {items.length === 1 ? "thread" : "threads"}
-              </>
-            ) : (
-              <>
-                {items.length} {items.length === 1 ? "thread" : "threads"}
-              </>
-            )}
-          </h2>
+            <Search size={18} />
+          </HeroIconButton>
         </div>
-      </div>
+      </NavyHero>
 
-      <div className="px-5 pt-4">
-        <SearchBar value={search} onChange={setSearch} />
-      </div>
+      {(showSearch || trimmed) && (
+        <div className="px-5 pt-4">
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Search conversations"
+          />
+        </div>
+      )}
 
-      <main className="mt-4 flex flex-1 flex-col px-5 pb-6">
+      <main className="mt-4 flex flex-1 flex-col px-5 pb-28">
         {query.isError ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
             Failed to load conversations.{" "}
@@ -101,6 +117,7 @@ export default function Conversations() {
           </ul>
         )}
       </main>
+      <BottomNav active="conversations" />
     </Shell>
   );
 }

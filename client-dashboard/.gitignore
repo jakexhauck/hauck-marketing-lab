@@ -3,6 +3,10 @@ dist
 dist-ssr
 *.local
 .vite
+.wrangler
+
+# local secrets (wrangler pages dev)
+.dev.vars
 
 # editor
 .vscode/*

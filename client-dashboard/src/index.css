@@ -105,6 +105,14 @@ body {
   font-feature-settings: "tnum" 1, "ss01" 1;
 }
 
+.sec-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-primary);
+}
+
 /* Hide horizontal scrollbar on filter strips */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

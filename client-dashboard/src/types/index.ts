@@ -45,6 +45,8 @@ export interface Lead {
   id: string;
   clientId: string;
   assignedUserId: string | null;
+  // GHL contact id behind the opportunity; notes/tasks key off this. Absent in mock data.
+  contactId?: string;
   name: string;
   phone: string;
   email: string;

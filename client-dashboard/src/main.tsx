@@ -1,10 +1,24 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import App from "./App";
 import { queryClient } from "./lib/queryClient";
 import "./index.css";
+
+// Layer 1 of offline caching: persist the read-query cache to localStorage so
+// previously loaded lists reappear instantly on relaunch, then revalidate when
+// back online. maxAge caps how long stale data is treated as restorable (24h),
+// so a rep does not mistake day-old leads for live. Only successful read
+// queries are dehydrated (mutations are never persisted), so SMS send and
+// lead/stage updates always re-run against the network.
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+  key: "hml_query_cache",
+});
+
+const TWENTY_FOUR_HOURS = 1000 * 60 * 60 * 24;
 
 (function applyInitialTheme() {
   try {
@@ -27,9 +41,20 @@ import "./index.css";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister,
+          maxAge: TWENTY_FOUR_HOURS,
+          dehydrateOptions: {
+            // Only persist successful read queries. Errored/pending queries are
+            // not worth restoring, and mutations are excluded by default.
+            shouldDehydrateQuery: (query) => query.state.status === "success",
+          },
+        }}
+      >
         <App />
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
