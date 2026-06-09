@@ -1,0 +1,14 @@
+diff --git a/dist/lib/isomorphic-crypto.js b/dist/lib/isomorphic-crypto.js
+index a788e61397ffbd16bdaaf3413d53d806d02f2106..ef067d4dd8f79226e27bb1d2a6ad30de19dc732d 100644
+--- a/dist/lib/isomorphic-crypto.js
++++ b/dist/lib/isomorphic-crypto.js
+@@ -1,8 +1,6 @@
+ /// <reference lib="webworker" />
+ /// <reference types="node" />
+-const impl = globalThis.crypto
+-    ? globalThis.crypto
+-    : await import('node:crypto');
++const impl = globalThis.crypto;
+ // we only export the values we use to keep things simple, we dont need a fully
+ // cross platform compatible crypto library
+ export const crypto = {

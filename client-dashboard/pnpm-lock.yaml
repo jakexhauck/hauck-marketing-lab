@@ -4,13 +4,16 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@block65/webcrypto-web-push@1.0.2': dd7e22dbcfba14272eb55bf721430a7bacf29c3d4b982dc54ac84a917d41285f
+
 importers:
 
   .:
     dependencies:
       '@block65/webcrypto-web-push':
         specifier: 1.0.2
-        version: 1.0.2
+        version: 1.0.2(patch_hash=dd7e22dbcfba14272eb55bf721430a7bacf29c3d4b982dc54ac84a917d41285f)
       '@supabase/supabase-js':
         specifier: ^2.105.4
         version: 2.105.4
@@ -3228,7 +3231,7 @@ snapshots:
     dependencies:
       serialize-error: 11.0.3
 
-  '@block65/webcrypto-web-push@1.0.2':
+  '@block65/webcrypto-web-push@1.0.2(patch_hash=dd7e22dbcfba14272eb55bf721430a7bacf29c3d4b982dc54ac84a917d41285f)':
     dependencies:
       '@block65/custom-error': 12.2.0
       base64-arraybuffer: 1.0.2
