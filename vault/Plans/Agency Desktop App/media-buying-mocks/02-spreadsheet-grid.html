@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bulk Forge · Sunrise HVAC · HML</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Geist+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f9f8f5;
+    --bg-2: #ffffff;
+    --bg-3: #f1efea;
+    --ink: #0a0a0b;
+    --ink-2: #2a2a2c;
+    --ink-3: #6e6e72;
+    --ink-4: #9a9a9e;
+    --line: #e5e3dc;
+    --line-2: #cfccc1;
+    --brand: #ff5d1a;
+    --brand-soft: #fff1ea;
+    --green: #0e8a3e;
+    --amber: #b86d00;
+    --red: #c1271c;
+    --blue: #1e5fbf;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Hanken Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  .mono { font-family: 'Geist Mono', monospace; font-feature-settings: 'tnum' 1; }
+
+  .app { display: grid; grid-template-rows: 56px 44px 38px 1fr 34px; height: 100vh; }
+
+  /* HEADER */
+  .header {
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: 0 22px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-2);
+    gap: 24px;
+  }
+  .header .title {
+    font-size: 18px; font-weight: 600; letter-spacing: -0.01em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .title .sigil {
+    width: 24px; height: 24px;
+    background: var(--ink); color: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; border-radius: 4px;
+  }
+  .title .client { font-weight: 400; color: var(--ink-3); }
+  .title .client b { color: var(--ink); font-weight: 500; }
+  .title .pill {
+    font-family: 'Geist Mono'; font-size: 10px;
+    background: var(--brand-soft); color: var(--brand);
+    padding: 3px 8px; border-radius: 10px;
+    letter-spacing: 0.02em;
+  }
+  .header .search {
+    flex: 1; max-width: 380px;
+    position: relative;
+  }
+  .search input {
+    width: 100%; background: var(--bg-3); border: 1px solid transparent;
+    padding: 8px 12px 8px 34px; border-radius: 6px;
+    font-family: inherit; font-size: 13px; color: var(--ink);
+  }
+  .search input:focus { outline: none; border-color: var(--line-2); background: var(--bg-2); }
+  .search::before {
+    content: '⌕'; position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-4); font-size: 15px;
+  }
+  .header .kb {
+    font-family: 'Geist Mono'; font-size: 10px;
+    color: var(--ink-4); letter-spacing: 0.04em;
+    display: flex; gap: 16px; align-items: center;
+  }
+  .kb kbd {
+    background: var(--bg-3); border: 1px solid var(--line);
+    padding: 1px 5px; border-radius: 3px; color: var(--ink-3);
+  }
+
+  /* TOOLBAR */
+  .toolbar {
+    display: grid; grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 0 22px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-2);
+    gap: 16px;
+  }
+  .filter-chips { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: var(--bg-3);
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+  .chip:hover { border-color: var(--line-2); }
+  .chip.active { background: var(--ink); color: var(--bg-2); }
+  .chip .k { font-family: 'Geist Mono'; font-size: 10px; color: var(--ink-4); }
+  .chip.active .k { color: var(--bg-3); }
+  .chip .x { color: var(--ink-4); font-size: 11px; cursor: pointer; }
+  .sort-label {
+    margin-left: 12px; font-family: 'Geist Mono'; font-size: 11px;
+    color: var(--ink-4); letter-spacing: 0.04em;
+  }
+
+  .tool-actions { display: flex; gap: 6px; }
+  .tbtn {
+    background: var(--bg-2); border: 1px solid var(--line);
+    padding: 5px 10px; border-radius: 4px; cursor: pointer;
+    font-family: inherit; font-size: 12px; color: var(--ink-2);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tbtn:hover { background: var(--bg-3); border-color: var(--line-2); }
+  .tbtn.primary { background: var(--ink); color: var(--bg-2); border-color: var(--ink); }
+  .tbtn.primary:hover { background: var(--ink-2); }
+  .tbtn .icon { font-family: 'Geist Mono'; font-size: 11px; color: var(--ink-3); }
+  .tbtn.primary .icon { color: var(--bg-3); }
+
+  /* SELECTION BAR */
+  .selbar {
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: 0 22px;
+    background: var(--ink); color: var(--bg-2);
+    gap: 24px;
+    font-size: 12px;
+  }
+  .selbar .count {
+    font-family: 'Geist Mono'; font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .selbar .count b { color: var(--brand); font-weight: 500; }
+  .selbar .actions { display: flex; gap: 6px; }
+  .selbar .sb-btn {
+    background: transparent; border: 1px solid #44444a;
+    color: var(--bg-2); padding: 4px 10px; border-radius: 4px;
+    cursor: pointer; font-family: inherit; font-size: 12px;
+  }
+  .selbar .sb-btn:hover { background: #2a2a2e; }
+  .selbar .sb-btn.primary {
+    background: var(--brand); color: var(--ink); border-color: var(--brand); font-weight: 600;
+  }
+  .selbar .dismiss {
+    color: var(--ink-4); cursor: pointer; font-family: 'Geist Mono'; font-size: 11px;
+  }
+
+  /* TABLE */
+  .table-wrap { overflow: auto; background: var(--bg-2); }
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    font-size: 12.5px;
+  }
+  thead th {
+    position: sticky; top: 0;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    font-weight: 500;
+    color: var(--ink-3);
+    font-family: 'Geist Mono';
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 9px 10px;
+    z-index: 2;
+  }
+  th .sort { color: var(--ink-4); margin-left: 4px; font-size: 9px; }
+
+  tbody td {
+    border-bottom: 1px solid var(--line);
+    padding: 9px 10px;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  tbody tr:hover { background: var(--bg); }
+  tbody tr.selected { background: #fff5ee; }
+  tbody tr.selected:hover { background: #ffefdf; }
+
+  .col-check { width: 32px; }
+  .col-ad { width: 56px; }
+  .col-campaign { width: 140px; }
+  .col-adset { width: 130px; }
+  .col-hook { width: 280px; }
+  .col-body { width: 320px; }
+  .col-cta { width: 80px; }
+  .col-creative { width: 60px; }
+  .col-audience { width: 140px; }
+  .col-budget { width: 70px; }
+  .col-status { width: 90px; }
+  .col-spend { width: 72px; }
+  .col-ctr { width: 80px; }
+  .col-leads { width: 60px; }
+
+  .check {
+    width: 14px; height: 14px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    cursor: pointer;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .check.on {
+    background: var(--ink);
+    border-color: var(--ink);
+    position: relative;
+  }
+  .check.on::after {
+    content: '✓'; color: var(--bg-2); font-size: 10px;
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  }
+
+  .ad-id { font-family: 'Geist Mono'; font-size: 11px; color: var(--ink-3); }
+
+  .editable {
+    display: block;
+    padding: 1px 4px;
+    margin: -1px -4px;
+    border-radius: 3px;
+    color: var(--ink-2);
+  }
+  tr:hover .editable { background: var(--bg-2); box-shadow: inset 0 0 0 1px var(--line); }
+  tr.selected .editable { background: transparent; }
+  .editable.empty { color: var(--ink-4); }
+
+  .creative-cell {
+    width: 36px; height: 36px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--bg-3);
+    position: relative;
+  }
+  .creative-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .creative-cell .src {
+    position: absolute; bottom: 0; right: 0;
+    background: rgba(0,0,0,0.65); color: white;
+    font-family: 'Geist Mono'; font-size: 7px;
+    padding: 1px 3px; line-height: 1;
+    letter-spacing: 0.04em;
+  }
+  .creative-cell.empty {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-4); font-family: 'Geist Mono'; font-size: 18px;
+  }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-family: 'Geist Mono';
+    letter-spacing: 0.02em;
+  }
+  .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .st-live { background: #e3f5e9; color: var(--green); }
+  .st-live .dot { background: var(--green); }
+  .st-draft { background: var(--bg-3); color: var(--ink-3); }
+  .st-draft .dot { background: var(--ink-4); }
+  .st-review { background: #fdf1de; color: var(--amber); }
+  .st-review .dot { background: var(--amber); }
+  .st-issue { background: #fbe2df; color: var(--red); }
+  .st-issue .dot { background: var(--red); }
+
+  .mono-num { font-family: 'Geist Mono'; font-size: 11.5px; color: var(--ink-2); }
+  .mono-num.muted { color: var(--ink-4); }
+  .delta { font-family: 'Geist Mono'; font-size: 10px; }
+  .delta.up { color: var(--green); }
+  .delta.down { color: var(--red); }
+
+  .footer {
+    display: grid; grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 0 22px;
+    border-top: 1px solid var(--line);
+    background: var(--bg-2);
+    font-family: 'Geist Mono'; font-size: 11px;
+    color: var(--ink-3); letter-spacing: 0.02em;
+  }
+  .footer .left { display: flex; gap: 20px; }
+  .footer .right { display: flex; gap: 20px; }
+  .footer .right .green { color: var(--green); }
+
+  .indicator-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; vertical-align: middle; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--line-2); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="header">
+    <div class="title">
+      <span class="sigil">H</span>
+      <span>Bulk Forge</span>
+      <span class="client">/ <b>Sunrise HVAC</b></span>
+      <span class="pill">12 ADS · 3 CAMPAIGNS</span>
+    </div>
+    <div class="search">
+      <input placeholder="Search ads, campaigns, hooks, copy..." />
+    </div>
+    <div class="kb">
+      <span><kbd>⌘</kbd>+<kbd>K</kbd> command</span>
+      <span><kbd>G</kbd> generate</span>
+      <span><kbd>⇧</kbd>+<kbd>P</kbd> publish</span>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="filter-chips">
+      <div class="chip active"><span>View</span><span class="k">all ads</span></div>
+      <div class="chip"><span class="k">Status</span><span>any</span></div>
+      <div class="chip"><span class="k">Campaign</span><span>3 selected</span><span class="x">×</span></div>
+      <div class="chip"><span class="k">CTR</span><span>≥ 2.0%</span><span class="x">×</span></div>
+      <div class="chip"><span class="indicator-dot" style="background: var(--brand)"></span><span>+ filter</span></div>
+      <span class="sort-label">SORT: spend ↓</span>
+    </div>
+    <div class="tool-actions">
+      <button class="tbtn"><span class="icon">↻</span> Refresh Meta</button>
+      <button class="tbtn"><span class="icon">⊞</span> Columns</button>
+      <button class="tbtn"><span class="icon">↗</span> Export</button>
+      <button class="tbtn primary"><span class="icon">+</span> New Ad</button>
+    </div>
+  </div>
+
+  <div class="selbar">
+    <div class="count"><b>4</b> SELECTED · ALL FROM "$49 TUNE-UP HEAT"</div>
+    <div class="actions">
+      <button class="sb-btn">↻ Re-gen hooks</button>
+      <button class="sb-btn">⊕ Add creative</button>
+      <button class="sb-btn">⏸ Pause all</button>
+      <button class="sb-btn">⊡ Duplicate to new ad set</button>
+      <button class="sb-btn primary">▶ Publish 4 to Meta</button>
+    </div>
+    <span class="dismiss">esc to deselect</span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <colgroup>
+        <col class="col-check"/>
+        <col class="col-ad"/>
+        <col class="col-campaign"/>
+        <col class="col-adset"/>
+        <col class="col-hook"/>
+        <col class="col-body"/>
+        <col class="col-cta"/>
+        <col class="col-creative"/>
+        <col class="col-audience"/>
+        <col class="col-budget"/>
+        <col class="col-status"/>
+        <col class="col-spend"/>
+        <col class="col-ctr"/>
+        <col class="col-leads"/>
+      </colgroup>
+      <thead>
+        <tr>
+          <th><span class="check"></span></th>
+          <th>Ad <span class="sort">▾</span></th>
+          <th>Campaign</th>
+          <th>Ad Set</th>
+          <th>Hook</th>
+          <th>Body</th>
+          <th>CTA</th>
+          <th>Creative</th>
+          <th>Audience</th>
+          <th>Budget</th>
+          <th>Status</th>
+          <th>Spend <span class="sort">▾</span></th>
+          <th>CTR</th>
+          <th>Leads</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="selected">
+          <td><span class="check on"></span></td>
+          <td class="ad-id">AD-001</td>
+          <td>$49 Tune-Up Heat</td>
+          <td>HO 35-65 · ATX</td>
+          <td><span class="editable">Your AC will die in this heat.</span></td>
+          <td><span class="editable">$49 gets you a 21-point AC tune-up before Austin's heat dome hits...</span></td>
+          <td><span class="editable">Book Now</span></td>
+          <td><div class="creative-cell"><img src="https://picsum.photos/seed/hvac-tech-1/80/80"><span class="src">AI</span></div></td>
+          <td>Homeowners 35-65</td>
+          <td class="mono-num">$60</td>
+          <td><span class="status-pill st-live"><span class="dot"></span>LIVE</span></td>
+          <td class="mono-num">$42.18</td>
+          <td class="mono-num">2.91% <span class="delta up">↑</span></td>
+          <td class="mono-num">14</td>
+        </tr>
+        <tr class="selected">
+          <td><span class="check on"></span></td>
+          <td class="ad-id">AD-002</td>
+          <td>$49 Tune-Up Heat</td>
+          <td>HO 35-65 · ATX</td>
+          <td><span class="editable">Lock in your tune-up before July prices hit.</span></td>
+          <td><span class="editable">Sunrise HVAC techs do a 21-point check, refrigerant top-off, coil clean...</span></td>
+          <td><span class="editable">Book Now</span></td>
+          <td><div class="creative-cell"><img src="https://picsum.photos/seed/hvac-thermostat/80/80"><span class="src">UP</span></div></td>
+          <td>Homeowners 35-65</td>
+          <td class="mono-num">$60</td>
+          <td><span class="status-pill st-live"><span class="dot"></span>LIVE</span></td>
+          <td class="mono-num">$38.04</td>
+          <td class="mono-num">3.12% <span class="delta up">↑</span></td>
+          <td class="mono-num">11</td>
+        </tr>
+        <tr class="selected">
+          <td><span class="check on"></span></td>
+          <td class="ad-id">AD-003</td>
+          <td>$49 Tune-Up Heat</td>
+          <td>HO 35-65 · ATX</td>
+          <td><span class="editable">Your neighbor saved $400 last summer. Here's how.</span></td>
+          <td><span class="editable">For $49, the Sunrise HVAC crew catches the small fixes before they turn into $4,000 replacements.</span></td>
+          <td><span class="editable">Book Now</span></td>
+          <td><div class="creative-cell"><img src="https://picsum.photos/seed/hvac-house/80/80"><span class="src">UP</span></div></td>
+          <td>Homeowners 35-65</td>
+          <td class="mono-num">$60</td>
+          <td><span class="status-pill st-live"><span class="dot"></span>LIVE</span></td>
+          <td class="mono-num">$29.86</td>
+          <td class="mono-num">2.04% <span class="delta down">↓</span></td>
+          <td class="mono-num">6</td>
+        </tr>
+        <tr class="selected">
+          <td><span class="check on"></span></td>
+          <td class="ad-id">AD-004</td>
+          <td>$49 Tune-Up Heat</td>
+          <td>HO 35-65 · ATX</td>
+          <td><span class="editable">21-point AC inspection. Same-day booking.</span></td>
+          <td><span class="editable">No upselling. No surprise fees. Just the tune-up your AC needs before peak season.</span></td>
+          <td><span class="editable">Book Now</span></td>
+          <td><div class="creative-cell"><img src="https://picsum.photos/seed/hvac-job-site/80/80"><span class="src">DR</span></div></td>
+          <td>Homeowners 35-65</td>
+          <td class="mono-num">$60</td>
+          <td><span class="status-pill st-review"><span class="dot"></span>REVIEW</span></td>
+          <td class="mono-num muted">-</td>
+          <td class="mono-num muted">-</td>
+          <td class="mono-num muted">-</td>
+        </tr>
+        <tr>
+          <td><span class="check"></span></td>
+          <td class="ad-id">AD-005</td>
+          <td>$49 Tune-Up Heat</td>
+          <td>HO 35-65 · ATX</td>
+          <td><span class="editable empty">[empty · press G to generate]</span></td>
+          <td><span class="editable empty">[empty]</span></td>
+          <td><span class="editable">Book Now</span></td>
+          <td><div class="creative-cell empty">+</div></td>
+          <td>Homeowners 35-65</td>
+          <td class="mono-num">$60</td>
+          <td><span class="status-pill st-draft"><span class="dot"></span>DRAFT</span></td>
+          <td class="mono-num muted">-</td>
+          <td class="mono-num muted">-</td>
+          <td class="mono-num muted">-</td>
+        </tr>
+        <tr>
+          <td><span class="check"></span></td>
+          <td class="ad-id">AD-006</td>
+          <td>Emergency AC Repair</td>
+          <td>HO 30-70 · 25mi</td>
+          <td><span class="editable">AC out? We'll be there tonight.</span></td>
+          <td><span class="editable">Same-day emergency service, 7 days a week. Licensed Sunrise HVAC techs, flat-rate pricing.</span></td>
+          <td><span class="editable">Call Now</span></td>
+          <td><div class="creative-cell"><img src="https://picsum.photos/seed/hvac-truck/80/80"><span class="src">AI</span></div></td>
+          <td>Homeowners 30-70</td>
+          <td class="mono-num">$45</td>
+          <td><span class="status-pill st-live"><span class="dot"></span>LIVE</span></td>
+          <td class="mono-num">$51.20</td>
+          <td class="mono-num">3.47% <span class="delta up">↑</span></td>
+          <td class="mono-num">18</td>
+        </tr>
+        <tr>
+          <td><span class="check"></span></td>
+          <td class="ad-id">AD-007</td>
+          <td>Emergency AC Repair</td>
+          <td>HO 30-70 · 25mi</td>
+          <td><span class="editable">Same-day AC repairs. Up-front pricing.</span></td>
+          <td><span class="editable">No after-hours surcharge. We give you the price before we start work, every time.</span></td>
+          <td><span class="editable">Call Now</span></td>
+          <td><div class="creative-cell"><img src="https://picsum.photos/seed/hvac-tools/80/80"><span class="src">UP</span></div></td>
+          <td>Homeowners 30-70</td>
+          <td class="mono-num">$45</td>
+          <td><span class="status-pill st-live"><span class="dot"></span>LIVE</span></td>
+          <td class="mono-num">$33.41</td>
+          <td class="mono-num">2.78%</td>
+          <td class="mono-num">9</td>
+        </tr>
+        <tr>
+          <td><span class="check"></span></td>
+          <td class="ad-id">AD-008</td>
+          <td>Emergency AC Repair</td>
+          <td>HO 30-70 · 25mi</td>
+          <td><span class="editable">24/7 AC service. We never sleep.</span></td>
+          <td><span class="editable">Round-the-clock crews ready when your AC isn't. Sunrise HVAC, Austin's most-reviewed.</span></td>
+          <td><span class="editable">Call Now</span></td>
+          <td><div class="creative-cell"><img src="https://picsum.photos/seed/hvac-tech-2/80/80"><span class="src">AI</span></div></td>
+          <td>Homeowners 30-70</td>
+          <td class="mono-num">$45</td>
+          <td><span class="status-pill st-issue"><span class="dot"></span>POLICY</span></td>
+          <td class="mono-num muted">-</td>
+          <td class="mono-num muted">-</td>
+          <td class="mono-num muted">-</td>
+        </tr>
+        <tr>
+          <td><span class="check"></span></td>
+          <td class="ad-id">AD-009</td>
+          <td>Spring Maintenance</td>
+          <td>Past customers · LAL 1%</td>
+          <td><span class="editable">It's been a year. Time for the once-over.</span></td>
+          <td><span class="editable">Your spring tune-up is due. We have your unit history, just pick a time.</span></td>
+          <td><span class="editable">Book Now</span></td>
+          <td><div class="creative-cell"><img src="https://picsum.photos/seed/hvac-maint/80/80"><span class="src">DR</span></div></td>
+          <td>Past customers</td>
+          <td class="mono-num">$30</td>
+          <td><span class="status-pill st-live"><span class="dot"></span>LIVE</span></td>
+          <td class="mono-num">$18.92</td>
+          <td class="mono-num">4.18% <span class="delta up">↑</span></td>
+          <td class="mono-num">7</td>
+        </tr>
+        <tr>
+          <td><span class="check"></span></td>
+          <td class="ad-id">AD-010</td>
+          <td>Spring Maintenance</td>
+          <td>Past customers · LAL 1%</td>
+          <td><span class="editable">$49 returning-customer tune-up. Same crew, faster booking.</span></td>
+          <td><span class="editable">We saved your prefs. Repeat-customer discount auto-applied at checkout.</span></td>
+          <td><span class="editable">Book Now</span></td>
+          <td><div class="creative-cell"><img src="https://picsum.photos/seed/hvac-tech-3/80/80"><span class="src">UP</span></div></td>
+          <td>Past customers</td>
+          <td class="mono-num">$30</td>
+          <td><span class="status-pill st-draft"><span class="dot"></span>DRAFT</span></td>
+          <td class="mono-num muted">-</td>
+          <td class="mono-num muted">-</td>
+          <td class="mono-num muted">-</td>
+        </tr>
+        <tr>
+          <td><span class="check"></span></td>
+          <td class="ad-id">AD-011</td>
+          <td>Spring Maintenance</td>
+          <td>Past customers · LAL 1%</td>
+          <td><span class="editable">Your AC remembers us. We remember you.</span></td>
+          <td><span class="editable">Returning Sunrise HVAC customers get priority booking and the seasonal discount.</span></td>
+          <td><span class="editable">Book Now</span></td>
+          <td><div class="creative-cell"><img src="https://picsum.photos/seed/hvac-fam/80/80"><span class="src">AI</span></div></td>
+          <td>Past customers</td>
+          <td class="mono-num">$30</td>
+          <td><span class="status-pill st-draft"><span class="dot"></span>DRAFT</span></td>
+          <td class="mono-num muted">-</td>
+          <td class="mono-num muted">-</td>
+          <td class="mono-num muted">-</td>
+        </tr>
+        <tr>
+          <td><span class="check"></span></td>
+          <td class="ad-id">AD-012</td>
+          <td>Spring Maintenance</td>
+          <td>Past customers · LAL 1%</td>
+          <td><span class="editable empty">[empty · press G to generate]</span></td>
+          <td><span class="editable empty">[empty]</span></td>
+          <td><span class="editable">Book Now</span></td>
+          <td><div class="creative-cell empty">+</div></td>
+          <td>Past customers</td>
+          <td class="mono-num">$30</td>
+          <td><span class="status-pill st-draft"><span class="dot"></span>DRAFT</span></td>
+          <td class="mono-num muted">-</td>
+          <td class="mono-num muted">-</td>
+          <td class="mono-num muted">-</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="footer">
+    <div class="left">
+      <span>12 ads · 7 live · 4 draft · 1 review</span>
+      <span>Σ SPEND TODAY $213.61</span>
+      <span>Σ LEADS 65 · CPL $14.94</span>
+    </div>
+    <div class="right">
+      <span class="green">● META · synced 8s ago</span>
+      <span>VAULT · sunrise-hvac</span>
+      <span>v0.4.2</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

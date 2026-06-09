@@ -18,6 +18,7 @@ export type SubApp =
   | "sales"
   | "onboarding"
   | "workspace"
+  | "builder"
   | "settings";
 
 export type WorkspaceView =
@@ -33,6 +34,7 @@ export type WorkspaceView =
   | "resources"
   | "creative-studio"
   | "automations"
+  | "plans"
   | "ads";
 
 /** Top-level surfaces inside the Outreach pillar. */
@@ -79,6 +81,7 @@ export type WorkspaceSubAppTab =
   | "recordings"
   | "sops"
   | "resources"
+  | "plans"
   | "personal";
 
 /** Mirror of MainDashboard's internal View, kept loose to avoid a cycle. */
@@ -86,13 +89,15 @@ type ViewLike =
   | { kind: "workspace"; tab: WorkspaceView }
   | { kind: "outreach"; section: OutreachSection; prospectSlug?: string }
   | { kind: "client"; slug: string; section: ClientSection }
-  | { kind: "personal"; section: PersonalSection };
+  | { kind: "personal"; section: PersonalSection }
+  | { kind: "builder" };
 
 /** Which sub-app is a given view "inside"? */
 export function viewToSubApp(view: ViewLike): SubApp {
   if (view.kind === "client") return "clients";
   if (view.kind === "outreach") return "outreach";
   if (view.kind === "personal") return "workspace";
+  if (view.kind === "builder") return "builder";
   // workspace
   switch (view.tab) {
     case "dashboard":
@@ -112,6 +117,7 @@ export function viewToSubApp(view: ViewLike): SubApp {
     case "resources":
     case "creative-studio":
     case "automations":
+    case "plans":
       return "workspace";
   }
 }
@@ -131,6 +137,8 @@ export function subAppToDefaultView(subApp: SubApp): ViewLike | null {
       return { kind: "workspace", tab: "onboarding" };
     case "workspace":
       return { kind: "workspace", tab: "calendar" };
+    case "builder":
+      return { kind: "builder" };
     case "settings":
       // Settings lives in a modal/page outside View; caller routes to it directly.
       return null;
@@ -152,6 +160,7 @@ export const SUB_APPS: SubAppDef[] = [
   { id: "sales", name: "Sales Pipeline", subLine: "Closes and forecasts", kbd: "4" },
   { id: "onboarding", name: "Onboarding Pipeline", subLine: "Pre-launch clients", kbd: "5" },
   { id: "workspace", name: "Workspace", subLine: "Calendar, tasks, recordings, SOPs", kbd: "6" },
+  { id: "builder", name: "Builder", subLine: "Code with Claude, multi-session", kbd: "7" },
   { id: "settings", name: "Settings", subLine: "App, accounts, integrations", kbd: "," },
 ];
 

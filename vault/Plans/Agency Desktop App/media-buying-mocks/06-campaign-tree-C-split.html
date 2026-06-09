@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Campaign Tree · Split + Inspector · Sunrise HVAC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080d;
+    --bg-2: #10111a;
+    --bg-3: #181a26;
+    --bg-card: #131521;
+    --line: #1f2235;
+    --line-2: #2d3148;
+    --text: #ecedf4;
+    --text-2: #9aa0b8;
+    --text-3: #6a7090;
+    --campaign: #5ea3ff;
+    --adset: #b07bff;
+    --ad: #54d68f;
+    --signal-g: #54d68f;
+    --signal-r: #ff5d57;
+    --signal-a: #f7b14d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .app {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+  }
+
+  /* Top bar */
+  .topbar {
+    padding: 14px 24px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 20px;
+    align-items: center;
+  }
+  .brand { display: flex; gap: 10px; align-items: center; }
+  .brand .glyph {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--campaign), var(--ad));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; color: #08080d;
+  }
+  .brand h1 { font-size: 14px; font-weight: 700; }
+  .brand .sub {
+    font-family: 'JetBrains Mono'; font-size: 9px;
+    color: var(--text-3); letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .crumbs {
+    display: flex; gap: 8px; align-items: center;
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    color: var(--text-3); letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .crumbs .sep { color: var(--text-3); opacity: 0.4; }
+  .crumbs b { color: var(--text); font-weight: 600; }
+  .crumbs .campaign-c { color: var(--campaign); font-weight: 600; }
+  .crumbs .adset-c { color: var(--adset); font-weight: 600; }
+  .crumbs .ad-c { color: var(--ad); font-weight: 600; }
+  .actions { display: flex; gap: 8px; }
+  .btn {
+    padding: 7px 14px;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    color: var(--text);
+    font-family: 'Inter'; font-size: 11px; font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--line-2); }
+  .btn.green { background: var(--ad); border-color: var(--ad); color: #08080d; }
+
+  /* Three-column layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 360px 1fr;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .col {
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .col:last-child { border-right: 0; }
+
+  .col-head {
+    padding: 14px 18px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky; top: 0; z-index: 1;
+  }
+  .col-head .h {
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .col-head .count {
+    font-family: 'JetBrains Mono'; font-size: 11px;
+    color: var(--text-3);
+  }
+
+  .col.campaigns .col-head .h { color: var(--campaign); }
+  .col.adsets .col-head .h { color: var(--adset); }
+  .col.ads .col-head .h { color: var(--ad); }
+
+  .col-body { padding: 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+
+  /* List cards */
+  .item-card {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.12s ease-out;
+  }
+  .item-card:hover { border-color: var(--line-2); }
+  .item-card.selected {
+    border-color: currentColor;
+    box-shadow: 0 0 0 1px currentColor, 0 0 20px rgba(94, 163, 255, 0.15);
+  }
+
+  .item-card.campaign { color: var(--campaign); }
+  .item-card.adset { color: var(--adset); }
+  .item-card.ad { color: var(--ad); }
+
+  .item-card .top-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px;
+  }
+  .item-card .tag {
+    font-family: 'JetBrains Mono'; font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: currentColor;
+    font-weight: 600;
+  }
+  .item-card .id {
+    font-family: 'JetBrains Mono'; font-size: 9px;
+    color: var(--text-3);
+    letter-spacing: 0.06em;
+  }
+  .item-card .name {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+  .item-card .meta-row {
+    display: flex; gap: 12px;
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+  }
+  .item-card .meta-row b { color: var(--text-2); }
+
+  .item-card .progress {
+    height: 3px;
+    background: var(--bg-3);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+  .item-card .progress .fill {
+    height: 100%;
+    background: currentColor;
+    border-radius: 2px;
+  }
+
+  .item-card .footer-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 8px;
+    font-family: 'JetBrains Mono'; font-size: 9px;
+    color: var(--text-3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .item-card .status-pill {
+    display: inline-flex; gap: 5px; align-items: center;
+    color: var(--signal-g); font-weight: 600;
+  }
+  .item-card .status-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+    box-shadow: 0 0 6px currentColor;
+  }
+  .item-card .status-pill.warn { color: var(--signal-a); }
+  .item-card.empty {
+    border-style: dashed;
+    background: var(--bg-2);
+  }
+  .item-card.empty .name { color: var(--text-3); font-style: italic; }
+
+  /* Thumb in ad card */
+  .item-card.ad {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .item-card.ad .thumb {
+    width: 48px; height: 48px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    position: relative;
+  }
+  .item-card.ad .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .item-card.ad .thumb.empty {
+    display: flex; align-items: center; justify-content: center;
+    border-style: dashed;
+    color: var(--text-3);
+    font-size: 16px;
+  }
+  .item-card.ad .content { min-width: 0; }
+  .item-card.ad .name { font-size: 12px; margin-bottom: 4px; }
+  .item-card.ad .hook {
+    font-size: 11px;
+    color: var(--text-2);
+    line-height: 1.3;
+    margin-bottom: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Inspector panel (4th column) */
+  .inspector {
+    overflow-y: auto;
+    background: var(--bg);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ins-head {
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--line);
+    padding: 18px 24px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: center;
+    position: sticky; top: 0; z-index: 1;
+  }
+  .ins-head .crumb {
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 4px;
+  }
+  .ins-head .crumb b { color: var(--ad); font-weight: 600; }
+  .ins-head h2 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .ins-head .actions { display: flex; gap: 6px; }
+
+  .ins-body {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 32px;
+    align-content: start;
+  }
+
+  .preview {
+    width: 320px;
+  }
+  .preview .device {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    padding: 12px;
+  }
+  .preview .device-head {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .preview .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff8959, #f7b14d);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; color: #08080d;
+  }
+  .preview .device-head .name {
+    font-size: 12px; font-weight: 600;
+  }
+  .preview .device-head .name .sub {
+    display: block;
+    font-family: 'JetBrains Mono'; font-size: 9px;
+    color: var(--text-3); font-weight: 400;
+    margin-top: 1px;
+    letter-spacing: 0.04em;
+  }
+  .preview .device-head .more {
+    color: var(--text-3); font-size: 16px;
+  }
+  .preview .device-caption {
+    font-size: 12px;
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .preview .device-image {
+    width: 100%; aspect-ratio: 1/1;
+    background: var(--bg-3);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .preview .device-image img { width: 100%; height: 100%; object-fit: cover; }
+  .preview .device-image .corner {
+    position: absolute; bottom: 8px; right: 8px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    font-family: 'JetBrains Mono'; font-size: 9px;
+    padding: 3px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .preview .cta-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    background: var(--bg-3);
+    border-radius: 6px;
+  }
+  .preview .cta-row .url {
+    font-family: 'JetBrains Mono'; font-size: 9px;
+    color: var(--text-3); letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .preview .cta-row .url b { color: var(--text); font-size: 11px; display: block; margin-top: 2px; font-family: 'Inter'; font-weight: 600; letter-spacing: 0; text-transform: none; }
+  .preview .cta-row .btn-mock {
+    background: var(--text); color: #08080d;
+    font-size: 10px; font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .preview .legend {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono'; font-size: 9px;
+    color: var(--text-3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* Field table */
+  .fields { display: flex; flex-direction: column; gap: 0; }
+  .field {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .field:last-child { border-bottom: 0; }
+  .field .k {
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    color: var(--text-3); letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding-top: 2px;
+  }
+  .field .v {
+    font-size: 13px;
+    color: var(--text);
+  }
+  .field .v .pill {
+    display: inline-block;
+    padding: 3px 9px;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    border-radius: 20px;
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    color: var(--text-2);
+    margin-right: 4px;
+  }
+  .field .v .pill.angle {
+    background: rgba(94, 163, 255, 0.1);
+    border-color: rgba(94, 163, 255, 0.3);
+    color: var(--campaign);
+  }
+  .field .v .pill.format {
+    background: rgba(84, 214, 143, 0.1);
+    border-color: rgba(84, 214, 143, 0.3);
+    color: var(--ad);
+  }
+  .field .v .pill.set {
+    background: rgba(176, 123, 255, 0.1);
+    border-color: rgba(176, 123, 255, 0.3);
+    color: var(--adset);
+  }
+  .field .v.muted { color: var(--text-3); font-style: italic; }
+
+  /* Section heading inside inspector */
+  .ins-section {
+    grid-column: 1 / -1;
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ins-section h3 {
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    font-weight: 600;
+  }
+  .ins-section .line { flex: 1; height: 1px; background: var(--line); }
+
+  /* Footer */
+  .footer {
+    padding: 12px 24px;
+    background: var(--bg-2);
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    font-family: 'JetBrains Mono'; font-size: 10px;
+    color: var(--text-3); letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .footer b { color: var(--text); }
+  .footer .right { margin-left: auto; display: flex; gap: 18px; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="glyph">H</div>
+      <div>
+        <h1>Campaign Skeleton · Inspector</h1>
+        <div class="sub">Sunrise HVAC · Media Buying</div>
+      </div>
+    </div>
+    <div class="crumbs">
+      <span class="campaign-c">Sunrise · Leads · ABO</span>
+      <span class="sep">›</span>
+      <span class="adset-c">Broad · Austin 10mi</span>
+      <span class="sep">›</span>
+      <span class="ad-c">Ad 2 · Image · Angle B · V1</span>
+    </div>
+    <div class="actions">
+      <button class="btn">Back to form</button>
+      <button class="btn green">Push to Meta</button>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <!-- COLUMN 1: CAMPAIGN -->
+    <section class="col campaigns">
+      <div class="col-head">
+        <div class="h">Campaign</div>
+        <div class="count">1</div>
+      </div>
+      <div class="col-body">
+        <div class="item-card campaign selected">
+          <div class="top-row">
+            <span class="tag">ABO · Leads</span>
+            <span class="id">CMP-001</span>
+          </div>
+          <div class="name">Sunrise HVAC · Spring '26 Learning Phase</div>
+          <div class="meta-row">
+            <span><b>$25</b>/day</span>
+            <span>2 ad sets</span>
+            <span>6 ads</span>
+          </div>
+          <div class="progress"><div class="fill" style="width: 83%; background: var(--signal-a);"></div></div>
+          <div class="footer-row">
+            <span>83% built</span>
+            <span class="status-pill warn"><span class="dot"></span>1 ad pending</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLUMN 2: AD SETS -->
+    <section class="col adsets">
+      <div class="col-head">
+        <div class="h">Ad Sets</div>
+        <div class="count">2</div>
+      </div>
+      <div class="col-body">
+        <div class="item-card adset selected">
+          <div class="top-row">
+            <span class="tag">Broad</span>
+            <span class="id">AS-001</span>
+          </div>
+          <div class="name">Austin TX · 10mi · 25 to 55</div>
+          <div class="meta-row">
+            <span><b>$12</b>/day</span>
+            <span>No interests</span>
+            <span>Meta AI</span>
+          </div>
+          <div class="progress"><div class="fill" style="width: 100%;"></div></div>
+          <div class="footer-row">
+            <span>3 of 3 ads ready</span>
+            <span class="status-pill"><span class="dot"></span>Ready</span>
+          </div>
+        </div>
+
+        <div class="item-card adset">
+          <div class="top-row">
+            <span class="tag">Interest</span>
+            <span class="id">AS-002</span>
+          </div>
+          <div class="name">Home Improvement + Homeowners</div>
+          <div class="meta-row">
+            <span><b>$13</b>/day</span>
+            <span>Austin 25mi</span>
+            <span>25 to 55</span>
+          </div>
+          <div class="progress"><div class="fill" style="width: 67%; background: var(--signal-a);"></div></div>
+          <div class="footer-row">
+            <span>2 of 3 ads ready</span>
+            <span class="status-pill warn"><span class="dot"></span>1 pending</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLUMN 3: ADS -->
+    <section class="col ads">
+      <div class="col-head">
+        <div class="h">Ads in Broad</div>
+        <div class="count">3</div>
+      </div>
+      <div class="col-body">
+        <div class="item-card ad">
+          <div class="thumb">
+            <img src="https://picsum.photos/seed/hvac-broad-1/200/200" alt="">
+          </div>
+          <div class="content">
+            <div class="top-row">
+              <span class="tag">Image · Angle A</span>
+              <span class="id">AD-001</span>
+            </div>
+            <div class="name">Price anchor · V1</div>
+            <div class="hook">"$49 gets your AC ready for a Texas summer."</div>
+            <div class="footer-row">
+              <span>1:1</span>
+              <span class="status-pill"><span class="dot"></span>Ready</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="item-card ad selected">
+          <div class="thumb">
+            <img src="https://picsum.photos/seed/hvac-broad-2/200/200" alt="">
+          </div>
+          <div class="content">
+            <div class="top-row">
+              <span class="tag">Image · Angle B</span>
+              <span class="id">AD-002</span>
+            </div>
+            <div class="name">Fear · urgency · V1</div>
+            <div class="hook">"Your AC will die in this heat. Catch it first for $49."</div>
+            <div class="footer-row">
+              <span>1:1</span>
+              <span class="status-pill"><span class="dot"></span>Ready</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="item-card ad">
+          <div class="thumb">
+            <img src="https://picsum.photos/seed/hvac-broad-3/200/200" alt="">
+          </div>
+          <div class="content">
+            <div class="top-row">
+              <span class="tag">Video · Testimonial</span>
+              <span class="id">AD-003</span>
+            </div>
+            <div class="name">Social proof · V1</div>
+            <div class="hook">"They caught a leak my last guy missed. Saved me thousands." — Janelle, Cedar Park</div>
+            <div class="footer-row">
+              <span>0:24</span>
+              <span class="status-pill"><span class="dot"></span>Ready</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLUMN 4: INSPECTOR (selected ad) -->
+    <section class="inspector">
+      <div class="ins-head">
+        <div>
+          <div class="crumb">Selected · <b>Ad 2 · Broad · Angle B</b></div>
+          <h2>"Your AC will die in this heat."</h2>
+        </div>
+        <div class="actions">
+          <button class="btn">Edit copy</button>
+          <button class="btn">Swap creative</button>
+          <button class="btn green">Lock</button>
+        </div>
+      </div>
+
+      <div class="ins-body">
+
+        <!-- LEFT: preview -->
+        <div class="preview">
+          <div class="device">
+            <div class="device-head">
+              <div class="avatar">S</div>
+              <div class="name">Sunrise HVAC <span class="sub">Sponsored · Austin TX</span></div>
+              <div class="more">⋯</div>
+            </div>
+            <div class="device-caption">"Your AC will die in this heat. Catch it first for $49."</div>
+            <div class="device-image">
+              <img src="https://picsum.photos/seed/hvac-broad-2/600/600" alt="">
+              <span class="corner">Preview</span>
+            </div>
+            <div class="cta-row">
+              <div class="url">sunrisehvac.com<b>21-point AC tune-up · only $49</b></div>
+              <div class="btn-mock">Book Now</div>
+            </div>
+          </div>
+          <div class="legend">Instagram feed preview · 1:1</div>
+        </div>
+
+        <!-- RIGHT: fields -->
+        <div class="fields">
+
+          <div class="field">
+            <span class="k">Angle</span>
+            <span class="v"><span class="pill angle">Fear · urgency</span> The cost of waiting until the unit breaks</span>
+          </div>
+
+          <div class="field">
+            <span class="k">Hook</span>
+            <span class="v">"Your AC will die in this heat. Catch it first for $49."</span>
+          </div>
+
+          <div class="field">
+            <span class="k">Body</span>
+            <span class="v">$8,000 replacement vs. $49 catch-it-early. Pick one. 21-point inspection, refrigerant top-up, coil clean. Book online in 60 seconds.</span>
+          </div>
+
+          <div class="field">
+            <span class="k">CTA</span>
+            <span class="v"><span class="pill">Book Now</span> → sunrisehvac.com/tune-up</span>
+          </div>
+
+          <div class="field">
+            <span class="k">Format</span>
+            <span class="v"><span class="pill format">Image · 1:1</span><span class="pill">1080×1080</span></span>
+          </div>
+
+          <div class="field">
+            <span class="k">Asset</span>
+            <span class="v"><span class="pill">creative-broad-angleB-v1.jpg</span> · client upload · locked</span>
+          </div>
+
+          <div class="ins-section">
+            <h3>Lives inside</h3>
+            <div class="line"></div>
+          </div>
+
+          <div class="field">
+            <span class="k">Campaign</span>
+            <span class="v"><span class="pill" style="color: var(--campaign); border-color: rgba(94,163,255,0.3); background: rgba(94,163,255,0.08);">Sunrise · Leads · ABO</span></span>
+          </div>
+
+          <div class="field">
+            <span class="k">Ad set</span>
+            <span class="v"><span class="pill set">Broad · Austin 10mi · 25-55 · $12/day</span></span>
+          </div>
+
+          <div class="field">
+            <span class="k">Mirrored to</span>
+            <span class="v"><span class="pill set">Interest · Home Improvement · 25-55</span> <span style="color: var(--text-3); font-size: 11px;">(same creative · different audience)</span></span>
+          </div>
+
+          <div class="ins-section">
+            <h3>Status</h3>
+            <div class="line"></div>
+          </div>
+
+          <div class="field">
+            <span class="k">Build</span>
+            <span class="v" style="color: var(--signal-g); font-weight: 600;">Ready · 100%</span>
+          </div>
+
+          <div class="field">
+            <span class="k">Policy scan</span>
+            <span class="v" style="color: var(--signal-g);">Clear · no flags</span>
+          </div>
+
+          <div class="field">
+            <span class="k">Last edit</span>
+            <span class="v muted">2 min ago · auto-saved</span>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <span>Skeleton · <b>1 campaign</b> · <b>2 ad sets</b> · <b>6 ads</b> (3 unique creatives)</span>
+    <span>Build · <b style="color: var(--signal-a);">83%</b></span>
+    <span class="right">
+      <span>Auto-save · 2s ago</span>
+      <span>HML v0.4.2</span>
+    </span>
+  </footer>
+
+</div>
+</body>
+</html>

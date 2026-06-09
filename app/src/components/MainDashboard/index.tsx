@@ -10,6 +10,7 @@ import "./main-dashboard.css";
 import { openInAppWindow } from "../../lib/openInApp";
 import { AppSidebar } from "./AppSidebar";
 import { IconRail } from "./IconRail";
+import { BuilderWorkspace } from "../Builder/BuilderWorkspace";
 import type { WorkflowView } from "./Sidebar";
 import type { FormSurfaceId } from "../../lib/formConfigs";
 import type { AgentSummary } from "../../lib/types";
@@ -35,6 +36,7 @@ import { CreativeStudio } from "./CreativeStudio";
 import { RecordingsPage } from "./RecordingsPage";
 import { ResourcesPage } from "./ResourcesPage";
 import { SOPsPage } from "./SOPsPage";
+import { PlansPage } from "./PlansPage";
 import { CalendarPage } from "./CalendarPage";
 import { LeadScraperPage } from "./LeadScraperPage";
 import { NotificationsBell } from "./NotificationsBell";
@@ -63,6 +65,7 @@ import type {
   OpsTasksFile,
 } from "../../lib/types";
 import { api } from "../../lib/tauri";
+import { listPlans, PLANS_CHANGED_EVENT } from "../../lib/plans";
 import { eventsOn, fetchCalendarEvents, type GCalEvent } from "../../lib/googleCalendar";
 import {
   loadAppointmentEvents,
@@ -103,7 +106,8 @@ type View =
   | { kind: "workspace"; tab: WorkspaceView }
   | { kind: "outreach"; section: OutreachSection; prospectSlug?: string }
   | { kind: "client"; slug: string; section: ClientSection }
-  | { kind: "personal"; section: PersonalSection };
+  | { kind: "personal"; section: PersonalSection }
+  | { kind: "builder" };
 
 function initialViewFromWorkflow(w: WorkflowView | null | undefined): View {
   if (w === "lead-scraper") return { kind: "outreach", section: "lead-scraper" };
@@ -172,6 +176,35 @@ export function MainDashboard({
   }, [root]);
 
   const realClients: ClientEntry[] = clients ?? [];
+
+  // Plan count for the Workspace sidebar badge. Refreshes when the Plans surface
+  // writes/deletes (it dispatches PLANS_CHANGED_EVENT) and on window focus.
+  const [plansCount, setPlansCount] = useState(0);
+  useEffect(() => {
+    if (!root) {
+      setPlansCount(0);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const list = await listPlans(root);
+        if (!cancelled) setPlansCount(list.length);
+      } catch {
+        if (!cancelled) setPlansCount(0);
+      }
+    };
+    void load();
+    const onChanged = () => void load();
+    const onFocus = () => void load();
+    window.addEventListener(PLANS_CHANGED_EVENT, onChanged);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(PLANS_CHANGED_EVENT, onChanged);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [root]);
 
   // Prospects (backed by vault/Outreach/<slug>/profile.md via list_prospects).
   const [prospects, setProspects] = useState<ProspectEntry[]>([]);
@@ -310,7 +343,10 @@ export function MainDashboard({
         : "⇅ Sync";
 
   const shellClass =
-    "hml-shell" + (currentSubApp === "dashboard" ? " hml-shell-no-sidebar" : "");
+    "hml-shell" +
+    (currentSubApp === "dashboard" || currentSubApp === "builder"
+      ? " hml-shell-no-sidebar"
+      : "");
 
   return (
     <div className="md-root hml-app">
@@ -330,6 +366,7 @@ export function MainDashboard({
           onSelectPersonalSection={onSelectPersonalSection}
           onAddClient={onAddClient}
           onBrandClick={goHome}
+          plansCount={plansCount}
           appVersion="v1.4"
         />
         <main className="hml-main">
@@ -476,6 +513,13 @@ function buildBreadcrumb(
       </>
     );
   }
+  if (view.kind === "builder") {
+    return (
+      <>
+        <span className="hml-current">Builder</span>
+      </>
+    );
+  }
   // client
   const c = clients.find((c) => c.slug === view.slug);
   const sectionLabel = sectionToLabel(view.section);
@@ -589,6 +633,7 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
       return <RevenueTrackerPage root={root} clients={realClients} />;
     if (view.tab === "recordings") return <RecordingsPage root={root} clients={realClients} />;
     if (view.tab === "sops") return <SOPsPage root={root} />;
+    if (view.tab === "plans") return <PlansPage root={root} />;
     if (view.tab === "resources") return <ResourcesPage root={root} />;
     if (view.tab === "creative-studio")
       return root ? (
@@ -660,6 +705,10 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
         onSelectSection={onSelectPersonalSection}
       />
     );
+  }
+
+  if (view.kind === "builder") {
+    return <BuilderWorkspace />;
   }
 
   // kind: "client"

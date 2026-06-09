@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_base.css">
+<title>Willis Leads — Direction D</title>
+<style>
+  /* Direction D: bottom tab bar + header pipeline switcher */
+
+  /* Header title group doubles as the pipeline dropdown trigger */
+  .switcher {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 10px 4px 4px; border-radius: 10px;
+    color: var(--text);
+  }
+  .switcher .pname {
+    font-family: var(--font-display); font-weight: 800; font-size: 19px;
+    letter-spacing: -0.03em;
+  }
+  .switcher .chev { color: var(--text-muted); display: flex; }
+  .switcher .chev svg { width: 18px; height: 18px; }
+  .switcher.open { background: var(--surface-2); }
+
+  /* Dim overlay over the content while the dropdown is open */
+  .dim {
+    position: absolute; left: 0; right: 0;
+    top: 96px; bottom: 0;
+    background: rgba(15, 23, 42, 0.28);
+    z-index: 40;
+  }
+
+  /* Floating pipeline dropdown menu */
+  .pipemenu {
+    position: absolute; z-index: 50;
+    top: 92px; left: 16px;
+    width: 244px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22), 0 4px 12px rgba(15, 23, 42, 0.10);
+    padding: 6px;
+    overflow: hidden;
+  }
+  .pipemenu .menuhdr {
+    padding: 8px 12px 6px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-faint);
+  }
+  .pipeitem {
+    display: flex; align-items: center; gap: 11px;
+    padding: 10px 12px; border-radius: 10px;
+  }
+  .pipeitem + .pipeitem { margin-top: 1px; }
+  .pipeitem.sel { background: var(--brand-primary-tint); }
+  .pipeitem .swatch {
+    width: 30px; height: 30px; border-radius: 8px; flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+  }
+  .pipeitem .swatch svg { width: 16px; height: 16px; }
+  .pipeitem .pi-mid { flex: 1; min-width: 0; }
+  .pipeitem .pi-name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; color: var(--text); }
+  .pipeitem.sel .pi-name { color: var(--brand-primary); }
+  .pipeitem .pi-count { font-size: 11.5px; color: var(--text-faint); font-weight: 600; margin-top: 1px; }
+  .pipeitem .check { color: var(--brand-primary); display: flex; flex: 0 0 auto; }
+  .pipeitem .check svg { width: 18px; height: 18px; }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- status bar -->
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="ios-icons">
+      <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="4.5" width="3" height="7.5" rx="1"/><rect x="9" y="2" width="3" height="10" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg>
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><path d="M8.5 2.2c2 0 3.9.8 5.3 2.1l1.2-1.3A9.4 9.4 0 0 0 8.5.5 9.4 9.4 0 0 0 2 3l1.2 1.3A7.4 7.4 0 0 1 8.5 2.2Zm0 3.4c1.1 0 2.1.4 2.9 1.2l1.2-1.3a5.9 5.9 0 0 0-8.2 0l1.2 1.3a4 4 0 0 1 2.9-1.2Zm0 3.3L10.2 10a2.4 2.4 0 0 0-3.4 0l1.7 1.8Z"/></svg>
+      <svg width="26" height="12" viewBox="0 0 26 12" fill="none"><rect x="0.5" y="0.5" width="22" height="11" rx="3" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="18" height="8" rx="1.5" fill="currentColor"/><rect x="24" y="4" width="1.5" height="4" rx="0.75" fill="currentColor" opacity="0.5"/></svg>
+    </span>
+  </div>
+
+  <!-- top bar: brand chip + pipeline switcher + search -->
+  <div class="topbar">
+    <div class="brandchip">WW</div>
+    <div class="switcher open">
+      <span class="pname">Sales</span>
+      <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </div>
+    <div class="spacer"></div>
+    <div class="iconbtn"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+  </div>
+
+  <!-- screen body (sits beneath the dim + dropdown) -->
+  <div class="screen">
+    <div class="scroll">
+
+      <!-- stat strip -->
+      <div class="stats">
+        <div class="stat"><div class="v stat-num tnum">8</div><div class="l cap">Open</div></div>
+        <div class="stat"><div class="v stat-num tnum">3</div><div class="l cap">Estimates</div></div>
+        <div class="stat"><div class="v stat-num tnum">2</div><div class="l cap">Closed</div></div>
+        <div class="stat"><div class="v stat-num tnum">$24.6k</div><div class="l cap">Won</div></div>
+      </div>
+
+      <!-- stage filter pills (Sales stages) -->
+      <div class="stagefilter">
+        <div class="stagepill">Intro Call Confirmed <span class="n tnum">3</span></div>
+        <div class="stagepill active">Estimate Scheduled <span class="n tnum">2</span></div>
+        <div class="stagepill">Estimate Completed <span class="n tnum">1</span></div>
+        <div class="stagepill">Closed <span class="n tnum">2</span></div>
+        <div class="stagepill">No-Close</div>
+        <div class="stagepill">Follow Up <span class="n tnum">1</span></div>
+        <div class="stagepill">Abandoned</div>
+      </div>
+
+      <!-- partial Sales lead list (first 4 of 6) -->
+      <div class="list">
+        <div class="leadrow">
+          <div class="avatar" style="background:#1a4d8f">MB</div>
+          <div class="mid">
+            <div class="nm">Marcus Bell</div>
+            <div class="sub"><span class="badge amber">Estimate Scheduled</span></div>
+          </div>
+          <div class="right">
+            <div class="val">$6,400</div>
+            <div class="ago">2h</div>
+          </div>
+        </div>
+        <div class="leadrow">
+          <div class="avatar" style="background:#0e7490">DW</div>
+          <div class="mid">
+            <div class="nm">Dana Whitfield</div>
+            <div class="sub"><span class="badge blue">Intro Call Confirmed</span></div>
+          </div>
+          <div class="right">
+            <div class="val faint">··</div>
+            <div class="ago">5h</div>
+          </div>
+        </div>
+        <div class="leadrow">
+          <div class="avatar" style="background:#7c3aed">PN</div>
+          <div class="mid">
+            <div class="nm">Priya Nair</div>
+            <div class="sub"><span class="badge green">Estimate Completed</span></div>
+          </div>
+          <div class="right">
+            <div class="val">$9,200</div>
+            <div class="ago">1d</div>
+          </div>
+        </div>
+        <div class="leadrow">
+          <div class="avatar" style="background:#b45309">TR</div>
+          <div class="mid">
+            <div class="nm">Tom Ruiz</div>
+            <div class="sub"><span class="badge amber">Follow Up</span></div>
+          </div>
+          <div class="right">
+            <div class="val">$4,800</div>
+            <div class="ago">2d</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- dim overlay (content behind the open dropdown) -->
+  <div class="dim"></div>
+
+  <!-- floating pipeline dropdown menu -->
+  <div class="pipemenu">
+    <div class="menuhdr">Switch pipeline</div>
+
+    <div class="pipeitem sel">
+      <div class="swatch" style="background:#1a4d8f"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg></div>
+      <div class="pi-mid">
+        <div class="pi-name">Sales</div>
+        <div class="pi-count">8 open</div>
+      </div>
+      <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+    </div>
+
+    <div class="pipeitem">
+      <div class="swatch" style="background:#0e7490"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg></div>
+      <div class="pi-mid">
+        <div class="pi-name">Paid Ads</div>
+        <div class="pi-count">12 new today</div>
+      </div>
+    </div>
+
+    <div class="pipeitem">
+      <div class="swatch" style="background:#7c3aed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg></div>
+      <div class="pi-mid">
+        <div class="pi-name">Google</div>
+        <div class="pi-count">6 requested</div>
+      </div>
+    </div>
+
+    <div class="pipeitem">
+      <div class="swatch" style="background:#b45309"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg></div>
+      <div class="pi-mid">
+        <div class="pi-name">DBR</div>
+        <div class="pi-count">4 responded</div>
+      </div>
+    </div>
+
+    <div class="pipeitem">
+      <div class="swatch" style="background:#15803d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg></div>
+      <div class="pi-mid">
+        <div class="pi-name">Organic</div>
+        <div class="pi-count">3 new</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- bottom tab bar -->
+  <div class="bottomnav">
+    <div class="navitem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Home</span>
+    </div>
+    <div class="navitem active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg>
+      <span>Leads</span>
+    </div>
+    <div class="navitem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <span>Conversations</span>
+    </div>
+    <div class="navitem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Contacts</span>
+    </div>
+  </div>
+
+  <!-- home indicator -->
+  <div class="homebar"></div>
+
+</div>
+</body>
+</html>

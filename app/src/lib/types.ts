@@ -143,6 +143,8 @@ export type ClaudeCheck = {
 export type StreamEvent =
   | { kind: "started"; id: string }
   | { kind: "delta"; id: string; text: string }
+  | { kind: "tool_use"; id: string; name: string; detail: string }
+  | { kind: "session_id"; id: string; session_id: string }
   | { kind: "done"; id: string; full_text: string }
   | { kind: "error"; id: string; message: string };
 

@@ -3,6 +3,7 @@ import { SUB_APPS, type SubApp } from "../../lib/navigation";
 import {
   IconBarChart,
   IconCheck,
+  IconCode,
   IconDashboard,
   IconLayout,
   IconSettings,
@@ -29,6 +30,8 @@ function iconFor(id: SubApp) {
       return IconCheck;
     case "workspace":
       return IconLayout;
+    case "builder":
+      return IconCode;
     case "settings":
       return IconSettings;
   }

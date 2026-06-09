@@ -1,0 +1,266 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 390px; height: 844px; overflow: hidden; }
+  :root{
+    --bg:#0a0c10;
+    --surface:#15161a;
+    --hair:rgba(255,255,255,0.07);
+    --hair-strong:rgba(255,255,255,0.12);
+    --white:#f4f5f7;
+    --muted:#8b8d94;
+    --accent:#c8a45c;
+  }
+  body{ font-family:'Inter',sans-serif; background:var(--bg); color:var(--white); -webkit-font-smoothing:antialiased; }
+  .phone{
+    width:390px; height:844px; background:var(--bg);
+    display:flex; flex-direction:column; position:relative;
+  }
+  .display{ font-family:'Space Grotesk','Inter',sans-serif; }
+
+  /* status bar */
+  .statusbar{height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 26px 0 30px;font-weight:700;font-size:15px}
+  .sb-time{color:var(--white)}
+  .sb-icons{display:flex;align-items:center;gap:6px;color:var(--white)}
+
+  /* header */
+  .header{ padding:14px 24px 4px; display:flex; align-items:center; justify-content:space-between; }
+  .brand{ display:flex; flex-direction:column; gap:7px; }
+  .mark{ display:flex; align-items:center; gap:9px; }
+  .monogram{
+    width:26px;height:26px;border-radius:8px;
+    border:1px solid var(--hair-strong);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk';font-weight:700;font-size:13px;color:var(--accent);
+  }
+  .brand-name{ font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .pipeline{ display:flex; align-items:center; gap:6px; }
+  .pipeline h1{ font-family:'Space Grotesk'; font-size:30px; font-weight:600; letter-spacing:-.5px; }
+  .pipeline .chev{ width:20px;height:20px;color:var(--muted);margin-top:4px; }
+  .iconbtn{
+    width:42px;height:42px;border-radius:12px;
+    background:var(--surface);border:1px solid var(--hair);
+    display:flex;align-items:center;justify-content:center;color:var(--muted);
+  }
+  .iconbtn svg{ width:18px;height:18px; }
+
+  /* summary */
+  .summary{
+    margin:20px 24px 4px;
+    display:flex; align-items:stretch;
+  }
+  .stat{ flex:1; display:flex; flex-direction:column; gap:6px; padding:0 2px; }
+  .stat + .stat{ border-left:1px solid var(--hair); padding-left:18px; }
+  .stat .num{ font-family:'Space Grotesk'; font-size:26px; font-weight:600; letter-spacing:-.5px; line-height:1; }
+  .stat.accent .num{ color:var(--accent); }
+  .stat .lbl{ font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:500; }
+
+  /* stage selector */
+  .stages{
+    display:flex; gap:8px; padding:24px 24px 14px;
+    overflow-x:hidden;
+  }
+  .pill{
+    font-size:13px; font-weight:500; color:var(--muted);
+    padding:8px 15px; border-radius:999px;
+    border:1px solid var(--hair); background:transparent;
+    white-space:nowrap;
+  }
+  .pill.active{
+    color:var(--bg); background:var(--accent);
+    border-color:var(--accent); font-weight:600;
+  }
+
+  /* list */
+  .list{ flex:1; padding:0 24px; overflow:hidden; }
+  .row{
+    display:flex; align-items:center; gap:14px;
+    padding:15px 0; border-top:1px solid var(--hair);
+  }
+  .row:first-child{ border-top:none; }
+  .avatar{
+    width:42px;height:42px;border-radius:12px;flex-shrink:0;
+    background:var(--surface);border:1px solid var(--hair);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk';font-weight:600;font-size:14px;color:var(--white);
+  }
+  .row.won .avatar{ border-color:rgba(200,164,92,.4); color:var(--accent); }
+  .who{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+  .who .name{ font-size:15px; font-weight:600; letter-spacing:-.1px; }
+  .who .status{ font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:7px; }
+  .dot{ width:5px;height:5px;border-radius:50%;background:var(--muted);display:inline-block; }
+  .row.won .dot{ background:var(--accent); }
+  .meta{ display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
+  .value{ font-family:'Space Grotesk'; font-size:15px; font-weight:600; letter-spacing:-.2px; }
+  .row.won .value{ color:var(--accent); }
+  .novalue{ font-size:14px; color:#54565c; font-weight:500; }
+  .time{ font-size:11.5px; color:#54565c; font-weight:500; }
+
+  /* bottom nav */
+  .nav{
+    display:flex; padding:12px 24px 4px;
+    border-top:1px solid var(--hair); background:var(--bg);
+  }
+  .tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; color:#54565c; }
+  .tab svg{ width:22px;height:22px; }
+  .tab span{ font-size:10.5px; font-weight:500; letter-spacing:.02em; }
+  .tab.active{ color:var(--accent); }
+  .tab.active svg{ filter:drop-shadow(0 0 8px rgba(200,164,92,.55)); }
+
+  .homebar{height:24px;display:flex;align-items:center;justify-content:center}
+  .homebar::after{ content:""; width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.22); }
+</style>
+</head><body>
+  <div class="phone">
+
+    <div class="statusbar">
+      <span class="sb-time">9:41</span>
+      <span class="sb-icons">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="4.5" width="3" height="7.5" rx="1"/><rect x="9" y="2" width="3" height="10" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><path d="M8.5 2.2c2 0 3.9.8 5.3 2.1l1.2-1.3A9.4 9.4 0 0 0 8.5.5 9.4 9.4 0 0 0 2 3l1.2 1.3A7.4 7.4 0 0 1 8.5 2.2Zm0 3.4c1.1 0 2.1.4 2.9 1.2l1.2-1.3a5.9 5.9 0 0 0-8.2 0l1.2 1.3a4 4 0 0 1 2.9-1.2Zm0 3.3L10.2 10a2.4 2.4 0 0 0-3.4 0l1.7 1.8Z"/></svg>
+        <svg width="26" height="12" viewBox="0 0 26 12" fill="none"><rect x="0.5" y="0.5" width="22" height="11" rx="3" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="18" height="8" rx="1.5" fill="currentColor"/><rect x="24" y="4" width="1.5" height="4" rx="0.75" fill="currentColor" opacity="0.5"/></svg>
+      </span>
+    </div>
+
+    <div class="header">
+      <div class="brand">
+        <div class="mark">
+          <div class="monogram">L</div>
+          <div class="brand-name">Leads</div>
+        </div>
+        <div class="pipeline">
+          <h1 class="display">Sales</h1>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="iconbtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="stat">
+        <div class="num">8</div>
+        <div class="lbl">Open</div>
+      </div>
+      <div class="stat">
+        <div class="num">3</div>
+        <div class="lbl">Estimates</div>
+      </div>
+      <div class="stat accent">
+        <div class="num">$24.6k</div>
+        <div class="lbl">Won this mo.</div>
+      </div>
+    </div>
+
+    <div class="stages">
+      <button class="pill">All</button>
+      <button class="pill">New</button>
+      <button class="pill">Contacted</button>
+      <button class="pill active">Estimate</button>
+      <button class="pill">Won</button>
+    </div>
+
+    <div class="list">
+      <div class="row">
+        <div class="avatar">MB</div>
+        <div class="who">
+          <div class="name">Marcus Bell</div>
+          <div class="status"><span class="dot"></span>Estimate sent</div>
+        </div>
+        <div class="meta">
+          <div class="value">$6,400</div>
+          <div class="time">2h</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="avatar">DW</div>
+        <div class="who">
+          <div class="name">Dana Whitfield</div>
+          <div class="status"><span class="dot"></span>New lead</div>
+        </div>
+        <div class="meta">
+          <div class="novalue">No quote</div>
+          <div class="time">5h</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="avatar">PN</div>
+        <div class="who">
+          <div class="name">Priya Nair</div>
+          <div class="status"><span class="dot"></span>Estimate sent</div>
+        </div>
+        <div class="meta">
+          <div class="value">$9,200</div>
+          <div class="time">1d</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="avatar">TR</div>
+        <div class="who">
+          <div class="name">Tom Ruiz</div>
+          <div class="status"><span class="dot"></span>Follow up</div>
+        </div>
+        <div class="meta">
+          <div class="value">$4,800</div>
+          <div class="time">2d</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="avatar">EO</div>
+        <div class="who">
+          <div class="name">Erin Osei</div>
+          <div class="status"><span class="dot"></span>Contacted</div>
+        </div>
+        <div class="meta">
+          <div class="value">$3,950</div>
+          <div class="time">2d</div>
+        </div>
+      </div>
+
+      <div class="row won">
+        <div class="avatar">CL</div>
+        <div class="who">
+          <div class="name">Carl Lindholm</div>
+          <div class="status"><span class="dot"></span>Won</div>
+        </div>
+        <div class="meta">
+          <div class="value">$11,200</div>
+          <div class="time">3d</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <div class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Home</span>
+      </div>
+      <div class="tab active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg>
+        <span>Leads</span>
+      </div>
+      <div class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Chats</span>
+      </div>
+      <div class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Contacts</span>
+      </div>
+    </div>
+
+    <div class="homebar"></div>
+
+  </div>
+</body></html>

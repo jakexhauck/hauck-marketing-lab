@@ -135,6 +135,40 @@ export const api = {
    *  omit it to leave the full toolset available. */
   invokeClaude: (id: string, prompt: string, tools?: string) =>
     invoke<string>("invoke_claude", { id, prompt, tools: tools ?? null }),
+  /** Run a Builder coding turn: a real `claude` session pinned to `cwd`, with a
+   *  permission `mode` ("plan" | "edits" | "auto") and optional `resume`
+   *  (claude session id) for multi-turn continuity. Streams over
+   *  `claude://stream` keyed by `id`, including tool_use + session_id events. */
+  invokeBuilder: (
+    id: string,
+    prompt: string,
+    cwd: string,
+    mode: "plan" | "edits" | "auto",
+    resume?: string | null,
+  ) =>
+    invoke<string>("invoke_builder", {
+      id,
+      prompt,
+      cwd,
+      mode,
+      resume: resume ?? null,
+    }),
+  /** Kill a running Builder session by its current stream id. */
+  stopBuilder: (id: string) => invoke<void>("stop_builder", { id }),
+  /** Seed projects for the Builder: the mobile app + the Hauck Marketing Lab,
+   *  resolved to absolute paths (only those that exist on disk). */
+  builderDefaultProjects: () =>
+    invoke<{ name: string; path: string; doc_roots: string[] }[]>(
+      "builder_default_projects",
+    ),
+  /** List a project's markdown docs and image assets (build/dep dirs skipped).
+   *  `docRoots` adds extra folders outside the project (e.g. build plans at the
+   *  repo root); their paths come back relative to the project. */
+  listProjectResources: (path: string, docRoots?: string[]) =>
+    invoke<import("./builderStore").ProjectResources>("list_project_resources", {
+      path,
+      docRoots: docRoots ?? null,
+    }),
   matchKnowledgeChunks: (root: string, userInput: string) =>
     invoke<KnowledgeChunk[]>("match_knowledge_chunks", { root, userInput }),
   readKnowledgeChunk: (root: string, chunkId: string) =>

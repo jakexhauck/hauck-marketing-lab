@@ -1,6 +1,7 @@
 mod ads_log;
 mod attachments;
 mod benchmarks;
+mod builder;
 mod chat;
 mod chat_sheet_tabs;
 mod saved_prompts;
@@ -56,6 +57,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(watcher::WatcherState::new())
+        .manage(builder::BuilderState::new())
         .invoke_handler(tauri::generate_handler![
             config::load_config,
             config::save_config,
@@ -79,6 +81,10 @@ pub fn run() {
             saved_prompts::save_saved_prompts,
             claude::check_claude,
             claude::invoke_claude,
+            builder::invoke_builder,
+            builder::stop_builder,
+            builder::builder_default_projects,
+            builder::list_project_resources,
             onboarding::read_onboarding_state,
             onboarding::write_onboarding_state,
             clients::list_clients,

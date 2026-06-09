@@ -17,6 +17,7 @@ import {
   IconFile,
   IconFolder,
   IconGlobe,
+  IconLayout,
   IconPersonal,
   IconPlus,
   IconRecordings,
@@ -53,6 +54,8 @@ export interface AppSidebarProps {
   userName?: string;
   userInitials?: string;
   appVersion?: string;
+  /** Number of saved build plans, shown as a badge on the Plans nav item. */
+  plansCount?: number;
 }
 
 type ClientFilter = "all" | "live" | "pre-launch" | "paused";
@@ -148,6 +151,8 @@ function subAppDisplay(subApp: SubApp): { name: string; eyebrow: string } {
       return { name: "Onboarding Pipeline", eyebrow: "Sub-app" };
     case "workspace":
       return { name: "Workspace", eyebrow: "Sub-app" };
+    case "builder":
+      return { name: "Builder", eyebrow: "Sub-app" };
     case "settings":
       return { name: "Settings", eyebrow: "Sub-app" };
   }
@@ -167,6 +172,7 @@ export function AppSidebar(props: AppSidebarProps) {
     onSelectClientSection,
     onSelectPersonalSection,
     onAddClient,
+    plansCount = 0,
     userName = "Jake Hauck",
     userInitials = "JH",
   } = props;
@@ -198,7 +204,7 @@ export function AppSidebar(props: AppSidebarProps) {
     };
   }
 
-  if (currentSubApp === "dashboard") {
+  if (currentSubApp === "dashboard" || currentSubApp === "builder") {
     return null;
   }
 
@@ -256,6 +262,7 @@ export function AppSidebar(props: AppSidebarProps) {
             activePersonal={activePersonal ?? null}
             onSelectWorkspace={onSelectWorkspace}
             onSelectPersonalSection={onSelectPersonalSection}
+            plansCount={plansCount}
           />
         )}
 
@@ -526,6 +533,7 @@ interface WorkspaceBodyProps {
   activePersonal: PersonalSection | null;
   onSelectWorkspace: (tab: WorkspaceView) => void;
   onSelectPersonalSection?: (section: PersonalSection) => void;
+  plansCount?: number;
 }
 
 function WorkspaceBody({
@@ -533,6 +541,7 @@ function WorkspaceBody({
   activePersonal,
   onSelectWorkspace,
   onSelectPersonalSection,
+  plansCount = 0,
 }: WorkspaceBodyProps) {
   return (
     <div className="hml-nav-section">
@@ -548,6 +557,13 @@ function WorkspaceBody({
         Icon={IconTasks}
         active={activeWorkspace === "tasks"}
         onClick={() => onSelectWorkspace("tasks")}
+      />
+      <NavItem
+        label="Plans"
+        Icon={IconLayout}
+        active={activeWorkspace === "plans"}
+        badge={plansCount > 0 ? String(plansCount) : undefined}
+        onClick={() => onSelectWorkspace("plans")}
       />
       <NavItem
         label="Revenue"

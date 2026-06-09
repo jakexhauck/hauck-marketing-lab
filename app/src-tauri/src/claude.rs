@@ -21,11 +21,17 @@ pub struct ClaudeCheck {
 pub enum StreamEvent {
     Started { id: String },
     Delta { id: String, text: String },
+    /// A tool the agent invoked mid-turn (Builder sessions surface these as an
+    /// activity line: "Edited file.tsx", "Ran: pnpm build", ...).
+    ToolUse { id: String, name: String, detail: String },
+    /// The claude CLI session id for this run, emitted once so the frontend can
+    /// persist it and pass `--resume <id>` on the next turn.
+    SessionId { id: String, session_id: String },
     Done { id: String, full_text: String },
     Error { id: String, message: String },
 }
 
-fn locate_claude() -> Option<PathBuf> {
+pub(crate) fn locate_claude() -> Option<PathBuf> {
     if let Ok(p) = which::which("claude") {
         return Some(p);
     }
@@ -48,7 +54,7 @@ fn locate_claude() -> Option<PathBuf> {
     candidates.into_iter().find(|p| p.exists())
 }
 
-fn build_command(claude_path: &PathBuf) -> Command {
+pub(crate) fn build_command(claude_path: &PathBuf) -> Command {
     #[cfg(windows)]
     {
         // CREATE_NO_WINDOW — prevents the child from trying to attach to a

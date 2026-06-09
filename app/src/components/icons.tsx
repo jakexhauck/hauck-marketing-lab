@@ -119,6 +119,15 @@ export function IconLayout(p: IconProps) {
   );
 }
 
+export function IconCode(p: IconProps) {
+  return (
+    <I {...p}>
+      <path d="m16 18 6-6-6-6" />
+      <path d="m8 6-6 6 6 6" />
+    </I>
+  );
+}
+
 // ──────── Client sections ────────
 
 export function IconUser(p: IconProps) {

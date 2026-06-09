@@ -1,0 +1,158 @@
+/* _base.css — "Dark Split" design system for the Willis Leads mobile app.
+   Every screen mockup links this file and reuses these classes so the whole
+   app reads as one product. Screen-specific flourishes go in a small inline
+   <style> per file. */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 390px; height: 844px; overflow: hidden; }
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+:root {
+  --brand: #1a4d8f;
+  --brand-deep: #133766;
+  --navy-1: #13294a;
+  --navy-2: #0d1f38;
+  --accent: #5b9be0;     /* light-blue split accent */
+
+  --bg: #f4f7fb;
+  --surface: #ffffff;
+  --surface-2: #eef2f7;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --faint: #94a3b8;
+  --line: #e7edf4;
+  --divider: #eef2f7;
+  --won: #15803d;
+}
+
+.font-display { font-family: 'Archivo', sans-serif; letter-spacing: -0.02em; }
+
+.phone {
+  width: 390px; height: 844px;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  position: relative; overflow: hidden;
+}
+
+/* ===== iOS status bar ===== */
+.statusbar {
+  height: 50px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 26px 0 30px; font-weight: 700; font-size: 15px;
+}
+.statusbar.on-dark { color: #fff; }
+.statusbar.on-light { color: var(--ink); }
+.ios-icons { display: flex; align-items: center; gap: 7px; }
+
+/* ===== Navy hero header (primary screens) ===== */
+.hero {
+  background: linear-gradient(165deg, var(--navy-1) 0%, var(--navy-2) 100%);
+  color: #fff; position: relative; overflow: hidden;
+  border-radius: 0 0 28px 28px;
+  padding: 0 22px 24px;
+}
+.hero::after {
+  content: ""; position: absolute; top: -90px; right: -70px;
+  width: 230px; height: 230px; border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+}
+.hero > * { position: relative; z-index: 1; }
+.hero .statusbar { margin: 0 -22px; }
+
+.brand-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mark {
+  width: 36px; height: 36px; border-radius: 11px; flex: 0 0 auto;
+  background: #fff; color: var(--navy-1);
+  font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+}
+.brand-name { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 17px; color: #fff; }
+.brand-sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 1px; }
+.pill-prefix { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.6); }
+.icon-btn {
+  width: 38px; height: 38px; border-radius: 12px; flex: 0 0 auto;
+  background: rgba(255,255,255,0.14); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.icon-btn svg { width: 19px; height: 19px; }
+
+.cap-light { text-transform: uppercase; letter-spacing: 0.06em; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.62); }
+.hero-num { font-family: 'Archivo', sans-serif; font-weight: 900; letter-spacing: -0.03em; line-height: 0.95; }
+
+/* split metric block: primary big number + accent secondary */
+.split { display: flex; align-items: flex-end; gap: 20px; }
+.split-primary { flex: 1; min-width: 0; }
+.split-div { width: 1px; height: 48px; background: rgba(255,255,255,0.14); flex: 0 0 auto; }
+.split-secondary { flex: 0 0 auto; text-align: right; padding-bottom: 4px; }
+.split-secondary .hero-num { color: var(--accent); }
+
+/* ===== Pills (stage filters) ===== */
+.pills { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 0 22px; }
+.pills::-webkit-scrollbar { display: none; }
+.pill {
+  flex: 0 0 auto; padding: 9px 15px; border-radius: 999px;
+  font-size: 13px; font-weight: 600; white-space: nowrap;
+  background: var(--surface-2); color: #5b6b7f;
+  display: flex; align-items: center; gap: 6px;
+}
+.pill .n { opacity: 0.55; }
+.pill.active { background: var(--brand); color: #fff; }
+.pill.active .n { opacity: 0.85; }
+
+/* ===== Scroll content ===== */
+.content { flex: 1; overflow-y: auto; }
+.content::-webkit-scrollbar { display: none; }
+
+/* ===== Section head ===== */
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; padding: 20px 22px 8px; }
+.sec-title { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 15px; color: var(--ink); }
+.sec-meta { font-size: 13px; font-weight: 600; color: var(--muted); }
+.sec-kicker { text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; font-weight: 700; color: var(--brand); }
+
+/* ===== Card + rows ===== */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+.list-card { margin: 0 22px; }
+
+.row { display: flex; align-items: center; gap: 13px; padding: 13px 16px; background: var(--surface); }
+.row + .row { border-top: 1px solid var(--divider); }
+.av {
+  width: 42px; height: 42px; border-radius: 13px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  font-family: 'Archivo', sans-serif; font-weight: 700; font-size: 14px;
+}
+.row-mid { flex: 1; min-width: 0; }
+.row-name { font-family: 'Archivo', sans-serif; font-weight: 700; font-size: 15px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row-right { text-align: right; flex: 0 0 auto; }
+.row-val { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 15px; color: var(--ink); }
+.row-val.none { color: #c2c8d1; font-weight: 600; font-size: 13px; }
+.row-time { font-size: 11px; color: var(--faint); margin-top: 3px; font-weight: 500; }
+
+/* unread badge */
+.badge { min-width: 20px; height: 20px; border-radius: 999px; padding: 0 6px; background: var(--brand); color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+
+/* ===== Bottom tab bar ===== */
+.tabbar { display: flex; align-items: center; padding: 9px 12px 4px; border-top: 1px solid var(--line); background: var(--surface); }
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #a5afbd; font-size: 10.5px; font-weight: 600; }
+.tab svg { width: 23px; height: 23px; }
+.tab.active { color: var(--brand); }
+
+/* ===== Home indicator ===== */
+.homebar { height: 24px; display: flex; align-items: center; justify-content: center; background: var(--surface); }
+.homebar.on-bg { background: var(--bg); }
+.homebar::after { content: ""; width: 134px; height: 5px; border-radius: 3px; background: #0f172a; }
+
+/* ===== Avatar color palette (cycle) ===== */
+.av-1 { background: #1e293b; } .av-2 { background: #4f46e5; } .av-3 { background: #7c3aed; }
+.av-4 { background: #e11d48; } .av-5 { background: #d97706; } .av-6 { background: #059669; }
+.av-7 { background: #0284c7; } .av-8 { background: #c026d3; } .av-9 { background: #ea580c; }
+.av-10 { background: #0d9488; }
+
+/* ===== Stage chip (for detail) ===== */
+.stage-chip { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #e8f0fa; color: var(--brand); }

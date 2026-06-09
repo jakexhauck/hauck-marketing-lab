@@ -82,7 +82,7 @@
       "id": "94a07d62-6063-4446-b201-ac2a855d6f48",
       "title": "Finish B&A Statics",
       "clientSlug": "willis-windows",
-      "status": "todo",
+      "status": "done",
       "createdAt": 1780355458591,
       "lane": "active"
     },
@@ -94,18 +94,11 @@
       "lane": "active"
     },
     {
-      "id": "8aad5a34-0ab2-45ae-a4ea-e9d9fac32b94",
-      "title": "Get GMB Cover From Ben",
-      "status": "todo",
-      "createdAt": 1780497879173,
-      "lane": "active"
-    },
-    {
-      "id": "97e2a6cd-d473-4916-bae9-fc22a3a8bc2d",
-      "title": "Finish Callout Statics",
+      "id": "750500e5-4b6c-4222-89ac-509b24401ff9",
+      "title": "Apply For A2P",
       "clientSlug": "willis-windows",
-      "status": "todo",
-      "createdAt": 1780673154350,
+      "status": "done",
+      "createdAt": 1780939883619,
       "lane": "active"
     }
   ]

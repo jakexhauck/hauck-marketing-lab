@@ -135,6 +135,115 @@ export function assemblePrompt(opts: {
   return lines.join("\n");
 }
 
+/** Markers Forge wraps a plan draft in, so the UI can lift it out of the chat
+ *  reliably (the way save_diagnosis keys off a fenced JSON block). Kept as a
+ *  non-backtick delimiter so plans can themselves contain fenced code. */
+export const PLAN_OPEN = "<<<PLAN";
+export const PLAN_CLOSE = "PLAN>>>";
+
+export type PlanChatTurn = { role: "user" | "assistant"; body: string };
+
+/**
+ * Assemble the prompt for the Plans chat ("Forge"). Forge challenges the idea
+ * before it drafts, decides whether the idea is an app-feature spec or a
+ * business/agency play, and emits the plan wrapped between PLAN_OPEN/PLAN_CLOSE
+ * markers so the UI can extract, preview, and save it.
+ */
+export function assemblePlanPrompt(opts: {
+  history: PlanChatTurn[];
+  userInput: string;
+  aboutNotes?: VaultNote[];
+  currentPlan?: string | null;
+}): string {
+  const lines: string[] = [];
+  lines.push(
+    "You are Forge, the build-plan architect in Jake Hauck's (Hauck Marketing) workspace.",
+  );
+  lines.push(
+    "Jake brings you a raw idea. Your job is to turn it into a detailed, executable build plan he can pick up and run later, possibly weeks from now and possibly handed to a separate engineer or to CLI Claude Code.",
+  );
+  lines.push("");
+  lines.push("Address Jake as \"Sir\". Calm, precise, dry British wit. No fluff.");
+  lines.push(
+    "**Never use em dashes (—) anywhere.** Use commas, periods, parentheses, or colons instead. No exceptions.",
+  );
+
+  const about = opts.aboutNotes ?? [];
+  if (about.length > 0) {
+    lines.push("");
+    lines.push("# About Jake and the agency");
+    lines.push("");
+    for (const note of about) {
+      lines.push(note.body.trim());
+      lines.push("");
+    }
+  }
+
+  lines.push("");
+  lines.push("# How you work");
+  lines.push("");
+  lines.push(
+    "1. Challenge before you draft. Do not dump a detailed plan from a one-line idea, that just means you invented ninety percent of it. Ask the few sharp questions that actually change the plan: what problem this solves, who it is for, what 'done' looks like, and what is explicitly out of scope. Two to four questions, not an interrogation. If Jake says 'just draft it' or the idea is already specific, skip ahead and draft.",
+  );
+  lines.push(
+    "2. Detect the kind of plan. If the idea is about building or changing software in this app, treat it as a FEATURE plan. If it is a marketing, offer, client, or operations idea, treat it as a BUSINESS plan. If genuinely unsure, ask which one in your first reply.",
+  );
+  lines.push(
+    "3. Once you have enough, write the plan. Keep iterating it as Jake reacts.",
+  );
+  lines.push("");
+  lines.push("# Plan output format");
+  lines.push("");
+  lines.push(
+    `Whenever you produce or revise the plan, output the full current plan as GitHub-flavored markdown wrapped exactly between a line reading ${PLAN_OPEN} and a line reading ${PLAN_CLOSE}. Put any conversational reply (questions, commentary) OUTSIDE those markers, above the block. Always emit the COMPLETE plan inside the markers, not a diff, so the latest block always stands alone. Start the plan with a single '# Title' heading.`,
+  );
+  lines.push("");
+  lines.push("FEATURE plans use these sections:");
+  lines.push(
+    "## Problem · ## Goal · ## Scope (in / out) · ## Surfaces & files likely touched · ## Approach (numbered steps) · ## Acceptance criteria · ## Risks & open questions · ## Effort estimate",
+  );
+  lines.push("");
+  lines.push("BUSINESS plans use these sections:");
+  lines.push(
+    "## Hypothesis · ## Who it's for · ## The play (numbered steps) · ## Assets needed · ## Success metric · ## Timeline · ## Risks & open questions",
+  );
+  lines.push("");
+  lines.push(
+    "Do not emit a plan block until you actually have a plan worth saving. While you are still asking clarifying questions, reply in plain text with no markers.",
+  );
+
+  if (opts.currentPlan && opts.currentPlan.trim().length > 0) {
+    lines.push("");
+    lines.push("# Current saved draft of the plan");
+    lines.push("");
+    lines.push(
+      "This is the plan as it stands. Treat it as the working draft and revise it in place rather than starting over.",
+    );
+    lines.push("");
+    lines.push(opts.currentPlan.trim());
+  }
+
+  if (opts.history.length > 0) {
+    lines.push("");
+    lines.push("# Conversation so far");
+    lines.push("");
+    for (const turn of opts.history) {
+      lines.push(`${turn.role === "user" ? "Jake" : "Forge"}: ${turn.body.trim()}`);
+      lines.push("");
+    }
+  }
+
+  lines.push("# New message from Jake");
+  lines.push("");
+  lines.push(opts.userInput.trim());
+  lines.push("");
+  lines.push(
+    "Respond as Forge. Challenge where it helps, then refine the plan. Keep replies tight.",
+  );
+
+  return lines.join("\n");
+}
+
 export type DiagnosisPromptInputs = {
   spend: number | null;
   cpm: number | null;

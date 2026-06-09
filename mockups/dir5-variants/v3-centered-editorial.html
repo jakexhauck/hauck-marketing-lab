@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390, height=844, initial-scale=1">
+<title>Willis Leads</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 390px;
+    height: 844px;
+    overflow: hidden;
+    font-family: 'Archivo', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  :root {
+    --brand: #1a4d8f;
+    --brand-deep: #143d72;
+    --ink: #111827;
+    --muted: #8a93a3;
+    --line: #eef1f5;
+  }
+
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* Brand block */
+  .brand-block {
+    background: var(--brand);
+    color: #fff;
+    border-bottom-left-radius: 30px;
+    border-bottom-right-radius: 30px;
+    padding: 0 26px 34px;
+    position: relative;
+    overflow: hidden;
+  }
+  .brand-block::before {
+    content: "";
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 360px;
+    height: 360px;
+    background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 60%);
+    pointer-events: none;
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 50px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 15px;
+    color: #fff;
+    position: relative;
+    z-index: 2;
+  }
+  .status-bar .icons {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  /* Top row */
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2;
+    margin-top: 4px;
+  }
+  .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: #fff;
+    color: var(--brand);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 17px;
+  }
+  .wordmark .label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .search-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    background: rgba(255,255,255,0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+  .search-btn svg { width: 18px; height: 18px; }
+
+  /* Pipeline selector */
+  .pipeline-pill {
+    margin: 14px auto 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    width: fit-content;
+    position: relative;
+    z-index: 2;
+  }
+  .pipeline-pill svg { width: 14px; height: 14px; }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 30px 0 6px;
+    position: relative;
+    z-index: 2;
+  }
+  .hero .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.62);
+  }
+  .hero .number {
+    font-size: 80px;
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-top: 10px;
+    color: #fff;
+  }
+  .hero .subtitle {
+    color: rgba(255,255,255,0.72);
+    font-size: 14.5px;
+    font-weight: 500;
+    margin-top: 12px;
+  }
+
+  /* Content */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-top: 22px;
+    min-height: 0;
+  }
+
+  /* Stages */
+  .stages {
+    display: flex;
+    gap: 8px;
+    padding: 0 26px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .stages::-webkit-scrollbar { display: none; }
+  .pill {
+    flex-shrink: 0;
+    padding: 9px 16px;
+    border-radius: 999px;
+    font-size: 13.5px;
+    font-weight: 600;
+    background: #f3f5f8;
+    color: #6b7480;
+    white-space: nowrap;
+  }
+  .pill.active {
+    background: var(--brand);
+    color: #fff;
+  }
+
+  /* List head */
+  .list-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 24px 26px 4px;
+  }
+  .list-head .title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .list-head .count {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  /* List */
+  .list {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 13px 26px;
+    border-bottom: 1px solid var(--line);
+  }
+  .av {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    background: #eaf0f8;
+    color: var(--brand);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14.5px;
+    flex-shrink: 0;
+  }
+  .row .meta { flex: 1; min-width: 0; }
+  .row .name {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .row .status {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .row .right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .row .value {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--ink);
+  }
+  .row .value.none {
+    font-weight: 600;
+    color: #c2c8d1;
+    font-size: 13px;
+  }
+  .row .time {
+    font-size: 11.5px;
+    color: #b3bac4;
+    margin-top: 3px;
+  }
+
+  /* Tab bar */
+  .tab-bar {
+    display: flex;
+    justify-content: space-around;
+    border-top: 1px solid var(--line);
+    background: #fff;
+    padding: 8px 0 4px;
+  }
+  .tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: #aab1bd;
+  }
+  .tab.active { color: var(--brand); }
+  .tab svg { width: 23px; height: 23px; }
+  .tab .tab-label {
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+
+  /* Home indicator */
+  .home-indicator {
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .home-indicator .bar {
+    width: 134px;
+    height: 5px;
+    border-radius: 999px;
+    background: #111827;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <div class="brand-block">
+    <!-- Status bar -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <span class="icons">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="4.5" width="3" height="7.5" rx="1"/><rect x="9" y="2" width="3" height="10" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><path d="M8.5 2.2c2 0 3.9.8 5.3 2.1l1.2-1.3A9.4 9.4 0 0 0 8.5.5 9.4 9.4 0 0 0 2 3l1.2 1.3A7.4 7.4 0 0 1 8.5 2.2Zm0 3.4c1.1 0 2.1.4 2.9 1.2l1.2-1.3a5.9 5.9 0 0 0-8.2 0l1.2 1.3a4 4 0 0 1 2.9-1.2Zm0 3.3L10.2 10a2.4 2.4 0 0 0-3.4 0l1.7 1.8Z"/></svg>
+        <svg width="26" height="12" viewBox="0 0 26 12" fill="none"><rect x="0.5" y="0.5" width="22" height="11" rx="3" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="18" height="8" rx="1.5" fill="currentColor"/><rect x="24" y="4" width="1.5" height="4" rx="0.75" fill="currentColor" opacity="0.5"/></svg>
+      </span>
+    </div>
+
+    <!-- Top row -->
+    <div class="top-row">
+      <div class="wordmark">
+        <span class="mark">H</span>
+        <span class="label">Willis Leads</span>
+      </div>
+      <div class="search-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+    </div>
+
+    <!-- Pipeline selector -->
+    <div class="pipeline-pill">
+      <span>Sales</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="eyebrow">Won this month</div>
+      <div class="number">$24.6k</div>
+      <div class="subtitle">8 open leads, 3 estimates out</div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <div class="stages">
+      <div class="pill">All</div>
+      <div class="pill">New</div>
+      <div class="pill">Contacted</div>
+      <div class="pill active">Estimate</div>
+      <div class="pill">Won</div>
+    </div>
+
+    <div class="list-head">
+      <span class="title">Leads</span>
+      <span class="count">6 shown</span>
+    </div>
+
+    <div class="list">
+      <div class="row">
+        <div class="av">MB</div>
+        <div class="meta">
+          <div class="name">Marcus Bell</div>
+          <div class="status">Estimate sent</div>
+        </div>
+        <div class="right">
+          <div class="value">$6,400</div>
+          <div class="time">2h</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="av">DW</div>
+        <div class="meta">
+          <div class="name">Dana Whitfield</div>
+          <div class="status">New lead</div>
+        </div>
+        <div class="right">
+          <div class="value none">No value</div>
+          <div class="time">5h</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="av">PN</div>
+        <div class="meta">
+          <div class="name">Priya Nair</div>
+          <div class="status">Estimate sent</div>
+        </div>
+        <div class="right">
+          <div class="value">$9,200</div>
+          <div class="time">1d</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="av">TR</div>
+        <div class="meta">
+          <div class="name">Tom Ruiz</div>
+          <div class="status">Follow up</div>
+        </div>
+        <div class="right">
+          <div class="value">$4,800</div>
+          <div class="time">2d</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="av">EO</div>
+        <div class="meta">
+          <div class="name">Erin Osei</div>
+          <div class="status">Contacted</div>
+        </div>
+        <div class="right">
+          <div class="value">$3,950</div>
+          <div class="time">2d</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="av">CL</div>
+        <div class="meta">
+          <div class="name">Carl Lindholm</div>
+          <div class="status">Won</div>
+        </div>
+        <div class="right">
+          <div class="value">$11,200</div>
+          <div class="time">3d</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="tab-label">Home</span>
+    </div>
+    <div class="tab active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg>
+      <span class="tab-label">Leads</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="tab-label">Chats</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span class="tab-label">Contacts</span>
+    </div>
+  </div>
+
+  <!-- Home indicator -->
+  <div class="home-indicator">
+    <div class="bar"></div>
+  </div>
+
+</div>
+</body>
+</html>
