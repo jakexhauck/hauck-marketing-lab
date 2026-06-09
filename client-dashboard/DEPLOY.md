@@ -17,7 +17,7 @@ Public URL goal: `hauck-dashboard.pages.dev` (or pick another name during setup)
    - **Root directory (advanced)**: `client-dashboard`
 4. Environment variables (under "Variables and Secrets" → **Production**, mark each as a Secret):
    - `NODE_VERSION` = `20` (plain variable, not a secret)
-   - `PNPM_VERSION` = `11` (plain variable, not a secret). The `packageManager` field in `package.json` pins pnpm to 11.x via Corepack regardless, but keep this aligned. pnpm 9 cannot read `pnpm-workspace.yaml` (used to register the webcrypto-web-push patch) and the install will fail with "packages field missing or empty".
+   - `PNPM_VERSION` = `10` (plain variable, not a secret). The `packageManager` field in `package.json` pins pnpm to 10.18.0 via Corepack regardless, but keep this aligned. Do not use pnpm 9 (cannot read `pnpm-workspace.yaml`, where the webcrypto-web-push patch is registered) or pnpm 11 (requires Node 22+, but the runner is on Node 20 and the build crashes with "No such built-in module: node:sqlite").
    - `APP_PASSWORD` = the password you'll type on the login screen
    - `SESSION_SECRET` = any random 32+ char string (used to sign session cookies; rotate to log everyone out)
    - `GHL_LOCATION_ID` = the live client sub-account's Location ID (GHL → Settings → Business Profile)
