@@ -9,6 +9,7 @@ import {
   type ApiContact,
   type ApiConversation,
   type ApiActivity,
+  type ApiNotification,
   type ApiNote,
   type ApiTask,
   type ApiInvoice,
@@ -83,6 +84,61 @@ export function useActivityQuery(enabled: boolean) {
     staleTime: 30_000,
     refetchInterval: 30_000,
     queryFn: () => api<{ activity: ApiActivity[] }>("/api/activity"),
+  });
+}
+
+interface NotificationsResponse {
+  notifications: ApiNotification[];
+  unreadCount: number;
+}
+
+// The notification center feed + unread badge. Polls so the bell stays current
+// without a manual refresh; the service worker also nudges it on a push.
+export function useNotificationsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["notifications"],
+    enabled,
+    staleTime: 20_000,
+    refetchInterval: 30_000,
+    queryFn: () => api<NotificationsResponse>("/api/notifications"),
+  });
+}
+
+// Mark one notification (by id) or all of them (all: true) read. Optimistically
+// drops the unread count and flips read_at so the badge and feed update at once.
+export function useMarkNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: number } | { all: true }) =>
+      api<{ ok: boolean; unreadCount: number }>("/api/notifications/read", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["notifications"] });
+      const previous = qc.getQueryData<NotificationsResponse>(["notifications"]);
+      if (previous) {
+        const now = new Date().toISOString();
+        const next = previous.notifications.map((n) =>
+          "all" in input || n.id === input.id
+            ? { ...n, read_at: n.read_at ?? now }
+            : n,
+        );
+        qc.setQueryData<NotificationsResponse>(["notifications"], {
+          notifications: next,
+          unreadCount: next.filter((n) => !n.read_at).length,
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        qc.setQueryData(["notifications"], context.previous);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
 }
 

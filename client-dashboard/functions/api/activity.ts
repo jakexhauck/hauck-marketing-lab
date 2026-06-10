@@ -15,15 +15,15 @@ export interface ActivityRow {
   created_at: string;
 }
 
-// Recent activity_log rows for the test tenant, newest first. Degrades to an
-// empty list when Supabase is not configured so the app still renders.
+// Recent activity_log rows for the session's tenant, newest first. Degrades to
+// an empty list when Supabase is not configured so the app still renders.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (
   ctx,
 ) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ activity: [] });
 
-  const tenantId = await resolveTenantId(client, "test-account");
+  const tenantId = await resolveTenantId(client, ctx.data.tenant.slug);
   if (!tenantId) return Response.json({ activity: [] });
 
   const { data } = await client

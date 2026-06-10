@@ -1,4 +1,5 @@
 import type { Env, ApiData } from "../lib/env";
+import { liveTenantSlug, testTenantSlug } from "../lib/env";
 import { verifySession } from "../lib/session";
 
 const allowedOrigins = new Set([
@@ -9,14 +10,14 @@ const allowedOrigins = new Set([
 ]);
 
 function corsHeaders(origin: string | null): HeadersInit {
-  const allowed =
-    origin && allowedOrigins.has(origin)
-      ? origin
-      : "https://hauck-dashboard.pages.dev";
+  // Same-origin requests send no Origin header and need no CORS headers.
+  // Unrecognized origins get none either, so credentialed responses are never
+  // shared with arbitrary sites.
+  if (!origin || !allowedOrigins.has(origin)) return { vary: "origin" };
   return {
-    "access-control-allow-origin": allowed,
+    "access-control-allow-origin": origin,
     "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
-    "access-control-allow-headers": "content-type",
+    "access-control-allow-headers": "content-type,x-identity",
     "access-control-allow-credentials": "true",
     "access-control-max-age": "86400",
     vary: "origin",
@@ -61,6 +62,8 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       ctx.data.tenant = {
         ghl_location_id: ctx.env.TEST_GHL_LOCATION_ID,
         ghl_token: ctx.env.TEST_GHL_TOKEN,
+        slug: testTenantSlug(ctx.env),
+        mode: "test",
       };
     } else {
       if (!ctx.env.GHL_LOCATION_ID || !ctx.env.GHL_TOKEN) {
@@ -69,6 +72,8 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       ctx.data.tenant = {
         ghl_location_id: ctx.env.GHL_LOCATION_ID,
         ghl_token: ctx.env.GHL_TOKEN,
+        slug: liveTenantSlug(ctx.env),
+        mode: "live",
       };
     }
   }
@@ -85,8 +90,10 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       headers,
     });
   } catch (err) {
+    // Log the full upstream detail server-side, but never reflect it to the
+    // client: GHL error bodies can contain internal URLs and request detail.
     const message = err instanceof Error ? err.message : "unknown error";
     console.error("[api]", url.pathname, message);
-    return json(500, { error: message }, origin);
+    return json(500, { error: "internal_error" }, origin);
   }
 };

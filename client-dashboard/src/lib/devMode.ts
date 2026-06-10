@@ -1,8 +1,11 @@
 let cached: boolean | null = null;
 
+// Dev-only affordances (DevPanel, role/client switching). Hard-disabled in
+// production builds: ?dev=1 must never unlock anything for a real client, and
+// the localStorage flag must not survive into prod either.
 export function devMode(): boolean {
   if (cached !== null) return cached;
-  if (typeof window === "undefined") {
+  if (!import.meta.env.DEV || typeof window === "undefined") {
     cached = false;
     return cached;
   }

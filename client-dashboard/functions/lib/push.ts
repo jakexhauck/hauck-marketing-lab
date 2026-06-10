@@ -2,7 +2,7 @@ import {
   buildPushPayload,
   type PushSubscription,
 } from "@block65/webcrypto-web-push";
-import { getServiceClient, resolveTenantId } from "./supabase";
+import { getServiceClient } from "./supabase";
 import type { Env } from "./env";
 
 // Shape we read back from the activity_log insert in the webhook. opportunity_id
@@ -24,22 +24,21 @@ interface SubRow {
 }
 
 /**
- * Send a Web Push to every subscription of the test-account tenant when a
- * relevant activity (new message / new lead) lands. Fully inert when VAPID keys
- * are unset or Supabase is unconfigured: it simply returns early. Dead
+ * Send a Web Push to every subscription of the given tenant when a relevant
+ * activity (new message / new lead) lands. The caller resolves the tenant id
+ * (the webhook routes by event.locationId). Fully inert when VAPID keys are
+ * unset or Supabase is unconfigured: it simply returns early. Dead
  * subscriptions (404 / 410 from the push service) are pruned by id.
  */
 export async function sendPushForActivity(
   env: Env,
+  tenantId: string,
   activity: PushActivity,
 ): Promise<void> {
   if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return;
 
   const client = getServiceClient(env);
   if (!client) return;
-
-  const tenantId = await resolveTenantId(client, "test-account");
-  if (!tenantId) return;
 
   const { data: subs } = await client
     .from("push_subscriptions")

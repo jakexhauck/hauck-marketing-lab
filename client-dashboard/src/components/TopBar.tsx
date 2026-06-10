@@ -29,7 +29,7 @@ export default function TopBar() {
       {isTest && (
         <div className="flex items-center justify-center gap-1.5 bg-amber-500 px-4 py-1.5 text-center text-[11px] font-bold uppercase tracking-wider text-white">
           <FlaskConical size={13} />
-          Test account — staging data, not a live client
+          Test account: staging data, not a live client
         </div>
       )}
       <div
@@ -60,7 +60,9 @@ export default function TopBar() {
         )}
         {currentUser && <UserChip user={currentUser} />}
         <ThemeToggle />
-        <DevPanel />
+        {/* Dev-only: gated at the mount site so the panel (and the mock data
+            it imports) is tree-shaken out of production bundles entirely. */}
+        {import.meta.env.DEV && <DevPanel />}
       </div>
     </header>
   );

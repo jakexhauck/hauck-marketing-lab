@@ -6,7 +6,7 @@ interface UnsubscribeBody {
   endpoint?: string;
 }
 
-// Remove a Web Push subscription for the test-account tenant, keyed by
+// Remove a Web Push subscription for the session's tenant, keyed by
 // (tenant_id, endpoint). Accepts either a raw endpoint or a full subscription.
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (
   ctx,
@@ -28,7 +28,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (
     return Response.json({ error: "missing_endpoint" }, { status: 400 });
   }
 
-  const tenantId = await resolveTenantId(client, "test-account");
+  const tenantId = await resolveTenantId(client, ctx.data.tenant.slug);
   if (!tenantId) {
     return Response.json({ error: "tenant_not_found" }, { status: 500 });
   }

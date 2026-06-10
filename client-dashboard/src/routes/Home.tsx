@@ -15,6 +15,7 @@ import TestBanner from "../components/TestBanner";
 import BottomNav from "../components/BottomNav";
 import EmptyState from "../components/EmptyState";
 import NotificationPrompt from "../components/NotificationPrompt";
+import NotificationBell from "../components/NotificationBell";
 import { useAuth } from "../context/AuthContext";
 import { usePipelines } from "../context/PipelinesContext";
 import { useActivityQuery, useSummaryQuery } from "../hooks/useApi";
@@ -120,9 +121,12 @@ export default function Home() {
               </div>
             </div>
           </div>
-          <HeroIconButton label="Search" onClick={() => navigate("/leads")}>
-            <Search size={18} />
-          </HeroIconButton>
+          <div className="flex items-center gap-2.5">
+            <NotificationBell enabled={useReal} />
+            <HeroIconButton label="Search" onClick={() => navigate("/leads")}>
+              <Search size={18} />
+            </HeroIconButton>
+          </div>
         </div>
 
         <SplitHero

@@ -1,5 +1,5 @@
 -- Hauck Dashboard admin role.
--- Run AFTER 0001_init.sql and 0002_seed_willis_windows.sql.
+-- Run AFTER 0001_init.sql.
 -- Paste into Supabase dashboard -> SQL Editor -> New query -> Run.
 -- Idempotent: safe to re-run.
 

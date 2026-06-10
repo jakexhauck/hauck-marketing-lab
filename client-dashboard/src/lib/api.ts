@@ -194,6 +194,12 @@ export interface ApiActivity {
   created_at: string;
 }
 
+// The notification center reuses the activity shape plus per-row read state
+// (read_at: null = unread). The webhook is the single writer of both.
+export interface ApiNotification extends ApiActivity {
+  read_at: string | null;
+}
+
 export interface AdminClient {
   id: string;
   slug: string;

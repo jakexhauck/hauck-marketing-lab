@@ -1,26 +1,34 @@
 import type { Env } from "../lib/env";
+import { liveTenantSlug, testTenantSlug } from "../lib/env";
 import { getServiceClient, resolveTenantId } from "../lib/supabase";
 import { sendPushForActivity } from "../lib/push";
 
-async function hmacHex(secret: string, body: string): Promise<string> {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
+// Auth model: GHL cannot produce a signature we can verify here (marketplace
+// webhooks sign with an RSA key under x-wh-signature; workflow webhook actions
+// send no signature at all), so the endpoint authenticates with a shared
+// secret embedded in the webhook URL instead:
+//   https://<host>/api/webhook?token=<WEBHOOK_SECRET>
+// (or an x-webhook-token header). Configure the same value in the GHL webhook
+// URL and in the WEBHOOK_SECRET env var. Fail closed: without the env var, or
+// without a matching token, nothing is processed.
+//
+// Workflow webhook actions must also include locationId in their custom
+// payload (plus type/contactId/opportunityId) or the event is ignored: tenant
+// routing is by event.locationId, never by a hardcoded tenant.
+
+async function sha256(value: string): Promise<Uint8Array> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
   );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(body));
-  return Array.from(new Uint8Array(sig))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return new Uint8Array(digest);
 }
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
+// Compare digests, not raw strings, so neither length nor prefix leaks timing.
+async function tokenMatches(supplied: string, secret: string): Promise<boolean> {
+  const [a, b] = await Promise.all([sha256(supplied), sha256(secret)]);
   let r = 0;
-  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  for (let i = 0; i < a.length; i++) r |= a[i] ^ b[i];
   return r === 0;
 }
 
@@ -30,7 +38,6 @@ interface GhlWebhookEvent {
   id?: string;
   contactId?: string;
   opportunityId?: string;
-  pipelineStageId?: string;
   [k: string]: unknown;
 }
 
@@ -82,25 +89,40 @@ function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | null {
   }
 }
 
-export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const raw = await ctx.request.text();
-  const signature =
-    ctx.request.headers.get("x-ghl-signature") ||
-    ctx.request.headers.get("x-webhook-signature") ||
-    "";
+// Map a GHL location id to the Supabase tenant slug it belongs to. Only the
+// two locations this deploy is configured for are routable; events from any
+// other location are dropped.
+function slugForLocation(env: Env, locationId: string): string | null {
+  if (env.GHL_LOCATION_ID && locationId === env.GHL_LOCATION_ID) {
+    return liveTenantSlug(env);
+  }
+  if (env.TEST_GHL_LOCATION_ID && locationId === env.TEST_GHL_LOCATION_ID) {
+    return testTenantSlug(env);
+  }
+  return null;
+}
 
-  if (ctx.env.WEBHOOK_SECRET) {
-    const expected = await hmacHex(ctx.env.WEBHOOK_SECRET, raw);
-    if (!timingSafeEqual(expected, signature.toLowerCase())) {
-      console.warn("[webhook] signature mismatch");
-    }
+export const onRequestPost: PagesFunction<Env> = async (ctx) => {
+  if (!ctx.env.WEBHOOK_SECRET) {
+    console.error("[webhook] WEBHOOK_SECRET not configured; rejecting");
+    return Response.json({ error: "webhook_not_configured" }, { status: 503 });
   }
 
-  let event: GhlWebhookEvent = {};
+  const url = new URL(ctx.request.url);
+  const token =
+    url.searchParams.get("token") ||
+    ctx.request.headers.get("x-webhook-token") ||
+    "";
+  if (!token || !(await tokenMatches(token, ctx.env.WEBHOOK_SECRET))) {
+    console.warn("[webhook] rejected: bad or missing token");
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  let event: GhlWebhookEvent;
   try {
-    event = JSON.parse(raw);
+    event = (await ctx.request.json()) as GhlWebhookEvent;
   } catch {
-    console.warn("[webhook] non-json body");
+    return Response.json({ error: "invalid_body" }, { status: 400 });
   }
 
   console.log(
@@ -110,12 +132,22 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     event.locationId ?? "none",
   );
 
+  const slug = event.locationId
+    ? slugForLocation(ctx.env, event.locationId)
+    : null;
+  if (!slug) {
+    // Authenticated but not for a location we serve (or locationId missing
+    // from a workflow payload). Ack with 200 so GHL does not retry forever.
+    console.warn("[webhook] unroutable locationId", event.locationId);
+    return new Response("ignored", { status: 200 });
+  }
+
   // Side effects are best-effort: record the event for the activity feed, but
   // never let a failure 500 back to GHL (it would retry and hammer us).
   try {
     const client = getServiceClient(ctx.env);
     if (client) {
-      const tenantId = await resolveTenantId(client, "test-account");
+      const tenantId = await resolveTenantId(client, slug);
       const activity = tenantId ? toActivity(tenantId, event) : null;
 
       if (!activity) {
@@ -137,18 +169,18 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
           },
         });
 
-        if (
-          activity &&
-          (activity.kind === "message_in" || activity.kind === "lead_created")
-        ) {
-          // Best-effort push. Already inside the webhook try/catch, so a push
-          // failure never breaks the 200 we owe GHL. Inert without VAPID keys.
-          await sendPushForActivity(ctx.env, {
-            kind: activity.kind,
-            summary: activity.summary,
-            opportunity_id: activity.opportunity_id,
-            contact_id: activity.contact_id,
-          });
+        if (activity.kind === "message_in" || activity.kind === "lead_created") {
+          // Best-effort push, off the response path: GHL gets its 200
+          // immediately and slow push services cannot delay the ack. Inert
+          // without VAPID keys.
+          ctx.waitUntil(
+            sendPushForActivity(ctx.env, activity.tenant_id, {
+              kind: activity.kind,
+              summary: activity.summary,
+              opportunity_id: activity.opportunity_id,
+              contact_id: activity.contact_id,
+            }).catch((err) => console.error("[webhook] push failed", err)),
+          );
         }
       }
     }

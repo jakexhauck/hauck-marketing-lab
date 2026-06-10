@@ -48,11 +48,20 @@ function constantTimeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+// Signing key for session cookies. SESSION_SECRET is the real config; the
+// APP_PASSWORD fallback keeps old deploys working. There is deliberately NO
+// static fallback: an environment with neither secret must not mint or accept
+// sessions, otherwise cookies become forgeable with a publicly known key.
+function sessionSecret(env: Env): string | null {
+  return env.SESSION_SECRET || env.APP_PASSWORD || null;
+}
+
 export async function mintSessionCookie(
   env: Env,
   mode: SessionMode = "live",
 ): Promise<string> {
-  const secret = env.SESSION_SECRET || env.APP_PASSWORD || "dev-secret";
+  const secret = sessionSecret(env);
+  if (!secret) throw new Error("SESSION_SECRET not configured");
   const exp = Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS;
   const payload = b64urlEncode(new TextEncoder().encode(`${exp}.${mode}`));
   const sig = await hmac(secret, payload);
@@ -84,7 +93,8 @@ export async function verifySession(
   if (dot < 0) return null;
   const payload = raw.slice(0, dot);
   const sig = raw.slice(dot + 1);
-  const secret = env.SESSION_SECRET || env.APP_PASSWORD || "dev-secret";
+  const secret = sessionSecret(env);
+  if (!secret) return null;
   const expected = await hmac(secret, payload);
   if (!constantTimeEqual(sig, expected)) return null;
   try {

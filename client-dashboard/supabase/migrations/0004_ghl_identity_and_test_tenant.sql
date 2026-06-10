@@ -5,11 +5,11 @@
 -- user id (the same value GHL puts in opportunity.assignedTo). The original schema (0001/0003)
 -- keys tenant_users and admins on auth.users(id), which cannot hold a GHL-identified row.
 --
--- This migration makes both tables workable in the GHL-identity model without breaking the
--- legacy auth-user rows (the willis-windows owner link in 0002 keeps working), and seeds the
--- test-account tenant that the Functions scope everything to (resolveTenantId(_, 'test-account')).
+-- This migration makes both tables workable in the GHL-identity model without breaking any
+-- legacy auth-user rows (client owner links seeded from supabase/templates keep working), and
+-- seeds the test-account tenant the test-mode Functions scope to.
 --
--- Run AFTER 0001, 0002, 0003. Idempotent: safe to re-run.
+-- Run AFTER 0001, 0003. Idempotent: safe to re-run.
 -- All Functions read/write these tables with the service-role client, which bypasses RLS, so the
 -- existing auth.uid()-based RLS policies are left untouched (the frontend does not read these
 -- tables directly under the current "route everything through /api/*" decision).
@@ -22,14 +22,16 @@ alter table public.tenant_users
   add column if not exists name        text,
   add column if not exists email       text;
 
+-- The original primary key was (tenant_id, user_id). It must be dropped BEFORE
+-- user_id can go nullable (Postgres forbids dropping NOT NULL on a PK column).
+-- It is replaced with two partial unique indexes: one per identity space, each
+-- ignoring NULLs.
+alter table public.tenant_users
+  drop constraint if exists tenant_users_pkey;
+
 -- Reps under the shared-password model have no auth.users row, so user_id is now optional.
 alter table public.tenant_users
   alter column user_id drop not null;
-
--- The original primary key was (tenant_id, user_id). With user_id now nullable we drop it and
--- replace it with two partial unique indexes: one per identity space, each ignoring NULLs.
-alter table public.tenant_users
-  drop constraint if exists tenant_users_pkey;
 
 create unique index if not exists tenant_users_tenant_ghl_uid
   on public.tenant_users (tenant_id, ghl_user_id)

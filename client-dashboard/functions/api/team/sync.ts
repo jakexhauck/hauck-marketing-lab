@@ -17,17 +17,12 @@ interface GhlUsersResp {
 
 // POST /api/team/sync
 // Admin-only. Upserts the GHL team into Supabase `tenant_users` for the
-// test-account tenant with a default role of "rep". Degrades gracefully:
+// session's tenant with a default role of "rep". Degrades gracefully:
 // returns 503 when Supabase is unconfigured so the app never hard-fails.
 //
-// IMPORTANT (schema): 0001_init.sql defines tenant_users as
-//   (tenant_id uuid, user_id uuid -> auth.users, role text, created_at)
-// with primary key (tenant_id, user_id). It has NO ghl_user_id / name / email
-// columns, so the upsert below (keyed on the GHL user id) requires a follow-up
-// migration adding `ghl_user_id text`, `name text`, `email text` to
-// tenant_users plus a unique (tenant_id, ghl_user_id) constraint. Until that
-// migration is applied this endpoint will return the underlying Postgres error
-// describing the missing column, which is the correct signal to run it.
+// Schema: requires migrations 0004 (ghl_user_id/name/email columns) and 0006
+// (full unique index on (tenant_id, ghl_user_id); the partial index 0004
+// created cannot be targeted by this upsert's ON CONFLICT).
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (
   ctx,
 ) => {
@@ -50,10 +45,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (
     );
   }
 
-  const tenantId = await resolveTenantId(client, "test-account");
+  const tenantId = await resolveTenantId(client, ctx.data.tenant.slug);
   if (!tenantId) {
     return Response.json(
-      { error: "test-account tenant not found" },
+      { error: "tenant not found" },
       { status: 404 },
     );
   }

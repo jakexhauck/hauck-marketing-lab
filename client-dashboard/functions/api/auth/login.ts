@@ -1,16 +1,32 @@
 import type { Env } from "../../lib/env";
 import { mintSessionCookie, type SessionMode } from "../../lib/session";
+import {
+  clientIp,
+  isLoginRateLimited,
+  recordLoginFailure,
+} from "../../lib/ratelimit";
 
 interface Body {
   password?: string;
   mode?: SessionMode;
 }
 
-function constantTimeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
+// Compare SHA-256 digests rather than the raw strings: digests have a fixed
+// length, so neither password length nor a common prefix leaks via timing.
+async function passwordMatches(
+  supplied: string,
+  expected: string,
+): Promise<boolean> {
+  const enc = new TextEncoder();
+  const [a, b] = await Promise.all([
+    crypto.subtle.digest("SHA-256", enc.encode(supplied)),
+    crypto.subtle.digest("SHA-256", enc.encode(expected)),
+  ]);
+  const ua = new Uint8Array(a);
+  const ub = new Uint8Array(b);
+  let r = 0;
+  for (let i = 0; i < ua.length; i++) r |= ua[i] ^ ub[i];
+  return r === 0;
 }
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
@@ -25,6 +41,14 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({ error: "incorrect password" }, { status: 401 });
   }
 
+  const ip = clientIp(ctx.request);
+  if (await isLoginRateLimited(ctx.env, ip)) {
+    return Response.json(
+      { error: "too many attempts, try again later" },
+      { status: 429 },
+    );
+  }
+
   let mode: SessionMode;
   if (body.mode === "test") {
     const testPassword = ctx.env.TEST_APP_PASSWORD;
@@ -34,7 +58,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         { status: 500 },
       );
     }
-    if (!constantTimeEqual(supplied, testPassword)) {
+    if (!(await passwordMatches(supplied, testPassword))) {
+      await recordLoginFailure(ctx.env, ip);
       return Response.json({ error: "incorrect password" }, { status: 401 });
     }
     mode = "test";
@@ -46,7 +71,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         { status: 500 },
       );
     }
-    if (!constantTimeEqual(supplied, livePassword)) {
+    if (!(await passwordMatches(supplied, livePassword))) {
+      await recordLoginFailure(ctx.env, ip);
       return Response.json({ error: "incorrect password" }, { status: 401 });
     }
     mode = "live";

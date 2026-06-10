@@ -10,8 +10,11 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     );
   }
   const { error } = await client.from("tenants").select("id").limit(1);
+  // Log the real error server-side only; this endpoint is public, and raw
+  // Postgres/Supabase messages disclose schema and infrastructure detail.
+  if (error) console.error("[health/supabase]", error.message);
   return new Response(
-    JSON.stringify({ ok: !error, supabase: error ? error.message : "ok" }),
+    JSON.stringify({ ok: !error, supabase: error ? "error" : "ok" }),
     { headers: { "content-type": "application/json" } }
   );
 };

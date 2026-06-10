@@ -15,6 +15,7 @@ import LeadDetail from "./routes/LeadDetail";
 import Today from "./routes/Today";
 import Billing from "./routes/Billing";
 import Calendar from "./routes/Calendar";
+import Notifications from "./routes/Notifications";
 import Showroom from "./routes/Showroom";
 import Simulator from "./routes/Simulator";
 import Shell from "./components/Shell";
@@ -60,7 +61,12 @@ export default function App() {
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/showroom" element={<Showroom />} />
+              {/* Dev-only: Showroom auto-signs-in a mock user, which would
+                  satisfy ProtectedRoute and open the whole app shell to an
+                  unauthenticated visitor. Never route it in prod builds. */}
+              {import.meta.env.DEV && (
+                <Route path="/showroom" element={<Showroom />} />
+              )}
               <Route
                 path="/home"
                 element={
@@ -130,6 +136,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Calendar />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <Notifications />
                   </ProtectedRoute>
                 }
               />

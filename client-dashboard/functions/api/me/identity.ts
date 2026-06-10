@@ -10,7 +10,7 @@ interface Identity {
 
 // GET /api/me/identity?id=<ghl_user_id>  (or x-identity header)
 // Resolves a stored identity (the GHL user id chosen at the "who are you?"
-// step) to its row in tenant_users for the test-account tenant.
+// step) to its row in tenant_users for the session's tenant.
 //
 // Degrades gracefully on purpose: if Supabase is unconfigured, no id is
 // provided, or no matching row is found, it returns { identity: null } so the
@@ -33,7 +33,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ identity: null });
 
-  const tenantId = await resolveTenantId(client, "test-account");
+  const tenantId = await resolveTenantId(client, ctx.data.tenant.slug);
   if (!tenantId) return Response.json({ identity: null });
 
   const { data, error } = await client
