@@ -179,6 +179,8 @@ export function useConversationMessagesQuery(
       api<{
         conversationId?: string;
         messages: ApiMessage[];
+        truncated?: boolean;
+        unreadCount?: number;
         defaultChannel?: string;
         availableChannels?: string[];
       }>(`/api/conversations/${contactId}/messages`),
@@ -272,6 +274,8 @@ export function useMessagesQuery(id: string | null, enabled: boolean) {
       api<{
         conversationId?: string;
         messages: ApiMessage[];
+        truncated?: boolean;
+        unreadCount?: number;
         defaultChannel?: string;
         availableChannels?: string[];
       }>(`/api/leads/${id}/messages`),

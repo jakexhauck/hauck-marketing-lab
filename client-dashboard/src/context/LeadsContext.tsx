@@ -44,7 +44,7 @@ function adaptApiLead(
   return {
     id: a.id,
     clientId: fallbackClientId,
-    assignedUserId: null,
+    assignedUserId: a.assignedUserId ?? null,
     contactId: a.contactId,
     name: a.name || "Unknown",
     phone: a.phone,
@@ -55,7 +55,9 @@ function adaptApiLead(
     value: a.value,
     createdAt: a.createdAt,
     lastActivityAt: a.lastActivityAt,
-    notes: a.notes,
+    // Lead-level notes are a mock-mode concept; real notes are contact notes
+    // (NoteList via /api/contacts/{id}/notes).
+    notes: null,
   };
 }
 

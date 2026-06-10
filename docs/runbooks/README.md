@@ -8,8 +8,8 @@ Before doing any manual step, skim [SOFTWARE-GUIDE.md](SOFTWARE-GUIDE.md): it ho
 
 | Part | Folder | Theme | Code status | Your actions status |
 |---|---|---|---|---|
-| 1 | [part-1-security/](part-1-security/) | Security and tenancy: webhook auth + routing, tenant scoping, session/login hardening, dev backdoors out of prod, DB integrity | **Done 2026-06-10** | ☐ In progress |
-| 2 | [part-2-ghl-write-paths/](part-2-ghl-write-paths/) | GHL write-path correctness: notes, tasks, messages, pagination, rep lead filtering | ☐ Not started | ☐ |
+| 1 | [part-1-security/](part-1-security/) | Security and tenancy: webhook auth + routing, tenant scoping, session/login hardening, dev backdoors out of prod, DB integrity | **Done 2026-06-10** | **Done 2026-06-10** (verified live: webhook lock, tenant routing, end-to-end bell) |
+| 2 | [part-2-ghl-write-paths/](part-2-ghl-write-paths/) | GHL write-path correctness: notes, tasks, messages, pagination, rep lead filtering | **Done 2026-06-10** | ☐ |
 | 3 | [part-3-stage-mapping/](part-3-stage-mapping/) | Retire keyword stage guessing; raw pipeline stages everywhere | ☐ Not started | ☐ |
 | 4 | [part-4-pwa-offline/](part-4-pwa-offline/) | PWA lifecycle: service worker updates, offline auth, cache hygiene, 401 handling | ☐ Not started | ☐ |
 | 5 | [part-5-value-adds-ux/](part-5-value-adds-ux/) | Real data clients care about (UTM attribution, tags) plus the full UX polish list | ☐ Not started | ☐ |

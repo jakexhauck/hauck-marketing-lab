@@ -20,9 +20,25 @@ export async function ghlFetch(
     headers.set("content-type", "application/json");
   }
 
+  // Only idempotent reads are retried. Retrying a POST on a 5xx/429 risks
+  // duplicate side effects (double SMS, double note); those surface the error
+  // to the caller immediately instead.
+  const method = (init.method ?? "GET").toUpperCase();
+  const retryable = method === "GET" || method === "HEAD";
+
   let res = await fetch(url, { ...init, headers });
+  if (!retryable) return res;
+
   if (res.status >= 500) {
     await new Promise((r) => setTimeout(r, 1000));
+    res = await fetch(url, { ...init, headers });
+  } else if (res.status === 429) {
+    const retryAfter = Number(res.headers.get("retry-after"));
+    const waitMs = Math.min(
+      Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 1000,
+      2000,
+    );
+    await new Promise((r) => setTimeout(r, waitMs));
     res = await fetch(url, { ...init, headers });
   }
   return res;
@@ -69,7 +85,6 @@ export interface GhlOpportunity {
     email?: string;
     phone?: string;
   };
-  notes?: string;
   source?: string;
   // GHL user id this opportunity is assigned to (drives rep-only filtering).
   assignedTo?: string;
@@ -87,7 +102,6 @@ export interface ApiLead {
   value: number | null;
   createdAt: string;
   lastActivityAt: string;
-  notes: string | null;
   // GHL user id the opportunity is assigned to, or null if unassigned.
   assignedUserId: string | null;
 }
@@ -109,7 +123,6 @@ export function shapeOpportunity(o: GhlOpportunity): ApiLead {
     createdAt: o.createdAt ?? new Date().toISOString(),
     lastActivityAt:
       o.lastStatusChangeAt ?? o.updatedAt ?? o.createdAt ?? new Date().toISOString(),
-    notes: o.notes ?? null,
     assignedUserId: o.assignedTo ?? null,
   };
 }

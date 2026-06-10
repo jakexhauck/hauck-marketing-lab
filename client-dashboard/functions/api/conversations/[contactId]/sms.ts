@@ -1,4 +1,5 @@
 import type { Env, ApiData } from "../../../lib/env";
+import { readJsonBody } from "../../../lib/body";
 import { ghlJson } from "../../../lib/ghl";
 
 interface SendBody {
@@ -16,7 +17,8 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (
 ) => {
   const t = ctx.data.tenant;
   const contactId = ctx.params.contactId as string;
-  const body = (await ctx.request.json()) as SendBody;
+  const body = await readJsonBody<SendBody>(ctx.request);
+  if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
   if (!contactId) {
     return Response.json({ error: "missing_contact_id" }, { status: 400 });
   }

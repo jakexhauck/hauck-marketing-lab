@@ -1,4 +1,5 @@
 import type { Env, ApiData } from "../../../../lib/env";
+import { readJsonBody } from "../../../../lib/body";
 import { ghlFetch, ghlJson } from "../../../../lib/ghl";
 
 interface GhlTask {
@@ -14,6 +15,7 @@ interface UpdateBody {
   title?: string;
   body?: string;
   dueDate?: string;
+  completed?: boolean;
 }
 
 export const onRequestPut: PagesFunction<
@@ -22,28 +24,59 @@ export const onRequestPut: PagesFunction<
   ApiData
 > = async (ctx) => {
   const t = ctx.data.tenant;
+  const gctx = { token: t.ghl_token, locationId: t.ghl_location_id };
   const contactId = ctx.params.contactId as string;
   const taskId = ctx.params.taskId as string;
   if (!contactId || !taskId) {
     return Response.json({ error: "missing_id" }, { status: 400 });
   }
 
-  const input = (await ctx.request.json()) as UpdateBody;
-  const title = input.title?.trim();
+  const input = await readJsonBody<UpdateBody>(ctx.request);
+  if (!input) return Response.json({ error: "invalid_json" }, { status: 400 });
+
+  // Fetch-merge: GHL's task update requires title, dueDate, and completed on
+  // every PUT, so a partial update must not drop the fields it leaves out.
+  const taskPath = `/contacts/${encodeURIComponent(contactId)}/tasks/${encodeURIComponent(taskId)}`;
+  const existing = await ghlJson<{ task?: GhlTask }>(gctx, taskPath);
+  const current = existing.task;
+  if (!current) {
+    return Response.json({ error: "task_not_found" }, { status: 404 });
+  }
+
+  const title =
+    (typeof input.title === "string" ? input.title.trim() : "") ||
+    current.title?.trim() ||
+    "";
   if (!title) {
     return Response.json({ error: "empty_title" }, { status: 400 });
   }
 
-  // GHL's task update requires both title and dueDate, so always send them.
-  const payload: Record<string, unknown> = { title };
-  if (input.dueDate?.trim()) payload.dueDate = input.dueDate.trim();
-  if (input.body !== undefined) payload.body = input.body.trim();
+  let dueDate =
+    (typeof input.dueDate === "string" ? input.dueDate.trim() : "") ||
+    current.dueDate ||
+    "";
+  if (!dueDate) {
+    const end = new Date();
+    end.setHours(23, 59, 0, 0);
+    dueDate = end.toISOString();
+  }
 
-  const updated = await ghlJson<{ task?: GhlTask }>(
-    { token: t.ghl_token, locationId: t.ghl_location_id },
-    `/contacts/${encodeURIComponent(contactId)}/tasks/${encodeURIComponent(taskId)}`,
-    { method: "PUT", body: JSON.stringify(payload) },
-  );
+  const completed =
+    typeof input.completed === "boolean"
+      ? input.completed
+      : Boolean(current.completed);
+
+  const payload: Record<string, unknown> = { title, dueDate, completed };
+  if (input.body !== undefined) {
+    payload.body = typeof input.body === "string" ? input.body.trim() : "";
+  } else if (current.body !== undefined) {
+    payload.body = current.body;
+  }
+
+  const updated = await ghlJson<{ task?: GhlTask }>(gctx, taskPath, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 
   return Response.json({ task: updated.task ?? null });
 };

@@ -1,4 +1,5 @@
 import type { Env, ApiData } from "../../../lib/env";
+import { readJsonBody } from "../../../lib/body";
 import { sendChannelMessage, type SendInput } from "../../../lib/messaging";
 
 // Channel-aware send: { channel, body, subject? }. Supersedes the SMS-only
@@ -12,7 +13,8 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (
     return Response.json({ error: "missing_contact_id" }, { status: 400 });
   }
 
-  const input = (await ctx.request.json()) as SendInput;
+  const input = await readJsonBody<SendInput>(ctx.request);
+  if (!input) return Response.json({ error: "invalid_json" }, { status: 400 });
   const result = await sendChannelMessage(
     { token: t.ghl_token, locationId: t.ghl_location_id },
     contactId,

@@ -1,6 +1,6 @@
 # Part 2: GHL Write-Path Correctness
 
-Status: code ☐ not started | manual actions ☐ not started
+Status: code **done 2026-06-10** (committed and pushed) | manual actions ☐ not started
 
 Theme: every place the app **writes to or reads deeply from** GoHighLevel that is currently broken, silently failing, or truncating. After this part, the things clients tap actually happen in GHL, and what they read is complete.
 

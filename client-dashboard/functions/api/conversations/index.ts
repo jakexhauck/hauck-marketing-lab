@@ -10,7 +10,8 @@ interface GhlConversation {
   phone?: string;
   lastMessageBody?: string;
   lastMessageType?: string;
-  lastMessageDate?: string;
+  // Epoch millis in raw search responses, but tolerate ISO strings.
+  lastMessageDate?: string | number;
   unreadCount?: number;
   type?: string;
 }
@@ -18,15 +19,6 @@ interface GhlConversation {
 interface SearchResp {
   conversations?: GhlConversation[];
   total?: number;
-  startAfterId?: string;
-  startAfter?: string;
-  nextPageUrl?: string;
-  meta?: {
-    total?: number;
-    startAfterId?: string;
-    startAfter?: string;
-    nextPageUrl?: string;
-  };
 }
 
 export interface ApiConversation {
@@ -52,25 +44,27 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   const all: GhlConversation[] = [];
   const seen = new Set<string>();
-  // Cursor state. The conversations-search response may carry cursor fields at
-  // the top level or under meta, and may use either a full nextPageUrl or
-  // startAfterId / startAfter. Handle all of them defensively.
-  let nextPageUrl: string | undefined;
-  let startAfterId: string | undefined;
-  let startAfter: string | undefined;
+  // The search endpoint does not return cursors; its pagination mechanism is
+  // startAfterDate, derived from the last conversation's sort key (epoch ms,
+  // matching sortBy=last_message_date).
+  let startAfterDate: number | undefined;
   let pageCount = 0;
   const maxPages = 10;
 
-  while (pageCount < maxPages) {
-    let path: string;
-    if (nextPageUrl) {
-      path = nextPageUrl;
-    } else {
-      path = base;
-      if (startAfterId)
-        path += `&startAfterId=${encodeURIComponent(startAfterId)}`;
-      if (startAfter) path += `&startAfter=${encodeURIComponent(startAfter)}`;
+  const sortKeyMs = (c: GhlConversation): number | undefined => {
+    if (typeof c.lastMessageDate === "number") return c.lastMessageDate;
+    if (c.lastMessageDate) {
+      const t = +new Date(c.lastMessageDate);
+      if (Number.isFinite(t)) return t;
     }
+    return undefined;
+  };
+
+  while (pageCount < maxPages) {
+    const path =
+      startAfterDate === undefined
+        ? base
+        : `${base}&startAfterDate=${encodeURIComponent(String(startAfterDate))}`;
 
     const data = await ghlJson<SearchResp>(
       { token: t.ghl_token, locationId: t.ghl_location_id },
@@ -85,21 +79,12 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       }
     }
 
-    // Stop on the natural last page (short page) regardless of cursor style.
+    // Stop on the natural last page (short page).
     if (page.length < 100) break;
 
-    const next = data.meta?.nextPageUrl ?? data.nextPageUrl;
-    const nextId = data.meta?.startAfterId ?? data.startAfterId;
-    const nextTs = data.meta?.startAfter ?? data.startAfter;
-
-    if (next) {
-      if (next === nextPageUrl) break;
-      nextPageUrl = next;
-    } else {
-      if (!nextId || nextId === startAfterId) break;
-      startAfterId = nextId;
-      startAfter = nextTs;
-    }
+    const next = sortKeyMs(page[page.length - 1]);
+    if (next === undefined || next === startAfterDate) break;
+    startAfterDate = next;
 
     pageCount += 1;
   }
@@ -117,13 +102,21 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       const name = c.fullName || c.contactName || c.email || c.phone || "Unknown";
       const previewRaw = c.lastMessageBody ?? "";
       const preview = isSystemActivity(c.lastMessageType) ? "" : previewRaw;
+      const atMs =
+        typeof c.lastMessageDate === "number"
+          ? c.lastMessageDate
+          : c.lastMessageDate
+            ? +new Date(c.lastMessageDate)
+            : NaN;
       return {
         id: c.id,
         contactId: c.contactId as string,
         name,
         preview,
         lastMessageType: c.lastMessageType ?? "",
-        lastMessageAt: c.lastMessageDate ?? new Date().toISOString(),
+        lastMessageAt: Number.isFinite(atMs)
+          ? new Date(atMs).toISOString()
+          : new Date().toISOString(),
         unreadCount: c.unreadCount ?? 0,
       } satisfies ApiConversation;
     });

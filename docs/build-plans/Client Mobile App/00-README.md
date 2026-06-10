@@ -17,11 +17,17 @@ docs cover the work in two phases of numbered, dependency-ordered tasks:
     09 (tasks), 10 (calendar), 11 (multi-channel messaging), 12 (pipeline board), 13 (invoices
     & payments). These pass typecheck + `pnpm build` and are wired into the app. They still need
     a live walk-through in the test account, since the invoices/payments/calendar response
-    shapes were built defensively against the GHL docs, not a live response. Two caveats: the
+    shapes were built defensively against the GHL docs, not a live response. One caveat: the
     pipeline board uses a tap-to-move "Move to stage" sheet rather than gesture drag-and-drop
-    (touch DnD across snap-scroll columns needs on-device testing first), and 14 (notification
-    center) is **blocked** because it depends on the deferred backend plans (03 store, 05
-    events, 06 push transport).
+    (touch DnD across snap-scroll columns needs on-device testing first).
+  - **14 (notification center) is now built (code-complete).** It rides on the existing
+    `activity_log` backend (the 03/05/06 code is present and degrades gracefully without
+    Supabase), so it is no longer blocked. It adds a `read_at` column (migration 0005), a
+    `GET /api/notifications` feed + unread count, a `POST /api/notifications/read` (one or
+    all), a `<NotificationBell>` in the Home hero, and a day-grouped `Notifications` feed that
+    deep-links each item. It shares the webhook's single write path and the push deep-link
+    logic. It shows real data only once Supabase is provisioned; until then it is an empty,
+    zero-unread feed like the rest of the activity surface.
 
 ## Conventions used throughout
 

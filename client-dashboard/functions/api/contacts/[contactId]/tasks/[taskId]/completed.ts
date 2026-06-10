@@ -1,4 +1,5 @@
 import type { Env, ApiData } from "../../../../../lib/env";
+import { readJsonBody } from "../../../../../lib/body";
 import { ghlJson } from "../../../../../lib/ghl";
 
 interface GhlTask {
@@ -29,7 +30,8 @@ export const onRequestPut: PagesFunction<
     return Response.json({ error: "missing_id" }, { status: 400 });
   }
 
-  const input = (await ctx.request.json()) as CompleteBody;
+  const input = await readJsonBody<CompleteBody>(ctx.request);
+  if (!input) return Response.json({ error: "invalid_json" }, { status: 400 });
   const completed = input.completed === true;
 
   const updated = await ghlJson<{ task?: GhlTask }>(

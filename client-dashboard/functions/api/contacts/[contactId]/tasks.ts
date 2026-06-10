@@ -1,4 +1,5 @@
 import type { Env, ApiData } from "../../../lib/env";
+import { readJsonBody } from "../../../lib/body";
 import { ghlJson } from "../../../lib/ghl";
 
 interface GhlTask {
@@ -56,23 +57,27 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (
     return Response.json({ error: "missing_contact_id" }, { status: 400 });
   }
 
-  const input = (await ctx.request.json()) as CreateBody;
-  const title = input.title?.trim();
+  const input = await readJsonBody<CreateBody>(ctx.request);
+  if (!input) return Response.json({ error: "invalid_json" }, { status: 400 });
+  const title = typeof input.title === "string" ? input.title.trim() : "";
   if (!title) {
     return Response.json({ error: "empty_title" }, { status: 400 });
   }
 
   // GHL requires a dueDate on task creation. Default to end of today (UTC) when
   // the client did not supply one, so a quick follow-up never fails to save.
-  let dueDate = input.dueDate?.trim();
+  let dueDate = typeof input.dueDate === "string" ? input.dueDate.trim() : "";
   if (!dueDate) {
     const end = new Date();
     end.setHours(23, 59, 0, 0);
     dueDate = end.toISOString();
   }
 
-  const payload: Record<string, unknown> = { title, dueDate };
-  if (input.body?.trim()) payload.body = input.body.trim();
+  // GHL requires `completed` on create; omitting it 422s.
+  const payload: Record<string, unknown> = { title, dueDate, completed: false };
+  if (typeof input.body === "string" && input.body.trim()) {
+    payload.body = input.body.trim();
+  }
 
   const created = await ghlJson<{ task?: GhlTask }>(
     { token: t.ghl_token, locationId: t.ghl_location_id },

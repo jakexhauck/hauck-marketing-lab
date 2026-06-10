@@ -1,4 +1,5 @@
 import type { Env, ApiData } from "../../../../lib/env";
+import { readJsonBody } from "../../../../lib/body";
 import { ghlFetch, ghlJson } from "../../../../lib/ghl";
 
 interface GhlNote {
@@ -24,8 +25,9 @@ export const onRequestPut: PagesFunction<
     return Response.json({ error: "missing_id" }, { status: 400 });
   }
 
-  const input = (await ctx.request.json()) as UpdateBody;
-  const body = input.body?.trim();
+  const input = await readJsonBody<UpdateBody>(ctx.request);
+  if (!input) return Response.json({ error: "invalid_json" }, { status: 400 });
+  const body = typeof input.body === "string" ? input.body.trim() : "";
   if (!body) {
     return Response.json({ error: "empty_note" }, { status: 400 });
   }

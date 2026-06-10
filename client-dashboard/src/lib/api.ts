@@ -55,7 +55,9 @@ export interface ApiLead {
   value: number | null;
   createdAt: string;
   lastActivityAt: string;
-  notes: string | null;
+  // GHL user id the opportunity is assigned to (opportunity.assignedTo), or
+  // null if unassigned. Drives rep-only filtering.
+  assignedUserId: string | null;
 }
 
 export interface ApiPipeline {

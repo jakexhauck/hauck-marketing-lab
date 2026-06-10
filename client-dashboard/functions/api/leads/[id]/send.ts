@@ -1,4 +1,5 @@
 import type { Env, ApiData } from "../../../lib/env";
+import { readJsonBody } from "../../../lib/body";
 import { ghlJson } from "../../../lib/ghl";
 import { sendChannelMessage, type SendInput } from "../../../lib/messaging";
 
@@ -7,7 +8,8 @@ import { sendChannelMessage, type SendInput } from "../../../lib/messaging";
 export const onRequestPost: PagesFunction<Env, "id", ApiData> = async (ctx) => {
   const t = ctx.data.tenant;
   const id = ctx.params.id as string;
-  const input = (await ctx.request.json()) as SendInput;
+  const input = await readJsonBody<SendInput>(ctx.request);
+  if (!input) return Response.json({ error: "invalid_json" }, { status: 400 });
 
   const opp = await ghlJson<{
     opportunity: { contact?: { id?: string }; contactId?: string };

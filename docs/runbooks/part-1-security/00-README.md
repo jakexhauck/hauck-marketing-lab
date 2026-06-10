@@ -14,10 +14,10 @@ Do the steps in this order. Each file is self-contained.
 
 | Step | File | What it does | Status |
 |---|---|---|---|
-| 1 | [01-supabase-migrations.md](01-supabase-migrations.md) | Apply migrations 0003, 0004, 0006 to the Supabase database | ☐ |
-| 2 | [02-cloudflare-env.md](02-cloudflare-env.md) | Generate and set SESSION_SECRET and WEBHOOK_SECRET, redeploy | ☐ |
-| 3 | [03-ghl-webhooks.md](03-ghl-webhooks.md) | Build and publish the three notify workflows in the TEST GHL sub-account | ☐ |
-| 4 | [04-verification.md](04-verification.md) | Prove the webhook lock, tenant routing, and end-to-end notifications work | ☐ |
+| 1 | [01-supabase-migrations.md](01-supabase-migrations.md) | Apply migrations 0003, 0004, 0006 to the Supabase database | done 2026-06-10 |
+| 2 | [02-cloudflare-env.md](02-cloudflare-env.md) | Generate and set SESSION_SECRET and WEBHOOK_SECRET, redeploy | done 2026-06-10 |
+| 3 | [03-ghl-webhooks.md](03-ghl-webhooks.md) | Build and publish the three notify workflows in the TEST GHL sub-account | done 2026-06-10 |
+| 4 | [04-verification.md](04-verification.md) | Prove the webhook lock, tenant routing, and end-to-end notifications work | done 2026-06-10 |
 | ref | [05-code-changes-reference.md](05-code-changes-reference.md) | Record of every code change made in Part 1 | done |
 
 Mark the boxes as you go. Step 4 cannot pass until 1 through 3 are complete.
