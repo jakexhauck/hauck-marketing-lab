@@ -20,11 +20,12 @@ export async function ghlFetch(
     headers.set("content-type", "application/json");
   }
 
-  // Only idempotent reads are retried. Retrying a POST on a 5xx/429 risks
-  // duplicate side effects (double SMS, double note); those surface the error
-  // to the caller immediately instead.
+  // Only idempotent methods are retried. GET/HEAD/PUT/DELETE can safely run
+  // twice; retrying a POST on a 5xx/429 risks duplicate side effects (double
+  // SMS, double note), so POSTs surface the error to the caller immediately.
   const method = (init.method ?? "GET").toUpperCase();
-  const retryable = method === "GET" || method === "HEAD";
+  const retryable =
+    method === "GET" || method === "HEAD" || method === "PUT" || method === "DELETE";
 
   let res = await fetch(url, { ...init, headers });
   if (!retryable) return res;

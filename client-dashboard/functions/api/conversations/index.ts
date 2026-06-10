@@ -9,7 +9,9 @@ interface GhlConversation {
   email?: string;
   phone?: string;
   lastMessageBody?: string;
-  lastMessageType?: string;
+  // Documented as a string enum, but GHL's types lie elsewhere in this
+  // response (see lastMessageDate), so treat it as untrusted too.
+  lastMessageType?: string | number;
   // Epoch millis in raw search responses, but tolerate ISO strings.
   lastMessageDate?: string | number;
   unreadCount?: number;
@@ -31,8 +33,8 @@ export interface ApiConversation {
   unreadCount: number;
 }
 
-function isSystemActivity(t?: string): boolean {
-  if (!t) return false;
+function isSystemActivity(t?: string | number): boolean {
+  if (typeof t !== "string" || !t) return false;
   const upper = t.toUpperCase();
   return upper.includes("ACTIVITY") || upper.includes("OPPORTUNITY");
 }
@@ -113,7 +115,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         contactId: c.contactId as string,
         name,
         preview,
-        lastMessageType: c.lastMessageType ?? "",
+        lastMessageType:
+          typeof c.lastMessageType === "string" ? c.lastMessageType : "",
         lastMessageAt: Number.isFinite(atMs)
           ? new Date(atMs).toISOString()
           : new Date().toISOString(),

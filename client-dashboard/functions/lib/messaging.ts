@@ -217,6 +217,7 @@ export async function fetchContactThread(
   const unreadCount = convs.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
 
   const raw: NonNullable<NonNullable<ThreadMessagesResp["messages"]>["messages"]> = [];
+  const seenIds = new Set<string>();
   let cursor: string | undefined;
   let truncated = false;
   for (let page = 0; page < THREAD_MAX_PAGES; page++) {
@@ -227,10 +228,18 @@ export async function fetchContactThread(
       ctx,
       `/conversations/${encodeURIComponent(conv.id)}/messages${qs}`,
     );
-    raw.push(...(resp.messages?.messages ?? []));
+    for (const m of resp.messages?.messages ?? []) {
+      // Dedupe by id in case a cursor page overlaps the previous one.
+      if (m.id && seenIds.has(m.id)) continue;
+      if (m.id) seenIds.add(m.id);
+      raw.push(m);
+    }
     const hasMore = Boolean(resp.messages?.nextPage);
-    cursor = resp.messages?.lastMessageId;
-    if (!hasMore || !cursor) break;
+    const nextCursor = resp.messages?.lastMessageId;
+    // A missing or non-advancing cursor with nextPage=true would loop on the
+    // same page forever; stop instead.
+    if (!hasMore || !nextCursor || nextCursor === cursor) break;
+    cursor = nextCursor;
     if (page === THREAD_MAX_PAGES - 1) truncated = true;
   }
 

@@ -72,6 +72,9 @@ export const onRequestPut: PagesFunction<
   } else if (current.body !== undefined) {
     payload.body = current.body;
   }
+  // GHL's task PUT is a full replace: anything omitted is dropped. Losing
+  // assignedTo on a title edit would silently unassign the task from its rep.
+  if (current.assignedTo) payload.assignedTo = current.assignedTo;
 
   const updated = await ghlJson<{ task?: GhlTask }>(gctx, taskPath, {
     method: "PUT",
