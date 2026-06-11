@@ -2,6 +2,8 @@
 
 Status: code ☑ done (2026-06-11, all ten findings) | manual actions ☐ not started
 
+> Deploy note (2026-06-11): the Part 4 push (69eeb4c) built and deployed successfully, but a docs-only build of the prior commit finished 18 minutes later and reclaimed the production alias, so hauck-dashboard.pages.dev kept serving pre-Part-4 code. A retrigger commit the same day fixed it. Before starting the checklist below, confirm production has Part 4: in desktop devtools, Application tab, the active sw.js should contain `skipWaiting`.
+
 Theme: the app's "installed app" behaviors. Today, deployed fixes never reach installed PWAs (the service worker never activates), launching offline logs the user out, stale caches show another account's data after mode switches, and an expired session bricks every panel instead of returning to login.
 
 ## What gets fixed

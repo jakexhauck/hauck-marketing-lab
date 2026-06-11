@@ -8,7 +8,7 @@ Before doing any manual step, skim [SOFTWARE-GUIDE.md](SOFTWARE-GUIDE.md): it ho
 
 | Part | Folder | Theme | Code status | Your actions status |
 |---|---|---|---|---|
-| 4 | [part-4-pwa-offline/](part-4-pwa-offline/) | PWA lifecycle: service worker updates, offline auth, cache hygiene, 401 handling | ☐ Not started | ☐ |
+| 4 | [part-4-pwa-offline/](part-4-pwa-offline/) | PWA lifecycle: service worker updates, offline auth, cache hygiene, 401 handling | ☑ Done (69eeb4c) | ☐ |
 | 5 | [part-5-value-adds-ux/](part-5-value-adds-ux/) | Real data clients care about (UTM attribution, tags) plus the full UX polish list | ☐ Not started | ☐ |
 
 **Done and removed (2026-06-10):** Part 1 (security and tenancy: webhook auth + location routing, tenant slug scoping, session/login hardening, dev backdoors out of prod builds, migrations through 0006) and Part 2 (GHL write-path correctness: won/contact notes, tasks API conformance, message type normalization, thread + conversations pagination, rep lead filtering, safe retries). Both were implemented, deployed, verified live against the test account, then re-reviewed adversarially with four hardening follow-ups (commit 8cfb879: assignedTo preserved through task edits, PUT/DELETE retries, conversations list type guard, thread cursor dedupe). Their runbook folders were removed; the record of every Part 1 code change lives in git history under `docs/runbooks/part-1-security/05-code-changes-reference.md`.
