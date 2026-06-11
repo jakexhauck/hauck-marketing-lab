@@ -8,11 +8,12 @@ Before doing any manual step, skim [SOFTWARE-GUIDE.md](SOFTWARE-GUIDE.md): it ho
 
 | Part | Folder | Theme | Code status | Your actions status |
 |---|---|---|---|---|
-| 3 | [part-3-stage-mapping/](part-3-stage-mapping/) | Retire keyword stage guessing; raw pipeline stages everywhere | ☑ Done 2026-06-10 | ☑ Verified 2026-06-11 |
 | 4 | [part-4-pwa-offline/](part-4-pwa-offline/) | PWA lifecycle: service worker updates, offline auth, cache hygiene, 401 handling | ☐ Not started | ☐ |
 | 5 | [part-5-value-adds-ux/](part-5-value-adds-ux/) | Real data clients care about (UTM attribution, tags) plus the full UX polish list | ☐ Not started | ☐ |
 
 **Done and removed (2026-06-10):** Part 1 (security and tenancy: webhook auth + location routing, tenant slug scoping, session/login hardening, dev backdoors out of prod builds, migrations through 0006) and Part 2 (GHL write-path correctness: won/contact notes, tasks API conformance, message type normalization, thread + conversations pagination, rep lead filtering, safe retries). Both were implemented, deployed, verified live against the test account, then re-reviewed adversarially with four hardening follow-ups (commit 8cfb879: assignedTo preserved through task edits, PUT/DELETE retries, conversations list type guard, thread cursor dedupe). Their runbook folders were removed; the record of every Part 1 code change lives in git history under `docs/runbooks/part-1-security/05-code-changes-reference.md`.
+
+**Done and removed (2026-06-11):** Part 3 (stage mapping retirement). Deleted `stageMap.ts` keyword heuristics and the 8-bucket app-stage vocabulary; leads now carry real pipeline/stage ids with display names resolved against `/api/pipelines` (the singular `/api/pipeline` endpoint was removed). Won/Lost are opportunity-status-driven; LeadDetail outcomes are Won / Lost / Move Stage via a shared stage picker; stage moves invalidate every leads cache. Today re-keyed on status + stage position ("Booked Today" became "Won Today"), stats "Booked" became "Progressed"/"New", and the Dashboard scopes to the selected pipeline. Implemented in commit 4794ed5, deployed, and verified live by Jake across all five test pipelines on 2026-06-11, including the motivating regression (Won no longer jumps leads into "Lead In No Appointment Booked").
 
 ## How each part runs
 
@@ -23,7 +24,7 @@ Before doing any manual step, skim [SOFTWARE-GUIDE.md](SOFTWARE-GUIDE.md): it ho
 
 ## Standing rules
 
-- Parts run in order. Part 3 builds on Part 2's API fixes; Part 4 changes caching that Part 5's UX work assumes.
+- Parts run in order. Part 4 changes caching that Part 5's UX work assumes.
 - All migrations are idempotent and copied to the clipboard with `pbcopy`, never from chat (see part-1 ground rules).
 - No em dashes in any UI text, ever.
 - If a verification step fails, stop, paste the exact error or describe the screen, and do not continue to the next part.
