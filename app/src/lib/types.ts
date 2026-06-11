@@ -769,6 +769,29 @@ export interface GhlContactLite {
   phone?: string | null;
 }
 
+/** Args for booking an appointment on a GHL calendar (Sales > Book a Call). */
+export interface GhlBookArgs {
+  calendarId: string;
+  contactId: string;
+  /** ISO-8601 start. A free slot carries its own offset; a manual override is
+   *  an absolute UTC instant. GHL accepts both. */
+  startTime: string;
+  endTime?: string | null;
+  title?: string | null;
+  timezone?: string | null;
+  /** Manual override: bypass the calendar's slot/availability validation. */
+  ignoreAvailability?: boolean;
+  /** Fire GHL's own booking confirmation/reminders to the contact. */
+  notify?: boolean;
+}
+
+export interface GhlBookingResult {
+  id: string;
+  calendarId: string;
+  startIso: string;
+  endIso?: string | null;
+}
+
 // ── Ops trackers (Workspace > Dashboard) ──────────────────────
 
 export interface OpsClientRow {

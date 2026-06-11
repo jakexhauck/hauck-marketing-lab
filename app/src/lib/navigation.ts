@@ -26,6 +26,7 @@ export type WorkspaceView =
   | "calendar"
   | "clients"
   | "sales"
+  | "sales-booking"
   | "onboarding"
   | "tasks"
   | "revenue"
@@ -106,6 +107,7 @@ export function viewToSubApp(view: ViewLike): SubApp {
     case "ads":
       return "clients";
     case "sales":
+    case "sales-booking":
       return "sales";
     case "onboarding":
       return "onboarding";
@@ -157,7 +159,7 @@ export const SUB_APPS: SubAppDef[] = [
   { id: "dashboard", name: "Dashboard", subLine: "Agency-wide overview", kbd: "1" },
   { id: "clients", name: "Clients", subLine: "Roster + ads workspace", kbd: "2" },
   { id: "outreach", name: "Outreach", subLine: "Lead-gen, sequences, DMs", kbd: "3" },
-  { id: "sales", name: "Sales Pipeline", subLine: "Closes and forecasts", kbd: "4" },
+  { id: "sales", name: "Sales", subLine: "Pipeline + manual booking", kbd: "4" },
   { id: "onboarding", name: "Onboarding Pipeline", subLine: "Pre-launch clients", kbd: "5" },
   { id: "workspace", name: "Workspace", subLine: "Calendar, tasks, recordings, SOPs", kbd: "6" },
   { id: "builder", name: "Builder", subLine: "Code with Claude, multi-session", kbd: "7" },

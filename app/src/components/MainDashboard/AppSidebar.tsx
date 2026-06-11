@@ -146,7 +146,7 @@ function subAppDisplay(subApp: SubApp): { name: string; eyebrow: string } {
     case "outreach":
       return { name: "Outreach", eyebrow: "Sub-app" };
     case "sales":
-      return { name: "Sales Pipeline", eyebrow: "Sub-app" };
+      return { name: "Sales", eyebrow: "Sub-app" };
     case "onboarding":
       return { name: "Onboarding Pipeline", eyebrow: "Sub-app" };
     case "workspace":
@@ -243,7 +243,10 @@ export function AppSidebar(props: AppSidebarProps) {
         )}
 
         {currentSubApp === "sales" && (
-          <SalesBody />
+          <SalesBody
+            activeWorkspace={activeWorkspace ?? null}
+            onSelectWorkspace={onSelectWorkspace}
+          />
         )}
 
         {currentSubApp === "onboarding" && (
@@ -460,13 +463,27 @@ function OutreachBody({
   );
 }
 
-function SalesBody() {
+interface SalesBodyProps {
+  activeWorkspace: WorkspaceView | null;
+  onSelectWorkspace: (tab: WorkspaceView) => void;
+}
+
+function SalesBody({ activeWorkspace, onSelectWorkspace }: SalesBodyProps) {
   return (
     <div className="hml-nav-section">
       <div className="hml-nav-label">Sales</div>
-      <div className="hml-empty-hint">
-        Sales pipeline lives in the main pane.
-      </div>
+      <NavItem
+        label="Pipeline"
+        Icon={IconLayout}
+        active={activeWorkspace === "sales"}
+        onClick={() => onSelectWorkspace("sales")}
+      />
+      <NavItem
+        label="Book a Call"
+        Icon={IconCalendar}
+        active={activeWorkspace === "sales-booking"}
+        onClick={() => onSelectWorkspace("sales-booking")}
+      />
     </div>
   );
 }

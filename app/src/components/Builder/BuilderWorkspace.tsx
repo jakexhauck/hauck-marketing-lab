@@ -12,6 +12,9 @@ import {
   type ProjectResources,
 } from "../../lib/builderStore";
 import { BuilderSession } from "./BuilderSession";
+import { PlanComposer } from "./PlanComposer";
+import { PlanGraph } from "./PlanGraph";
+import { loadGraph, type ProjectGraph } from "../../lib/projectGraph";
 import {
   IconChevronRight,
   IconClose,
@@ -21,6 +24,8 @@ import {
   IconPlus,
   IconTrash,
 } from "../icons";
+
+type MainMode = "graph" | "sessions";
 
 interface InsertRequest {
   sessionId: string;
@@ -47,6 +52,7 @@ export function BuilderWorkspace() {
     assets: false,
   });
   const [insert, setInsert] = useState<InsertRequest | null>(null);
+  const [mainMode, setMainMode] = useState<MainMode>("graph");
 
   // Persist on every data change.
   useEffect(() => {
@@ -313,6 +319,32 @@ export function BuilderWorkspace() {
           </div>
         ) : (
           <>
+            <div className="bld-mainbar">
+              <div className="bld-modeseg" role="group" aria-label="Builder mode">
+                <button
+                  type="button"
+                  className={`bld-modeseg-btn${mainMode === "graph" ? " bld-modeseg-on" : ""}`}
+                  onClick={() => setMainMode("graph")}
+                >
+                  Build graph
+                </button>
+                <button
+                  type="button"
+                  className={`bld-modeseg-btn${mainMode === "sessions" ? " bld-modeseg-on" : ""}`}
+                  onClick={() => setMainMode("sessions")}
+                >
+                  Free sessions
+                </button>
+              </div>
+              <span className="bld-mainbar-path" title={activeProject.path}>
+                {activeProject.name}
+              </span>
+            </div>
+
+            {mainMode === "graph" ? (
+              <GraphFlow project={activeProject} />
+            ) : (
+              <SessionsArea>
             <div className="bld-tabs">
               <div className="bld-tabs-list">
                 {projectSessions.map((s) => (
@@ -385,10 +417,70 @@ export function BuilderWorkspace() {
                 </button>
               </div>
             )}
+              </SessionsArea>
+            )}
           </>
         )}
       </div>
     </div>
+  );
+}
+
+/** Pass-through wrapper so the existing tabs+panes block can sit inside the
+ *  "Free sessions" branch of the main-mode switch without restructuring it. */
+function SessionsArea({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
+
+/**
+ * The unified build flow for one project: load the on-disk plan graph; show the
+ * planning chat until a graph exists, then the node graph. "Re-plan" drops back
+ * to the chat without deleting the existing graph until a new one is generated.
+ */
+function GraphFlow({ project }: { project: BuilderProject }) {
+  const [graph, setGraph] = useState<ProjectGraph | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [replanning, setReplanning] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setReplanning(false);
+    void loadGraph(project.path)
+      .then((g) => {
+        if (!cancelled) setGraph(g);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [project.path]);
+
+  if (loading) {
+    return <div className="pg-loading">Loading plan…</div>;
+  }
+
+  if (graph && !replanning) {
+    return (
+      <PlanGraph
+        project={project}
+        graph={graph}
+        onGraphChange={setGraph}
+        onReplan={() => setReplanning(true)}
+      />
+    );
+  }
+
+  return (
+    <PlanComposer
+      project={project}
+      onGraphCreated={(g) => {
+        setGraph(g);
+        setReplanning(false);
+      }}
+    />
   );
 }
 

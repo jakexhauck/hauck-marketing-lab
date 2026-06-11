@@ -48,6 +48,7 @@ import { OutreachDmsPage } from "./OutreachDmsPage";
 import { OutreachProspectPage } from "./OutreachProspectPage";
 import { OutreachSequencePage } from "./OutreachSequencePage";
 import { SalesHubPage } from "./SalesHubPage";
+import { SalesBookingPage } from "./SalesBookingPage";
 import { OnboardingHubPage } from "./OnboardingHubPage";
 import { PersonalHubPage } from "./PersonalHubPage";
 import {
@@ -440,7 +441,20 @@ function buildBreadcrumb(
         <>
           <Crumb label="Agency" />
           <span className="hml-sep">/</span>
-          <span className="hml-current">Sales pipeline</span>
+          <span className="hml-seg">Sales</span>
+          <span className="hml-sep">/</span>
+          <span className="hml-current">Pipeline</span>
+        </>
+      );
+    }
+    if (view.tab === "sales-booking") {
+      return (
+        <>
+          <Crumb label="Agency" />
+          <span className="hml-sep">/</span>
+          <span className="hml-seg">Sales</span>
+          <span className="hml-sep">/</span>
+          <span className="hml-current">Book a Call</span>
         </>
       );
     }
@@ -626,6 +640,7 @@ function renderMain(args: RenderMainArgs): React.ReactNode {
         />
       );
     if (view.tab === "sales") return <SalesHubPage root={root} />;
+    if (view.tab === "sales-booking") return <SalesBookingPage root={root} />;
     if (view.tab === "onboarding") return <OnboardingHubPage />;
     if (view.tab === "tasks")
       return <TasksTrackerPage root={root} clients={realClients} />;

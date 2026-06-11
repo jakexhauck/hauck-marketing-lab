@@ -26,6 +26,8 @@ import type {
   GhlAdvanceArgs,
   GhlAdvanceResult,
   GhlAppointment,
+  GhlBookArgs,
+  GhlBookingResult,
   GhlCalendar,
   GhlConfigStatus,
   GhlContactLite,
@@ -169,6 +171,14 @@ export const api = {
       path,
       docRoots: docRoots ?? null,
     }),
+  /** Read a UTF-8 text file under a Builder project root (rel is project-relative).
+   *  Resolves to null when the file does not exist. Used by the plan graph to load
+   *  its manifest + per-step markdown specs from `.hml/`. */
+  readProjectText: (root: string, rel: string) =>
+    invoke<string | null>("read_project_text", { root, rel }),
+  /** Write a UTF-8 text file under a Builder project root, creating parent dirs. */
+  writeProjectText: (root: string, rel: string, contents: string) =>
+    invoke<void>("write_project_text", { root, rel, contents }),
   matchKnowledgeChunks: (root: string, userInput: string) =>
     invoke<KnowledgeChunk[]>("match_knowledge_chunks", { root, userInput }),
   readKnowledgeChunk: (root: string, chunkId: string) =>
@@ -932,6 +942,24 @@ export const api = {
     invoke<GhlContactLite>("ghl_get_contact", { contactId }),
   ghlAdvanceOpportunity: (args: GhlAdvanceArgs) =>
     invoke<GhlAdvanceResult>("ghl_advance_opportunity", { args }),
+  ghlSearchContacts: (query: string) =>
+    invoke<GhlContactLite[]>("ghl_search_contacts", { query }),
+  ghlCreateContact: (name: string, email?: string, phone?: string) =>
+    invoke<GhlContactLite>("ghl_create_contact", { name, email, phone }),
+  ghlGetFreeSlots: (
+    calendarId: string,
+    startIso: string,
+    endIso: string,
+    timezone?: string,
+  ) =>
+    invoke<string[]>("ghl_get_free_slots", {
+      calendarId,
+      startIso,
+      endIso,
+      timezone,
+    }),
+  ghlCreateAppointment: (args: GhlBookArgs) =>
+    invoke<GhlBookingResult>("ghl_create_appointment", { args }),
   metaListAdsInsights: (args: {
     adAccountId: string;
     clientSlug: string;

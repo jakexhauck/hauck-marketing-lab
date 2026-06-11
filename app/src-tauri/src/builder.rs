@@ -304,6 +304,57 @@ pub async fn invoke_builder(
     Ok(full)
 }
 
+// ─────────────────────── Project plan file IO ───────────────────────
+//
+// The plan graph (manifest + per-step markdown specs) lives *inside* each
+// project under `.hml/`, so it git-syncs with the code it describes. These two
+// commands give the UI scoped read/write access to files under a project root.
+// `rel` is always resolved against `root` with a traversal guard, so the UI can
+// never reach outside the folder the user registered.
+
+/// Join `rel` onto `root`, refusing absolute paths or any `..` segment so a
+/// crafted rel can't escape the project folder.
+fn safe_project_path(root: &str, rel: &str) -> Result<PathBuf, String> {
+    let rel_path = Path::new(rel);
+    if rel_path.is_absolute() {
+        return Err("path must be relative to the project".into());
+    }
+    let mut out = PathBuf::from(root);
+    for comp in rel_path.components() {
+        use std::path::Component;
+        match comp {
+            Component::Normal(seg) => out.push(seg),
+            Component::CurDir => {}
+            Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
+                return Err("path may not climb out of the project".into());
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// Read a UTF-8 text file under the project root. Returns `None` when the file
+/// does not exist (so callers can treat "no plan yet" as a normal state).
+#[tauri::command]
+pub fn read_project_text(root: String, rel: String) -> Result<Option<String>, String> {
+    let path = safe_project_path(&root, &rel)?;
+    match std::fs::read_to_string(&path) {
+        Ok(s) => Ok(Some(s)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(format!("read {}: {e}", path.display())),
+    }
+}
+
+/// Write a UTF-8 text file under the project root, creating parent dirs.
+#[tauri::command]
+pub fn write_project_text(root: String, rel: String, contents: String) -> Result<(), String> {
+    let path = safe_project_path(&root, &rel)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("mkdir {}: {e}", parent.display()))?;
+    }
+    std::fs::write(&path, contents).map_err(|e| format!("write {}: {e}", path.display()))
+}
+
 // ─────────────────────────── Project seeding ───────────────────────────
 
 #[derive(Serialize)]

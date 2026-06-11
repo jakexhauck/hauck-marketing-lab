@@ -553,6 +553,245 @@ fn iso_to_unix_ms(iso: &str) -> Result<i64, String> {
     Ok(parsed.timestamp_millis())
 }
 
+// ── manual booking: contact search, free slots, create appointment ──────────
+//
+// These are the write/lookup paths behind the Sales > Book a Call tab. They
+// let the user manually drop a contact onto any GHL calendar from inside the
+// app. Pipeline advancement is intentionally NOT done here — the user drives
+// that with GHL workflows on their side.
+
+/// Fuzzy-search contacts by name / email / phone. Backs the booking tab's
+/// "find existing contact" box. Returns up to `limit` lite rows.
+#[tauri::command]
+pub async fn ghl_search_contacts(
+    app: AppHandle,
+    query: String,
+) -> Result<Vec<GhlContactLite>, String> {
+    let cfg = require_config(&app)?;
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return Ok(Vec::new());
+    }
+    let v = ghl_get(
+        &cfg.private_token,
+        "/contacts/",
+        &[
+            ("locationId", cfg.location_id.as_str()),
+            ("query", trimmed),
+            ("limit", "20"),
+        ],
+    )
+    .await?;
+    let arr = v
+        .get("contacts")
+        .and_then(|c| c.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let mut out = Vec::new();
+    for c in arr {
+        let id = c.get("id").and_then(|x| x.as_str()).unwrap_or("").to_string();
+        if id.is_empty() {
+            continue;
+        }
+        // GHL returns the display name under `contactName` on this endpoint;
+        // fall back to first+last when it's absent.
+        let name = c
+            .get("contactName")
+            .and_then(|x| x.as_str())
+            .map(String::from)
+            .or_else(|| c.get("name").and_then(|x| x.as_str()).map(String::from));
+        out.push(GhlContactLite {
+            id,
+            name,
+            first_name: c.get("firstName").and_then(|x| x.as_str()).map(String::from),
+            last_name: c.get("lastName").and_then(|x| x.as_str()).map(String::from),
+            email: c.get("email").and_then(|x| x.as_str()).map(String::from),
+            phone: c.get("phone").and_then(|x| x.as_str()).map(String::from),
+        });
+    }
+    Ok(out)
+}
+
+/// Create a contact from scratch and return its lite row. Used when the user
+/// books someone who isn't in GHL yet. Thin wrapper over the private
+/// `create_contact` helper so the renderer gets the full row back.
+#[tauri::command]
+pub async fn ghl_create_contact(
+    app: AppHandle,
+    name: String,
+    email: Option<String>,
+    phone: Option<String>,
+) -> Result<GhlContactLite, String> {
+    let cfg = require_config(&app)?;
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Err("A name is required to create a contact.".into());
+    }
+    let (first, last) = match name.split_once(' ') {
+        Some((f, l)) => (f.to_string(), l.trim().to_string()),
+        None => (name.clone(), String::new()),
+    };
+    let mut body = json!({
+        "locationId": cfg.location_id,
+        "firstName": first,
+        "lastName": last,
+        "name": name,
+        "source": "Hauck Marketing Lab",
+    });
+    if let Some(e) = email.as_deref().map(str::trim).filter(|e| !e.is_empty()) {
+        body["email"] = json!(e);
+    }
+    if let Some(p) = phone.as_deref().map(str::trim).filter(|p| !p.is_empty()) {
+        body["phone"] = json!(p);
+    }
+    let v = ghl_post(&cfg.private_token, "/contacts/", &body).await?;
+    let c = v
+        .get("contact")
+        .ok_or_else(|| "create contact: no contact field in response".to_string())?;
+    let id = c
+        .get("id")
+        .and_then(|x| x.as_str())
+        .ok_or_else(|| "create contact: no id in response".to_string())?
+        .to_string();
+    Ok(GhlContactLite {
+        id,
+        name: Some(name),
+        first_name: Some(first),
+        last_name: if last.is_empty() { None } else { Some(last) },
+        email: email.map(|e| e.trim().to_string()).filter(|e| !e.is_empty()),
+        phone: phone.map(|p| p.trim().to_string()).filter(|p| !p.is_empty()),
+    })
+}
+
+/// Available start times for a calendar across the given window, in the
+/// requested timezone. Returns a flat, sorted list of ISO-8601 start strings
+/// (each carries its own offset). The booking UI groups these by day.
+#[tauri::command]
+pub async fn ghl_get_free_slots(
+    app: AppHandle,
+    calendar_id: String,
+    start_iso: String,
+    end_iso: String,
+    timezone: Option<String>,
+) -> Result<Vec<String>, String> {
+    let cfg = require_config(&app)?;
+    let start_ms = iso_to_unix_ms(&start_iso)?.to_string();
+    let end_ms = iso_to_unix_ms(&end_iso)?.to_string();
+    let path = format!("/calendars/{calendar_id}/free-slots");
+    let mut query: Vec<(&str, &str)> = vec![
+        ("startDate", start_ms.as_str()),
+        ("endDate", end_ms.as_str()),
+    ];
+    let tz = timezone.unwrap_or_default();
+    if !tz.trim().is_empty() {
+        query.push(("timezone", tz.as_str()));
+    }
+    let v = ghl_get(&cfg.private_token, &path, &query).await?;
+    // Response is an object keyed by "YYYY-MM-DD", each value an object with a
+    // `slots` array. A `traceId` string may also sit at the top level — skip
+    // anything that isn't a slots-bearing object.
+    let mut slots: Vec<String> = Vec::new();
+    if let Some(map) = v.as_object() {
+        for (_day, val) in map {
+            if let Some(arr) = val.get("slots").and_then(|s| s.as_array()) {
+                for s in arr {
+                    if let Some(iso) = s.as_str() {
+                        slots.push(iso.to_string());
+                    }
+                }
+            }
+        }
+    }
+    slots.sort();
+    Ok(slots)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BookArgs {
+    pub calendar_id: String,
+    pub contact_id: String,
+    /// ISO-8601 start. From a free slot this carries an offset; from the
+    /// manual-override field it's an absolute UTC instant. GHL accepts both.
+    pub start_time: String,
+    #[serde(default)]
+    pub end_time: Option<String>,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub timezone: Option<String>,
+    /// Manual override: bypass the calendar's availability/slot validation so
+    /// an off-hours or already-busy time can still be booked.
+    #[serde(default)]
+    pub ignore_availability: bool,
+    /// Whether GHL should fire its own booking confirmation/reminders to the
+    /// contact. Mirrors the "Send confirmation" toggle in the UI.
+    #[serde(default)]
+    pub notify: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GhlBookingResult {
+    pub id: String,
+    pub calendar_id: String,
+    pub start_iso: String,
+    pub end_iso: Option<String>,
+}
+
+/// Book an appointment on a GHL calendar for an existing contact.
+#[tauri::command]
+pub async fn ghl_create_appointment(app: AppHandle, args: BookArgs) -> Result<GhlBookingResult, String> {
+    let cfg = require_config(&app)?;
+    if args.calendar_id.trim().is_empty() {
+        return Err("A calendar is required.".into());
+    }
+    if args.contact_id.trim().is_empty() {
+        return Err("A contact is required.".into());
+    }
+    let mut body = json!({
+        "calendarId": args.calendar_id,
+        "locationId": cfg.location_id,
+        "contactId": args.contact_id,
+        "startTime": args.start_time,
+        "appointmentStatus": "confirmed",
+        "toNotify": args.notify,
+    });
+    if let Some(e) = args.end_time.as_deref().filter(|e| !e.trim().is_empty()) {
+        body["endTime"] = json!(e);
+    }
+    if let Some(t) = args.title.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
+        body["title"] = json!(t);
+    }
+    // `startTime` already pins the instant (a slot carries an offset; a manual
+    // override is sent as UTC), so we deliberately omit a `timezone` field —
+    // GHL's appointment endpoint can 422 on unexpected keys.
+    let _ = &args.timezone;
+    if args.ignore_availability {
+        // Two flags because GHL gates slot-fit and date-window separately.
+        body["ignoreDateRange"] = json!(true);
+        body["ignoreFreeSlotValidation"] = json!(true);
+    }
+    let v = ghl_post(&cfg.private_token, "/calendars/events/appointments", &body).await?;
+    let id = v
+        .get("id")
+        .and_then(|x| x.as_str())
+        .map(String::from)
+        .ok_or_else(|| format!("create appointment: no id in response — body: {v}"))?;
+    let start_iso = v
+        .get("startTime")
+        .and_then(|x| x.as_str())
+        .unwrap_or(args.start_time.as_str())
+        .to_string();
+    let end_iso = v.get("endTime").and_then(|x| x.as_str()).map(String::from);
+    Ok(GhlBookingResult {
+        id,
+        calendar_id: args.calendar_id,
+        start_iso,
+        end_iso,
+    })
+}
+
 #[tauri::command]
 pub async fn ghl_list_opportunities(
     app: AppHandle,
