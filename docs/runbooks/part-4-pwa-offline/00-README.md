@@ -1,6 +1,6 @@
 # Part 4: PWA Lifecycle, Offline, and Auth Hygiene
 
-Status: code ☐ not started | manual actions ☐ not started
+Status: code ☑ done (2026-06-11, all ten findings) | manual actions ☐ not started
 
 Theme: the app's "installed app" behaviors. Today, deployed fixes never reach installed PWAs (the service worker never activates), launching offline logs the user out, stale caches show another account's data after mode switches, and an expired session bricks every panel instead of returning to login.
 

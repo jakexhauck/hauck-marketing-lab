@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { useNotificationsQuery } from "../hooks/useApi";
@@ -10,6 +11,18 @@ export default function NotificationBell({ enabled }: { enabled: boolean }) {
   const navigate = useNavigate();
   const { data } = useNotificationsQuery(enabled);
   const unread = data?.unreadCount ?? 0;
+
+  // Mirror the unread count onto the installed app's icon where the Badging
+  // API exists (iOS 16.4+ PWAs, Android/Chrome). Best-effort.
+  useEffect(() => {
+    const nav = navigator as Navigator & {
+      setAppBadge?: (count: number) => Promise<void>;
+      clearAppBadge?: () => Promise<void>;
+    };
+    if (typeof nav.setAppBadge !== "function") return;
+    if (unread > 0) void nav.setAppBadge(unread).catch(() => {});
+    else void nav.clearAppBadge?.().catch(() => {});
+  }, [unread]);
 
   return (
     <button

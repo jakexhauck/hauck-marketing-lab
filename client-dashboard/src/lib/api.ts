@@ -34,6 +34,12 @@ export async function api<T>(
     }
   }
   if (!res.ok) {
+    if (res.status === 401) {
+      // Expired/invalid session detected mid-flight. AuthContext listens and
+      // flips to unauthenticated so ProtectedRoute returns the user to /login
+      // instead of leaving every panel stuck on "Failed to load".
+      window.dispatchEvent(new CustomEvent("hml:unauthorized"));
+    }
     const msg =
       (body && typeof body === "object" && "error" in body
         ? String((body as { error: unknown }).error)

@@ -8,8 +8,17 @@ import {
   type ReactNode,
 } from "react";
 import type { Role, User } from "../types";
+import { clearAllCaches } from "../lib/queryClient";
+import { clearAppBadge, disablePush } from "../lib/push";
 
-type AuthStatus = "loading" | "authenticated" | "unauthenticated";
+// "authenticated-offline": the session probe failed at the network layer (not
+// a 401/403) while a previous session is plausible. The app stays usable on
+// cached data instead of bouncing to /login; an `online` event re-verifies.
+type AuthStatus =
+  | "loading"
+  | "authenticated"
+  | "authenticated-offline"
+  | "unauthenticated";
 export type SessionMode = "live" | "test";
 
 interface AuthContextValue {
@@ -40,12 +49,35 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "";
 
 const IDENTITY_KEY = "hml_identity";
+// Non-sensitive breadcrumb (just "live" | "test") proving a session existed on
+// this device. Lets an offline launch stay signed in on cached data instead of
+// reading the failed session probe as "logged out". Written on every
+// successful login/probe, cleared on sign-out and on a genuine 401.
+const LAST_MODE_KEY = "hml_last_session_mode";
 
 function readStoredIdentity(): string | null {
   try {
     return localStorage.getItem(IDENTITY_KEY);
   } catch {
     return null;
+  }
+}
+
+function readLastSessionMode(): SessionMode | null {
+  try {
+    const v = localStorage.getItem(LAST_MODE_KEY);
+    return v === "live" || v === "test" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLastSessionMode(mode: SessionMode | null): void {
+  try {
+    if (mode) localStorage.setItem(LAST_MODE_KEY, mode);
+    else localStorage.removeItem(LAST_MODE_KEY);
+  } catch {
+    // storage unavailable; offline relaunch will just require a network probe
   }
 }
 
@@ -56,45 +88,66 @@ interface ApiIdentity {
   role: Role;
 }
 
-// Resolve a stored GHL user id to a real team member + role. Degrades to null
-// (so currentUser falls back to the hardcoded owner) on any failure.
-async function fetchIdentity(id: string): Promise<User | null> {
-  if (!id) return null;
+// transient = the lookup failed for reasons that say nothing about the
+// identity itself (network down, 5xx). A clean "not found" is not transient.
+interface IdentityResult {
+  user: User | null;
+  transient: boolean;
+}
+
+// Resolve a stored GHL user id to a real team member + role.
+async function fetchIdentity(id: string): Promise<IdentityResult> {
+  if (!id) return { user: null, transient: false };
   try {
     const res = await fetch(
       `${API_BASE}/api/me/identity?id=${encodeURIComponent(id)}`,
       { credentials: "include" },
     );
-    if (!res.ok) return null;
+    if (!res.ok) return { user: null, transient: res.status >= 500 };
     const body = (await res.json().catch(() => null)) as
       | { identity?: ApiIdentity | null }
       | null;
     const it = body?.identity;
-    if (!it) return null;
+    if (!it) return { user: null, transient: false };
     return {
-      id: it.id,
-      clientId: "",
-      name: it.name,
-      email: it.email,
-      role: it.role,
+      user: {
+        id: it.id,
+        clientId: "",
+        name: it.name,
+        email: it.email,
+        role: it.role,
+      },
+      transient: false,
     };
   } catch {
-    return null;
+    return { user: null, transient: true };
   }
 }
 
-async function checkSession(): Promise<{ ok: boolean; mode: SessionMode }> {
+interface SessionProbe {
+  ok: boolean;
+  mode: SessionMode;
+  // True when the probe never got an HTTP answer (offline / server down).
+  // A 401/403 response is NOT offline: that is a real "no session".
+  offline: boolean;
+}
+
+async function checkSession(): Promise<SessionProbe> {
   try {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
       credentials: "include",
     });
-    if (!res.ok) return { ok: false, mode: "live" };
+    if (!res.ok) return { ok: false, mode: "live", offline: false };
     const body = (await res.json().catch(() => null)) as
       | { mode?: SessionMode }
       | null;
-    return { ok: true, mode: body?.mode === "test" ? "test" : "live" };
+    return {
+      ok: true,
+      mode: body?.mode === "test" ? "test" : "live",
+      offline: false,
+    };
   } catch {
-    return { ok: false, mode: "live" };
+    return { ok: false, mode: "live", offline: true };
   }
 }
 
@@ -110,44 +163,98 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
   const [identity, setIdentityUser] = useState<User | null>(null);
   const [identityResolved, setIdentityResolved] = useState(false);
+  // True when a stored identity could not be resolved for transient reasons
+  // (network/5xx) even after a retry. Drives the rep-fallback in currentUser.
+  const [identityFailed, setIdentityFailed] = useState(false);
+
+  const isAuthed = status === "authenticated" || status === "authenticated-offline";
+
+  // Probe the session. Runs at mount and again on every `online` event so an
+  // offline-grace session gets verified (or genuinely signed out) the moment
+  // connectivity returns.
+  const reconcileSession = useCallback(async () => {
+    const probe = await checkSession();
+    if (probe.ok) {
+      writeLastSessionMode(probe.mode);
+      setMode(probe.mode);
+      setStatus("authenticated");
+      return;
+    }
+    if (probe.offline) {
+      const last = readLastSessionMode();
+      if (last) {
+        setMode(last);
+        setStatus("authenticated-offline");
+        return;
+      }
+      setStatus("unauthenticated");
+      return;
+    }
+    // The server answered and said no: clear the breadcrumb.
+    writeLastSessionMode(null);
+    setStatus("unauthenticated");
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
-    checkSession().then(({ ok, mode }) => {
-      if (!mounted) return;
-      setStatus(ok ? "authenticated" : "unauthenticated");
-      setMode(mode);
-    });
-    return () => {
-      mounted = false;
+    void reconcileSession();
+    const onOnline = () => void reconcileSession();
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [reconcileSession]);
+
+  // Central 401 handling: api() dispatches this event when any call comes back
+  // unauthorized mid-session. Caches are cleared so the next login (possibly
+  // the other mode) starts from nothing, and ProtectedRoute redirects to
+  // /login once currentUser goes null.
+  useEffect(() => {
+    const onUnauthorized = () => {
+      writeLastSessionMode(null);
+      // The session is already dead, so the server-side unsubscribe inside
+      // disablePush will 401; the LOCAL unsubscribe still succeeds and that
+      // alone stops deliveries to this device. Best-effort either way.
+      void disablePush();
+      clearAppBadge();
+      void clearAllCaches();
+      setStatus("unauthenticated");
+      setMode("live");
     };
+    window.addEventListener("hml:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("hml:unauthorized", onUnauthorized);
   }, []);
 
   // Resolve the stored identity id into a real team member whenever it changes
-  // and we are authenticated. Failures resolve to null so currentUser falls
-  // back to the hardcoded owner.
+  // and we are authenticated (including offline-grace). A transient failure is
+  // retried once; if it still fails, identityFailed makes currentUser degrade
+  // to a minimal rep rather than silently promoting to the owner UI.
   useEffect(() => {
-    if (status !== "authenticated") {
+    if (!isAuthed) {
       setIdentityUser(null);
       setIdentityResolved(false);
+      setIdentityFailed(false);
       return;
     }
     if (!identityId) {
       setIdentityUser(null);
       setIdentityResolved(true);
+      setIdentityFailed(false);
       return;
     }
     let mounted = true;
     setIdentityResolved(false);
-    fetchIdentity(identityId).then((user) => {
+    (async () => {
+      let result = await fetchIdentity(identityId);
+      if (result.transient && mounted) {
+        result = await fetchIdentity(identityId);
+      }
       if (!mounted) return;
-      setIdentityUser(user);
+      setIdentityUser(result.user);
+      setIdentityFailed(!result.user && result.transient);
       setIdentityResolved(true);
-    });
+    })();
     return () => {
       mounted = false;
     };
-  }, [status, identityId]);
+  }, [isAuthed, identityId]);
 
   const signInWithPassword = useCallback(
     async (password: string, mode: SessionMode = "live") => {
@@ -167,6 +274,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             error: body?.error ?? `Sign-in failed (${res.status})`,
           };
         }
+        // Anything cached belongs to whatever session came before (possibly
+        // the other mode); a fresh session must start from zero.
+        await clearAllCaches();
+        writeLastSessionMode(mode);
         setStatus("authenticated");
         setMode(mode);
         return { ok: true };
@@ -181,10 +292,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    // While the session cookie still works: stop push delivery to this device
+    // (a logged-out phone must not keep receiving lead PII). Best-effort.
+    await disablePush();
+    clearAppBadge();
     setOverride(null);
     setIdentityUser(null);
     setIdentityResolved(false);
+    setIdentityFailed(false);
     setIdentityId(null);
+    writeLastSessionMode(null);
     try {
       localStorage.removeItem(IDENTITY_KEY);
     } catch {
@@ -198,6 +315,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore
     }
+    // Memory, persisted snapshot, and SW caches all go: the next session
+    // (possibly the other mode) must not see this one's data.
+    await clearAllCaches();
     setStatus("unauthenticated");
     setMode("live");
   }, []);
@@ -245,10 +365,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const currentUser = useMemo<User | null>(() => {
     if (override) return override; // dev override, keep for testing
-    if (status !== "authenticated") return null;
+    if (!isAuthed) return null;
     // Real resolved identity from /api/me/identity when available.
     if (identity) return identity;
-    // Fallback: hardcoded owner (Supabase/identity unavailable or skipped).
+    // A stored identity that failed to resolve for transient reasons must not
+    // silently get the owner UI; degrade to a minimal rep until it resolves.
+    if (identityFailed && identityId) {
+      return {
+        id: identityId,
+        clientId: "",
+        name: "Team member",
+        email: "",
+        role: "rep" as Role,
+      };
+    }
+    // Fallback: hardcoded owner (no identity chosen / skipped, single-operator
+    // account assumption).
     return {
       id: "owner",
       clientId: "",
@@ -256,8 +388,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: "",
       role: "owner" as Role,
     };
-  }, [override, status, identity]);
+  }, [override, isAuthed, identity, identityFailed, identityId]);
 
+  // Only prompt the picker fully online: offline, the team list behind it
+  // cannot load, and the offline-grace session may be seconds from sign-out.
   const needsIdentity = useMemo(
     () =>
       !override &&
@@ -268,8 +402,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const session = useMemo<{ authenticated: true } | null>(
-    () => (status === "authenticated" ? { authenticated: true } : null),
-    [status],
+    () => (isAuthed ? { authenticated: true } : null),
+    [isAuthed],
   );
 
   const value = useMemo(

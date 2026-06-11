@@ -44,8 +44,9 @@ function normalizeStatus(raw: string | undefined): LeadStatus {
 
 // Resolve a lead's display stage by looking up its (pipelineId,
 // pipelineStageId) in the real pipelines list. A lead whose pipeline or stage
-// no longer exists renders "Unknown stage" rather than crashing.
-function adaptApiLead(
+// no longer exists renders "Unknown stage" rather than crashing. Exported for
+// LeadDetail's deep-link fallback (single-lead fetch when the list is cold).
+export function adaptApiLead(
   a: ApiLead,
   pipelines: ApiPipelineSummary[],
   fallbackClientId: string,

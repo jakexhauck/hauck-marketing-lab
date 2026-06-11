@@ -4,7 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import App from "./App";
-import { queryClient } from "./lib/queryClient";
+import { queryClient, PERSIST_CACHE_KEY } from "./lib/queryClient";
 import "./index.css";
 
 // Layer 1 of offline caching: persist the read-query cache to localStorage so
@@ -15,7 +15,8 @@ import "./index.css";
 // lead/stage updates always re-run against the network.
 const persister = createSyncStoragePersister({
   storage: window.localStorage,
-  key: "hml_query_cache",
+  // Shared constant so clearAllCaches() provably wipes the same key.
+  key: PERSIST_CACHE_KEY,
 });
 
 const TWENTY_FOUR_HOURS = 1000 * 60 * 60 * 24;

@@ -18,7 +18,8 @@ import MoveStageSheet from "../components/MoveStageSheet";
 import Avatar from "../components/Avatar";
 import BrandedButton from "../components/BrandedButton";
 import Toast from "../components/Toast";
-import { useLeads } from "../context/LeadsContext";
+import { adaptApiLead, useLeads } from "../context/LeadsContext";
+import { useLeadQuery } from "../hooks/useApi";
 import { usePipelines } from "../context/PipelinesContext";
 import { useClient } from "../context/ClientContext";
 import { useAuth } from "../context/AuthContext";
@@ -126,8 +127,15 @@ function TimelineEntry({ entry, isLast, wonLabel }: TimelineEntryProps) {
 export default function LeadDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getLead, markWon, markLost, moveStage, getActivitiesForLead, addNote } =
-    useLeads();
+  const {
+    getLead,
+    markWon,
+    markLost,
+    moveStage,
+    getActivitiesForLead,
+    addNote,
+    isLoading: leadsLoading,
+  } = useLeads();
   const { pipelines } = usePipelines();
   const { client } = useClient();
   const { session } = useAuth();
@@ -138,7 +146,18 @@ export default function LeadDetail() {
   const [showAllActivity, setShowAllActivity] = useState(false);
   const wonLabel = client.pipeline.wonLabel;
 
-  const lead = id ? getLead(id) : undefined;
+  const listLead = id ? getLead(id) : undefined;
+  // Deep links (push notification taps) can land here before the leads list
+  // query has data. Fetch the single lead directly instead of declaring it
+  // missing; the list stays the source of truth once it arrives.
+  const fallbackQuery = useLeadQuery(id ?? null, Boolean(session) && !listLead);
+  const lead =
+    listLead ??
+    (fallbackQuery.data
+      ? adaptApiLead(fallbackQuery.data.lead, pipelines, client.id)
+      : undefined);
+  const leadPending =
+    !lead && (leadsLoading || fallbackQuery.isLoading || fallbackQuery.isFetching);
   // The move sheet lists the lead's OWN pipeline's stages, never another
   // pipeline's. No pipeline match (deleted in GHL) means no move action.
   const leadPipeline = lead
@@ -155,6 +174,23 @@ export default function LeadDetail() {
     const t = window.setTimeout(() => setToast(null), 2500);
     return () => window.clearTimeout(t);
   }, [toast]);
+
+  // Still loading (cold deep link): spinner, never a premature "not found".
+  if (!lead && leadPending) {
+    return (
+      <Shell>
+        <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+          <BackButton to="/leads" label="Leads" />
+        </header>
+        <div className="flex flex-1 items-center justify-center p-6">
+          <div
+            className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--brand-primary)]"
+            aria-hidden="true"
+          />
+        </div>
+      </Shell>
+    );
+  }
 
   if (!lead) {
     return (

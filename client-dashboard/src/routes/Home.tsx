@@ -4,6 +4,7 @@ import {
   CalendarDays,
   ChevronRight,
   Filter,
+  LogOut,
   Receipt,
   Search,
   TrendingUp,
@@ -70,7 +71,7 @@ function shortName(name: string): string {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { session, mode } = useAuth();
+  const { session, mode, signOut } = useAuth();
   const { setSelectedId } = usePipelines();
   const useReal = Boolean(session);
   const query = useSummaryQuery(useReal);
@@ -244,12 +245,24 @@ export default function Home() {
               {[
                 { key: "calendar", label: "Calendar", sub: "Upcoming appointments", to: "/calendar", Icon: CalendarDays, color: "#7c3aed" },
                 { key: "billing", label: "Billing", sub: "Invoices and payments", to: "/billing", Icon: Receipt, color: "#15803d" },
+                { key: "signout", label: "Sign out", sub: "Log out of this device", to: "", Icon: LogOut, color: "#be123c" },
               ].map(
                 (link, idx, arr) => (
                   <li key={link.key}>
                     <button
                       type="button"
-                      onClick={() => navigate(link.to)}
+                      onClick={() => {
+                        if (link.key === "signout") {
+                          // signOut tears down push + caches, then the route
+                          // guard sends us to /login; navigate just makes it
+                          // immediate.
+                          void signOut().then(() =>
+                            navigate("/login", { replace: true }),
+                          );
+                          return;
+                        }
+                        navigate(link.to);
+                      }}
                       className={
                         "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
                         (idx === arr.length - 1
