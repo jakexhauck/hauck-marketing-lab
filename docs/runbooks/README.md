@@ -8,7 +8,7 @@ Before doing any manual step, skim [SOFTWARE-GUIDE.md](SOFTWARE-GUIDE.md): it ho
 
 | Part | Folder | Theme | Code status | Your actions status |
 |---|---|---|---|---|
-| 3 | [part-3-stage-mapping/](part-3-stage-mapping/) | Retire keyword stage guessing; raw pipeline stages everywhere | ☑ Done 2026-06-10 | ☐ |
+| 3 | [part-3-stage-mapping/](part-3-stage-mapping/) | Retire keyword stage guessing; raw pipeline stages everywhere | ☑ Done 2026-06-10 | ☑ Verified 2026-06-11 |
 | 4 | [part-4-pwa-offline/](part-4-pwa-offline/) | PWA lifecycle: service worker updates, offline auth, cache hygiene, 401 handling | ☐ Not started | ☐ |
 | 5 | [part-5-value-adds-ux/](part-5-value-adds-ux/) | Real data clients care about (UTM attribution, tags) plus the full UX polish list | ☐ Not started | ☐ |
 

@@ -1,6 +1,6 @@
 # Part 3: Stage Mapping Retirement
 
-Status: code ☑ done 2026-06-10 | manual actions ☐ not started
+Status: code ☑ done 2026-06-10 | manual actions ☑ verified live 2026-06-11
 
 Theme: the app currently guesses what a pipeline stage "means" by matching English keywords in stage names (`src/lib/stageMap.ts`). Verified against the real test account on 2026-06-10: of the 27 real stage names across 5 pipelines, **19 map to "new"** (including "Closed", "Not Qualified", "Abandoned") and one maps actively wrong: "Lead In No Appointment Booked" contains "book", so it reads as **booked**, and tapping the Booked outcome can move a lead INTO that stage. This part removes keyword guessing everywhere in favor of the raw pipeline stages GHL itself reports.
 
