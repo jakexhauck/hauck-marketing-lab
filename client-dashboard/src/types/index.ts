@@ -1,14 +1,8 @@
 export type Role = "owner" | "manager" | "rep";
 
-export type LeadStage =
-  | "new"
-  | "contacted"
-  | "estimate-sent"
-  | "consultation"
-  | "booked"
-  | "won"
-  | "lost"
-  | "no-show";
+// Opportunity status is a first-class GHL field. Stages are real pipeline
+// stages identified by id; the app never guesses meaning from stage names.
+export type LeadStatus = "open" | "won" | "lost" | "abandoned";
 
 export interface Brand {
   color: string;
@@ -18,7 +12,6 @@ export interface Brand {
 }
 
 export interface PipelineConfig {
-  stages: LeadStage[];
   wonLabel: string;
   valueLabel: string;
 }
@@ -52,7 +45,15 @@ export interface Lead {
   email: string;
   sourceAd: string;
   sourceCampaign: string;
-  stage: LeadStage;
+  pipelineId: string;
+  pipelineStageId: string;
+  status: LeadStatus;
+  // Display fields resolved against the pipelines list. stagePosition is the
+  // stage's index within its own pipeline, or -1 if the pipeline/stage is
+  // unknown (deleted in GHL, stale cache); render "Unknown stage" then.
+  stageName: string;
+  stagePosition: number;
+  pipelineName: string;
   value: number | null;
   createdAt: string;
   lastActivityAt: string;
@@ -71,9 +72,9 @@ export interface LeadActivity {
   kind: LeadActivityKind;
   at: number; // epoch ms
   authorUserId?: string;
-  // for stage-change:
-  fromStage?: LeadStage;
-  toStage?: LeadStage;
+  // for stage-change: display names ("Estimate Sent", "Won"), never ids
+  fromStage?: string;
+  toStage?: string;
   // for note:
   body?: string;
   // for won-recorded:
@@ -82,7 +83,11 @@ export interface LeadActivity {
 
 export interface Stats {
   leadsMtd: number;
-  bookedMtd: number;
+  // Open leads created MTD that advanced beyond their pipeline's first stage,
+  // plus wins. Replaces the old keyword-derived "booked" count.
+  progressedMtd: number;
+  // Open leads created MTD still sitting in their pipeline's first stage.
+  newMtd: number;
   wonMtd: number;
   revenueMtd: number;
   spendMtd: number;

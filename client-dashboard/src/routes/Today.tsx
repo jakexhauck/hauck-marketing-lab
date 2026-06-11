@@ -10,7 +10,6 @@ import { useLeads } from "../context/LeadsContext";
 import { useAuth } from "../context/AuthContext";
 import { useClient } from "../context/ClientContext";
 import { permissionsFor } from "../lib/rolePermissions";
-import type { Lead } from "../types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -35,9 +34,12 @@ export default function Today() {
 
   const now = Date.now();
 
+  // Queues key on opportunity status plus the lead's position within its own
+  // pipeline (no stage-name guessing): "new" means still in the first stage,
+  // "follow up" means past it but gone quiet for a day or more.
   const newLeads = useMemo(() => {
     return [...scopedLeads]
-      .filter((l) => l.stage === "new")
+      .filter((l) => l.status === "open" && l.stagePosition === 0)
       .sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -45,15 +47,11 @@ export default function Today() {
   }, [scopedLeads]);
 
   const followUpLeads = useMemo(() => {
-    const stages: Lead["stage"][] = [
-      "contacted",
-      "estimate-sent",
-      "consultation",
-    ];
     return [...scopedLeads]
       .filter(
         (l) =>
-          stages.includes(l.stage) &&
+          l.status === "open" &&
+          l.stagePosition > 0 &&
           now - new Date(l.lastActivityAt).getTime() >= DAY_MS
       )
       .sort(
@@ -63,13 +61,12 @@ export default function Today() {
       );
   }, [scopedLeads, now]);
 
-  const bookedToday = useMemo(() => {
+  const wonToday = useMemo(() => {
     return [...scopedLeads]
       .filter((l) => {
-        if (l.stage !== "booked") return false;
-        const created = new Date(l.createdAt).getTime();
+        if (l.status !== "won") return false;
         const activity = new Date(l.lastActivityAt).getTime();
-        return now - created <= DAY_MS || now - activity <= DAY_MS;
+        return now - activity <= DAY_MS;
       })
       .sort(
         (a, b) =>
@@ -181,19 +178,19 @@ export default function Today() {
 
         <TodayQueueSection
           icon={<CheckCircle2 size={14} aria-hidden="true" />}
-          title="Booked Today"
-          count={bookedToday.length}
+          title="Won Today"
+          count={wonToday.length}
         >
-          {bookedToday.length === 0 ? (
-            <EmptyState message="No bookings in the last 24 hours yet." />
+          {wonToday.length === 0 ? (
+            <EmptyState message="No wins in the last 24 hours yet." />
           ) : (
             <ul className="flex flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-              {bookedToday.map((lead, idx) => (
+              {wonToday.map((lead, idx) => (
                 <li key={lead.id}>
                   <LeadRow
                     lead={lead}
                     onTap={onTap}
-                    isLast={idx === bookedToday.length - 1}
+                    isLast={idx === wonToday.length - 1}
                   />
                 </li>
               ))}

@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   api,
   type ApiLead,
-  type ApiPipeline,
   type ApiPipelineSummary,
   type ApiSummary,
   type ApiMessage,
@@ -18,18 +17,6 @@ import {
   type ApiCalendarEvent,
   type AdminClient,
 } from "../lib/api";
-import type { LeadStage } from "../types";
-import { reverseMapStage } from "../lib/stageMap";
-
-export function usePipelineQuery(enabled: boolean) {
-  return useQuery({
-    queryKey: ["pipeline"],
-    enabled,
-    staleTime: 5 * 60_000,
-    queryFn: () => api<ApiPipeline>("/api/pipeline"),
-  });
-}
-
 // All pipelines for the tenant, each with its real stage list.
 export function usePipelinesQuery(enabled: boolean) {
   return useQuery({
@@ -284,10 +271,11 @@ export function useMessagesQuery(id: string | null, enabled: boolean) {
 
 interface UpdateLeadInput {
   leadId: string;
-  appStage?: LeadStage;
+  // Explicit GHL ids/status only; the API never guesses from names.
+  status?: "open" | "won" | "lost";
+  pipelineStageId?: string;
   value?: number | null;
   notes?: string | null;
-  pipelineStages?: { id: string; name: string }[];
 }
 
 export function useUpdateLead() {
@@ -295,14 +283,9 @@ export function useUpdateLead() {
   return useMutation({
     mutationFn: async (input: UpdateLeadInput) => {
       const body: Record<string, unknown> = {};
-      if (input.appStage === "won") body.status = "won";
-      else if (input.appStage === "lost") body.status = "lost";
-      else if (input.appStage) body.status = "open";
-
-      if (input.appStage && input.pipelineStages) {
-        const stageId = reverseMapStage(input.appStage, input.pipelineStages);
-        if (stageId) body.pipelineStageId = stageId;
-      }
+      if (input.status !== undefined) body.status = input.status;
+      if (input.pipelineStageId !== undefined)
+        body.pipelineStageId = input.pipelineStageId;
       if (input.value !== undefined) body.value = input.value;
       if (input.notes !== undefined) body.notes = input.notes;
 
@@ -312,8 +295,10 @@ export function useUpdateLead() {
       });
     },
     onSuccess: (_data, vars) => {
+      // ["leads"] prefix covers the global list and every per-pipeline list.
       qc.invalidateQueries({ queryKey: ["leads"] });
       qc.invalidateQueries({ queryKey: ["lead", vars.leadId] });
+      qc.invalidateQueries({ queryKey: ["summary"] });
     },
   });
 }
@@ -363,8 +348,11 @@ export function useMoveLeadStage(pipelineId: string | null) {
     onError: (_err, _vars, context) => {
       if (context?.previous) qc.setQueryData(key, context.previous);
     },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: key });
+    onSettled: (_data, _err, vars) => {
+      // ["leads"] prefix covers the global list and every per-pipeline list,
+      // so other views never show the stale stage (fix 3.4).
+      qc.invalidateQueries({ queryKey: ["leads"] });
+      qc.invalidateQueries({ queryKey: ["lead", vars.leadId] });
       qc.invalidateQueries({ queryKey: ["summary"] });
     },
   });

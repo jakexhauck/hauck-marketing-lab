@@ -23,8 +23,8 @@ const cache = new Map<string, CacheEntry>();
 const TTL_MS = 5 * 60_000;
 
 // All pipelines for the tenant, each with its real, ordered stage list.
-// Unlike /api/pipeline (which returns only pipelines[0]), this powers the
-// multi-pipeline Leads view.
+// The sole source of stage names/ids for the frontend; the old singular
+// /api/pipeline (pipelines[0] only) was removed in Part 3.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const t = ctx.data.tenant;
   const cacheKey = `pipelines:${t.ghl_location_id}`;

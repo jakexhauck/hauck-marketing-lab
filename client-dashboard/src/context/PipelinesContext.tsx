@@ -8,6 +8,8 @@ import {
 } from "react";
 import { usePipelinesQuery } from "../hooks/useApi";
 import { useAuth } from "./AuthContext";
+import { useClient } from "./ClientContext";
+import { getMockPipelinesForClient } from "../mock/pipelines";
 import type { ApiPipelineSummary } from "../lib/api";
 
 interface PipelinesContextValue {
@@ -25,12 +27,18 @@ const STORAGE_KEY = "willis.selectedPipelineId";
 
 export function PipelinesProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
+  const { client } = useClient();
   const useReal = Boolean(session);
   const query = usePipelinesQuery(useReal);
 
+  // Mock mode (showroom/demo) serves a static pipeline per client so every
+  // view runs through the same real-stage model as a live session.
   const pipelines = useMemo<ApiPipelineSummary[]>(
-    () => query.data?.pipelines ?? [],
-    [query.data],
+    () =>
+      useReal
+        ? (query.data?.pipelines ?? [])
+        : getMockPipelinesForClient(client.id),
+    [useReal, query.data, client.id],
   );
 
   const [selectedId, setSelectedIdState] = useState<string | null>(() => {

@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, X } from "lucide-react";
 import Avatar from "./Avatar";
 import WonSheet from "./WonSheet";
+import MoveStageSheet from "./MoveStageSheet";
 import Toast from "./Toast";
 import { useMoveLeadStage } from "../hooks/useApi";
 import { formatMoney } from "../lib/formatMoney";
@@ -141,8 +141,9 @@ export default function Board({ leads, stages, pipelineId }: Props) {
       </div>
 
       {moving && (
-        <MoveSheet
-          lead={moving}
+        <MoveStageSheet
+          leadName={moving.name}
+          currentStageId={moving.pipelineStageId}
           stages={stages}
           onClose={() => setMoving(null)}
           onPickStage={(stageId) => moveToStage(moving, stageId)}
@@ -159,93 +160,6 @@ export default function Board({ leads, stages, pipelineId }: Props) {
         onCancel={() => setWonFor(null)}
         onSave={markWon}
       />
-    </div>
-  );
-}
-
-interface MoveSheetProps {
-  lead: ApiLead;
-  stages: Stage[];
-  onClose: () => void;
-  onPickStage: (stageId: string) => void;
-  onWon: () => void;
-  onLost: () => void;
-}
-
-function MoveSheet({
-  lead,
-  stages,
-  onClose,
-  onPickStage,
-  onWon,
-  onLost,
-}: MoveSheetProps) {
-  return (
-    <div
-      className="fixed inset-0 z-40 flex items-end justify-center bg-black/40"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-t-2xl bg-[var(--surface)] p-5"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="min-w-0 truncate font-display text-lg font-bold text-[var(--text)]">
-            Move {lead.name}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] active:scale-[0.96]"
-          >
-            <X size={18} aria-hidden="true" />
-          </button>
-        </div>
-
-        <div className="mt-3 flex flex-col gap-1">
-          <span className="label-cap px-1 pb-1">Stage</span>
-          {stages.map((s) => {
-            const current = s.id === lead.pipelineStageId;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                disabled={current}
-                onClick={() => onPickStage(s.id)}
-                className="flex items-center justify-between rounded-xl px-3 py-3 text-left text-sm font-semibold text-[var(--text)] transition-colors active:bg-[var(--surface-2)] disabled:opacity-50"
-              >
-                <span>{s.name}</span>
-                {current && (
-                  <Check
-                    size={16}
-                    aria-hidden="true"
-                    className="text-[var(--brand-primary)]"
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-3 flex gap-2 border-t border-[var(--divider)] pt-3">
-          <button
-            type="button"
-            onClick={onWon}
-            className="flex-1 rounded-xl bg-emerald-600 py-3 text-[13px] font-bold uppercase tracking-wider text-white active:scale-[0.98]"
-          >
-            Mark Won
-          </button>
-          <button
-            type="button"
-            onClick={onLost}
-            className="flex-1 rounded-xl border border-[var(--border)] py-3 text-[13px] font-bold uppercase tracking-wider text-[var(--text-muted)] active:scale-[0.98] active:bg-[var(--surface-2)]"
-          >
-            Mark Lost
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

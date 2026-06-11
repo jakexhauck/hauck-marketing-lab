@@ -60,12 +60,6 @@ export interface ApiLead {
   assignedUserId: string | null;
 }
 
-export interface ApiPipeline {
-  pipelineId: string | null;
-  name: string | null;
-  stages: { id: string; name: string }[];
-}
-
 export interface ApiPipelineSummary {
   id: string;
   name: string;

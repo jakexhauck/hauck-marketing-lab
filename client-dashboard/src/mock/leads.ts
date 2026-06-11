@@ -1,5 +1,6 @@
-import type { Lead, LeadStage } from "../types";
+import type { Lead, LeadStatus } from "../types";
 import { getUsersForClient } from "./users";
+import { getMockPipelinesForClient } from "./pipelines";
 
 // Deterministic PRNG so the demo is stable across reloads.
 function mulberry32(seed: number) {
@@ -17,7 +18,6 @@ interface NicheConfig {
   ads: string[];
   campaign: string;
   valueRange: [number, number];
-  stages: LeadStage[];
 }
 
 const NICHES: Record<string, NicheConfig> = {
@@ -27,7 +27,6 @@ const NICHES: Record<string, NicheConfig> = {
     ads: ["Spring Roof Promo", "Free Estimate Lead Form", "Storm Damage Inspection", "Senior Roof Discount", "Free Drone Inspection"],
     campaign: "FB-Lead-Form-2026-Q2",
     valueRange: [4000, 25000],
-    stages: ["new", "contacted", "estimate-sent", "booked", "won", "lost", "no-show"],
   },
   "glow-medspa": {
     firstNames: ["Emma", "Olivia", "Sophia", "Mia", "Isabella", "Charlotte", "Amelia", "Harper", "Evelyn", "Abigail", "Ella", "Avery", "Scarlett", "Grace", "Chloe", "Lily", "Madison", "Aubrey", "Hannah", "Layla"],
@@ -35,7 +34,6 @@ const NICHES: Record<string, NicheConfig> = {
     ads: ["Botox $9/unit Spring", "Free Skin Consult", "Filler Friday", "Bridal Glow Package", "Membership Trial"],
     campaign: "IG-Reels-2026-Q2",
     valueRange: [300, 2000],
-    stages: ["new", "contacted", "consultation", "booked", "won", "lost", "no-show"],
   },
   "apex-detailing": {
     firstNames: ["Chris", "Tyler", "Brandon", "Jason", "Eric", "Derek", "Aaron", "Brian", "Cody", "Dustin", "Ethan", "Garrett", "Hunter", "Ian", "Jared", "Kyle", "Logan", "Nate", "Owen", "Pete"],
@@ -43,32 +41,28 @@ const NICHES: Record<string, NicheConfig> = {
     ads: ["Ceramic Coat Offer", "Detail My Truck", "Interior Deep Clean", "Pre-Sale Detail Special", "Mobile Detail Promo"],
     campaign: "FB-Local-Awareness-2026-Q2",
     valueRange: [150, 800],
-    stages: ["new", "contacted", "booked", "won", "lost", "no-show"],
   },
 };
 
-// Target distribution: 30% new, 25% contacted, 20% booked, 10% won, 10% lost, 5% no-show.
-// Roofer and med-spa add an interstitial stage; we slot 15% of the contacted bucket into that.
 const COUNT_PER_CLIENT = 20;
 
-function pickStage(rng: () => number, niche: NicheConfig): LeadStage {
+// Target distribution: ~75% open (skewed toward early stages), 15% won, 10% lost.
+function pickStatus(rng: () => number): LeadStatus {
   const r = rng();
-  const hasInterstitial = niche.stages.includes("estimate-sent") || niche.stages.includes("consultation");
-  if (hasInterstitial) {
-    if (r < 0.25) return "new";
-    if (r < 0.45) return "contacted";
-    if (r < 0.55) return niche.stages.includes("estimate-sent") ? "estimate-sent" : "consultation";
-    if (r < 0.75) return "booked";
-    if (r < 0.85) return "won";
-    if (r < 0.95) return "lost";
-    return "no-show";
+  if (r < 0.75) return "open";
+  if (r < 0.9) return "won";
+  return "lost";
+}
+
+function pickStageIndex(rng: () => number, stageCount: number, status: LeadStatus): number {
+  if (stageCount === 0) return -1;
+  if (status !== "open") {
+    // Won/lost leads keep whatever stage they last sat in.
+    return Math.floor(rng() * stageCount);
   }
-  if (r < 0.3) return "new";
-  if (r < 0.55) return "contacted";
-  if (r < 0.75) return "booked";
-  if (r < 0.85) return "won";
-  if (r < 0.95) return "lost";
-  return "no-show";
+  // Bias open leads toward the front of the pipeline.
+  const r = rng();
+  return Math.min(stageCount - 1, Math.floor(r * r * stageCount));
 }
 
 function fakePhone(rng: () => number): string {
@@ -83,7 +77,8 @@ function fakeEmail(first: string, last: string): string {
 
 function generateLeadsForClient(clientId: string, seed: number): Lead[] {
   const niche = NICHES[clientId];
-  if (!niche) return [];
+  const pipeline = getMockPipelinesForClient(clientId)[0];
+  if (!niche || !pipeline) return [];
   const rng = mulberry32(seed);
   const reps = getUsersForClient(clientId).filter((u) => u.role === "rep");
   const now = Date.now();
@@ -93,11 +88,13 @@ function generateLeadsForClient(clientId: string, seed: number): Lead[] {
   for (let i = 0; i < COUNT_PER_CLIENT; i++) {
     const first = niche.firstNames[Math.floor(rng() * niche.firstNames.length)];
     const last = niche.lastNames[Math.floor(rng() * niche.lastNames.length)];
-    const stage = pickStage(rng, niche);
+    const status = pickStatus(rng);
+    const stageIdx = pickStageIndex(rng, pipeline.stages.length, status);
+    const stage = pipeline.stages[stageIdx];
     const createdAt = new Date(now - rng() * thirtyDays);
     const lastActivityAt = new Date(createdAt.getTime() + rng() * (now - createdAt.getTime()));
     const value =
-      stage === "won"
+      status === "won"
         ? Math.round((niche.valueRange[0] + rng() * (niche.valueRange[1] - niche.valueRange[0])) / 50) * 50
         : null;
     const assignedUserId = reps.length > 0 ? reps[Math.floor(rng() * reps.length)].id : null;
@@ -110,7 +107,12 @@ function generateLeadsForClient(clientId: string, seed: number): Lead[] {
       email: fakeEmail(first, last),
       sourceAd: niche.ads[Math.floor(rng() * niche.ads.length)],
       sourceCampaign: niche.campaign,
-      stage,
+      pipelineId: pipeline.id,
+      pipelineStageId: stage?.id ?? "",
+      status,
+      stageName: stage?.name ?? "Unknown stage",
+      stagePosition: stageIdx,
+      pipelineName: pipeline.name,
       value,
       createdAt: createdAt.toISOString(),
       lastActivityAt: lastActivityAt.toISOString(),

@@ -1,17 +1,17 @@
 import clsx from "clsx";
-import type { LeadStage } from "../types";
-import { stageColors, stageLabels } from "../lib/stageColors";
+import type { Lead } from "../types";
+import { leadStageColor, leadStageLabel } from "../lib/stageColors";
 import { useClient } from "../context/ClientContext";
 
 interface Props {
-  stage: LeadStage;
+  lead: Lead;
   className?: string;
 }
 
-export default function StagePill({ stage, className }: Props) {
+export default function StagePill({ lead, className }: Props) {
   const { client } = useClient();
-  const c = stageColors[stage];
-  const label = stage === "won" ? client.pipeline.wonLabel : stageLabels[stage];
+  const c = leadStageColor(lead);
+  const label = leadStageLabel(lead, client.pipeline.wonLabel);
   return (
     <span
       className={clsx(

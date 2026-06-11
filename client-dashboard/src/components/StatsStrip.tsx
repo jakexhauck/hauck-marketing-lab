@@ -113,7 +113,7 @@ export default function StatsStrip({
     secondary = (
       <div className="grid grid-cols-3 gap-2 px-5">
         <StatCard label="Leads" value={<AnimatedNumber value={stats.leadsMtd} />} />
-        <StatCard label="Booked" value={<AnimatedNumber value={stats.bookedMtd} />} />
+        <StatCard label="Progressed" value={<AnimatedNumber value={stats.progressedMtd} />} />
         <StatCard label={wonLabel} value={<AnimatedNumber value={stats.wonMtd} />} />
       </div>
     );
@@ -138,26 +138,26 @@ export default function StatsStrip({
     secondary = (
       <div className="grid grid-cols-3 gap-2 px-5">
         <StatCard label="My Leads" value={<AnimatedNumber value={stats.leadsMtd} />} />
-        <StatCard label="My Booked" value={<AnimatedNumber value={stats.bookedMtd} />} />
+        <StatCard label="My Progressed" value={<AnimatedNumber value={stats.progressedMtd} />} />
         <StatCard label={`My ${wonLabel}`} value={<AnimatedNumber value={stats.wonMtd} />} />
       </div>
     );
   } else {
     // Manager
-    const bookedRate =
+    const progressRate =
       stats.leadsMtd === 0
         ? 0
-        : Math.round((stats.bookedMtd / stats.leadsMtd) * 100);
+        : Math.round((stats.progressedMtd / stats.leadsMtd) * 100);
     hero = (
       <HeroCard
-        label="Booked rate"
+        label="Progress rate"
         value={
-          <AnimatedNumber value={bookedRate} format={(n) => `${Math.round(n)}%`} />
+          <AnimatedNumber value={progressRate} format={(n) => `${Math.round(n)}%`} />
         }
         meta={
           <>
-            <span className="text-white">{stats.bookedMtd}</span>
-            <span className="text-white/60">booked</span>
+            <span className="text-white">{stats.progressedMtd}</span>
+            <span className="text-white/60">progressed</span>
             <Dot />
             <span className="text-white">{stats.leadsMtd}</span>
             <span className="text-white/60">total leads</span>
@@ -168,15 +168,8 @@ export default function StatsStrip({
     secondary = (
       <div className="grid grid-cols-3 gap-2 px-5">
         <StatCard label="Leads" value={<AnimatedNumber value={stats.leadsMtd} />} />
-        <StatCard label="Booked" value={<AnimatedNumber value={stats.bookedMtd} />} />
-        <StatCard
-          label="Contacted"
-          value={
-            <AnimatedNumber
-              value={Math.max(0, stats.leadsMtd - stats.bookedMtd - stats.wonMtd)}
-            />
-          }
-        />
+        <StatCard label="Progressed" value={<AnimatedNumber value={stats.progressedMtd} />} />
+        <StatCard label="New" value={<AnimatedNumber value={stats.newMtd} />} />
       </div>
     );
   }

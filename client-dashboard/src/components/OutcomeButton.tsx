@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import clsx from "clsx";
 
-export type OutcomeVariant = "booked" | "won" | "lost" | "no-show";
+export type OutcomeVariant = "won" | "lost" | "move";
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant: OutcomeVariant;
@@ -9,10 +9,9 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANT_CLASSES: Record<OutcomeVariant, string> = {
-  booked: "bg-amber-500 active:bg-amber-600",
   won: "bg-emerald-600 active:bg-emerald-700",
   lost: "bg-rose-600 active:bg-rose-700",
-  "no-show": "bg-slate-500 active:bg-slate-600",
+  move: "bg-slate-600 active:bg-slate-700",
 };
 
 export default function OutcomeButton({

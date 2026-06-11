@@ -14,20 +14,23 @@ import { HeroIconButton } from "../components/HeroUi";
 import BackButton from "../components/BackButton";
 import OutcomeButton from "../components/OutcomeButton";
 import WonSheet from "../components/WonSheet";
+import MoveStageSheet from "../components/MoveStageSheet";
 import Avatar from "../components/Avatar";
 import BrandedButton from "../components/BrandedButton";
 import Toast from "../components/Toast";
 import { useLeads } from "../context/LeadsContext";
+import { usePipelines } from "../context/PipelinesContext";
 import { useClient } from "../context/ClientContext";
 import { useAuth } from "../context/AuthContext";
 import { timeAgo } from "../lib/timeAgo";
 import { formatMoney } from "../lib/formatMoney";
+import { leadStageLabel } from "../lib/stageColors";
 import { e164, formatPhone } from "../lib/phone";
 import ConversationThread from "../components/ConversationThread";
 import MessageComposer from "../components/MessageComposer";
 import NoteList from "../components/NoteList";
 import TaskList from "../components/TaskList";
-import type { LeadActivity, LeadStage } from "../types";
+import type { LeadActivity } from "../types";
 
 const currencyFmt = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -61,13 +64,6 @@ function timeAgoVerbose(iso: string, now: number = Date.now()): string {
   return `${day} day${day === 1 ? "" : "s"} ago`;
 }
 
-function prettyStage(stage: LeadStage): string {
-  return stage
-    .split("-")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 interface TimelineEntryProps {
   entry: LeadActivity;
   isLast: boolean;
@@ -84,9 +80,9 @@ function TimelineEntry({ entry, isLast, wonLabel }: TimelineEntryProps) {
   if (entry.kind === "created") {
     title = "Lead created";
   } else if (entry.kind === "stage-change") {
-    const from = entry.fromStage ? prettyStage(entry.fromStage) : "";
-    const to = entry.toStage ? prettyStage(entry.toStage) : "";
-    title = `Stage: ${from} to ${to}`;
+    const from = entry.fromStage ?? "";
+    const to = entry.toStage ?? "";
+    title = from ? `Stage: ${from} to ${to}` : `Stage set to ${to}`;
   } else if (entry.kind === "note") {
     title = "Note added";
     body = entry.body ?? null;
@@ -130,16 +126,24 @@ function TimelineEntry({ entry, isLast, wonLabel }: TimelineEntryProps) {
 export default function LeadDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getLead, markStage, getActivitiesForLead, addNote } = useLeads();
+  const { getLead, markWon, markLost, moveStage, getActivitiesForLead, addNote } =
+    useLeads();
+  const { pipelines } = usePipelines();
   const { client } = useClient();
   const { session } = useAuth();
   const [wonOpen, setWonOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [showAllActivity, setShowAllActivity] = useState(false);
   const wonLabel = client.pipeline.wonLabel;
 
   const lead = id ? getLead(id) : undefined;
+  // The move sheet lists the lead's OWN pipeline's stages, never another
+  // pipeline's. No pipeline match (deleted in GHL) means no move action.
+  const leadPipeline = lead
+    ? pipelines.find((p) => p.id === lead.pipelineId)
+    : undefined;
 
   const activities = useMemo(
     () => (lead ? getActivitiesForLead(lead.id) : []),
@@ -170,24 +174,26 @@ export default function LeadDetail() {
     );
   }
 
-  const goBackWithToast = (stage: LeadStage, value?: number) => {
-    markStage(lead.id, stage, value);
-    let message = "";
-    if (stage === "booked") message = "Marked as Booked";
-    else if (stage === "lost") message = "Marked as Lost";
-    else if (stage === "no-show") message = "Marked as No-Show";
-    else if (stage === "won") {
-      message =
-        typeof value === "number"
-          ? `Marked as ${wonLabel}, ${currencyFmt.format(value)}`
-          : `Marked as ${wonLabel}`;
-    }
+  const goBackWithToast = (message: string) => {
     navigate("/leads", { state: { toast: message } });
   };
 
   const handleWonSave = (value: number) => {
     setWonOpen(false);
-    goBackWithToast("won", value);
+    markWon(lead.id, value);
+    goBackWithToast(`Marked as ${wonLabel}, ${currencyFmt.format(value)}`);
+  };
+
+  const handleLost = () => {
+    setMoveOpen(false);
+    markLost(lead.id);
+    goBackWithToast("Marked as Lost");
+  };
+
+  const handleMove = (stageId: string, stageName: string) => {
+    setMoveOpen(false);
+    moveStage(lead.id, stageId, stageName);
+    goBackWithToast(`Moved to ${stageName}`);
   };
 
   const handleAddNote = () => {
@@ -232,13 +238,18 @@ export default function LeadDetail() {
             <h1 className="truncate font-display text-2xl font-bold tracking-tight text-white">
               {lead.name}
             </h1>
-            <div className="mt-1.5">
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               <span
                 className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-bold text-white"
                 style={{ background: "rgba(255,255,255,0.16)" }}
               >
-                {prettyStage(lead.stage)}
+                {leadStageLabel(lead, wonLabel)}
               </span>
+              {lead.pipelineName && (
+                <span className="text-xs text-white/60">
+                  {lead.pipelineName}
+                </span>
+              )}
             </div>
             {(lead.sourceAd || lead.sourceCampaign) && (
               <div className="mt-1.5 truncate text-xs text-white/60">
@@ -410,37 +421,40 @@ export default function LeadDetail() {
         <section className="flex flex-col gap-3">
           <h2 className="label-cap-strong px-1">Mark outcome</h2>
           <OutcomeButton
-            variant="booked"
-            disabled={lead.stage === "booked"}
-            onClick={() => goBackWithToast("booked")}
-          >
-            Mark Booked
-          </OutcomeButton>
-          <OutcomeButton
             variant="won"
-            disabled={lead.stage === "won"}
+            disabled={lead.status === "won"}
             onClick={() => setWonOpen(true)}
           >
             {`Mark ${wonLabel}`}
           </OutcomeButton>
           <OutcomeButton
             variant="lost"
-            disabled={lead.stage === "lost"}
-            onClick={() => goBackWithToast("lost")}
+            disabled={lead.status === "lost"}
+            onClick={handleLost}
           >
             Mark Lost
           </OutcomeButton>
-          {lead.stage === "booked" && (
+          {leadPipeline && leadPipeline.stages.length > 0 && (
             <OutcomeButton
-              variant="no-show"
+              variant="move"
               disabled={false}
-              onClick={() => goBackWithToast("no-show")}
+              onClick={() => setMoveOpen(true)}
             >
-              Mark No-Show
+              Move Stage
             </OutcomeButton>
           )}
         </section>
       </div>
+
+      {moveOpen && leadPipeline && (
+        <MoveStageSheet
+          leadName={lead.name}
+          currentStageId={lead.pipelineStageId}
+          stages={leadPipeline.stages}
+          onClose={() => setMoveOpen(false)}
+          onPickStage={handleMove}
+        />
+      )}
 
       <WonSheet open={wonOpen} onCancel={() => setWonOpen(false)} onSave={handleWonSave} />
     </Shell>

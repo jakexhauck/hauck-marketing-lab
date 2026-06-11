@@ -12,9 +12,15 @@ interface Props {
 }
 
 // Shorten "Database Reactivation Pipeline" -> "Database Reactivation" for the
-// header. GHL names all end in "Pipeline"; drop the redundant suffix.
+// header. Names that do not end in "Pipeline" fall back to their first two
+// words, capped at ~16 characters.
 function shortName(name: string): string {
-  return name.replace(/\s+Pipeline$/i, "").trim();
+  const trimmed = name.trim();
+  if (/\s+Pipeline$/i.test(trimmed)) {
+    return trimmed.replace(/\s+Pipeline$/i, "").trim();
+  }
+  const twoWords = trimmed.split(/\s+/).slice(0, 2).join(" ");
+  return twoWords.length > 16 ? `${twoWords.slice(0, 15).trimEnd()}…` : twoWords;
 }
 
 export default function PipelineSwitcher({

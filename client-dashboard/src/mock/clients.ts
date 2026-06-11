@@ -12,15 +12,6 @@ export const clients: Client[] = [
       appName: "Smith Leads",
     },
     pipeline: {
-      stages: [
-        "new",
-        "contacted",
-        "estimate-sent",
-        "booked",
-        "won",
-        "lost",
-        "no-show",
-      ],
       wonLabel: "Sold",
       valueLabel: "Job Value",
     },
@@ -38,15 +29,6 @@ export const clients: Client[] = [
       appName: "Glow Leads",
     },
     pipeline: {
-      stages: [
-        "new",
-        "contacted",
-        "consultation",
-        "booked",
-        "won",
-        "lost",
-        "no-show",
-      ],
       wonLabel: "Booked & Paid",
       valueLabel: "Treatment Value",
     },
@@ -64,14 +46,6 @@ export const clients: Client[] = [
       appName: "Apex Leads",
     },
     pipeline: {
-      stages: [
-        "new",
-        "contacted",
-        "booked",
-        "won",
-        "lost",
-        "no-show",
-      ],
       wonLabel: "Closed",
       valueLabel: "Service Total",
     },

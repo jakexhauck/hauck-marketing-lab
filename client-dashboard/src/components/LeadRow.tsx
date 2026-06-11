@@ -6,12 +6,11 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { ArrowRight, Phone } from "lucide-react";
-import type { Lead, LeadStage } from "../types";
+import type { Lead } from "../types";
 import StagePill from "./StagePill";
 import Avatar from "./Avatar";
 import { timeAgo } from "../lib/timeAgo";
-import { stageLabels } from "../lib/stageColors";
-import { useClient } from "../context/ClientContext";
+import { usePipelines } from "../context/PipelinesContext";
 import { useLeads } from "../context/LeadsContext";
 
 interface Props {
@@ -29,27 +28,9 @@ const ACTION_WIDTH = 100;
 
 type DragAxis = "none" | "horizontal" | "vertical";
 
-function getNextStage(currentStage: LeadStage, stages: LeadStage[]): LeadStage | null {
-  // Terminal stages — no advance.
-  if (currentStage === "won" || currentStage === "lost" || currentStage === "no-show") {
-    return null;
-  }
-  const idx = stages.indexOf(currentStage);
-  if (idx === -1) return null;
-  // Find the next stage in the pipeline that isn't terminal.
-  for (let i = idx + 1; i < stages.length; i += 1) {
-    const candidate = stages[i];
-    if (candidate === "won" || candidate === "lost" || candidate === "no-show") {
-      continue;
-    }
-    return candidate;
-  }
-  return null;
-}
-
 export default function LeadRow({ lead, onTap, onAction, isLast = false }: Props) {
-  const { client } = useClient();
-  const { advanceStage } = useLeads();
+  const { pipelines } = usePipelines();
+  const { moveStage } = useLeads();
 
   const [offset, setOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -61,7 +42,13 @@ export default function LeadRow({ lead, onTap, onAction, isLast = false }: Props
   const suppressClickRef = useRef(false);
   const pointerIdRef = useRef<number | null>(null);
 
-  const nextStage = getNextStage(lead.stage, client.pipeline.stages);
+  // Next stage = the following stage in the lead's own pipeline, by position.
+  // Only open leads advance; terminal statuses and unknown stages do not.
+  const pipeline = pipelines.find((p) => p.id === lead.pipelineId);
+  const nextStage =
+    lead.status === "open" && pipeline && lead.stagePosition >= 0
+      ? (pipeline.stages[lead.stagePosition + 1] ?? null)
+      : null;
   const hasPhone = Boolean(lead.phone);
   const telDigits = hasPhone ? lead.phone.replace(/[^0-9+]/g, "") : "";
 
@@ -75,14 +62,10 @@ export default function LeadRow({ lead, onTap, onAction, isLast = false }: Props
 
   const commitAdvance = useCallback(() => {
     if (!nextStage) return;
-    advanceStage(lead.id, nextStage);
-    const message =
-      nextStage === "contacted"
-        ? "Marked contacted"
-        : `Stage moved to ${stageLabels[nextStage]}`;
-    onAction?.(message);
+    moveStage(lead.id, nextStage.id, nextStage.name);
+    onAction?.(`Moved to ${nextStage.name}`);
     reset();
-  }, [advanceStage, lead.id, nextStage, onAction, reset]);
+  }, [moveStage, lead.id, nextStage, onAction, reset]);
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     // Only respond to primary pointer (left mouse / single touch / pen).
@@ -240,11 +223,7 @@ export default function LeadRow({ lead, onTap, onAction, isLast = false }: Props
         <button
           type="button"
           onClick={handleAdvanceClick}
-          aria-label={
-            nextStage === "contacted"
-              ? "Mark contacted"
-              : `Move to ${stageLabels[nextStage]}`
-          }
+          aria-label={`Move to ${nextStage.name}`}
           className="absolute inset-y-0 right-0 flex items-center justify-center gap-1.5 text-white"
           style={{
             width: `${ACTION_WIDTH}px`,
@@ -253,7 +232,7 @@ export default function LeadRow({ lead, onTap, onAction, isLast = false }: Props
         >
           <ArrowRight size={20} aria-hidden="true" />
           <span className="label-cap" style={{ color: "#ffffff" }}>
-            {nextStage === "contacted" ? "Contacted" : stageLabels[nextStage]}
+            {nextStage.name}
           </span>
         </button>
       )}
@@ -293,7 +272,7 @@ export default function LeadRow({ lead, onTap, onAction, isLast = false }: Props
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <StagePill stage={lead.stage} />
+          <StagePill lead={lead} />
           <span className="tabular-figs text-[10.5px] font-semibold text-[var(--text-faint)]">
             {timeAgo(lead.lastActivityAt)}
           </span>

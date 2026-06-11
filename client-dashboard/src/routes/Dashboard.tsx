@@ -4,13 +4,15 @@ import { Sun } from "lucide-react";
 import Shell from "../components/Shell";
 import TopBar from "../components/TopBar";
 import ViewTabs from "../components/ViewTabs";
-import StageFilter, { type StageFilterValue } from "../components/StageFilter";
+import StageFilter, { type StageFilterOption } from "../components/StageFilter";
 import StatsStrip from "../components/StatsStrip";
 import LeadRow from "../components/LeadRow";
+import PipelineSwitcher from "../components/PipelineSwitcher";
 import SearchBar from "../components/SearchBar";
 import EmptyState from "../components/EmptyState";
 import Toast from "../components/Toast";
 import { useLeads } from "../context/LeadsContext";
+import { usePipelines } from "../context/PipelinesContext";
 import { useClient } from "../context/ClientContext";
 import { useAuth } from "../context/AuthContext";
 import { computeStats } from "../lib/computeStats";
@@ -20,22 +22,33 @@ interface DashboardLocationState {
   toast?: string;
 }
 
+// Sentinel chip ids for the status filters that follow the real stage chips.
+const WON = "__won__";
+const LOST = "__lost__";
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const { leads: allLeads } = useLeads();
+  const { pipelines, selectedId, selected, setSelectedId } = usePipelines();
   const { client } = useClient();
   const { currentUser } = useAuth();
-  const [active, setActive] = useState<StageFilterValue>(
-    () => client.pipeline.stages[0] ?? "new",
-  );
+  const [active, setActive] = useState<string>("");
   const [query, setQuery] = useState<string>("");
 
+  const stages = useMemo(() => selected?.stages ?? [], [selected]);
+
+  // Default to the first real stage once the pipeline loads, and heal a
+  // selection that no longer exists after a pipeline switch.
   useEffect(() => {
-    if (!client.pipeline.stages.includes(active)) {
-      setActive(client.pipeline.stages[0] ?? "new");
+    const valid =
+      active === WON ||
+      active === LOST ||
+      stages.some((s) => s.id === active);
+    if (!valid) {
+      setActive(stages[0]?.id ?? "");
     }
-  }, [client.pipeline.stages, active]);
+  }, [stages, active]);
 
   useEffect(() => {
     if (currentUser?.role === "rep") {
@@ -48,11 +61,13 @@ export default function Dashboard() {
     : permissionsFor("owner");
 
   const leads = useMemo(() => {
+    let out = allLeads;
+    if (selectedId) out = out.filter((l) => l.pipelineId === selectedId);
     if (permissions.assignedOnly && currentUser) {
-      return allLeads.filter((l) => l.assignedUserId === currentUser.id);
+      out = out.filter((l) => l.assignedUserId === currentUser.id);
     }
-    return allLeads;
-  }, [allLeads, permissions.assignedOnly, currentUser]);
+    return out;
+  }, [allLeads, selectedId, permissions.assignedOnly, currentUser]);
 
   const stats = useMemo(
     () => computeStats(leads, client.monthlySpend),
@@ -62,7 +77,7 @@ export default function Dashboard() {
   const repWonValue = useMemo(() => {
     if (!permissions.assignedOnly) return 0;
     return leads
-      .filter((l) => l.stage === "won" && typeof l.value === "number")
+      .filter((l) => l.status === "won" && typeof l.value === "number")
       .reduce((sum, l) => sum + (l.value ?? 0), 0);
   }, [leads, permissions.assignedOnly]);
   const [toast, setToast] = useState<string | null>(null);
@@ -91,27 +106,39 @@ export default function Dashboard() {
     [leads]
   );
 
-  const counts = useMemo(() => {
-    const base: Record<StageFilterValue, number> = {
-      new: 0,
-      contacted: 0,
-      "estimate-sent": 0,
-      consultation: 0,
-      booked: 0,
-      won: 0,
-      lost: 0,
-      "no-show": 0,
-    };
+  // Stage chips show open leads per real stage; Won/Lost chips key off status.
+  const options = useMemo<StageFilterOption[]>(() => {
+    const openByStage: Record<string, number> = {};
+    let won = 0;
+    let lost = 0;
     for (const l of leads) {
-      base[l.stage] += 1;
+      if (l.status === "won") won += 1;
+      else if (l.status === "lost" || l.status === "abandoned") lost += 1;
+      else
+        openByStage[l.pipelineStageId] =
+          (openByStage[l.pipelineStageId] ?? 0) + 1;
     }
-    return base;
-  }, [leads]);
+    return [
+      ...stages.map((s) => ({
+        id: s.id,
+        label: s.name,
+        count: openByStage[s.id] ?? 0,
+      })),
+      { id: WON, label: client.pipeline.wonLabel, count: won },
+      { id: LOST, label: "Lost", count: lost },
+    ];
+  }, [leads, stages, client.pipeline.wonLabel]);
 
-  const stageFiltered = useMemo(
-    () => sorted.filter((l) => l.stage === active),
-    [sorted, active],
-  );
+  const stageFiltered = useMemo(() => {
+    if (active === WON) return sorted.filter((l) => l.status === "won");
+    if (active === LOST)
+      return sorted.filter(
+        (l) => l.status === "lost" || l.status === "abandoned",
+      );
+    return sorted.filter(
+      (l) => l.status === "open" && l.pipelineStageId === active,
+    );
+  }, [sorted, active]);
 
   const trimmedQuery = query.trim();
   const hasQuery = trimmedQuery.length > 0;
@@ -134,10 +161,7 @@ export default function Dashboard() {
   }, [stageFiltered, hasQuery, trimmedQuery]);
 
   const inFlight = useMemo(
-    () =>
-      leads.filter(
-        (l) => l.stage !== "won" && l.stage !== "lost" && l.stage !== "no-show"
-      ).length,
+    () => leads.filter((l) => l.status === "open").length,
     [leads]
   );
 
@@ -161,6 +185,11 @@ export default function Dashboard() {
           >
             Active Pipeline
           </span>
+          <PipelineSwitcher
+            pipelines={pipelines}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
           <h2 className="font-display text-xl font-bold tracking-tight text-[var(--text)]">
             {hasQuery ? (
               <>
@@ -189,7 +218,7 @@ export default function Dashboard() {
         <SearchBar value={query} onChange={setQuery} />
       </div>
 
-      <StageFilter active={active} counts={counts} onChange={setActive} />
+      <StageFilter options={options} active={active} onChange={setActive} />
 
       <main className="flex flex-1 flex-col px-5 pb-6">
         {visible.length === 0 ? (

@@ -7,19 +7,20 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Lead, LeadActivity, LeadStage } from "../types";
+import type { Lead, LeadActivity, LeadStatus } from "../types";
 import { getLeadsForClient } from "../mock";
 import { useClient } from "./ClientContext";
 import { useAuth } from "./AuthContext";
-import { useLeadsQuery, usePipelineQuery, useUpdateLead } from "../hooks/useApi";
-import { mapGhlStage } from "../lib/stageMap";
-import type { ApiLead } from "../lib/api";
+import { usePipelines } from "./PipelinesContext";
+import { useLeadsQuery, useUpdateLead } from "../hooks/useApi";
+import type { ApiLead, ApiPipelineSummary } from "../lib/api";
 
 interface LeadsContextValue {
   leads: Lead[];
   getLead: (id: string) => Lead | undefined;
-  markStage: (leadId: string, stage: LeadStage, value?: number) => void;
-  advanceStage: (leadId: string, toStage: LeadStage) => void;
+  markWon: (leadId: string, value?: number) => void;
+  markLost: (leadId: string) => void;
+  moveStage: (leadId: string, stageId: string, stageName: string) => void;
   getActivitiesForLead: (leadId: string) => LeadActivity[];
   addNote: (leadId: string, body: string) => void;
   isLoading: boolean;
@@ -35,12 +36,24 @@ function newId(): string {
   return `id-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
 }
 
+function normalizeStatus(raw: string | undefined): LeadStatus {
+  const s = (raw ?? "open").toLowerCase();
+  if (s === "won" || s === "lost" || s === "abandoned") return s;
+  return "open";
+}
+
+// Resolve a lead's display stage by looking up its (pipelineId,
+// pipelineStageId) in the real pipelines list. A lead whose pipeline or stage
+// no longer exists renders "Unknown stage" rather than crashing.
 function adaptApiLead(
   a: ApiLead,
-  pipelineStages: { id: string; name: string }[] | undefined,
+  pipelines: ApiPipelineSummary[],
   fallbackClientId: string,
 ): Lead {
-  const stageName = pipelineStages?.find((s) => s.id === a.pipelineStageId)?.name;
+  const pipeline = pipelines.find((p) => p.id === a.pipelineId);
+  const stageIdx = pipeline
+    ? pipeline.stages.findIndex((s) => s.id === a.pipelineStageId)
+    : -1;
   return {
     id: a.id,
     clientId: fallbackClientId,
@@ -51,7 +64,12 @@ function adaptApiLead(
     email: a.email,
     sourceAd: "",
     sourceCampaign: "",
-    stage: mapGhlStage(stageName, a.status),
+    pipelineId: a.pipelineId,
+    pipelineStageId: a.pipelineStageId,
+    status: normalizeStatus(a.status),
+    stageName: stageIdx >= 0 ? pipeline!.stages[stageIdx].name : "Unknown stage",
+    stagePosition: stageIdx,
+    pipelineName: pipeline?.name ?? "",
     value: a.value,
     createdAt: a.createdAt,
     lastActivityAt: a.lastActivityAt,
@@ -59,6 +77,13 @@ function adaptApiLead(
     // (NoteList via /api/contacts/{id}/notes).
     notes: null,
   };
+}
+
+function seedStageLabel(lead: Lead): string {
+  if (lead.status === "won") return "Won";
+  if (lead.status === "lost") return "Lost";
+  if (lead.status === "abandoned") return "Abandoned";
+  return lead.stageName;
 }
 
 function seedActivitiesForLead(lead: Lead): LeadActivity[] {
@@ -70,17 +95,16 @@ function seedActivitiesForLead(lead: Lead): LeadActivity[] {
     kind: "created",
     at: Number.isFinite(createdAtMs) ? createdAtMs : Date.now(),
   });
-  if (lead.stage !== "new") {
+  if (lead.status !== "open" || lead.stagePosition > 0) {
     const lastMs = new Date(lead.lastActivityAt).getTime();
     out.push({
       id: `${lead.id}-seed-stage`,
       leadId: lead.id,
       kind: "stage-change",
       at: Number.isFinite(lastMs) ? lastMs : Date.now(),
-      fromStage: "new",
-      toStage: lead.stage,
+      toStage: seedStageLabel(lead),
     });
-    if (lead.stage === "won" && typeof lead.value === "number") {
+    if (lead.status === "won" && typeof lead.value === "number") {
       out.push({
         id: `${lead.id}-seed-won`,
         leadId: lead.id,
@@ -104,7 +128,8 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
   const { currentUser, session } = useAuth();
   const useReal = Boolean(session);
 
-  const pipelineQuery = usePipelineQuery(useReal);
+  const { pipelines, isLoading: pipelinesLoading, error: pipelinesError } =
+    usePipelines();
   const leadsQuery = useLeadsQuery(useReal);
   const updateLead = useUpdateLead();
 
@@ -125,9 +150,9 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
   const realLeads = useMemo<Lead[]>(() => {
     if (!useReal || !leadsQuery.data) return [];
     return leadsQuery.data.leads.map((a) =>
-      adaptApiLead(a, pipelineQuery.data?.stages, client.id),
+      adaptApiLead(a, pipelines, client.id),
     );
-  }, [useReal, leadsQuery.data, pipelineQuery.data?.stages, client.id]);
+  }, [useReal, leadsQuery.data, pipelines, client.id]);
 
   useEffect(() => {
     if (!useReal || realLeads.length === 0) return;
@@ -150,107 +175,101 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     [leads],
   );
 
-  const applyMockStage = useCallback(
-    (leadId: string, stage: LeadStage, value?: number) => {
+  const recordOutcome = useCallback(
+    (lead: Lead, toLabel: string, value?: number) => {
       const at = Date.now();
       const authorUserId = currentUser?.id;
-      setMockLeads((prev) => {
-        const target = prev.find((l) => l.id === leadId);
-        if (!target) return prev;
-        const fromStage = target.stage;
-        const newEntries: LeadActivity[] = [];
-        if (fromStage !== stage) {
-          newEntries.push({
-            id: newId(),
-            leadId,
-            kind: "stage-change",
-            at,
-            authorUserId,
-            fromStage,
-            toStage: stage,
-          });
-        }
-        if (stage === "won" && typeof value === "number") {
-          newEntries.push({
-            id: newId(),
-            leadId,
-            kind: "won-recorded",
-            at,
-            authorUserId,
-            value,
-          });
-        }
-        appendActivities(newEntries);
-        return prev.map((l) => {
-          if (l.id !== leadId) return l;
-          const nextValue =
-            stage === "won" && typeof value === "number" ? value : l.value;
-          return {
-            ...l,
-            stage,
-            value: nextValue,
-            lastActivityAt: new Date(at).toISOString(),
-          };
+      const entries: LeadActivity[] = [
+        {
+          id: newId(),
+          leadId: lead.id,
+          kind: "stage-change",
+          at,
+          authorUserId,
+          fromStage: seedStageLabel(lead),
+          toStage: toLabel,
+        },
+      ];
+      if (typeof value === "number") {
+        entries.push({
+          id: newId(),
+          leadId: lead.id,
+          kind: "won-recorded",
+          at,
+          authorUserId,
+          value,
         });
-      });
+      }
+      appendActivities(entries);
+      return at;
     },
     [currentUser, appendActivities],
   );
 
-  const markStage = useCallback(
-    (leadId: string, stage: LeadStage, value?: number) => {
-      const at = Date.now();
-      const authorUserId = currentUser?.id;
-      if (useReal) {
-        appendActivities([
-          {
-            id: newId(),
-            leadId,
-            kind: "stage-change",
-            at,
-            authorUserId,
-            fromStage: leads.find((l) => l.id === leadId)?.stage ?? "new",
-            toStage: stage,
-          },
-          ...(stage === "won" && typeof value === "number"
-            ? [
-                {
-                  id: newId(),
-                  leadId,
-                  kind: "won-recorded" as const,
-                  at,
-                  authorUserId,
-                  value,
-                },
-              ]
-            : []),
-        ]);
-        updateLead.mutate({
-          leadId,
-          appStage: stage,
-          value: value ?? null,
-          pipelineStages: pipelineQuery.data?.stages,
-        });
-      } else {
-        applyMockStage(leadId, stage, value);
-      }
+  const applyMockUpdate = useCallback(
+    (leadId: string, at: number, patch: Partial<Lead>) => {
+      setMockLeads((prev) =>
+        prev.map((l) =>
+          l.id === leadId
+            ? { ...l, ...patch, lastActivityAt: new Date(at).toISOString() }
+            : l,
+        ),
+      );
     },
-    [
-      useReal,
-      currentUser,
-      leads,
-      pipelineQuery.data?.stages,
-      updateLead,
-      appendActivities,
-      applyMockStage,
-    ],
+    [],
   );
 
-  const advanceStage = useCallback(
-    (leadId: string, toStage: LeadStage) => {
-      markStage(leadId, toStage);
+  const markWon = useCallback(
+    (leadId: string, value?: number) => {
+      const lead = getLead(leadId);
+      if (!lead) return;
+      const at = recordOutcome(lead, "Won", value);
+      if (useReal) {
+        updateLead.mutate({ leadId, status: "won", value: value ?? null });
+      } else {
+        applyMockUpdate(leadId, at, {
+          status: "won",
+          value: typeof value === "number" ? value : lead.value,
+        });
+      }
     },
-    [markStage],
+    [useReal, getLead, recordOutcome, updateLead, applyMockUpdate],
+  );
+
+  const markLost = useCallback(
+    (leadId: string) => {
+      const lead = getLead(leadId);
+      if (!lead) return;
+      const at = recordOutcome(lead, "Lost");
+      if (useReal) {
+        updateLead.mutate({ leadId, status: "lost" });
+      } else {
+        applyMockUpdate(leadId, at, { status: "lost" });
+      }
+    },
+    [useReal, getLead, recordOutcome, updateLead, applyMockUpdate],
+  );
+
+  const moveStage = useCallback(
+    (leadId: string, stageId: string, stageName: string) => {
+      const lead = getLead(leadId);
+      if (!lead || lead.pipelineStageId === stageId) return;
+      const at = recordOutcome(lead, stageName);
+      if (useReal) {
+        updateLead.mutate({ leadId, pipelineStageId: stageId });
+      } else {
+        const pipeline = pipelines.find((p) => p.id === lead.pipelineId);
+        const idx = pipeline
+          ? pipeline.stages.findIndex((s) => s.id === stageId)
+          : -1;
+        applyMockUpdate(leadId, at, {
+          pipelineStageId: stageId,
+          stageName,
+          stagePosition: idx,
+        });
+      }
+    },
+    [useReal, getLead, recordOutcome, updateLead, applyMockUpdate, pipelines],
   );
 
   const addNote = useCallback(
@@ -295,29 +314,30 @@ export function LeadsProvider({ children }: { children: ReactNode }) {
     () => ({
       leads,
       getLead,
-      markStage,
-      advanceStage,
+      markWon,
+      markLost,
+      moveStage,
       getActivitiesForLead,
       addNote,
-      isLoading: useReal && (leadsQuery.isLoading || pipelineQuery.isLoading),
+      isLoading: useReal && (leadsQuery.isLoading || pipelinesLoading),
       error:
         (useReal &&
-          ((leadsQuery.error as Error | null) ??
-            (pipelineQuery.error as Error | null))) ||
+          ((leadsQuery.error as Error | null) ?? pipelinesError)) ||
         null,
     }),
     [
       leads,
       getLead,
-      markStage,
-      advanceStage,
+      markWon,
+      markLost,
+      moveStage,
       getActivitiesForLead,
       addNote,
       useReal,
       leadsQuery.isLoading,
       leadsQuery.error,
-      pipelineQuery.isLoading,
-      pipelineQuery.error,
+      pipelinesLoading,
+      pipelinesError,
     ],
   );
 
