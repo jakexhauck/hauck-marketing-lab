@@ -1,5 +1,9 @@
 import type { Env } from "../../lib/env";
-import { mintSessionCookie, type SessionMode } from "../../lib/session";
+import {
+  mintSessionCookie,
+  mintSessionToken,
+  type SessionMode,
+} from "../../lib/session";
 import {
   clientIp,
   isLoginRateLimited,
@@ -78,8 +82,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     mode = "live";
   }
 
+  // Mint the token once; the cookie wraps the same value. Web clients use the
+  // HttpOnly cookie and ignore `token`; bearer clients (desktop) read `token`
+  // from the body and store it in the OS keychain.
+  const token = await mintSessionToken(ctx.env, mode);
   const cookie = await mintSessionCookie(ctx.env, mode);
-  return new Response(JSON.stringify({ ok: true, mode }), {
+  return new Response(JSON.stringify({ ok: true, mode, token }), {
     status: 200,
     headers: {
       "content-type": "application/json",

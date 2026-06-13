@@ -56,7 +56,11 @@ function sessionSecret(env: Env): string | null {
   return env.SESSION_SECRET || env.APP_PASSWORD || null;
 }
 
-export async function mintSessionCookie(
+// Mint just the signed token value (`<payload>.<sig>`), no cookie wrapper. This
+// is the bearer-equivalent secret used by non-cookie clients (desktop). The
+// cookie minting below wraps the very same value, so cookie and bearer sessions
+// are byte-for-byte the same format and verify through the same path.
+export async function mintSessionToken(
   env: Env,
   mode: SessionMode = "live",
 ): Promise<string> {
@@ -65,7 +69,14 @@ export async function mintSessionCookie(
   const exp = Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS;
   const payload = b64urlEncode(new TextEncoder().encode(`${exp}.${mode}`));
   const sig = await hmac(secret, payload);
-  const value = `${payload}.${sig}`;
+  return `${payload}.${sig}`;
+}
+
+export async function mintSessionCookie(
+  env: Env,
+  mode: SessionMode = "live",
+): Promise<string> {
+  const value = await mintSessionToken(env, mode);
   return `${COOKIE_NAME}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${MAX_AGE_SECONDS}`;
 }
 
@@ -83,11 +94,22 @@ function readCookie(req: Request, name: string): string | null {
   return null;
 }
 
+// Bearer transport for non-cookie clients (desktop). Same signed token value as
+// the cookie carries, just delivered in the Authorization header.
+function readBearer(req: Request): string | null {
+  const h = req.headers.get("authorization");
+  if (!h) return null;
+  const m = /^Bearer\s+(.+)$/i.exec(h.trim());
+  return m ? m[1] : null;
+}
+
 export async function verifySession(
   req: Request,
   env: Env,
 ): Promise<SessionData | null> {
-  const raw = readCookie(req, COOKIE_NAME);
+  // Accept the session from the cookie (web) OR the Authorization header
+  // (desktop). Both carry the identical `<payload>.<sig>` token.
+  const raw = readCookie(req, COOKIE_NAME) ?? readBearer(req);
   if (!raw) return null;
   const dot = raw.indexOf(".");
   if (dot < 0) return null;

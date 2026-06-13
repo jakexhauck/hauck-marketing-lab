@@ -1,0 +1,18 @@
+{
+  "name": "@hauck/core",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Framework-agnostic shared core for the Unified CRM: API types + transport-agnostic fetch client. Zero React/DOM deps.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3"
+  }
+}

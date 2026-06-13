@@ -1,0 +1,12 @@
+# Root workspace for the Unified CRM build.
+#
+# Deliberately scoped to ONLY the new code: the web CRM and shared packages.
+# `client-dashboard/` and `app/` keep their own pnpm-workspace.yaml files and stay
+# fully standalone — pnpm resolves the nearest workspace root when run inside them,
+# so their installs, patches, and lockfiles are untouched by this file.
+packages:
+  - "crm-web"
+  - "packages/*"
+
+allowBuilds:
+  esbuild: true

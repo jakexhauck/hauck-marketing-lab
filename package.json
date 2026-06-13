@@ -1,0 +1,14 @@
+{
+  "name": "hauck-crm-workspace",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.18.0",
+  "description": "Workspace root for the Unified CRM (web CRM + shared core). Mobile app and agency app stay standalone.",
+  "scripts": {
+    "dev": "pnpm --filter crm-web dev",
+    "build": "pnpm --filter crm-web build",
+    "preview": "pnpm --filter crm-web preview",
+    "typecheck": "pnpm -r typecheck"
+  }
+}

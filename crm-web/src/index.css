@@ -1,0 +1,293 @@
+@import "tailwindcss";
+
+/* ===========================================================================
+   Hauck CRM — "Console" design tokens
+   A media-buying operations cockpit. Calm graphite chrome, an ink-blue brand
+   signal, a gold "ledger" accent reserved exclusively for money, and a mono
+   data face for IDs / numbers / timestamps.
+   Themes swap via [data-theme]; tenant brandColor overrides --brand at runtime.
+   =========================================================================== */
+
+:root,
+[data-theme="light"] {
+  --bg: #f6f7f9;
+  --bg-grid: #eceff3;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --surface-3: #e3e8ee;
+  --rail: #fbfcfd;
+
+  --border: #dde2e9;
+  --border-strong: #c6cdd8;
+  --divider: #edf0f4;
+
+  --text: #141a23;
+  --text-muted: #5a6573;
+  --text-faint: #8b95a3;
+  --text-inverse: #ffffff;
+
+  /* Brand "signal" — overridden by /api/tenant brandColor at runtime. */
+  --brand: #1a4d8f;
+  --brand-strong: #143d72;
+  --brand-fg: #ffffff;
+  --brand-tint: color-mix(in srgb, var(--brand) 10%, transparent);
+  --brand-tint-strong: color-mix(in srgb, var(--brand) 18%, transparent);
+  --brand-text: var(--brand);
+
+  /* Ledger gold — money only. Never decorative. */
+  --ledger: #9a6f1e;
+  --ledger-tint: color-mix(in srgb, #9a6f1e 12%, transparent);
+
+  --positive: #1f7a4d;
+  --positive-tint: color-mix(in srgb, #1f7a4d 12%, transparent);
+  --warning: #b5751c;
+  --warning-tint: color-mix(in srgb, #b5751c 14%, transparent);
+  --danger: #c0413c;
+  --danger-tint: color-mix(in srgb, #c0413c 12%, transparent);
+
+  --ring: color-mix(in srgb, var(--brand) 55%, transparent);
+  --shadow-sm: 0 1px 2px rgba(20, 26, 35, 0.06), 0 1px 1px rgba(20, 26, 35, 0.04);
+  --shadow-md: 0 4px 12px rgba(20, 26, 35, 0.08), 0 2px 4px rgba(20, 26, 35, 0.05);
+  --shadow-lg: 0 16px 48px rgba(20, 26, 35, 0.16), 0 4px 12px rgba(20, 26, 35, 0.08);
+  --scrollbar: #c6cdd8;
+}
+
+[data-theme="dark"] {
+  --bg: #0b0f15;
+  --bg-grid: #11161e;
+  --surface: #141a22;
+  --surface-2: #1a212b;
+  --surface-3: #232c38;
+  --rail: #10151c;
+
+  --border: #222a35;
+  --border-strong: #313c4a;
+  --divider: #1c232d;
+
+  --text: #e9edf2;
+  --text-muted: #9aa6b4;
+  --text-faint: #66707e;
+  --text-inverse: #0b0f15;
+
+  --brand: #4b86e0;
+  --brand-strong: #3a6fc4;
+  --brand-fg: #ffffff;
+  --brand-tint: color-mix(in srgb, var(--brand) 16%, transparent);
+  --brand-tint-strong: color-mix(in srgb, var(--brand) 26%, transparent);
+  --brand-text: color-mix(in srgb, var(--brand) 88%, white);
+
+  --ledger: #d7ab51;
+  --ledger-tint: color-mix(in srgb, #d7ab51 16%, transparent);
+
+  --positive: #4fb585;
+  --positive-tint: color-mix(in srgb, #4fb585 16%, transparent);
+  --warning: #e0a64a;
+  --warning-tint: color-mix(in srgb, #e0a64a 16%, transparent);
+  --danger: #e06560;
+  --danger-tint: color-mix(in srgb, #e06560 16%, transparent);
+
+  --ring: color-mix(in srgb, var(--brand) 60%, transparent);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 20px 56px rgba(0, 0, 0, 0.6), 0 6px 16px rgba(0, 0, 0, 0.4);
+  --scrollbar: #313c4a;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-grid: var(--bg-grid);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-rail: var(--rail);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-divider: var(--divider);
+
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-inverse: var(--text-inverse);
+
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-tint: var(--brand-tint);
+  --color-brand-tint-strong: var(--brand-tint-strong);
+  --color-brand-text: var(--brand-text);
+
+  --color-ledger: var(--ledger);
+  --color-ledger-tint: var(--ledger-tint);
+
+  --color-positive: var(--positive);
+  --color-positive-tint: var(--positive-tint);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
+  --color-danger: var(--danger);
+  --color-danger-tint: var(--danger-tint);
+
+  --font-display: "Archivo Variable", "Archivo", system-ui, sans-serif;
+  --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius: 9px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    color-scheme: light dark;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv01", "cv03", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--brand-tint-strong);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+  /* Quiet, consistent scrollbars across the cockpit. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--scrollbar);
+    border-radius: 99px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--border-strong);
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  /* The signature data treatment: anything operational (IDs, money, phone,
+     timestamps, counts) renders in mono with tabular figures so columns align
+     and numbers read as ledger entries. */
+  .font-data {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  /* Money. The only place gold appears. */
+  .ledger {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--ledger);
+    letter-spacing: -0.01em;
+  }
+  /* Uppercase micro-labels for column heads, eyebrows, metadata keys. */
+  .label-cap {
+    text-transform: uppercase;
+    font-size: 10.5px;
+    line-height: 1.4;
+    letter-spacing: 0.09em;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .label-cap-strong {
+    text-transform: uppercase;
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    color: var(--text-faint);
+  }
+  /* Faint dotted grid for empty canvases / login backdrop — the "desk". */
+  .desk-grid {
+    background-image: radial-gradient(
+      var(--bg-grid) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes paletteIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -480px 0;
+  }
+  100% {
+    background-position: 480px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

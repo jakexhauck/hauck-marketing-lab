@@ -5,8 +5,11 @@ import { verifySession } from "../lib/session";
 const allowedOrigins = new Set([
   "http://localhost:5173",
   "http://localhost:8788",
+  "http://localhost:5174", // web CRM dev server
   "https://dash.hauckmarketing.com",
   "https://hauck-dashboard.pages.dev",
+  "https://crm.hauckmarketing.com", // web CRM (custom domain)
+  "https://hauck-crm.pages.dev", // web CRM (Pages default domain)
 ]);
 
 function corsHeaders(origin: string | null): HeadersInit {
