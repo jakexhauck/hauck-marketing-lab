@@ -23,6 +23,9 @@ import Simulator from "./routes/Simulator";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
+import ScrollToTop from "./components/ScrollToTop";
+import { ToastProvider } from "./context/ToastContext";
+import { NowProvider } from "./context/NowContext";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -88,8 +91,11 @@ export default function App() {
         <ClientProvider>
           <PipelinesProvider>
           <LeadsProvider>
+          <NowProvider>
+          <ToastProvider>
             <ServiceWorkerMessages />
             <OfflineBanner />
+            <ScrollToTop />
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<Login />} />
@@ -187,16 +193,22 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/simulator"
-                element={
-                  <ProtectedRoute>
-                    <Simulator />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Dev-only: the what-if simulator runs on fabricated spend
+                  numbers, which never belong on a client-facing screen. */}
+              {import.meta.env.DEV && (
+                <Route
+                  path="/simulator"
+                  element={
+                    <ProtectedRoute>
+                      <Simulator />
+                    </ProtectedRoute>
+                  }
+                />
+              )}
               <Route path="*" element={<RootRedirect />} />
             </Routes>
+          </ToastProvider>
+          </NowProvider>
           </LeadsProvider>
           </PipelinesProvider>
         </ClientProvider>

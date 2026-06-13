@@ -11,8 +11,10 @@ import PipelineSwitcher from "../components/PipelineSwitcher";
 import SearchBar from "../components/SearchBar";
 import Avatar from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
+import PullToRefresh from "../components/PullToRefresh";
 import { useAuth } from "../context/AuthContext";
 import { usePipelines } from "../context/PipelinesContext";
+import { useNow } from "../context/NowContext";
 import { usePipelineLeadsQuery, useSummaryQuery } from "../hooks/useApi";
 import { APP_BRAND } from "../lib/appBrand";
 import { formatMoney } from "../lib/formatMoney";
@@ -25,6 +27,7 @@ export default function Leads() {
   const navigate = useNavigate();
   const { session, mode } = useAuth();
   const { pipelines, selectedId, selected, setSelectedId } = usePipelines();
+  const now = useNow();
   const useReal = Boolean(session);
 
   const leadsQuery = usePipelineLeadsQuery(selectedId, useReal);
@@ -105,6 +108,7 @@ export default function Leads() {
 
   return (
     <Shell>
+      <PullToRefresh queryKeys={[["leads"], ["summary"]]} />
       {isTest && <TestBanner />}
 
       {/* Dark split hero */}
@@ -171,7 +175,21 @@ export default function Leads() {
         </div>
 
         {viewMode === "board" ? (
-          leadsQuery.isLoading ? (
+          leadsQuery.isError ? (
+            <div className="mx-5 mt-4 flex flex-col items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
+              <span>
+                Failed to load the board.{" "}
+                {(leadsQuery.error as Error | null)?.message ?? ""}
+              </span>
+              <button
+                type="button"
+                onClick={() => void leadsQuery.refetch()}
+                className="rounded-lg border border-rose-300 px-3 py-1.5 text-xs font-semibold transition-colors active:scale-[0.97] dark:border-rose-800"
+              >
+                Retry
+              </button>
+            </div>
+          ) : leadsQuery.isLoading ? (
             <div className="flex items-center justify-center py-16">
               <div
                 className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--brand-primary)]"
@@ -275,7 +293,7 @@ export default function Leads() {
                           : ""}
                       </div>
                       <div className="mt-0.5 text-[11px] font-semibold text-[var(--text-faint)]">
-                        {timeAgo(lead.lastActivityAt)}
+                        {timeAgo(lead.lastActivityAt, now)}
                       </div>
                     </div>
                   </button>

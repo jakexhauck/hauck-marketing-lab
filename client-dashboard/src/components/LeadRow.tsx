@@ -11,6 +11,7 @@ import StagePill from "./StagePill";
 import Avatar from "./Avatar";
 import { timeAgo } from "../lib/timeAgo";
 import { usePipelines } from "../context/PipelinesContext";
+import { useNow } from "../context/NowContext";
 import { useLeads } from "../context/LeadsContext";
 
 interface Props {
@@ -30,6 +31,7 @@ type DragAxis = "none" | "horizontal" | "vertical";
 
 export default function LeadRow({ lead, onTap, onAction, isLast = false }: Props) {
   const { pipelines } = usePipelines();
+  const now = useNow();
   const { moveStage } = useLeads();
 
   const [offset, setOffset] = useState(0);
@@ -274,7 +276,7 @@ export default function LeadRow({ lead, onTap, onAction, isLast = false }: Props
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <StagePill lead={lead} />
           <span className="tabular-figs text-[10.5px] font-semibold text-[var(--text-faint)]">
-            {timeAgo(lead.lastActivityAt)}
+            {timeAgo(lead.lastActivityAt, now)}
           </span>
         </div>
       </div>

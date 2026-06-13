@@ -1,10 +1,6 @@
-import type { Env, ApiData } from "../lib/env";
-import { ghlJson, type GhlOpportunity } from "../lib/ghl";
-
-interface SearchResponse {
-  opportunities: GhlOpportunity[];
-  meta?: { total?: number };
-}
+import { tenantTimezone, type Env, type ApiData } from "../lib/env";
+import { fetchAllOpportunities, ghlJson } from "../lib/ghl";
+import { startOfTodayMs } from "../lib/tz";
 
 interface PipelinesResponse {
   pipelines: { id: string; name: string }[];
@@ -17,7 +13,7 @@ interface ConvSearchResponse {
 export interface PipelineSummary {
   id: string;
   name: string;
-  total: number; // opportunities in this pipeline (from the fetched page)
+  total: number; // opportunities in this pipeline
   open: number; // status === "open"
 }
 
@@ -27,31 +23,22 @@ export interface ApiSummary {
   unreadConversations: number;
 }
 
-function startOfTodayMs(): number {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-}
-
-// One screen of cross-pipeline counts for the Home dashboard.
-// Pulls the pipeline list (for names/order) and one page of opportunities,
-// then groups client-side. Cheap: two GHL calls plus a conversations probe.
+// Cross-pipeline counts for the Home dashboard. Pulls the pipeline list (for
+// names/order) and every opportunity (paginated, shared helper), then groups
+// client-side, so counts are accurate past the first page.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const t = ctx.data.tenant;
   const gctx = { token: t.ghl_token, locationId: t.ghl_location_id };
 
-  const [pipelinesData, oppData] = await Promise.all([
+  const [pipelinesData, opps] = await Promise.all([
     ghlJson<PipelinesResponse>(
       gctx,
       `/opportunities/pipelines?locationId=${encodeURIComponent(t.ghl_location_id)}`,
     ),
-    ghlJson<SearchResponse>(
-      gctx,
-      `/opportunities/search?location_id=${encodeURIComponent(t.ghl_location_id)}&limit=100`,
-    ),
+    fetchAllOpportunities(gctx),
   ]);
 
-  const opps = oppData.opportunities ?? [];
-  const todayMs = startOfTodayMs();
+  const todayMs = startOfTodayMs(tenantTimezone(ctx.env));
 
   const byPipeline = new Map<string, { total: number; open: number }>();
   let newToday = 0;

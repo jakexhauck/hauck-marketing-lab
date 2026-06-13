@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deliverables | Hauck Marketing</title>
+  <meta name="description" content="What Hauck Marketing delivers: managed Meta ads, instant lead follow-up, a custom lead app, pipeline and booking, and plain-English reporting." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@600;700;800&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ===== Nav ===== -->
+  <header class="nav">
+    <div class="wrap nav__inner">
+      <a href="index.html" class="wordmark">Hauck Marketing</a>
+      <div class="nav__right">
+        <input type="checkbox" id="navToggle" class="nav__toggle" hidden />
+        <nav class="nav__menu" aria-label="Primary">
+          <ul class="nav__links">
+            <li><a class="nav__link" href="index.html">Home</a></li>
+            <li><a class="nav__link" href="deliverables.html" aria-current="page">Deliverables</a></li>
+            <li><a class="nav__link" href="contact.html">Contact</a></li>
+          </ul>
+        </nav>
+        <a href="contact.html" class="btn btn--primary btn--sm">Book a call</a>
+        <label for="navToggle" class="nav__burger" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===== Page head ===== -->
+    <section class="hero">
+      <div class="wrap">
+        <p class="eyebrow eyebrow--accent">Deliverables</p>
+        <h1 class="hero__h1">What you actually get.</h1>
+        <p class="hero__sub">No mystery retainer. Here is the work we do, and the outcome behind each piece.</p>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- ===== Services list ===== -->
+    <section class="section">
+      <div class="wrap">
+
+        <div class="svc reveal">
+          <div class="svc__idx">01</div>
+          <div>
+            <h2 class="svc__title">Meta ads, managed daily</h2>
+            <p class="svc__body">Campaign build, creative, targeting, and daily optimization. We watch cost per lead, click-through rate, and ROAS so your budget keeps working.</p>
+            <span class="svc__outcome">What we watch: cost per lead, CTR, ROAS</span>
+          </div>
+        </div>
+
+        <div class="svc reveal">
+          <div class="svc__idx">02</div>
+          <div>
+            <h2 class="svc__title">Instant lead follow-up</h2>
+            <p class="svc__body">The moment a lead comes in, they get a text back. No lead sits cold while you're on a job or off the clock.</p>
+            <span class="svc__outcome">Outcome: zero leads left waiting</span>
+          </div>
+        </div>
+
+        <div class="svc reveal">
+          <div class="svc__idx">03</div>
+          <div>
+            <h2 class="svc__title">Your leads in your pocket</h2>
+            <p class="svc__body">A custom app with every lead, conversation, and contact, built for your business. Check it from the truck, the shop, or the couch.</p>
+            <span class="svc__outcome">Outcome: one place for everything</span>
+          </div>
+        </div>
+
+        <div class="svc reveal">
+          <div class="svc__idx">04</div>
+          <div>
+            <h2 class="svc__title">Pipeline and booking</h2>
+            <p class="svc__body">Leads move from new to booked without you chasing them down. The follow-up runs itself so you stay on the work that pays.</p>
+            <span class="svc__outcome">Outcome: more booked, less chasing</span>
+          </div>
+        </div>
+
+        <div class="svc reveal">
+          <div class="svc__idx">05</div>
+          <div>
+            <h2 class="svc__title">Plain-English reporting</h2>
+            <p class="svc__body">Real numbers, no jargon. You see what you spent and what came back, in language you don't need a degree to read.</p>
+            <span class="svc__outcome">Outcome: you always know where you stand</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== Closing CTA ===== -->
+    <section class="section section--tight">
+      <div class="wrap">
+        <div class="ctaband reveal">
+          <div>
+            <h2 class="ctaband__title">Want this running for your business?</h2>
+            <p class="ctaband__sub">Tell us where you're stuck and we'll map it out. No pressure, no jargon.</p>
+          </div>
+          <a href="contact.html" class="btn btn--primary">Get my plan</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer class="footer">
+    <div class="wrap footer__inner">
+      <span class="footer__brand">Hauck Marketing LLC</span>
+      <div class="footer__meta">
+        <a href="mailto:hello@hauckmarketing.com">hello@hauckmarketing.com</a>
+        <span class="footer__tag">AI-powered local growth</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var items = document.querySelectorAll('.reveal');
+      if (reduce || !('IntersectionObserver' in window)) {
+        items.forEach(function (el) { el.classList.add('is-in'); });
+        return;
+      }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      items.forEach(function (el) { io.observe(el); });
+    })();
+  </script>
+</body>
+</html>

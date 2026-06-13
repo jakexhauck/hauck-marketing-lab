@@ -1,6 +1,7 @@
-import type { Env, ApiData } from "../../../lib/env";
+import { tenantTimezone, type Env, type ApiData } from "../../../lib/env";
 import { readJsonBody } from "../../../lib/body";
 import { ghlJson } from "../../../lib/ghl";
+import { startOfDayOffsetMs } from "../../../lib/tz";
 
 interface GhlTask {
   id: string;
@@ -64,13 +65,13 @@ export const onRequestPost: PagesFunction<Env, "contactId", ApiData> = async (
     return Response.json({ error: "empty_title" }, { status: 400 });
   }
 
-  // GHL requires a dueDate on task creation. Default to end of today (UTC) when
-  // the client did not supply one, so a quick follow-up never fails to save.
+  // GHL requires a dueDate on task creation. Default to 23:59 today in the
+  // tenant's timezone when the client did not supply one, so a quick
+  // follow-up never fails to save or lands on the wrong day.
   let dueDate = typeof input.dueDate === "string" ? input.dueDate.trim() : "";
   if (!dueDate) {
-    const end = new Date();
-    end.setHours(23, 59, 0, 0);
-    dueDate = end.toISOString();
+    const zone = tenantTimezone(ctx.env);
+    dueDate = new Date(startOfDayOffsetMs(zone, 1) - 60_000).toISOString();
   }
 
   // GHL requires `completed` on create; omitting it 422s.

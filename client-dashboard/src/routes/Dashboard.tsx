@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Sun } from "lucide-react";
 import Shell from "../components/Shell";
 import TopBar from "../components/TopBar";
@@ -10,17 +10,14 @@ import LeadRow from "../components/LeadRow";
 import PipelineSwitcher from "../components/PipelineSwitcher";
 import SearchBar from "../components/SearchBar";
 import EmptyState from "../components/EmptyState";
-import Toast from "../components/Toast";
+import PullToRefresh from "../components/PullToRefresh";
 import { useLeads } from "../context/LeadsContext";
 import { usePipelines } from "../context/PipelinesContext";
 import { useClient } from "../context/ClientContext";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { computeStats } from "../lib/computeStats";
 import { permissionsFor } from "../lib/rolePermissions";
-
-interface DashboardLocationState {
-  toast?: string;
-}
 
 // Sentinel chip ids for the status filters that follow the real stage chips.
 const WON = "__won__";
@@ -28,11 +25,11 @@ const LOST = "__lost__";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { leads: allLeads } = useLeads();
   const { pipelines, selectedId, selected, setSelectedId } = usePipelines();
   const { client } = useClient();
   const { currentUser } = useAuth();
+  const { showToast } = useToast();
   const [active, setActive] = useState<string>("");
   const [query, setQuery] = useState<string>("");
 
@@ -80,22 +77,6 @@ export default function Dashboard() {
       .filter((l) => l.status === "won" && typeof l.value === "number")
       .reduce((sum, l) => sum + (l.value ?? 0), 0);
   }, [leads, permissions.assignedOnly]);
-  const [toast, setToast] = useState<string | null>(null);
-
-  useEffect(() => {
-    const state = location.state as DashboardLocationState | null;
-    if (state?.toast) {
-      setToast(state.toast);
-      navigate(location.pathname, { replace: true, state: null });
-    }
-  }, [location.pathname, location.state, navigate]);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 3000);
-    return () => window.clearTimeout(t);
-  }, [toast]);
-
   const sorted = useMemo(
     () =>
       [...leads].sort(
@@ -167,7 +148,7 @@ export default function Dashboard() {
 
   return (
     <Shell>
-      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
+      <PullToRefresh queryKeys={[["leads"], ["summary"]]} />
       <TopBar />
       <ViewTabs />
       <StatsStrip
@@ -244,7 +225,7 @@ export default function Dashboard() {
                 <LeadRow
                   lead={lead}
                   onTap={(id) => navigate(`/lead/${id}`)}
-                  onAction={(message) => setToast(message)}
+                  onAction={showToast}
                   isLast={idx === visible.length - 1}
                 />
               </li>

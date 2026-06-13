@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, Pencil, Trash2, X } from "lucide-react";
 import BrandedButton from "./BrandedButton";
 import { timeAgo } from "../lib/timeAgo";
+import { useNow } from "../context/NowContext";
 import {
   useCreateNote,
   useDeleteNote,
@@ -18,6 +19,7 @@ const textareaClass =
   "min-h-[80px] w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-faint)] focus:border-[var(--ring)]";
 
 export default function NoteList({ contactId, onToast }: Props) {
+  const now = useNow();
   const notesQuery = useNotesQuery(contactId, true);
   const createNote = useCreateNote();
   const updateNote = useUpdateNote();
@@ -148,7 +150,7 @@ export default function NoteList({ contactId, onToast }: Props) {
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="label-cap text-[var(--text-faint)]">
-                      {n.dateAdded ? timeAgo(n.dateAdded) : ""}
+                      {n.dateAdded ? timeAgo(n.dateAdded, now) : ""}
                     </span>
                     <div className="flex items-center gap-1">
                       <button

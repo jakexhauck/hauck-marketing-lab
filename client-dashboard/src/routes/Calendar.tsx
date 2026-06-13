@@ -12,6 +12,9 @@ import NavyHero from "../components/NavyHero";
 import { HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
 import EmptyState from "../components/EmptyState";
+import PullToRefresh from "../components/PullToRefresh";
+import StatusBadge from "../components/StatusBadge";
+import { groupByDayKey } from "../lib/dayGroups";
 import { useAuth } from "../context/AuthContext";
 import { useCalendarEventsQuery } from "../hooks/useApi";
 import type { ApiCalendarEvent } from "../lib/api";
@@ -38,18 +41,6 @@ const STATUS_STYLE: Record<string, { bg: string; fg: string; label: string }> = 
   invalid: { bg: "#f1f5f9", fg: "#94a3b8", label: "Invalid" },
 };
 
-function StatusPill({ status }: { status: string }) {
-  const s = STATUS_STYLE[status] ?? STATUS_STYLE.booked;
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-      style={{ background: s.bg, color: s.fg }}
-    >
-      {s.label}
-    </span>
-  );
-}
-
 interface DayGroup {
   key: string;
   label: string;
@@ -75,16 +66,11 @@ export default function Calendar() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowKey = fmt.dayKey.format(tomorrow);
 
-    const byDay = new Map<string, ApiCalendarEvent[]>();
-    for (const ev of events) {
-      if (!ev.startTime) continue;
+    const byDay = groupByDayKey(events, (ev) => {
+      if (!ev.startTime) return null;
       const d = new Date(ev.startTime);
-      if (Number.isNaN(d.getTime())) continue;
-      const key = fmt.dayKey.format(d);
-      const list = byDay.get(key) ?? [];
-      list.push(ev);
-      byDay.set(key, list);
-    }
+      return Number.isNaN(d.getTime()) ? null : fmt.dayKey.format(d);
+    });
 
     return [...byDay.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
@@ -103,6 +89,7 @@ export default function Calendar() {
 
   return (
     <Shell>
+      <PullToRefresh queryKeys={[["calendar"]]} />
       {isTest && <TestBanner />}
 
       <NavyHero flushTop={isTest}>
@@ -137,7 +124,10 @@ export default function Calendar() {
             />
           </div>
         ) : groups.length === 0 ? (
-          <EmptyState message="No upcoming appointments." />
+          <EmptyState
+            title="No appointments"
+            message="Booked appointments for the next 30 days will show up here."
+          />
         ) : (
           groups.map((g) => (
             <section key={g.key} className="flex flex-col gap-2">
@@ -168,7 +158,7 @@ export default function Calendar() {
                               {ev.contactName}
                             </span>
                           )}
-                          <StatusPill status={ev.status} />
+                          <StatusBadge {...(STATUS_STYLE[ev.status] ?? STATUS_STYLE.booked)} />
                         </div>
                       </div>
                     </button>
@@ -225,7 +215,7 @@ function AppointmentSheet({ event, fmt, onClose, onMessage }: SheetProps) {
               {event.title}
             </h2>
             <div className="mt-1">
-              <StatusPill status={event.status} />
+              <StatusBadge {...(STATUS_STYLE[event.status] ?? STATUS_STYLE.booked)} />
             </div>
           </div>
           <button

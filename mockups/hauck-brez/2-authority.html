@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hauck Marketing</title>
+<!--
+  Hauck Marketing landing page, "Authority" variation.
+  Brand rule: never use the long dash. Commas, periods, parentheses, colons only.
+  Results numbers in section 4 are owner-editable bracketed placeholders, not claims.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0B0C;
+    --surface:#15140F;
+    --surface-2:#161512;
+    --hair-copper:rgba(201,139,94,0.18);
+    --hair-white:rgba(255,255,255,0.07);
+    --text:#F3EFE9;
+    --muted:#A39A8E;
+    --copper:#C98B5E;
+    --copper-deep:#8A5A38;
+    --maxw:1180px;
+    --pad:clamp(20px,5vw,64px);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Hanken Grotesk",system-ui,sans-serif;
+    font-size:17px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+
+  ::selection{background:rgba(201,139,94,0.30);color:#fff}
+
+  a{color:inherit;text-decoration:none}
+
+  :focus-visible{
+    outline:2px solid var(--copper);
+    outline-offset:3px;
+    border-radius:4px;
+  }
+
+  .wrap{
+    max-width:var(--maxw);
+    margin:0 auto;
+    padding-left:var(--pad);
+    padding-right:var(--pad);
+  }
+
+  .eyebrow{
+    font-family:"Spline Sans Mono",monospace;
+    font-size:12px;
+    letter-spacing:0.32em;
+    text-transform:uppercase;
+    color:var(--copper);
+    font-weight:500;
+  }
+
+  .display{
+    font-family:"Fraunces",Georgia,serif;
+    font-weight:500;
+    line-height:1.02;
+    letter-spacing:-0.01em;
+    font-optical-sizing:auto;
+  }
+  .display em{
+    font-style:italic;
+    color:var(--copper);
+    font-weight:600;
+  }
+
+  /* ---------- NAV ---------- */
+  .nav{
+    position:sticky;
+    top:0;
+    z-index:50;
+    backdrop-filter:saturate(140%) blur(10px);
+    background:rgba(11,11,12,0.72);
+    border-bottom:1px solid var(--hair-white);
+  }
+  .nav-inner{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    height:72px;
+  }
+  .wordmark{
+    font-family:"Spline Sans Mono",monospace;
+    font-size:14px;
+    letter-spacing:0.22em;
+    font-weight:500;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+  .wordmark .dot{color:var(--copper)}
+  .nav-links{
+    display:flex;
+    align-items:center;
+    gap:36px;
+  }
+  .nav-links a.link{
+    font-size:14px;
+    letter-spacing:0.04em;
+    color:var(--muted);
+    transition:color .25s ease;
+  }
+  .nav-links a.link:hover{color:var(--text)}
+  @media (max-width:780px){ .nav-links a.link{display:none} }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:.55em;
+    font-family:"Hanken Grotesk",sans-serif;
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    padding:11px 22px;
+    border-radius:10px;
+    transition:transform .25s ease, background .25s ease, border-color .25s ease, color .25s ease;
+    cursor:pointer;
+  }
+  .btn-copper{
+    background:var(--copper);
+    color:#1a1206;
+    border:1px solid var(--copper);
+  }
+  .btn-copper:hover{ background:#d79b70; transform:translateY(-1px) }
+  .btn-ghost{
+    background:transparent;
+    color:var(--text);
+    border:1px solid var(--hair-copper);
+  }
+  .btn-ghost:hover{ border-color:var(--copper); color:var(--copper) }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;
+    padding:clamp(64px,12vh,140px) 0 clamp(60px,9vh,110px);
+    overflow:hidden;
+  }
+  .hero-glow{
+    position:absolute;
+    top:-22%;
+    left:50%;
+    transform:translateX(-50%);
+    width:min(1100px,140vw);
+    height:760px;
+    background:radial-gradient(ellipse at center, rgba(201,139,94,0.20) 0%, rgba(201,139,94,0.06) 38%, transparent 66%);
+    pointer-events:none;
+    z-index:0;
+  }
+  .grain{
+    position:absolute;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    opacity:.5;
+    mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  }
+  .hero-inner{ position:relative; z-index:1; max-width:920px }
+  .hero h1{
+    font-size:clamp(44px,8.2vw,104px);
+    margin:24px 0 0;
+  }
+  .hero p.sub{
+    margin:30px 0 0;
+    max-width:560px;
+    font-size:clamp(17px,2.2vw,20px);
+    color:var(--muted);
+    line-height:1.55;
+  }
+  .hero-cta{
+    margin-top:40px;
+    display:flex;
+    align-items:center;
+    gap:14px 28px;
+    flex-wrap:wrap;
+  }
+  .text-link{
+    font-size:15px;
+    color:var(--text);
+    display:inline-flex;
+    align-items:center;
+    gap:.5em;
+    border-bottom:1px solid var(--hair-copper);
+    padding-bottom:3px;
+    transition:border-color .25s ease, color .25s ease;
+  }
+  .text-link:hover{ border-color:var(--copper); color:var(--copper) }
+  .text-link .arr{ color:var(--copper); transition:transform .25s ease }
+  .text-link:hover .arr{ transform:translateX(3px) }
+
+  /* ---------- TRUST STRIP ---------- */
+  .trust{
+    border-top:1px solid var(--hair-white);
+    border-bottom:1px solid var(--hair-white);
+    padding:24px 0;
+  }
+  .trust-inner{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .trust .lbl{
+    font-family:"Spline Sans Mono",monospace;
+    font-size:11px;
+    letter-spacing:0.26em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-right:6px;
+    white-space:nowrap;
+  }
+  .trust ul{
+    list-style:none;
+    display:flex;
+    gap:14px 30px;
+    flex-wrap:wrap;
+    margin:0;
+    padding:0;
+  }
+  .trust li{
+    font-size:13px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--text);
+    font-weight:500;
+    position:relative;
+    padding-left:18px;
+  }
+  .trust li::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:50%;
+    width:5px;height:5px;
+    border-radius:50%;
+    background:var(--copper);
+    transform:translateY(-50%);
+  }
+
+  /* ---------- SECTION SHARED ---------- */
+  section.band{ padding:clamp(64px,11vh,128px) 0 }
+  .sec-eyebrow{ display:flex; align-items:center; gap:14px; margin-bottom:30px }
+  .sec-eyebrow .ln{ flex:0 0 38px; height:1px; background:var(--copper) }
+
+  /* ---------- RESULTS ---------- */
+  .results-head{
+    max-width:560px;
+    margin-bottom:clamp(40px,6vh,68px);
+  }
+  .results-head h2{
+    font-size:clamp(30px,4.6vw,52px);
+    margin:0;
+  }
+  .results-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:1px;
+    background:var(--hair-white);
+    border:1px solid var(--hair-white);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .stat{
+    background:var(--bg);
+    padding:clamp(26px,3.5vw,40px) clamp(22px,2.8vw,32px);
+  }
+  .stat .num{
+    font-family:"Fraunces",serif;
+    font-weight:500;
+    font-size:clamp(40px,5.6vw,68px);
+    line-height:1;
+    color:var(--copper);
+    letter-spacing:-0.02em;
+    font-optical-sizing:auto;
+  }
+  .stat .num small{ font-size:0.42em; color:var(--copper-deep); vertical-align:baseline }
+  .stat .cap{
+    margin-top:16px;
+    font-size:14px;
+    color:var(--muted);
+    line-height:1.4;
+    letter-spacing:0.01em;
+  }
+  @media (max-width:900px){ .results-grid{ grid-template-columns:repeat(2,1fr) } }
+  @media (max-width:480px){ .results-grid{ grid-template-columns:1fr } }
+
+  /* ---------- LEDGER (signature) ---------- */
+  .ledger-band{
+    background:linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+    border-top:1px solid var(--hair-copper);
+    border-bottom:1px solid var(--hair-copper);
+  }
+  .ledger-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:24px;
+    flex-wrap:wrap;
+    margin-bottom:clamp(28px,5vh,56px);
+  }
+  .ledger-head h2{
+    font-size:clamp(32px,5vw,60px);
+    margin:14px 0 0;
+    max-width:14ch;
+  }
+  .ledger-head .note{
+    font-size:14px;
+    color:var(--muted);
+    max-width:32ch;
+    line-height:1.5;
+  }
+  .ledger{ border-top:1px solid var(--hair-copper) }
+  .row{
+    display:grid;
+    grid-template-columns:auto 1fr;
+    gap:clamp(24px,5vw,72px);
+    align-items:start;
+    padding:clamp(34px,5vw,56px) 0;
+    border-bottom:1px solid var(--hair-copper);
+    position:relative;
+  }
+  .row .idx{
+    font-family:"Fraunces",serif;
+    font-weight:400;
+    font-size:clamp(54px,9vw,128px);
+    line-height:0.8;
+    color:var(--copper);
+    letter-spacing:-0.03em;
+    font-optical-sizing:auto;
+    min-width:1.6ch;
+  }
+  .row .body{ max-width:640px; padding-top:6px }
+  .row .kicker{
+    font-family:"Spline Sans Mono",monospace;
+    font-size:12px;
+    letter-spacing:0.3em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .row h3{
+    font-family:"Fraunces",serif;
+    font-weight:500;
+    font-size:clamp(26px,3.4vw,40px);
+    margin:14px 0 0;
+    letter-spacing:-0.01em;
+  }
+  .row h3 em{ font-style:italic; color:var(--copper) }
+  .row p{
+    margin:16px 0 0;
+    color:var(--muted);
+    font-size:16.5px;
+    line-height:1.6;
+  }
+  .row .meta{
+    margin-top:18px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .tag{
+    font-family:"Spline Sans Mono",monospace;
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--text);
+    border:1px solid var(--hair-copper);
+    border-radius:999px;
+    padding:5px 12px;
+  }
+  @media (max-width:620px){
+    .row{ grid-template-columns:1fr; gap:6px }
+    .row .body{ padding-top:0 }
+  }
+
+  /* ---------- PROCESS ---------- */
+  .proc-grid{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    border-top:1px solid var(--hair-white);
+    border-left:1px solid var(--hair-white);
+  }
+  .step{
+    border-right:1px solid var(--hair-white);
+    border-bottom:1px solid var(--hair-white);
+    padding:30px clamp(18px,2vw,26px) 40px;
+    min-height:240px;
+    display:flex;
+    flex-direction:column;
+  }
+  .step .pn{
+    font-family:"Spline Sans Mono",monospace;
+    font-size:12px;
+    letter-spacing:0.2em;
+    color:var(--copper);
+    margin-bottom:auto;
+  }
+  .step h4{
+    font-family:"Fraunces",serif;
+    font-weight:500;
+    font-size:21px;
+    margin:42px 0 0;
+    letter-spacing:-0.01em;
+  }
+  .step p{
+    margin:11px 0 0;
+    font-size:14px;
+    color:var(--muted);
+    line-height:1.5;
+  }
+  @media (max-width:980px){ .proc-grid{ grid-template-columns:repeat(2,1fr) } .step{ min-height:0 } .step .pn{margin-bottom:34px} }
+  @media (max-width:480px){ .proc-grid{ grid-template-columns:1fr } }
+
+  /* ---------- SELECTIVE CTA ---------- */
+  .apply{
+    position:relative;
+    overflow:hidden;
+    text-align:center;
+    padding:clamp(72px,13vh,150px) 0;
+  }
+  .apply-glow{
+    position:absolute;
+    bottom:-40%;
+    left:50%;
+    transform:translateX(-50%);
+    width:min(900px,130vw);
+    height:600px;
+    background:radial-gradient(ellipse at center, rgba(201,139,94,0.16) 0%, transparent 64%);
+    z-index:0;pointer-events:none;
+  }
+  .apply .inner{ position:relative;z-index:1;max-width:760px;margin:0 auto }
+  .apply h2{
+    font-size:clamp(34px,5.6vw,68px);
+    margin:22px auto 0;
+  }
+  .apply p{
+    margin:26px auto 0;
+    max-width:48ch;
+    color:var(--muted);
+    font-size:18px;
+  }
+  .apply .cta-row{
+    margin-top:40px;
+    display:flex;
+    justify-content:center;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .apply .btn{ padding:15px 30px; font-size:15px }
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    border-top:1px solid var(--hair-white);
+    padding:48px 0 56px;
+  }
+  .foot-inner{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:28px;
+    flex-wrap:wrap;
+  }
+  .foot-left .wordmark{ font-size:15px }
+  .foot-tag{
+    font-family:"Fraunces",serif;
+    font-style:italic;
+    color:var(--muted);
+    font-size:17px;
+    margin-top:10px;
+  }
+  .foot-right{ text-align:right;font-size:14px;color:var(--muted);line-height:1.9 }
+  .foot-right a{ color:var(--text);border-bottom:1px solid var(--hair-copper) }
+  .foot-right a:hover{ color:var(--copper) }
+  .foot-base{
+    margin-top:36px;
+    padding-top:22px;
+    border-top:1px solid var(--hair-white);
+    display:flex;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    font-size:12px;
+    letter-spacing:0.06em;
+    color:var(--muted);
+  }
+  @media (max-width:620px){ .foot-right{text-align:left} }
+
+  /* ---------- REVEAL ---------- */
+  .reveal{
+    opacity:0;
+    transform:translateY(22px);
+    transition:opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1);
+  }
+  .reveal.in{ opacity:1; transform:none }
+  @media (prefers-reduced-motion: reduce){
+    .reveal{ opacity:1; transform:none; transition:none }
+    .hero-glow,.apply-glow,.grain{ display:none }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="wordmark" href="#top" aria-label="Hauck Marketing home">HAUCK<span class="dot">.</span>MARKETING</a>
+    <nav class="nav-links" aria-label="Primary">
+      <a class="link" href="#work">Work</a>
+      <a class="link" href="#capabilities">Capabilities</a>
+      <a class="link" href="#process">Process</a>
+      <a class="btn btn-copper" href="#apply">Book a call</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="wrap hero-inner reveal">
+      <span class="eyebrow">A boutique growth firm for local business</span>
+      <h1 class="display">More customers.<br>Less <em>chasing</em>.</h1>
+      <p class="sub">We build the software, automate the follow up, and run the ads so the right leads reach you and answer themselves. You stay focused on the work.</p>
+      <div class="hero-cta">
+        <a class="btn btn-copper" href="#apply">Book a call <span aria-hidden="true">&rarr;</span></a>
+        <a class="text-link" href="#capabilities">See how we work <span class="arr" aria-hidden="true">&rarr;</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST STRIP -->
+  <section class="trust" id="work" aria-label="Industries served">
+    <div class="wrap trust-inner reveal">
+      <span class="lbl">Built for</span>
+      <ul>
+        <li>Roofing</li>
+        <li>HVAC</li>
+        <li>Med Spa</li>
+        <li>Dental</li>
+        <li>Home Remodeling</li>
+        <li>Fitness</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="band">
+    <div class="wrap">
+      <div class="results-head reveal">
+        <div class="sec-eyebrow"><span class="ln"></span><span class="eyebrow">The numbers we move</span></div>
+        <h2 class="display">We measure the things owners actually feel.</h2>
+      </div>
+      <!--
+        OWNER EDITABLE PLACEHOLDERS. These are bracketed on purpose.
+        Replace the bracketed values with your own real figures before publishing.
+        No revenue, income, or guaranteed result is claimed here.
+      -->
+      <div class="results-grid reveal">
+        <div class="stat">
+          <div class="num">[&thinsp;X&thinsp;]</div>
+          <div class="cap">local businesses we partner with at a time</div>
+        </div>
+        <div class="stat">
+          <div class="num">[&thinsp;60&thinsp;]<small>s</small></div>
+          <div class="cap">target time to answer a new lead, day or night</div>
+        </div>
+        <div class="stat">
+          <div class="num">[&thinsp;X&thinsp;]<small>%</small></div>
+          <div class="cap">lower cost per lead after the first quarter</div>
+        </div>
+        <div class="stat">
+          <div class="num">[&thinsp;X&thinsp;]<small>x</small></div>
+          <div class="cap">return on ad spend we hold campaigns to</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEDGER (signature) -->
+  <section class="band ledger-band" id="capabilities">
+    <div class="wrap">
+      <div class="ledger-head reveal">
+        <div>
+          <div class="sec-eyebrow"><span class="ln"></span><span class="eyebrow">Capabilities</span></div>
+          <h2 class="display">Three parts of one engine.</h2>
+        </div>
+        <p class="note">Most agencies sell one of these. We run all three as a single system, so a click becomes a booked job without anyone touching a spreadsheet.</p>
+      </div>
+
+      <div class="ledger">
+        <div class="row reveal">
+          <div class="idx" aria-hidden="true">01</div>
+          <div class="body">
+            <span class="kicker">Build</span>
+            <h3 class="display">Software shaped to <em>how you run</em>.</h3>
+            <p>Custom CRMs and tools fitted to your real workflow, not a template you bend yourself around. Quotes, jobs, and customers live in one place that finally matches how the business actually works.</p>
+            <div class="meta"><span class="tag">Custom CRM</span><span class="tag">Internal tools</span><span class="tag">Integrations</span></div>
+          </div>
+        </div>
+
+        <div class="row reveal">
+          <div class="idx" aria-hidden="true">02</div>
+          <div class="body">
+            <span class="kicker">Automate</span>
+            <h3 class="display">Follow up that <em>never sleeps</em>.</h3>
+            <p>An AI agent answers every new lead in seconds, qualifies them, and books the call while interest is still warm. No missed texts, no leads going cold over the weekend.</p>
+            <div class="meta"><span class="tag">AI agents</span><span class="tag">Instant reply</span><span class="tag">Booking</span></div>
+          </div>
+        </div>
+
+        <div class="row reveal">
+          <div class="idx" aria-hidden="true">03</div>
+          <div class="body">
+            <span class="kicker">Advertise</span>
+            <h3 class="display">Meta ads judged on <em>cost per result</em>.</h3>
+            <p>Precision Facebook and Instagram campaigns built for your service area and your margins. We optimize on cost per lead, click through rate, and return on ad spend, not vanity reach.</p>
+            <div class="meta"><span class="tag">Meta ads</span><span class="tag">Cost per lead</span><span class="tag">ROAS</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCESS -->
+  <section class="band" id="process">
+    <div class="wrap">
+      <div class="results-head reveal" style="margin-bottom:clamp(34px,5vh,52px)">
+        <div class="sec-eyebrow"><span class="ln"></span><span class="eyebrow">The engagement</span></div>
+        <h2 class="display">Five steps from first call to scale.</h2>
+      </div>
+      <div class="proc-grid reveal">
+        <div class="step">
+          <span class="pn">01</span>
+          <h4>Audit</h4>
+          <p>We map where leads come from, where they leak, and what a customer is worth to you.</p>
+        </div>
+        <div class="step">
+          <span class="pn">02</span>
+          <h4>Build and connect</h4>
+          <p>Your CRM and tools go live, wired to your phone, calendar, and inbox.</p>
+        </div>
+        <div class="step">
+          <span class="pn">03</span>
+          <h4>Launch ads</h4>
+          <p>Targeted Meta campaigns go out to your service area with clear cost targets.</p>
+        </div>
+        <div class="step">
+          <span class="pn">04</span>
+          <h4>Automate follow up</h4>
+          <p>The AI agent answers, qualifies, and books every new lead the moment it lands.</p>
+        </div>
+        <div class="step">
+          <span class="pn">05</span>
+          <h4>Scale</h4>
+          <p>We hold the numbers, cut what underperforms, and put more behind what works.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SELECTIVE CTA -->
+  <section class="apply band" id="apply">
+    <div class="apply-glow" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="inner reveal">
+        <span class="eyebrow">By application</span>
+        <h2 class="display">We take on a limited number of <em>local businesses</em> at a time.</h2>
+        <p>That keeps the work close and the results honest. If you are ready to stop chasing leads and start booking them, let us see if it is a fit.</p>
+        <div class="cta-row">
+          <a class="btn btn-copper" href="mailto:hello@hauckmarketing.com?subject=Application">Apply for a call <span aria-hidden="true">&rarr;</span></a>
+          <a class="btn btn-ghost" href="#capabilities">Review capabilities</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="foot-inner">
+      <div class="foot-left">
+        <a class="wordmark" href="#top">HAUCK<span class="dot">.</span>MARKETING</a>
+        <div class="foot-tag">More customers. Less chasing.</div>
+      </div>
+      <div class="foot-right">
+        <div><a href="#apply">Apply for a call</a></div>
+        <div><a href="mailto:hello@hauckmarketing.com">hello@hauckmarketing.com</a></div>
+      </div>
+    </div>
+    <div class="foot-base">
+      <span>&copy; <span id="yr"></span> Hauck Marketing</span>
+      <span>Build. Automate. Advertise.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Footer year
+  document.getElementById('yr').textContent = new Date().getFullYear();
+
+  // Scroll reveal, gracefully skipped when reduced motion is preferred
+  (function(){
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var items = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+    if(reduce || !('IntersectionObserver' in window)){
+      items.forEach(function(el){ el.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold:0.14, rootMargin:'0px 0px -8% 0px' });
+    items.forEach(function(el){ io.observe(el); });
+  })();
+</script>
+</body>
+</html>

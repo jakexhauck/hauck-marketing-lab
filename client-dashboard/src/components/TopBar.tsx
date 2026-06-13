@@ -17,10 +17,14 @@ export default function TopBar() {
     year: "numeric",
   });
 
-  const canSeeSimulator = currentUser
-    ? permissionsFor(currentUser.role).seeRevenue ||
-      currentUser.role === "manager"
-    : false;
+  // Dev-only, matching the route gate: the simulator's what-if numbers are
+  // fabricated and never belong in front of a client.
+  const canSeeSimulator =
+    import.meta.env.DEV &&
+    (currentUser
+      ? permissionsFor(currentUser.role).seeRevenue ||
+        currentUser.role === "manager"
+      : false);
 
   const isTest = mode === "test";
 

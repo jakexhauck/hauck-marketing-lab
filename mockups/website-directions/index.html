@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hauck Marketing : Website Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #08080C;
+    --panel: #0D0D13;
+    --bone: #EDEAE4;
+    --slate: #A09DAF;
+    --led: #A78BFA;
+    --led-hot: #C7B1FF;
+    --hairline: rgba(237, 234, 228, 0.09);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--ink);
+    color: var(--bone);
+    font-family: "Instrument Sans", -apple-system, sans-serif;
+    min-height: 100vh;
+    padding: 64px 24px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  .eyebrow {
+    font-family: "Spline Sans Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--led-hot);
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+  }
+  .sub { color: var(--slate); margin-bottom: 40px; font-size: 16px; }
+  .list { list-style: none; display: grid; gap: 14px; }
+  .card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: var(--panel);
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 22px 24px;
+    transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+  }
+  .card:hover {
+    border-color: rgba(167, 139, 250, 0.45);
+    box-shadow: 0 0 32px -12px rgba(157, 107, 255, 0.5);
+    transform: translateY(-1px);
+  }
+  .card:focus-visible {
+    outline: 2px solid var(--led);
+    outline-offset: 3px;
+  }
+  .card .num {
+    font-family: "Spline Sans Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: var(--led);
+  }
+  .card h2 { font-size: 19px; font-weight: 600; margin: 6px 0 4px; }
+  .card p { color: var(--slate); font-size: 14.5px; line-height: 1.5; }
+  .foot {
+    margin-top: 48px;
+    font-family: "Spline Sans Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    color: var(--slate);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Hauck Marketing LLC</p>
+  <h1>Five website directions</h1>
+  <p class="sub">Every direction shares the same conversion block: the split-form card with the LED services board beneath it. Everything around it changes.</p>
+  <ul class="list">
+    <li><a class="card" href="1-ops-console.html">
+      <span class="num">D.01</span>
+      <h2>The Operator's Console</h2>
+      <p>The site as a growth operations room. Scroll-tracked LED rail, system modules, Lexend type. You are looking over the operator's shoulder.</p>
+    </a></li>
+    <li><a class="card" href="2-plain-memo.html">
+      <span class="num">D.02</span>
+      <h2>The Plain-English Memo</h2>
+      <p>A typeset letter from Jake to every local owner. Source Serif 4, one column, zero noise. Confidence through restraint.</p>
+    </a></li>
+    <li><a class="card" href="3-before-after.html">
+      <span class="num">D.03</span>
+      <h2>Before and After</h2>
+      <p>Every section is a split: your week now vs your week with Hauck. A master switch flips the lights on. Atkinson Hyperlegible body.</p>
+    </a></li>
+    <li><a class="card" href="4-showroom.html">
+      <span class="num">D.04</span>
+      <h2>The Showroom</h2>
+      <p>Services staged like premium hardware under spotlights, with engraved spec plates. Hanken Grotesk throughout.</p>
+    </a></li>
+    <li><a class="card" href="5-lead-journey.html">
+      <span class="num">D.05</span>
+      <h2>One Lead's Journey</h2>
+      <p>Scrollytelling: one lead followed from ad click to five-star review along a single LED line. Timestamps carry the story.</p>
+    </a></li>
+  </ul>
+  <p class="foot">mockups/website-directions : pick one, or pick pieces</p>
+</div>
+</body>
+</html>

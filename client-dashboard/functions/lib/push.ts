@@ -48,8 +48,14 @@ export async function sendPushForActivity(
   const rows = (subs as SubRow[] | null) ?? [];
   if (rows.length === 0) return;
 
+  const titles: Record<string, string> = {
+    lead_created: "New lead",
+    message_in: "New message",
+    status_changed: "Lead won",
+    appointment_create: "Appointment booked",
+  };
   const payloadData = JSON.stringify({
-    title: activity.kind === "lead_created" ? "New lead" : "New message",
+    title: titles[activity.kind] ?? activity.summary,
     body: activity.summary,
     url: activity.opportunity_id
       ? `/lead/${activity.opportunity_id}`

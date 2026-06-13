@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hauck Marketing : The Showroom</title>
+<meta name="description" content="Six machines built to flood a local business with leads. AI agents and precision ad campaigns by Hauck Marketing LLC.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Fraunces:ital,wght@1,600&family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+
+<style>
+  :root{
+    --ink:#0A0B0D;
+    --panel:#101216;
+    --bone:#ECEAE4;
+    --steel:#9BA1A8;
+    --copper:#C98B5E;
+    --hairline:rgba(236,234,228,0.10);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html{scroll-behavior:smooth;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+  }
+
+  body{
+    background:var(--ink);
+    color:var(--bone);
+    font-family:"DM Sans",sans-serif;
+    font-weight:400;
+    line-height:1.55;
+    overflow-x:hidden;
+  }
+
+  ::selection{background:var(--copper);color:var(--ink);}
+
+  a:focus-visible,
+  button:focus-visible{
+    outline:2px solid var(--copper);
+    outline-offset:3px;
+    border-radius:2px;
+  }
+
+  /* ---------- canvas + photographic finish ---------- */
+
+  #stage{
+    position:fixed;
+    inset:0;
+    z-index:0;
+  }
+  #stage canvas{display:block;width:100%;height:100%;}
+
+  .vignette{
+    position:fixed;
+    inset:0;
+    z-index:1;
+    pointer-events:none;
+    background:radial-gradient(ellipse 120% 90% at 50% 42%, rgba(10,11,13,0) 38%, rgba(6,7,9,0.55) 100%);
+  }
+
+  .grain{
+    position:fixed;
+    inset:0;
+    z-index:2;
+    pointer-events:none;
+    opacity:0.03;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='280' height='280' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:280px 280px;
+  }
+
+  /* ---------- nav ---------- */
+
+  .nav{
+    position:fixed;
+    top:0;left:0;right:0;
+    z-index:50;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:1.5rem;
+    padding:1.1rem clamp(1.25rem, 4vw, 3rem);
+    background:linear-gradient(to bottom, rgba(10,11,13,0.82), rgba(10,11,13,0));
+  }
+  .wordmark{
+    font-family:"Syne",sans-serif;
+    font-weight:800;
+    font-size:1rem;
+    letter-spacing:0.04em;
+    color:var(--bone);
+    text-decoration:none;
+    white-space:nowrap;
+  }
+  .wordmark span{color:var(--copper);}
+  .nav-links{
+    display:flex;
+    align-items:center;
+    gap:1.75rem;
+  }
+  .nav-links a{
+    font-family:"JetBrains Mono",monospace;
+    font-weight:500;
+    font-size:0.7rem;
+    letter-spacing:0.14em;
+    color:var(--steel);
+    text-decoration:none;
+    transition:color .25s ease;
+  }
+  .nav-links a:hover{color:var(--bone);}
+  .btn-copper{
+    font-family:"JetBrains Mono",monospace;
+    font-weight:500;
+    font-size:0.7rem;
+    letter-spacing:0.14em;
+    color:var(--ink);
+    background:var(--copper);
+    border:none;
+    cursor:pointer;
+    text-decoration:none;
+    padding:0.7rem 1.2rem;
+    display:inline-block;
+    transition:background .25s ease, transform .25s ease;
+  }
+  .btn-copper:hover{background:#d99e72;}
+  @media (max-width:680px){
+    .nav-links a.hide-sm{display:none;}
+    .wordmark{font-size:0.88rem;}
+    .nav .btn-copper{padding:0.55rem 0.85rem;font-size:0.62rem;}
+  }
+
+  /* ---------- hero overlay ---------- */
+
+  .hero{
+    position:fixed;
+    inset:0;
+    z-index:10;
+    display:flex;
+    align-items:center;
+    pointer-events:none;
+  }
+  .hero-inner{
+    width:min(1240px, 100%);
+    margin:0 auto;
+    padding:0 clamp(1.25rem, 4vw, 3rem);
+  }
+  .hero-copy{
+    max-width:34rem;
+    pointer-events:auto;
+  }
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;
+    font-weight:400;
+    font-size:0.68rem;
+    letter-spacing:0.22em;
+    color:var(--copper);
+    margin-bottom:1.4rem;
+  }
+  .hero h1{
+    font-family:"Syne",sans-serif;
+    font-weight:800;
+    font-size:clamp(2.4rem, 5.4vw, 4.1rem);
+    line-height:1.04;
+    letter-spacing:-0.015em;
+    color:var(--bone);
+    margin-bottom:1.4rem;
+  }
+  .hero h1 em{
+    font-family:"Fraunces",serif;
+    font-style:italic;
+    font-weight:600;
+    color:var(--copper);
+    letter-spacing:0;
+  }
+  .hero p.sub{
+    font-size:1.02rem;
+    color:var(--steel);
+    max-width:26rem;
+    margin-bottom:2rem;
+  }
+  .hero .btn-copper{
+    font-size:0.75rem;
+    padding:0.95rem 1.7rem;
+  }
+  .scroll-hint{
+    position:absolute;
+    left:50%;
+    bottom:2rem;
+    transform:translateX(-50%);
+    font-family:"JetBrains Mono",monospace;
+    font-size:0.62rem;
+    letter-spacing:0.24em;
+    color:var(--steel);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:0.7rem;
+  }
+  .scroll-hint::after{
+    content:"";
+    width:1px;
+    height:34px;
+    background:linear-gradient(to bottom, var(--copper), transparent);
+    animation:drip 2.2s ease-in-out infinite;
+  }
+  @keyframes drip{
+    0%{transform:scaleY(0);transform-origin:top;}
+    55%{transform:scaleY(1);transform-origin:top;}
+    56%{transform-origin:bottom;}
+    100%{transform:scaleY(0);transform-origin:bottom;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .scroll-hint::after{animation:none;}
+  }
+
+  /* ---------- caption rail (synced to plinths) ---------- */
+
+  .caption-rail{
+    position:fixed;
+    z-index:10;
+    left:clamp(1.25rem, 4vw, 3rem);
+    top:50%;
+    transform:translateY(-50%);
+    width:min(23rem, 42vw);
+    opacity:0;
+    transition:opacity .5s ease;
+    pointer-events:none;
+  }
+  .caption-rail.visible{opacity:1;pointer-events:auto;}
+
+  .cap{
+    position:absolute;
+    top:0;left:0;
+    width:100%;
+    opacity:0;
+    transform:translateY(10px);
+    transition:opacity .55s ease, transform .55s ease;
+  }
+  .cap.active{
+    position:relative;
+    opacity:1;
+    transform:translateY(0);
+  }
+  .cap .idx{
+    font-family:"JetBrains Mono",monospace;
+    font-size:0.66rem;
+    letter-spacing:0.22em;
+    color:var(--copper);
+    margin-bottom:0.9rem;
+  }
+  .cap h2{
+    font-family:"Syne",sans-serif;
+    font-weight:700;
+    font-size:clamp(1.35rem, 2.4vw, 1.9rem);
+    line-height:1.12;
+    letter-spacing:-0.01em;
+    margin-bottom:0.8rem;
+  }
+  .cap p{
+    color:var(--steel);
+    font-size:0.95rem;
+    max-width:20rem;
+  }
+  .rail-meter{
+    margin-top:1.6rem;
+    display:flex;
+    align-items:center;
+    gap:0.8rem;
+  }
+  .rail-meter .bar{
+    flex:1;
+    height:1px;
+    background:var(--hairline);
+    position:relative;
+    overflow:hidden;
+  }
+  .rail-meter .bar i{
+    position:absolute;
+    inset:0;
+    background:var(--copper);
+    transform-origin:left;
+    transform:scaleX(0);
+  }
+  .rail-meter .count{
+    font-family:"JetBrains Mono",monospace;
+    font-size:0.62rem;
+    letter-spacing:0.18em;
+    color:var(--steel);
+  }
+
+  @media (max-width:760px){
+    .caption-rail{
+      left:0;right:0;top:auto;bottom:0;
+      transform:none;
+      width:100%;
+      padding:1.25rem 1.25rem 1.4rem;
+      background:linear-gradient(to top, rgba(10,11,13,0.92) 55%, rgba(10,11,13,0));
+    }
+    .cap p{max-width:none;}
+    .cap h2{font-size:1.25rem;}
+    .rail-meter{margin-top:1rem;}
+  }
+
+  /* ---------- scroll spacer + final section ---------- */
+
+  .walk{height:620vh;}
+
+  .finale{
+    position:relative;
+    z-index:20;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    background:linear-gradient(to bottom, rgba(10,11,13,0) 0%, rgba(10,11,13,0.9) 24%, var(--ink) 46%);
+  }
+  .finale-inner{
+    width:min(1240px,100%);
+    margin:0 auto;
+    padding:18vh clamp(1.25rem,4vw,3rem) 6rem;
+    text-align:center;
+  }
+  .finale .eyebrow{margin-bottom:1.2rem;}
+  .finale h2{
+    font-family:"Syne",sans-serif;
+    font-weight:800;
+    font-size:clamp(2rem, 4.6vw, 3.4rem);
+    line-height:1.06;
+    letter-spacing:-0.015em;
+    margin:0 auto 1.2rem;
+    max-width:22ch;
+  }
+  .finale h2 em{
+    font-family:"Fraunces",serif;
+    font-style:italic;
+    font-weight:600;
+    color:var(--copper);
+  }
+  .finale p.lede{
+    color:var(--steel);
+    max-width:34rem;
+    margin:0 auto 2.4rem;
+  }
+  .finale .btn-copper{
+    font-size:0.78rem;
+    padding:1.05rem 2rem;
+  }
+  .finale .phone{
+    display:block;
+    margin-top:1.6rem;
+    font-family:"JetBrains Mono",monospace;
+    font-size:0.78rem;
+    letter-spacing:0.16em;
+    color:var(--steel);
+    text-decoration:none;
+    transition:color .25s ease;
+  }
+  .finale .phone:hover{color:var(--bone);}
+
+  footer{
+    position:relative;
+    z-index:20;
+    background:var(--ink);
+    border-top:1px solid var(--hairline);
+    padding:1.6rem clamp(1.25rem,4vw,3rem) 2rem;
+    display:flex;
+    flex-wrap:wrap;
+    gap:0.8rem 2rem;
+    align-items:baseline;
+    justify-content:space-between;
+  }
+  footer .fm{
+    font-family:"Syne",sans-serif;
+    font-weight:700;
+    font-size:0.85rem;
+  }
+  footer .legal{
+    font-family:"JetBrains Mono",monospace;
+    font-size:0.6rem;
+    letter-spacing:0.14em;
+    color:var(--steel);
+  }
+
+  /* ---------- WebGL fallback ---------- */
+
+  .fallback{
+    display:none;
+    position:relative;
+    z-index:15;
+    width:min(820px,100%);
+    margin:0 auto;
+    padding:9rem clamp(1.25rem,4vw,3rem) 4rem;
+  }
+  .fallback ol{
+    list-style:none;
+    counter-reset:works;
+    border-top:1px solid var(--hairline);
+    margin-top:2rem;
+  }
+  .fallback li{
+    counter-increment:works;
+    border-bottom:1px solid var(--hairline);
+    padding:1.6rem 0;
+    display:grid;
+    grid-template-columns:3.5rem 1fr;
+    gap:1rem;
+  }
+  .fallback li::before{
+    content:"0" counter(works);
+    font-family:"JetBrains Mono",monospace;
+    font-size:0.72rem;
+    letter-spacing:0.18em;
+    color:var(--copper);
+    padding-top:0.35rem;
+  }
+  .fallback h3{
+    font-family:"Syne",sans-serif;
+    font-weight:700;
+    font-size:1.15rem;
+    margin-bottom:0.35rem;
+  }
+  .fallback p{color:var(--steel);font-size:0.92rem;}
+
+  body.no3d{
+    background:radial-gradient(ellipse 130% 80% at 50% 0%, #14161b 0%, var(--ink) 60%);
+  }
+  body.no3d #stage,
+  body.no3d .caption-rail,
+  body.no3d .hero,
+  body.no3d .walk{display:none;}
+  body.no3d .fallback{display:block;}
+  body.no3d .finale{background:none;}
+</style>
+</head>
+<body id="top">
+
+  <div id="stage" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <nav class="nav">
+    <a class="wordmark" href="#top">HAUCK <span>MARKETING</span></a>
+    <div class="nav-links">
+      <a href="#top" class="hide-sm">THE FLOOR</a>
+      <a href="#contact" class="hide-sm">CONTACT</a>
+      <a class="btn-copper" href="#contact">BOOK A CALL</a>
+    </div>
+  </nav>
+
+  <header class="hero" id="hero">
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <p class="eyebrow">HAUCK MARKETING : AI-POWERED LOCAL GROWTH</p>
+        <h1>Six machines. Built to <em>flood</em> your business with leads.</h1>
+        <p class="sub">AI agents and precision ad campaigns for contractors, home services, and med spas. Walk the floor. See what we build.</p>
+        <a class="btn-copper" href="#contact">BOOK A CALL</a>
+      </div>
+    </div>
+    <p class="scroll-hint">SCROLL TO WALK THE FLOOR</p>
+  </header>
+
+  <aside class="caption-rail" id="rail" aria-live="polite">
+    <div class="cap" data-i="0">
+      <p class="idx">EXHIBIT 01 / 06</p>
+      <h2>Fully custom company software</h2>
+      <p>Software built around the way your shop already runs. No more duct-taped spreadsheets.</p>
+    </div>
+    <div class="cap" data-i="1">
+      <p class="idx">EXHIBIT 02 / 06</p>
+      <h2>Fully custom desktop and mobile CRM</h2>
+      <p>Every lead, call, and job in one place. On your desk and in your pocket.</p>
+    </div>
+    <div class="cap" data-i="2">
+      <p class="idx">EXHIBIT 03 / 06</p>
+      <h2>Backend automations that streamline sales</h2>
+      <p>Follow-ups, reminders, and handoffs run on their own. Nothing slips.</p>
+    </div>
+    <div class="cap" data-i="3">
+      <p class="idx">EXHIBIT 04 / 06</p>
+      <h2>Database reactivation campaigns</h2>
+      <p>We wake up your old contact list and turn past customers into new jobs.</p>
+    </div>
+    <div class="cap" data-i="4">
+      <p class="idx">EXHIBIT 05 / 06</p>
+      <h2>Google review campaigns</h2>
+      <p>A steady stream of five-star reviews, so you win the search before the call.</p>
+    </div>
+    <div class="cap" data-i="5">
+      <p class="idx">EXHIBIT 06 / 06</p>
+      <h2>Facebook ads</h2>
+      <p>Precision campaigns that put your offer in front of the right locals, every day.</p>
+    </div>
+    <div class="rail-meter">
+      <div class="bar"><i id="railbar"></i></div>
+      <span class="count" id="railcount">01 / 06</span>
+    </div>
+  </aside>
+
+  <!-- Plain list shown only if WebGL is unavailable -->
+  <section class="fallback" aria-label="What we build">
+    <p class="eyebrow">HAUCK MARKETING : AI-POWERED LOCAL GROWTH</p>
+    <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2rem,5vw,3.2rem);line-height:1.08;">Six machines. Built to <em style="font-family:'Fraunces',serif;font-style:italic;font-weight:600;color:var(--copper);">flood</em> your business with leads.</h1>
+    <ol>
+      <li><div><h3>Fully custom company software</h3><p>Software built around the way your shop already runs. No more duct-taped spreadsheets.</p></div></li>
+      <li><div><h3>Fully custom desktop and mobile CRM</h3><p>Every lead, call, and job in one place. On your desk and in your pocket.</p></div></li>
+      <li><div><h3>Backend automations that streamline sales</h3><p>Follow-ups, reminders, and handoffs run on their own. Nothing slips.</p></div></li>
+      <li><div><h3>Database reactivation campaigns</h3><p>We wake up your old contact list and turn past customers into new jobs.</p></div></li>
+      <li><div><h3>Google review campaigns</h3><p>A steady stream of five-star reviews, so you win the search before the call.</p></div></li>
+      <li><div><h3>Facebook ads</h3><p>Precision campaigns that put your offer in front of the right locals, every day.</p></div></li>
+    </ol>
+  </section>
+
+  <div class="walk" aria-hidden="true"></div>
+
+  <section class="finale" id="contact">
+    <div class="finale-inner">
+      <p class="eyebrow">END OF EXHIBIT</p>
+      <h2>The exhibit ends. Your pipeline <em>does not.</em></h2>
+      <p class="lede">Book a call and we will walk your floor: what to build first, what it costs, and what it gets you. Plain answers, no pitch deck.</p>
+      <a class="btn-copper" href="tel:+17343010570">BOOK A CALL</a>
+      <a class="phone" href="tel:+17343010570">(734) 301-0570</a>
+    </div>
+  </section>
+
+  <footer>
+    <span class="fm">Hauck Marketing LLC</span>
+    <span class="legal">© 2026 HAUCK MARKETING LLC. ALL RIGHTS RESERVED. RESULTS VARY BY MARKET AND OFFER.</span>
+  </footer>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const WORKS = [
+  'FULLY CUSTOM COMPANY SOFTWARE',
+  'FULLY CUSTOM DESKTOP AND MOBILE CRM',
+  'BACKEND AUTOMATIONS THAT STREAMLINE SALES',
+  'DATABASE REACTIVATION CAMPAIGNS',
+  'GOOGLE REVIEW CAMPAIGNS',
+  'FACEBOOK ADS'
+];
+
+const N = WORKS.length;
+const GAP = 4.2;                 /* distance between plinths along z */
+const SIDE = 1.45;               /* aisle half-width for plinth placement */
+const plinthZ = i => -i * GAP;
+const plinthX = i => (i % 2 === 0 ? SIDE : -SIDE);
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- canvas helpers ---------- */
+
+function labelTexture(i, name){
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 1228;
+  const g = c.getContext('2d');
+  g.clearRect(0, 0, c.width, c.height);
+
+  const etch = (text, font, x, y, align) => {
+    g.font = font;
+    g.textAlign = align || 'left';
+    /* light copy offset downward sells the engraved cut */
+    g.fillStyle = 'rgba(255,226,196,0.22)';
+    g.fillText(text, x, y + 3);
+    g.fillStyle = 'rgba(7,8,10,0.88)';
+    g.fillText(text, x, y);
+  };
+
+  /* index */
+  etch('0' + (i + 1), '500 60px "JetBrains Mono"', 58, 150);
+
+  /* hairline rule, also etched */
+  g.fillStyle = 'rgba(7,8,10,0.7)';
+  g.fillRect(58, 186, 120, 2);
+  g.fillStyle = 'rgba(255,226,196,0.16)';
+  g.fillRect(58, 188, 120, 1);
+
+  /* wrapped name in Syne */
+  const size = 48;
+  g.font = '800 ' + size + 'px "Syne"';
+  const words = name.split(' ');
+  const lines = [];
+  let line = '';
+  for (const w of words){
+    const test = line ? line + ' ' + w : w;
+    if (g.measureText(test).width > 396 && line){ lines.push(line); line = w; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+  let y = 286;
+  for (const ln of lines){
+    etch(ln, '800 ' + size + 'px "Syne"', 58, y);
+    y += size * 1.16;
+  }
+
+  /* small provenance line near the base */
+  etch('HAUCK MARKETING LLC', '400 22px "JetBrains Mono"', 58, 1150);
+  etch('EXHIBIT 0' + (i + 1) + ' OF 06', '400 22px "JetBrains Mono"', 58, 1185);
+
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+
+function brushedRoughness(){
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#9a9a9a';
+  g.fillRect(0, 0, 256, 256);
+  /* fine vertical brushing streaks, deterministic */
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let x = 0; x < 256; x++){
+    const v = 130 + Math.floor(rnd() * 70);
+    g.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')';
+    g.globalAlpha = 0.35;
+    g.fillRect(x, 0, 1, 256);
+  }
+  g.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+function concreteRoughness(){
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const g = c.getContext('2d');
+  const img = g.createImageData(256, 256);
+  let seed = 13;
+  const rnd = () => (seed = (seed * 48271) % 2147483647) / 2147483647;
+  for (let p = 0; p < img.data.length; p += 4){
+    const v = 90 + Math.floor(rnd() * 70);
+    img.data[p] = img.data[p+1] = img.data[p+2] = v;
+    img.data[p+3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(14, 18);
+  return t;
+}
+
+function contactShadowTexture(){
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(128, 128, 10, 128, 128, 126);
+  grad.addColorStop(0, 'rgba(0,0,0,0.6)');
+  grad.addColorStop(0.55, 'rgba(0,0,0,0.32)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 256, 256);
+  return new THREE.CanvasTexture(c);
+}
+
+/* ---------- scene ---------- */
+
+function initScene(){
+  const holder = document.getElementById('stage');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  holder.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x08090b);
+  scene.fog = new THREE.Fog(0x08090b, 7, 30);
+
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+  const fovFor = w => (w < 768 ? 64 : 50);
+  const camera = new THREE.PerspectiveCamera(fovFor(window.innerWidth), window.innerWidth / window.innerHeight, 0.1, 80);
+  camera.position.set(0, 1.5, 4.6);
+
+  /* low ambient bed so shadow sides are not pure black */
+  scene.add(new THREE.HemisphereLight(0x252a33, 0x0b0c0e, 0.45));
+
+  /* floor: polished concrete */
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(60, 90),
+    new THREE.MeshStandardMaterial({
+      color: 0x16171a,
+      roughness: 0.25,
+      metalness: 0.08,
+      roughnessMap: concreteRoughness(),
+      envMapIntensity: 0.5
+    })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.z = -14;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  /* distant dark backdrop so the cavern never goes flat black */
+  const backdrop = new THREE.Mesh(
+    new THREE.PlaneGeometry(60, 24),
+    new THREE.MeshStandardMaterial({ color: 0x0c0d11, roughness: 0.95, metalness: 0 })
+  );
+  backdrop.position.set(0, 8, -36);
+  scene.add(backdrop);
+
+  /* plinths */
+  const plinthGeo = new RoundedBoxGeometry(1, 2.4, 0.5, 4, 0.03);
+  const brushed = brushedRoughness();
+  const shadowTex = contactShadowTexture();
+  const coneGeo = new THREE.ConeGeometry(1.5, 4.0, 32, 1, true);
+
+  for (let i = 0; i < N; i++){
+    const x = plinthX(i), z = plinthZ(i);
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.rotation.y = (x > 0 ? -1 : 1) * 0.22;
+
+    const mat = new THREE.MeshPhysicalMaterial({
+      color: 0xb9bcc2,
+      metalness: 0.9,
+      roughness: 0.35,
+      roughnessMap: brushed,
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.35,
+      envMapIntensity: 0.55
+    });
+    const plinth = new THREE.Mesh(plinthGeo, mat);
+    plinth.position.y = 1.2;
+    plinth.castShadow = i < 2;
+    plinth.receiveShadow = true;
+    group.add(plinth);
+
+    /* engraved label decal, just proud of the face */
+    const decal = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.92, 2.207),
+      new THREE.MeshStandardMaterial({
+        map: labelTexture(i, WORKS[i]),
+        transparent: true,
+        roughness: 0.5,
+        metalness: 0.6,
+        envMapIntensity: 0.4,
+        polygonOffset: true,
+        polygonOffsetFactor: -1
+      })
+    );
+    decal.position.set(0, 1.2, 0.256);
+    group.add(decal);
+
+    /* radial contact shadow under the slab */
+    const contact = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.1, 1.45),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false })
+    );
+    contact.rotation.x = -Math.PI / 2;
+    contact.position.y = 0.012;
+    group.add(contact);
+
+    scene.add(group);
+
+    /* tungsten spotlight from above */
+    const spot = new THREE.SpotLight(0xffd9ad, 85, 14, 0.45, 0.6, 2);
+    spot.position.set(x * 0.8, 4.3, z + 0.8);
+    spot.target.position.set(x, 1.1, z);
+    if (i < 2){
+      spot.castShadow = true;
+      spot.shadow.mapSize.set(1024, 1024);
+      spot.shadow.bias = -0.0004;
+    }
+    scene.add(spot, spot.target);
+
+    /* faint visible light cone, fixed per-index opacity variation */
+    const cone = new THREE.Mesh(coneGeo, new THREE.MeshBasicMaterial({
+      color: 0xffd9ad,
+      transparent: true,
+      opacity: 0.045 + ((i * 37) % 3) * 0.012,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    }));
+    cone.position.set(x * 0.8, 4.3 - 2.0, z + 0.4);
+    scene.add(cone);
+  }
+
+  /* ---------- scroll-driven dolly ---------- */
+
+  const Z_START = window.innerWidth < 768 ? 5.7 : 4.6;
+  const Z_END = plinthZ(N - 1) - 4.6;   /* glide past the last plinth */
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+
+  let scrollP = 0;
+  const readScroll = () => {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    scrollP = max > 0 ? clamp01(window.scrollY / max) : 0;
+  };
+  readScroll();
+  window.addEventListener('scroll', readScroll, { passive: true });
+
+  /* mouse parallax, tiny and damped */
+  let mx = 0, my = 0, mxT = 0, myT = 0;
+  if (!reduceMotion){
+    window.addEventListener('pointermove', e => {
+      mxT = (e.clientX / window.innerWidth - 0.5) * 2;
+      myT = (e.clientY / window.innerHeight - 0.5) * 2;
+    }, { passive: true });
+  }
+
+  /* caption sync */
+  const rail = document.getElementById('rail');
+  const caps = Array.from(rail.querySelectorAll('.cap'));
+  const railbar = document.getElementById('railbar');
+  const railcount = document.getElementById('railcount');
+  const hero = document.getElementById('hero');
+  let lastIdx = -1, lastRail = null;
+
+  function syncOverlays(camZ){
+    /* hero fades as the walk begins */
+    const heroA = 1 - clamp01(scrollP / 0.06);
+    hero.style.opacity = heroA.toFixed(3);
+    hero.style.pointerEvents = heroA < 0.15 ? 'none' : '';
+
+    /* the plinth roughly 3 units ahead of the camera is "current" */
+    const f = clamp01((3 - camZ) / (GAP * (N - 1))) * (N - 1);
+    const idx = Math.max(0, Math.min(N - 1, Math.round(f)));
+    if (idx !== lastIdx){
+      caps.forEach((c, j) => c.classList.toggle('active', j === idx));
+      railcount.textContent = '0' + (idx + 1) + ' / 06';
+      lastIdx = idx;
+    }
+    railbar.style.transform = 'scaleX(' + ((idx + 1) / N).toFixed(3) + ')';
+
+    const railOn = scrollP > 0.055 && scrollP < 0.9;
+    if (railOn !== lastRail){
+      rail.classList.toggle('visible', railOn);
+      lastRail = railOn;
+    }
+    return f;
+  }
+
+  /* damped camera state */
+  let camZ = Z_START, lookX = 0, lookY = 1.4;
+  const clock = new THREE.Clock();
+
+  function frame(){
+    const dt = Math.min(clock.getDelta(), 0.05);
+    /* camera stops easing forward over the last stretch, facing the end wall */
+    const pc = clamp01(scrollP / 0.88);
+    const zTarget = lerp(Z_START, Z_END, pc);
+
+    if (reduceMotion){
+      camZ = zTarget;
+      mx = my = 0;
+    } else {
+      const k = 1 - Math.pow(0.0015, dt);   /* framerate-independent damping */
+      camZ += (zTarget - camZ) * k;
+      mx += (mxT - mx) * k;
+      my += (myT - my) * k;
+    }
+
+    const f = syncOverlays(camZ);
+
+    /* gentle weave toward whichever side the current plinth stands on */
+    const weave = Math.cos(Math.PI * f) * 0.28;
+    camera.position.set(weave * 0.4 + mx * 0.09, 1.5 + my * 0.05, camZ);
+
+    const aheadX = lerp(weave, plinthX(Math.round(f)) * 0.45, 0.5);
+    lookX += ((aheadX + mx * 0.18) - lookX) * (reduceMotion ? 1 : 1 - Math.pow(0.002, dt));
+    camera.lookAt(lookX, lookY + my * 0.1, camZ - 6);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.fov = fovFor(window.innerWidth);
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    readScroll();
+  });
+}
+
+/* ---------- boot: wait for fonts so canvas labels render correctly ---------- */
+
+async function boot(){
+  try {
+    const loads = [
+      '800 56px "Syne"',
+      '500 60px "JetBrains Mono"',
+      '400 22px "JetBrains Mono"'
+    ].map(f => document.fonts.load(f, 'HAUCK 01'));
+    await Promise.race([Promise.all(loads), new Promise(r => setTimeout(r, 1800))]);
+  } catch (e) { /* fonts are a nicety, not a dependency */ }
+
+  try {
+    initScene();
+  } catch (e) {
+    console.warn('WebGL unavailable, showing plain exhibit list.', e);
+    document.body.classList.add('no3d');
+  }
+}
+boot();
+</script>
+</body>
+</html>

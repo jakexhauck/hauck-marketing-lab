@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hauck Marketing. Brez-style website variations.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0A0B0D;
+    --surface: #121317;
+    --line: rgba(255,255,255,0.08);
+    --text: #F4F5F7;
+    --muted: #9A9CA3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 64px 24px 96px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  .eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+  h1 { font-size: clamp(30px, 6vw, 56px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.02; }
+  .lede { color: var(--muted); max-width: 60ch; margin-top: 18px; font-size: 16px; }
+  .grid {
+    margin-top: 56px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 26px 24px 22px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform .2s ease, border-color .2s ease;
+    overflow: hidden;
+  }
+  .card:hover, .card:focus-visible { transform: translateY(-4px); border-color: var(--accent); outline: none; }
+  .card:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+  .swatch { display: flex; gap: 8px; margin-bottom: 22px; }
+  .dot { width: 26px; height: 26px; border-radius: 6px; }
+  .num { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--muted); letter-spacing: 0.1em; }
+  .name { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; margin: 6px 0 8px; }
+  .name b { color: var(--accent); }
+  .desc { color: var(--muted); font-size: 14px; flex: 1; }
+  .meta { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--muted); margin-top: 20px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .open { margin-top: 4px; color: var(--accent); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+
+  .c1 { --accent: #C6F24E; }
+  .c2 { --accent: #C98B5E; }
+  .c3 { --accent: #5B8CFF; }
+
+  .note { margin-top: 48px; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--muted); line-height: 1.7; border-top: 1px solid var(--line); padding-top: 24px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="eyebrow">// Hauck Marketing : website concepts</p>
+    <h1>Brez-style, three ways.</h1>
+    <p class="lede">Premium and selective positioning, near-black canvas, oversized type, one accent each. Same DNA, three distinct personalities. Open any one full-screen.</p>
+
+    <div class="grid">
+      <a class="card c1" href="1-signal.html">
+        <div class="swatch"><span class="dot" style="background:#0A0B0D;border:1px solid var(--line)"></span><span class="dot" style="background:#C6F24E"></span></div>
+        <span class="num">01</span>
+        <div class="name">Signal <b>/ lime</b></div>
+        <p class="desc">The loudest, most Brez-literal. High-voltage and kinetic, with a live lead-pipeline ticker streaming in the hero. Anton headlines, mono labels.</p>
+        <div class="meta">Electric lime &middot; Anton + Inter</div>
+        <span class="open">Open concept &rarr;</span>
+      </a>
+
+      <a class="card c2" href="2-authority.html">
+        <div class="swatch"><span class="dot" style="background:#0B0B0C;border:1px solid var(--line)"></span><span class="dot" style="background:#C98B5E"></span></div>
+        <span class="num">02</span>
+        <div class="name">Authority <b>/ copper</b></div>
+        <p class="desc">Quietly expensive and on-brand. Editorial Fraunces serif, generous space, an oversized numbered capability ledger. Reads like a high-end brand book.</p>
+        <div class="meta">Hauck copper &middot; Fraunces + Hanken</div>
+        <span class="open">Open concept &rarr;</span>
+      </a>
+
+      <a class="card c3" href="3-voltage.html">
+        <div class="swatch"><span class="dot" style="background:#08090C;border:1px solid var(--line)"></span><span class="dot" style="background:#5B8CFF"></span></div>
+        <span class="num">03</span>
+        <div class="name">Voltage <b>/ blue</b></div>
+        <p class="desc">The AI-ops angle. Reads like an engineering company that runs marketing, with an animated system diagram showing a lead flow from ad to booked.</p>
+        <div class="meta">Electric blue &middot; Space Grotesk + Inter</div>
+        <span class="open">Open concept &rarr;</span>
+      </a>
+    </div>
+
+    <p class="note">
+      Note, Sir: every results number is an owner-editable placeholder (bracketed), not a claim. No fabricated revenue, no guarantees, no em dashes.<br />
+      Swap in real figures before anything goes live.
+    </p>
+  </div>
+</body>
+</html>

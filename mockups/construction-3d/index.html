@@ -198,10 +198,9 @@
   }
   .btn-solid:hover { transform: translateY(-3px); box-shadow: 0 14px 50px rgba(255, 122, 26, 0.4); }
   .btn-ghost {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(20, 24, 31, 0.6);
     color: var(--ink);
     border: 1px solid var(--line);
-    backdrop-filter: blur(8px);
   }
   .btn-ghost:hover { border-color: rgba(255, 255, 255, 0.3); transform: translateY(-3px); }
 
@@ -235,8 +234,7 @@
   .marquee {
     border-top: 1px solid var(--line);
     border-bottom: 1px solid var(--line);
-    background: rgba(10, 12, 16, 0.55);
-    backdrop-filter: blur(6px);
+    background: rgba(10, 12, 16, 0.82);
     overflow: hidden;
     padding: 22px 0;
   }
@@ -291,9 +289,7 @@
     padding: 44px 36px;
     border: 1px solid var(--line);
     border-radius: 6px;
-    background: linear-gradient(160deg, rgba(22, 27, 35, 0.85), rgba(13, 16, 22, 0.9));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: linear-gradient(160deg, rgba(22, 27, 35, 0.92), rgba(13, 16, 22, 0.96));
     overflow: hidden;
     transition: border-color 0.35s, box-shadow 0.35s;
     transform-style: preserve-3d;
@@ -346,8 +342,7 @@
   .stats-band {
     border-top: 1px solid var(--line);
     border-bottom: 1px solid var(--line);
-    background: rgba(12, 14, 19, 0.6);
-    backdrop-filter: blur(10px);
+    background: rgba(12, 14, 19, 0.88);
   }
   .stats {
     display: grid;
@@ -497,8 +492,7 @@
   /* ---------- footer ---------- */
   footer {
     border-top: 1px solid var(--line);
-    background: rgba(8, 9, 12, 0.85);
-    backdrop-filter: blur(10px);
+    background: rgba(8, 9, 12, 0.94);
     padding: 72px 0 36px;
   }
   .foot-grid {
@@ -792,8 +786,8 @@ import * as THREE from 'three';
    Scene setup
 ===================================================== */
 const canvas = document.getElementById('scene');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -814,7 +808,8 @@ scene.add(new THREE.HemisphereLight(0x223044, 0x0a0c10, 0.9));
 const key = new THREE.DirectionalLight(0xffd9b0, 1.6);
 key.position.set(30, 42, 18);
 key.castShadow = true;
-key.shadow.mapSize.set(2048, 2048);
+key.shadow.mapSize.set(1024, 1024);
+key.shadow.radius = 6;
 key.shadow.camera.left = -45;
 key.shadow.camera.right = 45;
 key.shadow.camera.top = 45;
@@ -853,7 +848,6 @@ function strut(a, b, r, mat) {
   const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 6), mat);
   mesh.position.copy(a).addScaledVector(dir, 0.5);
   mesh.quaternion.setFromUnitVectors(UP, dir.clone().normalize());
-  mesh.castShadow = true;
   return mesh;
 }
 function box(w, h, d, mat, x, y, z) {

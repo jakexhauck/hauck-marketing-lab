@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hauck Marketing LLC : Before and After : AI-Powered Local Growth</title>
+<meta name="description" content="Custom software and ads for local businesses. See your week before Hauck, then see it after.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Atkinson+Hyperlegible+Next:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============ tokens ============ */
+  :root{
+    --bg: #07070B;
+    --panel: #0C0C13;
+    --panel-2: #10101A;
+    --bone: #EDEAE4;
+    --muted: #A6A5B2;
+    --faint: #74748A;        /* decorative fragments only, never running copy */
+    --led: #A78BFA;
+    --led-hot: #C7B1FF;
+    --led-deep: #9D6BFF;
+    --seam: rgba(167,139,250,0.16);
+    --seam-soft: rgba(167,139,250,0.09);
+    --hairline: rgba(237,234,228,0.09);
+    --dim-line: rgba(237,234,228,0.15);
+    --btn-ink: #0A0614;
+    --display: "Archivo", system-ui, sans-serif;
+    --body: "Atkinson Hyperlegible Next", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --max: 1120px;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  html{ scroll-padding-top: 92px; }
+  @media (prefers-reduced-motion: no-preference){
+    html{ scroll-behavior: smooth; }
+  }
+
+  body{
+    background: var(--bg);
+    color: var(--bone);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection{ background: rgba(167,139,250,0.32); }
+
+  a{ color: inherit; }
+  button{ font: inherit; cursor: pointer; }
+  input{ font: inherit; }
+
+  :is(a, button, input, [tabindex]):focus-visible{
+    outline: 2px solid var(--led);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap{ max-width: var(--max); margin: 0 auto; padding: 0 28px; }
+  .mono{ font-family: var(--mono); }
+  .sr-only{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+  }
+
+  .eyebrow{
+    font-family: var(--mono);
+    font-size: 11.5px; letter-spacing: .24em; text-transform: uppercase;
+    color: var(--led);
+    margin-bottom: 18px;
+  }
+
+  /* ============ LED seam (ported signature treatment) ============ */
+  .seam-x{ position:relative; }
+  .seam-x::before, .seam-x::after{
+    content:"";
+    position:absolute; left:8%; right:8%; top:-1px; height:1px;
+    background: linear-gradient(90deg, transparent, var(--led) 35%, var(--led-hot) 50%, var(--led) 65%, transparent);
+    pointer-events:none;
+  }
+  .seam-x::after{
+    height:3px; top:-2px;
+    filter: blur(5px);
+    opacity:.55;
+  }
+
+  /* ============ nav ============ */
+  .nav{
+    position: fixed; top:0; left:0; right:0; z-index: 50;
+    background: rgba(7,7,11,0.88);
+    backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--seam-soft);
+  }
+  .nav-in{
+    display:flex; align-items:center; justify-content:space-between;
+    height: 62px; gap: 20px;
+  }
+  .brand{
+    display:flex; align-items:baseline; gap:10px;
+    text-decoration:none;
+  }
+  .brand b{
+    font-family: var(--display);
+    font-weight: 800; font-size: 17px; letter-spacing: .04em;
+  }
+  .brand span{
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .22em;
+    color: var(--led); text-transform: uppercase;
+  }
+  .nav-links{
+    display:flex; align-items:center; gap: 22px;
+  }
+  .nav-link{
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: .12em;
+    text-transform: uppercase; text-decoration: none;
+    color: var(--muted);
+    transition: color .15s ease;
+  }
+  .nav-link:hover{ color: var(--bone); }
+  .nav-cta{
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: .1em;
+    text-transform: uppercase; text-decoration:none;
+    color: var(--led-hot);
+    border: 1px solid rgba(167,139,250,0.4);
+    padding: 9px 16px; border-radius: 999px;
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+  .nav-cta:hover{
+    border-color: rgba(167,139,250,0.7);
+    box-shadow: 0 0 14px rgba(167,139,250,0.2);
+  }
+
+  /* ============ hero ============ */
+  .hero{ padding: 138px 0 96px; }
+
+  .hero-head{
+    max-width: 880px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .hero h1{
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(40px, 7vw, 80px);
+    line-height: 1.02;
+    letter-spacing: -0.028em;
+  }
+  .hero h1 em{
+    font-style: normal;
+    color: var(--led-hot);
+    text-shadow: 0 0 38px rgba(157,107,255,0.45);
+  }
+  .hero-sub{
+    margin: 22px auto 0;
+    max-width: 56ch;
+    color: var(--muted);
+    font-size: 18px;
+  }
+
+  /* ---- master toggle (signature) ---- */
+  .mtoggle-row{
+    position: sticky;
+    top: 78px;
+    z-index: 10;
+    width: max-content;
+    max-width: calc(100% - 24px);
+    margin: 36px auto 0;
+    display:flex; align-items:center; gap: 14px;
+    background: rgba(10,10,16,0.92);
+    border: 1px solid var(--seam);
+    border-radius: 999px;
+    padding: 9px 18px;
+    box-shadow: 0 10px 30px -16px rgba(0,0,0,0.9);
+  }
+  .mside{
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted);
+    transition: color .3s ease, text-shadow .3s ease;
+    white-space: nowrap;
+  }
+  .mtoggle-row:not(.is-off) .mside-on{
+    color: var(--led-hot);
+    text-shadow: 0 0 14px rgba(157,107,255,0.5);
+  }
+  .mtoggle-row.is-off .mside-off{ color: var(--bone); }
+  .mtoggle{
+    flex: none;
+    width: 58px; height: 30px;
+    border-radius: 999px;
+    border: 1px solid rgba(167,139,250,0.55);
+    background: rgba(167,139,250,0.2);
+    position: relative;
+    transition: background-color .3s ease, border-color .3s ease, box-shadow .3s ease;
+    box-shadow: 0 0 18px rgba(167,139,250,0.3), inset 0 0 10px rgba(167,139,250,0.12);
+  }
+  .mtoggle .knob{
+    position:absolute; top:3px; left:3px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--led);
+    box-shadow: 0 0 12px rgba(167,139,250,0.8);
+    transform: translateX(28px);
+    transition: transform .3s cubic-bezier(.3,.9,.3,1), background-color .3s ease, box-shadow .3s ease;
+  }
+  .mtoggle[aria-pressed="false"]{
+    background: rgba(237,234,228,0.06);
+    border-color: var(--dim-line);
+    box-shadow: none;
+  }
+  .mtoggle[aria-pressed="false"] .knob{
+    transform: translateX(0);
+    background: #4A4955;
+    box-shadow: none;
+  }
+
+  /* ---- the split ---- */
+  .split{
+    display:grid;
+    grid-template-columns: 1fr 3px 1fr;
+    gap: 0 30px;
+    align-items: stretch;
+    margin-top: 40px;
+  }
+  .half{
+    border-radius: 18px;
+    padding: 28px 26px 30px;
+    transition: filter .5s ease, opacity .5s ease;
+  }
+  .half-b{
+    background: #0A0A10;
+    border: 1px solid var(--dim-line);
+    filter: grayscale(.55) brightness(.92);
+    opacity: .9;
+  }
+  .half-a{
+    background: var(--panel);
+    border: 1px solid var(--seam);
+    box-shadow: 0 0 48px -18px rgba(157,107,255,0.38);
+    position: relative;
+    transition: filter .5s ease, opacity .5s ease, box-shadow .5s ease, border-color .5s ease;
+  }
+  .half-a::before{
+    content:"";
+    position:absolute; top:-1px; left:12%; right:12%; height:1px;
+    background: linear-gradient(90deg, transparent, rgba(199,177,255,0.95), transparent);
+    transition: opacity .5s ease;
+    pointer-events:none;
+  }
+  .half-tag{
+    font-family: var(--mono);
+    font-size: 11.5px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .half-a .half-tag{ color: var(--led-hot); }
+
+  .seam-v{
+    position: relative;
+    background: linear-gradient(180deg, transparent, var(--led) 18%, var(--led-hot) 50%, var(--led-deep) 82%, transparent);
+    border-radius: 2px;
+    transition: opacity .5s ease;
+  }
+  .seam-v::after{
+    content:""; position:absolute; inset:0 -3px;
+    background: inherit;
+    filter: blur(7px);
+    opacity:.5;
+  }
+
+  /* vignettes */
+  .vig{
+    background: var(--bg);
+    border: 1px solid var(--dim-line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    transition: border-color .5s ease, box-shadow .5s ease;
+  }
+  .vig + .vig{ margin-top: 14px; }
+  .vig-time{
+    font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+  .vig-text{
+    font-size: 16px;
+    line-height: 1.55;
+    color: #CFCDD6;
+  }
+  .vig-note{
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--led);
+    display:flex; align-items:center; gap: 7px;
+  }
+  .half-b .vig:nth-child(3){ transform: rotate(-0.7deg); }
+  .half-b .vig:nth-child(4){ transform: rotate(0.5deg); }
+  .half-a .vig{
+    border-color: rgba(167,139,250,0.3);
+    box-shadow: 0 0 22px -10px rgba(157,107,255,0.4);
+  }
+  .half-a .vig .vig-time{ color: var(--led-hot); }
+
+  /* toggle OFF state: the lights go out on the right, the left clears up */
+  .split.is-off .half-b{ filter: none; opacity: 1; }
+  .split.is-off .half-a{
+    filter: grayscale(1) brightness(.9);
+    opacity: .88;
+    box-shadow: none;
+    border-color: var(--dim-line);
+  }
+  .split.is-off .half-a::before{ opacity: 0; }
+  .split.is-off .half-a .vig{ box-shadow: none; border-color: var(--dim-line); }
+  .split.is-off .seam-v{ opacity: .15; }
+
+  /* ============ contrast sections ============ */
+  .vs{ padding: 56px 0; }
+  .vs + .vs{ border-top: 1px solid var(--hairline); }
+  .vs-head{ max-width: 640px; margin-bottom: 34px; }
+  .vs-head h2{
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(28px, 4vw, 44px);
+    letter-spacing: -0.022em;
+    line-height: 1.08;
+  }
+  .vs-head .vs-sub{
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 17px;
+    max-width: 52ch;
+  }
+  .vs-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    align-items: stretch;
+  }
+  .side{
+    border-radius: 16px;
+    padding: 26px 26px 28px;
+    display:flex; flex-direction:column;
+  }
+  .side h3{
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 23px;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    margin-bottom: 10px;
+  }
+  .side p{ color: var(--muted); font-size: 16.5px; max-width: 46ch; }
+  .side-tag{
+    font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .vs-before{
+    background: #0A0A10;
+    border: 1px solid var(--dim-line);
+  }
+  .vs-before p{ color: #B9B7C1; }
+  .scrap{
+    margin-top: auto;
+    padding-top: 22px;
+  }
+  .scrap-in{
+    background: #101016;
+    border: 1px solid var(--dim-line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 12px; letter-spacing: .04em;
+    line-height: 1.7;
+    color: var(--muted);
+    transform: rotate(-0.6deg);
+    max-width: 290px;
+  }
+  .scrap-in s{ text-decoration-color: rgba(237,234,228,0.45); }
+
+  /* the AFTER side: lights up on scroll */
+  .vs-after{
+    background: var(--panel);
+    border: 1px solid var(--dim-line);
+    position: relative;
+    transition: border-color .7s ease, box-shadow .7s ease;
+  }
+  .vs-after::before{
+    content:"";
+    position:absolute; top:-1px; left:12%; right:12%; height:1px;
+    background: linear-gradient(90deg, transparent, rgba(199,177,255,0.95), transparent);
+    opacity: 0;
+    transition: opacity .7s ease;
+    pointer-events:none;
+  }
+  .vs-after .side-tag{ transition: color .7s ease, text-shadow .7s ease; }
+  .vs-after.on{
+    border-color: var(--seam);
+    box-shadow: 0 0 52px -16px rgba(157,107,255,0.4);
+  }
+  .vs-after.on::before{ opacity: 1; }
+  .vs-after.on .side-tag{
+    color: var(--led-hot);
+    text-shadow: 0 0 14px rgba(157,107,255,0.5);
+  }
+  .vs-frag{
+    margin-top: auto;
+    padding-top: 24px;
+  }
+
+  /* ============ conversion: form card (ported from 1-split-form) ============ */
+  .convert{ padding: 88px 0 72px; border-top: 1px solid var(--hairline); }
+  .convert-head{
+    text-align:center;
+    max-width: 560px;
+    margin: 0 auto 38px;
+  }
+  .convert-head h2{
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(30px, 4.4vw, 48px);
+    letter-spacing: -0.022em;
+    line-height: 1.06;
+  }
+  .convert-head .convert-sub{
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 17px;
+  }
+  .form-col{ max-width: 520px; margin: 0 auto; }
+
+  .form-card{
+    position: relative;
+    background: var(--panel);
+    border: 1px solid rgba(167, 139, 250, 0.26);
+    border-radius: 16px;
+    padding: 34px 32px 30px;
+    box-shadow:
+      0 0 52px -14px rgba(157, 107, 255, 0.4),
+      0 30px 70px -38px rgba(0, 0, 0, 0.9);
+  }
+  .form-card::before{
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 12%;
+    right: 12%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(199, 177, 255, 0.95), transparent);
+  }
+  .form-title{
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    margin-bottom: 6px;
+  }
+  .form-sub{
+    font-size: 15px;
+    color: var(--muted);
+    margin-bottom: 26px;
+  }
+  .field{ margin-bottom: 18px; }
+  .field-label{
+    display: block;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .input{
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid rgba(237, 234, 228, 0.16);
+    border-radius: 10px;
+    color: var(--bone);
+    font-family: var(--body);
+    font-size: 16px;
+    padding: 15px 16px;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+  }
+  .input::placeholder{ color: rgba(166, 165, 178, 0.55); }
+  .input:focus{
+    outline: none;
+    border-color: var(--led-hot);
+    box-shadow: 0 0 0 3px rgba(157, 107, 255, 0.4), 0 0 18px -4px rgba(157, 107, 255, 0.5);
+  }
+
+  .chip-row{ display: flex; gap: 8px; }
+  .chip{ flex: 1; cursor: pointer; }
+  .chip input{
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .chip-face{
+    display: block;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid rgba(237, 234, 228, 0.16);
+    border-radius: 10px;
+    padding: 12px 6px;
+    transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+  }
+  .chip:hover .chip-face{ border-color: rgba(167, 139, 250, 0.5); }
+  .chip input:checked + .chip-face{
+    color: var(--bone);
+    border-color: var(--led);
+    background: rgba(157, 107, 255, 0.13);
+  }
+  .chip input:focus-visible + .chip-face{
+    box-shadow: 0 0 0 3px rgba(157, 107, 255, 0.28);
+    border-color: var(--led);
+  }
+
+  .submit{
+    width: 100%;
+    margin-top: 8px;
+    background: var(--led);
+    color: #120D20;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--body);
+    font-weight: 700;
+    font-size: 17px;
+    padding: 16px;
+    cursor: pointer;
+    box-shadow: 0 0 26px -8px rgba(157, 107, 255, 0.55);
+    transition: background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+  }
+  .submit:hover{
+    background: var(--led-hot);
+    box-shadow: 0 0 34px -6px rgba(157, 107, 255, 0.7);
+    transform: translateY(-1px);
+  }
+  .submit:active{ transform: translateY(0); }
+  .submit:focus-visible{
+    outline: 2px solid var(--bone);
+    outline-offset: 3px;
+  }
+  .trust{
+    margin-top: 14px;
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+
+  .success{ text-align: center; padding: 44px 8px 36px; }
+  .success[hidden]{ display: none; }
+  .success-ring{
+    width: 56px; height: 56px;
+    margin: 0 auto 20px;
+    border: 1px solid rgba(167, 139, 250, 0.5);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 28px -8px rgba(157, 107, 255, 0.6);
+  }
+  .success-ring svg{ width: 24px; height: 24px; }
+  .success-ring path{
+    fill: none;
+    stroke: var(--led-hot);
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .success h3{
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: -0.015em;
+    margin-bottom: 10px;
+  }
+  .success p{
+    color: var(--muted);
+    font-size: 16px;
+    max-width: 30ch;
+    margin: 0 auto;
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .success{ animation: rise 320ms ease both; }
+    @keyframes rise{
+      from{ opacity: 0; transform: translateY(8px); }
+      to{ opacity: 1; transform: translateY(0); }
+    }
+  }
+
+  /* ============ services board (ported from 2-led-panels) ============ */
+  .services{ padding: 72px 0 88px; }
+  .sec-head{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap: 24px;
+    margin-bottom: 36px;
+    flex-wrap:wrap;
+  }
+  .sec-head h2{
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(26px, 3.4vw, 38px);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    max-width: 18ch;
+  }
+  .sec-head .sub{
+    color: var(--muted);
+    max-width: 34ch;
+    font-size: 15.5px;
+    padding-bottom: 4px;
+  }
+  .sec-eyebrow{
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .24em; text-transform: uppercase;
+    color: var(--led);
+    margin-bottom: 14px;
+  }
+
+  .board{
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+  }
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--seam-soft);
+    border-radius: 12px;
+    padding: 24px;
+    display:flex; flex-direction:column;
+    transition: transform .18s ease, border-color .18s ease;
+  }
+  .panel:hover{
+    transform: translateY(-2px);
+    border-color: var(--seam);
+  }
+  .panel.lit{ border-color: var(--seam); }
+  .p-idx{
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .18em;
+    color: var(--led);
+    margin-bottom: 14px;
+  }
+  .panel h3{
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+  .panel .desc{
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+  .frag{
+    margin-top: auto;
+    padding-top: 20px;
+  }
+  .span-4{ grid-column: span 4; }
+  .span-2{ grid-column: span 2; }
+  .span-6{ grid-column: span 6; }
+
+  /* --- fragment: mini app window --- */
+  .win{
+    background: var(--bg);
+    border: 1px solid var(--seam-soft);
+    border-radius: 10px;
+    overflow:hidden;
+  }
+  .win-bar{
+    display:flex; align-items:center; gap:6px;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--seam-soft);
+  }
+  .win-bar i{
+    width:8px; height:8px; border-radius:50%;
+    background: #1C1C28;
+  }
+  .win-bar i:first-child{ background: rgba(167,139,250,0.55); }
+  .win-bar .mono{
+    margin-left:auto; font-size: 10px; letter-spacing:.14em;
+    color: var(--faint); text-transform:uppercase;
+  }
+  .pipe{
+    display:grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--seam-soft);
+  }
+  .pipe > div{
+    background: var(--bg);
+    padding: 12px;
+  }
+  .pipe .st{
+    font-family: var(--mono);
+    font-size: 9.5px; letter-spacing: .14em; text-transform:uppercase;
+    color: var(--faint);
+  }
+  .pipe .n{
+    font-family: var(--display);
+    font-weight: 700; font-size: 20px; margin-top: 4px;
+  }
+  .pipe .card{
+    margin-top: 8px;
+    height: 8px; border-radius: 3px;
+    background: var(--panel-2);
+    border: 1px solid var(--seam-soft);
+  }
+  .pipe .card + .card{ margin-top: 5px; }
+  .pipe .card.hot{
+    background: rgba(167,139,250,0.16);
+    border-color: rgba(167,139,250,0.4);
+  }
+
+  /* --- fragment: contact rows --- */
+  .crm-row{
+    display:flex; align-items:center; gap: 10px;
+    background: var(--bg);
+    border: 1px solid var(--seam-soft);
+    border-radius: 8px;
+    padding: 9px 12px;
+  }
+  .crm-row + .crm-row{ margin-top: 8px; }
+  .ava{
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--panel-2);
+    border: 1px solid var(--seam);
+    font-family: var(--mono); font-size: 9.5px;
+    color: var(--led);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .crm-row .who{
+    font-size: 13px; font-weight: 500;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .crm-row .who small{
+    display:block; font-weight: 400;
+    color: var(--faint); font-size: 11.5px;
+  }
+  .pill{
+    margin-left:auto; flex-shrink:0;
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--led-hot);
+    border: 1px solid rgba(167,139,250,0.35);
+    border-radius: 999px;
+    padding: 3px 9px;
+  }
+  .pill.dim{ color: var(--muted); border-color: var(--seam-soft); }
+
+  /* --- fragment: toggles --- */
+  .tog{
+    display:flex; align-items:center; gap: 10px;
+    padding: 9px 0;
+  }
+  .tog + .tog{ border-top: 1px solid var(--seam-soft); }
+  .tog .t-label{ font-size: 13px; color: var(--muted); }
+  .switch{
+    margin-left:auto; flex-shrink:0;
+    width: 32px; height: 18px; border-radius: 999px;
+    background: rgba(167,139,250,0.22);
+    border: 1px solid rgba(167,139,250,0.5);
+    position:relative;
+  }
+  .switch::after{
+    content:""; position:absolute; top:2px; right:2px;
+    width: 12px; height: 12px; border-radius:50%;
+    background: var(--led);
+    box-shadow: 0 0 8px rgba(167,139,250,0.7);
+  }
+
+  /* --- fragment: sms bubble --- */
+  .sms{
+    background: var(--bg);
+    border: 1px solid var(--seam-soft);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .sms .bubble{
+    background: var(--panel-2);
+    border: 1px solid var(--seam-soft);
+    border-radius: 10px 10px 10px 3px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 95%;
+  }
+  .sms .meta{
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: .12em; text-transform:uppercase;
+    color: var(--led);
+    display:flex; align-items:center; gap:6px;
+  }
+  .dot{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--led);
+    box-shadow: 0 0 7px rgba(167,139,250,0.8);
+    flex-shrink:0;
+  }
+
+  /* --- fragment: review row --- */
+  .rev{
+    background: var(--bg);
+    border: 1px solid var(--seam-soft);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .stars{
+    display:flex; gap: 3px;
+    color: var(--led-hot);
+  }
+  .stars svg{ display:block; }
+  .rev .meta{
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: .12em; text-transform:uppercase;
+    color: var(--faint);
+  }
+  .rev .meta b{ color: var(--bone); font-weight: 500; }
+
+  /* --- fragment: stat tiles --- */
+  .panel.wide{
+    flex-direction: row;
+    align-items: center;
+    gap: 32px;
+  }
+  .panel.wide .w-copy{ max-width: 36ch; }
+  .panel.wide .frag{
+    margin: 0 0 0 auto;
+    padding: 0;
+    display:grid;
+    grid-template-columns: repeat(3, auto);
+    gap: 10px;
+  }
+  .stat{
+    background: var(--bg);
+    border: 1px solid var(--seam-soft);
+    border-radius: 10px;
+    padding: 12px 18px;
+    min-width: 120px;
+  }
+  .stat .k{
+    font-family: var(--mono);
+    font-size: 9.5px; letter-spacing: .14em; text-transform:uppercase;
+    color: var(--faint);
+  }
+  .stat .v{
+    font-family: var(--display);
+    font-weight: 700; font-size: 20px;
+    margin-top: 4px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .stat .v .dot{ position:relative; top:1px; }
+
+  /* ============ CTA strip (ported pattern) ============ */
+  .cta{
+    border-top: 1px solid var(--seam-soft);
+    border-bottom: 1px solid var(--seam-soft);
+    background: var(--panel);
+  }
+  .cta-in{
+    display:flex; align-items:center; justify-content:space-between;
+    gap: 20px;
+    padding: 26px 0;
+    flex-wrap:wrap;
+  }
+  .cta-in p{
+    font-family: var(--display);
+    font-weight: 700; font-size: 19px; letter-spacing: -0.01em;
+  }
+  .cta-in p span{ color: var(--muted); font-family: var(--body); font-weight: 400; font-size: 15px; margin-left: 12px; }
+  .btn{
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 15.5px;
+    letter-spacing: .01em;
+    color: var(--btn-ink);
+    background: linear-gradient(180deg, var(--led-hot), var(--led) 55%, var(--led-deep));
+    border: 0;
+    border-radius: 8px;
+    padding: 13px 26px;
+    text-decoration: none;
+    display: inline-block;
+    box-shadow: 0 0 22px rgba(167,139,250,0.34), inset 0 1px 0 rgba(255,255,255,0.35);
+    transition: box-shadow .18s ease, transform .18s ease;
+  }
+  .btn:hover{
+    box-shadow: 0 0 30px rgba(167,139,250,0.5), inset 0 1px 0 rgba(255,255,255,0.35);
+    transform: translateY(-1px);
+  }
+  .btn:active{ transform: translateY(0); }
+
+  /* ============ footer (ported pattern) ============ */
+  .foot{ padding: 26px 0 34px; }
+  .foot-in{
+    display:flex; align-items:center; justify-content:space-between;
+    gap: 16px; flex-wrap:wrap;
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .08em;
+    color: var(--muted);
+  }
+  .foot-in b{
+    font-family: var(--display);
+    font-weight: 800; font-size: 13px; letter-spacing: .04em;
+    color: var(--bone);
+  }
+  .foot-in a{ color: var(--muted); text-decoration:none; }
+  .foot-in a:hover{ color: var(--led-hot); }
+
+  /* ============ responsive ============ */
+  @media (max-width: 880px){
+    .hero{ padding: 122px 0 72px; }
+    .split{
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    .seam-v{
+      height: 3px; width: auto;
+      margin: 22px 8%;
+      background: linear-gradient(90deg, transparent, var(--led) 18%, var(--led-hot) 50%, var(--led-deep) 82%, transparent);
+    }
+    .seam-v::after{ inset: -3px 0; }
+    .vs-grid{ grid-template-columns: 1fr; }
+    .span-4, .span-2, .span-6{ grid-column: 1 / -1; }
+    .panel.wide{ flex-direction: column; align-items: stretch; }
+    .panel.wide .frag{ margin: 20px 0 0; grid-template-columns: repeat(3, 1fr); }
+    .stat{ min-width: 0; padding: 12px; }
+  }
+  @media (max-width: 560px){
+    body{ font-size: 16px; }
+    .wrap{ padding: 0 18px; }
+    .nav-link{ display: none; }
+    .hero{ padding: 106px 0 56px; }
+    .hero-sub{ font-size: 16.5px; }
+    .mtoggle-row{ top: 70px; gap: 10px; padding: 8px 14px; }
+    .half{ padding: 22px 18px 24px; }
+    .vs{ padding: 44px 0; }
+    .side{ padding: 22px 18px 24px; }
+    .convert{ padding: 64px 0 52px; }
+    .form-card{ padding: 26px 20px 24px; }
+    .chip-row{ flex-wrap: wrap; }
+    .chip{ flex: 1 1 30%; }
+    .services{ padding: 52px 0 64px; }
+    .panel.wide .frag{ grid-template-columns: 1fr; }
+    .stat .v{ font-size: 17px; }
+    .cta-in{ justify-content: center; text-align:center; }
+  }
+
+  /* ============ reduced motion ============ */
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ nav ============ -->
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="Hauck Marketing, home">
+      <b>HAUCK</b><span>Marketing</span>
+    </a>
+    <nav class="nav-links" aria-label="Main">
+      <a class="nav-link" href="#build">Build</a>
+      <a class="nav-link" href="#automate">Automate</a>
+      <a class="nav-link" href="#advertise">Advertise</a>
+      <a class="nav-cta" href="#lead-form">Get a plan</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ hero: the split ============ -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-head">
+        <p class="eyebrow">Hauck Marketing LLC : AI-Powered Local Growth</p>
+        <h1>Same business.<br><em>Different Monday.</em></h1>
+        <p class="hero-sub">We build custom software and run the ads for contractors, home services, and med spas. Same crew, same trucks. The week just stops leaking jobs.</p>
+      </div>
+
+      <!-- master before/after toggle (signature) -->
+      <div class="mtoggle-row" id="mtoggleRow">
+        <span class="mside mside-off" aria-hidden="true">Without us</span>
+        <button class="mtoggle" id="mtoggle" type="button" aria-pressed="true" aria-label="Show my week with Hauck switched on">
+          <span class="knob" aria-hidden="true"></span>
+        </button>
+        <span class="mside mside-on" aria-hidden="true">With us</span>
+      </div>
+
+      <div class="split" id="heroSplit">
+
+        <div class="half half-b">
+          <h2 class="half-tag">Monday, without us</h2>
+          <div class="vig">
+            <p class="vig-time">9:12 AM</p>
+            <p class="vig-text">Missed call from a new number. No voicemail. They are already dialing the next company on the list.</p>
+          </div>
+          <div class="vig">
+            <p class="vig-time">Sticky note, from Tuesday</p>
+            <p class="vig-text">"Call Dana back about the $4,800 quote." Sent five days ago. Nobody has followed up yet.</p>
+          </div>
+          <div class="vig">
+            <p class="vig-time">Friday, 11:48 PM</p>
+            <p class="vig-text">A web lead came in over the weekend. It is still sitting in the inbox, unread.</p>
+          </div>
+        </div>
+
+        <div class="seam-v" aria-hidden="true"></div>
+
+        <div class="half half-a">
+          <h2 class="half-tag">Monday, with us</h2>
+          <div class="vig">
+            <p class="vig-time">9:12 AM</p>
+            <p class="vig-text">Missed call. The auto-text goes out the same minute, so the caller hears from you before anyone else.</p>
+            <p class="vig-note"><span class="dot" aria-hidden="true"></span>Auto-text : sent 9:12 AM</p>
+          </div>
+          <div class="vig">
+            <p class="vig-time">Day 3</p>
+            <p class="vig-text">Dana's quote gets a friendly reminder, sent on its own. Your name lands back on top of her list.</p>
+            <p class="vig-note"><span class="dot" aria-hidden="true"></span>Follow-up : scheduled</p>
+          </div>
+          <div class="vig">
+            <p class="vig-time">Job done</p>
+            <p class="vig-text">The review request goes out while the truck is still in the driveway.</p>
+            <p class="vig-note"><span class="dot" aria-hidden="true"></span>Review link : sent</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ contrast: BUILD ============ -->
+  <section class="vs" id="build">
+    <div class="wrap">
+      <header class="vs-head">
+        <p class="eyebrow">01 : Build</p>
+        <h2>Software built for your shop.</h2>
+        <p class="vs-sub">Fully custom company software, plus a CRM on your desktop and in your pocket.</p>
+      </header>
+      <div class="vs-grid">
+        <div class="side vs-before">
+          <p class="side-tag">Before</p>
+          <h3>The schedule lives on paper.</h3>
+          <p>Jobs on a whiteboard. Customer numbers saved in three different places. When a sheet goes missing, the job goes with it.</p>
+          <div class="scrap" aria-hidden="true">
+            <div class="scrap-in">WEEK 23 (whiteboard)<br>9 jobs / 2 erased / 1 lost<br><s>Torres gutter??</s></div>
+          </div>
+        </div>
+        <div class="side vs-after reveal">
+          <p class="side-tag">After</p>
+          <h3>One screen runs the whole shop.</h3>
+          <p>We build the software around how you already work. Every job, lead, and customer in one place, on your desk and on your phone.</p>
+          <div class="vs-frag" aria-hidden="true">
+            <div class="win">
+              <div class="win-bar"><i></i><i></i><i></i><span class="mono">Jobs board</span></div>
+              <div class="pipe">
+                <div>
+                  <p class="st">New leads</p>
+                  <p class="n">4</p>
+                  <div class="card hot"></div>
+                  <div class="card"></div>
+                </div>
+                <div>
+                  <p class="st">Quoted</p>
+                  <p class="n">6</p>
+                  <div class="card"></div>
+                  <div class="card hot"></div>
+                </div>
+                <div>
+                  <p class="st">Booked</p>
+                  <p class="n">3</p>
+                  <div class="card"></div>
+                  <div class="card"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ contrast: AUTOMATE ============ -->
+  <section class="vs" id="automate">
+    <div class="wrap">
+      <header class="vs-head">
+        <p class="eyebrow">02 : Automate</p>
+        <h2>Follow-up that never forgets.</h2>
+        <p class="vs-sub">Backend sales automations, plus campaigns that wake up your old leads.</p>
+      </header>
+      <div class="vs-grid">
+        <div class="side vs-before">
+          <p class="side-tag">Before</p>
+          <h3>Quotes go out. Then nothing.</h3>
+          <p>You meant to call Dana back. The week had other plans. The quote sits there, the lead goes cold, and the job goes to whoever called first.</p>
+          <div class="scrap" aria-hidden="true">
+            <div class="scrap-in">TO DO (from Tuesday)<br>[ ] call Dana back<br>[ ] reply to weekend leads</div>
+          </div>
+        </div>
+        <div class="side vs-after reveal">
+          <p class="side-tag">After</p>
+          <h3>The follow-up sends itself.</h3>
+          <p>Day 3, the reminder goes out on its own. Missed calls get a text back in seconds. Old leads get a simple message that wakes them up.</p>
+          <div class="vs-frag" aria-hidden="true">
+            <div class="sms">
+              <p class="bubble">Hi Dana. Still want that patio quote? We have two openings this week.</p>
+              <p class="meta"><span class="dot"></span>Replied 12 min later</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ contrast: ADVERTISE ============ -->
+  <section class="vs" id="advertise">
+    <div class="wrap">
+      <header class="vs-head">
+        <p class="eyebrow">03 : Advertise</p>
+        <h2>Show up first in your town.</h2>
+        <p class="vs-sub">Google review campaigns, plus Facebook ads that reach local people.</p>
+      </header>
+      <div class="vs-grid">
+        <div class="side vs-before">
+          <p class="side-tag">Before</p>
+          <h3>Great work nobody can see.</h3>
+          <p>Your work is good, but the Google page does not show it. New customers pick the company with the longer review page. Word of mouth only goes so far.</p>
+          <div class="scrap" aria-hidden="true">
+            <div class="scrap-in">GOOGLE PROFILE<br>4.2 stars / 11 reviews<br>last review: 7 months ago</div>
+          </div>
+        </div>
+        <div class="side vs-after reveal">
+          <p class="side-tag">After</p>
+          <h3>Reviews climb. Ads bring calls.</h3>
+          <p>Every happy customer gets one easy review link at the right moment. Facebook ads put you in front of local people who need the work done this week.</p>
+          <div class="vs-frag" aria-hidden="true">
+            <div class="rev">
+              <div class="stars">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+              </div>
+              <p class="meta">New review : <b>Mike T.</b></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ conversion: form card ============ -->
+  <section class="convert">
+    <div class="wrap">
+      <div class="convert-head">
+        <p class="eyebrow">Flip the switch</p>
+        <h2>Ready for the after?</h2>
+        <p class="convert-sub">Three fields. One call. The plan is yours either way.</p>
+      </div>
+
+      <div class="form-col">
+        <div class="form-card" id="lead-form">
+          <form id="lead-form-el" novalidate>
+            <div id="form-body">
+              <h3 class="form-title">Get your free growth plan</h3>
+              <p class="form-sub">Tell us three things. We map out what would work for your business.</p>
+
+              <div class="field">
+                <label class="field-label" for="f-name">Your name</label>
+                <input class="input" id="f-name" name="name" type="text" autocomplete="name" placeholder="Dana Willis" required>
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="f-phone">Phone</label>
+                <input class="input" id="f-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="(555) 014 2287" required>
+              </div>
+
+              <fieldset class="field" style="border:none;">
+                <legend class="field-label">What do you need?</legend>
+                <div class="chip-row">
+                  <label class="chip">
+                    <input type="radio" name="need" value="build" checked>
+                    <span class="chip-face">Build</span>
+                  </label>
+                  <label class="chip">
+                    <input type="radio" name="need" value="automate">
+                    <span class="chip-face">Automate</span>
+                  </label>
+                  <label class="chip">
+                    <input type="radio" name="need" value="advertise">
+                    <span class="chip-face">Advertise</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <button class="submit" type="submit">Get my free plan</button>
+              <p class="trust">No spam. One call. The plan is yours either way.</p>
+            </div>
+
+            <div class="success" id="form-success" hidden>
+              <div class="success-ring">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8.5 6 12l7.5-8"/></svg>
+              </div>
+              <h3 id="success-title">Got it.</h3>
+              <p>We'll call you once with your plan. That's the whole pitch.</p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ services board (ported) ============ -->
+  <section class="services" id="services">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="sec-eyebrow">The board : 06 services</p>
+          <h2>Six ways we grow local businesses.</h2>
+        </div>
+        <p class="sub">Pick one or stack them. Everything plugs into the same system.</p>
+      </div>
+
+      <div class="board">
+
+        <!-- 01 : custom company software (lit) -->
+        <article class="panel lit seam-x span-4">
+          <p class="p-idx">S.01</p>
+          <h3>Fully custom company software</h3>
+          <p class="desc">Software built around how your shop already works. No off-the-shelf bloat, no features you will never touch.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="win">
+              <div class="win-bar"><i></i><i></i><i></i><span class="mono">Jobs board</span></div>
+              <div class="pipe">
+                <div>
+                  <p class="st">New leads</p>
+                  <p class="n">4</p>
+                  <div class="card hot"></div>
+                  <div class="card"></div>
+                  <div class="card"></div>
+                </div>
+                <div>
+                  <p class="st">Quoted</p>
+                  <p class="n">6</p>
+                  <div class="card"></div>
+                  <div class="card hot"></div>
+                </div>
+                <div>
+                  <p class="st">Booked</p>
+                  <p class="n">3</p>
+                  <div class="card"></div>
+                  <div class="card"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- 02 : custom CRM -->
+        <article class="panel span-2">
+          <p class="p-idx">S.02</p>
+          <h3>Custom desktop and mobile CRM</h3>
+          <p class="desc">Every lead, job, and message in one place. On your desk and in your pocket.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="crm-row">
+              <span class="ava">DA</span>
+              <span class="who">Dana Alvarez<small>Roof repair</small></span>
+              <span class="pill">Quoted</span>
+            </div>
+            <div class="crm-row">
+              <span class="ava">MT</span>
+              <span class="who">Mike Torres<small>Gutter clean</small></span>
+              <span class="pill dim">New</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 03 : automations -->
+        <article class="panel span-2">
+          <p class="p-idx">S.03</p>
+          <h3>Backend automations</h3>
+          <p class="desc">Follow-ups, reminders, and handoffs run on their own. Nothing slips through.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="tog"><span class="t-label">Missed call sends a text</span><span class="switch"></span></div>
+            <div class="tog"><span class="t-label">New lead gets a fast reply</span><span class="switch"></span></div>
+            <div class="tog"><span class="t-label">Quote reminder, day 3</span><span class="switch"></span></div>
+          </div>
+        </article>
+
+        <!-- 04 : database reactivation -->
+        <article class="panel span-2">
+          <p class="p-idx">S.04</p>
+          <h3>Database reactivation</h3>
+          <p class="desc">We wake up your old leads with simple texts. Many still want the work done.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="sms">
+              <p class="bubble">Hi Dana. Still want that patio quote? We have two openings this week.</p>
+              <p class="meta"><span class="dot"></span>Replied 12 min later</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- 05 : review campaigns -->
+        <article class="panel span-2">
+          <p class="p-idx">S.05</p>
+          <h3>Google review campaigns</h3>
+          <p class="desc">Happy customers get one easy link. Your rating climbs week by week.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="rev">
+              <div class="stars">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+              </div>
+              <p class="meta">New review : <b>Mike T.</b></p>
+            </div>
+          </div>
+        </article>
+
+        <!-- 06 : facebook ads (wide strip, lit seam) -->
+        <article class="panel wide seam-x span-6">
+          <div class="w-copy">
+            <p class="p-idx">S.06</p>
+            <h3>Facebook ads</h3>
+            <p class="desc">Ads that reach homeowners near you and send real leads to your phone.</p>
+          </div>
+          <div class="frag" aria-hidden="true">
+            <div class="stat">
+              <p class="k">Leads, 7 days</p>
+              <p class="v">23</p>
+            </div>
+            <div class="stat">
+              <p class="k">Cost per lead</p>
+              <p class="v">$18.40</p>
+            </div>
+            <div class="stat">
+              <p class="k">Campaign</p>
+              <p class="v"><span class="dot"></span>Live</p>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA strip ============ -->
+  <section class="cta">
+    <div class="wrap cta-in">
+      <p>Ready when you are.<span>Three fields. One call. No pressure.</span></p>
+      <a class="btn" href="#lead-form">Get my free plan</a>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ footer ============ -->
+<footer class="foot">
+  <div class="wrap foot-in">
+    <b>HAUCK</b>
+    <span>AI-POWERED LOCAL GROWTH</span>
+    <a href="mailto:hello@hauckmarketing.com">HELLO@HAUCKMARKETING.COM</a>
+    <span>&copy; 2026 HAUCK MARKETING LLC</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- master before/after toggle ---- */
+  var toggle = document.getElementById('mtoggle');
+  var split = document.getElementById('heroSplit');
+  var row = document.getElementById('mtoggleRow');
+
+  toggle.addEventListener('click', function () {
+    var on = toggle.getAttribute('aria-pressed') === 'true';
+    toggle.setAttribute('aria-pressed', on ? 'false' : 'true');
+    toggle.setAttribute('aria-label', on
+      ? 'Show my week with Hauck switched off'
+      : 'Show my week with Hauck switched on');
+    split.classList.toggle('is-off', on);
+    row.classList.toggle('is-off', on);
+  });
+
+  /* ---- scroll reveal: the after sides light up ---- */
+  var reveals = document.querySelectorAll('.reveal');
+  function lightAll() {
+    reveals.forEach(function (el) { el.classList.add('on'); });
+  }
+  if (reduced || !('IntersectionObserver' in window)) {
+    lightAll();
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('on');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+    reveals.forEach(function (el) { io.observe(el); });
+  }
+
+  /* ---- lead form success state (ported) ---- */
+  var form = document.getElementById('lead-form-el');
+  var body = document.getElementById('form-body');
+  var success = document.getElementById('form-success');
+  var title = document.getElementById('success-title');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    var name = document.getElementById('f-name').value.trim().split(' ')[0];
+    if (name) {
+      title.textContent = 'Got it, ' + name + '.';
+    }
+    body.hidden = true;
+    success.hidden = false;
+    success.setAttribute('tabindex', '-1');
+    success.focus();
+  });
+})();
+</script>
+
+</body>
+</html>

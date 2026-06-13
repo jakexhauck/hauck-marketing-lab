@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Willis Windows | Streak-Free Window Cleaning in Garden City, MI</title>
+<link rel="icon" href="assets/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #081220;
+    --bg-soft: #0c1828;
+    --ink: #eaf2f8;
+    --muted: #8fa3b5;
+    --accent: #4db3e8;
+    --accent-deep: #2d8fc4;
+    --accent-soft: rgba(77, 179, 232, 0.12);
+    --cream: #f5eed8;
+    --line: rgba(255, 255, 255, 0.08);
+    --display: 'Anton', sans-serif;
+    --body: 'Inter', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: var(--accent); color: #081220; }
+
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: #1e3148; border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+  /* ---------- 3D canvas ---------- */
+  #scene {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    display: block;
+  }
+
+  .vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 120% 90% at 50% 40%, transparent 55%, rgba(4, 8, 15, 0.75) 100%),
+      linear-gradient(to bottom, rgba(8, 18, 32, 0.35), transparent 30%, transparent 70%, rgba(8, 18, 32, 0.6));
+  }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- layout ---------- */
+  .content { position: relative; z-index: 3; }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    transition: background 0.4s ease, border-color 0.4s ease, backdrop-filter 0.4s ease;
+    border-bottom: 1px solid transparent;
+  }
+  nav.scrolled {
+    background: rgba(8, 18, 32, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom-color: var(--line);
+  }
+  .nav-inner {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: var(--display);
+    font-size: 21px;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo img {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(77, 179, 232, 0.4), 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+  .logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 36px; align-items: center; }
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: color 0.25s;
+  }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta {
+    padding: 10px 22px;
+    border: 1px solid var(--accent);
+    color: var(--accent) !important;
+    border-radius: 2px;
+    transition: background 0.25s, color 0.25s !important;
+  }
+  .nav-cta:hover { background: var(--accent); color: #081220 !important; }
+
+  /* ---------- hero ---------- */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 80px;
+  }
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 28px;
+  }
+  .kicker::before {
+    content: '';
+    width: 40px; height: 2px;
+    background: var(--accent);
+  }
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(56px, 9.5vw, 148px);
+    line-height: 0.94;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    max-width: 12ch;
+  }
+  h1 .hollow {
+    color: transparent;
+    -webkit-text-stroke: 2px rgba(234, 242, 248, 0.85);
+  }
+  h1 .sky { color: var(--accent); }
+  .hero-sub {
+    margin-top: 32px;
+    max-width: 540px;
+    color: var(--muted);
+    font-size: 17px;
+    line-height: 1.7;
+  }
+  .hero-ctas { margin-top: 44px; display: flex; gap: 18px; flex-wrap: wrap; }
+  .btn {
+    font-family: var(--body);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 18px 36px;
+    border-radius: 2px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: transform 0.25s, box-shadow 0.25s, background 0.25s, color 0.25s;
+  }
+  .btn-solid {
+    background: var(--accent);
+    color: #081220;
+    border: 1px solid var(--accent);
+    box-shadow: 0 8px 40px rgba(77, 179, 232, 0.25);
+  }
+  .btn-solid:hover { transform: translateY(-3px); box-shadow: 0 14px 50px rgba(77, 179, 232, 0.45); }
+  .btn-ghost {
+    background: rgba(13, 24, 38, 0.6);
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .btn-ghost:hover { border-color: rgba(255, 255, 255, 0.3); transform: translateY(-3px); }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+  .scroll-hint .bar {
+    width: 1px; height: 48px;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+    animation: drop 1.8s ease-in-out infinite;
+  }
+  @keyframes drop {
+    0% { transform: scaleY(0); transform-origin: top; }
+    50% { transform: scaleY(1); transform-origin: top; }
+    51% { transform-origin: bottom; }
+    100% { transform: scaleY(0); transform-origin: bottom; }
+  }
+
+  /* ---------- marquee ---------- */
+  .marquee {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: rgba(8, 18, 32, 0.82);
+    overflow: hidden;
+    padding: 22px 0;
+  }
+  .marquee-track {
+    display: flex;
+    gap: 64px;
+    white-space: nowrap;
+    width: max-content;
+    animation: scroll-x 36s linear infinite;
+  }
+  .marquee-track span {
+    font-family: var(--display);
+    font-size: 20px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 64px;
+  }
+  .marquee-track span::after {
+    content: '💧';
+    font-size: 11px;
+    filter: hue-rotate(0deg) saturate(1.4);
+  }
+  @keyframes scroll-x {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* ---------- sections ---------- */
+  section { padding: 140px 0; }
+  .section-head { margin-bottom: 72px; }
+  .section-head .kicker { margin-bottom: 18px; }
+  h2 {
+    font-family: var(--display);
+    font-size: clamp(40px, 5.5vw, 76px);
+    text-transform: uppercase;
+    line-height: 1;
+    letter-spacing: 0.01em;
+  }
+  h2 .sky { color: var(--accent); }
+
+  /* ---------- services ---------- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .card {
+    position: relative;
+    padding: 44px 36px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: linear-gradient(160deg, rgba(18, 32, 50, 0.92), rgba(10, 18, 30, 0.96));
+    overflow: hidden;
+    transition: border-color 0.35s, box-shadow 0.35s;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+  .card:hover {
+    border-color: rgba(77, 179, 232, 0.45);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5), 0 0 60px rgba(77, 179, 232, 0.08) inset;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.35s;
+  }
+  .card:hover::before { opacity: 1; }
+  .card-num {
+    font-family: var(--display);
+    font-size: 60px;
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgba(77, 179, 232, 0.6);
+    line-height: 1;
+    margin-bottom: 28px;
+  }
+  .card h3 {
+    font-family: var(--display);
+    font-size: 25px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 16px;
+  }
+  .card p { color: var(--muted); font-size: 15px; line-height: 1.7; }
+  .card .tag-row { margin-top: 26px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid rgba(77, 179, 232, 0.25);
+    padding: 6px 12px;
+    border-radius: 2px;
+  }
+
+  /* ---------- stats ---------- */
+  .stats-band {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: rgba(9, 17, 28, 0.88);
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    padding: 80px 0;
+  }
+  .stat { text-align: left; border-left: 2px solid rgba(77, 179, 232, 0.4); padding-left: 28px; }
+  .stat-num {
+    font-family: var(--display);
+    font-size: clamp(44px, 4.5vw, 68px);
+    line-height: 1;
+    color: var(--ink);
+  }
+  .stat-num .unit { color: var(--accent); font-size: 0.6em; }
+  .stat-label {
+    margin-top: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ---------- work (photos) ---------- */
+  .projects {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .project {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    aspect-ratio: 3 / 4;
+    cursor: pointer;
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s;
+  }
+  .project:hover { transform: translateY(-8px); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); }
+  .project img.photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.6s;
+    filter: saturate(0.92) contrast(1.04);
+  }
+  .project:hover img.photo { transform: scale(1.06); filter: saturate(1.05) contrast(1.06); }
+  .project::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(5, 10, 18, 0.92) 0%, rgba(5, 10, 18, 0.25) 38%, transparent 60%);
+    pointer-events: none;
+  }
+  .project-info {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 28px;
+    z-index: 1;
+  }
+  .project-cat {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .project h3 {
+    font-family: var(--display);
+    font-size: 26px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .project-meta { margin-top: 8px; color: var(--muted); font-size: 13px; }
+
+  /* ---------- owners ---------- */
+  .owners-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    gap: 72px;
+    align-items: center;
+  }
+  .owners-photo {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+  }
+  .owners-photo img { display: block; width: 100%; height: auto; }
+  .owners-photo::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 72px; height: 72px;
+    border-top: 3px solid var(--accent);
+    border-left: 3px solid var(--accent);
+    z-index: 1;
+  }
+  .owners-photo::after {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 72px; height: 72px;
+    border-bottom: 3px solid var(--accent);
+    border-right: 3px solid var(--accent);
+    z-index: 1;
+  }
+  .owner-names {
+    display: flex;
+    gap: 40px;
+    margin: 36px 0;
+  }
+  .owner-name {
+    border-left: 2px solid rgba(77, 179, 232, 0.4);
+    padding-left: 18px;
+  }
+  .owner-name strong {
+    display: block;
+    font-family: var(--display);
+    font-size: 20px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  .owner-name span {
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .owners-copy p { color: var(--muted); font-size: 16px; line-height: 1.75; }
+  .checklist { list-style: none; margin: 32px 0 40px; }
+  .checklist li {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .checklist li::before {
+    content: '✓';
+    flex: 0 0 auto;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    border: 1px solid rgba(77, 179, 232, 0.4);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- process ---------- */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--line);
+  }
+  .step {
+    padding: 44px 32px 0 0;
+    position: relative;
+  }
+  .step::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 56px;
+    height: 3px;
+    background: var(--accent);
+  }
+  .step-num {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  .step h3 {
+    font-family: var(--display);
+    font-size: 22px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    letter-spacing: 0.04em;
+  }
+  .step p { color: var(--muted); font-size: 14px; line-height: 1.7; }
+
+  /* ---------- CTA ---------- */
+  .cta {
+    text-align: center;
+    padding: 180px 0;
+  }
+  .cta h2 { font-size: clamp(48px, 8vw, 120px); }
+  .cta p { margin: 28px auto 48px; max-width: 500px; color: var(--muted); font-size: 17px; line-height: 1.7; }
+
+  /* ---------- footer ---------- */
+  footer {
+    border-top: 1px solid var(--line);
+    background: rgba(5, 10, 18, 0.94);
+    padding: 72px 0 36px;
+  }
+  .foot-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 48px;
+    margin-bottom: 64px;
+  }
+  .foot-grid p { color: var(--muted); font-size: 14px; line-height: 1.7; margin-top: 18px; max-width: 320px; }
+  .foot-col h4 {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 22px;
+  }
+  .foot-col a {
+    display: block;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 12px;
+    transition: color 0.25s;
+  }
+  .foot-col a:hover { color: var(--accent); }
+  .foot-bottom {
+    border-top: 1px solid var(--line);
+    padding-top: 28px;
+    display: flex;
+    justify-content: space-between;
+    color: #4f6075;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+  }
+
+  /* ---------- reveal ---------- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(36px);
+    transition: opacity 0.9s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .reveal.in { opacity: 1; transform: none; }
+  .reveal.d1 { transition-delay: 0.1s; }
+  .reveal.d2 { transition-delay: 0.2s; }
+  .reveal.d3 { transition-delay: 0.3s; }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 980px) {
+    .cards, .projects, .stats, .steps { grid-template-columns: 1fr 1fr; }
+    .steps .step { padding-top: 36px; margin-bottom: 24px; }
+    .foot-grid { grid-template-columns: 1fr 1fr; }
+    .owners-grid { grid-template-columns: 1fr; gap: 48px; }
+    .nav-links a:not(.nav-cta) { display: none; }
+  }
+  @media (max-width: 620px) {
+    .cards, .projects, .stats, .steps, .foot-grid { grid-template-columns: 1fr; }
+    section { padding: 90px 0; }
+    .owner-names { flex-direction: column; gap: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+<div class="vignette"></div>
+<div class="grain"></div>
+
+<nav id="nav">
+  <div class="nav-inner">
+    <a class="logo" href="#"><img src="assets/logo.png" alt="Willis Windows logo" />WILLIS <span>WINDOWS</span></a>
+    <div class="nav-links">
+      <a href="#services">Services</a>
+      <a href="#work">Our Work</a>
+      <a href="#owners">About</a>
+      <a href="#contact" class="nav-cta">Free Estimate</a>
+    </div>
+  </div>
+</nav>
+
+<div class="content">
+
+  <!-- HERO -->
+  <header class="hero wrap" id="hero">
+    <div id="hero-inner">
+      <div class="kicker">Willis Windows · Garden City, Michigan</div>
+      <h1>
+        Bringing<br />
+        the <span class="sky">shine</span><br />
+        <span class="hollow">back.</span>
+      </h1>
+      <p class="hero-sub">
+        Streak-free window cleaning for homes and businesses across Wayne County.
+        Insured, trained, owner-operated, and obsessive about the details.
+      </p>
+      <div class="hero-ctas">
+        <a class="btn btn-solid" href="#contact">Get a Free Estimate &nbsp;→</a>
+        <a class="btn btn-ghost" href="#work">See Our Work</a>
+      </div>
+    </div>
+    <div class="scroll-hint">
+      <span>Scroll</span>
+      <div class="bar"></div>
+    </div>
+  </header>
+
+  <!-- MARQUEE: service area -->
+  <div class="marquee">
+    <div class="marquee-track">
+      <span>Garden City</span><span>Westland</span><span>Dearborn Heights</span><span>Livonia</span><span>Canton</span><span>Plymouth</span><span>Northville</span><span>Redford</span><span>Wayne</span><span>Taylor</span><span>Inkster</span><span>Romulus</span>
+      <span>Garden City</span><span>Westland</span><span>Dearborn Heights</span><span>Livonia</span><span>Canton</span><span>Plymouth</span><span>Northville</span><span>Redford</span><span>Wayne</span><span>Taylor</span><span>Inkster</span><span>Romulus</span>
+    </div>
+  </div>
+
+  <!-- SERVICES -->
+  <section id="services">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="kicker">What We Do</div>
+        <h2>Glass, gutters,<br /><span class="sky">handled.</span></h2>
+      </div>
+      <div class="cards">
+        <div class="card reveal" data-tilt>
+          <div class="card-num">01</div>
+          <h3>Residential Windows &amp; Screens</h3>
+          <p>Pure-water pole system outside, squeegee detailing inside, and the Xero system for every screen. Streak-free results for homes of all sizes, every single visit.</p>
+          <div class="tag-row"><span class="tag">Exterior</span><span class="tag">Interior</span><span class="tag">Screens</span></div>
+        </div>
+        <div class="card reveal d1" data-tilt>
+          <div class="card-num">02</div>
+          <h3>Commercial Window Cleaning</h3>
+          <p>Professional cleaning for storefronts and offices, so the first thing your customers see is spotless. Uniformed techs, flexible scheduling, zero disruption.</p>
+          <div class="tag-row"><span class="tag">Storefronts</span><span class="tag">Offices</span><span class="tag">Recurring Plans</span></div>
+        </div>
+        <div class="card reveal d2" data-tilt>
+          <div class="card-num">03</div>
+          <h3>Gutter Cleaning</h3>
+          <p>Leaves and debris cleared, downspouts flowing, water damage prevented. The unglamorous job that saves you the expensive ones later.</p>
+          <div class="tag-row"><span class="tag">Debris Removal</span><span class="tag">Downspouts</span><span class="tag">Prevention</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-band">
+    <div class="wrap">
+      <div class="stats">
+        <div class="stat reveal">
+          <div class="stat-num"><span data-count="100">0</span><span class="unit">+</span></div>
+          <div class="stat-label">Satisfied Clients</div>
+        </div>
+        <div class="stat reveal d1">
+          <div class="stat-num"><span data-count="12">0</span></div>
+          <div class="stat-label">Communities Served</div>
+        </div>
+        <div class="stat reveal d2">
+          <div class="stat-num"><span data-count="2">0</span></div>
+          <div class="stat-label">Local Owner-Operators</div>
+        </div>
+        <div class="stat reveal d3">
+          <div class="stat-num"><span data-count="0">0</span></div>
+          <div class="stat-label">Streaks Left Behind</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OUR WORK -->
+  <section id="work">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="kicker">Our Work</div>
+        <h2>Proof you can<br />see <span class="sky">through.</span></h2>
+      </div>
+      <div class="projects">
+        <div class="project reveal">
+          <img class="photo" src="assets/work-residential.jpg" alt="Willis Windows technician cleaning a residential window with a water-fed pole" />
+          <div class="project-info">
+            <div class="project-cat">Residential</div>
+            <h3>Exterior Detail</h3>
+            <div class="project-meta">Pure-water pole system · Streak-free finish</div>
+          </div>
+        </div>
+        <div class="project reveal d1">
+          <img class="photo" src="assets/work-gutters.jpg" alt="Willis Windows technician clearing gutters from a ladder" />
+          <div class="project-info">
+            <div class="project-cat">Gutters</div>
+            <h3>Gutter Clearing</h3>
+            <div class="project-meta">Debris removal · Downspout flow check</div>
+          </div>
+        </div>
+        <div class="project reveal d2">
+          <img class="photo" src="assets/work-commercial.jpg" alt="Commercial glass cleaning inside an office" />
+          <div class="project-info">
+            <div class="project-cat">Commercial</div>
+            <h3>Office Glass</h3>
+            <div class="project-meta">Storefronts &amp; offices · Scheduled service</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OWNERS -->
+  <section id="owners">
+    <div class="wrap">
+      <div class="owners-grid">
+        <div class="owners-photo reveal">
+          <img src="assets/owners.jpg" alt="Josh Willis and Jayse Gehringer, owners of Willis Windows" />
+        </div>
+        <div class="owners-copy reveal d1">
+          <div class="kicker">Meet The Owners</div>
+          <h2>Local hands.<br /><span class="sky">High standards.</span></h2>
+          <div class="owner-names">
+            <div class="owner-name"><strong>Josh Willis</strong><span>Owner</span></div>
+            <div class="owner-name"><strong>Jayse Gehringer</strong><span>Co-Owner</span></div>
+          </div>
+          <p>
+            Willis Windows is owner-operated, which means the people who quote
+            your job are the people who show up to do it. Every technician arrives
+            uniformed, fully equipped, and trained to leave your glass cleaner
+            than the day it was installed.
+          </p>
+          <ul class="checklist">
+            <li>Fully insured for your protection and peace of mind</li>
+            <li>Pure-water fed poles, most windows cleaned from the ground</li>
+            <li>Xero screen cleaning system, safe on every screen</li>
+            <li>Reliable, streak-free results, guaranteed</li>
+          </ul>
+          <a class="btn btn-ghost" href="#contact">Work With Us &nbsp;→</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCESS -->
+  <section id="process">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="kicker">How It Works</div>
+        <h2>Four steps to<br /><span class="sky">spotless.</span></h2>
+      </div>
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-num">STEP 01</div>
+          <h3>Free Estimate</h3>
+          <p>Tell us about your home or storefront. You get a clear, honest quote with no pressure and no surprises.</p>
+        </div>
+        <div class="step reveal d1">
+          <div class="step-num">STEP 02</div>
+          <h3>Schedule</h3>
+          <p>Pick a time that works for you. We confirm, we show up on time, and we text you when we're on the way.</p>
+        </div>
+        <div class="step reveal d2">
+          <div class="step-num">STEP 03</div>
+          <h3>Clean</h3>
+          <p>Uniformed, fully equipped technicians handle glass, screens, and gutters while protecting your landscaping.</p>
+        </div>
+        <div class="step reveal d3">
+          <div class="step-num">STEP 04</div>
+          <h3>Final Walkthrough</h3>
+          <p>We walk the job with you before we leave. If a single pane isn't perfect, we fix it on the spot.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta" id="contact">
+    <div class="wrap reveal">
+      <h2>Let's clear<br />things <span class="sky">up.</span></h2>
+      <p>Get a free estimate for your home or business. Honest pricing, insured technicians, and windows you'll forget are even there.</p>
+      <a class="btn btn-solid" href="#">Get a Free Estimate &nbsp;→</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="wrap">
+      <div class="foot-grid">
+        <div class="foot-col">
+          <a class="logo" href="#"><img src="assets/logo.png" alt="Willis Windows logo" />WILLIS <span>WINDOWS</span></a>
+          <p>Top-quality window cleaning for homes and businesses across Wayne County, Michigan. Insured, trained, and streak-free since day one.</p>
+        </div>
+        <div class="foot-col">
+          <h4>Company</h4>
+          <a href="#owners">About</a>
+          <a href="#services">Services</a>
+          <a href="#work">Our Work</a>
+          <a href="#contact">Contact</a>
+        </div>
+        <div class="foot-col">
+          <h4>Services</h4>
+          <a href="#services">Residential Windows</a>
+          <a href="#services">Commercial Windows</a>
+          <a href="#services">Screen Cleaning</a>
+          <a href="#services">Gutter Cleaning</a>
+        </div>
+        <div class="foot-col">
+          <h4>Service Area</h4>
+          <a href="#">Garden City, MI</a>
+          <a href="#">Westland · Livonia</a>
+          <a href="#">Canton · Plymouth</a>
+          <a href="#">+ 7 more communities</a>
+        </div>
+      </div>
+      <div class="foot-bottom">
+        <span>© 2026 Willis Windows LLC. All rights reserved. Demo concept.</span>
+        <span>Built by Hauck Marketing</span>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* =====================================================
+   Scene setup
+===================================================== */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x081220);
+scene.fog = new THREE.Fog(0x081220, 40, 130);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 300);
+
+/* =====================================================
+   Lights
+===================================================== */
+scene.add(new THREE.HemisphereLight(0x39576f, 0x081220, 0.85));
+
+const key = new THREE.DirectionalLight(0xfff2dc, 1.5);
+key.position.set(28, 40, 22);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+key.shadow.radius = 6;
+key.shadow.camera.left = -45;
+key.shadow.camera.right = 45;
+key.shadow.camera.top = 45;
+key.shadow.camera.bottom = -45;
+key.shadow.camera.far = 140;
+key.shadow.bias = -0.0004;
+scene.add(key);
+
+const sky1 = new THREE.PointLight(0x4db3e8, 55, 55);
+sky1.position.set(10, 20, 0);
+scene.add(sky1);
+
+const warm = new THREE.PointLight(0xffc88a, 30, 35);
+warm.position.set(-12, 5, 8);
+scene.add(warm);
+
+const rim = new THREE.DirectionalLight(0x3a6fa5, 0.7);
+rim.position.set(-30, 20, -30);
+scene.add(rim);
+
+/* =====================================================
+   Materials + helpers
+===================================================== */
+const steelBlue = new THREE.MeshStandardMaterial({ color: 0x2d8fc4, roughness: 0.45, metalness: 0.6 });
+const steelDark = new THREE.MeshStandardMaterial({ color: 0x35404f, roughness: 0.5, metalness: 0.7 });
+const navy = new THREE.MeshStandardMaterial({ color: 0x1b3a5c, roughness: 0.7, metalness: 0.1 });
+const cream = new THREE.MeshStandardMaterial({ color: 0xe9e2d0, roughness: 0.85 });
+
+const UP = new THREE.Vector3(0, 1, 0);
+function strut(a, b, r, mat) {
+  const dir = new THREE.Vector3().subVectors(b, a);
+  const len = dir.length();
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 6), mat);
+  mesh.position.copy(a).addScaledVector(dir, 0.5);
+  mesh.quaternion.setFromUnitVectors(UP, dir.clone().normalize());
+  return mesh;
+}
+function box(w, h, d, mat, x, y, z) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  return m;
+}
+
+function windowTexture(cols, rows, litChance, warmth) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 512;
+  const g = c.getContext('2d');
+  g.fillStyle = '#0a121c';
+  g.fillRect(0, 0, c.width, c.height);
+  const cw = c.width / cols, ch = c.height / rows;
+  for (let i = 0; i < cols; i++) {
+    for (let j = 0; j < rows; j++) {
+      const lit = Math.random() < litChance;
+      g.fillStyle = lit
+        ? (Math.random() < warmth ? '#ffd9a8' : '#9fd8f5')
+        : (Math.random() < 0.5 ? '#152230' : '#0f1925');
+      g.fillRect(i * cw + cw * 0.18, j * ch + ch * 0.22, cw * 0.64, ch * 0.56);
+    }
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+function buildingMaterials(cols, rows, litChance, warmth) {
+  const tex = windowTexture(cols, rows, litChance, warmth);
+  const side = new THREE.MeshStandardMaterial({
+    map: tex,
+    emissive: 0xffffff,
+    emissiveMap: tex,
+    emissiveIntensity: 0.5,
+    roughness: 0.85,
+  });
+  const cap = new THREE.MeshStandardMaterial({ color: 0x101824, roughness: 0.95 });
+  return [side, side, cap, cap, side, side];
+}
+
+/* =====================================================
+   Ground
+===================================================== */
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(300, 300),
+  new THREE.MeshStandardMaterial({ color: 0x0b1422, roughness: 0.55, metalness: 0.2, envMapIntensity: 0.45 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+const grid = new THREE.GridHelper(160, 80, 0x24364c, 0x12202f);
+grid.position.y = 0.02;
+grid.material.transparent = true;
+grid.material.opacity = 0.18;
+scene.add(grid);
+
+/* wet reflective puddle near the house */
+const puddle = new THREE.Mesh(
+  new THREE.CircleGeometry(3.2, 40),
+  new THREE.MeshPhysicalMaterial({ color: 0x0d2236, metalness: 1, roughness: 0.06, envMapIntensity: 1.4 })
+);
+puddle.rotation.x = -Math.PI / 2;
+puddle.position.set(-8, 0.03, 9);
+scene.add(puddle);
+
+/* =====================================================
+   Glass office tower (gets cleaned in real time)
+===================================================== */
+const TOWER = { x: 10, z: -7, w: 10, d: 8, h: 24 };
+const tower = new THREE.Group();
+tower.position.set(TOWER.x, 0, TOWER.z);
+scene.add(tower);
+
+/* core, sides use lit-window texture */
+const core = new THREE.Mesh(
+  new THREE.BoxGeometry(TOWER.w, TOWER.h, TOWER.d),
+  buildingMaterials(8, 14, 0.22, 0.35)
+);
+core.position.y = TOWER.h / 2;
+core.castShadow = true;
+core.receiveShadow = true;
+tower.add(core);
+
+/* roof parapet */
+tower.add(box(TOWER.w + 0.4, 0.5, TOWER.d + 0.4, steelDark, 0, TOWER.h + 0.25, 0));
+
+/* front facade: individual panes that flip from grimy to gleaming */
+const COLS = 8, ROWS = 14;
+const paneW = (TOWER.w / COLS) * 0.84;
+const paneH = (TOWER.h / ROWS) * 0.74;
+function smudgeTexture() {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 128;
+  const g = c.getContext('2d');
+  g.fillStyle = '#3b444f';
+  g.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 60; i++) {
+    const r = 6 + Math.random() * 26;
+    const grad = g.createRadialGradient(
+      Math.random() * 128, Math.random() * 128, 1,
+      Math.random() * 128, Math.random() * 128, r
+    );
+    const tone = Math.random() < 0.5 ? '70, 62, 50' : '38, 44, 52';
+    grad.addColorStop(0, `rgba(${tone}, ${0.12 + Math.random() * 0.18})`);
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+  }
+  for (let i = 0; i < 10; i++) {
+    g.strokeStyle = `rgba(28, 33, 40, ${0.1 + Math.random() * 0.15})`;
+    g.lineWidth = 1 + Math.random() * 3;
+    g.beginPath();
+    const sx = Math.random() * 128;
+    g.moveTo(sx, Math.random() * 30);
+    g.bezierCurveTo(sx - 14, 50, sx + 14, 85, sx + (Math.random() - 0.5) * 24, 128);
+    g.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+const dirtyMat = new THREE.MeshStandardMaterial({ map: smudgeTexture(), roughness: 0.92, metalness: 0.08 });
+const cleanMat = new THREE.MeshPhysicalMaterial({
+  color: 0xbfe3ff,
+  metalness: 0.92,
+  roughness: 0.07,
+  envMapIntensity: 1.6,
+  emissive: 0x16344a,
+  emissiveIntensity: 0.3,
+});
+const panes = [];
+const paneGeo = new THREE.PlaneGeometry(paneW, paneH);
+const frontZ = TOWER.d / 2 + 0.03;
+for (let i = 0; i < COLS; i++) {
+  for (let j = 0; j < ROWS; j++) {
+    const pane = new THREE.Mesh(paneGeo, dirtyMat);
+    pane.position.set(
+      -TOWER.w / 2 + (i + 0.5) * (TOWER.w / COLS),
+      (j + 0.5) * (TOWER.h / ROWS),
+      frontZ
+    );
+    tower.add(pane);
+    panes.push(pane);
+  }
+}
+
+/* mullion frame over the pane grid */
+const mullion = new THREE.MeshStandardMaterial({ color: 0x222d3a, roughness: 0.6, metalness: 0.5 });
+for (let i = 0; i <= COLS; i++) {
+  tower.add(box(0.09, TOWER.h, 0.1, mullion, -TOWER.w / 2 + i * (TOWER.w / COLS), TOWER.h / 2, frontZ));
+}
+for (let j = 0; j <= ROWS; j++) {
+  tower.add(box(TOWER.w, 0.09, 0.1, mullion, 0, j * (TOWER.h / ROWS), frontZ));
+}
+
+/* =====================================================
+   Window-washing gondola
+===================================================== */
+const gondola = new THREE.Group();
+tower.add(gondola);
+
+const platform = box(3.4, 0.22, 1.0, steelBlue, 0, 0, 0);
+gondola.add(platform);
+/* railings */
+for (const px of [-1.6, 1.6]) {
+  for (const pz of [-0.42, 0.42]) {
+    gondola.add(strut(new THREE.Vector3(px, 0.1, pz), new THREE.Vector3(px, 1.0, pz), 0.035, steelDark));
+  }
+  gondola.add(strut(new THREE.Vector3(px, 1.0, -0.42), new THREE.Vector3(px, 1.0, 0.42), 0.03, steelDark));
+}
+for (const pz of [-0.42, 0.42]) {
+  gondola.add(strut(new THREE.Vector3(-1.6, 1.0, pz), new THREE.Vector3(1.6, 1.0, pz), 0.03, steelDark));
+}
+/* bucket of supplies */
+gondola.add(box(0.4, 0.35, 0.4, new THREE.MeshStandardMaterial({ color: 0xffd23e, roughness: 0.6 }), 1.1, 0.28, 0));
+
+/* two tiny washers, navy and grey, for the two owners */
+function washer(shirt, x) {
+  const g = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: shirt, roughness: 0.8 });
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.45, 4, 8), bodyMat);
+  body.position.y = 0.55;
+  body.castShadow = true;
+  g.add(body);
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.14, 10, 10),
+    new THREE.MeshStandardMaterial({ color: 0xd9b08c, roughness: 0.8 })
+  );
+  head.position.y = 1.02;
+  head.castShadow = true;
+  g.add(head);
+  g.position.x = x;
+  return g;
+}
+gondola.add(washer(0x1b3a5c, -0.7));
+gondola.add(washer(0x8a93a0, 0.5));
+
+/* squeegee arm from one washer to the glass */
+const squeegeeArm = strut(
+  new THREE.Vector3(-0.55, 0.85, 0.1),
+  new THREE.Vector3(-0.4, 1.15, frontZ - TOWER.d / 2 + 0.5),
+  0.025,
+  steelDark
+);
+gondola.add(squeegeeArm);
+
+/* glowing wash line across the facade at gondola height */
+const washLine = new THREE.Mesh(
+  new THREE.PlaneGeometry(TOWER.w * 0.96, 0.08),
+  new THREE.MeshBasicMaterial({ color: 0x9fe0ff, transparent: true, opacity: 0.65 })
+);
+washLine.position.z = frontZ + 0.04;
+tower.add(washLine);
+
+/* roof davit arms + cables */
+const davitXs = [-1.5, 1.5];
+const cables = [];
+for (const dx of davitXs) {
+  tower.add(strut(
+    new THREE.Vector3(dx, TOWER.h + 0.5, frontZ - 1.6),
+    new THREE.Vector3(dx, TOWER.h + 1.6, frontZ - 1.6),
+    0.06, steelBlue
+  ));
+  tower.add(strut(
+    new THREE.Vector3(dx, TOWER.h + 1.6, frontZ - 1.6),
+    new THREE.Vector3(dx, TOWER.h + 1.6, frontZ + 0.3),
+    0.06, steelBlue
+  ));
+  const cable = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.022, 0.022, 1, 5),
+    new THREE.MeshStandardMaterial({ color: 0x1d2630, roughness: 0.6, metalness: 0.4 })
+  );
+  tower.add(cable);
+  cables.push({ mesh: cable, x: dx });
+}
+
+/* =====================================================
+   Suburban house with a tech on the water-fed pole
+===================================================== */
+const house = new THREE.Group();
+house.position.set(-12, 0, 4);
+house.rotation.y = 0.35;
+scene.add(house);
+
+const houseBody = box(6, 3.1, 5, cream, 0, 1.55, 0);
+house.add(houseBody);
+
+/* pyramid roof */
+const roof = new THREE.Mesh(
+  new THREE.ConeGeometry(4.4, 2.1, 4),
+  new THREE.MeshStandardMaterial({ color: 0x33404e, roughness: 0.85 })
+);
+roof.position.y = 4.15;
+roof.rotation.y = Math.PI / 4;
+roof.castShadow = true;
+house.add(roof);
+
+/* door + warm windows */
+house.add(box(0.9, 1.7, 0.08, navy, -1.6, 0.85, 2.52));
+const warmGlass = new THREE.MeshStandardMaterial({
+  color: 0xffd9a8, emissive: 0xffb866, emissiveIntensity: 0.9, roughness: 0.3
+});
+const coldGlass = new THREE.MeshStandardMaterial({
+  color: 0xa8d4ee, emissive: 0x5d9cc4, emissiveIntensity: 0.5, roughness: 0.15, metalness: 0.6
+});
+house.add(box(1.1, 1.1, 0.08, warmGlass, 0.4, 1.7, 2.52));
+house.add(box(1.1, 1.1, 0.08, coldGlass, 1.9, 1.7, 2.52));
+house.add(box(1.1, 1.1, 0.08, warmGlass, -2.05, 1.7, -2.52));
+house.add(box(1.1, 1.1, 0.08, coldGlass, 0.4, 1.7, -2.52));
+
+/* technician with green water-fed pole reaching the cold window */
+const tech = washer(0x1b3a5c, 0);
+tech.position.set(3.6, 0, 3.6);
+house.add(tech);
+const poleTip = new THREE.Vector3(1.95, 2.1, 2.62);
+const poleBase = new THREE.Vector3(3.5, 0.9, 3.5);
+house.add(strut(poleBase, poleTip, 0.03, steelDark));
+const brush = box(0.34, 0.1, 0.12, new THREE.MeshStandardMaterial({
+  color: 0x59d957, emissive: 0x2faf2d, emissiveIntensity: 0.7, roughness: 0.5
+}), poleTip.x, poleTip.y, poleTip.z);
+house.add(brush);
+
+/* hedges */
+for (const hx of [-2.6, 2.6]) {
+  const hedge = new THREE.Mesh(
+    new THREE.SphereGeometry(0.55, 10, 8),
+    new THREE.MeshStandardMaterial({ color: 0x2c5a3a, roughness: 0.95 })
+  );
+  hedge.position.set(hx, 0.45, 2.9);
+  hedge.scale.y = 0.8;
+  hedge.castShadow = true;
+  house.add(hedge);
+}
+
+/* company van: simple navy box van with logo-blue stripe */
+const van = new THREE.Group();
+van.position.set(-3, 0, 12);
+van.rotation.y = -0.5;
+scene.add(van);
+van.add(box(3.6, 1.5, 1.7, navy, 0, 1.05, 0));
+van.add(box(1.1, 1.0, 1.66, new THREE.MeshStandardMaterial({ color: 0x223a52, roughness: 0.5, metalness: 0.3 }), 2.0, 0.8, 0));
+van.add(box(3.6, 0.22, 1.72, steelBlue, 0, 1.0, 0));
+for (const wx of [-1.2, 1.6]) {
+  for (const wz of [-0.85, 0.85]) {
+    const wheel = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.34, 0.34, 0.22, 14),
+      new THREE.MeshStandardMaterial({ color: 0x10151c, roughness: 0.9 })
+    );
+    wheel.rotation.x = Math.PI / 2;
+    wheel.position.set(wx, 0.34, wz);
+    wheel.castShadow = true;
+    van.add(wheel);
+  }
+}
+
+/* =====================================================
+   Background skyline
+===================================================== */
+const skyline = [
+  { x: -34, z: -34, w: 7, h: 24, d: 7 },
+  { x: -22, z: -42, w: 9, h: 17, d: 8 },
+  { x: -8,  z: -46, w: 6, h: 30, d: 6 },
+  { x: 8,   z: -44, w: 10, h: 20, d: 9 },
+  { x: 26,  z: -38, w: 7, h: 27, d: 7 },
+  { x: 38,  z: -26, w: 8, h: 15, d: 8 },
+  { x: -42, z: -16, w: 6, h: 19, d: 6 },
+  { x: 36,  z: -8,  w: 6, h: 23, d: 6 },
+];
+for (const b of skyline) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), buildingMaterials(6, 10, 0.14, 0.5));
+  m.position.set(b.x, b.h / 2, b.z);
+  m.castShadow = true;
+  scene.add(m);
+}
+
+/* =====================================================
+   Night sky, moon, lamp, contact shadows
+===================================================== */
+const starGeo = new THREE.BufferGeometry();
+const starPos = new Float32Array(700 * 3);
+for (let i = 0; i < 700; i++) {
+  const theta = Math.random() * Math.PI * 2;
+  const phi = Math.acos(0.15 + Math.random() * 0.8);
+  const r = 130 + Math.random() * 40;
+  starPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+  starPos[i * 3 + 1] = r * Math.cos(phi);
+  starPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+}
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+  color: 0xcfe2f3, size: 1.4, sizeAttenuation: false, transparent: true, opacity: 0.8, fog: false,
+}));
+scene.add(stars);
+
+function glowSprite(rgb, scale) {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 128;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(64, 64, 2, 64, 64, 64);
+  grad.addColorStop(0, `rgba(${rgb}, 0.9)`);
+  grad.addColorStop(0.35, `rgba(${rgb}, 0.25)`);
+  grad.addColorStop(1, `rgba(${rgb}, 0)`);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(c),
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    transparent: true,
+    fog: false,
+  }));
+  sprite.scale.set(scale, scale, 1);
+  return sprite;
+}
+
+const moon = new THREE.Mesh(
+  new THREE.SphereGeometry(4, 24, 24),
+  new THREE.MeshBasicMaterial({ color: 0xe9eff6, fog: false })
+);
+moon.position.set(-70, 58, -100);
+scene.add(moon);
+const moonGlow = glowSprite('210, 226, 244', 30);
+moonGlow.position.copy(moon.position);
+scene.add(moonGlow);
+
+/* street lamp by the van, warm point light lives in its head */
+const lampPole = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.07, 0.09, 4.6, 8),
+  steelDark
+);
+lampPole.position.set(-7, 2.3, 14);
+lampPole.castShadow = true;
+scene.add(lampPole);
+scene.add(strut(new THREE.Vector3(-7, 4.55, 14), new THREE.Vector3(-6.1, 4.4, 14), 0.05, steelDark));
+scene.add(box(0.32, 0.12, 0.2, steelDark, -6.05, 4.36, 14));
+const lampGlow = glowSprite('255, 200, 138', 3.4);
+lampGlow.position.set(-6.05, 4.22, 14);
+scene.add(lampGlow);
+warm.position.set(-6.05, 4.1, 14);
+warm.intensity = 22;
+warm.distance = 20;
+
+function contactShadow(radius, x, z, stretch) {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 128;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(64, 64, 4, 64, 64, 64);
+  grad.addColorStop(0, 'rgba(0, 0, 0, 0.55)');
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(radius * 2, radius * 2 * (stretch || 1)),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false })
+  );
+  m.rotation.x = -Math.PI / 2;
+  m.position.set(x, 0.04, z);
+  scene.add(m);
+}
+contactShadow(9, TOWER.x, TOWER.z);
+contactShadow(5.5, -12, 4);
+contactShadow(2.8, -3, 12, 0.8);
+
+/* =====================================================
+   Soap bubbles + falling mist
+===================================================== */
+const bubbleMat = new THREE.MeshPhysicalMaterial({
+  color: 0xbfe9ff,
+  metalness: 0,
+  roughness: 0.04,
+  transparent: true,
+  opacity: 0.26,
+  iridescence: 1,
+  iridescenceIOR: 1.3,
+  envMapIntensity: 2.2,
+  depthWrite: false,
+});
+const bubbles = [];
+for (let i = 0; i < 10; i++) {
+  const r = 0.14 + Math.random() * 0.3;
+  const b = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 12), bubbleMat);
+  b.position.set((Math.random() - 0.5) * 36, Math.random() * 16, (Math.random() - 0.5) * 30 + 2);
+  b.userData = { speed: 0.25 + Math.random() * 0.5, phase: Math.random() * Math.PI * 2 };
+  scene.add(b);
+  bubbles.push(b);
+}
+
+const P_COUNT = 260;
+const pGeo = new THREE.BufferGeometry();
+const pPos = new Float32Array(P_COUNT * 3);
+const pSpd = new Float32Array(P_COUNT);
+for (let i = 0; i < P_COUNT; i++) {
+  pPos[i * 3] = (Math.random() - 0.5) * 70;
+  pPos[i * 3 + 1] = Math.random() * 32;
+  pPos[i * 3 + 2] = (Math.random() - 0.5) * 70;
+  pSpd[i] = 0.3 + Math.random() * 0.8;
+}
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+const mist = new THREE.Points(pGeo, new THREE.PointsMaterial({
+  color: 0x9fd8f5,
+  size: 0.12,
+  transparent: true,
+  opacity: 0.45,
+  sizeAttenuation: true,
+  depthWrite: false,
+}));
+scene.add(mist);
+
+/* =====================================================
+   Scroll-driven camera path
+===================================================== */
+const camPath = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(26, 8, 31),
+  new THREE.Vector3(13, 17, 17),
+  new THREE.Vector3(-19, 7, 21),
+  new THREE.Vector3(-15, 5, -19),
+  new THREE.Vector3(17, 18, -17),
+]);
+const tgtPath = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(1, 10, -1),
+  new THREE.Vector3(9, 14, -5),
+  new THREE.Vector3(-10, 3, 3),
+  new THREE.Vector3(0, 11, -2),
+  new THREE.Vector3(4, 10, -4),
+]);
+
+let scrollP = 0, smoothP = 0;
+let mouseX = 0, mouseY = 0, smX = 0, smY = 0;
+
+function readScroll() {
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  scrollP = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
+}
+window.addEventListener('scroll', readScroll, { passive: true });
+window.addEventListener('mousemove', (e) => {
+  mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+  mouseY = (e.clientY / window.innerHeight) * 2 - 1;
+});
+
+/* =====================================================
+   Animate
+===================================================== */
+const clock = new THREE.Clock();
+const camPos = new THREE.Vector3();
+const camTgt = new THREE.Vector3();
+const WASH_CYCLE = 38;          /* seconds per full top-to-bottom clean */
+const TOP_Y = TOWER.h - 1;
+const BOT_Y = 1.6;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  /* gondola descends, panes above it come up gleaming */
+  const cycle = (t % WASH_CYCLE) / WASH_CYCLE;
+  const gy = TOP_Y - cycle * (TOP_Y - BOT_Y);
+  gondola.position.set(Math.sin(t * 0.04) * 1.2, gy, frontZ + 0.62);
+  washLine.position.y = gy + 1.05;
+  washLine.material.opacity = 0.4 + Math.sin(t * 6) * 0.2;
+
+  for (const pane of panes) {
+    pane.material = pane.position.y > gy + 0.9 ? cleanMat : dirtyMat;
+  }
+
+  for (const c of cables) {
+    const len = TOWER.h + 1.6 - gy;
+    c.mesh.scale.y = len;
+    c.mesh.position.set(c.x + gondola.position.x * 0.2, gy + len / 2, frontZ + 0.3);
+  }
+
+  /* squeegee arm bobs as they scrub */
+  squeegeeArm.rotation.z = Math.sin(t * 2.2) * 0.12;
+
+  /* tech's brush scrubs the house window */
+  brush.position.x = poleTip.x + Math.sin(t * 2.6) * 0.16;
+  brush.position.y = poleTip.y + Math.cos(t * 1.8) * 0.1;
+
+  /* bubbles rise and wobble */
+  for (const b of bubbles) {
+    b.position.y += b.userData.speed * 0.014;
+    b.position.x += Math.sin(t * 0.6 + b.userData.phase) * 0.006;
+    if (b.position.y > 20) b.position.y = 0.3;
+  }
+
+  /* mist drifts down */
+  const arr = pGeo.attributes.position.array;
+  for (let i = 0; i < P_COUNT; i++) {
+    arr[i * 3 + 1] -= pSpd[i] * 0.01;
+    arr[i * 3] += Math.sin(t * 0.4 + i) * 0.003;
+    if (arr[i * 3 + 1] < 0) arr[i * 3 + 1] = 32;
+  }
+  pGeo.attributes.position.needsUpdate = true;
+
+  /* accent light follows the gondola */
+  sky1.position.set(TOWER.x + gondola.position.x, gy + 2, TOWER.z + frontZ + 4);
+
+  /* camera: smooth scroll progress + mouse parallax */
+  smoothP += (scrollP - smoothP) * 0.045;
+  smX += (mouseX - smX) * 0.04;
+  smY += (mouseY - smY) * 0.04;
+
+  camPath.getPoint(smoothP, camPos);
+  tgtPath.getPoint(smoothP, camTgt);
+  camPos.x += smX * 2.2;
+  camPos.y += -smY * 1.4;
+  camera.position.copy(camPos);
+  camera.lookAt(camTgt);
+
+  renderer.render(scene, camera);
+}
+readScroll();
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* =====================================================
+   UI behaviors
+===================================================== */
+const nav = document.getElementById('nav');
+const heroInner = document.getElementById('hero-inner');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 40);
+  const f = Math.max(0, 1 - window.scrollY / (window.innerHeight * 0.55));
+  heroInner.style.opacity = f;
+  heroInner.style.transform = `translateY(${(1 - f) * -40}px)`;
+}, { passive: true });
+
+const io = new IntersectionObserver((entries) => {
+  for (const e of entries) {
+    if (e.isIntersecting) {
+      e.target.classList.add('in');
+      io.unobserve(e.target);
+    }
+  }
+}, { threshold: 0.15 });
+document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+const counterIO = new IntersectionObserver((entries) => {
+  for (const e of entries) {
+    if (!e.isIntersecting) continue;
+    counterIO.unobserve(e.target);
+    const el = e.target;
+    const target = parseFloat(el.dataset.count);
+    const decimals = parseInt(el.dataset.decimals || '0', 10);
+    const dur = 1600;
+    const start = performance.now();
+    function tick(now) {
+      const p = Math.min((now - start) / dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = (target * eased).toFixed(decimals);
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+}, { threshold: 0.5 });
+document.querySelectorAll('[data-count]').forEach((el) => counterIO.observe(el));
+
+document.querySelectorAll('[data-tilt]').forEach((card) => {
+  card.addEventListener('mousemove', (e) => {
+    const r = card.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    card.style.transform = `perspective(800px) rotateY(${px * 10}deg) rotateX(${-py * 10}deg) translateY(-4px)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = '';
+  });
+});
+</script>
+</body>
+</html>

@@ -8,7 +8,9 @@ import BottomNav from "../components/BottomNav";
 import SearchBar from "../components/SearchBar";
 import Avatar from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
+import PullToRefresh from "../components/PullToRefresh";
 import { useAuth } from "../context/AuthContext";
+import { useNow } from "../context/NowContext";
 import { useContactsQuery } from "../hooks/useApi";
 import { APP_BRAND } from "../lib/appBrand";
 import { formatPhone } from "../lib/phone";
@@ -46,6 +48,7 @@ export default function Contacts() {
 
   return (
     <Shell>
+      <PullToRefresh queryKeys={[["contacts"]]} />
       {isTest && <TestBanner />}
 
       <NavyHero flushTop={isTest}>
@@ -98,9 +101,15 @@ export default function Contacts() {
           </div>
         ) : visible.length === 0 ? (
           trimmed ? (
-            <EmptyState message={`No contacts match "${trimmed}"`} />
+            <EmptyState
+              title="No contacts"
+              message={`No contacts match "${trimmed}"`}
+            />
           ) : (
-            <EmptyState message="No contacts yet." />
+            <EmptyState
+              title="No contacts"
+              message="New contacts will show up here as leads come in."
+            />
           )
         ) : (
           <ul className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
@@ -123,9 +132,12 @@ interface ContactRowProps {
 }
 
 function ContactRow({ contact, isLast }: ContactRowProps) {
+  const now = useNow();
   const telDigits = contact.phone.replace(/[^0-9+]/g, "");
   const hasPhone = telDigits.length > 0;
   const hasEmail = contact.email.length > 0;
+  const visibleTags = contact.tags.slice(0, 2);
+  const extraTags = contact.tags.length - visibleTags.length;
 
   return (
     <div
@@ -143,6 +155,23 @@ function ContactRow({ contact, isLast }: ContactRowProps) {
         <div className="mt-0.5 truncate text-xs text-[var(--text-faint)]">
           {hasPhone ? formatPhone(contact.phone) : hasEmail ? contact.email : "No contact info"}
         </div>
+        {visibleTags.length > 0 && (
+          <div className="mt-1 flex items-center gap-1">
+            {visibleTags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex max-w-[110px] items-center truncate rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]"
+              >
+                {tag}
+              </span>
+            ))}
+            {extraTags > 0 && (
+              <span className="text-[10px] font-semibold text-[var(--text-faint)]">
+                +{extraTags}
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {hasPhone && (
@@ -164,7 +193,7 @@ function ContactRow({ contact, isLast }: ContactRowProps) {
           </a>
         )}
         <span className="tabular-figs ml-1 hidden text-[10.5px] font-semibold text-[var(--text-faint)] sm:inline">
-          {timeAgo(contact.lastActivityAt)}
+          {timeAgo(contact.lastActivityAt, now)}
         </span>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Activity,
@@ -7,6 +7,7 @@ import {
   Mail,
   MessageSquare,
   Phone,
+  Tag,
 } from "lucide-react";
 import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
@@ -17,7 +18,8 @@ import WonSheet from "../components/WonSheet";
 import MoveStageSheet from "../components/MoveStageSheet";
 import Avatar from "../components/Avatar";
 import BrandedButton from "../components/BrandedButton";
-import Toast from "../components/Toast";
+import { useToast } from "../context/ToastContext";
+import { useNow } from "../context/NowContext";
 import { adaptApiLead, useLeads } from "../context/LeadsContext";
 import { useLeadQuery } from "../hooks/useApi";
 import { usePipelines } from "../context/PipelinesContext";
@@ -72,6 +74,7 @@ interface TimelineEntryProps {
 }
 
 function TimelineEntry({ entry, isLast, wonLabel }: TimelineEntryProps) {
+  const now = useNow();
   const dotColor =
     entry.kind === "note" ? "var(--text-muted)" : "var(--brand-primary)";
 
@@ -117,7 +120,7 @@ function TimelineEntry({ entry, isLast, wonLabel }: TimelineEntryProps) {
           </div>
         )}
         <div className="label-cap mt-1 text-[var(--text-faint)]">
-          {timeAgo(iso)}
+          {timeAgo(iso, now)}
         </div>
       </div>
     </li>
@@ -139,25 +142,41 @@ export default function LeadDetail() {
   const { pipelines } = usePipelines();
   const { client } = useClient();
   const { session } = useAuth();
+  const { showToast } = useToast();
+  const now = useNow();
   const [wonOpen, setWonOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
   const [showAllActivity, setShowAllActivity] = useState(false);
   const wonLabel = client.pipeline.wonLabel;
 
   const listLead = id ? getLead(id) : undefined;
-  // Deep links (push notification taps) can land here before the leads list
-  // query has data. Fetch the single lead directly instead of declaring it
-  // missing; the list stays the source of truth once it arrives.
-  const fallbackQuery = useLeadQuery(id ?? null, Boolean(session) && !listLead);
-  const lead =
-    listLead ??
-    (fallbackQuery.data
-      ? adaptApiLead(fallbackQuery.data.lead, pipelines, client.id)
-      : undefined);
+  // The single-lead fetch serves two jobs: deep links (push taps) land here
+  // before the list query has data, and only this endpoint carries the
+  // contact enrichment (attribution, tags). Always on for real sessions.
+  const detailQuery = useLeadQuery(id ?? null, Boolean(session));
+  const detailLead = useMemo(
+    () =>
+      detailQuery.data
+        ? adaptApiLead(detailQuery.data.lead, pipelines, client.id)
+        : undefined,
+    [detailQuery.data, pipelines, client.id],
+  );
+  // The list lead is fresher for stage/status (optimistic moves update it);
+  // the detail lead supplies what the list omits.
+  const lead = useMemo(() => {
+    if (!listLead) return detailLead;
+    if (!detailLead) return listLead;
+    return {
+      ...listLead,
+      phone: listLead.phone || detailLead.phone,
+      email: listLead.email || detailLead.email,
+      attribution: detailLead.attribution,
+      tags: detailLead.tags,
+    };
+  }, [listLead, detailLead]);
   const leadPending =
-    !lead && (leadsLoading || fallbackQuery.isLoading || fallbackQuery.isFetching);
+    !lead && (leadsLoading || detailQuery.isLoading || detailQuery.isFetching);
   // The move sheet lists the lead's OWN pipeline's stages, never another
   // pipeline's. No pipeline match (deleted in GHL) means no move action.
   const leadPipeline = lead
@@ -168,12 +187,6 @@ export default function LeadDetail() {
     () => (lead ? getActivitiesForLead(lead.id) : []),
     [lead, getActivitiesForLead]
   );
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 2500);
-    return () => window.clearTimeout(t);
-  }, [toast]);
 
   // Still loading (cold deep link): spinner, never a premature "not found".
   if (!lead && leadPending) {
@@ -210,26 +223,27 @@ export default function LeadDetail() {
     );
   }
 
-  const goBackWithToast = (message: string) => {
-    navigate("/leads", { state: { toast: message } });
-  };
-
+  // Outcome actions confirm through the global toast (it survives the
+  // navigation back to the list) instead of navigate-with-state.
   const handleWonSave = (value: number) => {
     setWonOpen(false);
     markWon(lead.id, value);
-    goBackWithToast(`Marked as ${wonLabel}, ${currencyFmt.format(value)}`);
+    showToast(`Marked as ${wonLabel}, ${currencyFmt.format(value)}`);
+    navigate("/leads");
   };
 
   const handleLost = () => {
     setMoveOpen(false);
     markLost(lead.id);
-    goBackWithToast("Marked as Lost");
+    showToast("Marked as Lost");
+    navigate("/leads");
   };
 
   const handleMove = (stageId: string, stageName: string) => {
     setMoveOpen(false);
     moveStage(lead.id, stageId, stageName);
-    goBackWithToast(`Moved to ${stageName}`);
+    showToast(`Moved to ${stageName}`);
+    navigate("/leads");
   };
 
   const handleAddNote = () => {
@@ -237,7 +251,7 @@ export default function LeadDetail() {
     if (!trimmed) return;
     addNote(lead.id, trimmed);
     setNoteDraft("");
-    setToast("Note added");
+    showToast("Note added");
   };
 
   const telDigits = e164(lead.phone);
@@ -250,7 +264,6 @@ export default function LeadDetail() {
 
   return (
     <Shell>
-      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
       <NavyHero>
         <div className="flex items-center justify-between">
           <HeroIconButton label="Back to leads" onClick={() => navigate("/leads")}>
@@ -287,9 +300,11 @@ export default function LeadDetail() {
                 </span>
               )}
             </div>
-            {(lead.sourceAd || lead.sourceCampaign) && (
+            {(lead.attribution?.ad || lead.attribution?.campaign) && (
               <div className="mt-1.5 truncate text-xs text-white/60">
-                {[lead.sourceAd, lead.sourceCampaign].filter(Boolean).join(" · ")}
+                {[lead.attribution?.ad, lead.attribution?.campaign]
+                  .filter(Boolean)
+                  .join(" · ")}
               </div>
             )}
           </div>
@@ -317,23 +332,24 @@ export default function LeadDetail() {
             <Mail size={16} aria-hidden="true" />
             <span>{lead.email}</span>
           </a>
+          {lead.tags && lead.tags.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--divider)] pt-3">
+              <Tag
+                size={13}
+                aria-hidden="true"
+                className="text-[var(--text-muted)]"
+              />
+              {lead.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--text-muted)]"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
           <dl className="flex flex-col gap-2 border-t border-[var(--divider)] pt-3 text-sm">
-            {lead.sourceAd && (
-              <div className="flex justify-between gap-3">
-                <dt className="label-cap">Ad</dt>
-                <dd className="text-right font-semibold text-[var(--text)]">
-                  {lead.sourceAd}
-                </dd>
-              </div>
-            )}
-            {lead.sourceCampaign && (
-              <div className="flex justify-between gap-3">
-                <dt className="label-cap">Campaign</dt>
-                <dd className="text-right font-semibold text-[var(--text)]">
-                  {lead.sourceCampaign}
-                </dd>
-              </div>
-            )}
             <div className="flex justify-between gap-3">
               <dt className="label-cap">Created</dt>
               <dd className="text-right font-semibold text-[var(--text)]">
@@ -343,11 +359,36 @@ export default function LeadDetail() {
             <div className="flex justify-between gap-3">
               <dt className="label-cap">Last activity</dt>
               <dd className="text-right font-semibold text-[var(--text)]">
-                {timeAgoVerbose(lead.lastActivityAt)}
+                {timeAgoVerbose(lead.lastActivityAt, now)}
               </dd>
             </div>
           </dl>
         </section>
+
+        {lead.attribution && (
+          <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+            <h2 className="label-cap">Attribution</h2>
+            <dl className="flex flex-col gap-2 text-sm">
+              {(
+                [
+                  ["Source", lead.attribution.source],
+                  ["Campaign", lead.attribution.campaign],
+                  ["Ad", lead.attribution.ad],
+                  ["Adset", lead.attribution.adset],
+                ] as const
+              )
+                .filter(([, value]) => Boolean(value))
+                .map(([label, value]) => (
+                  <div key={label} className="flex justify-between gap-3">
+                    <dt className="label-cap">{label}</dt>
+                    <dd className="break-words text-right font-semibold text-[var(--text)]">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+          </section>
+        )}
 
         {session && (
           <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
@@ -379,7 +420,7 @@ export default function LeadDetail() {
             <h2 className="label-cap">Notes</h2>
           </div>
           {session && lead.contactId ? (
-            <NoteList contactId={lead.contactId} onToast={setToast} />
+            <NoteList contactId={lead.contactId} onToast={showToast} />
           ) : (
             <>
               <textarea
@@ -410,7 +451,7 @@ export default function LeadDetail() {
               />
               <h2 className="label-cap">Tasks</h2>
             </div>
-            <TaskList contactId={lead.contactId} onToast={setToast} />
+            <TaskList contactId={lead.contactId} onToast={showToast} />
           </section>
         )}
 

@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hauck Marketing LLC : One Lead's Journey</title>
+<meta name="description" content="Watch what happens to one lead when the system is doing its job. Custom software and ads for local businesses.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:opsz,wght@14..32,400..700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============ tokens ============ */
+  :root{
+    --ink: #08080C;
+    --panel: #0D0D13;
+    --panel-2: #10101A;
+    --bone: #EDEAE4;
+    --slate: #A6A6B6;
+    --faint: #74748A;
+    --led: #A78BFA;
+    --led-hot: #C7B1FF;
+    --led-deep: #9D6BFF;
+    --seam: rgba(167,139,250,0.16);
+    --seam-soft: rgba(167,139,250,0.09);
+    --hairline: rgba(237,234,228,0.09);
+    --btn-ink: #0A0614;
+    --display: "Bricolage Grotesque", Georgia, serif;
+    --body: "Inter", -apple-system, system-ui, sans-serif;
+    --mono: "Spline Sans Mono", "SF Mono", monospace;
+    --max: 1120px;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  html{ scroll-padding-top: 84px; }
+  @media (prefers-reduced-motion: no-preference){
+    html{ scroll-behavior: smooth; }
+  }
+
+  body{
+    background: var(--ink);
+    color: var(--bone);
+    font-family: var(--body);
+    font-size: 17.5px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection{ background: rgba(167,139,250,0.32); }
+  a{ color: inherit; }
+  button{ font: inherit; cursor: pointer; }
+  input{ font: inherit; }
+
+  :is(a, button, input, [tabindex]):focus-visible{
+    outline: 2px solid var(--led);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap{ max-width: var(--max); margin: 0 auto; padding: 0 28px; }
+  .mono{ font-family: var(--mono); }
+
+  /* ============ LED seam (ported, signature of the panels) ============ */
+  .seam-x{ position: relative; }
+  .seam-x::before, .seam-x::after{
+    content:"";
+    position:absolute; left:8%; right:8%; top:-1px; height:1px;
+    background: linear-gradient(90deg, transparent, var(--led) 35%, var(--led-hot) 50%, var(--led) 65%, transparent);
+    pointer-events:none;
+  }
+  .seam-x::after{
+    height:3px; top:-2px;
+    filter: blur(5px);
+    opacity:.55;
+  }
+
+  /* ============ nav ============ */
+  .nav{
+    position: fixed; top:0; left:0; right:0; z-index:50;
+    background: rgba(8,8,12,0.92);
+    backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .nav-in{
+    display:flex; align-items:center; justify-content:space-between;
+    height:62px;
+  }
+  .wordmark{
+    font-family: var(--display);
+    font-weight:700; font-size:19px; letter-spacing:0.01em;
+    text-decoration:none;
+  }
+  .wordmark span{ color: var(--led); }
+  .nav-right{ display:flex; align-items:center; gap:26px; }
+  .nav-link{
+    font-family: var(--mono);
+    font-size:12.5px; letter-spacing:0.08em; text-transform:uppercase;
+    text-decoration:none; color: var(--slate);
+    transition: color 140ms ease;
+  }
+  .nav-link:hover{ color: var(--bone); }
+  .nav-cta{
+    font-family: var(--mono);
+    font-size:12.5px; letter-spacing:0.08em; text-transform:uppercase;
+    text-decoration:none; color: var(--led-hot);
+    border:1px solid rgba(167,139,250,0.4);
+    border-radius:999px; padding:8px 18px;
+    transition: border-color 140ms ease, background-color 140ms ease;
+  }
+  .nav-cta:hover{ border-color: var(--led); background: rgba(157,107,255,0.1); }
+
+  /* ============ hero ============ */
+  .hero{
+    padding: 158px 0 24px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:""; position:absolute; inset:0;
+    background:
+      linear-gradient(rgba(167,139,250,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(167,139,250,0.03) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: radial-gradient(720px 420px at 50% 18%, black, transparent 75%);
+    -webkit-mask-image: radial-gradient(720px 420px at 50% 18%, black, transparent 75%);
+    pointer-events:none;
+  }
+  .hero-in{ position:relative; max-width: 760px; margin:0 auto; }
+  .eyebrow{
+    font-family: var(--mono);
+    font-size:11.5px; letter-spacing:0.24em; text-transform:uppercase;
+    color: var(--led);
+    margin-bottom: 24px;
+  }
+  .hero h1{
+    font-family: var(--display);
+    font-optical-sizing:auto;
+    font-weight:700;
+    font-size: clamp(34px, 5vw, 56px);
+    line-height:1.06;
+    letter-spacing:-0.02em;
+  }
+  .hero h1 em{ font-style:normal; color: var(--led-hot); }
+  .hero-sub{
+    margin: 24px auto 0;
+    max-width: 54ch;
+    color: var(--slate);
+    font-size: 18px;
+  }
+  .hero-sub b{ font-weight:650; color: var(--bone); }
+  .scroll-hint{
+    margin-top: 44px;
+    display:inline-flex; align-items:center; gap:10px;
+    font-family: var(--mono);
+    font-size:11.5px; letter-spacing:0.2em; text-transform:uppercase;
+    color: var(--faint);
+  }
+  .scroll-hint .dot{ position:relative; top:0; }
+
+  .dot{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--led);
+    box-shadow: 0 0 7px rgba(167,139,250,0.8);
+    flex-shrink:0;
+    display:inline-block;
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .scroll-hint .dot{ animation: pulse 2.2s ease-in-out infinite; }
+    @keyframes pulse{
+      0%,100%{ opacity:1; }
+      50%{ opacity:0.3; }
+    }
+  }
+
+  /* ============ journey: the scroll-lit track ============ */
+  .journey{
+    --lit: 0;
+    padding: 56px 0 32px;
+  }
+  .jwrap{
+    position:relative;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 28px 0 28px;
+  }
+  .track{
+    position:absolute;
+    top:0; bottom:0;
+    left: 39px; /* wrap pad 28 + 11 */
+    width:2px;
+    background: rgba(167,139,250,0.13);
+    border-radius:2px;
+  }
+  .track-lit{
+    position:absolute; top:0; left:0; right:0;
+    height: calc(var(--lit) * 100%);
+    background: linear-gradient(180deg, var(--led-deep), var(--led) 55%, var(--led-hot));
+    border-radius:2px;
+    box-shadow: 0 0 12px rgba(157,107,255,0.6);
+  }
+  .track-lit::after{
+    content:"";
+    position:absolute; bottom:-4px; left:50%;
+    width:8px; height:8px;
+    transform: translateX(-50%);
+    border-radius:50%;
+    background: var(--led-hot);
+    box-shadow: 0 0 14px 3px rgba(199,177,255,0.7);
+  }
+
+  .chapters{ list-style:none; }
+  .chapter{
+    position:relative;
+    padding: 0 0 88px 64px;
+  }
+  .chapter:last-child{ padding-bottom: 48px; }
+  .node{
+    position:absolute;
+    left: 4px; top: 5px;
+    width:16px; height:16px;
+    border-radius:50%;
+    background: var(--panel);
+    border:1px solid rgba(167,139,250,0.35);
+    transition: background-color 300ms ease, box-shadow 300ms ease, border-color 300ms ease;
+  }
+  .chapter.in .node{
+    background: var(--led);
+    border-color: var(--led-hot);
+    box-shadow: 0 0 16px 2px rgba(157,107,255,0.55);
+  }
+
+  .stamp{
+    display:flex; align-items:baseline; gap:14px;
+    font-family: var(--mono);
+    margin-bottom: 14px;
+  }
+  .stamp .day{
+    font-size:11px; letter-spacing:0.22em; text-transform:uppercase;
+    color: var(--faint);
+  }
+  .stamp .time{
+    font-size:15px; font-weight:500; letter-spacing:0.1em;
+    color: var(--led-hot);
+    text-shadow: 0 0 14px rgba(157,107,255,0.45);
+  }
+  .chapter h2{
+    font-family: var(--display);
+    font-weight:600;
+    font-size: clamp(23px, 2.6vw, 28px);
+    letter-spacing:-0.015em;
+    line-height:1.15;
+    margin-bottom: 10px;
+  }
+  .story{
+    color: var(--slate);
+    max-width: 52ch;
+  }
+  .story b{ font-weight:650; color: var(--bone); }
+
+  .artifact{
+    margin-top: 22px;
+    max-width: 440px;
+    background: var(--panel);
+    border:1px solid var(--seam-soft);
+    border-radius:12px;
+    padding: 16px;
+    transition: border-color 400ms ease, box-shadow 400ms ease;
+  }
+  .chapter.in .artifact{
+    border-color: var(--seam);
+    box-shadow: 0 0 40px -20px rgba(157,107,255,0.5);
+  }
+  .cap{
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase;
+    color: var(--faint);
+  }
+  .cap b{ font-weight:500; color: var(--led); }
+
+  /* entrance animation: stamps tick on like LED digits, artifacts rise.
+     Hidden states are gated behind .js + motion preference so content
+     is always visible without script or with reduced motion. */
+  @media (prefers-reduced-motion: no-preference){
+    .js .stamp, .js .chapter h2, .js .story{ opacity:0; }
+    .js .chapter.in h2, .js .chapter.in .story{
+      opacity:1;
+      transition: opacity 500ms ease 120ms;
+    }
+    .js .chapter.in .stamp{ animation: tick 640ms steps(1, end) both; }
+    @keyframes tick{
+      0%{ opacity:0; }
+      18%{ opacity:1; }
+      32%{ opacity:0.25; }
+      48%{ opacity:1; }
+      62%{ opacity:0.5; }
+      74%{ opacity:1; }
+      100%{ opacity:1; }
+    }
+    .js .artifact{
+      opacity:0;
+      transform: translateY(16px);
+    }
+    .js .chapter.in .artifact{
+      opacity:1;
+      transform:none;
+      transition: opacity 560ms ease 180ms, transform 560ms cubic-bezier(.3,.9,.3,1) 180ms,
+                  border-color 400ms ease, box-shadow 400ms ease;
+    }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .journey{ --lit: 1; }
+  }
+
+  /* ---- artifact: facebook ad card ---- */
+  .ad-brand{
+    display:flex; align-items:center; gap:10px;
+    margin-bottom: 10px;
+  }
+  .ad-text{
+    font-size:14.5px; color: var(--slate);
+    line-height:1.5;
+  }
+  .ad-cta{
+    margin-top: 12px;
+    display:flex; align-items:center; justify-content:space-between;
+    background: var(--panel-2);
+    border:1px solid rgba(167,139,250,0.35);
+    border-radius:8px;
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size:11.5px; letter-spacing:0.12em; text-transform:uppercase;
+    color: var(--led-hot);
+  }
+
+  /* ---- shared mini-UI vernacular (ported from the LED panels) ---- */
+  .win{
+    background: var(--ink);
+    border:1px solid var(--seam-soft);
+    border-radius:10px;
+    overflow:hidden;
+  }
+  .win-bar{
+    display:flex; align-items:center; gap:6px;
+    padding: 9px 12px;
+    border-bottom:1px solid var(--seam-soft);
+  }
+  .win-bar i{
+    width:8px; height:8px; border-radius:50%;
+    background: #1C1C28;
+  }
+  .win-bar i:first-child{ background: rgba(167,139,250,0.55); }
+  .win-bar .mono{
+    margin-left:auto; font-size:10px; letter-spacing:0.14em;
+    color: var(--faint); text-transform:uppercase;
+  }
+  .win-pad{ padding: 12px; }
+
+  .pipe{
+    display:grid; grid-template-columns: repeat(3, 1fr);
+    gap:1px;
+    background: var(--seam-soft);
+  }
+  .pipe > div{ background: var(--ink); padding:12px; }
+  .pipe .st{
+    font-family: var(--mono);
+    font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase;
+    color: var(--faint);
+  }
+  .pipe .n{
+    font-family: var(--display);
+    font-weight:600; font-size:20px; margin-top:4px;
+  }
+  .pipe .card{
+    margin-top:8px;
+    height:8px; border-radius:3px;
+    background: var(--panel-2);
+    border:1px solid var(--seam-soft);
+  }
+  .pipe .card + .card{ margin-top:5px; }
+  .pipe .card.hot{
+    background: rgba(167,139,250,0.16);
+    border-color: rgba(167,139,250,0.4);
+  }
+
+  .crm-row{
+    display:flex; align-items:center; gap:10px;
+    background: var(--ink);
+    border:1px solid var(--seam-soft);
+    border-radius:8px;
+    padding: 9px 12px;
+  }
+  .crm-row + .crm-row{ margin-top:8px; }
+  .ava{
+    width:26px; height:26px; border-radius:50%;
+    background: var(--panel-2);
+    border:1px solid var(--seam);
+    font-family: var(--mono); font-size:9.5px;
+    color: var(--led);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .crm-row .who, .ad-brand .who{
+    font-size:13px; font-weight:500;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .crm-row .who small, .ad-brand .who small{
+    display:block; font-weight:400;
+    color: var(--faint); font-size:11.5px;
+  }
+  .pill{
+    margin-left:auto; flex-shrink:0;
+    font-family: var(--mono); font-size:9.5px; letter-spacing:0.1em;
+    text-transform:uppercase;
+    color: var(--led-hot);
+    border:1px solid rgba(167,139,250,0.35);
+    border-radius:999px;
+    padding:3px 9px;
+  }
+  .pill.dim{ color: var(--slate); border-color: var(--seam-soft); }
+
+  .tog{
+    display:flex; align-items:center; gap:10px;
+    padding: 9px 0;
+  }
+  .tog + .tog{ border-top:1px solid var(--seam-soft); }
+  .tog .t-label{ font-size:13px; color: var(--slate); }
+  .switch{
+    margin-left:auto; flex-shrink:0;
+    width:32px; height:18px; border-radius:999px;
+    background: rgba(167,139,250,0.22);
+    border:1px solid rgba(167,139,250,0.5);
+    position:relative;
+  }
+  .switch::after{
+    content:""; position:absolute; top:2px; right:2px;
+    width:12px; height:12px; border-radius:50%;
+    background: var(--led);
+    box-shadow: 0 0 8px rgba(167,139,250,0.7);
+  }
+
+  .sms{
+    background: var(--ink);
+    border:1px solid var(--seam-soft);
+    border-radius:10px;
+    padding:12px;
+  }
+  .sms .bubble{
+    background: var(--panel-2);
+    border:1px solid var(--seam-soft);
+    border-radius:10px 10px 10px 3px;
+    padding:8px 12px;
+    font-size:13px;
+    color: var(--slate);
+    max-width:95%;
+  }
+  .sms .bubble.out{
+    margin-left:auto;
+    border-radius:10px 10px 3px 10px;
+    background: rgba(157,107,255,0.12);
+    border-color: rgba(167,139,250,0.3);
+    color: var(--bone);
+  }
+  .sms .bubble + .bubble{ margin-top:8px; }
+  .sms .meta{
+    margin-top:8px;
+    font-family: var(--mono);
+    font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
+    color: var(--led);
+    display:flex; align-items:center; gap:6px;
+  }
+
+  .rev{
+    background: var(--ink);
+    border:1px solid var(--seam-soft);
+    border-radius:10px;
+    padding:12px;
+  }
+  .stars{ display:flex; gap:3px; color: var(--led-hot); }
+  .stars svg{ display:block; }
+  .rev .meta{
+    margin-top:8px;
+    font-family: var(--mono);
+    font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
+    color: var(--faint);
+  }
+  .rev .meta b{ color: var(--bone); font-weight:500; }
+
+  /* closer chapter */
+  .chapter.closer h2{ font-size: clamp(26px, 3.2vw, 34px); }
+  .chapter.closer h2 em{ font-style:normal; color: var(--led-hot); }
+
+  /* ============ conversion block ============ */
+  .convert{ padding: 56px 0 88px; }
+  .convert-head{
+    text-align:center;
+    max-width: 620px;
+    margin: 0 auto 44px;
+  }
+  .convert-head .eyebrow{ margin-bottom:18px; }
+  .convert-head h2{
+    font-family: var(--display);
+    font-weight:700;
+    font-size: clamp(28px, 3.6vw, 42px);
+    letter-spacing:-0.018em;
+    line-height:1.1;
+  }
+  .convert-head p{
+    margin-top:14px;
+    color: var(--slate);
+  }
+  .form-slot{ max-width: 480px; margin: 0 auto; }
+
+  /* ---- form card (ported from split-form, fonts mapped to Inter) ---- */
+  .form-card{
+    position:relative;
+    background: var(--panel);
+    border:1px solid rgba(167,139,250,0.26);
+    border-radius:16px;
+    padding: 34px 32px 30px;
+    box-shadow:
+      0 0 52px -14px rgba(157,107,255,0.4),
+      0 30px 70px -38px rgba(0,0,0,0.9);
+  }
+  .form-card::before{
+    content:"";
+    position:absolute;
+    top:-1px; left:12%; right:12%; height:1px;
+    background: linear-gradient(90deg, transparent, rgba(199,177,255,0.95), transparent);
+  }
+  .form-title{
+    font-family: var(--display);
+    font-weight:600;
+    font-size:24px;
+    line-height:1.2;
+    margin-bottom:6px;
+  }
+  .form-sub{
+    font-size:15px;
+    color: var(--slate);
+    margin-bottom:26px;
+  }
+  .field{ margin-bottom:18px; }
+  .field-label{
+    display:block;
+    font-family: var(--mono);
+    font-size:11.5px; letter-spacing:0.14em; text-transform:uppercase;
+    color: var(--slate);
+    margin-bottom:8px;
+  }
+  .input{
+    width:100%;
+    background: var(--ink);
+    border:1px solid rgba(237,234,228,0.16);
+    border-radius:10px;
+    color: var(--bone);
+    font-family: var(--body);
+    font-size:16px;
+    padding:15px 16px;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+  }
+  .input::placeholder{ color: rgba(166,166,182,0.55); }
+  .input:focus{
+    outline:none;
+    border-color: var(--led-hot);
+    box-shadow: 0 0 0 3px rgba(157,107,255,0.4), 0 0 18px -4px rgba(157,107,255,0.5);
+  }
+  .chip-row{ display:flex; gap:8px; }
+  .chip{ flex:1; cursor:pointer; }
+  .chip input{
+    position:absolute;
+    width:1px; height:1px;
+    overflow:hidden;
+    clip: rect(0 0 0 0);
+    white-space:nowrap;
+  }
+  .chip-face{
+    display:block;
+    text-align:center;
+    font-family: var(--mono);
+    font-size:12.5px; letter-spacing:0.06em;
+    color: var(--slate);
+    background: var(--ink);
+    border:1px solid rgba(237,234,228,0.16);
+    border-radius:10px;
+    padding:12px 6px;
+    transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+  }
+  .chip:hover .chip-face{ border-color: rgba(167,139,250,0.5); }
+  .chip input:checked + .chip-face{
+    color: var(--bone);
+    border-color: var(--led);
+    background: rgba(157,107,255,0.13);
+  }
+  .chip input:focus-visible + .chip-face{
+    box-shadow: 0 0 0 3px rgba(157,107,255,0.28);
+    border-color: var(--led);
+  }
+  .submit{
+    width:100%;
+    margin-top:8px;
+    background: var(--led);
+    color: #120D20;
+    border:none;
+    border-radius:10px;
+    font-family: var(--body);
+    font-weight:650;
+    font-size:17px;
+    padding:16px;
+    cursor:pointer;
+    box-shadow: 0 0 26px -8px rgba(157,107,255,0.55);
+    transition: background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+  }
+  .submit:hover{
+    background: var(--led-hot);
+    box-shadow: 0 0 34px -6px rgba(157,107,255,0.7);
+    transform: translateY(-1px);
+  }
+  .submit:active{ transform: translateY(0); }
+  .submit:focus-visible{
+    outline:2px solid var(--bone);
+    outline-offset:3px;
+  }
+  .trust{
+    margin-top:14px;
+    text-align:center;
+    font-size:13.5px;
+    color: var(--slate);
+  }
+  .success{
+    text-align:center;
+    padding: 44px 8px 36px;
+  }
+  .success[hidden]{ display:none; }
+  .success-ring{
+    width:56px; height:56px;
+    margin: 0 auto 20px;
+    border:1px solid rgba(167,139,250,0.5);
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 0 28px -8px rgba(157,107,255,0.6);
+  }
+  .success-ring svg{ width:24px; height:24px; }
+  .success-ring path{
+    fill:none;
+    stroke: var(--led-hot);
+    stroke-width:2.4;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .success h3{
+    font-family: var(--display);
+    font-weight:600;
+    font-size:26px;
+    margin-bottom:10px;
+  }
+  .success p{
+    color: var(--slate);
+    font-size:16px;
+    max-width:30ch;
+    margin:0 auto;
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .success{ animation: rise 320ms ease both; }
+    @keyframes rise{
+      from{ opacity:0; transform: translateY(8px); }
+      to{ opacity:1; transform: translateY(0); }
+    }
+  }
+
+  /* ============ services board (ported from led-panels) ============ */
+  .services{ padding: 88px 0 88px; }
+  .sec-head{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:24px;
+    margin-bottom:36px;
+    flex-wrap:wrap;
+  }
+  .sec-head h2{
+    font-family: var(--display);
+    font-weight:700;
+    font-size: clamp(26px, 3.4vw, 38px);
+    letter-spacing:-0.018em;
+    line-height:1.1;
+    max-width:18ch;
+  }
+  .sec-head .sub{
+    color: var(--slate);
+    max-width:34ch;
+    font-size:15.5px;
+    padding-bottom:4px;
+  }
+  .sec-eyebrow{
+    font-family: var(--mono);
+    font-size:11px; letter-spacing:0.24em; text-transform:uppercase;
+    color: var(--led);
+    margin-bottom:14px;
+  }
+
+  .board{
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap:14px;
+  }
+  .panel{
+    background: var(--panel);
+    border:1px solid var(--seam-soft);
+    border-radius:12px;
+    padding:24px;
+    display:flex; flex-direction:column;
+    transition: transform .18s ease, border-color .18s ease;
+  }
+  .panel:hover{
+    transform: translateY(-2px);
+    border-color: var(--seam);
+  }
+  .panel.lit{ border-color: var(--seam); }
+  .p-idx{
+    font-family: var(--mono);
+    font-size:11px; letter-spacing:0.18em;
+    color: var(--led);
+    margin-bottom:14px;
+  }
+  .panel h3{
+    font-family: var(--display);
+    font-weight:600;
+    font-size:19px;
+    letter-spacing:-0.01em;
+    line-height:1.25;
+  }
+  .panel .desc{
+    margin-top:8px;
+    color: var(--slate);
+    font-size:14.5px;
+    line-height:1.55;
+  }
+  .frag{
+    margin-top:auto;
+    padding-top:20px;
+  }
+  .span-4{ grid-column: span 4; }
+  .span-2{ grid-column: span 2; }
+  .span-6{ grid-column: span 6; }
+
+  .panel.wide{
+    flex-direction:row;
+    align-items:center;
+    gap:32px;
+  }
+  .panel.wide .w-copy{ max-width:36ch; }
+  .panel.wide .frag{
+    margin:0 0 0 auto;
+    padding:0;
+    display:grid;
+    grid-template-columns: repeat(3, auto);
+    gap:10px;
+  }
+  .stat{
+    background: var(--ink);
+    border:1px solid var(--seam-soft);
+    border-radius:10px;
+    padding:12px 18px;
+    min-width:120px;
+  }
+  .stat .k{
+    font-family: var(--mono);
+    font-size:9.5px; letter-spacing:0.14em; text-transform:uppercase;
+    color: var(--faint);
+  }
+  .stat .v{
+    font-family: var(--display);
+    font-weight:600; font-size:20px;
+    margin-top:4px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .stat .v .dot{ position:relative; top:1px; }
+
+  /* ============ CTA strip (ported) ============ */
+  .cta{
+    border-top:1px solid var(--seam-soft);
+    border-bottom:1px solid var(--seam-soft);
+    background: var(--panel);
+  }
+  .cta-in{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:20px;
+    padding:26px 0;
+    flex-wrap:wrap;
+  }
+  .cta-in p{
+    font-family: var(--display);
+    font-weight:600; font-size:19px; letter-spacing:-0.01em;
+  }
+  .cta-in p span{
+    color: var(--slate);
+    font-family: var(--body);
+    font-weight:400; font-size:15px;
+    margin-left:12px;
+  }
+  .btn{
+    font-family: var(--display);
+    font-weight:600;
+    font-size:15.5px;
+    letter-spacing:0.01em;
+    color: var(--btn-ink);
+    background: linear-gradient(180deg, var(--led-hot), var(--led) 55%, var(--led-deep));
+    border:0;
+    border-radius:8px;
+    padding:13px 26px;
+    text-decoration:none;
+    display:inline-block;
+    box-shadow: 0 0 22px rgba(167,139,250,0.34), inset 0 1px 0 rgba(255,255,255,0.35);
+    transition: box-shadow .18s ease, transform .18s ease;
+  }
+  .btn:hover{
+    box-shadow: 0 0 30px rgba(167,139,250,0.5), inset 0 1px 0 rgba(255,255,255,0.35);
+    transform: translateY(-1px);
+  }
+  .btn:active{ transform: translateY(0); }
+
+  /* ============ footer (ported mono pattern) ============ */
+  .foot{ padding: 26px 0 34px; }
+  .foot-in{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:16px; flex-wrap:wrap;
+    font-family: var(--mono);
+    font-size:11px; letter-spacing:0.08em;
+    color: var(--faint);
+  }
+  .foot-in b{
+    font-family: var(--display);
+    font-weight:700; font-size:13px; letter-spacing:0.04em;
+    color: var(--bone);
+  }
+  .foot-in a{ color: var(--slate); text-decoration:none; }
+  .foot-in a:hover{ color: var(--led-hot); }
+
+  /* ============ responsive ============ */
+  @media (max-width: 880px){
+    .span-4, .span-2, .span-6{ grid-column: 1 / -1; }
+    .panel.wide{ flex-direction:column; align-items:stretch; }
+    .panel.wide .frag{ margin:20px 0 0; grid-template-columns: repeat(3, 1fr); }
+    .stat{ min-width:0; padding:12px; }
+  }
+  @media (max-width: 560px){
+    body{ font-size:16.5px; }
+    .wrap{ padding: 0 20px; }
+    .nav-link{ display:none; }
+    .hero{ padding: 120px 0 16px; }
+    .hero-sub{ font-size:16.5px; }
+    .journey{ padding-top: 40px; }
+    .jwrap{ padding: 0 20px; }
+    .track{ left: 25px; } /* wrap pad 20 + 5 */
+    .chapter{ padding-left: 42px; padding-bottom: 72px; }
+    .node{ left: -2px; top: 4px; width:14px; height:14px; }
+    .stamp{ flex-direction:column; gap:4px; }
+    .artifact{ max-width:none; }
+    .convert{ padding: 40px 0 64px; }
+    .form-card{ padding: 26px 20px 24px; }
+    .chip-row{ flex-wrap:wrap; }
+    .chip{ flex:1 1 30%; }
+    .services{ padding: 64px 0; }
+    .panel.wide .frag{ grid-template-columns: 1fr; }
+    .stat .v{ font-size:17px; }
+    .cta-in{ justify-content:center; text-align:center; }
+    .foot-in{ flex-direction:column; align-items:flex-start; gap:6px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="wordmark" href="#top">Hauck<span>.</span></a>
+    <nav class="nav-right" aria-label="Main">
+      <a class="nav-link" href="#journey">The journey</a>
+      <a class="nav-cta" href="#lead-form">Get a plan</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ hero: the thesis ============ -->
+  <section class="hero">
+    <div class="wrap hero-in">
+      <p class="eyebrow">Hauck Marketing LLC : AI-Powered Local Growth</p>
+      <h1>Watch what happens to one lead when the system is <em>doing its job.</em></h1>
+      <p class="hero-sub">This is Dana. Her roof leaks. Below is every timestamp from the moment she sees an ad to the moment she posts a five-star review. <b>We build and run everything you are about to see.</b> Dana's story is a staged demo, the timestamps are how the system actually runs.</p>
+      <p class="scroll-hint"><span class="dot"></span>The clock starts at 7:42 PM</p>
+    </div>
+  </section>
+
+  <!-- ============ the journey ============ -->
+  <section class="journey" id="journey" aria-label="One lead's journey, chapter by chapter">
+    <div class="jwrap">
+      <div class="track" aria-hidden="true"><div class="track-lit"></div></div>
+      <ol class="chapters">
+
+        <!-- ch 1 : the ad -->
+        <li class="chapter">
+          <span class="node" aria-hidden="true"></span>
+          <p class="stamp"><span class="day">Day 1</span><span class="time">7:42 PM</span></p>
+          <h2>Dana sees the ad.</h2>
+          <p class="story">The water stain on her ceiling grew again this week. She is on her phone after dinner when a local roofer's ad comes up. She taps it and sends her name and number.</p>
+          <div class="artifact" aria-hidden="true">
+            <div class="win">
+              <div class="win-bar"><i></i><i></i><i></i><span class="mono">Facebook : Sponsored</span></div>
+              <div class="win-pad">
+                <div class="ad-brand">
+                  <span class="ava">RR</span>
+                  <span class="who">Ridgeline Roofing<small>Sponsored</small></span>
+                </div>
+                <p class="ad-text">Roof leak? Text us a photo tonight and get a real quote by morning. Local crew, most repairs done in one visit.</p>
+                <div class="ad-cta">Get my quote<span class="dot"></span></div>
+              </div>
+            </div>
+            <p class="cap">Service at work : <b>Facebook ads</b></p>
+          </div>
+        </li>
+
+        <!-- ch 2 : the lead lands -->
+        <li class="chapter">
+          <span class="node" aria-hidden="true"></span>
+          <p class="stamp"><span class="day">Day 1</span><span class="time">7:43 PM</span></p>
+          <h2>The lead lands.</h2>
+          <p class="story">One minute later her info is on the roofer's board. Not in an inbox. Not on a sticky note. A card in a column called New, with a clock already running.</p>
+          <div class="artifact" aria-hidden="true">
+            <div class="crm-row">
+              <span class="ava">DA</span>
+              <span class="who">Dana Alvarez<small>Roof repair : from FB ad</small></span>
+              <span class="pill">New</span>
+            </div>
+            <p class="cap">Service at work : <b>Custom CRM</b></p>
+          </div>
+        </li>
+
+        <!-- ch 3 : the first text -->
+        <li class="chapter">
+          <span class="node" aria-hidden="true"></span>
+          <p class="stamp"><span class="day">Day 1</span><span class="time">7:44 PM</span></p>
+          <h2>The first text goes out.</h2>
+          <p class="story">The system replies to Dana in under a minute. The owner is at dinner with his kids. Nobody typed anything, and nobody had to remember.</p>
+          <div class="artifact" aria-hidden="true">
+            <div class="sms">
+              <p class="bubble out">Hi Dana, this is Ridgeline Roofing. Got your request. Text us a photo of the leak and we will have a quote for you by morning.</p>
+              <p class="meta"><span class="dot"></span>Auto-reply : sent 7:44 PM</p>
+            </div>
+            <p class="cap">Service at work : <b>Backend automations</b></p>
+          </div>
+        </li>
+
+        <!-- ch 4 : the quote -->
+        <li class="chapter">
+          <span class="node" aria-hidden="true"></span>
+          <p class="stamp"><span class="day">Day 2</span><span class="time">9:12 AM</span></p>
+          <h2>The quote goes over.</h2>
+          <p class="story">The crew looks at her photo first thing and sends a real number. Her card slides from New to Quoted on its own. Nobody updates a spreadsheet.</p>
+          <div class="artifact" aria-hidden="true">
+            <div class="win">
+              <div class="win-bar"><i></i><i></i><i></i><span class="mono">Jobs board</span></div>
+              <div class="pipe">
+                <div>
+                  <p class="st">New leads</p>
+                  <p class="n">3</p>
+                  <div class="card"></div>
+                  <div class="card"></div>
+                </div>
+                <div>
+                  <p class="st">Quoted</p>
+                  <p class="n">5</p>
+                  <div class="card hot"></div>
+                  <div class="card"></div>
+                </div>
+                <div>
+                  <p class="st">Booked</p>
+                  <p class="n">2</p>
+                  <div class="card"></div>
+                </div>
+              </div>
+            </div>
+            <p class="cap">Dana A. moved : New to <b>Quoted</b></p>
+          </div>
+        </li>
+
+        <!-- ch 5 : the nudge -->
+        <li class="chapter">
+          <span class="node" aria-hidden="true"></span>
+          <p class="stamp"><span class="day">Day 3</span><span class="time">10:00 AM</span></p>
+          <h2>The nudge that books it.</h2>
+          <p class="story">Dana gets busy. Most leads do, and most companies let them go quiet. On day three the system asks once, politely. She books Thursday.</p>
+          <div class="artifact" aria-hidden="true">
+            <div class="tog"><span class="t-label">Quote reminder, day 3</span><span class="switch"></span></div>
+            <div class="sms" style="margin-top:10px;">
+              <p class="bubble out">Hi Dana, still want that leak fixed before the next storm? Thursday morning is open if it helps.</p>
+              <p class="meta"><span class="dot"></span>Replied 18 min later : booked Thursday</p>
+            </div>
+            <p class="cap">Service at work : <b>Backend automations</b></p>
+          </div>
+        </li>
+
+        <!-- ch 6 : the job -->
+        <li class="chapter">
+          <span class="node" aria-hidden="true"></span>
+          <p class="stamp"><span class="day">Day 6</span><span class="time">4:48 PM</span></p>
+          <h2>The job gets done.</h2>
+          <p class="story">The crew patches the roof in an afternoon. Her card moves to Done and the invoice goes out from the same screen. The owner touched this lead twice: the quote and the job.</p>
+          <div class="artifact" aria-hidden="true">
+            <div class="crm-row">
+              <span class="ava">DA</span>
+              <span class="who">Dana Alvarez<small>Roof repair : invoice sent</small></span>
+              <span class="pill">Done</span>
+            </div>
+            <p class="cap">Service at work : <b>Custom company software</b></p>
+          </div>
+        </li>
+
+        <!-- ch 7 : the review -->
+        <li class="chapter">
+          <span class="node" aria-hidden="true"></span>
+          <p class="stamp"><span class="day">Day 7</span><span class="time">8:15 AM</span></p>
+          <h2>The review goes up.</h2>
+          <p class="story">One text asks for a review while the fix is still fresh. Dana posts five stars in two minutes. The next homeowner with a stain on the ceiling will read it.</p>
+          <div class="artifact" aria-hidden="true">
+            <div class="rev">
+              <div class="stars">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+              </div>
+              <p class="meta">New review : <b>Dana A.</b></p>
+            </div>
+            <p class="cap">Service at work : <b>Google review campaigns</b></p>
+          </div>
+        </li>
+
+        <!-- closer -->
+        <li class="chapter closer">
+          <span class="node" aria-hidden="true"></span>
+          <p class="stamp"><span class="day">Day 7</span><span class="time">End of track</span></p>
+          <h2>That was <em>six services</em> working as one.</h2>
+          <p class="story">The ad found her. The software caught her, the texts answered her, the nudge booked her, the review asked itself. Dana never saw the machinery. She just hired the company that answered first.</p>
+        </li>
+
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ conversion block ============ -->
+  <section class="convert">
+    <div class="wrap">
+      <div class="convert-head">
+        <p class="eyebrow">The handoff</p>
+        <h2>Your leads can run this same track.</h2>
+        <p>Start here. Tell us three things and we map the track for your business.</p>
+      </div>
+
+      <div class="form-slot">
+        <div class="form-card" id="lead-form">
+          <form id="lead-form-el" novalidate>
+            <div id="form-body">
+              <h3 class="form-title">Get your free growth plan</h3>
+              <p class="form-sub">Tell us three things. We map out what would work for your business.</p>
+
+              <div class="field">
+                <label class="field-label" for="f-name">Your name</label>
+                <input class="input" id="f-name" name="name" type="text" autocomplete="name" placeholder="Dana Willis" required>
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="f-phone">Phone</label>
+                <input class="input" id="f-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="(555) 014 2287" required>
+              </div>
+
+              <fieldset class="field" style="border:none;">
+                <legend class="field-label">What do you need?</legend>
+                <div class="chip-row">
+                  <label class="chip">
+                    <input type="radio" name="need" value="build" checked>
+                    <span class="chip-face">Build</span>
+                  </label>
+                  <label class="chip">
+                    <input type="radio" name="need" value="automate">
+                    <span class="chip-face">Automate</span>
+                  </label>
+                  <label class="chip">
+                    <input type="radio" name="need" value="advertise">
+                    <span class="chip-face">Advertise</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <button class="submit" type="submit">Get my free plan</button>
+              <p class="trust">No spam. One call. The plan is yours either way.</p>
+            </div>
+
+            <div class="success" id="form-success" hidden>
+              <div class="success-ring">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8.5 6 12l7.5-8"/></svg>
+              </div>
+              <h3 id="success-title">Got it.</h3>
+              <p>We'll call you once with your plan. That's the whole pitch.</p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ services board ============ -->
+  <section class="services" id="services">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="sec-eyebrow">The board : 06 services</p>
+          <h2>You just watched all six.</h2>
+        </div>
+        <p class="sub">Here they are on the board. Pick one or stack them. Everything plugs into the same system.</p>
+      </div>
+
+      <div class="board">
+
+        <!-- 01 : custom company software (lit) -->
+        <article class="panel lit seam-x span-4">
+          <p class="p-idx">S.01</p>
+          <h3>Fully custom company software</h3>
+          <p class="desc">Software built around how your shop already works. No off-the-shelf bloat, no features you will never touch.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="win">
+              <div class="win-bar"><i></i><i></i><i></i><span class="mono">Jobs board</span></div>
+              <div class="pipe">
+                <div>
+                  <p class="st">New leads</p>
+                  <p class="n">4</p>
+                  <div class="card hot"></div>
+                  <div class="card"></div>
+                  <div class="card"></div>
+                </div>
+                <div>
+                  <p class="st">Quoted</p>
+                  <p class="n">6</p>
+                  <div class="card"></div>
+                  <div class="card hot"></div>
+                </div>
+                <div>
+                  <p class="st">Booked</p>
+                  <p class="n">3</p>
+                  <div class="card"></div>
+                  <div class="card"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- 02 : custom CRM -->
+        <article class="panel span-2">
+          <p class="p-idx">S.02</p>
+          <h3>Custom desktop and mobile CRM</h3>
+          <p class="desc">Every lead, job, and message in one place. On your desk and in your pocket.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="crm-row">
+              <span class="ava">DA</span>
+              <span class="who">Dana Alvarez<small>Roof repair</small></span>
+              <span class="pill">Quoted</span>
+            </div>
+            <div class="crm-row">
+              <span class="ava">MT</span>
+              <span class="who">Mike Torres<small>Gutter clean</small></span>
+              <span class="pill dim">New</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 03 : automations -->
+        <article class="panel span-2">
+          <p class="p-idx">S.03</p>
+          <h3>Backend automations</h3>
+          <p class="desc">Follow-ups, reminders, and handoffs run on their own. Nothing slips through.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="tog"><span class="t-label">Missed call sends a text</span><span class="switch"></span></div>
+            <div class="tog"><span class="t-label">New lead gets a fast reply</span><span class="switch"></span></div>
+            <div class="tog"><span class="t-label">Quote reminder, day 3</span><span class="switch"></span></div>
+          </div>
+        </article>
+
+        <!-- 04 : database reactivation -->
+        <article class="panel span-2">
+          <p class="p-idx">S.04</p>
+          <h3>Database reactivation</h3>
+          <p class="desc">We wake up your old leads with simple texts. Many still want the work done.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="sms">
+              <p class="bubble">Hi Dana. Still want that patio quote? We have two openings this week.</p>
+              <p class="meta"><span class="dot"></span>Replied 12 min later</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- 05 : review campaigns -->
+        <article class="panel span-2">
+          <p class="p-idx">S.05</p>
+          <h3>Google review campaigns</h3>
+          <p class="desc">Happy customers get one easy link. Your rating climbs week by week.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="rev">
+              <div class="stars">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+              </div>
+              <p class="meta">New review : <b>Mike T.</b></p>
+            </div>
+          </div>
+        </article>
+
+        <!-- 06 : facebook ads (wide strip, lit seam) -->
+        <article class="panel wide seam-x span-6">
+          <div class="w-copy">
+            <p class="p-idx">S.06</p>
+            <h3>Facebook ads</h3>
+            <p class="desc">Ads that reach homeowners near you and send real leads to your phone.</p>
+          </div>
+          <div class="frag" aria-hidden="true">
+            <div class="stat">
+              <p class="k">Leads, 7 days</p>
+              <p class="v">23</p>
+            </div>
+            <div class="stat">
+              <p class="k">Cost per lead</p>
+              <p class="v">$18.40</p>
+            </div>
+            <div class="stat">
+              <p class="k">Campaign</p>
+              <p class="v"><span class="dot"></span>Live</p>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA strip ============ -->
+  <section class="cta">
+    <div class="wrap cta-in">
+      <p>Ready when you are.<span>Three fields. One call. No pressure.</span></p>
+      <a class="btn" href="#lead-form">Get my free plan</a>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ footer ============ -->
+<footer class="foot">
+  <div class="wrap foot-in">
+    <b>HAUCK</b>
+    <span>AI-POWERED LOCAL GROWTH</span>
+    <a href="mailto:hello@hauckmarketing.com">HELLO@HAUCKMARKETING.COM</a>
+    <span>&copy; 2026 HAUCK MARKETING LLC</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  document.documentElement.classList.add('js');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- scroll-lit LED track : --lit updated in rAF ---- */
+  var journey = document.getElementById('journey');
+  if (reduced) {
+    journey.style.setProperty('--lit', '1');
+  } else {
+    var pending = false;
+    function updateLit() {
+      pending = false;
+      var rect = journey.getBoundingClientRect();
+      if (rect.height < 1) return;
+      var focus = window.innerHeight * 0.62;
+      var p = (focus - rect.top) / rect.height;
+      if (p < 0) p = 0;
+      if (p > 1) p = 1;
+      journey.style.setProperty('--lit', p.toFixed(4));
+    }
+    function requestLit() {
+      if (!pending) {
+        pending = true;
+        window.requestAnimationFrame(updateLit);
+      }
+    }
+    window.addEventListener('scroll', requestLit, { passive: true });
+    window.addEventListener('resize', requestLit);
+    updateLit();
+  }
+
+  /* ---- chapter reveals : once, on entry ---- */
+  var chapters = document.querySelectorAll('.chapter');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+    chapters.forEach(function (c) { io.observe(c); });
+  } else {
+    chapters.forEach(function (c) { c.classList.add('in'); });
+  }
+
+  /* ---- lead form success state (ported from split-form) ---- */
+  var form = document.getElementById('lead-form-el');
+  var body = document.getElementById('form-body');
+  var success = document.getElementById('form-success');
+  var title = document.getElementById('success-title');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    var name = document.getElementById('f-name').value.trim().split(' ')[0];
+    if (name) {
+      title.textContent = 'Got it, ' + name + '.';
+    }
+    body.hidden = true;
+    success.hidden = false;
+    success.focus && success.setAttribute('tabindex', '-1');
+    success.focus();
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -2,6 +2,9 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+// One brand source: the manifest reads the same constant the app renders, so
+// the home-screen label can never drift from the in-app identity.
+import { APP_BRAND } from "./src/lib/appBrand";
 
 export default defineConfig({
   plugins: [
@@ -20,8 +23,8 @@ export default defineConfig({
         "icon-512-maskable.png",
       ],
       manifest: {
-        name: "Hauck Dashboard",
-        short_name: "Hauck",
+        name: APP_BRAND.appName,
+        short_name: APP_BRAND.appName,
         start_url: "/",
         display: "standalone",
         background_color: "#0f172a",

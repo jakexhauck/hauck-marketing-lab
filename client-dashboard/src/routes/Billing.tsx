@@ -6,6 +6,8 @@ import NavyHero from "../components/NavyHero";
 import { HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
 import EmptyState from "../components/EmptyState";
+import PullToRefresh from "../components/PullToRefresh";
+import StatusBadge from "../components/StatusBadge";
 import { useAuth } from "../context/AuthContext";
 import {
   useInvoiceQuery,
@@ -39,18 +41,6 @@ const STATUS_STYLE: Record<string, { bg: string; fg: string; label: string }> = 
   draft: { bg: "#f1f5f9", fg: "#64748b", label: "Draft" },
   void: { bg: "#f1f5f9", fg: "#94a3b8", label: "Void" },
 };
-
-function StatusPill({ status }: { status: string }) {
-  const s = STATUS_STYLE[status] ?? STATUS_STYLE.draft;
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide"
-      style={{ background: s.bg, color: s.fg }}
-    >
-      {s.label}
-    </span>
-  );
-}
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -117,6 +107,7 @@ export default function Billing() {
 
   return (
     <Shell>
+      <PullToRefresh queryKeys={[["invoices"], ["transactions"]]} />
       {isTest && <TestBanner />}
 
       <NavyHero flushTop={isTest}>
@@ -181,7 +172,10 @@ export default function Billing() {
               />
             </div>
           ) : visible.length === 0 ? (
-            <EmptyState message="No invoices to show." />
+            <EmptyState
+              title="No invoices"
+              message="Invoices sent to this client's customers will show up here."
+            />
           ) : (
             <ul className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
               {visible.map((inv, idx) => (
@@ -201,7 +195,7 @@ export default function Billing() {
                         {inv.contactName || inv.number || "Invoice"}
                       </div>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-[var(--text-faint)]">
-                        <StatusPill status={inv.status} />
+                        <StatusBadge {...(STATUS_STYLE[inv.status] ?? STATUS_STYLE.draft)} />
                         {inv.dueDate && <span>Due {fmtDate(inv.dueDate)}</span>}
                       </div>
                     </div>
@@ -216,7 +210,12 @@ export default function Billing() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <span className="sec-kicker px-1">Recent payments</span>
+          <span className="sec-kicker px-1">
+            Recent payments
+            {txQuery.data
+              ? ` (${txQuery.data.transactions.length.toLocaleString("en-US")}${txQuery.data.approximate ? "+" : ""})`
+              : ""}
+          </span>
           {txQuery.isLoading ? (
             <p className="px-1 text-sm text-[var(--text-muted)]">Loading.</p>
           ) : transactions.length === 0 ? (
@@ -311,7 +310,7 @@ function InvoiceDetailSheet({ invoiceId, enabled, onClose }: SheetProps) {
         ) : (
           <div className="mt-3 flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <StatusPill status={inv.status} />
+              <StatusBadge {...(STATUS_STYLE[inv.status] ?? STATUS_STYLE.draft)} />
               <span className="text-sm text-[var(--text-muted)]">
                 {inv.contactName}
               </span>

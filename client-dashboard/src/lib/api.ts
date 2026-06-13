@@ -49,6 +49,13 @@ export async function api<T>(
   return body as T;
 }
 
+export interface ApiLeadAttribution {
+  source: string;
+  campaign: string;
+  ad: string;
+  adset: string;
+}
+
 export interface ApiLead {
   id: string;
   name: string;
@@ -64,6 +71,22 @@ export interface ApiLead {
   // GHL user id the opportunity is assigned to (opportunity.assignedTo), or
   // null if unassigned. Drives rep-only filtering.
   assignedUserId: string | null;
+  // Single-lead endpoint only: UTM attribution + tags from the contact record.
+  attribution?: ApiLeadAttribution | null;
+  tags?: string[];
+}
+
+// Display config for the signed-in tenant from GET /api/tenant. Null when
+// Supabase is unconfigured; the app falls back to APP_BRAND.
+export interface ApiTenant {
+  name: string;
+  niche: string;
+  brandColor: string;
+  brandInitials: string;
+  appName: string;
+  wonLabel: string;
+  valueLabel: string;
+  monthlySpend: number | null;
 }
 
 export interface ApiPipelineSummary {
@@ -168,6 +191,14 @@ export interface ApiTransaction {
   contactName: string;
   createdAt: string | null;
   method: string;
+}
+
+export interface ApiTransactionsResponse {
+  transactions: ApiTransaction[];
+  total: number;
+  // True when GHL reports more transactions than the pagination cap fetched;
+  // the UI renders the count as "N+" instead of an exact figure.
+  approximate?: boolean;
 }
 
 export interface ApiCalendarEvent {

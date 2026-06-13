@@ -9,7 +9,9 @@ import BottomNav from "../components/BottomNav";
 import SearchBar from "../components/SearchBar";
 import Avatar from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
+import PullToRefresh from "../components/PullToRefresh";
 import { useAuth } from "../context/AuthContext";
+import { useNow } from "../context/NowContext";
 import { useConversationsQuery } from "../hooks/useApi";
 import { APP_BRAND } from "../lib/appBrand";
 import { timeAgo } from "../lib/timeAgo";
@@ -47,6 +49,7 @@ export default function Conversations() {
 
   return (
     <Shell>
+      <PullToRefresh queryKeys={[["conversations"]]} />
       {isTest && <TestBanner />}
 
       <NavyHero flushTop={isTest}>
@@ -99,9 +102,15 @@ export default function Conversations() {
           </div>
         ) : visible.length === 0 ? (
           trimmed ? (
-            <EmptyState message={`No conversations match "${trimmed}"`} />
+            <EmptyState
+              title="No conversations"
+              message={`No conversations match "${trimmed}"`}
+            />
           ) : (
-            <EmptyState message="No conversations yet." />
+            <EmptyState
+              title="No conversations"
+              message="Messages with your leads will show up here."
+            />
           )
         ) : (
           <ul className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
@@ -129,6 +138,7 @@ interface ConversationRowProps {
 }
 
 function ConversationRow({ conv, isLast, onTap }: ConversationRowProps) {
+  const now = useNow();
   const hasUnread = conv.unreadCount > 0;
   return (
     <button
@@ -147,7 +157,7 @@ function ConversationRow({ conv, isLast, onTap }: ConversationRowProps) {
             {conv.name}
           </div>
           <span className="tabular-figs shrink-0 text-[10.5px] font-semibold text-[var(--text-faint)]">
-            {timeAgo(conv.lastMessageAt)}
+            {timeAgo(conv.lastMessageAt, now)}
           </span>
         </div>
         <div className="mt-0.5 flex items-center gap-2">

@@ -105,6 +105,158 @@ export interface ApiLead {
   lastActivityAt: string;
   // GHL user id the opportunity is assigned to, or null if unassigned.
   assignedUserId: string | null;
+  // Detail-endpoint enrichment only; the list endpoint omits these (cost).
+  attribution?: LeadAttribution | null;
+  tags?: string[];
+}
+
+interface OpportunitySearchResponse {
+  opportunities: GhlOpportunity[];
+  meta?: {
+    total?: number;
+    startAfterId?: string;
+    startAfter?: string;
+    nextPageUrl?: string;
+  };
+}
+
+// Paginated fetch of every opportunity for a location (optionally one
+// pipeline), capped at maxPages * 100. GHL's opportunities-search may return
+// either a full nextPageUrl (like contacts) or startAfterId / startAfter
+// cursor fields; both styles are handled. Used by the leads list and summary
+// so counts cover all opportunities, not page 1.
+export async function fetchAllOpportunities(
+  ctx: GhlContext,
+  opts: { pipelineId?: string | null; maxPages?: number } = {},
+): Promise<GhlOpportunity[]> {
+  const maxPages = opts.maxPages ?? 10;
+  const base = `/opportunities/search?location_id=${encodeURIComponent(ctx.locationId)}&limit=100${
+    opts.pipelineId ? `&pipeline_id=${encodeURIComponent(opts.pipelineId)}` : ""
+  }`;
+
+  const all: GhlOpportunity[] = [];
+  const seen = new Set<string>();
+  let nextPageUrl: string | undefined;
+  let startAfterId: string | undefined;
+  let startAfter: string | undefined;
+  let pageCount = 0;
+
+  while (pageCount < maxPages) {
+    let path: string;
+    if (nextPageUrl) {
+      path = nextPageUrl;
+    } else {
+      path = base;
+      if (startAfterId) path += `&startAfterId=${encodeURIComponent(startAfterId)}`;
+      if (startAfter) path += `&startAfter=${encodeURIComponent(startAfter)}`;
+    }
+
+    const data = await ghlJson<OpportunitySearchResponse>(ctx, path);
+
+    const page = data.opportunities ?? [];
+    for (const o of page) {
+      if (o.id && !seen.has(o.id)) {
+        seen.add(o.id);
+        all.push(o);
+      }
+    }
+
+    // Stop on the natural last page (short page) regardless of cursor style.
+    if (page.length < 100) break;
+
+    const next = data.meta?.nextPageUrl;
+    const nextId = data.meta?.startAfterId;
+    const nextTs = data.meta?.startAfter;
+
+    if (next) {
+      if (next === nextPageUrl) break;
+      nextPageUrl = next;
+    } else {
+      if (!nextId || nextId === startAfterId) break;
+      startAfterId = nextId;
+      startAfter = nextTs;
+    }
+
+    pageCount += 1;
+  }
+
+  if (pageCount >= maxPages) {
+    console.warn(
+      `opportunity pagination hit maxPages cap for location ${ctx.locationId}`,
+    );
+  }
+
+  return all;
+}
+
+// Resolve the location's custom-field ids to their fieldKeys (e.g.
+// "contact.utm_source"), cached in-memory for an hour. Contact records only
+// carry {id, value} pairs; this map is what makes them readable.
+interface CustomFieldDef {
+  id: string;
+  fieldKey?: string;
+  name?: string;
+}
+interface CustomFieldsCacheEntry {
+  data: Map<string, string>;
+  expiresAt: number;
+}
+const customFieldsCache = new Map<string, CustomFieldsCacheEntry>();
+const CUSTOM_FIELDS_TTL_MS = 60 * 60_000;
+
+export async function customFieldKeyMap(
+  ctx: GhlContext,
+): Promise<Map<string, string>> {
+  const key = `customFields:${ctx.locationId}`;
+  const hit = customFieldsCache.get(key);
+  if (hit && hit.expiresAt > Date.now()) return hit.data;
+
+  const data = await ghlJson<{ customFields?: CustomFieldDef[] }>(
+    ctx,
+    `/locations/${encodeURIComponent(ctx.locationId)}/customFields`,
+  );
+  const map = new Map<string, string>();
+  for (const f of data.customFields ?? []) {
+    if (f.id && f.fieldKey) map.set(f.id, f.fieldKey);
+  }
+  customFieldsCache.set(key, {
+    data: map,
+    expiresAt: Date.now() + CUSTOM_FIELDS_TTL_MS,
+  });
+  return map;
+}
+
+export interface LeadAttribution {
+  source: string;
+  campaign: string;
+  ad: string;
+  adset: string;
+}
+
+// Map a contact's custom-field values onto the attribution block using the
+// location's field-key map. Field keys arrive as "contact.utm_source".
+export function attributionFromCustomFields(
+  customFields: { id?: string; value?: unknown }[] | undefined,
+  keyMap: Map<string, string>,
+): LeadAttribution | null {
+  if (!customFields?.length) return null;
+  const byKey = new Map<string, string>();
+  for (const f of customFields) {
+    if (!f.id) continue;
+    const fieldKey = keyMap.get(f.id);
+    if (!fieldKey) continue;
+    const bare = fieldKey.replace(/^contact\./, "");
+    if (typeof f.value === "string" && f.value.trim()) {
+      byKey.set(bare, f.value.trim());
+    }
+  }
+  const attribution: LeadAttribution = {
+    source: byKey.get("utm_source") ?? "",
+    campaign: byKey.get("utm_campaign") ?? "",
+    ad: byKey.get("utm_ad") ?? "",
+    adset: byKey.get("utm_adset") ?? "",
+  };
+  return Object.values(attribution).some(Boolean) ? attribution : null;
 }
 
 export function shapeOpportunity(o: GhlOpportunity): ApiLead {

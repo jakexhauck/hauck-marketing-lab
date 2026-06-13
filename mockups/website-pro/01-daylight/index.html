@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hauck Marketing | More customers. Less chasing.</title>
+  <meta name="description" content="We run your Meta ads, build you a custom lead app, and automate your follow-up. You do the work. We keep the phone ringing." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@600;700;800&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ===== Nav ===== -->
+  <header class="nav">
+    <div class="wrap nav__inner">
+      <a href="index.html" class="wordmark">Hauck Marketing</a>
+      <div class="nav__right">
+        <input type="checkbox" id="navToggle" class="nav__toggle" hidden />
+        <nav class="nav__menu" aria-label="Primary">
+          <ul class="nav__links">
+            <li><a class="nav__link" href="index.html" aria-current="page">Home</a></li>
+            <li><a class="nav__link" href="deliverables.html">Deliverables</a></li>
+            <li><a class="nav__link" href="contact.html">Contact</a></li>
+          </ul>
+        </nav>
+        <a href="contact.html" class="btn btn--primary btn--sm">Book a call</a>
+        <label for="navToggle" class="nav__burger" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===== Hero ===== -->
+    <section class="hero">
+      <div class="wrap">
+        <p class="eyebrow eyebrow--accent">Local growth, handled</p>
+        <h1 class="hero__h1">More customers. Less chasing.</h1>
+        <p class="hero__sub">We build custom software, automate your follow-up, and run your ads. You do the work. We keep the phone ringing.</p>
+        <div class="hero__cta">
+          <a href="contact.html" class="btn btn--primary">Book a call</a>
+          <a href="deliverables.html" class="btn btn--ghost">See what we deliver</a>
+        </div>
+
+        <!-- Signature: Results Ledger -->
+        <div class="ledger reveal" aria-label="What we watch">
+          <div class="ledger__row">
+            <div class="ledger__cell">
+              <span class="ledger__fig">SECONDS</span>
+              <p class="ledger__label">lead reply time</p>
+            </div>
+            <div class="ledger__cell">
+              <span class="ledger__fig">1 APP</span>
+              <p class="ledger__label">every lead in your pocket</p>
+            </div>
+            <div class="ledger__cell">
+              <span class="ledger__fig">DAILY</span>
+              <p class="ledger__label">eyes on every dollar</p>
+            </div>
+            <div class="ledger__cell">
+              <span class="ledger__fig">0</span>
+              <p class="ledger__label">leads left cold</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- ===== How it works ===== -->
+    <section class="section">
+      <div class="wrap">
+        <div class="section__head reveal">
+          <p class="eyebrow">How it works</p>
+          <h2 class="section__title">Three moving parts. One result.</h2>
+        </div>
+
+        <div class="steps reveal">
+          <article class="step">
+            <span class="step__num">STEP 01</span>
+            <h3 class="step__title">We bring the leads</h3>
+            <p class="step__body">We run your ads on Facebook and Instagram and send real leads straight to you.</p>
+          </article>
+          <article class="step">
+            <span class="step__num">STEP 02</span>
+            <h3 class="step__title">We text them back</h3>
+            <p class="step__body">The moment a lead comes in, they get an instant text. None of them go cold.</p>
+          </article>
+          <article class="step">
+            <span class="step__num">STEP 03</span>
+            <h3 class="step__title">You see it all</h3>
+            <p class="step__body">Every lead, conversation, and booking lives in one app, built for your business.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- ===== Who it's for ===== -->
+    <section class="section section--tight">
+      <div class="wrap audience reveal">
+        <p class="eyebrow">Who it's for</p>
+        <p class="audience__lead">Built for local businesses that live and die by the phone ringing.</p>
+        <div class="audience__tags">
+          <span class="tag">Contractors</span>
+          <span class="tag">Home services</span>
+          <span class="tag">Trades</span>
+          <span class="tag">Clinics</span>
+          <span class="tag">Studios</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CTA band ===== -->
+    <section class="section section--tight">
+      <div class="wrap">
+        <div class="ctaband reveal">
+          <div>
+            <h2 class="ctaband__title">Ready to stop chasing leads?</h2>
+            <p class="ctaband__sub">Tell us where you're stuck. We'll show you a plan, in plain English.</p>
+          </div>
+          <a href="contact.html" class="btn btn--primary">Book a call</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer class="footer">
+    <div class="wrap footer__inner">
+      <span class="footer__brand">Hauck Marketing LLC</span>
+      <div class="footer__meta">
+        <a href="mailto:hello@hauckmarketing.com">hello@hauckmarketing.com</a>
+        <span class="footer__tag">AI-powered local growth</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Gentle scroll-in reveal. Respects reduced-motion via CSS fallback.
+    (function () {
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var items = document.querySelectorAll('.reveal');
+      if (reduce || !('IntersectionObserver' in window)) {
+        items.forEach(function (el) { el.classList.add('is-in'); });
+        return;
+      }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      items.forEach(function (el) { io.observe(el); });
+    })();
+  </script>
+</body>
+</html>

@@ -30,21 +30,14 @@
     },
     {
       "id": "663c1afd-cc86-4712-8cae-42364e2a4466",
-      "title": "4. Make Sure All Tags Are Properly Setup In Test Account",
+      "title": "Continue Finishing GHL Test Account",
       "status": "todo",
       "createdAt": 1780349853810,
       "lane": "active"
     },
     {
-      "id": "5cfa49f8-5ae3-4a4f-9af3-22e1e11f1b17",
-      "title": "5. Make Sure Everything Works Together In Test Account",
-      "status": "todo",
-      "createdAt": 1780349874683,
-      "lane": "active"
-    },
-    {
       "id": "5cd0b24a-8108-48c2-ab8a-9797b22ec374",
-      "title": "7. Create Mobile App From Test Account",
+      "title": "Finish Mobile App - in progress",
       "status": "todo",
       "createdAt": 1779485900957,
       "lane": "active"
@@ -65,7 +58,7 @@
     },
     {
       "id": "f4686d3f-a764-4777-8146-4af3fc21e8e1",
-      "title": "6. Implement New Snapshot Into Sub Account",
+      "title": "Implement Test Account Into Their Sub Account",
       "clientSlug": "willis-windows",
       "status": "todo",
       "createdAt": 1779672061393,
@@ -76,13 +69,13 @@
       "title": "Setup Cold Email",
       "status": "todo",
       "createdAt": 1780349995122,
-      "lane": "active"
+      "lane": "backburner"
     },
     {
       "id": "94a07d62-6063-4446-b201-ac2a855d6f48",
-      "title": "Finish B&A Statics",
+      "title": "Plan Out Campaign On AD’s Manager",
       "clientSlug": "willis-windows",
-      "status": "done",
+      "status": "todo",
       "createdAt": 1780355458591,
       "lane": "active"
     },
@@ -91,14 +84,35 @@
       "title": "Apply For A2P For Hauck Marketing",
       "status": "todo",
       "createdAt": 1780416181948,
-      "lane": "active"
+      "lane": "backburner"
     },
     {
       "id": "750500e5-4b6c-4222-89ac-509b24401ff9",
-      "title": "Apply For A2P",
+      "title": "Redo Website",
       "clientSlug": "willis-windows",
-      "status": "done",
+      "status": "todo",
       "createdAt": 1780939883619,
+      "lane": "active"
+    },
+    {
+      "id": "3e723782-ed93-4401-8ee5-f3122800df4c",
+      "title": "Start Desktop CRM",
+      "status": "todo",
+      "createdAt": 1781198729566,
+      "lane": "active"
+    },
+    {
+      "id": "2f99e4ce-9d02-422d-9b21-37468c9363c8",
+      "title": "New Company Website - in progress",
+      "status": "todo",
+      "createdAt": 1781198741432,
+      "lane": "active"
+    },
+    {
+      "id": "93d0e8a5-f243-4eae-b6d7-15668490436e",
+      "title": "Create Website Folder And Plan Using - Split Form & Led Panels Mockups",
+      "status": "todo",
+      "createdAt": 1781204254522,
       "lane": "active"
     }
   ]

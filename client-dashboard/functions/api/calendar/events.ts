@@ -37,6 +37,7 @@ interface GhlContactLite {
 }
 interface ContactsResp {
   contacts?: GhlContactLite[];
+  meta?: { nextPageUrl?: string };
 }
 
 interface ApiCalendarEvent {
@@ -77,22 +78,35 @@ async function discoverCalendars(
   return calendars;
 }
 
-// One contacts fetch as an id -> name lookup, so enrichment is not N requests.
+// Paginated contacts fetch as an id -> name lookup, so enrichment is not N
+// requests. Capped at 1000 contacts (10 pages) with the standard warning.
 async function contactNameMap(
   token: string,
   locationId: string,
 ): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   try {
-    const data = await ghlJson<ContactsResp>(
-      { token, locationId },
-      `/contacts/?locationId=${encodeURIComponent(locationId)}&limit=100`,
-    );
-    for (const c of data.contacts ?? []) {
-      const name =
-        c.contactName ||
-        [c.firstName, c.lastName].filter(Boolean).join(" ").trim();
-      if (c.id && name) map.set(c.id, name);
+    let url = `/contacts/?locationId=${encodeURIComponent(locationId)}&limit=100`;
+    let pageCount = 0;
+    const maxPages = 10;
+    while (url && pageCount < maxPages) {
+      const data = await ghlJson<ContactsResp>({ token, locationId }, url);
+      const page = data.contacts ?? [];
+      for (const c of page) {
+        const name =
+          c.contactName ||
+          [c.firstName, c.lastName].filter(Boolean).join(" ").trim();
+        if (c.id && name) map.set(c.id, name);
+      }
+      const next = data.meta?.nextPageUrl;
+      if (!next || page.length === 0) break;
+      url = next;
+      pageCount += 1;
+    }
+    if (pageCount >= maxPages) {
+      console.warn(
+        `calendar contact-name pagination hit maxPages cap for location ${locationId}`,
+      );
     }
   } catch (e) {
     console.warn("[calendar.contactMap]", e);

@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hauck Marketing LLC : AI-Powered Local Growth</title>
+<meta name="description" content="Custom software and ads for local businesses. Contractors, home services, and med spas.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ tokens ============ */
+  :root{
+    --bg: #07070A;
+    --panel: #0C0C12;
+    --panel-2: #10101A;
+    --ink: #EFEFF4;
+    --muted: #A6A6B6;
+    --faint: #74748A;
+    --led: #A78BFA;
+    --led-hot: #CDBcFF;
+    --led-deep: #7C5CE0;
+    --seam: rgba(167,139,250,0.16);
+    --seam-soft: rgba(167,139,250,0.09);
+    --btn-ink: #0A0614;
+    --display: "Archivo", system-ui, sans-serif;
+    --body: "Instrument Sans", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --max: 1120px;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection{ background: rgba(167,139,250,0.32); }
+
+  a{ color: inherit; }
+  button{ font: inherit; cursor: pointer; }
+  input{ font: inherit; }
+
+  :is(a, button, input, [tabindex]):focus-visible{
+    outline: 2px solid var(--led);
+    outline-offset: 3px;
+  }
+
+  .wrap{ max-width: var(--max); margin: 0 auto; padding: 0 28px; }
+  .mono{ font-family: var(--mono); }
+  .sr-only{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+  }
+
+  /* ============ LED seam system (signature) ============ */
+  /* A lit seam is a 1px gradient line plus a blurred bloom copy. */
+  .seam-x{ position:relative; }
+  .seam-x::before, .seam-x::after{
+    content:"";
+    position:absolute; left:8%; right:8%; top:-1px; height:1px;
+    background: linear-gradient(90deg, transparent, var(--led) 35%, var(--led-hot) 50%, var(--led) 65%, transparent);
+    pointer-events:none;
+  }
+  .seam-x::after{
+    height:3px; top:-2px;
+    filter: blur(5px);
+    opacity:.55;
+  }
+
+  /* ============ nav ============ */
+  .nav{
+    position: fixed; top:0; left:0; right:0; z-index: 50;
+    background: rgba(7,7,10,0.86);
+    backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--seam-soft);
+  }
+  .nav::after{
+    content:""; position:absolute; left:0; right:0; bottom:-1px; height:1px;
+    background: linear-gradient(90deg, transparent, rgba(167,139,250,0.5) 18%, rgba(167,139,250,0.08) 50%, transparent 90%);
+    pointer-events:none;
+  }
+  .nav-in{
+    display:flex; align-items:center; justify-content:space-between;
+    height: 60px;
+  }
+  .brand{
+    display:flex; align-items:baseline; gap:10px;
+    text-decoration:none;
+  }
+  .brand b{
+    font-family: var(--display);
+    font-weight: 700; font-size: 17px; letter-spacing: .04em;
+  }
+  .brand span{
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .22em;
+    color: var(--led); text-transform: uppercase;
+  }
+  .nav-cta{
+    font-family: var(--mono); font-size: 12px; letter-spacing: .08em;
+    text-decoration:none;
+    color: var(--ink);
+    border: 1px solid var(--seam);
+    padding: 9px 16px; border-radius: 6px;
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+  .nav-cta:hover{
+    border-color: rgba(167,139,250,0.55);
+    box-shadow: 0 0 14px rgba(167,139,250,0.18);
+  }
+
+  /* ============ hero ============ */
+  .hero{
+    padding: 156px 0 96px;
+    position:relative;
+    overflow:hidden;
+  }
+  /* faint console grid */
+  .hero::before{
+    content:""; position:absolute; inset:0;
+    background:
+      linear-gradient(rgba(167,139,250,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(167,139,250,0.03) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: radial-gradient(760px 480px at 50% 22%, black, transparent 75%);
+    -webkit-mask-image: radial-gradient(760px 480px at 50% 22%, black, transparent 75%);
+    pointer-events:none;
+  }
+  .hero-grid{
+    position:relative;
+    display:grid;
+    grid-template-columns: 3px 1fr;
+    gap: 0 34px;
+    max-width: 740px;
+    margin: 0 auto;
+  }
+  /* vertical edge-lit rail */
+  .rail{
+    position:relative;
+    background: linear-gradient(180deg, transparent, var(--led) 18%, var(--led-hot) 42%, var(--led-deep) 78%, transparent);
+    border-radius: 2px;
+  }
+  .rail::after{
+    content:""; position:absolute; inset:0 -3px;
+    background: inherit;
+    filter: blur(7px);
+    opacity:.5;
+  }
+  .eyebrow{
+    font-family: var(--mono);
+    font-size: 11.5px; letter-spacing: .24em; text-transform: uppercase;
+    color: var(--led);
+    margin-bottom: 22px;
+  }
+  .hero h1{
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(34px, 5.2vw, 58px);
+    line-height: 1.06;
+    letter-spacing: -0.022em;
+  }
+  .hero h1 em{
+    font-style: normal;
+    color: var(--led);
+  }
+  .hero-sub{
+    margin-top: 22px;
+    max-width: 46ch;
+    color: var(--muted);
+    font-size: 17.5px;
+  }
+
+  /* ============ starter form ============ */
+  .console{
+    margin-top: 40px;
+    background: var(--panel);
+    border: 1px solid var(--seam);
+    border-radius: 12px;
+    padding: 22px;
+    max-width: 560px;
+    box-shadow: 0 22px 50px -28px rgba(0,0,0,0.8);
+  }
+  .console-head{
+    display:flex; justify-content:space-between; align-items:center;
+    font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 14px;
+  }
+  .console-head .step{ color: var(--led); white-space:nowrap; }
+  .row1{
+    display:flex; gap: 10px;
+  }
+  .field{
+    flex:1;
+    background: var(--bg);
+    border: 1px solid rgba(167,139,250,0.22);
+    border-radius: 8px;
+    color: var(--ink);
+    padding: 15px 16px;
+    font-size: 16.5px;
+    min-width: 0;
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+  .field::placeholder{ color: var(--faint); }
+  .field:focus{
+    outline:none;
+    border-color: var(--led);
+    box-shadow: 0 0 0 1px var(--led), 0 0 18px rgba(167,139,250,0.22);
+  }
+  .btn{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 15.5px;
+    letter-spacing: .01em;
+    color: var(--btn-ink);
+    background: linear-gradient(180deg, var(--led-hot), var(--led) 55%, var(--led-deep));
+    border: 0;
+    border-radius: 8px;
+    padding: 0 28px;
+    box-shadow: 0 0 22px rgba(167,139,250,0.34), inset 0 1px 0 rgba(255,255,255,0.35);
+    transition: box-shadow .18s ease, transform .18s ease;
+  }
+  .btn:hover{
+    box-shadow: 0 0 30px rgba(167,139,250,0.5), inset 0 1px 0 rgba(255,255,255,0.35);
+    transform: translateY(-1px);
+  }
+  .btn:active{ transform: translateY(0); }
+  .micro{
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .06em;
+    color: var(--faint);
+  }
+  .field-err{
+    display:none;
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #F0B7C8;
+  }
+  .console.has-err .field-err{ display:block; }
+
+  /* step 2: collapsed grid row trick */
+  .step2{
+    display:grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows .42s cubic-bezier(.3,.9,.3,1);
+  }
+  .step2-in{
+    overflow:hidden;
+    min-height: 0;
+  }
+  .console.open .step2{ grid-template-rows: 1fr; }
+  .step2-pad{
+    padding-top: 18px;
+    display:flex; flex-direction:column; gap: 16px;
+  }
+  .step2-pad > hr{
+    border:0; height:1px;
+    background: linear-gradient(90deg, rgba(167,139,250,0.32), rgba(167,139,250,0.04));
+  }
+  .flabel{
+    display:block;
+    font-family: var(--mono);
+    font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .chips{ display:flex; gap: 10px; flex-wrap:wrap; }
+  .chip{
+    font-family: var(--mono);
+    font-size: 13px; letter-spacing: .06em;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--seam);
+    border-radius: 999px;
+    padding: 9px 20px;
+    transition: color .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .chip:hover{ color: var(--ink); border-color: rgba(167,139,250,0.45); }
+  .chip[aria-pressed="true"]{
+    color: var(--led-hot);
+    border-color: var(--led);
+    box-shadow: 0 0 12px rgba(167,139,250,0.25), inset 0 0 10px rgba(167,139,250,0.08);
+  }
+  .btn-wide{ width:100%; padding: 15px 28px; }
+
+  /* success state */
+  .done{ display:none; }
+  .console.sent .done{ display:block; }
+  .console.sent form{ display:none; }
+  .done-mark{
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 1px solid var(--led);
+    box-shadow: 0 0 18px rgba(167,139,250,0.35), inset 0 0 12px rgba(167,139,250,0.15);
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom: 16px;
+  }
+  .done-mark svg{ display:block; }
+  .done h3{
+    font-family: var(--display);
+    font-weight: 600; font-size: 22px; letter-spacing: -0.01em;
+  }
+  .done p{ margin-top: 8px; color: var(--muted); font-size: 15.5px; }
+  .done .micro{ margin-top: 14px; }
+
+  /* ============ services board ============ */
+  .services{ padding: 56px 0 88px; }
+  .sec-head{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap: 24px;
+    margin-bottom: 36px;
+    flex-wrap:wrap;
+  }
+  .sec-head h2{
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(26px, 3.4vw, 38px);
+    letter-spacing: -0.018em;
+    line-height: 1.1;
+    max-width: 18ch;
+  }
+  .sec-head .sub{
+    color: var(--muted);
+    max-width: 34ch;
+    font-size: 15.5px;
+    padding-bottom: 4px;
+  }
+  .sec-eyebrow{
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .24em; text-transform: uppercase;
+    color: var(--led);
+    margin-bottom: 14px;
+  }
+
+  .board{
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+  }
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--seam-soft);
+    border-radius: 12px;
+    padding: 24px;
+    display:flex; flex-direction:column;
+    transition: transform .18s ease, border-color .18s ease;
+  }
+  .panel:hover{
+    transform: translateY(-2px);
+    border-color: var(--seam);
+  }
+  .panel.lit{ border-color: var(--seam); }
+  .p-idx{
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .18em;
+    color: var(--led);
+    margin-bottom: 14px;
+  }
+  .panel h3{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+  .panel .desc{
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+  .frag{
+    margin-top: auto;
+    padding-top: 20px;
+  }
+  .span-4{ grid-column: span 4; }
+  .span-2{ grid-column: span 2; }
+  .span-6{ grid-column: span 6; }
+
+  /* --- fragment: mini app window (panel 01) --- */
+  .win{
+    background: var(--bg);
+    border: 1px solid var(--seam-soft);
+    border-radius: 10px;
+    overflow:hidden;
+  }
+  .win-bar{
+    display:flex; align-items:center; gap:6px;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--seam-soft);
+  }
+  .win-bar i{
+    width:8px; height:8px; border-radius:50%;
+    background: #1C1C28;
+  }
+  .win-bar i:first-child{ background: rgba(167,139,250,0.55); }
+  .win-bar .mono{
+    margin-left:auto; font-size: 10px; letter-spacing:.14em;
+    color: var(--faint); text-transform:uppercase;
+  }
+  .pipe{
+    display:grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--seam-soft);
+  }
+  .pipe > div{
+    background: var(--bg);
+    padding: 12px;
+  }
+  .pipe .st{
+    font-family: var(--mono);
+    font-size: 9.5px; letter-spacing: .14em; text-transform:uppercase;
+    color: var(--faint);
+  }
+  .pipe .n{
+    font-family: var(--display);
+    font-weight: 600; font-size: 20px; margin-top: 4px;
+  }
+  .pipe .card{
+    margin-top: 8px;
+    height: 8px; border-radius: 3px;
+    background: var(--panel-2);
+    border: 1px solid var(--seam-soft);
+  }
+  .pipe .card + .card{ margin-top: 5px; }
+  .pipe .card.hot{
+    background: rgba(167,139,250,0.16);
+    border-color: rgba(167,139,250,0.4);
+  }
+
+  /* --- fragment: contact rows (panel 02) --- */
+  .crm-row{
+    display:flex; align-items:center; gap: 10px;
+    background: var(--bg);
+    border: 1px solid var(--seam-soft);
+    border-radius: 8px;
+    padding: 9px 12px;
+  }
+  .crm-row + .crm-row{ margin-top: 8px; }
+  .ava{
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--panel-2);
+    border: 1px solid var(--seam);
+    font-family: var(--mono); font-size: 9.5px;
+    color: var(--led);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .crm-row .who{
+    font-size: 13px; font-weight: 500;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .crm-row .who small{
+    display:block; font-weight: 400;
+    color: var(--faint); font-size: 11.5px;
+  }
+  .pill{
+    margin-left:auto; flex-shrink:0;
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--led-hot);
+    border: 1px solid rgba(167,139,250,0.35);
+    border-radius: 999px;
+    padding: 3px 9px;
+  }
+  .pill.dim{ color: var(--muted); border-color: var(--seam-soft); }
+
+  /* --- fragment: toggles (panel 03) --- */
+  .tog{
+    display:flex; align-items:center; gap: 10px;
+    padding: 9px 0;
+  }
+  .tog + .tog{ border-top: 1px solid var(--seam-soft); }
+  .tog .t-label{ font-size: 13px; color: var(--muted); }
+  .switch{
+    margin-left:auto; flex-shrink:0;
+    width: 32px; height: 18px; border-radius: 999px;
+    background: rgba(167,139,250,0.22);
+    border: 1px solid rgba(167,139,250,0.5);
+    position:relative;
+  }
+  .switch::after{
+    content:""; position:absolute; top:2px; right:2px;
+    width: 12px; height: 12px; border-radius:50%;
+    background: var(--led);
+    box-shadow: 0 0 8px rgba(167,139,250,0.7);
+  }
+
+  /* --- fragment: sms bubble (panel 04) --- */
+  .sms{
+    background: var(--bg);
+    border: 1px solid var(--seam-soft);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .sms .bubble{
+    background: var(--panel-2);
+    border: 1px solid var(--seam-soft);
+    border-radius: 10px 10px 10px 3px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 95%;
+  }
+  .sms .meta{
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: .12em; text-transform:uppercase;
+    color: var(--led);
+    display:flex; align-items:center; gap:6px;
+  }
+  .dot{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--led);
+    box-shadow: 0 0 7px rgba(167,139,250,0.8);
+    flex-shrink:0;
+  }
+
+  /* --- fragment: review row (panel 05) --- */
+  .rev{
+    background: var(--bg);
+    border: 1px solid var(--seam-soft);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .stars{
+    display:flex; gap: 3px;
+    color: var(--led-hot);
+  }
+  .stars svg{ display:block; }
+  .rev .meta{
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: .12em; text-transform:uppercase;
+    color: var(--faint);
+  }
+  .rev .meta b{ color: var(--ink); font-weight: 500; }
+
+  /* --- fragment: stat tiles (panel 06, wide) --- */
+  .panel.wide{
+    flex-direction: row;
+    align-items: center;
+    gap: 32px;
+  }
+  .panel.wide .w-copy{ max-width: 36ch; }
+  .panel.wide .frag{
+    margin: 0 0 0 auto;
+    padding: 0;
+    display:grid;
+    grid-template-columns: repeat(3, auto);
+    gap: 10px;
+  }
+  .stat{
+    background: var(--bg);
+    border: 1px solid var(--seam-soft);
+    border-radius: 10px;
+    padding: 12px 18px;
+    min-width: 120px;
+  }
+  .stat .k{
+    font-family: var(--mono);
+    font-size: 9.5px; letter-spacing: .14em; text-transform:uppercase;
+    color: var(--faint);
+  }
+  .stat .v{
+    font-family: var(--display);
+    font-weight: 600; font-size: 20px;
+    margin-top: 4px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .stat .v .dot{ position:relative; top:1px; }
+
+  /* ============ CTA strip ============ */
+  .cta{
+    border-top: 1px solid var(--seam-soft);
+    border-bottom: 1px solid var(--seam-soft);
+    background: var(--panel);
+  }
+  .cta-in{
+    display:flex; align-items:center; justify-content:space-between;
+    gap: 20px;
+    padding: 26px 0;
+    flex-wrap:wrap;
+  }
+  .cta-in p{
+    font-family: var(--display);
+    font-weight: 600; font-size: 19px; letter-spacing: -0.01em;
+  }
+  .cta-in p span{ color: var(--muted); font-family: var(--body); font-weight: 400; font-size: 15px; margin-left: 12px; }
+  .cta .btn{
+    text-decoration:none;
+    display:inline-block;
+    padding: 13px 26px;
+  }
+
+  /* ============ footer ============ */
+  .foot{ padding: 26px 0 34px; }
+  .foot-in{
+    display:flex; align-items:center; justify-content:space-between;
+    gap: 16px; flex-wrap:wrap;
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .08em;
+    color: var(--faint);
+  }
+  .foot-in b{
+    font-family: var(--display);
+    font-weight: 700; font-size: 13px; letter-spacing: .04em;
+    color: var(--ink);
+  }
+  .foot-in a{ color: var(--muted); text-decoration:none; }
+  .foot-in a:hover{ color: var(--led-hot); }
+
+  /* ============ responsive ============ */
+  @media (max-width: 880px){
+    .span-4, .span-2, .span-6{ grid-column: 1 / -1; }
+    .panel.wide{ flex-direction: column; align-items: stretch; }
+    .panel.wide .frag{ margin: 20px 0 0; grid-template-columns: repeat(3, 1fr); }
+    .stat{ min-width: 0; padding: 12px; }
+  }
+  @media (max-width: 560px){
+    .wrap{ padding: 0 18px; }
+    .hero{ padding: 104px 0 64px; }
+    .hero-grid{ grid-template-columns: 2px 1fr; gap: 0 18px; }
+    .hero-sub{ margin-top: 16px; font-size: 16px; }
+    .console{ margin-top: 26px; padding: 16px; }
+    .row1{ flex-direction: column; }
+    .btn{ padding: 14px 24px; }
+    .hide-sm{ display:none; }
+    .services{ padding: 40px 0 64px; }
+    .panel.wide .frag{ grid-template-columns: 1fr; }
+    .stat .v{ font-size: 17px; }
+    .cta-in{ justify-content: center; text-align:center; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *, *::before, *::after{
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ nav ============ -->
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="Hauck Marketing, home">
+      <b>HAUCK</b><span>Marketing</span>
+    </a>
+    <a class="nav-cta" href="#start">START A PROJECT</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ hero ============ -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div class="rail" aria-hidden="true"></div>
+        <div>
+          <p class="eyebrow">Hauck Marketing LLC : AI-Powered Local Growth</p>
+          <h1>We build the software.<br>We run the <em>ads.</em></h1>
+          <p class="hero-sub">Custom tools and paid ads for contractors, home services, and med spas. One team handles both. You get more booked jobs.</p>
+
+          <!-- starter form -->
+          <div class="console" id="start">
+            <div class="console-head">
+              <span>Start here<span class="hide-sm"> : takes 20 seconds</span></span>
+              <span class="step" id="stepLabel">Step 1 of 2</span>
+            </div>
+
+            <form id="leadForm" novalidate>
+              <div class="row1">
+                <label class="sr-only" for="phone">Your phone number</label>
+                <input class="field" id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Your phone number">
+                <button class="btn" type="submit" id="goBtn">Start</button>
+              </div>
+              <p class="field-err" id="phoneErr">Add a phone number so we can reach you.</p>
+
+              <div class="step2" id="step2">
+                <div class="step2-in" id="step2In" hidden>
+                  <div class="step2-pad">
+                    <hr>
+                    <div>
+                      <label class="flabel" for="name">Your name</label>
+                      <input class="field" id="name" name="name" type="text" autocomplete="name" placeholder="First name is fine" style="width:100%">
+                    </div>
+                    <div>
+                      <span class="flabel" id="needLabel">What do you need?</span>
+                      <div class="chips" role="group" aria-labelledby="needLabel">
+                        <button type="button" class="chip" aria-pressed="false">BUILD</button>
+                        <button type="button" class="chip" aria-pressed="false">AUTOMATE</button>
+                        <button type="button" class="chip" aria-pressed="false">ADVERTISE</button>
+                      </div>
+                    </div>
+                    <button class="btn btn-wide" type="submit">Send</button>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            <div class="done" tabindex="-1" id="doneBox">
+              <div class="done-mark" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M3.5 9.5L7.5 13.5L14.5 5" stroke="#CDBCFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <h3>Got it.</h3>
+              <p>We will text you within one business day. A real person, not a bot blast.</p>
+              <p class="micro">NO SPAM. REPLY STOP ANY TIME.</p>
+            </div>
+
+            <p class="micro" id="microNote">NO SPAM. ONE TEXT TO SET UP A QUICK CALL.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ services board ============ -->
+  <section class="services">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="sec-eyebrow">The board : 06 services</p>
+          <h2>Six ways we grow local businesses.</h2>
+        </div>
+        <p class="sub">Pick one or stack them. Everything plugs into the same system.</p>
+      </div>
+
+      <div class="board">
+
+        <!-- 01 : custom company software (lit) -->
+        <article class="panel lit seam-x span-4">
+          <p class="p-idx">S.01</p>
+          <h3>Fully custom company software</h3>
+          <p class="desc">Software built around how your shop already works. No off-the-shelf bloat, no features you will never touch.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="win">
+              <div class="win-bar"><i></i><i></i><i></i><span class="mono">Jobs board</span></div>
+              <div class="pipe">
+                <div>
+                  <p class="st">New leads</p>
+                  <p class="n">4</p>
+                  <div class="card hot"></div>
+                  <div class="card"></div>
+                  <div class="card"></div>
+                </div>
+                <div>
+                  <p class="st">Quoted</p>
+                  <p class="n">6</p>
+                  <div class="card"></div>
+                  <div class="card hot"></div>
+                </div>
+                <div>
+                  <p class="st">Booked</p>
+                  <p class="n">3</p>
+                  <div class="card"></div>
+                  <div class="card"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- 02 : custom CRM -->
+        <article class="panel span-2">
+          <p class="p-idx">S.02</p>
+          <h3>Custom desktop and mobile CRM</h3>
+          <p class="desc">Every lead, job, and message in one place. On your desk and in your pocket.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="crm-row">
+              <span class="ava">DA</span>
+              <span class="who">Dana Alvarez<small>Roof repair</small></span>
+              <span class="pill">Quoted</span>
+            </div>
+            <div class="crm-row">
+              <span class="ava">MT</span>
+              <span class="who">Mike Torres<small>Gutter clean</small></span>
+              <span class="pill dim">New</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 03 : automations -->
+        <article class="panel span-2">
+          <p class="p-idx">S.03</p>
+          <h3>Backend automations</h3>
+          <p class="desc">Follow-ups, reminders, and handoffs run on their own. Nothing slips through.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="tog"><span class="t-label">Missed call sends a text</span><span class="switch"></span></div>
+            <div class="tog"><span class="t-label">New lead gets a fast reply</span><span class="switch"></span></div>
+            <div class="tog"><span class="t-label">Quote reminder, day 3</span><span class="switch"></span></div>
+          </div>
+        </article>
+
+        <!-- 04 : database reactivation -->
+        <article class="panel span-2">
+          <p class="p-idx">S.04</p>
+          <h3>Database reactivation</h3>
+          <p class="desc">We wake up your old leads with simple texts. Many still want the work done.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="sms">
+              <p class="bubble">Hi Dana. Still want that patio quote? We have two openings this week.</p>
+              <p class="meta"><span class="dot"></span>Replied 12 min later</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- 05 : review campaigns -->
+        <article class="panel span-2">
+          <p class="p-idx">S.05</p>
+          <h3>Google review campaigns</h3>
+          <p class="desc">Happy customers get one easy link. Your rating climbs week by week.</p>
+          <div class="frag" aria-hidden="true">
+            <div class="rev">
+              <div class="stars">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7 .8l1.9 3.9 4.3.6-3.1 3 .7 4.2L7 10.5l-3.8 2 .7-4.2-3.1-3 4.3-.6z"/></svg>
+              </div>
+              <p class="meta">New review : <b>Mike T.</b></p>
+            </div>
+          </div>
+        </article>
+
+        <!-- 06 : facebook ads (wide strip, lit seam) -->
+        <article class="panel wide seam-x span-6">
+          <div class="w-copy">
+            <p class="p-idx">S.06</p>
+            <h3>Facebook ads</h3>
+            <p class="desc">Ads that reach homeowners near you and send real leads to your phone.</p>
+          </div>
+          <div class="frag" aria-hidden="true">
+            <div class="stat">
+              <p class="k">Leads, 7 days</p>
+              <p class="v">23</p>
+            </div>
+            <div class="stat">
+              <p class="k">Cost per lead</p>
+              <p class="v">$18.40</p>
+            </div>
+            <div class="stat">
+              <p class="k">Campaign</p>
+              <p class="v"><span class="dot"></span>Live</p>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA strip ============ -->
+  <section class="cta">
+    <div class="wrap cta-in">
+      <p>Ready when you are.<span>One number. One text. No pressure.</span></p>
+      <a class="btn" href="#start">Start with your number</a>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ footer ============ -->
+<footer class="foot">
+  <div class="wrap foot-in">
+    <b>HAUCK</b>
+    <span>AI-POWERED LOCAL GROWTH</span>
+    <a href="mailto:hello@hauckmarketing.com">HELLO@HAUCKMARKETING.COM</a>
+    <span>&copy; 2026 HAUCK MARKETING LLC</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var consoleBox = document.querySelector('.console');
+  var form = document.getElementById('leadForm');
+  var phone = document.getElementById('phone');
+  var phoneErr = document.getElementById('phoneErr');
+  var step2In = document.getElementById('step2In');
+  var stepLabel = document.getElementById('stepLabel');
+  var goBtn = document.getElementById('goBtn');
+  var nameInput = document.getElementById('name');
+  var doneBox = document.getElementById('doneBox');
+  var microNote = document.getElementById('microNote');
+  var chips = document.querySelectorAll('.chip');
+  var expanded = false;
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  chips.forEach(function(chip){
+    chip.addEventListener('click', function(){
+      var on = chip.getAttribute('aria-pressed') === 'true';
+      chip.setAttribute('aria-pressed', on ? 'false' : 'true');
+    });
+  });
+
+  phone.addEventListener('input', function(){
+    consoleBox.classList.remove('has-err');
+  });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+
+    if (!expanded){
+      // step 1: need something that looks like a phone number
+      var digits = phone.value.replace(/\D/g, '');
+      if (digits.length < 7){
+        consoleBox.classList.add('has-err');
+        phone.focus();
+        return;
+      }
+      expanded = true;
+      step2In.hidden = false;
+      // let the browser paint the unhidden row before animating
+      requestAnimationFrame(function(){
+        consoleBox.classList.add('open');
+      });
+      stepLabel.textContent = 'Step 2 of 2';
+      goBtn.textContent = 'Edit';
+      goBtn.type = 'button';
+      goBtn.addEventListener('click', function(){ phone.focus(); });
+      window.setTimeout(function(){ nameInput.focus(); }, reduced ? 0 : 320);
+      return;
+    }
+
+    // step 2: send
+    consoleBox.classList.add('sent');
+    microNote.hidden = true;
+    doneBox.focus();
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Avatar from "./Avatar";
 import WonSheet from "./WonSheet";
 import MoveStageSheet from "./MoveStageSheet";
-import Toast from "./Toast";
+import { useToast } from "../context/ToastContext";
+import { useNow } from "../context/NowContext";
 import { useMoveLeadStage } from "../hooks/useApi";
 import { formatMoney } from "../lib/formatMoney";
 import { timeAgo } from "../lib/timeAgo";
@@ -23,9 +24,14 @@ interface Props {
 export default function Board({ leads, stages, pipelineId }: Props) {
   const navigate = useNavigate();
   const move = useMoveLeadStage(pipelineId);
+  const { showToast } = useToast();
+  const now = useNow();
   const [moving, setMoving] = useState<ApiLead | null>(null);
   const [wonFor, setWonFor] = useState<ApiLead | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+
+  // The card mid-move shows a pending overlay until the mutation settles, so
+  // an optimistic hop the server later rejects never looks final.
+  const pendingLeadId = move.isPending ? move.variables?.leadId : null;
 
   // Group open leads by stage. Won/Lost leads leave the open board.
   const byStage = useMemo(() => {
@@ -39,7 +45,7 @@ export default function Board({ leads, stages, pipelineId }: Props) {
     return m;
   }, [leads, stages]);
 
-  const onError = () => setToast("Could not move lead. Reverted.");
+  const onError = () => showToast("Could not move lead. Reverted.");
 
   const moveToStage = (lead: ApiLead, stageId: string) => {
     setMoving(null);
@@ -48,7 +54,7 @@ export default function Board({ leads, stages, pipelineId }: Props) {
     move.mutate(
       { leadId: lead.id, pipelineStageId: stageId },
       {
-        onSuccess: () => setToast(`Moved to ${stage?.name ?? "stage"}`),
+        onSuccess: () => showToast(`Moved to ${stage?.name ?? "stage"}`),
         onError,
       },
     );
@@ -58,7 +64,7 @@ export default function Board({ leads, stages, pipelineId }: Props) {
     setMoving(null);
     move.mutate(
       { leadId: lead.id, status: "lost" },
-      { onSuccess: () => setToast("Marked Lost"), onError },
+      { onSuccess: () => showToast("Marked Lost"), onError },
     );
   };
 
@@ -68,14 +74,12 @@ export default function Board({ leads, stages, pipelineId }: Props) {
     if (!lead) return;
     move.mutate(
       { leadId: lead.id, status: "won", value },
-      { onSuccess: () => setToast("Marked Won"), onError },
+      { onSuccess: () => showToast("Marked Won"), onError },
     );
   };
 
   return (
     <div className="pt-2">
-      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
-
       <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2">
         {stages.map((stage) => {
           const items = byStage.get(stage.id) ?? [];
@@ -104,8 +108,19 @@ export default function Board({ leads, stages, pipelineId }: Props) {
                   items.map((lead) => (
                     <div
                       key={lead.id}
-                      className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
+                      className="relative rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
                     >
+                      {pendingLeadId === lead.id && (
+                        <div
+                          className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-[var(--surface)]/70"
+                          aria-label="Saving move"
+                        >
+                          <div
+                            className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--brand-primary)]"
+                            aria-hidden="true"
+                          />
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={() => navigate(`/lead/${lead.id}`)}
@@ -120,7 +135,7 @@ export default function Board({ leads, stages, pipelineId }: Props) {
                             {lead.value && lead.value > 0
                               ? `${formatMoney(lead.value)} · `
                               : ""}
-                            {timeAgo(lead.lastActivityAt)}
+                            {timeAgo(lead.lastActivityAt, now)}
                           </div>
                         </div>
                       </button>

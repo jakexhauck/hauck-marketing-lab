@@ -1,6 +1,13 @@
 import type { Env, ApiData } from "../../lib/env";
 import { readJsonBody } from "../../lib/body";
-import { ghlFetch, ghlJson, shapeOpportunity, type GhlOpportunity } from "../../lib/ghl";
+import {
+  attributionFromCustomFields,
+  customFieldKeyMap,
+  ghlFetch,
+  ghlJson,
+  shapeOpportunity,
+  type GhlOpportunity,
+} from "../../lib/ghl";
 
 interface PatchBody {
   pipelineStageId?: string;
@@ -19,15 +26,29 @@ export const onRequestGet: PagesFunction<Env, "id", ApiData> = async (ctx) => {
   );
   const lead = shapeOpportunity(data.opportunity);
 
-  // GHL's opportunity response omits the contact's phone/email, so the lead
-  // detail's call/email actions would be dead. Enrich from the contact record.
-  if (lead.contactId && (!lead.phone || !lead.email)) {
+  // GHL's opportunity response omits the contact's phone/email, tags, and
+  // custom fields, so the detail screen would have dead call/email actions
+  // and no attribution. Enrich from the contact record.
+  if (lead.contactId) {
     try {
-      const c = await ghlJson<{
-        contact: { phone?: string; email?: string };
-      }>(gctx, `/contacts/${encodeURIComponent(lead.contactId)}`);
+      const [c, keyMap] = await Promise.all([
+        ghlJson<{
+          contact: {
+            phone?: string;
+            email?: string;
+            tags?: string[];
+            customFields?: { id?: string; value?: unknown }[];
+          };
+        }>(gctx, `/contacts/${encodeURIComponent(lead.contactId)}`),
+        customFieldKeyMap(gctx).catch(() => new Map<string, string>()),
+      ]);
       lead.phone = lead.phone || c.contact?.phone || "";
       lead.email = lead.email || c.contact?.email || "";
+      lead.tags = c.contact?.tags ?? [];
+      lead.attribution = attributionFromCustomFields(
+        c.contact?.customFields,
+        keyMap,
+      );
     } catch {
       // best-effort enrichment; leave blanks if the lookup fails
     }

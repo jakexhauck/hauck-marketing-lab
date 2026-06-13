@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tell us where you're stuck · Hauck Marketing</title>
+  <meta name="description" content="Tell us what you do and where you are stuck. We build you a plan to bring in more customers and reply within one business day.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="nav">
+    <div class="wrap nav__inner">
+      <a class="wordmark" href="index.html" aria-label="Hauck Marketing home">
+        <span class="wordmark__dot" aria-hidden="true"></span>
+        HAUCK<span class="wordmark__rest">&nbsp;MARKETING</span>
+      </a>
+      <nav class="nav__links" aria-label="Primary">
+        <a class="nav__link" href="index.html">Home</a>
+        <a class="nav__link" href="deliverables.html">Deliverables</a>
+        <a class="nav__link" href="contact.html" aria-current="page">Contact</a>
+        <a class="btn btn--primary" href="contact.html">Book a call</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <section class="hero">
+      <div class="wrap contact__grid">
+
+        <!-- INTRO -->
+        <div class="contact__intro reveal">
+          <p class="eyebrow">Let's talk</p>
+          <h1>Tell us where you're stuck.</h1>
+          <p>Fill this out and we will build you a plan. No pressure, no hard sell. Just a clear look at how to bring in more customers.</p>
+          <ul class="contact__points">
+            <li><span class="mark" aria-hidden="true">›</span> We read every message a real person sends.</li>
+            <li><span class="mark" aria-hidden="true">›</span> We tell you what we would run, and why.</li>
+            <li><span class="mark" aria-hidden="true">›</span> You decide if it is a fit. No strings.</li>
+          </ul>
+        </div>
+
+        <!-- FORM -->
+        <div class="reveal">
+          <div class="form-panel">
+            <form class="form-grid" action="#" method="post" novalidate>
+
+              <div class="field">
+                <label for="name">Your name</label>
+                <input type="text" id="name" name="name" autocomplete="name" placeholder="Jane Smith" required>
+              </div>
+
+              <div class="field">
+                <label for="business">Business name</label>
+                <input type="text" id="business" name="business" autocomplete="organization" placeholder="Smith Roofing Co." required>
+              </div>
+
+              <div class="field">
+                <label for="phone">Phone</label>
+                <input type="tel" id="phone" name="phone" autocomplete="tel" placeholder="(555) 123-4567" required>
+              </div>
+
+              <div class="field">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" autocomplete="email" placeholder="jane@smithroofing.com" required>
+              </div>
+
+              <div class="field field--full">
+                <label for="trade">What you do</label>
+                <input type="text" id="trade" name="trade" placeholder="Roofing, HVAC, dental, salon, and so on" required>
+              </div>
+
+              <div class="field field--full">
+                <label for="budget">Monthly ad budget</label>
+                <select id="budget" name="budget" required>
+                  <option value="" disabled selected>Choose a range</option>
+                  <option value="under-1000">Under $1,000</option>
+                  <option value="1000-3000">$1,000 to $3,000</option>
+                  <option value="3000-7000">$3,000 to $7,000</option>
+                  <option value="7000-plus">$7,000+</option>
+                </select>
+              </div>
+
+              <div class="field field--full">
+                <label for="bottleneck">Your biggest bottleneck</label>
+                <textarea id="bottleneck" name="bottleneck" rows="4" placeholder="What is getting in the way of more booked jobs right now?"></textarea>
+              </div>
+
+              <div class="form-submit">
+                <button class="btn btn--primary btn--lg" type="submit">Get my plan</button>
+              </div>
+
+            </form>
+            <p class="reassure">We reply within one business day.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer__inner">
+      <span class="footer__brand">Hauck Marketing LLC</span>
+      <a class="footer__mail" href="mailto:hello@hauckmarketing.com">hello@hauckmarketing.com</a>
+      <span class="footer__tag">AI-powered local growth.</span>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var items = document.querySelectorAll('.reveal');
+      if (reduce || !('IntersectionObserver' in window)) {
+        items.forEach(function (el) { el.classList.add('is-in'); });
+        return;
+      }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      items.forEach(function (el) { io.observe(el); });
+    })();
+  </script>
+
+</body>
+</html>

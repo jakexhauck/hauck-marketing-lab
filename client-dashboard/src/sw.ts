@@ -4,6 +4,7 @@ import { precacheAndRoute } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
 import { NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
+import { APP_BRAND } from "./lib/appBrand";
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -27,7 +28,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 // List endpoints change only via polling, so stale-while-revalidate is fine:
 // instant paint from cache, revalidate in the background.
 const LIST_GET =
-  /\/api\/(summary|pipelines|leads|contacts|conversations|activity|calendar\/events|invoices|payments\/transactions)$/;
+  /\/api\/(summary|pipelines|tenant|leads|contacts|conversations|activity|calendar\/events|invoices|payments\/transactions)$/;
 
 // Detail endpoints reflect the user's own writes (a just-sent message, an
 // edited note, a moved stage). Serving those stale-first made the app
@@ -81,7 +82,7 @@ self.addEventListener("push", (event: PushEvent) => {
     }
   })();
 
-  const title = data.title || "Hauck Dashboard";
+  const title = data.title || APP_BRAND.appName;
   event.waitUntil(
     (async () => {
       // Tell every open window first so the in-app bell updates immediately

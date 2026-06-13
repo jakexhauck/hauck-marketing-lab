@@ -23,7 +23,24 @@ interface PipelinesContextValue {
 
 const PipelinesContext = createContext<PipelinesContextValue | null>(null);
 
-const STORAGE_KEY = "willis.selectedPipelineId";
+const STORAGE_KEY = "hml.selectedPipelineId";
+// Pre-rename key (carried a client name); migrated once below, then unused.
+const LEGACY_STORAGE_KEY = "willis.selectedPipelineId";
+
+function readStoredPipelineId(): string | null {
+  try {
+    const current = localStorage.getItem(STORAGE_KEY);
+    if (current) return current;
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy) {
+      localStorage.setItem(STORAGE_KEY, legacy);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    }
+    return legacy;
+  } catch {
+    return null;
+  }
+}
 
 export function PipelinesProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
@@ -41,13 +58,9 @@ export function PipelinesProvider({ children }: { children: ReactNode }) {
     [useReal, query.data, client.id],
   );
 
-  const [selectedId, setSelectedIdState] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY);
-    } catch {
-      return null;
-    }
-  });
+  const [selectedId, setSelectedIdState] = useState<string | null>(
+    readStoredPipelineId,
+  );
 
   // Default the selection to the first pipeline once they load, and heal a
   // stale stored id that no longer matches any pipeline.

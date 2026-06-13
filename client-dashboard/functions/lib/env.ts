@@ -15,7 +15,14 @@ export interface Env {
   WEBHOOK_SECRET?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
+  // IANA timezone for "today" computations (new-today counts, task due dates,
+  // invoice overdue). Defaults to America/Chicago.
+  TENANT_TIMEZONE?: string;
   KV_CACHE?: KVNamespace;
+}
+
+export function tenantTimezone(env: Env): string {
+  return env.TENANT_TIMEZONE || "America/Chicago";
 }
 
 // Generic defaults. At client promotion time, set TENANT_SLUG (and seed the

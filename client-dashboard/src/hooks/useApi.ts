@@ -13,10 +13,22 @@ import {
   type ApiTask,
   type ApiInvoice,
   type ApiInvoiceDetail,
-  type ApiTransaction,
+  type ApiTransactionsResponse,
   type ApiCalendarEvent,
+  type ApiTenant,
   type AdminClient,
 } from "../lib/api";
+
+// Tenant display config (branding, labels, real spend). Changes rarely; a
+// long staleTime avoids refetching it on every screen.
+export function useTenantQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["tenant"],
+    enabled,
+    staleTime: 10 * 60_000,
+    queryFn: () => api<{ tenant: ApiTenant | null }>("/api/tenant"),
+  });
+}
 // All pipelines for the tenant, each with its real stage list.
 export function usePipelinesQuery(enabled: boolean) {
   return useQuery({
@@ -592,9 +604,7 @@ export function useTransactionsQuery(enabled: boolean) {
     enabled,
     staleTime: 60_000,
     queryFn: () =>
-      api<{ transactions: ApiTransaction[]; total: number }>(
-        "/api/payments/transactions",
-      ),
+      api<ApiTransactionsResponse>("/api/payments/transactions"),
   });
 }
 

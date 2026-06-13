@@ -46,8 +46,15 @@ interface GhlWebhookEvent {
 type ActivityKind =
   | "lead_created"
   | "stage_changed"
+  | "status_changed"
   | "message_in"
-  | "message_out";
+  | "message_out"
+  | "appointment_create"
+  | "appointment_update"
+  | "appointment_delete"
+  | "invoice_create"
+  | "invoice_sent"
+  | "invoice_paid";
 
 interface Activity {
   tenant_id: string;
@@ -80,6 +87,29 @@ function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | null {
       return mk("lead_created", "New lead", tenantId, e);
     case "OpportunityStageUpdate":
       return mk("stage_changed", "Stage changed", tenantId, e);
+    case "OpportunityStatusUpdate": {
+      // Derive a readable summary when the payload carries the new status.
+      const status = typeof e.status === "string" ? e.status.toLowerCase() : "";
+      const summary =
+        status === "won"
+          ? "Lead won"
+          : status === "lost"
+            ? "Lead lost"
+            : "Lead status changed";
+      return mk("status_changed", summary, tenantId, e);
+    }
+    case "AppointmentCreate":
+      return mk("appointment_create", "Appointment booked", tenantId, e);
+    case "AppointmentUpdate":
+      return mk("appointment_update", "Appointment updated", tenantId, e);
+    case "AppointmentDelete":
+      return mk("appointment_delete", "Appointment cancelled", tenantId, e);
+    case "InvoiceCreate":
+      return mk("invoice_create", "Invoice created", tenantId, e);
+    case "InvoiceSent":
+      return mk("invoice_sent", "Invoice sent", tenantId, e);
+    case "InvoicePaid":
+      return mk("invoice_paid", "Invoice paid", tenantId, e);
     case "InboundMessage":
       return mk("message_in", "Inbound message", tenantId, e);
     case "OutboundMessage":
@@ -87,6 +117,16 @@ function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | null {
     default:
       return null; // ignore everything else
   }
+}
+
+// Kinds that wake the client's phone. Wins and new appointments matter as
+// much as new leads; routine updates and outbound traffic do not.
+function shouldPush(activity: Activity): boolean {
+  if (activity.kind === "message_in" || activity.kind === "lead_created") {
+    return true;
+  }
+  if (activity.kind === "appointment_create") return true;
+  return activity.kind === "status_changed" && activity.summary === "Lead won";
 }
 
 // Map a GHL location id to the Supabase tenant slug it belongs to. Only the
@@ -169,7 +209,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
           },
         });
 
-        if (activity.kind === "message_in" || activity.kind === "lead_created") {
+        if (shouldPush(activity)) {
           // Best-effort push, off the response path: GHL gets its 200
           // immediately and slow push services cannot delay the ack. Inert
           // without VAPID keys.

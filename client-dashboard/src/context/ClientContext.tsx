@@ -8,8 +8,12 @@ import {
   type ReactNode,
 } from "react";
 import type { Client, Role } from "../types";
-import { clients, getClient } from "../mock";
+import { clients as mockClients, getClient } from "../mock";
 import { applyBrandVars } from "../lib/applyBrandVars";
+import { APP_BRAND } from "../lib/appBrand";
+import { useAuth } from "./AuthContext";
+import { useTenantQuery } from "../hooks/useApi";
+import type { ApiTenant } from "../lib/api";
 
 interface ClientContextValue {
   client: Client;
@@ -21,29 +25,78 @@ interface ClientContextValue {
 
 const ClientContext = createContext<ClientContextValue | null>(null);
 
-const FALLBACK_CLIENT: Client = clients[0];
+// What authenticated sessions see until (or unless) the tenant row loads.
+// Branding constants only; no fabricated spend, generic labels.
+const BRAND_FALLBACK_CLIENT: Client = {
+  id: "tenant",
+  name: APP_BRAND.appName,
+  niche: "",
+  brand: {
+    color: APP_BRAND.color,
+    logoUrl: null,
+    initials: APP_BRAND.initials,
+    appName: APP_BRAND.appName,
+  },
+  pipeline: { wonLabel: "Won", valueLabel: "Job Value" },
+  tier: "core",
+  monthlySpend: null,
+};
+
+function clientFromTenant(t: ApiTenant): Client {
+  return {
+    id: "tenant",
+    name: t.name,
+    niche: t.niche,
+    brand: {
+      color: t.brandColor || APP_BRAND.color,
+      logoUrl: null,
+      initials: t.brandInitials || APP_BRAND.initials,
+      appName: t.appName || APP_BRAND.appName,
+    },
+    pipeline: {
+      wonLabel: t.wonLabel || "Won",
+      valueLabel: t.valueLabel || "Job Value",
+    },
+    tier: "core",
+    monthlySpend: t.monthlySpend,
+  };
+}
 
 export function ClientProvider({ children }: { children: ReactNode }) {
-  const [clientId, setClientId] = useState<string>(FALLBACK_CLIENT.id);
+  const { session } = useAuth();
+  // Authenticated sessions read real tenant config; mock clients exist only
+  // for dev affordances (DevPanel switching, Showroom).
+  const tenantQuery = useTenantQuery(Boolean(session));
+  const [mockClientId, setMockClientId] = useState<string | null>(null);
 
-  const client = useMemo<Client>(
-    () => getClient(clientId) ?? FALLBACK_CLIENT,
-    [clientId],
-  );
+  const client = useMemo<Client>(() => {
+    // Dev-only: an explicit DevPanel/Showroom selection wins.
+    if (import.meta.env.DEV && mockClientId) {
+      return getClient(mockClientId) ?? BRAND_FALLBACK_CLIENT;
+    }
+    if (session) {
+      const tenant = tenantQuery.data?.tenant;
+      return tenant ? clientFromTenant(tenant) : BRAND_FALLBACK_CLIENT;
+    }
+    // Unauthenticated: dev builds keep the first mock client so Showroom and
+    // local demos have data; prod shows the brand fallback (login screen).
+    return import.meta.env.DEV ? mockClients[0] : BRAND_FALLBACK_CLIENT;
+  }, [mockClientId, session, tenantQuery.data]);
 
   useEffect(() => {
     applyBrandVars(client.brand);
   }, [client]);
 
   const setClient = useCallback((id: string) => {
-    setClientId(id);
+    if (!import.meta.env.DEV) return;
+    setMockClientId(id);
   }, []);
 
   const value = useMemo(
     () => ({
       client,
       setClient,
-      allClients: clients,
+      allClients: import.meta.env.DEV ? mockClients : [],
       tenantId: null,
       role: "owner" as Role,
     }),

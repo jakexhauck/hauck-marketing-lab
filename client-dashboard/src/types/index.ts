@@ -23,7 +23,18 @@ export interface Client {
   brand: Brand;
   pipeline: PipelineConfig;
   tier: "core" | "pro" | "premium";
-  monthlySpend: number;
+  // Real ad spend from the tenant config, or null when none is configured.
+  // Null means CPA/ROAS are simply not shown; the app never fabricates spend.
+  monthlySpend: number | null;
+}
+
+// UTM attribution resolved from the GHL contact's custom fields. Present only
+// on detail-enriched leads; empty strings mean the field was not captured.
+export interface LeadAttribution {
+  source: string;
+  campaign: string;
+  ad: string;
+  adset: string;
 }
 
 export interface User {
@@ -45,6 +56,10 @@ export interface Lead {
   email: string;
   sourceAd: string;
   sourceCampaign: string;
+  // Detail-enriched fields; the list endpoint omits them (cost), so they are
+  // undefined until the single-lead fetch lands.
+  attribution?: LeadAttribution | null;
+  tags?: string[];
   pipelineId: string;
   pipelineStageId: string;
   status: LeadStatus;
@@ -90,7 +105,9 @@ export interface Stats {
   newMtd: number;
   wonMtd: number;
   revenueMtd: number;
-  spendMtd: number;
+  // Null when the tenant has no configured spend: CPA/ROAS are hidden, never
+  // derived from a made-up number.
+  spendMtd: number | null;
   cpa: number | null;
   roas: number | null;
 }

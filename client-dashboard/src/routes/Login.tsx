@@ -105,7 +105,7 @@ export default function Login() {
                 ? "Signing in..."
                 : isTest
                   ? "Enter test account"
-                  : "Send sign-in link"}
+                  : "Sign in"}
             </BrandedButton>
           </form>
 
@@ -121,7 +121,7 @@ export default function Login() {
           </div>
         </div>
         <div className="mt-6 text-center text-[11px] font-medium text-white/40">
-          Secured by Willis Marketing
+          Secured by {APP_BRAND.securedBy}
         </div>
       </div>
     </Shell>

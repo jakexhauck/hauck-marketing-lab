@@ -8,6 +8,9 @@ import {
   MessageSquare,
   Send,
   Bell,
+  Trophy,
+  CalendarDays,
+  Receipt,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import Shell from "../components/Shell";
@@ -21,27 +24,36 @@ import {
   useMarkNotificationsRead,
 } from "../hooks/useApi";
 import { timeAgo } from "../lib/timeAgo";
+import { useNow } from "../context/NowContext";
+import { activityLabel } from "../lib/activityLabels";
+import { groupByDayKey } from "../lib/dayGroups";
 import type { ApiNotification } from "../lib/api";
 
-// One icon + fallback label per webhook action (see functions/api/webhook.ts).
+// One icon per webhook action (see functions/api/webhook.ts); labels come
+// from the shared activityLabels map, which humanizes unknown kinds.
 const TYPE_META: Record<
   string,
-  { Icon: ComponentType<{ size?: number }>; label: string; tint: string }
+  { Icon: ComponentType<{ size?: number }>; tint: string }
 > = {
-  lead_created: { Icon: UserPlus, label: "New lead", tint: "#15803d" },
-  stage_changed: { Icon: ArrowLeftRight, label: "Stage changed", tint: "#7c3aed" },
-  message_in: { Icon: MessageSquare, label: "Inbound message", tint: "#1d4ed8" },
-  message_out: { Icon: Send, label: "Outbound message", tint: "#0e7490" },
+  lead_created: { Icon: UserPlus, tint: "#15803d" },
+  stage_changed: { Icon: ArrowLeftRight, tint: "#7c3aed" },
+  status_changed: { Icon: Trophy, tint: "#b45309" },
+  message_in: { Icon: MessageSquare, tint: "#1d4ed8" },
+  message_out: { Icon: Send, tint: "#0e7490" },
+  appointment_create: { Icon: CalendarDays, tint: "#7c3aed" },
+  appointment_update: { Icon: CalendarDays, tint: "#0e7490" },
+  appointment_delete: { Icon: CalendarDays, tint: "#be123c" },
+  invoice_create: { Icon: Receipt, tint: "#0e7490" },
+  invoice_sent: { Icon: Receipt, tint: "#1d4ed8" },
+  invoice_paid: { Icon: Receipt, tint: "#15803d" },
 };
 
 function meta(action: string) {
-  return (
-    TYPE_META[action] ?? { Icon: Bell, label: action, tint: "#64748b" }
-  );
+  return TYPE_META[action] ?? { Icon: Bell, tint: "#64748b" };
 }
 
 function title(n: ApiNotification): string {
-  return n.payload?.summary ?? meta(n.action).label;
+  return n.payload?.summary ?? activityLabel(n.action);
 }
 
 // Where tapping a notification lands. Mirrors the push deep-link logic
@@ -69,6 +81,7 @@ function dayKeyOf(d: Date): string {
 
 export default function Notifications() {
   const navigate = useNavigate();
+  const now = useNow();
   const { session, mode } = useAuth();
   const useReal = Boolean(session);
   const isTest = mode === "test";
@@ -85,15 +98,10 @@ export default function Notifications() {
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayKey = dayKeyOf(yesterday);
 
-    const byDay = new Map<string, ApiNotification[]>();
-    for (const n of items) {
+    const byDay = groupByDayKey(items, (n) => {
       const d = new Date(n.created_at);
-      if (Number.isNaN(d.getTime())) continue;
-      const key = dayKeyOf(d);
-      const list = byDay.get(key) ?? [];
-      list.push(n);
-      byDay.set(key, list);
-    }
+      return Number.isNaN(d.getTime()) ? null : dayKeyOf(d);
+    });
 
     return [...byDay.entries()]
       .sort((a, b) => b[0].localeCompare(a[0]))
@@ -163,7 +171,10 @@ export default function Notifications() {
             />
           </div>
         ) : groups.length === 0 ? (
-          <EmptyState message="No notifications yet. New leads and replies will show up here." />
+          <EmptyState
+            title="No notifications"
+            message="New leads, replies, wins, and appointments will show up here."
+          />
         ) : (
           groups.map((g) => (
             <section key={g.key} className="flex flex-col gap-2">
@@ -201,7 +212,7 @@ export default function Notifications() {
                             {title(n)}
                           </div>
                           <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">
-                            {timeAgo(n.created_at)}
+                            {timeAgo(n.created_at, now)}
                           </div>
                         </div>
                         {isUnread && (

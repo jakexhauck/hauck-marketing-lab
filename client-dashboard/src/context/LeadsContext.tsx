@@ -63,8 +63,12 @@ export function adaptApiLead(
     name: a.name || "Unknown",
     phone: a.phone,
     email: a.email,
-    sourceAd: "",
-    sourceCampaign: "",
+    // Real attribution from the contact's UTM custom fields (single-lead
+    // endpoint only; empty on list-sourced leads until the detail fetch).
+    sourceAd: a.attribution?.ad ?? "",
+    sourceCampaign: a.attribution?.campaign ?? "",
+    attribution: a.attribution ?? null,
+    tags: a.tags,
     pipelineId: a.pipelineId,
     pipelineStageId: a.pipelineStageId,
     status: normalizeStatus(a.status),

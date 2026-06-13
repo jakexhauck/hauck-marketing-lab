@@ -1,6 +1,6 @@
 # Part 5: Value-Adds and UX Polish
 
-Status: code ☐ not started | manual actions ☐ not started
+Status: code ☑ done (2026-06-11, all 17 items, uncommitted pending Jake's review) | manual actions ☐ not started
 
 Theme: two halves. First, surface the real GHL data clients actually care about that the app currently throws away (UTM ad attribution, tags, accurate counts). Second, the full list of UX defects from the audit: dead toasts, wrong copy, mock financials on real screens, timezone bugs, and the remaining paper cuts.
 

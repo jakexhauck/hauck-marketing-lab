@@ -1,9 +1,7 @@
-import { ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Stats } from "../types";
 import AnimatedNumber from "./AnimatedNumber";
 import StatCard from "./StatCard";
-import Sparkline from "./Sparkline";
 import { formatMoney, formatRoas } from "../lib/formatMoney";
 import type { RolePermission } from "../lib/rolePermissions";
 import { useClient } from "../context/ClientContext";
@@ -15,15 +13,14 @@ interface StatsStripProps {
   repLeadsCount?: number;
 }
 
-// Fake-but-stable upward-trending sparkline data, used until we wire historical data.
-const SPARK_DATA = [6, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14, 17, 18, 21];
-
 interface HeroProps {
   label: string;
   value: ReactNode;
   meta: ReactNode;
 }
 
+// No decorative trend markers here: every number on this card is real, and a
+// sparkline or "Trending" badge would imply history we are not measuring yet.
 function HeroCard({ label, value, meta }: HeroProps) {
   return (
     <div
@@ -36,15 +33,7 @@ function HeroCard({ label, value, meta }: HeroProps) {
       }}
     >
       <div className="relative z-10 flex h-full flex-col justify-between gap-4">
-        <div className="flex items-start justify-between gap-3">
-          <span className="label-cap-light">{label}</span>
-          <div className="flex items-center gap-1 rounded-full bg-white/15 px-2 py-1 backdrop-blur-sm">
-            <ArrowUpRight size={12} className="text-emerald-200" aria-hidden="true" />
-            <span className="tabular-figs text-[10px] font-bold tracking-wide text-white">
-              Trending
-            </span>
-          </div>
-        </div>
+        <span className="label-cap-light">{label}</span>
 
         <div className="flex flex-col gap-2">
           <div className="hero-num text-white" style={{ fontSize: "56px" }}>
@@ -53,10 +42,6 @@ function HeroCard({ label, value, meta }: HeroProps) {
           <div className="tabular-figs flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] font-semibold text-white/85">
             {meta}
           </div>
-        </div>
-
-        <div className="absolute bottom-4 right-4">
-          <Sparkline data={SPARK_DATA} width={110} height={26} />
         </div>
       </div>
     </div>
@@ -94,18 +79,24 @@ export default function StatsStrip({
         }
         meta={
           <>
-            <span className="font-display font-bold text-white">
-              {formatRoas(stats.roas)}
-            </span>
-            <span className="text-white/60">ROAS</span>
-            <Dot />
+            {stats.roas !== null && (
+              <>
+                <span className="font-display font-bold text-white">
+                  {formatRoas(stats.roas)}
+                </span>
+                <span className="text-white/60">ROAS</span>
+                <Dot />
+              </>
+            )}
             <span className="text-white">{stats.wonMtd}</span>
             <span className="text-white/60">deals</span>
-            <Dot />
-            <span className="text-white">
-              {stats.cpa === null ? "-" : formatMoney(stats.cpa)}
-            </span>
-            <span className="text-white/60">CPA</span>
+            {stats.cpa !== null && (
+              <>
+                <Dot />
+                <span className="text-white">{formatMoney(stats.cpa)}</span>
+                <span className="text-white/60">CPA</span>
+              </>
+            )}
           </>
         }
       />

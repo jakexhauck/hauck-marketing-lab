@@ -1,9 +1,18 @@
 import { useEffect, useRef } from "react";
-import { useMessagesQuery } from "../hooks/useApi";
+import {
+  useConversationMessagesQuery,
+  useMessagesQuery,
+} from "../hooks/useApi";
 import { useAuth } from "../context/AuthContext";
 
+// One thread component for both data sources: a lead id (LeadDetail embed)
+// or a contact id (ConversationDetail full screen). Exactly one of the two
+// id props should be set; `fill` switches between the embedded max-height
+// box and filling the available column.
 interface Props {
-  leadId: string;
+  leadId?: string;
+  contactId?: string;
+  fill?: boolean;
 }
 
 const timeFmt = new Intl.DateTimeFormat([], {
@@ -11,10 +20,16 @@ const timeFmt = new Intl.DateTimeFormat([], {
   minute: "2-digit",
 });
 
-export default function ConversationThread({ leadId }: Props) {
+export default function ConversationThread({ leadId, contactId, fill }: Props) {
   const { session } = useAuth();
   const enabled = Boolean(session);
-  const { data, isLoading, error } = useMessagesQuery(leadId, enabled);
+  // Hooks run unconditionally; the enabled flags pick the active source.
+  const leadQuery = useMessagesQuery(leadId ?? null, enabled && !!leadId);
+  const contactQuery = useConversationMessagesQuery(
+    contactId ?? null,
+    enabled && !!contactId,
+  );
+  const { data, isLoading, error } = leadId ? leadQuery : contactQuery;
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,7 +67,12 @@ export default function ConversationThread({ leadId }: Props) {
   }
 
   return (
-    <div className="flex max-h-80 flex-col gap-2 overflow-y-auto pr-1">
+    <div
+      className={
+        "flex flex-col gap-2 overflow-y-auto pr-1 " +
+        (fill ? "flex-1" : "max-h-80")
+      }
+    >
       {messages.map((m) => {
         const out = m.direction === "outbound";
         const time = (() => {

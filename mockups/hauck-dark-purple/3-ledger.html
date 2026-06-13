@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hauck Marketing LLC : AI-Powered Local Growth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..600;1,6..72,200..600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080C;
+    --ink: #EDECF3;
+    --muted: #9B99A6;
+    --faint: #6C6A78;
+    --hairline: #1E1D26;
+    --accent: #A78BFA;
+    --accent-deep: #9D6BFF;
+    --serif: "Newsreader", Georgia, serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --measure: 70rem;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-optical-sizing: auto;
+    font-weight: 380;
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection { background: var(--accent-deep); color: #FFFFFF; }
+
+  a { color: inherit; }
+
+  :focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 4px;
+  }
+
+  .wrap {
+    max-width: var(--measure);
+    margin: 0 auto;
+    padding: 0 clamp(1.25rem, 4vw, 3rem);
+  }
+
+  /* ---------- Nav ---------- */
+
+  .nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    background: rgba(8, 8, 12, 0.94);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    height: 3.75rem;
+    align-items: center;
+  }
+
+  .wordmark {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    font-weight: 460;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+  }
+
+  .wordmark .llc {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    color: var(--faint);
+    letter-spacing: 0.18em;
+    margin-left: 0.5rem;
+    vertical-align: 0.12em;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .nav-links a {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 160ms ease;
+  }
+
+  .nav-links a:hover { color: var(--ink); }
+
+  /* ---------- Hero ---------- */
+
+  .hero {
+    padding-top: clamp(8.5rem, 16vh, 11rem);
+    padding-bottom: clamp(4rem, 9vh, 7rem);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: clamp(1.75rem, 4vh, 2.75rem);
+  }
+
+  .eyebrow .tick {
+    display: inline-block;
+    width: 5px; height: 5px;
+    background: var(--accent);
+    margin-right: 0.85rem;
+    vertical-align: 0.12em;
+  }
+
+  h1 {
+    font-size: clamp(2.7rem, 7.6vw, 5.9rem);
+    font-weight: 255;
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    max-width: 16em;
+  }
+
+  h1 em {
+    font-style: italic;
+    font-weight: 300;
+  }
+
+  .hero-sub {
+    margin-top: clamp(1.5rem, 3.5vh, 2.25rem);
+    font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+    color: var(--muted);
+    max-width: 34em;
+  }
+
+  /* ---------- The signed-ledger form ---------- */
+
+  .ledger-form {
+    margin-top: clamp(2.5rem, 6vh, 3.75rem);
+    font-size: clamp(1.15rem, 1.9vw, 1.45rem);
+    max-width: 36em;
+  }
+
+  .sign-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.6em;
+    row-gap: 0.9em;
+  }
+
+  .sign-row .lead-in { color: var(--ink); }
+
+  .line-input {
+    font-family: var(--serif);
+    font-size: inherit;
+    font-weight: 380;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--faint);
+    border-radius: 0;
+    padding: 0 0.1em 0.18em 0.1em;
+    width: 13.5em;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  .line-input.short { width: 8.5em; }
+
+  .line-input::placeholder {
+    color: var(--faint);
+    font-style: italic;
+    opacity: 1;
+  }
+
+  .line-input:focus {
+    outline: none;
+    border-bottom-color: var(--accent);
+    box-shadow: 0 8px 14px -10px rgba(157, 107, 255, 0.55);
+  }
+
+  .line-input[readonly] {
+    border-bottom-color: var(--accent);
+    pointer-events: none;
+  }
+
+  .arrow-btn {
+    font-family: var(--serif);
+    font-size: 1em;
+    line-height: 1;
+    color: var(--accent);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.1em 0.3em 0.18em 0.2em;
+    margin-left: -0.55em;
+    border-bottom: 1px solid transparent;
+    transition: text-shadow 160ms ease, transform 160ms ease, opacity 160ms ease;
+  }
+
+  .arrow-btn:hover {
+    text-shadow: 0 0 14px rgba(157, 107, 255, 0.9);
+    transform: translateX(2px);
+  }
+
+  .arrow-btn:disabled { opacity: 0; pointer-events: none; }
+
+  .form-hint {
+    margin-top: 0.9rem;
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    min-height: 1em;
+  }
+
+  .step-two {
+    margin-top: 1.6rem;
+    display: none;
+  }
+
+  .step-two.open { display: block; animation: rise 420ms ease both; }
+
+  .choices {
+    display: inline-flex;
+    flex-wrap: wrap;
+    column-gap: 1.1em;
+    row-gap: 0.6em;
+    align-items: baseline;
+  }
+
+  .choice {
+    font-family: var(--serif);
+    font-size: inherit;
+    font-style: italic;
+    font-weight: 380;
+    color: var(--muted);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--faint);
+    cursor: pointer;
+    padding: 0 0.05em 0.18em 0.05em;
+    transition: color 160ms ease, border-color 160ms ease;
+  }
+
+  .choice:hover { color: var(--ink); border-bottom-color: var(--muted); }
+
+  .choice[aria-pressed="true"] {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    text-shadow: 0 0 16px rgba(157, 107, 255, 0.45);
+  }
+
+  .confirm-line {
+    margin-top: 1.6rem;
+    display: none;
+    font-size: inherit;
+    color: var(--ink);
+  }
+
+  .confirm-line.open { display: block; animation: rise 420ms ease both; }
+
+  .confirm-line .tick {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    margin-right: 0.7rem;
+    vertical-align: 0.12em;
+    box-shadow: 0 0 10px rgba(157, 107, 255, 0.8);
+  }
+
+  .confirm-line .quiet { color: var(--muted); }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- Glowing rule ---------- */
+
+  .glow-rule {
+    border: none;
+    height: 1px;
+    background: var(--accent-deep);
+    box-shadow: 0 0 14px 1px rgba(157, 107, 255, 0.55);
+  }
+
+  /* ---------- Ledger ---------- */
+
+  .ledger {
+    padding-top: clamp(3.5rem, 8vh, 5.5rem);
+    padding-bottom: clamp(3rem, 7vh, 5rem);
+  }
+
+  .ledger-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: clamp(2rem, 5vh, 3rem);
+  }
+
+  .ledger-head .label {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  .ledger-head .label .tick {
+    display: inline-block;
+    width: 5px; height: 5px;
+    background: var(--accent);
+    margin-right: 0.85rem;
+    vertical-align: 0.12em;
+  }
+
+  .row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 4.5rem 1fr auto;
+    align-items: baseline;
+    column-gap: 1.5rem;
+    padding: clamp(1.4rem, 3vh, 2rem) 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .row:first-of-type { border-top: 1px solid var(--hairline); }
+
+  .row::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 1px;
+    background: var(--accent-deep);
+    box-shadow: 0 0 12px 1px rgba(157, 107, 255, 0.55);
+    opacity: 0;
+    transition: opacity 220ms ease;
+    pointer-events: none;
+  }
+
+  .row:hover::after { opacity: 1; }
+
+  .row .index {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    color: var(--faint);
+  }
+
+  .row .name {
+    font-size: clamp(1.45rem, 2.6vw, 2.1rem);
+    font-weight: 300;
+    letter-spacing: -0.008em;
+    line-height: 1.15;
+  }
+
+  .row .desc {
+    margin-top: 0.45rem;
+    font-size: 0.95rem;
+    color: var(--muted);
+    max-width: 36em;
+  }
+
+  .row .tag {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.24em;
+    color: var(--faint);
+    text-align: right;
+    transition: color 220ms ease;
+  }
+
+  .row:hover .tag { color: var(--muted); }
+
+  /* ---------- Repeat CTA ---------- */
+
+  .repeat-cta {
+    padding-top: 0.5rem;
+    padding-bottom: clamp(4rem, 9vh, 6rem);
+    font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  }
+
+  .repeat-cta .quiet { color: var(--muted); }
+
+  .repeat-cta a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--faint);
+    padding-bottom: 0.14em;
+    transition: color 160ms ease, border-color 160ms ease;
+  }
+
+  .repeat-cta a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ---------- Footer ---------- */
+
+  .footer {
+    border-top: 1px solid var(--hairline);
+    padding: 1.4rem 0;
+  }
+
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  /* ---------- Responsive ---------- */
+
+  @media (max-width: 640px) {
+    .row {
+      grid-template-columns: 2.75rem 1fr;
+      row-gap: 0.9rem;
+    }
+    .row .tag {
+      grid-column: 2;
+      text-align: left;
+    }
+    .nav-links { gap: 1.25rem; }
+    .line-input { width: 11.5em; max-width: 100%; }
+    .ledger-head .label-right { display: none; }
+  }
+
+  /* ---------- Reduced motion ---------- */
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <nav class="nav" aria-label="Main">
+    <div class="wrap nav-inner">
+      <a class="wordmark" href="#top">Hauck Marketing<span class="llc">LLC</span></a>
+      <div class="nav-links">
+        <a href="#services">Services</a>
+        <a href="#start" id="nav-start">Start</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero wrap" id="top">
+    <p class="eyebrow"><span class="tick" aria-hidden="true"></span>AI-Powered Local Growth</p>
+
+    <h1>We build the software.<br>We bring the <em>customers.</em></h1>
+
+    <p class="hero-sub">Custom tools and smart ads for contractors, home services, and med spas. You do the work. We keep the phone ringing.</p>
+
+    <div class="ledger-form" id="start">
+      <form id="step-one" novalidate>
+        <div class="sign-row">
+          <label class="lead-in" for="phone">Want us to call you?</label>
+          <input class="line-input" type="tel" id="phone" name="phone" placeholder="Type your phone number" autocomplete="tel" inputmode="tel">
+          <button class="arrow-btn" type="submit" id="phone-go" aria-label="Send phone number">&rarr;</button>
+        </div>
+      </form>
+
+      <div class="step-two" id="step-two">
+        <div class="sign-row">
+          <span class="lead-in">Good. I'm</span>
+          <input class="line-input short" type="text" id="name" name="name" placeholder="your name" autocomplete="name">
+          <span class="lead-in">and I need help to</span>
+          <span class="choices" role="group" aria-label="Pick one need">
+            <button class="choice" type="button" data-need="Build" aria-pressed="false">Build</button>
+            <button class="choice" type="button" data-need="Automate" aria-pressed="false">Automate</button>
+            <button class="choice" type="button" data-need="Advertise" aria-pressed="false">Advertise</button>
+          </span>
+        </div>
+      </div>
+
+      <p class="confirm-line" id="confirm-line"><span class="tick" aria-hidden="true"></span><span id="confirm-text"></span> <span class="quiet">One call. No pitch, just a plan.</span></p>
+
+      <p class="form-hint" id="form-hint" aria-live="polite"></p>
+    </div>
+  </header>
+
+  <hr class="glow-rule" aria-hidden="true">
+
+  <main class="ledger wrap" id="services">
+    <div class="ledger-head">
+      <p class="label"><span class="tick" aria-hidden="true"></span>The Ledger : Six Services</p>
+      <p class="label label-right">Build / Automate / Advertise</p>
+    </div>
+
+    <article class="row">
+      <span class="index">01</span>
+      <div>
+        <h2 class="name">Fully custom company software</h2>
+        <p class="desc">Software shaped to how your company really runs, not the other way around.</p>
+      </div>
+      <span class="tag">BUILD</span>
+    </article>
+
+    <article class="row">
+      <span class="index">02</span>
+      <div>
+        <h2 class="name">Custom desktop and mobile CRM</h2>
+        <p class="desc">Every lead in one place, on your desk and in your pocket.</p>
+      </div>
+      <span class="tag">BUILD</span>
+    </article>
+
+    <article class="row">
+      <span class="index">03</span>
+      <div>
+        <h2 class="name">Backend sales automations</h2>
+        <p class="desc">Follow-up happens on its own, so no lead goes cold.</p>
+      </div>
+      <span class="tag">AUTOMATE</span>
+    </article>
+
+    <article class="row">
+      <span class="index">04</span>
+      <div>
+        <h2 class="name">Database reactivation campaigns</h2>
+        <p class="desc">Old leads get a fresh reason to call you back.</p>
+      </div>
+      <span class="tag">AUTOMATE</span>
+    </article>
+
+    <article class="row">
+      <span class="index">05</span>
+      <div>
+        <h2 class="name">Google review campaigns</h2>
+        <p class="desc">Happy customers say so where new ones can see it.</p>
+      </div>
+      <span class="tag">ADVERTISE</span>
+    </article>
+
+    <article class="row">
+      <span class="index">06</span>
+      <div>
+        <h2 class="name">Facebook ads</h2>
+        <p class="desc">Ads that reach your neighbors, not the whole internet.</p>
+      </div>
+      <span class="tag">ADVERTISE</span>
+    </article>
+  </main>
+
+  <section class="repeat-cta wrap">
+    <p><span class="quiet">Ready when you are.</span> <a href="#start" id="repeat-link">Leave your number above.</a></p>
+  </section>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <span>Hauck Marketing LLC</span>
+      <span>AI-Powered Local Growth</span>
+      <span>&copy; 2026</span>
+    </div>
+  </footer>
+
+<script>
+  (function () {
+    var stepOne = document.getElementById("step-one");
+    var phone = document.getElementById("phone");
+    var phoneGo = document.getElementById("phone-go");
+    var stepTwo = document.getElementById("step-two");
+    var nameInput = document.getElementById("name");
+    var hint = document.getElementById("form-hint");
+    var confirmLine = document.getElementById("confirm-line");
+    var confirmText = document.getElementById("confirm-text");
+    var choices = Array.prototype.slice.call(document.querySelectorAll(".choice"));
+    var done = false;
+
+    stepOne.addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (stepTwo.classList.contains("open")) return;
+      var digits = phone.value.replace(/\D/g, "");
+      if (digits.length < 7) {
+        hint.textContent = "Enter a phone number with at least 7 digits.";
+        phone.focus();
+        return;
+      }
+      hint.textContent = "";
+      phone.setAttribute("readonly", "readonly");
+      phoneGo.disabled = true;
+      stepTwo.classList.add("open");
+      nameInput.focus();
+    });
+
+    choices.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (done) return;
+        choices.forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
+        btn.setAttribute("aria-pressed", "true");
+        finish(btn.getAttribute("data-need"));
+      });
+    });
+
+    function finish(need) {
+      done = true;
+      nameInput.setAttribute("readonly", "readonly");
+      var who = nameInput.value.trim();
+      confirmText.textContent = who
+        ? "Done, " + who + ". We will call within one business day."
+        : "Done. We will call within one business day.";
+      confirmLine.classList.add("open");
+      hint.textContent = "Signed for: " + need;
+    }
+
+    document.getElementById("repeat-link").addEventListener("click", function () {
+      window.setTimeout(function () {
+        if (!phone.hasAttribute("readonly")) phone.focus();
+      }, 350);
+    });
+
+    document.getElementById("nav-start").addEventListener("click", function () {
+      window.setTimeout(function () {
+        if (!phone.hasAttribute("readonly")) phone.focus();
+      }, 350);
+    });
+  })();
+</script>
+</body>
+</html>

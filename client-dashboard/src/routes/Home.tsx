@@ -19,25 +19,21 @@ import NotificationPrompt from "../components/NotificationPrompt";
 import NotificationBell from "../components/NotificationBell";
 import { useAuth } from "../context/AuthContext";
 import { usePipelines } from "../context/PipelinesContext";
+import { useNow } from "../context/NowContext";
+import PullToRefresh from "../components/PullToRefresh";
 import { useActivityQuery, useSummaryQuery } from "../hooks/useApi";
 import { APP_BRAND } from "../lib/appBrand";
+import { activityLabel } from "../lib/activityLabels";
 import type { ApiActivity, PipelineSummary } from "../lib/api";
 
-const ACTIVITY_LABELS: Record<string, string> = {
-  lead_created: "New lead",
-  stage_changed: "Stage changed",
-  message_in: "Inbound message",
-  message_out: "Outbound message",
-};
-
 function activityTitle(a: ApiActivity): string {
-  return a.payload?.summary ?? ACTIVITY_LABELS[a.action] ?? a.action;
+  return a.payload?.summary ?? activityLabel(a.action);
 }
 
-function activityWhen(iso: string): string {
+function activityWhen(iso: string, now: number): string {
   const then = new Date(iso).getTime();
   if (!Number.isFinite(then)) return "";
-  const diffMs = Date.now() - then;
+  const diffMs = now - then;
   const mins = Math.round(diffMs / 60_000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
@@ -58,8 +54,8 @@ const CARD_COLORS = [
   "#be123c",
 ];
 
-function greeting(): string {
-  const h = new Date().getHours();
+function greeting(now: number): string {
+  const h = new Date(now).getHours();
   if (h < 12) return "Good morning";
   if (h < 18) return "Good afternoon";
   return "Good evening";
@@ -73,6 +69,7 @@ export default function Home() {
   const navigate = useNavigate();
   const { session, mode, signOut } = useAuth();
   const { setSelectedId } = usePipelines();
+  const now = useNow();
   const useReal = Boolean(session);
   const query = useSummaryQuery(useReal);
   const activityQuery = useActivityQuery(useReal);
@@ -80,7 +77,7 @@ export default function Home() {
   const summary = query.data;
   const activity = activityQuery.data?.activity ?? [];
   const isTest = mode === "test";
-  const today = new Date().toLocaleDateString("en-US", {
+  const today = new Date(now).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -107,6 +104,9 @@ export default function Home() {
 
   return (
     <Shell>
+      <PullToRefresh
+        queryKeys={[["summary"], ["activity"], ["notifications"]]}
+      />
       {isTest && <TestBanner />}
 
       <NavyHero flushTop={isTest}>
@@ -118,7 +118,7 @@ export default function Home() {
                 {APP_BRAND.appName}
               </div>
               <div className="truncate text-[12px] text-white/60">
-                {greeting()}, {today}
+                {greeting(now)}, {today}
               </div>
             </div>
           </div>
@@ -153,7 +153,10 @@ export default function Home() {
             />
           </div>
         ) : !summary || !featured ? (
-          <EmptyState message="No pipelines configured yet." />
+          <EmptyState
+            title="No pipelines"
+            message="Pipelines configured in GHL will show up here."
+          />
         ) : (
           <>
             {/* Featured: busiest pipeline */}
@@ -317,7 +320,7 @@ export default function Home() {
                         </div>
                       </div>
                       <span className="shrink-0 text-[11.5px] font-medium text-[var(--text-faint)]">
-                        {activityWhen(a.created_at)}
+                        {activityWhen(a.created_at, now)}
                       </span>
                     </div>
                   </li>
