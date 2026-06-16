@@ -273,9 +273,24 @@ export interface ApiTasksResponse {
 
 export type SessionMode = "live" | "test";
 
+// Lightweight caller identity for a signed-in staff member (subset of the full
+// staff record). Owner sessions report staff: null.
+export interface ApiStaffIdentity {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+}
+
 export interface ApiMe {
   ok: boolean;
   mode: SessionMode;
+  // Staff accounts (0007). isOwner is true for the shared-password owner OR a
+  // staff row with role 'owner'; such callers bypass per-surface checks and the
+  // permissions map is empty. Staff callers carry their effective grants.
+  isOwner?: boolean;
+  staff?: ApiStaffIdentity | null;
+  permissions?: import("./permissions").EffectivePermissions;
 }
 
 export interface ApiLoginResponse {
@@ -284,6 +299,42 @@ export interface ApiLoginResponse {
   // Additive (Phase 2.2): the raw signed session token, for bearer-auth clients
   // (desktop). Web clients ignore it and use the HttpOnly cookie.
   token?: string;
+}
+
+export interface ApiStaffLoginResponse {
+  ok: boolean;
+  mode: SessionMode;
+  token?: string;
+  staff: { id: string; name: string; role: Role };
+}
+
+// A staff member as returned by GET /api/staff (owner-only management list).
+export interface ApiStaffAccount {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  status: "active" | "disabled";
+  ghlUserId: string | null;
+  createdAt: string;
+  permissions: import("./permissions").StaffPermission[];
+}
+
+export interface ApiStaffListResponse {
+  staff: ApiStaffAccount[];
+}
+
+export interface ApiEntitlementsResponse {
+  capabilities: import("./permissions").Capability[];
+}
+
+// Payload the owner UI sends to create/update a staff member.
+export interface StaffWriteInput {
+  name: string;
+  email: string;
+  password?: string;
+  role: Role;
+  permissions: import("./permissions").StaffPermission[];
 }
 
 export interface TeamMember {

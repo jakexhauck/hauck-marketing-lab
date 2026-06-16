@@ -1,11 +1,14 @@
 # Root workspace for the Unified CRM build.
 #
 # Deliberately scoped to ONLY the new code: the web CRM and shared packages.
-# `client-dashboard/` and `app/` keep their own pnpm-workspace.yaml files and stay
-# fully standalone — pnpm resolves the nearest workspace root when run inside them,
-# so their installs, patches, and lockfiles are untouched by this file.
+# The CRM now lives at "Hauck Command Center (Clients)/Desktop App"; the glob uses
+# a wildcard for the parent so fast-glob does not treat the "(Clients)" parens as a
+# pattern group. The Mobile App ("Hauck Command Center (Clients)/Mobile App") and the
+# agency app ("app/") keep their own pnpm-workspace.yaml files and stay fully
+# standalone: pnpm resolves the nearest workspace root when run inside them, so their
+# installs, patches, and lockfiles are untouched by this file.
 packages:
-  - "crm-web"
+  - "Hauck Command Center*/Desktop App"
   - "packages/*"
 
 allowBuilds:
