@@ -429,14 +429,55 @@
   @media (max-width: 560px) {
     body { font-size: 16px; }
     .head { padding: 56px 0 28px; }
-    .nav-inner { height: 62px; grid-template-columns: 1fr auto; }
+    .nav-inner { height: 62px; grid-template-columns: 1fr; }
     .nav-left { display: none; }
     .nav-center { display: none; }
+    .nav-right { justify-self: center; }
     .wordmark { font-size: 15px; gap: 9px; }
-    .sec-head { padding-top: 72px; }
-    .apply { padding: 52px 22px; }
+
+    /* calmer hero */
+    h1.head-h { font-size: 28px; }
+    .head-sub { font-size: 15px; margin-top: 18px; }
+    .hero-stat { padding: 18px 20px; margin-top: 30px; gap: 14px; }
+    .hero-stat .big { font-size: 40px; }
+    .hero-stat .txt { font-size: 15px; }
+    .head-cta { margin-top: 26px; }
+
+    /* feature rows breathe */
+    .sec-head { padding-top: 64px; }
+    .rows { margin-top: 20px; }
+    .row { padding: 28px 0; gap: 24px; }
+    .graphic { padding: 16px; min-height: 140px; }
+    .graphic svg { max-height: 120px; }
+    .row h3 { font-size: 20px; }
+    .row .desc { font-size: 15px; }
+    .row .metric { margin-top: 16px; }
+    .row .metric .num { font-size: 30px; }
+
+    /* benefit band */
+    section.band { padding-top: 64px; }
+    .band-grid { margin-top: 24px; gap: 16px; }
+    .stat-card { padding: 24px 20px; }
+    .stat-card .num { font-size: 36px; }
+
+    /* outcomes */
+    section.outcomes { padding-top: 64px; }
+    .sec-title { font-size: 26px; }
+    .out-grid { margin-top: 24px; gap: 14px; }
+    .out-card { padding: 22px 20px; }
+    .out-card h3 { font-size: 19px; }
+
+    .apply { padding: 44px 22px; }
     .foot-inner { align-items: flex-start; }
     .pills { width: 100%; justify-content: center; }
+  }
+
+  @media (max-width: 400px) {
+    h1.head-h { font-size: 26px; }
+    .hero-stat .big { font-size: 36px; }
+    .graphic { min-height: 124px; }
+    .graphic svg { max-height: 108px; }
+    .stat-card .num { font-size: 33px; }
   }
 
   @media (prefers-reduced-motion: reduce) {

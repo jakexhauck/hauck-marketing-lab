@@ -481,16 +481,52 @@
   @media (max-width: 560px) {
     body { font-size: 16px; }
     .head { padding: 56px 0 14px; }
-    .nav-inner { height: 62px; grid-template-columns: 1fr auto; }
+    .nav-inner { height: 62px; grid-template-columns: 1fr; }
     .nav-left { display: none; }
     .nav-center { display: none; }
+    .nav-right { justify-self: center; }
     .wordmark { font-size: 15px; gap: 9px; }
-    .apply { padding: 52px 22px; }
-    .app { grid-template-columns: 44px 1fr; }
-    .kpis { grid-template-columns: repeat(3, 1fr); gap: 7px; }
+
+    /* calmer headline */
+    h1.head-h { font-size: 30px; }
+    .head-sub { font-size: 15px; margin-top: 20px; line-height: 1.55; }
+    .head-cta { margin-top: 28px; }
+    .head-note { font-size: 13.5px; margin-top: 18px; }
+
+    /* more room between pillar panels */
+    .panels { margin-top: 44px; gap: 20px; }
+    a.panel { min-height: 0; }
+    .stage { min-height: 180px; }
+    .panel-copy { padding: 4px 20px 22px; }
+    .panel-copy h3 { font-size: 21px; }
+    .panel-copy p { font-size: 14.5px; }
+
+    /* command center showcase */
+    section.cc { padding: 80px 0 0; }
+    .cc-grid { margin-top: 30px; gap: 30px; }
+    .cc-h { font-size: 26px; max-width: none; }
+    .cc-lede { font-size: 15px; margin-top: 18px; }
+    .app { grid-template-columns: 44px 1fr; min-height: 300px; }
+    .app-body { padding: 14px 14px; }
+    .app-title { font-size: 13px; }
+    .kpis { grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 12px; }
+    .kpi { padding: 9px 10px; }
     .kpi .k-val { font-size: 17px; }
-    .app-cols { grid-template-columns: 1fr; }
+    .app-cols { grid-template-columns: 1fr; gap: 10px; }
+
+    /* apply */
+    section.apply-sec { padding: 80px 0 0; }
+    .apply { padding: 44px 22px; }
+    .apply h2 { font-size: 26px; }
+    .apply p { font-size: 15px; margin-top: 16px; }
     .foot-inner { align-items: flex-start; }
+  }
+
+  @media (max-width: 400px) {
+    h1.head-h { font-size: 27px; }
+    .stage { min-height: 160px; }
+    .cc-h { font-size: 24px; }
+    .apply h2 { font-size: 24px; }
   }
 
   @media (prefers-reduced-motion: reduce) {

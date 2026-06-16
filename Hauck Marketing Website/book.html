@@ -143,10 +143,21 @@
   @media (max-width: 820px) { .nav-center { display: none; } }
   @media (max-width: 560px) {
     body { font-size: 16px; }
-    .nav-inner { height: 62px; grid-template-columns: 1fr auto; }
+    .nav-inner { height: 62px; grid-template-columns: 1fr; }
     .nav-left { display: none; }
+    .nav-center { display: none; }
+    .nav-right { justify-self: center; }
     .wordmark { font-size: 15px; gap: 9px; }
+
+    .head { padding: 52px 0 8px; }
+    h1.head-h { font-size: 27px; }
+    .head-sub { font-size: 15px; margin-top: 18px; }
+    .points { margin-top: 20px; gap: 9px 20px; }
+    .point { font-size: 13.5px; }
     .foot-inner { align-items: flex-start; }
+  }
+  @media (max-width: 400px) {
+    h1.head-h { font-size: 25px; }
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
