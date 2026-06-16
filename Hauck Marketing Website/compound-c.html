@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Compound: turn finished jobs into your next ones. Reviews, reactivation, and reporting that make each job cheaper to win. Hauck Marketing." />
+<meta name="theme-color" content="#07120E" />
+<meta property="og:title" content="Compound. Turn finished jobs into your next ones." />
+<meta property="og:description" content="Each finished job makes the next one cheaper to win." />
+<meta property="og:type" content="website" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2307120E'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-weight='bold' font-size='20' fill='%232FD49B' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E" />
+<title>Compound. Turn finished jobs into your next ones. Hauck Marketing.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #07120E;
+    --surface: #0E1A15;
+    --grid: rgba(255, 255, 255, 0.22);
+    --hair: rgba(255, 255, 255, 0.15);
+    --ink: #FFFFFF;
+    --muted: rgba(255, 255, 255, 0.76);
+    --text: #FFFFFF;
+    --accent: #2FD49B;
+    --mint: #8BF0CC;
+    --cyan: #E8C36A;
+    --white: #FFFFFF;
+    --line: rgba(255, 255, 255, 0.48);
+    --line-soft: rgba(255, 255, 255, 0.28);
+    --r: 8px;
+    --maxw: 1240px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; overflow-x: hidden; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(130% 100% at 50% -10%, #0B1D17 0%, #07120E 52%, #040A07 100%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  .aurora {
+    position: fixed;
+    inset: -30%;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(44% 48% at 18% 22%, rgba(47, 212, 155, 0.16), transparent 60%),
+      radial-gradient(52% 56% at 85% 26%, rgba(16, 54, 44, 0.65), transparent 62%),
+      radial-gradient(58% 62% at 72% 86%, rgba(5, 18, 14, 0.88), transparent 60%),
+      radial-gradient(48% 52% at 26% 90%, rgba(22, 64, 52, 0.45), transparent 60%);
+    filter: blur(74px) saturate(105%);
+    animation: aurora 26s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  @keyframes aurora {
+    0%   { transform: translate3d(-3%, -2%, 0) scale(1.06) rotate(0deg); }
+    50%  { transform: translate3d(3%, 2%, 0)  scale(1.16) rotate(7deg); }
+    100% { transform: translate3d(-2%, 3%, 0) scale(1.09) rotate(-6deg); }
+  }
+  .scrim {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(120% 90% at 50% 0%, transparent 40%, rgba(7, 18, 14, 0.55) 100%);
+  }
+
+  ::selection { background: rgba(47, 212, 155, 0.32); color: #fff; }
+  a { color: inherit; text-decoration: none; }
+
+  .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  .mono {
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  h1, h2, h3 {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin: 0;
+  }
+
+  .accent { color: var(--accent); }
+
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .btn {
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.01em;
+    font-weight: 600;
+    padding: 12px 22px;
+    border-radius: var(--r);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform 0.15s, box-shadow 0.2s, background 0.2s, border-color 0.2s, color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .btn .arr { transition: transform 0.2s ease; }
+  .btn:hover .arr { transform: translateX(3px); }
+  .btn-primary { background: var(--accent); color: #04140E; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(47, 212, 155, 0.4); }
+  .btn-ghost { background: rgba(255, 255, 255, 0.03); color: var(--ink); border-color: rgba(47, 212, 155, 0.4); }
+  .btn-ghost:hover { border-color: var(--accent); background: rgba(47, 212, 155, 0.1); }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+    background: rgba(7, 18, 14, 0.66);
+    border-bottom: 1px solid var(--hair);
+  }
+  .nav-inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    height: 88px;
+  }
+  .nav-left { justify-self: start; }
+  .nav-center { justify-self: center; display: flex; align-items: center; gap: 30px; }
+  .nav-right { justify-self: end; }
+  .wordmark {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: 19px;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .wordmark .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: dotpulse 3s ease-in-out infinite;
+  }
+  @keyframes dotpulse { 0%, 100% { box-shadow: 0 0 8px var(--accent); } 50% { box-shadow: 0 0 16px var(--accent); } }
+  .nav-link {
+    font-family: "Inter", sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    transition: color 0.2s;
+  }
+  .nav-link:hover { color: var(--accent); }
+  .nav .btn { padding: 12px 22px; font-size: 14px; }
+
+  .head { padding: 60px 0 30px; position: relative; text-align: center; }
+  .head-eyebrow { margin-bottom: 20px; display: inline-flex; gap: 14px; align-items: center; justify-content: center; }
+  .head-eyebrow .bar { width: 28px; height: 1px; background: var(--accent); }
+  h1.head-h {
+    font-size: clamp(34px, 5vw, 60px);
+    max-width: 18ch;
+    margin: 0 auto;
+  }
+  .head-sub {
+    margin: 22px auto 0;
+    max-width: 58ch;
+    color: var(--text);
+    font-size: clamp(16px, 1.6vw, 18px);
+    line-height: 1.6;
+  }
+  .head-sub strong { color: var(--ink); font-weight: 600; }
+
+  .hero-stat {
+    margin: 38px auto 0;
+    max-width: 60ch;
+    display: inline-flex;
+    align-items: center;
+    gap: 22px;
+    padding: 20px 28px;
+    border: 1px solid var(--grid);
+    border-radius: 14px;
+    background:
+      radial-gradient(120% 120% at 0% 0%, rgba(47, 212, 155, 0.1), transparent 60%),
+      rgba(14, 26, 21, 0.7);
+    backdrop-filter: blur(6px);
+    text-align: left;
+  }
+  .hero-stat .big {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: clamp(40px, 6vw, 58px);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .hero-stat .txt { color: var(--text); font-size: 16px; line-height: 1.5; }
+  .hero-stat .txt strong { color: var(--ink); font-weight: 700; }
+  .head-cta { margin-top: 30px; display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+
+  /* citation under any stat */
+  .cite { display: block; margin-top: 9px; font-size: 12px; color: var(--muted); }
+  .cite a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: rgba(255,255,255,0.25); }
+  .cite a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+  .sec-eyebrow { margin-bottom: 16px; display: inline-flex; gap: 14px; align-items: center; }
+  .sec-eyebrow .bar { width: 28px; height: 1px; background: var(--accent); }
+  .sec-head { padding-top: 72px; }
+  .sec-sub { color: var(--text); margin: 12px 0 0; max-width: 52ch; font-size: 17px; }
+
+  .rows { margin-top: 24px; border-top: 1px solid var(--hair); }
+  .row {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 48px;
+    align-items: center;
+    padding: 34px 0;
+    border-bottom: 1px solid var(--hair);
+  }
+  .row .graphic { order: 0; }
+  .row .body { order: 1; }
+  .row.flip .graphic { order: 1; }
+  .row.flip .body { order: 0; }
+
+  .graphic {
+    border: 1px solid var(--hair);
+    border-radius: 14px;
+    background:
+      radial-gradient(120% 90% at 50% -8%, rgba(255, 255, 255, 0.04), transparent 60%),
+      rgba(14, 26, 21, 0.55);
+    padding: 18px;
+    min-height: 196px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .graphic svg { width: 100%; height: auto; max-height: 168px; display: block; }
+
+  .row .idx {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    color: var(--mint);
+  }
+  .row h3 {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: 25px;
+    letter-spacing: -0.02em;
+    color: var(--white);
+    margin: 8px 0 0;
+  }
+  .row .desc { color: var(--text); font-size: 16.5px; line-height: 1.6; margin: 12px 0 0; max-width: 46ch; }
+  .row .metric {
+    margin-top: 18px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .row .metric .num {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: clamp(30px, 4vw, 40px);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--mint);
+  }
+  .row .metric .lab {
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text);
+    max-width: 26ch;
+    line-height: 1.4;
+  }
+
+  section.band { padding-top: 72px; }
+  .band-grid {
+    margin-top: 32px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .stat-card {
+    border: 1px solid var(--grid);
+    border-radius: 14px;
+    padding: 28px 24px;
+    background:
+      radial-gradient(120% 90% at 50% -8%, rgba(47, 212, 155, 0.08), transparent 62%),
+      rgba(14, 26, 21, 0.7);
+    backdrop-filter: blur(6px);
+  }
+  .stat-card .num {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: clamp(34px, 4.4vw, 46px);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+  }
+  .stat-card .lab { color: var(--text); font-size: 15px; line-height: 1.45; margin-top: 12px; }
+
+  /* ---------- OUTCOMES: what this does to your business ---------- */
+  section.outcomes { padding-top: 72px; }
+  .sec-title { font-family: "Inter", sans-serif; font-weight: 800; font-size: clamp(26px, 3.4vw, 42px); letter-spacing: -0.03em; color: var(--white); margin: 6px 0 0; }
+  .out-grid { margin-top: 32px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .out-card {
+    border: 1px solid var(--grid);
+    border-radius: 14px;
+    padding: 28px 26px;
+    background: rgba(14, 26, 21, 0.55);
+  }
+  .out-card .ic {
+    width: 34px; height: 34px; border-radius: 9px;
+    border: 1.5px solid var(--accent);
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+  }
+  .out-card .ic svg { width: 18px; height: 18px; display: block; }
+  .out-card h3 { font-family: "Inter", sans-serif; font-weight: 800; font-size: 21px; letter-spacing: -0.02em; color: var(--white); margin: 0; }
+  .out-card p { color: var(--text); font-size: 16px; line-height: 1.6; margin: 10px 0 0; }
+
+  section.switcher { padding-top: 72px; text-align: center; }
+  .pills { display: inline-flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+    border: 1px solid var(--hair); border-radius: 999px; padding: 8px; background: rgba(14, 26, 21, 0.6); }
+  .pill {
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 10px 20px;
+    border-radius: 999px;
+    color: var(--muted);
+    transition: color 0.2s, background 0.2s;
+  }
+  .pill:hover { color: var(--ink); }
+  .pill.on { color: #04140E; background: var(--accent); }
+
+  section.apply-sec { padding-top: 72px; }
+  .apply {
+    background:
+      radial-gradient(90% 130% at 50% 0%, rgba(47, 212, 155, 0.18), transparent 60%),
+      rgba(14, 26, 21, 0.82);
+    border: 1px solid var(--grid);
+    border-radius: 16px;
+    padding: 72px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(6px);
+  }
+  .apply .eb { position: relative; z-index: 2; margin-bottom: 18px; }
+  .apply .eb .mono { color: var(--accent); }
+  .apply h2 { font-size: clamp(30px, 4.6vw, 52px); position: relative; z-index: 2; max-width: 20ch; margin: 0 auto; }
+  .apply p { color: var(--muted); margin: 20px auto 0; max-width: 46ch; position: relative; z-index: 2; }
+  .apply .cta { justify-content: center; position: relative; z-index: 2; margin-top: 32px; display: flex; gap: 14px; flex-wrap: wrap; }
+
+  footer { border-top: 1px solid var(--hair); margin-top: 72px; padding: 44px 0 54px; }
+  .foot-inner { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 24px; }
+  .foot-inner .contact { font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.06em; color: var(--muted); }
+  .foot-inner .contact a { color: var(--accent); }
+  .foot-inner .legal { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+
+  .g-node { fill: #11201A; stroke: var(--line-soft); stroke-width: 1.2; }
+  .g-line { fill: none; stroke: var(--line-soft); stroke-width: 1.4; }
+  .g-stroke { fill: none; stroke: var(--white); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .g-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; fill: var(--muted); }
+  .g-fill-soft { fill: rgba(255,255,255,0.06); }
+
+  .g-ping { fill: var(--accent); animation: gping 2.6s ease-in-out infinite; transform-origin: center; }
+  @keyframes gping { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  .g-packet { fill: none; stroke: var(--white); stroke-width: 2.4; stroke-linecap: round;
+    stroke-dasharray: 8 160; animation: gflow 3.2s linear infinite; }
+  @keyframes gflow { to { stroke-dashoffset: -168; } }
+
+  .g-sweep { stroke-dasharray: 60; stroke-dashoffset: 60; animation: gdraw 3.4s ease-in-out infinite; }
+  @keyframes gdraw { 0% { stroke-dashoffset: 60; } 40%, 75% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 60; } }
+
+  .g-bob { animation: gbob 4s ease-in-out infinite; transform-origin: center; }
+  @keyframes gbob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+  /* compound: bars grow, star twinkle */
+  .g-bar { fill: rgba(255,255,255,0.30); transform-origin: bottom; animation: gbargrow 4.4s ease-in-out infinite; }
+  .g-bar.b2 { animation-delay: 0.2s; fill: rgba(255,255,255,0.45); }
+  .g-bar.b3 { animation-delay: 0.4s; fill: rgba(255,255,255,0.6); }
+  .g-bar.b4 { animation-delay: 0.6s; fill: var(--accent); }
+  @keyframes gbargrow { 0%, 100% { transform: scaleY(0.2); opacity: 0.6; } 45%, 70% { transform: scaleY(1); opacity: 1; } }
+  .g-star { fill: var(--white); transform-origin: center; animation: gtwinkle 3.4s ease-in-out infinite; }
+  .g-star.s2 { animation-delay: 0.3s; }
+  .g-star.s3 { animation-delay: 0.6s; }
+  .g-star.s4 { animation-delay: 0.9s; }
+  .g-star.s5 { animation-delay: 1.2s; }
+  @keyframes gtwinkle { 0%, 20% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } 80%, 100% { opacity: 0.25; transform: scale(0.8); } }
+
+  @media (max-width: 900px) {
+    .band-grid { grid-template-columns: 1fr; }
+    .out-grid { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 1fr; gap: 22px; }
+    .row .graphic, .row.flip .graphic { order: 0; }
+    .row .body, .row.flip .body { order: 1; }
+    .hero-stat { flex-direction: column; align-items: flex-start; gap: 12px; text-align: left; }
+  }
+  @media (max-width: 820px) {
+    .nav-center { display: none; }
+  }
+  @media (max-width: 560px) {
+    body { font-size: 16px; }
+    .head { padding: 56px 0 28px; }
+    .nav-inner { height: 62px; grid-template-columns: 1fr auto; }
+    .nav-left { display: none; }
+    .nav-center { display: none; }
+    .wordmark { font-size: 15px; gap: 9px; }
+    .sec-head { padding-top: 72px; }
+    .apply { padding: 52px 22px; }
+    .foot-inner { align-items: flex-start; }
+    .pills { width: 100%; justify-content: center; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .aurora, .wordmark .dot, .g-ping, .g-packet, .g-sweep, .g-bob, .g-bar, .g-star {
+      animation: none !important;
+    }
+    .g-packet { opacity: 0; }
+    .g-sweep { stroke-dashoffset: 0; }
+    .g-bar { transform: scaleY(1); opacity: 1; }
+    .g-star { opacity: 1; transform: none; }
+    .btn:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true"></div>
+<div class="scrim" aria-hidden="true"></div>
+
+<!-- ===================== NAV ===================== -->
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <div class="nav-left">
+      <a class="wordmark" href="index.html"><span class="dot" aria-hidden="true"></span>HAUCK MARKETING</a>
+    </div>
+    <div class="nav-center">
+      <a class="nav-link" href="index.html">Revenue Recovery System</a>
+      <a class="nav-link" href="founder.html">From the founder</a>
+      <a class="nav-link" href="command-center.html">Command Center</a>
+    </div>
+    <div class="nav-right">
+      <a class="btn btn-primary" href="book.html">Book Demo Call <span class="arr" aria-hidden="true">&rarr;</span></a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<header class="head" id="top">
+  <div class="wrap">
+    <div class="head-eyebrow">
+      <span class="bar" aria-hidden="true"></span>
+      <span class="mono">[ Pillar 03 &middot; Compound ]</span>
+      <span class="bar" aria-hidden="true"></span>
+    </div>
+    <h1 class="head-h">Turn finished jobs into <span class="accent">your next ones</span>.</h1>
+    <p class="head-sub">Happy customers never asked for a review. A thin review profile losing the click. Hundreds of past customers never contacted again. Compound closes the loop, so <strong>each finished job makes the next one cheaper to win</strong>.</p>
+
+    <div class="hero-stat">
+      <span class="big">68%</span>
+      <span class="txt"><strong>Of people will only use a business with 4 or more stars.</strong> A stronger review profile wins the click before they ever call.
+        <span class="cite"><a href="https://www.brightlocal.com/research/local-consumer-review-survey/" target="_blank" rel="noopener">Source: BrightLocal, Local Consumer Review Survey 2026</a></span>
+      </span>
+    </div>
+
+    <div class="head-cta">
+      <a class="btn btn-primary" href="book.html">Book a Demo Call <span class="arr" aria-hidden="true">&rarr;</span></a>
+      <a class="btn btn-ghost" href="index.html">Back to home</a>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== DELIVERABLE ROWS ===================== -->
+<section class="sec-head">
+  <div class="wrap">
+    <div class="sec-eyebrow"><span class="bar" aria-hidden="true"></span><span class="mono">[ What's inside Compound ]</span></div>
+    <p class="sec-sub">Everything that turns one finished job into more business.</p>
+
+    <div class="rows">
+
+      <!-- 01 Google Review Agent -->
+      <div class="row">
+        <div class="graphic" aria-hidden="true">
+          <svg viewBox="0 0 280 150" preserveAspectRatio="xMidYMid meet" role="presentation">
+            <g transform="translate(40,46)">
+              <path class="g-star" d="M0 -8 L2.4 -2.4 L8 -2 L3.4 1.8 L4.8 8 L0 4.2 L-4.8 8 L-3.4 1.8 L-8 -2 L-2.4 -2.4 Z"/>
+              <g transform="translate(26,0)"><path class="g-star s2" d="M0 -8 L2.4 -2.4 L8 -2 L3.4 1.8 L4.8 8 L0 4.2 L-4.8 8 L-3.4 1.8 L-8 -2 L-2.4 -2.4 Z"/></g>
+              <g transform="translate(52,0)"><path class="g-star s3" d="M0 -8 L2.4 -2.4 L8 -2 L3.4 1.8 L4.8 8 L0 4.2 L-4.8 8 L-3.4 1.8 L-8 -2 L-2.4 -2.4 Z"/></g>
+              <g transform="translate(78,0)"><path class="g-star s4" d="M0 -8 L2.4 -2.4 L8 -2 L3.4 1.8 L4.8 8 L0 4.2 L-4.8 8 L-3.4 1.8 L-8 -2 L-2.4 -2.4 Z"/></g>
+              <g transform="translate(104,0)"><path class="g-star s5" d="M0 -8 L2.4 -2.4 L8 -2 L3.4 1.8 L4.8 8 L0 4.2 L-4.8 8 L-3.4 1.8 L-8 -2 L-2.4 -2.4 Z"/></g>
+            </g>
+            <path class="g-line" d="M150 46 H 196"/>
+            <path class="g-packet" d="M150 46 H 196"/>
+            <rect class="g-node" x="36" y="84" width="108" height="34" rx="9"/>
+            <text class="g-label" x="50" y="105" style="fill:var(--ink);">Job complete</text>
+            <path class="g-line g-sweep" d="M144 101 C 170 101, 175 60, 196 50"/>
+            <rect class="g-node" x="200" y="34" width="58" height="30" rx="9" fill="rgba(47,212,155,0.1)" stroke="rgba(47,212,155,0.5)"/>
+            <text class="g-label" x="229" y="53" text-anchor="middle" style="fill:var(--accent);">REVIEW</text>
+          </svg>
+        </div>
+        <div class="body">
+          <span class="idx">[ 01 ]</span>
+          <h3>Google Review Agent</h3>
+          <p class="desc">One tap after a job fires a review request, gates unhappy feedback privately first, sends reminders, and drafts replies to the reviews that land.</p>
+          <div class="metric"><span class="num">68%</span><span class="lab">Only use a business with 4 or more stars.</span></div>
+          <span class="cite"><a href="https://www.brightlocal.com/research/local-consumer-review-survey/" target="_blank" rel="noopener">Source: BrightLocal, Local Consumer Review Survey 2026</a></span>
+        </div>
+      </div>
+
+      <!-- 02 Lead Reactivation Agent -->
+      <div class="row flip">
+        <div class="graphic" aria-hidden="true">
+          <svg viewBox="0 0 280 150" preserveAspectRatio="xMidYMid meet" role="presentation">
+            <g class="g-line">
+              <rect class="g-node" x="28" y="34" width="64" height="22" rx="6"/>
+              <rect class="g-node" x="28" y="64" width="64" height="22" rx="6"/>
+              <rect class="g-node" x="28" y="94" width="64" height="22" rx="6"/>
+            </g>
+            <text class="g-label" x="60" y="48" text-anchor="middle">PAST</text>
+            <text class="g-label" x="60" y="78" text-anchor="middle">PAST</text>
+            <text class="g-label" x="60" y="108" text-anchor="middle">PAST</text>
+            <path class="g-line" d="M92 45 C 130 45, 130 75, 168 75"/>
+            <path class="g-line" d="M92 75 H 168"/>
+            <path class="g-line" d="M92 105 C 130 105, 130 75, 168 75"/>
+            <path class="g-packet" d="M92 45 C 130 45, 130 75, 168 75"/>
+            <rect class="g-node" x="172" y="50" width="86" height="50" rx="11" fill="rgba(47,212,155,0.1)" stroke="rgba(47,212,155,0.5)"/>
+            <text class="g-label" x="215" y="73" text-anchor="middle" style="fill:var(--accent);">RE-BOOKED</text>
+            <rect x="186" y="80" width="58" height="6" rx="3" fill="rgba(47,212,155,0.4)"/>
+          </svg>
+        </div>
+        <div class="body">
+          <span class="idx">[ 02 ]</span>
+          <h3>Lead Reactivation Agent</h3>
+          <p class="desc">Works your old customer list over SMS and email to re-book repeat and seasonal work.</p>
+          <div class="metric"><span class="num">5 to 25x</span><span class="lab">More expensive to win a new customer than to keep one.</span></div>
+          <span class="cite"><a href="https://hbr.org/2014/10/the-value-of-keeping-the-right-customers" target="_blank" rel="noopener">Source: Harvard Business Review, 2014</a></span>
+        </div>
+      </div>
+
+      <!-- 03 ROI and reporting dashboard -->
+      <div class="row">
+        <div class="graphic" aria-hidden="true">
+          <svg viewBox="0 0 280 150" preserveAspectRatio="xMidYMid meet" role="presentation">
+            <line x1="44" y1="118" x2="248" y2="118" class="g-line"/>
+            <rect class="g-bar"    x="64"  y="58" width="30" height="60" rx="3"/>
+            <rect class="g-bar b2" x="112" y="58" width="30" height="60" rx="3"/>
+            <rect class="g-bar b3" x="160" y="58" width="30" height="60" rx="3"/>
+            <rect class="g-bar b4" x="208" y="58" width="30" height="60" rx="3"/>
+            <path class="g-stroke g-sweep" d="M64 88 L 127 70 L 175 56 L 223 40"/>
+            <text class="g-label" x="44" y="40" style="fill:var(--accent);">ROI</text>
+          </svg>
+        </div>
+        <div class="body">
+          <span class="idx">[ 03 ]</span>
+          <h3>ROI and reporting dashboard</h3>
+          <p class="desc">See exactly what every ad dollar produced, so you know what to double down on.</p>
+          <div class="metric"><span class="num">1</span><span class="lab">dashboard showing what every dollar produced</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================== OUTCOMES ===================== -->
+<section class="outcomes">
+  <div class="wrap">
+    <div class="sec-eyebrow"><span class="bar" aria-hidden="true"></span><span class="mono">[ The payoff ]</span></div>
+    <h2 class="sec-title">What this does to your business</h2>
+    <p class="sec-sub">The loop closes, and here is what changes for you.</p>
+    <div class="out-grid">
+
+      <div class="out-card">
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
+        <h3>Your reputation builds itself</h3>
+        <p>Every finished job turns into a review request, so your star rating climbs on its own.</p>
+      </div>
+
+      <div class="out-card">
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
+        <h3>Past customers come back</h3>
+        <p>Old customer lists get reactivated over text and email, turning finished jobs into repeat work.</p>
+      </div>
+
+      <div class="out-card">
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
+        <h3>The next job costs less to win</h3>
+        <p>A stronger reputation and repeat customers lower what you pay to land each new job.</p>
+      </div>
+
+      <div class="out-card">
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
+        <h3>You see what is working</h3>
+        <p>One dashboard shows what every dollar produced, so you double down with confidence.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================== BENEFIT BAND ===================== -->
+<section class="band">
+  <div class="wrap">
+    <div class="sec-eyebrow"><span class="bar" aria-hidden="true"></span><span class="mono">[ Why Compound pays off ]</span></div>
+    <p class="sec-sub">The loop Compound closes, in plain numbers you can check.</p>
+    <div class="band-grid">
+      <div class="stat-card">
+        <div class="num">68%</div>
+        <div class="lab">Of people will only use a business with 4 or more stars.</div>
+        <div class="cite"><a href="https://www.brightlocal.com/research/local-consumer-review-survey/" target="_blank" rel="noopener">Source: BrightLocal, Local Consumer Review Survey 2026</a></div>
+      </div>
+      <div class="stat-card">
+        <div class="num">5 to 25x</div>
+        <div class="lab">More expensive to win a new customer than to keep one.</div>
+        <div class="cite"><a href="https://hbr.org/2014/10/the-value-of-keeping-the-right-customers" target="_blank" rel="noopener">Source: Harvard Business Review, 2014</a></div>
+      </div>
+      <div class="stat-card">
+        <div class="num">Every job</div>
+        <div class="lab">Turns into an automatic review request, so your rating climbs on its own.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PILLAR SWITCHER ===================== -->
+<section class="switcher">
+  <div class="wrap">
+    <div class="pills">
+      <a class="pill" href="capture-c.html">Capture</a>
+      <a class="pill" href="convert-c.html">Convert</a>
+      <a class="pill on" href="compound-c.html">Compound</a>
+      <a class="pill" href="command-center.html">Command Center</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== APPLY ===================== -->
+<section class="apply-sec" id="apply">
+  <div class="wrap">
+    <div class="apply">
+      <div class="eb"><span class="mono">[ Book a demo ]</span></div>
+      <h2>Book a quick 15 minute demo call with the CEO himself.</h2>
+      <p>See exactly how the Revenue Recovery System would work in your business. No pressure, no hard sell.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="book.html">Book a Demo Call <span class="arr" aria-hidden="true">&rarr;</span></a>
+        <a class="btn btn-ghost" href="tel:+17343010570">Call 734-301-0570</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer>
+  <div class="wrap foot-inner">
+    <a class="wordmark" href="index.html"><span class="dot" aria-hidden="true"></span>HAUCK MARKETING</a>
+    <div class="contact">
+      <a href="mailto:contact.jakehauck@gmail.com">contact.jakehauck@gmail.com</a> &middot; <a href="tel:+17343010570">734-301-0570</a>
+    </div>
+    <div class="legal">&copy; Hauck Marketing</div>
+  </div>
+</footer>
+
+</body>
+</html>

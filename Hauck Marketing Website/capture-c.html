@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Capture: catch every lead you already paid for. Calls, forms, and messages land in one place and get worked right away. Hauck Marketing." />
+<meta name="theme-color" content="#07120E" />
+<meta property="og:title" content="Capture. Catch every lead you already paid for." />
+<meta property="og:description" content="Every call, form, and message lands in one place and gets worked right away." />
+<meta property="og:type" content="website" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2307120E'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-weight='bold' font-size='20' fill='%232FD49B' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E" />
+<title>Capture. Catch every lead you already paid for. Hauck Marketing.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #07120E;
+    --surface: #0E1A15;
+    --grid: rgba(255, 255, 255, 0.22);
+    --hair: rgba(255, 255, 255, 0.15);
+    --ink: #FFFFFF;
+    --muted: rgba(255, 255, 255, 0.76);
+    --text: #FFFFFF;
+    --accent: #2FD49B;
+    --mint: #8BF0CC;
+    --cyan: #E8C36A;
+    --white: #FFFFFF;
+    --line: rgba(255, 255, 255, 0.48);
+    --line-soft: rgba(255, 255, 255, 0.28);
+    --r: 8px;
+    --maxw: 1240px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; overflow-x: hidden; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(130% 100% at 50% -10%, #0B1D17 0%, #07120E 52%, #040A07 100%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ===== moving gradient background ===== */
+  .aurora {
+    position: fixed;
+    inset: -30%;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(44% 48% at 18% 22%, rgba(47, 212, 155, 0.16), transparent 60%),
+      radial-gradient(52% 56% at 85% 26%, rgba(16, 54, 44, 0.65), transparent 62%),
+      radial-gradient(58% 62% at 72% 86%, rgba(5, 18, 14, 0.88), transparent 60%),
+      radial-gradient(48% 52% at 26% 90%, rgba(22, 64, 52, 0.45), transparent 60%);
+    filter: blur(74px) saturate(105%);
+    animation: aurora 26s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  @keyframes aurora {
+    0%   { transform: translate3d(-3%, -2%, 0) scale(1.06) rotate(0deg); }
+    50%  { transform: translate3d(3%, 2%, 0)  scale(1.16) rotate(7deg); }
+    100% { transform: translate3d(-2%, 3%, 0) scale(1.09) rotate(-6deg); }
+  }
+  .scrim {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(120% 90% at 50% 0%, transparent 40%, rgba(7, 18, 14, 0.55) 100%);
+  }
+
+  ::selection { background: rgba(47, 212, 155, 0.32); color: #fff; }
+  a { color: inherit; text-decoration: none; }
+
+  .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  .mono {
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  h1, h2, h3 {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin: 0;
+  }
+
+  .accent { color: var(--accent); }
+
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* ---------- BUTTONS ---------- */
+  .btn {
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.01em;
+    font-weight: 600;
+    padding: 12px 22px;
+    border-radius: var(--r);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform 0.15s, box-shadow 0.2s, background 0.2s, border-color 0.2s, color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .btn .arr { transition: transform 0.2s ease; }
+  .btn:hover .arr { transform: translateX(3px); }
+  .btn-primary { background: var(--accent); color: #04140E; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(47, 212, 155, 0.4); }
+  .btn-ghost { background: rgba(255, 255, 255, 0.03); color: var(--ink); border-color: rgba(47, 212, 155, 0.4); }
+  .btn-ghost:hover { border-color: var(--accent); background: rgba(47, 212, 155, 0.1); }
+
+  /* ---------- NAV (centered) ---------- */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+    background: rgba(7, 18, 14, 0.66);
+    border-bottom: 1px solid var(--hair);
+  }
+  .nav-inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    height: 88px;
+  }
+  .nav-left { justify-self: start; }
+  .nav-center { justify-self: center; display: flex; align-items: center; gap: 30px; }
+  .nav-right { justify-self: end; }
+  .wordmark {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: 19px;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .wordmark .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: dotpulse 3s ease-in-out infinite;
+  }
+  @keyframes dotpulse { 0%, 100% { box-shadow: 0 0 8px var(--accent); } 50% { box-shadow: 0 0 16px var(--accent); } }
+  .nav-link {
+    font-family: "Inter", sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    transition: color 0.2s;
+  }
+  .nav-link:hover { color: var(--accent); }
+  .nav .btn { padding: 12px 22px; font-size: 14px; }
+
+  /* ---------- HERO ---------- */
+  .head { padding: 60px 0 30px; position: relative; text-align: center; }
+  .head-eyebrow { margin-bottom: 20px; display: inline-flex; gap: 14px; align-items: center; justify-content: center; }
+  .head-eyebrow .bar { width: 28px; height: 1px; background: var(--accent); }
+  h1.head-h {
+    font-size: clamp(34px, 5vw, 60px);
+    max-width: 18ch;
+    margin: 0 auto;
+  }
+  .head-sub {
+    margin: 22px auto 0;
+    max-width: 58ch;
+    color: var(--text);
+    font-size: clamp(16px, 1.6vw, 18px);
+    line-height: 1.6;
+  }
+  .head-sub strong { color: var(--ink); font-weight: 600; }
+
+  /* inline hero stat */
+  .hero-stat {
+    margin: 38px auto 0;
+    max-width: 60ch;
+    display: inline-flex;
+    align-items: center;
+    gap: 22px;
+    padding: 20px 28px;
+    border: 1px solid var(--grid);
+    border-radius: 14px;
+    background:
+      radial-gradient(120% 120% at 0% 0%, rgba(47, 212, 155, 0.1), transparent 60%),
+      rgba(14, 26, 21, 0.7);
+    backdrop-filter: blur(6px);
+    text-align: left;
+  }
+  .hero-stat .big {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: clamp(40px, 6vw, 58px);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .hero-stat .txt { color: var(--text); font-size: 16px; line-height: 1.5; }
+  .hero-stat .txt strong { color: var(--ink); font-weight: 700; }
+  .head-cta { margin-top: 30px; display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+
+  /* citation under any stat */
+  .cite { display: block; margin-top: 9px; font-size: 12px; color: var(--muted); }
+  .cite a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: rgba(255,255,255,0.25); }
+  .cite a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+
+  /* ---------- SECTION EYEBROW ---------- */
+  .sec-eyebrow { margin-bottom: 16px; display: inline-flex; gap: 14px; align-items: center; }
+  .sec-eyebrow .bar { width: 28px; height: 1px; background: var(--accent); }
+  .sec-head { padding-top: 72px; }
+  .sec-sub { color: var(--text); margin: 12px 0 0; max-width: 52ch; font-size: 17px; }
+
+  /* ---------- NUMBERED FEATURE ROWS ---------- */
+  .rows { margin-top: 24px; border-top: 1px solid var(--hair); }
+  .row {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 48px;
+    align-items: center;
+    padding: 34px 0;
+    border-bottom: 1px solid var(--hair);
+  }
+  .row .graphic { order: 0; }
+  .row .body { order: 1; }
+  .row.flip .graphic { order: 1; }
+  .row.flip .body { order: 0; }
+
+  .graphic {
+    border: 1px solid var(--hair);
+    border-radius: 14px;
+    background:
+      radial-gradient(120% 90% at 50% -8%, rgba(255, 255, 255, 0.04), transparent 60%),
+      rgba(14, 26, 21, 0.55);
+    padding: 18px;
+    min-height: 196px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .graphic svg { width: 100%; height: auto; max-height: 168px; display: block; }
+
+  .row .idx {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    color: var(--mint);
+  }
+  .row h3 {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: 25px;
+    letter-spacing: -0.02em;
+    color: var(--white);
+    margin: 8px 0 0;
+  }
+  .row .desc { color: var(--text); font-size: 16.5px; line-height: 1.6; margin: 12px 0 0; max-width: 46ch; }
+  .row .metric {
+    margin-top: 18px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .row .metric .num {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: clamp(30px, 4vw, 40px);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--mint);
+  }
+  .row .metric .lab {
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text);
+    max-width: 26ch;
+    line-height: 1.4;
+  }
+
+  /* ---------- BENEFIT BAND ---------- */
+  section.band { padding-top: 72px; }
+  .band-grid {
+    margin-top: 32px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .stat-card {
+    border: 1px solid var(--grid);
+    border-radius: 14px;
+    padding: 28px 24px;
+    background:
+      radial-gradient(120% 90% at 50% -8%, rgba(47, 212, 155, 0.08), transparent 62%),
+      rgba(14, 26, 21, 0.7);
+    backdrop-filter: blur(6px);
+  }
+  .stat-card .num {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: clamp(34px, 4.4vw, 46px);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+  }
+  .stat-card .lab { color: var(--text); font-size: 15px; line-height: 1.45; margin-top: 12px; }
+
+  /* ---------- OUTCOMES: what this does to your business ---------- */
+  section.outcomes { padding-top: 72px; }
+  .sec-title { font-family: "Inter", sans-serif; font-weight: 800; font-size: clamp(26px, 3.4vw, 42px); letter-spacing: -0.03em; color: var(--white); margin: 6px 0 0; }
+  .out-grid { margin-top: 32px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .out-card {
+    border: 1px solid var(--grid);
+    border-radius: 14px;
+    padding: 28px 26px;
+    background: rgba(14, 26, 21, 0.55);
+  }
+  .out-card .ic {
+    width: 34px; height: 34px; border-radius: 9px;
+    border: 1.5px solid var(--accent);
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+  }
+  .out-card .ic svg { width: 18px; height: 18px; display: block; }
+  .out-card h3 { font-family: "Inter", sans-serif; font-weight: 800; font-size: 21px; letter-spacing: -0.02em; color: var(--white); margin: 0; }
+  .out-card p { color: var(--text); font-size: 16px; line-height: 1.6; margin: 10px 0 0; }
+
+  /* ---------- PILLAR SWITCHER ---------- */
+  section.switcher { padding-top: 72px; text-align: center; }
+  .pills { display: inline-flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+    border: 1px solid var(--hair); border-radius: 999px; padding: 8px; background: rgba(14, 26, 21, 0.6); }
+  .pill {
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 10px 20px;
+    border-radius: 999px;
+    color: var(--muted);
+    transition: color 0.2s, background 0.2s;
+  }
+  .pill:hover { color: var(--ink); }
+  .pill.on { color: #04140E; background: var(--accent); }
+
+  /* ---------- APPLY ---------- */
+  section.apply-sec { padding-top: 72px; }
+  .apply {
+    background:
+      radial-gradient(90% 130% at 50% 0%, rgba(47, 212, 155, 0.18), transparent 60%),
+      rgba(14, 26, 21, 0.82);
+    border: 1px solid var(--grid);
+    border-radius: 16px;
+    padding: 72px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(6px);
+  }
+  .apply .eb { position: relative; z-index: 2; margin-bottom: 18px; }
+  .apply .eb .mono { color: var(--accent); }
+  .apply h2 { font-size: clamp(30px, 4.6vw, 52px); position: relative; z-index: 2; max-width: 20ch; margin: 0 auto; }
+  .apply p { color: var(--muted); margin: 20px auto 0; max-width: 46ch; position: relative; z-index: 2; }
+  .apply .cta { justify-content: center; position: relative; z-index: 2; margin-top: 32px; display: flex; gap: 14px; flex-wrap: wrap; }
+
+  /* ---------- FOOTER ---------- */
+  footer { border-top: 1px solid var(--hair); margin-top: 72px; padding: 44px 0 54px; }
+  .foot-inner { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 24px; }
+  .foot-inner .contact { font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.06em; color: var(--muted); }
+  .foot-inner .contact a { color: var(--accent); }
+  .foot-inner .legal { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+
+  /* ---------- SVG MICRO-GRAPHIC PRIMITIVES ---------- */
+  .g-node { fill: #11201A; stroke: var(--line-soft); stroke-width: 1.2; }
+  .g-line { fill: none; stroke: var(--line-soft); stroke-width: 1.4; }
+  .g-stroke { fill: none; stroke: var(--white); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .g-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; fill: var(--muted); }
+  .g-fill-soft { fill: rgba(255,255,255,0.06); }
+
+  /* pulse for a "live" dot, neutral white */
+  .g-ping { fill: var(--accent); animation: gping 2.6s ease-in-out infinite; transform-origin: center; }
+  @keyframes gping { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  /* a single packet traveling a path, white */
+  .g-packet { fill: none; stroke: var(--white); stroke-width: 2.4; stroke-linecap: round;
+    stroke-dasharray: 8 160; animation: gflow 3.2s linear infinite; }
+  @keyframes gflow { to { stroke-dashoffset: -168; } }
+
+  /* a soft sweep highlight */
+  .g-sweep { stroke-dasharray: 60; stroke-dashoffset: 60; animation: gdraw 3.4s ease-in-out infinite; }
+  @keyframes gdraw { 0% { stroke-dashoffset: 60; } 40%, 75% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 60; } }
+
+  /* a gentle bob */
+  .g-bob { animation: gbob 4s ease-in-out infinite; transform-origin: center; }
+  @keyframes gbob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 900px) {
+    .band-grid { grid-template-columns: 1fr; }
+    .out-grid { grid-template-columns: 1fr; }
+    .row { grid-template-columns: 1fr; gap: 22px; }
+    .row .graphic, .row.flip .graphic { order: 0; }
+    .row .body, .row.flip .body { order: 1; }
+    .hero-stat { flex-direction: column; align-items: flex-start; gap: 12px; text-align: left; }
+  }
+  @media (max-width: 820px) {
+    .nav-center { display: none; }
+  }
+  @media (max-width: 560px) {
+    body { font-size: 16px; }
+    .head { padding: 56px 0 28px; }
+    .nav-inner { height: 62px; grid-template-columns: 1fr auto; }
+    .nav-left { display: none; }
+    .nav-center { display: none; }
+    .wordmark { font-size: 15px; gap: 9px; }
+    .sec-head { padding-top: 72px; }
+    .apply { padding: 52px 22px; }
+    .foot-inner { align-items: flex-start; }
+    .pills { width: 100%; justify-content: center; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .aurora, .wordmark .dot, .g-ping, .g-packet, .g-sweep, .g-bob {
+      animation: none !important;
+    }
+    .g-packet { opacity: 0; }
+    .g-sweep { stroke-dashoffset: 0; }
+    .btn:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true"></div>
+<div class="scrim" aria-hidden="true"></div>
+
+<!-- ===================== NAV ===================== -->
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <div class="nav-left">
+      <a class="wordmark" href="index.html"><span class="dot" aria-hidden="true"></span>HAUCK MARKETING</a>
+    </div>
+    <div class="nav-center">
+      <a class="nav-link" href="index.html">Revenue Recovery System</a>
+      <a class="nav-link" href="founder.html">From the founder</a>
+      <a class="nav-link" href="command-center.html">Command Center</a>
+    </div>
+    <div class="nav-right">
+      <a class="btn btn-primary" href="book.html">Book Demo Call <span class="arr" aria-hidden="true">&rarr;</span></a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<header class="head" id="top">
+  <div class="wrap">
+    <div class="head-eyebrow">
+      <span class="bar" aria-hidden="true"></span>
+      <span class="mono">[ Pillar 01 &middot; Capture ]</span>
+      <span class="bar" aria-hidden="true"></span>
+    </div>
+    <h1 class="head-h">Catch every lead you <span class="accent">already paid for</span>.</h1>
+    <p class="head-sub">Missed calls on the ladder. Web leads sitting overnight. After-hours demand going to voicemail. Capture seals those leaks, so every call, form, and message lands in <strong>one place</strong> and gets worked right away.</p>
+
+    <div class="hero-stat">
+      <span class="big">21x</span>
+      <span class="txt"><strong>More likely to qualify a lead</strong> when you reply within 5 minutes instead of 30.
+        <span class="cite"><a href="https://www.leadresponsemanagement.org/lrm_study/" target="_blank" rel="noopener">Source: Lead Response Management Study, 2007</a></span>
+      </span>
+    </div>
+
+    <div class="head-cta">
+      <a class="btn btn-primary" href="book.html">Book a Demo Call <span class="arr" aria-hidden="true">&rarr;</span></a>
+      <a class="btn btn-ghost" href="index.html">Back to home</a>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== DELIVERABLE ROWS ===================== -->
+<section class="sec-head">
+  <div class="wrap">
+    <div class="sec-eyebrow"><span class="bar" aria-hidden="true"></span><span class="mono">[ What's inside Capture ]</span></div>
+    <p class="sec-sub">Everything that catches a lead before it can slip away.</p>
+
+    <div class="rows">
+
+      <!-- 01 Voice Reception Agent -->
+      <div class="row">
+        <div class="graphic" aria-hidden="true">
+          <svg viewBox="0 0 280 150" preserveAspectRatio="xMidYMid meet" role="presentation">
+            <rect class="g-node" x="20" y="50" width="58" height="50" rx="10"/>
+            <path class="g-stroke" d="M36 66 q4 -6 10 -2 q3 3 1 8 q-2 5 3 9 q5 4 9 1 q5 -3 8 1"/>
+            <path class="g-line" d="M78 75 H 150"/>
+            <path class="g-packet" d="M78 75 H 150"/>
+            <rect class="g-node" x="150" y="40" width="110" height="70" rx="12"/>
+            <text class="g-label" x="166" y="62">CALENDAR</text>
+            <rect x="166" y="74" width="18" height="14" rx="3" class="g-fill-soft"/>
+            <rect x="192" y="74" width="18" height="14" rx="3" fill="rgba(47,212,155,0.18)" stroke="var(--accent)"/>
+            <rect x="218" y="74" width="18" height="14" rx="3" class="g-fill-soft"/>
+            <circle class="g-ping" cx="69" cy="58" r="4"/>
+          </svg>
+        </div>
+        <div class="body">
+          <span class="idx">[ 01 ]</span>
+          <h3>Voice Reception Agent</h3>
+          <p class="desc">Answers your calls 24/7, qualifies the caller, and books them straight onto your calendar when you cannot pick up.</p>
+          <div class="metric"><span class="num">24/7</span><span class="lab">Every call answered, even after hours and on the job.</span></div>
+        </div>
+      </div>
+
+      <!-- 02 Missed-call text-back -->
+      <div class="row flip">
+        <div class="graphic" aria-hidden="true">
+          <svg viewBox="0 0 280 150" preserveAspectRatio="xMidYMid meet" role="presentation">
+            <circle class="g-line" cx="60" cy="75" r="26"/>
+            <path class="g-stroke" d="M50 66 q3 -5 8 -2 q3 2 1 7 q-1 4 2 7 q4 3 7 0"/>
+            <line x1="46" y1="61" x2="74" y2="89" stroke="var(--white)" stroke-width="1.8" stroke-linecap="round"/>
+            <path class="g-line g-sweep" d="M86 75 H 150"/>
+            <path class="g-packet" d="M86 75 H 150"/>
+            <rect class="g-node" x="150" y="44" width="110" height="62" rx="12"/>
+            <text class="g-label" x="166" y="66">TEXT SENT</text>
+            <rect x="166" y="76" width="78" height="8" rx="4" fill="rgba(47,212,155,0.5)"/>
+            <rect x="166" y="88" width="54" height="8" rx="4" class="g-fill-soft"/>
+          </svg>
+        </div>
+        <div class="body">
+          <span class="idx">[ 02 ]</span>
+          <h3>Missed-call text-back</h3>
+          <p class="desc">Every missed call gets an instant text back, so the caller never just dials the next company on the list.</p>
+          <div class="metric"><span class="num">0</span><span class="lab">missed calls left without a reply</span></div>
+        </div>
+      </div>
+
+      <!-- 03 Conversation Agent -->
+      <div class="row">
+        <div class="graphic" aria-hidden="true">
+          <svg viewBox="0 0 280 150" preserveAspectRatio="xMidYMid meet" role="presentation">
+            <rect class="g-node" x="22" y="34" width="120" height="30" rx="10"/>
+            <text class="g-label" x="36" y="53" style="fill:var(--ink);">New web lead</text>
+            <rect x="138" y="86" width="120" height="30" rx="10" fill="rgba(47,212,155,0.1)" stroke="rgba(47,212,155,0.5)"/>
+            <text class="g-label" x="152" y="105" style="fill:var(--accent);">Replied in seconds</text>
+            <path class="g-line g-sweep" d="M82 64 C 90 78, 150 78, 160 86"/>
+            <g class="g-bob" transform="translate(40,92)">
+              <circle cx="6" cy="10" r="3" fill="var(--muted)"/>
+              <circle cx="18" cy="10" r="3" fill="var(--muted)"/>
+              <circle cx="30" cy="10" r="3" fill="var(--muted)"/>
+            </g>
+          </svg>
+        </div>
+        <div class="body">
+          <span class="idx">[ 03 ]</span>
+          <h3>Conversation Agent</h3>
+          <p class="desc">Engages web and Facebook leads in seconds by text, day or night, and starts the booking conversation.</p>
+          <div class="metric"><span class="num">21x</span><span class="lab">More likely to qualify a lead with a 5 minute reply.</span></div>
+          <span class="cite"><a href="https://www.leadresponsemanagement.org/lrm_study/" target="_blank" rel="noopener">Source: Lead Response Management Study, 2007</a></span>
+        </div>
+      </div>
+
+      <!-- 04 Unified inbox -->
+      <div class="row flip">
+        <div class="graphic" aria-hidden="true">
+          <svg viewBox="0 0 280 150" preserveAspectRatio="xMidYMid meet" role="presentation">
+            <g class="g-line">
+              <rect class="g-node" x="20" y="20" width="46" height="22" rx="6"/>
+              <rect class="g-node" x="20" y="52" width="46" height="22" rx="6"/>
+              <rect class="g-node" x="20" y="84" width="46" height="22" rx="6"/>
+              <rect class="g-node" x="20" y="116" width="46" height="22" rx="6"/>
+            </g>
+            <text class="g-label" x="43" y="35" text-anchor="middle">CALL</text>
+            <text class="g-label" x="43" y="67" text-anchor="middle">SMS</text>
+            <text class="g-label" x="43" y="99" text-anchor="middle">FB</text>
+            <text class="g-label" x="43" y="131" text-anchor="middle">MAPS</text>
+            <path class="g-line" d="M66 31 C 110 31, 120 75, 168 75"/>
+            <path class="g-line" d="M66 63 C 120 63, 120 75, 168 75"/>
+            <path class="g-line" d="M66 95 C 120 95, 120 75, 168 75"/>
+            <path class="g-line" d="M66 127 C 110 127, 120 75, 168 75"/>
+            <path class="g-packet" d="M66 95 C 120 95, 120 75, 168 75"/>
+            <rect class="g-node" x="168" y="48" width="92" height="54" rx="12"/>
+            <text class="g-label" x="214" y="79" text-anchor="middle" style="fill:var(--accent);">ONE INBOX</text>
+          </svg>
+        </div>
+        <div class="body">
+          <span class="idx">[ 04 ]</span>
+          <h3>Unified inbox</h3>
+          <p class="desc">Calls, texts, Facebook, Instagram, and Google messages all in one place. No more juggling apps.</p>
+          <div class="metric"><span class="num">5</span><span class="lab">channels in one place, zero apps to juggle</span></div>
+        </div>
+      </div>
+
+      <!-- 05 Custom website -->
+      <div class="row">
+        <div class="graphic" aria-hidden="true">
+          <svg viewBox="0 0 280 150" preserveAspectRatio="xMidYMid meet" role="presentation">
+            <rect class="g-node" x="36" y="24" width="160" height="102" rx="10"/>
+            <line x1="36" y1="44" x2="196" y2="44" class="g-line"/>
+            <circle cx="48" cy="34" r="3" class="g-fill-soft"/>
+            <circle cx="58" cy="34" r="3" class="g-fill-soft"/>
+            <rect x="52" y="56" width="80" height="9" rx="4" class="g-fill-soft"/>
+            <rect x="52" y="72" width="120" height="7" rx="3.5" class="g-fill-soft"/>
+            <rect x="52" y="86" width="100" height="7" rx="3.5" class="g-fill-soft"/>
+            <rect x="52" y="104" width="54" height="14" rx="4" fill="rgba(47,212,155,0.18)" stroke="var(--accent)"/>
+            <g class="g-bob" transform="translate(176,96)">
+              <rect width="56" height="36" rx="10" fill="#11201A" stroke="var(--accent)" stroke-width="1.4"/>
+              <circle cx="16" cy="18" r="3" fill="var(--accent)"/>
+              <rect x="26" y="14" width="22" height="4" rx="2" class="g-fill-soft"/>
+              <rect x="26" y="22" width="14" height="4" rx="2" class="g-fill-soft"/>
+            </g>
+          </svg>
+        </div>
+        <div class="body">
+          <span class="idx">[ 05 ]</span>
+          <h3>Custom website</h3>
+          <p class="desc">Your own site with a chat widget and estimate forms that feed every lead straight into the system.</p>
+          <div class="metric"><span class="num">1</span><span class="lab">site feeding every lead into one place</span></div>
+        </div>
+      </div>
+
+      <!-- 06 Two Meta ad funnels -->
+      <div class="row flip">
+        <div class="graphic" aria-hidden="true">
+          <svg viewBox="0 0 280 150" preserveAspectRatio="xMidYMid meet" role="presentation">
+            <rect class="g-node" x="22" y="28" width="92" height="34" rx="9"/>
+            <text class="g-label" x="36" y="49" style="fill:var(--ink);">Lead form</text>
+            <rect class="g-node" x="22" y="88" width="92" height="34" rx="9"/>
+            <text class="g-label" x="36" y="109" style="fill:var(--ink);">Quiz funnel</text>
+            <path class="g-line" d="M114 45 C 150 45, 150 75, 186 75"/>
+            <path class="g-line" d="M114 105 C 150 105, 150 75, 186 75"/>
+            <path class="g-packet" d="M114 45 C 150 45, 150 75, 186 75"/>
+            <rect class="g-node" x="186" y="52" width="74" height="46" rx="11" fill="rgba(47,212,155,0.1)" stroke="rgba(47,212,155,0.5)"/>
+            <text class="g-label" x="223" y="79" text-anchor="middle" style="fill:var(--accent);">BOOKED</text>
+          </svg>
+        </div>
+        <div class="body">
+          <span class="idx">[ 06 ]</span>
+          <h3>Two Meta ad funnels</h3>
+          <p class="desc">A volume lead form plus a pre-qualifying quiz that books interested people straight onto your calendar.</p>
+          <div class="metric"><span class="num">2</span><span class="lab">funnels feeding your calendar</span></div>
+        </div>
+      </div>
+
+      <!-- 07 Retargeting -->
+      <div class="row">
+        <div class="graphic" aria-hidden="true">
+          <svg viewBox="0 0 280 150" preserveAspectRatio="xMidYMid meet" role="presentation">
+            <circle class="g-line" cx="140" cy="75" r="44"/>
+            <path class="g-stroke g-sweep" d="M140 31 A 44 44 0 1 1 100 60"/>
+            <path class="g-stroke" d="M100 52 L 100 62 L 110 62"/>
+            <circle class="g-ping" cx="140" cy="75" r="6"/>
+            <text class="g-label" x="140" y="112" text-anchor="middle">WARM AGAIN</text>
+          </svg>
+        </div>
+        <div class="body">
+          <span class="idx">[ 07 ]</span>
+          <h3>Retargeting</h3>
+          <p class="desc">Warm traffic you already paid to reach gets followed up and brought back, not paid for once and lost.</p>
+          <div class="metric"><span class="num">0</span><span class="lab">Warm leads paid for once and then left behind.</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================== OUTCOMES ===================== -->
+<section class="outcomes">
+  <div class="wrap">
+    <div class="sec-eyebrow"><span class="bar" aria-hidden="true"></span><span class="mono">[ The payoff ]</span></div>
+    <h2 class="sec-title">What this does to your business</h2>
+    <p class="sec-sub">The leaks close, and here is what changes for you.</p>
+    <div class="out-grid">
+
+      <div class="out-card">
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
+        <h3>More booked jobs from the same ads</h3>
+        <p>You already pay for these leads. The system makes sure more of them turn into jobs on your calendar, not missed chances.</p>
+      </div>
+
+      <div class="out-card">
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
+        <h3>Your phone stops leaking</h3>
+        <p>Every call gets answered or texted back in seconds, even when you are up on a roof or under a sink.</p>
+      </div>
+
+      <div class="out-card">
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
+        <h3>Follow up runs without you</h3>
+        <p>Quotes stop dying in silence. Every lead gets worked until it books or clearly says no, on its own.</p>
+      </div>
+
+      <div class="out-card">
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
+        <h3>Each job feeds the next one</h3>
+        <p>Reviews and past customers turn into repeat work, so winning the next job costs you less every time.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================== BENEFIT BAND ===================== -->
+<section class="band">
+  <div class="wrap">
+    <div class="sec-eyebrow"><span class="bar" aria-hidden="true"></span><span class="mono">[ Why Capture pays off ]</span></div>
+    <p class="sec-sub">The leaks Capture seals, in plain numbers you can check.</p>
+    <div class="band-grid">
+      <div class="stat-card">
+        <div class="num">21x</div>
+        <div class="lab">More likely to qualify a lead when you reply within 5 minutes.</div>
+        <div class="cite"><a href="https://www.leadresponsemanagement.org/lrm_study/" target="_blank" rel="noopener">Source: Lead Response Management Study, 2007</a></div>
+      </div>
+      <div class="stat-card">
+        <div class="num">27%</div>
+        <div class="lab">Of inbound calls the average home services business misses.</div>
+        <div class="cite"><a href="https://www.invoca.com/blog/how-much-missed-sales-calls-cost-home-services-businesses" target="_blank" rel="noopener">Source: Invoca</a></div>
+      </div>
+      <div class="stat-card">
+        <div class="num">Up to 15x</div>
+        <div class="lab">Phone calls convert to revenue more than web form leads.</div>
+        <div class="cite"><a href="https://martech.org/invoca-adds-missing-channel-phone-calls-salesforces-marketing-cloud/" target="_blank" rel="noopener">Source: BIA/Kelsey</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PILLAR SWITCHER ===================== -->
+<section class="switcher">
+  <div class="wrap">
+    <div class="pills">
+      <a class="pill on" href="capture-c.html">Capture</a>
+      <a class="pill" href="convert-c.html">Convert</a>
+      <a class="pill" href="compound-c.html">Compound</a>
+      <a class="pill" href="command-center.html">Command Center</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== APPLY ===================== -->
+<section class="apply-sec" id="apply">
+  <div class="wrap">
+    <div class="apply">
+      <div class="eb"><span class="mono">[ Book a demo ]</span></div>
+      <h2>Book a quick 15 minute demo call with the CEO himself.</h2>
+      <p>See exactly how the Revenue Recovery System would work in your business. No pressure, no hard sell.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="book.html">Book a Demo Call <span class="arr" aria-hidden="true">&rarr;</span></a>
+        <a class="btn btn-ghost" href="tel:+17343010570">Call 734-301-0570</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer>
+  <div class="wrap foot-inner">
+    <a class="wordmark" href="index.html"><span class="dot" aria-hidden="true"></span>HAUCK MARKETING</a>
+    <div class="contact">
+      <a href="mailto:contact.jakehauck@gmail.com">contact.jakehauck@gmail.com</a> &middot; <a href="tel:+17343010570">734-301-0570</a>
+    </div>
+    <div class="legal">&copy; Hauck Marketing</div>
+  </div>
+</footer>
+
+</body>
+</html>

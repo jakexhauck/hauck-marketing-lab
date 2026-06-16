@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Book a quick 15 minute demo call with the CEO of Hauck Marketing and see the Revenue Recovery System in action." />
+<meta name="theme-color" content="#07120E" />
+<meta property="og:title" content="Book a demo call. Hauck Marketing." />
+<meta property="og:description" content="Book a quick 15 minute demo call with the CEO himself." />
+<meta property="og:type" content="website" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2307120E'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-weight='bold' font-size='20' fill='%232FD49B' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E" />
+<title>Book a demo call. Hauck Marketing.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #07120E;
+    --surface: #0E1A15;
+    --grid: rgba(255, 255, 255, 0.22);
+    --hair: rgba(255, 255, 255, 0.15);
+    --ink: #FFFFFF;
+    --muted: rgba(255, 255, 255, 0.76);
+    --text: #FFFFFF;
+    --accent: #2FD49B;
+    --mint: #8BF0CC;
+    --cyan: #E8C36A;
+    --white: #FFFFFF;
+    --line: rgba(255, 255, 255, 0.48);
+    --line-soft: rgba(255, 255, 255, 0.28);
+    --r: 8px;
+    --maxw: 1240px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; overflow-x: hidden; }
+
+  body {
+    margin: 0;
+    background: radial-gradient(130% 100% at 50% -10%, #0B1D17 0%, #07120E 52%, #040A07 100%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  .aurora {
+    position: fixed; inset: -30%; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(44% 48% at 18% 22%, rgba(47, 212, 155, 0.16), transparent 60%),
+      radial-gradient(52% 56% at 85% 26%, rgba(16, 54, 44, 0.65), transparent 62%),
+      radial-gradient(58% 62% at 72% 86%, rgba(5, 18, 14, 0.88), transparent 60%),
+      radial-gradient(48% 52% at 26% 90%, rgba(22, 64, 52, 0.45), transparent 60%);
+    filter: blur(74px) saturate(105%);
+    animation: aurora 26s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  @keyframes aurora {
+    0%   { transform: translate3d(-3%, -2%, 0) scale(1.06) rotate(0deg); }
+    50%  { transform: translate3d(3%, 2%, 0)  scale(1.16) rotate(7deg); }
+    100% { transform: translate3d(-2%, 3%, 0) scale(1.09) rotate(-6deg); }
+  }
+  .scrim { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(120% 90% at 50% 0%, transparent 40%, rgba(7, 18, 14, 0.55) 100%); }
+
+  ::selection { background: rgba(47, 212, 155, 0.32); color: #fff; }
+  a { color: inherit; text-decoration: none; }
+  .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  .mono { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.16em; font-size: 12px; color: var(--muted); }
+  h1, h2 { font-family: "Inter", sans-serif; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; margin: 0; }
+  .accent { color: var(--accent); }
+
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
+
+  .btn {
+    font-family: "Inter", sans-serif; font-size: 14px; letter-spacing: 0.01em; font-weight: 600;
+    padding: 12px 22px; border-radius: var(--r); cursor: pointer; border: 1px solid transparent;
+    transition: transform 0.15s, box-shadow 0.2s, background 0.2s, border-color 0.2s, color 0.2s;
+    display: inline-flex; align-items: center; gap: 9px;
+  }
+  .btn .arr { transition: transform 0.2s ease; }
+  .btn:hover .arr { transform: translateX(3px); }
+  .btn-primary { background: var(--accent); color: #04140E; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(47, 212, 155, 0.4); }
+  .btn-ghost { background: rgba(255, 255, 255, 0.05); color: var(--ink); border-color: rgba(255,255,255,0.4); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .nav { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); background: rgba(7, 18, 14, 0.66); border-bottom: 1px solid var(--hair); }
+  .nav-inner { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 88px; }
+  .nav-left { justify-self: start; }
+  .nav-center { justify-self: center; display: flex; align-items: center; gap: 30px; }
+  .nav-right { justify-self: end; }
+  .wordmark { font-family: "Inter", sans-serif; font-weight: 800; font-size: 19px; letter-spacing: 0.02em; color: var(--ink); display: flex; align-items: center; gap: 12px; }
+  .wordmark .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); animation: dotpulse 3s ease-in-out infinite; }
+  @keyframes dotpulse { 0%, 100% { box-shadow: 0 0 8px var(--accent); } 50% { box-shadow: 0 0 16px var(--accent); } }
+  .nav-link { font-family: "Inter", sans-serif; font-size: 15px; font-weight: 500; letter-spacing: 0.01em; color: var(--ink); transition: color 0.2s; }
+  .nav-link:hover { color: var(--accent); }
+  .nav .btn { padding: 12px 22px; font-size: 14px; }
+
+  .head { padding: 64px 0 8px; text-align: center; }
+  .head-eyebrow { margin-bottom: 20px; display: inline-flex; gap: 14px; align-items: center; justify-content: center; }
+  .head-eyebrow .bar { width: 28px; height: 1px; background: var(--accent); }
+  h1.head-h { font-size: clamp(32px, 4.6vw, 54px); max-width: 22ch; margin: 0 auto; }
+  .head-sub { margin: 20px auto 0; max-width: 52ch; color: var(--text); font-size: 17px; line-height: 1.6; }
+
+  .points { margin: 24px auto 0; display: inline-flex; flex-wrap: wrap; gap: 10px 26px; justify-content: center; }
+  .point { display: inline-flex; align-items: center; gap: 8px; color: var(--text); font-size: 14.5px; }
+  .point svg { width: 16px; height: 16px; }
+
+  /* calendar embed */
+  section.cal-sec { padding-top: 36px; }
+  .cal-shell {
+    max-width: 920px; margin: 0 auto;
+    border: 1px solid var(--grid); border-radius: 16px;
+    background: rgba(14, 26, 21, 0.55); backdrop-filter: blur(6px);
+    padding: 14px; position: relative; overflow: hidden;
+    min-height: 740px;
+  }
+  .cal-shell iframe { width: 100%; min-height: 720px; border: none; display: block; border-radius: 10px; background: transparent; }
+  /* fallback shown if the calendar is not configured yet */
+  .cal-fallback {
+    position: absolute; inset: 14px; border-radius: 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    gap: 14px; padding: 40px 24px; color: var(--text);
+    border: 1px dashed var(--line-soft);
+    background: rgba(7, 18, 14, 0.4);
+  }
+  .cal-fallback .mono { color: var(--accent); }
+  .cal-fallback p { margin: 0; max-width: 44ch; color: var(--muted); }
+
+  footer { border-top: 1px solid var(--hair); margin-top: 72px; padding: 44px 0 54px; }
+  .foot-inner { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 24px; }
+  .foot-inner .contact { font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.06em; color: var(--muted); }
+  .foot-inner .contact a { color: var(--accent); }
+  .foot-inner .legal { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+
+  @media (max-width: 820px) { .nav-center { display: none; } }
+  @media (max-width: 560px) {
+    body { font-size: 16px; }
+    .nav-inner { height: 62px; grid-template-columns: 1fr auto; }
+    .nav-left { display: none; }
+    .wordmark { font-size: 15px; gap: 9px; }
+    .foot-inner { align-items: flex-start; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .aurora, .wordmark .dot { animation: none !important; }
+    .btn:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true"></div>
+<div class="scrim" aria-hidden="true"></div>
+
+<!-- ===================== NAV ===================== -->
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <div class="nav-left">
+      <a class="wordmark" href="index.html"><span class="dot" aria-hidden="true"></span>HAUCK MARKETING</a>
+    </div>
+    <div class="nav-center">
+      <a class="nav-link" href="index.html">Revenue Recovery System</a>
+      <a class="nav-link" href="founder.html">From the founder</a>
+      <a class="nav-link" href="command-center.html">Command Center</a>
+    </div>
+    <div class="nav-right">
+      <a class="btn btn-primary" href="#calendar">Book Demo Call <span class="arr" aria-hidden="true">&rarr;</span></a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<header class="head">
+  <div class="wrap">
+    <div class="head-eyebrow">
+      <span class="bar" aria-hidden="true"></span>
+      <span class="mono">[ Book a demo ]</span>
+      <span class="bar" aria-hidden="true"></span>
+    </div>
+    <h1 class="head-h">Book a quick 15 minute demo call with the <span class="accent">CEO himself</span>.</h1>
+    <p class="head-sub">See exactly how the Revenue Recovery System would work in your business. Pick a time below. No pressure, no hard sell.</p>
+    <div class="points">
+      <span class="point"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>15 minutes</span>
+      <span class="point"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>Straight with the founder</span>
+      <span class="point"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>Built for local businesses</span>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== CALENDAR ===================== -->
+<section class="cal-sec" id="calendar">
+  <div class="wrap">
+    <div class="cal-shell">
+      <iframe src="https://link.hauckmarketing.com/widget/booking/bNngVkJWa6qNGw18whfp" title="Book a demo call with Hauck Marketing" scrolling="no" id="bNngVkJWa6qNGw18whfp_1781637495899"></iframe>
+    </div>
+  </div>
+</section>
+
+<script src="https://link.hauckmarketing.com/js/form_embed.js" type="text/javascript"></script>
+
+<!-- ===================== FOOTER ===================== -->
+<footer>
+  <div class="wrap foot-inner">
+    <a class="wordmark" href="index.html"><span class="dot" aria-hidden="true"></span>HAUCK MARKETING</a>
+    <div class="contact">
+      <a href="mailto:contact.jakehauck@gmail.com">contact.jakehauck@gmail.com</a> &middot; <a href="tel:+17343010570">734-301-0570</a>
+    </div>
+    <div class="legal">&copy; Hauck Marketing</div>
+  </div>
+</footer>
+
+</body>
+</html>
