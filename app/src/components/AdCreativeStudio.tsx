@@ -1399,12 +1399,12 @@ const ACS_CSS = `
 .acs-btn-primary {
   background: var(--hml-accent);
   border-color: var(--hml-accent);
-  color: #0b0b0e;
+  color: var(--brand-fg);
 }
 .acs-btn-accent {
   background: var(--hml-teal);
   border-color: var(--hml-teal);
-  color: #0b0b0e;
+  color: var(--brand-fg);
 }
 .acs-btn-quiet {
   background: transparent;

@@ -64,18 +64,18 @@ const USER_DATA_PARAMS: Array<{ key: string; label: string }> = [
 
 const READY_TONE: Record<string, { background: string; borderColor: string; color: string }> = {
   yes: {
-    background: "rgba(95, 230, 153, 0.13)",
-    borderColor: "rgba(95, 230, 153, 0.4)",
+    background: "color-mix(in srgb, var(--positive) 13%, transparent)",
+    borderColor: "color-mix(in srgb, var(--positive) 40%, transparent)",
     color: "var(--signal-go)",
   },
   conditional: {
-    background: "rgba(251, 191, 36, 0.13)",
-    borderColor: "rgba(251, 191, 36, 0.4)",
+    background: "color-mix(in srgb, var(--warning) 13%, transparent)",
+    borderColor: "color-mix(in srgb, var(--warning) 40%, transparent)",
     color: "var(--signal-hold)",
   },
   no: {
-    background: "rgba(248, 113, 113, 0.13)",
-    borderColor: "rgba(248, 113, 113, 0.4)",
+    background: "color-mix(in srgb, var(--danger) 13%, transparent)",
+    borderColor: "color-mix(in srgb, var(--danger) 40%, transparent)",
     color: "var(--signal-stop)",
   },
 };

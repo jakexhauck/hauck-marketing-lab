@@ -41,7 +41,7 @@ function Sparkline({ values }: { values: number[] }) {
   if (values.length < 2) {
     return (
       <svg className="hml-cl-spark" viewBox="0 0 78 22" preserveAspectRatio="none">
-        <line x1="0" y1="11" x2="78" y2="11" stroke="rgba(180,120,255,0.3)" strokeWidth="1" />
+        <line x1="0" y1="11" x2="78" y2="11" stroke="color-mix(in srgb, var(--brand) 30%, transparent)" strokeWidth="1" />
       </svg>
     );
   }
@@ -61,7 +61,7 @@ function Sparkline({ values }: { values: number[] }) {
       <polyline
         points={pts.join(" ")}
         fill="none"
-        stroke="#b478ff"
+        stroke="var(--brand)"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -243,13 +243,13 @@ const LANDING_CSS = `
 .hml-cl-add {
   height: 32px; padding: 0 14px; border-radius: 7px;
   background: linear-gradient(180deg, var(--hml-accent-bright), var(--hml-accent));
-  color: #0d0a1a; font-size: 12.5px; font-weight: 600;
+  color: var(--brand-fg); font-size: 12.5px; font-weight: 600;
   display: inline-flex; align-items: center; gap: 7px;
   border: none; cursor: pointer;
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.06) inset,
-    0 0 22px -2px rgba(180,120,255,0.45),
-    0 1px 0 rgba(255,255,255,0.2) inset;
+    0 0 0 1px rgba(var(--ink),0.06) inset,
+    0 0 22px -2px color-mix(in srgb, var(--brand) 45%, transparent),
+    0 1px 0 rgba(var(--ink),0.2) inset;
 }
 
 .hml-cl-kpis {
@@ -304,7 +304,7 @@ const LANDING_CSS = `
 .hml-cl-row > td:first-child { position: relative; }
 .hml-cl-row:hover > td:first-child::before {
   content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
-  background: var(--hml-accent); box-shadow: 0 0 12px rgba(180,120,255,0.45);
+  background: var(--hml-accent); box-shadow: 0 0 12px color-mix(in srgb, var(--brand) 45%, transparent);
 }
 
 .hml-cl-empty { color: var(--hml-text-tertiary); text-align: center; padding: 28px; }

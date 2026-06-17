@@ -440,7 +440,7 @@ export function OutreachHub({
                       className="hml-icon-btn"
                       onClick={() => deleteProspect(p.slug, p.name)}
                       title="Delete prospect"
-                      style={{ color: "var(--hml-red, #c4847b)" }}
+                      style={{ color: "var(--hml-red, var(--danger))" }}
                     >
                       ×
                     </button>

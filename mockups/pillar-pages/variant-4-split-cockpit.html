@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="The C3 Growth System: Capture, Convert, Compound. We make your growth leakproof, delivered as your branded Command Center." />
+<meta name="theme-color" content="#08090C" />
+<title>The C3 Growth System. Capture. Convert. Compound. | Hauck Marketing</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2308090C'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-weight='bold' font-size='20' fill='%235B8CFF' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #08090C;
+    --surface: #0F1218;
+    --grid: rgba(91, 140, 255, 0.16);
+    --hair: rgba(255, 255, 255, 0.06);
+    --ink: #EAF0FA;
+    --muted: #8A93A6;
+    --accent: #5B8CFF;
+    --cyan: #6FE3FF;
+    --r: 8px;
+    --maxw: 1180px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    /* faint blueprint grid */
+    background-image:
+      linear-gradient(var(--hair) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+    background-size: 64px 64px;
+    background-position: center top;
+  }
+
+  ::selection { background: rgba(91, 140, 255, 0.32); color: #fff; }
+
+  a { color: inherit; text-decoration: none; }
+
+  .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  .mono {
+    font-family: "JetBrains Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  h1, h2, h3 {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.04;
+    margin: 0;
+  }
+
+  .accent { color: var(--accent); }
+
+  /* ---- focus ---- */
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* ---------- NAV ---------- */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+    background: rgba(8, 9, 12, 0.72);
+    border-bottom: 1px solid var(--hair);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+  }
+  .wordmark {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .wordmark .dot {
+    width: 9px; height: 9px; border-radius: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+  }
+  .nav-links { display: flex; align-items: center; gap: 30px; }
+  .nav-links a.link {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+  .nav-links a.link:hover { color: var(--ink); }
+
+  .pill {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    border: 1px solid rgba(111, 227, 255, 0.28);
+    border-radius: 20px;
+    padding: 5px 12px 5px 26px;
+    position: relative;
+    white-space: nowrap;
+  }
+  .pill::before {
+    content: "";
+    position: absolute;
+    left: 12px; top: 50%;
+    width: 7px; height: 7px;
+    margin-top: -3.5px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    animation: blink 2.4s infinite;
+  }
+  @keyframes blink { 0%, 70%, 100% { opacity: 1; } 80% { opacity: 0.25; } }
+
+  .btn {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 11px 20px;
+    border-radius: var(--r);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform 0.15s, box-shadow 0.2s, background 0.2s, border-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #05060A;
+    box-shadow: 0 0 0 rgba(91, 140, 255, 0);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(91, 140, 255, 0.4);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink);
+    border-color: rgba(91, 140, 255, 0.4);
+  }
+  .btn-ghost:hover {
+    border-color: var(--accent);
+    background: rgba(91, 140, 255, 0.08);
+  }
+
+  .nav .btn { padding: 9px 16px; }
+
+  /* ---------- HERO (full width) ---------- */
+  .hero { padding: 78px 0 26px; position: relative; }
+  .hero-eyebrow { margin-bottom: 22px; display: inline-flex; gap: 14px; align-items: center; }
+  .hero-eyebrow .bar { width: 28px; height: 1px; background: var(--accent); }
+  h1.hero-h {
+    font-size: clamp(38px, 6.6vw, 80px);
+    max-width: 16ch;
+  }
+  .hero-sub {
+    margin-top: 24px;
+    max-width: 56ch;
+    color: var(--muted);
+    font-size: clamp(16px, 2vw, 19px);
+  }
+  .hero-sub strong { color: var(--ink); font-weight: 600; }
+  .hero-cta { margin-top: 32px; display: flex; gap: 14px; flex-wrap: wrap; }
+
+  /* the three-word C3 mechanism, set as type */
+  .c3-line {
+    margin-top: 38px;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    border: 1px solid var(--grid);
+    border-radius: 12px;
+    background:
+      radial-gradient(120% 200% at 0% 0%, rgba(91, 140, 255, 0.08), transparent 60%),
+      var(--surface);
+    overflow: hidden;
+    max-width: 760px;
+  }
+  .c3-cell {
+    flex: 1;
+    padding: 18px 20px;
+    position: relative;
+  }
+  .c3-cell + .c3-cell { border-left: 1px solid var(--hair); }
+  .c3-cell .c3-k {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: 0.18em; color: var(--accent);
+  }
+  .c3-cell .c3-w {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700; font-size: clamp(18px, 2.4vw, 23px);
+    letter-spacing: -0.01em; margin-top: 7px; display: block;
+  }
+  .c3-cell .c3-arrow {
+    position: absolute; right: -8px; top: 50%; margin-top: -8px;
+    width: 16px; height: 16px; z-index: 3; color: var(--accent);
+  }
+
+  /* ---------- COCKPIT SPLIT LAYOUT ---------- */
+  .cockpit {
+    padding: 60px 0 40px;
+    display: grid;
+    grid-template-columns: 268px 1fr;
+    gap: 56px;
+    align-items: start;
+  }
+
+  /* LEFT: sticky scroll-spy index */
+  .index {
+    position: sticky;
+    top: 92px;
+    align-self: start;
+  }
+  .index-head {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--hair);
+    margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .index-head .live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--cyan); box-shadow: 0 0 8px var(--cyan);
+    animation: blink 2.4s infinite;
+  }
+  .index-list { list-style: none; margin: 0; padding: 0; }
+  .index-item a {
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 14px;
+    align-items: start;
+    padding: 15px 0 15px 14px;
+    border-left: 2px solid var(--hair);
+    transition: border-color 0.25s ease, padding-left 0.25s ease;
+    position: relative;
+  }
+  .index-item a:hover { padding-left: 18px; }
+  .index-item .ix-num {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; color: var(--muted);
+    line-height: 1.5; transition: color 0.25s ease;
+  }
+  .index-item .ix-name {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600; font-size: 16px; color: var(--muted);
+    letter-spacing: -0.01em; transition: color 0.25s ease;
+    line-height: 1.2;
+  }
+  .index-item .ix-sub {
+    display: block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: rgba(138, 147, 166, 0.5); margin-top: 5px;
+  }
+  /* active state driven by scroll-spy */
+  .index-item a.active {
+    border-left-color: var(--accent);
+  }
+  .index-item a.active .ix-num { color: var(--accent); }
+  .index-item a.active .ix-name { color: var(--ink); }
+  .index-item a.active .ix-sub { color: var(--cyan); }
+
+  /* progress rail behind the index marks overall scroll depth */
+  .index-progress {
+    margin-top: 22px;
+    height: 2px;
+    background: var(--hair);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .index-progress > span {
+    display: block; height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--cyan));
+    transition: width 0.1s linear;
+  }
+  .index-foot {
+    margin-top: 14px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* RIGHT: scrolling detail panes */
+  .panes { min-width: 0; }
+  .pane {
+    padding-bottom: 80px;
+    scroll-margin-top: 92px;
+  }
+  .pane + .pane { padding-top: 8px; }
+  .pane.is-wedge { padding-bottom: 96px; }
+
+  .pane-eyebrow { display: inline-flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+  .pane-eyebrow .bar { width: 24px; height: 1px; background: var(--accent); }
+  .pane-eyebrow .num {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px; letter-spacing: 0.16em; color: var(--accent);
+  }
+  .pane-eyebrow .tag {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--hair); border-radius: 20px; padding: 3px 10px;
+  }
+  .pane-eyebrow .tag.wedge { color: var(--cyan); border-color: rgba(111,227,255,0.3); }
+
+  .pane h2 {
+    font-size: clamp(30px, 4.2vw, 46px);
+    max-width: 14ch;
+  }
+  .pane.is-wedge h2 { font-size: clamp(34px, 5vw, 56px); }
+  .pane .promise {
+    margin-top: 18px;
+    font-size: clamp(17px, 2vw, 20px);
+    max-width: 46ch;
+    color: var(--ink);
+  }
+  .pane .promise .soft { color: var(--muted); }
+
+  /* the leak callout */
+  .leak {
+    margin-top: 26px;
+    border-left: 2px solid var(--accent);
+    background: linear-gradient(90deg, rgba(91,140,255,0.08), transparent 70%);
+    padding: 16px 20px;
+    border-radius: 0 var(--r) var(--r) 0;
+  }
+  .leak .leak-k {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); display: block; margin-bottom: 7px;
+  }
+  .leak p { margin: 0; color: var(--muted); font-size: 15.5px; }
+
+  /* deliverable spec rows, blueprint hairlines */
+  .deliv-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin: 36px 0 4px; gap: 14px; flex-wrap: wrap;
+  }
+  .deliv-head .dt {
+    font-family: "Space Grotesk", sans-serif; font-weight: 600;
+    font-size: 14px; letter-spacing: 0.01em;
+  }
+  .deliv-head .dc {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .spec { border-top: 1px solid var(--hair); }
+  .spec-row {
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    gap: 16px;
+    align-items: baseline;
+    padding: 15px 6px;
+    border-bottom: 1px solid var(--hair);
+    transition: background 0.2s ease, padding-left 0.2s ease;
+  }
+  .spec-row:hover {
+    background: linear-gradient(90deg, rgba(91,140,255,0.07), transparent 55%);
+    padding-left: 12px;
+  }
+  .spec-row .sr-n {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; color: var(--accent); line-height: 1.5;
+  }
+  .spec-row .sr-b { min-width: 0; }
+  .spec-row .sr-name {
+    font-family: "Space Grotesk", sans-serif; font-weight: 600;
+    font-size: 15.5px; color: var(--ink); display: block;
+  }
+  .spec-row .sr-desc {
+    color: var(--muted); font-size: 13.5px; margin-top: 3px; display: block;
+  }
+
+  /* accent pull-stat */
+  .pull {
+    margin-top: 30px;
+    background:
+      radial-gradient(90% 150% at 0% 0%, rgba(91,140,255,0.12), transparent 60%),
+      var(--surface);
+    border: 1px solid var(--grid);
+    border-radius: 12px;
+    padding: 24px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .pull::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--hair) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+    background-size: 28px 28px; opacity: 0.4; pointer-events: none;
+  }
+  .pull .pull-k {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--cyan); position: relative; z-index: 2;
+  }
+  .pull .pull-stat {
+    font-family: "Space Grotesk", sans-serif; font-weight: 700;
+    font-size: clamp(24px, 3.4vw, 34px);
+    letter-spacing: -0.02em; margin: 10px 0 0; position: relative; z-index: 2;
+    line-height: 1.1;
+  }
+  .pull .pull-stat .hl { color: var(--accent); }
+  .pull .pull-note {
+    color: var(--muted); font-size: 14px; margin: 12px 0 0;
+    position: relative; z-index: 2; max-width: 58ch;
+  }
+
+  /* in-pane mockup visuals (blueprint frames) */
+  .viz {
+    margin-top: 30px;
+    background:
+      radial-gradient(120% 140% at 50% -10%, rgba(91, 140, 255, 0.1), transparent 60%),
+      var(--surface);
+    border: 1px solid var(--grid);
+    border-radius: 12px;
+    padding: 22px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .viz::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--hair) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+    background-size: 32px 32px; opacity: 0.5; pointer-events: none;
+  }
+  .viz-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 16px; position: relative; z-index: 2; gap: 14px; flex-wrap: wrap;
+  }
+  .viz-head .vt {
+    font-family: "Space Grotesk", sans-serif; font-weight: 600;
+    font-size: 14px; letter-spacing: 0.01em;
+  }
+  .viz svg { width: 100%; height: auto; display: block; position: relative; z-index: 2; }
+
+  .v-box { fill: #11151D; stroke: var(--grid); stroke-width: 1; }
+  .v-box.live { stroke: var(--accent); }
+  .v-box.hub { stroke: var(--cyan); }
+  .v-label { font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 13px; fill: var(--ink); }
+  .v-tag { font-family: "JetBrains Mono", monospace; font-size: 8.5px; letter-spacing: 0.12em; fill: var(--muted); }
+  .v-tag.hot { fill: var(--cyan); }
+  .v-edge { fill: none; stroke: rgba(91,140,255,0.35); stroke-width: 1.5; }
+  .v-edge-glow {
+    fill: none; stroke: var(--accent); stroke-width: 2;
+    stroke-dasharray: 12 200; filter: drop-shadow(0 0 4px var(--accent));
+    animation: packet 4.2s linear infinite;
+  }
+  .v-edge-glow.d1 { animation-delay: 0s; }
+  .v-edge-glow.d2 { animation-delay: 0.7s; }
+  .v-edge-glow.d3 { animation-delay: 1.4s; }
+  .v-edge-glow.d4 { animation-delay: 2.1s; }
+  @keyframes packet { to { stroke-dashoffset: -212; } }
+  .v-bubble { fill: #11151D; stroke: var(--grid); stroke-width: 1; }
+  .v-bubble.me { fill: rgba(91,140,255,0.14); stroke: rgba(91,140,255,0.4); }
+  .v-bubble-t { font-family: "JetBrains Mono", monospace; font-size: 9px; fill: var(--ink); }
+  .v-bar { fill: var(--accent); }
+  .v-bar.dim { fill: rgba(91,140,255,0.32); }
+  .v-star { fill: var(--cyan); }
+
+  /* phone frame */
+  .phone-stroke { fill: none; stroke: var(--grid); stroke-width: 1.4; }
+  .phone-screen { fill: #0B0E14; }
+
+  /* divider between cockpit and CTA */
+  .cap-divider { border: none; border-top: 1px solid var(--hair); margin: 0; }
+
+  /* ---------- SELECTIVE CTA ---------- */
+  section.block { padding: 84px 0; }
+  .sec-eyebrow { margin-bottom: 20px; display: inline-flex; gap: 14px; align-items: center; }
+  .sec-eyebrow .bar { width: 28px; height: 1px; background: var(--accent); }
+
+  .apply {
+    background:
+      radial-gradient(90% 130% at 50% 0%, rgba(91, 140, 255, 0.16), transparent 60%),
+      var(--surface);
+    border: 1px solid var(--grid);
+    border-radius: 14px;
+    padding: 60px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .apply::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--hair) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.4; pointer-events: none;
+  }
+  .apply h2 { font-size: clamp(28px, 4.6vw, 46px); position: relative; z-index: 2; max-width: 18ch; margin: 0 auto; }
+  .apply p { color: var(--muted); margin: 20px auto 0; max-width: 50ch; position: relative; z-index: 2; }
+  .apply .hero-cta { justify-content: center; position: relative; z-index: 2; }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    border-top: 1px solid var(--hair);
+    padding: 46px 0 56px;
+  }
+  .foot-inner {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    flex-wrap: wrap; gap: 24px;
+  }
+  .foot-inner .contact { font-family: "JetBrains Mono", monospace; font-size: 12.5px; letter-spacing: 0.08em; color: var(--muted); }
+  .foot-inner .contact a { color: var(--accent); }
+  .foot-inner .legal { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+
+  /* reveal */
+  .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 960px) {
+    .cockpit { grid-template-columns: 1fr; gap: 0; padding-top: 36px; }
+    /* index becomes a horizontal sticky strip */
+    .index {
+      position: sticky;
+      top: 67px;
+      z-index: 40;
+      margin: 0 -24px 24px;
+      padding: 0;
+      background: rgba(8, 9, 12, 0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--hair);
+    }
+    .index-head, .index-progress, .index-foot { display: none; }
+    .index-list {
+      display: flex;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 0 24px;
+    }
+    .index-list::-webkit-scrollbar { display: none; }
+    .index-item a {
+      border-left: none;
+      border-bottom: 2px solid transparent;
+      padding: 14px 18px 12px;
+      grid-template-columns: auto;
+      white-space: nowrap;
+    }
+    .index-item a:hover { padding-left: 18px; }
+    .index-item .ix-num { display: none; }
+    .index-item .ix-sub { display: none; }
+    .index-item a.active { border-left: none; border-bottom-color: var(--accent); }
+  }
+  @media (max-width: 720px) {
+    .spec-row { grid-template-columns: 30px 1fr; gap: 12px; }
+    .c3-line { flex-direction: column; max-width: none; }
+    .c3-cell + .c3-cell { border-left: none; border-top: 1px solid var(--hair); }
+    .c3-cell .c3-arrow { display: none; }
+  }
+  @media (max-width: 560px) {
+    body { font-size: 16px; }
+    .hero { padding: 52px 0 22px; }
+    .pill { display: none; }
+    .nav-inner { height: 60px; }
+    .nav-links .link { display: none; }
+    .apply { padding: 46px 22px; }
+    .foot-inner { align-items: flex-start; }
+    .viz { padding: 18px 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .v-edge-glow, .pill::before, .index-head .live-dot { animation: none !important; }
+    .v-edge-glow { opacity: 0; }
+    .reveal { opacity: 1 !important; transform: none !important; transition: none; }
+    .btn:hover { transform: none; }
+    .index-progress > span { transition: none; }
+  }
+</style>
+</head>
+<body id="top">
+
+<!-- ===================== NAV ===================== -->
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a class="wordmark" href="index.html"><span class="dot" aria-hidden="true"></span>HAUCK MARKETING</a>
+    <div class="nav-links">
+      <a class="link" href="#capture">Capture</a>
+      <a class="link" href="#convert">Convert</a>
+      <a class="link" href="#compound">Compound</a>
+      <span class="pill" aria-hidden="true">Systems online</span>
+      <a class="btn btn-primary" href="index.html#apply">Apply now</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== HERO (full width) ===================== -->
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-eyebrow">
+      <span class="bar" aria-hidden="true"></span>
+      <span class="mono">The C3 Growth System</span>
+    </div>
+    <h1 class="hero-h">We make your growth <span class="accent">leakproof</span>.</h1>
+    <p class="hero-sub">
+      Every lead <strong>caught</strong>, <strong>converted</strong>, and <strong>compounded</strong>. Not a CRM you rent. Your own Command Center: the operating system that runs the whole business as one closed loop.
+    </p>
+
+    <div class="c3-line reveal" aria-hidden="true">
+      <div class="c3-cell">
+        <span class="c3-k">01</span>
+        <span class="c3-w">Capture</span>
+        <svg class="c3-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8h9M9 4l4 4-4 4"/></svg>
+      </div>
+      <div class="c3-cell">
+        <span class="c3-k">02</span>
+        <span class="c3-w">Convert</span>
+        <svg class="c3-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8h9M9 4l4 4-4 4"/></svg>
+      </div>
+      <div class="c3-cell">
+        <span class="c3-k">03</span>
+        <span class="c3-w">Compound</span>
+      </div>
+    </div>
+
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="index.html#apply">Apply now</a>
+      <a class="btn btn-ghost" href="index.html">Back to home</a>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== COCKPIT SPLIT ===================== -->
+<div class="wrap">
+  <div class="cockpit">
+
+    <!-- LEFT: sticky scroll-spy index -->
+    <aside class="index" aria-label="Section index">
+      <div class="index-head">
+        <span>The system</span>
+        <span class="live-dot" aria-hidden="true"></span>
+      </div>
+      <ul class="index-list">
+        <li class="index-item">
+          <a href="#capture" data-target="capture">
+            <span class="ix-num">01</span>
+            <span class="ix-name">Capture<span class="ix-sub">Nothing comes in unseen</span></span>
+          </a>
+        </li>
+        <li class="index-item">
+          <a href="#convert" data-target="convert">
+            <span class="ix-num">02</span>
+            <span class="ix-name">Convert<span class="ix-sub">The wedge</span></span>
+          </a>
+        </li>
+        <li class="index-item">
+          <a href="#compound" data-target="compound">
+            <span class="ix-num">03</span>
+            <span class="ix-name">Compound<span class="ix-sub">Each job feeds the next</span></span>
+          </a>
+        </li>
+        <li class="index-item">
+          <a href="#command" data-target="command">
+            <span class="ix-num">04</span>
+            <span class="ix-name">Command Center<span class="ix-sub">The cockpit</span></span>
+          </a>
+        </li>
+      </ul>
+      <div class="index-progress" aria-hidden="true"><span id="progressBar"></span></div>
+      <div class="index-foot">Capture, Convert, Compound, run as one loop.</div>
+    </aside>
+
+    <!-- RIGHT: scrolling detail panes -->
+    <div class="panes">
+
+      <!-- ===== CAPTURE ===== -->
+      <section class="pane" id="capture" aria-labelledby="capture-h">
+        <div class="pane-eyebrow">
+          <span class="bar" aria-hidden="true"></span>
+          <span class="num">01</span>
+          <span class="tag">Pillar</span>
+        </div>
+        <h2 id="capture-h" class="reveal">Capture</h2>
+        <p class="promise reveal">Get every opportunity into one place. <span class="soft">Nothing comes in that is not caught.</span></p>
+
+        <div class="leak reveal">
+          <span class="leak-k">The leak it plugs</span>
+          <p>Missed calls on the ladder, web leads sitting overnight, after-hours demand going to voicemail, leads scattered across five channels.</p>
+        </div>
+
+        <div class="deliv-head reveal">
+          <span class="dt">What you get</span>
+          <span class="dc">7 deliverables</span>
+        </div>
+        <div class="spec reveal">
+          <div class="spec-row"><span class="sr-n">a1</span><span class="sr-b"><span class="sr-name">Voice Reception Agent</span><span class="sr-desc">Answers, qualifies, and books 24/7 when you cannot pick up.</span></span></div>
+          <div class="spec-row"><span class="sr-n">a2</span><span class="sr-b"><span class="sr-name">Missed-call text-back</span><span class="sr-desc">Every missed call fires an instant text so the lead never leaves.</span></span></div>
+          <div class="spec-row"><span class="sr-n">a3</span><span class="sr-b"><span class="sr-name">Conversation Agent</span><span class="sr-desc">Engages web and Facebook leads in seconds, day or night.</span></span></div>
+          <div class="spec-row"><span class="sr-n">a4</span><span class="sr-b"><span class="sr-name">Unified inbox</span><span class="sr-desc">Calls, texts, Facebook, Instagram, and Google in one place.</span></span></div>
+          <div class="spec-row"><span class="sr-n">a5</span><span class="sr-b"><span class="sr-name">Custom website</span><span class="sr-desc">Chat widget and estimate forms that turn visitors into leads.</span></span></div>
+          <div class="spec-row"><span class="sr-n">a6</span><span class="sr-b"><span class="sr-name">Two Meta ad funnels</span><span class="sr-desc">A volume lead form plus a pre-qualifying quiz that books onto the calendar.</span></span></div>
+          <div class="spec-row"><span class="sr-n">a7</span><span class="sr-b"><span class="sr-name">Retargeting</span><span class="sr-desc">Warm traffic is never paid for once and then lost.</span></span></div>
+        </div>
+
+        <div class="pull reveal">
+          <span class="pull-k">Proof</span>
+          <p class="pull-stat">Reply within 5 minutes and a lead is <span class="hl">about 21x</span> more likely to qualify.</p>
+          <p class="pull-note">Yet small businesses answer only about 38% of calls, and 85% of callers who do not reach you never call back.</p>
+        </div>
+
+        <!-- VIZ: unified inbox / funnel into one place -->
+        <div class="viz reveal">
+          <div class="viz-head">
+            <span class="vt">Five channels, one caught stream</span>
+            <span class="mono">auto-routed</span>
+          </div>
+          <svg viewBox="0 0 640 196" role="img" aria-label="Five inbound channels (calls, texts, Facebook, Instagram, Google) routed into a single unified inbox.">
+            <!-- five source nodes left, converging to one inbox right -->
+            <path class="v-edge" d="M150 28 C 230 28 300 92 410 98" />
+            <path class="v-edge-glow d1" d="M150 28 C 230 28 300 92 410 98" />
+            <path class="v-edge" d="M150 64 C 240 64 320 96 410 98" />
+            <path class="v-edge-glow d2" d="M150 64 C 240 64 320 96 410 98" />
+            <path class="v-edge" d="M150 100 H410" />
+            <path class="v-edge-glow d3" d="M150 100 H410" />
+            <path class="v-edge" d="M150 136 C 240 136 320 104 410 100" />
+            <path class="v-edge-glow d4" d="M150 136 C 240 136 320 104 410 100" />
+            <path class="v-edge" d="M150 172 C 230 172 300 108 410 102" />
+            <path class="v-edge-glow d1" d="M150 172 C 230 172 300 108 410 102" />
+
+            <g>
+              <rect class="v-box" x="10" y="14" width="140" height="28" rx="6"/><text class="v-tag" x="24" y="32">CALLS</text>
+              <rect class="v-box" x="10" y="50" width="140" height="28" rx="6"/><text class="v-tag" x="24" y="68">TEXTS</text>
+              <rect class="v-box" x="10" y="86" width="140" height="28" rx="6"/><text class="v-tag" x="24" y="104">FACEBOOK</text>
+              <rect class="v-box" x="10" y="122" width="140" height="28" rx="6"/><text class="v-tag" x="24" y="140">INSTAGRAM</text>
+              <rect class="v-box" x="10" y="158" width="140" height="28" rx="6"/><text class="v-tag" x="24" y="176">GOOGLE</text>
+            </g>
+
+            <rect class="v-box live" x="410" y="60" width="200" height="78" rx="10"/>
+            <text class="v-tag hot" x="430" y="88">UNIFIED INBOX</text>
+            <text class="v-label" x="430" y="112">Every lead, caught</text>
+            <text class="v-tag" x="430" y="128">NOTHING SLIPS PAST</text>
+          </svg>
+        </div>
+      </section>
+
+      <!-- ===== CONVERT (the wedge) ===== -->
+      <section class="pane is-wedge" id="convert" aria-labelledby="convert-h">
+        <div class="pane-eyebrow">
+          <span class="bar" aria-hidden="true"></span>
+          <span class="num">02</span>
+          <span class="tag wedge">The wedge</span>
+        </div>
+        <h2 id="convert-h" class="reveal">Convert</h2>
+        <p class="promise reveal">Turn caught leads into booked, sold jobs, and let none slip. <span class="soft">This is where competitors leak and we do not.</span></p>
+
+        <div class="leak reveal">
+          <span class="leak-k">The leak it plugs</span>
+          <p>One follow-up attempt then forgotten, quotes sent into silence, web chats that die when the tab closes, no-shows, sticky-note pipelines.</p>
+        </div>
+
+        <div class="deliv-head reveal">
+          <span class="dt">What you get</span>
+          <span class="dc">9 deliverables</span>
+        </div>
+        <div class="spec reveal">
+          <div class="spec-row"><span class="sr-n">b1</span><span class="sr-b"><span class="sr-name">Conversation Agent</span><span class="sr-desc">Qualifies the lead and books the right jobs onto your calendar.</span></span></div>
+          <div class="spec-row"><span class="sr-n">b2</span><span class="sr-b"><span class="sr-name">Multi-stage SMS and email follow-up</span><span class="sr-desc">Sequences mapped to every sales stage, so nothing is forgotten.</span></span></div>
+          <div class="spec-row"><span class="sr-n">b3</span><span class="sr-b"><span class="sr-name">Web-chat-to-SMS continuation</span><span class="sr-desc">A closed tab does not end the conversation; it moves to their phone.</span></span></div>
+          <div class="spec-row"><span class="sr-n">b4</span><span class="sr-b"><span class="sr-name">Reminders and reschedule flows</span><span class="sr-desc">Automated confirmations and reschedules to cut no-shows.</span></span></div>
+          <div class="spec-row"><span class="sr-n">b5</span><span class="sr-b"><span class="sr-name">Native in-app e-signature</span><span class="sr-desc">Sign and close in the app. No DocuSign.</span></span></div>
+          <div class="spec-row"><span class="sr-n">b6</span><span class="sr-b"><span class="sr-name">In-app invoicing</span><span class="sr-desc">Collect payment through Stripe or Square without leaving the system.</span></span></div>
+          <div class="spec-row"><span class="sr-n">b7</span><span class="sr-b"><span class="sr-name">Call recording with AI summaries</span><span class="sr-desc">Every call summarized and written into the customer's notes.</span></span></div>
+          <div class="spec-row"><span class="sr-n">b8</span><span class="sr-b"><span class="sr-name">Owner notifications</span><span class="sr-desc">Across SMS, email, and the app, so you see what matters in real time.</span></span></div>
+          <div class="spec-row"><span class="sr-n">b9</span><span class="sr-b"><span class="sr-name">Dedicated recovery path</span><span class="sr-desc">A specific flow for the lead who did not book the first time.</span></span></div>
+        </div>
+
+        <div class="pull reveal">
+          <span class="pull-k">Proof</span>
+          <p class="pull-stat">About <span class="hl">78%</span> of customers buy from whoever responds first.</p>
+          <p class="pull-note">And phone leads convert at 10 to 15x the rate of web-form leads. The advantage is not more leads; it is being the one who shows up first and keeps showing up.</p>
+        </div>
+
+        <!-- VIZ: follow-up timeline (the wedge gets the richest visual) -->
+        <div class="viz reveal">
+          <div class="viz-head">
+            <span class="vt">The follow-up that does not stop at one</span>
+            <span class="mono">mapped to every stage</span>
+          </div>
+          <svg viewBox="0 0 640 230" role="img" aria-label="A multi-stage follow-up timeline: instant reply, day two SMS, day four email, reminder, e-sign and pay, with a recovery branch for leads who do not book.">
+            <!-- spine -->
+            <path class="v-edge" d="M40 40 V190" />
+            <path class="v-edge-glow d1" d="M40 40 V190" />
+
+            <!-- stage rows -->
+            <g>
+              <circle cx="40" cy="46" r="5" fill="#5B8CFF"/>
+              <text class="v-tag hot" x="60" y="40">0 MIN</text>
+              <rect class="v-box live" x="60" y="48" width="300" height="30" rx="6"/>
+              <text class="v-label" x="74" y="68">Instant reply, lead qualified</text>
+            </g>
+            <g>
+              <circle cx="40" cy="98" r="5" fill="#5B8CFF"/>
+              <text class="v-tag" x="60" y="92">DAY 2</text>
+              <rect class="v-box" x="60" y="100" width="300" height="30" rx="6"/>
+              <text class="v-label" x="74" y="120">SMS follow-up + reschedule offer</text>
+            </g>
+            <g>
+              <circle cx="40" cy="150" r="5" fill="#5B8CFF"/>
+              <text class="v-tag" x="60" y="144">DAY 4</text>
+              <rect class="v-box" x="60" y="152" width="300" height="30" rx="6"/>
+              <text class="v-label" x="74" y="172">Reminder, then e-sign and pay in app</text>
+            </g>
+
+            <!-- recovery branch -->
+            <path class="v-edge" d="M360 165 C 430 165 430 205 500 205" />
+            <path class="v-edge-glow d3" d="M360 165 C 430 165 430 205 500 205" />
+            <rect class="v-box hub" x="430" y="44" width="190" height="40" rx="8"/>
+            <text class="v-tag hot" x="446" y="62">BOOKED + SOLD</text>
+            <text class="v-label" x="446" y="78">Job on the calendar</text>
+
+            <rect class="v-box" x="430" y="188" width="190" height="34" rx="8"/>
+            <text class="v-tag" x="446" y="204">DID NOT BOOK?</text>
+            <text class="v-tag hot" x="446" y="216">RECOVERY PATH ENGAGED</text>
+
+            <path class="v-edge" d="M360 63 H430" />
+            <path class="v-edge-glow d2" d="M360 63 H430" />
+          </svg>
+        </div>
+      </section>
+
+      <!-- ===== COMPOUND ===== -->
+      <section class="pane" id="compound" aria-labelledby="compound-h">
+        <div class="pane-eyebrow">
+          <span class="bar" aria-hidden="true"></span>
+          <span class="num">03</span>
+          <span class="tag">Pillar</span>
+        </div>
+        <h2 id="compound-h" class="reveal">Compound</h2>
+        <p class="promise reveal">Turn finished jobs into more business. <span class="soft">Each job makes the next one cheaper to win.</span></p>
+
+        <div class="leak reveal">
+          <span class="leak-k">The leak it plugs</span>
+          <p>Happy customers never asked for a review, a thin review profile losing the click, hundreds of past customers never contacted again.</p>
+        </div>
+
+        <div class="deliv-head reveal">
+          <span class="dt">What you get</span>
+          <span class="dc">3 deliverables</span>
+        </div>
+        <div class="spec reveal">
+          <div class="spec-row"><span class="sr-n">c1</span><span class="sr-b"><span class="sr-name">Google Review Agent</span><span class="sr-desc">One tap after a job fires the request, with sentiment gating that routes unhappy feedback privately, a reminder sequence, and AI-drafted responses to reviews.</span></span></div>
+          <div class="spec-row"><span class="sr-n">c2</span><span class="sr-b"><span class="sr-name">Lead Reactivation Agent</span><span class="sr-desc">Works your old customer list over SMS and email to re-book repeat and seasonal work.</span></span></div>
+          <div class="spec-row"><span class="sr-n">c3</span><span class="sr-b"><span class="sr-name">ROI and reporting dashboard</span><span class="sr-desc">Shows exactly what every ad dollar produced, end to end.</span></span></div>
+        </div>
+
+        <div class="pull reveal">
+          <span class="pull-k">Proof</span>
+          <p class="pull-stat">Roughly <span class="hl">68%</span> of consumers will only use a business with 4+ stars.</p>
+          <p class="pull-note">Each added Google review correlates with about 80 more website visits, 63 direction requests, and 16 calls a year. Keeping a customer costs 5 to 25x less than winning a new one.</p>
+        </div>
+
+        <!-- VIZ: review + reactivation -->
+        <div class="viz reveal">
+          <div class="viz-head">
+            <span class="vt">Finished jobs, working for you again</span>
+            <span class="mono">the flywheel</span>
+          </div>
+          <svg viewBox="0 0 640 176" role="img" aria-label="A finished job triggers a review request that lifts the rating, while past customers are reactivated into repeat work.">
+            <!-- left: job done -> review stars -->
+            <rect class="v-box" x="10" y="64" width="150" height="48" rx="8"/>
+            <text class="v-tag" x="26" y="86">JOB DONE</text>
+            <text class="v-label" x="26" y="104">One-tap request</text>
+
+            <path class="v-edge" d="M160 88 H230" />
+            <path class="v-edge-glow d1" d="M160 88 H230" />
+
+            <!-- stars -->
+            <g transform="translate(238,58)">
+              <path class="v-star" d="M12 0l3 8 8 .5-6.2 5 2 8L12 17l-6.8 4.5 2-8L1 8.5 9 8z"/>
+              <path class="v-star" d="M44 0l3 8 8 .5-6.2 5 2 8L44 17l-6.8 4.5 2-8L33 8.5 41 8z"/>
+              <path class="v-star" d="M76 0l3 8 8 .5-6.2 5 2 8L76 17l-6.8 4.5 2-8L65 8.5 73 8z"/>
+              <path class="v-star" d="M108 0l3 8 8 .5-6.2 5 2 8L108 17l-6.8 4.5 2-8L97 8.5 105 8z"/>
+              <path class="v-star" d="M140 0l3 8 8 .5-6.2 5 2 8L140 17l-6.8 4.5 2-8L129 8.5 137 8z"/>
+            </g>
+            <text class="v-tag hot" x="238" y="110">4.9 RATING, MORE CLICKS</text>
+
+            <!-- right: reactivation loop back to new job -->
+            <rect class="v-box hub" x="430" y="48" width="200" height="38" rx="8"/>
+            <text class="v-tag hot" x="446" y="66">REACTIVATION AGENT</text>
+            <text class="v-label" x="446" y="82" font-size="11">Old list re-booked</text>
+
+            <path class="v-edge" d="M530 86 C 530 130 360 130 230 112" />
+            <path class="v-edge-glow d3" d="M530 86 C 530 130 360 130 230 112" />
+            <rect class="v-box" x="430" y="108" width="200" height="38" rx="8"/>
+            <text class="v-tag" x="446" y="126">NEXT JOB</text>
+            <text class="v-label" x="446" y="142" font-size="11">Cheaper to win</text>
+            <path class="v-edge" d="M430 65 H395 C 360 65 380 127 430 127" />
+            <path class="v-edge-glow d2" d="M430 65 H395 C 360 65 380 127 430 127" />
+          </svg>
+        </div>
+      </section>
+
+      <!-- ===== COMMAND CENTER (the cockpit) ===== -->
+      <section class="pane" id="command" aria-labelledby="command-h">
+        <div class="pane-eyebrow">
+          <span class="bar" aria-hidden="true"></span>
+          <span class="num">04</span>
+          <span class="tag wedge">The cockpit</span>
+        </div>
+        <h2 id="command-h" class="reveal">The Command Center</h2>
+        <p class="promise reveal">The whole business, running in one place, <span class="soft">with your name on it.</span></p>
+
+        <div class="leak reveal">
+          <span class="leak-k">What it is</span>
+          <p>A done-for-you, fully custom business app, branded to you and synced across mobile and desktop. A single inbox for every channel with a reporting dashboard on top. It is the operating system that runs Capture, Convert, and Compound as one loop. It is not a rented tool and it is not a CRM. It is yours.</p>
+        </div>
+
+        <div class="deliv-head reveal">
+          <span class="dt">Why it matters</span>
+          <span class="dc">the unifier</span>
+        </div>
+        <div class="spec reveal">
+          <div class="spec-row"><span class="sr-n">d1</span><span class="sr-b"><span class="sr-name">You stop being the bottleneck</span><span class="sr-desc">The machine handles everything between "interested" and "paid."</span></span></div>
+          <div class="spec-row"><span class="sr-n">d2</span><span class="sr-b"><span class="sr-name">Paid becomes the next job</span><span class="sr-desc">Then it turns "paid" into the next booked job, on its own.</span></span></div>
+          <div class="spec-row"><span class="sr-n">d3</span><span class="sr-b"><span class="sr-name">One loop, your brand</span><span class="sr-desc">Three pillars run as a single system, under your name, on every screen.</span></span></div>
+        </div>
+
+        <!-- VIZ: three pillars feeding one hub (the cockpit) -->
+        <div class="viz reveal">
+          <div class="viz-head">
+            <span class="vt">Three pillars, one Command Center</span>
+            <span class="mono">your brand on top</span>
+          </div>
+          <svg viewBox="0 0 640 220" role="img" aria-label="Capture, Convert, and Compound feed one central Command Center hub, shown as a branded app on phone and desktop.">
+            <!-- three pillar nodes left -->
+            <g>
+              <rect class="v-box" x="10" y="20" width="150" height="40" rx="8"/>
+              <text class="v-tag" x="26" y="38">01</text>
+              <text class="v-label" x="48" y="45">Capture</text>
+              <rect class="v-box" x="10" y="90" width="150" height="40" rx="8"/>
+              <text class="v-tag" x="26" y="108">02</text>
+              <text class="v-label" x="48" y="115">Convert</text>
+              <rect class="v-box" x="10" y="160" width="150" height="40" rx="8"/>
+              <text class="v-tag" x="26" y="178">03</text>
+              <text class="v-label" x="48" y="185">Compound</text>
+            </g>
+
+            <!-- edges into hub -->
+            <path class="v-edge" d="M160 40 C 240 40 250 100 320 108" />
+            <path class="v-edge-glow d1" d="M160 40 C 240 40 250 100 320 108" />
+            <path class="v-edge" d="M160 110 H320" />
+            <path class="v-edge-glow d2" d="M160 110 H320" />
+            <path class="v-edge" d="M160 180 C 240 180 250 120 320 112" />
+            <path class="v-edge-glow d3" d="M160 180 C 240 180 250 120 320 112" />
+
+            <!-- central hub -->
+            <rect class="v-box hub" x="320" y="76" width="150" height="68" rx="10"/>
+            <text class="v-tag hot" x="338" y="100">COMMAND CENTER</text>
+            <text class="v-label" x="338" y="122">One loop, one app</text>
+            <text class="v-tag" x="338" y="136">YOUR BRAND</text>
+
+            <!-- feeds branded surfaces: phone + desktop -->
+            <path class="v-edge" d="M470 110 H510" />
+            <path class="v-edge-glow d4" d="M470 110 H510" />
+
+            <!-- phone frame -->
+            <rect class="phone-stroke" x="512" y="44" width="44" height="132" rx="10"/>
+            <rect class="phone-screen" x="518" y="54" width="32" height="112" rx="4"/>
+            <rect class="v-bar dim" x="523" y="62" width="22" height="5" rx="2"/>
+            <rect class="v-bar" x="523" y="74" width="16" height="5" rx="2"/>
+            <rect class="v-bar dim" x="523" y="86" width="22" height="5" rx="2"/>
+            <rect class="v-bar dim" x="523" y="98" width="14" height="5" rx="2"/>
+            <text class="v-tag" x="514" y="190">MOBILE</text>
+
+            <!-- desktop frame -->
+            <rect class="phone-stroke" x="568" y="60" width="64" height="86" rx="6"/>
+            <rect class="phone-screen" x="572" y="64" width="56" height="70" rx="3"/>
+            <rect class="v-bar dim" x="577" y="70" width="30" height="5" rx="2"/>
+            <rect class="v-bar" x="577" y="80" width="46" height="5" rx="2"/>
+            <rect class="v-bar dim" x="577" y="90" width="38" height="5" rx="2"/>
+            <rect class="v-bar dim" x="577" y="100" width="22" height="5" rx="2"/>
+            <rect class="phone-stroke" x="594" y="146" width="12" height="6" rx="1"/>
+            <text class="v-tag" x="570" y="160">DESKTOP</text>
+          </svg>
+        </div>
+      </section>
+
+    </div><!-- /panes -->
+  </div><!-- /cockpit -->
+</div>
+
+<hr class="cap-divider" />
+
+<!-- ===================== SELECTIVE CTA ===================== -->
+<section class="block" id="apply">
+  <div class="wrap">
+    <div class="apply reveal">
+      <div class="sec-eyebrow" style="justify-content:center; position:relative; z-index:2;"><span class="mono" style="color:var(--cyan);">Limited capacity</span></div>
+      <h2>Make your growth leakproof.</h2>
+      <p>We take on a limited number of local businesses at a time so the work stays sharp and the results stay honest. If that is the partner you want, tell us about your business.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="index.html#apply">Apply now</a>
+        <a class="btn btn-ghost" href="index.html">Back to home</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer>
+  <div class="wrap foot-inner">
+    <a class="wordmark" href="index.html"><span class="dot" aria-hidden="true"></span>HAUCK MARKETING</a>
+    <div class="contact">
+      <a href="mailto:contact.jakehauck@gmail.com">contact.jakehauck@gmail.com</a> · <a href="tel:+17343010570">734-301-0570</a>
+    </div>
+    <div class="legal">© Hauck Marketing</div>
+  </div>
+</footer>
+
+<script>
+  // Scroll-reveal: progressive disclosure as elements enter the viewport.
+  (function () {
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var els = document.querySelectorAll(".reveal");
+    if (reduce || !("IntersectionObserver" in window)) {
+      els.forEach(function (el) { el.classList.add("in"); });
+    } else {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            e.target.classList.add("in");
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.16, rootMargin: "0px 0px -8% 0px" });
+      els.forEach(function (el) { io.observe(el); });
+    }
+  })();
+
+  // Scroll-spy: light the active index item and drive the progress rail.
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll(".index-item a"));
+    var panes = links.map(function (a) { return document.getElementById(a.getAttribute("data-target")); });
+    var bar = document.getElementById("progressBar");
+    if (!links.length) return;
+
+    function setActive(id) {
+      links.forEach(function (a) {
+        var on = a.getAttribute("data-target") === id;
+        a.classList.toggle("active", on);
+        if (on) { a.setAttribute("aria-current", "true"); }
+        else { a.removeAttribute("aria-current"); }
+      });
+      // keep the active chip visible in the horizontal mobile strip
+      var active = document.querySelector(".index-item a.active");
+      if (active && window.innerWidth <= 960 && active.scrollIntoView) {
+        active.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      }
+    }
+
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { setActive(e.target.id); }
+      });
+    }, { rootMargin: "-45% 0px -50% 0px", threshold: 0 });
+    panes.forEach(function (p) { if (p) spy.observe(p); });
+
+    // progress rail tracks scroll depth across the cockpit region
+    var first = panes[0];
+    var last = panes[panes.length - 1];
+    function updateProgress() {
+      if (!first || !last || !bar) return;
+      var start = first.offsetTop;
+      var end = last.offsetTop + last.offsetHeight;
+      var y = window.scrollY + window.innerHeight * 0.5;
+      var pct = (y - start) / (end - start);
+      pct = Math.max(0, Math.min(1, pct));
+      bar.style.width = (pct * 100).toFixed(1) + "%";
+    }
+    var ticking = false;
+    window.addEventListener("scroll", function () {
+      if (!ticking) {
+        window.requestAnimationFrame(function () { updateProgress(); ticking = false; });
+        ticking = true;
+      }
+    }, { passive: true });
+    window.addEventListener("resize", updateProgress, { passive: true });
+    updateProgress();
+    setActive(links[0].getAttribute("data-target"));
+  })();
+</script>
+</body>
+</html>

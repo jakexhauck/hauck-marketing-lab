@@ -451,7 +451,7 @@ export function SettingsPage({
                 )}
               </div>
               {agencyDriveSavedAt && (
-                <p className="set-note" style={{ color: "var(--hml-green, #79c88c)" }}>
+                <p className="set-note" style={{ color: "var(--hml-green, var(--positive))" }}>
                   ✓ Saved at {new Date(agencyDriveSavedAt).toLocaleTimeString()}.
                 </p>
               )}
@@ -494,7 +494,7 @@ export function SettingsPage({
                       marginTop: 8,
                       color: googleReconnectMsg.startsWith("Reconnect failed")
                         ? "var(--hml-red)"
-                        : "var(--hml-green, #79c88c)",
+                        : "var(--hml-green, var(--positive))",
                     }}
                   >
                     {googleReconnectMsg}
@@ -844,7 +844,7 @@ const settingsCSS = `
 .hml-topbar {
   height: 44px;
   border-bottom: 1px solid var(--hml-border-subtle);
-  background: rgba(13, 13, 17, 0.85);
+  background: color-mix(in srgb, var(--rail) 85%, transparent);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;

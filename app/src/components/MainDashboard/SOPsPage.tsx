@@ -798,11 +798,11 @@ const sopsPageCSS = `
   transition: background 120ms ease, border-color 120ms ease;
 }
 .sops-list-item:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(var(--ink), 0.02);
   border-color: var(--border);
 }
 .sops-list-item.is-active {
-  background: rgba(184, 115, 51, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
   border-color: var(--copper);
 }
 .sops-list-title {
@@ -832,7 +832,7 @@ const sopsPageCSS = `
   font-weight: 600;
 }
 .sops-empty.sops-err {
-  color: #d07a55;
+  color: var(--danger);
   letter-spacing: 0.06em;
   text-transform: none;
   font-size: 12px;
@@ -1003,7 +1003,7 @@ const sopsPageCSS = `
 }
 .sops-btn-primary:hover:not(:disabled) {
   border-color: var(--copper);
-  background: rgba(184, 115, 51, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
 }
 .sops-btn-ghost { color: var(--text-muted); }
 .sops-btn-ghost:hover:not(:disabled) {

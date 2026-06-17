@@ -300,7 +300,7 @@ const FULFILLMENT_CSS = `
   gap: 18px;
   margin-bottom: 14px;
   padding-bottom: 12px;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+  border-bottom: 1px dashed rgba(var(--ink), 0.06);
 }
 .fl-group-title {
   margin: 0 0 4px;

@@ -838,9 +838,9 @@ const driveSettingsCSS = `
   margin-top: 12px;
   padding: 10px 14px;
   border-radius: 8px;
-  border: 1px solid var(--hml-green-border, rgba(120, 200, 140, 0.4));
-  background: var(--hml-green-bg, rgba(120, 200, 140, 0.10));
-  color: var(--hml-green, #79c88c);
+  border: 1px solid var(--hml-green-border, color-mix(in srgb, var(--positive) 40%, transparent));
+  background: var(--hml-green-bg, color-mix(in srgb, var(--positive) 10%, transparent));
+  color: var(--hml-green, var(--positive));
   font-size: 13px;
   font-weight: 500;
 }

@@ -273,7 +273,7 @@ const ASFC_CSS = `
 .asfc-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(8, 10, 14, 0.6);
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
   backdrop-filter: blur(2px);
   z-index: 1000;
   display: grid;

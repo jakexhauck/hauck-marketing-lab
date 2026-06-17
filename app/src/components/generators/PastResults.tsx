@@ -181,10 +181,10 @@ export function PastResults({
               style={{
                 textAlign: "left",
                 background: isActive
-                  ? "rgba(95, 230, 153, 0.06)"
-                  : "var(--surface-1, rgba(255,255,255,0.02))",
+                  ? "color-mix(in srgb, var(--positive) 6%, transparent)"
+                  : "rgba(var(--ink), 0.02)",
                 border: `1px solid ${
-                  isActive ? "rgba(95, 230, 153, 0.35)" : "var(--border, rgba(255,255,255,0.08))"
+                  isActive ? "color-mix(in srgb, var(--positive) 35%, transparent)" : "var(--c-border)"
                 }`,
                 borderRadius: 6,
                 padding: "10px 12px",
@@ -228,8 +228,8 @@ export function PastResults({
                       flex: 1,
                       fontWeight: 600,
                       fontSize: 14,
-                      background: "var(--surface-2, rgba(255,255,255,0.04))",
-                      border: "1px solid var(--accent, rgba(95, 230, 153, 0.5))",
+                      background: "var(--surface-2)",
+                      border: "1px solid color-mix(in srgb, var(--positive) 50%, transparent)",
                       borderRadius: 4,
                       color: "inherit",
                       padding: "4px 8px",
@@ -271,7 +271,7 @@ export function PastResults({
                       }}
                       style={{
                         background: "transparent",
-                        border: "1px solid var(--border, rgba(255,255,255,0.08))",
+                        border: "1px solid var(--c-border)",
                         borderRadius: 4,
                         color: "var(--text-faint)",
                         cursor: "pointer",
@@ -295,7 +295,7 @@ export function PastResults({
                       }}
                       style={{
                         background: "transparent",
-                        border: "1px solid var(--border, rgba(255,255,255,0.08))",
+                        border: "1px solid var(--c-border)",
                         borderRadius: 4,
                         color: "var(--text-faint)",
                         cursor: isDeleting ? "wait" : "pointer",

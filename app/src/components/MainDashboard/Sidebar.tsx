@@ -40,12 +40,19 @@ interface SidebarProps {
 }
 
 const AGENT_ACCENT: Record<string, string> = {
-  vortex: "#a78bfa",
-  stratos: "#f59e0b",
-  nexus: "#38bdf8",
-  zenith: "#5fe699",
-  aurelius: "#b478ff",
+  vortex: "var(--hue-plum)",
+  stratos: "var(--warning)",
+  nexus: "var(--hue-blue)",
+  zenith: "var(--positive)",
+  aurelius: "var(--brand)",
 };
+
+/** Build a translucent fill from a token accent. The accents are now CSS
+ *  custom properties, so the old `${hex}14` / `${hex}55` string concat no
+ *  longer resolves — use color-mix to derive the tint/border alphas. */
+function accentMix(accent: string, pct: number): string {
+  return `color-mix(in srgb, ${accent} ${pct}%, transparent)`;
+}
 
 function statusToV1(status: ClientEntry["status"]): ClientV1["status"] {
   return status === "live" ? "live" : "hold";
@@ -254,8 +261,8 @@ export function Sidebar({
               className="md-agent-initial"
               style={{
                 color: AGENT_ACCENT.aurelius,
-                borderColor: `${AGENT_ACCENT.aurelius}55`,
-                background: `${AGENT_ACCENT.aurelius}14`,
+                borderColor: accentMix(AGENT_ACCENT.aurelius, 33),
+                background: accentMix(AGENT_ACCENT.aurelius, 8),
               }}
             >
               A
@@ -358,7 +365,7 @@ function FormsSection({ activeFormId, onSelectForm }: FormsSectionProps) {
                 cat.formIds.map((fid) => {
                   const cfg = configsById.get(fid);
                   if (!cfg) return null;
-                  const accent = AGENT_ACCENT[cfg.agentSlug.toLowerCase()] ?? "#95a0b3";
+                  const accent = AGENT_ACCENT[cfg.agentSlug.toLowerCase()] ?? "var(--c-muted)";
                   const isActive = cfg.id === activeFormId;
                   return (
                     <button
@@ -372,8 +379,8 @@ function FormsSection({ activeFormId, onSelectForm }: FormsSectionProps) {
                         className="md-agent-initial"
                         style={{
                           color: accent,
-                          borderColor: `${accent}55`,
-                          background: `${accent}14`,
+                          borderColor: accentMix(accent, 33),
+                          background: accentMix(accent, 8),
                         }}
                       >
                         {cfg.agentName[0]}

@@ -42,12 +42,12 @@ export function UpdaterPrompt() {
         bottom: 20,
         zIndex: 9999,
         maxWidth: 360,
-        background: "#0f1117",
-        border: "1px solid #2a2e3a",
+        background: "var(--surface)",
+        border: "1px solid var(--c-border-strong)",
         borderRadius: 10,
-        boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+        boxShadow: "0 10px 30px rgba(var(--shadow-rgb),0.5)",
         padding: "14px 16px",
-        color: "#e6e8ee",
+        color: "var(--c-text)",
         fontSize: 13,
       }}
     >
@@ -71,7 +71,7 @@ export function UpdaterPrompt() {
         </div>
       )}
       {phase === "error" && error && (
-        <div style={{ color: "#ff8a8a", marginBottom: 8 }}>{error}</div>
+        <div style={{ color: "var(--danger)", marginBottom: 8 }}>{error}</div>
       )}
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
         <button

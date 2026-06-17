@@ -201,6 +201,92 @@ export interface AdminClient {
   createdAt: string;
 }
 
+export interface AdminClientsResponse {
+  clients: AdminClient[];
+  total: number;
+}
+
+// A GHL-identified person on a client account (tenant_users), informational in
+// the tower. The business owner usually appears here with role 'owner'.
+export interface AdminClientMember {
+  name: string;
+  email: string;
+  role: string;
+  ghlUserId: string | null;
+}
+
+export interface AdminActivityEntry {
+  id: number;
+  action: string;
+  summary: string | null;
+  createdAt: string;
+}
+
+// Full detail of one client: GET /api/admin/clients/:id.
+export interface AdminClientDetail {
+  client: {
+    id: string;
+    slug: string;
+    name: string;
+    niche: string;
+    brandColor: string;
+    brandInitials: string;
+    appName: string;
+    wonLabel: string;
+    valueLabel: string;
+    ghlLocationId: string;
+    monthlySpend: number;
+    createdAt: string;
+  };
+  entitlements: import("./permissions").Capability[];
+  staff: ApiStaffAccount[];
+  members: AdminClientMember[];
+  activity: AdminActivityEntry[];
+}
+
+// Payload to register a new business: POST /api/admin/clients.
+export interface AdminClientCreateInput {
+  name: string;
+  niche?: string;
+  slug?: string;
+  brandColor?: string;
+  brandInitials?: string;
+  appName?: string;
+  wonLabel?: string;
+  valueLabel?: string;
+  ghlLocationId?: string;
+  ghlToken?: string;
+  monthlySpend?: number;
+}
+
+// Payload to edit a client's content/branding/connection: PATCH the same path.
+// ghlToken is write-only and never returned.
+export interface AdminClientUpdateInput {
+  name?: string;
+  niche?: string;
+  brandColor?: string;
+  brandInitials?: string;
+  appName?: string;
+  wonLabel?: string;
+  valueLabel?: string;
+  monthlySpend?: number;
+  ghlLocationId?: string;
+  ghlToken?: string;
+}
+
+export interface AdminIdentity {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface ApiAdminLoginResponse {
+  ok: boolean;
+  admin: AdminIdentity;
+  // Bearer token for non-cookie clients; web ignores it (HttpOnly cookie).
+  token?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Response wrappers + auxiliary shapes the UI consumes. These mirror what the
 // existing handlers return; named here so frontends don't re-type them inline.
@@ -291,6 +377,10 @@ export interface ApiMe {
   isOwner?: boolean;
   staff?: ApiStaffIdentity | null;
   permissions?: import("./permissions").EffectivePermissions;
+  // Super-admin (0008). True only for a signed admin session; carries the admin
+  // identity. An admin is never also a tenant owner/staff in the same session.
+  isAdmin?: boolean;
+  admin?: AdminIdentity | null;
 }
 
 export interface ApiLoginResponse {

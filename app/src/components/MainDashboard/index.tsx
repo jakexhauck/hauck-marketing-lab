@@ -8,8 +8,7 @@ import {
 } from "react";
 import "./main-dashboard.css";
 import { openInAppWindow } from "../../lib/openInApp";
-import { AppSidebar } from "./AppSidebar";
-import { IconRail } from "./IconRail";
+import { ConsoleSidebar } from "./ConsoleSidebar";
 import { BuilderWorkspace } from "../Builder/BuilderWorkspace";
 import type { WorkflowView } from "./Sidebar";
 import type { FormSurfaceId } from "../../lib/formConfigs";
@@ -21,13 +20,10 @@ import {
   IconUser,
 } from "../icons";
 import {
-  subAppToDefaultView,
-  viewToSubApp,
   type ClientSection,
   type OutreachSection,
   type PersonalSection,
   type ProspectEntry,
-  type SubApp,
   type WorkspaceView,
 } from "../../lib/navigation";
 import { ConnectCalendarModal } from "./ConnectCalendarModal";
@@ -90,6 +86,8 @@ interface MainDashboardProps {
   onSettings?: () => void;
   onAddClient?: () => void;
   onManageClients?: () => void;
+  /** Opens the global command palette (⌘K). */
+  onOpenCommand?: () => void;
   /** Legacy: if provided, route the named workflow into outreach. */
   initialWorkflow?: WorkflowView | null;
   onInitialWorkflowApplied?: () => void;
@@ -128,6 +126,7 @@ export function MainDashboard({
   onSettings,
   onAddClient,
   onManageClients: _onManageClients,
+  onOpenCommand,
   initialWorkflow,
   onInitialWorkflowApplied,
   onOpenForm,
@@ -259,6 +258,7 @@ export function MainDashboard({
 
   /** Brand click / "back" target. Lands on the Dashboard. */
   const goHome = () => setView({ kind: "workspace", tab: "dashboard" });
+  const goBuilder = () => setView({ kind: "builder" });
 
   const onSelectOutreachSection = (
     section: "overview" | "lead-scraper" | "web-designer" | "sequence" | "dms",
@@ -280,17 +280,6 @@ export function MainDashboard({
 
   const onSelectPersonalSection = (section: PersonalSection) => {
     setView({ kind: "personal", section });
-  };
-
-  const currentSubApp: SubApp = viewToSubApp(view);
-
-  const onPickSubApp = (subApp: SubApp) => {
-    if (subApp === "settings") {
-      onSettings?.();
-      return;
-    }
-    const next = subAppToDefaultView(subApp);
-    if (next) setView(next as View);
   };
 
   // Sidebar active-state derivations ─────────────────────────
@@ -343,32 +332,31 @@ export function MainDashboard({
         ? "⇅ Sync"
         : "⇅ Sync";
 
-  const shellClass =
-    "hml-shell" +
-    (currentSubApp === "dashboard" || currentSubApp === "builder"
-      ? " hml-shell-no-sidebar"
-      : "");
+  const dashboardActive = view.kind === "workspace" && view.tab === "dashboard";
+  const builderActive = view.kind === "builder";
 
   return (
     <div className="md-root hml-app">
-      <div className={shellClass}>
-        <IconRail current={currentSubApp} onPick={onPickSubApp} />
-        <AppSidebar
-          currentSubApp={currentSubApp}
+      <div className="hml-shell hml-shell--console">
+        <ConsoleSidebar
+          dashboardActive={dashboardActive}
+          builderActive={builderActive}
           activeWorkspace={activeWorkspace}
           activeOutreach={activeOutreach}
           activeClient={activeClientForSidebar}
           activePersonal={activePersonal}
           clients={realClients}
           prospects={prospects}
+          plansCount={plansCount}
+          onGoDashboard={goHome}
+          onGoBuilder={goBuilder}
           onSelectWorkspace={onSelectWorkspace}
           onSelectOutreachSection={onSelectOutreachSection}
           onSelectClientSection={onSelectClientSection}
           onSelectPersonalSection={onSelectPersonalSection}
           onAddClient={onAddClient}
-          onBrandClick={goHome}
-          plansCount={plansCount}
-          appVersion="v1.4"
+          onSettings={onSettings}
+          onOpenCommand={onOpenCommand}
         />
         <main className="hml-main">
           <header className="hml-topbar">

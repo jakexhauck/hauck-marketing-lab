@@ -515,9 +515,9 @@ function BookingBadge({ appointment }: { appointment: OpsAppointmentRow }) {
         fontWeight: 600,
         letterSpacing: "0.02em",
         background: cancelled
-          ? "rgba(239, 83, 80, 0.10)"
-          : "rgba(122, 162, 247, 0.10)",
-        color: cancelled ? "#ef5350" : "#7aa2f7",
+          ? "color-mix(in srgb, var(--danger) 10%, transparent)"
+          : "color-mix(in srgb, var(--hue-blue) 10%, transparent)",
+        color: cancelled ? "var(--danger)" : "var(--hue-blue)",
       }}
       title={cancelled ? "Booking cancelled in GHL" : "Booked via GHL"}
     >

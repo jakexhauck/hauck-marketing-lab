@@ -413,7 +413,7 @@ export function DocumentEditor({
           style={{
             minHeight: 360,
             padding: "10px 14px",
-            border: "1px solid var(--hml-border-subtle, rgba(255,255,255,0.06))",
+            border: "1px solid var(--hml-border-subtle, rgba(var(--ink),0.06))",
             background: "var(--hml-bg-elev-1)",
             overflow: "auto",
             fontSize: 13.5,
@@ -445,7 +445,7 @@ export function DocumentEditor({
           display: "flex",
           gap: 8,
           padding: "10px 16px 14px",
-          borderTop: "1px solid var(--hml-border-subtle, rgba(255,255,255,0.06))",
+          borderTop: "1px solid var(--hml-border-subtle, rgba(var(--ink),0.06))",
           flexWrap: "wrap",
         }}
       >

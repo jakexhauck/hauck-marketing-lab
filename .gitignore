@@ -11,6 +11,9 @@ dist/
 dist-ssr/
 *.local
 
+# Wrangler local cache / state
+**/.wrangler/
+
 # Tauri build output
 **/target/
 **/src-tauri/gen/schemas/

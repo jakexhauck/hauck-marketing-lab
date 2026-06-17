@@ -1182,8 +1182,8 @@ const CT_CSS = `
 .ct-glyph {
   width: 32px; height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #5ea3ff, #b07bff, #54d68f);
-  box-shadow: 0 0 24px rgba(94, 163, 255, 0.35);
+  background: linear-gradient(135deg, var(--brand), var(--hue-plum), var(--positive));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--brand) 35%, transparent);
 }
 .ct-h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
 .ct-sub { font-size: 12px; color: var(--hml-text-tertiary); margin-top: 2px; }
@@ -1196,8 +1196,8 @@ const CT_CSS = `
 .ct-stat { text-align: right; }
 .ct-stat-k { font-size: 11px; color: var(--hml-text-tertiary); margin-bottom: 3px; }
 .ct-stat-v { font-size: 14px; font-weight: 600; color: var(--hml-text-primary); }
-.ct-stat-v.ok { color: #54d68f; }
-.ct-stat-v.wait { color: #f7b14d; }
+.ct-stat-v.ok { color: var(--positive); }
+.ct-stat-v.wait { color: var(--warning); }
 
 .ct-back {
   font-family: var(--hml-font-mono);
@@ -1290,13 +1290,13 @@ const CT_CSS = `
   justify-content: center;
   align-items: flex-start;
   background:
-    radial-gradient(circle at 50% 0%, rgba(94, 163, 255, 0.06), transparent 50%),
-    radial-gradient(circle at 25% 60%, rgba(176, 123, 255, 0.05), transparent 40%),
-    radial-gradient(circle at 75% 60%, rgba(84, 214, 143, 0.05), transparent 40%),
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--brand) 6%, transparent), transparent 50%),
+    radial-gradient(circle at 25% 60%, color-mix(in srgb, var(--hue-plum) 5%, transparent), transparent 40%),
+    radial-gradient(circle at 75% 60%, color-mix(in srgb, var(--positive) 5%, transparent), transparent 40%),
     var(--hml-bg-base);
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(rgba(var(--ink), 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--ink), 0.02) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 .ct-flow {
@@ -1310,15 +1310,15 @@ const CT_CSS = `
  * is just a label that anchors the tree at the top. */
 .ct-campaign-node {
   background: var(--hml-bg-elev-1);
-  border: 1px solid rgba(94, 163, 255, 0.7);
+  border: 1px solid color-mix(in srgb, var(--brand) 70%, transparent);
   border-radius: 10px;
   padding: 10px 20px;
-  box-shadow: 0 0 18px rgba(94, 163, 255, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--brand) 18%, transparent), inset 0 1px 0 rgba(var(--ink), 0.04);
   min-width: 0;
   max-width: 720px;
   text-align: center;
 }
-.ct-campaign-label { font-size: 10.5px; color: #5ea3ff; font-weight: 600; margin-bottom: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+.ct-campaign-label { font-size: 10.5px; color: var(--brand); font-weight: 600; margin-bottom: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
 .ct-campaign-name { font-size: 15px; font-weight: 600; letter-spacing: -0.005em; margin-bottom: 6px; }
 .ct-campaign-meta {
   display: flex; gap: 16px; justify-content: center; align-items: center;
@@ -1329,8 +1329,8 @@ const CT_CSS = `
 .ct-campaign-meta b { color: var(--hml-text-primary); font-weight: 600; }
 
 /* Connectors */
-.ct-vline { width: 2px; height: 22px; background: linear-gradient(180deg, #5ea3ff, #b07bff); margin: 0 auto; }
-.ct-vline-down { width: 1.5px; height: 18px; background: linear-gradient(180deg, #b07bff, #54d68f); margin: 0 auto; }
+.ct-vline { width: 2px; height: 22px; background: linear-gradient(180deg, var(--brand), var(--hue-plum)); margin: 0 auto; }
+.ct-vline-down { width: 1.5px; height: 18px; background: linear-gradient(180deg, var(--hue-plum), var(--positive)); margin: 0 auto; }
 /* The horizontal split branch (campaign → 2 side-by-side ad sets) is no
  * longer needed now that ad-sets are stacked vertically. Keep the rule
  * available but render it as a thin vertical connector that visually
@@ -1344,9 +1344,9 @@ const CT_CSS = `
   position: absolute;
   top: 0; left: calc(50% / 3); right: calc(50% / 3);
   height: 1.5px;
-  background: #54d68f;
+  background: var(--positive);
 }
-.ct-ad-stub { position: absolute; top: 0; width: 1.5px; height: 100%; background: #54d68f; }
+.ct-ad-stub { position: absolute; top: 0; width: 1.5px; height: 100%; background: var(--positive); }
 .ct-ad-s1 { left: calc(50% / 3); }
 .ct-ad-s2 { left: 50%; transform: translateX(-50%); }
 .ct-ad-s3 { right: calc(50% / 3); }
@@ -1364,10 +1364,10 @@ const CT_CSS = `
 
 .ct-adset-node {
   background: var(--hml-bg-elev-1);
-  border: 1px solid rgba(176, 123, 255, 0.7);
+  border: 1px solid color-mix(in srgb, var(--hue-plum) 70%, transparent);
   border-radius: 10px;
   padding: 8px 14px 8px 38px;
-  box-shadow: 0 0 16px rgba(176, 123, 255, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--hue-plum) 18%, transparent), inset 0 1px 0 rgba(var(--ink), 0.04);
   width: 100%;
   max-width: 560px;
   text-align: center;
@@ -1375,7 +1375,7 @@ const CT_CSS = `
   transition: box-shadow 140ms ease, border-color 140ms ease;
 }
 .ct-adset-node.is-collapsed {
-  box-shadow: 0 0 8px rgba(176, 123, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--hue-plum) 10%, transparent), inset 0 1px 0 rgba(var(--ink), 0.04);
   opacity: 0.92;
 }
 .ct-adset-toggle {
@@ -1383,10 +1383,10 @@ const CT_CSS = `
   left: 8px;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(176, 123, 255, 0.12);
-  border: 1px solid rgba(176, 123, 255, 0.45);
+  background: color-mix(in srgb, var(--hue-plum) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--hue-plum) 45%, transparent);
   border-radius: 6px;
-  color: #b07bff;
+  color: var(--hue-plum);
   width: 22px;
   height: 22px;
   display: inline-flex;
@@ -1397,8 +1397,8 @@ const CT_CSS = `
   transition: background 120ms ease, border-color 120ms ease;
 }
 .ct-adset-toggle:hover {
-  background: rgba(176, 123, 255, 0.24);
-  border-color: rgba(176, 123, 255, 0.85);
+  background: color-mix(in srgb, var(--hue-plum) 24%, transparent);
+  border-color: color-mix(in srgb, var(--hue-plum) 85%, transparent);
 }
 .ct-adset-chevron {
   font-size: 11px;
@@ -1414,7 +1414,7 @@ const CT_CSS = `
 }
 .ct-adset-type {
   font-size: 10.5px;
-  color: #b07bff;
+  color: var(--hue-plum);
   font-weight: 600;
   margin-bottom: 3px;
   text-align: center;
@@ -1454,10 +1454,10 @@ const CT_CSS = `
 
 .ct-ad-node {
   background: var(--hml-bg-elev-1);
-  border: 1.5px solid #54d68f;
+  border: 1.5px solid var(--positive);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 0 22px rgba(84, 214, 143, 0.28), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--positive) 28%, transparent), 0 8px 24px -12px rgba(var(--shadow-rgb), 0.5);
   display: flex; flex-direction: column;
   font-size: 14px;
   flex: 1 1 280px;
@@ -1487,23 +1487,23 @@ const CT_CSS = `
     135deg,
     transparent 0,
     transparent 5px,
-    rgba(84, 214, 143, 0.55) 5px,
-    rgba(84, 214, 143, 0.55) 7px,
+    color-mix(in srgb, var(--positive) 55%, transparent) 5px,
+    color-mix(in srgb, var(--positive) 55%, transparent) 7px,
     transparent 7px,
     transparent 10px,
-    rgba(84, 214, 143, 0.55) 10px,
-    rgba(84, 214, 143, 0.55) 12px,
+    color-mix(in srgb, var(--positive) 55%, transparent) 10px,
+    color-mix(in srgb, var(--positive) 55%, transparent) 12px,
     transparent 12px,
     transparent 15px,
-    rgba(84, 214, 143, 0.55) 15px,
-    rgba(84, 214, 143, 0.55) 17px,
+    color-mix(in srgb, var(--positive) 55%, transparent) 15px,
+    color-mix(in srgb, var(--positive) 55%, transparent) 17px,
     transparent 17px
   );
   touch-action: none;
   user-select: none;
 }
 .ct-ad-resize-handle:hover {
-  background-color: rgba(84, 214, 143, 0.08);
+  background-color: color-mix(in srgb, var(--positive) 8%, transparent);
 }
 .ct-ad-node.is-empty {
   border-color: var(--hml-text-tertiary);
@@ -1514,18 +1514,18 @@ const CT_CSS = `
 }
 
 .ct-ad-head {
-  background: rgba(84, 214, 143, 0.1);
+  background: color-mix(in srgb, var(--positive) 10%, transparent);
   padding: 12px 18px;
   display: flex; justify-content: space-between; align-items: center;
   gap: 8px;
   border-bottom: 1px solid var(--hml-border-subtle);
 }
-.ct-ad-node.is-empty .ct-ad-head { background: rgba(120, 120, 140, 0.08); }
+.ct-ad-node.is-empty .ct-ad-head { background: rgba(var(--ink), 0.04); }
 .ct-ad-format-select {
   font-family: inherit;
   font-size: 13px;
   font-weight: 600;
-  color: #54d68f;
+  color: var(--positive);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -1535,13 +1535,13 @@ const CT_CSS = `
   -webkit-appearance: none;
 }
 .ct-ad-format-select:hover {
-  border-color: rgba(84, 214, 143, 0.35);
-  background: rgba(84, 214, 143, 0.06);
+  border-color: color-mix(in srgb, var(--positive) 35%, transparent);
+  background: color-mix(in srgb, var(--positive) 6%, transparent);
 }
 .ct-ad-format-select:focus {
   outline: none;
-  border-color: #54d68f;
-  background: rgba(84, 214, 143, 0.08);
+  border-color: var(--positive);
+  background: color-mix(in srgb, var(--positive) 8%, transparent);
 }
 .ct-ad-format-select option {
   background: var(--hml-bg-elev-2);
@@ -1611,7 +1611,7 @@ const CT_CSS = `
   height: 22px;
   border-radius: 50%;
   border: 1px solid var(--hml-border);
-  background: rgba(15, 17, 21, 0.75);
+  background: color-mix(in srgb, var(--bg) 75%, transparent);
   color: var(--hml-text-primary);
   font-size: 16px;
   line-height: 1;
@@ -1636,8 +1636,8 @@ const CT_CSS = `
 .ct-carousel-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(var(--ink), 0.45);
+  background: rgba(var(--ink), 0.15);
   padding: 0;
   cursor: pointer;
 }
@@ -1649,7 +1649,7 @@ const CT_CSS = `
 .ct-carousel-dot-del {
   width: 14px; height: 14px;
   border-radius: 50%;
-  background: rgba(15, 17, 21, 0.85);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
   color: var(--hml-text-primary);
   font-size: 11px;
   line-height: 1;
@@ -1661,8 +1661,8 @@ const CT_CSS = `
 .ct-ad-info { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; height: 100%; }
 .ct-ad-angle {
   font-size: 11.5px;
-  background: rgba(94, 163, 255, 0.12);
-  color: #5ea3ff;
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand);
   padding: 4px 10px;
   border-radius: 4px;
   font-weight: 600;
@@ -1694,8 +1694,8 @@ textarea.ct-edit-text.ct-ad-hook {
   color: var(--hml-text-tertiary);
 }
 .ct-ad-status { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; }
-.ct-ad-status.ct-ready { color: #54d68f; }
-.ct-ad-status.ct-pending { color: #f7b14d; }
+.ct-ad-status.ct-ready { color: var(--positive); }
+.ct-ad-status.ct-pending { color: var(--warning); }
 .ct-ad-status.ct-empty { color: var(--hml-text-tertiary); }
 .ct-ad-dot {
   width: 6px; height: 6px; border-radius: 50%;
@@ -1713,13 +1713,13 @@ textarea.ct-edit-text.ct-ad-hook {
   transition: background 120ms ease, border-color 120ms ease;
 }
 .ct-edit:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--ink), 0.03);
+  border-color: rgba(var(--ink), 0.08);
 }
 .ct-edit:focus {
   outline: none;
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(var(--ink), 0.05);
+  border-color: rgba(var(--ink), 0.18);
 }
 .ct-edit-text {
   width: 100%;
@@ -1770,8 +1770,8 @@ textarea.ct-edit-text:focus { overflow: auto; }
  * card's inline inputs so a click anywhere on the card inserts the snippet.
  */
 .ct-pick-banner {
-  background: linear-gradient(90deg, rgba(84, 214, 143, 0.18), rgba(94, 163, 255, 0.16));
-  border-bottom: 1px solid rgba(84, 214, 143, 0.45);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--positive) 18%, transparent), color-mix(in srgb, var(--brand) 16%, transparent));
+  border-bottom: 1px solid color-mix(in srgb, var(--positive) 45%, transparent);
   padding: 12px 24px;
   display: flex;
   align-items: center;
@@ -1804,7 +1804,7 @@ textarea.ct-edit-text:focus { overflow: auto; }
   font-size: 10.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #54d68f;
+  color: var(--positive);
   font-weight: 600;
 }
 .ct-pick-banner-text {
@@ -1849,28 +1849,28 @@ textarea.ct-edit-text:focus { overflow: auto; }
  * there first. */
 .ct-ad-node.is-target {
   position: relative;
-  border-color: #54d68f;
+  border-color: var(--positive);
   box-shadow:
-    0 0 0 1px rgba(84, 214, 143, 0.45),
-    0 0 28px rgba(84, 214, 143, 0.35);
+    0 0 0 1px color-mix(in srgb, var(--positive) 45%, transparent),
+    0 0 28px color-mix(in srgb, var(--positive) 35%, transparent);
   animation: ct-pulse-soft 1.8s ease-in-out infinite;
 }
 .ct-ad-node.is-target-empty {
   border-style: solid;
-  background: rgba(84, 214, 143, 0.05);
+  background: color-mix(in srgb, var(--positive) 5%, transparent);
   box-shadow:
-    0 0 0 1.5px #54d68f,
-    0 0 36px rgba(84, 214, 143, 0.55);
+    0 0 0 1.5px var(--positive),
+    0 0 36px color-mix(in srgb, var(--positive) 55%, transparent);
   animation: ct-pulse-strong 1.5s ease-in-out infinite;
 }
 
 @keyframes ct-pulse-soft {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(84, 214, 143, 0.45), 0 0 22px rgba(84, 214, 143, 0.3); }
-  50% { box-shadow: 0 0 0 1px rgba(84, 214, 143, 0.6), 0 0 36px rgba(84, 214, 143, 0.55); }
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--positive) 45%, transparent), 0 0 22px color-mix(in srgb, var(--positive) 30%, transparent); }
+  50% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--positive) 60%, transparent), 0 0 36px color-mix(in srgb, var(--positive) 55%, transparent); }
 }
 @keyframes ct-pulse-strong {
-  0%, 100% { box-shadow: 0 0 0 1.5px #54d68f, 0 0 28px rgba(84, 214, 143, 0.45); }
-  50% { box-shadow: 0 0 0 2px #54d68f, 0 0 44px rgba(84, 214, 143, 0.75); }
+  0%, 100% { box-shadow: 0 0 0 1.5px var(--positive), 0 0 28px color-mix(in srgb, var(--positive) 45%, transparent); }
+  50% { box-shadow: 0 0 0 2px var(--positive), 0 0 44px color-mix(in srgb, var(--positive) 75%, transparent); }
 }
 
 /* The overlay sits on top of the inline inputs so the whole card is one
@@ -1885,8 +1885,8 @@ textarea.ct-edit-text:focus { overflow: auto; }
   justify-content: center;
   gap: 6px;
   border: none;
-  background: rgba(13, 15, 18, 0.55);
-  color: #54d68f;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  color: var(--positive);
   cursor: pointer;
   font-family: var(--hml-font-mono);
   letter-spacing: 0.08em;
@@ -1899,7 +1899,7 @@ textarea.ct-edit-text:focus { overflow: auto; }
   opacity: 1;
 }
 .ct-ad-pick-overlay:hover {
-  background: rgba(13, 15, 18, 0.7);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
 }
 .ct-ad-pick-overlay-glyph {
   font-size: 26px;
@@ -1922,6 +1922,6 @@ textarea.ct-edit-text:focus { overflow: auto; }
   color: var(--hml-text-tertiary);
 }
 .ct-footer b { color: var(--hml-text-primary); font-weight: 600; }
-.ct-thesis { color: #5ea3ff !important; }
+.ct-thesis { color: var(--brand) !important; }
 .ct-footer-right { margin-left: auto; }
 `;

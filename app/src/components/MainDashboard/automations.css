@@ -194,14 +194,14 @@
   font-size: 10.5px;
   color: var(--hml-text-tertiary);
   font-variant-numeric: tabular-nums;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--ink), 0.04);
   padding: 1px 7px;
   border-radius: 999px;
 }
 
 .auto-chip-on .auto-chip-count {
   color: inherit;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(var(--ink), 0.08);
 }
 
 /* ───────── Categories ───────── */
@@ -486,9 +486,9 @@
 }
 
 @keyframes autoPulse {
-  0%   { box-shadow: 0 0 0 0    rgba(127, 178, 133, 0.55); }
-  70%  { box-shadow: 0 0 0 8px  rgba(127, 178, 133, 0); }
-  100% { box-shadow: 0 0 0 0    rgba(127, 178, 133, 0); }
+  0%   { box-shadow: 0 0 0 0    color-mix(in srgb, var(--positive) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 8px  transparent; }
+  100% { box-shadow: 0 0 0 0    transparent; }
 }
 
 /* ───────── Modal ───────── */
@@ -515,8 +515,8 @@
   max-width: 1080px;
   padding: 28px 32px 32px;
   box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.55),
-    0 2px 0 rgba(255, 255, 255, 0.02) inset;
+    0 24px 60px rgba(var(--shadow-rgb), 0.55),
+    0 2px 0 rgba(var(--ink), 0.02) inset;
   animation: autoRise 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -627,7 +627,7 @@
   gap: 0;
   padding: 28px 8px 24px;
   background:
-    radial-gradient(circle at 12px 12px, rgba(255, 255, 255, 0.025) 1px, transparent 1.5px);
+    radial-gradient(circle at 12px 12px, rgba(var(--ink), 0.025) 1px, transparent 1.5px);
   background-size: 24px 24px;
   background-color: var(--hml-bg-base);
   border: 1px solid var(--hml-border-subtle);

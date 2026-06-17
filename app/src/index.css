@@ -7,55 +7,153 @@
    so old chrome instantly inherits the new look. ─── */
 
 @theme {
-  --color-bg-void: #0a0a0c;
-  --color-bg-deep: #0d0d11;
-  --color-bg-surface: #131318;
-  --color-bg-elev: #191920;
-
-  --color-text: #ececf0;
-  --color-text-mid: #c2c2cc;
-  --color-text-muted: #9c9ca8;
-  --color-text-faint: #6a6a76;
-
-  --color-border: rgba(255, 255, 255, 0.05);
-  --color-border-strong: rgba(255, 255, 255, 0.14);
-
-  --color-copper: #b478ff;
-  --color-copper-soft: #7a3fd9;
-  --color-copper-glow: rgba(180, 120, 255, 0.38);
-
-  --color-signal-go: #7fb285;
-  --color-signal-hold: #f59e0b;
-  --color-signal-stop: #c4847b;
-
-  --font-sans: "Geist", system-ui, -apple-system, sans-serif;
-  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
-  --font-serif: "Geist", system-ui, sans-serif;
+  /* Only font families need to live in @theme (so any Tailwind font utility
+     resolves). The app styles via var(--token) directly, never via generated
+     colour utilities, so colour tokens are defined in the :root blocks below
+     where they can swap per [data-theme]. */
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: "Archivo Variable", "Archivo", system-ui, sans-serif;
 }
 
-:root {
-  /* Legacy md-* token names — remapped to new palette */
-  --bg-void: #0a0a0c;
-  --bg-deep: #0d0d11;
-  --bg-surface: #131318;
-  --bg-elev: #191920;
-  --border: rgba(255, 255, 255, 0.05);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --text: #ececf0;
-  --text-mid: #c2c2cc;
-  --text-muted: #9c9ca8;
-  --text-faint: #6a6a76;
-  --copper: #b478ff;
-  --copper-soft: #7a3fd9;
-  --copper-glow: rgba(180, 120, 255, 0.38);
-  --signal-go: #7fb285;
-  --signal-hold: #f59e0b;
-  --signal-stop: #c4847b;
-  --grid: rgba(255, 255, 255, 0);
+/* ════════════════════════════════════════════════════════════════════════
+   CONSOLE PRIMITIVES — shared with the CRM ("Console" design language).
+   Calm graphite chrome, an ink-blue brand signal, a gold "ledger" accent
+   reserved for money, and theme-aware hairlines so light mode works.
+   Dark is the Lab's home surface; light mirrors the CRM exactly.
+   Everything below reads through these via var() and swaps on [data-theme].
+   ════════════════════════════════════════════════════════════════════════ */
 
-  --sans: "Geist", system-ui, -apple-system, sans-serif;
-  --mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
-  --serif: "Geist", system-ui, sans-serif;
+:root,
+:root[data-theme="dark"] {
+  --bg: #0b0f15;
+  --bg-grid: #11161e;
+  --surface: #141a22;
+  --surface-2: #1a212b;
+  --surface-3: #232c38;
+  --rail: #10151c;
+
+  --c-border: #222a35;
+  --c-border-strong: #313c4a;
+  --c-divider: #1c232d;
+
+  --c-text: #e9edf2;
+  --c-muted: #9aa6b4;
+  --c-faint: #66707e;
+  --c-fainter: #4a5360;
+  --c-inverse: #0b0f15;
+
+  /* Brand "signal" — ink blue. */
+  --brand: #4b86e0;
+  --brand-strong: #3a6fc4;
+  --brand-bright: #6ea0ec;
+  --brand-fg: #ffffff;
+  --brand-tint: color-mix(in srgb, var(--brand) 16%, transparent);
+  --brand-tint-strong: color-mix(in srgb, var(--brand) 26%, transparent);
+  --brand-text: color-mix(in srgb, var(--brand) 88%, white);
+
+  /* Ledger gold — money only, never decorative. */
+  --ledger: #d7ab51;
+  --ledger-tint: color-mix(in srgb, #d7ab51 16%, transparent);
+
+  --positive: #4fb585;
+  --warning: #e0a64a;
+  --danger: #e06560;
+
+  /* Decorative status hues (agent badges, pills) — dark variants. */
+  --hue-blue: #7ba8c4;
+  --hue-plum: #b48ac4;
+  --hue-teal: #7fc4b9;
+  --hue-neutral: #888894;
+
+  /* The "lift" colour for hairlines/overlays: white in dark, ink in light.
+     Raw rgba(255,255,255,a) sweeps to rgba(var(--ink), a) and auto-adapts. */
+  --ink: 255, 255, 255;
+  --shadow-rgb: 0, 0, 0;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 20px 56px rgba(0, 0, 0, 0.6), 0 6px 16px rgba(0, 0, 0, 0.4);
+  --scrollbar: #313c4a;
+}
+
+:root[data-theme="light"] {
+  /* Greyer "desk" canvas so white panels read as raised cards (depth), with
+     stronger ink borders for definition. The bold ink lives in the chrome
+     frame (sidebar + top bar) — see the .hml-sidebar/.hml-topbar override in
+     design-system.css. */
+  --bg: #eaedf2;
+  --bg-grid: #dfe4ec;
+  --surface: #ffffff;
+  --surface-2: #e6eaf1;
+  --surface-3: #d8dee8;
+  --rail: #f3f5f8;
+
+  --c-border: #d1d8e2;
+  --c-border-strong: #b6bfcd;
+  --c-divider: #e1e6ee;
+
+  --c-text: #141a23;
+  --c-muted: #5a6573;
+  --c-faint: #8b95a3;
+  --c-fainter: #aab2bd;
+  --c-inverse: #ffffff;
+
+  --brand: #1a4d8f;
+  --brand-strong: #143d72;
+  --brand-bright: #2f63a8;
+  --brand-fg: #ffffff;
+  --brand-tint: color-mix(in srgb, var(--brand) 10%, transparent);
+  --brand-tint-strong: color-mix(in srgb, var(--brand) 18%, transparent);
+  --brand-text: var(--brand);
+
+  --ledger: #9a6f1e;
+  --ledger-tint: color-mix(in srgb, #9a6f1e 12%, transparent);
+
+  --positive: #1f7a4d;
+  --warning: #b5751c;
+  --danger: #c0413c;
+
+  --hue-blue: #3d6f8e;
+  --hue-plum: #8a5fa0;
+  --hue-teal: #2f8a7c;
+  --hue-neutral: #6b7280;
+
+  --ink: 20, 26, 35;
+  --shadow-rgb: 20, 26, 35;
+
+  --shadow-sm: 0 1px 2px rgba(20, 26, 35, 0.06), 0 1px 1px rgba(20, 26, 35, 0.04);
+  --shadow-md: 0 4px 12px rgba(20, 26, 35, 0.08), 0 2px 4px rgba(20, 26, 35, 0.05);
+  --shadow-lg: 0 16px 48px rgba(20, 26, 35, 0.16), 0 4px 12px rgba(20, 26, 35, 0.08);
+  --scrollbar: #c6cdd8;
+}
+
+/* ── App/legacy token names mapped onto the primitives above. Theme-agnostic:
+   each references a primitive that itself swaps, so old md-* / copper chrome
+   inherits the Console look in both themes with no per-theme duplication. ── */
+:root {
+  --bg-void: var(--bg);
+  --bg-deep: var(--rail);
+  --bg-surface: var(--surface);
+  --bg-elev: var(--surface-2);
+  --border: var(--c-border);
+  --border-strong: var(--c-border-strong);
+  --text: var(--c-text);
+  --text-mid: color-mix(in srgb, var(--c-text) 75%, var(--c-muted));
+  --text-muted: var(--c-muted);
+  --text-faint: var(--c-faint);
+  /* "copper" was the LED-purple accent; it is now the ink-blue brand. */
+  --copper: var(--brand);
+  --copper-soft: var(--brand-strong);
+  --copper-glow: var(--brand-tint-strong);
+  --signal-go: var(--positive);
+  --signal-hold: var(--warning);
+  --signal-stop: var(--danger);
+  --grid: var(--bg-grid);
+
+  --sans: "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --serif: "Archivo Variable", "Archivo", system-ui, sans-serif;
 }
 
 * {
@@ -79,8 +177,8 @@ body {
 
 body {
   background:
-    radial-gradient(ellipse 600px 400px at 18% -10%, rgba(180, 120, 255, 0.05) 0%, transparent 60%),
-    radial-gradient(ellipse 500px 500px at 100% 100%, rgba(123, 168, 196, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 600px 400px at 18% -10%, color-mix(in srgb, var(--brand) 6%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 500px 500px at 100% 100%, color-mix(in srgb, var(--hue-blue) 4%, transparent) 0%, transparent 60%),
     var(--bg-void);
   min-height: 100vh;
 }
@@ -176,7 +274,7 @@ body {
 .statusbar {
   height: 42px;
   border-bottom: 1px solid var(--border);
-  background: rgba(8, 9, 13, 0.85);
+  background: color-mix(in srgb, var(--bg-void) 85%, transparent);
   backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
@@ -271,8 +369,8 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border-strong);
   box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.65),
-    0 0 0 1px rgba(180, 120, 255, 0.1);
+    0 24px 60px rgba(var(--shadow-rgb), 0.65),
+    0 0 0 1px color-mix(in srgb, var(--copper) 10%, transparent);
   z-index: 150;
   padding: 8px 0;
   animation: reveal 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -331,7 +429,7 @@ body {
 .client-menu-item.active {
   color: var(--copper);
   border-left-color: var(--copper);
-  background: rgba(180, 120, 255, 0.06);
+  background: color-mix(in srgb, var(--copper) 6%, transparent);
 }
 .client-menu-item.action {
   color: var(--copper);
@@ -365,7 +463,7 @@ body {
   max-width: 980px;
   border: 1px solid var(--border);
   background:
-    radial-gradient(circle at 90% 0%, rgba(180, 120, 255, 0.06), transparent 60%),
+    radial-gradient(circle at 90% 0%, color-mix(in srgb, var(--copper) 6%, transparent), transparent 60%),
     var(--bg-surface);
   padding: 36px 44px 44px;
   position: relative;
@@ -416,7 +514,7 @@ body {
   font-family: var(--mono);
   font-size: 12.5px;
   color: var(--copper);
-  background: rgba(180, 120, 255, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
   padding: 1px 5px;
 }
 .clients-page-err {
@@ -425,8 +523,8 @@ body {
   color: var(--signal-stop);
   letter-spacing: 0.04em;
   padding: 10px 14px;
-  border: 1px solid rgba(248, 113, 113, 0.36);
-  background: rgba(248, 113, 113, 0.06);
+  border: 1px solid color-mix(in srgb, var(--signal-stop) 36%, transparent);
+  background: color-mix(in srgb, var(--signal-stop) 6%, transparent);
   margin-bottom: 18px;
 }
 .clients-page-toolbar {
@@ -463,14 +561,14 @@ body {
   letter-spacing: 0.04em;
   color: var(--copper);
   text-decoration: none;
-  border: 1px solid rgba(180, 120, 255, 0.36);
+  border: 1px solid color-mix(in srgb, var(--copper) 36%, transparent);
   padding: 5px 10px;
-  background: rgba(180, 120, 255, 0.06);
+  background: color-mix(in srgb, var(--copper) 6%, transparent);
   transition: border-color 0.15s, background 0.15s;
 }
 .clients-row-drive-link:hover {
   border-color: var(--copper);
-  background: rgba(180, 120, 255, 0.12);
+  background: var(--brand-tint);
 }
 .clients-list {
   list-style: none;
@@ -493,7 +591,7 @@ body {
 }
 .clients-row.active {
   border-color: var(--copper);
-  background: rgba(180, 120, 255, 0.05);
+  background: color-mix(in srgb, var(--copper) 5%, transparent);
 }
 .clients-row-main {
   display: flex;
@@ -517,8 +615,8 @@ body {
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--copper);
-  background: rgba(180, 120, 255, 0.08);
-  border: 1px solid rgba(180, 120, 255, 0.36);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--copper) 36%, transparent);
   padding: 2px 8px;
   font-weight: 600;
 }
@@ -572,12 +670,12 @@ body {
   justify-content: flex-end;
 }
 .kpi-form-btn.danger {
-  border-color: rgba(248, 113, 113, 0.36);
+  border-color: color-mix(in srgb, var(--signal-stop) 36%, transparent);
   color: var(--signal-stop);
 }
 .kpi-form-btn.danger:hover:not(:disabled) {
   border-color: var(--signal-stop);
-  background: rgba(248, 113, 113, 0.08);
+  background: color-mix(in srgb, var(--signal-stop) 8%, transparent);
 }
 
 .refresh-btn {
@@ -608,7 +706,7 @@ body {
 /* ── agent rail ──────────────────────────────────────────── */
 .agent-rail {
   border-right: 1px solid var(--border);
-  background: rgba(12, 15, 23, 0.6);
+  background: color-mix(in srgb, var(--bg-void) 60%, transparent);
   padding: 30px 0 24px;
   display: flex;
   flex-direction: column;
@@ -617,7 +715,7 @@ body {
   z-index: 50;
 }
 .agent-rail.with-drawer {
-  background: rgba(12, 15, 23, 0.92);
+  background: color-mix(in srgb, var(--bg-void) 92%, transparent);
 }
 .agent-rail-label {
   writing-mode: vertical-rl;
@@ -689,12 +787,12 @@ body {
 
 .agent-cell.active .agent-btn {
   border-color: var(--copper);
-  background: linear-gradient(180deg, rgba(180, 120, 255, 0.18), rgba(180, 120, 255, 0.04));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--copper) 18%, transparent), color-mix(in srgb, var(--copper) 4%, transparent));
   color: var(--copper);
   box-shadow:
-    inset 0 0 22px rgba(180, 120, 255, 0.22),
-    0 0 0 4px rgba(180, 120, 255, 0.08),
-    0 0 24px rgba(180, 120, 255, 0.18);
+    inset 0 0 22px color-mix(in srgb, var(--copper) 22%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--copper) 8%, transparent),
+    0 0 24px color-mix(in srgb, var(--copper) 18%, transparent);
 }
 .agent-cell.active .agent-btn::after {
   background: var(--copper);
@@ -800,7 +898,7 @@ body {
 .hero {
   border: 1px solid var(--border);
   background:
-    radial-gradient(circle at 80% 20%, rgba(180, 120, 255, 0.09), transparent 60%),
+    radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--copper) 9%, transparent), transparent 60%),
     var(--bg-surface);
   padding: 44px 52px;
   margin-bottom: 32px;
@@ -829,21 +927,21 @@ body {
   font-weight: 500;
 }
 .hero-eyebrow .verdict {
-  background: rgba(251, 191, 36, 0.13);
-  border: 1px solid rgba(251, 191, 36, 0.36);
+  background: color-mix(in srgb, var(--signal-hold) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--signal-hold) 36%, transparent);
   color: var(--signal-hold);
   padding: 5px 12px;
   letter-spacing: 0.16em;
   font-weight: 600;
 }
 .hero-eyebrow .verdict.verdict-kill {
-  background: rgba(248, 113, 113, 0.13);
-  border-color: rgba(248, 113, 113, 0.36);
+  background: color-mix(in srgb, var(--signal-stop) 13%, transparent);
+  border-color: color-mix(in srgb, var(--signal-stop) 36%, transparent);
   color: var(--signal-stop);
 }
 .hero-eyebrow .verdict.verdict-scale {
-  background: rgba(95, 230, 153, 0.13);
-  border-color: rgba(95, 230, 153, 0.36);
+  background: color-mix(in srgb, var(--signal-go) 13%, transparent);
+  border-color: color-mix(in srgb, var(--signal-go) 36%, transparent);
   color: var(--signal-go);
 }
 .hero h1 {
@@ -859,7 +957,7 @@ body {
 .hero h1 strong {
   color: var(--copper);
   font-weight: 600;
-  background: linear-gradient(90deg, transparent, rgba(180, 120, 255, 0.08), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--copper) 8%, transparent), transparent);
   padding: 0 4px;
   margin: 0 -4px;
 }
@@ -904,7 +1002,7 @@ body {
   width: 2px;
   height: 22px;
   background: var(--text);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 10px rgba(var(--ink), 0.55);
 }
 .spectrum-marker::after {
   content: "YOU ARE HERE";
@@ -1137,11 +1235,11 @@ body {
 .action.primary {
   border-color: var(--copper);
   color: var(--copper);
-  background: rgba(180, 120, 255, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
   font-weight: 600;
 }
 .action.primary:hover {
-  background: rgba(180, 120, 255, 0.18);
+  background: color-mix(in srgb, var(--copper) 18%, transparent);
 }
 
 /* ── tracking dials ─────────────────────────────────────── */
@@ -1160,7 +1258,7 @@ body {
   border-radius: 50%;
   margin: 0 auto 14px;
   position: relative;
-  background: conic-gradient(var(--signal-go) 0% var(--pct, 0%), rgba(255, 255, 255, 0.05) var(--pct, 0%) 100%);
+  background: conic-gradient(var(--signal-go) 0% var(--pct, 0%), rgba(var(--ink), 0.05) var(--pct, 0%) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1173,10 +1271,10 @@ body {
   background: var(--bg-surface);
 }
 .dial-ring.amber {
-  background: conic-gradient(var(--signal-hold) 0% var(--pct), rgba(255, 255, 255, 0.05) var(--pct) 100%);
+  background: conic-gradient(var(--signal-hold) 0% var(--pct), rgba(var(--ink), 0.05) var(--pct) 100%);
 }
 .dial-ring.red {
-  background: conic-gradient(var(--signal-stop) 0% var(--pct), rgba(255, 255, 255, 0.05) var(--pct) 100%);
+  background: conic-gradient(var(--signal-stop) 0% var(--pct), rgba(var(--ink), 0.05) var(--pct) 100%);
 }
 .dial-val.warn {
   color: var(--signal-hold);
@@ -1245,17 +1343,17 @@ body {
 .status-toggle-btn.active.ok {
   border-color: var(--signal-go);
   color: var(--signal-go);
-  background: rgba(95, 230, 153, 0.08);
+  background: color-mix(in srgb, var(--signal-go) 8%, transparent);
 }
 .status-toggle-btn.active.warning {
   border-color: var(--signal-hold);
   color: var(--signal-hold);
-  background: rgba(251, 191, 36, 0.08);
+  background: color-mix(in srgb, var(--signal-hold) 8%, transparent);
 }
 .status-toggle-btn.active.missing {
   border-color: var(--signal-stop);
   color: var(--signal-stop);
-  background: rgba(248, 113, 113, 0.08);
+  background: color-mix(in srgb, var(--signal-stop) 8%, transparent);
 }
 .dial-val {
   position: relative;
@@ -1304,7 +1402,7 @@ body {
   height: 180px;
   border-radius: 50%;
   margin: 0 auto 22px;
-  background: conic-gradient(var(--copper) 0% var(--pct, 50%), rgba(255, 255, 255, 0.06) var(--pct, 50%) 100%);
+  background: conic-gradient(var(--copper) 0% var(--pct, 50%), rgba(var(--ink), 0.06) var(--pct, 50%) 100%);
   position: relative;
   display: flex;
   align-items: center;
@@ -1509,9 +1607,9 @@ body {
   align-items: center;
   gap: 16px;
   box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(180, 120, 255, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    0 24px 64px rgba(var(--shadow-rgb), 0.55),
+    0 0 0 1px var(--brand-tint),
+    inset 0 1px 0 rgba(var(--ink), 0.04);
   cursor: pointer;
   transition: all 0.2s;
   border-radius: 2px;
@@ -1520,9 +1618,9 @@ body {
 .ask-dock:hover {
   border-color: var(--copper);
   box-shadow:
-    0 28px 72px rgba(0, 0, 0, 0.65),
+    0 28px 72px rgba(var(--shadow-rgb), 0.65),
     0 0 28px var(--copper-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    inset 0 1px 0 rgba(var(--ink), 0.06);
 }
 .ask-dock-icon {
   width: 42px;
@@ -1576,9 +1674,9 @@ body {
   inset: 0;
   background: linear-gradient(
     90deg,
-    rgba(8, 9, 13, 0.55) 0%,
-    rgba(8, 9, 13, 0.78) 60%,
-    rgba(8, 9, 13, 0.92) 100%
+    color-mix(in srgb, var(--bg-void) 55%, transparent) 0%,
+    color-mix(in srgb, var(--bg-void) 78%, transparent) 60%,
+    color-mix(in srgb, var(--bg-void) 92%, transparent) 100%
   );
   z-index: 5;
   backdrop-filter: blur(2px);
@@ -1694,7 +1792,7 @@ body {
 .cw-rail-new {
   text-align: left;
   padding: 8px 10px;
-  background: rgba(180, 120, 255, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
   border: 1px solid var(--copper);
   color: var(--copper);
   font-size: 12px;
@@ -1722,7 +1820,7 @@ body {
 }
 .cw-rail-item.is-active {
   border-color: var(--copper);
-  background: rgba(180, 120, 255, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
 }
 .cw-rail-item:disabled {
   opacity: 0.5;
@@ -1749,7 +1847,7 @@ body {
 }
 .cw-rail-btn.primary {
   border-color: var(--copper);
-  background: rgba(180, 120, 255, 0.1);
+  background: color-mix(in srgb, var(--copper) 10%, transparent);
   color: var(--copper);
 }
 .cw-rail-btn:disabled {
@@ -1775,7 +1873,7 @@ body {
   text-align: left;
 }
 .cw-prompt-copy:hover {
-  background: rgba(180, 120, 255, 0.06);
+  background: color-mix(in srgb, var(--copper) 6%, transparent);
 }
 .cw-prompt-title {
   font-size: 12.5px;
@@ -1930,8 +2028,8 @@ body {
   gap: 6px;
   max-width: 240px;
   padding: 3px 4px 3px 8px;
-  border: 1px solid rgba(180, 120, 255, 0.3);
-  background: rgba(180, 120, 255, 0.08);
+  border: 1px solid color-mix(in srgb, var(--copper) 30%, transparent);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
   color: var(--text-muted);
   font-size: 11.5px;
 }
@@ -1970,7 +2068,7 @@ body {
   padding: 6px;
   background: var(--bg-surface);
   border: 1px solid var(--copper);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 12px 30px rgba(var(--shadow-rgb), 0.5);
 }
 .cw-chat .cw-pages-head {
   font-family: var(--mono);
@@ -1995,7 +2093,7 @@ body {
   cursor: pointer;
 }
 .cw-chat .cw-pages-row:hover {
-  background: rgba(180, 120, 255, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
 }
 .cw-chat .cw-pages-row input {
   accent-color: var(--copper);
@@ -2009,7 +2107,7 @@ body {
   width: 540px;
   background: var(--bg-surface);
   border-left: 1px solid var(--border-strong);
-  box-shadow: -40px 0 80px rgba(0, 0, 0, 0.55);
+  box-shadow: -40px 0 80px rgba(var(--shadow-rgb), 0.55);
   display: grid;
   grid-template-rows: auto auto 1fr auto auto;
   z-index: 40;
@@ -2117,8 +2215,8 @@ body {
 .switcher-btn.active {
   border-color: var(--copper);
   color: var(--copper);
-  background: rgba(180, 120, 255, 0.1);
-  box-shadow: inset 0 0 10px rgba(180, 120, 255, 0.15);
+  background: color-mix(in srgb, var(--copper) 10%, transparent);
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--copper) 15%, transparent);
 }
 
 .thread {
@@ -2178,7 +2276,7 @@ body {
   font-family: var(--mono);
   color: var(--copper);
   font-size: 13.5px;
-  background: rgba(180, 120, 255, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
   padding: 1px 5px;
 }
 
@@ -2230,7 +2328,7 @@ body {
   color: var(--copper);
 }
 .chip.featured {
-  border-color: rgba(180, 120, 255, 0.4);
+  border-color: color-mix(in srgb, var(--copper) 40%, transparent);
   color: var(--copper);
 }
 
@@ -2286,7 +2384,7 @@ body {
   align-self: end;
   padding: 8px 16px;
   border: 1px solid var(--copper);
-  background: rgba(180, 120, 255, 0.1);
+  background: color-mix(in srgb, var(--copper) 10%, transparent);
   color: var(--copper);
   font-family: var(--sans);
   font-size: 13px;
@@ -2295,7 +2393,7 @@ body {
   transition: background 0.15s;
 }
 .input-send:hover:not(:disabled) {
-  background: rgba(180, 120, 255, 0.22);
+  background: color-mix(in srgb, var(--copper) 22%, transparent);
 }
 .input-send:disabled {
   opacity: 0.4;
@@ -2325,14 +2423,14 @@ body {
 }
 .kbd-action {
   color: var(--copper);
-  border-color: rgba(180, 120, 255, 0.3);
+  border-color: color-mix(in srgb, var(--copper) 30%, transparent);
 }
 
 /* ── command palette ──────────────────────────────────── */
 .palette-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(8, 9, 13, 0.78);
+  background: color-mix(in srgb, var(--bg-void) 78%, transparent);
   backdrop-filter: blur(8px);
   z-index: 200;
   display: flex;
@@ -2346,8 +2444,8 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border-strong);
   box-shadow:
-    0 40px 80px rgba(0, 0, 0, 0.7),
-    0 0 0 1px rgba(180, 120, 255, 0.1);
+    0 40px 80px rgba(var(--shadow-rgb), 0.7),
+    0 0 0 1px color-mix(in srgb, var(--copper) 10%, transparent);
 }
 .palette-input {
   width: 100%;
@@ -2443,7 +2541,7 @@ body {
   width: 100%;
   border: 1px solid var(--border);
   background:
-    radial-gradient(circle at 80% 20%, rgba(180, 120, 255, 0.09), transparent 60%),
+    radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--copper) 9%, transparent), transparent 60%),
     var(--bg-surface);
   padding: 48px 52px;
   position: relative;
@@ -2511,7 +2609,7 @@ body {
 
 .prelaunch-progress {
   height: 8px;
-  background: rgba(180, 200, 240, 0.06);
+  background: color-mix(in srgb, var(--hue-blue) 6%, transparent);
   position: relative;
   margin: 28px 0 16px;
   border-radius: 1px;
@@ -2539,7 +2637,7 @@ body {
   justify-content: center;
   gap: 16px;
   padding: 22px 26px;
-  background: linear-gradient(180deg, rgba(180, 120, 255, 0.06), rgba(180, 120, 255, 0.02));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--copper) 6%, transparent), color-mix(in srgb, var(--copper) 2%, transparent));
   border: 1px solid var(--copper);
   color: var(--copper);
   font-family: var(--sans);
@@ -2563,7 +2661,7 @@ body {
   opacity: 0.7;
 }
 .ask-aurelius-btn:hover:not(:disabled) {
-  background: rgba(180, 120, 255, 0.14);
+  background: color-mix(in srgb, var(--copper) 14.000000000000002%, transparent);
   box-shadow: 0 0 28px var(--copper-glow);
 }
 .ask-aurelius-btn:disabled {
@@ -2686,7 +2784,7 @@ body {
 }
 .launch-seg-btn:hover:not(:disabled):not(.active) {
   color: var(--text-mid);
-  background: rgba(180, 200, 240, 0.04);
+  background: color-mix(in srgb, var(--hue-blue) 4%, transparent);
 }
 .launch-seg-btn:disabled {
   cursor: not-allowed;
@@ -2694,18 +2792,18 @@ body {
 }
 .launch-seg-btn.active.stop {
   color: var(--signal-stop);
-  background: rgba(248, 113, 113, 0.1);
-  box-shadow: inset 0 0 8px rgba(248, 113, 113, 0.18);
+  background: color-mix(in srgb, var(--signal-stop) 10%, transparent);
+  box-shadow: inset 0 0 8px color-mix(in srgb, var(--signal-stop) 18%, transparent);
 }
 .launch-seg-btn.active.hold {
   color: var(--signal-hold);
-  background: rgba(251, 191, 36, 0.1);
-  box-shadow: inset 0 0 8px rgba(251, 191, 36, 0.18);
+  background: color-mix(in srgb, var(--signal-hold) 10%, transparent);
+  box-shadow: inset 0 0 8px color-mix(in srgb, var(--signal-hold) 18%, transparent);
 }
 .launch-seg-btn.active.go {
   color: var(--signal-go);
-  background: rgba(95, 230, 153, 0.1);
-  box-shadow: inset 0 0 8px rgba(95, 230, 153, 0.18);
+  background: color-mix(in srgb, var(--signal-go) 10%, transparent);
+  box-shadow: inset 0 0 8px color-mix(in srgb, var(--signal-go) 18%, transparent);
 }
 .launch-note {
   margin-top: 10px;
@@ -2730,7 +2828,7 @@ body {
 .kpi-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(8, 9, 13, 0.78);
+  background: color-mix(in srgb, var(--bg-void) 78%, transparent);
   backdrop-filter: blur(8px);
   z-index: 200;
   display: flex;
@@ -2745,7 +2843,7 @@ body {
   border: 1px solid var(--border-strong);
   box-shadow:
     0 40px 80px rgba(0, 0, 0, 0.7),
-    0 0 0 1px rgba(180, 120, 255, 0.1);
+    0 0 0 1px color-mix(in srgb, var(--copper) 10%, transparent);
   position: relative;
 }
 .kpi-modal::before {
@@ -2863,10 +2961,10 @@ body {
 .kpi-form-btn.primary {
   border-color: var(--copper);
   color: var(--copper);
-  background: rgba(180, 120, 255, 0.1);
+  background: color-mix(in srgb, var(--copper) 10%, transparent);
 }
 .kpi-form-btn.primary:hover {
-  background: rgba(180, 120, 255, 0.22);
+  background: color-mix(in srgb, var(--copper) 22%, transparent);
 }
 .kpi-form-btn:disabled {
   opacity: 0.5;
@@ -3020,7 +3118,7 @@ body {
   font-family: var(--mono);
   font-size: 12.5px;
   color: var(--copper);
-  background: rgba(180, 120, 255, 0.06);
+  background: color-mix(in srgb, var(--copper) 6%, transparent);
   border: 1px solid var(--border);
   padding: 8px 11px;
   word-break: break-all;
@@ -3074,7 +3172,7 @@ body {
 }
 .settings-radio.checked {
   border-color: var(--copper);
-  background: rgba(180, 120, 255, 0.06);
+  background: color-mix(in srgb, var(--copper) 6%, transparent);
   color: var(--copper);
 }
 .settings-radio-dot {
@@ -3213,8 +3311,8 @@ body {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background: rgba(248, 113, 113, 0.05);
-  border: 1px solid rgba(248, 113, 113, 0.22);
+  background: color-mix(in srgb, var(--signal-stop) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--signal-stop) 22%, transparent);
   font-family: var(--mono);
   font-size: 11px;
   line-height: 1.5;
@@ -3288,10 +3386,10 @@ body {
 .cred-mini.rotate {
   border-color: var(--copper);
   color: var(--copper);
-  background: rgba(180, 120, 255, 0.1);
+  background: color-mix(in srgb, var(--copper) 10%, transparent);
 }
 .cred-mini.rotate:hover:not(:disabled) {
-  background: rgba(180, 120, 255, 0.2);
+  background: color-mix(in srgb, var(--copper) 20%, transparent);
 }
 .cred-field-hint {
   font-family: var(--sans);
@@ -3344,10 +3442,10 @@ body {
   font-family: var(--sans);
 }
 .kb-row:hover {
-  background: rgba(180, 120, 255, 0.04);
+  background: color-mix(in srgb, var(--copper) 4%, transparent);
 }
 .kb-row.active {
-  background: rgba(180, 120, 255, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
   border-left-color: var(--copper);
 }
 .kb-row-id {
@@ -3470,8 +3568,8 @@ body {
   letter-spacing: 0.22em;
   color: var(--copper);
   padding: 4px 8px;
-  border: 1px solid rgba(180, 120, 255, 0.36);
-  background: rgba(180, 120, 255, 0.08);
+  border: 1px solid color-mix(in srgb, var(--copper) 36%, transparent);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
 }
 .about-textarea {
   width: 100%;
@@ -3534,7 +3632,7 @@ body {
 .msg-action-btn:hover {
   border-color: var(--copper);
   color: var(--copper);
-  background: rgba(180, 120, 255, 0.06);
+  background: color-mix(in srgb, var(--copper) 6%, transparent);
 }
 .msg-saved-badge {
   font-family: var(--mono);
@@ -3542,9 +3640,9 @@ body {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--copper);
-  border: 1px solid rgba(180, 120, 255, 0.4);
+  border: 1px solid color-mix(in srgb, var(--copper) 40%, transparent);
   padding: 2px 7px;
-  background: rgba(180, 120, 255, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
 }
 .chat-toast {
   position: absolute;

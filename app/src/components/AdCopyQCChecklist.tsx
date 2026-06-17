@@ -121,7 +121,7 @@ const QC_CSS = `
   background: var(--hml-bg-elev-1);
   border: 1px solid var(--hml-border);
   border-radius: 10px;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 12px 36px rgba(var(--shadow-rgb), 0.4);
   font-family: var(--hml-font-sans);
   color: var(--hml-text-primary);
   overflow: hidden;
@@ -187,8 +187,8 @@ const QC_CSS = `
   border-radius: 6px;
   transition: background 120ms ease;
 }
-.qc-item:hover { background: rgba(255, 255, 255, 0.03); }
-.qc-item.is-on { background: rgba(84, 214, 143, 0.06); }
+.qc-item:hover { background: rgba(var(--ink), 0.03); }
+.qc-item.is-on { background: color-mix(in srgb, var(--positive) 6%, transparent); }
 
 .qc-row {
   display: grid;
@@ -204,7 +204,7 @@ const QC_CSS = `
   width: 16px;
   height: 16px;
   margin-top: 2px;
-  accent-color: #54d68f;
+  accent-color: var(--positive);
   cursor: pointer;
 }
 
@@ -223,9 +223,9 @@ const QC_CSS = `
   font-family: var(--hml-font-mono);
 }
 .qc-item.is-on .qc-num {
-  background: rgba(84, 214, 143, 0.18);
-  border-color: rgba(84, 214, 143, 0.5);
-  color: #54d68f;
+  background: color-mix(in srgb, var(--positive) 18%, transparent);
+  border-color: color-mix(in srgb, var(--positive) 50%, transparent);
+  color: var(--positive);
 }
 
 .qc-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

@@ -359,11 +359,11 @@ const troubleshootingCSS = `
   transition: background 120ms ease, border-color 120ms ease;
 }
 .ts-list-item:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(var(--ink), 0.02);
   border-color: var(--border);
 }
 .ts-list-item.is-active {
-  background: rgba(184, 115, 51, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
   border-color: var(--copper);
 }
 .ts-list-num {
@@ -468,7 +468,7 @@ const troubleshootingCSS = `
   color: var(--text-muted);
 }
 .ts-callout {
-  background: rgba(184, 115, 51, 0.06);
+  background: color-mix(in srgb, var(--copper) 6%, transparent);
   border-left: 2px solid var(--copper);
   padding: 12px 14px;
   font-family: var(--sans);

@@ -1,89 +1,75 @@
-/* Hauck Marketing Lab — design system v2
-   Calm editorial dark theme. Sparing warm-amber accent. Geist + Geist Mono.
-   Token names and component classes mirror the mockups under
-   mockups/restructure/styles.css. Loaded via App.tsx before any page CSS so
-   tokens cascade.
+/* Hauck Marketing Lab — design system, now on the shared "Console" language.
+   Graphite chrome, ink-blue brand signal, gold ledger accent (money only),
+   light + dark themes. Fonts (Inter / Archivo / IBM Plex Mono) are loaded by
+   main.tsx via @fontsource; the --hml-* tokens here alias the Console
+   primitives defined in index.css, so the whole shell swaps on [data-theme].
 */
-
-/* ───────── FONTS ───────── */
-
-@font-face {
-  font-family: 'Geist';
-  src: url('../assets/fonts/Geist-Variable.woff2') format('woff2-variations'),
-       url('../assets/fonts/Geist-Variable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Geist Mono';
-  src: url('../assets/fonts/GeistMono-Variable.woff2') format('woff2-variations'),
-       url('../assets/fonts/GeistMono-Variable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
 
 /* ───────── TOKENS ───────── */
 
 :root {
+  /* The --hml-* tokens now alias the Console primitives defined in index.css
+     (--bg, --surface, --brand, --positive, …). They resolve lazily through
+     var(), so the whole hml-* shell swaps with [data-theme] for free. The
+     ink-blue brand replaces the old LED-purple accent. */
+
   /* Surfaces */
-  --hml-bg-base: #0a0a0c;
-  --hml-bg-sidebar: #0d0d11;
-  --hml-bg-elev-1: #131318;
-  --hml-bg-elev-2: #191920;
-  --hml-bg-elev-3: #1f1f28;
+  --hml-bg-base: var(--bg);
+  --hml-bg-sidebar: var(--rail);
+  --hml-bg-elev-1: var(--surface);
+  --hml-bg-elev-2: var(--surface-2);
+  --hml-bg-elev-3: var(--surface-3);
 
   /* Borders */
-  --hml-border-subtle: rgba(255, 255, 255, 0.05);
-  --hml-border: rgba(255, 255, 255, 0.085);
-  --hml-border-strong: rgba(255, 255, 255, 0.14);
+  --hml-border-subtle: var(--c-divider);
+  --hml-border: var(--c-border);
+  --hml-border-strong: var(--c-border-strong);
 
   /* Text */
-  --hml-text-primary: #ececf0;
-  --hml-text-secondary: #9c9ca8;
-  --hml-text-tertiary: #6a6a76;
-  --hml-text-quaternary: #494954;
+  --hml-text-primary: var(--c-text);
+  --hml-text-secondary: var(--c-muted);
+  --hml-text-tertiary: var(--c-faint);
+  --hml-text-quaternary: var(--c-fainter);
 
-  /* Accent: LED purple */
-  --hml-accent: #b478ff;
-  --hml-accent-bright: #c594ff;
-  --hml-accent-dim: rgba(180, 120, 255, 0.12);
-  --hml-accent-border: rgba(180, 120, 255, 0.28);
+  /* Accent: ink-blue brand (formerly LED purple) */
+  --hml-accent: var(--brand);
+  --hml-accent-bright: var(--brand-bright);
+  --hml-accent-dim: var(--brand-tint);
+  --hml-accent-border: var(--brand-tint-strong);
 
-  /* Status — muted */
-  --hml-green: #7fb285;
-  --hml-green-bg: rgba(127, 178, 133, 0.12);
-  --hml-green-border: rgba(127, 178, 133, 0.25);
+  /* Status — mapped to Console signals + decorative hues */
+  --hml-green: var(--positive);
+  --hml-green-bg: color-mix(in srgb, var(--positive) 12%, transparent);
+  --hml-green-border: color-mix(in srgb, var(--positive) 25%, transparent);
 
-  --hml-amber: #f59e0b;
-  --hml-amber-bg: rgba(245, 158, 11, 0.12);
-  --hml-amber-border: rgba(245, 158, 11, 0.25);
+  --hml-amber: var(--warning);
+  --hml-amber-bg: color-mix(in srgb, var(--warning) 12%, transparent);
+  --hml-amber-border: color-mix(in srgb, var(--warning) 25%, transparent);
 
-  --hml-blue: #7ba8c4;
-  --hml-blue-bg: rgba(123, 168, 196, 0.12);
-  --hml-blue-border: rgba(123, 168, 196, 0.25);
+  --hml-blue: var(--hue-blue);
+  --hml-blue-bg: color-mix(in srgb, var(--hue-blue) 12%, transparent);
+  --hml-blue-border: color-mix(in srgb, var(--hue-blue) 25%, transparent);
 
-  --hml-plum: #b48ac4;
-  --hml-plum-bg: rgba(180, 138, 196, 0.12);
-  --hml-plum-border: rgba(180, 138, 196, 0.25);
+  --hml-plum: var(--hue-plum);
+  --hml-plum-bg: color-mix(in srgb, var(--hue-plum) 12%, transparent);
+  --hml-plum-border: color-mix(in srgb, var(--hue-plum) 25%, transparent);
 
-  --hml-teal: #7fc4b9;
-  --hml-teal-bg: rgba(127, 196, 185, 0.12);
-  --hml-teal-border: rgba(127, 196, 185, 0.25);
+  --hml-teal: var(--hue-teal);
+  --hml-teal-bg: color-mix(in srgb, var(--hue-teal) 12%, transparent);
+  --hml-teal-border: color-mix(in srgb, var(--hue-teal) 25%, transparent);
 
-  --hml-neutral: #888894;
-  --hml-neutral-bg: rgba(136, 136, 148, 0.10);
-  --hml-neutral-border: rgba(136, 136, 148, 0.22);
+  --hml-neutral: var(--hue-neutral);
+  --hml-neutral-bg: color-mix(in srgb, var(--hue-neutral) 10%, transparent);
+  --hml-neutral-border: color-mix(in srgb, var(--hue-neutral) 22%, transparent);
 
-  --hml-red: #c4847b;
-  --hml-red-bg: rgba(196, 132, 123, 0.12);
-  --hml-red-border: rgba(196, 132, 123, 0.25);
+  --hml-red: var(--danger);
+  --hml-red-bg: color-mix(in srgb, var(--danger) 12%, transparent);
+  --hml-red-border: color-mix(in srgb, var(--danger) 25%, transparent);
 
-  /* Typography */
-  --hml-font-sans: 'Geist', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
-  --hml-font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Typography — Console families */
+  --hml-font-sans: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
+  --hml-font-mono: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --hml-font-display: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
 
   --hml-sidebar-width: 252px;
 }
@@ -111,13 +97,106 @@
   position: relative;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   LIGHT MODE · "command chrome"
+   The sidebar and top bar stay DARK in light mode — an instrument panel
+   framing a bright worksheet. Tokens are re-pointed to dark values ONLY
+   inside these two subtrees, so the chrome reads dark while content stays
+   light. Everything in here already paints through --hml-* / --c-* / --brand,
+   so re-pointing those tokens flips the whole frame with no per-element work.
+   ───────────────────────────────────────────────────────────────────────── */
+[data-theme="light"] .hml-sidebar,
+[data-theme="light"] .hml-topbar {
+  /* hairlines lift with white again, and the brand/signal hues brighten so
+     they keep contrast against the dark chrome. */
+  --ink: 255, 255, 255;
+  --brand: #4b86e0;
+  --brand-strong: #3a6fc4;
+  --brand-bright: #6ea0ec;
+  --brand-tint: color-mix(in srgb, var(--brand) 16%, transparent);
+  --brand-tint-strong: color-mix(in srgb, var(--brand) 26%, transparent);
+  --positive: #4fb585;
+  --warning: #e0a64a;
+  --danger: #e06560;
+  --hue-blue: #7ba8c4;
+  --hue-plum: #b48ac4;
+  --hue-teal: #7fc4b9;
+  --hue-neutral: #888894;
+
+  --hml-bg-base: #0e1319;
+  --hml-bg-sidebar: #0e1319;
+  --hml-bg-elev-1: #161c24;
+  --hml-bg-elev-2: #1b222b;
+  --hml-bg-elev-3: #232c38;
+
+  --hml-border-subtle: rgba(255, 255, 255, 0.06);
+  --hml-border: rgba(255, 255, 255, 0.10);
+  --hml-border-strong: rgba(255, 255, 255, 0.16);
+
+  --hml-text-primary: #e9edf2;
+  --hml-text-secondary: #9aa6b4;
+  --hml-text-tertiary: #707b8a;
+  --hml-text-quaternary: #515b69;
+
+  --c-text: #e9edf2;
+  --c-muted: #9aa6b4;
+  --c-faint: #707b8a;
+  --c-fainter: #515b69;
+}
+
+[data-theme="light"] .hml-sidebar {
+  border-right-color: rgba(255, 255, 255, 0.08);
+}
+
+/* The top bar paints a literal translucent fill (it's sticky + blurred), so
+   set it directly rather than through a token. Dark ink to match the rail. */
+[data-theme="light"] .hml-topbar {
+  background: color-mix(in srgb, #0e1319 88%, transparent);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Menus that hang off the dark chrome (e.g. the notifications popover) are
+   content, not chrome — re-light them so they don't inherit the dark tokens
+   from the top bar. Literal values (not var()) because --c-*/--hml-* are still
+   the dark-chrome values at this point in the cascade. */
+[data-theme="light"] .hml-chrome-popover {
+  --ink: 20, 26, 35;
+  --brand: #1a4d8f;
+  --brand-strong: #143d72;
+  --brand-bright: #2f63a8;
+  --positive: #1f7a4d;
+  --warning: #b5751c;
+  --danger: #c0413c;
+  --hue-blue: #3d6f8e;
+  --hue-plum: #8a5fa0;
+  --hue-teal: #2f8a7c;
+  --hue-neutral: #6b7280;
+
+  --hml-bg-base: #eaedf2;
+  --hml-bg-sidebar: #f3f5f8;
+  --hml-bg-elev-1: #ffffff;
+  --hml-bg-elev-2: #e6eaf1;
+  --hml-bg-elev-3: #d8dee8;
+  --hml-border-subtle: #e1e6ee;
+  --hml-border: #d1d8e2;
+  --hml-border-strong: #b6bfcd;
+  --hml-text-primary: #141a23;
+  --hml-text-secondary: #5a6573;
+  --hml-text-tertiary: #8b95a3;
+  --hml-text-quaternary: #aab2bd;
+  --c-text: #141a23;
+  --c-muted: #5a6573;
+  --c-faint: #8b95a3;
+  --c-fainter: #aab2bd;
+}
+
 /* Themed scrollbars — replaces the OS default gray/white bar with a slim
  * track that matches the purple/black aesthetic. Scoped to .hml-app so it
  * styles every scrollable surface inside the shell without leaking out. */
 .hml-app *,
 .hml-app {
   scrollbar-width: thin;
-  scrollbar-color: rgba(180, 120, 255, 0.28) transparent;
+  scrollbar-color: var(--brand-tint-strong) transparent;
 }
 .hml-app *::-webkit-scrollbar,
 .hml-app::-webkit-scrollbar {
@@ -130,14 +209,14 @@
 }
 .hml-app *::-webkit-scrollbar-thumb,
 .hml-app::-webkit-scrollbar-thumb {
-  background: rgba(180, 120, 255, 0.22);
+  background: color-mix(in srgb, var(--brand) 22%, transparent);
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 999px;
 }
 .hml-app *::-webkit-scrollbar-thumb:hover,
 .hml-app::-webkit-scrollbar-thumb:hover {
-  background: rgba(180, 120, 255, 0.48);
+  background: color-mix(in srgb, var(--brand) 48%, transparent);
   background-clip: padding-box;
 }
 .hml-app *::-webkit-scrollbar-corner,
@@ -151,8 +230,8 @@
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 600px 400px at 18% -10%, rgba(180, 120, 255, 0.05) 0%, transparent 60%),
-    radial-gradient(ellipse 500px 500px at 100% 100%, rgba(123, 168, 196, 0.03) 0%, transparent 60%);
+    radial-gradient(ellipse 600px 400px at 18% -10%, color-mix(in srgb, var(--brand) 5%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 500px 500px at 100% 100%, color-mix(in srgb, var(--hue-blue) 3%, transparent) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -180,6 +259,42 @@
   overflow: hidden;
 }
 
+/* Unified "Console" shell: a single sidebar (no 48px icon-rail). */
+.hml-shell--console {
+  grid-template-columns: var(--hml-sidebar-width) 1fr;
+}
+
+/* Collapsible nav group (Clients / Sales / Outreach / Workspace). The header
+   is a full-width toggle; the chevron rotates to point down when open. */
+.hml-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.hml-group-chevron {
+  flex-shrink: 0;
+  color: var(--hml-text-quaternary);
+  transition: transform 0.15s ease;
+}
+.hml-group.hml-group-open > .hml-group-head .hml-group-chevron {
+  transform: rotate(90deg);
+}
+.hml-group-head:hover .hml-section-label {
+  color: var(--hml-text-tertiary);
+}
+.hml-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
 .hml-brand {
   display: flex;
   align-items: center;
@@ -193,13 +308,13 @@
 .hml-brand-mark {
   width: 26px; height: 26px;
   border-radius: 6px;
-  background: linear-gradient(135deg, var(--hml-accent) 0%, #7a3fd9 100%);
+  background: linear-gradient(135deg, var(--hml-accent) 0%, var(--brand-strong) 100%);
   display: flex; align-items: center; justify-content: center;
   font-weight: 600;
   font-size: 12px;
-  color: #ffffff;
+  color: var(--brand-fg);
   letter-spacing: -0.02em;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.10) inset, 0 4px 10px rgba(180, 120, 255, 0.15);
+  box-shadow: 0 1px 0 rgba(var(--ink), 0.10) inset, 0 4px 10px color-mix(in srgb, var(--brand) 15%, transparent);
 }
 
 .hml-brand-name {
@@ -249,7 +364,7 @@
   font-family: var(--hml-font-mono);
   font-size: 10px;
   color: var(--hml-text-tertiary);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--ink), 0.04);
   border: 1px solid var(--hml-border-subtle);
   border-radius: 3px;
   padding: 1px 5px;
@@ -261,12 +376,12 @@
   overflow-y: auto;
   padding: 4px 8px 12px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
+  scrollbar-color: rgba(var(--ink), 0.06) transparent;
 }
 
 .hml-nav::-webkit-scrollbar { width: 6px; }
 .hml-nav::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--ink), 0.06);
   border-radius: 3px;
 }
 
@@ -346,7 +461,7 @@
 }
 
 .hml-nav-item:hover {
-  background: rgba(255, 255, 255, 0.025);
+  background: rgba(var(--ink), 0.025);
   color: var(--hml-text-primary);
 }
 
@@ -364,7 +479,7 @@
   width: 2px; height: 14px;
   background: var(--hml-accent);
   border-radius: 0 2px 2px 0;
-  box-shadow: 0 0 8px rgba(180, 120, 255, 0.4);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--brand) 40%, transparent);
 }
 
 .hml-nav-icon {
@@ -380,12 +495,12 @@
   font-size: 10.5px;
   color: var(--hml-text-tertiary);
   padding: 1px 5px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--ink), 0.03);
   border-radius: 4px;
 }
 
 .hml-nav-item.hml-active .hml-badge {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--ink), 0.06);
   color: var(--hml-text-secondary);
 }
 
@@ -403,7 +518,7 @@
 .hml-nav-sub {
   margin: 2px 0 2px 17px;
   padding-left: 0;
-  border-left: 1px dashed rgba(255, 255, 255, 0.05);
+  border-left: 1px dashed rgba(var(--ink), 0.05);
 }
 
 .hml-nav-item-sub {
@@ -427,7 +542,7 @@
 
 .hml-nav-item-sub:hover {
   color: var(--hml-text-primary);
-  background: rgba(255, 255, 255, 0.025);
+  background: rgba(var(--ink), 0.025);
 }
 
 .hml-nav-item-sub.hml-active {
@@ -466,7 +581,7 @@
 
 .hml-nav-add:hover {
   color: var(--hml-accent);
-  background: rgba(180, 120, 255, 0.05);
+  background: color-mix(in srgb, var(--brand) 5%, transparent);
 }
 
 .hml-sidebar-footer {
@@ -480,7 +595,7 @@
 .hml-user-avatar {
   width: 26px; height: 26px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3a2454, #1a0a2e);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 30%, var(--surface-3)), var(--surface-3));
   border: 1px solid var(--hml-border);
   display: flex; align-items: center; justify-content: center;
   font-size: 11px;
@@ -518,8 +633,8 @@
 .hml-status-dot.hml-red-dot { background: var(--hml-red); animation: none; }
 
 @keyframes hml-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(127, 178, 133, 0.5); }
-  50%      { box-shadow: 0 0 0 4px rgba(127, 178, 133, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--positive) 50%, transparent); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--positive) 0%, transparent); }
 }
 
 .hml-sidebar-foot-btn {
@@ -553,7 +668,7 @@
   justify-content: space-between;
   padding: 12px 30px;
   border-bottom: 1px solid var(--hml-border-subtle);
-  background: rgba(10, 10, 12, 0.75);
+  background: color-mix(in srgb, var(--bg) 75%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   position: sticky;
@@ -643,10 +758,10 @@
 }
 
 .hml-btn.hml-accent {
-  background: linear-gradient(180deg, var(--hml-accent) 0%, #7a3fd9 100%);
-  border-color: rgba(0, 0, 0, 0.3);
-  color: #ffffff;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15) inset, 0 2px 6px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(180deg, var(--hml-accent) 0%, var(--brand-strong) 100%);
+  border-color: rgba(var(--shadow-rgb), 0.3);
+  color: var(--brand-fg);
+  box-shadow: 0 1px 0 rgba(var(--ink), 0.15) inset, 0 2px 6px rgba(var(--shadow-rgb), 0.3);
 }
 
 .hml-btn.hml-accent:hover {
@@ -717,7 +832,7 @@
   margin-bottom: 28px;
   padding: 36px 36px 32px;
   background:
-    linear-gradient(135deg, rgba(180, 120, 255, 0.07) 0%, rgba(123, 168, 196, 0.03) 100%),
+    linear-gradient(135deg, color-mix(in srgb, var(--brand) 7%, transparent) 0%, color-mix(in srgb, var(--hue-blue) 3%, transparent) 100%),
     var(--hml-bg-elev-1);
   border: 1px solid var(--hml-border-subtle);
   border-radius: 12px;
@@ -730,7 +845,7 @@
   position: absolute;
   top: -40%; right: -10%;
   width: 480px; height: 480px;
-  background: radial-gradient(circle, rgba(180, 120, 255, 0.08) 0%, transparent 60%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--brand) 8%, transparent) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -816,7 +931,7 @@
   position: absolute;
   inset: 0 0 auto auto;
   width: 120px; height: 120px;
-  background: radial-gradient(circle at 100% 0%, rgba(180, 120, 255, 0.04) 0%, transparent 60%);
+  background: radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--brand) 4%, transparent) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -941,7 +1056,7 @@
 }
 
 .hml-activity:last-child { border-bottom: none; }
-.hml-activity:hover { background: rgba(255, 255, 255, 0.015); }
+.hml-activity:hover { background: rgba(var(--ink), 0.015); }
 
 .hml-activity-icon {
   width: 26px; height: 26px;
@@ -1012,7 +1127,7 @@
   align-items: flex-start;
   gap: 12px;
   padding: 7px 0;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+  border-bottom: 1px dashed rgba(var(--ink), 0.04);
 }
 
 .hml-cal-event:last-child {
@@ -1048,7 +1163,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 4px;
-  border-bottom: 1px solid var(--hml-border-subtle, rgba(255,255,255,0.04));
+  border-bottom: 1px solid var(--hml-border-subtle, rgba(var(--ink), 0.04));
   font-size: 13px;
   color: var(--hml-text-primary);
   letter-spacing: -0.003em;
@@ -1089,7 +1204,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--hml-text-tertiary);
-  border-bottom: 1px solid var(--hml-border-subtle, rgba(255,255,255,0.04));
+  border-bottom: 1px solid var(--hml-border-subtle, rgba(var(--ink), 0.04));
 }
 
 .hml-daily-cat-header:first-child { padding-top: 2px; }
@@ -1206,7 +1321,7 @@
   position: absolute;
   top: 0; right: 0;
   width: 200px; height: 200px;
-  background: radial-gradient(circle at 100% 0%, rgba(180, 120, 255, 0.08) 0%, transparent 60%);
+  background: radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--brand) 8%, transparent) 0%, transparent 60%);
   opacity: 0;
   transition: opacity 0.25s ease;
   pointer-events: none;
@@ -1336,7 +1451,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   background:
-    linear-gradient(135deg, rgba(180, 120, 255, 0.05), transparent 50%),
+    linear-gradient(135deg, color-mix(in srgb, var(--brand) 5%, transparent), transparent 50%),
     linear-gradient(to bottom, var(--hml-bg-elev-3), var(--hml-bg-elev-2));
   border-radius: 6px;
   margin-bottom: 11px;
@@ -1353,18 +1468,18 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 70%, rgba(0, 0, 0, 0.3) 100%);
+  background: linear-gradient(180deg, transparent 70%, rgba(var(--shadow-rgb), 0.3) 100%);
   pointer-events: none;
 }
 
 .hml-thumb-line {
   height: 5px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(var(--ink), 0.06);
   border-radius: 2px;
 }
 
 .hml-thumb-line.hml-head {
-  background: rgba(180, 120, 255, 0.20);
+  background: color-mix(in srgb, var(--brand) 20%, transparent);
   width: 40%;
   height: 7px;
   margin-bottom: 4px;
@@ -1378,7 +1493,7 @@
 .hml-thumb-block {
   width: 40%;
   height: 14px;
-  background: rgba(180, 120, 255, 0.15);
+  background: color-mix(in srgb, var(--brand) 15%, transparent);
   border-radius: 3px;
   margin-top: 2px;
 }
@@ -1450,7 +1565,7 @@
   text-transform: uppercase;
   letter-spacing: 0.10em;
   border-bottom: 1px solid var(--hml-border-subtle);
-  background: rgba(255, 255, 255, 0.012);
+  background: rgba(var(--ink), 0.012);
 }
 
 .hml-table-row {
@@ -1462,7 +1577,7 @@
 }
 
 .hml-table-row:last-child { border-bottom: none; }
-.hml-table-row:hover { background: rgba(255, 255, 255, 0.018); }
+.hml-table-row:hover { background: rgba(var(--ink), 0.018); }
 
 .hml-table-row-name {
   display: flex;
@@ -1559,14 +1674,14 @@
 .hml-client-avatar {
   width: 42px; height: 42px;
   border-radius: 9px;
-  background: linear-gradient(135deg, #2a1244 0%, #1a0a2e 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 30%, var(--surface-3)) 0%, var(--surface-3) 100%);
   border: 1px solid var(--hml-border);
   display: flex; align-items: center; justify-content: center;
   font-size: 15px;
   font-weight: 600;
   color: var(--hml-accent);
   letter-spacing: -0.02em;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  box-shadow: 0 1px 0 rgba(var(--ink), 0.06) inset;
 }
 
 .hml-client-name-block {
@@ -1660,7 +1775,7 @@
   font-size: 10px;
   color: var(--hml-text-quaternary);
   padding: 1px 5px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(var(--ink), 0.03);
   border-radius: 3px;
   font-weight: 400;
   letter-spacing: 0.02em;
@@ -1680,7 +1795,7 @@
   gap: 14px;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+  border-bottom: 1px dashed rgba(var(--ink), 0.05);
 }
 
 .hml-phase-num {
@@ -1763,11 +1878,11 @@
   border: 1px solid;
 }
 
-.hml-agent-badge.hml-vortex   { color: #b478ff; background: rgba(180, 120, 255, 0.10); border-color: rgba(180, 120, 255, 0.22); }
-.hml-agent-badge.hml-stratos  { color: #7ba8c4; background: rgba(123, 168, 196, 0.10); border-color: rgba(123, 168, 196, 0.22); }
-.hml-agent-badge.hml-nexus    { color: #7fb285; background: rgba(127, 178, 133, 0.10); border-color: rgba(127, 178, 133, 0.22); }
-.hml-agent-badge.hml-zenith   { color: #b48ac4; background: rgba(180, 138, 196, 0.10); border-color: rgba(180, 138, 196, 0.22); }
-.hml-agent-badge.hml-aurelius { color: #b478ff; background: rgba(180, 120, 255, 0.10); border-color: rgba(180, 120, 255, 0.22); }
+.hml-agent-badge.hml-vortex   { color: var(--brand); background: color-mix(in srgb, var(--brand) 10%, transparent); border-color: color-mix(in srgb, var(--brand) 22%, transparent); }
+.hml-agent-badge.hml-stratos  { color: var(--hue-blue); background: color-mix(in srgb, var(--hue-blue) 10%, transparent); border-color: color-mix(in srgb, var(--hue-blue) 22%, transparent); }
+.hml-agent-badge.hml-nexus    { color: var(--positive); background: color-mix(in srgb, var(--positive) 10%, transparent); border-color: color-mix(in srgb, var(--positive) 22%, transparent); }
+.hml-agent-badge.hml-zenith   { color: var(--hue-plum); background: color-mix(in srgb, var(--hue-plum) 10%, transparent); border-color: color-mix(in srgb, var(--hue-plum) 22%, transparent); }
+.hml-agent-badge.hml-aurelius { color: var(--brand); background: color-mix(in srgb, var(--brand) 10%, transparent); border-color: color-mix(in srgb, var(--brand) 22%, transparent); }
 
 .hml-form-card-glyph {
   color: var(--hml-text-quaternary);
@@ -2053,7 +2168,7 @@
 }
 
 .hml-personal-input {
-  background: var(--hml-surface-2, rgba(255, 255, 255, 0.04));
+  background: var(--hml-surface-2, var(--surface-2));
   border: 1px solid var(--hml-border);
   color: var(--hml-text-primary);
   padding: 6px 10px;
@@ -2094,7 +2209,7 @@
 .hml-personal-cat-name:focus {
   outline: none;
   border-color: var(--hml-accent);
-  background: var(--hml-surface-2, rgba(255, 255, 255, 0.04));
+  background: var(--hml-surface-2, var(--surface-2));
 }
 
 .hml-personal-cat-del {
@@ -2104,7 +2219,7 @@
 
 .hml-personal-cat-del:hover {
   opacity: 1;
-  color: var(--hml-red, #e87474);
+  color: var(--hml-red, var(--danger));
 }
 
 .hml-personal-additem {
@@ -2127,7 +2242,7 @@
 
 .hml-personal-row-edit {
   padding: 8px 16px;
-  background: var(--hml-surface-2, rgba(255, 255, 255, 0.03));
+  background: var(--hml-surface-2, var(--surface-2));
 }
 
 .hml-personal-row-edit-btn,
@@ -2150,7 +2265,7 @@
 
 .hml-personal-row-del-btn:hover {
   opacity: 1 !important;
-  color: var(--hml-red, #e87474);
+  color: var(--hml-red, var(--danger));
 }
 
 .hml-personal-empty {
@@ -2356,14 +2471,14 @@
 
 .hml-overlay .status-toggle-btn:hover {
   color: var(--hml-text-primary);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--ink), 0.04);
 }
 
 .hml-overlay .status-toggle-btn.active,
 .hml-overlay .status-toggle-btn.active.ok {
   background: var(--hml-bg-elev-3);
   color: var(--hml-text-primary);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  box-shadow: 0 1px 0 rgba(var(--ink), 0.06) inset;
 }
 
 .hml-overlay .actions-row {
@@ -2392,10 +2507,10 @@
 }
 
 .hml-overlay .action.primary {
-  background: linear-gradient(180deg, var(--hml-accent) 0%, #7a3fd9 100%);
-  border-color: rgba(0, 0, 0, 0.3);
-  color: #ffffff;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15) inset, 0 2px 6px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(180deg, var(--hml-accent) 0%, var(--brand-strong) 100%);
+  border-color: rgba(var(--shadow-rgb), 0.3);
+  color: var(--brand-fg);
+  box-shadow: 0 1px 0 rgba(var(--ink), 0.15) inset, 0 2px 6px rgba(var(--shadow-rgb), 0.3);
 }
 
 .hml-overlay .action.primary:hover:not(:disabled) {
@@ -2544,7 +2659,7 @@
   position: absolute;
   top: 0; right: 0;
   width: 220px; height: 220px;
-  background: radial-gradient(circle at 100% 0%, rgba(180, 120, 255, 0.06) 0%, transparent 60%);
+  background: radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--brand) 6%, transparent) 0%, transparent 60%);
   opacity: 0;
   transition: opacity 220ms ease;
   pointer-events: none;
@@ -2613,7 +2728,7 @@
   width: 28px; height: 28px;
   border-radius: 6px;
   border: 1px solid var(--hml-border-subtle);
-  background: rgba(255,255,255,0.015);
+  background: rgba(var(--ink),0.015);
   display: flex; align-items: center; justify-content: center;
   color: var(--hml-text-tertiary);
   flex-shrink: 0;
@@ -2814,7 +2929,7 @@ select.hml-prospect-form-input {
 .hml-prospect-form-error {
   font-family: var(--hml-font-mono);
   font-size: 11px;
-  color: #d07a55;
+  color: var(--hml-red);
   letter-spacing: 0.04em;
 }
 
@@ -2853,7 +2968,7 @@ select.hml-prospect-form-input {
  */
 
 .hml-action-tile-feature {
-  background: linear-gradient(135deg, rgba(180, 120, 255, 0.06) 0%, rgba(180, 138, 196, 0.04) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 6%, transparent) 0%, color-mix(in srgb, var(--hue-plum) 4%, transparent) 100%);
   border-color: var(--hml-accent-border);
 }
 .hml-action-tile-feature:hover {
@@ -2903,8 +3018,8 @@ select.hml-prospect-form-input {
   color: var(--hml-text-primary);
 }
 .os-step-done {
-  border-color: rgba(127, 178, 133, 0.25);
-  background: rgba(127, 178, 133, 0.04);
+  border-color: color-mix(in srgb, var(--positive) 25%, transparent);
+  background: color-mix(in srgb, var(--positive) 4%, transparent);
   color: var(--hml-text-primary);
 }
 .os-step-active {
@@ -3135,7 +3250,7 @@ select.hml-prospect-form-input {
 /* Buttons ─────────────────────────────────────────── */
 .os-primary {
   background: var(--hml-accent);
-  color: #ffffff;
+  color: var(--brand-fg);
   border: 1px solid var(--hml-accent);
   padding: 9px 16px;
   border-radius: 6px;
@@ -3796,7 +3911,7 @@ select.hml-prospect-form-input {
   color: var(--hml-text-primary);
   box-shadow:
     inset 0 0 0 1px var(--hml-accent-border),
-    0 0 18px -6px rgba(180, 120, 255, 0.45);
+    0 0 18px -6px color-mix(in srgb, var(--brand) 45%, transparent);
 }
 .hml-cli-mark {
   width: 20px;
@@ -3816,7 +3931,7 @@ select.hml-prospect-form-input {
 }
 .hml-cli-row.hml-cli-active .hml-cli-mark {
   border-color: var(--hml-accent-border);
-  background: rgba(180, 120, 255, 0.18);
+  background: color-mix(in srgb, var(--brand) 18%, transparent);
   color: var(--hml-accent-bright);
 }
 .hml-cli-name {
@@ -3939,7 +4054,7 @@ select.hml-prospect-form-input {
 .hml-rail {
   width: 48px;
   flex-shrink: 0;
-  background: linear-gradient(180deg, #0c0c10, #08080b);
+  background: linear-gradient(180deg, var(--rail), var(--bg));
   border-right: 1px solid var(--hml-border-subtle);
   display: flex;
   flex-direction: column;
@@ -3953,8 +4068,8 @@ select.hml-prospect-form-input {
   width: 28px;
   height: 28px;
   border-radius: 7px;
-  background: linear-gradient(135deg, var(--hml-accent), #7a3fd9);
-  box-shadow: 0 0 18px rgba(180, 120, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--brand) 45%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   display: grid;
   place-items: center;
   color: #fff;
@@ -4008,7 +4123,7 @@ select.hml-prospect-form-input {
   width: 2px;
   background: var(--hml-accent);
   border-radius: 0 2px 2px 0;
-  box-shadow: 0 0 10px rgba(180, 120, 255, 0.45);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--brand) 45%, transparent);
 }
 
 .hml-rail-tip {
@@ -4020,7 +4135,7 @@ select.hml-prospect-form-input {
   gap: 10px;
   height: 32px;
   padding: 0 12px 0 10px;
-  background: rgba(20, 20, 26, 0.96);
+  background: color-mix(in srgb, var(--surface-2) 96%, transparent);
   border: 1px solid var(--hml-border-strong);
   border-radius: 7px;
   font-size: 12px;
@@ -4030,9 +4145,9 @@ select.hml-prospect-form-input {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow:
-    0 0 0 1px rgba(180, 120, 255, 0.18),
-    0 10px 24px -8px rgba(0, 0, 0, 0.6),
-    0 0 22px -8px rgba(180, 120, 255, 0.45);
+    0 0 0 1px var(--brand-tint),
+    0 10px 24px -8px rgba(var(--shadow-rgb), 0.6),
+    0 0 22px -8px color-mix(in srgb, var(--brand) 45%, transparent);
   white-space: nowrap;
   z-index: 30;
   pointer-events: none;
@@ -4048,7 +4163,7 @@ select.hml-prospect-form-input {
   transform: translateY(-50%) rotate(45deg);
   width: 8px;
   height: 8px;
-  background: rgba(20, 20, 26, 0.96);
+  background: color-mix(in srgb, var(--surface-2) 96%, transparent);
   border-left: 1px solid var(--hml-border-strong);
   border-bottom: 1px solid var(--hml-border-strong);
 }

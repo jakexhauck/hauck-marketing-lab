@@ -1168,8 +1168,8 @@ const WIZ_CSS = `
 .aw-tree-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #5ea3ff, #b07bff, #54d68f);
-  box-shadow: 0 0 6px rgba(94, 163, 255, 0.6);
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong), var(--positive));
+  box-shadow: 0 0 6px color-mix(in srgb, var(--brand) 60%, transparent);
 }
 
 .aw-close {
@@ -1418,7 +1418,7 @@ const WIZ_CSS = `
   max-width: 420px;
   cursor: pointer;
   z-index: 1100;
-  box-shadow: 0 12px 36px -10px rgba(0,0,0,0.5);
+  box-shadow: 0 12px 36px -10px rgba(var(--shadow-rgb),0.5);
   font-family: var(--hml-font-sans);
 }
 .aw-toast.is-success {

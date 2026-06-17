@@ -60,16 +60,16 @@
   margin-left: 10px;
   border-radius: 999px;
   border: 1px solid var(--hml-border);
-  background: rgba(255,255,255,0.02);
+  background: rgba(var(--ink), 0.02);
   color: var(--hml-text-secondary);
   font-size: 11px; font-weight: 600;
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
 button.ob-ghl-pill { cursor: pointer; }
-.ob-ghl-syncing { color: #e9c46a; border-color: rgba(233,196,106,0.35); }
-.ob-ghl-ok { color: #5fe699; border-color: rgba(95,230,153,0.35); }
-.ob-ghl-err { color: #ff6b6b; border-color: rgba(255,107,107,0.35); }
+.ob-ghl-syncing { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 35%, transparent); }
+.ob-ghl-ok { color: var(--positive); border-color: color-mix(in srgb, var(--positive) 35%, transparent); }
+.ob-ghl-err { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
 
 /* ── stack ────────────────────────────────── */
 .ob-stack {
@@ -224,7 +224,7 @@ button.ob-ghl-pill { cursor: pointer; }
 .ob-active-body { padding: 4px 26px 22px; }
 .ob-subsection {
   padding: 16px 0 4px;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+  border-bottom: 1px dashed rgba(var(--ink), 0.06);
 }
 .ob-subsection:last-child { border-bottom: none; }
 .ob-sub-head {
@@ -294,7 +294,7 @@ button.ob-ghl-pill { cursor: pointer; }
   color: var(--hml-text-quaternary);
   text-decoration: line-through;
   text-decoration-thickness: 1px;
-  text-decoration-color: rgba(255, 255, 255, 0.12);
+  text-decoration-color: rgba(var(--ink), 0.12);
 }
 .ob-task-body strong { color: var(--hml-text-primary); font-weight: 600; }
 
@@ -367,7 +367,7 @@ button.ob-ghl-pill { cursor: pointer; }
   color: var(--hml-text-quaternary);
   text-decoration: line-through;
   text-decoration-thickness: 1px;
-  text-decoration-color: rgba(255, 255, 255, 0.18);
+  text-decoration-color: rgba(var(--ink), 0.18);
 }
 .ob-task.ob-skipped .ob-task-howto { display: none; }
 .ob-task.ob-skipped .ob-check-box {
@@ -428,7 +428,7 @@ button.ob-ghl-pill { cursor: pointer; }
   font-family: var(--hml-font-mono);
   font-size: 11.5px;
   color: var(--hml-text-primary);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--ink), 0.05);
   padding: 1px 5px;
   border-radius: 3px;
 }

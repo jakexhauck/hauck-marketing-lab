@@ -1006,12 +1006,12 @@ const studioCSS = `
 .cs-btn-primary {
   background: var(--hml-accent);
   border-color: var(--hml-accent);
-  color: #0b0b0e;
+  color: var(--brand-fg);
 }
 .cs-btn-accent {
   background: var(--hml-teal);
   border-color: var(--hml-teal);
-  color: #0b0b0e;
+  color: var(--brand-fg);
 }
 .cs-btn-quiet {
   background: transparent;

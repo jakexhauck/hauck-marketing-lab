@@ -429,7 +429,7 @@ export const recordingsPageCSS = `
   color: var(--text-faint);
 }
 .md-rec-input.is-invalid {
-  border-color: #b85a3a;
+  border-color: var(--danger);
 }
 .md-rec-client-select {
   appearance: none;
@@ -494,7 +494,7 @@ export const recordingsPageCSS = `
   font-size: 10.5px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #d07a55;
+  color: var(--danger);
 }
 .md-rec-add {
   background: var(--bg-void);
@@ -511,7 +511,7 @@ export const recordingsPageCSS = `
 }
 .md-rec-add:hover:not(:disabled) {
   border-color: var(--copper);
-  background: rgba(184, 115, 51, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
 }
 .md-rec-add:disabled {
   color: var(--text-faint);
@@ -548,7 +548,7 @@ export const recordingsPageCSS = `
   width: 100%;
   padding: 0;
   padding-top: 56.25%;
-  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+  background: linear-gradient(135deg, var(--surface-2) 0%, var(--bg) 100%);
   border: 1px solid var(--border);
   overflow: hidden;
   text-decoration: none;

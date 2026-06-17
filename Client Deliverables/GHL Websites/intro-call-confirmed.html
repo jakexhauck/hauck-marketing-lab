@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Intro call confirmed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* neutral, unbranded palette */
+    --bg: #F5F6F7;
+    --card: #FFFFFF;
+    --ink: #14161A;
+    --muted: #5B616E;
+    --hair: rgba(20, 22, 26, 0.10);
+    --hair-soft: rgba(20, 22, 26, 0.06);
+    --ok: #15A150;
+    --ok-soft: rgba(21, 161, 80, 0.10);
+    --ok-ring: rgba(21, 161, 80, 0.22);
+    /* same font roles as the Hauck site: Inter + system mono for labels */
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+    background:
+      radial-gradient(120% 90% at 50% -10%, #FFFFFF 0%, var(--bg) 60%);
+    color: var(--ink);
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--card);
+    border: 1px solid var(--hair);
+    border-radius: 18px;
+    padding: 48px 40px 40px;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(20, 22, 26, 0.04), 0 24px 60px rgba(20, 22, 26, 0.07);
+  }
+
+  /* ---------- the signature: a confirmation medallion ---------- */
+  .medallion {
+    width: 92px;
+    height: 92px;
+    margin: 0 auto 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--hair-soft);
+    transition: background 0.45s ease, box-shadow 0.45s ease;
+  }
+  .medallion svg { width: 92px; height: 92px; display: block; }
+
+  .track { fill: none; stroke: var(--hair); stroke-width: 4; }
+
+  .spinner {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 64 200;
+    transform-origin: 46px 46px;
+    animation: spin 0.9s linear infinite;
+    transition: opacity 0.3s ease;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .check {
+    fill: none;
+    stroke: var(--ok);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 42;
+    stroke-dashoffset: 42;
+    opacity: 0;
+  }
+
+  /* state: still confirming */
+  body[data-state="confirming"] .check { opacity: 0; }
+
+  /* state: confirmed */
+  body[data-state="confirmed"] .medallion {
+    background: var(--ok-soft);
+    box-shadow: 0 0 0 6px var(--ok-ring);
+  }
+  body[data-state="confirmed"] .spinner { opacity: 0; }
+  body[data-state="confirmed"] .check {
+    opacity: 1;
+    animation: draw 0.5s ease forwards;
+  }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  /* ---------- type ---------- */
+  .eyebrow {
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    font-size: clamp(28px, 6vw, 38px);
+    margin: 0;
+  }
+
+  .sub {
+    color: var(--muted);
+    font-size: 16.5px;
+    margin: 14px auto 0;
+    max-width: 34ch;
+  }
+
+  /* swap copy between the two states */
+  .when-confirming { display: none; }
+  .when-confirmed { display: none; }
+  body[data-state="confirming"] .when-confirming { display: inline; }
+  body[data-state="confirmed"] .when-confirmed { display: inline; }
+
+  .divider {
+    height: 1px;
+    background: var(--hair);
+    margin: 30px 0 22px;
+  }
+
+  .note {
+    font-size: 14.5px;
+    color: var(--muted);
+    margin: 0 auto;
+    max-width: 36ch;
+  }
+  .note strong { color: var(--ink); font-weight: 600; }
+
+  @media (max-width: 460px) {
+    .card { padding: 40px 24px 32px; border-radius: 16px; }
+    body { font-size: 16px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation: none; }
+    .check { animation: none; }
+    body[data-state="confirmed"] .check { stroke-dashoffset: 0; }
+  }
+</style>
+</head>
+<body data-state="confirming">
+
+  <main class="card" role="status" aria-live="polite">
+    <div class="medallion" aria-hidden="true">
+      <svg viewBox="0 0 92 92" role="presentation">
+        <circle class="track" cx="46" cy="46" r="38" />
+        <circle class="spinner" cx="46" cy="46" r="38" />
+        <path class="check" d="M30 47 L42 59 L64 35" />
+      </svg>
+    </div>
+
+    <p class="eyebrow">Intro Call</p>
+
+    <h1>
+      <span class="when-confirming">Confirming your call&hellip;</span>
+      <span class="when-confirmed">You're confirmed.</span>
+    </h1>
+
+    <p class="sub">
+      <span class="when-confirming">One moment while we lock in your spot.</span>
+      <span class="when-confirmed">Your intro call is locked in. We look forward to speaking with you.</span>
+    </p>
+
+    <div class="divider" aria-hidden="true"></div>
+
+    <p class="note">
+      A reminder will arrive before your call. <strong>Nothing else is needed on your end.</strong>
+    </p>
+  </main>
+
+<script>
+  (function () {
+    /* =====================================================================
+       CONFIG  —  the only part you may need to touch
+       ---------------------------------------------------------------------
+       webhookUrl: Paste your GoHighLevel Inbound Webhook URL here to have
+                   this page auto-confirm the call on load. It POSTs whatever
+                   query parameters are on the link (e.g. ?contact_id=...&
+                   appointment_id=...) straight to the webhook, so your
+                   workflow can mark the appointment confirmed.
+
+                   Leave it as "" (empty) if you instead use a GHL trigger
+                   link to confirm. In that case this page just displays the
+                   confirmation — no webhook is called.
+       ===================================================================== */
+    var CONFIG = {
+      webhookUrl: "",
+      minConfirmMs: 900   // keep the "Confirming…" state up at least this long
+    };
+
+    // Collect any query params on the link into a plain object.
+    var params = {};
+    new URLSearchParams(window.location.search).forEach(function (v, k) {
+      params[k] = v;
+    });
+
+    function reveal() {
+      document.body.setAttribute("data-state", "confirmed");
+      document.title = "You're confirmed";
+    }
+
+    var minDelay = new Promise(function (r) { setTimeout(r, CONFIG.minConfirmMs); });
+
+    var work = Promise.resolve();
+    if (CONFIG.webhookUrl) {
+      work = fetch(CONFIG.webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params)
+      }).catch(function (err) {
+        // Never show the lead an error. Log for debugging only.
+        console.warn("Confirm webhook failed:", err);
+      });
+    }
+
+    // Show "Confirmed" once both the minimum delay and the webhook settle.
+    Promise.all([minDelay, work]).then(reveal);
+  })();
+</script>
+</body>
+</html>

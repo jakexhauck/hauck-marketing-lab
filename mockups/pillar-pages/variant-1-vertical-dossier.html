@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="The C3 Growth System: Capture, Convert, Compound. We make your growth leakproof so every lead is caught, converted, and compounded inside your branded Command Center." />
+<meta name="theme-color" content="#08090C" />
+<meta property="og:title" content="The C3 Growth System. Leakproof growth." />
+<meta property="og:description" content="Capture, Convert, Compound. Every lead caught, converted, and compounded inside your branded Command Center." />
+<meta property="og:type" content="website" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2308090C'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-weight='bold' font-size='20' fill='%235B8CFF' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E" />
+<title>The C3 Growth System. Capture, Convert, Compound.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #08090C;
+    --surface: #0F1218;
+    --grid: rgba(91, 140, 255, 0.16);
+    --hair: rgba(255, 255, 255, 0.06);
+    --ink: #EAF0FA;
+    --muted: #8A93A6;
+    --accent: #5B8CFF;
+    --cyan: #6FE3FF;
+    --r: 8px;
+    --maxw: 1180px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    /* faint blueprint grid */
+    background-image:
+      linear-gradient(var(--hair) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+    background-size: 64px 64px;
+    background-position: center top;
+  }
+
+  ::selection { background: rgba(91, 140, 255, 0.32); color: #fff; }
+
+  a { color: inherit; text-decoration: none; }
+
+  .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  .mono {
+    font-family: "JetBrains Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  h1, h2, h3 {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.04;
+    margin: 0;
+  }
+
+  .accent { color: var(--accent); }
+
+  /* ---- focus ---- */
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* ---------- NAV ---------- */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+    background: rgba(8, 9, 12, 0.72);
+    border-bottom: 1px solid var(--hair);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+  }
+  .wordmark {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .wordmark .dot {
+    width: 9px; height: 9px; border-radius: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+  }
+  .nav-links { display: flex; align-items: center; gap: 30px; }
+  .nav-links a.link {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+  .nav-links a.link:hover { color: var(--ink); }
+
+  .pill {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    border: 1px solid rgba(111, 227, 255, 0.28);
+    border-radius: 20px;
+    padding: 5px 12px 5px 26px;
+    position: relative;
+    white-space: nowrap;
+  }
+  .pill::before {
+    content: "";
+    position: absolute;
+    left: 12px; top: 50%;
+    width: 7px; height: 7px;
+    margin-top: -3.5px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    animation: blink 2.4s infinite;
+  }
+  @keyframes blink { 0%, 70%, 100% { opacity: 1; } 80% { opacity: 0.25; } }
+
+  .btn {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 11px 20px;
+    border-radius: var(--r);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform 0.15s, box-shadow 0.2s, background 0.2s, border-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #05060A;
+    box-shadow: 0 0 0 rgba(91, 140, 255, 0);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(91, 140, 255, 0.4);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink);
+    border-color: rgba(91, 140, 255, 0.4);
+  }
+  .btn-ghost:hover {
+    border-color: var(--accent);
+    background: rgba(91, 140, 255, 0.08);
+  }
+
+  .nav .btn { padding: 9px 16px; }
+
+  /* ---------- SUB-NAV (dossier scroll-spy) ---------- */
+  .subnav {
+    position: sticky;
+    top: 68px;
+    z-index: 45;
+    backdrop-filter: blur(10px);
+    background: rgba(8, 9, 12, 0.82);
+    border-bottom: 1px solid var(--hair);
+  }
+  .subnav-inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 52px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .subnav-inner::-webkit-scrollbar { display: none; }
+  .subnav .tag {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-right: 18px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .subnav a {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 7px 13px;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .subnav a .num {
+    color: rgba(138, 147, 166, 0.6);
+    font-size: 10px;
+  }
+  .subnav a:hover { color: var(--ink); }
+  .subnav a.active {
+    color: var(--ink);
+    border-color: rgba(91, 140, 255, 0.4);
+    background: rgba(91, 140, 255, 0.08);
+  }
+  .subnav a.active .num { color: var(--accent); }
+
+  /* ---------- PAGE HERO ---------- */
+  .phero { padding: 76px 0 26px; position: relative; }
+  .phero-eyebrow { margin-bottom: 22px; display: inline-flex; gap: 14px; align-items: center; }
+  .phero-eyebrow .bar { width: 28px; height: 1px; background: var(--accent); }
+  h1.phero-h {
+    font-size: clamp(38px, 6.6vw, 78px);
+    max-width: 16ch;
+  }
+  h1.phero-h .accent { color: var(--accent); }
+  .phero-sub {
+    margin-top: 26px;
+    max-width: 56ch;
+    color: var(--muted);
+    font-size: clamp(16px, 2vw, 19px);
+  }
+  .phero-sub strong { color: var(--ink); font-weight: 600; }
+  .phero-cta { margin-top: 34px; display: flex; gap: 14px; flex-wrap: wrap; }
+
+  /* the C3 ribbon under the hook */
+  .c3-ribbon {
+    margin-top: 52px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--hair);
+    border: 1px solid var(--hair);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .c3-cell {
+    background: var(--bg);
+    padding: 22px 22px 24px;
+    position: relative;
+  }
+  .c3-cell .c3-i {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; letter-spacing: 0.16em; color: var(--accent);
+  }
+  .c3-cell h3 { font-size: 22px; margin-top: 12px; }
+  .c3-cell.wedge h3 { color: var(--accent); }
+  .c3-cell p { color: var(--muted); font-size: 14px; margin: 9px 0 0; }
+  .c3-cell .wedge-tag {
+    position: absolute; top: 22px; right: 22px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--cyan);
+    border: 1px solid rgba(111, 227, 255, 0.28);
+    border-radius: 12px; padding: 3px 9px;
+  }
+
+  /* ---------- CHAPTER SHELL ---------- */
+  .chapter {
+    padding: 90px 0;
+    border-top: 1px solid var(--hair);
+    scroll-margin-top: 132px;
+  }
+  .chapter.wedge {
+    padding: 110px 0;
+    background:
+      radial-gradient(120% 60% at 0% 0%, rgba(91, 140, 255, 0.07), transparent 55%),
+      transparent;
+  }
+  .chapter-head { display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap; }
+  .chapter-idx {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    font-size: clamp(56px, 11vw, 124px);
+    line-height: 0.82;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    opacity: 0.12;
+    flex-shrink: 0;
+  }
+  .chapter.wedge .chapter-idx { opacity: 0.2; color: var(--accent); }
+  .chapter-headtext { flex: 1; min-width: 260px; }
+  .chapter-eyebrow { margin-bottom: 18px; display: inline-flex; gap: 14px; align-items: center; }
+  .chapter-eyebrow .bar { width: 28px; height: 1px; background: var(--accent); }
+  .chapter-eyebrow.cyan .bar { background: var(--cyan); }
+  .chapter h2.chapter-name {
+    font-size: clamp(34px, 5.4vw, 60px);
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+  }
+  .chapter.wedge h2.chapter-name { color: var(--ink); }
+  .promise {
+    margin-top: 18px;
+    font-size: clamp(17px, 2.2vw, 22px);
+    color: var(--ink);
+    max-width: 40ch;
+    font-weight: 500;
+  }
+  .chapter.wedge .promise { max-width: 44ch; }
+
+  /* body grid inside a chapter */
+  .chapter-body {
+    margin-top: 54px;
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 46px;
+    align-items: start;
+  }
+  .chapter.wedge .chapter-body { grid-template-columns: 1fr 1fr; }
+
+  /* the leak callout */
+  .leak {
+    border-left: 2px solid rgba(111, 227, 255, 0.5);
+    padding: 4px 0 4px 20px;
+    margin-bottom: 36px;
+  }
+  .leak .leak-label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--cyan);
+    display: inline-flex; align-items: center; gap: 9px;
+  }
+  .leak .leak-label .drip {
+    width: 7px; height: 7px; border-radius: 0 50% 50% 50%;
+    background: var(--cyan); transform: rotate(45deg);
+    box-shadow: 0 0 8px rgba(111, 227, 255, 0.6);
+  }
+  .leak p { margin: 12px 0 0; color: var(--muted); font-size: 15.5px; max-width: 48ch; }
+
+  /* deliverables spec list (hairline aesthetic) */
+  .spec-label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    padding-bottom: 14px;
+    display: block;
+  }
+  .spec { border-top: 1px solid var(--hair); }
+  .spec-row {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 18px;
+    align-items: baseline;
+    padding: 16px 12px;
+    border-bottom: 1px solid var(--hair);
+    transition: padding-left 0.25s ease, background 0.25s ease;
+  }
+  .spec-row:hover {
+    padding-left: 22px;
+    background: linear-gradient(90deg, rgba(91, 140, 255, 0.1), transparent 50%);
+  }
+  .spec-row .no {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px; letter-spacing: 0.06em;
+    color: var(--accent);
+    opacity: 0.7;
+    transition: opacity 0.25s ease;
+  }
+  .spec-row:hover .no { opacity: 1; }
+  .spec-row .d-name {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600; font-size: 16px; color: var(--ink);
+  }
+  .spec-row .d-desc { color: var(--muted); font-size: 14px; margin-top: 4px; line-height: 1.5; }
+
+  /* pull-quote proof stat */
+  .proof {
+    margin-top: 40px;
+    border-top: 1px solid var(--hair);
+    padding-top: 28px;
+  }
+  .proof .proof-label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); display: block; margin-bottom: 14px;
+  }
+  .proof blockquote {
+    margin: 0;
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600;
+    font-size: clamp(19px, 2.6vw, 26px);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .proof blockquote .accent { color: var(--accent); }
+  .proof blockquote .cyan { color: var(--cyan); }
+  .chapter.wedge .proof blockquote { font-size: clamp(21px, 3vw, 30px); }
+
+  /* ---------- VISUAL PANELS (CSS/SVG mockups) ---------- */
+  .visual {
+    position: sticky;
+    top: 148px;
+  }
+  @media (max-width: 920px) { .visual { position: static; } }
+
+  .panel {
+    background:
+      radial-gradient(120% 140% at 50% -10%, rgba(91, 140, 255, 0.1), transparent 60%),
+      var(--surface);
+    border: 1px solid var(--grid);
+    border-radius: 12px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .panel::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--hair) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+    background-size: 32px 32px;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .panel-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 18px; position: relative; z-index: 2; gap: 14px;
+  }
+  .panel-head .t {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600; font-size: 14px;
+  }
+  .panel-body { position: relative; z-index: 2; }
+
+  /* phone frame */
+  .phone {
+    width: 232px;
+    max-width: 100%;
+    margin: 0 auto;
+    background: #11151D;
+    border: 1px solid var(--grid);
+    border-radius: 22px;
+    padding: 14px 12px 16px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+  }
+  .phone .notch {
+    width: 70px; height: 5px; border-radius: 3px;
+    background: rgba(255,255,255,0.12);
+    margin: 2px auto 14px;
+  }
+  .phone .phone-head {
+    display: flex; align-items: center; gap: 9px;
+    padding-bottom: 12px; margin-bottom: 12px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .phone .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(91, 140, 255, 0.16);
+    border: 1px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--accent);
+    flex-shrink: 0;
+  }
+  .phone .ph-name { font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 13px; }
+  .phone .ph-status { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.08em; color: var(--cyan); }
+  .bubble {
+    font-size: 12.5px; line-height: 1.45;
+    padding: 9px 12px; border-radius: 12px;
+    max-width: 80%; margin-bottom: 9px;
+  }
+  .bubble.them {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--hair);
+    color: var(--ink);
+    border-bottom-left-radius: 4px;
+  }
+  .bubble.us {
+    background: rgba(91, 140, 255, 0.16);
+    border: 1px solid rgba(91, 140, 255, 0.32);
+    color: var(--ink);
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+  }
+  .bubble .meta {
+    display: block; margin-top: 5px;
+    font-family: "JetBrains Mono", monospace; font-size: 8.5px;
+    letter-spacing: 0.08em; color: var(--muted);
+  }
+  .bubble.us .meta { color: var(--cyan); }
+
+  /* timeline (convert) */
+  .timeline { position: relative; padding-left: 26px; }
+  .timeline::before {
+    content: ""; position: absolute; left: 7px; top: 6px; bottom: 6px;
+    width: 1px; background: linear-gradient(var(--accent), rgba(91,140,255,0.1));
+  }
+  .tl-node { position: relative; padding: 0 0 22px; }
+  .tl-node:last-child { padding-bottom: 0; }
+  .tl-node::before {
+    content: ""; position: absolute; left: -23px; top: 4px;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--bg); border: 1.5px solid var(--accent);
+  }
+  .tl-node.done::before { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .tl-node .tl-time {
+    font-family: "JetBrains Mono", monospace; font-size: 9px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan);
+  }
+  .tl-node .tl-act { font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 14px; margin-top: 3px; }
+  .tl-node .tl-sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+
+  /* small stacked stat chips for wedge visual */
+  .stat-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; position: relative; z-index: 2; }
+  .chip {
+    border: 1px solid var(--hair); border-radius: 8px; padding: 12px 13px;
+    background: rgba(255,255,255,0.02);
+  }
+  .chip .cnum { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 22px; color: var(--accent); }
+  .chip .clabel { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+
+  /* review flow (compound) */
+  .review-flow { display: grid; gap: 10px; }
+  .rf-step {
+    display: flex; align-items: center; gap: 12px;
+    border: 1px solid var(--hair); border-radius: 8px;
+    padding: 11px 13px; background: rgba(255,255,255,0.02);
+  }
+  .rf-step .rf-i {
+    width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(91, 140, 255, 0.12); border: 1px solid rgba(91, 140, 255, 0.3);
+    color: var(--accent);
+  }
+  .rf-step .rf-t { font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 13px; }
+  .rf-step .rf-s { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+  .stars { color: var(--cyan); letter-spacing: 2px; font-size: 14px; }
+
+  /* ---------- COMMAND CENTER ---------- */
+  .command {
+    padding: 104px 0;
+    border-top: 1px solid var(--hair);
+    scroll-margin-top: 132px;
+  }
+  .cc-eyebrow { margin-bottom: 20px; display: inline-flex; gap: 14px; align-items: center; }
+  .cc-eyebrow .bar { width: 28px; height: 1px; background: var(--cyan); }
+  .cc-h { font-size: clamp(30px, 5vw, 54px); max-width: 20ch; }
+  .cc-h .accent { color: var(--accent); }
+  .cc-sub { margin-top: 22px; max-width: 56ch; color: var(--muted); font-size: clamp(15px, 1.9vw, 18px); }
+  .cc-sub strong { color: var(--ink); font-weight: 600; }
+
+  .cc-diagram {
+    margin-top: 56px;
+    background:
+      radial-gradient(120% 140% at 50% -10%, rgba(91, 140, 255, 0.1), transparent 60%),
+      var(--surface);
+    border: 1px solid var(--grid);
+    border-radius: 12px;
+    padding: 26px 22px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cc-diagram::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--hair) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+    background-size: 32px 32px;
+    opacity: 0.5; pointer-events: none;
+  }
+  .cc-diagram .diagram-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 18px; position: relative; z-index: 2; gap: 16px; flex-wrap: wrap;
+  }
+  .cc-diagram .diagram-head .t {
+    font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 15px;
+  }
+  .cc-diagram .diagram { position: relative; z-index: 2; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: rgba(91, 140, 255, 0.4) transparent; }
+  .cc-diagram .diagram svg { width: 100%; min-width: 640px; height: auto; display: block; }
+
+  .node-box { fill: #11151D; stroke: var(--grid); stroke-width: 1; }
+  .node-box.live { stroke: var(--accent); }
+  .node-box.hub { stroke: var(--cyan); }
+  .node-label { font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 13px; fill: var(--ink); }
+  .node-tag { font-family: "JetBrains Mono", monospace; font-size: 8.5px; letter-spacing: 0.12em; fill: var(--muted); }
+  .node-tag.hot { fill: var(--cyan); }
+  .edge { fill: none; stroke: rgba(91, 140, 255, 0.35); stroke-width: 1.5; }
+  .edge-glow {
+    fill: none; stroke: var(--accent); stroke-width: 2;
+    stroke-dasharray: 14 220;
+    filter: drop-shadow(0 0 4px var(--accent));
+    animation: packet 4.2s linear infinite;
+  }
+  .edge-glow.d1 { animation-delay: 0s; }
+  .edge-glow.d2 { animation-delay: 0.85s; }
+  .edge-glow.d3 { animation-delay: 1.7s; }
+  .edge-glow.loop { stroke: var(--cyan); filter: drop-shadow(0 0 4px var(--cyan)); animation-delay: 2.55s; }
+  @keyframes packet { to { stroke-dashoffset: -234; } }
+
+  .cc-points {
+    margin-top: 18px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+    background: var(--hair); border: 1px solid var(--hair);
+    border-radius: 10px; overflow: hidden;
+  }
+  .cc-point { background: var(--bg); padding: 20px 20px 22px; }
+  .cc-point .cp-i { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: 0.16em; color: var(--accent); }
+  .cc-point h3 { font-size: 17px; margin-top: 10px; }
+  .cc-point p { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+
+  /* ---------- APPLY CTA ---------- */
+  .apply-sec { padding: 0 0 96px; }
+  .apply {
+    background:
+      radial-gradient(90% 130% at 50% 0%, rgba(91, 140, 255, 0.16), transparent 60%),
+      var(--surface);
+    border: 1px solid var(--grid);
+    border-radius: 14px;
+    padding: 64px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .apply::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--hair) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.4; pointer-events: none;
+  }
+  .apply h2 { font-size: clamp(28px, 5vw, 48px); position: relative; z-index: 2; max-width: 18ch; margin: 0 auto; }
+  .apply p { color: var(--muted); margin: 22px auto 0; max-width: 48ch; position: relative; z-index: 2; }
+  .apply .phero-cta { justify-content: center; position: relative; z-index: 2; margin-top: 30px; }
+
+  /* reveal */
+  .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    border-top: 1px solid var(--hair);
+    padding: 46px 0 56px;
+  }
+  .foot-inner {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    flex-wrap: wrap; gap: 24px;
+  }
+  .foot-inner .contact { font-family: "JetBrains Mono", monospace; font-size: 12.5px; letter-spacing: 0.08em; color: var(--muted); }
+  .foot-inner .contact a { color: var(--accent); }
+  .foot-inner .legal { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 920px) {
+    .chapter-body { grid-template-columns: 1fr !important; gap: 38px; }
+    .chapter-idx { font-size: clamp(48px, 16vw, 96px); }
+  }
+  @media (max-width: 860px) {
+    .c3-ribbon { grid-template-columns: 1fr; }
+    .cc-points { grid-template-columns: 1fr; }
+    .nav-links .link { display: none; }
+  }
+  @media (max-width: 560px) {
+    body { font-size: 16px; }
+    .phero { padding: 52px 0 22px; }
+    .pill { display: none; }
+    .nav-inner { height: 60px; }
+    .subnav { top: 60px; }
+    .chapter { padding: 64px 0; scroll-margin-top: 120px; }
+    .chapter.wedge { padding: 76px 0; }
+    .command { padding: 72px 0; scroll-margin-top: 120px; }
+    .chapter-head { gap: 14px; }
+    .apply { padding: 48px 22px; }
+    .foot-inner { align-items: flex-start; }
+    .visual { position: static; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .edge-glow, .pill::before { animation: none !important; }
+    .edge-glow { opacity: 0; }
+    .reveal { opacity: 1 !important; transform: none !important; transition: none; }
+    .btn:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== NAV (verbatim from live site) ===================== -->
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a class="wordmark" href="index.html"><span class="dot" aria-hidden="true"></span>HAUCK MARKETING</a>
+    <div class="nav-links">
+      <a class="link" href="index.html#system">System</a>
+      <a class="link" href="index.html#build">What we build</a>
+      <a class="link" href="index.html#process">Process</a>
+      <span class="pill" aria-hidden="true">Systems online</span>
+      <a class="btn btn-primary" href="index.html#apply">Apply now</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== SUB-NAV (dossier scroll-spy) ===================== -->
+<nav class="subnav" aria-label="C3 system sections">
+  <div class="wrap subnav-inner">
+    <span class="tag">The C3 system</span>
+    <a href="#capture" data-spy="capture"><span class="num">01</span> Capture</a>
+    <a href="#convert" data-spy="convert"><span class="num">02</span> Convert</a>
+    <a href="#compound" data-spy="compound"><span class="num">03</span> Compound</a>
+    <a href="#command" data-spy="command">Command Center</a>
+  </div>
+</nav>
+
+<!-- ===================== PAGE HERO ===================== -->
+<header class="phero" id="top">
+  <div class="wrap">
+    <div class="phero-eyebrow">
+      <span class="bar" aria-hidden="true"></span>
+      <span class="mono">Capture · Convert · Compound</span>
+    </div>
+    <h1 class="phero-h">We make your growth <span class="accent">leakproof.</span></h1>
+    <p class="phero-sub">
+      Most local businesses do not have a lead problem. They have a <strong>leak problem</strong>. Calls that ring out, quotes sent into silence, happy customers never asked for a review. The C3 Growth System plugs all three: every lead <strong>caught, converted, and compounded</strong>, running inside one branded Command Center with your name on it.
+    </p>
+    <div class="phero-cta">
+      <a class="btn btn-primary" href="index.html#apply">Apply now</a>
+      <a class="btn btn-ghost" href="index.html">Back to home</a>
+    </div>
+
+    <!-- C3 ribbon -->
+    <div class="c3-ribbon reveal">
+      <div class="c3-cell">
+        <span class="c3-i">01 · CAPTURE</span>
+        <h3>Catch everything</h3>
+        <p>Every call, text, form, and message in one place. Nothing comes in that is not caught.</p>
+      </div>
+      <div class="c3-cell wedge">
+        <span class="wedge-tag" aria-label="The wedge">The wedge</span>
+        <span class="c3-i">02 · CONVERT</span>
+        <h3>Close the loop</h3>
+        <p>Caught leads turned into booked, sold jobs. This is where competitors leak and we do not.</p>
+      </div>
+      <div class="c3-cell">
+        <span class="c3-i">03 · COMPOUND</span>
+        <h3>Make it repeat</h3>
+        <p>Finished jobs become reviews and repeat work. Each job makes the next one cheaper to win.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== CHAPTER 01: CAPTURE ===================== -->
+<section class="chapter" id="capture">
+  <div class="wrap">
+    <div class="chapter-head reveal">
+      <div class="chapter-idx" aria-hidden="true">01</div>
+      <div class="chapter-headtext">
+        <div class="chapter-eyebrow"><span class="bar" aria-hidden="true"></span><span class="mono">Pillar one</span></div>
+        <h2 class="chapter-name">Capture</h2>
+        <p class="promise">Get every opportunity into one place. Nothing comes in that is not caught.</p>
+      </div>
+    </div>
+
+    <div class="chapter-body">
+      <div class="reveal">
+        <div class="leak">
+          <span class="leak-label"><span class="drip" aria-hidden="true"></span>The leak</span>
+          <p>Missed calls on the ladder. Web leads sitting overnight. After-hours demand going to voicemail. Leads scattered across five channels with no single place they all land.</p>
+        </div>
+
+        <span class="spec-label">What gets built</span>
+        <div class="spec">
+          <div class="spec-row"><span class="no">01</span><div><span class="d-name">Voice Reception Agent</span><div class="d-desc">Answers, qualifies, and books 24/7 for the calls you cannot pick up.</div></div></div>
+          <div class="spec-row"><span class="no">02</span><div><span class="d-name">Missed-call text-back</span><div class="d-desc">Every missed call fires an instant text so the caller never reaches a dead end.</div></div></div>
+          <div class="spec-row"><span class="no">03</span><div><span class="d-name">Conversation Agent</span><div class="d-desc">Engages web and Facebook leads in seconds, before they cool off.</div></div></div>
+          <div class="spec-row"><span class="no">04</span><div><span class="d-name">Unified inbox</span><div class="d-desc">Calls, texts, Facebook, Instagram, and Google in one place.</div></div></div>
+          <div class="spec-row"><span class="no">05</span><div><span class="d-name">Custom website</span><div class="d-desc">Chat widget and estimate forms wired straight into the system.</div></div></div>
+          <div class="spec-row"><span class="no">06</span><div><span class="d-name">Two Meta ad funnels</span><div class="d-desc">A volume lead form and a pre-qualifying quiz that books onto the calendar.</div></div></div>
+          <div class="spec-row"><span class="no">07</span><div><span class="d-name">Retargeting</span><div class="d-desc">Warm traffic is never paid for once and lost.</div></div></div>
+        </div>
+
+        <div class="proof">
+          <span class="proof-label">The proof</span>
+          <blockquote>Contact a lead within 5 minutes and they are <span class="accent">21x more likely to qualify</span>. Yet small businesses answer only about 38% of calls, and 85% of callers who never reach you <span class="cyan">never call back</span>.</blockquote>
+        </div>
+      </div>
+
+      <!-- visual: phone, AI agent texting a lead -->
+      <div class="visual reveal">
+        <div class="panel">
+          <div class="panel-head">
+            <span class="t">Web lead, answered in seconds</span>
+            <span class="mono">live</span>
+          </div>
+          <div class="panel-body">
+            <div class="phone">
+              <div class="notch" aria-hidden="true"></div>
+              <div class="phone-head">
+                <div class="avatar" aria-hidden="true">AI</div>
+                <div>
+                  <div class="ph-name">Reception Agent</div>
+                  <div class="ph-status">online · replies instantly</div>
+                </div>
+              </div>
+              <div class="bubble them">Hi, do you do roof repairs in Saline? Got a leak after the storm.<span class="meta">11:42 PM · web chat</span></div>
+              <div class="bubble us">Yes, we cover Saline. Sorry to hear it. I can get a crew out tomorrow. Want me to grab a window and your address?<span class="meta">11:42 PM · 9 sec later</span></div>
+              <div class="bubble them">Tomorrow AM if possible.<span class="meta">11:43 PM</span></div>
+              <div class="bubble us">Booked 8 to 10 AM. You will get a text confirmation. You are all set.<span class="meta">11:43 PM · booked</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 02: CONVERT (the wedge) ===================== -->
+<section class="chapter wedge" id="convert">
+  <div class="wrap">
+    <div class="chapter-head reveal">
+      <div class="chapter-idx" aria-hidden="true">02</div>
+      <div class="chapter-headtext">
+        <div class="chapter-eyebrow cyan"><span class="bar" aria-hidden="true"></span><span class="mono" style="color:var(--cyan);">Pillar two · the wedge</span></div>
+        <h2 class="chapter-name">Convert</h2>
+        <p class="promise">Turn caught leads into booked, sold jobs, and let none slip. This is where competitors leak and we do not.</p>
+      </div>
+    </div>
+
+    <div class="chapter-body">
+      <div class="reveal">
+        <div class="leak">
+          <span class="leak-label"><span class="drip" aria-hidden="true"></span>The leak</span>
+          <p>One follow-up attempt then forgotten. Quotes sent into silence. Web chats that die when the tab closes. No-shows. A sticky-note pipeline that only the owner can read.</p>
+        </div>
+
+        <span class="spec-label">What gets built</span>
+        <div class="spec">
+          <div class="spec-row"><span class="no">01</span><div><span class="d-name">Conversation Agent</span><div class="d-desc">Qualifies and books the right jobs, not just any job.</div></div></div>
+          <div class="spec-row"><span class="no">02</span><div><span class="d-name">Multi-stage follow-up</span><div class="d-desc">SMS and email sequences mapped to every sales stage.</div></div></div>
+          <div class="spec-row"><span class="no">03</span><div><span class="d-name">Web-chat-to-SMS</span><div class="d-desc">A closed tab does not end the conversation. It continues by text.</div></div></div>
+          <div class="spec-row"><span class="no">04</span><div><span class="d-name">Reminders and reschedules</span><div class="d-desc">Automated confirmations and reschedule flows to cut no-shows.</div></div></div>
+          <div class="spec-row"><span class="no">05</span><div><span class="d-name">In-app e-signature</span><div class="d-desc">Native signing. No DocuSign, no extra tab.</div></div></div>
+          <div class="spec-row"><span class="no">06</span><div><span class="d-name">In-app invoicing</span><div class="d-desc">Get paid through Stripe or Square without leaving the system.</div></div></div>
+          <div class="spec-row"><span class="no">07</span><div><span class="d-name">Call recording and AI summaries</span><div class="d-desc">Every call written into the customer's notes automatically.</div></div></div>
+          <div class="spec-row"><span class="no">08</span><div><span class="d-name">Owner notifications</span><div class="d-desc">Across SMS, email, and the app, so nothing waits on a login.</div></div></div>
+          <div class="spec-row"><span class="no">09</span><div><span class="d-name">Recovery path</span><div class="d-desc">A dedicated track for the lead who did not book the first time.</div></div></div>
+        </div>
+
+        <div class="proof">
+          <span class="proof-label">The proof</span>
+          <blockquote>About <span class="accent">78% of customers buy from whoever responds first</span>, and phone leads convert at <span class="cyan">10 to 15x the rate</span> of web-form leads. Speed is the whole game.</blockquote>
+        </div>
+      </div>
+
+      <!-- visual: follow-up timeline + stat chips -->
+      <div class="visual reveal">
+        <div class="panel">
+          <div class="panel-head">
+            <span class="t">Follow-up that does not give up</span>
+            <span class="mono">9 stages</span>
+          </div>
+          <div class="panel-body">
+            <div class="timeline">
+              <div class="tl-node done">
+                <div class="tl-time">Minute 0</div>
+                <div class="tl-act">Quote sent + e-signature</div>
+                <div class="tl-sub">Native sign-in-app link, no DocuSign.</div>
+              </div>
+              <div class="tl-node done">
+                <div class="tl-time">Hour 1</div>
+                <div class="tl-act">SMS nudge</div>
+                <div class="tl-sub">"Saw the quote land. Any questions before we hold the slot?"</div>
+              </div>
+              <div class="tl-node done">
+                <div class="tl-time">Day 1</div>
+                <div class="tl-act">Confirmation + reminder</div>
+                <div class="tl-sub">Reschedule flow ready if they need to move it.</div>
+              </div>
+              <div class="tl-node">
+                <div class="tl-time">Day 3</div>
+                <div class="tl-act">Recovery path opens</div>
+                <div class="tl-sub">No booking yet, so the unconverted track takes over.</div>
+              </div>
+              <div class="tl-node">
+                <div class="tl-time">On sign</div>
+                <div class="tl-act">Invoice + owner alert</div>
+                <div class="tl-sub">Stripe invoice fires, owner pinged on SMS, email, and app.</div>
+              </div>
+            </div>
+
+            <div class="stat-chips">
+              <div class="chip"><div class="cnum">78%</div><div class="clabel">buy from the first responder</div></div>
+              <div class="chip"><div class="cnum">10-15x</div><div class="clabel">phone vs web-form close rate</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 03: COMPOUND ===================== -->
+<section class="chapter" id="compound">
+  <div class="wrap">
+    <div class="chapter-head reveal">
+      <div class="chapter-idx" aria-hidden="true">03</div>
+      <div class="chapter-headtext">
+        <div class="chapter-eyebrow"><span class="bar" aria-hidden="true"></span><span class="mono">Pillar three</span></div>
+        <h2 class="chapter-name">Compound</h2>
+        <p class="promise">Turn finished jobs into more business. Each job makes the next one cheaper to win.</p>
+      </div>
+    </div>
+
+    <div class="chapter-body">
+      <div class="reveal">
+        <div class="leak">
+          <span class="leak-label"><span class="drip" aria-hidden="true"></span>The leak</span>
+          <p>Happy customers never asked for a review. A thin review profile losing the click to the shop next door. Hundreds of past customers who were never contacted again.</p>
+        </div>
+
+        <span class="spec-label">What gets built</span>
+        <div class="spec">
+          <div class="spec-row"><span class="no">01</span><div><span class="d-name">Google Review Agent</span><div class="d-desc">One tap after a job fires the request, with sentiment gating that routes unhappy feedback privately, a reminder sequence, and AI-drafted responses to reviews.</div></div></div>
+          <div class="spec-row"><span class="no">02</span><div><span class="d-name">Lead Reactivation Agent</span><div class="d-desc">Works your old customer list over SMS and email to re-book repeat and seasonal work.</div></div></div>
+          <div class="spec-row"><span class="no">03</span><div><span class="d-name">ROI and reporting dashboard</span><div class="d-desc">Shows exactly what every ad dollar produced, down to the booked job.</div></div></div>
+        </div>
+
+        <div class="proof">
+          <span class="proof-label">The proof</span>
+          <blockquote>Roughly <span class="accent">68% of consumers</span> will only use a business with 4+ stars, and each added review correlates with about 80 more visits and 16 more calls a year. Keeping a customer costs <span class="cyan">5 to 25x less</span> than winning a new one.</blockquote>
+        </div>
+      </div>
+
+      <!-- visual: review request flow -->
+      <div class="visual reveal">
+        <div class="panel">
+          <div class="panel-head">
+            <span class="t">Job done becomes job won</span>
+            <span class="mono">auto-fired</span>
+          </div>
+          <div class="panel-body">
+            <div class="review-flow">
+              <div class="rf-step">
+                <div class="rf-i" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+                </div>
+                <div><div class="rf-t">Job marked complete</div><div class="rf-s">Crew closes the ticket in the app.</div></div>
+              </div>
+              <div class="rf-step">
+                <div class="rf-i" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H7l-3 3z"/></svg>
+                </div>
+                <div><div class="rf-t">Review request sent</div><div class="rf-s">"How did we do? Tap to rate."</div></div>
+              </div>
+              <div class="rf-step">
+                <div class="rf-i" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div><div class="rf-t">Sentiment gating</div><div class="rf-s">Happy goes to Google. Unhappy routes to you privately.</div></div>
+              </div>
+              <div class="rf-step">
+                <div class="rf-i" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l3 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.9 21l1.2-6.8-5-4.9 6.9-1z"/></svg>
+                </div>
+                <div><div class="rf-t">5-star review posts</div><div class="stars" aria-label="five stars">★★★★★</div></div>
+              </div>
+              <div class="rf-step">
+                <div class="rf-i" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+                </div>
+                <div><div class="rf-t">Reactivation, 6 months on</div><div class="rf-s">Old list re-booked for seasonal work over SMS.</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== COMMAND CENTER (the unifier) ===================== -->
+<section class="command" id="command">
+  <div class="wrap">
+    <div class="cc-eyebrow reveal"><span class="bar" aria-hidden="true"></span><span class="mono" style="color:var(--cyan);">The unifier</span></div>
+    <h2 class="cc-h reveal">One <span class="accent">Command Center</span>. The whole business, with your name on it.</h2>
+    <p class="cc-sub reveal">
+      A done-for-you, fully custom business app, <strong>branded to you</strong> and synced across mobile and desktop. One inbox for every channel, one reporting dashboard on top. It is the operating system that runs Capture, Convert, and Compound as a single loop. It is not a rented tool and it is <strong>not a CRM</strong>. It is yours.
+    </p>
+
+    <div class="cc-diagram reveal">
+      <div class="diagram-head">
+        <span class="t">Three pillars, feeding one hub, on a loop</span>
+        <span class="mono">live · one system</span>
+      </div>
+      <div class="diagram">
+        <svg viewBox="0 0 900 270" role="img" aria-label="Capture, Convert, and Compound feed into one Command Center, which loops back to Capture.">
+          <!-- edges from three pillars into the hub -->
+          <path class="edge" d="M180 78 C 300 78, 330 135, 388 135" />
+          <path class="edge-glow d1" d="M180 78 C 300 78, 330 135, 388 135" />
+          <path class="edge" d="M180 135 H388" />
+          <path class="edge-glow d2" d="M180 135 H388" />
+          <path class="edge" d="M180 192 C 300 192, 330 135, 388 135" />
+          <path class="edge-glow d3" d="M180 192 C 300 192, 330 135, 388 135" />
+
+          <!-- loop back: hub to capture (the compounding return) -->
+          <path class="edge" d="M512 135 C 650 135, 740 245, 100 245 C 50 245, 40 200, 40 150 L 40 90" />
+          <path class="edge-glow loop" d="M512 135 C 650 135, 740 245, 100 245 C 50 245, 40 200, 40 150 L 40 90" />
+
+          <!-- pillar nodes -->
+          <g>
+            <rect class="node-box live" x="20" y="52" width="160" height="52" rx="8"/>
+            <text class="node-tag" x="36" y="76">01 · CAPTURE</text>
+            <text class="node-label" x="36" y="94">Catch everything</text>
+          </g>
+          <g>
+            <rect class="node-box live" x="20" y="109" width="160" height="52" rx="8"/>
+            <text class="node-tag hot" x="36" y="133">02 · CONVERT</text>
+            <text class="node-label" x="36" y="151">Close the loop</text>
+          </g>
+          <g>
+            <rect class="node-box live" x="20" y="166" width="160" height="52" rx="8"/>
+            <text class="node-tag" x="36" y="190">03 · COMPOUND</text>
+            <text class="node-label" x="36" y="208">Make it repeat</text>
+          </g>
+
+          <!-- the hub -->
+          <g>
+            <rect class="node-box hub" x="388" y="98" width="124" height="74" rx="10"/>
+            <text class="node-tag hot" x="404" y="124">YOUR HUB</text>
+            <text class="node-label" x="404" y="146">Command</text>
+            <text class="node-label" x="404" y="164">Center</text>
+          </g>
+
+          <!-- outputs from hub -->
+          <text class="node-tag" x="560" y="116">ONE INBOX · ALL CHANNELS</text>
+          <text class="node-tag" x="560" y="138">REPORTING DASHBOARD</text>
+          <text class="node-tag hot" x="560" y="160">BRANDED TO YOU · MOBILE + DESKTOP</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="cc-points reveal">
+      <div class="cc-point">
+        <span class="cp-i">WHY IT MATTERS</span>
+        <h3>You stop being the bottleneck</h3>
+        <p>The machine handles everything between "interested" and "paid," so growth does not wait on you to pick up the phone.</p>
+      </div>
+      <div class="cc-point">
+        <span class="cp-i">AND THEN SOME</span>
+        <h3>"Paid" becomes the next job</h3>
+        <p>Every closed job loops back into reviews and reactivation, so the system feeds itself instead of starting from zero.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== APPLY CTA ===================== -->
+<section class="apply-sec">
+  <div class="wrap">
+    <div class="apply reveal">
+      <div class="cc-eyebrow" style="justify-content:center; position:relative; z-index:2;"><span class="mono" style="color:var(--cyan);">Limited capacity</span></div>
+      <h2>Make your growth leakproof.</h2>
+      <p>We take on a limited number of local businesses at a time so the work stays sharp and the results stay honest. If that is the kind of partner you want, tell us about your business.</p>
+      <div class="phero-cta">
+        <a class="btn btn-primary" href="index.html#apply">Apply now</a>
+        <a class="btn btn-ghost" href="index.html">Back to home</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER (verbatim from live site) ===================== -->
+<footer>
+  <div class="wrap foot-inner">
+    <a class="wordmark" href="index.html"><span class="dot" aria-hidden="true"></span>HAUCK MARKETING</a>
+    <div class="contact">
+      <a href="mailto:contact.jakehauck@gmail.com">contact.jakehauck@gmail.com</a> · <a href="tel:+17343010570">734-301-0570</a>
+    </div>
+    <div class="legal">© Hauck Marketing</div>
+  </div>
+</footer>
+
+<script>
+  // Scroll-reveal: progressive disclosure as sections enter the viewport.
+  (function () {
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var els = document.querySelectorAll(".reveal");
+    if (reduce || !("IntersectionObserver" in window)) {
+      els.forEach(function (el) { el.classList.add("in"); });
+    } else {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            e.target.classList.add("in");
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.14, rootMargin: "0px 0px -8% 0px" });
+      els.forEach(function (el) { io.observe(el); });
+    }
+  })();
+
+  // Sub-nav scroll-spy: highlight the section currently in view.
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll(".subnav a[data-spy]"));
+    if (!links.length || !("IntersectionObserver" in window)) return;
+    var map = {};
+    links.forEach(function (a) { map[a.getAttribute("data-spy")] = a; });
+    var sections = links
+      .map(function (a) { return document.getElementById(a.getAttribute("data-spy")); })
+      .filter(Boolean);
+
+    function clear() { links.forEach(function (a) { a.classList.remove("active"); }); }
+
+    var spy = new IntersectionObserver(function (entries) {
+      // pick the most-visible intersecting section
+      var best = null;
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          if (!best || e.intersectionRatio > best.intersectionRatio) best = e;
+        }
+      });
+      if (best) {
+        clear();
+        var a = map[best.target.id];
+        if (a) a.classList.add("active");
+      }
+    }, { rootMargin: "-40% 0px -50% 0px", threshold: [0, 0.25, 0.5, 1] });
+
+    sections.forEach(function (s) { spy.observe(s); });
+  })();
+</script>
+</body>
+</html>

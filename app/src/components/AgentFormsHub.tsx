@@ -31,16 +31,16 @@ function FormCard({
         textAlign: "left",
         cursor: "pointer",
         background: "var(--bg-surface, transparent)",
-        border: "1px solid var(--border, rgba(180,200,240,0.08))",
+        border: "1px solid var(--border, var(--c-border))",
         transition: "border-color 0.15s, transform 0.05s",
         padding: 0,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "var(--copper, #b478ff)";
+        e.currentTarget.style.borderColor = "var(--copper, var(--brand))";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor =
-          "var(--border, rgba(180,200,240,0.08))";
+          "var(--border, var(--c-border))";
       }}
     >
       <div className="panel-head">
@@ -67,7 +67,7 @@ function FormCard({
             marginTop: 14,
             fontFamily: "var(--mono)",
             fontSize: 11,
-            color: "var(--copper, #b478ff)",
+            color: "var(--copper, var(--brand))",
             letterSpacing: "0.06em",
             textTransform: "uppercase",
           }}
@@ -191,7 +191,7 @@ function FormGroup({
           gap: 10,
           marginBottom: 12,
           paddingBottom: 8,
-          borderBottom: "1px solid var(--border, rgba(180,200,240,0.08))",
+          borderBottom: "1px solid var(--border, var(--c-border))",
         }}
       >
         <span
@@ -199,7 +199,7 @@ function FormGroup({
             fontFamily: "var(--mono)",
             fontSize: 11,
             letterSpacing: "0.08em",
-            color: "var(--copper, #b478ff)",
+            color: "var(--copper, var(--brand))",
             textTransform: "uppercase",
           }}
         >

@@ -437,8 +437,8 @@ function ClientOptimizerSettings({
   return (
     <section
       style={{
-        background: "var(--hml-bg-elev-1, rgba(255,255,255,0.03))",
-        border: "1px solid var(--hml-border, rgba(255,255,255,0.08))",
+        background: "var(--hml-bg-elev-1, rgba(var(--ink),0.03))",
+        border: "1px solid var(--hml-border, rgba(var(--ink),0.08))",
         borderRadius: 10,
         padding: "16px 18px",
       }}
@@ -506,12 +506,12 @@ function ClientOptimizerSettings({
           marginTop: 14,
           padding: "10px 12px",
           background: derived.value
-            ? "rgba(180, 120, 255, 0.10)"
-            : "var(--hml-bg-elev-2, rgba(255,255,255,0.03))",
+            ? "color-mix(in srgb, var(--brand) 10%, transparent)"
+            : "var(--hml-bg-elev-2, rgba(var(--ink),0.03))",
           border: `1px solid ${
             derived.value
-              ? "rgba(180, 120, 255, 0.30)"
-              : "var(--hml-border, rgba(255,255,255,0.08))"
+              ? "color-mix(in srgb, var(--brand) 30%, transparent)"
+              : "var(--hml-border, rgba(var(--ink),0.08))"
           }`,
           borderRadius: 7,
           display: "flex",
@@ -597,7 +597,7 @@ function ClientOptimizerSettings({
             gap: 12,
             alignItems: "center",
             paddingTop: 10,
-            borderTop: "1px solid var(--hml-border-subtle, rgba(255,255,255,0.05))",
+            borderTop: "1px solid var(--hml-border-subtle, rgba(var(--ink),0.05))",
           }}
         >
           <label style={{ fontSize: 12, color: "var(--hml-text-secondary)" }}>
@@ -637,10 +637,10 @@ function ClientOptimizerSettings({
           style={{
             marginTop: 10,
             padding: "8px 11px",
-            background: "rgba(239, 107, 107, 0.10)",
-            border: "1px solid rgba(239, 107, 107, 0.32)",
+            background: "color-mix(in srgb, var(--danger) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--danger) 32%, transparent)",
             borderRadius: 7,
-            color: "#ff8b8b",
+            color: "var(--danger)",
             fontSize: 12,
           }}
         >
@@ -668,12 +668,12 @@ function ClientOptimizerSettings({
           disabled={!canSave}
           style={{
             background: canSave
-              ? "rgba(180, 120, 255, 0.22)"
-              : "var(--hml-bg-elev-2, rgba(255,255,255,0.04))",
+              ? "color-mix(in srgb, var(--brand) 22%, transparent)"
+              : "var(--hml-bg-elev-2, rgba(var(--ink),0.04))",
             border: `1px solid ${
-              canSave ? "rgba(180, 120, 255, 0.5)" : "var(--hml-border, rgba(255,255,255,0.10))"
+              canSave ? "color-mix(in srgb, var(--brand) 50%, transparent)" : "var(--hml-border, rgba(var(--ink),0.10))"
             }`,
-            color: canSave ? "#d6bdff" : "var(--hml-text-tertiary)",
+            color: canSave ? "var(--brand-bright)" : "var(--hml-text-tertiary)",
             borderRadius: 6,
             padding: "7px 14px",
             fontSize: 12,
@@ -691,8 +691,8 @@ function ClientOptimizerSettings({
 }
 
 const inputStyle: React.CSSProperties = {
-  background: "var(--hml-bg-elev-2, rgba(255,255,255,0.06))",
-  border: "1px solid var(--hml-border, rgba(255,255,255,0.10))",
+  background: "var(--hml-bg-elev-2, rgba(var(--ink),0.06))",
+  border: "1px solid var(--hml-border, rgba(var(--ink),0.10))",
   color: "var(--hml-text-primary)",
   borderRadius: 6,
   padding: "8px 11px",
@@ -979,7 +979,7 @@ function KvRow({ label, value }: { label: string; value: string }) {
         display: "flex",
         justifyContent: "space-between",
         padding: "7px 0",
-        borderBottom: "1px solid var(--hml-border-subtle, rgba(255,255,255,0.05))",
+        borderBottom: "1px solid var(--hml-border-subtle, rgba(var(--ink),0.05))",
         fontSize: 13,
       }}
     >
@@ -1020,7 +1020,7 @@ function StatusRow({
         justifyContent: "space-between",
         gap: 14,
         padding: "10px 0",
-        borderBottom: "1px solid var(--hml-border-subtle, rgba(255,255,255,0.05))",
+        borderBottom: "1px solid var(--hml-border-subtle, rgba(var(--ink),0.05))",
         fontSize: 13,
       }}
     >
@@ -1818,7 +1818,7 @@ const RECORDINGS_SUBTAB_CSS = `
 .md-rec-subtab.is-active {
   color: var(--copper);
   border-color: var(--copper);
-  background: rgba(184, 115, 51, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
 }
 .md-rec-subtab-count {
   font-size: 10px;

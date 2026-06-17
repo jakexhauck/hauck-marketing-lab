@@ -503,6 +503,7 @@ export function AppPane(props: AppPaneProps) {
           onSettings={onOpenSettings}
           onAddClient={onOpenAddClient}
           onManageClients={onOpenManageClients}
+          onOpenCommand={() => setPaletteOpen(true)}
           initialWorkflow={pendingWorkflow}
           onInitialWorkflowApplied={() => setPendingWorkflow(null)}
           agents={summary.agents}

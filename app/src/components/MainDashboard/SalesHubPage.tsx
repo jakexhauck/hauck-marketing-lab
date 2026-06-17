@@ -232,7 +232,7 @@ function BookingCalendarBanner({ root }: { root: string | null }) {
           margin: "16px 24px 0",
           padding: "12px 16px",
           borderRadius: 10,
-          background: "var(--panel-bg, #0f1117)",
+          background: "var(--panel-bg, var(--surface))",
           border: "1px solid var(--border)",
         }}
       >
@@ -308,9 +308,9 @@ function BookingCalendarBanner({ root }: { root: string | null }) {
                     textAlign: "left",
                     padding: "10px 12px",
                     borderRadius: 8,
-                    border: `1px solid ${isCurrent ? "var(--accent, #7aa2f7)" : "var(--border)"}`,
+                    border: `1px solid ${isCurrent ? "var(--accent, var(--brand))" : "var(--border)"}`,
                     background: isCurrent
-                      ? "rgba(122, 162, 247, 0.08)"
+                      ? "color-mix(in srgb, var(--brand) 8%, transparent)"
                       : "transparent",
                     color: "var(--text)",
                     cursor: saving ? "wait" : "pointer",
@@ -359,7 +359,7 @@ function BookingCalendarBanner({ root }: { root: string | null }) {
   const syncStatusColor = lastSync
     ? lastSync.ok
       ? "var(--text-faint)"
-      : "var(--hml-red, #f7768e)"
+      : "var(--hml-red, var(--danger))"
     : "var(--text-faint)";
   const syncStatusText = manualBusy
     ? "Syncing…"
@@ -375,7 +375,7 @@ function BookingCalendarBanner({ root }: { root: string | null }) {
         margin: "16px 24px 0",
         padding: "10px 16px",
         borderRadius: 10,
-        background: "var(--panel-bg, #0f1117)",
+        background: "var(--panel-bg, var(--surface))",
         border: "1px solid var(--border)",
         display: "flex",
         alignItems: "center",

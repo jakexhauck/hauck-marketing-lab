@@ -512,14 +512,14 @@ function actionVerb(action: CascadeAction): string {
 
 function StatusDot({ status }: { status: StepStatus }) {
   const color = {
-    pending: "#6b7280",
-    generating: "#a3a3a3",
-    ready: "var(--hml-accent, #6aa9ff)",
-    approved: "#f59e0b",
-    sending: "#f59e0b",
-    sent: "#22c55e",
-    skipped: "#6b7280",
-    error: "#ef4444",
+    pending: "var(--c-faint)",
+    generating: "var(--c-muted)",
+    ready: "var(--hml-accent, var(--brand))",
+    approved: "var(--warning)",
+    sending: "var(--warning)",
+    sent: "var(--positive)",
+    skipped: "var(--c-faint)",
+    error: "var(--danger)",
   }[status];
   return <span className="hml-cascade-dot" style={{ background: color }} />;
 }
@@ -625,7 +625,7 @@ const CASCADE_CSS = `
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 20px 60px rgba(var(--shadow-rgb), 0.45);
 }
 .hml-cascade-head {
   display: flex;
@@ -657,7 +657,7 @@ const CASCADE_CSS = `
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.hml-cascade-counts .hml-cascade-err { color: #ef4444; }
+.hml-cascade-counts .hml-cascade-err { color: var(--danger); }
 .hml-cascade-body {
   display: flex;
   flex-direction: column;
@@ -670,7 +670,7 @@ const CASCADE_CSS = `
   border: 1px solid var(--hml-border-subtle);
   border-radius: 8px;
   padding: 12px 14px;
-  background: var(--hml-bg-elev-2, rgba(255,255,255,0.02));
+  background: var(--hml-bg-elev-2, rgba(var(--ink),0.02));
 }
 .hml-cascade-card-head {
   display: flex;
@@ -718,16 +718,16 @@ const CASCADE_CSS = `
   border: 1px solid var(--hml-border-subtle);
   color: var(--hml-text-secondary);
 }
-.hml-cascade-badge-sent { color: #22c55e; border-color: rgba(34,197,94,0.5); }
-.hml-cascade-badge-error { color: #ef4444; border-color: rgba(239,68,68,0.5); }
-.hml-cascade-badge-ready { color: var(--hml-accent); border-color: var(--hml-accent-border, rgba(106,169,255,0.5)); }
-.hml-cascade-badge-generating { color: #a3a3a3; }
-.hml-cascade-badge-sending { color: #f59e0b; border-color: rgba(245,158,11,0.5); }
+.hml-cascade-badge-sent { color: var(--positive); border-color: color-mix(in srgb, var(--positive) 50%, transparent); }
+.hml-cascade-badge-error { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
+.hml-cascade-badge-ready { color: var(--hml-accent); border-color: var(--hml-accent-border, color-mix(in srgb, var(--brand) 50%, transparent)); }
+.hml-cascade-badge-generating { color: var(--c-muted); }
+.hml-cascade-badge-sending { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 50%, transparent); }
 .hml-cascade-toggle { padding: 4px 10px; font-size: 11px; }
 .hml-cascade-preview {
   margin-top: 10px;
   padding: 10px 12px;
-  background: var(--hml-bg-base, rgba(0,0,0,0.2));
+  background: var(--hml-bg-base, var(--bg));
   border: 1px solid var(--hml-border-subtle);
   border-radius: 6px;
 }

@@ -319,7 +319,7 @@ export default function ProvisionMobileAppForm({
           </div>
 
           {status.kind === "error" && (
-            <div className="os-card" style={{ borderColor: "#b53939" }}>
+            <div className="os-card" style={{ borderColor: "var(--danger)" }}>
               <div className="os-card-eyebrow os-warn">▸ PROVISION FAILED</div>
               <p style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>
                 {status.message}

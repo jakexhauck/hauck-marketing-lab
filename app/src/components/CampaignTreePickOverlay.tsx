@@ -157,7 +157,7 @@ const OVERLAY_CSS = `
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(8, 10, 14, 0.96);
+  background: color-mix(in srgb, var(--bg) 96%, transparent);
   overflow: auto;
 }
 .ct-pick-loading,

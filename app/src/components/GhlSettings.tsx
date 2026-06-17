@@ -119,7 +119,7 @@ export function GhlSettings() {
         <div className="hml-panel-title">
           <span
             className="hml-dot"
-            style={{ background: "var(--hml-orange, #ff9f43)" }}
+            style={{ background: "var(--hml-orange, var(--warning))" }}
           />
           GoHighLevel
         </div>
@@ -420,9 +420,9 @@ const ghlCSS = `
 }
 
 .ghl-test-ok {
-  background: rgba(95, 230, 153, 0.08);
-  border: 1px solid rgba(95, 230, 153, 0.35);
-  color: #5fe699;
+  background: color-mix(in srgb, var(--positive) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--positive) 35%, transparent);
+  color: var(--positive);
 }
 
 .ghl-test-err {

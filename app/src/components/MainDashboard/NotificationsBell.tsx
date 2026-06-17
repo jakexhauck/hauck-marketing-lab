@@ -136,14 +136,14 @@ export function NotificationsBell({
               height: 14,
               padding: "0 3px",
               borderRadius: 7,
-              background: "#f59e0b",
-              color: "#0a0a0a",
+              background: "var(--warning)",
+              color: "var(--brand-fg)",
               fontSize: 9.5,
               fontWeight: 700,
               lineHeight: "14px",
               textAlign: "center",
               letterSpacing: 0,
-              boxShadow: "0 0 0 2px var(--hml-bg-elev-0, #0e0e10)",
+              boxShadow: "0 0 0 2px var(--hml-bg-elev-0, var(--bg))",
             }}
           >
             {unreadCount > 99 ? "99+" : unreadCount}
@@ -155,6 +155,7 @@ export function NotificationsBell({
         <div
           role="dialog"
           aria-label="Recent notifications"
+          className="hml-chrome-popover"
           style={{
             position: "absolute",
             top: "calc(100% + 8px)",
@@ -165,7 +166,7 @@ export function NotificationsBell({
             background: "var(--hml-bg-elev-1)",
             border: "1px solid var(--hml-border-subtle)",
             borderRadius: 10,
-            boxShadow: "0 14px 36px rgba(0,0,0,0.45)",
+            boxShadow: "0 14px 36px rgba(var(--shadow-rgb),0.45)",
             zIndex: 50,
           }}
         >
@@ -245,8 +246,8 @@ export function NotificationsBell({
                         <span
                           style={{
                             marginLeft: "auto",
-                            color: "#0a0a0a",
-                            background: "#f59e0b",
+                            color: "var(--brand-fg)",
+                            background: "var(--warning)",
                             padding: "1px 6px",
                             borderRadius: 4,
                             fontSize: 9.5,

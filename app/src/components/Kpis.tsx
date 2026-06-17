@@ -25,7 +25,7 @@ const CARDS: CardDef[] = [
     label: (w) => `SPEND · ${w}`,
     meta: "of $2,500 cap",
     format: (v) => `$${Math.round(v).toLocaleString()}`,
-    color: "#b478ff",
+    color: "var(--brand)",
     deltaInversion: "neutral",
   },
   {
@@ -33,7 +33,7 @@ const CARDS: CardDef[] = [
     label: () => "CPM",
     meta: "bench $24–30",
     format: (v) => `$${v.toFixed(2)}`,
-    color: "#f87171",
+    color: "var(--danger)",
     deltaInversion: "lower-is-better",
   },
   {
@@ -41,7 +41,7 @@ const CARDS: CardDef[] = [
     label: () => "CTR",
     meta: "bench 1.2–2.0",
     format: (v) => `${v.toFixed(1)}%`,
-    color: "#5fe699",
+    color: "var(--positive)",
     deltaInversion: "higher-is-better",
   },
   {
@@ -49,7 +49,7 @@ const CARDS: CardDef[] = [
     label: () => "CVR",
     meta: "bench 3–5%",
     format: (v) => `${v.toFixed(1)}%`,
-    color: "#fbbf24",
+    color: "var(--warning)",
     deltaInversion: "higher-is-better",
   },
   {
@@ -57,7 +57,7 @@ const CARDS: CardDef[] = [
     label: () => "CPA",
     meta: "target $35",
     format: (v) => `$${Math.round(v)}`,
-    color: "#f87171",
+    color: "var(--danger)",
     deltaInversion: "lower-is-better",
   },
   {
@@ -65,7 +65,7 @@ const CARDS: CardDef[] = [
     label: () => "ROAS",
     meta: "scale floor 2.0×",
     format: (v) => `${v.toFixed(1)}×`,
-    color: "#fbbf24",
+    color: "var(--warning)",
     deltaInversion: "higher-is-better",
   },
 ];

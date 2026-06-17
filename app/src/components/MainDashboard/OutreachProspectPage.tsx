@@ -34,7 +34,7 @@ export function OutreachProspectPage({
           <div
             className="hml-client-avatar"
             style={{
-              background: "linear-gradient(135deg, #2a2230, #1a1422)",
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--hue-plum) 22%, var(--surface-2)), color-mix(in srgb, var(--hue-plum) 12%, var(--surface)))",
               color: "var(--hml-plum)",
             }}
           >

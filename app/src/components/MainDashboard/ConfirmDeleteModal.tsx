@@ -79,10 +79,10 @@ const confirmCSS = `
   margin: 6px 0 18px;
   font-size: 13.5px;
   line-height: 1.55;
-  color: var(--hml-text-mid, #b9b9bb);
+  color: var(--hml-text-mid, var(--c-muted));
 }
 .md-confirm-name {
-  color: var(--hml-text, #e7e7e8);
+  color: var(--hml-text, var(--c-text));
   font-weight: 600;
 }
 .md-confirm-actions {
@@ -93,19 +93,19 @@ const confirmCSS = `
 }
 .md-confirm-no {
   background: transparent !important;
-  border: 1px solid var(--hml-border, rgba(255,255,255,0.14)) !important;
-  color: var(--hml-text, #e7e7e8) !important;
+  border: 1px solid var(--hml-border, rgba(var(--ink),0.14)) !important;
+  color: var(--hml-text, var(--c-text)) !important;
 }
 .md-confirm-no:hover {
-  background: var(--hml-row-hover, rgba(255,255,255,0.05)) !important;
+  background: var(--hml-row-hover, rgba(var(--ink),0.05)) !important;
 }
 .md-confirm-yes {
-  background: var(--hml-red, #d77b7b) !important;
-  border-color: var(--hml-red, #d77b7b) !important;
+  background: var(--hml-red, var(--danger)) !important;
+  border-color: var(--hml-red, var(--danger)) !important;
   color: #fff !important;
 }
 .md-confirm-yes:hover {
-  background: #c46868 !important;
-  border-color: #c46868 !important;
+  background: color-mix(in srgb, var(--danger) 85%, #000) !important;
+  border-color: color-mix(in srgb, var(--danger) 85%, #000) !important;
 }
 `;

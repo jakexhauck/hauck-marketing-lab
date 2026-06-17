@@ -244,8 +244,8 @@ function BookingForm({ calendars }: { calendars: GhlCalendar[] }) {
               width: 44,
               height: 44,
               borderRadius: "50%",
-              background: "rgba(122, 162, 247, 0.14)",
-              color: "#7aa2f7",
+              background: "color-mix(in srgb, var(--hue-blue) 14%, transparent)",
+              color: "var(--hue-blue)",
               marginBottom: 12,
             }}
           >

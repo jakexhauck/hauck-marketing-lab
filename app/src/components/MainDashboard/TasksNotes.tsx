@@ -592,7 +592,7 @@ const tasksNotesCSS = `
 }
 .md-tasks-add:hover:not(:disabled) {
   border-color: var(--copper);
-  background: rgba(184, 115, 51, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
 }
 .md-tasks-add:disabled {
   color: var(--text-faint);
@@ -720,7 +720,7 @@ const tasksNotesCSS = `
 }
 .md-notes-new:hover {
   border-color: var(--copper);
-  background: rgba(184, 115, 51, 0.08);
+  background: color-mix(in srgb, var(--copper) 8%, transparent);
 }
 .md-notes-list {
   list-style: none;
@@ -736,10 +736,10 @@ const tasksNotesCSS = `
   transition: background 120ms ease;
 }
 .md-notes-item:hover {
-  background: rgba(184, 115, 51, 0.04);
+  background: color-mix(in srgb, var(--copper) 4%, transparent);
 }
 .md-notes-item.is-active {
-  background: rgba(184, 115, 51, 0.1);
+  background: color-mix(in srgb, var(--copper) 10%, transparent);
   border-left: 2px solid var(--copper);
   padding-left: 8px;
 }

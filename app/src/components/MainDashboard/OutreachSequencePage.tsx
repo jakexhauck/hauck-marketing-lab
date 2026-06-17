@@ -71,21 +71,23 @@ interface OutreachSequencePageProps {
   onExit: () => void;
 }
 
+// Decorative per-niche swatch colors. Mapped onto theme decorative hues /
+// signal tokens so they read correctly in both light and dark themes.
 const NICHE_COLORS: Record<string, string> = {
-  dental: "#3B82F6",
-  dentist: "#3B82F6",
-  dentists: "#3B82F6",
-  gym: "#F97316",
-  fitness: "#F97316",
-  medspa: "#EC4899",
-  spa: "#EC4899",
-  legal: "#D97706",
-  lawyer: "#D97706",
-  realestate: "#10B981",
-  hvac: "#0EA5E9",
-  homeservices: "#0EA5E9",
-  restaurant: "#F59E0B",
-  junk: "#10B981",
+  dental: "var(--hue-blue)",
+  dentist: "var(--hue-blue)",
+  dentists: "var(--hue-blue)",
+  gym: "var(--warning)",
+  fitness: "var(--warning)",
+  medspa: "var(--hue-plum)",
+  spa: "var(--hue-plum)",
+  legal: "var(--warning)",
+  lawyer: "var(--warning)",
+  realestate: "var(--positive)",
+  hvac: "var(--hue-blue)",
+  homeservices: "var(--hue-blue)",
+  restaurant: "var(--warning)",
+  junk: "var(--positive)",
 };
 
 function colorForNiche(niche: string): string {
@@ -93,7 +95,7 @@ function colorForNiche(niche: string): string {
   for (const key of Object.keys(NICHE_COLORS)) {
     if (k.includes(key)) return NICHE_COLORS[key];
   }
-  return "#a78bfa";
+  return "var(--hue-plum)";
 }
 
 function slugify(name: string): string {

@@ -1610,6 +1610,6 @@ const FORM_OVERLAY_CSS = `
   color: var(--hml-text-tertiary);
 }
 .ob-inline-err {
-  color: #ff7676;
+  color: var(--danger);
 }
 `;
