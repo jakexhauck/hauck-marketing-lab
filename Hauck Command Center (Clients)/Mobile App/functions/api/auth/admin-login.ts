@@ -60,7 +60,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   // Always run a verify, even with no/disabled account, so response timing does
   // not reveal whether an email exists.
   const PLACEHOLDER =
-    "pbkdf2$150000$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    "pbkdf2$100000$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
   const stored =
     admin && admin.status === "active" ? admin.password_hash : PLACEHOLDER;
   const ok = await verifyPassword(password, stored);

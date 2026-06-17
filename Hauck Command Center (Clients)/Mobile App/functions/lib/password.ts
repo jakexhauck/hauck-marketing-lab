@@ -7,7 +7,10 @@
 // Self-describing so the iteration count can be raised later without a data
 // migration: old hashes still verify against their own embedded parameters.
 
-const ITERATIONS = 150_000;
+// Cloudflare Workers' WebCrypto caps PBKDF2 at 100k iterations and throws above
+// it (the Node-based local dev runtime does not, which is why 150k passed
+// locally but failed in production). 100k is the ceiling the runtime allows.
+const ITERATIONS = 100_000;
 const HASH_BITS = 256;
 const SALT_BYTES = 16;
 
