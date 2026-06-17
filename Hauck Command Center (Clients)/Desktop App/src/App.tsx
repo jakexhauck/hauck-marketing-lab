@@ -15,6 +15,8 @@ import { Calendar } from "@/routes/Calendar";
 import { Billing } from "@/routes/Billing";
 import { Activity } from "@/routes/Activity";
 import { Team } from "@/routes/Team";
+import { AdminClients } from "@/routes/admin/AdminClients";
+import { AdminClientDetail } from "@/routes/admin/AdminClientDetail";
 
 function FullScreen() {
   return (
@@ -42,7 +44,9 @@ function LoginGate() {
 // surface they lack access to. Falls back to a no-access screen when a staff
 // member has been granted nothing.
 function useFirstAllowedPath(): string | null {
-  const { isOwner, can } = useAuth();
+  const { isAdmin, isOwner, can } = useAuth();
+  // Admins live in the control tower, never on a tenant surface.
+  if (isAdmin) return "/admin";
   const visible = filterNav(NAV, { isOwner, can }).filter((n) => !n.ownerOnly);
   return visible[0]?.to ?? null;
 }
@@ -84,6 +88,17 @@ function RequireOwner({ children }: { children: ReactElement }) {
   return <Navigate to={first} replace />;
 }
 
+// Gate the cross-client admin surfaces on a signed admin session. A non-admin
+// (owner or staff) is bounced to their first tenant surface; the backend rejects
+// /api/admin/* for them regardless, so this is UI hygiene, not the real gate.
+function RequireAdmin({ children }: { children: ReactElement }) {
+  const { isAdmin } = useAuth();
+  const first = useFirstAllowedPath();
+  if (isAdmin) return children;
+  if (!first) return <NoAccess />;
+  return <Navigate to={first} replace />;
+}
+
 export function App() {
   return (
     <Routes>
@@ -98,6 +113,9 @@ export function App() {
         <Route path="/billing" element={<RequireCap capability="billing"><Billing /></RequireCap>} />
         <Route path="/activity" element={<RequireCap capability="activity"><Activity /></RequireCap>} />
         <Route path="/team" element={<RequireOwner><Team /></RequireOwner>} />
+        {/* Control tower (cross-client, admin-only) */}
+        <Route path="/admin" element={<RequireAdmin><AdminClients /></RequireAdmin>} />
+        <Route path="/admin/clients/:id" element={<RequireAdmin><AdminClientDetail /></RequireAdmin>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

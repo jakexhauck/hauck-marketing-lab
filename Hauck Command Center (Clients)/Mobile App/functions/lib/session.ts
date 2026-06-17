@@ -8,6 +8,10 @@ export interface SessionData {
   // session, which has full access. Bound into the SIGNED token, never trusted
   // from a client header, so permission checks can rely on it.
   staffId?: string;
+  // Present only for super-admin logins (0008). Bound into the SIGNED token like
+  // staffId. A session is never both staff and admin. An admin session is the
+  // only thing that may reach the cross-tenant /api/admin/* routes.
+  adminId?: string;
 }
 
 const COOKIE_NAME = "hml_session";
@@ -90,6 +94,32 @@ export async function mintSessionCookie(
   return `${COOKIE_NAME}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${MAX_AGE_SECONDS}`;
 }
 
+// Admin sessions use the literal "admin" in the mode slot so they can never be
+// confused with a live/test tenant session, and carry the adminId as the third
+// segment. Same signing path, same verification, so forgery is no easier than
+// for any other session. mode is nominally "live" once decoded (admins are not
+// tenant-scoped; the value is unused by /api/admin/* routes).
+export async function mintAdminSessionToken(
+  env: Env,
+  adminId: string,
+): Promise<string> {
+  const secret = sessionSecret(env);
+  if (!secret) throw new Error("SESSION_SECRET not configured");
+  const exp = Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS;
+  const inner = `${exp}.admin.${adminId}`;
+  const payload = b64urlEncode(new TextEncoder().encode(inner));
+  const sig = await hmac(secret, payload);
+  return `${payload}.${sig}`;
+}
+
+export async function mintAdminSessionCookie(
+  env: Env,
+  adminId: string,
+): Promise<string> {
+  const value = await mintAdminSessionToken(env, adminId);
+  return `${COOKIE_NAME}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${MAX_AGE_SECONDS}`;
+}
+
 export function clearSessionCookie(): string {
   return `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
 }
@@ -131,12 +161,17 @@ export async function verifySession(
   if (!constantTimeEqual(sig, expected)) return null;
   try {
     const decoded = new TextDecoder().decode(b64urlDecode(payload));
-    const [expStr, modeStr, staffId] = decoded.split(".");
+    const [expStr, modeStr, third] = decoded.split(".");
     const exp = Number(expStr);
     if (!Number.isFinite(exp)) return null;
     if (exp < Math.floor(Date.now() / 1000)) return null;
+    // Admin session: `<exp>.admin.<adminId>`. mode is nominal (unused by admin
+    // routes). Requires the third segment; a bare `<exp>.admin` is malformed.
+    if (modeStr === "admin") {
+      return third ? { mode: "live", adminId: third } : null;
+    }
     const mode: SessionMode = modeStr === "test" ? "test" : "live";
-    return staffId ? { mode, staffId } : { mode };
+    return third ? { mode, staffId: third } : { mode };
   } catch {
     return null;
   }

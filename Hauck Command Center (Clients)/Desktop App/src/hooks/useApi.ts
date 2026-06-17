@@ -26,6 +26,11 @@ import type {
   ApiStaffListResponse,
   ApiEntitlementsResponse,
   StaffWriteInput,
+  AdminClientsResponse,
+  AdminClientDetail,
+  AdminClientCreateInput,
+  AdminClientUpdateInput,
+  Capability,
 } from "@hauck/core";
 
 // Centralized query keys so mutations invalidate precisely.
@@ -50,6 +55,8 @@ export const qk = {
   calendar: ["calendar", "events"] as const,
   staff: ["staff"] as const,
   entitlements: ["entitlements"] as const,
+  adminClients: ["admin", "clients"] as const,
+  adminClient: (id: string) => ["admin", "client", id] as const,
 };
 
 type QOpts<T> = Omit<UseQueryOptions<T, Error, T>, "queryKey" | "queryFn">;
@@ -443,5 +450,95 @@ export function useDisableStaff() {
   return useMutation({
     mutationFn: (id: string) => api(`/api/staff/${id}`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.staff }),
+  });
+}
+
+// --- Super-admin / control tower (admin-only, cross-client) -----------------
+
+export function useAdminClientsQuery(opts: QOpts<AdminClientsResponse> = {}) {
+  return useQuery({
+    queryKey: qk.adminClients,
+    queryFn: () => api<AdminClientsResponse>("/api/admin/clients"),
+    staleTime: 30_000,
+    ...opts,
+  });
+}
+
+export function useAdminClientQuery(id: string | undefined, opts: QOpts<AdminClientDetail> = {}) {
+  return useQuery({
+    queryKey: qk.adminClient(id ?? ""),
+    queryFn: () => api<AdminClientDetail>(`/api/admin/clients/${id}`),
+    enabled: !!id,
+    staleTime: 15_000,
+    ...opts,
+  });
+}
+
+export function useCreateClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AdminClientCreateInput) =>
+      api<{ ok: boolean; id: string; slug: string }>("/api/admin/clients", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.adminClients }),
+  });
+}
+
+export function useUpdateClient(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AdminClientUpdateInput) =>
+      api(`/api/admin/clients/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.adminClient(id) });
+      qc.invalidateQueries({ queryKey: qk.adminClients });
+    },
+  });
+}
+
+export function useSetClientEntitlement(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { capability: Capability; enabled: boolean }) =>
+      api<{ ok: boolean; capabilities: Capability[] }>(
+        `/api/admin/clients/${id}/entitlements`,
+        { method: "PATCH", body: JSON.stringify(vars) },
+      ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.adminClient(id) }),
+  });
+}
+
+export function useCreateClientStaff(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: StaffWriteInput) =>
+      api<{ ok: boolean; id: string }>(`/api/admin/clients/${id}/staff`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.adminClient(id) }),
+  });
+}
+
+export function useUpdateClientStaff(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { staffId: string; input: Partial<StaffWriteInput> }) =>
+      api(`/api/admin/clients/${id}/staff/${vars.staffId}`, {
+        method: "PATCH",
+        body: JSON.stringify(vars.input),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.adminClient(id) }),
+  });
+}
+
+export function useDisableClientStaff(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (staffId: string) =>
+      api(`/api/admin/clients/${id}/staff/${staffId}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.adminClient(id) }),
   });
 }

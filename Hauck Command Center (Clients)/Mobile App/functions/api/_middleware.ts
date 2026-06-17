@@ -4,6 +4,7 @@ import { verifySession } from "../lib/session";
 import { getServiceClient, resolveTenantId } from "../lib/supabase";
 import { resolveCaller } from "../lib/identity";
 import { checkStaffAccess } from "../lib/permissions";
+import { getActiveAdmin } from "../lib/adminAuth";
 
 const allowedOrigins = new Set([
   "http://localhost:5173",
@@ -36,6 +37,7 @@ const PUBLIC_PATHS = new Set([
   "/api/webhook",
   "/api/auth/login",
   "/api/auth/staff-login",
+  "/api/auth/admin-login",
   "/api/auth/logout",
   "/api/auth/me",
 ]);
@@ -61,6 +63,23 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
   if (!PUBLIC_PATHS.has(url.pathname)) {
     const session = await verifySession(ctx.request, ctx.env);
     if (!session) return json(401, { error: "unauthorized" }, origin);
+
+    // Cross-tenant admin routes (0008). These operate ABOVE the per-tenant pin:
+    // no GHL/tenant context is set up, and only a signed admin session reaches
+    // them. A non-admin session (owner or staff) is forbidden outright; this is
+    // the single gate for every /api/admin/* handler.
+    if (url.pathname.startsWith("/api/admin/")) {
+      if (!session.adminId) {
+        return json(403, { error: "forbidden" }, origin);
+      }
+      const client = getServiceClient(ctx.env);
+      const admin = client ? await getActiveAdmin(client, session.adminId) : null;
+      if (!admin) return json(401, { error: "unauthorized" }, origin);
+      ctx.data.session = session;
+      ctx.data.admin = admin;
+      // Fall through to ctx.next(): no tenant resolution, no surface checks.
+      return await runNext(ctx, origin, url);
+    }
 
     if (session.mode === "test") {
       if (!ctx.env.TEST_GHL_LOCATION_ID || !ctx.env.TEST_GHL_TOKEN) {
@@ -120,6 +139,17 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
     }
   }
 
+  return await runNext(ctx, origin, url);
+};
+
+// Run the matched route handler and re-apply CORS headers to its response,
+// converting an uncaught error into a generic 500. Shared by the admin and the
+// tenant paths so both wrap responses identically.
+async function runNext(
+  ctx: Parameters<PagesFunction<Env, string, ApiData>>[0],
+  origin: string | null,
+  url: URL,
+): Promise<Response> {
   try {
     const response = await ctx.next();
     const headers = new Headers(response.headers);
@@ -138,4 +168,4 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
     console.error("[api]", url.pathname, message);
     return json(500, { error: "internal_error" }, origin);
   }
-};
+}

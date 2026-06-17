@@ -10,6 +10,8 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { api, ApiError, UNAUTHORIZED_EVENT } from "@/lib/api";
 import type {
+  AdminIdentity,
+  ApiAdminLoginResponse,
   ApiLoginResponse,
   ApiMe,
   ApiStaffIdentity,
@@ -30,12 +32,18 @@ interface AuthCtx {
   // Owners see every surface and edit control.
   isOwner: boolean;
   staff: ApiStaffIdentity | null;
+  // Super-admin ("control tower"). True only for a signed admin session. An
+  // admin is never also a tenant owner/staff: when isAdmin, isOwner is false and
+  // the app shows the admin surfaces instead of the tenant surfaces.
+  isAdmin: boolean;
+  admin: AdminIdentity | null;
   // can(capability, action): is the signed-in user allowed this? Owners always
   // true. Mirrors the backend's authoritative check so the UI never offers an
   // action the server would reject.
   can: (capability: Capability, action?: Action) => boolean;
   signIn: (password: string, mode: SessionMode) => Promise<void>;
   signInStaff: (email: string, password: string, mode: SessionMode) => Promise<void>;
+  signInAdmin: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -48,6 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isOwner, setIsOwner] = useState(false);
   const [staff, setStaff] = useState<ApiStaffIdentity | null>(null);
   const [permissions, setPermissions] = useState<EffectivePermissions>({});
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [admin, setAdmin] = useState<AdminIdentity | null>(null);
 
   const becomeUnauthenticated = useCallback(() => {
     setStatus("unauthenticated");
@@ -55,13 +65,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsOwner(false);
     setStaff(null);
     setPermissions({});
+    setIsAdmin(false);
+    setAdmin(null);
     localStorage.removeItem(MODE_KEY);
     qc.clear();
   }, [qc]);
 
   const applyMe = useCallback((me: ApiMe) => {
     setMode(me.mode);
-    setIsOwner(me.isOwner ?? true);
+    setIsAdmin(me.isAdmin ?? false);
+    setAdmin(me.admin ?? null);
+    // An admin session is not a tenant owner, even though /me returns isOwner.
+    setIsOwner(me.isAdmin ? false : me.isOwner ?? true);
     setStaff(me.staff ?? null);
     setPermissions(me.permissions ?? {});
     localStorage.setItem(MODE_KEY, me.mode);
@@ -109,6 +124,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsOwner(true);
       setStaff(null);
       setPermissions({});
+      setIsAdmin(false);
+      setAdmin(null);
       localStorage.setItem(MODE_KEY, res.mode);
       setStatus("authenticated");
     },
@@ -125,6 +142,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       qc.clear();
       // The cookie is set; fetch the full identity + permissions via /me so we
       // get the effective grant map (staff-login returns only a summary).
+      await reconcile();
+    },
+    [qc, reconcile],
+  );
+
+  const signInAdmin = useCallback(
+    async (email: string, password: string) => {
+      const res = await api<ApiAdminLoginResponse>("/api/auth/admin-login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) throw new ApiError(401, "incorrect email or password", res);
+      qc.clear();
+      // The admin cookie is set; reconcile via /me to land in admin state.
       await reconcile();
     },
     [qc, reconcile],
@@ -150,8 +181,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ status, mode, isOwner, staff, can, signIn, signInStaff, signOut }),
-    [status, mode, isOwner, staff, can, signIn, signInStaff, signOut],
+    () => ({
+      status,
+      mode,
+      isOwner,
+      staff,
+      isAdmin,
+      admin,
+      can,
+      signIn,
+      signInStaff,
+      signInAdmin,
+      signOut,
+    }),
+    [status, mode, isOwner, staff, isAdmin, admin, can, signIn, signInStaff, signInAdmin, signOut],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

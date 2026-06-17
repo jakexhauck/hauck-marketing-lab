@@ -8,6 +8,7 @@ import {
   Receipt,
   Activity,
   UserCog,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability, Action } from "@hauck/core";
@@ -54,6 +55,13 @@ export function filterNav(
     return true;
   });
 }
+
+// Super-admin ("control tower") nav. Shown only to a signed admin session, in
+// place of the tenant nav. These surfaces are cross-client and never gated by
+// per-tenant capabilities.
+export const ADMIN_NAV: NavItem[] = [
+  { to: "/admin", label: "Clients", icon: Building2, hint: "Every business" },
+];
 
 // Deep-link conventions the command palette uses to open detail in-surface.
 // Surfaces read these params to open the relevant drawer/detail.

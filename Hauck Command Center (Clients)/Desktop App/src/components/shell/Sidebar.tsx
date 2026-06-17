@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
-import { Command, Sun, Moon, LogOut } from "lucide-react";
+import { Command, Sun, Moon, LogOut, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { NAV, filterNav } from "@/lib/nav";
+import { NAV, ADMIN_NAV, filterNav } from "@/lib/nav";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { useTenant } from "@/context/TenantContext";
@@ -9,42 +9,61 @@ import { usePalette } from "./CommandPalette";
 
 export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
-  const { signOut, mode, isOwner, can } = useAuth();
+  const { signOut, mode, isOwner, isAdmin, admin, can } = useAuth();
   const brand = useTenant();
   const palette = usePalette();
-  const navItems = filterNav(NAV, { isOwner, can });
+  // Admins get the cross-client nav in place of the tenant nav.
+  const navItems = isAdmin ? ADMIN_NAV : filterNav(NAV, { isOwner, can });
 
   return (
     <aside className="flex h-full w-[236px] shrink-0 flex-col border-r border-border bg-rail">
       {/* Brand mark */}
       <div className="flex items-center gap-2.5 px-4 pt-4 pb-3">
-        <span
-          className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[12px] font-bold text-brand-fg"
-          style={{ background: "var(--brand)" }}
-        >
-          {brand.initials}
-        </span>
-        <div className="min-w-0">
-          <div className="truncate font-display text-[15px] leading-tight text-text">
-            {brand.appName}
-          </div>
-          {brand.niche && <div className="truncate text-[11px] text-faint">{brand.niche}</div>}
-        </div>
+        {isAdmin ? (
+          <>
+            <span className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] bg-text text-bg">
+              <ShieldCheck size={17} />
+            </span>
+            <div className="min-w-0">
+              <div className="truncate font-display text-[15px] leading-tight text-text">
+                Control Tower
+              </div>
+              {admin && <div className="truncate text-[11px] text-faint">{admin.name}</div>}
+            </div>
+          </>
+        ) : (
+          <>
+            <span
+              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[12px] font-bold text-brand-fg"
+              style={{ background: "var(--brand)" }}
+            >
+              {brand.initials}
+            </span>
+            <div className="min-w-0">
+              <div className="truncate font-display text-[15px] leading-tight text-text">
+                {brand.appName}
+              </div>
+              {brand.niche && <div className="truncate text-[11px] text-faint">{brand.niche}</div>}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Command trigger */}
-      <div className="px-3 pb-2">
-        <button
-          onClick={palette.open}
-          className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-surface px-2.5 py-2 text-sm text-muted transition-colors hover:border-border-strong hover:text-text"
-        >
-          <Command size={15} />
-          <span className="flex-1 text-left">Search or jump…</span>
-          <kbd className="font-data rounded border border-border bg-surface-2 px-1.5 py-0.5 text-[10px] text-faint">
-            ⌘K
-          </kbd>
-        </button>
-      </div>
+      {/* Command trigger (tenant surfaces only) */}
+      {!isAdmin && (
+        <div className="px-3 pb-2">
+          <button
+            onClick={palette.open}
+            className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] border border-border bg-surface px-2.5 py-2 text-sm text-muted transition-colors hover:border-border-strong hover:text-text"
+          >
+            <Command size={15} />
+            <span className="flex-1 text-left">Search or jump…</span>
+            <kbd className="font-data rounded border border-border bg-surface-2 px-1.5 py-0.5 text-[10px] text-faint">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-1">

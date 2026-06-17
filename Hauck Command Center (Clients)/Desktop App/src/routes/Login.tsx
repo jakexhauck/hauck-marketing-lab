@@ -5,10 +5,10 @@ import { useTenant } from "@/context/TenantContext";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui";
 
-type Tab = "owner" | "staff";
+type Tab = "owner" | "staff" | "admin";
 
 export function Login() {
-  const { signIn, signInStaff } = useAuth();
+  const { signIn, signInStaff, signInAdmin } = useAuth();
   const brand = useTenant();
   const [tab, setTab] = useState<Tab>("owner");
   const [password, setPassword] = useState("");
@@ -17,10 +17,12 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const isAdmin = tab === "admin";
+
   function describeError(err: unknown): string {
     if (err instanceof ApiError) {
       if (err.status === 429) return "Too many attempts. Wait a moment and try again.";
-      return tab === "staff" ? "That email or password didn't match." : "That password didn't match.";
+      return tab === "owner" ? "That password didn't match." : "That email or password didn't match.";
     }
     return "Couldn't reach the server. Check your connection.";
   }
@@ -29,26 +31,26 @@ export function Login() {
     e.preventDefault();
     if (busy) return;
     const mode = testMode ? "test" : "live";
-    if (tab === "owner") {
-      if (!password.trim()) return;
-      setBusy(true);
-      setError(null);
-      try {
+    try {
+      if (tab === "owner") {
+        if (!password.trim()) return;
+        setBusy(true);
+        setError(null);
         await signIn(password, mode);
-      } catch (err) {
-        setError(describeError(err));
-        setBusy(false);
-      }
-    } else {
-      if (!email.trim() || !password.trim()) return;
-      setBusy(true);
-      setError(null);
-      try {
+      } else if (tab === "staff") {
+        if (!email.trim() || !password.trim()) return;
+        setBusy(true);
+        setError(null);
         await signInStaff(email.trim(), password, mode);
-      } catch (err) {
-        setError(describeError(err));
-        setBusy(false);
+      } else {
+        if (!email.trim() || !password.trim()) return;
+        setBusy(true);
+        setError(null);
+        await signInAdmin(email.trim(), password);
       }
+    } catch (err) {
+      setError(describeError(err));
+      setBusy(false);
     }
   }
 
@@ -56,6 +58,8 @@ export function Login() {
     setTab(next);
     setError(null);
     setPassword("");
+    if (next !== "staff" && next !== "admin") setEmail("");
+    if (next === "admin") setTestMode(false);
   }
 
   const inputCls =
@@ -67,44 +71,53 @@ export function Login() {
         {/* Brand lockup */}
         <div className="mb-7 flex flex-col items-center text-center">
           <span
-            className="mb-4 flex h-14 w-14 items-center justify-center rounded-[var(--radius-lg)] text-lg font-bold text-brand-fg shadow-[var(--shadow-md)]"
-            style={{ background: "var(--brand)" }}
+            className={
+              "mb-4 flex h-14 w-14 items-center justify-center rounded-[var(--radius-lg)] text-lg font-bold shadow-[var(--shadow-md)] " +
+              (isAdmin ? "bg-text text-bg" : "text-brand-fg")
+            }
+            style={isAdmin ? undefined : { background: "var(--brand)" }}
           >
-            {brand.initials}
+            {isAdmin ? <ShieldCheck size={24} /> : brand.initials}
           </span>
-          <h1 className="font-display text-2xl text-text">{brand.appName}</h1>
-          <p className="mt-1 text-sm text-muted">Operations cockpit</p>
+          <h1 className="font-display text-2xl text-text">
+            {isAdmin ? "Control Tower" : brand.appName}
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            {isAdmin ? "Agency admin access" : "Operations cockpit"}
+          </p>
         </div>
 
         <form
           onSubmit={onSubmit}
           className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-md)]"
         >
-          {/* Owner / Staff segmented control */}
-          <div className="mb-4 flex rounded-[var(--radius-sm)] border border-border bg-surface-2 p-0.5 text-[13px] font-medium">
-            <button
-              type="button"
-              onClick={() => switchTab("owner")}
-              className={
-                "flex-1 rounded-[calc(var(--radius-sm)-2px)] py-1.5 transition-colors " +
-                (tab === "owner" ? "bg-surface text-text shadow-[var(--shadow-sm)]" : "text-muted hover:text-text")
-              }
-            >
-              Owner
-            </button>
-            <button
-              type="button"
-              onClick={() => switchTab("staff")}
-              className={
-                "flex-1 rounded-[calc(var(--radius-sm)-2px)] py-1.5 transition-colors " +
-                (tab === "staff" ? "bg-surface text-text shadow-[var(--shadow-sm)]" : "text-muted hover:text-text")
-              }
-            >
-              Staff
-            </button>
-          </div>
+          {/* Owner / Staff segmented control (hidden in admin mode) */}
+          {!isAdmin && (
+            <div className="mb-4 flex rounded-[var(--radius-sm)] border border-border bg-surface-2 p-0.5 text-[13px] font-medium">
+              <button
+                type="button"
+                onClick={() => switchTab("owner")}
+                className={
+                  "flex-1 rounded-[calc(var(--radius-sm)-2px)] py-1.5 transition-colors " +
+                  (tab === "owner" ? "bg-surface text-text shadow-[var(--shadow-sm)]" : "text-muted hover:text-text")
+                }
+              >
+                Owner
+              </button>
+              <button
+                type="button"
+                onClick={() => switchTab("staff")}
+                className={
+                  "flex-1 rounded-[calc(var(--radius-sm)-2px)] py-1.5 transition-colors " +
+                  (tab === "staff" ? "bg-surface text-text shadow-[var(--shadow-sm)]" : "text-muted hover:text-text")
+                }
+              >
+                Staff
+              </button>
+            </div>
+          )}
 
-          {tab === "staff" && (
+          {(tab === "staff" || isAdmin) && (
             <label className="mb-3 block">
               <span className="label-cap mb-1.5 block">Email</span>
               <input
@@ -113,7 +126,7 @@ export function Login() {
                 autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@business.com"
+                placeholder={isAdmin ? "you@hauckmarketing.com" : "you@business.com"}
                 className={inputCls}
               />
             </label>
@@ -141,26 +154,45 @@ export function Login() {
           <Button type="submit" variant="primary" size="lg" loading={busy} className="mt-4 w-full">
             {!busy && (
               <>
-                Sign in <ArrowRight size={16} />
+                {isAdmin ? "Enter Control Tower" : "Sign in"} <ArrowRight size={16} />
               </>
             )}
             {busy && "Signing in"}
           </Button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setTestMode((v) => !v);
-              setError(null);
-            }}
-            className="mt-3 w-full text-center text-[12.5px] text-faint transition-colors hover:text-muted"
-          >
-            {testMode ? "← Back to live account" : "Log into test account instead"}
-          </button>
+          {!isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setTestMode((v) => !v);
+                setError(null);
+              }}
+              className="mt-3 w-full text-center text-[12.5px] text-faint transition-colors hover:text-muted"
+            >
+              {testMode ? "← Back to live account" : "Log into test account instead"}
+            </button>
+          )}
         </form>
 
+        {/* Admin access is deliberately understated: a quiet link, not a tab. */}
         <p className="mt-5 flex items-center justify-center gap-1.5 text-[12px] text-faint">
-          <ShieldCheck size={13} /> Secured by Hauck Marketing
+          {isAdmin ? (
+            <button
+              type="button"
+              onClick={() => switchTab("owner")}
+              className="transition-colors hover:text-muted"
+            >
+              ← Back to client sign in
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => switchTab("admin")}
+              className="flex items-center gap-1.5 transition-colors hover:text-muted"
+            >
+              <ShieldCheck size={13} /> Admin access
+            </button>
+          )}
         </p>
       </div>
     </div>

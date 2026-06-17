@@ -64,5 +64,9 @@ export interface ApiData {
   isOwner?: boolean;
   staff?: import("./staff").StaffRecord | null;
   permissions?: import("./permissions").EffectivePermissions;
+  // Populated by _middleware.ts on /api/admin/* routes only: the verified,
+  // active super-admin (0008). Cross-tenant admin handlers read this and never
+  // re-check identity themselves.
+  admin?: import("./adminAuth").AdminRecord | null;
   [k: string]: unknown;
 }
