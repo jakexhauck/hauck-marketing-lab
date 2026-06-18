@@ -18,6 +18,8 @@ import Today from "./routes/Today";
 import Billing from "./routes/Billing";
 import Calendar from "./routes/Calendar";
 import Notifications from "./routes/Notifications";
+import Team from "./routes/Team";
+import Settings from "./routes/Settings";
 import Showroom from "./routes/Showroom";
 import Simulator from "./routes/Simulator";
 import Shell from "./components/Shell";
@@ -182,6 +184,24 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Notifications />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Owner-only inside the component (staff are redirected home);
+                  the backend also enforces owner-only on every /api/staff call. */}
+              <Route
+                path="/team"
+                element={
+                  <ProtectedRoute>
+                    <Team />
                   </ProtectedRoute>
                 }
               />

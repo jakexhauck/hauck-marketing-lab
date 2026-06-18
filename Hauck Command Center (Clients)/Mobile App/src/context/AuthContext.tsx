@@ -21,13 +21,37 @@ type AuthStatus =
   | "unauthenticated";
 export type SessionMode = "live" | "test";
 
+// A staff member's effective permissions per capability, as /api/auth/me
+// reports them. Owners report an empty map and isOwner=true (full access).
+export type EffectivePermissions = Record<string, { view: boolean; edit: boolean }>;
+
+interface StaffIdentity {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+}
+
 interface AuthContextValue {
   status: AuthStatus;
   session: { authenticated: true } | null;
   mode: SessionMode;
   isAdmin: boolean;
   adminChecked: boolean;
+  // True for owner (shared-password) sessions, false for staff sessions. Gates
+  // owner-only UI like the Team screen. Defaults true while a session loads.
+  isOwner: boolean;
+  // The signed-in staff member, or null for an owner session.
+  staff: StaffIdentity | null;
+  // Effective per-surface permissions for a staff session; empty for owners.
+  permissions: EffectivePermissions;
   signInWithPassword: (
+    password: string,
+    mode?: SessionMode,
+  ) => Promise<{ ok: boolean; error?: string }>;
+  // Email + password login for staff accounts (POST /api/auth/staff-login).
+  signInAsStaff: (
+    email: string,
     password: string,
     mode?: SessionMode,
   ) => Promise<{ ok: boolean; error?: string }>;
@@ -130,6 +154,16 @@ interface SessionProbe {
   // True when the probe never got an HTTP answer (offline / server down).
   // A 401/403 response is NOT offline: that is a real "no session".
   offline: boolean;
+  isOwner: boolean;
+  staff: StaffIdentity | null;
+  permissions: EffectivePermissions;
+}
+
+interface ApiMe {
+  mode?: SessionMode;
+  isOwner?: boolean;
+  staff?: StaffIdentity | null;
+  permissions?: EffectivePermissions;
 }
 
 async function checkSession(): Promise<SessionProbe> {
@@ -137,17 +171,20 @@ async function checkSession(): Promise<SessionProbe> {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
       credentials: "include",
     });
-    if (!res.ok) return { ok: false, mode: "live", offline: false };
-    const body = (await res.json().catch(() => null)) as
-      | { mode?: SessionMode }
-      | null;
+    if (!res.ok)
+      return { ok: false, mode: "live", offline: false, isOwner: true, staff: null, permissions: {} };
+    const body = (await res.json().catch(() => null)) as ApiMe | null;
     return {
       ok: true,
       mode: body?.mode === "test" ? "test" : "live",
       offline: false,
+      // Absent isOwner means an owner (shared-password) session: full access.
+      isOwner: body?.isOwner !== false,
+      staff: body?.staff ?? null,
+      permissions: body?.permissions ?? {},
     };
   } catch {
-    return { ok: false, mode: "live", offline: true };
+    return { ok: false, mode: "live", offline: true, isOwner: true, staff: null, permissions: {} };
   }
 }
 
@@ -155,6 +192,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [mode, setMode] = useState<SessionMode>("live");
   const [override, setOverride] = useState<User | null>(null);
+  // Owner vs staff session, resolved from /api/auth/me. Owner is the default so
+  // the single-operator (shared-password) case never gets gated by accident.
+  const [isOwner, setIsOwner] = useState(true);
+  const [staff, setStaff] = useState<StaffIdentity | null>(null);
+  const [permissions, setPermissions] = useState<EffectivePermissions>({});
   // The stored GHL user id chosen at the "who are you?" step, and the resolved
   // team member it maps to. identityResolved guards the picker from flashing
   // before the lookup completes.
@@ -177,6 +219,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (probe.ok) {
       writeLastSessionMode(probe.mode);
       setMode(probe.mode);
+      setIsOwner(probe.isOwner);
+      setStaff(probe.staff);
+      setPermissions(probe.permissions);
       setStatus("authenticated");
       return;
     }
@@ -215,6 +260,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void disablePush();
       clearAppBadge();
       void clearAllCaches();
+      setIsOwner(true);
+      setStaff(null);
+      setPermissions({});
       setStatus("unauthenticated");
       setMode("live");
     };
@@ -278,6 +326,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // the other mode); a fresh session must start from zero.
         await clearAllCaches();
         writeLastSessionMode(mode);
+        // Shared-password login is always the owner: full access, no staff.
+        setIsOwner(true);
+        setStaff(null);
+        setPermissions({});
         setStatus("authenticated");
         setMode(mode);
         return { ok: true };
@@ -289,6 +341,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     [],
+  );
+
+  const signInAsStaff = useCallback(
+    async (email: string, password: string, mode: SessionMode = "live") => {
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/staff-login`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email, password, mode }),
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+          return {
+            ok: false,
+            error: body?.error ?? `Sign-in failed (${res.status})`,
+          };
+        }
+        await clearAllCaches();
+        writeLastSessionMode(mode);
+        setMode(mode);
+        // Pull the staff identity + effective permissions from /api/auth/me so
+        // the UI gates correctly. The cookie is already set by staff-login.
+        await reconcileSession();
+        return { ok: true };
+      } catch (err) {
+        return {
+          ok: false,
+          error: err instanceof Error ? err.message : "Network error",
+        };
+      }
+    },
+    [reconcileSession],
   );
 
   const signOut = useCallback(async () => {
@@ -318,6 +405,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Memory, persisted snapshot, and SW caches all go: the next session
     // (possibly the other mode) must not see this one's data.
     await clearAllCaches();
+    setIsOwner(true);
+    setStaff(null);
+    setPermissions({});
     setStatus("unauthenticated");
     setMode("live");
   }, []);
@@ -366,6 +456,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const currentUser = useMemo<User | null>(() => {
     if (override) return override; // dev override, keep for testing
     if (!isAuthed) return null;
+    // Staff session: the logged-in employee IS the identity, with their own
+    // role. No "who are you?" picker (that is the owner shared-login flow).
+    if (staff) {
+      return {
+        id: staff.id,
+        clientId: "",
+        name: staff.name,
+        email: staff.email,
+        role: staff.role,
+      };
+    }
     // Real resolved identity from /api/me/identity when available.
     if (identity) return identity;
     // A stored identity that failed to resolve for transient reasons must not
@@ -388,17 +489,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: "",
       role: "owner" as Role,
     };
-  }, [override, isAuthed, identity, identityFailed, identityId]);
+  }, [override, isAuthed, staff, identity, identityFailed, identityId]);
 
   // Only prompt the picker fully online: offline, the team list behind it
   // cannot load, and the offline-grace session may be seconds from sign-out.
+  // Staff sessions never see it (they already have a named identity + role).
   const needsIdentity = useMemo(
     () =>
       !override &&
+      !staff &&
       status === "authenticated" &&
       identityResolved &&
       !hasIdentityChoice,
-    [override, status, identityResolved, hasIdentityChoice],
+    [override, staff, status, identityResolved, hasIdentityChoice],
   );
 
   const session = useMemo<{ authenticated: true } | null>(
@@ -413,7 +516,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mode,
       isAdmin: false,
       adminChecked: true,
+      isOwner,
+      staff,
+      permissions,
       signInWithPassword,
+      signInAsStaff,
       signOut,
       currentUser,
       setUser,
@@ -425,7 +532,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       session,
       mode,
+      isOwner,
+      staff,
+      permissions,
       signInWithPassword,
+      signInAsStaff,
       signOut,
       currentUser,
       setUser,

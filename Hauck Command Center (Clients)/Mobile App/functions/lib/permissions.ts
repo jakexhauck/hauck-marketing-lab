@@ -74,6 +74,7 @@ const RULES: PermRule[] = [
   { pattern: /^\/api\/leads\/[^/]+\/messages\/?$/, methods: ["GET"], any: [need("pipeline", "view"), need("inbox", "view")] },
   { pattern: /^\/api\/leads\/[^/]+\/?$/, methods: ["PATCH", "PUT", "POST", "DELETE"], any: [need("pipeline", "edit")] },
   { pattern: /^\/api\/leads\/[^/]+\/?$/, methods: ["GET"], any: [need("pipeline", "view")] },
+  { pattern: /^\/api\/leads\/?$/, methods: ["POST"], any: [need("pipeline", "edit")] },
   { pattern: /^\/api\/leads\/?$/, methods: ["GET"], any: [need("pipeline", "view")] },
 
   // Shared lookups used by multiple surfaces

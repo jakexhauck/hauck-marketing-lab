@@ -7,7 +7,9 @@ import {
   LogOut,
   Receipt,
   Search,
+  Settings,
   TrendingUp,
+  Users,
 } from "lucide-react";
 import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
@@ -67,7 +69,7 @@ function shortName(name: string): string {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { session, mode, signOut } = useAuth();
+  const { session, mode, signOut, isOwner } = useAuth();
   const { setSelectedId } = usePipelines();
   const now = useNow();
   const useReal = Boolean(session);
@@ -248,6 +250,11 @@ export default function Home() {
               {[
                 { key: "calendar", label: "Calendar", sub: "Upcoming appointments", to: "/calendar", Icon: CalendarDays, color: "#7c3aed" },
                 { key: "billing", label: "Billing", sub: "Invoices and payments", to: "/billing", Icon: Receipt, color: "#15803d" },
+                // Team management is owner-only (staff cannot add staff).
+                ...(isOwner
+                  ? [{ key: "team", label: "Team", sub: "Add employees and set access", to: "/team", Icon: Users, color: "#1a4d8f" }]
+                  : []),
+                { key: "settings", label: "Settings", sub: "Account and preferences", to: "/settings", Icon: Settings, color: "#475569" },
                 { key: "signout", label: "Sign out", sub: "Log out of this device", to: "", Icon: LogOut, color: "#be123c" },
               ].map(
                 (link, idx, arr) => (

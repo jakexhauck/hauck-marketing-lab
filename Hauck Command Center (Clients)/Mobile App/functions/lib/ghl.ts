@@ -259,6 +259,60 @@ export function attributionFromCustomFields(
   return Object.values(attribution).some(Boolean) ? attribution : null;
 }
 
+// Create a contact in GHL (v2 contacts API) and return its id. The location id
+// is required by GHL on create; name/email/phone are all optional on their end,
+// but the caller guarantees at least a name. Errors surface via ghlJson.
+export async function createContact(
+  ctx: GhlContext,
+  input: { name: string; email?: string; phone?: string },
+): Promise<string> {
+  const body: Record<string, unknown> = { locationId: ctx.locationId };
+  if (input.name) body.name = input.name;
+  if (input.email) body.email = input.email;
+  if (input.phone) body.phone = input.phone;
+
+  const data = await ghlJson<{ contact?: { id?: string } }>(ctx, "/contacts/", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  const id = data.contact?.id;
+  if (!id) throw new Error("GHL POST /contacts/ returned no contact id");
+  return id;
+}
+
+// Create an opportunity in GHL (v2 opportunities API) for an existing contact
+// and return it shaped as an ApiLead. status defaults to "open" (the only state
+// a freshly created lead can be in).
+export async function createOpportunity(
+  ctx: GhlContext,
+  input: {
+    contactId: string;
+    pipelineId: string;
+    pipelineStageId: string;
+    name: string;
+    monetaryValue?: number | null;
+  },
+): Promise<ApiLead> {
+  const body: Record<string, unknown> = {
+    locationId: ctx.locationId,
+    contactId: input.contactId,
+    pipelineId: input.pipelineId,
+    pipelineStageId: input.pipelineStageId,
+    name: input.name,
+    status: "open",
+  };
+  if (typeof input.monetaryValue === "number") {
+    body.monetaryValue = input.monetaryValue;
+  }
+
+  const data = await ghlJson<{ opportunity: GhlOpportunity }>(
+    ctx,
+    "/opportunities/",
+    { method: "POST", body: JSON.stringify(body) },
+  );
+  return shapeOpportunity(data.opportunity);
+}
+
 export function shapeOpportunity(o: GhlOpportunity): ApiLead {
   const fullName =
     o.contact?.name ||

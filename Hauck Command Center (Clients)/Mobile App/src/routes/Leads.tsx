@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Columns3, List as ListIcon, Search } from "lucide-react";
+import { Columns3, List as ListIcon, Plus, Search } from "lucide-react";
 import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
 import SplitHero, { HeroMark, HeroIconButton } from "../components/HeroUi";
@@ -9,6 +9,7 @@ import BottomNav from "../components/BottomNav";
 import Board from "../components/Board";
 import PipelineSwitcher from "../components/PipelineSwitcher";
 import SearchBar from "../components/SearchBar";
+import NewLeadSheet from "../components/NewLeadSheet";
 import Avatar from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
 import PullToRefresh from "../components/PullToRefresh";
@@ -36,6 +37,7 @@ export default function Leads() {
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
+  const [showNewLead, setShowNewLead] = useState(false);
 
   // Reset stage filter + search whenever the pipeline changes.
   useEffect(() => {
@@ -124,13 +126,21 @@ export default function Leads() {
               variant="onDark"
             />
           </div>
-          <HeroIconButton
-            label="Search leads"
-            onClick={() => setShowSearch((v) => !v)}
-            pressed={showSearch}
-          >
-            <Search size={18} />
-          </HeroIconButton>
+          <div className="flex shrink-0 items-center gap-2">
+            <HeroIconButton
+              label="Search leads"
+              onClick={() => setShowSearch((v) => !v)}
+              pressed={showSearch}
+            >
+              <Search size={18} />
+            </HeroIconButton>
+            <HeroIconButton
+              label="New lead"
+              onClick={() => setShowNewLead(true)}
+            >
+              <Plus size={18} />
+            </HeroIconButton>
+          </div>
         </div>
 
         <SplitHero
@@ -305,6 +315,13 @@ export default function Leads() {
           </>
         )}
       </div>
+
+      <NewLeadSheet
+        open={showNewLead}
+        pipeline={selected}
+        onClose={() => setShowNewLead(false)}
+        leadsKey={["leads", "pipeline", selectedId]}
+      />
 
       <BottomNav active="leads" />
     </Shell>
