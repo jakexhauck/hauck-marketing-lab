@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, UserPlus, ShieldCheck, Eye, Pencil, Check } from "lucide-react";
+import { ArrowLeft, UserPlus, ShieldCheck, Eye, Pencil, Check, Download } from "lucide-react";
 import {
   CAPABILITIES,
   type Capability,
@@ -17,6 +17,7 @@ import {
   useCreateClientStaff,
   useUpdateClientStaff,
   useDisableClientStaff,
+  useImportClientStaff,
 } from "@/hooks/useApi";
 import { useToast } from "@/context/ToastContext";
 import { ApiError } from "@/lib/api";
@@ -144,19 +145,36 @@ function FeaturesCard({ id, enabled }: { id: string; enabled: Capability[] }) {
 
 function TeamCard({ id, staff, enabled }: { id: string; staff: ApiStaffAccount[]; enabled: Capability[] }) {
   const [editing, setEditing] = useState<ApiStaffAccount | "new" | null>(null);
+  const { toast } = useToast();
+  const importStaff = useImportClientStaff(id);
   const enabledDefs = useMemo<CapabilityDef[]>(() => {
     const set = new Set(enabled);
     return CAPABILITIES.filter((c) => set.has(c.key));
   }, [enabled]);
+
+  async function onImport() {
+    if (importStaff.isPending) return;
+    try {
+      const res = await importStaff.mutateAsync();
+      toast(`Imported ${res.imported}, skipped ${res.skipped}.`, "success");
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : "Couldn't import the team.", "error");
+    }
+  }
 
   return (
     <Section
       title="Team"
       subtitle="The employees the owner assigned, and exactly what each can see and change."
       action={
-        <Button variant="secondary" size="sm" onClick={() => setEditing("new")}>
-          <UserPlus size={15} /> Add employee
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" loading={importStaff.isPending} onClick={() => void onImport()}>
+            <Download size={15} /> Import team from GoHighLevel
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setEditing("new")}>
+            <UserPlus size={15} /> Add employee
+          </Button>
+        </div>
       }
     >
       {staff.length === 0 ? (
@@ -531,12 +549,17 @@ function BusinessModal({
   const [spend, setSpend] = useState(String(client.monthlySpend ?? 0));
   const [ghlLocationId, setGhlLocationId] = useState(client.ghlLocationId === "pending" ? "" : client.ghlLocationId);
   const [ghlToken, setGhlToken] = useState("");
+  const [subdomain, setSubdomain] = useState(client.subdomain ?? "");
+  const [ownerPassword, setOwnerPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (update.isPending) return;
     setError(null);
+    if (ownerPassword.trim() && ownerPassword.trim().length < 8) {
+      return setError("Owner password must be at least 8 characters.");
+    }
     try {
       await update.mutateAsync({
         name: name.trim(),
@@ -549,6 +572,8 @@ function BusinessModal({
         monthlySpend: Number(spend) || 0,
         ...(ghlLocationId.trim() ? { ghlLocationId: ghlLocationId.trim() } : {}),
         ...(ghlToken.trim() ? { ghlToken: ghlToken.trim() } : {}),
+        ...(subdomain.trim() ? { subdomain: subdomain.trim() } : {}),
+        ...(ownerPassword.trim() ? { ownerPassword: ownerPassword.trim() } : {}),
       });
       toast("Client updated.", "success");
       onClose();
@@ -586,6 +611,21 @@ function BusinessModal({
         <div className="grid grid-cols-2 gap-3">
           <Field label="Brand colour" hint="Hex, e.g. #1d6fb8"><Input value={brandColor} onChange={(e) => setBrandColor(e.target.value)} /></Field>
           <Field label="Initials" hint="Up to 3 letters"><Input value={brandInitials} onChange={(e) => setBrandInitials(e.target.value)} maxLength={3} /></Field>
+        </div>
+
+        <div className="rounded-[var(--radius-sm)] border border-border bg-surface-2 p-3">
+          <div className="label-cap mb-2">Client access</div>
+          <div className="grid grid-cols-1 gap-3">
+            <Field label="Subdomain" hint="The address clients use, e.g. williswindows for williswindows.dashmarketing.com">
+              <Input value={subdomain} onChange={(e) => setSubdomain(e.target.value)} placeholder="williswindows" autoComplete="off" />
+            </Field>
+            <Field
+              label="Owner password"
+              hint={client.ownerPasswordSet ? "Set. Leave blank to keep the current password." : "Not set yet. The owner uses this to log in."}
+            >
+              <Input type="password" value={ownerPassword} onChange={(e) => setOwnerPassword(e.target.value)} placeholder="••••••••" autoComplete="new-password" />
+            </Field>
+          </div>
         </div>
 
         <div className="rounded-[var(--radius-sm)] border border-border bg-surface-2 p-3">

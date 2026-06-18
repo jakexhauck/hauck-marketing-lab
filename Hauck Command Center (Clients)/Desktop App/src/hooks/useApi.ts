@@ -30,6 +30,7 @@ import type {
   AdminClientDetail,
   AdminClientCreateInput,
   AdminClientUpdateInput,
+  AdminClientImportStaffResult,
   Capability,
 } from "@hauck/core";
 
@@ -539,6 +540,19 @@ export function useDisableClientStaff(id: string) {
   return useMutation({
     mutationFn: (staffId: string) =>
       api(`/api/admin/clients/${id}/staff/${staffId}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.adminClient(id) }),
+  });
+}
+
+// One-click import of the client's existing GoHighLevel users as disabled
+// staff. Requires GHL creds to be set (the API returns 400 otherwise).
+export function useImportClientStaff(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<AdminClientImportStaffResult>(`/api/admin/clients/${id}/import-staff`, {
+        method: "POST",
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.adminClient(id) }),
   });
 }

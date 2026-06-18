@@ -235,6 +235,8 @@ export interface AdminClientDetail {
     wonLabel: string;
     valueLabel: string;
     ghlLocationId: string;
+    subdomain: string | null;
+    ownerPasswordSet: boolean;
     monthlySpend: number;
     createdAt: string;
   };
@@ -272,6 +274,16 @@ export interface AdminClientUpdateInput {
   monthlySpend?: number;
   ghlLocationId?: string;
   ghlToken?: string;
+  // The host label that routes to this client, e.g. "williswindows".
+  subdomain?: string;
+  // The owner's login password. Write-only, never returned. Min 8 chars.
+  ownerPassword?: string;
+}
+
+export interface AdminClientImportStaffResult {
+  imported: number;
+  skipped: number;
+  total: number;
 }
 
 export interface AdminIdentity {
