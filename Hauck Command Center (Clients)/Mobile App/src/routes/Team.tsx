@@ -45,6 +45,9 @@ export default function Team() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  // When set, the form edits this member; when null (with the form open), it
+  // adds a new one.
+  const [editing, setEditing] = useState<StaffMember | null>(null);
 
   // Only owners manage staff. A staff session that lands here is bounced home
   // (the backend also enforces owner-only, this just avoids a broken screen).
@@ -108,11 +111,14 @@ export default function Team() {
         </span>
         <button
           type="button"
-          onClick={() => setShowForm((s) => !s)}
+          onClick={() => {
+            setEditing(null);
+            setShowForm((s) => editing ? true : !s);
+          }}
           aria-label="Add employee"
           className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--brand-primary)] transition-colors active:bg-[var(--surface-2)]"
         >
-          {showForm ? <X size={20} /> : <Plus size={20} />}
+          {showForm && !editing ? <X size={20} /> : <Plus size={20} />}
         </button>
       </div>
 
@@ -123,11 +129,17 @@ export default function Team() {
         </p>
 
         {showForm && (
-          <AddEmployeeForm
+          <EmployeeForm
+            key={editing?.id ?? "new"}
+            editing={editing}
             enabledCaps={enabledCaps.map((c) => c.key)}
-            onClose={() => setShowForm(false)}
-            onCreated={() => {
+            onClose={() => {
               setShowForm(false);
+              setEditing(null);
+            }}
+            onSaved={() => {
+              setShowForm(false);
+              setEditing(null);
               void refresh();
             }}
           />
@@ -175,19 +187,39 @@ export default function Team() {
                       <div className="mt-0.5 truncate text-[12.5px] text-[var(--text-muted)]">
                         {m.email}
                       </div>
+                      <div
+                        className="mt-1 text-[11.5px] font-semibold"
+                        style={{ color: m.ghlUserId ? "#15803d" : "var(--text-faint)" }}
+                      >
+                        {m.ghlUserId
+                          ? "Linked to GoHighLevel"
+                          : "App login only (not in GoHighLevel)"}
+                      </div>
                       {disabled && (
                         <div className="mt-1 text-[11.5px] font-semibold text-rose-500">
                           Login disabled
                         </div>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => toggleStatus(m)}
-                      className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-muted)] transition-colors active:bg-[var(--surface-2)]"
-                    >
-                      {disabled ? "Restore" : "Disable"}
-                    </button>
+                    <div className="flex shrink-0 flex-col gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditing(m);
+                          setShowForm(true);
+                        }}
+                        className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-[12px] font-semibold text-[var(--brand-primary)] transition-colors active:bg-[var(--surface-2)]"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleStatus(m)}
+                        className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-muted)] transition-colors active:bg-[var(--surface-2)]"
+                      >
+                        {disabled ? "Restore" : "Disable"}
+                      </button>
+                    </div>
                   </div>
                 </li>
               );
@@ -199,21 +231,38 @@ export default function Team() {
   );
 }
 
-function AddEmployeeForm({
+function grantsFromMember(m: StaffMember): GrantMap {
+  const base = Object.fromEntries(
+    CAPABILITIES.map((c) => [c.key, { view: false, edit: false }]),
+  ) as GrantMap;
+  for (const p of m.permissions) {
+    if (p.capability in base) {
+      base[p.capability as Capability] = { view: p.view || p.edit, edit: p.edit };
+    }
+  }
+  return base;
+}
+
+function EmployeeForm({
+  editing,
   enabledCaps,
   onClose,
-  onCreated,
+  onSaved,
 }: {
+  editing: StaffMember | null;
   enabledCaps: Capability[];
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
 }) {
   const { showToast } = useToast();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const isEdit = Boolean(editing);
+  const [name, setName] = useState(editing?.name ?? "");
+  const [email, setEmail] = useState(editing?.email ?? "");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<StaffRole>("rep");
-  const [grants, setGrants] = useState<GrantMap>(() => defaultGrantsForRole("rep"));
+  const [role, setRole] = useState<StaffRole>(editing?.role ?? "rep");
+  const [grants, setGrants] = useState<GrantMap>(() =>
+    editing ? grantsFromMember(editing) : defaultGrantsForRole("rep"),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -227,12 +276,22 @@ function AddEmployeeForm({
     [enabledCaps],
   );
 
+  // Editing an account whose role is not in the normal options (e.g. an 'owner')
+  // keeps that option available so saving never silently demotes them.
+  const roleOptions =
+    editing && !ROLE_OPTIONS.includes(editing.role)
+      ? [editing.role, ...ROLE_OPTIONS]
+      : ROLE_OPTIONS;
+
   const submit = async () => {
     setError(null);
     if (!name.trim()) return setError("Enter a name.");
-    if (!email.includes("@")) return setError("Enter a valid email.");
-    if (password.trim().length < 8)
+    if (!isEdit && !email.includes("@")) return setError("Enter a valid email.");
+    // Password is required when creating, optional when editing (blank = keep).
+    if (!isEdit && password.trim().length < 8)
       return setError("Password must be at least 8 characters.");
+    if (isEdit && password.trim() && password.trim().length < 8)
+      return setError("New password must be at least 8 characters.");
 
     const permissions = caps
       .map((c) => ({
@@ -244,14 +303,29 @@ function AddEmployeeForm({
 
     setSubmitting(true);
     try {
-      const res = await api<{ ok: boolean; ghlLinked: boolean }>("/api/staff", {
-        method: "POST",
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), password: password.trim(), role, permissions }),
-      });
-      showToast(res.ghlLinked ? "Employee added" : "Employee added (no GHL user)");
-      onCreated();
+      if (isEdit && editing) {
+        await api(`/api/staff/${editing.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            name: name.trim(),
+            role,
+            permissions,
+            // Saving re-activates a disabled (e.g. imported) account.
+            status: "active",
+            ...(password.trim() ? { password: password.trim() } : {}),
+          }),
+        });
+        showToast("Employee updated");
+      } else {
+        const res = await api<{ ok: boolean; ghlLinked: boolean }>("/api/staff", {
+          method: "POST",
+          body: JSON.stringify({ name: name.trim(), email: email.trim(), password: password.trim(), role, permissions }),
+        });
+        showToast(res.ghlLinked ? "Employee added" : "Employee added (no GHL user)");
+      }
+      onSaved();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not add employee.");
+      setError(err instanceof ApiError ? err.message : "Could not save employee.");
       setSubmitting(false);
     }
   };
@@ -264,7 +338,7 @@ function AddEmployeeForm({
       <div className="flex items-center gap-2">
         <UserPlus size={16} className="text-[var(--brand-primary)]" />
         <span className="font-display text-[14px] font-bold text-[var(--text)]">
-          New employee
+          {isEdit ? "Edit employee" : "New employee"}
         </span>
       </div>
 
@@ -288,17 +362,19 @@ function AddEmployeeForm({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="name@email.com"
-            disabled={submitting}
+            disabled={submitting || isEdit}
           />
         </label>
         <label className="block">
-          <span className="label-cap">Temporary password</span>
+          <span className="label-cap">
+            {isEdit ? "New password (optional)" : "Temporary password"}
+          </span>
           <input
             className={inputClass}
             type="text"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="At least 8 characters"
+            placeholder={isEdit ? "Leave blank to keep current" : "At least 8 characters"}
             disabled={submitting}
           />
         </label>
@@ -310,7 +386,7 @@ function AddEmployeeForm({
             onChange={(e) => onRoleChange(e.target.value as StaffRole)}
             disabled={submitting}
           >
-            {ROLE_OPTIONS.map((r) => (
+            {roleOptions.map((r) => (
               <option key={r} value={r}>
                 {ROLE_LABEL[r]}
               </option>
@@ -395,7 +471,13 @@ function AddEmployeeForm({
           onClick={submit}
           disabled={submitting}
         >
-          {submitting ? "Adding..." : "Add employee"}
+          {isEdit
+            ? submitting
+              ? "Saving..."
+              : "Save changes"
+            : submitting
+              ? "Adding..."
+              : "Add employee"}
         </BrandedButton>
       </div>
     </div>

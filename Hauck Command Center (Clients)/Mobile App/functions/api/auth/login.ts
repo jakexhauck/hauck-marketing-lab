@@ -9,6 +9,9 @@ import {
   isLoginRateLimited,
   recordLoginFailure,
 } from "../../lib/ratelimit";
+import { getServiceClient } from "../../lib/supabase";
+import { loadLiveTenantForHost } from "../../lib/tenantResolve";
+import { verifyPassword } from "../../lib/password";
 
 interface Body {
   password?: string;
@@ -68,14 +71,26 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     }
     mode = "test";
   } else {
-    const livePassword = ctx.env.APP_PASSWORD;
-    if (!livePassword) {
+    // Per-client owner password from the tenant row (set in the admin console),
+    // resolved by request host. Falls back to the APP_PASSWORD env var for
+    // single-tenant deploys and clients not yet given their own password.
+    const svc = getServiceClient(ctx.env);
+    const tenant = svc
+      ? await loadLiveTenantForHost(svc, ctx.env, ctx.request.headers.get("host"))
+      : null;
+
+    let ok: boolean;
+    if (tenant?.owner_password_hash) {
+      ok = await verifyPassword(supplied, tenant.owner_password_hash);
+    } else if (ctx.env.APP_PASSWORD) {
+      ok = await passwordMatches(supplied, ctx.env.APP_PASSWORD);
+    } else {
       return Response.json(
         { error: "APP_PASSWORD not configured" },
         { status: 500 },
       );
     }
-    if (!(await passwordMatches(supplied, livePassword))) {
+    if (!ok) {
       await recordLoginFailure(ctx.env, ip);
       return Response.json({ error: "incorrect password" }, { status: 401 });
     }

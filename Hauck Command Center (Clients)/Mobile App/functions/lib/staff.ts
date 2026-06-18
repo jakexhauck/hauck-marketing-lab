@@ -37,6 +37,46 @@ export async function getStaffById(
   return (data as StaffRecord | null) ?? null;
 }
 
+export interface GhlLocationUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+// List the GHL users already on a sub-account, so the admin can pre-populate a
+// new client's team from the people GoHighLevel already knows. Best-effort:
+// needs a token with the users.readonly scope; returns [] on any failure (a
+// plain location token may not carry it) so onboarding never blocks on it.
+export async function listGhlLocationUsers(
+  ghl: GhlContext,
+): Promise<GhlLocationUser[]> {
+  try {
+    const res = await ghlFetch(ghl, `/users/?locationId=${encodeURIComponent(ghl.locationId)}`, {
+      method: "GET",
+    });
+    if (!res.ok) {
+      console.warn("[staff] GHL users list failed", res.status, (await res.text()).slice(0, 300));
+      return [];
+    }
+    const data = (await res.json()) as { users?: unknown };
+    const rows = Array.isArray(data.users) ? data.users : [];
+    const out: GhlLocationUser[] = [];
+    for (const r of rows as Record<string, unknown>[]) {
+      const id = typeof r.id === "string" ? r.id : "";
+      const email = typeof r.email === "string" ? r.email.trim().toLowerCase() : "";
+      if (!id || !email) continue;
+      const first = typeof r.firstName === "string" ? r.firstName : "";
+      const last = typeof r.lastName === "string" ? r.lastName : "";
+      const name = `${first} ${last}`.trim() || (typeof r.name === "string" ? r.name : email);
+      out.push({ id, name, email });
+    }
+    return out;
+  } catch (err) {
+    console.warn("[staff] GHL users list threw", err instanceof Error ? err.message : err);
+    return [];
+  }
+}
+
 export interface GhlUserCreateInput {
   name: string;
   email: string;

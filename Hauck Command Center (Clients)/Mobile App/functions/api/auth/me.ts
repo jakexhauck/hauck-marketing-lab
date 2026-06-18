@@ -1,7 +1,8 @@
 import type { Env } from "../../lib/env";
-import { liveTenantSlug, testTenantSlug } from "../../lib/env";
+import { testTenantSlug } from "../../lib/env";
 import { verifySession } from "../../lib/session";
 import { getServiceClient, resolveTenantId } from "../../lib/supabase";
+import { loadLiveTenantForHost } from "../../lib/tenantResolve";
 import { resolveCaller } from "../../lib/identity";
 import { getActiveAdmin } from "../../lib/adminAuth";
 
@@ -33,9 +34,21 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     });
   }
 
-  const slug =
-    session.mode === "test" ? testTenantSlug(ctx.env) : liveTenantSlug(ctx.env);
-  const tenantId = client ? await resolveTenantId(client, slug) : null;
+  // Resolve the caller's tenant the same way the middleware does: live sessions
+  // by request host (subdomain), test by the single test tenant.
+  let tenantId: string | null = null;
+  if (client) {
+    if (session.mode === "test") {
+      tenantId = await resolveTenantId(client, testTenantSlug(ctx.env));
+    } else {
+      const tenant = await loadLiveTenantForHost(
+        client,
+        ctx.env,
+        ctx.request.headers.get("host"),
+      );
+      tenantId = tenant?.id ?? null;
+    }
+  }
   const caller = await resolveCaller(client, tenantId, session);
 
   if (caller.revoked) return Response.json({ ok: false }, { status: 401 });

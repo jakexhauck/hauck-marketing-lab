@@ -2,6 +2,11 @@ import type { Env, ApiData } from "../lib/env";
 import { liveTenantSlug, testTenantSlug } from "../lib/env";
 import { verifySession } from "../lib/session";
 import { getServiceClient, resolveTenantId } from "../lib/supabase";
+import {
+  clientLabelFromHost,
+  loadLiveTenantForHost,
+  tenantHasGhlCreds,
+} from "../lib/tenantResolve";
 import { resolveCaller } from "../lib/identity";
 import { checkStaffAccess } from "../lib/permissions";
 import { getActiveAdmin } from "../lib/adminAuth";
@@ -92,13 +97,32 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         mode: "test",
       };
     } else {
-      if (!ctx.env.GHL_LOCATION_ID || !ctx.env.GHL_TOKEN) {
-        return json(500, { error: "GHL env vars not configured" }, origin);
+      // Resolve the live client by request host (subdomain), falling back to the
+      // TENANT_SLUG env tenant. Per-client GHL creds come from the tenant row
+      // (set in the admin console); the GHL_* env vars stay the fallback until a
+      // client is fully wired, so single-tenant deploys are unaffected.
+      const host = ctx.request.headers.get("host");
+      const svc = getServiceClient(ctx.env);
+      const tenant = svc ? await loadLiveTenantForHost(svc, ctx.env, host) : null;
+
+      // A subdomain that matches no client is a real misconfiguration: refuse
+      // rather than silently serving the fallback client's data on it.
+      if (!tenant && clientLabelFromHost(host)) {
+        return json(404, { error: "client not configured" }, origin);
+      }
+
+      const useTenantCreds = tenant ? tenantHasGhlCreds(tenant) : false;
+      const ghlLocationId = useTenantCreds
+        ? tenant!.ghl_location_id
+        : ctx.env.GHL_LOCATION_ID;
+      const ghlToken = useTenantCreds ? tenant!.ghl_token : ctx.env.GHL_TOKEN;
+      if (!ghlLocationId || !ghlToken) {
+        return json(500, { error: "GHL credentials not configured" }, origin);
       }
       ctx.data.tenant = {
-        ghl_location_id: ctx.env.GHL_LOCATION_ID,
-        ghl_token: ctx.env.GHL_TOKEN,
-        slug: liveTenantSlug(ctx.env),
+        ghl_location_id: ghlLocationId,
+        ghl_token: ghlToken,
+        slug: tenant?.slug ?? liveTenantSlug(ctx.env),
         mode: "live",
       };
     }

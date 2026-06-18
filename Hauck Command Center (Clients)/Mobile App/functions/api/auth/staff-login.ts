@@ -1,5 +1,5 @@
 import type { Env } from "../../lib/env";
-import { liveTenantSlug, testTenantSlug } from "../../lib/env";
+import { testTenantSlug } from "../../lib/env";
 import {
   mintSessionCookie,
   mintSessionToken,
@@ -11,6 +11,7 @@ import {
   recordStaffLoginFailure,
 } from "../../lib/ratelimit";
 import { getServiceClient, resolveTenantId } from "../../lib/supabase";
+import { loadLiveTenantForHost } from "../../lib/tenantResolve";
 import { verifyPassword } from "../../lib/password";
 import { normalizeEmail, type StaffRecord } from "../../lib/staff";
 
@@ -53,8 +54,19 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({ error: "staff login unavailable" }, { status: 503 });
   }
 
-  const slug = mode === "test" ? testTenantSlug(ctx.env) : liveTenantSlug(ctx.env);
-  const tenantId = await resolveTenantId(client, slug);
+  // Live staff resolve to the client for THIS host (subdomain); test resolves to
+  // the single test tenant. A staff member only ever logs into their own client.
+  let tenantId: string | null;
+  if (mode === "test") {
+    tenantId = await resolveTenantId(client, testTenantSlug(ctx.env));
+  } else {
+    const tenant = await loadLiveTenantForHost(
+      client,
+      ctx.env,
+      ctx.request.headers.get("host"),
+    );
+    tenantId = tenant?.id ?? null;
+  }
   if (!tenantId) {
     return Response.json({ error: "incorrect email or password" }, { status: 401 });
   }

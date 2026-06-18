@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { CAPABILITIES } from "../../../lib/permissions";
+import { hashPassword } from "../../../lib/password";
+import { normalizeSubdomain } from "../../../lib/tenantResolve";
 import { logAdminAction } from "../../../lib/adminAuth";
 
 // GET /api/admin/clients  (admin-only, gated in _middleware.ts)
@@ -71,6 +73,12 @@ interface CreateBody {
   ghlLocationId?: string;
   ghlToken?: string;
   monthlySpend?: number;
+  // Subdomain that routes to this client (e.g. 'williswindows'). Defaults to the
+  // slug when omitted.
+  subdomain?: string;
+  // The owner login password for this client. Hashed here, never stored or
+  // returned in plaintext.
+  ownerPassword?: string;
 }
 
 function slugify(input: string): string {
@@ -123,6 +131,15 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     name.slice(0, 2).toUpperCase();
   const appName = (body.appName ?? name).trim() || name;
 
+  const subdomain = normalizeSubdomain(body.subdomain?.trim() || slug);
+  const ownerPassword = (body.ownerPassword ?? "").trim();
+  if (ownerPassword && ownerPassword.length < 8) {
+    return Response.json(
+      { error: "owner password must be at least 8 characters" },
+      { status: 400 },
+    );
+  }
+
   const insert = {
     slug,
     name,
@@ -136,6 +153,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     // to GoHighLevel (matches the test-account 'env' convention).
     ghl_location_id: (body.ghlLocationId ?? "").trim() || "pending",
     ghl_token: (body.ghlToken ?? "").trim() || "pending",
+    subdomain,
+    owner_password_hash: ownerPassword ? await hashPassword(ownerPassword) : null,
     monthly_spend: typeof body.monthlySpend === "number" ? body.monthlySpend : 0,
   };
 

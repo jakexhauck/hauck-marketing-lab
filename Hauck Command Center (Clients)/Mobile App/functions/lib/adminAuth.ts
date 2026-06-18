@@ -42,12 +42,14 @@ export interface TenantRow {
   won_label: string;
   value_label: string;
   ghl_location_id: string;
+  subdomain: string | null;
+  owner_password_hash: string | null;
   monthly_spend: number | null;
   created_at: string;
 }
 
 const TENANT_COLUMNS =
-  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, monthly_spend, created_at";
+  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, subdomain, owner_password_hash, monthly_spend, created_at";
 
 export async function getTenantById(
   client: SupabaseClient,

@@ -2,6 +2,8 @@ import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { getTenantById, logAdminAction } from "../../../lib/adminAuth";
 import { loadEnabledCapabilities } from "../../../lib/permissions";
+import { hashPassword } from "../../../lib/password";
+import { normalizeSubdomain } from "../../../lib/tenantResolve";
 import type { StaffRole } from "../../../lib/staff";
 
 // GET /api/admin/clients/:tenantId  (admin-only)
@@ -100,6 +102,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       wonLabel: tenant.won_label,
       valueLabel: tenant.value_label,
       ghlLocationId: tenant.ghl_location_id,
+      subdomain: tenant.subdomain ?? null,
+      ownerPasswordSet: Boolean(tenant.owner_password_hash),
       monthlySpend: tenant.monthly_spend ?? 0,
       createdAt: tenant.created_at,
     },
@@ -135,6 +139,9 @@ interface PatchBody {
   monthlySpend?: number;
   ghlLocationId?: string;
   ghlToken?: string;
+  subdomain?: string;
+  // New owner login password for this client. Hashed; never read back.
+  ownerPassword?: string;
 }
 
 // PATCH /api/admin/clients/:tenantId  (admin-only)
@@ -167,6 +174,17 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   if (typeof body.monthlySpend === "number") update.monthly_spend = body.monthlySpend;
   if (str(body.ghlLocationId)) update.ghl_location_id = str(body.ghlLocationId);
   if (str(body.ghlToken)) update.ghl_token = str(body.ghlToken);
+  if (str(body.subdomain)) update.subdomain = normalizeSubdomain(str(body.subdomain)!);
+  if (str(body.ownerPassword)) {
+    const pw = str(body.ownerPassword)!;
+    if (pw.length < 8) {
+      return Response.json(
+        { error: "owner password must be at least 8 characters" },
+        { status: 400 },
+      );
+    }
+    update.owner_password_hash = await hashPassword(pw);
+  }
 
   if (Object.keys(update).length === 0) {
     return Response.json({ error: "no fields to update" }, { status: 400 });
@@ -175,9 +193,10 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   const { error } = await client.from("tenants").update(update).eq("id", tenantId);
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  // Audit without leaking the token value.
+  // Audit without leaking secret values.
   const audited = { ...update };
   if ("ghl_token" in audited) audited.ghl_token = "(updated)";
+  if ("owner_password_hash" in audited) audited.owner_password_hash = "(updated)";
   await logAdminAction(client, ctx.data.admin!.id, "client.update", tenantId, audited);
 
   return Response.json({ ok: true });
