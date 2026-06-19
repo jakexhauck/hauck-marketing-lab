@@ -32,10 +32,10 @@ configure clients.
 
 ## Repo layout
 
-- `Hauck Command Center (Clients)/Mobile App/` — package `client-dashboard`. The React PWA
+- `command-center/Mobile App/` — package `client-dashboard`. The React PWA
   **and** the Cloudflare Pages Functions backend (`functions/`) + Supabase schema
   (`supabase/`). This project owns the API and is the base for the future single app.
-- `Hauck Command Center (Clients)/Desktop App/` — package `crm-web`. React SPA, desktop-first
+- `command-center/Desktop App/` — package `crm-web`. React SPA, desktop-first
   CRM + the admin console. No backend of its own; calls the Mobile App's `/api/*`.
 - `packages/core/` — shared types/permissions used by the desktop build.
 - Repo root `app/` is a DIFFERENT product (the agency's Tauri app). Do not touch it.

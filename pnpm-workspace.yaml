@@ -1,6 +1,6 @@
 # The desktop Command Center build (crm-web) and the shared packages/core were
 # retired in the Plan 04 merge: the two builds are now ONE responsive app that
-# lives standalone at "Hauck Command Center (Clients)/Mobile App" (package
+# lives standalone at "command-center/Mobile App" (package
 # client-dashboard) with its own pnpm-workspace.yaml and lockfile. This root no
 # longer owns any workspace packages; the root scripts just delegate into the
 # unified app via `pnpm -C`. The agency Tauri app under "app/" stays standalone.

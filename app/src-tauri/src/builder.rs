@@ -370,7 +370,7 @@ pub struct SeedProject {
 /// directory (dev runs from app/src-tauri), then falling back to the Desktop.
 fn find_repo_root() -> Option<PathBuf> {
     let is_root = |dir: &Path| {
-        dir.join("Hauck Command Center (Clients)").is_dir()
+        dir.join("command-center").is_dir()
             && dir.join("app").join("src-tauri").is_dir()
     };
     if let Ok(cwd) = std::env::current_dir() {
@@ -403,9 +403,9 @@ pub fn builder_default_projects() -> Vec<SeedProject> {
     let candidates = [
         (
             "Mobile App",
-            root.join("Hauck Command Center (Clients)").join("Mobile App"),
+            root.join("command-center").join("Mobile App"),
             vec![root
-                .join("Hauck Command Center (Clients)")
+                .join("command-center")
                 .join("Mobile App")
                 .join("docs")],
         ),
