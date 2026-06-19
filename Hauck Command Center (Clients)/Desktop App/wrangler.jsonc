@@ -1,0 +1,15 @@
+{
+  // Static-assets Worker for the desktop CRM (Control Tower).
+  // The app is a pure SPA: Vite builds to ./dist, and Cloudflare serves those
+  // assets directly. `single-page-application` makes every unknown path fall
+  // back to index.html so client-side routes (/home, /login, ...) deep-link.
+  // The build runs from the repo root (pnpm workspace); the deploy command
+  // points wrangler at THIS config with --config, so it targets this project
+  // instead of the workspace root.
+  "name": "hauck-crm",
+  "compatibility_date": "2026-05-18",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
