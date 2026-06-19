@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "packageManager": "pnpm@10.18.0",
-  "description": "Launcher for the unified Hauck Command Center app. The two builds were merged (Plan 04) into one responsive app that lives standalone at 'command-center/Mobile App' (package client-dashboard); these scripts just delegate into it.",
+  "description": "Launcher for the unified Hauck Command Center app. The two builds were merged (Plan 04) into one responsive app that lives standalone at 'command-center/app' (package client-dashboard); these scripts just delegate into it.",
   "scripts": {
-    "dev": "pnpm -C \"command-center/Mobile App\" dev",
-    "build": "pnpm -C \"command-center/Mobile App\" build",
-    "preview": "pnpm -C \"command-center/Mobile App\" preview",
-    "typecheck": "pnpm -C \"command-center/Mobile App\" typecheck"
+    "dev": "pnpm -C \"command-center/app\" dev",
+    "build": "pnpm -C \"command-center/app\" build",
+    "preview": "pnpm -C \"command-center/app\" preview",
+    "typecheck": "pnpm -C \"command-center/app\" typecheck"
   }
 }

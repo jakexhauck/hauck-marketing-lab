@@ -22,7 +22,7 @@ owner is just a `staff_accounts` row with role `owner`. The OLD `/api/auth/login
 Both frontends currently show an "Owner" tab (shared password) and a "Staff" tab (email +
 password):
 - Desktop: `command-center/Desktop App/src/routes/Login.tsx` + `AuthContext.tsx`.
-- Mobile: `command-center/Mobile App/src/routes/Login.tsx` + `AuthContext.tsx`.
+- Mobile: `command-center/app/src/routes/Login.tsx` + `AuthContext.tsx`.
 
 ## Work
 

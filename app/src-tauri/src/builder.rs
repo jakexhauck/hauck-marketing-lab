@@ -402,11 +402,11 @@ pub fn builder_default_projects() -> Vec<SeedProject> {
     // Each project: (name, code root, extra doc folders to scan).
     let candidates = [
         (
-            "Mobile App",
-            root.join("command-center").join("Mobile App"),
+            "Command Center",
+            root.join("command-center").join("app"),
             vec![root
                 .join("command-center")
-                .join("Mobile App")
+                .join("app")
                 .join("docs")],
         ),
         (

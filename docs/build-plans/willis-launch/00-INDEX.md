@@ -32,7 +32,7 @@ configure clients.
 
 ## Repo layout
 
-- `command-center/Mobile App/` — package `client-dashboard`. The React PWA
+- `command-center/app/` — package `client-dashboard`. The React PWA
   **and** the Cloudflare Pages Functions backend (`functions/`) + Supabase schema
   (`supabase/`). This project owns the API and is the base for the future single app.
 - `command-center/Desktop App/` — package `crm-web`. React SPA, desktop-first
