@@ -13,16 +13,10 @@ import { checkStaffAccess } from "../lib/permissions";
 import { getActiveAdmin } from "../lib/adminAuth";
 
 const allowedOrigins = new Set([
-  "http://localhost:5173",
-  "http://localhost:8788",
-  "http://localhost:5174", // web CRM dev server
+  "http://localhost:5173", // vite dev server
+  "http://localhost:8788", // wrangler pages dev
   "https://app.hauckmarketing.com", // Command Center (clients + admin), one URL
   "https://hauck-command-center.pages.dev", // Pages default domain after rename
-  "https://commandcenter.hauckmarketing.com", // desktop build (custom domain), until Plan 04 merge
-  "https://hauck-crm.pages.dev", // desktop build (Pages default domain)
-  // Legacy mobile origins, live until app.hauckmarketing.com is confirmed up; drop after cutover.
-  "https://dash.hauckmarketing.com",
-  "https://hauck-dashboard.pages.dev",
 ]);
 
 function corsHeaders(origin: string | null): HeadersInit {
