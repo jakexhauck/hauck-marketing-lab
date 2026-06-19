@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Env } from "../lib/env";
 import { liveTenantSlug, testTenantSlug } from "../lib/env";
 import { getServiceClient, resolveTenantId } from "../lib/supabase";
@@ -150,6 +151,63 @@ function slugForLocation(env: Env, locationId: string): string | null {
   return null;
 }
 
+// Resolve the tenant id for an inbound event's GHL location. Prefer a DB tenant
+// whose ghl_location_id matches (true multi-tenant: every client's events route,
+// not just the single env-configured one) and fall back to the env live/test
+// locations for the single-tenant / test-sub-account case. null when nothing
+// matches.
+async function tenantIdForLocation(
+  client: SupabaseClient,
+  env: Env,
+  locationId: string,
+): Promise<string | null> {
+  const { data } = await client
+    .from("tenants")
+    .select("id")
+    .eq("ghl_location_id", locationId)
+    .maybeSingle();
+  if (data?.id) return data.id as string;
+
+  const slug = slugForLocation(env, locationId);
+  return slug ? await resolveTenantId(client, slug) : null;
+}
+
+// Insert one activity_log row, idempotently when a GHL event id is present.
+// Returns true only when a NEW row was created, so the caller pushes exactly
+// once even if GHL retries. Dedup relies on the unique (tenant_id, ghl_event_id)
+// index from migration 0012; if that column/index is not present yet the upsert
+// errors and we fall back to a plain insert (the prior behaviour), so the
+// webhook never breaks on an un-migrated database.
+async function insertActivityOnce(
+  client: SupabaseClient,
+  row: Record<string, unknown>,
+  eventId: string | null,
+): Promise<boolean> {
+  if (eventId) {
+    const { data, error } = await client
+      .from("activity_log")
+      .upsert(
+        { ...row, ghl_event_id: eventId },
+        { onConflict: "tenant_id,ghl_event_id", ignoreDuplicates: true },
+      )
+      .select("id");
+    if (!error) {
+      // ignoreDuplicates => an already-seen event returns no rows.
+      return Array.isArray(data) && data.length > 0;
+    }
+    console.warn(
+      "[webhook] idempotent insert unavailable, falling back to plain insert:",
+      error.message,
+    );
+  }
+  const { error } = await client.from("activity_log").insert(row);
+  if (error) {
+    console.error("[webhook] activity insert failed", error.message);
+    return false;
+  }
+  return true;
+}
+
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (!ctx.env.WEBHOOK_SECRET) {
     console.error("[webhook] WEBHOOK_SECRET not configured; rejecting");
@@ -180,58 +238,67 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     event.locationId ?? "none",
   );
 
-  const slug = event.locationId
-    ? slugForLocation(ctx.env, event.locationId)
-    : null;
-  if (!slug) {
-    // Authenticated but not for a location we serve (or locationId missing
-    // from a workflow payload). Ack with 200 so GHL does not retry forever.
-    console.warn("[webhook] unroutable locationId", event.locationId);
-    return new Response("ignored", { status: 200 });
-  }
-
-  // Side effects are best-effort: record the event for the activity feed, but
-  // never let a failure 500 back to GHL (it would retry and hammer us).
+  // Resolve which tenant this event belongs to and record it for the activity
+  // feed. All best-effort: never 500 back to GHL (it would retry and hammer us),
+  // so failures are logged and we still ack 200.
   try {
     const client = getServiceClient(ctx.env);
-    if (client) {
-      const tenantId = await resolveTenantId(client, slug);
-      const activity = tenantId ? toActivity(tenantId, event) : null;
+    if (!client) {
+      // Nothing to persist without Supabase; ack so GHL stops retrying.
+      return new Response("ignored", { status: 200 });
+    }
 
-      if (!activity) {
-        // Surface unknown event types once so they can be discovered and added
-        // to the mapper later (GHL event names vary by version).
-        console.log("[webhook] unhandled type", event.type);
-      } else {
-        // Map the normalized activity onto the real activity_log columns:
-        // kind -> action, opportunity_id -> lead_id, and the rest into payload.
-        await client.from("activity_log").insert({
-          tenant_id: activity.tenant_id,
-          action: activity.kind,
-          lead_id: activity.opportunity_id,
-          payload: {
-            summary: activity.summary,
-            contact_id: activity.contact_id,
-            opportunity_id: activity.opportunity_id,
-            raw: activity.raw,
-          },
-        });
+    const tenantId = event.locationId
+      ? await tenantIdForLocation(client, ctx.env, event.locationId)
+      : null;
+    if (!tenantId) {
+      // Authenticated but not for a location we serve (or locationId missing
+      // from a workflow payload). Ack with 200 so GHL does not retry forever.
+      console.warn("[webhook] unroutable locationId", event.locationId);
+      return new Response("ignored", { status: 200 });
+    }
 
-        if (shouldPush(activity)) {
-          // Best-effort push, off the response path: GHL gets its 200
-          // immediately and slow push services cannot delay the ack. Inert
-          // without VAPID keys.
-          ctx.waitUntil(
-            sendPushForActivity(ctx.env, activity.tenant_id, {
-              kind: activity.kind,
-              summary: activity.summary,
-              opportunity_id: activity.opportunity_id,
-              contact_id: activity.contact_id,
-              assigned_user_id: activity.assigned_user_id,
-            }).catch((err) => console.error("[webhook] push failed", err)),
-          );
-        }
-      }
+    const activity = toActivity(tenantId, event);
+    if (!activity) {
+      // Surface unknown event types once so they can be discovered and added to
+      // the mapper later (GHL event names vary by version).
+      console.log("[webhook] unhandled type", event.type);
+      return new Response("ok", { status: 200 });
+    }
+
+    // Map the normalized activity onto the real activity_log columns: kind ->
+    // action, opportunity_id -> lead_id, the rest into payload. Insert
+    // idempotently on the GHL event id so a retry does not duplicate the feed
+    // row or the push; only push when a NEW row was actually written.
+    const eventId = typeof event.id === "string" && event.id ? event.id : null;
+    const inserted = await insertActivityOnce(
+      client,
+      {
+        tenant_id: activity.tenant_id,
+        action: activity.kind,
+        lead_id: activity.opportunity_id,
+        payload: {
+          summary: activity.summary,
+          contact_id: activity.contact_id,
+          opportunity_id: activity.opportunity_id,
+          raw: activity.raw,
+        },
+      },
+      eventId,
+    );
+
+    if (inserted && shouldPush(activity)) {
+      // Best-effort push, off the response path: GHL gets its 200 immediately
+      // and slow push services cannot delay the ack. Inert without VAPID keys.
+      ctx.waitUntil(
+        sendPushForActivity(ctx.env, activity.tenant_id, {
+          kind: activity.kind,
+          summary: activity.summary,
+          opportunity_id: activity.opportunity_id,
+          contact_id: activity.contact_id,
+          assigned_user_id: activity.assigned_user_id,
+        }).catch((err) => console.error("[webhook] push failed", err)),
+      );
     }
   } catch (err) {
     console.error("[webhook] side-effect failed", err);

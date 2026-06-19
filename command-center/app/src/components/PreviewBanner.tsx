@@ -55,7 +55,9 @@ export default function PreviewBanner() {
     >
       <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
         <Eye size={14} />
-        Previewing this client read-only
+        {preview.staff
+          ? `Viewing as ${preview.staff.name} (read-only)`
+          : "Previewing this client read-only"}
       </span>
       <button
         type="button"

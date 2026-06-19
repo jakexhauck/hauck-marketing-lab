@@ -31,10 +31,12 @@ export default function AnimatedNumber({
       const eased = easeOutQuad(t);
       const current = from + (to - from) * eased;
       setDisplay(current);
+      // Track the live displayed value every frame so a value change mid-flight
+      // resumes from what is on screen now, not the value from two updates ago
+      // (prevRef used to update only on completion, causing a visible jump).
+      prevRef.current = current;
       if (t < 1) {
         raf = requestAnimationFrame(step);
-      } else {
-        prevRef.current = to;
       }
     };
     raf = requestAnimationFrame(step);

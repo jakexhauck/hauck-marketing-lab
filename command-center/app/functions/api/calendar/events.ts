@@ -119,12 +119,17 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const url = new URL(ctx.request.url);
 
   const now = Date.now();
-  const fromMs = url.searchParams.get("from")
-    ? new Date(url.searchParams.get("from") as string).getTime()
-    : now;
-  const toMs = url.searchParams.get("to")
-    ? new Date(url.searchParams.get("to") as string).getTime()
-    : now + 30 * 24 * 60 * 60_000;
+  // Parse the window bounds defensively. An unparseable ?from / ?to yields NaN
+  // from getTime(), which would interpolate "startTime=NaN" into the GHL query
+  // and silently return nothing for every calendar. Fall back to the default
+  // window (now .. now+30d) on bad input instead.
+  const parseMs = (raw: string | null, fallback: number): number => {
+    if (!raw) return fallback;
+    const ms = new Date(raw).getTime();
+    return Number.isFinite(ms) ? ms : fallback;
+  };
+  const fromMs = parseMs(url.searchParams.get("from"), now);
+  const toMs = parseMs(url.searchParams.get("to"), now + 30 * 24 * 60 * 60_000);
 
   const calendars = await discoverCalendars(t.ghl_token, t.ghl_location_id);
   if (calendars.length === 0) {

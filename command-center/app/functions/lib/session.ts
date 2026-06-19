@@ -164,11 +164,15 @@ export async function mintPreviewSessionToken(
   env: Env,
   adminId: string,
   tenantId: string,
+  // Optional: preview AS a specific staff member, so the previewed view applies
+  // that person's exact role + per-surface permissions (not the full owner view).
+  // Absent means the owner's-eye view of the client.
+  staffId?: string,
 ): Promise<string> {
   const secret = sessionSecret(env);
   if (!secret) throw new Error("SESSION_SECRET not configured");
   const exp = Math.floor(Date.now() / 1000) + PREVIEW_MAX_AGE_SECONDS;
-  const inner = encodeInner({ e: exp, m: "live", t: tenantId, a: adminId, p: 1 });
+  const inner = encodeInner({ e: exp, m: "live", t: tenantId, a: adminId, p: 1, s: staffId });
   const payload = b64urlEncode(new TextEncoder().encode(inner));
   const sig = await hmac(secret, payload);
   return `${payload}.${sig}`;
@@ -178,8 +182,9 @@ export async function mintPreviewSessionCookie(
   env: Env,
   adminId: string,
   tenantId: string,
+  staffId?: string,
 ): Promise<string> {
-  const value = await mintPreviewSessionToken(env, adminId, tenantId);
+  const value = await mintPreviewSessionToken(env, adminId, tenantId, staffId);
   return `${COOKIE_NAME}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${PREVIEW_MAX_AGE_SECONDS}`;
 }
 
@@ -230,14 +235,18 @@ export async function verifySession(
     if (!Number.isFinite(exp)) return null;
     if (exp < Math.floor(Date.now() / 1000)) return null;
     // Preview-as-client: carries adminId, tenantId and the preview flag. Returned
-    // with preview=true so the middleware serves it read-only for that tenant.
+    // with preview=true so the middleware serves it read-only for that tenant. An
+    // optional staffId (s) narrows it to that person's POV: the middleware then
+    // resolves their permissions and gates surfaces exactly as they would see.
     if (fields.a && fields.p && fields.t) {
-      return {
+      const data: SessionData = {
         mode: "live",
         adminId: String(fields.a),
         tenantId: String(fields.t),
         preview: true,
       };
+      if (fields.s) data.staffId = String(fields.s);
+      return data;
     }
     // Admin session: carries an adminId, no tenant. mode is nominal (unused by
     // admin routes).

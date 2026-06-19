@@ -1,13 +1,9 @@
 import { tenantTimezone, type Env, type ApiData } from "../lib/env";
-import { fetchAllOpportunities, ghlJson } from "../lib/ghl";
+import { fetchAllConversations, fetchAllOpportunities, ghlJson } from "../lib/ghl";
 import { startOfTodayMs } from "../lib/tz";
 
 interface PipelinesResponse {
   pipelines: { id: string; name: string }[];
-}
-
-interface ConvSearchResponse {
-  conversations?: { unreadCount?: number }[];
 }
 
 export interface PipelineSummary {
@@ -62,11 +58,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   let unreadConversations = 0;
   try {
-    const conv = await ghlJson<ConvSearchResponse>(
-      gctx,
-      `/conversations/search?locationId=${encodeURIComponent(t.ghl_location_id)}&limit=100&sort=desc&sortBy=last_message_date`,
-    );
-    unreadConversations = (conv.conversations ?? []).reduce(
+    // Paginated across every conversation (shared helper), so the unread badge
+    // is not capped at the first 100 conversations.
+    const convs = await fetchAllConversations(gctx);
+    unreadConversations = convs.reduce(
       (sum, c) => sum + (c.unreadCount ?? 0),
       0,
     );

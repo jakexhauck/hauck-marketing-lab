@@ -69,7 +69,7 @@ function shortName(name: string): string {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { session, mode, signOut, isOwner } = useAuth();
+  const { session, mode, signOut, isOwner, can } = useAuth();
   const { setSelectedId } = usePipelines();
   const now = useNow();
   const useReal = Boolean(session);
@@ -248,8 +248,15 @@ export default function Home() {
             </div>
             <ul className="mx-[22px] overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
               {[
-                { key: "calendar", label: "Calendar", sub: "Upcoming appointments", to: "/calendar", Icon: CalendarDays, color: "#7c3aed" },
-                { key: "billing", label: "Billing", sub: "Invoices and payments", to: "/billing", Icon: Receipt, color: "#15803d" },
+                // Calendar + Billing honour the same per-surface permissions as
+                // the sidebar/bottom nav; a staff member without view access must
+                // not be offered a link the backend will refuse.
+                ...(can("calendar", "view")
+                  ? [{ key: "calendar", label: "Calendar", sub: "Upcoming appointments", to: "/calendar", Icon: CalendarDays, color: "#7c3aed" }]
+                  : []),
+                ...(can("billing", "view")
+                  ? [{ key: "billing", label: "Billing", sub: "Invoices and payments", to: "/billing", Icon: Receipt, color: "#15803d" }]
+                  : []),
                 // Team management is owner-only (staff cannot add staff).
                 ...(isOwner
                   ? [{ key: "team", label: "Team", sub: "Add employees and set access", to: "/team", Icon: Users, color: "#1a4d8f" }]

@@ -19,10 +19,31 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const client = getServiceClient(ctx.env);
 
   // Preview-as-client (Plan 05): an admin viewing one client read-only. Report it
-  // as an owner session for that tenant (so tenant surfaces render) but NOT as
-  // admin, and flag preview so the UI shows the exit banner and hides edits. The
-  // tenant's branding comes from /api/tenant, scoped to the same session.
+  // as a session for that tenant (so tenant surfaces render) but NOT as admin,
+  // and flag preview so the UI shows the exit banner and hides edits. With a
+  // staffId the preview is AS that person: resolve their role + permissions so
+  // the app gates exactly as they would see; without one, the owner's-eye view.
+  // The tenant's branding comes from /api/tenant, scoped to the same session.
   if (session.preview && session.tenantId) {
+    if (session.staffId) {
+      const caller = await resolveCaller(client, session.tenantId, session);
+      if (caller.revoked) return Response.json({ ok: false }, { status: 401 });
+      return Response.json({
+        ok: true,
+        mode: session.mode,
+        isOwner: caller.isOwner,
+        isAdmin: false,
+        admin: null,
+        staff: caller.staff
+          ? { id: caller.staff.id, name: caller.staff.name, email: caller.staff.email, role: caller.staff.role }
+          : null,
+        permissions: caller.permissions,
+        preview: {
+          tenantId: session.tenantId,
+          staff: caller.staff ? { id: caller.staff.id, name: caller.staff.name } : null,
+        },
+      });
+    }
     return Response.json({
       ok: true,
       mode: session.mode,
@@ -31,7 +52,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       admin: null,
       staff: null,
       permissions: {},
-      preview: { tenantId: session.tenantId },
+      preview: { tenantId: session.tenantId, staff: null },
     });
   }
 

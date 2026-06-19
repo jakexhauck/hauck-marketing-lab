@@ -9,6 +9,7 @@ import TodayQueueSection from "../components/TodayQueueSection";
 import { useLeads } from "../context/LeadsContext";
 import { useAuth } from "../context/AuthContext";
 import { useClient } from "../context/ClientContext";
+import { useNow } from "../context/NowContext";
 import { permissionsFor } from "../lib/rolePermissions";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -32,7 +33,9 @@ export default function Today() {
     return allLeads;
   }, [allLeads, permissions.assignedOnly, currentUser]);
 
-  const now = Date.now();
+  // Stable minute-resolution clock from NowContext, so the queue memos below do
+  // not recompute on every unrelated render (Date.now() changed each render).
+  const now = useNow();
 
   // Queues key on opportunity status plus the lead's position within its own
   // pipeline (no stage-name guessing): "new" means still in the first stage,

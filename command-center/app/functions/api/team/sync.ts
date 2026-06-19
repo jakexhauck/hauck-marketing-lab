@@ -1,7 +1,6 @@
 import type { Env, ApiData } from "../../lib/env";
 import { ghlJson } from "../../lib/ghl";
 import { getServiceClient, resolveTenantId } from "../../lib/supabase";
-import { isAdmin } from "../../lib/admin";
 
 interface GhlUser {
   id: string;
@@ -16,9 +15,10 @@ interface GhlUsersResp {
 }
 
 // POST /api/team/sync
-// Admin-only. Upserts the GHL team into Supabase `tenant_users` for the
-// session's tenant with a default role of "rep". Degrades gracefully:
-// returns 503 when Supabase is unconfigured so the app never hard-fails.
+// Owner-only (gated on the signed session). Upserts the GHL team into Supabase
+// `tenant_users` for the session's tenant with a default role of "rep".
+// Degrades gracefully: returns 503 when Supabase is unconfigured so the app
+// never hard-fails.
 //
 // Schema: requires migrations 0004 (ghl_user_id/name/email columns) and 0006
 // (full unique index on (tenant_id, ghl_user_id); the partial index 0004
@@ -26,14 +26,10 @@ interface GhlUsersResp {
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (
   ctx,
 ) => {
-  // Identity of the caller (the GHL user id chosen at the "who are you?" step).
-  // Admin authority is checked server-side against the admins table, never on
-  // a URL/dev flag.
-  const url = new URL(ctx.request.url);
-  const identityId =
-    ctx.request.headers.get("x-identity") || url.searchParams.get("id") || "";
-
-  if (!(await isAdmin(ctx.env, identityId))) {
+  // Owner-only, gated on the SIGNED session (set by _middleware.ts), not a
+  // client-supplied x-identity header. This rewrites tenant_users, so it must
+  // not be reachable by spoofing a known admin's GHL user id in a header.
+  if (!ctx.data.isOwner) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 

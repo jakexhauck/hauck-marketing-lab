@@ -8,7 +8,10 @@ export function formatMoney(n: number | null): string {
     body = `$${(abs / 1_000_000).toFixed(1)}M`;
   } else if (abs >= 1_000) {
     const k = abs / 1_000;
-    body = k >= 10 ? `$${Math.round(k)}k` : `$${k.toFixed(1)}k`;
+    // Switch to whole-k format once the value rounds to >= 10.0k, so $9,999
+    // reads "$10k" (consistent with $10,000) rather than "$10.0k". Using the raw
+    // `k >= 10` boundary let toFixed(1) round 9.95-9.999 up to "10.0k".
+    body = k >= 9.95 ? `$${Math.round(k)}k` : `$${k.toFixed(1)}k`;
   } else {
     body = `$${Math.round(abs).toLocaleString("en-US")}`;
   }

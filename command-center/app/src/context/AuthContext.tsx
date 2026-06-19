@@ -25,7 +25,12 @@ export type SessionMode = "live" | "test";
 // Preview-as-client (Plan 05): a super-admin viewing one client's surfaces
 // read-only. Non-null only while a preview session is active; carries the
 // previewed tenant so the banner can offer an exit and the UI can hide edits.
-export type PreviewState = { tenantId: string } | null;
+// `staff` is set when previewing AS a specific person (their POV + permissions),
+// null for the owner's-eye view of the client.
+export type PreviewState = {
+  tenantId: string;
+  staff?: { id: string; name: string } | null;
+} | null;
 
 // A staff member's effective permissions per capability, as /api/auth/me
 // reports them. Owners report an empty map and isOwner=true (full access).
@@ -85,9 +90,12 @@ interface AuthContextValue {
   ) => Promise<{ ok: boolean; error?: string }>;
   // Start a read-only preview of a client (POST .../preview). On success the
   // admin cookie is swapped for a preview cookie and the session reconciles to
-  // a read-only owner of that tenant; the caller routes into a client surface.
+  // a read-only view of that tenant; the caller routes into a client surface.
+  // Pass a staffId to preview AS that person (their POV + permissions); omit it
+  // for the owner's-eye view.
   previewClient: (
     tenantId: string,
+    staffId?: string,
   ) => Promise<{ ok: boolean; error?: string }>;
   // Leave a preview and restore the admin session (POST /api/auth/exit-preview).
   exitPreview: () => Promise<{ ok: boolean; error?: string }>;
@@ -205,7 +213,7 @@ interface ApiMe {
   admin?: AdminIdentity | null;
   staff?: StaffIdentity | null;
   permissions?: EffectivePermissions;
-  preview?: { tenantId: string } | null;
+  preview?: { tenantId: string; staff?: { id: string; name: string } | null } | null;
 }
 
 const EMPTY_PROBE = (offline: boolean): SessionProbe => ({
@@ -225,7 +233,12 @@ async function checkSession(): Promise<SessionProbe> {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
       credentials: "include",
     });
-    if (!res.ok) return EMPTY_PROBE(false);
+    // A 5xx (or opaque) response says nothing about whether the session cookie
+    // is valid; only a 401/403 does. Treat a server error as transient/offline
+    // so a brief outage keeps the prior session alive (via the breadcrumb)
+    // instead of force-logging the user out and wiping it. Mirrors the policy
+    // fetchIdentity already uses for its own 5xx handling.
+    if (!res.ok) return EMPTY_PROBE(res.status >= 500);
     const body = (await res.json().catch(() => null)) as ApiMe | null;
     return {
       ok: true,
@@ -393,10 +406,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // the other mode); a fresh session must start from zero.
         await clearAllCaches();
         writeLastSessionMode(mode);
-        // Shared-password login is always the owner: full access, no staff.
+        // Shared-password login is always the owner: full access, no staff, and
+        // never an admin or preview session. Reset all session-scoped identity
+        // so a prior admin/preview state in memory cannot leak into it.
         setIsOwner(true);
         setStaff(null);
         setPermissions({});
+        setIsAdmin(false);
+        setAdmin(null);
+        setPreview(null);
         setStatus("authenticated");
         setMode(mode);
         return { ok: true };
@@ -480,14 +498,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   // Enter a read-only preview of a client. The POST swaps the admin cookie for a
-  // preview cookie; reconcileSession then reports isAdmin=false, isOwner=true and
-  // a non-null preview, so the caller can route into a client surface.
+  // preview cookie; reconcileSession then reports isAdmin=false and a non-null
+  // preview (as the chosen staff member's POV, or the owner's-eye view when no
+  // staffId is given), so the caller can route into a client surface.
   const previewClient = useCallback(
-    async (tenantId: string) => {
+    async (tenantId: string, staffId?: string) => {
       try {
         const res = await fetch(
           `${API_BASE}/api/admin/clients/${tenantId}/preview`,
-          { method: "POST", credentials: "include" },
+          {
+            method: "POST",
+            credentials: "include",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(staffId ? { staffId } : {}),
+          },
         );
         if (!res.ok) {
           const body = (await res.json().catch(() => null)) as

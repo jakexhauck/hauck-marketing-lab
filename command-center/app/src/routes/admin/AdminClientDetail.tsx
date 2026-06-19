@@ -182,6 +182,44 @@ function PreviewButton({ tenantId }: { tenantId: string }) {
   );
 }
 
+// View the client's app from one staff member's point of view: a read-only
+// preview scoped to that person's role + permissions. Same mechanism as the
+// client-wide PreviewButton, narrowed by staffId. Only offered for active staff
+// (the backend rejects previewing a disabled account).
+function ViewAsButton({ tenantId, staffId }: { tenantId: string; staffId: string }) {
+  const { previewClient } = useAuth();
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const onClick = async () => {
+    setBusy(true);
+    setErr(null);
+    const res = await previewClient(tenantId, staffId);
+    if (res.ok) {
+      navigate("/home", { replace: true });
+    } else {
+      setErr(res.error ?? "Could not start preview");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <span className="inline-flex flex-col items-start gap-0.5">
+      <button
+        onClick={() => void onClick()}
+        disabled={busy}
+        title="View the app from this person's point of view (read-only)"
+        className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-60"
+      >
+        {busy ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}
+        {busy ? "Opening..." : "View as"}
+      </button>
+      {err && <span className="text-[11px] text-rose-600 dark:text-rose-400">{err}</span>}
+    </span>
+  );
+}
+
 function SaveButton({ saving, saved }: { saving: boolean; saved: boolean }) {
   return (
     <button
@@ -471,6 +509,7 @@ function TeamCard({ tenantId, staff, entitlements, ghlConnected, onSaved }: { te
         </div>
         <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-muted)]">{roleLabel(s.role)}</span>
         <span className={["rounded-full px-2 py-0.5 text-[11px] font-semibold", s.status === "active" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-[var(--surface-2)] text-[var(--text-faint)]"].join(" ")}>{s.status}</span>
+        {s.status === "active" && <ViewAsButton tenantId={tenantId} staffId={s.id} />}
         <button
           onClick={() => setEditingId((cur) => (cur === s.id ? null : s.id))}
           className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--text-muted)] hover:text-[var(--text)]"

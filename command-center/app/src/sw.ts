@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { clientsClaim } from "workbox-core";
-import { precacheAndRoute } from "workbox-precaching";
-import { registerRoute } from "workbox-routing";
+import { createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
+import { NavigationRoute, registerRoute } from "workbox-routing";
 import { NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 import { APP_BRAND } from "./lib/appBrand";
@@ -19,6 +19,18 @@ clientsClaim();
 // Injected by vite-plugin-pwa at build. Preserves the existing precache
 // behaviour we had under the old generateSW strategy.
 precacheAndRoute(self.__WB_MANIFEST);
+
+// SPA navigation fallback. Under injectManifest we own routing, and
+// precacheAndRoute alone only serves the exact precached HTML entry, not
+// client-side routes. Without this, an offline document navigation to any deep
+// link (a push notification opening /lead/<id>, or a hard refresh on /leads)
+// has nothing to serve the app shell and fails. NavigationRoute matches only
+// document navigations; API paths are denylisted so they keep their own routes.
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL("index.html"), {
+    denylist: [/^\/api\//],
+  }),
+);
 
 // Runtime caching for API GETs, split by mutability. The request.method ===
 // "GET" guard is load-bearing: mutations (POST/PATCH for SMS send, lead/stage

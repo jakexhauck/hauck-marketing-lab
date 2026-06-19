@@ -189,6 +189,88 @@ export async function fetchAllOpportunities(
   return all;
 }
 
+export interface GhlConversation {
+  id: string;
+  contactId?: string;
+  fullName?: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  lastMessageBody?: string;
+  // Documented as a string enum, but GHL's types lie elsewhere in this
+  // response (see lastMessageDate), so treat it as untrusted too.
+  lastMessageType?: string | number;
+  // Epoch millis in raw search responses, but tolerate ISO strings.
+  lastMessageDate?: string | number;
+  unreadCount?: number;
+  type?: string;
+}
+
+interface ConversationSearchResponse {
+  conversations?: GhlConversation[];
+  total?: number;
+}
+
+// Paginated fetch of every conversation for a location, capped at maxPages*100.
+// The search endpoint returns no cursor; it pages by startAfterDate derived from
+// the last row's lastMessageDate (epoch ms, matching sortBy=last_message_date).
+// Used by the inbox list AND the dashboard unread count, so both cover every
+// conversation, not just page 1.
+export async function fetchAllConversations(
+  ctx: GhlContext,
+  opts: { maxPages?: number } = {},
+): Promise<GhlConversation[]> {
+  const maxPages = opts.maxPages ?? 10;
+  const base = `/conversations/search?locationId=${encodeURIComponent(ctx.locationId)}&limit=100&sort=desc&sortBy=last_message_date`;
+
+  const all: GhlConversation[] = [];
+  const seen = new Set<string>();
+  let startAfterDate: number | undefined;
+  let pageCount = 0;
+
+  const sortKeyMs = (c: GhlConversation): number | undefined => {
+    if (typeof c.lastMessageDate === "number") return c.lastMessageDate;
+    if (c.lastMessageDate) {
+      const ms = +new Date(c.lastMessageDate);
+      if (Number.isFinite(ms)) return ms;
+    }
+    return undefined;
+  };
+
+  while (pageCount < maxPages) {
+    const path =
+      startAfterDate === undefined
+        ? base
+        : `${base}&startAfterDate=${encodeURIComponent(String(startAfterDate))}`;
+
+    const data = await ghlJson<ConversationSearchResponse>(ctx, path);
+    const page = data.conversations ?? [];
+    for (const c of page) {
+      if (c.id && !seen.has(c.id)) {
+        seen.add(c.id);
+        all.push(c);
+      }
+    }
+
+    // Stop on the natural last page (short page).
+    if (page.length < 100) break;
+
+    const next = sortKeyMs(page[page.length - 1]);
+    if (next === undefined || next === startAfterDate) break;
+    startAfterDate = next;
+
+    pageCount += 1;
+  }
+
+  if (pageCount >= maxPages) {
+    console.warn(
+      `conversation pagination hit maxPages cap for location ${ctx.locationId}`,
+    );
+  }
+
+  return all;
+}
+
 // Resolve the location's custom-field ids to their fieldKeys (e.g.
 // "contact.utm_source"), cached in-memory for an hour. Contact records only
 // carry {id, value} pairs; this map is what makes them readable.

@@ -1,6 +1,7 @@
-import type { Env, ApiData } from "../../../../lib/env";
+import { tenantTimezone, type Env, type ApiData } from "../../../../lib/env";
 import { readJsonBody } from "../../../../lib/body";
 import { ghlFetch, ghlJson } from "../../../../lib/ghl";
+import { startOfDayOffsetMs } from "../../../../lib/tz";
 
 interface GhlTask {
   id: string;
@@ -56,9 +57,11 @@ export const onRequestPut: PagesFunction<
     current.dueDate ||
     "";
   if (!dueDate) {
-    const end = new Date();
-    end.setHours(23, 59, 0, 0);
-    dueDate = end.toISOString();
+    // Default to 23:59 today in the tenant's timezone, matching the create path
+    // (tasks.ts). new Date().setHours runs on the worker's UTC clock, so it lands
+    // on the wrong day/time for a non-UTC tenant (e.g. 23:59 UTC = 18:59 Chicago).
+    const zone = tenantTimezone(ctx.env);
+    dueDate = new Date(startOfDayOffsetMs(zone, 1) - 60_000).toISOString();
   }
 
   const completed =

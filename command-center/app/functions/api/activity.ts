@@ -26,12 +26,16 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (
   const tenantId = await resolveTenantId(client, ctx.data.tenant.slug);
   if (!tenantId) return Response.json({ activity: [] });
 
-  const { data } = await client
+  const { data, error } = await client
     .from("activity_log")
     .select("*")
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })
     .limit(50);
+
+  // A real query error (RLS/schema/transport) is otherwise indistinguishable
+  // from "no activity"; log it so an outage is not masked as an empty feed.
+  if (error) console.error("[activity]", error.message);
 
   return Response.json({ activity: (data as ActivityRow[] | null) ?? [] });
 };
