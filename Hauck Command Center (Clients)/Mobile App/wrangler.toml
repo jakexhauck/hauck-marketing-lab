@@ -1,4 +1,4 @@
-name = "hauck-dashboard"
+name = "hauck-command-center"
 compatibility_date = "2026-05-18"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"

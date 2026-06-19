@@ -36,7 +36,15 @@ export default function Leads() {
   const [activeStage, setActiveStage] = useState<string>(ALL);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "board">("list");
+  // Desktop users expect the kanban board by default (the wide layout shows
+  // every stage at once); the phone keeps the list, which reads better on a
+  // narrow screen.
+  const [viewMode, setViewMode] = useState<"list" | "board">(() =>
+    typeof window !== "undefined" &&
+    window.matchMedia("(min-width: 1024px)").matches
+      ? "board"
+      : "list",
+  );
   const [showNewLead, setShowNewLead] = useState(false);
 
   // Reset stage filter + search whenever the pipeline changes.

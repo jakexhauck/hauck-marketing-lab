@@ -1,15 +1,10 @@
-# Root workspace for the Hauck Command Center (desktop version) build.
-#
-# Deliberately scoped to ONLY the new code: the desktop Command Center and shared
-# packages. It lives at "Hauck Command Center (Clients)/Desktop App"; the glob uses
-# a wildcard for the parent so fast-glob does not treat the "(Clients)" parens as a
-# pattern group. The Mobile App ("Hauck Command Center (Clients)/Mobile App") and the
-# agency app ("app/") keep their own pnpm-workspace.yaml files and stay fully
-# standalone: pnpm resolves the nearest workspace root when run inside them, so their
-# installs, patches, and lockfiles are untouched by this file.
-packages:
-  - "Hauck Command Center*/Desktop App"
-  - "packages/*"
+# The desktop Command Center build (crm-web) and the shared packages/core were
+# retired in the Plan 04 merge: the two builds are now ONE responsive app that
+# lives standalone at "Hauck Command Center (Clients)/Mobile App" (package
+# client-dashboard) with its own pnpm-workspace.yaml and lockfile. This root no
+# longer owns any workspace packages; the root scripts just delegate into the
+# unified app via `pnpm -C`. The agency Tauri app under "app/" stays standalone.
+packages: []
 
 allowBuilds:
   esbuild: true

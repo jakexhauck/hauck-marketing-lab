@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Role, User } from "../types";
+import type { Capability } from "../lib/capabilities";
 import { clearAllCaches } from "../lib/queryClient";
 import { clearAppBadge, disablePush } from "../lib/push";
 
@@ -45,6 +46,10 @@ interface AuthContextValue {
   staff: StaffIdentity | null;
   // Effective per-surface permissions for a staff session; empty for owners.
   permissions: EffectivePermissions;
+  // Permission gate used by the nav + edit controls. Owners pass everything;
+  // staff need a matching grant. Mirrors the backend enforcement, which stays
+  // authoritative. Defaults to the "view" action.
+  can: (capability: Capability, action?: "view" | "edit") => boolean;
   signInWithPassword: (
     password: string,
     mode?: SessionMode,
@@ -412,6 +417,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMode("live");
   }, []);
 
+  const can = useCallback(
+    (capability: Capability, action: "view" | "edit" = "view") => {
+      // Owners (and the shared-password fallback session) see everything.
+      if (isOwner) return true;
+      const grant = permissions[capability];
+      if (!grant) return false;
+      return action === "edit" ? grant.edit : grant.view;
+    },
+    [isOwner, permissions],
+  );
+
   const setUser = useCallback((user: User | null) => {
     setOverride(user);
   }, []);
@@ -519,6 +535,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isOwner,
       staff,
       permissions,
+      can,
       signInWithPassword,
       signInAsStaff,
       signOut,
@@ -535,6 +552,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isOwner,
       staff,
       permissions,
+      can,
       signInWithPassword,
       signInAsStaff,
       signOut,

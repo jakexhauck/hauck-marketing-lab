@@ -16,10 +16,13 @@ const allowedOrigins = new Set([
   "http://localhost:5173",
   "http://localhost:8788",
   "http://localhost:5174", // web CRM dev server
+  "https://app.hauckmarketing.com", // Command Center (clients + admin), one URL
+  "https://hauck-command-center.pages.dev", // Pages default domain after rename
+  "https://commandcenter.hauckmarketing.com", // desktop build (custom domain), until Plan 04 merge
+  "https://hauck-crm.pages.dev", // desktop build (Pages default domain)
+  // Legacy mobile origins, live until app.hauckmarketing.com is confirmed up; drop after cutover.
   "https://dash.hauckmarketing.com",
   "https://hauck-dashboard.pages.dev",
-  "https://commandcenter.hauckmarketing.com", // web CRM (custom domain)
-  "https://hauck-crm.pages.dev", // web CRM (Pages default domain)
 ]);
 
 function corsHeaders(origin: string | null): HeadersInit {
@@ -46,6 +49,9 @@ const PUBLIC_PATHS = new Set([
   "/api/auth/admin-login",
   "/api/auth/logout",
   "/api/auth/me",
+  // Verifies its own (preview) session; public so the read-only-preview gate
+  // does not block this POST and an admin can always exit a preview.
+  "/api/auth/exit-preview",
 ]);
 
 function json(status: number, body: unknown, origin: string | null) {
@@ -70,12 +76,23 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
     const session = await verifySession(ctx.request, ctx.env);
     if (!session) return json(401, { error: "unauthorized" }, origin);
 
+    // Preview-as-client (Plan 05): an admin impersonating a client's view,
+    // read-only. Any state-changing method is refused here, before a handler can
+    // run, so a preview can never write. The session then flows through the live
+    // tenant path below (its tenantId is set) and lands as a read-only owner of
+    // that client. Admin routes are off-limits while previewing.
+    if (session.preview && ctx.request.method !== "GET") {
+      return json(403, { error: "preview is read-only" }, origin);
+    }
+
     // Cross-tenant admin routes (0008). These operate ABOVE the per-tenant pin:
     // no GHL/tenant context is set up, and only a signed admin session reaches
     // them. A non-admin session (owner or staff) is forbidden outright; this is
     // the single gate for every /api/admin/* handler.
     if (url.pathname.startsWith("/api/admin/")) {
-      if (!session.adminId) {
+      // A preview session carries an adminId too, but it is a read-only client
+      // impersonation, not admin authority: keep it out of the admin surface.
+      if (!session.adminId || session.preview) {
         return json(403, { error: "forbidden" }, origin);
       }
       const client = getServiceClient(ctx.env);

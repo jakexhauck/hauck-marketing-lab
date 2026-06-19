@@ -1,11 +1,109 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, LogOut, Users } from "lucide-react";
+import { Check, ChevronRight, LogOut, Users } from "lucide-react";
 import Shell from "../components/Shell";
 import BackButton from "../components/BackButton";
 import { useAuth } from "../context/AuthContext";
 import { useClient } from "../context/ClientContext";
 import { roleLabel } from "../lib/rolePermissions";
 import { APP_BRAND } from "../lib/appBrand";
+import { api } from "../lib/api";
+
+type Audience = "everyone" | "assigned";
+
+const AUDIENCE_OPTIONS: { value: Audience; title: string; sub: string }[] = [
+  {
+    value: "everyone",
+    title: "Everyone",
+    sub: "Every signed-in device gets a buzz for new leads, messages, and wins.",
+  },
+  {
+    value: "assigned",
+    title: "Assigned rep only",
+    sub: "Only the rep a lead is assigned to is buzzed. Unassigned leads still go to everyone.",
+  },
+];
+
+// Owner-only control for who gets pushed when a new lead, message, or win lands.
+// Reads and writes tenants.notify_audience via /api/settings/notifications.
+function NotifyAudienceCard() {
+  const [audience, setAudience] = useState<Audience | null>(null);
+  const [saving, setSaving] = useState<Audience | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    api<{ audience: Audience }>("/api/settings/notifications")
+      .then((r) => mounted && setAudience(r.audience))
+      .catch(() => mounted && setError(true));
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const choose = async (next: Audience) => {
+    if (next === audience || saving) return;
+    setSaving(next);
+    setError(false);
+    try {
+      const r = await api<{ audience: Audience }>(
+        "/api/settings/notifications",
+        { method: "PATCH", body: JSON.stringify({ audience: next }) },
+      );
+      setAudience(r.audience);
+    } catch {
+      setError(true);
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <ul className="mt-2 overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
+      {AUDIENCE_OPTIONS.map((opt) => {
+        const active = audience === opt.value;
+        return (
+          <li key={opt.value} className="border-b border-[var(--border)] last:border-b-0">
+            <button
+              type="button"
+              onClick={() => void choose(opt.value)}
+              disabled={audience === null || saving !== null}
+              className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)] disabled:opacity-60"
+            >
+              <span
+                className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 ${
+                  active
+                    ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
+                    : "border-[var(--border)] text-transparent"
+                }`}
+              >
+                <Check size={13} strokeWidth={3} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="font-display text-[15px] font-bold text-[var(--text)]">
+                  {opt.title}
+                </div>
+                <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">
+                  {opt.sub}
+                </div>
+              </div>
+              {saving === opt.value && (
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-faint)]">
+                  Saving
+                </span>
+              )}
+            </button>
+          </li>
+        );
+      })}
+      {error && (
+        <li className="px-4 py-2.5 text-[12px] text-[#be123c]">
+          Could not save. Check your connection and try again.
+        </li>
+      )}
+    </ul>
+  );
+}
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -69,6 +167,11 @@ export default function Settings() {
                 </button>
               </li>
             </ul>
+
+            <div className="pt-6">
+              <span className="sec-kicker">Notifications</span>
+            </div>
+            <NotifyAudienceCard />
           </>
         )}
 

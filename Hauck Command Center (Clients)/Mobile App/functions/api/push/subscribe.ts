@@ -71,8 +71,12 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (
     }
   }
 
-  // Optional identity header. Fine to leave null on a shared-password device.
-  const ghlUserId = ctx.request.headers.get("x-identity");
+  // Which GHL identity owns this device, for "assigned rep only" routing. A
+  // staff (email+password) session knows it authoritatively; the shared-password
+  // mobile app supplies the chosen identity via the x-identity header instead.
+  // Fine to leave null: such a device only ever gets "everyone" pushes.
+  const ghlUserId =
+    ctx.data.staff?.ghl_user_id ?? ctx.request.headers.get("x-identity");
 
   const { error } = await client.from("push_subscriptions").upsert(
     {

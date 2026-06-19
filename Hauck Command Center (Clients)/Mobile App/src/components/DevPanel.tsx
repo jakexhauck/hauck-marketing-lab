@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Settings, X, Play } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Settings, X } from "lucide-react";
 import type { Role } from "../types";
 import { useAuth } from "../context/AuthContext";
 import { useClient } from "../context/ClientContext";
@@ -21,7 +20,6 @@ export default function DevPanel() {
   const { client, setClient, allClients } = useClient();
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
 
   const clientUsers = useMemo(() => getUsersForClient(client.id), [client.id]);
 
@@ -97,18 +95,6 @@ export default function DevPanel() {
             </div>
 
             <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-5 py-5">
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  navigate("/showroom");
-                }}
-                className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm font-semibold text-[var(--text)] transition-colors active:scale-[0.98]"
-              >
-                <Play size={16} aria-hidden="true" />
-                <span>Launch Showroom</span>
-              </button>
-
               <fieldset>
                 <legend className="label-cap mb-2">Theme</legend>
                 <div className="flex flex-col gap-2">

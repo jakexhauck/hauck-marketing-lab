@@ -87,7 +87,7 @@ export default function Board({ leads, stages, pipelineId }: Props) {
           return (
             <section
               key={stage.id}
-              className="flex w-[78vw] max-w-[300px] shrink-0 snap-start flex-col gap-2"
+              className="flex w-[78vw] max-w-[300px] shrink-0 snap-start flex-col gap-2 lg:w-[300px] lg:max-w-none"
             >
               <header className="flex items-baseline justify-between px-1">
                 <span className="truncate font-display text-[14px] font-bold text-[var(--text)]">

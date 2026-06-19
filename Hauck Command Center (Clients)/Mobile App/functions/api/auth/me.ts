@@ -18,6 +18,23 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
   const client = getServiceClient(ctx.env);
 
+  // Preview-as-client (Plan 05): an admin viewing one client read-only. Report it
+  // as an owner session for that tenant (so tenant surfaces render) but NOT as
+  // admin, and flag preview so the UI shows the exit banner and hides edits. The
+  // tenant's branding comes from /api/tenant, scoped to the same session.
+  if (session.preview && session.tenantId) {
+    return Response.json({
+      ok: true,
+      mode: session.mode,
+      isOwner: true,
+      isAdmin: false,
+      admin: null,
+      staff: null,
+      permissions: {},
+      preview: { tenantId: session.tenantId },
+    });
+  }
+
   // Super-admin session: identity is global, not tenant-scoped. If the account
   // was disabled/deleted, the still-valid token is rejected so the UI logs out.
   if (session.adminId) {

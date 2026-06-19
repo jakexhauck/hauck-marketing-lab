@@ -9,16 +9,16 @@ import { APP_BRAND } from "../lib/appBrand";
 type Phase = "idle" | "submitting" | "error";
 type LoginMode = "live" | "test";
 
+// One email + password form for everyone. Owner and team members alike sign in
+// with their own email + password (POST /api/auth/staff-login); the account
+// decides the tenant and role. The old shared-password owner login is retired.
 export default function Login() {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [mode, setMode] = useState<LoginMode>("live");
-  // The owner signs in with the shared password; team members (staff) sign in
-  // with their own email + password (POST /api/auth/staff-login).
-  const [asStaff, setAsStaff] = useState(false);
-  const { signInWithPassword, signInAsStaff } = useAuth();
+  const { signInAsStaff } = useAuth();
   const navigate = useNavigate();
 
   const isTest = mode === "test";
@@ -30,25 +30,14 @@ export default function Login() {
     setErrorMsg(null);
   };
 
-  const switchToStaff = (next: boolean) => {
-    setAsStaff(next);
-    setMode("live");
-    setPassword("");
-    setEmail("");
-    setPhase("idle");
-    setErrorMsg(null);
-  };
-
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const trimmed = password.trim();
-    if (!trimmed) return;
-    if (asStaff && !email.trim()) return;
+    const trimmedPw = password.trim();
+    const trimmedEmail = email.trim();
+    if (!trimmedPw || !trimmedEmail) return;
     setPhase("submitting");
     setErrorMsg(null);
-    const res = asStaff
-      ? await signInAsStaff(email.trim(), trimmed, "live")
-      : await signInWithPassword(trimmed, mode);
+    const res = await signInAsStaff(trimmedEmail, trimmedPw, mode);
     if (res.ok) {
       navigate("/home", { replace: true });
     } else {
@@ -70,17 +59,15 @@ export default function Login() {
           <div className="flex flex-col items-center text-center">
             <BrandedLogo size="lg" />
             <span className="label-cap mt-6">
-              {asStaff ? "Team Sign In" : isTest ? "Test Account" : "Sign In"}
+              {isTest ? "Test Account" : "Sign In"}
             </span>
             <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-[var(--text)]">
-              {asStaff ? "Team Member" : isTest ? "Test Account" : APP_BRAND.appName}
+              {isTest ? "Test Account" : APP_BRAND.appName}
             </h1>
             <p className="mt-2 text-sm text-[var(--text-muted)]">
-              {asStaff
-                ? "Sign in with your work email and password."
-                : isTest
-                  ? "Preview changes on the staging sub-account."
-                  : "Your leads, your pipeline."}
+              {isTest
+                ? "Preview changes on the staging sub-account."
+                : "Sign in with your email and password."}
             </p>
           </div>
 
@@ -92,22 +79,20 @@ export default function Login() {
           )}
 
           <form onSubmit={onSubmit} className="mt-8 space-y-4">
-            {asStaff && (
-              <label className="block">
-                <span className="label-cap">Work email</span>
-                <input
-                  type="email"
-                  autoCapitalize="none"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@email.com"
-                  autoComplete="username"
-                  required
-                  disabled={phase === "submitting"}
-                  className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-base text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 disabled:opacity-60"
-                />
-              </label>
-            )}
+            <label className="block">
+              <span className="label-cap">Email</span>
+              <input
+                type="email"
+                autoCapitalize="none"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@email.com"
+                autoComplete="username"
+                required
+                disabled={phase === "submitting"}
+                className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-base text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 disabled:opacity-60"
+              />
+            </label>
             <label className="block">
               <span className="label-cap">
                 {isTest ? "Test password" : "Password"}
@@ -134,9 +119,7 @@ export default function Login() {
               type="submit"
               className="w-full"
               disabled={
-                phase === "submitting" ||
-                !password.trim() ||
-                (asStaff && !email.trim())
+                phase === "submitting" || !password.trim() || !email.trim()
               }
             >
               {phase === "submitting"
@@ -148,35 +131,14 @@ export default function Login() {
           </form>
 
           <div className="mt-6 space-y-3 border-t border-[var(--border)] pt-4 text-center">
-            {asStaff ? (
-              <button
-                type="button"
-                onClick={() => switchToStaff(false)}
-                disabled={phase === "submitting"}
-                className="text-sm font-medium text-[var(--text-muted)] underline-offset-4 transition-colors hover:text-[var(--text)] hover:underline disabled:opacity-60"
-              >
-                Back to owner sign in
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => switchToStaff(true)}
-                  disabled={phase === "submitting"}
-                  className="block w-full text-sm font-medium text-[var(--text-muted)] underline-offset-4 transition-colors hover:text-[var(--text)] hover:underline disabled:opacity-60"
-                >
-                  Team member? Sign in here
-                </button>
-                <button
-                  type="button"
-                  onClick={() => switchMode(isTest ? "live" : "test")}
-                  disabled={phase === "submitting"}
-                  className="block w-full text-sm font-medium text-[var(--text-muted)] underline-offset-4 transition-colors hover:text-[var(--text)] hover:underline disabled:opacity-60"
-                >
-                  {isTest ? "Back to client login" : "Log into test account"}
-                </button>
-              </>
-            )}
+            <button
+              type="button"
+              onClick={() => switchMode(isTest ? "live" : "test")}
+              disabled={phase === "submitting"}
+              className="block w-full text-sm font-medium text-[var(--text-muted)] underline-offset-4 transition-colors hover:text-[var(--text)] hover:underline disabled:opacity-60"
+            >
+              {isTest ? "Back to client login" : "Log into test account"}
+            </button>
           </div>
         </div>
         <div className="mt-6 text-center text-[11px] font-medium text-white/40">

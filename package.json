@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "packageManager": "pnpm@10.18.0",
-  "description": "Workspace root for the Hauck Command Center (desktop + shared core). The mobile version and agency app stay standalone.",
+  "description": "Launcher for the unified Hauck Command Center app. The two builds were merged (Plan 04) into one responsive app that lives standalone at 'Hauck Command Center (Clients)/Mobile App' (package client-dashboard); these scripts just delegate into it.",
   "scripts": {
-    "dev": "pnpm --filter crm-web dev",
-    "build": "pnpm --filter crm-web build",
-    "preview": "pnpm --filter crm-web preview",
-    "typecheck": "pnpm -r typecheck"
+    "dev": "pnpm -C \"Hauck Command Center (Clients)/Mobile App\" dev",
+    "build": "pnpm -C \"Hauck Command Center (Clients)/Mobile App\" build",
+    "preview": "pnpm -C \"Hauck Command Center (Clients)/Mobile App\" preview",
+    "typecheck": "pnpm -C \"Hauck Command Center (Clients)/Mobile App\" typecheck"
   }
 }

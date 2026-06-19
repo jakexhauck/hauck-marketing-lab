@@ -38,6 +38,9 @@ interface GhlWebhookEvent {
   id?: string;
   contactId?: string;
   opportunityId?: string;
+  // GHL user id the opportunity is assigned to. Drives "assigned rep only"
+  // push routing; absent on events with no assignee (e.g. inbound messages).
+  assignedTo?: string;
   [k: string]: unknown;
 }
 
@@ -61,6 +64,9 @@ interface Activity {
   kind: ActivityKind;
   contact_id: string | null;
   opportunity_id: string | null;
+  // GHL user the lead is assigned to, when the event carries one. Used to route
+  // "assigned rep only" pushes; null leaves the fan-out to fall back to everyone.
+  assigned_user_id: string | null;
   summary: string;
   raw: unknown;
 }
@@ -76,6 +82,8 @@ function mk(
     kind,
     contact_id: e.contactId ?? null,
     opportunity_id: e.opportunityId ?? null,
+    assigned_user_id:
+      typeof e.assignedTo === "string" && e.assignedTo ? e.assignedTo : null,
     summary,
     raw: e,
   };
@@ -219,6 +227,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
               summary: activity.summary,
               opportunity_id: activity.opportunity_id,
               contact_id: activity.contact_id,
+              assigned_user_id: activity.assigned_user_id,
             }).catch((err) => console.error("[webhook] push failed", err)),
           );
         }

@@ -6,21 +6,44 @@ import { getServiceClient } from "./supabase";
 import type { Env } from "./env";
 
 // Shape we read back from the activity_log insert in the webhook. opportunity_id
-// and contact_id drive the deep-link target of the notification.
+// and contact_id drive the deep-link target of the notification; assigned_user_id
+// drives "assigned rep only" routing.
 export interface PushActivity {
   kind: string;
   summary: string;
   opportunity_id: string | null;
   contact_id: string | null;
+  assigned_user_id: string | null;
 }
 
 // One row of the push_subscriptions table. The browser PushSubscription is
 // stored across split columns (endpoint, p256dh, auth), not a single jsonb blob.
+// ghl_user_id is the device's chosen GHL identity (the same value GHL puts in
+// opportunity.assignedTo), used to route to the assigned rep.
 interface SubRow {
   id: number;
   endpoint: string;
   p256dh: string;
   auth: string;
+  ghl_user_id: string | null;
+}
+
+// Owner-configured audience for this tenant's pushes (tenants.notify_audience).
+type NotifyAudience = "everyone" | "assigned";
+
+// Pick the subscriptions that should receive this activity given the tenant's
+// audience rule. "assigned" targets only the device(s) whose chosen GHL
+// identity matches the lead's assignee; it falls back to everyone when the
+// event has no assignee or no subscribed device matches, so a lead is never
+// silently dropped (e.g. inbound messages, which carry no assignedTo).
+function selectRecipients(
+  rows: SubRow[],
+  audience: NotifyAudience,
+  assignedUserId: string | null,
+): SubRow[] {
+  if (audience !== "assigned" || !assignedUserId) return rows;
+  const matched = rows.filter((r) => r.ghl_user_id === assignedUserId);
+  return matched.length > 0 ? matched : rows;
 }
 
 /**
@@ -42,10 +65,26 @@ export async function sendPushForActivity(
 
   const { data: subs } = await client
     .from("push_subscriptions")
-    .select("id, endpoint, p256dh, auth")
+    .select("id, endpoint, p256dh, auth, ghl_user_id")
     .eq("tenant_id", tenantId);
 
-  const rows = (subs as SubRow[] | null) ?? [];
+  const allRows = (subs as SubRow[] | null) ?? [];
+  if (allRows.length === 0) return;
+
+  // Honour the owner's audience rule. Default to "everyone" if the column is
+  // unset or unreadable: better an extra buzz than a missed lead.
+  const { data: tenantRow } = await client
+    .from("tenants")
+    .select("notify_audience")
+    .eq("id", tenantId)
+    .maybeSingle();
+  const audience: NotifyAudience =
+    (tenantRow as { notify_audience?: string } | null)?.notify_audience ===
+    "assigned"
+      ? "assigned"
+      : "everyone";
+
+  const rows = selectRecipients(allRows, audience, activity.assigned_user_id);
   if (rows.length === 0) return;
 
   const titles: Record<string, string> = {

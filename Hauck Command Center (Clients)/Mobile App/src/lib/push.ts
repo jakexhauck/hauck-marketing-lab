@@ -23,6 +23,17 @@ function pushSupported(): boolean {
   return "serviceWorker" in navigator && "PushManager" in window;
 }
 
+// The device's chosen GHL identity (the "who are you?" step stores it under
+// hml_identity; the same value GHL puts in assignedTo). Sent at subscribe time
+// so the server can route "assigned rep only" pushes to the right phone.
+function storedIdentity(): string {
+  try {
+    return localStorage.getItem("hml_identity")?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
 export async function enablePush(): Promise<PushEnableResult> {
   if (!pushSupported()) return "unsupported";
 
@@ -44,10 +55,14 @@ export async function enablePush(): Promise<PushEnableResult> {
       applicationServerKey: urlBase64ToUint8Array(publicKey),
     });
 
+    const identity = storedIdentity();
     const save = await fetch(`${API_BASE}/api/push/subscribe`, {
       method: "POST",
       credentials: "include",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        ...(identity ? { "x-identity": identity } : {}),
+      },
       body: JSON.stringify({ subscription: sub.toJSON() }),
     });
     // If the server never stored the subscription, no push will ever arrive.

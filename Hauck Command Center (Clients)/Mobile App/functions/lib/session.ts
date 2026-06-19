@@ -18,6 +18,11 @@ export interface SessionData {
   // staffId. A session is never both staff and admin. An admin session is the
   // only thing that may reach the cross-tenant /api/admin/* routes.
   adminId?: string;
+  // Preview-as-client (Plan 05): an admin impersonating one client's view,
+  // read-only. Such a token carries BOTH adminId (who is previewing, so the
+  // session can be restored on exit) AND tenantId (whose view). The middleware
+  // serves it as a read-only owner session for that tenant and rejects writes.
+  preview?: boolean;
 }
 
 // Options carried into a tenant-scoped (non-admin) session.
@@ -147,6 +152,37 @@ export async function mintAdminSessionCookie(
   return `${COOKIE_NAME}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${MAX_AGE_SECONDS}`;
 }
 
+// Preview-as-client sessions (Plan 05). The token carries the previewing admin
+// (a) AND the previewed client (t) AND a preview flag (p), all signed. mode is
+// "live" so the previewed view reads real data. verifySession returns it with
+// preview=true; the middleware then serves it as a read-only owner session for
+// that tenant and forbids any non-GET method. Shorter-lived than a normal
+// session: a preview is a transient act, not a standing login.
+const PREVIEW_MAX_AGE_SECONDS = 60 * 60 * 2;
+
+export async function mintPreviewSessionToken(
+  env: Env,
+  adminId: string,
+  tenantId: string,
+): Promise<string> {
+  const secret = sessionSecret(env);
+  if (!secret) throw new Error("SESSION_SECRET not configured");
+  const exp = Math.floor(Date.now() / 1000) + PREVIEW_MAX_AGE_SECONDS;
+  const inner = encodeInner({ e: exp, m: "live", t: tenantId, a: adminId, p: 1 });
+  const payload = b64urlEncode(new TextEncoder().encode(inner));
+  const sig = await hmac(secret, payload);
+  return `${payload}.${sig}`;
+}
+
+export async function mintPreviewSessionCookie(
+  env: Env,
+  adminId: string,
+  tenantId: string,
+): Promise<string> {
+  const value = await mintPreviewSessionToken(env, adminId, tenantId);
+  return `${COOKIE_NAME}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${PREVIEW_MAX_AGE_SECONDS}`;
+}
+
 export function clearSessionCookie(): string {
   return `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
 }
@@ -193,6 +229,16 @@ export async function verifySession(
     const exp = Number(fields.e);
     if (!Number.isFinite(exp)) return null;
     if (exp < Math.floor(Date.now() / 1000)) return null;
+    // Preview-as-client: carries adminId, tenantId and the preview flag. Returned
+    // with preview=true so the middleware serves it read-only for that tenant.
+    if (fields.a && fields.p && fields.t) {
+      return {
+        mode: "live",
+        adminId: String(fields.a),
+        tenantId: String(fields.t),
+        preview: true,
+      };
+    }
     // Admin session: carries an adminId, no tenant. mode is nominal (unused by
     // admin routes).
     if (fields.a) return { mode: "live", adminId: String(fields.a) };
@@ -212,7 +258,7 @@ export async function verifySession(
 // if neither shape parses.
 function parseInner(
   decoded: string,
-): { e: unknown; m?: unknown; t?: unknown; s?: unknown; a?: unknown } | null {
+): { e: unknown; m?: unknown; t?: unknown; s?: unknown; a?: unknown; p?: unknown } | null {
   if (decoded.startsWith("{")) {
     try {
       const obj = JSON.parse(decoded);

@@ -10,6 +10,8 @@ import Login from "./routes/Login";
 import Home from "./routes/Home";
 import Leads from "./routes/Leads";
 import Dashboard from "./routes/Dashboard";
+import { PaidAds } from "./routes/PaidAds";
+import { Activity } from "./routes/Activity";
 import Contacts from "./routes/Contacts";
 import Conversations from "./routes/Conversations";
 import ConversationDetail from "./routes/ConversationDetail";
@@ -20,8 +22,6 @@ import Calendar from "./routes/Calendar";
 import Notifications from "./routes/Notifications";
 import Team from "./routes/Team";
 import Settings from "./routes/Settings";
-import Showroom from "./routes/Showroom";
-import Simulator from "./routes/Simulator";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -101,12 +101,6 @@ export default function App() {
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<Login />} />
-              {/* Dev-only: Showroom auto-signs-in a mock user, which would
-                  satisfy ProtectedRoute and open the whole app shell to an
-                  unauthenticated visitor. Never route it in prod builds. */}
-              {import.meta.env.DEV && (
-                <Route path="/showroom" element={<Showroom />} />
-              )}
               <Route
                 path="/home"
                 element={
@@ -128,6 +122,22 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/paid-ads"
+                element={
+                  <ProtectedRoute>
+                    <PaidAds />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/activity"
+                element={
+                  <ProtectedRoute>
+                    <Activity />
                   </ProtectedRoute>
                 }
               />
@@ -213,18 +223,6 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* Dev-only: the what-if simulator runs on fabricated spend
-                  numbers, which never belong on a client-facing screen. */}
-              {import.meta.env.DEV && (
-                <Route
-                  path="/simulator"
-                  element={
-                    <ProtectedRoute>
-                      <Simulator />
-                    </ProtectedRoute>
-                  }
-                />
-              )}
               <Route path="*" element={<RootRedirect />} />
             </Routes>
           </ToastProvider>
