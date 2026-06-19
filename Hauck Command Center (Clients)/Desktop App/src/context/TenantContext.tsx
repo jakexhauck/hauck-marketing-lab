@@ -2,10 +2,10 @@ import { createContext, useContext, useEffect, useMemo, type ReactNode } from "r
 import { useTenantQuery } from "@/hooks/useApi";
 import { useAuth } from "./AuthContext";
 
-// Fallback brand mirrors client-dashboard/src/lib/appBrand.ts so the CRM looks
-// right before /api/tenant resolves (or when Supabase is unconfigured).
+// Fallback brand mirrors the Mobile App's src/lib/appBrand.ts so the Command
+// Center looks right before /api/tenant resolves (or when Supabase is unconfigured).
 const FALLBACK = {
-  appName: "Hauck CRM",
+  appName: "Hauck Command Center",
   niche: "",
   initials: "HM",
   brandColor: "#1a4d8f",

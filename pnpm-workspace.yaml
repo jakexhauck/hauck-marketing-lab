@@ -1,7 +1,7 @@
-# Root workspace for the Unified CRM build.
+# Root workspace for the Hauck Command Center (desktop version) build.
 #
-# Deliberately scoped to ONLY the new code: the web CRM and shared packages.
-# The CRM now lives at "Hauck Command Center (Clients)/Desktop App"; the glob uses
+# Deliberately scoped to ONLY the new code: the desktop Command Center and shared
+# packages. It lives at "Hauck Command Center (Clients)/Desktop App"; the glob uses
 # a wildcard for the parent so fast-glob does not treat the "(Clients)" parens as a
 # pattern group. The Mobile App ("Hauck Command Center (Clients)/Mobile App") and the
 # agency app ("app/") keep their own pnpm-workspace.yaml files and stay fully

@@ -80,7 +80,7 @@ export function Login() {
             {isAdmin ? <ShieldCheck size={24} /> : brand.initials}
           </span>
           <h1 className="font-display text-2xl text-text">
-            {isAdmin ? "Control Tower" : brand.appName}
+            {isAdmin ? "Command Center" : brand.appName}
           </h1>
           <p className="mt-1 text-sm text-muted">
             {isAdmin ? "Agency admin access" : "Operations cockpit"}
@@ -154,7 +154,7 @@ export function Login() {
           <Button type="submit" variant="primary" size="lg" loading={busy} className="mt-4 w-full">
             {!busy && (
               <>
-                {isAdmin ? "Enter Control Tower" : "Sign in"} <ArrowRight size={16} />
+                {isAdmin ? "Enter Command Center" : "Sign in"} <ArrowRight size={16} />
               </>
             )}
             {busy && "Signing in"}

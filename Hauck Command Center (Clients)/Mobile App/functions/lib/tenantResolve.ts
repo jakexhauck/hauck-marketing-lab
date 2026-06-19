@@ -105,6 +105,21 @@ export async function loadTenantBySlug(
   return (data as TenantRow | null) ?? null;
 }
 
+// Load a tenant by its primary key. This is the account-based path: the session
+// carries the tenant id (set at login from the logged-in account), so the
+// client is resolved from WHO is signed in, not from the request host.
+export async function loadTenantById(
+  client: SupabaseClient,
+  id: string,
+): Promise<TenantRow | null> {
+  const { data } = await client
+    .from("tenants")
+    .select(TENANT_COLS)
+    .eq("id", id)
+    .maybeSingle();
+  return (data as TenantRow | null) ?? null;
+}
+
 // Resolve the live tenant for a request: by host subdomain when present, else by
 // the TENANT_SLUG env var (single-tenant fallback). Returns null only when a
 // subdomain is present but matches no client (caller should 404 / show "not

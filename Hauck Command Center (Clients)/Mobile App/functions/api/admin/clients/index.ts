@@ -4,6 +4,7 @@ import { getServiceClient } from "../../../lib/supabase";
 import { CAPABILITIES } from "../../../lib/permissions";
 import { hashPassword } from "../../../lib/password";
 import { normalizeSubdomain } from "../../../lib/tenantResolve";
+import { normalizeEmail } from "../../../lib/staff";
 import { logAdminAction } from "../../../lib/adminAuth";
 
 // GET /api/admin/clients  (admin-only, gated in _middleware.ts)
@@ -74,10 +75,16 @@ interface CreateBody {
   ghlToken?: string;
   monthlySpend?: number;
   // Subdomain that routes to this client (e.g. 'williswindows'). Defaults to the
-  // slug when omitted.
+  // slug when omitted. Legacy: no longer used for routing now that the login
+  // email identifies the client, but kept so existing tooling does not break.
   subdomain?: string;
-  // The owner login password for this client. Hashed here, never stored or
-  // returned in plaintext.
+  // The owner's login. The owner is created as a staff_accounts row with role
+  // 'owner' (this is how they sign in: email + password identify the client).
+  // Both are needed to create the account; omit both to add the owner later.
+  // ownerPassword is also stored on the tenant as the legacy shared-password
+  // fallback. Hashed here, never stored or returned in plaintext.
+  ownerEmail?: string;
+  ownerName?: string;
   ownerPassword?: string;
 }
 
@@ -132,7 +139,19 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const appName = (body.appName ?? name).trim() || name;
 
   const subdomain = normalizeSubdomain(body.subdomain?.trim() || slug);
+  const ownerEmail = normalizeEmail(body.ownerEmail ?? "");
   const ownerPassword = (body.ownerPassword ?? "").trim();
+  // Owner email + password come as a pair: one without the other can't make a
+  // working login.
+  if ((ownerEmail || ownerPassword) && !(ownerEmail && ownerPassword)) {
+    return Response.json(
+      { error: "owner email and password must be provided together" },
+      { status: 400 },
+    );
+  }
+  if (ownerEmail && !ownerEmail.includes("@")) {
+    return Response.json({ error: "a valid owner email is required" }, { status: 400 });
+  }
   if (ownerPassword && ownerPassword.length < 8) {
     return Response.json(
       { error: "owner password must be at least 8 characters" },
@@ -177,7 +196,25 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   }));
   await client.from("tenant_entitlements").upsert(seed, { onConflict: "tenant_id,capability" });
 
+  // Create the owner login (role 'owner') so the client can sign in immediately.
+  // Owners bypass per-surface permission checks, so no grants are seeded. A
+  // duplicate email (blocked by the global-unique index) leaves the tenant
+  // created but reports the owner-account failure so the admin can fix it.
+  let ownerWarning: string | undefined;
+  if (ownerEmail && ownerPassword) {
+    const { error: ownerErr } = await client.from("staff_accounts").insert({
+      tenant_id: tenantId,
+      ghl_user_id: null,
+      email: ownerEmail,
+      name: (body.ownerName ?? "").trim() || `${name} (Owner)`,
+      role: "owner",
+      status: "active",
+      password_hash: await hashPassword(ownerPassword),
+    });
+    if (ownerErr) ownerWarning = ownerErr.message;
+  }
+
   await logAdminAction(client, ctx.data.admin!.id, "client.create", tenantId, { slug, name });
 
-  return Response.json({ ok: true, id: tenantId, slug }, { status: 201 });
+  return Response.json({ ok: true, id: tenantId, slug, ownerWarning }, { status: 201 });
 };

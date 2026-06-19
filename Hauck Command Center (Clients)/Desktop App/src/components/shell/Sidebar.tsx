@@ -26,7 +26,7 @@ export function Sidebar() {
             </span>
             <div className="min-w-0">
               <div className="truncate font-display text-[15px] leading-tight text-text">
-                Control Tower
+                Command Center
               </div>
               {admin && <div className="truncate text-[11px] text-faint">{admin.name}</div>}
             </div>

@@ -38,7 +38,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   // by request host (subdomain), test by the single test tenant.
   let tenantId: string | null = null;
   if (client) {
-    if (session.mode === "test") {
+    if (session.tenantId) {
+      // Account-based: the session names the client directly.
+      tenantId = session.tenantId;
+    } else if (session.mode === "test") {
       tenantId = await resolveTenantId(client, testTenantSlug(ctx.env));
     } else {
       const tenant = await loadLiveTenantForHost(

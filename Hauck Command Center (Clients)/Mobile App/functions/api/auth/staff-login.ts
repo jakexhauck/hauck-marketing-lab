@@ -11,7 +11,6 @@ import {
   recordStaffLoginFailure,
 } from "../../lib/ratelimit";
 import { getServiceClient, resolveTenantId } from "../../lib/supabase";
-import { loadLiveTenantForHost } from "../../lib/tenantResolve";
 import { verifyPassword } from "../../lib/password";
 import { normalizeEmail, type StaffRecord } from "../../lib/staff";
 
@@ -22,10 +21,11 @@ interface Body {
 }
 
 // POST /api/auth/staff-login  (public)
-// Email + password login for staff accounts (0007). Distinct from the owner
-// shared-password login: it resolves a staff_accounts row and mints a session
-// whose signed token carries the staff id, which the middleware turns into
-// per-surface permission enforcement.
+// Email + password login for every person on a client team, owners included
+// (an owner is a staff_accounts row with role 'owner'). The email identifies
+// the client: one URL serves every client and the account decides which one you
+// see. The minted token carries both the tenant id and the staff id, which the
+// middleware turns into client scoping + per-surface permission enforcement.
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   let body: Body = {};
   try {
@@ -54,31 +54,33 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({ error: "staff login unavailable" }, { status: 503 });
   }
 
-  // Live staff resolve to the client for THIS host (subdomain); test resolves to
-  // the single test tenant. A staff member only ever logs into their own client.
-  let tenantId: string | null;
+  // Account-based resolution: the email decides which client this person belongs
+  // to (emails are globally unique across staff_accounts — see migration 0010).
+  // Test mode stays pinned to the single test tenant so test logins never reach
+  // live data.
+  const STAFF_COLS =
+    "id, tenant_id, ghl_user_id, email, name, role, status, created_at, updated_at";
+  let staff: StaffRecord | null;
   if (mode === "test") {
-    tenantId = await resolveTenantId(client, testTenantSlug(ctx.env));
+    const testTenantId = await resolveTenantId(client, testTenantSlug(ctx.env));
+    if (!testTenantId) {
+      return Response.json({ error: "incorrect email or password" }, { status: 401 });
+    }
+    const { data } = await client
+      .from("staff_accounts")
+      .select(STAFF_COLS)
+      .eq("tenant_id", testTenantId)
+      .eq("email", email)
+      .maybeSingle();
+    staff = data as StaffRecord | null;
   } else {
-    const tenant = await loadLiveTenantForHost(
-      client,
-      ctx.env,
-      ctx.request.headers.get("host"),
-    );
-    tenantId = tenant?.id ?? null;
+    const { data } = await client
+      .from("staff_accounts")
+      .select(STAFF_COLS)
+      .eq("email", email)
+      .maybeSingle();
+    staff = data as StaffRecord | null;
   }
-  if (!tenantId) {
-    return Response.json({ error: "incorrect email or password" }, { status: 401 });
-  }
-
-  const { data } = await client
-    .from("staff_accounts")
-    .select("id, tenant_id, ghl_user_id, email, name, role, status, created_at, updated_at")
-    .eq("tenant_id", tenantId)
-    .eq("email", email)
-    .maybeSingle();
-
-  const staff = data as StaffRecord | null;
 
   // Always run a verify, even with no/disabled account, so response timing does
   // not reveal whether an email exists.
@@ -91,8 +93,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({ error: "incorrect email or password" }, { status: 401 });
   }
 
-  const token = await mintSessionToken(ctx.env, mode, staff.id);
-  const cookie = await mintSessionCookie(ctx.env, mode, staff.id);
+  const claims = { tenantId: staff.tenant_id, staffId: staff.id };
+  const token = await mintSessionToken(ctx.env, mode, claims);
+  const cookie = await mintSessionCookie(ctx.env, mode, claims);
   return new Response(
     JSON.stringify({ ok: true, mode, token, staff: { id: staff.id, name: staff.name, role: staff.role } }),
     {

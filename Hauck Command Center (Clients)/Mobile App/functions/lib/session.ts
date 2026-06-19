@@ -4,6 +4,12 @@ export type SessionMode = "live" | "test";
 
 export interface SessionData {
   mode: SessionMode;
+  // The client (tenant) this session is scoped to. Set at login from the
+  // account, NOT from the request host: one URL serves every client and the
+  // logged-in account decides which one they see. Bound into the SIGNED token.
+  // Absent on legacy single-tenant sessions, where the middleware falls back to
+  // the request host / TENANT_SLUG env var.
+  tenantId?: string;
   // Present only for staff logins (0007). Absent means the owner shared-password
   // session, which has full access. Bound into the SIGNED token, never trusted
   // from a client header, so permission checks can rely on it.
@@ -12,6 +18,12 @@ export interface SessionData {
   // staffId. A session is never both staff and admin. An admin session is the
   // only thing that may reach the cross-tenant /api/admin/* routes.
   adminId?: string;
+}
+
+// Options carried into a tenant-scoped (non-admin) session.
+export interface SessionClaims {
+  tenantId?: string;
+  staffId?: string;
 }
 
 const COOKIE_NAME = "hml_session";
@@ -64,6 +76,19 @@ function sessionSecret(env: Env): string | null {
   return env.SESSION_SECRET || env.APP_PASSWORD || null;
 }
 
+// Serialize the inner payload as compact JSON, dropping empty claims. The token
+// used to be dot-delimited (`<exp>.<mode>[.<id>]`); JSON lets a session carry
+// both a tenantId and a staffId without segment-position ambiguity. verifySession
+// still accepts the old dot format so sessions minted before this change keep
+// working for their 30-day life.
+function encodeInner(fields: Record<string, unknown>): string {
+  const clean: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(fields)) {
+    if (v !== undefined && v !== null && v !== "") clean[k] = v;
+  }
+  return JSON.stringify(clean);
+}
+
 // Mint just the signed token value (`<payload>.<sig>`), no cookie wrapper. This
 // is the bearer-equivalent secret used by non-cookie clients (desktop). The
 // cookie minting below wraps the very same value, so cookie and bearer sessions
@@ -71,15 +96,17 @@ function sessionSecret(env: Env): string | null {
 export async function mintSessionToken(
   env: Env,
   mode: SessionMode = "live",
-  staffId?: string,
+  claims: SessionClaims = {},
 ): Promise<string> {
   const secret = sessionSecret(env);
   if (!secret) throw new Error("SESSION_SECRET not configured");
   const exp = Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS;
-  // Owner sessions stay `<exp>.<mode>` (backward compatible); staff sessions
-  // append the staff id as a third, signed segment. staffId is a UUID and never
-  // contains a dot, so the inner payload splits cleanly.
-  const inner = staffId ? `${exp}.${mode}.${staffId}` : `${exp}.${mode}`;
+  const inner = encodeInner({
+    e: exp,
+    m: mode,
+    t: claims.tenantId,
+    s: claims.staffId,
+  });
   const payload = b64urlEncode(new TextEncoder().encode(inner));
   const sig = await hmac(secret, payload);
   return `${payload}.${sig}`;
@@ -88,9 +115,9 @@ export async function mintSessionToken(
 export async function mintSessionCookie(
   env: Env,
   mode: SessionMode = "live",
-  staffId?: string,
+  claims: SessionClaims = {},
 ): Promise<string> {
-  const value = await mintSessionToken(env, mode, staffId);
+  const value = await mintSessionToken(env, mode, claims);
   return `${COOKIE_NAME}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${MAX_AGE_SECONDS}`;
 }
 
@@ -106,7 +133,7 @@ export async function mintAdminSessionToken(
   const secret = sessionSecret(env);
   if (!secret) throw new Error("SESSION_SECRET not configured");
   const exp = Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS;
-  const inner = `${exp}.admin.${adminId}`;
+  const inner = encodeInner({ e: exp, m: "admin", a: adminId });
   const payload = b64urlEncode(new TextEncoder().encode(inner));
   const sig = await hmac(secret, payload);
   return `${payload}.${sig}`;
@@ -161,18 +188,41 @@ export async function verifySession(
   if (!constantTimeEqual(sig, expected)) return null;
   try {
     const decoded = new TextDecoder().decode(b64urlDecode(payload));
-    const [expStr, modeStr, third] = decoded.split(".");
-    const exp = Number(expStr);
+    const fields = parseInner(decoded);
+    if (!fields) return null;
+    const exp = Number(fields.e);
     if (!Number.isFinite(exp)) return null;
     if (exp < Math.floor(Date.now() / 1000)) return null;
-    // Admin session: `<exp>.admin.<adminId>`. mode is nominal (unused by admin
-    // routes). Requires the third segment; a bare `<exp>.admin` is malformed.
-    if (modeStr === "admin") {
-      return third ? { mode: "live", adminId: third } : null;
-    }
-    const mode: SessionMode = modeStr === "test" ? "test" : "live";
-    return third ? { mode, staffId: third } : { mode };
+    // Admin session: carries an adminId, no tenant. mode is nominal (unused by
+    // admin routes).
+    if (fields.a) return { mode: "live", adminId: String(fields.a) };
+    const mode: SessionMode = fields.m === "test" ? "test" : "live";
+    const data: SessionData = { mode };
+    if (fields.t) data.tenantId = String(fields.t);
+    if (fields.s) data.staffId = String(fields.s);
+    return data;
   } catch {
     return null;
   }
+}
+
+// Decode the inner payload into a flat claims bag. New tokens are JSON
+// (`{e,m,t?,s?,a?}`); pre-JSON tokens are dot-delimited (`<exp>.<mode>[.<id>]`,
+// where the id is a staffId, or an adminId when mode is "admin"). Returns null
+// if neither shape parses.
+function parseInner(
+  decoded: string,
+): { e: unknown; m?: unknown; t?: unknown; s?: unknown; a?: unknown } | null {
+  if (decoded.startsWith("{")) {
+    try {
+      const obj = JSON.parse(decoded);
+      return obj && typeof obj === "object" ? obj : null;
+    } catch {
+      return null;
+    }
+  }
+  const [expStr, modeStr, third] = decoded.split(".");
+  if (!expStr || !modeStr) return null;
+  if (modeStr === "admin") return { e: expStr, m: "admin", a: third };
+  return { e: expStr, m: modeStr, s: third };
 }

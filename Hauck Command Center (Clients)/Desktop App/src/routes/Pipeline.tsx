@@ -99,7 +99,7 @@ export function Pipeline() {
         <EmptyState
           icon={<Users size={22} />}
           title="No pipelines yet"
-          description="Pipelines from your CRM will appear here once configured."
+          description="Pipelines from your Command Center will appear here once configured."
         />
       </div>
     );

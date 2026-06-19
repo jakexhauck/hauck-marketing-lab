@@ -5,6 +5,7 @@ import { getServiceClient, resolveTenantId } from "../lib/supabase";
 import {
   clientLabelFromHost,
   loadLiveTenantForHost,
+  loadTenantById,
   tenantHasGhlCreds,
 } from "../lib/tenantResolve";
 import { resolveCaller } from "../lib/identity";
@@ -97,18 +98,26 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         mode: "test",
       };
     } else {
-      // Resolve the live client by request host (subdomain), falling back to the
-      // TENANT_SLUG env tenant. Per-client GHL creds come from the tenant row
-      // (set in the admin console); the GHL_* env vars stay the fallback until a
-      // client is fully wired, so single-tenant deploys are unaffected.
+      // Resolve the live client from the SESSION (account-based): the logged-in
+      // account decides which client they see, so one URL serves everyone. Legacy
+      // sessions that predate account scoping carry no tenantId and fall back to
+      // the request host / TENANT_SLUG env tenant. Per-client GHL creds come from
+      // the tenant row (set in the admin view); the GHL_* env vars stay the
+      // fallback until a client is fully wired, so single-tenant deploys work.
       const host = ctx.request.headers.get("host");
       const svc = getServiceClient(ctx.env);
-      const tenant = svc ? await loadLiveTenantForHost(svc, ctx.env, host) : null;
-
-      // A subdomain that matches no client is a real misconfiguration: refuse
-      // rather than silently serving the fallback client's data on it.
-      if (!tenant && clientLabelFromHost(host)) {
-        return json(404, { error: "client not configured" }, origin);
+      let tenant = null;
+      if (session.tenantId && svc) {
+        tenant = await loadTenantById(svc, session.tenantId);
+        // The session names a client that no longer exists: reject (log out).
+        if (!tenant) return json(401, { error: "unauthorized" }, origin);
+      } else {
+        tenant = svc ? await loadLiveTenantForHost(svc, ctx.env, host) : null;
+        // A subdomain that matches no client is a real misconfiguration: refuse
+        // rather than silently serving the fallback client's data on it.
+        if (!tenant && clientLabelFromHost(host)) {
+          return json(404, { error: "client not configured" }, origin);
+        }
       }
 
       const useTenantCreds = tenant ? tenantHasGhlCreds(tenant) : false;
@@ -134,9 +143,11 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
     // route is covered without per-route edits.
     if (session.staffId) {
       const client = getServiceClient(ctx.env);
-      const tenantId = client
-        ? await resolveTenantId(client, ctx.data.tenant.slug)
-        : null;
+      // The session's tenantId is authoritative (account-based). Fall back to a
+      // slug lookup only for legacy sessions that carry no tenantId.
+      const tenantId =
+        session.tenantId ??
+        (client ? await resolveTenantId(client, ctx.data.tenant.slug) : null);
       const caller = await resolveCaller(client, tenantId, session);
       if (caller.revoked) return json(401, { error: "unauthorized" }, origin);
 

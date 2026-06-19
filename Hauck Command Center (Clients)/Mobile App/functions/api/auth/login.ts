@@ -57,6 +57,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   }
 
   let mode: SessionMode;
+  let tenantId: string | undefined;
   if (body.mode === "test") {
     const testPassword = ctx.env.TEST_APP_PASSWORD;
     if (!testPassword) {
@@ -95,13 +96,17 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       return Response.json({ error: "incorrect password" }, { status: 401 });
     }
     mode = "live";
+    // Bind the resolved client into the session so the middleware scopes by it
+    // instead of re-resolving from the host. Absent on a bare single-tenant
+    // deploy (no tenant row), where the host/env fallback still applies.
+    tenantId = tenant?.id;
   }
 
   // Mint the token once; the cookie wraps the same value. Web clients use the
   // HttpOnly cookie and ignore `token`; bearer clients (desktop) read `token`
   // from the body and store it in the OS keychain.
-  const token = await mintSessionToken(ctx.env, mode);
-  const cookie = await mintSessionCookie(ctx.env, mode);
+  const token = await mintSessionToken(ctx.env, mode, { tenantId });
+  const cookie = await mintSessionCookie(ctx.env, mode, { tenantId });
   return new Response(JSON.stringify({ ok: true, mode, token }), {
     status: 200,
     headers: {
