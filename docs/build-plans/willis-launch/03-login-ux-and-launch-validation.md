@@ -3,6 +3,12 @@
 **You are one of several Claude instances. Read `00-INDEX.md` first.** Address Jake as
 **"Sir"**. **No em dashes.** **Ask clarifying questions** when behavior is ambiguous.
 
+> **STATUS: ~30% done (2026-06-19).** Section A (login UX) is SHIPPED and verified live: one
+> email + password form, an Admin sign-in, the responsive desktop layout, and correct default
+> branding ("Hauck Command Center"). What is LEFT is section B: the full end-to-end validation
+> matrix (owner + rep, on a desktop browser AND an installed phone PWA) plus Jake's launch
+> sign-off. This is BLOCKED until Plan 02 creates Willis's owner + rep logins to test with.
+
 **Depends on Plan 02.** This is the launch gate: when this passes, Willis is live.
 
 ## Goal

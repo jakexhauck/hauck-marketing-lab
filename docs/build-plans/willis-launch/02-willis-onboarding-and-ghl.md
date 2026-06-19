@@ -5,8 +5,20 @@ house rules, and locked decisions. Address Jake as **"Sir"**. **No em dashes.**
 **Ask clarifying questions** for every Willis-specific value below; do not invent branding,
 labels, emails, or pipeline assumptions.
 
+> **STATUS: ~60% done (2026-06-19). This is the next actionable plan.** Willis Windows already
+> exists as a `tenants` row: name "Willis Windows", niche "Window Cleaning", slug
+> `willis-windows`, and GHL is CONNECTED (real creds on the tenant row, not the env fallback).
+> Surfaces were seeded enabled. What is LEFT, all doable in the admin console at
+> `app.hauckmarketing.com` (Admin sign-in):
+> 1. **Create Willis's login accounts** (the member count is 0, so nobody on her team can sign
+>    in yet): the owner (role `owner`, email + password) and any reps/managers, or Import from
+>    GHL then set passwords + permissions. This is the main remaining work and it BLOCKS Plan 03.
+> 2. **Confirm branding + labels** (app name shown in the header, Won label, value label) and
+>    **which surfaces** Willis should see.
+> 3. **Verify the GHL data path** reads Willis's real data (section D).
+
 **Infra is live** (Plan 01 shipped): Supabase current, global env set, admin login works, app
-deployed at `app.hauckmarketing.com`. This is the next actionable plan.
+deployed at `app.hauckmarketing.com`.
 
 ## Goal
 
@@ -39,7 +51,9 @@ confirmed, see `command-center/app/supabase/seeds/willis-windows.sql`):
 
 ## Work
 
-### A. Create the Willis tenant
+### A. Create the Willis tenant  [DONE]
+- Willis already exists (tenant created, GHL connected, branding set). Only edits/confirmation
+  remain via the client detail page in the admin console. Original guidance kept for reference:
 - Preferred: via the admin view (`POST /api/admin/clients`) so the real flow is tested. The
   create endpoint accepts branding, labels, GHL creds, and (now) an **owner email + password**
   that creates the owner login in one step

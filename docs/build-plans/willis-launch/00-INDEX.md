@@ -103,17 +103,18 @@ configure clients.
 
 ## Plans + dependency order
 
-| # | Plan | Track | Status |
-|---|------|-------|--------|
-| 01 | Infra: migrations, Cloudflare env, admin account, domains, deploy | LAUNCH | DONE (removed) |
-| 02 | Willis onboarding: tenant, branding, GHL wiring, owner + staff accounts | LAUNCH | next actionable |
-| 03 | Login UX (email+password) + full end-to-end launch validation | LAUNCH | login shipped; validate |
-| 04 | Unify into ONE responsive Command Center; retire `crm-web` | MERGE | DONE (2026-06-19) |
-| 05 | Admin view inside the one app (full per-client config controls) | MERGE | IN PROGRESS |
-| 06 | Push notifications + offline polish | AFTER | deferred |
+| # | Plan | Track | Status | Remaining |
+|---|------|-------|--------|-----------|
+| 01 | Infra: migrations, Cloudflare env, admin account, domains, deploy | LAUNCH | DONE (file removed) | nothing |
+| 02 | Willis onboarding: tenant, branding, GHL wiring, owner + staff accounts | LAUNCH | ~60% done, NEXT ACTIONABLE | create Willis's owner + rep logins; confirm surfaces/labels; verify GHL data |
+| 03 | Login UX (email+password) + full end-to-end launch validation | LAUNCH | ~30% done | login UX shipped; run the validation matrix + sign-off (blocked by 02) |
+| 04 | Unify into ONE responsive Command Center; retire `crm-web` | MERGE | ~95% done | Jake deletes old `hauck-crm` CF project, redirects dead origin, drop dead CORS origins |
+| 05 | Admin view inside the one app (full per-client config controls) | MERGE | ~80% done, SHIPPED | staff-edit UI (role/password/permissions); optional "preview as client" mode |
+| 06 | Push notifications + offline polish | AFTER | NOT STARTED (~0%) | generate/set VAPID, wire+register webhook, test push + offline |
 
-**Next up:** Plan 02 (Willis onboarding) and Plan 03 validation. Plan 05 is in progress.
-Plan 06 is last.
+**Next up:** Plan 02 (create Willis's logins) unblocks Plan 03 (validation + sign-off) = Willis
+launched. Plan 04 needs only Jake's Cloudflare cleanup. Plan 05 is shipped with two small
+follow-ups. Plan 06 is last.
 
 ## Definition of "Willis is launched"
 

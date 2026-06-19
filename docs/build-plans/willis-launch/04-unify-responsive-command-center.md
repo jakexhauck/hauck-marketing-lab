@@ -1,10 +1,11 @@
 # Plan 04 — Unify into ONE responsive Command Center (MERGE track)
 
-> **STATUS: DONE (merged and deployed 2026-06-19).** The two builds are now ONE responsive app
-> at `command-center/app` (package `client-dashboard`): desktop sidebar layout at `lg`+, phone
-> PWA below. The old `Desktop App` (`crm-web`) and `packages/core` were DELETED. The only
-> things left are the residual cleanup in "Residual cleanup (outstanding)" below. The rest of
-> this plan is kept for reference on how the merge was done.
+> **STATUS: ~95% done, the merge is DONE and deployed (2026-06-19).** The two builds are now ONE
+> responsive app at `command-center/app` (package `client-dashboard`): desktop sidebar layout at
+> `lg`+, phone PWA below. The old `Desktop App` (`crm-web`) and `packages/core` were DELETED.
+> The ONLY thing left is Jake's external cleanup in "Residual cleanup (outstanding)" below
+> (delete the old `hauck-crm` Cloudflare project, redirect the dead origin, drop dead CORS
+> origins). The rest of this plan is kept for reference on how the merge was done.
 
 **You are one of several Claude instances. Read `00-INDEX.md` first.** Address Jake as
 **"Sir"**. **No em dashes.**

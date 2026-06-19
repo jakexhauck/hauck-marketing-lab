@@ -3,6 +3,12 @@
 **You are one of several Claude instances. Read `00-INDEX.md` first.** Address Jake as
 **"Sir"**. **No em dashes.** **Ask clarifying questions** about alert behavior.
 
+> **STATUS: NOT STARTED (deferred). ~0% of the config + testing done; only code groundwork
+> exists.** The service worker, push helpers, and the subscribe/key/webhook endpoints are in
+> `command-center/app`, and migration `0011_notify_audience` is applied. The ENTIRE actionable
+> plan below remains: generate + set VAPID keys, wire/verify the webhook fan-out, register the
+> GHL webhook, and test push + offline end-to-end. See also `RUNBOOK-push.md` in this folder.
+
 **Do this LAST**, after launch (01-03) and the merge (04-05) are done and stable. Jake
 explicitly wants push added after everything else works.
 

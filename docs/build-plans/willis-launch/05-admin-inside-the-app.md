@@ -1,9 +1,17 @@
 # Plan 05 — Admin view INSIDE the one app (MERGE track)
 
-> **STATUS: IN PROGRESS (2026-06-19).** The admin login + in-app console are being implemented
-> now in `command-center/app/src/routes/admin/` (`AdminLayout`, `AdminClients`,
-> `AdminClientDetail`), wired to the existing `/api/admin/**` endpoints. The dead `subdomain`
-> field is dropped.
+> **STATUS: ~80% done, SHIPPED and verified live (2026-06-19).** The admin login and in-app
+> console are LIVE at `app.hauckmarketing.com`. DONE: Admin sign-in routes to `/admin/clients`
+> (gated to admins, non-admins redirected); `AdminLayout` + `AdminClients` (list + create) +
+> `AdminClientDetail` (edit branding/labels, GHL creds, owner password, toggle surface
+> entitlements, add/disable staff, Import from GHL), all wired to `/api/admin/**`, responsive,
+> verified end-to-end with real data. The dead `subdomain` field is dropped. REMAINING:
+> 1. **Staff EDIT UI** for existing staff: change role, reset password, edit per-surface
+>    view/edit permissions. The backend `PATCH /api/admin/clients/:id/staff/:staffId` already
+>    exists; the console currently only adds, disables, and imports staff.
+> 2. **Optional "preview as this client"** read-only mode. The backend already has
+>    `preview.ts` + `exit-preview.ts` and the middleware enforces read-only; no UI is built yet.
+>    Decide whether you want this now or later.
 
 **You are one of several Claude instances. Read `00-INDEX.md` first.** Address Jake as
 **"Sir"**. **No em dashes.** **Ask clarifying questions** about admin workflows.
