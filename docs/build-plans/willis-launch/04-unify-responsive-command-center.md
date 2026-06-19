@@ -1,75 +1,64 @@
 # Plan 04 — Unify into ONE responsive Command Center (MERGE track)
 
+> **STATUS: DONE (merged and deployed 2026-06-19).** The two builds are now ONE responsive app
+> at `command-center/app` (package `client-dashboard`): desktop sidebar layout at `lg`+, phone
+> PWA below. The old `Desktop App` (`crm-web`) and `packages/core` were DELETED. The only
+> things left are the residual cleanup in "Residual cleanup (outstanding)" below. The rest of
+> this plan is kept for reference on how the merge was done.
+
 **You are one of several Claude instances. Read `00-INDEX.md` first.** Address Jake as
-**"Sir"**. **No em dashes.** **Ask clarifying questions** before reshaping any UI.
+**"Sir"**. **No em dashes.**
 
-**Depends on:** Willis being live (Plans 01-03). This is the "make it one app" phase.
+## Goal (achieved)
 
-## Goal
-
-Collapse the two builds into **one responsive codebase** served at `app.hauckmarketing.com`:
+Collapsed the two builds into **one responsive codebase** served at `app.hauckmarketing.com`:
 one app that lays out wide on desktop (sidebar + multi-column) and installs as a PWA on
-phones (bottom nav), same login, same data, same backend. Then retire the Desktop App
-(`crm-web`). The admin view comes in Plan 05.
+phones (bottom nav), same login, same data, same backend. The old `Desktop App` (`crm-web`)
+was retired. The admin view comes in Plan 05.
 
-## Why the Mobile App is the base
-The Mobile App (`client-dashboard`) owns the backend (`functions/`), the PWA/offline infra,
-and is feature-complete for clients. The Desktop App (`crm-web`) only adds desktop-first
-layout + a few views + the admin console. So the merge is "make the PWA responsive and bring
-over the desktop-only value," not a rewrite.
+## Why `command-center/app` was the base
+`command-center/app` (`client-dashboard`) owns the backend (`functions/`), the PWA/offline
+infra, and was feature-complete for clients. The old `Desktop App` (`crm-web`) only added
+desktop-first layout + a few views + the admin console. So the merge was "make the PWA
+responsive and bring over the desktop-only value," not a rewrite.
 
-## START HERE: ask Jake
-- "On desktop, do you want a left **sidebar** nav (recommended) matching the current desktop
-  build's shell, with the phone keeping the bottom tab bar?"
-- "Which desktop-only views matter: **Paid Ads**, **Activity**, the kanban **Pipeline board**?
-  Map them onto the mobile equivalents or bring them over?"
-- "Any view you want to drop (the mobile build has dev-only `Showroom` and `Simulator`)?"
+## How the merge was done (reference)
+- **Responsive shell.** The fixed 448px shell was replaced with a layout that, at `lg`+, shows
+  a **sidebar + wide content** (the look ported from the old `Desktop App` Sidebar), and below
+  `lg` keeps the phone layout + bottom nav. One nav source of truth, filtered by the user's
+  enabled surfaces + permissions (`filterNav`).
+- **Reconciled routes.** Best implementation kept per concept (kanban Pipeline board at
+  desktop width, the lead list for phones). `Paid Ads` and `Activity` brought over; dev-only
+  `Showroom`/`Simulator` dropped.
+- **Shared types folded in.** The old `Desktop App` used `@hauck/core` (`packages/core`).
+  Rather than keep a separate package, `packages/core` was deleted and API types + permission
+  capability keys live in `command-center/app`, one source of truth.
+- **Login.** The email + password login form (plus Admin sign-in) lives in the unified app.
+- **Deploy.** The unified app deploys to the `hauck-command-center` Pages project at
+  `app.hauckmarketing.com` (Root directory `command-center/app`, Build command
+  `pnpm run build`, Build output `dist`).
+- `package.json` root scripts that referenced `--filter crm-web` were updated, and the
+  `crm-web` package was removed from `pnpm-workspace.yaml`.
 
-## Current state (audited)
-- Mobile shell is **phone-only**: `Mobile App/src/components/Shell.tsx` hard-caps width to
-  448px; `BottomNav.tsx` is a fixed 4-item bar; routes in `src/App.tsx`.
-- Desktop shell: `Desktop App/src/components/shell/Sidebar.tsx`, nav in `src/lib/nav.ts`,
-  richer routes (`Overview`, `PaidAds`, `Pipeline` kanban, `Inbox`, `Activity`).
-- Route concept overlap: Leads≈Pipeline, Conversations≈Inbox, Dashboard/Home/Today≈Overview.
+## Residual cleanup (outstanding)
+- **Jake: delete the old `hauck-crm` Cloudflare Pages project.** It is no longer used (the
+  app is `hauck-command-center`).
+- **Redirect the old desktop origin.** `commandcenter.hauckmarketing.com` (and
+  `dash.hauckmarketing.com`, `hauck-crm.pages.dev`) are dead. Point or redirect the old
+  desktop origin to `app.hauckmarketing.com`.
+- **Drop the dead CORS origins** so only `app.hauckmarketing.com` remains allowed.
 
-## Work
-1. **Responsive shell.** Replace the fixed 448px shell with a layout that, at `lg`+, shows a
-   **sidebar + wide content** (port the look from `Desktop App` Sidebar), and below `lg` keeps
-   the current phone layout + bottom nav. One nav source of truth, filtered by the user's
-   enabled surfaces + permissions (mirror `Desktop App/src/lib/nav.ts` `filterNav`).
-2. **Reconcile routes.** Pick the best implementation per concept (e.g. keep the kanban
-   Pipeline board for desktop width, the mobile lead list for phones, or make one component
-   responsive). Bring over `Paid Ads` and `Activity` if Jake wants them. Delete dev-only
-   `Showroom`/`Simulator` unless Jake keeps them.
-3. **Shared types.** The Desktop App used `@hauck/core`; the Mobile App has its own copies.
-   Consolidate to ONE source of truth for API types + permission capability keys so they can
-   never drift. Decide: keep `packages/core` and have the merged app depend on it, or fold
-   core into the app. Confirm with Jake.
-4. **Login.** Carry over the email + password login form from Plan 03 into the unified app.
-5. **Deploy.** The unified app deploys to the existing `hauck-command-center` project at
-   `app.hauckmarketing.com`. Update the build/output config accordingly.
-
-## Retire `crm-web`
-- Once the unified app covers the desktop experience and is verified, point the old desktop
-  origin (e.g. `commandcenter.hauckmarketing.com`) to redirect to `app.hauckmarketing.com`,
-  remove the `crm-web` package from `pnpm-workspace.yaml`, delete the `Desktop App/` folder,
-  and remove the now-defunct Cloudflare `hauck-crm` project. At this point the `crm-web` /
-  `hauck-crm` names disappear (the rebrand is complete).
-- Update `package.json` root scripts that referenced `--filter crm-web`.
-
-## Definition of done
+## Definition of done (met)
 - One codebase at `app.hauckmarketing.com` renders a wide desktop layout AND a phone PWA
   layout from the same routes, gated by surface entitlements + permissions.
-- Willis owner + rep verified on both form factors against the unified app (re-run the
-  relevant rows of Plan 03's matrix).
-- `crm-web` / `hauck-crm` retired; no references remain.
+- `crm-web` / `hauck-crm` retired from the codebase; only the residual Cloudflare cleanup
+  above remains.
 
 ## MANUAL ACTIONS — JAKE MUST DO
-1. Answer the layout/views questions in "START HERE".
-2. **Cloudflare:** delete the old `hauck-crm` project and set the redirect from the old
-   desktop origin to `app.hauckmarketing.com` (this Claude will tell you exactly when).
-3. Re-test on your phone + desktop after the cutover and sign off.
+1. **Cloudflare:** delete the old `hauck-crm` project and set the redirect from the old
+   desktop origin to `app.hauckmarketing.com`.
+2. Confirm the dead CORS origins are dropped (this Claude can do the code change).
 
 ## Manual actions ALREADY DONE FOR YOU
-- Branding already says "Command Center"; backend + account login are shared, so the merge is
-  a frontend consolidation, not a backend change.
+- The merge shipped and deployed (2026-06-19): one responsive app at `command-center/app`,
+  old `Desktop App` and `packages/core` deleted, live at `app.hauckmarketing.com`.

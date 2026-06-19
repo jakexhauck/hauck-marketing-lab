@@ -23,11 +23,11 @@ GoHighLevel, plus a live phone test. Steps below.
 ## Jake's setup checklist
 
 1. **Apply the migration.** In Supabase → SQL Editor, run
-   `Mobile App/supabase/migrations/0011_notify_audience.sql`. Idempotent.
+   `command-center/app/supabase/migrations/0011_notify_audience.sql`. Idempotent.
 2. **Set the VAPID keys in Cloudflare.** Pages project `hauck-command-center` →
    Settings → Environment variables (Production). Add:
    - `VAPID_PUBLIC_KEY` = (the public key I gave you in chat)
-   - `VAPID_PRIVATE_KEY` = (the private key I gave you in chat) — keep secret,
+   - `VAPID_PRIVATE_KEY` = (the private key I gave you in chat), keep secret,
      never commit it.
    Redeploy so the Functions pick them up.
 3. **Confirm `WEBHOOK_SECRET` is set** in the same env (used to authenticate the

@@ -5,22 +5,24 @@ house rules, and locked decisions. Address Jake as **"Sir"**. **No em dashes.**
 **Ask clarifying questions** for every Willis-specific value below; do not invent branding,
 labels, emails, or pipeline assumptions.
 
-**Depends on Plan 01** (Supabase current, env set, admin login works, app deployed).
+**Infra is live** (Plan 01 shipped): Supabase current, global env set, admin login works, app
+deployed at `app.hauckmarketing.com`. This is the next actionable plan.
 
 ## Goal
 
 Make Willis Windows a fully configured client: a `tenants` row with correct branding, GHL
 sub-account wired, the owner's login created, staff/reps added, and the right surfaces
-(entitlements) enabled. Do this through the **admin view** (the Desktop App's `/admin`
-screens) wherever possible, so the flow Jake will reuse for future clients is exercised.
+(entitlements) enabled. Onboarding can now be done **in-app** via the admin console
+(`command-center/app/src/routes/admin/`) wherever possible, so the flow Jake will reuse for
+future clients is exercised.
 
 ## START HERE: collect Willis's details from Jake
 
 Ask Jake for all of these before configuring (the seed file has placeholders that MUST be
-confirmed, see `Mobile App/supabase/seeds/willis-windows.sql`):
+confirmed, see `command-center/app/supabase/seeds/willis-windows.sql`):
 
 - **Display name** (default "Willis Windows") and **app name** shown in the app header
-  (seed says "Willis Leads" — confirm).
+  (seed says "Willis Leads", confirm).
 - **Brand color** (hex; seed default `#1d6fb8`), **initials** (default "WW"), and a **logo**
   if there is one.
 - **Won label** (seed "Won"; e.g. "Job Booked"?) and **value label** (seed "Job Value").
@@ -31,7 +33,7 @@ confirmed, see `Mobile App/supabase/seeds/willis-windows.sql`):
 - **GHL sub-account:** confirm location id (`.env.local` has `OznT3yyuwK3dqVXDsCaD`) and that
   its token has scopes for opportunities, contacts, conversations (read/write).
 - **Which surfaces Willis sees** (entitlements). Capability keys live in
-  `Mobile App/functions/lib/permissions.ts`: `overview, paid_ads, pipeline, inbox, contacts,
+  `command-center/app/functions/lib/permissions.ts`: `overview, paid_ads, pipeline, inbox, contacts,
   calendar, billing, activity`. Ask which to enable for Willis at launch.
 - **Timezone** for "today" calculations.
 
@@ -40,13 +42,14 @@ confirmed, see `Mobile App/supabase/seeds/willis-windows.sql`):
 ### A. Create the Willis tenant
 - Preferred: via the admin view (`POST /api/admin/clients`) so the real flow is tested. The
   create endpoint accepts branding, labels, GHL creds, and (now) an **owner email + password**
-  that creates the owner login in one step (`Mobile App/functions/api/admin/clients/index.ts`).
+  that creates the owner login in one step
+  (`command-center/app/functions/api/admin/clients/index.ts`).
 - Alternative: adapt `supabase/seeds/willis-windows.sql` with confirmed values (note: that
   seed predates the owner-account model; prefer the admin endpoint).
-- Set `slug = willis-windows`. GHL creds: either store Willis's real creds on the tenant row,
-  or leave them as the `env` placeholder so the backend uses the Cloudflare `GHL_*` env vars
-  (single-client launch). Confirm which with Jake; for multiple clients later, per-tenant
-  creds are required.
+- Set `slug = willis-windows`. **GHL creds MUST be stored on the tenant ROW** for Willis (set
+  them via the admin console). Cloudflare env no longer carries `GHL_*` or `TENANT_SLUG`, so
+  per-tenant creds on the row are required, not optional. This is what makes the app
+  multi-client.
 
 ### B. Owner + staff accounts
 - Ensure the **owner** account exists (role `owner`, email + password). Owners bypass
@@ -67,7 +70,7 @@ confirmed, see `Mobile App/supabase/seeds/willis-windows.sql`):
 - With the Willis creds active, confirm the backend can read Willis's GHL: hit (authenticated)
   `/api/leads`, `/api/contacts`, `/api/conversations`, `/api/calendar/events` and confirm
   real Willis data returns (not the test account, not empty). The GHL routes live under
-  `Mobile App/functions/api/`. Confirm pipeline stage names match Willis's actual GHL pipeline
+  `command-center/app/functions/api/`. Confirm pipeline stage names match Willis's actual GHL pipeline
   and that the Won label matches.
 
 ## Definition of done

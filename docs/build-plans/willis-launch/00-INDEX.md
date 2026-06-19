@@ -1,8 +1,8 @@
-# Willis Windows Launch — Master Index
+# Willis Windows Launch, Master Index
 
-> One product: the **Command Center**. A **desktop version** and a **mobile version**,
-> same backend, fully in sync. Goal of this plan set: get **Willis Windows** fully live on
-> both, then collapse the two builds into one responsive codebase, then add push.
+> One product: the **Command Center**. One responsive app: desktop sidebar layout at `lg`+,
+> phone PWA below, same backend. Goal of this plan set: get **Willis Windows** fully live,
+> then add push.
 >
 > Each numbered file is a **self-contained handoff plan for a separate Claude instance.**
 > Hand them out in dependency order (below). Every plan tells its Claude to **ask Jake
@@ -32,49 +32,88 @@ configure clients.
 
 ## Repo layout
 
-- `command-center/app/` — package `client-dashboard`. The React PWA
+- `command-center/app/`: package `client-dashboard`. The ONE responsive app: the React PWA
   **and** the Cloudflare Pages Functions backend (`functions/`) + Supabase schema
-  (`supabase/`). This project owns the API and is the base for the future single app.
-- `command-center/Desktop App/` — package `crm-web`. React SPA, desktop-first
-  CRM + the admin console. No backend of its own; calls the Mobile App's `/api/*`.
-- `packages/core/` — shared types/permissions used by the desktop build.
+  (`supabase/`). It renders a desktop sidebar layout at `lg`+ and a phone PWA below, and owns
+  the API. This is the only Command Center build.
+- (Retired) The old `Desktop App` (package `crm-web`) and `packages/core` were DELETED in the
+  Plan 04 merge. Their desktop-first layout, views, and admin console were folded into
+  `command-center/app`.
 - Repo root `app/` is a DIFFERENT product (the agency's Tauri app). Do not touch it.
 
 ## Locked decisions (from the planning session, 2026-06-19)
 
 - One URL: **`app.hauckmarketing.com`** for clients and admin. Admin is a gated section of
-  the same app, not a separate app. Rename the Cloudflare project to **`hauck-command-center`**.
+  the same app, not a separate app. The Cloudflare Pages project is named **`hauck-command-center`**.
 - Login is **email + password per person**. No per-client subdomains. No shared passwords
   (the old shared-password owner login stays only as a single-tenant fallback).
-- **Launch first on the existing two builds**, then merge into one responsive codebase.
-- Willis's team uses the **desktop version** (full CRM) and the phone; Jake also tests the
+- **One responsive codebase**: the merge is DONE. The desktop sidebar layout and the phone
+  PWA are the same app (`command-center/app`), not two builds.
+- Willis's team uses the desktop sidebar layout (full CRM) and the phone; Jake also tests the
   client view and tunes the admin view.
-- **Push notifications are the last phase** (Plan 06), added after launch + merge.
+- Per-client GHL credentials live on the **tenant row** (set via the admin console), NOT in
+  Cloudflare env. There is no `TENANT_SLUG` and no `GHL_*` in Cloudflare env.
+- **Push notifications are the last phase** (Plan 06).
 - DNS is at **Namecheap** (apex `hauckmarketing.com`); Cloudflare gives a CNAME target.
 
 ## Already done (do not redo)
 
+- **Plan 01 (infra) complete and verified:** Cloudflare Pages project `hauck-command-center`
+  builds and serves the app + API; global env secrets set; Jake's super-admin login exists.
+- **Plan 04 merge done and deployed (2026-06-19):** the two builds are now ONE responsive app
+  at `command-center/app`. The old `Desktop App` (`crm-web`) and `packages/core` were deleted.
+- **Migrations `0001` through `0011` are ALL applied** to Supabase (numbering skips `0002`,
+  which never existed). `0010` makes staff emails globally unique; `0011` adds
+  `tenants.notify_audience`.
+- **`app.hauckmarketing.com` is LIVE** (HTTPS; `/api/auth/me` returns 401 when logged out).
 - **Rebrand:** all visible "CRM"/"Control Tower"/"Dashboard" strings are now "Command Center".
 - **Account-based login (backend):** session token carries `tenant_id`; live login resolves
   the client by email globally; middleware + `me.ts` prefer the session tenant. Files:
-  `Mobile App/functions/lib/session.ts`, `.../api/auth/staff-login.ts`, `.../api/auth/login.ts`,
-  `.../api/_middleware.ts`, `.../api/auth/me.ts`, `.../lib/tenantResolve.ts`.
-- **Migration `0010_global_email_login.sql`:** makes `lower(email)` unique across all
-  `staff_accounts` (not yet applied to Supabase — see Plan 01).
+  `command-center/app/functions/lib/session.ts`, `.../api/auth/staff-login.ts`,
+  `.../api/auth/login.ts`, `.../api/_middleware.ts`, `.../api/auth/me.ts`,
+  `.../lib/tenantResolve.ts`.
 - **Admin create-client** can also create the owner login account (email + password).
+
+## Launch status (2026-06-19): what changed
+
+- **One responsive app, merge done.** Plan 04 shipped. The two builds collapsed into one app
+  that renders a desktop sidebar at `lg`+ and a phone PWA below. The old `Desktop App`
+  (`crm-web`) and `packages/core` were deleted.
+- **Folder renamed.** "Hauck Command Center (Clients)/Mobile App" became `command-center/app`
+  (package name still `client-dashboard`). Reason: Cloudflare Pages path fields reject
+  parentheses and the special characters `;|&()<>`, so the parenthesised path was unusable.
+- **Cloudflare Pages project `hauck-command-center`.** Build config: Root directory
+  `command-center/app`, Build command `pnpm run build`, Build output `dist`. The `functions/`
+  dir auto-routes the API. `wrangler.toml` in that folder names the project and sets
+  `pages_build_output_dir = "dist"`.
+- **`app.hauckmarketing.com` is live (HTTPS).** It previously served a GoHighLevel page; its
+  Namecheap CNAME was repointed to the Pages project. Dead origins now:
+  `commandcenter.hauckmarketing.com`, `dash.hauckmarketing.com`, `hauck-crm.pages.dev`. The
+  old `hauck-crm` Cloudflare Pages project still needs deleting by Jake.
+- **Migrations `0001`-`0011` all applied** (numbering skips `0002`, which never existed).
+  `0010` = globally unique staff emails; `0011` = `tenants.notify_audience`. Jake's
+  super-admin login exists in `admin_accounts`.
+- **Env strategy:** per-client GHL credentials live in the tenant ROW (set via the admin
+  console), NOT in Cloudflare env. No `TENANT_SLUG`, no `GHL_*` in Cloudflare. Global secrets
+  only: `SESSION_SECRET`, `APP_PASSWORD`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `WEBHOOK_SECRET`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `NODE_VERSION`,
+  `PNPM_VERSION`. VAPID keys remain empty (Plan 06).
+- **Admin pulled forward.** Plan 05 (admin login + in-app console) is being built now into
+  `command-center/app/src/routes/admin/`, not deferred.
 
 ## Plans + dependency order
 
-| # | Plan | Track | Depends on |
-|---|------|-------|-----------|
-| 01 | Infra: migrations, Cloudflare env, admin account, domains, deploy both builds | LAUNCH | — |
-| 02 | Willis onboarding: tenant, branding, GHL wiring, owner + staff accounts | LAUNCH | 01 |
-| 03 | Login UX (owner = email+password) + full end-to-end launch validation | LAUNCH | 01, 02 |
-| 04 | Unify into ONE responsive Command Center (mobile base); retire `crm-web` | MERGE | launch live (01-03) |
-| 05 | Admin view inside the one app (full per-client config controls) | MERGE | 04 |
-| 06 | Push notifications + offline polish | AFTER | 04, 05 |
+| # | Plan | Track | Status |
+|---|------|-------|--------|
+| 01 | Infra: migrations, Cloudflare env, admin account, domains, deploy | LAUNCH | DONE (removed) |
+| 02 | Willis onboarding: tenant, branding, GHL wiring, owner + staff accounts | LAUNCH | next actionable |
+| 03 | Login UX (email+password) + full end-to-end launch validation | LAUNCH | login shipped; validate |
+| 04 | Unify into ONE responsive Command Center; retire `crm-web` | MERGE | DONE (2026-06-19) |
+| 05 | Admin view inside the one app (full per-client config controls) | MERGE | IN PROGRESS |
+| 06 | Push notifications + offline polish | AFTER | deferred |
 
-**Launch = Plans 01 → 02 → 03 complete.** Then 04 → 05. Then 06.
+**Next up:** Plan 02 (Willis onboarding) and Plan 03 validation. Plan 05 is in progress.
+Plan 06 is last.
 
 ## Definition of "Willis is launched"
 

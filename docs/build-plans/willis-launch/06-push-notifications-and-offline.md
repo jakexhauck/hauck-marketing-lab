@@ -11,8 +11,8 @@ Phone push notifications: when a new lead or message arrives in a client's GHL a
 right people get an instant push on their installed PWA. Plus verify offline behavior.
 
 ## Background (already built, needs keys + testing)
-- Service worker push handling: `Mobile App/src/sw.ts` (push event + notification click).
-- Client push helpers: `Mobile App/src/lib/push.ts` (`enablePush`, `disablePush`, etc.).
+- Service worker push handling: `command-center/app/src/sw.ts` (push event + notification click).
+- Client push helpers: `command-center/app/src/lib/push.ts` (`enablePush`, `disablePush`, etc.).
 - Endpoints: `GET /api/push/key`, `POST /api/push/subscribe`, `POST /api/push/unsubscribe`.
 - The trigger is the GHL **webhook** (`/api/webhook`) writing activity, which should fan out
   pushes to subscribed devices for that tenant.
@@ -25,7 +25,7 @@ right people get an instant push on their installed PWA. Plus verify offline beh
    Jake before generating so they go straight into the dashboard, not a file.
 2. **Wire the webhook fan-out.** Confirm `/api/webhook` (secured by `WEBHOOK_SECRET`) resolves
    the tenant, then sends a web-push to that tenant's subscribed devices for the relevant
-   people. Verify it respects who should be notified (e.g. assigned rep vs owner) — ask Jake
+   people. Verify it respects who should be notified (e.g. assigned rep vs owner). Ask Jake
    for the rule.
 3. **Register the GHL webhook** in Willis's GHL sub-account pointing at
    `https://app.hauckmarketing.com/api/webhook` with the shared secret.

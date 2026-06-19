@@ -63,10 +63,12 @@ function clientFromTenant(t: ApiTenant): Client {
 }
 
 export function ClientProvider({ children }: { children: ReactNode }) {
-  const { session } = useAuth();
-  // Authenticated sessions read real tenant config; mock clients exist only
-  // for dev affordances (DevPanel switching, Showroom).
-  const tenantQuery = useTenantQuery(Boolean(session));
+  const { session, isAdmin } = useAuth();
+  // Authenticated CLIENT sessions read real tenant config; mock clients exist
+  // only for dev affordances (DevPanel switching, Showroom). A super-admin has
+  // no tenant, so the tenant query is skipped (it would 500) and the admin area
+  // renders its own chrome.
+  const tenantQuery = useTenantQuery(Boolean(session) && !isAdmin);
   const [mockClientId, setMockClientId] = useState<string | null>(null);
 
   const client = useMemo<Client>(() => {

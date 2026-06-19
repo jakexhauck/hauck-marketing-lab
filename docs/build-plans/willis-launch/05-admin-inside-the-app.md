@@ -1,9 +1,14 @@
 # Plan 05 — Admin view INSIDE the one app (MERGE track)
 
+> **STATUS: IN PROGRESS (2026-06-19).** The admin login + in-app console are being implemented
+> now in `command-center/app/src/routes/admin/` (`AdminLayout`, `AdminClients`,
+> `AdminClientDetail`), wired to the existing `/api/admin/**` endpoints. The dead `subdomain`
+> field is dropped.
+
 **You are one of several Claude instances. Read `00-INDEX.md` first.** Address Jake as
 **"Sir"**. **No em dashes.** **Ask clarifying questions** about admin workflows.
 
-**Depends on Plan 04** (the unified responsive app exists).
+**Plan 04 is done** (the unified responsive app exists at `command-center/app`).
 
 ## Goal
 
@@ -14,24 +19,27 @@ staff + permissions, GHL creds, owner login. This is the in-app control Jake ask
 can make changes to a client "all within the app."
 
 ## Background
-The admin UI already exists in the (now-retired) Desktop App and the endpoints live in the
-shared backend. Bring the UI into the unified app and gate it behind the admin session.
+The admin UI previously lived in the (now-deleted) Desktop App and the endpoints live in the
+shared backend. The UI is being brought into the unified app at
+`command-center/app/src/routes/admin/` and gated behind the admin session.
 
-- Backend (already built, keep): `Mobile App/functions/api/admin/**`
+- Backend (already built, keep): `command-center/app/functions/api/admin/**`
   - `GET/POST /api/admin/clients` (list / create; create can also make the owner login)
   - `GET/PATCH /api/admin/clients/:id` (detail / update branding, labels, GHL, owner password)
   - `PATCH /api/admin/clients/:id/entitlements` (toggle a surface on/off = the client's "view")
   - `POST /api/admin/clients/:id/staff`, `PATCH/DELETE .../staff/:staffId`
   - `POST /api/admin/clients/:id/import-staff` (pull GHL users)
-- UI to port (from the retired Desktop App): `src/routes/admin/AdminClients.tsx`,
-  `AdminClientDetail.tsx`, and their modals (business edit, staff editor, features card).
-- Admin session: `/api/auth/admin-login`; gate in `functions/api/_middleware.ts` already
-  forbids non-admins from `/api/admin/*`.
+- UI being built under `command-center/app/src/routes/admin/`: `AdminLayout`, `AdminClients`,
+  `AdminClientDetail`, and their modals (business edit, staff editor, features card).
+- Admin session: `/api/auth/admin-login`; gate in
+  `command-center/app/functions/api/_middleware.ts` already forbids non-admins from
+  `/api/admin/*`.
 
 ## Work
-1. **Port the admin routes** into the unified app under `src/routes/admin/`, rendered in the
-   same responsive shell. Add an `/admin` area visible only when the session is an admin
-   (`isAdmin` from `/api/auth/me`).
+1. **Build the admin routes** in the unified app under `command-center/app/src/routes/admin/`
+   (`AdminLayout`, `AdminClients`, `AdminClientDetail`), rendered in the same responsive shell.
+   Add an `/admin` area visible only when the session is an admin (`isAdmin` from
+   `/api/auth/me`).
 2. **Gate it.** Non-admins never see admin nav and are redirected away from `/admin/*`.
 3. **In-app client controls** (wire to the endpoints above) so Jake can, per client:
    - Create a client (name, niche, owner email + password, GHL creds, branding, labels).
@@ -60,4 +68,5 @@ shared backend. Bring the UI into the unified app and gate it behind the admin s
 
 ## Manual actions ALREADY DONE FOR YOU
 - All admin endpoints exist; create-client already provisions the owner login. This plan is a
-  UI port + gating, not new backend work (unless "preview as client" is chosen).
+  UI build + gating in the unified app, not new backend work (unless "preview as client" is
+  chosen). The dead `subdomain` field is dropped.

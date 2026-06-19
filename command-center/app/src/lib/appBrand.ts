@@ -4,8 +4,8 @@
 // unconfigured). Per-client branding is configuration, never code: no client
 // name belongs anywhere in src/.
 export const APP_BRAND = {
-  appName: "Test Account",
-  initials: "TST",
+  appName: "Hauck Command Center",
+  initials: "HC",
   color: "#1a4d8f",
   // Agency credit line on the login screen ("Secured by ...").
   securedBy: "Hauck Marketing",

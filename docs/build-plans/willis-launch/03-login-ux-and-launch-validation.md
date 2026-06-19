@@ -3,12 +3,14 @@
 **You are one of several Claude instances. Read `00-INDEX.md` first.** Address Jake as
 **"Sir"**. **No em dashes.** **Ask clarifying questions** when behavior is ambiguous.
 
-**Depends on Plans 01 + 02.** This is the launch gate: when this passes, Willis is live.
+**Depends on Plan 02.** This is the launch gate: when this passes, Willis is live.
 
 ## Goal
 
-1. Finish the login experience so an **owner signs in with their own email + password**
-   (not the legacy shared-password tab), on **both** the desktop and mobile builds.
+1. Confirm the login experience: an **owner signs in with their own email + password** (not
+   the legacy shared-password tab), in the ONE unified app. The single email + password login
+   already shipped, plus an **Admin** sign-in for Jake. The responsive desktop layout renders
+   after login at `lg`+; the phone PWA renders below.
 2. Run a complete end-to-end validation on a real desktop browser **and** an installed phone
    PWA, for both an owner and a rep, and get Jake's launch sign-off.
 
@@ -17,26 +19,20 @@
 Account-based login is already built on the backend: `/api/auth/staff-login` takes email +
 password, finds the person across all clients, and mints a session carrying the tenant. An
 owner is just a `staff_accounts` row with role `owner`. The OLD `/api/auth/login`
-(shared password) still exists as a single-tenant fallback but should not be the primary path.
+(shared password) still exists as a single-tenant fallback but is not the primary path.
 
-Both frontends currently show an "Owner" tab (shared password) and a "Staff" tab (email +
-password):
-- Desktop: `command-center/Desktop App/src/routes/Login.tsx` + `AuthContext.tsx`.
-- Mobile: `command-center/app/src/routes/Login.tsx` + `AuthContext.tsx`.
+The unified app's login already presents one email + password form plus the Admin sign-in:
+- `command-center/app/src/routes/Login.tsx` + `AuthContext.tsx`.
 
 ## Work
 
-### A. Login UX (both builds)
-- Make **email + password the primary login** for everyone (owner + staff). Simplest correct
-  change: drop/hide the shared-password "Owner" tab and present one email + password form that
-  posts to `/api/auth/staff-login`; keep the **Admin** tab (`/api/auth/admin-login`) for Jake.
+### A. Login UX (verify, the form already shipped)
+- **Email + password is the primary login** for everyone (owner + staff): one form posting to
+  `/api/auth/staff-login`. The **Admin** sign-in (`/api/auth/admin-login`) is for Jake.
 - Keep the live/test mode toggle only if Jake still wants a test account; otherwise hide it.
 - **Ask Jake:** "Keep a test-account mode, or live-only?" and "Should there be any visible
   'owner vs staff' distinction at login, or just one email/password form?"
 - Confirm logout clears the session (`/api/auth/logout`) and, on mobile, clears any app badge.
-
-> Note: this UX work is on the existing builds and will be re-applied in the merged app
-> (Plan 04). That is expected (launch-first path). Keep the change small and self-contained.
 
 ### B. End-to-end validation matrix
 Run every cell. Use the Playwright tools for the desktop browser; use a real phone (or a
@@ -57,13 +53,12 @@ phone-sized install) for the PWA cells. Record pass/fail with notes.
 | Wrong password rejected; rate-limit holds | | |
 
 - Mobile-only: confirm the PWA **installs** (Add to Home Screen) and launches standalone.
-- Confirm the desktop build and the mobile app show the **same data** for the same login
-  (same backend).
+- Confirm the desktop layout and the phone PWA show the **same data** for the same login (one
+  app, one backend).
 
 ### C. Triage
-- File any failures as concrete fixes. Auth/permission bugs are launch blockers; cosmetic
-  desktop-width issues are NOT (the responsive merge is Plan 04). Get Jake to confirm which
-  failures block launch vs defer.
+- File any failures as concrete fixes. Auth/permission bugs are launch blockers; minor
+  cosmetic width issues are NOT. Get Jake to confirm which failures block launch vs defer.
 
 ## Definition of done
 - Owner + at least one rep log in with email + password on desktop AND installed phone PWA.
@@ -76,5 +71,5 @@ phone-sized install) for the PWA cells. Record pass/fail with notes.
 3. Give launch sign-off, or list the must-fix items.
 
 ## Manual actions ALREADY DONE FOR YOU
-- Backend account-based login + owner-as-account are implemented; this plan only finishes the
-  frontend login form and validates.
+- Backend account-based login + owner-as-account are implemented, and the unified app's
+  email + password login form plus Admin sign-in already shipped; this plan validates.

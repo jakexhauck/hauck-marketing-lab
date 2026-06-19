@@ -33,11 +33,21 @@ interface StaffIdentity {
   role: Role;
 }
 
+// A signed-in super-admin (admin_accounts). Global, not tenant-scoped.
+interface AdminIdentity {
+  id: string;
+  name: string;
+  email: string;
+}
+
 interface AuthContextValue {
   status: AuthStatus;
   session: { authenticated: true } | null;
   mode: SessionMode;
+  // True for a signed-in super-admin (admin_accounts), gating the /admin area.
   isAdmin: boolean;
+  // The signed-in admin's identity, or null when the session is not an admin.
+  admin: AdminIdentity | null;
   adminChecked: boolean;
   // True for owner (shared-password) sessions, false for staff sessions. Gates
   // owner-only UI like the Team screen. Defaults true while a session loads.
@@ -59,6 +69,11 @@ interface AuthContextValue {
     email: string,
     password: string,
     mode?: SessionMode,
+  ) => Promise<{ ok: boolean; error?: string }>;
+  // Email + password login for super-admins (POST /api/auth/admin-login).
+  signInAsAdmin: (
+    email: string,
+    password: string,
   ) => Promise<{ ok: boolean; error?: string }>;
   signOut: () => Promise<void>;
   currentUser: User | null;
@@ -160,6 +175,8 @@ interface SessionProbe {
   // A 401/403 response is NOT offline: that is a real "no session".
   offline: boolean;
   isOwner: boolean;
+  isAdmin: boolean;
+  admin: AdminIdentity | null;
   staff: StaffIdentity | null;
   permissions: EffectivePermissions;
 }
@@ -167,17 +184,29 @@ interface SessionProbe {
 interface ApiMe {
   mode?: SessionMode;
   isOwner?: boolean;
+  isAdmin?: boolean;
+  admin?: AdminIdentity | null;
   staff?: StaffIdentity | null;
   permissions?: EffectivePermissions;
 }
+
+const EMPTY_PROBE = (offline: boolean): SessionProbe => ({
+  ok: false,
+  mode: "live",
+  offline,
+  isOwner: true,
+  isAdmin: false,
+  admin: null,
+  staff: null,
+  permissions: {},
+});
 
 async function checkSession(): Promise<SessionProbe> {
   try {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
       credentials: "include",
     });
-    if (!res.ok)
-      return { ok: false, mode: "live", offline: false, isOwner: true, staff: null, permissions: {} };
+    if (!res.ok) return EMPTY_PROBE(false);
     const body = (await res.json().catch(() => null)) as ApiMe | null;
     return {
       ok: true,
@@ -185,11 +214,13 @@ async function checkSession(): Promise<SessionProbe> {
       offline: false,
       // Absent isOwner means an owner (shared-password) session: full access.
       isOwner: body?.isOwner !== false,
+      isAdmin: body?.isAdmin === true,
+      admin: body?.admin ?? null,
       staff: body?.staff ?? null,
       permissions: body?.permissions ?? {},
     };
   } catch {
-    return { ok: false, mode: "live", offline: true, isOwner: true, staff: null, permissions: {} };
+    return EMPTY_PROBE(true);
   }
 }
 
@@ -200,6 +231,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Owner vs staff session, resolved from /api/auth/me. Owner is the default so
   // the single-operator (shared-password) case never gets gated by accident.
   const [isOwner, setIsOwner] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [admin, setAdmin] = useState<AdminIdentity | null>(null);
   const [staff, setStaff] = useState<StaffIdentity | null>(null);
   const [permissions, setPermissions] = useState<EffectivePermissions>({});
   // The stored GHL user id chosen at the "who are you?" step, and the resolved
@@ -225,6 +258,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       writeLastSessionMode(probe.mode);
       setMode(probe.mode);
       setIsOwner(probe.isOwner);
+      setIsAdmin(probe.isAdmin);
+      setAdmin(probe.admin);
       setStaff(probe.staff);
       setPermissions(probe.permissions);
       setStatus("authenticated");
@@ -266,6 +301,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearAppBadge();
       void clearAllCaches();
       setIsOwner(true);
+      setIsAdmin(false);
+      setAdmin(null);
       setStaff(null);
       setPermissions({});
       setStatus("unauthenticated");
@@ -383,6 +420,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [reconcileSession],
   );
 
+  const signInAsAdmin = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/admin-login`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+          return {
+            ok: false,
+            error: body?.error ?? `Sign-in failed (${res.status})`,
+          };
+        }
+        await clearAllCaches();
+        // Admin sessions are always "live"; the cookie is set by admin-login.
+        writeLastSessionMode("live");
+        setMode("live");
+        await reconcileSession();
+        return { ok: true };
+      } catch (err) {
+        return {
+          ok: false,
+          error: err instanceof Error ? err.message : "Network error",
+        };
+      }
+    },
+    [reconcileSession],
+  );
+
   const signOut = useCallback(async () => {
     // While the session cookie still works: stop push delivery to this device
     // (a logged-out phone must not keep receiving lead PII). Best-effort.
@@ -411,6 +482,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // (possibly the other mode) must not see this one's data.
     await clearAllCaches();
     setIsOwner(true);
+    setIsAdmin(false);
+    setAdmin(null);
     setStaff(null);
     setPermissions({});
     setStatus("unauthenticated");
@@ -472,6 +545,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const currentUser = useMemo<User | null>(() => {
     if (override) return override; // dev override, keep for testing
     if (!isAuthed) return null;
+    // A super-admin is not a client user: they have no tenant identity and must
+    // route into /admin, never a client surface. Route guards handle that; here
+    // we just refuse to fabricate an owner identity for them.
+    if (isAdmin) return null;
     // Staff session: the logged-in employee IS the identity, with their own
     // role. No "who are you?" picker (that is the owner shared-login flow).
     if (staff) {
@@ -505,7 +582,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: "",
       role: "owner" as Role,
     };
-  }, [override, isAuthed, staff, identity, identityFailed, identityId]);
+  }, [override, isAuthed, isAdmin, staff, identity, identityFailed, identityId]);
 
   // Only prompt the picker fully online: offline, the team list behind it
   // cannot load, and the offline-grace session may be seconds from sign-out.
@@ -514,10 +591,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () =>
       !override &&
       !staff &&
+      !isAdmin &&
       status === "authenticated" &&
       identityResolved &&
       !hasIdentityChoice,
-    [override, staff, status, identityResolved, hasIdentityChoice],
+    [override, staff, isAdmin, status, identityResolved, hasIdentityChoice],
   );
 
   const session = useMemo<{ authenticated: true } | null>(
@@ -530,14 +608,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       session,
       mode,
-      isAdmin: false,
-      adminChecked: true,
+      isAdmin,
+      admin,
+      adminChecked: status !== "loading",
       isOwner,
       staff,
       permissions,
       can,
       signInWithPassword,
       signInAsStaff,
+      signInAsAdmin,
       signOut,
       currentUser,
       setUser,
@@ -549,12 +629,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       session,
       mode,
+      isAdmin,
+      admin,
       isOwner,
       staff,
       permissions,
       can,
       signInWithPassword,
       signInAsStaff,
+      signInAsAdmin,
       signOut,
       currentUser,
       setUser,

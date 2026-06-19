@@ -22,6 +22,9 @@ import Calendar from "./routes/Calendar";
 import Notifications from "./routes/Notifications";
 import Team from "./routes/Team";
 import Settings from "./routes/Settings";
+import AdminLayout from "./routes/admin/AdminLayout";
+import AdminClients from "./routes/admin/AdminClients";
+import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -31,8 +34,10 @@ import { NowProvider } from "./context/NowContext";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { status, currentUser, needsIdentity, setIdentity } = useAuth();
+  const { status, currentUser, needsIdentity, setIdentity, isAdmin } = useAuth();
   if (status === "loading") return null;
+  // A super-admin has no tenant and never belongs on a client surface.
+  if (isAdmin) return <Navigate to="/admin/clients" replace />;
   if (!currentUser) return <Navigate to="/login" replace />;
   // One-time "who are you?" step after the shared-password login. Skipping
   // (or any failure) falls back to the hardcoded-owner default in AuthContext.
@@ -46,9 +51,20 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-function RootRedirect() {
-  const { status, mode } = useAuth();
+function AdminRoute({ children }: { children: ReactNode }) {
+  const { status, isAdmin } = useAuth();
   if (status === "loading") return null;
+  if (!isAdmin) return <Navigate to="/login" replace />;
+  return <AdminLayout>{children}</AdminLayout>;
+}
+
+function RootRedirect() {
+  const { status, mode, isAdmin } = useAuth();
+  if (status === "loading") return null;
+  // A super-admin always lands in the admin console, never a tenant surface.
+  if (status === "authenticated" && isAdmin) {
+    return <Navigate to="/admin/clients" replace />;
+  }
   // Offline grace: nobody can sign in without a network, so any plausible
   // previous session (either mode) goes to the cached dashboard, not /login.
   if (status === "authenticated-offline") {
@@ -221,6 +237,23 @@ export default function App() {
                   <ProtectedRoute>
                     <LeadDetail />
                   </ProtectedRoute>
+                }
+              />
+              <Route path="/admin" element={<Navigate to="/admin/clients" replace />} />
+              <Route
+                path="/admin/clients"
+                element={
+                  <AdminRoute>
+                    <AdminClients />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/clients/:id"
+                element={
+                  <AdminRoute>
+                    <AdminClientDetail />
+                  </AdminRoute>
                 }
               />
               <Route path="*" element={<RootRedirect />} />
