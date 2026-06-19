@@ -17,7 +17,7 @@ const allowedOrigins = new Set([
   "http://localhost:5174", // web CRM dev server
   "https://dash.hauckmarketing.com",
   "https://hauck-dashboard.pages.dev",
-  "https://crm.hauckmarketing.com", // web CRM (custom domain)
+  "https://commandcenter.hauckmarketing.com", // web CRM (custom domain)
   "https://hauck-crm.pages.dev", // web CRM (Pages default domain)
 ]);
 
