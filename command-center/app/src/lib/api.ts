@@ -246,3 +246,15 @@ export interface AdminClient {
   memberCount: number;
   createdAt: string;
 }
+
+// An agency task in the admin "Tasks" tab. tenantId null means agency-wide;
+// otherwise it is tied to that client (clientName is the joined display label).
+export interface AdminTask {
+  id: string;
+  tenantId: string | null;
+  clientName: string | null;
+  title: string;
+  dueDate: string | null;
+  completed: boolean;
+  createdAt: string;
+}

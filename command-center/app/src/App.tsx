@@ -25,6 +25,7 @@ import Settings from "./routes/Settings";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClients from "./routes/admin/AdminClients";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
+import AdminTasks from "./routes/admin/AdminTasks";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -255,6 +256,14 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminClientDetail />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/tasks"
+                element={
+                  <AdminRoute>
+                    <AdminTasks />
                   </AdminRoute>
                 }
               />

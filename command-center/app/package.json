@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p functions/tsconfig.json"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p functions/tsconfig.json",
+    "db:migrate": "node scripts/db-migrate.mjs"
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "1.0.2",
