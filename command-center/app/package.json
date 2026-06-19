@@ -9,7 +9,11 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p functions/tsconfig.json",
-    "db:migrate": "node scripts/db-migrate.mjs"
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "sync:dev-vars": "node scripts/sync-dev-vars.mjs",
+    "dev:api": "wrangler pages dev dist --port 8788 --compatibility-date 2026-05-18",
+    "dev:full": "node scripts/sync-dev-vars.mjs && concurrently -k -n vite,api -c blue,magenta \"vite\" \"npm:dev:api\"",
+    "cf": "node scripts/cf.mjs"
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "1.0.2",
@@ -31,6 +35,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "concurrently": "^10.0.3",
     "puppeteer-core": "^25.1.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.3.0",
