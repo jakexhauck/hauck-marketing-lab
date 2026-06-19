@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Check, UserPlus, DownloadCloud, Pencil, X } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Loader2, Check, UserPlus, DownloadCloud, Pencil, X, Eye } from "lucide-react";
 import { api } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
 import {
   CAPABILITIES,
   defaultGrantsForRole,
@@ -122,6 +123,7 @@ export default function AdminClientDetail() {
           </h1>
           <p className="text-sm text-[var(--text-muted)]">{data.client.slug}</p>
         </div>
+        <PreviewButton tenantId={id} />
       </div>
 
       <div className="space-y-4">
@@ -140,6 +142,43 @@ function BackLink() {
     <Link to="/admin/clients" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)]">
       <ArrowLeft size={15} /> All clients
     </Link>
+  );
+}
+
+// Enter a read-only preview of this client. Swaps the admin session for a
+// preview session (AuthContext) and routes into the client's home, where the
+// app-wide PreviewBanner offers the way back.
+function PreviewButton({ tenantId }: { tenantId: string }) {
+  const { previewClient } = useAuth();
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const onClick = async () => {
+    setBusy(true);
+    setErr(null);
+    const res = await previewClient(tenantId);
+    if (res.ok) {
+      navigate("/home", { replace: true });
+    } else {
+      setErr(res.error ?? "Could not start preview");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="ml-auto flex flex-col items-end gap-1">
+      <button
+        onClick={() => void onClick()}
+        disabled={busy}
+        title="View this client's app read-only"
+        className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-60"
+      >
+        {busy ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
+        {busy ? "Opening..." : "Preview as client"}
+      </button>
+      {err && <span className="text-[12px] text-rose-600 dark:text-rose-400">{err}</span>}
+    </div>
   );
 }
 

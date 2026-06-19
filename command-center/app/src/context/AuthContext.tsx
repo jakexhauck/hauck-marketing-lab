@@ -22,6 +22,11 @@ type AuthStatus =
   | "unauthenticated";
 export type SessionMode = "live" | "test";
 
+// Preview-as-client (Plan 05): a super-admin viewing one client's surfaces
+// read-only. Non-null only while a preview session is active; carries the
+// previewed tenant so the banner can offer an exit and the UI can hide edits.
+export type PreviewState = { tenantId: string } | null;
+
 // A staff member's effective permissions per capability, as /api/auth/me
 // reports them. Owners report an empty map and isOwner=true (full access).
 export type EffectivePermissions = Record<string, { view: boolean; edit: boolean }>;
@@ -49,6 +54,9 @@ interface AuthContextValue {
   // The signed-in admin's identity, or null when the session is not an admin.
   admin: AdminIdentity | null;
   adminChecked: boolean;
+  // Non-null while an admin is previewing a client read-only. Drives the
+  // app-wide preview banner; writes are already refused by the backend.
+  preview: PreviewState;
   // True for owner (shared-password) sessions, false for staff sessions. Gates
   // owner-only UI like the Team screen. Defaults true while a session loads.
   isOwner: boolean;
@@ -75,6 +83,14 @@ interface AuthContextValue {
     email: string,
     password: string,
   ) => Promise<{ ok: boolean; error?: string }>;
+  // Start a read-only preview of a client (POST .../preview). On success the
+  // admin cookie is swapped for a preview cookie and the session reconciles to
+  // a read-only owner of that tenant; the caller routes into a client surface.
+  previewClient: (
+    tenantId: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
+  // Leave a preview and restore the admin session (POST /api/auth/exit-preview).
+  exitPreview: () => Promise<{ ok: boolean; error?: string }>;
   signOut: () => Promise<void>;
   currentUser: User | null;
   setUser: (user: User | null) => void;
@@ -179,6 +195,7 @@ interface SessionProbe {
   admin: AdminIdentity | null;
   staff: StaffIdentity | null;
   permissions: EffectivePermissions;
+  preview: PreviewState;
 }
 
 interface ApiMe {
@@ -188,6 +205,7 @@ interface ApiMe {
   admin?: AdminIdentity | null;
   staff?: StaffIdentity | null;
   permissions?: EffectivePermissions;
+  preview?: { tenantId: string } | null;
 }
 
 const EMPTY_PROBE = (offline: boolean): SessionProbe => ({
@@ -199,6 +217,7 @@ const EMPTY_PROBE = (offline: boolean): SessionProbe => ({
   admin: null,
   staff: null,
   permissions: {},
+  preview: null,
 });
 
 async function checkSession(): Promise<SessionProbe> {
@@ -218,6 +237,7 @@ async function checkSession(): Promise<SessionProbe> {
       admin: body?.admin ?? null,
       staff: body?.staff ?? null,
       permissions: body?.permissions ?? {},
+      preview: body?.preview ?? null,
     };
   } catch {
     return EMPTY_PROBE(true);
@@ -235,6 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminIdentity | null>(null);
   const [staff, setStaff] = useState<StaffIdentity | null>(null);
   const [permissions, setPermissions] = useState<EffectivePermissions>({});
+  const [preview, setPreview] = useState<PreviewState>(null);
   // The stored GHL user id chosen at the "who are you?" step, and the resolved
   // team member it maps to. identityResolved guards the picker from flashing
   // before the lookup completes.
@@ -262,6 +283,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAdmin(probe.admin);
       setStaff(probe.staff);
       setPermissions(probe.permissions);
+      setPreview(probe.preview);
       setStatus("authenticated");
       return;
     }
@@ -272,11 +294,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStatus("authenticated-offline");
         return;
       }
+      setPreview(null);
       setStatus("unauthenticated");
       return;
     }
     // The server answered and said no: clear the breadcrumb.
     writeLastSessionMode(null);
+    setPreview(null);
     setStatus("unauthenticated");
   }, []);
 
@@ -305,6 +329,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAdmin(null);
       setStaff(null);
       setPermissions({});
+      setPreview(null);
       setStatus("unauthenticated");
       setMode("live");
     };
@@ -454,6 +479,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [reconcileSession],
   );
 
+  // Enter a read-only preview of a client. The POST swaps the admin cookie for a
+  // preview cookie; reconcileSession then reports isAdmin=false, isOwner=true and
+  // a non-null preview, so the caller can route into a client surface.
+  const previewClient = useCallback(
+    async (tenantId: string) => {
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/admin/clients/${tenantId}/preview`,
+          { method: "POST", credentials: "include" },
+        );
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+          return {
+            ok: false,
+            error: body?.error ?? `Could not start preview (${res.status})`,
+          };
+        }
+        // The previewed client's data must not mix with the admin's cached view.
+        await clearAllCaches();
+        await reconcileSession();
+        return { ok: true };
+      } catch (err) {
+        return {
+          ok: false,
+          error: err instanceof Error ? err.message : "Network error",
+        };
+      }
+    },
+    [reconcileSession],
+  );
+
+  // Leave a preview and restore the admin session. The preview token embeds the
+  // admin who started it, so the backend re-mints their admin cookie, no login.
+  const exitPreview = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/exit-preview`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        return {
+          ok: false,
+          error: body?.error ?? `Could not exit preview (${res.status})`,
+        };
+      }
+      await clearAllCaches();
+      await reconcileSession();
+      return { ok: true };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : "Network error",
+      };
+    }
+  }, [reconcileSession]);
+
   const signOut = useCallback(async () => {
     // While the session cookie still works: stop push delivery to this device
     // (a logged-out phone must not keep receiving lead PII). Best-effort.
@@ -486,6 +572,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAdmin(null);
     setStaff(null);
     setPermissions({});
+    setPreview(null);
     setStatus("unauthenticated");
     setMode("live");
   }, []);
@@ -592,10 +679,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       !override &&
       !staff &&
       !isAdmin &&
+      !preview &&
       status === "authenticated" &&
       identityResolved &&
       !hasIdentityChoice,
-    [override, staff, isAdmin, status, identityResolved, hasIdentityChoice],
+    [override, staff, isAdmin, preview, status, identityResolved, hasIdentityChoice],
   );
 
   const session = useMemo<{ authenticated: true } | null>(
@@ -611,6 +699,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin,
       admin,
       adminChecked: status !== "loading",
+      preview,
       isOwner,
       staff,
       permissions,
@@ -618,6 +707,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithPassword,
       signInAsStaff,
       signInAsAdmin,
+      previewClient,
+      exitPreview,
       signOut,
       currentUser,
       setUser,
@@ -631,6 +722,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mode,
       isAdmin,
       admin,
+      preview,
       isOwner,
       staff,
       permissions,
@@ -638,6 +730,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithPassword,
       signInAsStaff,
       signInAsAdmin,
+      previewClient,
+      exitPreview,
       signOut,
       currentUser,
       setUser,

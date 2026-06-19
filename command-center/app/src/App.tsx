@@ -28,6 +28,7 @@ import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
+import PreviewBanner from "./components/PreviewBanner";
 import ScrollToTop from "./components/ScrollToTop";
 import { ToastProvider } from "./context/ToastContext";
 import { NowProvider } from "./context/NowContext";
@@ -113,6 +114,7 @@ export default function App() {
           <ToastProvider>
             <ServiceWorkerMessages />
             <OfflineBanner />
+            <PreviewBanner />
             <ScrollToTop />
             <Routes>
               <Route path="/" element={<RootRedirect />} />
