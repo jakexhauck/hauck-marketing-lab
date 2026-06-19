@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Check, UserPlus, DownloadCloud } from "lucide-react";
+import { ArrowLeft, Loader2, Check, UserPlus, DownloadCloud, Pencil, X } from "lucide-react";
 import { api } from "../../lib/api";
 import {
   CAPABILITIES,
@@ -29,6 +29,12 @@ interface DetailClient {
   createdAt: string;
 }
 
+interface StaffPerm {
+  capability: Capability;
+  view: boolean;
+  edit: boolean;
+}
+
 interface StaffMember {
   id: string;
   name: string;
@@ -36,6 +42,8 @@ interface StaffMember {
   role: StaffRole;
   status: string;
   ghlUserId: string | null;
+  createdAt?: string;
+  permissions: StaffPerm[];
 }
 
 interface DetailResponse {
@@ -121,7 +129,7 @@ export default function AdminClientDetail() {
         <GhlCard client={data.client} onSaved={load} />
         <OwnerCard tenantId={id} ownerPasswordSet={data.client.ownerPasswordSet} />
         <EntitlementsCard tenantId={id} enabled={data.entitlements} onSaved={load} />
-        <TeamCard tenantId={id} staff={data.staff} ghlConnected={!placeholderConn(data.client.ghlLocationId)} onSaved={load} />
+        <TeamCard tenantId={id} staff={data.staff} entitlements={data.entitlements} ghlConnected={!placeholderConn(data.client.ghlLocationId)} onSaved={load} />
       </div>
     </div>
   );
@@ -329,12 +337,17 @@ function EntitlementsCard({ tenantId, enabled, onSaved }: { tenantId: string; en
   );
 }
 
-function TeamCard({ tenantId, staff, ghlConnected, onSaved }: { tenantId: string; staff: StaffMember[]; ghlConnected: boolean; onSaved: () => Promise<void> }) {
+function roleLabel(role: StaffRole) {
+  return role === "owner" ? "Owner" : role === "manager" ? "Manager" : "Rep";
+}
+
+function TeamCard({ tenantId, staff, entitlements, ghlConnected, onSaved }: { tenantId: string; staff: StaffMember[]; entitlements: string[]; ghlConnected: boolean; onSaved: () => Promise<void> }) {
   const [showAdd, setShowAdd] = useState(false);
   const [f, setF] = useState({ name: "", email: "", password: "", role: "rep" as StaffRole });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [importMsg, setImportMsg] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((p) => ({ ...p, [k]: e.target.value as never }));
 
@@ -370,15 +383,22 @@ function TeamCard({ tenantId, staff, ghlConnected, onSaved }: { tenantId: string
       setShowAdd(false);
       await onSaved();
     } catch (e2) {
-      setErr(e2 instanceof Error ? e2.message : "Could not add staff");
+      setErr(e2 instanceof Error ? e2.message : "Could not add person");
     } finally {
       setBusy(false);
     }
   };
 
-  const disable = async (staffId: string) => {
+  const setStatus = async (staffId: string, status: "active" | "disabled") => {
     try {
-      await api(`/api/admin/clients/${tenantId}/staff/${staffId}`, { method: "DELETE" });
+      if (status === "disabled") {
+        await api(`/api/admin/clients/${tenantId}/staff/${staffId}`, { method: "DELETE" });
+      } else {
+        await api(`/api/admin/clients/${tenantId}/staff/${staffId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "active" }),
+        });
+      }
       await onSaved();
     } catch {
       // surfaced via reload; ignore here
@@ -400,15 +420,54 @@ function TeamCard({ tenantId, staff, ghlConnected, onSaved }: { tenantId: string
     }
   };
 
+  const owners = staff.filter((s) => s.role === "owner");
+  const others = staff.filter((s) => s.role !== "owner");
+
+  const renderRow = (s: StaffMember) => (
+    <li key={s.id} className="py-2.5">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium text-[var(--text)]">{s.name}</div>
+          <div className="truncate text-[12px] text-[var(--text-muted)]">{s.email}</div>
+        </div>
+        <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-muted)]">{roleLabel(s.role)}</span>
+        <span className={["rounded-full px-2 py-0.5 text-[11px] font-semibold", s.status === "active" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-[var(--surface-2)] text-[var(--text-faint)]"].join(" ")}>{s.status}</span>
+        <button
+          onClick={() => setEditingId((cur) => (cur === s.id ? null : s.id))}
+          className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--text-muted)] hover:text-[var(--text)]"
+        >
+          {editingId === s.id ? <X size={13} /> : <Pencil size={13} />} {editingId === s.id ? "Close" : "Edit"}
+        </button>
+        {s.status === "active" ? (
+          <button onClick={() => void setStatus(s.id, "disabled")} className="text-[12px] font-medium text-rose-600 hover:underline dark:text-rose-400">Disable</button>
+        ) : (
+          <button onClick={() => void setStatus(s.id, "active")} className="text-[12px] font-medium text-emerald-600 hover:underline dark:text-emerald-400">Enable</button>
+        )}
+      </div>
+      {editingId === s.id && (
+        <EditMemberForm
+          tenantId={tenantId}
+          member={s}
+          enabled={entitlements}
+          onCancel={() => setEditingId(null)}
+          onSaved={async () => {
+            setEditingId(null);
+            await onSaved();
+          }}
+        />
+      )}
+    </li>
+  );
+
   return (
-    <Card title="Team">
+    <Card title="Team & owners">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <button
           onClick={() => setShowAdd((s) => !s)}
           className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[var(--brand-fg)]"
           style={{ background: "var(--brand-primary)" }}
         >
-          <UserPlus size={15} /> Add staff
+          <UserPlus size={15} /> Add person
         </button>
         <button
           onClick={() => void importFromGhl()}
@@ -419,6 +478,10 @@ function TeamCard({ tenantId, staff, ghlConnected, onSaved }: { tenantId: string
           <DownloadCloud size={15} /> Import from GHL
         </button>
       </div>
+
+      <p className="mb-3 text-[12px] text-[var(--text-muted)]">
+        Add owners or staff, then use Edit to rename, change role, reset a password, or set which surfaces a person can view and edit. Owners have full access automatically.
+      </p>
 
       {importMsg && <p className="mb-3 text-[13px] text-emerald-600 dark:text-emerald-400">{importMsg}</p>}
 
@@ -447,24 +510,155 @@ function TeamCard({ tenantId, staff, ghlConnected, onSaved }: { tenantId: string
       )}
 
       {staff.length === 0 ? (
-        <p className="text-sm text-[var(--text-muted)]">No staff yet.</p>
+        <p className="text-sm text-[var(--text-muted)]">No people yet.</p>
       ) : (
-        <ul className="divide-y divide-[var(--divider)]">
-          {staff.map((s) => (
-            <li key={s.id} className="flex items-center gap-3 py-2.5">
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-[var(--text)]">{s.name}</div>
-                <div className="truncate text-[12px] text-[var(--text-muted)]">{s.email}</div>
-              </div>
-              <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-semibold capitalize text-[var(--text-muted)]">{s.role}</span>
-              <span className={["rounded-full px-2 py-0.5 text-[11px] font-semibold", s.status === "active" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-[var(--surface-2)] text-[var(--text-faint)]"].join(" ")}>{s.status}</span>
-              {s.status === "active" && (
-                <button onClick={() => void disable(s.id)} className="text-[12px] font-medium text-rose-600 hover:underline dark:text-rose-400">Disable</button>
-              )}
-            </li>
-          ))}
-        </ul>
+        <div className="space-y-4">
+          {owners.length > 0 && (
+            <div>
+              <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">Owners</h3>
+              <ul className="divide-y divide-[var(--divider)]">{owners.map(renderRow)}</ul>
+            </div>
+          )}
+          {others.length > 0 && (
+            <div>
+              <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">Staff</h3>
+              <ul className="divide-y divide-[var(--divider)]">{others.map(renderRow)}</ul>
+            </div>
+          )}
+        </div>
       )}
     </Card>
+  );
+}
+
+function EditMemberForm({
+  tenantId,
+  member,
+  enabled,
+  onCancel,
+  onSaved,
+}: {
+  tenantId: string;
+  member: StaffMember;
+  enabled: string[];
+  onCancel: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const [name, setName] = useState(member.name);
+  const [role, setRole] = useState<StaffRole>(member.role);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const enabledCaps = CAPABILITIES.filter((c) => enabled.includes(c.key));
+
+  const [grants, setGrants] = useState<Record<string, { view: boolean; edit: boolean }>>(() => {
+    const map: Record<string, { view: boolean; edit: boolean }> = {};
+    for (const c of CAPABILITIES) map[c.key] = { view: false, edit: false };
+    for (const p of member.permissions) map[p.capability] = { view: p.view || p.edit, edit: p.edit };
+    return map;
+  });
+
+  const toggle = (cap: Capability, field: "view" | "edit") =>
+    setGrants((g) => {
+      const cur = { ...g[cap] };
+      if (field === "view") {
+        cur.view = !cur.view;
+        if (!cur.view) cur.edit = false;
+      } else {
+        cur.edit = !cur.edit;
+        if (cur.edit) cur.view = true;
+      }
+      return { ...g, [cap]: cur };
+    });
+
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      setErr("Name is required.");
+      return;
+    }
+    if (password.trim() && password.trim().length < 8) {
+      setErr("New password must be at least 8 characters.");
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    const body: Record<string, unknown> = { name: name.trim(), role };
+    if (password.trim()) body.password = password.trim();
+    if (role !== "owner") {
+      body.permissions = enabledCaps.map((c) => ({
+        capability: c.key,
+        view: grants[c.key].view,
+        edit: grants[c.key].edit,
+      }));
+    }
+    try {
+      await api(`/api/admin/clients/${tenantId}/staff/${member.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      await onSaved();
+    } catch (e2) {
+      setErr(e2 instanceof Error ? e2.message : "Could not save");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={save} className="mt-3 rounded-xl border border-[var(--divider)] bg-[var(--surface-2)]/40 p-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label><span className={labelCls}>Name</span><input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} /></label>
+        <label>
+          <span className={labelCls}>Role</span>
+          <select className={inputCls} value={role} onChange={(e) => setRole(e.target.value as StaffRole)}>
+            <option value="rep">Rep</option>
+            <option value="manager">Manager</option>
+            <option value="owner">Owner</option>
+          </select>
+        </label>
+        <label className="sm:col-span-2">
+          <span className={labelCls}>Reset password (leave blank to keep current)</span>
+          <input className={inputCls} type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder="New password (min 8)" />
+        </label>
+      </div>
+
+      {role === "owner" ? (
+        <p className="mt-3 text-[12px] text-[var(--text-muted)]">Owners have full access to every surface. Per-surface permissions do not apply.</p>
+      ) : (
+        <div className="mt-4">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Surface permissions</p>
+          {enabledCaps.length === 0 ? (
+            <p className="text-[12px] text-[var(--text-muted)]">No surfaces are enabled for this client yet.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {enabledCaps.map((c) => (
+                <div key={c.key} className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2">
+                  <span className="text-sm text-[var(--text)]">{c.label}</span>
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)]">
+                      <input type="checkbox" checked={grants[c.key].view} onChange={() => toggle(c.key, "view")} /> View
+                    </label>
+                    {c.hasEdit && (
+                      <label className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)]">
+                        <input type="checkbox" checked={grants[c.key].edit} onChange={() => toggle(c.key, "edit")} /> Edit
+                      </label>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {err && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{err}</p>}
+      <div className="mt-4 flex items-center gap-2">
+        <button type="submit" disabled={busy} className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-[var(--brand-fg)] disabled:opacity-60" style={{ background: "var(--brand-primary)" }}>
+          {busy && <Loader2 size={15} className="animate-spin" />} {busy ? "Saving..." : "Save changes"}
+        </button>
+        <button type="button" onClick={onCancel} className="rounded-lg border border-[var(--border)] px-3.5 py-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)]">Cancel</button>
+      </div>
+    </form>
   );
 }
