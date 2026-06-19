@@ -100,7 +100,16 @@ configure clients.
   `PNPM_VERSION`. VAPID keys remain empty (Plan 06).
 - **Admin shipped.** Plan 05 (admin login + in-app console) is live in
   `command-center/app/src/routes/admin/`, including the staff/owner editor (role, password,
-  per-surface permissions, owner grouping). Only the optional "preview as client" mode remains.
+  per-surface permissions, owner grouping) and the "preview as client" read-only mode
+  (button on the client detail + app-wide exit banner, shipped 2026-06-19). Plan 05 is
+  fully done.
+- **Plan 04 CORS residual done.** Dead origins dropped from
+  `command-center/app/functions/api/_middleware.ts` (2026-06-19); only
+  `app.hauckmarketing.com`, the Pages default domain, and local dev remain. The Cloudflare
+  dashboard cleanup (delete old `hauck-crm` project, redirect dead origins) is still Jake's.
+- **Plan 06 VAPID keys generated** (2026-06-19, P-256) and stored in the gitignored
+  `command-center/app/.env.local`. Still need pasting into Cloudflare Pages Production env
+  and a redeploy; see `RUNBOOK-push.md`.
 
 ## Plans + dependency order
 
@@ -108,9 +117,9 @@ configure clients.
 |---|------|-------|--------|-----------|
 | 01 | Infra: migrations, Cloudflare env, admin account, domains, deploy | LAUNCH | DONE (file removed) | nothing |
 | 02 | Willis onboarding: tenant, branding, GHL wiring, owner + staff accounts | LAUNCH | DONE (file removed) | nothing; Willis tenant live, branding/labels confirmed, both owners (Joshua + Jayse) created, GHL data path verified ("Job Booked" is a real stage) |
-| 03 | Login UX (email+password) + full end-to-end launch validation | LAUNCH | ~30% done, NEXT ACTIONABLE | login UX shipped; run the validation matrix (owner + rep, desktop + installed PWA) + Jake sign-off. Open decisions: keep test-account mode or live-only; "preview as client" now or later |
-| 04 | Unify into ONE responsive Command Center; retire `crm-web` | MERGE | DONE (file removed) | OUTSTANDING (Jake): delete old `hauck-crm` CF project; redirect dead origins (`commandcenter`/`dash`/`hauck-crm.pages.dev`) to `app.hauckmarketing.com`. OUTSTANDING (code): drop dead CORS origins in `command-center/app/functions/api/_middleware.ts` |
-| 05 | Admin view inside the one app (full per-client config controls) | MERGE | DONE (file removed) | staff/owner-edit UI shipped (role/password/per-surface permissions + owner grouping, 2026-06-19). OUTSTANDING (optional): "preview as client" read-only mode (backend `preview.ts`/`exit-preview.ts` exist; no UI) |
+| 03 | Login UX (email+password) + full end-to-end launch validation | LAUNCH | ~40% done, NEXT ACTIONABLE | login UX shipped; decisions resolved (keep test mode, one form for everyone, preview-as-client built + deployed). REMAINING: Jake runs the validation matrix (owner + rep, desktop + installed PWA) + sign-off |
+| 04 | Unify into ONE responsive Command Center; retire `crm-web` | MERGE | DONE (file removed) | code residual DONE (dead CORS origins dropped 2026-06-19). OUTSTANDING (Jake): delete old `hauck-crm` CF project; redirect dead origins (`commandcenter`/`dash`/`hauck-crm.pages.dev`) to `app.hauckmarketing.com` |
+| 05 | Admin view inside the one app (full per-client config controls) | MERGE | DONE (file removed) | fully done: staff/owner-edit UI + "preview as client" read-only mode (UI wired to `preview.ts`/`exit-preview.ts` + exit banner), both shipped 2026-06-19 |
 | 06 | Push notifications + offline polish | AFTER | NOT STARTED (~0%) | generate/set VAPID, wire+register webhook, test push + offline. See `RUNBOOK-push.md` |
 
 **Next up:** Plan 03 is the launch gate, now unblocked (Plan 02 done). Run the validation
