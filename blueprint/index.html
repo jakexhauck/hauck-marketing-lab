@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Command Center : Live Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  :root{
+    --bg:#05080f; --bg2:#0a1120; --panel:#0e1828; --panel2:#0b1322; --line:#1f2f49;
+    --ink:#eaf0fb; --muted:#7e8eae; --dim:#56688a;
+    --cyan:#38bdf8; --blue:#3b82f6; --teal:#5eead4; --green:#34d399;
+    --amber:#f6ad3c; --red:#f56565; --gap:#f6ad3c;
+    --disp:'Sora',-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+    --shadow:0 14px 50px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:var(--disp); color:var(--ink); -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    background:
+      radial-gradient(1000px 700px at 50% 42%, #15294a 0%, rgba(10,17,32,0) 60%),
+      radial-gradient(1400px 900px at 80% -10%, #102036 0%, var(--bg) 55%),
+      var(--bg);
+  }
+  /* faint starfield */
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+    background-image:radial-gradient(1px 1px at 20% 30%,rgba(255,255,255,.5),transparent),
+      radial-gradient(1px 1px at 70% 60%,rgba(255,255,255,.35),transparent),
+      radial-gradient(1px 1px at 40% 80%,rgba(255,255,255,.3),transparent),
+      radial-gradient(1px 1px at 85% 25%,rgba(255,255,255,.4),transparent),
+      radial-gradient(1px 1px at 55% 15%,rgba(255,255,255,.25),transparent);
+    background-size:600px 600px;}
+
+  header.top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:18px;
+    padding:14px 26px;border-bottom:1px solid var(--line);
+    background:rgba(5,8,15,.82);backdrop-filter:blur(10px)}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand .mk{width:13px;height:13px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#7dd3fc,#2563eb);box-shadow:0 0 16px var(--cyan)}
+  .brand h1{font-size:16px;font-weight:600;margin:0;letter-spacing:.4px}
+  .brand small{display:block;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:1px;margin-top:1px}
+  nav.tabs{display:flex;gap:4px;margin-left:8px}
+  nav.tabs button{background:transparent;border:1px solid transparent;color:var(--muted);cursor:pointer;
+    font-family:var(--disp);font-size:13.5px;padding:7px 14px;border-radius:9px;transition:.15s}
+  nav.tabs button:hover{color:var(--ink);background:rgba(255,255,255,.04)}
+  nav.tabs button.on{color:var(--ink);background:var(--panel);border-color:var(--line)}
+  .spacer{margin-left:auto}
+  .gaptoggle{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;
+    border:1px solid var(--line);background:var(--panel2);color:var(--muted);
+    padding:7px 13px;border-radius:9px;font-size:13px;transition:.15s}
+  .gaptoggle:hover{color:var(--ink)}
+  .gaptoggle.on{border-color:var(--amber);color:#ffd9a0;background:rgba(246,173,60,.08)}
+  .gaptoggle .n{font-family:var(--mono);font-size:11px;background:rgba(246,173,60,.18);color:var(--amber);
+    border-radius:20px;padding:1px 8px}
+  .meta{font-family:var(--mono);font-size:10.5px;color:var(--dim);text-align:right;line-height:1.5}
+
+  .view{display:none;position:relative;z-index:1}
+  .view.on{display:block}
+
+  /* ============ STAGE ============ */
+  .stage{position:relative;width:100%;height:calc(100vh - 60px);min-height:660px;overflow:hidden}
+  svg.beams{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+  .beam{fill:none;stroke-width:2;stroke-linecap:round;opacity:.55;transition:.2s}
+  .beam.flow{stroke-dasharray:3 11;animation:flow 1.1s linear infinite}
+  .beam.rev{animation:flowrev 1.1s linear infinite}
+  .beam.ghost{stroke-dasharray:6 8;opacity:.5;animation:none}
+  .beam.hot{opacity:1;stroke-width:3}
+  @keyframes flow{to{stroke-dashoffset:-14}}
+  @keyframes flowrev{to{stroke-dashoffset:14}}
+
+  /* halo (Cloudflare) */
+  .halo{position:absolute;left:50%;top:50%;width:330px;height:330px;border-radius:50%;
+    transform:translate(-50%,-50%);z-index:2;cursor:pointer;
+    border:1px dashed rgba(56,189,248,.28);animation:spin 60s linear infinite}
+  @keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+  .halo:hover{border-color:rgba(56,189,248,.6)}
+  .halotag{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;
+    width:330px;height:330px;pointer-events:none}
+  .halotag b{position:absolute;left:50%;top:-11px;transform:translateX(-50%);
+    font-family:var(--mono);font-size:10px;letter-spacing:2px;color:#7cc6f2;
+    background:var(--bg2);border:1px solid rgba(56,189,248,.3);border-radius:20px;padding:3px 12px;white-space:nowrap}
+
+  /* orb */
+  .orb{position:absolute;left:50%;top:50%;width:204px;height:204px;border-radius:50%;z-index:5;cursor:pointer;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(circle at 38% 30%,#8fd0ff 0%,#3b82f6 30%,#1b3e8f 62%,#0b1f4d 100%);
+    box-shadow:0 0 0 1px rgba(140,190,255,.5),0 0 70px 10px rgba(59,130,246,.5),inset 0 0 56px rgba(0,0,0,.4);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:.18s}
+  .orb:hover{transform:translate(-50%,-50%) scale(1.035)}
+  .orb::after{content:"";position:absolute;inset:-3px;border-radius:50%;
+    border:1px solid rgba(140,190,255,.35);animation:pulse 3.6s ease-out infinite}
+  @keyframes pulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.5);opacity:0}100%{opacity:0}}
+  .orb .lab{font-family:var(--mono);font-size:10px;letter-spacing:3px;color:#cfe6ff;opacity:.8}
+  .orb b{font-size:22px;font-weight:700;letter-spacing:.3px;margin:3px 0 12px;color:#fff}
+  .orb .faces{display:flex;gap:6px}
+  .orb .faces span{font-family:var(--mono);font-size:9.5px;letter-spacing:.5px;background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:3px 9px;color:#eaf4ff}
+
+  /* nodes */
+  .node{position:absolute;z-index:4;width:216px;transform:translate(-50%,-50%);cursor:pointer;
+    background:linear-gradient(180deg,rgba(16,26,44,.92),rgba(11,20,36,.92));backdrop-filter:blur(8px);
+    border:1px solid #27395a;border-radius:15px;padding:13px 14px;box-shadow:var(--shadow);
+    transition:transform .16s,border-color .16s,box-shadow .16s;opacity:0;animation:rise .5s ease forwards}
+  @keyframes rise{to{opacity:1}}
+  .node:hover{transform:translate(-50%,-50%) translateY(-3px);border-color:var(--cyan)}
+  .node .hd{display:flex;align-items:center;gap:10px}
+  .node .ic{font-size:21px;width:26px;text-align:center}
+  .node b{font-size:15px;font-weight:600;display:block;line-height:1.15}
+  .node .tag{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.3px}
+  .node .mini{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+  .node .mini span{font-family:var(--mono);font-size:9.5px;color:#9fb0d0;background:rgba(56,189,248,.07);
+    border:1px solid #21344f;border-radius:6px;padding:2px 6px}
+  .node .badges{display:flex;align-items:center;gap:7px;margin-top:11px}
+  .node .cnt{font-family:var(--mono);font-size:10px;color:var(--cyan);background:rgba(56,189,248,.1);
+    border:1px solid rgba(56,189,248,.25);border-radius:20px;padding:2px 9px}
+  .node .gap{font-family:var(--mono);font-size:10px;color:var(--amber);background:rgba(246,173,60,.1);
+    border:1px solid rgba(246,173,60,.35);border-radius:20px;padding:2px 9px;display:none}
+  .node.has-gap .gap{display:inline-block}
+  .node.sel{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal),0 0 30px rgba(94,234,212,.3)}
+
+  /* ghost (loose end) nodes */
+  .node.ghost{background:repeating-linear-gradient(135deg,rgba(246,173,60,.05),rgba(246,173,60,.05) 8px,rgba(246,173,60,.09) 8px,rgba(246,173,60,.09) 16px);
+    border:1px dashed var(--amber);width:196px}
+  .node.ghost b{color:#ffd9a0}
+  .node.ghost .lewrap{display:flex;align-items:center;gap:7px;margin-top:9px}
+  .node.ghost .le{font-family:var(--mono);font-size:9px;letter-spacing:1px;color:#06101f;background:var(--amber);
+    border-radius:5px;padding:2px 7px;font-weight:600}
+  .node.ghost .sev{font-family:var(--mono);font-size:9px;letter-spacing:1px;border-radius:5px;padding:2px 7px}
+  .node.ghost:hover{border-color:#ffc56b}
+
+  /* focus-gaps mode dims fully-wired stuff, pulses gaps */
+  body.focus .node:not(.has-gap):not(.ghost),body.focus .halo{opacity:.28}
+  body.focus .node.has-gap,body.focus .node.ghost{animation:rise .5s ease forwards,gpulse 1.6s ease-in-out infinite}
+  body.focus .beam:not(.ghost){opacity:.12}
+  body.focus .beam.ghost{opacity:.9;stroke-width:2.6}
+  @keyframes gpulse{0%,100%{box-shadow:0 0 0 1px rgba(246,173,60,.4),0 0 0 rgba(246,173,60,0)}
+    50%{box-shadow:0 0 0 1px rgba(246,173,60,.7),0 0 26px rgba(246,173,60,.4)}}
+
+  .legend{position:absolute;left:24px;bottom:20px;z-index:6;display:flex;flex-direction:column;gap:7px;
+    font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .legend div{display:flex;align-items:center;gap:8px}
+  .legend i{width:24px;height:0;display:inline-block}
+  .legend .l1{border-top:2px solid var(--cyan)}
+  .legend .l2{border-top:2px dashed var(--amber)}
+  .legend .sq{width:11px;height:11px;border-radius:3px}
+  .hint{position:absolute;right:24px;bottom:22px;z-index:6;font-size:12px;color:var(--dim)}
+
+  /* ============ PROCESSES + GAPS + IDEAS PAGES ============ */
+  .page{max-width:1240px;margin:0 auto;padding:30px 40px 70px}
+  .page .lead{color:var(--muted);font-size:14.5px;margin:0 0 28px;max-width:760px}
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+  .pcard{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:15px;padding:18px 19px}
+  .pcard .ph{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+  .pcard .ph .ic{font-size:22px}
+  .pcard .ph b{font-size:16px;font-weight:600}
+  .pcard .ph .tag{font-family:var(--mono);font-size:10px;color:var(--muted)}
+  .pcard h5{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--cyan);text-transform:uppercase;
+    margin:15px 0 7px}
+  .pcard ul{margin:0;padding:0;list-style:none}
+  .pcard li{font-size:13px;color:#c7d2e6;padding:3px 0 3px 16px;position:relative}
+  .pcard li::before{content:"▸";position:absolute;left:0;color:var(--dim)}
+  .pcard li.flag{color:#ffce93}
+  .pcard li.flag::before{content:"▲";color:var(--amber)}
+
+  .gaprow{display:flex;gap:14px;align-items:flex-start;background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid var(--line);border-left-width:3px;border-radius:13px;padding:15px 17px;margin-bottom:12px;cursor:pointer;transition:.15s}
+  .gaprow:hover{border-color:var(--cyan);transform:translateX(2px)}
+  .gaprow.high{border-left-color:var(--red)} .gaprow.med{border-left-color:var(--amber)} .gaprow.low{border-left-color:#6b86c0}
+  .gaprow .sevtag{font-family:var(--mono);font-size:9.5px;letter-spacing:1px;padding:3px 8px;border-radius:6px;flex:none;margin-top:2px}
+  .sev-high{background:rgba(245,101,101,.13);color:#ff9b9b;border:1px solid rgba(245,101,101,.35)}
+  .sev-med{background:rgba(246,173,60,.12);color:#ffce93;border:1px solid rgba(246,173,60,.35)}
+  .sev-low{background:rgba(107,134,192,.12);color:#a9bce6;border:1px solid rgba(107,134,192,.3)}
+  .gaprow b{font-size:14.5px;display:block;margin-bottom:3px}
+  .gaprow .where{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:6px}
+  .gaprow p{margin:0;font-size:13px;color:#b6c2da}
+  .gaprow .fix{font-size:12.5px;color:var(--teal);margin-top:6px}
+  .secthead{font-family:var(--mono);font-size:11px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin:24px 0 12px}
+  .secthead:first-child{margin-top:0}
+
+  .igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+  .ideacard{padding:17px 18px;border:1px dashed #455a8c;border-radius:14px;background:rgba(94,234,212,.04);transition:.15s}
+  .ideacard:hover{background:rgba(94,234,212,.08);border-color:var(--teal)}
+  .ideacard b{display:block;font-size:15px;color:var(--teal)}
+  .ideacard .where{font-family:var(--mono);font-size:10.5px;color:var(--cyan);margin:7px 0 8px}
+  .ideacard p{margin:0;font-size:13px;color:#b6c2da}
+  .ideacard .eff{display:inline-block;margin-top:11px;font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:2px 10px}
+
+  /* ============ DRAWER ============ */
+  .drawer{position:fixed;top:0;right:0;height:100%;width:460px;max-width:94vw;z-index:50;
+    background:linear-gradient(180deg,#0c1729,#070d18);border-left:1px solid var(--line);box-shadow:var(--shadow);
+    transform:translateX(106%);transition:transform .24s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+  .drawer.open{transform:none}
+  .drawer .dh{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;gap:13px;align-items:flex-start}
+  .drawer .dh .ic{font-size:30px}
+  .drawer .dh b{font-size:20px;font-weight:600;display:block}
+  .drawer .dh .tag{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .drawer .dh .x{margin-left:auto;cursor:pointer;color:var(--muted);font-size:25px;background:none;border:none;line-height:1}
+  .drawer .db{padding:20px 22px;overflow:auto}
+  .drawer .db p.lead{font-size:14.5px;color:#d4dcee;margin:0 0 4px}
+  .drawer h4{font-family:var(--mono);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim);margin:22px 0 9px}
+  .grp{margin-bottom:13px}
+  .grp .gt{font-size:12.5px;color:var(--cyan);font-weight:600;margin-bottom:5px}
+  .grp .gi{display:flex;flex-wrap:wrap;gap:5px}
+  .grp .gi span{font-family:var(--mono);font-size:10.5px;color:#cdd8ee;background:#13233c;border:1px solid var(--line);border-radius:7px;padding:3px 8px}
+  .gapbanner{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 4px}
+  .gapbanner span{font-family:var(--mono);font-size:10.5px;border-radius:7px;padding:3px 9px}
+  .gapcard{border:1px solid var(--line);border-left-width:3px;border-radius:11px;padding:11px 13px;margin-bottom:9px;background:var(--panel2)}
+  .gapcard.high{border-left-color:var(--red)} .gapcard.med{border-left-color:var(--amber)} .gapcard.low{border-left-color:#6b86c0}
+  .gapcard b{font-size:13.5px;display:block;margin-bottom:3px}
+  .gapcard p{margin:0;font-size:12.5px;color:#b6c2da}
+  .gapcard .where{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:5px}
+  .gapcard .fix{font-size:12px;color:var(--teal);margin-top:5px}
+  .chip{display:inline-block;font-family:var(--mono);font-size:10.5px;color:var(--ink);background:#13233c;border:1px solid var(--line);border-radius:8px;padding:3px 9px;margin:0 6px 6px 0}
+  .chip.s{color:var(--amber);background:rgba(246,173,60,.06)}
+  .note{border-left:2px solid var(--cyan);padding:8px 0 8px 13px;color:#cdd6e8;font-size:13px;background:rgba(56,189,248,.05)}
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:.2s;z-index:40}
+  .scrim.on{opacity:1;pointer-events:auto}
+
+  @media (max-width:780px){
+    .stage{height:auto;min-height:0;padding:18px 14px 40px}
+    svg.beams,.halo,.halotag,.legend,.hint{display:none}
+    .orb,.node{position:static;transform:none;left:auto;top:auto;margin:12px auto;animation:none;opacity:1}
+    .orb{width:190px;height:190px}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="mk"></span><div><h1>Command Center</h1><small>LIVE SYSTEM MAP</small></div></div>
+  <nav class="tabs">
+    <button class="on" data-view="map">Live Map</button>
+    <button data-view="proc">Processes</button>
+    <button data-view="gaps">Loose Ends</button>
+    <button data-view="ideas">Could Add</button>
+  </nav>
+  <div class="spacer"></div>
+  <div class="gaptoggle" id="gapToggle">⚠ Highlight loose ends <span class="n" id="gapCount">0</span></div>
+  <div class="meta">app.hauckmarketing.com<br>updated 2026&#8209;06&#8209;19</div>
+</header>
+
+<!-- ============ LIVE MAP ============ -->
+<section class="view on" id="view-map">
+  <div class="stage" id="stage">
+    <svg class="beams" id="beams"></svg>
+    <div class="halo" id="halo"></div>
+    <div class="halotag"><b id="haloTag">☁ CLOUDFLARE PAGES + FUNCTIONS</b></div>
+    <div class="orb" id="orb">
+      <div class="lab">THE</div><b>Command Center</b>
+      <div class="faces"><span>ADMIN</span><span>DESKTOP</span><span>MOBILE</span></div>
+    </div>
+    <div class="legend">
+      <div><i class="l1"></i> live data flow</div>
+      <div><i class="l2"></i> loose end (missing)</div>
+      <div><span class="sq" style="background:#3b82f6"></span> wired &nbsp; <span class="sq" style="background:var(--amber);margin-left:6px"></span> has gaps</div>
+    </div>
+    <div class="hint">click anything · toggle loose ends up top</div>
+  </div>
+</section>
+
+<!-- ============ PROCESSES ============ -->
+<section class="view" id="view-proc">
+  <div class="page">
+    <p class="lead">Every process, by software. This is the zero-guesswork reference: exactly what the app does with each tool. Amber ▲ marks a loose end.</p>
+    <div class="pgrid" id="procGrid"></div>
+  </div>
+</section>
+
+<!-- ============ GAPS ============ -->
+<section class="view" id="view-gaps">
+  <div class="page">
+    <p class="lead">Loose ends, ranked. These are real gaps found in the code: things half-wired, missing, or risky. Click one to see it on the system.</p>
+    <div id="gapList"></div>
+  </div>
+</section>
+
+<!-- ============ IDEAS ============ -->
+<section class="view" id="view-ideas">
+  <div class="page">
+    <p class="lead">Brainstorm space. Different from loose ends: these are net-new features, not gaps. When one ships it moves onto the map.</p>
+    <div class="igrid" id="ideaList"></div>
+  </div>
+</section>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer">
+  <div class="dh"><span class="ic" id="dIc"></span><div><b id="dTitle"></b><span class="tag" id="dSub"></span></div><button class="x" id="dClose">×</button></div>
+  <div class="db" id="dBody"></div>
+</aside>
+
+<script>
+/* =====================================================================
+   HOW TO UPDATE  -  edit DATA only; the map draws itself.
+
+   GAPS  : the master loose-ends list. severity high|med|low, node it sits
+           on, where (file), why, fix.
+   NODES : orb(hub) + cloudflare(platform) + services + ghost(loose ends).
+           processes:[{g:'group', items:[...]}]  gaps:[gap ids]
+           angle = position around the orb (0=right,90=down,180=left,270=up)
+           dir = 'out'|'in'|'both' ; r = radius factor (1 = default ring)
+   IDEAS : the Could Add page (net-new, not gaps).
+
+   RULE: when we add/change a process, edit it here in the same change.
+   A fixed loose end: delete its GAP + ghost node, move it to a real node.
+   ===================================================================== */
+
+const GAPS = {
+  'ads-mock':     {sev:'high', node:'g-ads',     title:'Paid Ads page is demo data', where:'src/hooks/useAds.ts · lib/adsData.ts',
+    why:'The whole Paid Ads screen renders a deterministic fake dataset. No Meta/Google Ads backend is connected.',
+    fix:'Add an /api/ads function pulling Meta insights, then swap the hook body (return shape already fixed).'},
+  'audit-noview': {sev:'med', node:'supabase',   title:'Audit log is written but never shown', where:'lib/adminAuth.ts · admin_audit_log',
+    why:'Every admin action is logged to admin_audit_log, but no screen or endpoint ever reads it back.',
+    fix:'Build an Admin Console viewer for admin_audit_log.'},
+  'sessions':     {sev:'med', node:'hub',        title:'Owner/staff sessions cannot be revoked early', where:'functions/lib/session.ts',
+    why:'Sessions are stateless HMAC cookies (30 days). Admin sessions re-check active status, but owner/staff stay valid until the cookie expires or the account is disabled.',
+    fix:'Add a session version/revocation check, or shorten TTL + refresh.'},
+  'no-kv':        {sev:'med', node:'cloudflare',  title:'Hot caches reset on every deploy', where:'pipelines.ts · calendar/events.ts (in-memory Maps)',
+    why:'Pipeline, calendar and custom-field caches live in per-edge memory. They reset on deploy and are not shared across edges.',
+    fix:'Move them to Cloudflare KV for shared, durable caching.'},
+  'staff-link':   {sev:'med', node:'ghl',        title:'Staff can end up with no GHL link', where:'functions/lib/staff.ts',
+    why:'If GHL_COMPANY_ID is unset or provisioning fails, a staff account is created with ghl_user_id=null and there is no UI to relink it later.',
+    fix:'Add a "link to GHL user" action in the staff editor.'},
+  'no-cron':      {sev:'med', node:'g-cron',     title:'No scheduler / background jobs', where:'wrangler.toml (no [triggers])',
+    why:'Nothing runs on a schedule: no Monday brief, no daily digest, no stale-lead nudge, no cleanup.',
+    fix:'Add Cloudflare Cron Triggers calling a scheduled function.'},
+  'team-sync':    {sev:'low', node:'ghl',        title:'GHL team sync is manual', where:'functions/api/team/sync.ts',
+    why:'Pulling the GHL team into our staff list only happens when an owner manually triggers it. Nothing auto-syncs changes.',
+    fix:'Trigger sync on a schedule or on a GHL user webhook.'},
+  'no-email':     {sev:'low', node:'g-email',    title:'No email alerts', where:'functions (push only)',
+    why:'Alerts are web-push only. Owners who never install the PWA get nothing.',
+    fix:'Send email (e.g. Resend) alongside push on key events.'},
+  'notes-ro':     {sev:'low', node:'ghl',        title:'Contact notes cannot be edited or deleted', where:'functions/api/contacts/[id]/notes.ts',
+    why:'Only create + read are wired. A typo in a note is permanent from the app.',
+    fix:'Add PATCH/DELETE on the notes endpoint.'},
+  'dead-col':     {sev:'low', node:'supabase',   title:'Dead column / deprecated table linger', where:'migrations 0003, 0004/0006',
+    why:'tenant_users.user_id was superseded by ghl_user_id but left in place; the 0003 admins table is deprecated yet kept.',
+    fix:'Drop in a cleanup migration once nothing references them.'},
+};
+
+const NODES = [
+  { id:'hub', kind:'hub', ic:'🛰️', label:'Command Center', tag:'one app, three faces',
+    lead:'One responsive app on Cloudflare. Same data, three faces: Admin (you), Desktop and Mobile. Every request passes one auth gate, then fans out to the API functions.',
+    processes:[
+      {g:'Surfaces', items:['Admin Console','Desktop Dashboard','Mobile / PWA']},
+      {g:'Auth gate', items:['Session cookie','Tenant scope','Permissions','Read-only preview']},
+      {g:'API functions', items:['Auth','CRM','Admin','Push','Notifications','Webhook']},
+    ], gaps:['sessions'], secrets:['SESSION_SECRET'], note:'Open the Processes tab for the full breakdown of every function.' },
+
+  { id:'cloudflare', kind:'platform', ic:'☁️', label:'Cloudflare', tag:'the platform it runs on',
+    lead:'Hosts the whole thing: Pages serves the app, Functions are the API, and a git push deploys it. A few powerful tools are switched on later (see loose ends).',
+    processes:[
+      {g:'Hosting', items:['Pages serves SPA + PWA','Service worker / offline','Static assets (dist)']},
+      {g:'Compute', items:['~50 Functions (the API)','_middleware auth gate','nodejs_compat runtime']},
+      {g:'Deploy', items:['git push main','pnpm build','auto-deploy to edge']},
+      {g:'Secrets store', items:['GHL keys','Supabase keys','VAPID keys','session + webhook secrets']},
+      {g:'Not used yet', items:['KV','D1','Queues','Cron']},
+    ], gaps:['no-kv','no-cron'], secrets:[], note:'The orb lives inside this ring: everything is served from Cloudflare.' },
+
+  { id:'ghl', kind:'service', ic:'🟢', label:'GoHighLevel', tag:'the backbone CRM', angle:325, dir:'both',
+    lead:'The real CRM and the backbone of the app. Source of truth for contacts, deals, conversations, calendar and billing. We read and write it live, and it pushes events back by webhook.',
+    processes:[
+      {g:'Pipeline / deals', items:['List opportunities','Create lead','Lead detail','Move stage','Won / lost','Set value','Note on win']},
+      {g:'Conversations', items:['List threads','Read thread','Send: SMS·Email·FB·IG·GMB·WhatsApp·LiveChat','SMS shortcut']},
+      {g:'Contacts', items:['List','Enrich: phone·email·tags·fields']},
+      {g:'Tasks', items:['List','Create (due today)','Complete']},
+      {g:'Notes', items:['List','Create']},
+      {g:'Pipelines', items:['Stages + positions (cache 5m)']},
+      {g:'Calendar', items:['Discover calendars','Events by range (cache 5m)']},
+      {g:'Billing', items:['Invoices: list + detail','Payment transactions']},
+      {g:'Team', items:['List GHL users','Provision user on staff add','Sync team → staff (manual)']},
+      {g:'Attribution', items:['Custom-field map (cache 1h)','UTM extraction']},
+      {g:'Webhooks IN', items:['Opp create/stage/status','Appointments','Invoices','Inbound / outbound messages']},
+    ], gaps:['staff-link','team-sync','notes-ro'], secrets:['GHL_TOKEN','GHL_LOCATION_ID','GHL_COMPANY_ID'],
+    note:'Per-client token + location. Live and test modes use different sub-accounts.' },
+
+  { id:'supabase', kind:'service', ic:'🗄️', label:'Supabase', tag:'our own database', angle:40, dir:'out',
+    lead:'Our Postgres database for everything that is NOT in GoHighLevel: who can log in, who can see what, the activity feed, push devices, and the admin layer.',
+    processes:[
+      {g:'Auth data', items:['staff_accounts','admin_accounts','login_attempts (rate limit)','get_my_tenant() RPC']},
+      {g:'Tenancy', items:['tenants (config·branding·notify rule)','tenant_users','tenant_entitlements (feature flags)']},
+      {g:'Permissions', items:['staff_permissions (per-surface view/edit)']},
+      {g:'Activity', items:['activity_log feed','unread state','webhook writes']},
+      {g:'Devices', items:['push_subscriptions']},
+      {g:'Admin', items:['Client CRUD','Entitlements','admin_tasks','admin_audit_log (write)']},
+      {g:'Migrations', items:['npm run db:migrate','Management API + ledger','NEVER the SQL editor']},
+      {g:'Access', items:['Service-role from Functions (bypass RLS)','RLS scopes client reads']},
+    ], gaps:['audit-noview','dead-col'], secrets:['SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY','SUPABASE_ACCESS_TOKEN'],
+    note:'12 tables. Schema changes go through the migration runner, never the dashboard SQL editor.' },
+
+  { id:'push', kind:'service', ic:'🔔', label:'Web Push', tag:'phone alerts', angle:140, dir:'out',
+    lead:'Delivers alerts to a phone even when the app is closed. The webhook handler fires these as CRM events come in.',
+    processes:[
+      {g:'Register', items:['Subscribe (device + rep)','Unsubscribe','Public key endpoint']},
+      {g:'Send', items:['On webhook event','Assigned-rep-only or everyone']},
+      {g:'Hygiene', items:['Prune dead devices (404/410)','Cap 50 / client']},
+      {g:'Deep-link', items:['Open the right lead','Open the conversation']},
+    ], gaps:[], secrets:['VAPID_PUBLIC_KEY','VAPID_PRIVATE_KEY'],
+    note:'Signed with VAPID. Email is its missing sibling (see loose ends).' },
+
+  { id:'dns', kind:'service', ic:'🔗', label:'Namecheap DNS', tag:'the front door', angle:215, dir:'in',
+    lead:'Points the branded address at the app. That is its whole job.',
+    processes:[
+      {g:'Routing', items:['CNAME app.hauckmarketing.com → Cloudflare Pages']},
+      {g:'Note', items:['DNS lives at Namecheap','No nameserver move needed']},
+    ], gaps:[], secrets:[], note:'DNS is at Namecheap, not Cloudflare.' },
+
+  /* ---- ghost / loose-end nodes (a missing piece that should connect) ---- */
+  { id:'g-ads', kind:'ghost', ic:'📊', label:'Ads data source', tag:'MISSING', angle:268, dir:'in', r:0.84,
+    lead:'The Paid Ads page is live in the app but shows demo numbers. A real ads data source needs to plug in here.',
+    processes:[], gaps:['ads-mock'], secrets:[], note:'' },
+  { id:'g-cron', kind:'ghost', ic:'⏰', label:'Scheduler', tag:'MISSING', angle:180, dir:'in', r:0.8,
+    lead:'There is no scheduler. Anything recurring (Monday brief, digests, nudges, cleanup) has nowhere to run.',
+    processes:[], gaps:['no-cron'], secrets:[], note:'' },
+  { id:'g-email', kind:'ghost', ic:'✉️', label:'Email alerts', tag:'MISSING', angle:90, dir:'in', r:0.84,
+    lead:'Alerts are push-only. Email is the missing channel for owners who do not install the app.',
+    processes:[], gaps:['no-email'], secrets:[], note:'' },
+];
+
+const IDEAS = [
+  { title:'Auto-provision clients in Supabase', where:'Admin API → Supabase',
+    note:'Adding a client auto-creates the tenant, owner account, entitlements and subdomain in one click.', effort:'medium' },
+  { title:'Reply from the notification', where:'Mobile → CRM API → GHL',
+    note:'Tap an inbound-message push and reply by SMS without opening the full inbox.', effort:'medium' },
+  { title:'Aurelius brief in the app', where:'Scheduler → app',
+    note:'A weekly plain-English summary of each client, generated and dropped into the dashboard.', effort:'large' },
+];
+
+/* ---------------- lookups ---------------- */
+const NODE = Object.fromEntries(NODES.map(n=>[n.id,n]));
+const procCount = n => (n.processes||[]).reduce((s,g)=>s+g.items.length,0);
+const SEVRANK = {high:0,med:1,low:2};
+
+/* ---------------- build map ---------------- */
+const stage=document.getElementById('stage'), beams=document.getElementById('beams');
+const services = NODES.filter(n=>n.kind==='service'||n.kind==='ghost');
+let delay=0;
+services.forEach(n=>{
+  const el=document.createElement('div');
+  el.className='node'+(n.kind==='ghost'?' ghost':'')+((n.gaps&&n.gaps.length)?' has-gap':'');
+  el.id='node-'+n.id; el.style.animationDelay=(delay+=70)+'ms';
+  if(n.kind==='ghost'){
+    const sev=(n.gaps&&n.gaps[0])?GAPS[n.gaps[0]].sev:'med';
+    el.innerHTML=`<div class="hd"><span class="ic">${n.ic}</span><div><b>${n.label}</b><span class="tag">${n.tag}</span></div></div>
+      <div class="lewrap"><span class="le">LOOSE END</span><span class="sev sev-${sev}">${sev.toUpperCase()}</span></div>`;
+  } else {
+    const mini=(n.processes||[]).slice(0,4).map(g=>`<span>${g.g}</span>`).join('');
+    const gtxt=(n.gaps&&n.gaps.length)?`<span class="gap">▲ ${n.gaps.length}</span>`:'';
+    el.innerHTML=`<div class="hd"><span class="ic">${n.ic}</span><div><b>${n.label}</b><span class="tag">${n.tag}</span></div></div>
+      <div class="mini">${mini}</div>
+      <div class="badges"><span class="cnt">${procCount(n)} ops</span>${gtxt}</div>`;
+  }
+  el.addEventListener('click',()=>openDetail(n.id));
+  el.addEventListener('mouseenter',()=>hotBeam(n.id,true));
+  el.addEventListener('mouseleave',()=>hotBeam(n.id,false));
+  stage.appendChild(el);
+});
+document.getElementById('orb').addEventListener('click',()=>openDetail('hub'));
+document.getElementById('halo').addEventListener('click',()=>openDetail('cloudflare'));
+document.getElementById('haloTag').parentElement.addEventListener('click',()=>openDetail('cloudflare'));
+
+function layout(){
+  const W=stage.clientWidth, H=stage.clientHeight;
+  if(W<780){ beams.innerHTML=''; return; }
+  const cx=W/2, cy=H/2, RX=Math.min(W*0.31,470), RY=Math.min(H*0.34,290), haloR=168;
+  beams.setAttribute('width',W); beams.setAttribute('height',H);
+  let svg=`<defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#38bdf8"/></marker>
+    <marker id="aha" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#f6ad3c"/></marker>
+  </defs>`;
+  services.forEach(n=>{
+    const a=n.angle*Math.PI/180, ux=Math.cos(a), uy=Math.sin(a), rf=n.r||1;
+    const sx=cx+RX*rf*ux, sy=cy+RY*rf*uy;
+    const ex=cx+haloR*ux, ey=cy+haloR*uy;
+    const tx=sx-ux*112, ty=sy-uy*54;
+    const card=document.getElementById('node-'+n.id);
+    card.style.left=sx+'px'; card.style.top=sy+'px';
+    const ghost=n.kind==='ghost';
+    const cls='beam'+(ghost?' ghost':(' flow'+(n.dir==='in'?' rev':'')));
+    const col=ghost?'#f6ad3c':'#38bdf8';
+    const mk = ghost ? `marker-end="url(#aha)"` : (n.dir==='in'?`marker-start="url(#ah)"`:`marker-end="url(#ah)"`);
+    const mk2 = (!ghost && n.dir==='both')?`marker-start="url(#ah)"`:'';
+    svg+=`<path class="${cls}" id="beam-${n.id}" data-id="${n.id}" d="M${ex},${ey} L${tx},${ty}" stroke="${col}" ${mk} ${mk2}/>`;
+  });
+  beams.innerHTML=svg;
+}
+window.addEventListener('resize',layout);
+window.addEventListener('load',layout);
+layout();
+
+function hotBeam(id,on){ const b=document.getElementById('beam-'+id); if(b) b.classList.toggle('hot',on); }
+
+/* ---------------- processes page ---------------- */
+const pg=document.getElementById('procGrid');
+['hub','cloudflare','ghl','supabase','push','dns'].forEach(id=>{
+  const n=NODE[id]; const gapset=new Set((n.gaps||[]).map(g=>GAPS[g].title));
+  let h=`<div class="ph"><span class="ic">${n.ic}</span><div><b>${n.label}</b><div class="tag">${n.tag}</div></div></div>`;
+  (n.processes||[]).forEach(g=>{
+    h+=`<h5>${g.g}</h5><ul>`+g.items.map(it=>{
+      const flag=/manual|NEVER|Not used|null/i.test(it);
+      return `<li${flag?' class="flag"':''}>${it}</li>`;
+    }).join('')+`</ul>`;
+  });
+  const c=document.createElement('div'); c.className='pcard'; c.innerHTML=h; pg.appendChild(c);
+});
+
+/* ---------------- gaps page ---------------- */
+const gl=document.getElementById('gapList');
+const order=Object.entries(GAPS).sort((a,b)=>SEVRANK[a[1].sev]-SEVRANK[b[1].sev]);
+let curSev='';
+order.forEach(([id,g])=>{
+  if(g.sev!==curSev){ curSev=g.sev;
+    const lbl={high:'High priority',med:'Medium',low:'Low / cleanup'}[g.sev];
+    const hd=document.createElement('div'); hd.className='secthead'; hd.textContent=lbl; gl.appendChild(hd);
+  }
+  const row=document.createElement('div'); row.className='gaprow '+g.sev;
+  row.innerHTML=`<span class="sevtag sev-${g.sev}">${g.sev.toUpperCase()}</span>
+    <div><b>${g.title}</b><p>${g.why}</p><div class="fix">▸ fix: ${g.fix}</div><div class="where">${g.where}</div></div>`;
+  row.addEventListener('click',()=>openDetail(g.node));
+  gl.appendChild(row);
+});
+document.getElementById('gapCount').textContent=Object.keys(GAPS).length;
+
+/* ---------------- ideas page ---------------- */
+const il=document.getElementById('ideaList');
+IDEAS.forEach(i=>{
+  const c=document.createElement('div'); c.className='ideacard';
+  c.innerHTML=`<b>${i.title}</b><div class="where">${i.where}</div><p>${i.note}</p><span class="eff">effort: ${i.effort}</span>`;
+  il.appendChild(c);
+});
+
+/* ---------------- tabs ---------------- */
+document.querySelectorAll('nav.tabs button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+    b.classList.add('on'); document.getElementById('view-'+b.dataset.view).classList.add('on');
+    if(b.dataset.view==='map') requestAnimationFrame(layout);
+  });
+});
+
+/* ---------------- loose-ends toggle ---------------- */
+document.getElementById('gapToggle').addEventListener('click',function(){
+  const on=document.body.classList.toggle('focus');
+  this.classList.toggle('on',on);
+});
+
+/* ---------------- drawer ---------------- */
+const drawer=document.getElementById('drawer'), scrim=document.getElementById('scrim');
+function clearSel(){ document.querySelectorAll('.node.sel').forEach(n=>n.classList.remove('sel')); }
+function openDetail(id){
+  const n=NODE[id]; if(!n) return;
+  clearSel(); document.getElementById('node-'+id)?.classList.add('sel');
+  document.getElementById('dIc').textContent=n.ic;
+  document.getElementById('dTitle').textContent=n.label;
+  document.getElementById('dSub').textContent=n.tag;
+  let h=`<p class="lead">${n.lead||''}</p>`;
+  const gaps=(n.gaps||[]).map(g=>({id:g,...GAPS[g]})).sort((a,b)=>SEVRANK[a.sev]-SEVRANK[b.sev]);
+  if(gaps.length){
+    const c={high:0,med:0,low:0}; gaps.forEach(g=>c[g.sev]++);
+    h+=`<h4>Loose ends here</h4><div class="gapbanner">`;
+    if(c.high)h+=`<span class="sev-high">${c.high} high</span>`;
+    if(c.med)h+=`<span class="sev-med">${c.med} medium</span>`;
+    if(c.low)h+=`<span class="sev-low">${c.low} low</span>`;
+    h+=`</div>`;
+    gaps.forEach(g=>{ h+=`<div class="gapcard ${g.sev}"><b>${g.title}</b><p>${g.why}</p><div class="fix">▸ fix: ${g.fix}</div><div class="where">${g.where}</div></div>`; });
+  }
+  if(n.processes&&n.processes.length){
+    h+=`<h4>What we do with it · ${procCount(n)} processes</h4>`;
+    n.processes.forEach(g=>{ h+=`<div class="grp"><div class="gt">${g.g}</div><div class="gi">`+g.items.map(it=>`<span>${it}</span>`).join('')+`</div></div>`; });
+  }
+  if(n.secrets&&n.secrets.length){ h+=`<h4>Keys / secrets</h4><div>`+n.secrets.map(s=>`<span class="chip s">${s}</span>`).join('')+`</div>`; }
+  if(n.note){ h+=`<h4>Note</h4><div class="note">${n.note}</div>`; }
+  document.getElementById('dBody').innerHTML=h;
+  drawer.classList.add('open'); scrim.classList.add('on');
+}
+function closeDrawer(){ drawer.classList.remove('open'); scrim.classList.remove('on'); clearSel(); }
+document.getElementById('dClose').addEventListener('click',closeDrawer);
+scrim.addEventListener('click',closeDrawer);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDrawer(); });
+</script>
+</body>
+</html>
