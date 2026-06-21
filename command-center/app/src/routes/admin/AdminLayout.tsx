@@ -4,6 +4,7 @@ import {
   Building2,
   ListChecks,
   BookText,
+  Hammer,
   LogOut,
   Sun,
   Moon,
@@ -28,6 +29,7 @@ interface AdminNavItem {
 const ADMIN_NAV: AdminNavItem[] = [
   { to: "/admin/clients", label: "Clients", icon: Building2 },
   { to: "/admin/tasks", label: "Tasks", icon: ListChecks },
+  { to: "/admin/build", label: "Build Lab", icon: Hammer },
   { to: "/admin/sops", label: "SOP Hub", icon: BookText },
 ];
 

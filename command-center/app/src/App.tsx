@@ -26,6 +26,7 @@ import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClients from "./routes/admin/AdminClients";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminTasks from "./routes/admin/AdminTasks";
+import AdminBuild from "./routes/admin/AdminBuild";
 import AdminSops from "./routes/admin/AdminSops";
 import AdminSopDetail from "./routes/admin/AdminSopDetail";
 import Shell from "./components/Shell";
@@ -271,6 +272,14 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminTasks />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/build"
+                element={
+                  <AdminRoute>
+                    <AdminBuild />
                   </AdminRoute>
                 }
               />
