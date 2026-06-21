@@ -70,7 +70,7 @@ export default function CalendarDesktop() {
     <DesktopPage
       title="Calendar"
       subtitle={countLabel}
-      actions={<NotificationBell enabled={useReal} />}
+      actions={<NotificationBell enabled={useReal} variant="surface" />}
     >
       {query.isError ? (
         <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">

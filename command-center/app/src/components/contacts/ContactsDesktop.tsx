@@ -47,7 +47,7 @@ export default function ContactsDesktop() {
     <DesktopPage
       title="Contacts"
       subtitle={countLabel}
-      actions={<NotificationBell enabled={useReal} />}
+      actions={<NotificationBell enabled={useReal} variant="surface" />}
     >
       {/* Search */}
       <div className="relative mb-5 max-w-sm">

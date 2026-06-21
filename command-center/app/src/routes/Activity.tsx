@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { BellOff, History, CheckCheck } from "lucide-react";
 import type { ApiActivity, ApiNotification } from "../lib/api";
+import Shell from "../components/Shell";
+import ActivityDesktop from "../components/activity/ActivityDesktop";
 import { PageHeader } from "../components/PageHeader";
 import {
   Button,
@@ -62,7 +64,11 @@ export function Activity() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[760px]">
+    <Shell>
+      {/* Phone layout (below lg). The desktop client app renders
+          ActivityDesktop instead; both share the same query cache. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
+      <div className="mx-auto w-full max-w-[760px]">
       <PageHeader
         title="Activity"
         description="Account events and notifications from your pipelines."
@@ -104,7 +110,14 @@ export function Activity() {
           onRetry={() => activityQuery.refetch()}
         />
       )}
-    </div>
+      </div>
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier command deck. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <ActivityDesktop />
+      </div>
+    </Shell>
   );
 }
 

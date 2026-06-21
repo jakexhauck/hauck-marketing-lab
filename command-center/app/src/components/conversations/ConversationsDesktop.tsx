@@ -50,7 +50,7 @@ export default function ConversationsDesktop() {
     <DesktopPage
       title="Inbox"
       subtitle={subtitle}
-      actions={<NotificationBell enabled={useReal} />}
+      actions={<NotificationBell enabled={useReal} variant="surface" />}
     >
       {/* Search */}
       <div className="relative mb-5 max-w-sm">

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, ChevronRight, LogOut, Users } from "lucide-react";
 import Shell from "../components/Shell";
+import SettingsDesktop from "../components/settings/SettingsDesktop";
 import BackButton from "../components/BackButton";
 import { useAuth } from "../context/AuthContext";
 import { useClient } from "../context/ClientContext";
@@ -26,7 +27,9 @@ const AUDIENCE_OPTIONS: { value: Audience; title: string; sub: string }[] = [
 
 // Owner-only control for who gets pushed when a new lead, message, or win lands.
 // Reads and writes tenants.notify_audience via /api/settings/notifications.
-function NotifyAudienceCard() {
+// Exported so the lg+ desktop layout (SettingsDesktop) reuses the exact same
+// state and mutation rather than duplicating the preference logic.
+export function NotifyAudienceCard() {
   const [audience, setAudience] = useState<Audience | null>(null);
   const [saving, setSaving] = useState<Audience | null>(null);
   const [error, setError] = useState(false);
@@ -112,6 +115,10 @@ export default function Settings() {
 
   return (
     <Shell>
+      {/* Phone layout (below lg). The desktop client app renders
+          SettingsDesktop instead; both share the same auth, client and
+          notification-preference state. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <div
         className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2"
         style={{ paddingTop: "calc(env(safe-area-inset-top) + 8px)" }}
@@ -210,6 +217,12 @@ export default function Settings() {
         <p className="mt-8 text-center text-[11px] font-medium text-[var(--text-faint)]">
           {client.brand.appName}. Secured by {APP_BRAND.securedBy}.
         </p>
+      </div>
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier settings column. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <SettingsDesktop />
       </div>
     </Shell>
   );

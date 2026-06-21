@@ -4,6 +4,7 @@ import { Plus, ShieldCheck, UserPlus, X } from "lucide-react";
 import Shell from "../components/Shell";
 import BackButton from "../components/BackButton";
 import BrandedButton from "../components/BrandedButton";
+import TeamDesktop, { type StaffMember } from "../components/team/TeamDesktop";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { api, ApiError } from "../lib/api";
@@ -13,17 +14,6 @@ import {
   type Capability,
   type StaffRole,
 } from "../lib/capabilities";
-
-interface StaffMember {
-  id: string;
-  name: string;
-  email: string;
-  role: StaffRole;
-  status: string;
-  ghlUserId: string | null;
-  createdAt: string;
-  permissions: { capability: string; view: boolean; edit: boolean }[];
-}
 
 type GrantMap = Record<Capability, { view: boolean; edit: boolean }>;
 
@@ -99,8 +89,43 @@ export default function Team() {
     }
   };
 
+  // Shared between both layouts: opening the add form (closing it if it is
+  // already open in add mode), opening the edit form, and the toggle handler.
+  const handleAdd = () => {
+    setEditing(null);
+    setShowForm((s) => (editing ? true : !s));
+  };
+  const handleEdit = (m: StaffMember) => {
+    setEditing(m);
+    setShowForm(true);
+  };
+  const closeForm = () => {
+    setShowForm(false);
+    setEditing(null);
+  };
+  const onSaved = () => {
+    setShowForm(false);
+    setEditing(null);
+    void refresh();
+  };
+
+  // One EmployeeForm instance reused by both the phone and desktop layouts so
+  // validation and mutations stay identical.
+  const formEl = showForm ? (
+    <EmployeeForm
+      key={editing?.id ?? "new"}
+      editing={editing}
+      enabledCaps={enabledCaps.map((c) => c.key)}
+      onClose={closeForm}
+      onSaved={onSaved}
+    />
+  ) : null;
+
   return (
     <Shell>
+      {/* Phone layout (below lg). The desktop client app renders TeamDesktop
+          instead; both share the same staff state and mutations. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <div
         className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2"
         style={{ paddingTop: "calc(env(safe-area-inset-top) + 8px)" }}
@@ -111,10 +136,7 @@ export default function Team() {
         </span>
         <button
           type="button"
-          onClick={() => {
-            setEditing(null);
-            setShowForm((s) => editing ? true : !s);
-          }}
+          onClick={handleAdd}
           aria-label="Add employee"
           className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--brand-primary)] transition-colors active:bg-[var(--surface-2)]"
         >
@@ -128,22 +150,7 @@ export default function Team() {
           and password and only sees what you allow.
         </p>
 
-        {showForm && (
-          <EmployeeForm
-            key={editing?.id ?? "new"}
-            editing={editing}
-            enabledCaps={enabledCaps.map((c) => c.key)}
-            onClose={() => {
-              setShowForm(false);
-              setEditing(null);
-            }}
-            onSaved={() => {
-              setShowForm(false);
-              setEditing(null);
-              void refresh();
-            }}
-          />
-        )}
+        {formEl}
 
         {loadError ? (
           <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
@@ -204,10 +211,7 @@ export default function Team() {
                     <div className="flex shrink-0 flex-col gap-1.5">
                       <button
                         type="button"
-                        onClick={() => {
-                          setEditing(m);
-                          setShowForm(true);
-                        }}
+                        onClick={() => handleEdit(m)}
                         className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-[12px] font-semibold text-[var(--brand-primary)] transition-colors active:bg-[var(--surface-2)]"
                       >
                         Edit
@@ -226,6 +230,22 @@ export default function Team() {
             })}
           </ul>
         )}
+      </div>
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier team directory. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <TeamDesktop
+          staff={staff}
+          loading={loading}
+          loadError={loadError}
+          showForm={showForm}
+          editing={editing}
+          form={formEl}
+          onAdd={handleAdd}
+          onEdit={handleEdit}
+          onToggleStatus={toggleStatus}
+        />
       </div>
     </Shell>
   );

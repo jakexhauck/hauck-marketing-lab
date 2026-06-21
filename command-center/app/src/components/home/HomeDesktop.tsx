@@ -168,7 +168,7 @@ export default function HomeDesktop() {
             <Search size={16} />
             <span>Search leads, contacts</span>
           </button>
-          <NotificationBell enabled={useReal} />
+          <NotificationBell enabled={useReal} variant="surface" />
           <Button variant="primary" onClick={() => navigate("/leads")}>
             <TrendingUp size={16} />
             View pipeline

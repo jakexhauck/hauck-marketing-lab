@@ -171,7 +171,7 @@ export default function BillingDesktop() {
     <DesktopPage
       title="Billing"
       subtitle={subtitle}
-      actions={<NotificationBell enabled={useReal} />}
+      actions={<NotificationBell enabled={useReal} variant="surface" />}
     >
       {/* Ledger summary band */}
       <section className="grid grid-cols-1 gap-5 sm:grid-cols-2">

@@ -3,11 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { useNotificationsQuery } from "../hooks/useApi";
 
-// Hero-styled bell with an unread badge. Lives in the Home hero next to Search;
-// matches HeroIconButton's frosted-white treatment so it reads as part of the
-// dark hero. Tapping opens the notification center. The badge is driven by the
-// polled unread count and caps at 9+.
-export default function NotificationBell({ enabled }: { enabled: boolean }) {
+// Bell with an unread badge. Two looks: "hero" (frosted white, for the dark
+// navy hero on phone screens, the default) and "surface" (muted icon on a
+// light/dark surface, for the desktop DesktopPage header). Tapping opens the
+// notification center. The badge is driven by the polled unread count, caps 9+.
+export default function NotificationBell({
+  enabled,
+  variant = "hero",
+}: {
+  enabled: boolean;
+  variant?: "hero" | "surface";
+}) {
   const navigate = useNavigate();
   const { data } = useNotificationsQuery(enabled);
   const unread = data?.unreadCount ?? 0;
@@ -24,6 +30,8 @@ export default function NotificationBell({ enabled }: { enabled: boolean }) {
     else void nav.clearAppBadge?.().catch(() => {});
   }, [unread]);
 
+  const surface = variant === "surface";
+
   return (
     <button
       type="button"
@@ -31,8 +39,12 @@ export default function NotificationBell({ enabled }: { enabled: boolean }) {
       aria-label={
         unread > 0 ? `Notifications, ${unread} unread` : "Notifications"
       }
-      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-colors active:scale-[0.96]"
-      style={{ background: "rgba(255,255,255,0.14)" }}
+      className={
+        surface
+          ? "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] border border-border bg-surface text-muted transition-colors hover:border-border-strong hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+          : "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-colors active:scale-[0.96]"
+      }
+      style={surface ? undefined : { background: "rgba(255,255,255,0.14)" }}
     >
       <Bell size={18} />
       {unread > 0 && (

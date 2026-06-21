@@ -15,6 +15,7 @@ import {
 import type { ComponentType } from "react";
 import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
+import NotificationsDesktop from "../components/notifications/NotificationsDesktop";
 import { HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
 import EmptyState from "../components/EmptyState";
@@ -127,6 +128,7 @@ export default function Notifications() {
 
   return (
     <Shell>
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       {isTest && <TestBanner />}
 
       <NavyHero flushTop={isTest}>
@@ -231,6 +233,11 @@ export default function Notifications() {
           ))
         )}
       </main>
+      </div>
+
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <NotificationsDesktop />
+      </div>
     </Shell>
   );
 }
