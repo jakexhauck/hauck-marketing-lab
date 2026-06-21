@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-21T00:00:00Z",
+  "title": "Design System: Hauck Command Center",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Command Navy", "canonical": "#1a4d8f", "tonalRamp": ["#0a1d36", "#102a4d", "#163963", "#1a4d8f", "#3a6aa6", "#6a93c4", "#a3c0e0", "#e8f0fa"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#0f172a", "tonalRamp": ["#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#f1f5f9"] },
+      "positive": { "role": "tertiary", "displayName": "Positive Green", "canonical": "#1f7a4d", "tonalRamp": ["#0c3120", "#124a30", "#176140", "#1f7a4d", "#3a9968", "#4fb585", "#8fd4b3", "#d6f0e3"] },
+      "ledger": { "role": "secondary", "displayName": "Ledger Gold", "canonical": "#9a6f1e", "tonalRamp": ["#3d2c0c", "#5c4212", "#7b5818", "#9a6f1e", "#bd8b32", "#d7ab51", "#e8cb8f", "#f6ebcf"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page titles and the signature navy hero only." },
+      "headline": { "displayName": "Headline", "purpose": "Section and panel titles." },
+      "body": { "displayName": "Body", "purpose": "All reading copy; cap measure at 65 to 75 characters." },
+      "label": { "displayName": "Label", "purpose": "Structural mono uppercase kickers, used sparingly." },
+      "data": { "displayName": "Data", "purpose": "Tabular mono figures for money, counts, times, IDs." }
+    },
+    "shadows": [
+      { "name": "resting", "value": "0 1px 2px rgba(20,26,35,0.06), 0 1px 1px rgba(20,26,35,0.04)", "purpose": "Subtle separation for cards on canvas." },
+      { "name": "raised", "value": "0 4px 12px rgba(20,26,35,0.08), 0 2px 4px rgba(20,26,35,0.05)", "purpose": "Hover lift, popovers, dropdowns." },
+      { "name": "floating", "value": "0 16px 48px rgba(20,26,35,0.16), 0 4px 12px rgba(20,26,35,0.08)", "purpose": "Modals, sheets, dragged items." }
+    ],
+    "motion": [
+      { "name": "ease-out-quart", "value": "cubic-bezier(0.25, 1, 0.5, 1)", "purpose": "Default easing for entrances and state transitions." },
+      { "name": "duration-fast", "value": "150ms", "purpose": "Micro-interactions: hover, press, toggle." },
+      { "name": "duration-base", "value": "200ms", "purpose": "Theme transitions, panel state changes." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single primary action per view. Command Navy fill.",
+      "html": "<button class=\"ds-btn-primary\">Add lead</button>",
+      "css": ".ds-btn-primary { background: #1a4d8f; color: #fff; font-family: Inter, system-ui, sans-serif; font-size: 0.9375rem; font-weight: 600; padding: 10px 18px; border: none; border-radius: 9px; cursor: pointer; transition: background 150ms cubic-bezier(0.25,1,0.5,1), transform 150ms cubic-bezier(0.25,1,0.5,1); } .ds-btn-primary:hover { background: #133766; } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 2px solid #1a4d8f; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Neutral action; subordinate to primary.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { background: #ffffff; color: #0f172a; font-family: Inter, system-ui, sans-serif; font-size: 0.9375rem; font-weight: 600; padding: 10px 18px; border: 1px solid #e2e8f0; border-radius: 9px; cursor: pointer; transition: background 150ms ease, border-color 150ms ease; } .ds-btn-secondary:hover { background: #f1f5f9; border-color: #cbd5e1; } .ds-btn-secondary:focus-visible { outline: 2px solid #1a4d8f; outline-offset: 2px; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Text field with label above, navy focus ring.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Client name</span><input class=\"ds-input\" type=\"text\" placeholder=\"Search clients\" /></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-field-label { font-family: Inter, system-ui, sans-serif; font-size: 0.8125rem; font-weight: 500; color: #334155; } .ds-input { background: #ffffff; color: #0f172a; font-family: Inter, system-ui, sans-serif; font-size: 0.9375rem; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 9px; transition: border-color 150ms ease, box-shadow 150ms ease; } .ds-input::placeholder { color: #94a3b8; } .ds-input:focus { outline: none; border-color: #1a4d8f; box-shadow: 0 0 0 2px rgba(26,77,143,0.25); }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Tone-based status with leading dot; meaning never rides on color alone.",
+      "html": "<span class=\"ds-pill\"><span class=\"ds-pill-dot\"></span>Won</span>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 6px; background: #d6f0e3; color: #0c3120; font-family: Inter, system-ui, sans-serif; font-size: 0.8125rem; font-weight: 600; padding: 4px 10px; border-radius: 9999px; } .ds-pill-dot { width: 6px; height: 6px; border-radius: 9999px; background: #1f7a4d; }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Sidebar rail item; active uses navy text, mist background, left accent bar.",
+      "html": "<a class=\"ds-nav-item ds-nav-active\" href=\"#\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6\"/></svg><span>Home</span></a>",
+      "css": ".ds-nav-item { position: relative; display: flex; align-items: center; gap: 10px; font-family: Inter, system-ui, sans-serif; font-size: 0.9375rem; font-weight: 500; color: #64748b; padding: 9px 12px; border-radius: 9px; text-decoration: none; transition: background 150ms ease, color 150ms ease; } .ds-nav-item:hover { background: #f1f5f9; color: #0f172a; } .ds-nav-active { color: #1a4d8f; background: #e8f0fa; font-weight: 600; } .ds-nav-active::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 9999px; background: #1a4d8f; }"
+    },
+    {
+      "name": "Stat Card",
+      "kind": "card",
+      "refersTo": "stat-card",
+      "description": "Single metric: mono label, tabular value, optional delta.",
+      "html": "<div class=\"ds-stat\"><span class=\"ds-stat-label\">NEW LEADS</span><span class=\"ds-stat-value\">128</span><span class=\"ds-stat-delta\">+12% vs last week</span></div>",
+      "css": ".ds-stat { display: flex; flex-direction: column; gap: 6px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; box-shadow: 0 1px 2px rgba(20,26,35,0.06), 0 1px 1px rgba(20,26,35,0.04); } .ds-stat-label { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.656rem; font-weight: 600; letter-spacing: 0.08em; color: #64748b; } .ds-stat-value { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 1.875rem; font-weight: 600; font-variant-numeric: tabular-nums; color: #0f172a; } .ds-stat-delta { font-family: Inter, system-ui, sans-serif; font-size: 0.8125rem; font-weight: 500; color: #1f7a4d; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Calm Command Deck",
+    "overview": "A premium control room for running a business. The operator sits down and the one number that matters is already looking back at them. It fuses Linear's precision with the breathing room of Notion and Height, reading as expensive without feeling cold. Depth and polish come from precision and space, not decoration. The product handles clients' leads and money, so every surface should feel handled and reliable.",
+    "keyCharacteristics": [
+      "Calm surfaces, one obvious focal point per screen",
+      "Quiet navy authority with a strictly rationed accent",
+      "Effortless reading: text is always easy to find and re-find",
+      "Depth through space and weight, not effects",
+      "One system expressed three ways (client desktop baseline, admin tower, mobile)"
+    ],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "Command Navy covers at most 10 percent of any screen. One primary action per view in navy; everything else is neutral.", "section": "colors" },
+      { "name": "The Ledger Rule", "body": "Gold means money and nothing else. If a value is not currency, it is never gold.", "section": "colors" },
+      { "name": "The No-Wash Rule", "body": "The brand color is an accent, never a background fill for large areas beyond the single signature hero.", "section": "colors" },
+      { "name": "The Tabular Rule", "body": "Every number that can change uses tabular figures so columns never shift.", "section": "typography" },
+      { "name": "The Layer-First Rule", "body": "Reach for a tonal surface step before reaching for a shadow. Shadows are for things that actually float.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do give every screen one obvious focal point; when in doubt, remove, group, or add space.",
+      "Do keep Command Navy to roughly 10 percent of a screen and one primary action per view.",
+      "Do build depth with tonal surface steps and space first, shadows second.",
+      "Do use tabular mono figures for all money, counts, times, and IDs.",
+      "Do pair every status color with a dot, icon, or label so meaning never rides on color alone.",
+      "Do keep body text at AA (4.5:1), placeholder and helper text included, in both light and dark."
+    ],
+    "donts": [
+      "Don't make it cluttered or busy. If a screen feels packed, it has failed even if it looks polished.",
+      "Don't look like GoHighLevel or a generic agency CRM.",
+      "Don't ship template-SaaS cliches: default purple gradients, identical card grids, the AI-made-this dashboard.",
+      "Don't fall into sterile gray-on-gray enterprise. Premium, never dull.",
+      "Don't wash large areas in the brand navy or use gold for anything that is not money.",
+      "Don't put a mono uppercase label above every section, and never nest a card inside a card."
+    ]
+  }
+}

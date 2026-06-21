@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import Shell from "../components/Shell";
+import HomeDesktop from "../components/home/HomeDesktop";
 import NavyHero from "../components/NavyHero";
 import SplitHero, { HeroMark, HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
@@ -106,6 +107,10 @@ export default function Home() {
 
   return (
     <Shell>
+      {/* Phone layout (below lg). The desktop client app renders HomeDesktop
+          instead; both share the same TanStack Query cache so there is no
+          double fetch. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <PullToRefresh
         queryKeys={[["summary"], ["activity"], ["notifications"]]}
       />
@@ -343,6 +348,12 @@ export default function Home() {
             )}
           </>
         )}
+      </div>
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier command deck. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <HomeDesktop />
       </div>
 
       <BottomNav active="home" />
