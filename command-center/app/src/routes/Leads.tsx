@@ -7,6 +7,7 @@ import SplitHero, { HeroMark, HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
 import BottomNav from "../components/BottomNav";
 import Board from "../components/Board";
+import LeadsDesktop from "../components/leads/LeadsDesktop";
 import PipelineSwitcher from "../components/PipelineSwitcher";
 import SearchBar from "../components/SearchBar";
 import NewLeadSheet from "../components/NewLeadSheet";
@@ -118,6 +119,10 @@ export default function Leads() {
 
   return (
     <Shell>
+      {/* Phone layout (below lg). The desktop client app renders LeadsDesktop
+          instead; both share the same query cache, pipeline context and
+          mutations. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <PullToRefresh queryKeys={[["leads"], ["summary"]]} />
       {isTest && <TestBanner />}
 
@@ -330,6 +335,12 @@ export default function Leads() {
         onClose={() => setShowNewLead(false)}
         leadsKey={["leads", "pipeline", selectedId]}
       />
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier kanban command deck. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <LeadsDesktop />
+      </div>
 
       <BottomNav active="leads" />
     </Shell>

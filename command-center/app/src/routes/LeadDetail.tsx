@@ -10,6 +10,7 @@ import {
   Tag,
 } from "lucide-react";
 import Shell from "../components/Shell";
+import LeadDetailDesktop from "../components/leads/LeadDetailDesktop";
 import NavyHero from "../components/NavyHero";
 import { HeroIconButton } from "../components/HeroUi";
 import BackButton from "../components/BackButton";
@@ -192,14 +193,19 @@ export default function LeadDetail() {
   if (!lead && leadPending) {
     return (
       <Shell>
-        <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-          <BackButton to="/leads" label="Leads" />
-        </header>
-        <div className="flex flex-1 items-center justify-center p-6">
-          <div
-            className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--brand-primary)]"
-            aria-hidden="true"
-          />
+        <div className="flex min-h-0 flex-1 flex-col lg:hidden">
+          <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+            <BackButton to="/leads" label="Leads" />
+          </header>
+          <div className="flex flex-1 items-center justify-center p-6">
+            <div
+              className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--brand-primary)]"
+              aria-hidden="true"
+            />
+          </div>
+        </div>
+        <div className="hidden min-h-0 flex-1 lg:flex">
+          <LeadDetailDesktop />
         </div>
       </Shell>
     );
@@ -208,16 +214,21 @@ export default function LeadDetail() {
   if (!lead) {
     return (
       <Shell>
-        <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-          <BackButton to="/leads" label="Leads" />
-        </header>
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-          <h1 className="font-display text-xl font-bold text-[var(--text)]">
-            Lead not found
-          </h1>
-          <p className="text-sm text-[var(--text-muted)]">
-            This lead may have been removed or the link is incorrect.
-          </p>
+        <div className="flex min-h-0 flex-1 flex-col lg:hidden">
+          <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+            <BackButton to="/leads" label="Leads" />
+          </header>
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+            <h1 className="font-display text-xl font-bold text-[var(--text)]">
+              Lead not found
+            </h1>
+            <p className="text-sm text-[var(--text-muted)]">
+              This lead may have been removed or the link is incorrect.
+            </p>
+          </div>
+        </div>
+        <div className="hidden min-h-0 flex-1 lg:flex">
+          <LeadDetailDesktop />
         </div>
       </Shell>
     );
@@ -264,6 +275,9 @@ export default function LeadDetail() {
 
   return (
     <Shell>
+      {/* Phone layout (below lg). The desktop client app renders
+          LeadDetailDesktop instead; both share the same query cache. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <NavyHero>
         <div className="flex items-center justify-between">
           <HeroIconButton label="Back to leads" onClick={() => navigate("/leads")}>
@@ -521,6 +535,12 @@ export default function LeadDetail() {
             </OutcomeButton>
           )}
         </section>
+      </div>
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier lead detail. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <LeadDetailDesktop />
       </div>
 
       {moveOpen && leadPipeline && (

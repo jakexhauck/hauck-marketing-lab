@@ -1,0 +1,103 @@
+import { useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import DesktopPage from "../desktop/DesktopPage";
+import { Button } from "../ui/Button";
+import Avatar from "../Avatar";
+import ConversationThread from "../ConversationThread";
+import MessageComposer from "../MessageComposer";
+import { useAuth } from "../../context/AuthContext";
+import {
+  useConversationMessagesQuery,
+  useConversationsQuery,
+} from "../../hooks/useApi";
+
+// Human-friendly channel names, mirroring ChannelComposer's CHANNEL_LABEL so
+// the subtitle reads the same language as the composer's channel chips.
+const CHANNEL_LABEL: Record<string, string> = {
+  SMS: "SMS",
+  Email: "Email",
+  FB: "Facebook",
+  IG: "Instagram",
+  GMB: "Google",
+  WhatsApp: "WhatsApp",
+  Live_Chat: "Live Chat",
+  Custom: "Custom",
+};
+
+function channelLabel(channel: string): string {
+  return CHANNEL_LABEL[channel] ?? channel;
+}
+
+// The Atelier desktop Conversation thread (lg+). The phone keeps its own
+// (NavyHero) full-height layout; this renders only inside `hidden lg:flex`
+// from the ConversationDetail route. It reuses the exact same thread,
+// composer, channel logic and send mutation as the phone screen.
+export default function ConversationDetailDesktop() {
+  const { contactId = "" } = useParams<{ contactId: string }>();
+  const navigate = useNavigate();
+  const { session } = useAuth();
+  const useReal = Boolean(session);
+
+  const listQuery = useConversationsQuery(useReal);
+  const messagesQuery = useConversationMessagesQuery(
+    contactId || null,
+    useReal && !!contactId,
+  );
+
+  const conv = useMemo(
+    () =>
+      listQuery.data?.conversations.find((c) => c.contactId === contactId) ??
+      null,
+    [listQuery.data, contactId],
+  );
+
+  const name = conv?.name ?? "Conversation";
+
+  const defaultChannel = messagesQuery.data?.defaultChannel;
+  const hasUnread = (conv?.unreadCount ?? 0) > 0;
+  const subtitle = defaultChannel
+    ? `${channelLabel(defaultChannel)}${hasUnread ? " . Unread" : ""}`
+    : hasUnread
+      ? "Unread"
+      : "Conversation";
+
+  return (
+    <DesktopPage
+      title={
+        <span className="flex items-center gap-3">
+          <Avatar name={name} size="sm" />
+          <span className="truncate">{name}</span>
+        </span>
+      }
+      subtitle={subtitle}
+      actions={
+        <Button
+          variant="secondary"
+          onClick={() => navigate("/conversations")}
+        >
+          <ArrowLeft size={16} />
+          Inbox
+        </Button>
+      }
+    >
+      {/* A readable centered column; the thread scrolls, the composer pins to
+          the bottom of the content area. The header (64px) plus DesktopPage's
+          vertical padding (28px top + 28px bottom) are subtracted so the
+          column fills the viewport without spilling. */}
+      <div
+        className="mx-auto flex w-full max-w-3xl flex-col"
+        style={{ height: "calc(100dvh - 64px - 56px)" }}
+      >
+        <div className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-6 pb-4 pt-5">
+            <ConversationThread contactId={contactId} fill />
+          </div>
+          <div className="border-t border-border px-6 py-4">
+            <MessageComposer contactId={contactId} />
+          </div>
+        </div>
+      </div>
+    </DesktopPage>
+  );
+}

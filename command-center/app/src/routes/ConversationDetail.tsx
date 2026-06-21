@@ -7,6 +7,7 @@ import { HeroIconButton } from "../components/HeroUi";
 import Avatar from "../components/Avatar";
 import ConversationThread from "../components/ConversationThread";
 import MessageComposer from "../components/MessageComposer";
+import ConversationDetailDesktop from "../components/conversations/ConversationDetailDesktop";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "../hooks/useApi";
 
@@ -51,13 +52,13 @@ export default function ConversationDetail() {
 
   return (
     <Shell>
-      {/* Full-height column minus the safe-area inset Shell already pads
+      {/* Phone: full-height column minus the safe-area inset Shell already pads
           (a plain h-dvh would overflow by the inset and let the document
           scroll the composer under the home indicator). overflow-hidden
           makes the thread the only scroll region, so the composer stays
           pinned to the bottom. */}
       <div
-        className="flex flex-col overflow-hidden"
+        className="flex flex-col overflow-hidden lg:hidden"
         style={{ height: "calc(100dvh - env(safe-area-inset-bottom))" }}
       >
         <NavyHero rounded={false}>
@@ -86,6 +87,11 @@ export default function ConversationDetail() {
             <MessageComposer contactId={contactId} />
           </div>
         </main>
+      </div>
+
+      {/* Desktop (lg+): centered thread column inside the command-deck shell. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <ConversationDetailDesktop />
       </div>
     </Shell>
   );

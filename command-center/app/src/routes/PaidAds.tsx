@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { FlaskConical } from "lucide-react";
+import Shell from "../components/Shell";
 import { PageHeader } from "../components/PageHeader";
 import { Panel, PanelHeader, Segmented, type SegmentOption } from "../components/ui";
 import { MetricBand, type MetricCell } from "../components/ads/MetricBand";
 import { DeliveryTrend } from "../components/ads/DeliveryTrend";
 import { AdFunnel } from "../components/ads/AdFunnel";
 import { CampaignsTable } from "../components/ads/CampaignsTable";
+import PaidAdsDesktop from "../components/ads/PaidAdsDesktop";
 import { useAdsData } from "../hooks/useAds";
 import {
   RANGE_LABEL,
@@ -85,7 +87,10 @@ export function PaidAds() {
   const data = useAdsData(range);
 
   return (
-    <div className="pb-8">
+    <Shell>
+      {/* Phone layout (below lg). The desktop client app renders
+          PaidAdsDesktop instead; both share the same ads dataset. */}
+      <div className="flex min-h-0 flex-1 flex-col px-5 pb-8 pt-5 lg:hidden">
       <PageHeader
         title="Paid Ads"
         count={`${data.campaigns.length} campaigns`}
@@ -139,6 +144,12 @@ export function PaidAds() {
           <CampaignsTable campaigns={data.campaigns} />
         </div>
       </Panel>
-    </div>
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier ads command deck. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <PaidAdsDesktop />
+      </div>
+    </Shell>
   );
 }

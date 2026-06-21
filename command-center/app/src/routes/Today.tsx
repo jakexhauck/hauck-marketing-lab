@@ -6,6 +6,7 @@ import TopBar from "../components/TopBar";
 import LeadRow from "../components/LeadRow";
 import EmptyState from "../components/EmptyState";
 import TodayQueueSection from "../components/TodayQueueSection";
+import TodayDesktop from "../components/today/TodayDesktop";
 import { useLeads } from "../context/LeadsContext";
 import { useAuth } from "../context/AuthContext";
 import { useClient } from "../context/ClientContext";
@@ -85,6 +86,9 @@ export default function Today() {
 
   return (
     <Shell>
+      {/* Phone layout (below lg). The desktop client app renders TodayDesktop
+          instead; both share the same LeadsContext so there is no double work. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <TopBar />
 
       {!isRep && currentUser && (
@@ -201,6 +205,12 @@ export default function Today() {
           )}
         </TodayQueueSection>
       </main>
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier command deck. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <TodayDesktop />
+      </div>
     </Shell>
   );
 }
