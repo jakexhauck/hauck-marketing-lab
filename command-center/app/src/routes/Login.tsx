@@ -1,14 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import BrandedButton from "../components/BrandedButton";
-import BrandedLogo from "../components/BrandedLogo";
 import { useAuth } from "../context/AuthContext";
 import { APP_BRAND } from "../lib/appBrand";
+import { GREEN_THEME_VARS, BRAND_GRADIENT } from "../lib/brandTheme";
 
 type Phase = "idle" | "submitting" | "error";
 type LoginMode = "live" | "test" | "admin";
-
-const NAVY_GRADIENT = "linear-gradient(165deg, #13294a 0%, #0d1f38 100%)";
 
 // One email + password form for everyone. Owners and team members sign in with
 // their own email + password (staff-login); super-admins sign in to the admin
@@ -78,7 +76,7 @@ export default function Login() {
   const card = (
     <div className="w-full max-w-md rounded-3xl bg-[var(--surface)] p-8 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)]">
       <div className="flex flex-col items-center text-center">
-        <BrandedLogo size="lg" />
+        <img src="/hauck-wordmark.png" alt="Hauck Marketing" className="h-9 w-auto" />
         <span className="label-cap mt-6">{heading}</span>
         <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text)]">
           {heading}
@@ -157,28 +155,13 @@ export default function Login() {
   );
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-2">
-      {/* Brand panel: full-height navy column at lg+. */}
+    <div className="min-h-dvh lg:grid lg:grid-cols-2" style={GREEN_THEME_VARS}>
+      {/* Brand panel: full-height dark-green column at lg+. */}
       <aside
         className="hidden flex-col justify-between p-12 text-white lg:flex"
-        style={{ background: NAVY_GRADIENT }}
+        style={{ background: BRAND_GRADIENT }}
       >
-        <div className="flex items-center gap-4">
-          <div
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl font-display text-2xl font-semibold text-white"
-            style={{
-              backgroundColor: APP_BRAND.color,
-              boxShadow:
-                "0 8px 16px -10px rgba(15,23,42,0.45), inset 0 1px 0 rgba(255,255,255,0.18)",
-            }}
-            aria-hidden="true"
-          >
-            {APP_BRAND.initials}
-          </div>
-          <span className="font-display text-lg font-medium tracking-tight">
-            {APP_BRAND.appName}
-          </span>
-        </div>
+        <img src="/hauck-wordmark.png" alt="Hauck Marketing" className="h-8 w-auto" />
 
         <div className="max-w-sm">
           <h2 className="font-display text-3xl font-semibold leading-tight tracking-tight">
@@ -199,7 +182,7 @@ export default function Login() {
           neutral surface can override it (inline styles cannot be overridden
           by a responsive class). */}
       <main
-        className="flex min-h-dvh flex-col items-center justify-center bg-[linear-gradient(165deg,#13294a_0%,#0d1f38_100%)] px-5 py-12 lg:bg-[var(--bg)] lg:bg-none"
+        className="flex min-h-dvh flex-col items-center justify-center bg-[linear-gradient(165deg,#0c2820_0%,#061410_100%)] px-5 py-12 lg:bg-[var(--bg)] lg:bg-none"
         style={{ paddingTop: "calc(env(safe-area-inset-top) + 48px)" }}
       >
         {card}

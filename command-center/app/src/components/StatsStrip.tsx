@@ -24,22 +24,22 @@ interface HeroProps {
 function HeroCard({ label, value, meta }: HeroProps) {
   return (
     <div
-      className="relative overflow-hidden rounded-2xl px-5 py-5 text-white"
+      className="relative overflow-hidden rounded-2xl px-5 py-5 text-[var(--brand-fg)]"
       style={{
         backgroundColor: "var(--brand-primary)",
         minHeight: "180px",
         backgroundImage:
-          "radial-gradient(120% 80% at 100% 0%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 55%), radial-gradient(80% 60% at 0% 100%, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0) 60%)",
+          "radial-gradient(120% 80% at 100% 0%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 55%), radial-gradient(80% 60% at 0% 100%, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0) 60%)",
       }}
     >
       <div className="relative z-10 flex h-full flex-col justify-between gap-4">
-        <span className="label-cap-light">{label}</span>
+        <span className="label-cap" style={{ color: "var(--brand-fg)", opacity: 0.7 }}>{label}</span>
 
         <div className="flex flex-col gap-2">
-          <div className="hero-num text-white" style={{ fontSize: "56px" }}>
+          <div className="hero-num text-[var(--brand-fg)]" style={{ fontSize: "56px" }}>
             {value}
           </div>
-          <div className="tabular-figs flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] font-semibold text-white/85">
+          <div className="tabular-figs flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] font-semibold text-[var(--brand-fg)]/75">
             {meta}
           </div>
         </div>

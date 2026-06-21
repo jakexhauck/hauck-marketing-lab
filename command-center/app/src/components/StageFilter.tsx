@@ -31,7 +31,7 @@ export default function StageFilter({ options, active, onChange }: Props) {
             className={clsx(
               "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors active:scale-[0.97]",
               isActive
-                ? "text-white"
+                ? "text-[var(--brand-fg)]"
                 : "border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]"
             )}
             style={
@@ -44,7 +44,7 @@ export default function StageFilter({ options, active, onChange }: Props) {
             <span
               className={clsx(
                 "tabular-figs font-bold",
-                isActive ? "text-white/80" : "text-[var(--text-faint)]"
+                isActive ? "text-[var(--brand-fg)]/70" : "text-[var(--text-faint)]"
               )}
             >
               {opt.count}

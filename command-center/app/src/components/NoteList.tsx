@@ -137,7 +137,7 @@ export default function NoteList({ contactId, onToast }: Props) {
                         editDraft.trim().length === 0 || updateNote.isPending
                       }
                       aria-label="Save note"
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--brand-primary)] transition-colors active:scale-[0.96] disabled:opacity-40"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--brand-text)] transition-colors active:scale-[0.96] disabled:opacity-40"
                     >
                       <Check size={16} aria-hidden="true" />
                     </button>

@@ -1,11 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Plus, Users, Building2, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Users, Building2, Loader2, ChevronRight } from "lucide-react";
+import DesktopPage from "../../components/desktop/DesktopPage";
+import { Button } from "../../components/ui/Button";
 import { api, type AdminClient } from "../../lib/api";
 
 const inputCls =
-  "mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[var(--brand-primary)]";
-const labelCls = "block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
+  "w-full rounded-[var(--radius)] border border-border bg-surface px-3 py-2.5 text-[14px] text-text placeholder:text-faint transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25";
+const labelCls = "label-cap mb-1 block";
 
 interface CreateForm {
   name: string;
@@ -27,7 +29,7 @@ const EMPTY_FORM: CreateForm = {
   name: "",
   niche: "",
   appName: "",
-  brandColor: "#1d6fb8",
+  brandColor: "#4dbb83",
   brandInitials: "",
   wonLabel: "",
   valueLabel: "",
@@ -121,38 +123,35 @@ export default function AdminClients() {
     }
   };
 
+  const countLabel = loading
+    ? "Loading..."
+    : `${clients.length} ${clients.length === 1 ? "client" : "clients"}`;
+
   return (
-    <div>
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-[var(--text)]">
-            Clients
-          </h1>
-          <p className="text-sm text-[var(--text-muted)]">
-            {clients.length} {clients.length === 1 ? "client" : "clients"}
-          </p>
-        </div>
-        <button
+    <DesktopPage
+      title="Clients"
+      subtitle={countLabel}
+      actions={
+        <Button
+          variant="primary"
           onClick={() => {
             setShowForm((s) => !s);
             setFormError(null);
           }}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[var(--brand-fg)]"
-          style={{ background: "var(--brand-primary)" }}
         >
           <Plus size={16} /> New client
-        </button>
-      </div>
-
+        </Button>
+      }
+    >
       {showForm && (
         <form
           onSubmit={onCreate}
-          className="mb-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5"
+          className="mb-6 rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]"
         >
-          <h2 className="mb-3 font-display text-base font-semibold text-[var(--text)]">
+          <h2 className="mb-4 font-display text-[15px] font-semibold text-text">
             Create a client
           </h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label>
               <span className={labelCls}>Business name *</span>
               <input className={inputCls} value={form.name} onChange={set("name")} placeholder="Willis Windows" />
@@ -171,7 +170,7 @@ export default function AdminClients() {
             </label>
             <label>
               <span className={labelCls}>Brand color</span>
-              <input className={inputCls} type="text" value={form.brandColor} onChange={set("brandColor")} placeholder="#1d6fb8" />
+              <input className={inputCls} type="text" value={form.brandColor} onChange={set("brandColor")} placeholder="#4dbb83" />
             </label>
             <label>
               <span className={labelCls}>Monthly spend</span>
@@ -195,11 +194,11 @@ export default function AdminClients() {
             </label>
           </div>
 
-          <div className="mt-4 border-t border-[var(--divider)] pt-4">
-            <p className="mb-2 text-[12px] font-semibold text-[var(--text-muted)]">
+          <div className="mt-5 border-t border-divider pt-5">
+            <p className="mb-3 text-[12px] font-semibold text-muted">
               Owner login (optional, both fields or neither)
             </p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <label>
                 <span className={labelCls}>Owner name</span>
                 <input className={inputCls} value={form.ownerName} onChange={set("ownerName")} placeholder="Jane Willis" />
@@ -215,83 +214,114 @@ export default function AdminClients() {
             </div>
           </div>
 
-          {formError && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{formError}</p>}
+          {formError && <p className="mt-4 text-sm text-danger">{formError}</p>}
 
-          <div className="mt-4 flex items-center gap-2">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-[var(--brand-fg)] disabled:opacity-60"
-              style={{ background: "var(--brand-primary)" }}
-            >
-              {submitting && <Loader2 size={15} className="animate-spin" />}
+          <div className="mt-5 flex items-center gap-2">
+            <Button type="submit" variant="primary" loading={submitting}>
               {submitting ? "Creating..." : "Create client"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)]"
-            >
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}
 
       {loading ? (
-        <div className="flex items-center gap-2 py-12 text-sm text-[var(--text-muted)]">
+        <div className="flex items-center gap-2 py-16 text-sm text-muted">
           <Loader2 size={16} className="animate-spin" /> Loading clients...
         </div>
       ) : loadError ? (
-        <div className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300">
+        <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
           {loadError}
         </div>
       ) : clients.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[var(--border)] px-4 py-12 text-center">
-          <Building2 size={28} className="mx-auto mb-2 text-[var(--text-faint)]" />
-          <p className="text-sm text-[var(--text-muted)]">No clients yet. Create your first one.</p>
+        <div className="rounded-[var(--radius-lg)] border border-dashed border-border px-4 py-16 text-center">
+          <Building2 size={28} className="mx-auto mb-2 text-faint" />
+          <p className="text-sm text-muted">No clients yet. Create your first one.</p>
         </div>
       ) : (
-        <ul className="space-y-2">
-          {clients.map((c) => {
-            const connected = c.ghlLocationId && !["", "pending", "env"].includes(c.ghlLocationId.toLowerCase());
-            return (
-              <li key={c.id}>
-                <Link
-                  to={`/admin/clients/${c.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 transition-colors hover:border-[var(--brand-primary)]"
-                >
-                  <span
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold text-white"
-                    style={{ background: c.brandColor || "var(--brand-primary)" }}
+        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-divider text-left">
+                <th className="label-cap px-6 py-3 font-semibold">Client</th>
+                <th className="label-cap hidden px-6 py-3 font-semibold lg:table-cell">Niche</th>
+                <th className="label-cap px-6 py-3 text-right font-semibold lg:text-left">Members</th>
+                <th className="label-cap px-6 py-3 text-right font-semibold">Status</th>
+                <th className="w-10 px-2 py-3" aria-hidden />
+              </tr>
+            </thead>
+            <tbody>
+              {clients.map((c) => {
+                const connected =
+                  c.ghlLocationId && !["", "pending", "env"].includes(c.ghlLocationId.toLowerCase());
+                return (
+                  <tr
+                    key={c.id}
+                    onClick={() => navigate(`/admin/clients/${c.id}`)}
+                    className="group cursor-pointer border-b border-divider transition-colors last:border-0 hover:bg-surface-2"
                   >
-                    {c.brandInitials || c.name.slice(0, 2).toUpperCase()}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold text-[var(--text)]">{c.name}</div>
-                    <div className="truncate text-[12px] text-[var(--text-muted)]">
-                      {c.niche || "no niche"} · {c.slug}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-[12px] text-[var(--text-muted)]">
-                    <Users size={13} /> {c.memberCount}
-                  </div>
-                  <span
-                    className={[
-                      "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                      connected
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-                    ].join(" ")}
-                  >
-                    {connected ? "GHL connected" : "not connected"}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] text-[12px] font-bold"
+                          style={{ background: c.brandColor || "var(--brand-primary)", color: "var(--brand-fg)" }}
+                        >
+                          {c.brandInitials || c.name.slice(0, 2).toUpperCase()}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="truncate font-display text-[14.5px] font-semibold text-text">
+                            {c.name}
+                          </div>
+                          <div className="truncate font-data text-[12px] text-faint">{c.slug}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="hidden px-6 py-3.5 lg:table-cell">
+                      <span className="text-[13px] text-muted">{c.niche || "--"}</span>
+                    </td>
+                    <td className="px-6 py-3.5 text-right lg:text-left">
+                      <span className="inline-flex items-center gap-1 font-data text-[13px] text-muted tabular-nums">
+                        <Users size={13} className="text-faint" /> {c.memberCount}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3.5 text-right">
+                      <StatusPill connected={Boolean(connected)} />
+                    </td>
+                    <td className="px-2 py-3.5">
+                      <ChevronRight
+                        size={16}
+                        className="text-faint transition-colors group-hover:text-muted"
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
-    </div>
+    </DesktopPage>
+  );
+}
+
+function StatusPill({ connected }: { connected: boolean }) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+        connected
+          ? "bg-positive-tint text-positive"
+          : "bg-warning-tint text-warning",
+      ].join(" ")}
+    >
+      <span
+        className="h-1.5 w-1.5 rounded-full"
+        style={{ background: "currentColor" }}
+        aria-hidden
+      />
+      {connected ? "GHL connected" : "not connected"}
+    </span>
   );
 }

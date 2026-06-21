@@ -90,7 +90,7 @@ export default function NotificationPrompt() {
   return (
     <div className="mx-[22px] mt-5 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-start gap-3">
-        <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-white">
+        <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-[var(--brand-fg)]">
           <Bell size={18} strokeWidth={2} />
         </span>
         <div className="min-w-0 flex-1">
@@ -107,7 +107,7 @@ export default function NotificationPrompt() {
           type="button"
           onClick={onEnable}
           disabled={status === "working" || status === "unsupported"}
-          className="inline-flex flex-1 items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-[13px] font-bold uppercase tracking-wider text-white transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex flex-1 items-center justify-center rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-[13px] font-bold uppercase tracking-wider text-[var(--brand-fg)] transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {status === "working"
             ? "Enabling..."

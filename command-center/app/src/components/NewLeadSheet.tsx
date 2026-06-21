@@ -172,7 +172,7 @@ export default function NewLeadSheet({ open, pipeline, onClose, leadsKey }: Prop
               type="button"
               disabled={!canSubmit}
               onClick={() => void handleSubmit()}
-              className="flex-1 rounded-xl px-4 py-3 text-[13px] font-bold uppercase tracking-wider text-white transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[var(--surface-2)] disabled:text-[var(--text-faint)]"
+              className="flex-1 rounded-xl px-4 py-3 text-[13px] font-bold uppercase tracking-wider text-[var(--brand-fg)] transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[var(--surface-2)] disabled:text-[var(--text-faint)]"
               style={{ minHeight: "52px", backgroundColor: "var(--brand-primary)" }}
             >
               {submitting ? "Creating..." : "Create"}

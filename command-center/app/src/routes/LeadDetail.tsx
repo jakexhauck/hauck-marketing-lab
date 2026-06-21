@@ -332,7 +332,7 @@ export default function LeadDetail() {
             <a
               href={`tel:${telDigits}`}
               className="flex items-center gap-3 text-base font-semibold underline"
-              style={{ color: "var(--brand-primary)" }}
+              style={{ color: "var(--brand-text)" }}
             >
               <Phone size={16} aria-hidden="true" />
               <span>{phoneDisplay}</span>
@@ -341,7 +341,7 @@ export default function LeadDetail() {
           <a
             href={`mailto:${lead.email}`}
             className="flex items-center gap-3 break-all text-base font-semibold underline"
-            style={{ color: "var(--brand-primary)" }}
+            style={{ color: "var(--brand-text)" }}
           >
             <Mail size={16} aria-hidden="true" />
             <span>{lead.email}</span>

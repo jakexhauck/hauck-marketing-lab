@@ -149,7 +149,7 @@ export default function Calendar() {
                           : " border-b border-[var(--divider)]")
                       }
                     >
-                      <div className="w-16 shrink-0 text-[13px] font-bold tabular-nums text-[var(--brand-primary)]">
+                      <div className="w-16 shrink-0 text-[13px] font-bold tabular-nums text-[var(--brand-text)]">
                         {ev.startTime ? fmt.time.format(new Date(ev.startTime)) : ""}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -267,7 +267,7 @@ function AppointmentSheet({ event, fmt, onClose, onMessage }: SheetProps) {
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2 font-semibold underline"
-              style={{ color: "var(--brand-primary)" }}
+              style={{ color: "var(--brand-text)" }}
             >
               <Video size={15} aria-hidden="true" />
               <span className="break-all">Join meeting</span>

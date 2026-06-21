@@ -138,7 +138,7 @@ export default function Team() {
           type="button"
           onClick={handleAdd}
           aria-label="Add employee"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--brand-primary)] transition-colors active:bg-[var(--surface-2)]"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--brand-text)] transition-colors active:bg-[var(--surface-2)]"
         >
           {showForm && !editing ? <X size={20} /> : <Plus size={20} />}
         </button>
@@ -212,7 +212,7 @@ export default function Team() {
                       <button
                         type="button"
                         onClick={() => handleEdit(m)}
-                        className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-[12px] font-semibold text-[var(--brand-primary)] transition-colors active:bg-[var(--surface-2)]"
+                        className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-[12px] font-semibold text-[var(--brand-text)] transition-colors active:bg-[var(--surface-2)]"
                       >
                         Edit
                       </button>
@@ -356,7 +356,7 @@ function EmployeeForm({
   return (
     <div className="mt-4 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center gap-2">
-        <UserPlus size={16} className="text-[var(--brand-primary)]" />
+        <UserPlus size={16} className="text-[var(--brand-text)]" />
         <span className="font-display text-[14px] font-bold text-[var(--text)]">
           {isEdit ? "Edit employee" : "New employee"}
         </span>

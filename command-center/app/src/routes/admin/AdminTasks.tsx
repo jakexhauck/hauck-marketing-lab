@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Plus, Trash2, Loader2, ListChecks } from "lucide-react";
+import DesktopPage from "../../components/desktop/DesktopPage";
+import { Button } from "../../components/ui/Button";
 import { api, type AdminClient, type AdminTask } from "../../lib/api";
 
 const inputCls =
-  "w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[var(--brand-primary)]";
+  "w-full rounded-[var(--radius)] border border-border bg-surface px-3 py-2.5 text-[14px] text-text placeholder:text-faint transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25";
 
 // The agency-wide bucket. A real value (not "") so it round-trips cleanly
 // through the select; mapped to tenantId null on the way to the API.
@@ -123,19 +125,16 @@ export default function AdminTasks() {
     ...clients.map((c) => ({ value: c.id, label: c.name })),
   ];
 
-  return (
-    <div>
-      <div className="mb-5">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-[var(--text)]">Tasks</h1>
-        <p className="text-sm text-[var(--text-muted)]">
-          {openCount} open {openCount === 1 ? "task" : "tasks"}
-        </p>
-      </div>
+  const countLabel = loading
+    ? "Loading..."
+    : `${openCount} open ${openCount === 1 ? "task" : "tasks"}`;
 
+  return (
+    <DesktopPage title="Tasks" subtitle={countLabel}>
       {/* Add form */}
       <form
         onSubmit={onAdd}
-        className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
+        className="mb-5 rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-[var(--shadow-sm)]"
       >
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
@@ -162,17 +161,11 @@ export default function AdminTasks() {
             value={due}
             onChange={(e) => setDue(e.target.value)}
           />
-          <button
-            type="submit"
-            disabled={submitting}
-            className="flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-[var(--brand-fg)] disabled:opacity-60"
-            style={{ background: "var(--brand-primary)" }}
-          >
-            {submitting ? <Loader2 size={15} className="animate-spin" /> : <Plus size={16} />}
-            Add
-          </button>
+          <Button type="submit" variant="primary" loading={submitting}>
+            <Plus size={16} /> Add
+          </Button>
         </div>
-        {formError && <p className="mt-2 text-sm text-rose-600 dark:text-rose-400">{formError}</p>}
+        {formError && <p className="mt-2 text-sm text-danger">{formError}</p>}
       </form>
 
       {/* Category filter */}
@@ -186,10 +179,9 @@ export default function AdminTasks() {
               className={[
                 "rounded-full px-3 py-1 text-[12.5px] font-medium transition-colors",
                 active
-                  ? "text-[var(--brand-fg)]"
-                  : "border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]",
+                  ? "bg-brand text-brand-fg"
+                  : "border border-border text-muted hover:text-text",
               ].join(" ")}
-              style={active ? { background: "var(--brand-primary)" } : undefined}
             >
               {chip.label}
             </button>
@@ -198,26 +190,29 @@ export default function AdminTasks() {
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-12 text-sm text-[var(--text-muted)]">
+        <div className="flex items-center gap-2 py-16 text-sm text-muted">
           <Loader2 size={16} className="animate-spin" /> Loading tasks...
         </div>
       ) : loadError ? (
-        <div className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300">
+        <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
           {loadError}
         </div>
       ) : visible.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[var(--border)] px-4 py-12 text-center">
-          <ListChecks size={28} className="mx-auto mb-2 text-[var(--text-faint)]" />
-          <p className="text-sm text-[var(--text-muted)]">Nothing here yet. Add a task above.</p>
+        <div className="rounded-[var(--radius-lg)] border border-dashed border-border px-4 py-16 text-center">
+          <ListChecks size={28} className="mx-auto mb-2 text-faint" />
+          <p className="text-sm text-muted">Nothing here yet. Add a task above.</p>
         </div>
       ) : (
-        <ul className="space-y-2">
-          {visible.map((task) => {
+        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+          {visible.map((task, idx) => {
             const d = task.dueDate ? dueLabel(task.dueDate) : null;
             return (
-              <li
+              <div
                 key={task.id}
-                className="group flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
+                className={[
+                  "group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2",
+                  idx === visible.length - 1 ? "" : "border-b border-divider",
+                ].join(" ")}
               >
                 <input
                   type="checkbox"
@@ -229,23 +224,21 @@ export default function AdminTasks() {
                   <div
                     className={[
                       "truncate text-sm",
-                      task.completed
-                        ? "text-[var(--text-faint)] line-through"
-                        : "text-[var(--text)]",
+                      task.completed ? "text-faint line-through" : "text-text",
                     ].join(" ")}
                   >
                     {task.title}
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 text-[11px]">
-                    <span className="rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 font-medium text-[var(--text-muted)]">
+                    <span className="rounded-full bg-surface-2 px-1.5 py-0.5 font-medium text-muted">
                       {task.clientName ?? "Agency"}
                     </span>
                     {d && (
                       <span
                         className={
                           d.overdue && !task.completed
-                            ? "font-medium text-rose-600 dark:text-rose-400"
-                            : "text-[var(--text-faint)]"
+                            ? "font-medium text-danger"
+                            : "text-faint"
                         }
                       >
                         Due {d.text}
@@ -256,15 +249,15 @@ export default function AdminTasks() {
                 <button
                   onClick={() => void onDelete(task)}
                   aria-label="Delete task"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-faint)] opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-600 group-hover:opacity-100"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius)] text-faint opacity-0 transition-opacity hover:bg-danger-tint hover:text-danger group-hover:opacity-100"
                 >
                   <Trash2 size={15} />
                 </button>
-              </li>
+              </div>
             );
           })}
-        </ul>
+        </div>
       )}
-    </div>
+    </DesktopPage>
   );
 }

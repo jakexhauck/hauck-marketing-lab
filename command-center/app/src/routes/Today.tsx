@@ -100,7 +100,7 @@ export default function Today() {
             color: "var(--brand-primary-dark)",
           }}
         >
-          <span className="label-cap-strong block mb-1" style={{ color: "var(--brand-primary)" }}>
+          <span className="label-cap-strong block mb-1" style={{ color: "var(--brand-text)" }}>
             Rep View Preview
           </span>
           Viewing the Today screen across all leads for {client.name}. Reps see
@@ -110,7 +110,7 @@ export default function Today() {
 
       <header className="px-5 pt-5 pb-3">
         <div className="flex items-center justify-between">
-          <span className="label-cap-strong" style={{ color: "var(--brand-primary)" }}>
+          <span className="label-cap-strong" style={{ color: "var(--brand-text)" }}>
             Today
           </span>
           <button

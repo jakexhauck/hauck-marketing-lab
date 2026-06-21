@@ -76,7 +76,7 @@ export function NotifyAudienceCard() {
               <span
                 className={`flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 ${
                   active
-                    ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
+                    ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-[var(--brand-fg)]"
                     : "border-[var(--border)] text-transparent"
                 }`}
               >
@@ -157,8 +157,8 @@ export default function Settings() {
                   className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]"
                 >
                   <span
-                    className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl text-white"
-                    style={{ backgroundColor: "#1a4d8f" }}
+                    className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl text-[var(--brand-fg)]"
+                    style={{ backgroundColor: "var(--brand-primary)" }}
                   >
                     <Users size={18} strokeWidth={2} />
                   </span>

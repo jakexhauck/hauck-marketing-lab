@@ -226,14 +226,14 @@ export default function LeadRow({ lead, onTap, onAction, isLast = false }: Props
           type="button"
           onClick={handleAdvanceClick}
           aria-label={`Move to ${nextStage.name}`}
-          className="absolute inset-y-0 right-0 flex items-center justify-center gap-1.5 text-white"
+          className="absolute inset-y-0 right-0 flex items-center justify-center gap-1.5 text-[var(--brand-fg)]"
           style={{
             width: `${ACTION_WIDTH}px`,
             backgroundColor: "var(--brand-primary)",
           }}
         >
           <ArrowRight size={20} aria-hidden="true" />
-          <span className="label-cap" style={{ color: "#ffffff" }}>
+          <span className="label-cap" style={{ color: "var(--brand-fg)" }}>
             {nextStage.name}
           </span>
         </button>

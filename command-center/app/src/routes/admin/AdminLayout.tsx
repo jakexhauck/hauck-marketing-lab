@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import {
-  ShieldCheck,
   Building2,
   ListChecks,
+  BookText,
   LogOut,
   Sun,
   Moon,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
+import { GREEN_THEME_VARS } from "../../lib/brandTheme";
 
 // The admin console chrome. Mirrors the client Sidebar/Shell format (a left rail
 // on desktop, a compact top bar on phones) but is deliberately tenant-free: a
@@ -27,13 +28,14 @@ interface AdminNavItem {
 const ADMIN_NAV: AdminNavItem[] = [
   { to: "/admin/clients", label: "Clients", icon: Building2 },
   { to: "/admin/tasks", label: "Tasks", icon: ListChecks },
+  { to: "/admin/sops", label: "SOP Hub", icon: BookText },
 ];
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return [
     "group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors",
     isActive
-      ? "text-[var(--brand-primary)]"
+      ? "text-[var(--brand-text)]"
       : "text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]",
   ].join(" ");
 }
@@ -43,22 +45,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const { resolved, toggle } = useTheme();
 
   return (
-    <div className="flex min-h-dvh bg-[var(--bg)]">
+    <div className="flex min-h-dvh bg-[var(--bg)] text-[var(--text)]" style={GREEN_THEME_VARS}>
       {/* Desktop rail (lg+). Same source-of-truth nav as the mobile bar below. */}
       <aside className="hidden h-dvh w-[236px] shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] lg:sticky lg:top-0 lg:flex">
-        <div className="flex items-center gap-2.5 px-4 pb-3 pt-4">
-          <span
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--brand-fg)]"
-            style={{ background: "var(--brand-primary)" }}
-          >
-            <ShieldCheck size={17} />
-          </span>
-          <div className="min-w-0">
-            <div className="truncate font-display text-[15px] font-semibold leading-tight text-[var(--text)]">
-              Hauck Command Center
-            </div>
-            <div className="truncate text-[11px] text-[var(--text-faint)]">Admin Console</div>
-          </div>
+        <div className="px-4 pb-3 pt-5">
+          <img src="/hauck-wordmark.png" alt="Hauck Marketing" className="h-[22px] w-auto" />
+          <div className="mt-2 pl-[2px] text-[11px] text-[var(--text-faint)]">Admin Console</div>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-1">
@@ -114,15 +106,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {/* Phone top bar (below lg): brand, the two tabs, theme + sign out. */}
         <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur lg:hidden">
           <div className="flex items-center gap-3 px-4 py-3">
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--brand-fg)]"
-              style={{ background: "var(--brand-primary)" }}
-            >
-              <ShieldCheck size={17} />
-            </span>
-            <span className="font-display text-[15px] font-semibold text-[var(--text)]">
-              Admin Console
-            </span>
+            <img src="/hauck-wordmark.png" alt="Hauck Marketing" className="h-[20px] w-auto shrink-0" />
             <div className="ml-auto flex items-center gap-1">
               <button
                 onClick={toggle}
@@ -150,7 +134,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </nav>
         </header>
 
-        <main className="mx-auto w-full max-w-5xl px-4 py-6">{children}</main>
+        {/* Each admin page renders its own DesktopPage shell (sticky header +
+            wide content), matching the client Atelier surfaces. */}
+        <main className="flex min-h-0 flex-1 flex-col">{children}</main>
       </div>
     </div>
   );

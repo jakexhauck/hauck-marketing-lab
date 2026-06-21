@@ -3,10 +3,14 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  --brand-primary: #1a4d8f;
-  --brand-primary-tint: #e8f0fa;
-  --brand-primary-dark: #133766;
-  --brand-fg: #ffffff;
+  /* Hauck brand green (matches the internal site #4dbb83). Used for fills,
+     tints, and accents. On-light text uses the deeper --brand-text below so
+     it clears AA on white; fills carry dark --brand-fg text like the
+     internal site, never white-on-green. */
+  --brand-primary: #4dbb83;
+  --brand-primary-tint: #e6f7ee;
+  --brand-primary-dark: #36a06d;
+  --brand-fg: #06140f;
   --brand-bg: #f8fafc;
   --font-display: "Archivo", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -110,7 +114,7 @@ body {
   letter-spacing: 0.1em;
   font-size: 11px;
   font-weight: 700;
-  color: var(--brand-primary);
+  color: var(--brand-text);
 }
 
 /* Hide horizontal scrollbar on filter strips */
@@ -141,7 +145,10 @@ body {
   --brand-strong: var(--brand-primary-dark, var(--brand-primary));
   --brand-tint: color-mix(in srgb, var(--brand) 10%, transparent);
   --brand-tint-strong: color-mix(in srgb, var(--brand) 18%, transparent);
-  --brand-text: var(--brand);
+  /* Deeper green for brand-colored TEXT on light surfaces (active nav, links,
+     kickers): the bright fill green fails AA as small text on white, this
+     clears it (~4.6:1). The dark theme overrides this with a lighter green. */
+  --brand-text: #1f8551;
 
   /* Ledger gold — money only, never decorative. */
   --ledger: #9a6f1e;

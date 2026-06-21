@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, Check, UserPlus, DownloadCloud, Pencil, X, Eye } from "lucide-react";
+import DesktopPage from "../../components/desktop/DesktopPage";
+import { Button } from "../../components/ui/Button";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -11,8 +13,8 @@ import {
 } from "../../lib/capabilities";
 
 const inputCls =
-  "mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[var(--brand-primary)]";
-const labelCls = "block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
+  "mt-1 w-full rounded-[var(--radius)] border border-border bg-surface px-3 py-2.5 text-[14px] text-text placeholder:text-faint transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25";
+const labelCls = "label-cap block";
 
 interface DetailClient {
   id: string;
@@ -55,8 +57,8 @@ interface DetailResponse {
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-      <h2 className="mb-3 font-display text-base font-semibold text-[var(--text)]">{title}</h2>
+    <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]">
+      <h2 className="mb-4 font-display text-[15px] font-semibold text-text">{title}</h2>
       {children}
     </section>
   );
@@ -91,55 +93,57 @@ export default function AdminClientDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 py-12 text-sm text-[var(--text-muted)]">
-        <Loader2 size={16} className="animate-spin" /> Loading client...
-      </div>
+      <DesktopPage title="Client">
+        <div className="flex items-center gap-2 py-16 text-sm text-muted">
+          <Loader2 size={16} className="animate-spin" /> Loading client...
+        </div>
+      </DesktopPage>
     );
   }
   if (error || !data) {
     return (
-      <div>
+      <DesktopPage title="Client">
         <BackLink />
-        <div className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300">
+        <div className="mt-4 rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
           {error ?? "Client not found"}
         </div>
-      </div>
+      </DesktopPage>
     );
   }
 
-  return (
-    <div>
-      <BackLink />
-      <div className="mb-5 flex items-center gap-3">
-        <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
-          style={{ background: data.client.brandColor || "var(--brand-primary)" }}
-        >
-          {data.client.brandInitials || data.client.name.slice(0, 2).toUpperCase()}
-        </span>
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-[var(--text)]">
-            {data.client.name}
-          </h1>
-          <p className="text-sm text-[var(--text-muted)]">{data.client.slug}</p>
-        </div>
-        <PreviewButton tenantId={id} />
-      </div>
+  const { client } = data;
 
-      <div className="space-y-4">
-        <BrandingCard client={data.client} onSaved={load} />
-        <GhlCard client={data.client} onSaved={load} />
-        <OwnerCard tenantId={id} ownerPasswordSet={data.client.ownerPasswordSet} />
+  return (
+    <DesktopPage
+      title={
+        <span className="flex items-center gap-3">
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] text-[13px] font-bold"
+            style={{ background: client.brandColor || "var(--brand-primary)", color: "var(--brand-fg)" }}
+          >
+            {client.brandInitials || client.name.slice(0, 2).toUpperCase()}
+          </span>
+          {client.name}
+        </span>
+      }
+      subtitle={<span className="font-data">{client.slug}</span>}
+      actions={<PreviewButton tenantId={id} />}
+    >
+      <BackLink />
+      <div className="mt-4 space-y-4">
+        <BrandingCard client={client} onSaved={load} />
+        <GhlCard client={client} onSaved={load} />
+        <OwnerCard tenantId={id} ownerPasswordSet={client.ownerPasswordSet} />
         <EntitlementsCard tenantId={id} enabled={data.entitlements} onSaved={load} />
-        <TeamCard tenantId={id} staff={data.staff} entitlements={data.entitlements} ghlConnected={!placeholderConn(data.client.ghlLocationId)} onSaved={load} />
+        <TeamCard tenantId={id} staff={data.staff} entitlements={data.entitlements} ghlConnected={!placeholderConn(client.ghlLocationId)} onSaved={load} />
       </div>
-    </div>
+    </DesktopPage>
   );
 }
 
 function BackLink() {
   return (
-    <Link to="/admin/clients" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)]">
+    <Link to="/admin/clients" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-text">
       <ArrowLeft size={15} /> All clients
     </Link>
   );
@@ -167,17 +171,17 @@ function PreviewButton({ tenantId }: { tenantId: string }) {
   };
 
   return (
-    <div className="ml-auto flex flex-col items-end gap-1">
-      <button
+    <div className="flex flex-col items-end gap-1">
+      <Button
+        variant="secondary"
         onClick={() => void onClick()}
-        disabled={busy}
+        loading={busy}
         title="View this client's app read-only"
-        className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-60"
       >
-        {busy ? <Loader2 size={15} className="animate-spin" /> : <Eye size={15} />}
+        {!busy && <Eye size={15} />}
         {busy ? "Opening..." : "Preview as client"}
-      </button>
-      {err && <span className="text-[12px] text-rose-600 dark:text-rose-400">{err}</span>}
+      </Button>
+      {err && <span className="text-[12px] text-danger">{err}</span>}
     </div>
   );
 }
@@ -210,27 +214,22 @@ function ViewAsButton({ tenantId, staffId }: { tenantId: string; staffId: string
         onClick={() => void onClick()}
         disabled={busy}
         title="View the app from this person's point of view (read-only)"
-        className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-60"
+        className="inline-flex items-center gap-1 text-[12px] font-medium text-muted transition-colors hover:text-text disabled:opacity-60"
       >
         {busy ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}
         {busy ? "Opening..." : "View as"}
       </button>
-      {err && <span className="text-[11px] text-rose-600 dark:text-rose-400">{err}</span>}
+      {err && <span className="text-[11px] text-danger">{err}</span>}
     </span>
   );
 }
 
 function SaveButton({ saving, saved }: { saving: boolean; saved: boolean }) {
   return (
-    <button
-      type="submit"
-      disabled={saving}
-      className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-[var(--brand-fg)] disabled:opacity-60"
-      style={{ background: "var(--brand-primary)" }}
-    >
-      {saving ? <Loader2 size={15} className="animate-spin" /> : saved ? <Check size={15} /> : null}
+    <Button type="submit" variant="primary" loading={saving}>
+      {!saving && saved && <Check size={15} />}
       {saving ? "Saving..." : saved ? "Saved" : "Save"}
-    </button>
+    </Button>
   );
 }
 
@@ -289,18 +288,28 @@ function BrandingCard({ client, onSaved }: { client: DetailClient; onSaved: () =
   return (
     <Card title="Business & branding">
       <form onSubmit={onSubmit}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <label><span className={labelCls}>Business name</span><input className={inputCls} value={f.name} onChange={set("name")} /></label>
           <label><span className={labelCls}>Niche</span><input className={inputCls} value={f.niche} onChange={set("niche")} /></label>
           <label><span className={labelCls}>App name (header)</span><input className={inputCls} value={f.appName} onChange={set("appName")} /></label>
           <label><span className={labelCls}>Initials</span><input className={inputCls} value={f.brandInitials} onChange={set("brandInitials")} maxLength={3} /></label>
-          <label><span className={labelCls}>Brand color</span><input className={inputCls} value={f.brandColor} onChange={set("brandColor")} /></label>
+          <label>
+            <span className={labelCls}>Brand color</span>
+            <div className="mt-1 flex items-center gap-2">
+              <span
+                className="h-9 w-9 shrink-0 rounded-[var(--radius)] border border-border"
+                style={{ background: f.brandColor || "var(--brand-primary)" }}
+                aria-hidden
+              />
+              <input className={`${inputCls} mt-0`} value={f.brandColor} onChange={set("brandColor")} placeholder="#4dbb83" />
+            </div>
+          </label>
           <label><span className={labelCls}>Monthly spend</span><input className={inputCls} value={f.monthlySpend} onChange={set("monthlySpend")} inputMode="decimal" /></label>
           <label><span className={labelCls}>Won label</span><input className={inputCls} value={f.wonLabel} onChange={set("wonLabel")} /></label>
           <label><span className={labelCls}>Value label</span><input className={inputCls} value={f.valueLabel} onChange={set("valueLabel")} /></label>
         </div>
-        {err && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{err}</p>}
-        <div className="mt-4"><SaveButton saving={saving} saved={saved} /></div>
+        {err && <p className="mt-3 text-sm text-danger">{err}</p>}
+        <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
       </form>
     </Card>
   );
@@ -323,16 +332,16 @@ function GhlCard({ client, onSaved }: { client: DetailClient; onSaved: () => Pro
   };
   return (
     <Card title="GoHighLevel connection">
-      <p className="mb-3 text-[13px] text-[var(--text-muted)]">
+      <p className="mb-4 text-[13px] text-muted">
         {connected ? "Connected. Update the location id or paste a new token to rotate it." : "Not connected. Add this client's GHL location id and private token."}
       </p>
       <form onSubmit={onSubmit}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label><span className={labelCls}>GHL location id</span><input className={inputCls} value={locationId} onChange={(e) => setLocationId(e.target.value)} placeholder="OznT3..." /></label>
           <label><span className={labelCls}>GHL token (write-only)</span><input className={inputCls} type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="pit-..." autoComplete="off" /></label>
         </div>
-        {err && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{err}</p>}
-        <div className="mt-4"><SaveButton saving={saving} saved={saved} /></div>
+        {err && <p className="mt-3 text-sm text-danger">{err}</p>}
+        <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
       </form>
     </Card>
   );
@@ -350,7 +359,7 @@ function OwnerCard({ tenantId, ownerPasswordSet }: { tenantId: string; ownerPass
   };
   return (
     <Card title="Owner login">
-      <p className="mb-3 text-[13px] text-[var(--text-muted)]">
+      <p className="mb-4 text-[13px] text-muted">
         {ownerPasswordSet ? "An owner password is set." : "No owner password set yet."} Set or replace the legacy owner password here. The primary owner login is the owner's staff account (email + password) in the Team section below.
       </p>
       <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-3">
@@ -360,7 +369,7 @@ function OwnerCard({ tenantId, ownerPasswordSet }: { tenantId: string; ownerPass
         </label>
         <SaveButton saving={saving} saved={saved} />
       </form>
-      {err && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{err}</p>}
+      {err && <p className="mt-3 text-sm text-danger">{err}</p>}
     </Card>
   );
 }
@@ -394,22 +403,22 @@ function EntitlementsCard({ tenantId, enabled, onSaved }: { tenantId: string; en
               key={c.key}
               onClick={() => void toggle(c.key, !on)}
               disabled={busy === c.key}
-              className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2.5 text-left transition-colors hover:border-[var(--brand-primary)] disabled:opacity-60"
+              className="flex items-center justify-between rounded-[var(--radius)] border border-border px-3 py-2.5 text-left transition-colors hover:border-brand disabled:opacity-60"
             >
-              <span className="text-sm font-medium text-[var(--text)]">{c.label}</span>
+              <span className="text-sm font-medium text-text">{c.label}</span>
               <span
                 className={[
-                  "relative h-5 w-9 rounded-full transition-colors",
-                  on ? "bg-emerald-500" : "bg-[var(--surface-2)]",
+                  "relative h-5 w-9 shrink-0 rounded-full transition-colors",
+                  on ? "bg-positive" : "bg-surface-3",
                 ].join(" ")}
               >
-                <span className={["absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all", on ? "left-[18px]" : "left-0.5"].join(" ")} />
+                <span className={["absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-[var(--shadow-sm)] transition-all", on ? "left-[18px]" : "left-0.5"].join(" ")} />
               </span>
             </button>
           );
         })}
       </div>
-      {err && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{err}</p>}
+      {err && <p className="mt-3 text-sm text-danger">{err}</p>}
     </Card>
   );
 }
@@ -504,22 +513,22 @@ function TeamCard({ tenantId, staff, entitlements, ghlConnected, onSaved }: { te
     <li key={s.id} className="py-2.5">
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium text-[var(--text)]">{s.name}</div>
-          <div className="truncate text-[12px] text-[var(--text-muted)]">{s.email}</div>
+          <div className="truncate text-sm font-medium text-text">{s.name}</div>
+          <div className="truncate text-[12px] text-muted">{s.email}</div>
         </div>
-        <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-muted)]">{roleLabel(s.role)}</span>
-        <span className={["rounded-full px-2 py-0.5 text-[11px] font-semibold", s.status === "active" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-[var(--surface-2)] text-[var(--text-faint)]"].join(" ")}>{s.status}</span>
+        <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-muted">{roleLabel(s.role)}</span>
+        <span className={["rounded-full px-2 py-0.5 text-[11px] font-semibold", s.status === "active" ? "bg-positive-tint text-positive" : "bg-surface-2 text-faint"].join(" ")}>{s.status}</span>
         {s.status === "active" && <ViewAsButton tenantId={tenantId} staffId={s.id} />}
         <button
           onClick={() => setEditingId((cur) => (cur === s.id ? null : s.id))}
-          className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--text-muted)] hover:text-[var(--text)]"
+          className="inline-flex items-center gap-1 text-[12px] font-medium text-muted transition-colors hover:text-text"
         >
           {editingId === s.id ? <X size={13} /> : <Pencil size={13} />} {editingId === s.id ? "Close" : "Edit"}
         </button>
         {s.status === "active" ? (
-          <button onClick={() => void setStatus(s.id, "disabled")} className="text-[12px] font-medium text-rose-600 hover:underline dark:text-rose-400">Disable</button>
+          <button onClick={() => void setStatus(s.id, "disabled")} className="text-[12px] font-medium text-danger hover:underline">Disable</button>
         ) : (
-          <button onClick={() => void setStatus(s.id, "active")} className="text-[12px] font-medium text-emerald-600 hover:underline dark:text-emerald-400">Enable</button>
+          <button onClick={() => void setStatus(s.id, "active")} className="text-[12px] font-medium text-positive hover:underline">Enable</button>
         )}
       </div>
       {editingId === s.id && (
@@ -540,32 +549,29 @@ function TeamCard({ tenantId, staff, entitlements, ghlConnected, onSaved }: { te
   return (
     <Card title="Team & owners">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => setShowAdd((s) => !s)}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[var(--brand-fg)]"
-          style={{ background: "var(--brand-primary)" }}
-        >
+        <Button variant="primary" size="sm" onClick={() => setShowAdd((s) => !s)}>
           <UserPlus size={15} /> Add person
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => void importFromGhl()}
           disabled={!ghlConnected}
           title={ghlConnected ? "Pull users from this client's GHL" : "Connect GHL first"}
-          className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-50"
         >
           <DownloadCloud size={15} /> Import from GHL
-        </button>
+        </Button>
       </div>
 
-      <p className="mb-3 text-[12px] text-[var(--text-muted)]">
+      <p className="mb-3 text-[12px] text-muted">
         Add owners or staff, then use Edit to rename, change role, reset a password, or set which surfaces a person can view and edit. Owners have full access automatically.
       </p>
 
-      {importMsg && <p className="mb-3 text-[13px] text-emerald-600 dark:text-emerald-400">{importMsg}</p>}
+      {importMsg && <p className="mb-3 text-[13px] text-positive">{importMsg}</p>}
 
       {showAdd && (
-        <form onSubmit={onAdd} className="mb-4 rounded-xl border border-[var(--divider)] p-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <form onSubmit={onAdd} className="mb-4 rounded-[var(--radius)] border border-divider bg-surface-2/40 p-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label><span className={labelCls}>Name</span><input className={inputCls} value={f.name} onChange={set("name")} /></label>
             <label><span className={labelCls}>Email</span><input className={inputCls} type="email" autoCapitalize="none" value={f.email} onChange={set("email")} autoComplete="off" /></label>
             <label><span className={labelCls}>Password (min 8)</span><input className={inputCls} type="password" value={f.password} onChange={set("password")} autoComplete="new-password" /></label>
@@ -578,29 +584,29 @@ function TeamCard({ tenantId, staff, entitlements, ghlConnected, onSaved }: { te
               </select>
             </label>
           </div>
-          {err && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{err}</p>}
-          <div className="mt-3">
-            <button type="submit" disabled={busy} className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-[var(--brand-fg)] disabled:opacity-60" style={{ background: "var(--brand-primary)" }}>
-              {busy && <Loader2 size={15} className="animate-spin" />} {busy ? "Adding..." : "Add"}
-            </button>
+          {err && <p className="mt-3 text-sm text-danger">{err}</p>}
+          <div className="mt-4">
+            <Button type="submit" variant="primary" loading={busy}>
+              {busy ? "Adding..." : "Add"}
+            </Button>
           </div>
         </form>
       )}
 
       {staff.length === 0 ? (
-        <p className="text-sm text-[var(--text-muted)]">No people yet.</p>
+        <p className="text-sm text-muted">No people yet.</p>
       ) : (
         <div className="space-y-4">
           {owners.length > 0 && (
             <div>
-              <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">Owners</h3>
-              <ul className="divide-y divide-[var(--divider)]">{owners.map(renderRow)}</ul>
+              <h3 className="label-cap mb-1">Owners</h3>
+              <ul className="divide-y divide-divider">{owners.map(renderRow)}</ul>
             </div>
           )}
           {others.length > 0 && (
             <div>
-              <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">Staff</h3>
-              <ul className="divide-y divide-[var(--divider)]">{others.map(renderRow)}</ul>
+              <h3 className="label-cap mb-1">Staff</h3>
+              <ul className="divide-y divide-divider">{others.map(renderRow)}</ul>
             </div>
           )}
         </div>
@@ -684,8 +690,8 @@ function EditMemberForm({
   };
 
   return (
-    <form onSubmit={save} className="mt-3 rounded-xl border border-[var(--divider)] bg-[var(--surface-2)]/40 p-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form onSubmit={save} className="mt-3 rounded-[var(--radius)] border border-divider bg-surface-2/40 p-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label><span className={labelCls}>Name</span><input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label>
           <span className={labelCls}>Role</span>
@@ -702,24 +708,24 @@ function EditMemberForm({
       </div>
 
       {role === "owner" ? (
-        <p className="mt-3 text-[12px] text-[var(--text-muted)]">Owners have full access to every surface. Per-surface permissions do not apply.</p>
+        <p className="mt-3 text-[12px] text-muted">Owners have full access to every surface. Per-surface permissions do not apply.</p>
       ) : (
         <div className="mt-4">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Surface permissions</p>
+          <p className="label-cap mb-2">Surface permissions</p>
           {enabledCaps.length === 0 ? (
-            <p className="text-[12px] text-[var(--text-muted)]">No surfaces are enabled for this client yet.</p>
+            <p className="text-[12px] text-muted">No surfaces are enabled for this client yet.</p>
           ) : (
             <div className="space-y-1.5">
               {enabledCaps.map((c) => (
-                <div key={c.key} className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2">
-                  <span className="text-sm text-[var(--text)]">{c.label}</span>
+                <div key={c.key} className="flex items-center justify-between rounded-[var(--radius)] border border-border px-3 py-2">
+                  <span className="text-sm text-text">{c.label}</span>
                   <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)]">
-                      <input type="checkbox" checked={grants[c.key].view} onChange={() => toggle(c.key, "view")} /> View
+                    <label className="flex items-center gap-1.5 text-[12px] text-muted">
+                      <input type="checkbox" className="accent-[var(--brand-primary)]" checked={grants[c.key].view} onChange={() => toggle(c.key, "view")} /> View
                     </label>
                     {c.hasEdit && (
-                      <label className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)]">
-                        <input type="checkbox" checked={grants[c.key].edit} onChange={() => toggle(c.key, "edit")} /> Edit
+                      <label className="flex items-center gap-1.5 text-[12px] text-muted">
+                        <input type="checkbox" className="accent-[var(--brand-primary)]" checked={grants[c.key].edit} onChange={() => toggle(c.key, "edit")} /> Edit
                       </label>
                     )}
                   </div>
@@ -730,12 +736,12 @@ function EditMemberForm({
         </div>
       )}
 
-      {err && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{err}</p>}
+      {err && <p className="mt-3 text-sm text-danger">{err}</p>}
       <div className="mt-4 flex items-center gap-2">
-        <button type="submit" disabled={busy} className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-[var(--brand-fg)] disabled:opacity-60" style={{ background: "var(--brand-primary)" }}>
-          {busy && <Loader2 size={15} className="animate-spin" />} {busy ? "Saving..." : "Save changes"}
-        </button>
-        <button type="button" onClick={onCancel} className="rounded-lg border border-[var(--border)] px-3.5 py-2 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)]">Cancel</button>
+        <Button type="submit" variant="primary" loading={busy}>
+          {busy ? "Saving..." : "Save changes"}
+        </Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
       </div>
     </form>
   );

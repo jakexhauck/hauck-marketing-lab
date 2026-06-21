@@ -167,7 +167,7 @@ export default function Dashboard() {
         <div className="flex flex-col gap-1">
           <span
             className="label-cap-strong"
-            style={{ color: "var(--brand-primary)" }}
+            style={{ color: "var(--brand-text)" }}
           >
             Active Pipeline
           </span>

@@ -2,9 +2,11 @@
 name: Hauck Command Center
 description: A calm, premium command deck for running client pipelines and agency ops.
 colors:
-  primary: "#1a4d8f"
-  primary-deep: "#133766"
-  primary-tint: "#e8f0fa"
+  primary: "#4dbb83"
+  primary-deep: "#36a06d"
+  primary-tint: "#e6f7ee"
+  primary-text: "#1f8551"
+  primary-fg: "#06140f"
   bg: "#f8fafc"
   surface: "#ffffff"
   surface-2: "#f1f5f9"
@@ -142,9 +144,12 @@ It explicitly rejects the cluttered agency-CRM look (GoHighLevel and its kin), t
 A restrained slate-and-navy palette: cool neutrals do the work, navy commands, and semantic colors appear only when they carry meaning.
 
 ### Primary
-- **Command Navy** (#1a4d8f): The brand and primary action color. Used for primary buttons, active navigation, links, and key focal accents. Its authority depends on its rarity; it is not a background wash.
-- **Deep Navy** (#133766): The pressed and hover state of Command Navy, and the anchor of the dark hero gradient.
-- **Navy Mist** (#e8f0fa): A 10 percent tint of the brand, used for active-nav backgrounds and selected states. The only place navy gets soft.
+- **Hauck Green** (#4dbb83): The brand and primary action color (shared with the internal site). Used for primary-button fills, the brand mark, active-nav accent bars, and key focal accents. Its authority depends on its rarity; it is not a background wash. Because the green is light, text *on* the green fill is near-black `--brand-fg` (#06140f), never white, exactly like the internal site.
+- **Brand Ink** (#1f8551): The deeper green used for brand-colored *text* on light surfaces (active-nav labels, links, kickers). The bright fill green fails AA as small text on white; this clears it (~4.6:1). In dark mode it lightens automatically.
+- **Deep Green** (#36a06d): The pressed and hover state of a green fill.
+- **Green Mist** (#e6f7ee): A soft tint of the brand, used for active-nav backgrounds and selected states. The only place the brand gets soft.
+
+> Note: the phone **Navy Hero** signature header (below) is still a dark navy gradient. Switching it to a dark-green hero to match the internal site is an open decision, tracked separately from this green-accent rollout.
 
 ### Neutral (Light)
 - **Deck White** (#ffffff): Primary surface for panels, cards, inputs.

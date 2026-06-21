@@ -6,7 +6,7 @@ export const clients: Client[] = [
     name: "Smith's Roofing",
     niche: "Roofing",
     brand: {
-      color: "#1a4d8f",
+      color: "#4dbb83",
       logoUrl: null,
       initials: "SR",
       appName: "Smith Leads",

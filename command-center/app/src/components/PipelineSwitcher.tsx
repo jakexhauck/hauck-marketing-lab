@@ -102,7 +102,7 @@ export default function PipelineSwitcher({
                       className={
                         "truncate text-[15px] " +
                         (isSel
-                          ? "font-bold text-[var(--brand-primary)]"
+                          ? "font-bold text-[var(--brand-text)]"
                           : "font-semibold text-[var(--text)]")
                       }
                     >
@@ -117,7 +117,7 @@ export default function PipelineSwitcher({
                   {isSel && (
                     <Check
                       size={18}
-                      className="shrink-0 text-[var(--brand-primary)]"
+                      className="shrink-0 text-[var(--brand-text)]"
                     />
                   )}
                 </button>

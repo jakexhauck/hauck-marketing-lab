@@ -49,7 +49,7 @@ export default function Sidebar() {
               [
                 "group relative mb-0.5 flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors",
                 isActive
-                  ? "text-[var(--brand-primary)]"
+                  ? "text-[var(--brand-text)]"
                   : "text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]",
               ].join(" ")
             }
@@ -88,7 +88,7 @@ export default function Sidebar() {
             [
               "mb-1 flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
               isActive
-                ? "text-[var(--brand-primary)]"
+                ? "text-[var(--brand-text)]"
                 : "text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]",
             ].join(" ")
           }

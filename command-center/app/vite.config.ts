@@ -17,6 +17,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       injectRegister: "auto",
       includeAssets: [
+        "favicon-16.png",
+        "favicon-32.png",
         "apple-touch-icon.png",
         "icon-192.png",
         "icon-512.png",
@@ -27,8 +29,10 @@ export default defineConfig({
         short_name: APP_BRAND.appName,
         start_url: "/",
         display: "standalone",
-        background_color: "#0f172a",
-        theme_color: "#0f172a",
+        // Matches the logo's dark-green icon tile so the install splash blends
+        // seamlessly with the app icon (no seam behind the mark).
+        background_color: "#0b1b17",
+        theme_color: "#0b1b17",
         icons: [
           {
             src: "/icon-192.png",
@@ -52,6 +56,9 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest}"],
+        // Large brand source art is not offline-critical and blows past the
+        // 2 MiB per-file precache cap; keep it out of the service worker.
+        globIgnores: ["**/hauck-mark.png"],
       },
     }),
   ],

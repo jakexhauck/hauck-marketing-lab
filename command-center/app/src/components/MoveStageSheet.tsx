@@ -67,7 +67,7 @@ export default function MoveStageSheet({
                   <Check
                     size={16}
                     aria-hidden="true"
-                    className="text-[var(--brand-primary)]"
+                    className="text-[var(--brand-text)]"
                   />
                 )}
               </button>
