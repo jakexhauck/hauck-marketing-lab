@@ -16,6 +16,7 @@ import { useConversationsQuery } from "../hooks/useApi";
 import { APP_BRAND } from "../lib/appBrand";
 import { timeAgo } from "../lib/timeAgo";
 import type { ApiConversation } from "../lib/api";
+import ConversationsDesktop from "../components/conversations/ConversationsDesktop";
 
 export default function Conversations() {
   const navigate = useNavigate();
@@ -49,6 +50,7 @@ export default function Conversations() {
 
   return (
     <Shell>
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <PullToRefresh queryKeys={[["conversations"]]} />
       {isTest && <TestBanner />}
 
@@ -126,6 +128,10 @@ export default function Conversations() {
           </ul>
         )}
       </main>
+      </div>
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <ConversationsDesktop />
+      </div>
       <BottomNav active="conversations" />
     </Shell>
   );

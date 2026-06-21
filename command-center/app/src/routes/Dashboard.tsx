@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sun } from "lucide-react";
 import Shell from "../components/Shell";
+import DashboardDesktop from "../components/dashboard/DashboardDesktop";
 import TopBar from "../components/TopBar";
 import ViewTabs from "../components/ViewTabs";
 import StageFilter, { type StageFilterOption } from "../components/StageFilter";
@@ -148,6 +149,10 @@ export default function Dashboard() {
 
   return (
     <Shell>
+      {/* Phone layout (below lg). The desktop client app renders
+          DashboardDesktop instead; both share the same data so there is no
+          double fetch. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <PullToRefresh queryKeys={[["leads"], ["summary"]]} />
       <TopBar />
       <ViewTabs />
@@ -233,6 +238,12 @@ export default function Dashboard() {
           </ul>
         )}
       </main>
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier command deck. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <DashboardDesktop />
+      </div>
     </Shell>
   );
 }

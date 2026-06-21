@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, X } from "lucide-react";
 import Shell from "../components/Shell";
+import BillingDesktop from "../components/billing/BillingDesktop";
 import NavyHero from "../components/NavyHero";
 import { HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
@@ -107,6 +108,9 @@ export default function Billing() {
 
   return (
     <Shell>
+      {/* Phone layout (below lg). The desktop client app renders
+          BillingDesktop instead; both share the same query cache. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <PullToRefresh queryKeys={[["invoices"], ["transactions"]]} />
       {isTest && <TestBanner />}
 
@@ -261,6 +265,12 @@ export default function Billing() {
           onClose={() => setOpenId(null)}
         />
       )}
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier ledger. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <BillingDesktop />
+      </div>
     </Shell>
   );
 }

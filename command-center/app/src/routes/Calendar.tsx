@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import Shell from "../components/Shell";
+import CalendarDesktop from "../components/calendar/CalendarDesktop";
 import NavyHero from "../components/NavyHero";
 import { HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
@@ -89,6 +90,9 @@ export default function Calendar() {
 
   return (
     <Shell>
+      {/* Phone layout (below lg). The desktop client app renders
+          CalendarDesktop instead; both share the same query cache. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <PullToRefresh queryKeys={[["calendar"]]} />
       {isTest && <TestBanner />}
 
@@ -178,6 +182,12 @@ export default function Calendar() {
           onMessage={(contactId) => navigate(`/conversations/${contactId}`)}
         />
       )}
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier agenda. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <CalendarDesktop />
+      </div>
     </Shell>
   );
 }
