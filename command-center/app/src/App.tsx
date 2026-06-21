@@ -54,8 +54,13 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 }
 
 function AdminRoute({ children }: { children: ReactNode }) {
-  const { status, isAdmin } = useAuth();
+  const { status, isAdmin, preview } = useAuth();
   if (status === "loading") return null;
+  // Starting a client preview swaps the admin session for a read-only tenant
+  // session, so isAdmin flips to false while this admin route is still mounted.
+  // Send the admin into the client app (the preview banner offers the way back)
+  // instead of bouncing to /login.
+  if (preview) return <Navigate to="/home" replace />;
   if (!isAdmin) return <Navigate to="/login" replace />;
   return <AdminLayout>{children}</AdminLayout>;
 }
