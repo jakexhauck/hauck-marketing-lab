@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Phone, Mail, Search } from "lucide-react";
 import Shell from "../components/Shell";
+import ContactsDesktop from "../components/contacts/ContactsDesktop";
 import NavyHero from "../components/NavyHero";
 import { HeroMark, HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
@@ -48,6 +49,9 @@ export default function Contacts() {
 
   return (
     <Shell>
+      {/* Phone layout (below lg). The desktop client app renders
+          ContactsDesktop instead; both share the same query cache. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <PullToRefresh queryKeys={[["contacts"]]} />
       {isTest && <TestBanner />}
 
@@ -121,6 +125,13 @@ export default function Contacts() {
           </ul>
         )}
       </main>
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier directory. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <ContactsDesktop />
+      </div>
+
       <BottomNav active="contacts" />
     </Shell>
   );

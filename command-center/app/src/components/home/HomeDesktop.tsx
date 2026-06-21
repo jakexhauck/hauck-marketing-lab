@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "../ui/Button";
+import DesktopPage from "../desktop/DesktopPage";
 import NotificationBell from "../NotificationBell";
 import EmptyState from "../EmptyState";
 import { useAuth } from "../../context/AuthContext";
@@ -154,31 +155,27 @@ export default function HomeDesktop() {
   };
 
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto">
-      {/* Top utility bar */}
-      <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-bg/80 px-8 py-4 backdrop-blur">
-        <div className="min-w-0 flex-1">
-          <h1 className="font-display text-[22px] font-bold leading-tight text-text">
-            {greeting(now)}
-          </h1>
-          <p className="mt-0.5 text-[13px] text-muted">{today}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate("/contacts")}
-          className="hidden items-center gap-2 rounded-[var(--radius)] border border-border bg-surface px-3.5 py-2 text-[13px] text-faint transition-colors hover:border-border-strong hover:text-muted xl:flex"
-        >
-          <Search size={16} />
-          <span>Search leads, contacts</span>
-        </button>
-        <NotificationBell enabled={useReal} />
-        <Button variant="primary" onClick={() => navigate("/leads")}>
-          <TrendingUp size={16} />
-          View pipeline
-        </Button>
-      </header>
-
-      <div className="mx-auto w-full max-w-[1400px] px-8 py-7">
+    <DesktopPage
+      title={greeting(now)}
+      subtitle={today}
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={() => navigate("/contacts")}
+            className="hidden items-center gap-2 rounded-[var(--radius)] border border-border bg-surface px-3.5 py-2 text-[13px] text-faint transition-colors hover:border-border-strong hover:text-muted xl:flex"
+          >
+            <Search size={16} />
+            <span>Search leads, contacts</span>
+          </button>
+          <NotificationBell enabled={useReal} />
+          <Button variant="primary" onClick={() => navigate("/leads")}>
+            <TrendingUp size={16} />
+            View pipeline
+          </Button>
+        </>
+      }
+    >
         {summaryQuery.isError ? (
           <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
             Failed to load your dashboard.{" "}
@@ -378,7 +375,6 @@ export default function HomeDesktop() {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </DesktopPage>
   );
 }
