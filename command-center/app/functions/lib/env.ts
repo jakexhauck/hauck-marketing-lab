@@ -16,6 +16,8 @@ export interface Env {
   TEST_TENANT_SLUG?: string;
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
+  // Browser-safe publishable key, returned by /api/chat/config for the Realtime socket.
+  SUPABASE_ANON_KEY?: string;
   WEBHOOK_SECRET?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
