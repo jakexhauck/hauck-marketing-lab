@@ -16,7 +16,6 @@ import ClientHero, { type ClientHeroKpi } from "./ClientHero";
 import NotificationBell from "../NotificationBell";
 import EmptyState from "../EmptyState";
 import { useAuth } from "../../context/AuthContext";
-import { useClient } from "../../context/ClientContext";
 import { usePipelines } from "../../context/PipelinesContext";
 import { useNow } from "../../context/NowContext";
 import {
@@ -71,7 +70,6 @@ function isSameLocalDay(a: Date, b: Date): boolean {
 export default function HomeDesktop() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { client } = useClient();
   const { setSelectedId } = usePipelines();
   const now = useNow();
   const useReal = Boolean(session);
@@ -150,7 +148,7 @@ export default function HomeDesktop() {
 
   return (
     <DesktopPage
-      title={client.brand.appName}
+      title="Home"
       actions={
         <>
           <button
