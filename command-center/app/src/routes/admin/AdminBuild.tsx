@@ -22,8 +22,12 @@ import {
   STATUS_ORDER,
   STATUS_LABEL,
   AREA_SUGGESTIONS,
+  PROJECT_TYPES,
+  PROJECT_TYPE_LABEL,
+  DEFAULT_PROJECT_TYPE,
   type BuildCard,
   type BuildStatus,
+  type ProjectType,
 } from "../../lib/buildLab";
 
 // Build Lab. A backed-by-localStorage idea board so building the software is a
@@ -44,6 +48,7 @@ const STATUS_ICON: Record<BuildStatus, typeof Sparkles> = {
 interface ComposerState {
   id: string | null; // null = creating, else editing
   title: string;
+  projectType: ProjectType;
   area: string;
   want: string;
   details: string;
@@ -52,6 +57,7 @@ interface ComposerState {
 const EMPTY_COMPOSER: ComposerState = {
   id: null,
   title: "",
+  projectType: DEFAULT_PROJECT_TYPE,
   area: "",
   want: "",
   details: "",
@@ -96,6 +102,8 @@ export default function AdminBuild() {
     setComposer({
       id: card.id,
       title: card.title,
+      // Older cards predate project types; fall back to the default.
+      projectType: card.projectType ?? DEFAULT_PROJECT_TYPE,
       area: card.area,
       want: card.want,
       details: card.details,
@@ -112,6 +120,7 @@ export default function AdminBuild() {
             ? {
                 ...c,
                 title: composer.title.trim(),
+                projectType: composer.projectType,
                 area: composer.area.trim(),
                 want: composer.want.trim(),
                 details: composer.details.trim(),
@@ -124,6 +133,7 @@ export default function AdminBuild() {
       setCards((list) => [
         newCard({
           title: composer.title,
+          projectType: composer.projectType,
           area: composer.area,
           want: composer.want,
           details: composer.details,
@@ -278,11 +288,16 @@ function BuildCardItem({
       <div className="mb-1 text-[13.5px] font-semibold leading-snug text-text">
         {card.title}
       </div>
-      {card.area && (
-        <span className="inline-block rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-medium text-muted">
-          {card.area}
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="inline-block rounded-full bg-brand/10 px-2 py-0.5 text-[10.5px] font-medium text-brand">
+          {PROJECT_TYPE_LABEL[card.projectType ?? DEFAULT_PROJECT_TYPE]}
         </span>
-      )}
+        {card.area && (
+          <span className="inline-block rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-medium text-muted">
+            {card.area}
+          </span>
+        )}
+      </div>
       {card.want && (
         <p className="mt-2 line-clamp-3 text-[12px] leading-relaxed text-muted">
           {card.want}
@@ -419,6 +434,33 @@ function Composer({
                 onChange={(e) => set({ title: e.target.value })}
                 placeholder="Short name for this build"
               />
+            </label>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[12px] font-medium text-muted">
+                Project type
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {PROJECT_TYPES.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => set({ projectType: t.key })}
+                    className={[
+                      "rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+                      state.projectType === t.key
+                        ? "bg-brand text-brand-fg"
+                        : "border border-border text-muted hover:text-text",
+                    ].join(" ")}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-faint">
+                Sets which Build Rules (Spine + Modules) get baked into the
+                prompt.
+              </span>
             </label>
 
             <label className="flex flex-col gap-1.5">
