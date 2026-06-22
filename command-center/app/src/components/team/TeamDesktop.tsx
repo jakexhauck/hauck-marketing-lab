@@ -20,6 +20,11 @@ export interface StaffMember {
   ghlUserId: string | null;
   createdAt: string;
   permissions: { capability: string; view: boolean; edit: boolean }[];
+  // Team comms (Phase 06). Cosmetic role ids, the Hauck-line gate, and the set
+  // of channels this member belongs to.
+  chatRoleIds: string[];
+  canContactHauck: boolean;
+  channelIds: string[];
 }
 
 const ROLE_LABEL: Record<StaffRole, string> = {
@@ -56,6 +61,7 @@ export default function TeamDesktop({
   onAdd,
   onEdit,
   onToggleStatus,
+  onManageRoles,
 }: {
   staff: StaffMember[];
   loading: boolean;
@@ -68,6 +74,7 @@ export default function TeamDesktop({
   onAdd: () => void;
   onEdit: (m: StaffMember) => void;
   onToggleStatus: (m: StaffMember) => void;
+  onManageRoles: () => void;
 }) {
   const countLabel = loading
     ? "Loading..."
@@ -81,10 +88,15 @@ export default function TeamDesktop({
       title="Team"
       subtitle={countLabel}
       actions={
-        <Button variant="primary" onClick={onAdd}>
-          {adding ? <X size={16} /> : <UserPlus size={16} />}
-          {adding ? "Close" : "Add employee"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={onManageRoles}>
+            Manage roles
+          </Button>
+          <Button variant="primary" onClick={onAdd}>
+            {adding ? <X size={16} /> : <UserPlus size={16} />}
+            {adding ? "Close" : "Add employee"}
+          </Button>
+        </div>
       }
     >
       <p className="mb-5 max-w-[68ch] text-[14px] leading-relaxed text-muted">
