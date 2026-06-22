@@ -1,7 +1,7 @@
 import type { Env, ApiData } from "../../../../lib/env";
 import { getServiceClient } from "../../../../lib/supabase";
 import { isFullAccess } from "../../../../lib/driveAccess";
-import { extractFolderId } from "../../../../lib/composioDrive";
+import { extractFolderId } from "../../../../lib/driveDirect";
 
 // Manage the client -> Drive folder map. Owner-only (a full-access admin).
 //   GET                                       -> list all mappings
