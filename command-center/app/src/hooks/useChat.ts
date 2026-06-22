@@ -9,6 +9,7 @@ import {
   type ChatMember,
   type ChatChannel,
   type ChatMessageDTO,
+  type AdminHauckThread,
 } from "../lib/api";
 import type { ChatConfig } from "../lib/chatClient";
 
@@ -292,6 +293,44 @@ export function useOpenHauck() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["chat", "channels"] });
+    },
+  });
+}
+
+// ---- Admin: the Hauck inbox (all threads across all tenants). ----
+export function useAdminThreads() {
+  return useQuery({
+    queryKey: ["admin", "messages"],
+    queryFn: () =>
+      api<{ threads: AdminHauckThread[] }>("/api/admin/messages").then((r) => r.threads),
+  });
+}
+
+// ---- Admin: messages for one Hauck thread. Opening marks it read server-side. ----
+export function useAdminThreadMessages(channelId: string | null) {
+  return useQuery({
+    queryKey: ["admin", "message", channelId],
+    enabled: Boolean(channelId),
+    queryFn: () =>
+      api<{ messages: ChatMessageDTO[] }>(
+        `/api/admin/messages/${channelId}/messages`,
+      ).then((r) => r.messages),
+  });
+}
+
+// ---- Admin: send a reply into a Hauck thread. ----
+export function useAdminSendMessage(channelId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) =>
+      api<{ message: ChatMessageDTO }>(`/api/admin/messages/${channelId}/send`, {
+        method: "POST",
+        body: JSON.stringify({ body }),
+      }).then((r) => r.message),
+    onSuccess: () => {
+      // Refresh the open thread and the inbox row order/unread count.
+      void qc.invalidateQueries({ queryKey: ["admin", "message", channelId] });
+      void qc.invalidateQueries({ queryKey: ["admin", "messages"] });
     },
   });
 }

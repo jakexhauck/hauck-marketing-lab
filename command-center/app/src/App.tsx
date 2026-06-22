@@ -31,6 +31,7 @@ import AdminBuild from "./routes/admin/AdminBuild";
 import AdminSops from "./routes/admin/AdminSops";
 import AdminSopDetail from "./routes/admin/AdminSopDetail";
 import Assets from "./routes/admin/Assets";
+import AdminMessages from "./routes/admin/AdminMessages";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -316,6 +317,14 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminSopDetail />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/messages"
+                element={
+                  <AdminRoute>
+                    <AdminMessages />
                   </AdminRoute>
                 }
               />
