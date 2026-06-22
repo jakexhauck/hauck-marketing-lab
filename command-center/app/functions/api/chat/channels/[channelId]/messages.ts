@@ -3,6 +3,7 @@ import { readJsonBody } from "../../../../lib/body";
 import { getServiceClient, resolveTenantId } from "../../../../lib/supabase";
 import { resolveParticipant, isChannelMember } from "../../../../lib/participants";
 import { notifyParticipants } from "../../../../lib/chatRealtime";
+import { sendChatPush, chatPreview } from "../../../../lib/chatPush";
 
 const PAGE_SIZE = 50;
 
@@ -212,6 +213,15 @@ export const onRequestPost: PagesFunction<Env, "channelId", ApiData> = async (ct
     .filter((m) => !(m.member_kind === participant.kind && m.member_id === participant.id))
     .map((m) => ({ kind: m.member_kind, id: m.member_id }));
   ctx.waitUntil(notifyParticipants(ctx.env, recipients, { kind: "message", channelId }));
+  // OS push to the same recipients. Best-effort: a push failure must never fail
+  // the send, hence waitUntil + sendChatPush's internal try/catch.
+  ctx.waitUntil(
+    sendChatPush(ctx.env, recipients, {
+      title: participant.name,
+      body: chatPreview(text),
+      url: "/comms",
+    }),
+  );
 
   return Response.json({
     message: {

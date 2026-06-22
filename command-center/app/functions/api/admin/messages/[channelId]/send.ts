@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../../../../lib/env";
 import { getServiceClient } from "../../../../lib/supabase";
 import { notifyParticipants } from "../../../../lib/chatRealtime";
+import { sendChatPush, chatPreview } from "../../../../lib/chatPush";
 
 interface SendBody {
   body?: string;
@@ -74,10 +75,17 @@ export const onRequestPost: PagesFunction<Env, "channelId", ApiData> = async (ct
     .select("member_kind, member_id")
     .eq("channel_id", channelId)
     .eq("member_kind", "staff");
-  const recipients = ((staffMembers ?? []) as { member_kind: string; member_id: string }[]).map(
+  const clientMembers = ((staffMembers ?? []) as { member_kind: string; member_id: string }[]).map(
     (m) => ({ kind: m.member_kind, id: m.member_id }),
   );
-  ctx.waitUntil(notifyParticipants(ctx.env, recipients, { kind: "message", channelId }));
+  ctx.waitUntil(notifyParticipants(ctx.env, clientMembers, { kind: "message", channelId }));
+  ctx.waitUntil(
+    sendChatPush(ctx.env, clientMembers, {
+      title: "Hauck Marketing",
+      body: chatPreview(text),
+      url: "/comms",
+    }),
+  );
 
   const message: ChatMessageDTO = {
     id: row.id,
