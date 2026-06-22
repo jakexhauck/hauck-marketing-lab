@@ -29,19 +29,19 @@ colors:
   ledger: "#9a6f1e"
 typography:
   display:
-    fontFamily: "Archivo, system-ui, sans-serif"
+    fontFamily: "Poppins, system-ui, sans-serif"
     fontSize: "clamp(1.5rem, 2.5vw, 2.25rem)"
-    fontWeight: 700
+    fontWeight: 600
     lineHeight: 1.1
-    letterSpacing: "-0.025em"
+    letterSpacing: "-0.03em"
   headline:
-    fontFamily: "Archivo, system-ui, sans-serif"
+    fontFamily: "Poppins, system-ui, sans-serif"
     fontSize: "1.25rem"
     fontWeight: 600
     lineHeight: 1.2
-    letterSpacing: "-0.015em"
+    letterSpacing: "-0.02em"
   title:
-    fontFamily: "Archivo, system-ui, sans-serif"
+    fontFamily: "Poppins, system-ui, sans-serif"
     fontSize: "1rem"
     fontWeight: 600
     lineHeight: 1.3
@@ -180,11 +180,11 @@ A restrained slate-and-navy palette: cool neutrals do the work, navy commands, a
 
 ## 3. Typography
 
-**Display Font:** Archivo (with system-ui, sans-serif)
+**Display Font:** Poppins (with system-ui, sans-serif)
 **Body Font:** Inter (with system-ui, sans-serif)
 **Label / Data Font:** IBM Plex Mono (with ui-monospace, monospace)
 
-**Character:** Archivo brings confident, slightly condensed weight to headings; Inter keeps body copy clean and highly legible at density; IBM Plex Mono gives numbers, IDs, and timestamps a tabular, engineered precision. The pairing reads competent and premium, never decorative.
+**Character:** Poppins brings a confident, premium geometric weight to headings and key figures (medium weight, tight tracking, in the spirit of the Flyra reference); Inter keeps body copy clean and highly legible at density; IBM Plex Mono gives numbers, IDs, and timestamps a tabular, engineered precision. The pairing reads competent and premium, never decorative. (Adopted in the admin console first; the client desktop surfaces migrate from Archivo to Poppins as they are touched.)
 
 ### Hierarchy
 - **Display** (Archivo 700, clamp 1.5 to 2.25rem, line-height 1.1, tracking -0.025em): Page titles and the signature hero only.

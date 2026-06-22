@@ -259,3 +259,20 @@ body {
     background-position: 480px 0;
   }
 }
+
+/* Soft floating glow inside the admin overview hero. */
+.admin-hero-orb {
+  background: radial-gradient(circle, rgba(77, 187, 131, 0.5), transparent 65%);
+  filter: blur(20px);
+  animation: admin-hero-float 7s cubic-bezier(0.16, 1, 0.3, 1) infinite alternate;
+}
+@keyframes admin-hero-float {
+  to {
+    transform: translate(-18px, 16px) scale(1.08);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-hero-orb {
+    animation: none;
+  }
+}
