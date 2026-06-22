@@ -1,0 +1,282 @@
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  api,
+  type ChatRole,
+  type ChatMember,
+  type ChatChannel,
+  type ChatMessageDTO,
+} from "../lib/api";
+import type { ChatConfig } from "../lib/chatClient";
+
+// ---- Realtime connect info (url + anon key). Stable for the session. ----
+export function useChatConfig(enabled: boolean) {
+  return useQuery({
+    queryKey: ["chat", "config"],
+    enabled,
+    staleTime: Infinity,
+    queryFn: () => api<ChatConfig>("/api/chat/config"),
+  });
+}
+
+// ---- Roster: every member with roles, online flag, last seen, hauck gate. ----
+export function useRoster(enabled: boolean) {
+  return useQuery({
+    queryKey: ["chat", "roster"],
+    enabled,
+    staleTime: 30_000,
+    queryFn: () => api<{ members: ChatMember[] }>("/api/chat/roster"),
+  });
+}
+
+// ---- Cosmetic roles for the tenant. ----
+export function useChatRoles(enabled: boolean) {
+  return useQuery({
+    queryKey: ["chat", "roles"],
+    enabled,
+    staleTime: 60_000,
+    queryFn: () => api<{ roles: ChatRole[] }>("/api/chat/roles"),
+  });
+}
+
+// ---- Channels the caller belongs to (channels + DMs + hauck). ----
+export function useChannels(enabled: boolean) {
+  return useQuery({
+    queryKey: ["chat", "channels"],
+    enabled,
+    staleTime: 15_000,
+    queryFn: () => api<{ channels: ChatChannel[] }>("/api/chat/channels"),
+  });
+}
+
+// ---- Messages for one channel. `before` paginates older messages (Phase 05). ----
+export function useChannelMessages(channelId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["chat", "channel", channelId, "messages"],
+    enabled: enabled && !!channelId,
+    staleTime: 0,
+    queryFn: () =>
+      api<{ messages: ChatMessageDTO[] }>(
+        `/api/chat/channels/${channelId}/messages`,
+      ),
+  });
+}
+
+interface SendMessageInput {
+  channelId: string;
+  body: string;
+  attachmentIds?: string[];
+}
+
+// ---- Send a message. Invalidate the channel thread + the channel list (preview
+// + lastMessageAt). Realtime also nudges the recipients; this covers the sender. ----
+export function useSendMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SendMessageInput) =>
+      api<{ message: ChatMessageDTO }>(
+        `/api/chat/channels/${input.channelId}/messages`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            body: input.body,
+            attachmentIds: input.attachmentIds,
+          }),
+        },
+      ),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({
+        queryKey: ["chat", "channel", vars.channelId, "messages"],
+      });
+      qc.invalidateQueries({ queryKey: ["chat", "channels"] });
+    },
+  });
+}
+
+// ---- Mark a channel read (clears its unread badge). ----
+export function useMarkRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { channelId: string }) =>
+      api<{ ok: true }>(`/api/chat/channels/${input.channelId}/read`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat", "channels"] });
+    },
+  });
+}
+
+interface CreateChannelInput {
+  name: string;
+  memberIds: string[];
+}
+
+// ---- Owner: create a channel with an explicit member list. ----
+export function useCreateChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateChannelInput) =>
+      api<{ channel: ChatChannel }>("/api/chat/channels", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat", "channels"] });
+    },
+  });
+}
+
+interface PatchChannelInput {
+  channelId: string;
+  name?: string;
+  archived?: boolean;
+  memberIds?: string[];
+}
+
+// ---- Owner: rename / archive / re-member a channel. ----
+export function usePatchChannel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PatchChannelInput) => {
+      const body: Record<string, unknown> = {};
+      if (input.name !== undefined) body.name = input.name;
+      if (input.archived !== undefined) body.archived = input.archived;
+      if (input.memberIds !== undefined) body.memberIds = input.memberIds;
+      return api<{ channel: ChatChannel }>(
+        `/api/chat/channels/${input.channelId}`,
+        { method: "PATCH", body: JSON.stringify(body) },
+      );
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat", "channels"] });
+    },
+  });
+}
+
+// ---- Get-or-create a 1:1 DM with another member. ----
+export function useOpenDm() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { memberId: string }) =>
+      api<{ channel: ChatChannel }>("/api/chat/dm", {
+        method: "POST",
+        body: JSON.stringify({ memberId: input.memberId }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat", "channels"] });
+    },
+  });
+}
+
+interface EditMessageInput {
+  messageId: string;
+  channelId: string;
+  body: string;
+}
+
+// ---- Author edits their own message. channelId is carried for invalidation only. ----
+export function useEditMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: EditMessageInput) =>
+      api<{ message: ChatMessageDTO }>(`/api/chat/messages/${input.messageId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ body: input.body }),
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({
+        queryKey: ["chat", "channel", vars.channelId, "messages"],
+      });
+    },
+  });
+}
+
+interface DeleteMessageInput {
+  messageId: string;
+  channelId: string;
+}
+
+// ---- Soft-delete a message (author, or tenant owner moderation). ----
+export function useDeleteMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: DeleteMessageInput) =>
+      api<{ ok: true }>(`/api/chat/messages/${input.messageId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({
+        queryKey: ["chat", "channel", vars.channelId, "messages"],
+      });
+      qc.invalidateQueries({ queryKey: ["chat", "channels"] });
+    },
+  });
+}
+
+interface CreateRoleInput {
+  name: string;
+  color: string;
+}
+
+// ---- Owner: create a cosmetic role. ----
+export function useCreateRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateRoleInput) =>
+      api<{ role: ChatRole }>("/api/chat/roles", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat", "roles"] });
+      qc.invalidateQueries({ queryKey: ["chat", "roster"] });
+    },
+  });
+}
+
+interface PatchRoleInput {
+  roleId: string;
+  name?: string;
+  color?: string;
+  sortOrder?: number;
+}
+
+// ---- Owner: rename / recolor / reorder a role. ----
+export function usePatchRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PatchRoleInput) => {
+      const body: Record<string, unknown> = {};
+      if (input.name !== undefined) body.name = input.name;
+      if (input.color !== undefined) body.color = input.color;
+      if (input.sortOrder !== undefined) body.sortOrder = input.sortOrder;
+      return api<{ role: ChatRole }>(`/api/chat/roles/${input.roleId}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat", "roles"] });
+      qc.invalidateQueries({ queryKey: ["chat", "roster"] });
+    },
+  });
+}
+
+// ---- Owner: delete a role (preset roles are refused server-side). ----
+export function useDeleteRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { roleId: string }) =>
+      api<{ ok: true }>(`/api/chat/roles/${input.roleId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat", "roles"] });
+      qc.invalidateQueries({ queryKey: ["chat", "roster"] });
+    },
+  });
+}
