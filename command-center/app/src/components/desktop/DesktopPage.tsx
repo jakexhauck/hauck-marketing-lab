@@ -16,7 +16,7 @@ export default function DesktopPage({
 }) {
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
-      <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-bg/80 px-8 py-4 backdrop-blur">
+      <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-bg/80 px-9 py-4 backdrop-blur">
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-[22px] font-bold leading-tight text-text">
             {title}
@@ -27,7 +27,7 @@ export default function DesktopPage({
           <div className="flex shrink-0 items-center gap-3">{actions}</div>
         )}
       </header>
-      <div className="mx-auto w-full max-w-[1400px] px-8 py-7">{children}</div>
+      <div className="mx-auto w-full max-w-[1220px] px-9 py-7">{children}</div>
     </div>
   );
 }
