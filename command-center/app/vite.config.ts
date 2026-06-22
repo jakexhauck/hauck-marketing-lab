@@ -14,7 +14,11 @@ export default defineConfig({
       strategies: "injectManifest",
       srcDir: "src",
       filename: "sw.ts",
-      registerType: "autoUpdate",
+      // "prompt" (not autoUpdate): a new build installs but waits. The app
+      // surfaces an "Update available" banner (UpdatePrompt.tsx) and the user
+      // taps to apply it, instead of a silent mid-session swap. See sw.ts for
+      // the matching SKIP_WAITING message handler that the banner triggers.
+      registerType: "prompt",
       injectRegister: "auto",
       includeAssets: [
         "favicon-16.png",

@@ -49,6 +49,9 @@ importers:
       workbox-core:
         specifier: 7.4.1
         version: 7.4.1
+      workbox-window:
+        specifier: 7.4.1
+        version: 7.4.1
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20260517.1

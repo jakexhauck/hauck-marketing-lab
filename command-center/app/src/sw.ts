@@ -8,12 +8,19 @@ import { APP_BRAND } from "./lib/appBrand";
 
 declare const self: ServiceWorkerGlobalScope;
 
-// Activate a freshly installed worker immediately and take over open clients.
-// Without this, installed PWAs (iOS especially) keep running the previous
-// deploy's code until every tab/app instance is fully closed, which in
-// practice meant deploys never reached phones. The app shell is data-driven
-// (react-query refetches on focus), so a mid-session swap is safe.
-self.skipWaiting();
+// Update model: a new build installs and then WAITS. The app shows an "Update
+// available" banner (UpdatePrompt.tsx); when the user taps it, the page posts
+// SKIP_WAITING below, the new worker activates, and the page reloads once. This
+// replaces the old unconditional self.skipWaiting() (silent mid-session swap),
+// which reached phones but gave clients no say in when the app reloaded.
+self.addEventListener("message", (event: ExtendableMessageEvent) => {
+  if ((event.data as { type?: string } | null)?.type === "SKIP_WAITING") {
+    void self.skipWaiting();
+  }
+});
+
+// clientsClaim still runs so that, once the new worker DOES activate (after the
+// tap + reload, or on a first-ever install), it controls open pages right away.
 clientsClaim();
 
 // Injected by vite-plugin-pwa at build. Preserves the existing precache
