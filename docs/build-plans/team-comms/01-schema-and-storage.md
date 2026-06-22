@@ -41,7 +41,8 @@ Create `0016_team_comms.sql`. Mirror the header/idempotency style of `0013-0015`
 -- can_contact_hauck: per-person gate for the Hauck line. Owners default true.
 alter table public.staff_accounts
   add column if not exists can_contact_hauck boolean not null default false;
-update public.staff_accounts set can_contact_hauck = true where role = 'owner';
+update public.staff_accounts set can_contact_hauck = true
+  where role = 'owner' and can_contact_hauck = false;
 
 -- push targeting by individual participant (Phase 08).
 alter table public.push_subscriptions
