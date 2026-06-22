@@ -22,12 +22,13 @@ export default function Roster({
   // Group by highest role, preserving role rank (highest sortOrder first) so the
   // strongest roles render at the top, mirroring Discord's grouped sidebar.
   const groups = useMemo(() => {
-    const byKey = new Map<string, { label: string; color: string; rank: number; members: ChatMember[] }>();
+    const byKey = new Map<string, { key: string; label: string; color: string; rank: number; members: ChatMember[] }>();
     for (const m of members) {
       const top = highestRole(m.roles);
       const key = top?.id ?? NO_ROLE;
       if (!byKey.has(key)) {
         byKey.set(key, {
+          key,
           label: top?.name ?? "Members",
           color: top?.color ?? "var(--text-muted)",
           rank: top?.sortOrder ?? -1,
@@ -46,7 +47,7 @@ export default function Roster({
   return (
     <div className="flex flex-col">
       {groups.map((g) => (
-        <div key={g.label} className="mb-1">
+        <div key={g.key} className="mb-1">
           <div className="px-2.5 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-faint)]">
             {g.label} ({g.members.length})
           </div>
