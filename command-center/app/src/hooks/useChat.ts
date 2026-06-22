@@ -280,3 +280,18 @@ export function useDeleteRole() {
     },
   });
 }
+
+// ---- Get-or-create the Hauck DM channel (Phase 07). No-op-safe before the
+// endpoint is live: the mutation rejects and the caller surfaces the error. ----
+export function useOpenHauck() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<{ channel: ChatChannel }>("/api/chat/hauck", {
+        method: "GET",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["chat", "channels"] });
+    },
+  });
+}

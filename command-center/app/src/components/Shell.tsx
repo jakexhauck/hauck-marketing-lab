@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Sidebar from "./Sidebar";
+import RightRail from "./comms/RightRail";
 import { useAuth } from "../context/AuthContext";
 import { cn } from "../lib/cn";
 
@@ -29,6 +30,7 @@ export default function Shell({ children }: { children: ReactNode }) {
       >
         {children}
       </div>
+      {authed && <RightRail />}
     </div>
   );
 }

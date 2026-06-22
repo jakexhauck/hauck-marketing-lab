@@ -3,6 +3,7 @@ import {
   GitBranch,
   Megaphone,
   MessageSquare,
+  MessagesSquare,
   Users,
   CalendarDays,
   Receipt,
@@ -43,6 +44,7 @@ export const NAV: NavItem[] = [
   { to: "/billing", label: "Billing", icon: Receipt, capability: "billing" },
   { to: "/activity", label: "Activity", icon: Activity, capability: "activity" },
   { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
+  { to: "/comms", label: "Chat", shortLabel: "Chat", icon: MessagesSquare, bottomNav: true },
 ];
 
 // Filter the nav to what the signed-in user may see: owner-only items need

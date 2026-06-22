@@ -22,6 +22,7 @@ import Calendar from "./routes/Calendar";
 import Notifications from "./routes/Notifications";
 import Team from "./routes/Team";
 import Settings from "./routes/Settings";
+import Comms from "./routes/Comms";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClients from "./routes/admin/AdminClients";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
@@ -242,6 +243,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Team />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/comms"
+                element={
+                  <ProtectedRoute>
+                    <Comms />
                   </ProtectedRoute>
                 }
               />
