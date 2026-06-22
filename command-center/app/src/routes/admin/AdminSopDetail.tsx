@@ -3,7 +3,7 @@ import { findSop } from "../../lib/sopData";
 import { HsopStyle } from "./AdminSops";
 
 // One SOP: written steps + the original training video. Reads the static seed by
-// (category, slug) from the route. Same scoped green styling as the SOP Hub.
+// (category, slug) from the route. Same theme-aware styling as the SOP Hub.
 
 function videoEmbed(url?: string) {
   if (!url) return null;
@@ -56,7 +56,7 @@ export default function AdminSopDetail() {
               <div className="hsop-video">
                 <div className="ph">
                   <span className="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></span>
-                  <span>Training video — link to be added</span>
+                  <span>Training video (link to be added)</span>
                 </div>
               </div>
             ))}
