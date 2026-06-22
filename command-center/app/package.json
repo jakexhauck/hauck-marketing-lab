@@ -13,7 +13,9 @@
     "sync:dev-vars": "node scripts/sync-dev-vars.mjs",
     "dev:api": "wrangler pages dev dist --port 8788 --compatibility-date 2026-05-18",
     "dev:full": "node scripts/sync-dev-vars.mjs && concurrently -k -n vite,api -c blue,magenta \"vite\" \"npm:dev:api\"",
-    "cf": "node scripts/cf.mjs"
+    "cf": "node scripts/cf.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "1.0.2",
@@ -42,6 +44,7 @@
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
     "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^2.1.9",
     "workbox-expiration": "^7.4.1",
     "workbox-precaching": "7.4.1",
     "workbox-routing": "^7.4.1",
