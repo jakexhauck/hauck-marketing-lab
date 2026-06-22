@@ -67,7 +67,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       .insert({
         tenant_id: tenantId,
         kind: "hauck",
-        name: "Hauck",
+        name: "Jake Hauck",
         created_by_kind: "staff",
         created_by_id: participant.id,
       })
@@ -144,7 +144,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const channel: ChatChannelDTO = {
     id: channelId,
     kind: "hauck",
-    name: "Hauck",
+    name: "Jake Hauck",
     memberIds,
     unread: 0,
     lastMessageAt: (lastMsg as { created_at?: string } | null)?.created_at ?? null,

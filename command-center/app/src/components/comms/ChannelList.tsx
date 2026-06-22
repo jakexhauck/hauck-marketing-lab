@@ -124,7 +124,7 @@ export default function ChannelList({
             className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13.5px] font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:opacity-50"
           >
             <ShieldCheck size={15} className="shrink-0" style={{ color: "var(--brand-primary)" }} />
-            <span className="truncate">Message Hauck</span>
+            <span className="truncate">Message Jake Hauck</span>
           </button>
         </>
       )}
