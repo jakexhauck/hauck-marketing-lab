@@ -190,7 +190,8 @@ export const onRequestPost: PagesFunction<Env, "channelId", ApiData> = async (ct
   if (insErr) return Response.json({ error: insErr.message }, { status: 500 });
   const message = inserted as MessageRow;
 
-  // Link attachments that belong to this tenant and are not yet attached.
+  // Link attachments the sender uploaded, in this tenant, not yet attached.
+  // Scoping to the uploader stops a member linking a colleague's pending upload.
   let attachmentDTOs: ReturnType<typeof attachmentDTO>[] = [];
   if (attachmentIds.length > 0) {
     const { data: linked, error: attErr } = await client
@@ -198,6 +199,8 @@ export const onRequestPost: PagesFunction<Env, "channelId", ApiData> = async (ct
       .update({ message_id: message.id })
       .in("id", attachmentIds)
       .eq("tenant_id", tenantId)
+      .eq("uploader_kind", participant.kind)
+      .eq("uploader_id", participant.id)
       .is("message_id", null)
       .select("id, message_id, file_name, mime_type, size_bytes, width, height");
     if (attErr) return Response.json({ error: attErr.message }, { status: 500 });
