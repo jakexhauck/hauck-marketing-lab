@@ -6,13 +6,14 @@ import { useAuth } from "../context/AuthContext";
 // pass which one is active by key; we resolve that to a route via this map so
 // the bar shares the unified nav source of truth (and its permission gate)
 // with the desktop sidebar.
-export type NavKey = "home" | "leads" | "conversations" | "contacts";
+export type NavKey = "home" | "leads" | "conversations" | "contacts" | "comms";
 
 const ROUTE_BY_KEY: Record<NavKey, string> = {
   home: "/home",
   leads: "/leads",
   conversations: "/conversations",
   contacts: "/contacts",
+  comms: "/comms",
 };
 
 export default function BottomNav({ active }: { active: NavKey }) {
