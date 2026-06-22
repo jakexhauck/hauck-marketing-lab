@@ -276,3 +276,20 @@ body {
     animation: none;
   }
 }
+
+/* Same floating glow for the client overview hero, tinted to the live client
+   brand color (--brand) instead of the fixed agency green. */
+.client-hero-orb {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--brand) 50%, transparent),
+    transparent 65%
+  );
+  filter: blur(20px);
+  animation: admin-hero-float 7s cubic-bezier(0.16, 1, 0.3, 1) infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .client-hero-orb {
+    animation: none;
+  }
+}
