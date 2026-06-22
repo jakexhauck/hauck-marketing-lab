@@ -67,6 +67,9 @@ create table if not exists public.chat_channels (
   created_at      timestamptz not null default now()
 );
 create index if not exists chat_channels_tenant_idx on public.chat_channels (tenant_id);
+-- Prevent duplicate hauck channels per staff member per tenant under concurrent get-or-create calls.
+create unique index if not exists chat_channels_hauck_unique
+  on public.chat_channels (tenant_id, created_by_id) where kind = 'hauck';
 alter table public.chat_channels enable row level security;
 
 -- =========================

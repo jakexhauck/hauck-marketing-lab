@@ -35,15 +35,24 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const threads: AdminHauckThreadDTO[] = [];
   for (const ch of rows) {
     // The non-admin member (the client) gives the thread its person name.
+    // Resolve via explicit lookup: sender_id is polymorphic (no FK to staff_accounts),
+    // so a PostgREST embed would fail at runtime.
     const { data: staffMember } = await client
       .from("chat_channel_members")
-      .select("member_id, staff_accounts(name)")
+      .select("member_id")
       .eq("channel_id", ch.id)
       .eq("member_kind", "staff")
       .maybeSingle();
-    const personName =
-      (staffMember as { staff_accounts?: { name?: string } | null } | null)?.staff_accounts?.name ??
-      "Unknown";
+    const staffMemberId = (staffMember as { member_id?: string } | null)?.member_id ?? null;
+    let personName = "Unknown";
+    if (staffMemberId) {
+      const { data: staffRow } = await client
+        .from("staff_accounts")
+        .select("name")
+        .eq("id", staffMemberId)
+        .maybeSingle();
+      personName = (staffRow as { name?: string } | null)?.name ?? "Unknown";
+    }
 
     // This admin's last_read_at for the channel, to compute unread.
     const { data: membership } = await client

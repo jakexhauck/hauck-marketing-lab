@@ -25,15 +25,10 @@ interface MessageRow {
   created_at: string;
   edited_at: string | null;
   deleted_at: string | null;
-  staff_accounts: { name: string } | null;
-  admin_accounts: { name: string } | null;
 }
 
-function toDTO(row: MessageRow): ChatMessageDTO {
-  const senderName =
-    row.sender_kind === "admin"
-      ? row.admin_accounts?.name ?? "Hauck"
-      : row.staff_accounts?.name ?? "Member";
+function toDTO(row: MessageRow, nameByKey: Map<string, string>): ChatMessageDTO {
+  const senderName = nameByKey.get(`${row.sender_kind}:${row.sender_id}`) ?? (row.sender_kind === "admin" ? "Hauck" : "Member");
   return {
     id: row.id,
     channelId: row.channel_id,
@@ -67,15 +62,46 @@ export const onRequestGet: PagesFunction<Env, "channelId", ApiData> = async (ctx
 
   const { data, error } = await client
     .from("chat_messages")
-    .select(
-      "id, channel_id, sender_kind, sender_id, body, created_at, edited_at, deleted_at, staff_accounts(name), admin_accounts(name)",
-    )
+    .select("id, channel_id, sender_kind, sender_id, body, created_at, edited_at, deleted_at")
     .eq("channel_id", channelId)
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  const messages = ((data ?? []) as unknown as MessageRow[]).map(toDTO);
+  const rows = (data ?? []) as MessageRow[];
+
+  // Resolve sender names via explicit lookups (sender_id is polymorphic, no FK to
+  // staff_accounts or admin_accounts, so PostgREST embeds would fail at runtime).
+  const staffIds = [...new Set(rows.filter((m) => m.sender_kind === "staff").map((m) => m.sender_id))];
+  const adminIds = [...new Set(rows.filter((m) => m.sender_kind === "admin").map((m) => m.sender_id))];
+  const nameByKey = new Map<string, string>();
+
+  const lookups: PromiseLike<unknown>[] = [];
+  if (staffIds.length > 0) {
+    lookups.push(
+      client
+        .from("staff_accounts")
+        .select("id, name")
+        .in("id", staffIds)
+        .then(({ data: sd }) => {
+          for (const s of (sd ?? []) as { id: string; name: string }[]) nameByKey.set(`staff:${s.id}`, s.name);
+        }),
+    );
+  }
+  if (adminIds.length > 0) {
+    lookups.push(
+      client
+        .from("admin_accounts")
+        .select("id, name")
+        .in("id", adminIds)
+        .then(({ data: ad }) => {
+          for (const a of (ad ?? []) as { id: string; name: string }[]) nameByKey.set(`admin:${a.id}`, a.name);
+        }),
+    );
+  }
+  await Promise.all(lookups);
+
+  const messages = rows.map((row) => toDTO(row, nameByKey));
 
   // Mark this admin's copy of the thread read.
   await client

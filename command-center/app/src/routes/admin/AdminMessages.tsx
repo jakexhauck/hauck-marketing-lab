@@ -84,7 +84,7 @@ function ThreadRow({
 
 function Conversation({ channelId }: { channelId: string }) {
   const { data: messages, isLoading } = useAdminThreadMessages(channelId);
-  const { mutate: send, isPending } = useAdminSendMessage(channelId);
+  const { mutateAsync: sendAsync, isPending } = useAdminSendMessage(channelId);
   const [draft, setDraft] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -93,11 +93,15 @@ function Conversation({ channelId }: { channelId: string }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages?.length]);
 
-  function handleSend() {
+  async function handleSend() {
     const body = draft.trim();
     if (!body || isPending) return;
-    setDraft("");
-    send(body);
+    try {
+      await sendAsync(body);
+      setDraft("");
+    } catch {
+      // Send failed: keep the draft so the user can retry without losing the message.
+    }
   }
 
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {

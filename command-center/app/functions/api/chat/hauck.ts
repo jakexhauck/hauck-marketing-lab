@@ -60,6 +60,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   if (!channelId) {
     // Create the channel and its membership set: the caller + every active admin.
+    // If a concurrent request already created it (unique violation on the partial
+    // index chat_channels_hauck_unique), fall back to reading the existing channel.
     const { data: created, error: createErr } = await client
       .from("chat_channels")
       .insert({
@@ -71,30 +73,55 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       })
       .select("id")
       .single();
-    if (createErr || !created) {
-      return Response.json({ error: createErr?.message ?? "could not create channel" }, { status: 500 });
-    }
-    channelId = (created as { id: string }).id;
 
-    const { data: admins } = await client
-      .from("admin_accounts")
-      .select("id")
-      .eq("status", "active");
+    if (createErr) {
+      // Unique-violation code from PostgREST / Postgres.
+      const isConflict =
+        (createErr as { code?: string }).code === "23505" ||
+        createErr.message?.includes("duplicate") ||
+        createErr.message?.includes("unique");
+      if (!isConflict) {
+        return Response.json({ error: createErr.message ?? "could not create channel" }, { status: 500 });
+      }
+      // Another request won the race: find and return the channel it created.
+      const { data: raceWinner } = await client
+        .from("chat_channel_members")
+        .select("channel_id, chat_channels!inner(id, kind, tenant_id)")
+        .eq("member_kind", "staff")
+        .eq("member_id", participant.id)
+        .eq("chat_channels.kind", "hauck")
+        .eq("chat_channels.tenant_id", tenantId)
+        .maybeSingle();
+      channelId = (raceWinner as { channel_id?: string } | null)?.channel_id ?? null;
+      if (!channelId) {
+        return Response.json({ error: "could not find or create hauck channel" }, { status: 500 });
+      }
+    } else {
+      if (!created) {
+        return Response.json({ error: "could not create channel" }, { status: 500 });
+      }
+      channelId = (created as { id: string }).id;
 
-    // chat_channel_members has no tenant_id column; omit it.
-    const members = [
-      { channel_id: channelId, member_kind: "staff", member_id: participant.id },
-      ...((admins ?? []) as { id: string }[]).map((a) => ({
-        channel_id: channelId as string,
-        member_kind: "admin",
-        member_id: a.id,
-      })),
-    ];
-    const { error: memberErr } = await client.from("chat_channel_members").insert(members);
-    if (memberErr) {
-      // Roll back the orphan channel so a retry recreates cleanly.
-      await client.from("chat_channels").delete().eq("id", channelId);
-      return Response.json({ error: memberErr.message }, { status: 500 });
+      const { data: admins } = await client
+        .from("admin_accounts")
+        .select("id")
+        .eq("status", "active");
+
+      // chat_channel_members has no tenant_id column; omit it.
+      const members = [
+        { channel_id: channelId, member_kind: "staff", member_id: participant.id },
+        ...((admins ?? []) as { id: string }[]).map((a) => ({
+          channel_id: channelId as string,
+          member_kind: "admin",
+          member_id: a.id,
+        })),
+      ];
+      const { error: memberErr } = await client.from("chat_channel_members").insert(members);
+      if (memberErr) {
+        // Roll back the orphan channel so a retry recreates cleanly.
+        await client.from("chat_channels").delete().eq("id", channelId);
+        return Response.json({ error: memberErr.message }, { status: 500 });
+      }
     }
   }
 
