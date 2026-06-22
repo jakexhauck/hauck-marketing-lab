@@ -37,6 +37,7 @@ import PreviewBanner from "./components/PreviewBanner";
 import ScrollToTop from "./components/ScrollToTop";
 import { ToastProvider } from "./context/ToastContext";
 import { NowProvider } from "./context/NowContext";
+import { ChatProvider } from "./context/ChatContext";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -122,6 +123,7 @@ export default function App() {
           <LeadsProvider>
           <NowProvider>
           <ToastProvider>
+            <ChatProvider>
             <ServiceWorkerMessages />
             <OfflineBanner />
             <PreviewBanner />
@@ -310,6 +312,7 @@ export default function App() {
               />
               <Route path="*" element={<RootRedirect />} />
             </Routes>
+            </ChatProvider>
           </ToastProvider>
           </NowProvider>
           </LeadsProvider>
