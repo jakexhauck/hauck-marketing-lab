@@ -8,6 +8,7 @@ import {
   type GrantInput,
 } from "../../lib/permissions";
 import type { StaffRole } from "../../lib/staff";
+import { writeChatRoles, writeChannelMembers } from "./index";
 
 interface PatchBody {
   name?: string;
@@ -15,6 +16,9 @@ interface PatchBody {
   status?: string;
   password?: string;
   permissions?: GrantInput[];
+  chatRoleIds?: string[];
+  canContactHauck?: boolean;
+  channelIds?: string[];
 }
 
 const ROLES = new Set<StaffRole>(["owner", "manager", "rep"]);
@@ -74,6 +78,9 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     }
     update.password_hash = await hashPassword(body.password.trim());
   }
+  if (typeof body.canContactHauck === "boolean") {
+    update.can_contact_hauck = body.canContactHauck;
+  }
 
   if (Object.keys(update).length > 1) {
     const { error } = await client.from("staff_accounts").update(update).eq("id", staffId);
@@ -92,6 +99,29 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
         .insert(rows.map((r) => ({ staff_account_id: staffId, ...r })));
       if (error) return Response.json({ error: error.message }, { status: 500 });
     }
+  }
+
+  // Reconcile chat roles when supplied. Use !== undefined so omitting the field
+  // leaves it untouched, while sending [] clears it.
+  if (body.chatRoleIds !== undefined) {
+    const roleIds = [
+      ...new Set(
+        body.chatRoleIds.filter(
+          (v): v is string => typeof v === "string" && v.trim().length > 0,
+        ),
+      ),
+    ];
+    await writeChatRoles(client, tenantId, staffId, roleIds);
+  }
+  if (body.channelIds !== undefined) {
+    const channelIdList = [
+      ...new Set(
+        body.channelIds.filter(
+          (v): v is string => typeof v === "string" && v.trim().length > 0,
+        ),
+      ),
+    ];
+    await writeChannelMembers(client, tenantId, staffId, channelIdList);
   }
 
   return Response.json({ ok: true });

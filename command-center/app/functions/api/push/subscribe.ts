@@ -1,5 +1,6 @@
 import type { Env, ApiData } from "../../lib/env";
 import { getServiceClient, resolveTenantId } from "../../lib/supabase";
+import { resolveParticipant } from "../../lib/participants";
 
 // The browser PushSubscription, as serialized by sub.toJSON() on the client.
 interface SubscribeBody {
@@ -78,6 +79,17 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (
   const ghlUserId =
     ctx.data.staff?.ghl_user_id ?? ctx.request.headers.get("x-identity");
 
+  // Tag this subscription with the individual chat participant so chat pushes
+  // (Phase 08) can target this person, not just the whole tenant. Best-effort:
+  // a session with no individual identity (legacy shared owner) leaves them null
+  // and simply receives no chat pushes.
+  const { participant } = await resolveParticipant(client, {
+    isOwner: Boolean(ctx.data.isOwner),
+    staff: ctx.data.staff ?? null,
+    admin: ctx.data.admin ?? null,
+    tenantSlug: ctx.data.tenant.slug,
+  });
+
   const { error } = await client.from("push_subscriptions").upsert(
     {
       tenant_id: tenantId,
@@ -85,6 +97,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (
       p256dh,
       auth,
       ghl_user_id: ghlUserId,
+      participant_kind: participant?.kind ?? null,
+      participant_id: participant?.id ?? null,
     },
     { onConflict: "tenant_id,endpoint" },
   );

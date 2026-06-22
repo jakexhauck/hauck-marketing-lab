@@ -9,6 +9,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
@@ -32,6 +33,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { to: "/admin/build", label: "Build Lab", icon: Hammer },
   { to: "/admin/sops", label: "SOP Hub", icon: BookText },
   { to: "/admin/assets", label: "Assets", icon: FolderOpen },
+  { to: "/admin/messages", label: "Messages", icon: MessageSquare },
 ];
 
 function NavRow({ item }: { item: AdminNavItem }) {

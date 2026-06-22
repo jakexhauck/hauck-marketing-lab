@@ -22,6 +22,7 @@ import Calendar from "./routes/Calendar";
 import Notifications from "./routes/Notifications";
 import Team from "./routes/Team";
 import Settings from "./routes/Settings";
+import Comms from "./routes/Comms";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClients from "./routes/admin/AdminClients";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
@@ -30,6 +31,7 @@ import AdminBuild from "./routes/admin/AdminBuild";
 import AdminSops from "./routes/admin/AdminSops";
 import AdminSopDetail from "./routes/admin/AdminSopDetail";
 import Assets from "./routes/admin/Assets";
+import AdminMessages from "./routes/admin/AdminMessages";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -38,6 +40,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import MotionPresetSwitcher from "./components/dev/MotionPresetSwitcher";
 import { ToastProvider } from "./context/ToastContext";
 import { NowProvider } from "./context/NowContext";
+import { ChatProvider } from "./context/ChatContext";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -123,6 +126,7 @@ export default function App() {
           <LeadsProvider>
           <NowProvider>
           <ToastProvider>
+            <ChatProvider>
             <ServiceWorkerMessages />
             {import.meta.env.DEV && <MotionPresetSwitcher />}
             <OfflineBanner />
@@ -246,6 +250,14 @@ export default function App() {
                 }
               />
               <Route
+                path="/comms"
+                element={
+                  <ProtectedRoute>
+                    <Comms />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/lead/:id"
                 element={
                   <ProtectedRoute>
@@ -310,8 +322,17 @@ export default function App() {
                   </AdminRoute>
                 }
               />
+              <Route
+                path="/admin/messages"
+                element={
+                  <AdminRoute>
+                    <AdminMessages />
+                  </AdminRoute>
+                }
+              />
               <Route path="*" element={<RootRedirect />} />
             </Routes>
+            </ChatProvider>
           </ToastProvider>
           </NowProvider>
           </LeadsProvider>

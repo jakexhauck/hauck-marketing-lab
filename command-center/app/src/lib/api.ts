@@ -258,3 +258,74 @@ export interface AdminTask {
   completed: boolean;
   createdAt: string;
 }
+
+// ===== Team comms (Phase 04) =====
+// A participant is a staff_accounts row (owner included) or an admin_accounts row.
+// senderKind / member kinds are always "staff" or "admin"; the id is the matching
+// account id. Content is fetched through api<T>(); Realtime only signals "refetch".
+
+export interface ChatRole {
+  id: string;
+  name: string;
+  color: string;
+  isPreset: boolean;
+  sortOrder: number;
+}
+
+export interface ChatMember {
+  id: string;
+  name: string;
+  roles: ChatRole[];
+  online: boolean;
+  lastSeen: string | null;
+  canContactHauck: boolean;
+}
+
+export interface ChatChannel {
+  id: string;
+  kind: "channel" | "dm" | "hauck";
+  name: string;
+  memberIds: string[];
+  unread: number;
+  lastMessageAt: string | null;
+}
+
+export interface ChatAttachment {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  width: number | null;
+  height: number | null;
+}
+
+export interface ChatMessageDTO {
+  id: string;
+  channelId: string;
+  senderKind: "staff" | "admin";
+  senderId: string;
+  senderName: string;
+  body: string;
+  createdAt: string;
+  editedAt: string | null;
+  deletedAt: string | null;
+  attachments: ChatAttachment[];
+}
+
+export interface AdminHauckThread {
+  channelId: string;
+  tenantId: string;
+  tenantName: string;
+  personName: string;
+  unread: number;
+  lastMessageAt: string | null;
+}
+
+// Returned by POST /api/chat/attachments. The browser PUTs file bytes to
+// uploadUrl, then sends the attachmentId with the message.
+export interface AttachmentUpload {
+  attachmentId: string;
+  uploadUrl: string;
+  path: string;
+  token: string;
+}

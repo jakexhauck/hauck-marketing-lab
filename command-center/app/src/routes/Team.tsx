@@ -5,15 +5,18 @@ import Shell from "../components/Shell";
 import BackButton from "../components/BackButton";
 import BrandedButton from "../components/BrandedButton";
 import TeamDesktop, { type StaffMember } from "../components/team/TeamDesktop";
+import RoleManager from "../components/comms/RoleManager";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { api, ApiError } from "../lib/api";
+import type { ChatChannel } from "../lib/api";
 import {
   CAPABILITIES,
   defaultGrantsForRole,
   type Capability,
   type StaffRole,
 } from "../lib/capabilities";
+import { useChatRoles, useChannels } from "../hooks/useChat";
 
 type GrantMap = Record<Capability, { view: boolean; edit: boolean }>;
 
@@ -35,6 +38,7 @@ export default function Team() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showRoles, setShowRoles] = useState(false);
   // When set, the form edits this member; when null (with the form open), it
   // adds a new one.
   const [editing, setEditing] = useState<StaffMember | null>(null);
@@ -134,14 +138,23 @@ export default function Team() {
         <span className="font-display text-[15px] font-bold text-[var(--text)]">
           Team
         </span>
-        <button
-          type="button"
-          onClick={handleAdd}
-          aria-label="Add employee"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--brand-text)] transition-colors active:bg-[var(--surface-2)]"
-        >
-          {showForm && !editing ? <X size={20} /> : <Plus size={20} />}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setShowRoles(true)}
+            className="rounded-lg px-2.5 py-1.5 text-[12.5px] font-semibold text-[var(--text-muted)] transition-colors active:bg-[var(--surface-2)]"
+          >
+            Manage roles
+          </button>
+          <button
+            type="button"
+            onClick={handleAdd}
+            aria-label="Add employee"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--brand-text)] transition-colors active:bg-[var(--surface-2)]"
+          >
+            {showForm && !editing ? <X size={20} /> : <Plus size={20} />}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-[22px] pb-28 pt-5">
@@ -245,8 +258,11 @@ export default function Team() {
           onAdd={handleAdd}
           onEdit={handleEdit}
           onToggleStatus={toggleStatus}
+          onManageRoles={() => setShowRoles(true)}
         />
       </div>
+
+      {showRoles && <RoleManager onClose={() => setShowRoles(false)} />}
     </Shell>
   );
 }
@@ -283,8 +299,44 @@ function EmployeeForm({
   const [grants, setGrants] = useState<GrantMap>(() =>
     editing ? grantsFromMember(editing) : defaultGrantsForRole("rep"),
   );
+  const [chatRoleIds, setChatRoleIds] = useState<string[]>(
+    editing?.chatRoleIds ?? [],
+  );
+  const [canContactHauck, setCanContactHauck] = useState<boolean>(
+    editing?.canContactHauck ?? false,
+  );
+  const [channelIds, setChannelIds] = useState<string[]>(
+    editing?.channelIds ?? [],
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Always enabled inside EmployeeForm: the form is only rendered when open.
+  const { data: rolesData } = useChatRoles(true);
+  const { data: channelsData } = useChannels(true);
+  // Highest-priority role first, matching the roster and RoleManager ordering.
+  const chatRoles = useMemo(
+    () =>
+      [...(rolesData?.roles ?? [])].sort((a, b) => b.sortOrder - a.sortOrder),
+    [rolesData],
+  );
+  // Only real channels are assignable here; DMs and the hauck line are implicit.
+  const assignableChannels = useMemo(
+    () =>
+      (channelsData?.channels ?? []).filter(
+        (c: ChatChannel) => c.kind === "channel",
+      ),
+    [channelsData],
+  );
+
+  const toggleChatRole = (id: string) =>
+    setChatRoleIds((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
+    );
+  const toggleChannel = (id: string) =>
+    setChannelIds((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id],
+    );
 
   const onRoleChange = (next: StaffRole) => {
     setRole(next);
@@ -332,6 +384,9 @@ function EmployeeForm({
             permissions,
             // Saving re-activates a disabled (e.g. imported) account.
             status: "active",
+            chatRoleIds,
+            canContactHauck,
+            channelIds,
             ...(password.trim() ? { password: password.trim() } : {}),
           }),
         });
@@ -339,7 +394,16 @@ function EmployeeForm({
       } else {
         const res = await api<{ ok: boolean; ghlLinked: boolean }>("/api/staff", {
           method: "POST",
-          body: JSON.stringify({ name: name.trim(), email: email.trim(), password: password.trim(), role, permissions }),
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            password: password.trim(),
+            role,
+            permissions,
+            chatRoleIds,
+            canContactHauck,
+            channelIds,
+          }),
         });
         showToast(res.ghlLinked ? "Employee added" : "Employee added (no GHL user)");
       }
@@ -466,6 +530,96 @@ function EmployeeForm({
                     />
                   )}
                 </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Cosmetic chat roles (purely visual, separate from permissions). */}
+      <div className="mt-4">
+        <span className="label-cap">Chat roles</span>
+        {chatRoles.length === 0 ? (
+          <p className="mt-2 text-[12.5px] text-[var(--text-muted)]">
+            No chat roles yet. Add some from "Manage roles".
+          </p>
+        ) : (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {chatRoles.map((r) => {
+              const on = chatRoleIds.includes(r.id);
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => toggleChatRole(r.id)}
+                  disabled={submitting}
+                  aria-pressed={on}
+                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors disabled:opacity-60"
+                  style={{
+                    borderColor: on ? r.color : "var(--border)",
+                    backgroundColor: on ? `${r.color}1f` : "var(--surface)",
+                    color: on ? "var(--text)" : "var(--text-muted)",
+                  }}
+                >
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: r.color }}
+                    aria-hidden
+                  />
+                  {r.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Direct line to Hauck (Jake). Off by default. */}
+      <div className="mt-4">
+        <span className="label-cap">Direct line to Hauck</span>
+        <ul className="mt-2 overflow-hidden rounded-xl border border-[var(--border)]">
+          <li className="flex items-center justify-between px-3.5 py-2.5">
+            <div className="min-w-0 pr-3">
+              <span className="text-[14px] font-semibold text-[var(--text)]">
+                Can message Hauck
+              </span>
+              <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
+                Lets this person open a private thread with Jake.
+              </p>
+            </div>
+            <ToggleChip
+              label={canContactHauck ? "On" : "Off"}
+              on={canContactHauck}
+              disabled={submitting}
+              onClick={() => setCanContactHauck((v) => !v)}
+            />
+          </li>
+        </ul>
+      </div>
+
+      {/* Channel membership. */}
+      <div className="mt-4">
+        <span className="label-cap">Channels</span>
+        {assignableChannels.length === 0 ? (
+          <p className="mt-2 text-[12.5px] text-[var(--text-muted)]">
+            No channels yet.
+          </p>
+        ) : (
+          <ul className="mt-2 divide-y divide-[var(--divider)] overflow-hidden rounded-xl border border-[var(--border)]">
+            {assignableChannels.map((c: ChatChannel) => (
+              <li
+                key={c.id}
+                className="flex items-center justify-between px-3.5 py-2.5"
+              >
+                <span className="truncate text-[14px] font-semibold text-[var(--text)]">
+                  {c.name || "Untitled channel"}
+                </span>
+                <ToggleChip
+                  label={channelIds.includes(c.id) ? "Member" : "Add"}
+                  on={channelIds.includes(c.id)}
+                  disabled={submitting}
+                  onClick={() => toggleChannel(c.id)}
+                />
               </li>
             ))}
           </ul>
