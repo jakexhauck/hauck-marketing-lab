@@ -10,6 +10,14 @@ import { SOP_CATEGORIES } from "../../lib/sopData";
 
 export default function AdminSops() {
   const [q, setQ] = useState("");
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  const toggle = (key: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
 
   const groups = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -42,14 +50,20 @@ export default function AdminSops() {
       {total === 0 ? (
         <div className="hsop-empty">No SOPs match that search.</div>
       ) : (
-        groups.map(({ cat, sops }) => (
-          <section className="hsop-cat" key={cat.key}>
-            <div className="hsop-cat-head">
+        groups.map(({ cat, sops }) => {
+          // While searching, force every matching category open so results stay visible.
+          const open = q.trim() ? true : !collapsed.has(cat.key);
+          return (
+          <section className={`hsop-cat${open ? "" : " is-collapsed"}`} key={cat.key}>
+            <button type="button" className="hsop-cat-head" aria-expanded={open} onClick={() => toggle(cat.key)}>
               <span className="hsop-cemoji">{cat.emoji}</span>
               <h2>{cat.name}</h2>
               <span className="hsop-count">{sops.length} SOP{sops.length === 1 ? "" : "s"}</span>
-            </div>
-            {sops.map((s) => (
+              <span className="hsop-chevron">
+                <svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
+              </span>
+            </button>
+            {open && sops.map((s) => (
               <Link className="hsop-row" key={s.slug} to={`/admin/sops/${cat.key}/${s.slug}`}>
                 <span className="hsop-li">
                   <span className="hsop-emoji">{s.emoji}</span>
@@ -71,7 +85,8 @@ export default function AdminSops() {
               </Link>
             ))}
           </section>
-        ))
+          );
+        })
       )}
     </div>
   );
@@ -97,10 +112,15 @@ export function HsopStyle() {
       .hsop-search input { border: 0; background: transparent; color: var(--text); font: inherit; font-size: 13.5px; outline: none; width: 100%; }
       .hsop-search input::placeholder { color: var(--text-faint); }
       .hsop-cat { margin-top: 22px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
-      .hsop-cat-head { display: flex; align-items: center; gap: 11px; padding: 16px 22px; border-bottom: 1px solid var(--divider); }
+      .hsop-cat-head { display: flex; align-items: center; gap: 11px; padding: 16px 22px; border-bottom: 1px solid var(--divider); width: 100%; text-align: left; background: transparent; border-left: 0; border-right: 0; border-top: 0; color: inherit; font: inherit; cursor: pointer; transition: background .16s; }
+      .hsop-cat-head:hover { background: var(--surface-2); }
+      .hsop-cat.is-collapsed .hsop-cat-head { border-bottom: none; }
       .hsop-cemoji { font-size: 19px; line-height: 1; }
       .hsop-cat-head h2 { font-family: var(--font-display); font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--text); }
       .hsop-count { margin-left: auto; color: var(--text-muted); font-size: 12px; font-weight: 600; background: var(--surface-2); border-radius: 999px; padding: 3px 10px; }
+      .hsop-chevron { display: grid; place-items: center; }
+      .hsop-chevron svg { width: 18px; height: 18px; stroke: var(--text-faint); fill: none; transition: transform .18s ease; }
+      .hsop-cat.is-collapsed .hsop-chevron svg { transform: rotate(-90deg); }
       .hsop-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 22px; text-decoration: none; color: inherit; border-bottom: 1px solid var(--divider); transition: background .16s; }
       .hsop-row:last-child { border-bottom: none; }
       .hsop-row:hover { background: var(--surface-2); }
