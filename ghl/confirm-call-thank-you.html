@@ -1,0 +1,166 @@
+<!--
+  CONFIRM CALL - THANK YOU PAGE  (universal, all clients)
+  ----------------------------------------------------------------------
+  Where to paste in GoHighLevel:
+    Calendar  ->  Confirmation Page  ->  "Custom Code"
+    (or drop a "Custom HTML / Code" element onto a funnel/website page)
+
+  The appointment time is injected by GHL's merge field:
+    {{appointment.start_time}}
+  If GHL doesn't fill the tag (page viewed outside an appointment
+  context), the subheadline gracefully falls back to a generic line.
+  Nothing else to configure. Paste and save.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thank You</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #16201c;
+      --muted: #5b6b64;
+      --green: #4DBB83;
+      --green-soft: #e9f7f0;
+      --bg: #ffffff;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 560px;
+      text-align: center;
+      padding: 16px;
+    }
+
+    /* ---- animated check ---- */
+    .check-wrap {
+      width: 104px;
+      height: 104px;
+      margin: 0 auto 36px;
+      border-radius: 50%;
+      background: var(--green-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: scale(0);
+      animation: pop 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28) 0.1s forwards;
+    }
+
+    .check-wrap svg { width: 54px; height: 54px; }
+
+    .check-circle {
+      stroke: var(--green);
+      stroke-width: 3;
+      fill: none;
+      stroke-dasharray: 166;
+      stroke-dashoffset: 166;
+      animation: draw 0.6s ease-out 0.35s forwards;
+    }
+
+    .check-mark {
+      stroke: var(--green);
+      stroke-width: 4;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      animation: draw 0.4s ease-out 0.8s forwards;
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(0); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes draw {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* ---- text ---- */
+    h1 {
+      font-size: clamp(1.6rem, 5vw, 2.25rem);
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+      opacity: 0;
+      animation: rise 0.6s ease-out 0.6s forwards;
+    }
+
+    p.sub {
+      font-size: clamp(1rem, 3vw, 1.2rem);
+      font-weight: 400;
+      color: var(--muted);
+      line-height: 1.5;
+      opacity: 0;
+      animation: rise 0.6s ease-out 0.78s forwards;
+    }
+
+    p.sub .time {
+      color: var(--ink);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    @keyframes rise {
+      0%   { opacity: 0; transform: translateY(12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .check-wrap, h1, p.sub { animation: none; opacity: 1; transform: none; }
+      .check-circle, .check-mark { stroke-dashoffset: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="check-wrap" aria-hidden="true">
+      <svg viewBox="0 0 60 60">
+        <circle class="check-circle" cx="30" cy="30" r="26.5" />
+        <path class="check-mark" d="M18 31 l8 8 l16 -18" />
+      </svg>
+    </div>
+
+    <h1>Thank You For Confirming Your Phone Consultation!</h1>
+
+    <p class="sub" id="sub">
+      We are extremely excited to talk at
+      <span class="time">{{appointment.start_time}}</span>
+    </p>
+  </main>
+
+  <script>
+    // Fallback: if GHL didn't replace the merge field, show a generic line
+    // so a prospect never sees raw {{...}} code.
+    (function () {
+      var sub = document.getElementById('sub');
+      if (sub && sub.textContent.indexOf('{{') !== -1) {
+        sub.textContent = 'We are extremely excited to speak with you soon!';
+      }
+    })();
+  </script>
+</body>
+</html>
