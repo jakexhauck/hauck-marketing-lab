@@ -59,29 +59,42 @@ export async function writeChatRoles(
 
 // Set a staff member's channel membership to exactly `channelIds`. Removes the
 // member from every channel they are no longer in, then upserts the chosen set.
-// Only channels belonging to `tenantId` are honored. member_kind = 'staff'.
+// Only channels of kind='channel' belonging to `tenantId` are honored.
+// DM and hauck-kind memberships are never touched by this function.
+// member_kind = 'staff'.
 export async function writeChannelMembers(
   client: SupabaseClient,
   tenantId: string,
   staffId: string,
   channelIds: string[],
 ): Promise<void> {
-  const { data: valid } = await client
+  // Fetch ALL kind='channel' channel ids for this tenant. This is the universe
+  // we are allowed to add or remove. DM/hauck channels are excluded entirely.
+  const { data: channelKindRows } = await client
     .from("chat_channels")
     .select("id")
     .eq("tenant_id", tenantId)
-    .in("id", channelIds.length ? channelIds : ["00000000-0000-0000-0000-000000000000"]);
-  const wanted = new Set((valid ?? []).map((r) => (r as { id: string }).id));
+    .eq("kind", "channel");
+  const channelKindIds = new Set(
+    (channelKindRows ?? []).map((r) => (r as { id: string }).id),
+  );
 
-  // Current channel memberships for this staff member. Remove any not in
-  // `wanted`, then add the missing ones.
+  // Validate the submitted ids: only accept ids that are in channelKindIds so a
+  // forged dm/hauck id cannot be inserted via this path.
+  const wanted = new Set(channelIds.filter((id) => channelKindIds.has(id)));
+
+  // Current channel memberships for this staff member, restricted to the
+  // kind='channel' universe. DM and hauck memberships are invisible here so
+  // they can never appear in toRemove.
   const { data: current } = await client
     .from("chat_channel_members")
     .select("channel_id")
     .eq("member_kind", "staff")
     .eq("member_id", staffId);
   const have = new Set(
-    (current ?? []).map((r) => (r as { channel_id: string }).channel_id),
+    (current ?? [])
+      .map((r) => (r as { channel_id: string }).channel_id)
+      .filter((id) => channelKindIds.has(id)),
   );
 
   const toRemove = [...have].filter((id) => !wanted.has(id));
@@ -172,6 +185,17 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
     // chat_channel_members is keyed by (channel_id, member_kind, member_id).
     // Staff members carry member_kind = 'staff'; member_id is the staff id.
+    // Only include kind='channel' memberships so dm/hauck ids are never
+    // surfaced to the form (and do not round-trip back through writeChannelMembers).
+    const { data: channelKindRows } = await client
+      .from("chat_channels")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("kind", "channel");
+    const channelKindIds = new Set(
+      (channelKindRows ?? []).map((r) => (r as { id: string }).id),
+    );
+
     const { data: memberRows } = await client
       .from("chat_channel_members")
       .select("channel_id, member_id")
@@ -181,6 +205,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       channel_id: string;
       member_id: string;
     }[]) {
+      if (!channelKindIds.has(row.channel_id)) continue;
       const list = channelsByStaff.get(row.member_id) ?? [];
       list.push(row.channel_id);
       channelsByStaff.set(row.member_id, list);
