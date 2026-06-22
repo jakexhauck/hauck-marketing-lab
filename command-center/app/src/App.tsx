@@ -30,6 +30,7 @@ import AdminBuild from "./routes/admin/AdminBuild";
 import AdminSops from "./routes/admin/AdminSops";
 import AdminSopDetail from "./routes/admin/AdminSopDetail";
 import Assets from "./routes/admin/Assets";
+import Plans from "./routes/admin/Plans";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -289,6 +290,14 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminBuild />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/plans"
+                element={
+                  <AdminRoute>
+                    <Plans />
                   </AdminRoute>
                 }
               />

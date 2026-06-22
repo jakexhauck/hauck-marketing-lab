@@ -6,6 +6,7 @@ import {
   BookText,
   Hammer,
   FolderOpen,
+  ClipboardList,
   LogOut,
   Sun,
   Moon,
@@ -30,6 +31,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { to: "/admin/clients", label: "Clients", icon: Building2 },
   { to: "/admin/tasks", label: "Tasks", icon: ListChecks },
   { to: "/admin/build", label: "Build Lab", icon: Hammer },
+  { to: "/admin/plans", label: "Plans", icon: ClipboardList },
   { to: "/admin/sops", label: "SOP Hub", icon: BookText },
   { to: "/admin/assets", label: "Assets", icon: FolderOpen },
 ];
