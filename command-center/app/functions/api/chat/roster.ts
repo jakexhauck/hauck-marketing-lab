@@ -15,7 +15,18 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const tenantId = await resolveTenantId(client, ctx.data.tenant.slug);
   if (!tenantId) return Response.json({ error: "tenant_not_found" }, { status: 404 });
 
-  const [staffRes, rolesRes, memberRolesRes, presenceRes] = await Promise.all([
+  // Fetch roles first so we can scope member-roles to this tenant's role IDs.
+  const rolesRes = await client
+    .from("chat_roles")
+    .select("id, name, color, is_preset, sort_order")
+    .eq("tenant_id", tenantId);
+  if (rolesRes.error) return Response.json({ error: rolesRes.error.message }, { status: 500 });
+
+  const tenantRoleIds = ((rolesRes.data ?? []) as RoleRow[]).map((r) => r.id);
+  // Use a guaranteed-miss UUID when the tenant has no roles so the IN filter returns no rows.
+  const roleIdFilter = tenantRoleIds.length > 0 ? tenantRoleIds : ["00000000-0000-0000-0000-000000000000"];
+
+  const [staffRes, memberRolesRes, presenceRes] = await Promise.all([
     client
       .from("staff_accounts")
       .select("id, name, can_contact_hauck")
@@ -23,12 +34,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       .eq("status", "active")
       .order("name", { ascending: true }),
     client
-      .from("chat_roles")
-      .select("id, name, color, is_preset, sort_order")
-      .eq("tenant_id", tenantId),
-    client
       .from("chat_member_roles")
-      .select("staff_account_id, chat_role_id"),
+      .select("staff_account_id, chat_role_id")
+      .in("chat_role_id", roleIdFilter),
     client
       .from("chat_presence")
       .select("member_id, last_seen")
@@ -37,7 +45,6 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   ]);
 
   if (staffRes.error) return Response.json({ error: staffRes.error.message }, { status: 500 });
-  if (rolesRes.error) return Response.json({ error: rolesRes.error.message }, { status: 500 });
   if (memberRolesRes.error) return Response.json({ error: memberRolesRes.error.message }, { status: 500 });
   if (presenceRes.error) return Response.json({ error: presenceRes.error.message }, { status: 500 });
 

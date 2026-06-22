@@ -38,13 +38,15 @@ export const onRequestPatch: PagesFunction<Env, "messageId", ApiData> = async (c
   const tenantId = await resolveTenantId(client, ctx.data.tenant.slug);
   if (!tenantId) return Response.json({ error: "tenant_not_found" }, { status: 404 });
 
-  const { participant } = await resolveParticipant(client, {
+  const { participant, needsIndividualAccount } = await resolveParticipant(client, {
     isOwner: Boolean(ctx.data.isOwner),
     staff: ctx.data.staff ?? null,
     admin: ctx.data.admin ?? null,
     tenantSlug: ctx.data.tenant.slug,
   });
-  if (!participant) return Response.json({ error: "needs_individual_account" }, { status: 403 });
+  if (!participant) {
+    return Response.json({ error: needsIndividualAccount ? "needs_individual_account" : "forbidden" }, { status: 403 });
+  }
 
   const messageId = ctx.params.messageId as string;
   const body = await readJsonBody<EditBody>(ctx.request);
@@ -70,6 +72,7 @@ export const onRequestPatch: PagesFunction<Env, "messageId", ApiData> = async (c
     .from("chat_messages")
     .update({ body: text, edited_at: new Date().toISOString() })
     .eq("id", messageId)
+    .eq("tenant_id", tenantId)
     .select("id, channel_id, sender_kind, sender_id, body, created_at, edited_at, deleted_at")
     .single();
   if (updErr) return Response.json({ error: updErr.message }, { status: 500 });
@@ -112,13 +115,15 @@ export const onRequestDelete: PagesFunction<Env, "messageId", ApiData> = async (
   const tenantId = await resolveTenantId(client, ctx.data.tenant.slug);
   if (!tenantId) return Response.json({ error: "tenant_not_found" }, { status: 404 });
 
-  const { participant } = await resolveParticipant(client, {
+  const { participant, needsIndividualAccount } = await resolveParticipant(client, {
     isOwner: Boolean(ctx.data.isOwner),
     staff: ctx.data.staff ?? null,
     admin: ctx.data.admin ?? null,
     tenantSlug: ctx.data.tenant.slug,
   });
-  if (!participant) return Response.json({ error: "needs_individual_account" }, { status: 403 });
+  if (!participant) {
+    return Response.json({ error: needsIndividualAccount ? "needs_individual_account" : "forbidden" }, { status: 403 });
+  }
 
   const messageId = ctx.params.messageId as string;
 
@@ -144,7 +149,8 @@ export const onRequestDelete: PagesFunction<Env, "messageId", ApiData> = async (
       deleted_by_kind: participant.kind,
       deleted_by_id: participant.id,
     })
-    .eq("id", messageId);
+    .eq("id", messageId)
+    .eq("tenant_id", tenantId);
   if (updErr) return Response.json({ error: updErr.message }, { status: 500 });
 
   const recipients = await channelRecipients(client, msg.channel_id, {
