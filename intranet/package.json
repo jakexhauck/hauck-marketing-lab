@@ -1,0 +1,19 @@
+{
+  "name": "hauck-internal",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Hauck Marketing internal portal (SOP Hub) — internal.hauckmarketing.com",
+  "scripts": {
+    "dev": "wrangler pages dev site --compatibility-date 2026-05-18 --port 8799",
+    "deploy": "wrangler pages deploy site --project-name hauck-internal --commit-dirty=true"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260517.1",
+    "typescript": "~5.8.3",
+    "wrangler": "^4.40.0"
+  }
+}

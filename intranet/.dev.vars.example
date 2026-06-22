@@ -1,0 +1,21 @@
+# Copy to .dev.vars (gitignored) for local `npm run dev`, and set the same values
+# as Cloudflare Pages env vars for production. These must match the Command
+# Center's secrets so the SAME admin login works here.
+#
+# SESSION_SECRET   — same HMAC signing secret as the Command Center.
+# SUPABASE_URL                — same Supabase project URL.
+# SUPABASE_SERVICE_ROLE_KEY   — same service-role key (server-only, never shipped to the browser).
+#
+# Assets (Google Drive) — from a Web OAuth client in the agency Google Cloud project.
+# GOOGLE_OAUTH_CLIENT_ID / _SECRET   — the Web OAuth client credentials.
+# GOOGLE_OAUTH_REDIRECT (optional)   — defaults to
+#   https://internal.hauckmarketing.com/api/drive/oauth/callback in production.
+#   For local dev set http://127.0.0.1:8799/api/drive/oauth/callback and add it
+#   as an Authorized redirect URI on the OAuth client.
+
+SESSION_SECRET=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+GOOGLE_OAUTH_CLIENT_ID=
+GOOGLE_OAUTH_CLIENT_SECRET=
+GOOGLE_OAUTH_REDIRECT=

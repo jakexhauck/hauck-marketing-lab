@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SOP — Hauck Marketing</title>
+<link rel="icon" href="logo.png" />
+<link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a href="/"><img class="brandmark" src="logo.png" alt="Hauck Marketing" /></a>
+      <nav class="nav">
+        <button class="btn ghost" id="logout" type="button">Log out</button>
+      </nav>
+    </header>
+
+    <a class="back" href="/sops"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 18l-6-6 6-6"/></svg> SOP Hub</a>
+
+    <div id="content"></div>
+
+    <footer>Hauck Marketing · Internal use only · internal.hauckmarketing.com</footer>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    function param(n){ return new URLSearchParams(location.search).get(n); }
+    function embed(url){
+      if (!url) return '';
+      const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]+)/);
+      if (yt) return `<div class="video-card"><iframe src="https://www.youtube.com/embed/${yt[1]}" allowfullscreen></iframe></div>`;
+      const loom = url.match(/loom\.com\/(?:share|embed)\/([\w-]+)/);
+      if (loom) return `<div class="video-card"><iframe src="https://www.loom.com/embed/${loom[1]}" allowfullscreen></iframe></div>`;
+      return `<a class="btn" style="display:inline-flex" href="${url}" target="_blank" rel="noopener">▶ Watch the video</a>`;
+    }
+
+    const catKey = param('cat'), slug = param('slug');
+    const cat = (window.SOP_DATA.categories || []).find(c => c.key === catKey);
+    const sop = cat && cat.sops.find(s => s.slug === slug);
+    const root = document.getElementById('content');
+
+    if (!sop) {
+      root.innerHTML = '<div class="empty">SOP not found. <a href="/sops" style="color:var(--accent)">Back to SOP Hub</a></div>';
+    } else {
+      document.title = sop.title + ' — Hauck Marketing';
+      let video = '';
+      if (sop.video) {
+        video = sop.videoUrl
+          ? embed(sop.videoUrl)
+          : `<div class="video-card"><div class="ph"><span class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span><span>Training video — link to be added</span></div></div>`;
+      }
+      root.innerHTML = `
+        <div class="sop-head">
+          <span class="emoji">${sop.emoji || '📄'}</span>
+          <div class="meta"><div class="kicker">${cat.emoji} ${cat.name}</div><h1>${sop.title}</h1></div>
+        </div>
+        <div class="sop-body">
+          ${video}
+          <div class="prose">${sop.body || '<p>Steps coming soon.</p>'}</div>
+        </div>`;
+    }
+
+    document.getElementById('logout').addEventListener('click', async () => {
+      try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+      location.href = '/login';
+    });
+  </script>
+</body>
+</html>

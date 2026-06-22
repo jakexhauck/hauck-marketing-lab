@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hauck Marketing — Internal Hub</title>
+<link rel="icon" href="logo.png" />
+<link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a href="/"><img class="brandmark" src="logo.png" alt="Hauck Marketing" /></a>
+      <nav class="nav">
+        <a class="btn ghost" href="https://app.hauckmarketing.com" target="_blank" rel="noopener">Command Center ↗</a>
+        <button class="btn ghost" id="logout" type="button">Log out</button>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <h1>Internal Hub</h1>
+      <p>Everything the team needs, in one place.</p>
+    </section>
+
+    <section class="hub">
+      <a class="tile active" href="/sops">
+        <span class="tico">📋</span>
+        <h3>SOP Hub</h3>
+        <p>Every process, with written steps and the original training video.</p>
+        <span class="cta">Open <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+
+      <a class="tile active" href="/assets">
+        <span class="tico">🎨</span>
+        <h3>Assets</h3>
+        <p>Every client file, straight from Google Drive. Browse, upload, and download.</p>
+        <span class="cta">Open <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+
+      <div class="tile soon">
+        <span class="tico">👋</span>
+        <h3>Onboarding <span class="soon-tag">Soon</span></h3>
+        <p>New team-member onboarding: accounts, tools, and first-week path.</p>
+      </div>
+    </section>
+
+    <footer>Hauck Marketing · Internal use only · internal.hauckmarketing.com</footer>
+  </div>
+
+  <script>
+    document.getElementById('logout').addEventListener('click', async () => {
+      try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+      location.href = '/login';
+    });
+  </script>
+</body>
+</html>

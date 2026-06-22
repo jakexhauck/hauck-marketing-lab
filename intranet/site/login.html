@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign in — Hauck Marketing</title>
+<link rel="icon" href="logo.png" />
+<link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <div class="login-shell">
+    <form class="login-card" id="form">
+      <div class="logo-wrap"><img src="logo.png" alt="Hauck Marketing" /></div>
+      <h1>Internal Sign In</h1>
+      <p class="sub">Use your Command Center admin login.</p>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" placeholder="you@hauckmarketing.com" required />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required />
+      </div>
+      <button id="submit" type="submit">Sign in</button>
+      <div class="err" id="err"></div>
+      <div class="foot">Hauck Marketing · Internal use only</div>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('form');
+    const err = document.getElementById('err');
+    const btn = document.getElementById('submit');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.textContent = '';
+      btn.disabled = true; btn.textContent = 'Signing in…';
+      try {
+        const res = await fetch('/api/auth/admin-login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { err.textContent = data.error || 'Sign in failed.'; btn.disabled = false; btn.textContent = 'Sign in'; return; }
+        location.href = '/';
+      } catch (_) {
+        err.textContent = 'Network error. Try again.';
+        btn.disabled = false; btn.textContent = 'Sign in';
+      }
+    });
+  </script>
+</body>
+</html>
