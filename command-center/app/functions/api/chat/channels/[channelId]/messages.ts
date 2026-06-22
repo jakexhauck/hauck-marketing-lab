@@ -49,13 +49,15 @@ export const onRequestGet: PagesFunction<Env, "channelId", ApiData> = async (ctx
   const tenantId = await resolveTenantId(client, ctx.data.tenant.slug);
   if (!tenantId) return Response.json({ error: "tenant_not_found" }, { status: 404 });
 
-  const { participant } = await resolveParticipant(client, {
+  const { participant, needsIndividualAccount } = await resolveParticipant(client, {
     isOwner: Boolean(ctx.data.isOwner),
     staff: ctx.data.staff ?? null,
     admin: ctx.data.admin ?? null,
     tenantSlug: ctx.data.tenant.slug,
   });
-  if (!participant) return Response.json({ error: "needs_individual_account" }, { status: 403 });
+  if (!participant) {
+    return Response.json({ error: needsIndividualAccount ? "needs_individual_account" : "forbidden" }, { status: 403 });
+  }
 
   const channelId = ctx.params.channelId as string;
   if (!(await isChannelMember(client, channelId, participant))) {
@@ -148,13 +150,15 @@ export const onRequestPost: PagesFunction<Env, "channelId", ApiData> = async (ct
   const tenantId = await resolveTenantId(client, ctx.data.tenant.slug);
   if (!tenantId) return Response.json({ error: "tenant_not_found" }, { status: 404 });
 
-  const { participant } = await resolveParticipant(client, {
+  const { participant, needsIndividualAccount } = await resolveParticipant(client, {
     isOwner: Boolean(ctx.data.isOwner),
     staff: ctx.data.staff ?? null,
     admin: ctx.data.admin ?? null,
     tenantSlug: ctx.data.tenant.slug,
   });
-  if (!participant) return Response.json({ error: "needs_individual_account" }, { status: 403 });
+  if (!participant) {
+    return Response.json({ error: needsIndividualAccount ? "needs_individual_account" : "forbidden" }, { status: 403 });
+  }
 
   const channelId = ctx.params.channelId as string;
   if (!(await isChannelMember(client, channelId, participant))) {

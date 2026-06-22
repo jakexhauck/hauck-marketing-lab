@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { readJsonBody } from "../../../lib/body";
 import { getServiceClient, resolveTenantId } from "../../../lib/supabase";
+import { resolveParticipant } from "../../../lib/participants";
 
 interface PatchChannelBody {
   name?: string;
@@ -14,6 +15,16 @@ export const onRequestPatch: PagesFunction<Env, "channelId", ApiData> = async (c
   if (!client) return Response.json({ error: "supabase_not_configured" }, { status: 503 });
   const tenantId = await resolveTenantId(client, ctx.data.tenant.slug);
   if (!tenantId) return Response.json({ error: "tenant_not_found" }, { status: 404 });
+
+  const { participant, needsIndividualAccount } = await resolveParticipant(client, {
+    isOwner: ctx.data.isOwner ?? false,
+    staff: ctx.data.staff ?? null,
+    admin: ctx.data.admin ?? null,
+    tenantSlug: ctx.data.tenant.slug,
+  });
+  if (!participant) {
+    return Response.json({ error: needsIndividualAccount ? "needs_individual_account" : "forbidden" }, { status: 403 });
+  }
 
   const channelId = ctx.params.channelId as string;
   const body = await readJsonBody<PatchChannelBody>(ctx.request);
