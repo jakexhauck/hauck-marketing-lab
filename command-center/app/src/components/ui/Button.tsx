@@ -37,8 +37,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center font-medium whitespace-nowrap transition-colors duration-100",
-        "disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center font-medium whitespace-nowrap",
+        "transition-[transform,background-color,border-color,color,filter] duration-100 ease-out",
+        "active:scale-[0.97] motion-reduce:active:scale-100",
+        "disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100",
         VARIANTS[variant],
         SIZES[size],
         className,

@@ -35,6 +35,7 @@ import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
 import PreviewBanner from "./components/PreviewBanner";
 import ScrollToTop from "./components/ScrollToTop";
+import MotionPresetSwitcher from "./components/dev/MotionPresetSwitcher";
 import { ToastProvider } from "./context/ToastContext";
 import { NowProvider } from "./context/NowContext";
 import type { ReactNode } from "react";
@@ -123,6 +124,7 @@ export default function App() {
           <NowProvider>
           <ToastProvider>
             <ServiceWorkerMessages />
+            {import.meta.env.DEV && <MotionPresetSwitcher />}
             <OfflineBanner />
             <PreviewBanner />
             <ScrollToTop />

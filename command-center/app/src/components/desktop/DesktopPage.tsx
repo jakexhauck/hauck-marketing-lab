@@ -27,7 +27,9 @@ export default function DesktopPage({
           <div className="flex shrink-0 items-center gap-3">{actions}</div>
         )}
       </header>
-      <div className="mx-auto w-full max-w-[1220px] px-9 py-7">{children}</div>
+      <div className="fx-rise mx-auto w-full max-w-[1220px] px-9 py-7">
+        {children}
+      </div>
     </div>
   );
 }

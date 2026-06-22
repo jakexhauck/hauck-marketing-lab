@@ -51,7 +51,7 @@ function Kpi({
 }) {
   return (
     <div
-      className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]"
+      className="fx-item fx-lift flex flex-col gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]"
       role="group"
       aria-label={label}
     >
@@ -220,7 +220,7 @@ export default function DashboardDesktop() {
         <>
           {/* KPI band: the same role-aware month-to-date figures the phone
               StatsStrip shows, restyled as calm tiles. */}
-          <section className="grid grid-cols-2 gap-5 xl:grid-cols-4">
+          <section className="fx-stagger grid grid-cols-2 gap-5 xl:grid-cols-4">
             {showRevenue ? (
               <>
                 <Kpi
@@ -379,11 +379,29 @@ export default function DashboardDesktop() {
           {/* Leads table */}
           <section className="mt-5">
             {isLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <div
-                  className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-brand"
-                  aria-hidden
-                />
+              <div
+                className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]"
+                aria-busy="true"
+                aria-label="Loading leads"
+              >
+                <div className="border-b border-divider px-6 py-3.5">
+                  <div className="fx-skeleton h-3 w-28" />
+                </div>
+                <div className="fx-stagger divide-y divide-divider">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="fx-item flex items-center gap-3 px-6 py-3.5"
+                    >
+                      <div className="fx-skeleton h-9 w-9 shrink-0 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <div className="fx-skeleton h-3 w-1/3" />
+                        <div className="fx-skeleton h-2.5 w-1/5" />
+                      </div>
+                      <div className="fx-skeleton h-3 w-16 shrink-0" />
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : visible.length === 0 ? (
               <div className="rounded-[var(--radius-lg)] border border-border bg-surface py-6">
@@ -429,7 +447,7 @@ export default function DashboardDesktop() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="fx-stagger">
                     {visible.map((lead) => (
                       <LeadTableRow
                         key={lead.id}
@@ -472,7 +490,7 @@ function LeadTableRow({
           onOpen();
         }
       }}
-      className="cursor-pointer border-b border-divider transition-colors last:border-0 hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40"
+      className="fx-item cursor-pointer border-b border-divider transition-colors last:border-0 hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40"
     >
       {/* Lead name + source */}
       <td className="px-6 py-3.5">

@@ -293,3 +293,158 @@ body {
     animation: none;
   }
 }
+
+/* ===========================================================================
+   Motion system. Token-driven so intensity is tunable in one place. The
+   default (no attribute) is the "Balanced" preset; set data-motion on <html>
+   to switch presets. Curves follow the calm-command-deck rule: strong
+   ease-out, no bounce, everything under ~460ms, reduced-motion safe.
+   ======================================================================== */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* Page (route) entrance */
+  --fx-page-rise: 8px;
+  --fx-page-dur: 300ms;
+
+  /* List / grid item entrance + stagger */
+  --fx-item-rise: 10px;
+  --fx-item-dur: 360ms;
+  --fx-stagger: 45ms;
+  --fx-stagger-cap: 8; /* informational; capped in JS */
+
+  /* Hover lift */
+  --fx-lift: -2px;
+  --fx-lift-dur: 160ms;
+}
+
+/* Calm: the most restrained preset. Smallest travel, tightest timing. */
+[data-motion="calm"] {
+  --fx-page-rise: 5px;
+  --fx-page-dur: 260ms;
+  --fx-item-rise: 6px;
+  --fx-item-dur: 300ms;
+  --fx-stagger: 28ms;
+  --fx-lift: -1px;
+}
+
+/* Lively: a touch more expressive. Larger travel, longer settle. */
+[data-motion="lively"] {
+  --fx-page-rise: 12px;
+  --fx-page-dur: 380ms;
+  --fx-item-rise: 14px;
+  --fx-item-dur: 460ms;
+  --fx-stagger: 60ms;
+  --fx-lift: -3px;
+}
+
+/* Entrance animations are keyframe-based with `backwards` fill (never
+   `forwards`): the resting state is the element's normal, fully-visible value,
+   so content is never left hidden if the animation does not run, and the
+   animation stops applying once finished, leaving :hover transforms free.
+   This is why fx-item and fx-lift can share one element without colliding. */
+@keyframes fx-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--fx-page-rise));
+  }
+}
+@keyframes fx-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--fx-item-rise));
+  }
+}
+
+/* Route entrance: re-fires on every route change (each page mounts a fresh
+   node). */
+.fx-rise {
+  animation: fx-rise-in var(--fx-page-dur) var(--ease-out) backwards;
+}
+
+/* Staggered item entrance. --i (the item index) is set by .fx-stagger below;
+   the delay scales with it and is capped so long lists never feel slow. */
+.fx-item {
+  animation: fx-item-in var(--fx-item-dur) var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * var(--fx-stagger));
+}
+
+/* Auto-stagger: set --i on direct children by position so callers don't have
+   to thread an index through every item. Beyond the 9th child the index is
+   clamped so long lists never feel slow. */
+.fx-stagger > * {
+  --i: 0;
+}
+.fx-stagger > :nth-child(2) {
+  --i: 1;
+}
+.fx-stagger > :nth-child(3) {
+  --i: 2;
+}
+.fx-stagger > :nth-child(4) {
+  --i: 3;
+}
+.fx-stagger > :nth-child(5) {
+  --i: 4;
+}
+.fx-stagger > :nth-child(6) {
+  --i: 5;
+}
+.fx-stagger > :nth-child(7) {
+  --i: 6;
+}
+.fx-stagger > :nth-child(8) {
+  --i: 7;
+}
+.fx-stagger > :nth-child(n + 9) {
+  --i: 8;
+}
+
+/* Hover lift for interactive cards. Pointer-gated so taps don't trigger it. */
+@media (hover: hover) and (pointer: fine) {
+  .fx-lift {
+    transition:
+      transform var(--fx-lift-dur) var(--ease-out),
+      box-shadow var(--fx-lift-dur) var(--ease-out);
+  }
+  .fx-lift:hover {
+    transform: translateY(var(--fx-lift));
+    box-shadow: var(--shadow-md);
+  }
+}
+
+/* Skeleton placeholder. Reuses the existing shimmer keyframe. */
+.fx-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+}
+.fx-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0,
+    color-mix(in srgb, var(--surface-3) 70%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 480px 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-rise,
+  .fx-item {
+    animation: none;
+  }
+  .fx-lift:hover {
+    transform: none;
+    box-shadow: var(--shadow-md);
+  }
+  .fx-skeleton::after {
+    animation: none;
+  }
+}
