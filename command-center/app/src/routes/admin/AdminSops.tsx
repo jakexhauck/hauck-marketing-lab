@@ -1,16 +1,40 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { SOP_CATEGORIES } from "../../lib/sopData";
+import { api } from "../../lib/api";
+import { buildGroups, flagKey, selectedCount } from "../../lib/sopTriage";
 
 // SOP Hub inside the admin console. Styling is scoped under .hsop-root but reads
 // the shared admin theme tokens (surface/border/text/brand), so it follows the
 // neutral light/dark theme with green as an accent, matching the rest of the
 // console. Phase 1 reads the static seed in lib/sopData.ts; phase 2 swaps to a
 // Supabase table + an add/edit editor.
+//
+// Triage: each row has a checkbox. Ticking it flags the SOP as "consider for an
+// SOP checklist" (stored in admin_sop_flags via /api/admin/sop-flags). It is a
+// private working signal, not a public status; nothing is deleted or hidden when
+// unticked. "Show selected only" filters the hub down to what is ticked.
 
 export default function AdminSops() {
   const [q, setQ] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // flagKey(catKey, slug) for every SOP currently ticked.
+  const [considered, setConsidered] = useState<Set<string>>(new Set());
+  const [selectedOnly, setSelectedOnly] = useState(false);
+
+  // Load saved ticks once. On failure (e.g. Supabase unconfigured) the hub still
+  // works, just with no saved state.
+  useEffect(() => {
+    let alive = true;
+    api<{ flags: { catKey: string; slug: string }[] }>("/api/admin/sop-flags")
+      .then((d) => {
+        if (alive) setConsidered(new Set(d.flags.map((f) => flagKey(f.catKey, f.slug))));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const toggle = (key: string) =>
     setCollapsed((prev) => {
@@ -19,19 +43,34 @@ export default function AdminSops() {
       return next;
     });
 
-  const groups = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    return SOP_CATEGORIES.map((cat) => ({
-      cat,
-      sops: query
-        ? cat.sops.filter((s) =>
-            (s.title + " " + (s.desc ?? "")).toLowerCase().includes(query),
-          )
-        : cat.sops,
-    })).filter((g) => g.sops.length > 0);
-  }, [q]);
+  // Optimistic: flip the tick locally, persist, roll back on error.
+  const toggleFlag = (catKey: string, slug: string) => {
+    const key = flagKey(catKey, slug);
+    const next = !considered.has(key);
+    setConsidered((prev) => {
+      const s = new Set(prev);
+      next ? s.add(key) : s.delete(key);
+      return s;
+    });
+    api("/api/admin/sop-flags", {
+      method: "POST",
+      body: JSON.stringify({ catKey, slug, considered: next }),
+    }).catch(() => {
+      setConsidered((prev) => {
+        const s = new Set(prev);
+        next ? s.delete(key) : s.add(key);
+        return s;
+      });
+    });
+  };
+
+  const groups = useMemo(
+    () => buildGroups(SOP_CATEGORIES, q, considered, selectedOnly),
+    [q, considered, selectedOnly],
+  );
 
   const total = groups.reduce((n, g) => n + g.sops.length, 0);
+  const totalSelected = considered.size;
 
   return (
     <div className="hsop-root">
@@ -41,49 +80,76 @@ export default function AdminSops() {
           <h1 className="hsop-title">SOP Hub</h1>
           <p className="hsop-sub">Every process, with written steps and the original training video.</p>
         </div>
-        <label className="hsop-search">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search SOPs…" />
-        </label>
+        <div className="hsop-tools">
+          <button
+            type="button"
+            className={`hsop-filter${selectedOnly ? " is-on" : ""}`}
+            aria-pressed={selectedOnly}
+            onClick={() => setSelectedOnly((v) => !v)}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5" /></svg>
+            Selected only{totalSelected ? ` (${totalSelected})` : ""}
+          </button>
+          <label className="hsop-search">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search SOPs…" />
+          </label>
+        </div>
       </header>
 
       {total === 0 ? (
-        <div className="hsop-empty">No SOPs match that search.</div>
+        <div className="hsop-empty">
+          {selectedOnly && !q.trim() ? "Nothing ticked yet. Tick a checkbox to flag it for an SOP checklist." : "No SOPs match that search."}
+        </div>
       ) : (
         groups.map(({ cat, sops }) => {
           // While searching, force every matching category open so results stay visible.
           const open = q.trim() ? true : !collapsed.has(cat.key);
+          const selCount = selectedCount(cat, considered);
           return (
           <section className={`hsop-cat${open ? "" : " is-collapsed"}`} key={cat.key}>
             <button type="button" className="hsop-cat-head" aria-expanded={open} onClick={() => toggle(cat.key)}>
               <span className="hsop-cemoji">{cat.emoji}</span>
               <h2>{cat.name}</h2>
               <span className="hsop-count">{sops.length} SOP{sops.length === 1 ? "" : "s"}</span>
+              {selCount > 0 && <span className="hsop-selpill">{selCount} selected</span>}
               <span className="hsop-chevron">
                 <svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
               </span>
             </button>
-            {open && sops.map((s) => (
-              <Link className="hsop-row" key={s.slug} to={`/admin/sops/${cat.key}/${s.slug}`}>
-                <span className="hsop-li">
-                  <span className="hsop-emoji">{s.emoji}</span>
-                  <span className="hsop-l">
-                    <span className="hsop-rt">{s.title}</span>
-                    <span className="hsop-rd">{s.desc}</span>
-                  </span>
-                </span>
-                <span className="hsop-r">
-                  {s.video && (
-                    <span className="hsop-tag">
-                      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg> Video
+            {open && sops.map((s) => {
+              const checked = considered.has(flagKey(cat.key, s.slug));
+              return (
+              <div className="hsop-rowwrap" key={s.slug}>
+                <label className="hsop-check" title="Consider for an SOP checklist">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleFlag(cat.key, s.slug)}
+                  />
+                </label>
+                <Link className="hsop-row" to={`/admin/sops/${cat.key}/${s.slug}`}>
+                  <span className="hsop-li">
+                    <span className="hsop-emoji">{s.emoji}</span>
+                    <span className="hsop-l">
+                      <span className="hsop-rt">{s.title}</span>
+                      <span className="hsop-rd">{s.desc}</span>
                     </span>
-                  )}
-                  <span className="hsop-arrow">
-                    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                   </span>
-                </span>
-              </Link>
-            ))}
+                  <span className="hsop-r">
+                    {s.video && (
+                      <span className="hsop-tag">
+                        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg> Video
+                      </span>
+                    )}
+                    <span className="hsop-arrow">
+                      <svg viewBox="0 0 24 24" fill="none" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    </span>
+                  </span>
+                </Link>
+              </div>
+              );
+            })}
           </section>
           );
         })
@@ -111,6 +177,11 @@ export function HsopStyle() {
       .hsop-search:focus-within { border-color: var(--brand); box-shadow: 0 0 0 4px var(--brand-tint); }
       .hsop-search input { border: 0; background: transparent; color: var(--text); font: inherit; font-size: 13.5px; outline: none; width: 100%; }
       .hsop-search input::placeholder { color: var(--text-faint); }
+      .hsop-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .hsop-filter { display: inline-flex; align-items: center; gap: 7px; padding: 9px 15px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text-muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .16s, color .16s, border-color .16s; }
+      .hsop-filter:hover { color: var(--text); }
+      .hsop-filter svg { stroke: currentColor; }
+      .hsop-filter.is-on { background: var(--brand); color: var(--brand-fg); border-color: var(--brand); }
       .hsop-cat { margin-top: 22px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
       .hsop-cat-head { display: flex; align-items: center; gap: 11px; padding: 16px 22px; border-bottom: 1px solid var(--divider); width: 100%; text-align: left; background: transparent; border-left: 0; border-right: 0; border-top: 0; color: inherit; font: inherit; cursor: pointer; transition: background .16s; }
       .hsop-cat-head:hover { background: var(--surface-2); }
@@ -121,9 +192,12 @@ export function HsopStyle() {
       .hsop-chevron { display: grid; place-items: center; }
       .hsop-chevron svg { width: 18px; height: 18px; stroke: var(--text-faint); fill: none; transition: transform .18s ease; }
       .hsop-cat.is-collapsed .hsop-chevron svg { transform: rotate(-90deg); }
-      .hsop-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 22px; text-decoration: none; color: inherit; border-bottom: 1px solid var(--divider); transition: background .16s; }
-      .hsop-row:last-child { border-bottom: none; }
-      .hsop-row:hover { background: var(--surface-2); }
+      .hsop-rowwrap { display: flex; align-items: stretch; border-bottom: 1px solid var(--divider); transition: background .16s; }
+      .hsop-rowwrap:last-child { border-bottom: none; }
+      .hsop-rowwrap:hover { background: var(--surface-2); }
+      .hsop-check { display: grid; place-items: center; padding: 0 4px 0 18px; flex-shrink: 0; cursor: pointer; }
+      .hsop-check input { width: 17px; height: 17px; cursor: pointer; accent-color: var(--brand-primary); }
+      .hsop-row { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 22px 14px 10px; text-decoration: none; color: inherit; }
       .hsop-li { display: flex; align-items: center; gap: 14px; min-width: 0; }
       .hsop-emoji { width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0; font-size: 20px; display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border); }
       .hsop-l { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -133,7 +207,8 @@ export function HsopStyle() {
       .hsop-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 4px 9px; border-radius: 999px; color: var(--brand-text); background: var(--brand-tint); }
       .hsop-tag svg { width: 11px; height: 11px; fill: var(--brand-text); }
       .hsop-arrow svg { width: 17px; height: 17px; stroke: var(--text-faint); fill: none; transition: stroke .16s, transform .16s; }
-      .hsop-row:hover .hsop-arrow svg { stroke: var(--brand-text); transform: translateX(3px); }
+      .hsop-rowwrap:hover .hsop-arrow svg { stroke: var(--brand-text); transform: translateX(3px); }
+      .hsop-selpill { color: var(--brand-text); background: var(--brand-tint); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
       .hsop-empty { text-align: center; color: var(--text-muted); padding: 60px 0; font-size: 14px; }
       .hsop-back { display: inline-flex; align-items: center; gap: 7px; color: var(--text-muted); font-size: 13.5px; font-weight: 500; text-decoration: none; margin-bottom: 22px; }
       .hsop-back:hover { color: var(--brand-text); }
