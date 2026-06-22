@@ -212,7 +212,9 @@ can run as parallel subagent tracks behind the typed client layer.
 1. After Phase 01: run `npm run db:migrate` (needs `SUPABASE_ACCESS_TOKEN`,
    `SUPABASE_URL`). Confirm `chat-attachments` bucket exists in Supabase Storage.
 2. Set `SUPABASE_ANON_KEY` in Cloudflare env (browser Realtime). Confirm Realtime is
-   enabled for the project.
+   enabled for the project. During Phase 02/03 smoke-testing, confirm the server-side
+   broadcast endpoint (`${SUPABASE_URL}/realtime/v1/api/broadcast`) returns 2xx; it is
+   fire-and-forget (failures only `console.warn`), so verify it once explicitly.
 3. **Identity backfill:** every chat participant must log in as an individual account.
    Confirm Willis's owner has an `owner` `staff_accounts` row (not the legacy shared
    password). Phase 02 includes a check script.
