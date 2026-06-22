@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import {
   Building2,
@@ -17,12 +17,8 @@ import { useTheme } from "../../context/ThemeContext";
 // The admin console chrome. A left rail on desktop, a compact top bar on phones.
 // Deliberately tenant-free: a super-admin has no client branding, so this is the
 // agency's own view across every client. Runs on the shared neutral light/dark
-// tokens (no green wash) with green as a rationed accent, and scopes the display
-// face to Poppins for the whole admin subtree.
-
-const ADMIN_FONT = {
-  "--font-display": '"Poppins", "Inter", ui-sans-serif, system-ui, sans-serif',
-} as CSSProperties;
+// tokens (no green wash) with green as a rationed accent. The display face is
+// Poppins, inherited from the global --font-display token.
 
 interface AdminNavItem {
   to: string;
@@ -75,7 +71,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const isLight = resolved === "light";
 
   return (
-    <div className="flex min-h-dvh bg-bg text-text" style={ADMIN_FONT}>
+    <div className="flex min-h-dvh bg-bg text-text">
       {/* Desktop rail (lg+). Same source-of-truth nav as the mobile bar below. */}
       <aside className="hidden h-dvh w-[248px] shrink-0 flex-col border-r border-border bg-surface lg:sticky lg:top-0 lg:flex">
         <div className="px-[18px] pb-3 pt-[22px]">
