@@ -19,6 +19,14 @@ export interface Env {
   WEBHOOK_SECRET?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
+  // The admin "Assets" hub (Google Drive file browser) connects ONE agency
+  // Google account via OAuth; the refresh token is stored in drive_connection.
+  // GOOGLE_OAUTH_CLIENT_ID / _SECRET come from a Web OAuth client in the agency's
+  // Google Cloud project. GOOGLE_OAUTH_REDIRECT defaults to
+  // https://app.hauckmarketing.com/api/admin/assets/oauth/callback when unset.
+  GOOGLE_OAUTH_CLIENT_ID?: string;
+  GOOGLE_OAUTH_CLIENT_SECRET?: string;
+  GOOGLE_OAUTH_REDIRECT?: string;
   // IANA timezone for "today" computations (new-today counts, task due dates,
   // invoice overdue). Defaults to America/Chicago.
   TENANT_TIMEZONE?: string;
