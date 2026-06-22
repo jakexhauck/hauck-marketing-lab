@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Pencil, Trash2, FileText } from "lucide-react";
+import { X, Pencil, Trash2, FileText, Download } from "lucide-react";
 import Avatar from "../Avatar";
 import Composer from "./Composer";
 import {
@@ -7,6 +7,7 @@ import {
   useMarkRead,
   useEditMessage,
   useDeleteMessage,
+  useAttachmentUrl,
 } from "../../hooks/useChat";
 import { useAuth } from "../../context/AuthContext";
 import { useChat } from "../../context/ChatContext";
@@ -16,23 +17,48 @@ function timeLabel(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+// Fetches a short-lived signed download URL for one attachment and renders it.
+// Images show inline; non-images render as a download chip.
 function AttachmentView({ a }: { a: ChatAttachment }) {
   const isImage = a.mimeType.startsWith("image/");
+  const { data, isLoading } = useAttachmentUrl(a.id);
+  const url = data?.url ?? null;
+
   if (isImage) {
-    // Phase 08 swaps this for the signed download URL. Until then we render the
-    // metadata frame so the layout is correct; no network fetch happens here.
     return (
-      <div className="mt-1 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)]">
-        <div className="flex items-center gap-2 px-3 py-2 text-[12px] text-[var(--text-muted)]">
-          <FileText size={14} /> {a.fileName}
-        </div>
-      </div>
+      <a
+        href={url ?? undefined}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-1 block max-w-xs overflow-hidden rounded-xl border border-[var(--border)]"
+      >
+        {url ? (
+          <img
+            src={url}
+            alt={a.fileName}
+            className="max-h-72 w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-40 w-full items-center justify-center bg-[var(--surface-2)] text-xs text-[var(--text-muted)]">
+            {isLoading ? "Loading image..." : "Image unavailable"}
+          </div>
+        )}
+      </a>
     );
   }
+
   return (
-    <div className="mt-1 inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-[12.5px] text-[var(--text-muted)]">
-      <FileText size={14} /> {a.fileName}
-    </div>
+    <a
+      href={url ?? undefined}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-1 inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-[12.5px] text-[var(--text)] hover:bg-[var(--surface-2)]"
+    >
+      <FileText size={14} className="text-[var(--text-muted)]" />
+      <span className="max-w-[12rem] truncate">{a.fileName}</span>
+      <Download size={14} className="text-[var(--text-muted)]" />
+    </a>
   );
 }
 
@@ -106,9 +132,13 @@ function MessageRow({
         ) : (
           <>
             <div className="whitespace-pre-wrap break-words text-[14px] text-[var(--text)]">{msg.body}</div>
-            {msg.attachments.map((a) => (
-              <AttachmentView key={a.id} a={a} />
-            ))}
+            {msg.attachments.length > 0 && (
+              <div className="flex flex-col gap-1">
+                {msg.attachments.map((att) => (
+                  <AttachmentView key={att.id} a={att} />
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -155,15 +185,26 @@ export default function Conversation({
   const messagesQuery = useChannelMessages(channelId, true);
   const markRead = useMarkRead();
   const endRef = useRef<HTMLDivElement>(null);
+  // Track the last message id we marked read so we only call /read when the
+  // newest message changes (new content) or the channel changes (switching tabs).
+  // This prevents spamming the endpoint on every render while still marking read
+  // when the channel opens and when a new message arrives while the panel is focused.
+  const lastMarkedRef = useRef<string | null>(null);
 
   const messages = messagesQuery.data?.messages ?? [];
 
-  // Clear unread when the channel is open and whenever new messages land.
+  // Clear unread when the channel opens and when a genuinely new message lands.
   useEffect(() => {
-    if (messages.length > 0) markRead.mutate({ channelId });
-    // markRead identity is stable; channelId drives the re-run when it changes.
+    if (messages.length === 0) return;
+    const newestId = messages[messages.length - 1].id;
+    // Key on channelId so switching channels always triggers a mark-read.
+    const key = `${channelId}:${newestId}`;
+    if (lastMarkedRef.current === key) return;
+    lastMarkedRef.current = key;
+    markRead.mutate({ channelId });
+    // markRead.mutate is stable (useMutation); channelId and messages drive the key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelId, messages.length]);
+  }, [channelId, messages.length > 0 ? messages[messages.length - 1]?.id : null]);
 
   // Keep the latest message in view.
   useEffect(() => {

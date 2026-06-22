@@ -10,8 +10,10 @@ import {
   type ChatChannel,
   type ChatMessageDTO,
   type AdminHauckThread,
+  type AttachmentUpload,
 } from "../lib/api";
 import type { ChatConfig } from "../lib/chatClient";
+import { validateAttachment } from "../lib/chatLogic";
 
 // ---- Realtime connect info (url + anon key). Stable for the session. ----
 export function useChatConfig(enabled: boolean) {
@@ -332,5 +334,53 @@ export function useAdminSendMessage(channelId: string | null) {
       void qc.invalidateQueries({ queryKey: ["admin", "message", channelId] });
       void qc.invalidateQueries({ queryKey: ["admin", "messages"] });
     },
+  });
+}
+
+// ---- Register an attachment, then PUT the bytes to the pre-signed Storage URL.
+// Returns the attachmentId to attach to the outgoing message. Validates client
+// side first (same rule the server re-checks) so we fail fast before the round trip. ----
+export function useUploadAttachment() {
+  return useMutation({
+    mutationFn: async (file: File): Promise<string> => {
+      const check = validateAttachment(file.type, file.size);
+      if (!check.ok) {
+        throw new Error(
+          check.reason === "too_large"
+            ? "File is over the 25MB limit"
+            : "That file type is not supported",
+        );
+      }
+      const reg = await api<AttachmentUpload>("/api/chat/attachments", {
+        method: "POST",
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type,
+          sizeBytes: file.size,
+        }),
+      });
+      // Supabase signed upload URL accepts a direct PUT of the raw bytes.
+      const put = await fetch(reg.uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "content-type": file.type },
+      });
+      if (!put.ok) {
+        throw new Error(`Upload failed (${put.status})`);
+      }
+      return reg.attachmentId;
+    },
+  });
+}
+
+// ---- Resolve a signed download URL for one attachment. Cached just under the 5min
+// server lifetime so the img / link does not expire mid-view; refetched after. ----
+export function useAttachmentUrl(attachmentId: string | null) {
+  return useQuery({
+    queryKey: ["chat", "attachment", attachmentId],
+    enabled: Boolean(attachmentId),
+    staleTime: 4 * 60 * 1000,
+    queryFn: () =>
+      api<{ url: string }>(`/api/chat/attachments/${attachmentId}`),
   });
 }

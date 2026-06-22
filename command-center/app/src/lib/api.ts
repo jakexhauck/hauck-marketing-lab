@@ -320,3 +320,12 @@ export interface AdminHauckThread {
   unread: number;
   lastMessageAt: string | null;
 }
+
+// Returned by POST /api/chat/attachments. The browser PUTs file bytes to
+// uploadUrl, then sends the attachmentId with the message.
+export interface AttachmentUpload {
+  attachmentId: string;
+  uploadUrl: string;
+  path: string;
+  token: string;
+}
