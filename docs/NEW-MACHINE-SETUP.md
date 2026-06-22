@@ -10,12 +10,18 @@ Nothing to do for these. Pulling the repo gets you:
 
 - All `CLAUDE.md` files (root + `copywriter/`, `data-analyst/`, `web-designer/`)
 - `.claude/settings.json` (shared settings)
-- `.claude/skills/` and `.agents/skills/`: `emil-design-eng`, `review-animations`
+- **All skills**, now vendored into `.claude/skills/` and `.agents/skills/`:
+  composio, copywriter, data-analyst, emil-design-eng, impeccable, review-animations,
+  skill-creator, taste-skill, thellc-design, trigger-dev, ui-ux-pro-max, watch,
+  web-designer. These load for this project automatically, no install needed.
 - All app code and subprojects (`command-center/`, `gohighlevel-cli/`, `intranet/`, etc.)
+
+> Note: these skills are project-scoped here. If you want them available in
+> *other* projects on the Mac too, also copy them into the global `~/.claude/skills/`.
 
 ## 2. Install by hand on the Mac
 
-### Plugins (via Claude Code)
+### Plugins (via Claude Code) — the only manual step
 
 Marketplace: `anthropics/claude-plugins-official`. In Claude Code run `/plugin`, add
 the marketplace if needed, then install:
@@ -23,22 +29,7 @@ the marketplace if needed, then install:
 - `superpowers` (was on `6.0.3`) — brainstorming, writing-plans, TDD, debugging, etc.
 - `rust-analyzer-lsp` (was on `1.0.0`)
 
-### Global skills (live in `~/.claude/skills/`, not in the repo)
-
-These are not in git. Either copy the `~/.claude/skills/` folder over from the
-Windows machine, or re-install each:
-
-- composio
-- copywriter
-- data-analyst
-- impeccable
-- skill-creator
-- taste-skill
-- thellc-design
-- trigger-dev
-- ui-ux-pro-max
-- watch
-- web-designer
+Plugins live in the global `~/.claude/plugins/` and do not travel with the repo.
 
 ## 3. Not synced on purpose
 
