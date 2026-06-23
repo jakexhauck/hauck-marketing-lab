@@ -12,9 +12,11 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import DesktopPage from "../desktop/DesktopPage";
+import ClientHero, { type ClientHeroKpi } from "./ClientHero";
 import NotificationBell from "../NotificationBell";
 import EmptyState from "../EmptyState";
 import { useAuth } from "../../context/AuthContext";
+import { useClient } from "../../context/ClientContext";
 import { usePipelines } from "../../context/PipelinesContext";
 import { useNow } from "../../context/NowContext";
 import {
@@ -66,50 +68,10 @@ function isSameLocalDay(a: Date, b: Date): boolean {
   );
 }
 
-// One KPI tile. Airy: soft surface, generous padding, mono label, tabular value.
-function Kpi({
-  label,
-  value,
-  sub,
-  subTone = "muted",
-  icon,
-}: {
-  label: string;
-  value: React.ReactNode;
-  sub?: React.ReactNode;
-  subTone?: "muted" | "positive";
-  icon: React.ReactNode;
-}) {
-  return (
-    <div
-      className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]"
-      role="group"
-      aria-label={label}
-    >
-      <div className="flex items-center justify-between">
-        <span className="label-cap truncate">{label}</span>
-        <span className="text-faint" aria-hidden>
-          {icon}
-        </span>
-      </div>
-      <div className="stat-num text-[2rem]">{value}</div>
-      {sub && (
-        <div
-          className={
-            "text-[12.5px] font-medium " +
-            (subTone === "positive" ? "text-positive" : "text-muted")
-          }
-        >
-          {sub}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function HomeDesktop() {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { client } = useClient();
   const { setSelectedId } = usePipelines();
   const now = useNow();
   const useReal = Boolean(session);
@@ -154,10 +116,41 @@ export default function HomeDesktop() {
     navigate("/leads");
   };
 
+  // The same four month-to-date figures the flat tiles showed, folded into the
+  // overview hero's KPI row.
+  const heroKpis: ClientHeroKpi[] = [
+    {
+      icon: ArrowUpRight,
+      label: "New leads today",
+      value: summary ? summary.newToday : "--",
+      sub: "across all pipelines",
+    },
+    {
+      icon: MessageSquare,
+      label: "Unread conversations",
+      value: summary ? summary.unreadConversations : "--",
+      sub:
+        summary && summary.unreadConversations > 0
+          ? "needs a reply"
+          : "all caught up",
+    },
+    {
+      icon: Users,
+      label: "Open leads",
+      value: summary ? openLeads : "--",
+      sub: "currently in pipeline",
+    },
+    {
+      icon: CalendarDays,
+      label: "Appointments today",
+      value: calendarQuery.isLoading ? "--" : appointmentsToday,
+      sub: "on the calendar",
+    },
+  ];
+
   return (
     <DesktopPage
-      title={greeting(now)}
-      subtitle={today}
+      title={client.brand.appName}
       actions={
         <>
           <button
@@ -183,37 +176,9 @@ export default function HomeDesktop() {
           </div>
         ) : (
           <>
-            {/* KPI band */}
-            <section className="grid grid-cols-2 gap-5 xl:grid-cols-4">
-              <Kpi
-                label="New leads today"
-                value={summary ? summary.newToday : "--"}
-                sub="across all pipelines"
-                icon={<ArrowUpRight size={16} />}
-              />
-              <Kpi
-                label="Unread conversations"
-                value={summary ? summary.unreadConversations : "--"}
-                sub={
-                  summary && summary.unreadConversations > 0
-                    ? "needs a reply"
-                    : "all caught up"
-                }
-                icon={<MessageSquare size={16} />}
-              />
-              <Kpi
-                label="Open leads"
-                value={summary ? openLeads : "--"}
-                sub="currently in pipeline"
-                icon={<Users size={16} />}
-              />
-              <Kpi
-                label="Appointments today"
-                value={calendarQuery.isLoading ? "--" : appointmentsToday}
-                sub="on the calendar"
-                icon={<CalendarDays size={16} />}
-              />
-            </section>
+            {/* Overview hero: greeting, date, and the four month-to-date KPIs,
+                glowing in the live client brand color. */}
+            <ClientHero greeting={greeting(now)} subtitle={today} kpis={heroKpis} />
 
             {/* Two-column body */}
             <div className="mt-7 grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_1fr]">
