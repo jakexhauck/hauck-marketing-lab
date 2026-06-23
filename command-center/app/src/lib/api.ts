@@ -329,3 +329,28 @@ export interface AttachmentUpload {
   path: string;
   token: string;
 }
+
+// ===== Admin calendar =====
+export interface ApiWorkBlock {
+  id: string;
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  color: string;
+  googleEventId: string | null;
+}
+
+export interface ApiGoogleCalEvent {
+  id: string;
+  title: string;
+  startTime: string | null;
+  endTime: string | null;
+  allDay: boolean;
+}
+
+export interface CalendarBlocksResponse {
+  blocks: ApiWorkBlock[];
+  googleEvents: ApiGoogleCalEvent[];
+  connection: { connected: boolean; email: string | null };
+  syncError?: string;
+}

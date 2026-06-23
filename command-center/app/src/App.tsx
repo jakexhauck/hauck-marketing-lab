@@ -27,6 +27,7 @@ import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClients from "./routes/admin/AdminClients";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminTasks from "./routes/admin/AdminTasks";
+import AdminCalendar from "./routes/admin/AdminCalendar";
 import AdminBuild from "./routes/admin/AdminBuild";
 import AdminSops from "./routes/admin/AdminSops";
 import AdminSopDetail from "./routes/admin/AdminSopDetail";
@@ -287,6 +288,14 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminTasks />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/calendar"
+                element={
+                  <AdminRoute>
+                    <AdminCalendar />
                   </AdminRoute>
                 }
               />
