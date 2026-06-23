@@ -29,6 +29,9 @@ export interface Env {
   GOOGLE_OAUTH_CLIENT_ID?: string;
   GOOGLE_OAUTH_CLIENT_SECRET?: string;
   GOOGLE_OAUTH_REDIRECT?: string;
+  // Optional separate redirect for the calendar OAuth flow. Defaults to
+  // `${origin}/api/admin/calendar/oauth/callback` when unset.
+  GOOGLE_OAUTH_REDIRECT_CALENDAR?: string;
   // IANA timezone for "today" computations (new-today counts, task due dates,
   // invoice overdue). Defaults to America/Chicago.
   TENANT_TIMEZONE?: string;
