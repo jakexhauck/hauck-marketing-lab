@@ -98,6 +98,7 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
 
   // Mirror the edit to Google (best effort). Create the event if missing.
   const conn = await calendarConnection(supabase);
+  let googleSyncFailed = false;
   if (conn.connected && (update.starts_at || update.ends_at || update.title)) {
     try {
       const token = await getCalendarAccessToken(ctx.env, supabase);
@@ -119,11 +120,16 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
         }
       }
     } catch (e) {
+      googleSyncFailed = true;
       console.warn("[calendar.blocks] google patch failed", e);
     }
   }
 
-  return Response.json({ block: toBlock(row) });
+  const payload: { block: ReturnType<typeof toBlock>; syncWarning?: string } = { block: toBlock(row) };
+  if (conn.connected && googleSyncFailed) {
+    payload.syncWarning = "Saved. Google sync failed, will retry on next edit.";
+  }
+  return Response.json(payload);
 };
 
 // DELETE /api/admin/calendar/blocks/:blockId

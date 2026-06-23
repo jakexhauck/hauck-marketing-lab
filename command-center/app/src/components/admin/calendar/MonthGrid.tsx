@@ -100,6 +100,7 @@ export default function MonthGrid({
                       role="button"
                       tabIndex={0}
                       onClick={(e) => { e.stopPropagation(); onPickBlock(b); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onPickBlock(b); } }}
                       className={`truncate rounded px-1.5 py-0.5 text-[11px] font-medium ${meta.chipClass}`}
                       title={b.title}
                     >

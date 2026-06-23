@@ -119,6 +119,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // Mirror to Google first (best effort) so we can store the event id in one write.
   let googleEventId: string | null = null;
   const conn = await calendarConnection(supabase);
+  let googleSyncFailed = false;
   if (conn.connected) {
     try {
       const token = await getCalendarAccessToken(ctx.env, supabase);
@@ -129,6 +130,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
         tenantTimezone(ctx.env),
       );
     } catch (e) {
+      googleSyncFailed = true;
       console.warn("[calendar.blocks] google insert failed", e);
     }
   }
@@ -147,5 +149,9 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     .single();
   if (error || !data) return Response.json({ error: error?.message ?? "could not create block" }, { status: 500 });
 
-  return Response.json({ block: toBlock(data as BlockRow) }, { status: 201 });
+  const payload: { block: ApiWorkBlock; syncWarning?: string } = { block: toBlock(data as BlockRow) };
+  if (conn.connected && googleSyncFailed) {
+    payload.syncWarning = "Saved. Google sync failed, will retry on next edit.";
+  }
+  return Response.json(payload, { status: 201 });
 };
