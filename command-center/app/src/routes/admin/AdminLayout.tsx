@@ -7,6 +7,7 @@ import {
   Hammer,
   FolderOpen,
   ClipboardList,
+  CalendarDays,
   LogOut,
   Sun,
   Moon,
@@ -30,6 +31,7 @@ interface AdminNavItem {
 const ADMIN_NAV: AdminNavItem[] = [
   { to: "/admin/clients", label: "Clients", icon: Building2 },
   { to: "/admin/tasks", label: "Tasks", icon: ListChecks },
+  { to: "/admin/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/admin/build", label: "Build Lab", icon: Hammer },
   { to: "/admin/plans", label: "Plans", icon: ClipboardList },
   { to: "/admin/sops", label: "SOP Hub", icon: BookText },
