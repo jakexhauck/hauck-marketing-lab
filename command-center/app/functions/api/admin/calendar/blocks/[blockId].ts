@@ -49,6 +49,17 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     return Response.json({ error: "invalid body" }, { status: 400 });
   }
 
+  // Read the existing row first: needed to merge partial time edits and to
+  // cross-validate that the resulting range stays valid (end after start).
+  const { data: existing, error: readErr } = await supabase
+    .from("work_blocks")
+    .select("id, title, starts_at, ends_at, color, google_event_id")
+    .eq("id", blockId)
+    .maybeSingle();
+  if (readErr) return Response.json({ error: readErr.message }, { status: 500 });
+  if (!existing) return Response.json({ error: "block not found" }, { status: 404 });
+  const cur = existing as BlockRow;
+
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (typeof body.title === "string") {
     const t = body.title.trim();
@@ -56,15 +67,23 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     update.title = t;
   }
   if (typeof body.color === "string" && body.color.trim()) update.color = body.color.trim();
+
+  let mergedStart = cur.starts_at;
+  let mergedEnd = cur.ends_at;
   if (typeof body.startsAt === "string") {
     const ms = Date.parse(body.startsAt);
     if (!Number.isFinite(ms)) return Response.json({ error: "invalid startsAt" }, { status: 400 });
-    update.starts_at = new Date(ms).toISOString();
+    mergedStart = new Date(ms).toISOString();
+    update.starts_at = mergedStart;
   }
   if (typeof body.endsAt === "string") {
     const ms = Date.parse(body.endsAt);
     if (!Number.isFinite(ms)) return Response.json({ error: "invalid endsAt" }, { status: 400 });
-    update.ends_at = new Date(ms).toISOString();
+    mergedEnd = new Date(ms).toISOString();
+    update.ends_at = mergedEnd;
+  }
+  if (Date.parse(mergedEnd) <= Date.parse(mergedStart)) {
+    return Response.json({ error: "end time must be after the start time" }, { status: 400 });
   }
 
   const { data, error } = await supabase
@@ -73,7 +92,8 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     .eq("id", blockId)
     .select("id, title, starts_at, ends_at, color, google_event_id")
     .single();
-  if (error || !data) return Response.json({ error: error?.message ?? "block not found" }, { status: 404 });
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (!data) return Response.json({ error: "block not found" }, { status: 404 });
   const row = data as BlockRow;
 
   // Mirror the edit to Google (best effort). Create the event if missing.
@@ -86,8 +106,17 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
         await patchEvent(token, conn.calendarId, row.google_event_id, ev, tenantTimezone(ctx.env));
       } else {
         const newId = await insertEvent(token, conn.calendarId, ev, tenantTimezone(ctx.env));
-        await supabase.from("work_blocks").update({ google_event_id: newId }).eq("id", blockId);
-        row.google_event_id = newId;
+        // Back-fill the id with its OWN error handling so a DB hiccup here is not
+        // mislabeled as a Google failure (which would orphan the new event).
+        const { error: backfillErr } = await supabase
+          .from("work_blocks")
+          .update({ google_event_id: newId })
+          .eq("id", blockId);
+        if (backfillErr) {
+          console.warn("[calendar.blocks] google_event_id backfill failed", backfillErr);
+        } else {
+          row.google_event_id = newId;
+        }
       }
     } catch (e) {
       console.warn("[calendar.blocks] google patch failed", e);

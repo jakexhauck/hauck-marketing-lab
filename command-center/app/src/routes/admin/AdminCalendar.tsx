@@ -6,6 +6,7 @@ import MonthGrid from "../../components/admin/calendar/MonthGrid";
 import ConnectGoogleCard from "../../components/admin/calendar/ConnectGoogleCard";
 import BlockEditorModal, { type BlockDraft } from "../../components/admin/calendar/BlockEditorModal";
 import { api, type ApiWorkBlock, type CalendarBlocksResponse } from "../../lib/api";
+import { dedupeGoogleEvents } from "../../lib/workBlocks";
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
@@ -95,7 +96,7 @@ export default function AdminCalendar() {
           year={cursor.year}
           month={cursor.month}
           blocks={data.blocks}
-          googleEvents={data.googleEvents}
+          googleEvents={dedupeGoogleEvents(data.googleEvents, data.blocks.map((b) => b.googleEventId))}
           onPickDay={(day) => setEditing(defaultDraftForDay(day))}
           onPickBlock={(b) => setEditing(blockToDraft(b))}
         />
