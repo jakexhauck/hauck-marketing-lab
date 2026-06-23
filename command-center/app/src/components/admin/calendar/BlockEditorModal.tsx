@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react";
 import { Trash2, Loader2 } from "lucide-react";
 import { Button } from "../../ui/Button";
 import { WORK_BLOCK_CATEGORIES, validateBlockTimes } from "../../../lib/workBlocks";
-import type { ApiWorkBlock } from "../../../lib/api";
 
 const inputCls =
   "w-full rounded-[var(--radius)] border border-border bg-surface px-3 py-2.5 text-[14px] text-text placeholder:text-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25";
@@ -25,10 +24,6 @@ export interface BlockDraft {
   endsAt: string; // ISO
   color: string;
 }
-
-// ApiWorkBlock is imported for type narrowing in consumers; re-exported to keep
-// the import surface minimal in AdminCalendar.
-export type { ApiWorkBlock };
 
 export default function BlockEditorModal({
   draft,

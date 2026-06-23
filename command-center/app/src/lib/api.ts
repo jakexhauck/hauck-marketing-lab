@@ -282,3 +282,8 @@ export interface CalendarBlocksResponse {
   connection: { connected: boolean; email: string | null };
   syncError?: string;
 }
+
+export interface CalendarBlockMutationResponse {
+  block: ApiWorkBlock;
+  syncWarning?: string;
+}

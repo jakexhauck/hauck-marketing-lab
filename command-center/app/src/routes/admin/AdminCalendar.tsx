@@ -5,10 +5,74 @@ import { Button } from "../../components/ui/Button";
 import MonthGrid from "../../components/admin/calendar/MonthGrid";
 import ConnectGoogleCard from "../../components/admin/calendar/ConnectGoogleCard";
 import BlockEditorModal, { type BlockDraft } from "../../components/admin/calendar/BlockEditorModal";
-import { api, type ApiWorkBlock, type CalendarBlocksResponse } from "../../lib/api";
-import { dedupeGoogleEvents } from "../../lib/workBlocks";
+import { api, type ApiWorkBlock, type CalendarBlocksResponse, type CalendarBlockMutationResponse } from "../../lib/api";
+import { dedupeGoogleEvents, categoryMeta } from "../../lib/workBlocks";
+import { useToast } from "../../context/ToastContext";
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+const timeFmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" });
+
+function agendaDayLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+function AgendaList({ blocks, onPickBlock }: { blocks: ApiWorkBlock[]; onPickBlock: (b: ApiWorkBlock) => void }) {
+  const sorted = [...blocks].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+
+  if (sorted.length === 0) {
+    return (
+      <div className="rounded-[var(--radius-lg)] border border-dashed border-border px-4 py-12 text-center text-sm text-muted">
+        No blocks in this window. Add one above.
+      </div>
+    );
+  }
+
+  // Group by calendar day key (YYYY-MM-DD in local time).
+  const groups: { day: string; label: string; items: ApiWorkBlock[] }[] = [];
+  for (const b of sorted) {
+    const d = new Date(b.startsAt);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const last = groups[groups.length - 1];
+    if (last && last.day === key) {
+      last.items.push(b);
+    } else {
+      groups.push({ day: key, label: agendaDayLabel(b.startsAt), items: [b] });
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {groups.map((g) => (
+        <div key={g.day}>
+          <div className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wide text-faint">{g.label}</div>
+          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+            {g.items.map((b, idx) => {
+              const meta = categoryMeta(b.color);
+              return (
+                <button
+                  key={b.id}
+                  onClick={() => onPickBlock(b)}
+                  className={[
+                    "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2",
+                    idx < g.items.length - 1 ? "border-b border-divider" : "",
+                  ].join(" ")}
+                >
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${meta.dotClass}`} />
+                  <span className="min-w-0 flex-1 truncate text-sm text-text">{b.title}</span>
+                  <span className="shrink-0 text-[12px] text-muted">
+                    {timeFmt.format(new Date(b.startsAt))} - {timeFmt.format(new Date(b.endsAt))}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // A default 9-11am block on a clicked day, in local time, as ISO.
 function defaultDraftForDay(day: Date): BlockDraft {
@@ -18,6 +82,7 @@ function defaultDraftForDay(day: Date): BlockDraft {
 }
 
 export default function AdminCalendar() {
+  const { showToast } = useToast();
   const [cursor, setCursor] = useState(() => { const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() }; });
   const [data, setData] = useState<CalendarBlocksResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,11 +112,13 @@ export default function AdminCalendar() {
   useEffect(() => { void load(); }, [load]);
 
   const saveBlock = async (b: BlockDraft) => {
+    let res: CalendarBlockMutationResponse;
     if (b.id) {
-      await api(`/api/admin/calendar/blocks/${b.id}`, { method: "PATCH", body: JSON.stringify({ title: b.title, startsAt: b.startsAt, endsAt: b.endsAt, color: b.color }) });
+      res = await api<CalendarBlockMutationResponse>(`/api/admin/calendar/blocks/${b.id}`, { method: "PATCH", body: JSON.stringify({ title: b.title, startsAt: b.startsAt, endsAt: b.endsAt, color: b.color }) });
     } else {
-      await api("/api/admin/calendar/blocks", { method: "POST", body: JSON.stringify({ title: b.title, startsAt: b.startsAt, endsAt: b.endsAt, color: b.color }) });
+      res = await api<CalendarBlockMutationResponse>("/api/admin/calendar/blocks", { method: "POST", body: JSON.stringify({ title: b.title, startsAt: b.startsAt, endsAt: b.endsAt, color: b.color }) });
     }
+    if (res.syncWarning) showToast(res.syncWarning);
     await load();
   };
 
@@ -92,14 +159,27 @@ export default function AdminCalendar() {
       ) : error ? (
         <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">{error}</div>
       ) : data ? (
-        <MonthGrid
-          year={cursor.year}
-          month={cursor.month}
-          blocks={data.blocks}
-          googleEvents={dedupeGoogleEvents(data.googleEvents, data.blocks.map((b) => b.googleEventId))}
-          onPickDay={(day) => setEditing(defaultDraftForDay(day))}
-          onPickBlock={(b) => setEditing(blockToDraft(b))}
-        />
+        <>
+          {/* Desktop: full month grid */}
+          <div className="hidden lg:block">
+            <MonthGrid
+              year={cursor.year}
+              month={cursor.month}
+              blocks={data.blocks}
+              googleEvents={dedupeGoogleEvents(data.googleEvents, data.blocks.map((b) => b.googleEventId))}
+              onPickDay={(day) => setEditing(defaultDraftForDay(day))}
+              onPickBlock={(b) => setEditing(blockToDraft(b))}
+            />
+          </div>
+
+          {/* Phone: stacked agenda list */}
+          <div className="lg:hidden">
+            <div className="mb-3">
+              <Button variant="primary" onClick={() => setEditing(defaultDraftForDay(new Date()))}><Plus size={16} /> New block</Button>
+            </div>
+            <AgendaList blocks={data.blocks} onPickBlock={(b) => setEditing(blockToDraft(b))} />
+          </div>
+        </>
       ) : null}
 
       {editing && (
