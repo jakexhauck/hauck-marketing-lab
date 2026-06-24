@@ -23,15 +23,33 @@ The Hauck Marketing Lab app (Tauri) auto-injects the About notes plus the active
 
 ## The Hauck Build Rules (universal build process)
 
-Apply this to every build: features, scripts, websites, integrations, new repos. A Spine runs every time. Modules switch on only when their IF is true. Presets set defaults per project type. Fast paths trim the Spine for small or urgent work. Announce each skill as it fires ("Using brainstorming to...").
+**Default to the Fast Path.** Most work is small: it gets the trimmed loop below, not the full Spine. Escalate to the full Spine only when a trigger fires (see "When to escalate"). Modules switch on only when their IF is true. Presets set defaults per project type. Announce skills only on full-Spine work, not on fast-path changes.
 
-### Spine (always runs)
+### Fast Path (the default)
+
+Use for: copy/config/typo edits, single-purpose changes, bugfixes, anything under ~3 files.
+
+1. **Frame-lite**: state in one or two sentences what you're changing and what "done" looks like. No `brainstorming` skill unless the ask is genuinely fuzzy.
+2. **Change**: make it. For a bug, run `systematic-debugging` first (root cause, not symptom).
+3. **Verify** (`verification-before-completion` + `run`/`verify`): run it, show evidence, no "should work". **Never skip.**
+4. **Ship** (`finishing-a-development-branch`): commit, push, watch deploy, smoke-test live URL.
+
+### When to escalate to the full Spine
+
+Fire the full Spine if ANY of these is true:
+
+- New feature or UI overhaul.
+- Touches auth, secrets, tokens, Supabase, or payments (also fires M8 Security).
+- Spans 3+ files, or is risky/multi-session.
+- Migrations, cron/jobs, or new external SaaS wiring.
+
+### Full Spine (escalation only)
 
 1. **Frame** (`brainstorming`): what, why, definition of done.
 2. **Plan** (`writing-plans`): ordered, file-by-file, in `docs/build-plans/`.
 3. **Build** (`test-driven-development` where testable).
 4. **Debug** (`systematic-debugging`): fires on any failure, root cause only.
-5. **Review** (`code-review` + `simplify` + `receiving-code-review`).
+5. **Review**: one `/code-review` pass. Add `simplify` only if the diff is genuinely messy; add `receiving-code-review` only when there's actual external feedback to process.
 6. **Verify** (`verification-before-completion` + `run`/`verify`): run it, show evidence, no "should work".
 7. **Ship** (`finishing-a-development-branch`): commit, push, watch deploy, smoke-test live URL.
 8. **Capture** (`writing-skills`/`skill-creator`) if the process is repeatable.
@@ -57,12 +75,10 @@ Apply this to every build: features, scripts, websites, integrations, new repos.
 - **Tauri / Rust**: add `rust-analyzer-lsp`, M8 for OAuth secrets.
 - **New greenfield project**: add repo init, `/init` CLAUDE.md, `skill-creator`.
 
-### Fast paths (trim the Spine)
+### Urgent hotfix
 
-- **Trivial** (copy, config, typo): Frame-lite, change, Verify, Ship. Skip plan, mockups, heavy review.
-- **Bugfix**: Frame, `systematic-debugging`, fix, Verify, Ship.
-- **Urgent hotfix**: smallest safe change, Verify, Ship, then backfill plan and review.
+Smallest safe change, Verify, Ship, then backfill plan and review if the change warranted the full Spine.
 
 ### One line
 
-Every build runs the Spine. Modules switch on by their IF. Presets set defaults per project type. Fast paths trim the Spine for small or urgent work.
+Default to the Fast Path. Escalate to the full Spine only when a trigger fires. Modules switch on by their IF. Presets set defaults per project type.
