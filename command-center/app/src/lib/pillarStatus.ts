@@ -40,7 +40,9 @@ function hasMetric(node: Pillar | PillarLane, live?: LiveData): boolean {
 // Declared status, promoted to "live" when a real metric is present.
 export function liveStatus(node: Pillar | PillarLane, live?: LiveData): PillarStatus {
   if (hasMetric(node, live)) return "live";
-  return node.status ?? "planned";
+  // Lanes carry a declared status; pillars do not (their status rolls up from
+  // their lanes via rollUpStatus), so default a bare pillar to "planned".
+  return "status" in node ? node.status : "planned";
 }
 
 // A pillar's status is the highest of its lanes (so a pillar with one live lane
