@@ -33,6 +33,8 @@ import AdminSopDetail from "./routes/admin/AdminSopDetail";
 import Assets from "./routes/admin/Assets";
 import AdminMessages from "./routes/admin/AdminMessages";
 import Plans from "./routes/admin/Plans";
+import AdminOnboarding from "./routes/admin/AdminOnboarding";
+import AdminOnboardingDetail from "./routes/admin/AdminOnboardingDetail";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -280,6 +282,22 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminClientDetail />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/onboarding"
+                element={
+                  <AdminRoute>
+                    <AdminOnboarding />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/onboarding/:id"
+                element={
+                  <AdminRoute>
+                    <AdminOnboardingDetail />
                   </AdminRoute>
                 }
               />

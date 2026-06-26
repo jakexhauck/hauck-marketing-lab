@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import {
   Building2,
+  Rocket,
   ListChecks,
   BookText,
   Hammer,
@@ -30,6 +31,7 @@ interface AdminNavItem {
 
 const ADMIN_NAV: AdminNavItem[] = [
   { to: "/admin/clients", label: "Clients", icon: Building2 },
+  { to: "/admin/onboarding", label: "Onboarding", icon: Rocket },
   { to: "/admin/tasks", label: "Tasks", icon: ListChecks },
   { to: "/admin/build", label: "Build Lab", icon: Hammer },
   { to: "/admin/plans", label: "Plans", icon: ClipboardList },
