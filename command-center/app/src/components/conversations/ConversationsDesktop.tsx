@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
-import NotificationBell from "../NotificationBell";
 import EmptyState from "../EmptyState";
 import Avatar from "../Avatar";
 import { useAuth } from "../../context/AuthContext";
@@ -50,7 +49,6 @@ export default function ConversationsDesktop() {
     <DesktopPage
       title="Inbox"
       subtitle={subtitle}
-      actions={<NotificationBell enabled={useReal} variant="surface" />}
     >
       {/* Search */}
       <div className="relative mb-5 max-w-sm">

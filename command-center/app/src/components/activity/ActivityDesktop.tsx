@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { BellOff, CheckCheck, History } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
-import NotificationBell from "../NotificationBell";
 import { Button, Segmented, type SegmentOption } from "../ui";
 import { Timeline, TimelineSkeleton } from "./Timeline";
 import { useAuth } from "../../context/AuthContext";
@@ -72,7 +71,6 @@ export default function ActivityDesktop() {
     <DesktopPage
       title="Activity"
       subtitle={subtitle}
-      actions={<NotificationBell enabled={useReal} variant="surface" />}
     >
       {/* View toggle plus the one secondary action (mark all read). */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">

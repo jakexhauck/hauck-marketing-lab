@@ -9,7 +9,6 @@ import {
   Users,
 } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
-import NotificationBell from "../NotificationBell";
 import EmptyState from "../EmptyState";
 import Avatar from "../Avatar";
 import StagePill from "../StagePill";
@@ -80,9 +79,8 @@ export default function DashboardDesktop() {
   const { leads: allLeads, isLoading, error } = useLeads();
   const { pipelines, selectedId, selected, setSelectedId } = usePipelines();
   const { client } = useClient();
-  const { currentUser, session } = useAuth();
+  const { currentUser } = useAuth();
   const now = useNow();
-  const useReal = Boolean(session);
 
   const [active, setActive] = useState<string>("");
   const [query, setQuery] = useState<string>("");
@@ -210,7 +208,6 @@ export default function DashboardDesktop() {
     <DesktopPage
       title="Dashboard"
       subtitle={subtitle}
-      actions={<NotificationBell enabled={useReal} variant="surface" />}
     >
       {error ? (
         <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">

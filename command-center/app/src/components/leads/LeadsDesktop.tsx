@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus, Search } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
-import NotificationBell from "../NotificationBell";
 import { Button } from "../ui/Button";
 import Board from "../Board";
 import PipelineSwitcher from "../PipelineSwitcher";
@@ -26,13 +26,26 @@ export default function LeadsDesktop() {
 
   const leadsQuery = usePipelineLeadsQuery(selectedId, useReal);
   const summaryQuery = useSummaryQuery(useReal);
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [showNewLead, setShowNewLead] = useState(false);
 
-  // Clear the search whenever the pipeline changes, mirroring the phone screen.
+  // Clear the search whenever the pipeline changes (after first mount), so a
+  // ?q seed from the topbar search survives the initial render.
+  const firstRun = useRef(true);
   useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
     setSearch("");
   }, [selectedId]);
+
+  // Re-seed when the topbar search routes here again with a new ?q.
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q != null) setSearch(q);
+  }, [searchParams]);
 
   const leads: ApiLead[] = useMemo(
     () => leadsQuery.data?.leads ?? [],
@@ -95,7 +108,6 @@ export default function LeadsDesktop() {
             onSelect={setSelectedId}
             countsById={switcherCounts}
           />
-          <NotificationBell enabled={useReal} variant="surface" />
           <Button variant="primary" onClick={() => setShowNewLead(true)}>
             <Plus size={16} />
             New lead

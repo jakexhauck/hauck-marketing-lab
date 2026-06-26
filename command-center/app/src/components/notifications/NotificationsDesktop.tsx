@@ -15,7 +15,6 @@ import {
 import type { ComponentType } from "react";
 import { Button } from "../ui/Button";
 import DesktopPage from "../desktop/DesktopPage";
-import NotificationBell from "../NotificationBell";
 import EmptyState from "../EmptyState";
 import { useAuth } from "../../context/AuthContext";
 import { useNow } from "../../context/NowContext";
@@ -156,7 +155,6 @@ export default function NotificationsDesktop() {
               Mark all read
             </Button>
           )}
-          <NotificationBell enabled={useReal} variant="surface" />
         </>
       }
     >

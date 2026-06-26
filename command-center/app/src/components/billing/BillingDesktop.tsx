@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Receipt, Wallet } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
-import NotificationBell from "../NotificationBell";
 import EmptyState from "../EmptyState";
 import { useAuth } from "../../context/AuthContext";
 import { useInvoicesQuery, useTransactionsQuery } from "../../hooks/useApi";
@@ -171,7 +170,6 @@ export default function BillingDesktop() {
     <DesktopPage
       title="Billing"
       subtitle={subtitle}
-      actions={<NotificationBell enabled={useReal} variant="surface" />}
     >
       {/* Ledger summary band */}
       <section className="grid grid-cols-1 gap-5 sm:grid-cols-2">

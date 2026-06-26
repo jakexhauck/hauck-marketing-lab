@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { CalendarClock, MapPin, User, Video } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
-import NotificationBell from "../NotificationBell";
 import EmptyState from "../EmptyState";
 import { groupByDayKey } from "../../lib/dayGroups";
 import { useAuth } from "../../context/AuthContext";
@@ -70,7 +69,6 @@ export default function CalendarDesktop() {
     <DesktopPage
       title="Calendar"
       subtitle={countLabel}
-      actions={<NotificationBell enabled={useReal} variant="surface" />}
     >
       {query.isError ? (
         <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">

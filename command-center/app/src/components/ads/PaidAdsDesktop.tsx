@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { FlaskConical } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
-import NotificationBell from "../NotificationBell";
 import { Segmented, type SegmentOption } from "../ui";
-import { useAuth } from "../../context/AuthContext";
 import { MetricBand, type MetricCell } from "./MetricBand";
 import { DeliveryTrend } from "./DeliveryTrend";
 import { AdFunnel } from "./AdFunnel";
@@ -125,9 +123,6 @@ function PanelCard({
 }
 
 export default function PaidAdsDesktop() {
-  const { session } = useAuth();
-  const useReal = Boolean(session);
-
   const [range, setRange] = useState<AdsRange>("30d");
   const data = useAdsData(range);
 
@@ -138,7 +133,6 @@ export default function PaidAdsDesktop() {
       actions={
         <>
           <Segmented options={RANGE_OPTIONS} value={range} onChange={setRange} />
-          <NotificationBell enabled={useReal} variant="surface" />
         </>
       }
     >

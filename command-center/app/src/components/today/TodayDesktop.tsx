@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import DesktopPage from "../desktop/DesktopPage";
-import NotificationBell from "../NotificationBell";
 import EmptyState from "../EmptyState";
 import Avatar from "../Avatar";
 import StagePill from "../StagePill";
@@ -210,10 +209,9 @@ function QueueSection({
 export default function TodayDesktop() {
   const navigate = useNavigate();
   const { leads: allLeads, isLoading, error } = useLeads();
-  const { currentUser, session } = useAuth();
+  const { currentUser } = useAuth();
   const { client } = useClient();
   const now = useNow();
-  const useReal = Boolean(session);
 
   const permissions = currentUser
     ? permissionsFor(currentUser.role)
@@ -286,7 +284,6 @@ export default function TodayDesktop() {
       subtitle={today}
       actions={
         <>
-          <NotificationBell enabled={useReal} variant="surface" />
           <Button variant="primary" onClick={() => navigate("/dashboard")}>
             View pipeline
             <ArrowRight size={16} />
