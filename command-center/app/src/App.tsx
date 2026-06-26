@@ -45,6 +45,8 @@ import MotionPresetSwitcher from "./components/dev/MotionPresetSwitcher";
 import { ToastProvider } from "./context/ToastContext";
 import { NowProvider } from "./context/NowContext";
 import { ChatProvider } from "./context/ChatContext";
+import { TourProvider } from "./context/TourContext";
+import TourOverlay from "./components/tour/TourOverlay";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -131,12 +133,14 @@ export default function App() {
           <NowProvider>
           <ToastProvider>
             <ChatProvider>
+            <TourProvider>
             <ServiceWorkerMessages />
             {import.meta.env.DEV && <MotionPresetSwitcher />}
             <OfflineBanner />
             <PreviewBanner />
             <DemoBanner />
             <ScrollToTop />
+            <TourOverlay />
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<Login />} />
@@ -361,6 +365,7 @@ export default function App() {
               />
               <Route path="*" element={<RootRedirect />} />
             </Routes>
+            </TourProvider>
             </ChatProvider>
           </ToastProvider>
           </NowProvider>

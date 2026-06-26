@@ -40,6 +40,7 @@ export default function BottomNav({ active }: { active: NavKey }) {
             <button
               key={item.to}
               type="button"
+              data-tour={`bottomnav-${item.to.slice(1)}`}
               onClick={() => {
                 if (!isActive) navigate(item.to);
               }}

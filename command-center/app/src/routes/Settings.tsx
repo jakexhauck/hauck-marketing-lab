@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronRight, LogOut, Users } from "lucide-react";
+import { Check, ChevronRight, Compass, LogOut, Users } from "lucide-react";
 import Shell from "../components/Shell";
 import SettingsDesktop from "../components/settings/SettingsDesktop";
 import BackButton from "../components/BackButton";
 import { useAuth } from "../context/AuthContext";
+import { useTour } from "../context/TourContext";
 import { useClient } from "../context/ClientContext";
 import { roleLabel } from "../lib/rolePermissions";
 import { APP_BRAND } from "../lib/appBrand";
@@ -112,6 +113,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const { currentUser, isOwner, signOut } = useAuth();
   const { client } = useClient();
+  const { startFull } = useTour();
 
   return (
     <Shell>
@@ -181,6 +183,36 @@ export default function Settings() {
             <NotifyAudienceCard />
           </>
         )}
+
+        {/* Help */}
+        <div className="pt-6">
+          <span className="sec-kicker">Help</span>
+        </div>
+        <ul className="mt-2 overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
+          <li>
+            <button
+              type="button"
+              onClick={startFull}
+              className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]"
+            >
+              <span
+                className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl text-[var(--brand-fg)]"
+                style={{ backgroundColor: "var(--brand-primary)" }}
+              >
+                <Compass size={18} strokeWidth={2} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-display text-[15px] font-bold text-[var(--text)]">
+                  Take the tour
+                </div>
+                <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">
+                  A quick walkthrough of everything in here
+                </div>
+              </div>
+              <ChevronRight size={18} className="text-[var(--text-faint)]" />
+            </button>
+          </li>
+        </ul>
 
         {/* Session */}
         <div className="pt-6">

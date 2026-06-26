@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, LogOut, Users } from "lucide-react";
+import { ChevronRight, Compass, LogOut, Users } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
 import { Button } from "../ui/Button";
 import { NotifyAudienceCard } from "../../routes/Settings";
 import { useAuth } from "../../context/AuthContext";
+import { useTour } from "../../context/TourContext";
 import { useClient } from "../../context/ClientContext";
 import { roleLabel } from "../../lib/rolePermissions";
 import { APP_BRAND } from "../../lib/appBrand";
@@ -34,6 +35,7 @@ export default function SettingsDesktop() {
   const navigate = useNavigate();
   const { currentUser, isOwner, signOut } = useAuth();
   const { client } = useClient();
+  const { startFull } = useTour();
 
   return (
     <DesktopPage
@@ -85,6 +87,30 @@ export default function SettingsDesktop() {
             </Group>
           </>
         )}
+
+        {/* Help */}
+        <Group label="Help">
+          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+            <button
+              type="button"
+              onClick={startFull}
+              className="flex w-full items-center gap-4 px-6 py-4 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius)] bg-brand-tint text-brand-text">
+                <Compass size={18} strokeWidth={2} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="font-display text-[15px] font-semibold text-text">
+                  Take the tour
+                </div>
+                <div className="mt-0.5 text-[13px] text-muted">
+                  A quick walkthrough of everything in here
+                </div>
+              </div>
+              <ChevronRight size={18} className="shrink-0 text-faint" />
+            </button>
+          </div>
+        </Group>
 
         {/* Session — destructive, spatially separated below a divider */}
         <Group label="Session">

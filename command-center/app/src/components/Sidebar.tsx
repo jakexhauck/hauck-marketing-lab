@@ -45,6 +45,7 @@ export default function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
+            data-tour={`nav-${item.to.slice(1)}`}
             className={({ isActive }) =>
               [
                 "group relative mb-0.5 flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors",
