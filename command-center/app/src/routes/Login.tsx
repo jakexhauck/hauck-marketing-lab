@@ -75,7 +75,13 @@ export default function Login() {
   const card = (
     <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-[var(--shadow-lg)]">
       <div className="flex flex-col items-center text-center">
-        <img src="/hauck-wordmark.png" alt="Hauck Marketing" className="h-9 w-auto" />
+        <div
+          className="shadow-brand flex h-12 w-12 items-center justify-center rounded-2xl font-display text-[15px] font-bold text-white"
+          style={{ backgroundImage: "var(--grad-brand)" }}
+          aria-hidden
+        >
+          {APP_BRAND.initials}
+        </div>
         <span className="label-cap mt-6">{heading}</span>
         <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text)]">
           {heading}
