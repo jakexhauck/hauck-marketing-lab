@@ -29,6 +29,11 @@ export interface Env {
   GOOGLE_OAUTH_CLIENT_ID?: string;
   GOOGLE_OAUTH_CLIENT_SECRET?: string;
   GOOGLE_OAUTH_REDIRECT?: string;
+  // Build Lab reads vault/Plans/Builds/*.md from the repo over the GitHub REST
+  // API. GITHUB_TOKEN is a contents-read (the workflow token, contents+issues
+  // read/write, also works). GITHUB_REPO defaults to jakexhauck/hauck-marketing-lab.
+  GITHUB_TOKEN?: string;
+  GITHUB_REPO?: string;
   // IANA timezone for "today" computations (new-today counts, task due dates,
   // invoice overdue). Defaults to America/Chicago.
   TENANT_TIMEZONE?: string;
