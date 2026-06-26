@@ -26,11 +26,21 @@ describe("pillar config", () => {
     expect(lane.links && lane.links.length).toBeGreaterThan(0);
   });
 
-  it("every pillar and lane has a hermes slot (future)", () => {
+  it("every pillar is a workspace: has tabs, a team, and a tasks tab", () => {
     for (const p of PILLARS) {
-      expect(p.hermes).toBeNull();
-      for (const l of p.lanes) expect(l.hermes).toBeNull();
+      expect(p.tabs.length).toBeGreaterThan(0);
+      expect(Array.isArray(p.team)).toBe(true);
+      expect(Array.isArray(p.tasks)).toBe(true);
+      // Tasks tab is on every pillar.
+      expect(p.tabs.some((t) => t.kind === "tasks")).toBe(true);
     }
+  });
+
+  it("operations holds the stack tab (clients live in its overview)", () => {
+    const ops = getPillar("operations")!;
+    const kinds = ops.tabs.map((t) => t.kind);
+    expect(kinds).toContain("stack");
+    expect(kinds).toContain("overview");
   });
 });
 
@@ -47,7 +57,6 @@ describe("liveStatus", () => {
       what: "",
       status: "planned",
       scoreboard: [{ label: "Clients", metricKey: "activeClients" }],
-      hermes: null,
     };
     expect(liveStatus(planned)).toBe("planned");
     expect(liveStatus(planned, { activeClients: 1 })).toBe("live");

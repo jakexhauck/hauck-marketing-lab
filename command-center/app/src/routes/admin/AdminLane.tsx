@@ -1,12 +1,12 @@
 import { Link, Navigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 import { getPillar, getLane, liveStatus } from "../../lib/pillarStatus";
-import { PillarStyle, StatusDot, HermesSlot, Scoreboard } from "../../components/pillars/PillarKit";
+import { PillarStyle, StatusDot, Scoreboard, NeedsSetup } from "../../components/pillars/PillarKit";
 
 // One lane workspace: the SOP, assets, tools, and scoreboard for a single lane.
 // Structure comes from lib/pillars via getPillar/getLane; sections only render
-// when their data exists. The Hermes slot is always shown as the future home for
-// the agent that will run this lane. Reuses the shared PillarKit styling.
+// when their data exists. Reuses the shared PillarKit styling. No agent slot:
+// a lane is just its process, assets, links, and scoreboard.
 
 export default function AdminLane() {
   const { pillarId, laneId } = useParams<{ pillarId: string; laneId: string }>();
@@ -25,7 +25,7 @@ export default function AdminLane() {
     <div className="pk-root">
       <PillarStyle />
 
-      <Link className="pk-back" to={`/admin/pillar/${pillar.id}`}>
+      <Link className="pk-back" to={`/admin/pillar/${pillar.id}/lanes`}>
         <ArrowLeft /> {pillar.label}
       </Link>
 
@@ -38,6 +38,8 @@ export default function AdminLane() {
         )}
       </div>
       <div className="pk-tagline">{lane.what}</div>
+
+      {lane.needsSetup ? <NeedsSetup>{lane.needsSetup}</NeedsSetup> : null}
 
       {hasContent ? (
         <>
@@ -105,20 +107,11 @@ export default function AdminLane() {
             </section>
           ) : null}
         </>
-      ) : (
+      ) : !lane.needsSetup ? (
         <div className="pk-empty">
           Not built yet. This is where the SOP, assets, and tools for this lane will live.
         </div>
-      )}
-
-      <section className="pk-section">
-        <div className="pk-card">
-          <HermesSlot />
-          <div className="pk-tagline" style={{ marginTop: 10 }}>
-            A Hermes agent will run this lane later.
-          </div>
-        </div>
-      </section>
+      ) : null}
     </div>
   );
 }
