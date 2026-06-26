@@ -1,43 +1,40 @@
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import {
-  Building2,
-  Rocket,
-  ListChecks,
-  BookText,
-  Hammer,
-  FolderOpen,
-  ClipboardList,
-  LogOut,
-  Sun,
-  Moon,
-  MessageSquare,
-  type LucideIcon,
-} from "lucide-react";
+import { Building2, Map, LogOut, Sun, Moon, type LucideIcon } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
+import { orderedPillars, rollUpStatus } from "../../lib/pillarStatus";
+import { pillarIcon, StatusDot, PillarStyle } from "../../components/pillars/PillarKit";
+import type { PillarStatus } from "../../lib/pillars";
 
 // The admin console chrome. A left rail on desktop, a compact top bar on phones.
 // Deliberately tenant-free: a super-admin has no client branding, so this is the
 // agency's own view across every client. Runs on the shared neutral light/dark
 // tokens (no green wash) with green as a rationed accent. The display face is
 // Poppins, inherited from the global --font-display token.
+//
+// The rail is the org chart: a Clients link, then the six pillars (Operations
+// the hub on top, then the value chain 01..05) each carrying a rolled-up status
+// dot, then the Infrastructure map pinned at the bottom. Every pillar links to
+// its own page where its lanes and re-homed tools live, so the rail stays short.
 
 interface AdminNavItem {
   to: string;
   label: string;
   icon: LucideIcon;
+  status?: PillarStatus;
 }
 
+// Built from the pillar config so the rail and the map never drift.
 const ADMIN_NAV: AdminNavItem[] = [
   { to: "/admin/clients", label: "Clients", icon: Building2 },
-  { to: "/admin/onboarding", label: "Onboarding", icon: Rocket },
-  { to: "/admin/tasks", label: "Tasks", icon: ListChecks },
-  { to: "/admin/build", label: "Build Lab", icon: Hammer },
-  { to: "/admin/plans", label: "Plans", icon: ClipboardList },
-  { to: "/admin/sops", label: "SOP Hub", icon: BookText },
-  { to: "/admin/assets", label: "Assets", icon: FolderOpen },
-  { to: "/admin/messages", label: "Messages", icon: MessageSquare },
+  ...orderedPillars().map((p) => ({
+    to: `/admin/pillar/${p.id}`,
+    label: p.order === "hub" ? "Operations" : `${p.num} ${p.label}`,
+    icon: pillarIcon(p.icon),
+    status: rollUpStatus(p),
+  })),
+  { to: "/admin/infrastructure", label: "Infrastructure", icon: Map },
 ];
 
 function NavRow({ item }: { item: AdminNavItem }) {
@@ -64,7 +61,8 @@ function NavRow({ item }: { item: AdminNavItem }) {
             size={18}
             className={isActive ? "text-brand-text" : "opacity-85 transition-transform group-hover:scale-110"}
           />
-          {item.label}
+          <span className="flex-1">{item.label}</span>
+          {item.status && <StatusDot status={item.status} />}
         </>
       )}
     </NavLink>
@@ -78,6 +76,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh bg-bg text-text">
+      {/* Pillar kit styles, mounted once in the chrome so the rail status dots
+          render on every admin page (not just the pillar pages). */}
+      <PillarStyle />
       {/* Desktop rail (lg+). Same source-of-truth nav as the mobile bar below. */}
       <aside className="hidden h-dvh w-[248px] shrink-0 flex-col border-r border-border bg-surface lg:sticky lg:top-0 lg:flex">
         <div className="px-[18px] pb-3 pt-[22px]">

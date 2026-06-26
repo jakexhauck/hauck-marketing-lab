@@ -35,6 +35,10 @@ import AdminMessages from "./routes/admin/AdminMessages";
 import Plans from "./routes/admin/Plans";
 import AdminOnboarding from "./routes/admin/AdminOnboarding";
 import AdminOnboardingDetail from "./routes/admin/AdminOnboardingDetail";
+import AdminPillar from "./routes/admin/AdminPillar";
+import AdminLane from "./routes/admin/AdminLane";
+import AdminStack from "./routes/admin/AdminStack";
+import AdminInfrastructure from "./routes/admin/AdminInfrastructure";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -356,6 +360,38 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminMessages />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/infrastructure"
+                element={
+                  <AdminRoute>
+                    <AdminInfrastructure />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/stack"
+                element={
+                  <AdminRoute>
+                    <AdminStack />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/pillar/:pillarId"
+                element={
+                  <AdminRoute>
+                    <AdminPillar />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/pillar/:pillarId/:laneId"
+                element={
+                  <AdminRoute>
+                    <AdminLane />
                   </AdminRoute>
                 }
               />

@@ -63,7 +63,7 @@ export function Scoreboard({ fields }: { fields: ScoreboardField[] }) {
     <div className="pk-scoreboard">
       {fields.map((f, i) => (
         <div className="pk-score" key={i}>
-          <div className="pk-score-val">{f.value ?? "—"}</div>
+          <div className="pk-score-val">{f.value ?? "·"}</div>
           <div className="pk-score-label">{f.label}</div>
         </div>
       ))}
