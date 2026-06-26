@@ -10,6 +10,7 @@ import {
   Sparkles,
   CheckCircle2,
   X,
+  FlaskConical,
 } from "lucide-react";
 import DesktopPage from "../../components/desktop/DesktopPage";
 import { Button } from "../../components/ui/Button";
@@ -186,9 +187,18 @@ export default function AdminBuild() {
           : `${shipped} shipped · ${inFlight} building · ${total} total`
       }
       actions={
-        <Button variant="primary" onClick={openNew}>
-          <Plus size={16} /> New idea
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => window.open("/home?demo=1", "_blank")}
+            title="Open the client app in a new tab with fabricated demo data"
+          >
+            <FlaskConical size={16} /> Demo client view
+          </Button>
+          <Button variant="primary" onClick={openNew}>
+            <Plus size={16} /> New idea
+          </Button>
+        </div>
       }
     >
       {/* Light gamification strip: shipped progress. Subtle, professional. */}
