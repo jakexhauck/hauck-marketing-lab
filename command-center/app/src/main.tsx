@@ -5,6 +5,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import App from "./App";
 import { queryClient, PERSIST_CACHE_KEY } from "./lib/queryClient";
+import { demoMode } from "./demo/demoMode";
 import "./index.css";
 
 // Layer 1 of offline caching: persist the read-query cache to localStorage so
@@ -15,8 +16,10 @@ import "./index.css";
 // lead/stage updates always re-run against the network.
 const persister = createSyncStoragePersister({
   storage: window.localStorage,
-  // Shared constant so clearAllCaches() provably wipes the same key.
-  key: PERSIST_CACHE_KEY,
+  // Shared constant so clearAllCaches() provably wipes the same key. The demo
+  // client view persists under its own key so its fabricated data never mixes
+  // into (or rehydrates from) a real session's cache.
+  key: demoMode() ? `${PERSIST_CACHE_KEY}_demo` : PERSIST_CACHE_KEY,
 });
 
 const TWENTY_FOUR_HOURS = 1000 * 60 * 60 * 24;

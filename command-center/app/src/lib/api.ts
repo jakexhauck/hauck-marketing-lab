@@ -1,3 +1,6 @@
+import { demoMode } from "../demo/demoMode";
+import { handleDemoRequest } from "../demo/handler";
+
 export class ApiError extends Error {
   status: number;
   body: unknown;
@@ -14,6 +17,10 @@ export async function api<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  // Demo client view: resolve every call against the in-memory fixture store
+  // instead of the network, so a demo tab never reads or mutates a real client.
+  if (demoMode()) return handleDemoRequest<T>(path, init);
+
   const headers = new Headers(init.headers);
   if (init.body && !headers.has("content-type")) {
     headers.set("content-type", "application/json");

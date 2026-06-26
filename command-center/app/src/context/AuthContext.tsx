@@ -11,6 +11,7 @@ import type { Role, User } from "../types";
 import type { Capability } from "../lib/capabilities";
 import { clearAllCaches } from "../lib/queryClient";
 import { clearAppBadge, disablePush } from "../lib/push";
+import { demoMode } from "../demo/demoMode";
 
 // "authenticated-offline": the session probe failed at the network layer (not
 // a 401/403) while a previous session is plausible. The app stays usable on
@@ -287,6 +288,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // offline-grace session gets verified (or genuinely signed out) the moment
   // connectivity returns.
   const reconcileSession = useCallback(async () => {
+    // Demo client view: synthesize an authenticated, non-admin owner session
+    // without touching the network, so ProtectedRoute renders the client app on
+    // fabricated data. No cookie is read or written; the tab cannot reach a real
+    // client. (api() is separately short-circuited to the demo fixture store.)
+    if (demoMode()) {
+      setMode("live");
+      setIsOwner(true);
+      setIsAdmin(false);
+      setAdmin(null);
+      setStaff(null);
+      setPermissions({});
+      setPreview(null);
+      setStatus("authenticated");
+      return;
+    }
     const probe = await checkSession();
     if (probe.ok) {
       writeLastSessionMode(probe.mode);
@@ -355,6 +371,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // retried once; if it still fails, identityFailed makes currentUser degrade
   // to a minimal rep rather than silently promoting to the owner UI.
   useEffect(() => {
+    // Demo: the synthetic owner is the identity; never resolve a stored id (it
+    // would fire a real /api/me/identity fetch this tab has no cookie for).
+    if (demoMode()) {
+      setIdentityUser(null);
+      setIdentityResolved(true);
+      setIdentityFailed(false);
+      return;
+    }
     if (!isAuthed) {
       setIdentityUser(null);
       setIdentityResolved(false);
@@ -700,6 +724,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Staff sessions never see it (they already have a named identity + role).
   const needsIdentity = useMemo(
     () =>
+      !demoMode() &&
       !override &&
       !staff &&
       !isAdmin &&

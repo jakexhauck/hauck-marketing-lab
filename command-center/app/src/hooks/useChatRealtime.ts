@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { demoMode } from "../demo/demoMode";
 import {
   buildChatClient,
   personTopic,
@@ -40,6 +41,8 @@ export function useChatRealtime({
   const qc = useQueryClient();
 
   useEffect(() => {
+    // The demo client view has no realtime backend; never build a socket.
+    if (demoMode()) return;
     // Nothing to subscribe to until we have connect info and an identity.
     if (!config || !me) return;
 
