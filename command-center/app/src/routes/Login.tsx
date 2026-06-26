@@ -29,7 +29,7 @@ export default function Login() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [mode, setMode] = useState<LoginMode>("live");
-  const { signInAsStaff, signInAsAdmin } = useAuth();
+  const { signInWithPassword, signInAsStaff, signInAsAdmin } = useAuth();
   const navigate = useNavigate();
 
   const isTest = mode === "test";
@@ -46,12 +46,17 @@ export default function Login() {
     e.preventDefault();
     const trimmedPw = password.trim();
     const trimmedEmail = email.trim();
-    if (!trimmedPw || !trimmedEmail) return;
+    // Test mode is a shared-password login into the internal staging sub-account
+    // (no per-person account), so it takes only the password. Live and admin are
+    // account-based and require an email too.
+    if (!trimmedPw || (!isTest && !trimmedEmail)) return;
     setPhase("submitting");
     setErrorMsg(null);
-    const res = isAdmin
-      ? await signInAsAdmin(trimmedEmail, trimmedPw)
-      : await signInAsStaff(trimmedEmail, trimmedPw, mode);
+    const res = isTest
+      ? await signInWithPassword(trimmedPw, "test")
+      : isAdmin
+        ? await signInAsAdmin(trimmedEmail, trimmedPw)
+        : await signInAsStaff(trimmedEmail, trimmedPw, "live");
     if (res.ok) {
       navigate(isAdmin ? "/admin/clients" : "/home", { replace: true });
     } else {
@@ -81,7 +86,7 @@ export default function Login() {
         : "Sign in";
 
   const submitDisabled =
-    phase === "submitting" || !password.trim() || !email.trim();
+    phase === "submitting" || !password.trim() || (!isTest && !email.trim());
 
   const inputClass =
     "mt-2 w-full rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 text-base text-[var(--text)] outline-none transition-[border-color,box-shadow] placeholder:text-[var(--text-faint)] focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[rgba(79,70,229,0.15)] disabled:opacity-60";
@@ -105,20 +110,23 @@ export default function Login() {
       )}
 
       <form onSubmit={onSubmit} className="mt-7 space-y-4">
-        <label className="block">
-          <span className="label-cap">Email</span>
-          <input
-            type="email"
-            autoCapitalize="none"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@email.com"
-            autoComplete="username"
-            required
-            disabled={phase === "submitting"}
-            className={inputClass}
-          />
-        </label>
+        {/* Test mode is a shared-password login, so it shows no email field. */}
+        {!isTest && (
+          <label className="block">
+            <span className="label-cap">Email</span>
+            <input
+              type="email"
+              autoCapitalize="none"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@email.com"
+              autoComplete="username"
+              required
+              disabled={phase === "submitting"}
+              className={inputClass}
+            />
+          </label>
+        )}
         <label className="block">
           <span className="label-cap">{isTest ? "Test password" : "Password"}</span>
           <input

@@ -30,11 +30,7 @@ export default function OfflineBanner() {
       role="status"
       aria-live="polite"
       style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 9999,
+        flexShrink: 0,
         textAlign: "center",
         fontSize: "0.75rem",
         fontWeight: 600,

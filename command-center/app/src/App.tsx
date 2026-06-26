@@ -143,6 +143,7 @@ export default function App() {
             <DemoBanner />
             <ScrollToTop />
             <TourOverlay />
+            <div className="app-shell">
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<Login />} />
@@ -394,6 +395,7 @@ export default function App() {
               />
               <Route path="*" element={<RootRedirect />} />
             </Routes>
+            </div>
             </TourProvider>
             </ChatProvider>
           </ToastProvider>

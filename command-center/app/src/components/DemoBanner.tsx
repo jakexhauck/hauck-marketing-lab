@@ -23,11 +23,7 @@ export default function DemoBanner() {
       role="status"
       aria-live="polite"
       style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 9999,
+        flexShrink: 0,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
