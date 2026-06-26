@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Plus, Search } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
@@ -26,20 +26,23 @@ export default function LeadsDesktop() {
 
   const leadsQuery = usePipelineLeadsQuery(selectedId, useReal);
   const summaryQuery = useSummaryQuery(useReal);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [showNewLead, setShowNewLead] = useState(false);
 
-  // Clear the search whenever the pipeline changes (after first mount), so a
-  // ?q seed from the topbar search survives the initial render.
-  const firstRun = useRef(true);
-  useEffect(() => {
-    if (firstRun.current) {
-      firstRun.current = false;
-      return;
-    }
+  // Switching pipelines clears the search (mirroring the phone screen) and drops
+  // ?q so the topbar seed cannot re-apply. Tying the clear to this explicit user
+  // action (not a selectedId effect) keeps a ?q seed from being wiped while the
+  // pipeline list resolves asynchronously on load.
+  const selectPipeline = (id: string) => {
     setSearch("");
-  }, [selectedId]);
+    if (searchParams.has("q")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("q");
+      setSearchParams(next, { replace: true });
+    }
+    setSelectedId(id);
+  };
 
   // Re-seed when the topbar search routes here again with a new ?q.
   useEffect(() => {
@@ -105,7 +108,7 @@ export default function LeadsDesktop() {
           <PipelineSwitcher
             pipelines={pipelines}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={selectPipeline}
             countsById={switcherCounts}
           />
           <Button variant="primary" onClick={() => setShowNewLead(true)}>

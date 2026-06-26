@@ -33,7 +33,7 @@ export default function GlobalSearch() {
           }
         }}
         placeholder="Search leads, contacts..."
-        aria-label="Search leads"
+        aria-label="Search"
         className="w-full bg-transparent text-text placeholder:text-faint focus:outline-none"
       />
     </form>

@@ -6,7 +6,6 @@ import {
   ChevronRight,
   Inbox,
   MessageSquare,
-  Search,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -149,20 +148,10 @@ export default function HomeDesktop() {
     <DesktopPage
       title="Home"
       actions={
-        <>
-          <button
-            type="button"
-            onClick={() => navigate("/contacts")}
-            className="hidden items-center gap-2 rounded-[var(--radius)] border border-border bg-surface px-3.5 py-2 text-[13px] text-faint transition-colors hover:border-border-strong hover:text-muted xl:flex"
-          >
-            <Search size={16} />
-            <span>Search leads, contacts</span>
-          </button>
-          <Button variant="primary" onClick={() => navigate("/leads")}>
-            <TrendingUp size={16} />
-            View pipeline
-          </Button>
-        </>
+        <Button variant="primary" onClick={() => navigate("/leads")}>
+          <TrendingUp size={16} />
+          View pipeline
+        </Button>
       }
     >
         {summaryQuery.isError ? (
