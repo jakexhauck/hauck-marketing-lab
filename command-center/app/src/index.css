@@ -3,40 +3,38 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  /* Hauck brand green (matches the internal site #4dbb83). Used for fills,
-     tints, and accents. On-light text uses the deeper --brand-text below so
-     it clears AA on white; fills carry dark --brand-fg text like the
-     internal site, never white-on-green. */
-  --brand-primary: #4dbb83;
-  --brand-primary-tint: #e6f7ee;
-  --brand-primary-dark: #36a06d;
-  --brand-fg: #06140f;
-  --brand-bg: #f8fafc;
+  /* Modern Motion brand: indigo to violet. Fills carry white --brand-fg text;
+     small brand-colored TEXT uses --brand-text (indigo clears AA on white). */
+  --brand-primary: #4f46e5;
+  --brand-primary-tint: #eceaff;
+  --brand-primary-dark: #4338ca;
+  --brand-fg: #ffffff;
+  --brand-bg: #f6f7fb;
   --font-display: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
 
   /* Theme tokens (light) */
-  --bg: #f8fafc;
+  --bg: #f6f7fb;
   --surface: #ffffff;
-  --surface-2: #f1f5f9;
-  --text: #0f172a;
-  --text-muted: #64748b;
-  --text-faint: #94a3b8;
-  --border: #e2e8f0;
-  --divider: #f1f5f9;
+  --surface-2: #f1f3f9;
+  --text: #14161f;
+  --text-muted: #555a6b;
+  --text-faint: #8a90a3;
+  --border: #e7e9f1;
+  --divider: #f1f3f9;
   --ring: var(--brand-primary);
 }
 
 [data-theme="dark"] {
-  --brand-bg: #0b1220;
-  --bg: #0b1220;
-  --surface: #111827;
-  --surface-2: #1f2937;
-  --text: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-faint: #64748b;
-  --border: #1f2937;
-  --divider: #1e293b;
+  --brand-bg: #0c0d14;
+  --bg: #0c0d14;
+  --surface: #15161f;
+  --surface-2: #1c1d28;
+  --text: #f4f4fb;
+  --text-muted: #a8adc0;
+  --text-faint: #6b7088;
+  --border: #262837;
+  --divider: #20222e;
   --ring: var(--brand-primary);
 }
 
@@ -51,9 +49,21 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(60rem 40rem at 12% -8%, rgba(124, 115, 240, 0.16), transparent 60%),
+    radial-gradient(50rem 38rem at 100% 0%, rgba(79, 70, 229, 0.12), transparent 55%),
+    radial-gradient(46rem 36rem at 50% 120%, rgba(99, 102, 241, 0.1), transparent 60%);
+  background-attachment: fixed;
   color: var(--text);
   transition: background-color 200ms ease, color 200ms ease;
+}
+
+[data-theme="dark"] body {
+  background-image:
+    radial-gradient(60rem 40rem at 12% -8%, rgba(124, 115, 240, 0.1), transparent 60%),
+    radial-gradient(50rem 38rem at 100% 0%, rgba(79, 70, 229, 0.08), transparent 55%),
+    radial-gradient(46rem 36rem at 50% 120%, rgba(99, 102, 241, 0.07), transparent 60%);
 }
 
 .font-display {
@@ -134,63 +144,75 @@ body {
    brand via --brand-primary, so the ported views stay on-brand automatically.
    =========================================================================== */
 :root {
-  --surface-3: #e3e8ee;
-  --rail: #fbfcfd;
-  --border-strong: #c6cdd8;
-  --bg-grid: #eceff3;
+  --surface-3: #e9ebf3;
+  --rail: #fbfcfe;
+  --border-strong: #d4d8e6;
+  --bg-grid: #eceef6;
   --text-inverse: #ffffff;
 
-  /* Brand family the desktop components expect, tracking the live tenant brand. */
+  /* Brand family the desktop components expect, tracking the brand primary. */
   --brand: var(--brand-primary);
+  --brand-2: #7c73f0;
+  --brand-soft: #eceaff;
+  --grad-brand: linear-gradient(135deg, #4f46e5 0%, #7c73f0 100%);
   --brand-strong: var(--brand-primary-dark, var(--brand-primary));
   --brand-tint: color-mix(in srgb, var(--brand) 10%, transparent);
   --brand-tint-strong: color-mix(in srgb, var(--brand) 18%, transparent);
-  /* Deeper green for brand-colored TEXT on light surfaces (active nav, links,
-     kickers): the bright fill green fails AA as small text on white, this
-     clears it (~4.6:1). The dark theme overrides this with a lighter green. */
-  --brand-text: #1f8551;
+  /* Indigo clears AA as small text on white, so brand-text equals brand.
+     The dark theme overrides this with a lighter indigo. */
+  --brand-text: #4f46e5;
 
-  /* Ledger gold — money only, never decorative. */
+  /* Ledger gold: money only, never decorative. */
   --ledger: #9a6f1e;
   --ledger-tint: color-mix(in srgb, #9a6f1e 12%, transparent);
-  --positive: #1f7a4d;
-  --positive-tint: color-mix(in srgb, #1f7a4d 12%, transparent);
-  --warning: #b5751c;
-  --warning-tint: color-mix(in srgb, #b5751c 14%, transparent);
-  --danger: #c0413c;
-  --danger-tint: color-mix(in srgb, #c0413c 12%, transparent);
+  --positive: #16a34a;
+  --positive-tint: color-mix(in srgb, #16a34a 12%, transparent);
+  --warning: #d97706;
+  --warning-tint: color-mix(in srgb, #d97706 14%, transparent);
+  --danger: #dc2626;
+  --danger-tint: color-mix(in srgb, #dc2626 12%, transparent);
 
-  --shadow-sm: 0 1px 2px rgba(20, 26, 35, 0.06), 0 1px 1px rgba(20, 26, 35, 0.04);
-  --shadow-md: 0 4px 12px rgba(20, 26, 35, 0.08), 0 2px 4px rgba(20, 26, 35, 0.05);
-  --shadow-lg: 0 16px 48px rgba(20, 26, 35, 0.16), 0 4px 12px rgba(20, 26, 35, 0.08);
+  --shadow-sm: 0 1px 2px rgba(20, 22, 31, 0.04), 0 1px 3px rgba(20, 22, 31, 0.05);
+  --shadow-md: 0 6px 18px rgba(40, 42, 70, 0.07), 0 2px 6px rgba(40, 42, 70, 0.05);
+  --shadow-lg: 0 18px 40px rgba(40, 42, 70, 0.12), 0 6px 14px rgba(40, 42, 70, 0.07);
+  --shadow-brand: 0 8px 22px rgba(79, 70, 229, 0.28);
 
-  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
   --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius: 9px;
+  --radius-sm: 8px;
+  --radius: 10px;
   --radius-lg: 14px;
   --radius-xl: 20px;
 }
 
 [data-theme="dark"] {
-  --surface-3: #232c38;
-  --rail: #10151c;
-  --border-strong: #313c4a;
-  --bg-grid: #11161e;
-  --text-inverse: #0b0f15;
+  --surface-3: #232536;
+  --rail: #0a0b11;
+  --border-strong: #34374a;
+  --bg-grid: #14151d;
+  --text-inverse: #0c0d14;
 
-  --brand-tint: color-mix(in srgb, var(--brand) 16%, transparent);
-  --brand-tint-strong: color-mix(in srgb, var(--brand) 26%, transparent);
-  --brand-text: color-mix(in srgb, var(--brand) 88%, white);
+  --brand-soft: color-mix(in srgb, var(--brand) 22%, #15161f);
+  --brand-tint: color-mix(in srgb, var(--brand) 18%, transparent);
+  --brand-tint-strong: color-mix(in srgb, var(--brand) 28%, transparent);
+  --brand-text: color-mix(in srgb, var(--brand) 70%, white);
 
   --ledger: #d7ab51;
   --ledger-tint: color-mix(in srgb, #d7ab51 16%, transparent);
-  --positive: #4fb585;
-  --positive-tint: color-mix(in srgb, #4fb585 16%, transparent);
-  --warning: #e0a64a;
-  --warning-tint: color-mix(in srgb, #e0a64a 16%, transparent);
-  --danger: #e06560;
-  --danger-tint: color-mix(in srgb, #e06560 16%, transparent);
+  --positive: #4ade80;
+  --positive-tint: color-mix(in srgb, #4ade80 16%, transparent);
+  --warning: #fbbf24;
+  --warning-tint: color-mix(in srgb, #fbbf24 16%, transparent);
+  --danger: #f87171;
+  --danger-tint: color-mix(in srgb, #f87171 16%, transparent);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.34);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.34);
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.5), 0 6px 14px rgba(0, 0, 0, 0.4);
+  --shadow-brand: 0 8px 22px rgba(79, 70, 229, 0.45);
 }
 
 @theme inline {
@@ -211,6 +233,8 @@ body {
   --color-inverse: var(--text-inverse);
 
   --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --color-brand-soft: var(--brand-soft);
   --color-brand-strong: var(--brand-strong);
   --color-brand-fg: var(--brand-fg);
   --color-brand-tint: var(--brand-tint);
@@ -249,6 +273,44 @@ body {
     background-image: radial-gradient(var(--bg-grid) 1px, transparent 1px);
     background-size: 22px 22px;
   }
+
+  /* ===== Modern Motion kit helpers ===== */
+  /* Indigo gradient text for hero headlines. */
+  .grad-text {
+    background: linear-gradient(120deg, var(--text) 0%, var(--brand) 70%, var(--brand-2) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  /* Frosted glass surface for shell chrome (sidebar, topbar, header, bottom nav). */
+  .glass {
+    background: color-mix(in srgb, var(--surface) 62%, transparent);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  }
+  .shadow-brand {
+    box-shadow: var(--shadow-brand);
+  }
+  /* Indigo to violet brand fill, for buttons, marks, active nav, avatars. */
+  .grad-brand {
+    background-image: var(--grad-brand);
+  }
+  /* KPI top-accent bar, revealed on card hover. */
+  .kpi-accent {
+    position: relative;
+  }
+  .kpi-accent::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--grad-brand);
+    opacity: 0;
+    transition: opacity 0.2s var(--ease);
+  }
+  .kpi-accent:hover::before {
+    opacity: 1;
+  }
 }
 
 @keyframes shimmer {
@@ -262,7 +324,11 @@ body {
 
 /* Soft floating glow inside the admin overview hero. */
 .admin-hero-orb {
-  background: radial-gradient(circle, rgba(77, 187, 131, 0.5), transparent 65%);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--brand) 50%, transparent),
+    transparent 65%
+  );
   filter: blur(20px);
   animation: admin-hero-float 7s cubic-bezier(0.16, 1, 0.3, 1) infinite alternate;
 }

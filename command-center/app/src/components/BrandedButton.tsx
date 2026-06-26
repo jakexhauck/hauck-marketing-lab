@@ -16,16 +16,16 @@ export default function BrandedButton({
     <button
       {...rest}
       className={clsx(
-        "inline-flex items-center justify-center rounded-xl px-4 py-3 text-[13px] font-bold uppercase tracking-wider transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
-        variant === "primary" && "text-[var(--brand-fg)]",
+        "inline-flex items-center justify-center rounded-xl px-5 py-3 text-[13px] font-semibold uppercase tracking-wider transition-[transform,box-shadow,background,border-color] duration-200 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50",
+        variant === "primary" && "text-white shadow-brand hover:brightness-[1.04]",
         variant === "secondary" &&
-          "border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]",
+          "border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--text)] shadow-[var(--shadow-sm)] hover:border-[var(--brand)] hover:text-[var(--brand)] hover:shadow-[var(--shadow-md)]",
         className
       )}
       style={{
         minHeight: "52px",
         ...(variant === "primary"
-          ? { backgroundColor: "var(--brand-primary)" }
+          ? { backgroundImage: "var(--grad-brand)" }
           : undefined),
       }}
     >
