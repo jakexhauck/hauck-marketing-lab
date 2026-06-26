@@ -301,7 +301,7 @@ function BrandingCard({ client, onSaved }: { client: DetailClient; onSaved: () =
                 style={{ background: f.brandColor || "var(--brand-primary)" }}
                 aria-hidden
               />
-              <input className={`${inputCls} mt-0`} value={f.brandColor} onChange={set("brandColor")} placeholder="#4dbb83" />
+              <input className={`${inputCls} mt-0`} value={f.brandColor} onChange={set("brandColor")} placeholder="#4f46e5" />
             </div>
           </label>
           <label><span className={labelCls}>Monthly spend</span><input className={inputCls} value={f.monthlySpend} onChange={set("monthlySpend")} inputMode="decimal" /></label>

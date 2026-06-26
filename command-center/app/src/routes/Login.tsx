@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import BrandedButton from "../components/BrandedButton";
 import { useAuth } from "../context/AuthContext";
 import { APP_BRAND } from "../lib/appBrand";
-import { GREEN_THEME_VARS, BRAND_GRADIENT } from "../lib/brandTheme";
 
 type Phase = "idle" | "submitting" | "error";
 type LoginMode = "live" | "test" | "admin";
@@ -74,7 +73,7 @@ export default function Login() {
     phase === "submitting" || !password.trim() || !email.trim();
 
   const card = (
-    <div className="w-full max-w-md rounded-3xl bg-[var(--surface)] p-8 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)]">
+    <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-[var(--shadow-lg)]">
       <div className="flex flex-col items-center text-center">
         <img src="/hauck-wordmark.png" alt="Hauck Marketing" className="h-9 w-auto" />
         <span className="label-cap mt-6">{heading}</span>
@@ -155,38 +154,48 @@ export default function Login() {
   );
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-2" style={GREEN_THEME_VARS}>
-      {/* Brand panel: full-height dark-green column at lg+. */}
+    <div className="min-h-dvh lg:grid lg:grid-cols-2">
+      {/* Brand panel: full-height indigo-to-violet gradient column at lg+. */}
       <aside
-        className="hidden flex-col justify-between p-12 text-white lg:flex"
-        style={{ background: BRAND_GRADIENT }}
+        className="relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:flex"
+        style={{ backgroundImage: "var(--grad-brand)" }}
       >
-        <img src="/hauck-wordmark.png" alt="Hauck Marketing" className="h-8 w-auto" />
+        {/* Soft light bloom over the gradient for depth. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(40rem 30rem at 0% 0%, rgba(255,255,255,0.18), transparent 60%), radial-gradient(36rem 28rem at 100% 100%, rgba(0,0,0,0.18), transparent 60%)",
+          }}
+        />
+        <img
+          src="/hauck-wordmark.png"
+          alt="Hauck Marketing"
+          className="relative h-8 w-auto brightness-0 invert"
+        />
 
-        <div className="max-w-sm">
+        <div className="relative max-w-sm">
           <h2 className="font-display text-3xl font-semibold leading-tight tracking-tight">
             {APP_BRAND.appName}
           </h2>
-          <p className="mt-3 text-base font-medium text-white/70">
+          <p className="mt-3 text-base font-medium text-white/75">
             Your clients, your pipeline, one command center.
           </p>
         </div>
 
-        <div className="text-[11px] font-medium text-white/40">
+        <div className="relative text-[11px] font-medium text-white/50">
           Secured by {APP_BRAND.securedBy}
         </div>
       </aside>
 
-      {/* Form column: navy gradient below lg (single card), neutral at lg+.
-          The gradient is a Tailwind arbitrary-value background so the lg+
-          neutral surface can override it (inline styles cannot be overridden
-          by a responsive class). */}
+      {/* Form column: the body's radial wash shows through (transparent). */}
       <main
-        className="flex min-h-dvh flex-col items-center justify-center bg-[linear-gradient(165deg,#0c2820_0%,#061410_100%)] px-5 py-12 lg:bg-[var(--bg)] lg:bg-none"
+        className="flex min-h-dvh flex-col items-center justify-center px-5 py-12"
         style={{ paddingTop: "calc(env(safe-area-inset-top) + 48px)" }}
       >
         {card}
-        <div className="mt-6 text-center text-[11px] font-medium text-white/40 lg:hidden">
+        <div className="mt-6 text-center text-[11px] font-medium text-[var(--text-faint)] lg:hidden">
           Secured by {APP_BRAND.securedBy}
         </div>
       </main>

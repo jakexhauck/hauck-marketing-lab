@@ -220,7 +220,7 @@ export function HsopStyle() {
       .hsop-video { margin: 26px 0; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface); }
       .hsop-video iframe { width: 100%; aspect-ratio: 16/9; border: 0; display: block; }
       .hsop-video .ph { aspect-ratio: 16/9; display: grid; place-items: center; gap: 12px; background: var(--surface-2); color: var(--text-muted); }
-      .hsop-video .play { width: 58px; height: 58px; border-radius: 50%; background: var(--brand); display: grid; place-items: center; box-shadow: 0 8px 30px rgba(77,187,131,0.35); }
+      .hsop-video .play { width: 58px; height: 58px; border-radius: 50%; background: var(--brand); display: grid; place-items: center; box-shadow: var(--shadow-brand); }
       .hsop-video .play svg { width: 23px; height: 23px; fill: var(--brand-fg); margin-left: 3px; }
       .hsop-prose { color: var(--text); font-size: 15.5px; line-height: 1.7; max-width: 760px; }
       .hsop-prose h2 { font-family: var(--font-display); color: var(--text); font-size: 19px; font-weight: 600; letter-spacing: -0.01em; margin: 24px 0 10px; }

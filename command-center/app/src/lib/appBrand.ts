@@ -6,7 +6,7 @@
 export const APP_BRAND = {
   appName: "Hauck Command Center",
   initials: "HC",
-  color: "#4dbb83",
+  color: "#4f46e5",
   // Agency credit line on the login screen ("Secured by ...").
   securedBy: "Hauck Marketing",
 };

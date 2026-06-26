@@ -27,7 +27,7 @@ export default function AdminHero({
       className="relative mb-7 overflow-hidden rounded-[var(--radius-xl)] px-8 py-7 text-white shadow-[var(--shadow-sm)]"
       style={{
         background:
-          "radial-gradient(620px 280px at 88% -30%, rgba(77,187,131,0.30), transparent 70%), linear-gradient(160deg, #101a2e 0%, #0a1120 100%)",
+          "radial-gradient(620px 280px at 88% -30%, rgba(124,115,240,0.34), transparent 70%), linear-gradient(160deg, #1a1840 0%, #0c0d1e 100%)",
       }}
     >
       <span className="admin-hero-orb pointer-events-none absolute -right-10 -top-16 h-60 w-60 rounded-full" aria-hidden />
