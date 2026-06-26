@@ -24,7 +24,6 @@ import Team from "./routes/Team";
 import Settings from "./routes/Settings";
 import Comms from "./routes/Comms";
 import AdminLayout from "./routes/admin/AdminLayout";
-import AdminClients from "./routes/admin/AdminClients";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminTasks from "./routes/admin/AdminTasks";
 import AdminBuild from "./routes/admin/AdminBuild";
@@ -35,6 +34,9 @@ import AdminMessages from "./routes/admin/AdminMessages";
 import Plans from "./routes/admin/Plans";
 import AdminOnboarding from "./routes/admin/AdminOnboarding";
 import AdminOnboardingDetail from "./routes/admin/AdminOnboardingDetail";
+import AdminPillar from "./routes/admin/AdminPillar";
+import AdminLane from "./routes/admin/AdminLane";
+import AdminInfrastructure from "./routes/admin/AdminInfrastructure";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -53,7 +55,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const { status, currentUser, needsIdentity, setIdentity, isAdmin } = useAuth();
   if (status === "loading") return null;
   // A super-admin has no tenant and never belongs on a client surface.
-  if (isAdmin) return <Navigate to="/admin/clients" replace />;
+  if (isAdmin) return <Navigate to="/admin/pillar/operations" replace />;
   if (!currentUser) return <Navigate to="/login" replace />;
   // One-time "who are you?" step after the shared-password login. Skipping
   // (or any failure) falls back to the hardcoded-owner default in AuthContext.
@@ -84,7 +86,7 @@ function RootRedirect() {
   if (status === "loading") return null;
   // A super-admin always lands in the admin console, never a tenant surface.
   if (status === "authenticated" && isAdmin) {
-    return <Navigate to="/admin/clients" replace />;
+    return <Navigate to="/admin/pillar/operations" replace />;
   }
   // Offline grace: nobody can sign in without a network, so any plausible
   // previous session (either mode) goes to the cached dashboard, not /login.
@@ -274,15 +276,10 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/admin" element={<Navigate to="/admin/clients" replace />} />
-              <Route
-                path="/admin/clients"
-                element={
-                  <AdminRoute>
-                    <AdminClients />
-                  </AdminRoute>
-                }
-              />
+              <Route path="/admin" element={<Navigate to="/admin/pillar/operations" replace />} />
+              {/* Clients now live inside Operations (the command deck). The old
+                  standalone route redirects there; client detail pages stay. */}
+              <Route path="/admin/clients" element={<Navigate to="/admin/pillar/operations" replace />} />
               <Route
                 path="/admin/clients/:id"
                 element={
@@ -360,6 +357,38 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminMessages />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/infrastructure"
+                element={
+                  <AdminRoute>
+                    <AdminInfrastructure />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/pillar/:pillarId"
+                element={
+                  <AdminRoute>
+                    <AdminPillar />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/pillar/:pillarId/lane/:laneId"
+                element={
+                  <AdminRoute>
+                    <AdminLane />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/pillar/:pillarId/:tabId"
+                element={
+                  <AdminRoute>
+                    <AdminPillar />
                   </AdminRoute>
                 }
               />
