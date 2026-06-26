@@ -96,38 +96,33 @@ export default function AdminClients() {
     );
   }, [clients, query]);
 
+  // Embeddable board: this is the Operations Overview. The greeting hero sits
+  // above the live clients table. No page chrome of its own (the pillar
+  // workspace provides the header and padding); search lives in the table head.
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto">
-      {/* Topbar: breadcrumb + search. No "new client" yet (onboarding flow owns it). */}
-      <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-bg/80 px-9 py-3.5 backdrop-blur">
-        <div className="text-[13px] font-medium text-muted">
-          Admin <span className="opacity-50">/</span> <span className="font-semibold text-text">Clients</span>
+    <div className="w-full">
+      <AdminHero
+        greeting={greet()}
+        subtitle="Here is how the agency is running."
+        kpis={kpis}
+      />
+
+      <section className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+        <div className="flex items-center gap-3 px-6 py-4">
+          <h2 className="font-display text-[16px] font-semibold tracking-[-0.02em]">All clients</h2>
+          <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[12px] font-semibold text-muted">
+            {loading ? "..." : `${filtered.length} total`}
+          </span>
+          <label className="ml-auto flex w-[250px] items-center gap-2.5 rounded-full border border-border bg-surface px-3.5 py-2 text-faint transition-colors focus-within:border-brand focus-within:shadow-[0_0_0_4px_var(--brand-tint)]">
+            <Search size={15} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search clients..."
+              className="w-full border-0 bg-transparent text-[13.5px] text-text outline-none placeholder:text-faint"
+            />
+          </label>
         </div>
-        <label className="ml-auto flex w-[250px] items-center gap-2.5 rounded-full border border-border bg-surface px-3.5 py-2 text-faint transition-colors focus-within:border-brand focus-within:shadow-[0_0_0_4px_var(--brand-tint)]">
-          <Search size={15} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search clients..."
-            className="w-full border-0 bg-transparent text-[13.5px] text-text outline-none placeholder:text-faint"
-          />
-        </label>
-      </header>
-
-      <div className="mx-auto w-full max-w-[1220px] px-9 py-7">
-        <AdminHero
-          greeting={greet()}
-          subtitle="Here is how the agency is running."
-          kpis={kpis}
-        />
-
-        <section className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-          <div className="flex items-center gap-3 px-6 py-4">
-            <h2 className="font-display text-[16px] font-semibold tracking-[-0.02em]">All clients</h2>
-            <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[12px] font-semibold text-muted">
-              {loading ? "..." : `${filtered.length} total`}
-            </span>
-          </div>
 
           {loading ? (
             <div className="flex items-center gap-2 px-6 py-16 text-sm text-muted">
@@ -200,7 +195,6 @@ export default function AdminClients() {
             </table>
           )}
         </section>
-      </div>
     </div>
   );
 }

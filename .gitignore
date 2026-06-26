@@ -72,3 +72,6 @@ app/src-tauri/src/supabase_secrets.rs
 
 # Local GHL audit dumps (contains real contact/opportunity PII — never commit)
 .ghl-audit/
+
+# local GitHub token, never commit
+scripts/.gh_token

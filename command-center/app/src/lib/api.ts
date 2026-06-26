@@ -336,3 +336,25 @@ export interface AttachmentUpload {
   path: string;
   token: string;
 }
+
+// Product-tour progress (GET/POST /api/me/tour). completedVersion is the
+// highest tour version this person has finished (null = never). unavailable =
+// the backend cannot persist progress, so the client suppresses the tour.
+export interface TourProgress {
+  completedVersion: number | null;
+  unavailable?: boolean;
+}
+
+export async function fetchTourProgress(personKey: string): Promise<TourProgress> {
+  return api<TourProgress>(`/api/me/tour?personKey=${encodeURIComponent(personKey)}`);
+}
+
+export async function saveTourProgress(
+  personKey: string,
+  version: number,
+): Promise<void> {
+  await api<{ ok: boolean }>(`/api/me/tour`, {
+    method: "POST",
+    body: JSON.stringify({ personKey, version }),
+  });
+}

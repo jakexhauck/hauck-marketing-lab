@@ -1,70 +1,44 @@
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import {
-  Building2,
-  Rocket,
-  ListChecks,
-  BookText,
-  Hammer,
-  FolderOpen,
-  ClipboardList,
-  LogOut,
-  Sun,
-  Moon,
-  MessageSquare,
-  type LucideIcon,
-} from "lucide-react";
+import { Map, LogOut, Sun, Moon, Search, type LucideIcon } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
+import { orderedPillars, rollUpStatus } from "../../lib/pillarStatus";
+import { pillarIcon, StatusDot, PillarStyle } from "../../components/pillars/PillarKit";
+import type { PillarStatus } from "../../lib/pillars";
 
-// The admin console chrome. A left rail on desktop, a compact top bar on phones.
-// Deliberately tenant-free: a super-admin has no client branding, so this is the
-// agency's own view across every client. Runs on the shared neutral light/dark
-// tokens (no green wash) with green as a rationed accent. The display face is
-// Poppins, inherited from the global --font-display token.
+// The admin console chrome, inherited from the Modern Motion design kit's full
+// shell: a glass left rail with gradient-fill active nav and a glass topbar
+// (search, theme, sign out, avatar). The Modern Motion theme is scoped to
+// .pk-kit so it themes the whole admin without touching the client app.
+//
+// The rail is the org chart: the six pillars (Operations the hub on top, then
+// the value chain 01..05) each carrying a rolled-up status dot, then the
+// Infrastructure map pinned at the bottom. Clients live inside Operations.
 
 interface AdminNavItem {
   to: string;
   label: string;
   icon: LucideIcon;
+  status?: PillarStatus;
 }
 
 const ADMIN_NAV: AdminNavItem[] = [
-  { to: "/admin/clients", label: "Clients", icon: Building2 },
-  { to: "/admin/onboarding", label: "Onboarding", icon: Rocket },
-  { to: "/admin/tasks", label: "Tasks", icon: ListChecks },
-  { to: "/admin/build", label: "Build Lab", icon: Hammer },
-  { to: "/admin/plans", label: "Plans", icon: ClipboardList },
-  { to: "/admin/sops", label: "SOP Hub", icon: BookText },
-  { to: "/admin/assets", label: "Assets", icon: FolderOpen },
-  { to: "/admin/messages", label: "Messages", icon: MessageSquare },
+  ...orderedPillars().map((p) => ({
+    to: `/admin/pillar/${p.id}`,
+    label: p.order === "hub" ? "Operations" : `${p.num} ${p.label}`,
+    icon: pillarIcon(p.icon),
+    status: rollUpStatus(p),
+  })),
+  { to: "/admin/infrastructure", label: "Infrastructure", icon: Map },
 ];
 
 function NavRow({ item }: { item: AdminNavItem }) {
   return (
-    <NavLink
-      to={item.to}
-      className={({ isActive }) =>
-        [
-          "group relative flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[14px] font-medium transition-[color,background,transform] duration-200",
-          isActive
-            ? "shadow-brand font-semibold text-white"
-            : "text-muted hover:translate-x-0.5 hover:bg-surface-2 hover:text-text",
-        ].join(" ")
-      }
-      style={({ isActive }) =>
-        isActive ? { backgroundImage: "var(--grad-brand)" } : undefined
-      }
-    >
-      {({ isActive }) => (
-        <>
-          <item.icon
-            size={18}
-            className={isActive ? "" : "opacity-85 transition-transform group-hover:scale-110"}
-          />
-          {item.label}
-        </>
-      )}
+    <NavLink to={item.to} className={({ isActive }) => `adm-nav-item${isActive ? " on" : ""}`} end={false}>
+      <item.icon size={18} />
+      <span className="flex-1">{item.label}</span>
+      {item.status && <StatusDot status={item.status} />}
     </NavLink>
   );
 }
@@ -75,88 +49,56 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const isLight = resolved === "light";
 
   return (
-    <div className="flex min-h-dvh bg-bg text-text">
-      {/* Desktop rail (lg+). Same source-of-truth nav as the mobile bar below. */}
-      <aside className="glass hidden h-dvh w-[248px] shrink-0 flex-col border-r border-white/50 dark:border-white/10 lg:sticky lg:top-0 lg:flex">
-        <div className="px-[18px] pb-3 pt-[22px]">
-          <div className="flex items-center gap-[10px]">
-            <span
-              className="shadow-brand grid h-[34px] w-[34px] place-items-center rounded-[10px] font-display text-[15px] font-bold text-white"
-              style={{ backgroundImage: "var(--grad-brand)" }}
-              aria-hidden
-            >
-              H
-            </span>
-            <span className="font-display text-[17px] font-semibold tracking-[-0.02em]">Hauck</span>
-          </div>
-          <div className="mt-3 pl-[2px] text-[11px] font-medium text-faint">Admin Console</div>
-        </div>
+    <div className="pk-kit flex min-h-dvh bg-bg text-text">
+      {/* PillarStyle carries the Modern Motion theme, the shell styles, and the
+          rail status-dot styles, mounted once for the whole admin. */}
+      <PillarStyle />
 
-        <nav className="flex flex-1 flex-col gap-[3px] overflow-y-auto px-3 py-2.5">
+      {/* Desktop glass rail (lg+). */}
+      <aside className="adm-rail hidden h-dvh w-[248px] shrink-0 flex-col px-3 pb-3 pt-[18px] lg:sticky lg:top-0 lg:flex">
+        <div className="flex items-center gap-[11px] px-2 pb-5">
+          <span className="adm-brandmark" aria-hidden>H</span>
+          <div className="min-w-0">
+            <div className="font-display text-[15px] font-semibold leading-tight tracking-[-0.01em]">Hauck</div>
+            <div className="text-[11px] font-medium text-faint">Admin Console</div>
+          </div>
+        </div>
+        <nav className="flex flex-1 flex-col gap-[3px] overflow-y-auto">
           {ADMIN_NAV.map((item) => (
             <NavRow key={item.to} item={item} />
           ))}
         </nav>
-
-        <div className="flex flex-col gap-2.5 border-t border-divider p-[14px]">
-          <div className="flex items-center gap-[11px] px-1 py-0.5">
-            <span
-              className="shadow-brand grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full font-display text-[12.5px] font-bold text-white"
-              style={{ backgroundImage: "var(--grad-brand)" }}
-              aria-hidden
-            >
-              {initials(admin?.email)}
-            </span>
-            <div className="min-w-0">
-              <div className="text-[13px] font-semibold leading-tight">Admin</div>
-              {admin?.email && (
-                <div className="truncate text-[11.5px] text-faint">{admin.email}</div>
-              )}
-            </div>
-          </div>
-          <div className="flex gap-[7px]">
-            <button
-              onClick={toggle}
-              className="flex flex-1 items-center justify-center gap-[7px] rounded-[var(--radius)] bg-surface-2 px-2 py-2.5 text-[12.5px] font-semibold text-muted transition-colors hover:bg-surface-3 hover:text-text"
-            >
-              {isLight ? <Moon size={15} /> : <Sun size={15} />}
-              Theme
-            </button>
-            <button
-              onClick={() => void signOut()}
-              className="flex flex-1 items-center justify-center gap-[7px] rounded-[var(--radius)] bg-surface-2 px-2 py-2.5 text-[12.5px] font-semibold text-muted transition-colors hover:bg-danger-tint hover:text-danger"
-            >
-              <LogOut size={15} /> Sign out
-            </button>
-          </div>
-        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Phone top bar (below lg): brand, the tabs, theme + sign out. */}
-        <header className="glass sticky top-0 z-20 border-b border-white/50 dark:border-white/10 lg:hidden">
+        {/* Desktop glass topbar (lg+): search, theme, sign out, avatar. */}
+        <div className="adm-topbar hidden lg:flex">
+          <label className="adm-search">
+            <Search size={15} />
+            <input placeholder="Search clients, lanes, tools..." aria-label="Search" />
+          </label>
+          <div className="flex-1" />
+          <button onClick={toggle} className="adm-iconbtn" aria-label="Toggle theme">
+            {isLight ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+          <button onClick={() => void signOut()} className="adm-iconbtn danger" aria-label="Sign out">
+            <LogOut size={16} />
+          </button>
+          <span className="adm-avatar" title={admin?.email ?? "Admin"} aria-hidden>
+            {initials(admin?.email)}
+          </span>
+        </div>
+
+        {/* Phone top bar (below lg): brand, theme + sign out, then the nav. */}
+        <header className="sticky top-0 z-20 border-b border-border bg-surface/85 backdrop-blur-xl lg:hidden">
           <div className="flex items-center gap-3 px-4 py-3">
-            <span
-              className="shadow-brand grid h-[28px] w-[28px] place-items-center rounded-[8px] font-display text-[13px] font-bold text-white"
-              style={{ backgroundImage: "var(--grad-brand)" }}
-              aria-hidden
-            >
-              H
-            </span>
+            <span className="adm-brandmark !h-[26px] !w-[26px] !rounded-[8px] !text-[13px]" aria-hidden>H</span>
             <span className="font-display text-[15px] font-semibold tracking-[-0.02em]">Hauck</span>
-            <div className="ml-auto flex items-center gap-1">
-              <button
-                onClick={toggle}
-                aria-label="Toggle theme"
-                className="flex h-8 w-8 items-center justify-center rounded-[var(--radius)] text-muted hover:bg-surface-2 hover:text-text"
-              >
+            <div className="ml-auto flex items-center gap-1.5">
+              <button onClick={toggle} className="adm-iconbtn !h-9 !w-9" aria-label="Toggle theme">
                 {isLight ? <Moon size={16} /> : <Sun size={16} />}
               </button>
-              <button
-                onClick={() => void signOut()}
-                aria-label="Sign out"
-                className="flex h-8 w-8 items-center justify-center rounded-[var(--radius)] text-muted hover:bg-danger-tint hover:text-danger"
-              >
+              <button onClick={() => void signOut()} className="adm-iconbtn danger !h-9 !w-9" aria-label="Sign out">
                 <LogOut size={16} />
               </button>
             </div>
@@ -168,14 +110,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 to={item.to}
                 className={({ isActive }) =>
                   [
-                    "flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
-                    isActive
-                      ? "shadow-brand font-semibold text-white"
-                      : "text-muted hover:bg-surface-2 hover:text-text",
+                    "flex shrink-0 items-center gap-2 rounded-[10px] px-3 py-1.5 text-[13px] font-medium transition-colors",
+                    isActive ? "adm-nav-item on" : "text-muted hover:bg-surface-2 hover:text-text",
                   ].join(" ")
-                }
-                style={({ isActive }) =>
-                  isActive ? { backgroundImage: "var(--grad-brand)" } : undefined
                 }
               >
                 <item.icon size={15} className="shrink-0" />
@@ -185,7 +122,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </nav>
         </header>
 
-        {/* Each admin page renders its own page shell (sticky header + content). */}
+        {/* Each admin page renders its own content. */}
         <main className="flex min-h-0 flex-1 flex-col">{children}</main>
       </div>
     </div>

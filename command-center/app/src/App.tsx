@@ -24,7 +24,6 @@ import Team from "./routes/Team";
 import Settings from "./routes/Settings";
 import Comms from "./routes/Comms";
 import AdminLayout from "./routes/admin/AdminLayout";
-import AdminClients from "./routes/admin/AdminClients";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminTasks from "./routes/admin/AdminTasks";
 import AdminBuild from "./routes/admin/AdminBuild";
@@ -35,6 +34,9 @@ import AdminMessages from "./routes/admin/AdminMessages";
 import Plans from "./routes/admin/Plans";
 import AdminOnboarding from "./routes/admin/AdminOnboarding";
 import AdminOnboardingDetail from "./routes/admin/AdminOnboardingDetail";
+import AdminPillar from "./routes/admin/AdminPillar";
+import AdminLane from "./routes/admin/AdminLane";
+import AdminInfrastructure from "./routes/admin/AdminInfrastructure";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -45,13 +47,15 @@ import MotionPresetSwitcher from "./components/dev/MotionPresetSwitcher";
 import { ToastProvider } from "./context/ToastContext";
 import { NowProvider } from "./context/NowContext";
 import { ChatProvider } from "./context/ChatContext";
+import { TourProvider } from "./context/TourContext";
+import TourOverlay from "./components/tour/TourOverlay";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { status, currentUser, needsIdentity, setIdentity, isAdmin } = useAuth();
   if (status === "loading") return null;
   // A super-admin has no tenant and never belongs on a client surface.
-  if (isAdmin) return <Navigate to="/admin/clients" replace />;
+  if (isAdmin) return <Navigate to="/admin/pillar/operations" replace />;
   if (!currentUser) return <Navigate to="/login" replace />;
   // One-time "who are you?" step after the shared-password login. Skipping
   // (or any failure) falls back to the hardcoded-owner default in AuthContext.
@@ -82,7 +86,7 @@ function RootRedirect() {
   if (status === "loading") return null;
   // A super-admin always lands in the admin console, never a tenant surface.
   if (status === "authenticated" && isAdmin) {
-    return <Navigate to="/admin/clients" replace />;
+    return <Navigate to="/admin/pillar/operations" replace />;
   }
   // Offline grace: nobody can sign in without a network, so any plausible
   // previous session (either mode) goes to the cached dashboard, not /login.
@@ -131,12 +135,14 @@ export default function App() {
           <NowProvider>
           <ToastProvider>
             <ChatProvider>
+            <TourProvider>
             <ServiceWorkerMessages />
             {import.meta.env.DEV && <MotionPresetSwitcher />}
             <OfflineBanner />
             <PreviewBanner />
             <DemoBanner />
             <ScrollToTop />
+            <TourOverlay />
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<Login />} />
@@ -270,15 +276,10 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/admin" element={<Navigate to="/admin/clients" replace />} />
-              <Route
-                path="/admin/clients"
-                element={
-                  <AdminRoute>
-                    <AdminClients />
-                  </AdminRoute>
-                }
-              />
+              <Route path="/admin" element={<Navigate to="/admin/pillar/operations" replace />} />
+              {/* Clients now live inside Operations (the command deck). The old
+                  standalone route redirects there; client detail pages stay. */}
+              <Route path="/admin/clients" element={<Navigate to="/admin/pillar/operations" replace />} />
               <Route
                 path="/admin/clients/:id"
                 element={
@@ -359,8 +360,41 @@ export default function App() {
                   </AdminRoute>
                 }
               />
+              <Route
+                path="/admin/infrastructure"
+                element={
+                  <AdminRoute>
+                    <AdminInfrastructure />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/pillar/:pillarId"
+                element={
+                  <AdminRoute>
+                    <AdminPillar />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/pillar/:pillarId/lane/:laneId"
+                element={
+                  <AdminRoute>
+                    <AdminLane />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/pillar/:pillarId/:tabId"
+                element={
+                  <AdminRoute>
+                    <AdminPillar />
+                  </AdminRoute>
+                }
+              />
               <Route path="*" element={<RootRedirect />} />
             </Routes>
+            </TourProvider>
             </ChatProvider>
           </ToastProvider>
           </NowProvider>
