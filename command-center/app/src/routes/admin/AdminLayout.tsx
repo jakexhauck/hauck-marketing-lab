@@ -46,23 +46,21 @@ function NavRow({ item }: { item: AdminNavItem }) {
       to={item.to}
       className={({ isActive }) =>
         [
-          "group relative flex items-center gap-3 rounded-[var(--radius)] px-3 py-2.5 text-[14px] font-medium transition-colors",
+          "group relative flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[14px] font-medium transition-[color,background,transform] duration-200",
           isActive
-            ? "bg-brand-tint text-brand-text font-semibold"
-            : "text-muted hover:bg-surface-2 hover:text-text",
+            ? "shadow-brand font-semibold text-white"
+            : "text-muted hover:translate-x-0.5 hover:bg-surface-2 hover:text-text",
         ].join(" ")
+      }
+      style={({ isActive }) =>
+        isActive ? { backgroundImage: "var(--grad-brand)" } : undefined
       }
     >
       {({ isActive }) => (
         <>
-          <span
-            className="absolute left-0 h-5 w-[3px] rounded-full bg-brand transition-opacity"
-            style={{ opacity: isActive ? 1 : 0 }}
-            aria-hidden
-          />
           <item.icon
             size={18}
-            className={isActive ? "text-brand-text" : "opacity-85 transition-transform group-hover:scale-110"}
+            className={isActive ? "" : "opacity-85 transition-transform group-hover:scale-110"}
           />
           {item.label}
         </>
@@ -79,12 +77,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh bg-bg text-text">
       {/* Desktop rail (lg+). Same source-of-truth nav as the mobile bar below. */}
-      <aside className="hidden h-dvh w-[248px] shrink-0 flex-col border-r border-border bg-surface lg:sticky lg:top-0 lg:flex">
+      <aside className="glass hidden h-dvh w-[248px] shrink-0 flex-col border-r border-white/50 dark:border-white/10 lg:sticky lg:top-0 lg:flex">
         <div className="px-[18px] pb-3 pt-[22px]">
           <div className="flex items-center gap-[10px]">
             <span
-              className="grid h-[30px] w-[30px] place-items-center rounded-[9px] font-display text-[15px] font-bold text-brand-fg shadow-[0_4px_14px_rgba(77,187,131,0.4)]"
-              style={{ background: "linear-gradient(150deg, var(--brand) 0%, var(--brand-strong) 100%)" }}
+              className="shadow-brand grid h-[34px] w-[34px] place-items-center rounded-[10px] font-display text-[15px] font-bold text-white"
+              style={{ backgroundImage: "var(--grad-brand)" }}
               aria-hidden
             >
               H
@@ -103,8 +101,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <div className="flex flex-col gap-2.5 border-t border-divider p-[14px]">
           <div className="flex items-center gap-[11px] px-1 py-0.5">
             <span
-              className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full font-display text-[12.5px] font-bold text-brand-fg"
-              style={{ background: "linear-gradient(150deg, var(--brand), var(--brand-strong))" }}
+              className="shadow-brand grid h-[34px] w-[34px] shrink-0 place-items-center rounded-full font-display text-[12.5px] font-bold text-white"
+              style={{ backgroundImage: "var(--grad-brand)" }}
               aria-hidden
             >
               {initials(admin?.email)}
@@ -136,11 +134,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Phone top bar (below lg): brand, the tabs, theme + sign out. */}
-        <header className="sticky top-0 z-20 border-b border-border bg-surface/95 backdrop-blur lg:hidden">
+        <header className="glass sticky top-0 z-20 border-b border-white/50 dark:border-white/10 lg:hidden">
           <div className="flex items-center gap-3 px-4 py-3">
             <span
-              className="grid h-[26px] w-[26px] place-items-center rounded-[8px] font-display text-[13px] font-bold text-brand-fg"
-              style={{ background: "linear-gradient(150deg, var(--brand) 0%, var(--brand-strong) 100%)" }}
+              className="shadow-brand grid h-[28px] w-[28px] place-items-center rounded-[8px] font-display text-[13px] font-bold text-white"
+              style={{ backgroundImage: "var(--grad-brand)" }}
               aria-hidden
             >
               H
@@ -170,11 +168,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 to={item.to}
                 className={({ isActive }) =>
                   [
-                    "flex shrink-0 items-center gap-2 rounded-[var(--radius)] px-3 py-1.5 text-[13px] font-medium transition-colors",
+                    "flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
                     isActive
-                      ? "bg-brand-tint text-brand-text font-semibold"
+                      ? "shadow-brand font-semibold text-white"
                       : "text-muted hover:bg-surface-2 hover:text-text",
                   ].join(" ")
+                }
+                style={({ isActive }) =>
+                  isActive ? { backgroundImage: "var(--grad-brand)" } : undefined
                 }
               >
                 <item.icon size={15} className="shrink-0" />

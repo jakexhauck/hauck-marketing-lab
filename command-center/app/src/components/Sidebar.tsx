@@ -20,12 +20,12 @@ export default function Sidebar() {
   if (!session) return null;
 
   return (
-    <aside className="hidden h-dvh w-[236px] shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] lg:sticky lg:top-0 lg:flex">
+    <aside className="glass hidden h-dvh w-[244px] shrink-0 flex-col border-r border-white/50 dark:border-white/10 lg:sticky lg:top-0 lg:flex">
       {/* Brand mark */}
-      <div className="flex items-center gap-2.5 px-4 pb-3 pt-4">
+      <div className="flex items-center gap-2.5 px-4 pb-4 pt-4">
         <span
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-[12px] font-bold"
-          style={{ background: "var(--brand-primary)", color: "var(--brand-fg)" }}
+          className="shadow-brand flex h-[34px] w-[34px] items-center justify-center rounded-[10px] text-[12px] font-bold text-white"
+          style={{ backgroundImage: "var(--grad-brand)" }}
         >
           {brand.initials}
         </span>
@@ -47,30 +47,18 @@ export default function Sidebar() {
             to={item.to}
             className={({ isActive }) =>
               [
-                "group relative mb-0.5 flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors",
+                "group relative mb-0.5 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-[color,background,transform] duration-200",
                 isActive
-                  ? "text-[var(--brand-text)]"
-                  : "text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]",
+                  ? "shadow-brand text-white"
+                  : "text-[var(--text-muted)] hover:translate-x-0.5 hover:bg-white/60 hover:text-[var(--text)] dark:hover:bg-white/5",
               ].join(" ")
             }
             style={({ isActive }) =>
-              isActive ? { background: "var(--brand-primary-tint)" } : undefined
+              isActive ? { backgroundImage: "var(--grad-brand)" } : undefined
             }
           >
-            {({ isActive }) => (
-              <>
-                <span
-                  className="absolute left-0 h-5 w-0.5 rounded-full transition-opacity"
-                  style={{
-                    background: "var(--brand-primary)",
-                    opacity: isActive ? 1 : 0,
-                  }}
-                  aria-hidden
-                />
-                <item.icon size={17} className="shrink-0" />
-                {item.label}
-              </>
-            )}
+            <item.icon size={17} className="shrink-0 opacity-80" />
+            {item.label}
           </NavLink>
         ))}
       </nav>
@@ -86,14 +74,17 @@ export default function Sidebar() {
           to="/settings"
           className={({ isActive }) =>
             [
-              "mb-1 flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-colors",
+              "mb-1 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-medium transition-[color,background,transform] duration-200",
               isActive
-                ? "text-[var(--brand-text)]"
-                : "text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]",
+                ? "shadow-brand text-white"
+                : "text-[var(--text-muted)] hover:translate-x-0.5 hover:bg-white/60 hover:text-[var(--text)] dark:hover:bg-white/5",
             ].join(" ")
           }
+          style={({ isActive }) =>
+            isActive ? { backgroundImage: "var(--grad-brand)" } : undefined
+          }
         >
-          <Settings size={16} className="shrink-0" /> Settings
+          <Settings size={16} className="shrink-0 opacity-80" /> Settings
         </NavLink>
         <div className="flex items-center gap-1">
           <button

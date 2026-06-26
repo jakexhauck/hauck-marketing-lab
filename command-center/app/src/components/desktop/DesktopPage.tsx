@@ -16,7 +16,7 @@ export default function DesktopPage({
 }) {
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
-      <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-border bg-bg/80 px-9 py-4 backdrop-blur">
+      <header className="glass sticky top-0 z-10 flex items-center gap-4 border-b border-white/50 px-9 py-4 dark:border-white/10">
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-[22px] font-bold leading-tight text-text">
             {title}
