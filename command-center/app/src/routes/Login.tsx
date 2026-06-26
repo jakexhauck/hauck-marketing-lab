@@ -1,16 +1,28 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import BrandedButton from "../components/BrandedButton";
 import { useAuth } from "../context/AuthContext";
 import { APP_BRAND } from "../lib/appBrand";
+import {
+  MODERN_MOTION_VARS,
+  MODERN_MOTION_GRADIENT,
+  MODERN_MOTION_MESH,
+} from "../lib/brandTheme";
 
 type Phase = "idle" | "submitting" | "error";
 type LoginMode = "live" | "test" | "admin";
 
+const BRAND_HEADLINE = "Your Business Command Center";
+const BRAND_TAGLINE = "Your clients, your pipeline, one command center.";
+
 // One email + password form for everyone. Owners and team members sign in with
 // their own email + password (staff-login); super-admins sign in to the admin
-// console (admin-login). The account decides the tenant and role. Responsive:
-// a single centered card below lg, a two-column brand + form split at lg+.
+// console (admin-login). The account decides the tenant and role.
+//
+// "Modern Motion" look (repo-root design-kit.html): indigo/violet gradient brand
+// panel on the left (lg+), a glass sign-in block on the right, light mesh wash on
+// mobile. Tokens are overridden locally (MODERN_MOTION_VARS) so the rest of the
+// app's theme is untouched. No Hauck wordmark/logo: the brand headline plus the
+// "Secured by" credit carry the identity.
 export default function Login() {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
@@ -48,55 +60,51 @@ export default function Login() {
     }
   };
 
-  const heading = isAdmin
+  // Live mode shows only the single sign-in line (no title). Test/admin keep
+  // their functional heading + subtitle.
+  const blockTitle = isAdmin
     ? "Admin Console"
     : isTest
       ? "Test Account"
-      : APP_BRAND.appName;
-
-  const subtitle = isAdmin
+      : "Sign in with your email and password";
+  const blockSubtitle = isAdmin
     ? "Sign in to the admin console."
     : isTest
       ? "Preview changes on the staging sub-account."
-      : "Sign in with your email and password.";
+      : null;
 
   const submitLabel =
     phase === "submitting"
       ? "Signing in..."
-      : isAdmin
-        ? "Sign in"
-        : isTest
-          ? "Enter test account"
-          : "Sign in";
+      : isTest
+        ? "Enter test account"
+        : "Sign in";
 
   const submitDisabled =
     phase === "submitting" || !password.trim() || !email.trim();
 
-  const card = (
-    <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-[var(--shadow-lg)]">
-      <div className="flex flex-col items-center text-center">
-        <div
-          className="shadow-brand flex h-12 w-12 items-center justify-center rounded-2xl font-display text-[15px] font-bold text-white"
-          style={{ backgroundImage: "var(--grad-brand)" }}
-          aria-hidden
-        >
-          {APP_BRAND.initials}
-        </div>
-        <span className="label-cap mt-6">{heading}</span>
-        <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text)]">
-          {heading}
+  const inputClass =
+    "mt-2 w-full rounded-[10px] border border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 text-base text-[var(--text)] outline-none transition-[border-color,box-shadow] placeholder:text-[var(--text-faint)] focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[rgba(79,70,229,0.15)] disabled:opacity-60";
+
+  const block = (
+    <div className="fx-rise w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-[0_18px_40px_rgba(40,42,70,0.12),0_6px_14px_rgba(40,42,70,0.07)]">
+      <div className="text-center">
+        <h1 className="font-display text-2xl font-semibold leading-snug tracking-tight text-[var(--text)]">
+          {blockTitle}
         </h1>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">{subtitle}</p>
+        {blockSubtitle && (
+          <p className="mt-2 text-sm text-[var(--text-muted)]">{blockSubtitle}</p>
+        )}
       </div>
 
       {isTest && (
-        <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300">
+        <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           You are signing into the internal test sub-account, not a client
           account.
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
+      <form onSubmit={onSubmit} className="mt-7 space-y-4">
         <label className="block">
           <span className="label-cap">Email</span>
           <input
@@ -108,13 +116,11 @@ export default function Login() {
             autoComplete="username"
             required
             disabled={phase === "submitting"}
-            className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-base text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 disabled:opacity-60"
+            className={inputClass}
           />
         </label>
         <label className="block">
-          <span className="label-cap">
-            {isTest ? "Test password" : "Password"}
-          </span>
+          <span className="label-cap">{isTest ? "Test password" : "Password"}</span>
           <input
             type="password"
             value={password}
@@ -123,17 +129,22 @@ export default function Login() {
             autoComplete="current-password"
             required
             disabled={phase === "submitting"}
-            className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5 text-base text-[var(--text)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 disabled:opacity-60"
+            className={inputClass}
           />
         </label>
 
         {phase === "error" && errorMsg && (
-          <p className="text-sm text-rose-600 dark:text-rose-400">{errorMsg}</p>
+          <p className="text-sm text-[var(--danger,#dc2626)]">{errorMsg}</p>
         )}
 
-        <BrandedButton type="submit" className="w-full" disabled={submitDisabled}>
+        <button
+          type="submit"
+          disabled={submitDisabled}
+          style={{ backgroundImage: MODERN_MOTION_GRADIENT }}
+          className="w-full rounded-[10px] py-3.5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(79,70,229,0.28)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[0_12px_28px_rgba(79,70,229,0.38)] hover:brightness-[1.04] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:shadow-[0_8px_22px_rgba(79,70,229,0.28)] disabled:active:scale-100"
+        >
           {submitLabel}
-        </BrandedButton>
+        </button>
       </form>
 
       <div className="mt-6 space-y-2 border-t border-[var(--border)] pt-4 text-center">
@@ -160,49 +171,56 @@ export default function Login() {
   );
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-2">
-      {/* Brand panel: full-height indigo-to-violet gradient column at lg+. */}
+    <div
+      className="min-h-dvh bg-[var(--bg)] lg:grid lg:grid-cols-2"
+      style={MODERN_MOTION_VARS}
+    >
+      {/* Brand panel: full-height indigo/violet gradient column at lg+. */}
       <aside
-        className="relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:flex"
-        style={{ backgroundImage: "var(--grad-brand)" }}
+        className="hidden flex-col justify-between p-12 text-white lg:flex"
+        style={{ backgroundImage: MODERN_MOTION_GRADIENT }}
       >
-        {/* Soft light bloom over the gradient for depth. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              "radial-gradient(40rem 30rem at 0% 0%, rgba(255,255,255,0.18), transparent 60%), radial-gradient(36rem 28rem at 100% 100%, rgba(0,0,0,0.18), transparent 60%)",
-          }}
-        />
-        <img
-          src="/hauck-wordmark.png"
-          alt="Hauck Marketing"
-          className="relative h-8 w-auto brightness-0 invert"
-        />
+        <div />
 
-        <div className="relative max-w-sm">
-          <h2 className="font-display text-3xl font-semibold leading-tight tracking-tight">
-            {APP_BRAND.appName}
+        <div className="max-w-md">
+          <h2 className="font-display text-[2.6rem] font-semibold leading-[1.08] tracking-tight">
+            {BRAND_HEADLINE}
           </h2>
-          <p className="mt-3 text-base font-medium text-white/75">
-            Your clients, your pipeline, one command center.
+          <p className="mt-4 text-base font-medium text-white/70">
+            {BRAND_TAGLINE}
           </p>
         </div>
 
-        <div className="relative text-[11px] font-medium text-white/50">
+        <div className="text-[11px] font-medium text-white/40">
           Secured by {APP_BRAND.securedBy}
         </div>
       </aside>
 
-      {/* Form column: the body's radial wash shows through (transparent). */}
+      {/* Sign-in column: light mesh wash below lg (with the headline on top),
+          neutral surface at lg+ (the panel carries the color). */}
       <main
-        className="flex min-h-dvh flex-col items-center justify-center px-5 py-12"
+        className="relative flex min-h-dvh flex-col items-center justify-center px-5 py-12 lg:bg-[var(--bg)]"
         style={{ paddingTop: "calc(env(safe-area-inset-top) + 48px)" }}
       >
-        {card}
-        <div className="mt-6 text-center text-[11px] font-medium text-[var(--text-faint)] lg:hidden">
-          Secured by {APP_BRAND.securedBy}
+        {/* Mobile-only mesh background. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 lg:hidden"
+          style={{ backgroundColor: "#f6f7fb", backgroundImage: MODERN_MOTION_MESH }}
+        />
+
+        {/* Mobile-only brand headline above the block. */}
+        <div className="relative z-10 mb-8 max-w-md text-center lg:hidden">
+          <h2 className="font-display text-3xl font-semibold leading-tight tracking-tight text-[var(--text)]">
+            {BRAND_HEADLINE}
+          </h2>
+        </div>
+
+        <div className="relative z-10 flex w-full flex-col items-center">
+          {block}
+          <div className="mt-6 text-center text-[11px] font-medium text-[var(--text-faint)] lg:hidden">
+            Secured by {APP_BRAND.securedBy}
+          </div>
         </div>
       </main>
     </div>
