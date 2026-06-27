@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type CSSProperties, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { APP_BRAND } from "../lib/appBrand";
@@ -93,7 +93,11 @@ export default function Login() {
 
   const block = (
     <div className="fx-rise w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-[0_18px_40px_rgba(40,42,70,0.12),0_6px_14px_rgba(40,42,70,0.07)]">
-      <div className="text-center">
+      {/* Re-keying on `mode` remounts the inner sections so they re-cascade
+          when the user switches between live / test / admin. fx-stagger sets
+          --i on each direct child; login-field reads it for the delay. */}
+      <div key={mode} className="fx-stagger">
+      <div className="login-field text-center">
         <h1 className="font-display text-2xl font-semibold leading-snug tracking-tight text-[var(--text)]">
           {blockTitle}
         </h1>
@@ -103,13 +107,13 @@ export default function Login() {
       </div>
 
       {isTest && (
-        <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="login-field mt-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           You are signing into the internal test sub-account, not a client
           account.
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="mt-7 space-y-4">
+      <form onSubmit={onSubmit} className="login-field mt-7 space-y-4">
         {/* Test mode is a shared-password login, so it shows no email field. */}
         {!isTest && (
           <label className="block">
@@ -151,11 +155,18 @@ export default function Login() {
           style={{ backgroundImage: MODERN_MOTION_GRADIENT }}
           className="w-full rounded-[10px] py-3.5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(79,70,229,0.28)] transition-[transform,box-shadow,filter] duration-200 hover:shadow-[0_12px_28px_rgba(79,70,229,0.38)] hover:brightness-[1.04] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:shadow-[0_8px_22px_rgba(79,70,229,0.28)] disabled:active:scale-100"
         >
-          {submitLabel}
+          {phase === "submitting" ? (
+            <span className="inline-flex items-center justify-center gap-2">
+              <span className="login-spinner" aria-hidden />
+              {submitLabel}
+            </span>
+          ) : (
+            submitLabel
+          )}
         </button>
       </form>
 
-      <div className="mt-6 space-y-2 border-t border-[var(--border)] pt-4 text-center">
+      <div className="login-field mt-6 space-y-2 border-t border-[var(--border)] pt-4 text-center">
         {!isAdmin && (
           <button
             type="button"
@@ -175,6 +186,7 @@ export default function Login() {
           {isAdmin ? "Back to client login" : "Admin sign-in"}
         </button>
       </div>
+      </div>
     </div>
   );
 
@@ -185,12 +197,42 @@ export default function Login() {
     >
       {/* Brand panel: full-height indigo/violet gradient column at lg+. */}
       <aside
-        className="hidden flex-col justify-between p-12 text-white lg:flex"
+        className="relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:flex"
         style={{ backgroundImage: MODERN_MOTION_GRADIENT }}
       >
+        {/* Ambient drifting glow behind the brand copy. */}
+        <div
+          aria-hidden
+          className="login-orb login-orb--a"
+          style={
+            {
+              top: -60,
+              left: -50,
+              width: 340,
+              height: 340,
+              "--orb-x": "30px",
+              "--orb-y": "24px",
+            } as CSSProperties
+          }
+        />
+        <div
+          aria-hidden
+          className="login-orb login-orb--b"
+          style={
+            {
+              bottom: -90,
+              right: -40,
+              width: 400,
+              height: 400,
+              "--orb-x": "-28px",
+              "--orb-y": "-22px",
+            } as CSSProperties
+          }
+        />
+
         <div />
 
-        <div className="max-w-md">
+        <div className="fx-rise relative z-10 max-w-md">
           <h2 className="font-display text-[2.6rem] font-semibold leading-[1.08] tracking-tight">
             {BRAND_HEADLINE}
           </h2>
@@ -199,7 +241,7 @@ export default function Login() {
           </p>
         </div>
 
-        <div className="text-[11px] font-medium text-white/40">
+        <div className="relative z-10 text-[11px] font-medium text-white/40">
           Secured by {APP_BRAND.securedBy}
         </div>
       </aside>

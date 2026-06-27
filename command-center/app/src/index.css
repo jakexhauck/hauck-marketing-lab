@@ -530,3 +530,73 @@ body {
     animation: none;
   }
 }
+
+/* ===========================================================================
+   Login motion. Front-door surface, seen often, so the pieces stay restrained:
+   a slow ambient glow on the brand panel, a short blur-masked section cascade
+   that re-fires when the sign-in mode switches, and a fast button spinner.
+   All movement is reduced-motion safe; the spinner survives as a loading cue.
+   ======================================================================== */
+
+/* Ambient glow behind the brand panel gradient. Two soft orbs drift on long,
+   offset cycles so the column feels alive without ever demanding attention. */
+.login-orb {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 65%);
+  filter: blur(44px);
+  pointer-events: none;
+  animation: login-orb-float 11s var(--ease-in-out) infinite alternate;
+}
+.login-orb--b {
+  animation-duration: 14s;
+  animation-delay: -4s;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent 65%);
+}
+@keyframes login-orb-float {
+  to {
+    transform: translate(var(--orb-x, 26px), var(--orb-y, -22px)) scale(1.12);
+  }
+}
+
+/* Section cascade inside the sign-in card. Blur masks the entrance so swapping
+   between live / test / admin reads as one morph, not two overlapping states.
+   `backwards` fill keeps content visible if the animation never runs; --i is
+   supplied by .fx-stagger on the wrapper. */
+@keyframes login-field-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(3px);
+  }
+}
+.login-field {
+  animation: login-field-in 320ms var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+/* Submit spinner. Fast spin reads as a quicker sign-in even when it isn't. */
+.login-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: login-spin 0.6s linear infinite;
+}
+@keyframes login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-orb {
+    animation: none;
+  }
+  .login-field {
+    animation: none;
+  }
+  /* Spinner keeps turning: it is a loading indicator, not decoration. */
+}
