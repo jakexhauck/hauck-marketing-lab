@@ -24,7 +24,7 @@ export default function AdminHero({
 }) {
   return (
     <section
-      className="relative mb-7 overflow-hidden rounded-[var(--radius-xl)] px-8 py-7 text-white shadow-[var(--shadow-sm)]"
+      className="fx-rise relative mb-7 overflow-hidden rounded-[var(--radius-xl)] px-8 py-7 text-white shadow-[var(--shadow-sm)]"
       style={{
         background:
           "radial-gradient(620px 280px at 88% -30%, rgba(124,115,240,0.42), transparent 70%), linear-gradient(150deg, #2a2363 0%, #161034 55%, #0e0a24 100%)",
@@ -34,9 +34,9 @@ export default function AdminHero({
       <h1 className="font-display text-[30px] font-semibold tracking-[-0.03em]">{greeting}</h1>
       <p className="mt-2 text-[14px] text-[#9fb0c8]">{subtitle}</p>
 
-      <div className="mt-7 flex flex-wrap gap-x-9 gap-y-5">
+      <div className="fx-stagger mt-7 flex flex-wrap gap-x-9 gap-y-5">
         {kpis.map((k) => (
-          <div key={k.label} className="min-w-[120px]">
+          <div key={k.label} className="fx-item min-w-[120px]">
             <div className="flex items-center gap-[7px] text-[12px] font-medium text-[#8a9cb6]">
               <k.icon size={14} className="text-brand" />
               {k.label}

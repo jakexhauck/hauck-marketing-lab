@@ -136,14 +136,31 @@ export function PillarStyle() {
       /* Pills and active tab pick up indigo; soft brand glow on the active tab. */
       .pk-kit .pk-tab.on { text-shadow: 0 0 0 transparent; }
 
-      /* Gentle load reveal on the top-level blocks of a workspace. */
+      /* Gentle load reveal on the top-level blocks of a workspace. This also
+         re-fires on every tab switch (the tab body remounts), so it is tuned
+         snappy on purpose: this is a daily console, and a slow reveal on each
+         click gets old fast. Short travel, ~340ms, tight stagger. */
       @media (prefers-reduced-motion: no-preference) {
-        .pk-kit .pk-root > * { animation: pkReveal 0.5s cubic-bezier(0.22,1,0.36,1) backwards; }
-        .pk-kit .pk-root > *:nth-child(2) { animation-delay: 0.06s; }
-        .pk-kit .pk-root > *:nth-child(3) { animation-delay: 0.12s; }
-        .pk-kit .pk-root > *:nth-child(n+4) { animation-delay: 0.18s; }
+        .pk-kit .pk-root > * { animation: pkReveal 0.34s cubic-bezier(0.23,1,0.32,1) backwards; }
+        .pk-kit .pk-root > *:nth-child(2) { animation-delay: 0.04s; }
+        .pk-kit .pk-root > *:nth-child(3) { animation-delay: 0.08s; }
+        .pk-kit .pk-root > *:nth-child(n+4) { animation-delay: 0.12s; }
       }
-      @keyframes pkReveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+      @keyframes pkReveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+      /* Tactile hover on the collection cards (pointer devices only). Subtle
+         lift so the surfaces feel alive; task rows are excluded so the lift
+         never implies the whole row is a click target. */
+      @media (hover: hover) and (pointer: fine) {
+        .pk-kit .pk-person, .pk-kit .pk-report-tile {
+          transition: transform .14s var(--ease-out), border-color .14s var(--ease-out), box-shadow .14s var(--ease-out);
+        }
+        .pk-kit .pk-person:hover, .pk-kit .pk-report-tile:hover {
+          transform: translateY(-2px);
+          border-color: color-mix(in srgb, var(--brand) 55%, var(--border));
+          box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+      }
 
       /* ===== Full shell (inherited from the design kit): glass rail + topbar ===== */
       .pk-kit .adm-rail { background: rgba(255,255,255,0.60); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); border-right: 1px solid rgba(120,115,160,0.16); }
