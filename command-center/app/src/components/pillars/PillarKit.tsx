@@ -278,12 +278,14 @@ export function PillarStyle() {
       .pk-section { margin-top: 28px; }
       .pk-section-h { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
 
-      /* lane cards grid */
-      .pk-lanes { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 12px; }
-      .pk-lane { display: block; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 15px 16px; transition: transform .14s, border-color .14s, box-shadow .14s; }
+      /* lane cards grid: small emoji boxes */
+      .pk-lanes { display: grid; grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); gap: 12px; }
+      .pk-lane { position: relative; display: block; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 15px 16px; transition: transform .14s, border-color .14s, box-shadow .14s; }
       .pk-lane:hover { transform: translateY(-2px); border-color: var(--brand); box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
       .pk-lane-future { opacity: 0.62; }
-      .pk-lane-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .pk-lane-emoji { font-size: 24px; line-height: 1; display: block; }
+      .pk-lane-idx { position: absolute; top: 12px; right: 14px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); color: var(--text-muted); font-family: var(--font-display); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+      .pk-lane-top { display: flex; align-items: center; gap: 8px; margin-top: 11px; }
       .pk-lane-label { font-family: var(--font-display); font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
       .pk-lane-what { color: var(--text-muted); font-size: 13px; line-height: 1.5; margin-top: 6px; }
       .pk-lane-foot { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }

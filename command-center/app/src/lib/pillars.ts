@@ -30,8 +30,10 @@ export interface PillarLane {
   id: string;
   label: string;
   what: string;
+  emoji: string; // shown on the lane box
   status: PillarStatus;
   motion?: LaneMotion; // Service Delivery only: deploy (clone) vs manage (grind)
+  to?: string; // a box links here when set, instead of its lane workspace
   needsSetup?: string; // a note shown inside when the lane is not fully set up
   process?: string[];
   assets?: string[];
@@ -130,6 +132,7 @@ const operations: Pillar = {
   lanes: [
     {
       id: "sops",
+      emoji: "📚",
       label: "SOPs + Knowledge",
       what: "Every process written down with steps and the original training video.",
       status: "live",
@@ -138,6 +141,7 @@ const operations: Pillar = {
     },
     {
       id: "tooling",
+      emoji: "🛠️",
       label: "Tooling + Infra",
       what: "The Command Center itself, the build pipeline, and every integration.",
       status: "live",
@@ -149,6 +153,7 @@ const operations: Pillar = {
     },
     {
       id: "stack",
+      emoji: "🧱",
       label: "Stack",
       what: "Full inventory of every software the agency, Jake, and Hermes use.",
       status: "building",
@@ -157,15 +162,16 @@ const operations: Pillar = {
     },
     {
       id: "comms",
+      emoji: "💬",
       label: "Team Comms",
       what: "Internal chat: roster, channels, DMs, and the line to Jake.",
       status: "live",
       links: [{ label: "Messages", to: "/admin/messages" }],
     },
-    { id: "finance", label: "Finance", what: "Invoicing, profit and loss, payroll.", status: "planned", needsSetup: "Not set up yet. Pick the invoicing + bookkeeping tools and wire the numbers." },
-    { id: "team", label: "Team + Hiring", what: "Recruiting, training, and managing contractors.", status: "planned", needsSetup: "Not set up yet. Define roles and a hiring pipeline." },
-    { id: "reporting", label: "Company Reporting", what: "The numbers across every pillar, in one place.", status: "planned", needsSetup: "Not set up yet. Decide the company KPIs and where they come from." },
-    { id: "admin-legal", label: "Admin + Legal", what: "Contracts, accounts, and compliance.", status: "planned", needsSetup: "Not set up yet. Centralize contracts and accounts." },
+    { id: "finance", emoji: "💰", label: "Finance", what: "Invoicing, profit and loss, payroll.", status: "planned", needsSetup: "Not set up yet. Pick the invoicing + bookkeeping tools and wire the numbers." },
+    { id: "team", emoji: "👥", label: "Team + Hiring", what: "Recruiting, training, and managing contractors.", status: "planned", needsSetup: "Not set up yet. Define roles and a hiring pipeline." },
+    { id: "reporting", emoji: "📊", label: "Company Reporting", what: "The numbers across every pillar, in one place.", status: "planned", needsSetup: "Not set up yet. Decide the company KPIs and where they come from." },
+    { id: "admin-legal", emoji: "📑", label: "Admin + Legal", what: "Contracts, accounts, and compliance.", status: "planned", needsSetup: "Not set up yet. Centralize contracts and accounts." },
   ],
 };
 
@@ -193,12 +199,12 @@ const outreach: Pillar = {
     { title: "Define the shared lane skeleton (source, capture, sequence, handoff, scoreboard)", status: "todo" },
   ],
   lanes: [
-    { id: "cold-email", label: "Cold Email", what: "Sourced lists into sequenced email outreach.", status: "planned", needsSetup: "Channel not built yet." },
-    { id: "cold-calling", label: "Cold Calling", what: "Dial lists with a script and a booking goal.", status: "planned", needsSetup: "Channel not built yet." },
-    { id: "paid-ads-leadgen", label: "Paid Ads (Lead Gen)", what: "Run our own ads to book agency calls.", status: "planned", needsSetup: "Channel not built yet." },
-    { id: "linkedin", label: "LinkedIn / Social", what: "Outbound DMs and content on social.", status: "planned", needsSetup: "Channel not built yet." },
-    { id: "referrals", label: "Referrals + Word of Mouth", what: "Turn happy clients into a referral engine.", status: "planned", needsSetup: "Channel not built yet." },
-    { id: "partnerships", label: "Partnerships / Affiliates", what: "Partners who send us deals for a cut.", status: "planned", needsSetup: "Channel not built yet." },
+    { id: "cold-email", emoji: "✉️", label: "Cold Email", what: "Sourced lists into sequenced email outreach.", status: "planned", needsSetup: "Channel not built yet." },
+    { id: "cold-calling", emoji: "📞", label: "Cold Calling", what: "Dial lists with a script and a booking goal.", status: "planned", needsSetup: "Channel not built yet." },
+    { id: "paid-ads-leadgen", emoji: "🎯", label: "Paid Ads (Lead Gen)", what: "Run our own ads to book agency calls.", status: "planned", needsSetup: "Channel not built yet." },
+    { id: "linkedin", emoji: "🔗", label: "LinkedIn / Social", what: "Outbound DMs and content on social.", status: "planned", needsSetup: "Channel not built yet." },
+    { id: "referrals", emoji: "🤝", label: "Referrals + Word of Mouth", what: "Turn happy clients into a referral engine.", status: "planned", needsSetup: "Channel not built yet." },
+    { id: "partnerships", emoji: "🧩", label: "Partnerships / Affiliates", what: "Partners who send us deals for a cut.", status: "planned", needsSetup: "Channel not built yet." },
   ],
 };
 
@@ -226,12 +232,12 @@ const sales: Pillar = {
     { title: "Build the proposal template", status: "todo" },
   ],
   lanes: [
-    { id: "qualified", label: "Qualified Lead", what: "A prospect worth our time, scored against fit.", status: "planned", needsSetup: "Stage not built yet." },
-    { id: "discovery", label: "Discovery Call", what: "The first call: diagnose, qualify, book the pitch.", status: "planned", needsSetup: "Stage not built yet." },
-    { id: "proposal", label: "Pitch / Proposal", what: "Present the offer and the price.", status: "planned", needsSetup: "Stage not built yet." },
-    { id: "follow-up", label: "Follow-up", what: "Handle objections and chase the decision.", status: "planned", needsSetup: "Stage not built yet." },
-    { id: "closed-won", label: "Closed Won", what: "Signed and paid, handed to Onboarding.", status: "planned", needsSetup: "Stage not built yet." },
-    { id: "nurture", label: "Nurture", what: "Not-yet prospects kept warm for later.", status: "planned", needsSetup: "Stage not built yet." },
+    { id: "qualified", emoji: "✅", label: "Qualified Lead", what: "A prospect worth our time, scored against fit.", status: "planned", needsSetup: "Stage not built yet." },
+    { id: "discovery", emoji: "🔍", label: "Discovery Call", what: "The first call: diagnose, qualify, book the pitch.", status: "planned", needsSetup: "Stage not built yet." },
+    { id: "proposal", emoji: "📝", label: "Pitch / Proposal", what: "Present the offer and the price.", status: "planned", needsSetup: "Stage not built yet." },
+    { id: "follow-up", emoji: "🔁", label: "Follow-up", what: "Handle objections and chase the decision.", status: "planned", needsSetup: "Stage not built yet." },
+    { id: "closed-won", emoji: "🏆", label: "Closed Won", what: "Signed and paid, handed to Onboarding.", status: "planned", needsSetup: "Stage not built yet." },
+    { id: "nurture", emoji: "🌱", label: "Nurture", what: "Not-yet prospects kept warm for later.", status: "planned", needsSetup: "Stage not built yet." },
   ],
 };
 
@@ -259,11 +265,11 @@ const onboarding: Pillar = {
     { title: "Tighten the access + assets collection step", status: "todo" },
   ],
   lanes: [
-    { id: "welcome", label: "Welcome / Paid", what: "Payment confirmed, welcome sent, account provisioned.", status: "building", links: [{ label: "Onboarding wizard", to: "/admin/onboarding" }] },
-    { id: "kickoff", label: "Kickoff Call", what: "Align on goals, gather the brief.", status: "building", links: [{ label: "Onboarding wizard", to: "/admin/onboarding" }] },
-    { id: "collect-access", label: "Collect Access + Assets", what: "Logins, brand assets, ad accounts.", status: "building", links: [{ label: "Onboarding wizard", to: "/admin/onboarding" }] },
-    { id: "tech-setup", label: "Tech / Account Setup", what: "Provision the software, GHL snapshot, tracking.", status: "building", links: [{ label: "Onboarding wizard", to: "/admin/onboarding" }] },
-    { id: "first-campaign", label: "First Campaign Live", what: "First ads live, handed to Delivery + Retention.", status: "building", links: [{ label: "Onboarding wizard", to: "/admin/onboarding" }] },
+    { id: "welcome", emoji: "🎉", label: "Welcome / Paid", what: "Payment confirmed, welcome sent, account provisioned.", status: "building", links: [{ label: "Onboarding wizard", to: "/admin/onboarding" }] },
+    { id: "kickoff", emoji: "🚀", label: "Kickoff Call", what: "Align on goals, gather the brief.", status: "building", links: [{ label: "Onboarding wizard", to: "/admin/onboarding" }] },
+    { id: "collect-access", emoji: "🔑", label: "Collect Access + Assets", what: "Logins, brand assets, ad accounts.", status: "building", links: [{ label: "Onboarding wizard", to: "/admin/onboarding" }] },
+    { id: "tech-setup", emoji: "⚙️", label: "Tech / Account Setup", what: "Provision the software, GHL snapshot, tracking.", status: "building", links: [{ label: "Onboarding wizard", to: "/admin/onboarding" }] },
+    { id: "first-campaign", emoji: "📣", label: "First Campaign Live", what: "First ads live, handed to Delivery + Retention.", status: "building", links: [{ label: "Onboarding wizard", to: "/admin/onboarding" }] },
   ],
 };
 
@@ -293,6 +299,7 @@ const service: Pillar = {
   lanes: [
     {
       id: "software",
+      emoji: "💻",
       label: "Software / Dashboard",
       what: "The client reporting platform: build the master once, clone per client.",
       status: "live",
@@ -317,13 +324,13 @@ const service: Pillar = {
       ],
       scoreboard: [{ label: "Live clients", metricKey: "activeClients" }],
     },
-    { id: "website", label: "Website / Web Design", what: "Template library, customized per client.", status: "building", motion: "deploy" },
-    { id: "sales-infra", label: "Sales Infrastructure", what: "The GHL snapshot: funnels, pipelines, automations, calendars, CRM.", status: "building", motion: "deploy" },
-    { id: "tracking", label: "Tracking + Attribution", what: "Pixels, conversion API, call tracking. Feeds the software's reporting.", status: "building", motion: "deploy" },
-    { id: "ai-agents", label: "AI Agents", what: "Build-once agents dropped into a client, then maintained.", status: "planned", motion: "deploy", needsSetup: "Offer not built yet." },
-    { id: "paid-ads", label: "Paid Ads Management", what: "Launch, monitor, kill / scale / refresh. The core ongoing work.", status: "live", motion: "manage", links: [{ label: "Clients", to: "/admin/clients" }], scoreboard: [{ label: "Ad spend managed", metricKey: "adSpend" }] },
-    { id: "seo", label: "SEO", what: "Ongoing search optimization as a service.", status: "planned", motion: "manage", needsSetup: "Offer not built yet." },
-    { id: "commercial-leadgen", label: "Commercial Lead-Gen (for clients)", what: "Cold email to win commercial jobs for construction + service clients.", status: "planned", motion: "manage", needsSetup: "Possible future offer." },
+    { id: "website", emoji: "🌐", label: "Website / Web Design", what: "Template library, customized per client.", status: "building", motion: "deploy" },
+    { id: "sales-infra", emoji: "🏗️", label: "Sales Infrastructure", what: "The GHL snapshot: funnels, pipelines, automations, calendars, CRM.", status: "building", motion: "deploy" },
+    { id: "tracking", emoji: "📡", label: "Tracking + Attribution", what: "Pixels, conversion API, call tracking. Feeds the software's reporting.", status: "building", motion: "deploy" },
+    { id: "ai-agents", emoji: "🤖", label: "AI Agents", what: "Build-once agents dropped into a client, then maintained.", status: "planned", motion: "deploy", needsSetup: "Offer not built yet." },
+    { id: "paid-ads", emoji: "🎯", to: "/admin/ads", label: "Paid Ads Management", what: "Launch, monitor, kill / scale / refresh. The core ongoing work.", status: "live", motion: "manage", links: [{ label: "Clients", to: "/admin/clients" }], scoreboard: [{ label: "Ad spend managed", metricKey: "adSpend" }] },
+    { id: "seo", emoji: "🔎", label: "SEO", what: "Ongoing search optimization as a service.", status: "planned", motion: "manage", needsSetup: "Offer not built yet." },
+    { id: "commercial-leadgen", emoji: "🏭", label: "Commercial Lead-Gen (for clients)", what: "Cold email to win commercial jobs for construction + service clients.", status: "planned", motion: "manage", needsSetup: "Possible future offer." },
   ],
 };
 
@@ -351,11 +358,11 @@ const retention: Pillar = {
     { title: "Define the churn-risk early-warning signals", status: "todo" },
   ],
   lanes: [
-    { id: "reporting", label: "Client Reporting", what: "Weekly and monthly reports. Mostly auto-produced by the software.", status: "building" },
-    { id: "relationship", label: "Relationship + Check-ins", what: "Calls and messages that keep the client close.", status: "planned", links: [{ label: "Messages", to: "/admin/messages" }], needsSetup: "Cadence not defined yet." },
-    { id: "performance", label: "Performance vs Goals", what: "Are we hitting what the client signed up for.", status: "planned", needsSetup: "Not set up yet." },
-    { id: "upsell", label: "Upsell / Expansion", what: "More services, more spend, more value.", status: "planned", needsSetup: "Not set up yet." },
-    { id: "saves", label: "Churn-risk Saves", what: "Catch unhappy clients before they leave.", status: "planned", needsSetup: "Not set up yet." },
+    { id: "reporting", emoji: "📊", label: "Client Reporting", what: "Weekly and monthly reports. Mostly auto-produced by the software.", status: "building" },
+    { id: "relationship", emoji: "💌", label: "Relationship + Check-ins", what: "Calls and messages that keep the client close.", status: "planned", links: [{ label: "Messages", to: "/admin/messages" }], needsSetup: "Cadence not defined yet." },
+    { id: "performance", emoji: "🎯", label: "Performance vs Goals", what: "Are we hitting what the client signed up for.", status: "planned", needsSetup: "Not set up yet." },
+    { id: "upsell", emoji: "📈", label: "Upsell / Expansion", what: "More services, more spend, more value.", status: "planned", needsSetup: "Not set up yet." },
+    { id: "saves", emoji: "🛟", label: "Churn-risk Saves", what: "Catch unhappy clients before they leave.", status: "planned", needsSetup: "Not set up yet." },
   ],
 };
 

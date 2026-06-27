@@ -1,43 +1,44 @@
-// Lanes tab content for a pillar. Renders the lanes as a clean, spacious list
-// (not card blocks): one row per lane, status dot, name, one-line description,
-// motion pill where relevant, and a chevron into the lane workspace. Pipeline
-// pillars get numbered rows; Service Delivery splits into Deploy and Manage
-// sections. Tab content only: the parent AdminPillar provides the page shell.
+// Lanes tab content for a pillar. Renders the lanes as small emoji boxes in a
+// responsive grid: emoji, name, one-line description, status dot, and a motion
+// pill where relevant. Pipeline pillars get a step number per box; Service
+// Delivery splits into Deploy and Manage sections. A box links to its lane
+// workspace, or to lane.to when set (Paid Ads points at the tracker). Tab
+// content only: the parent AdminPillar provides the page shell.
 
 import { Link } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
 import type { Pillar, PillarLane } from "../../../lib/pillars";
 import { liveStatus } from "../../../lib/pillarStatus";
 import { StatusDot } from "../PillarKit";
 
-function LaneRow({ pillarId, lane, index }: { pillarId: string; lane: PillarLane; index?: number }) {
+function LaneBox({ pillarId, lane, index }: { pillarId: string; lane: PillarLane; index?: number }) {
+  const href = lane.to ?? `/admin/pillar/${pillarId}/lane/${lane.id}`;
   return (
-    <Link className="pk-li" to={`/admin/pillar/${pillarId}/lane/${lane.id}`}>
-      {index !== undefined && <span className="pk-li-idx">{index}</span>}
-      <div className="pk-li-main">
-        <div className="pk-li-label">
-          <StatusDot status={liveStatus(lane)} />
-          {lane.label}
+    <Link className="pk-lane" to={href}>
+      <span className="pk-lane-emoji" aria-hidden>
+        {lane.emoji}
+      </span>
+      {index !== undefined && <span className="pk-lane-idx">{index}</span>}
+      <div className="pk-lane-top">
+        <StatusDot status={liveStatus(lane)} />
+        <span className="pk-lane-label">{lane.label}</span>
+      </div>
+      <div className="pk-lane-what">{lane.what}</div>
+      {lane.motion && (
+        <div className="pk-lane-foot">
+          <span className={"pk-motion pk-motion-" + lane.motion}>{lane.motion}</span>
         </div>
-        <div className="pk-li-sub">{lane.what}</div>
-      </div>
-      <div className="pk-li-meta">
-        {lane.motion && <span className={"pk-motion pk-motion-" + lane.motion}>{lane.motion}</span>}
-        <span className="pk-li-chev">
-          <ChevronRight />
-        </span>
-      </div>
+      )}
     </Link>
   );
 }
 
 export default function LanesTab({ pillar }: { pillar: Pillar }) {
-  // Pipeline: a numbered list, front to back.
+  // Pipeline: numbered boxes, front to back.
   if (pillar.shape === "pipeline") {
     return (
-      <div className="pk-list">
+      <div className="pk-lanes">
         {pillar.lanes.map((lane, i) => (
-          <LaneRow key={lane.id} pillarId={pillar.id} lane={lane} index={i + 1} />
+          <LaneBox key={lane.id} pillarId={pillar.id} lane={lane} index={i + 1} />
         ))}
       </div>
     );
@@ -50,26 +51,26 @@ export default function LanesTab({ pillar }: { pillar: Pillar }) {
     return (
       <div>
         <div className="pk-list-sec-h">Deploy (clone)</div>
-        <div className="pk-list">
+        <div className="pk-lanes">
           {deploy.map((lane) => (
-            <LaneRow key={lane.id} pillarId={pillar.id} lane={lane} />
+            <LaneBox key={lane.id} pillarId={pillar.id} lane={lane} />
           ))}
         </div>
         <div className="pk-list-sec-h">Manage (ongoing)</div>
-        <div className="pk-list">
+        <div className="pk-lanes">
           {manage.map((lane) => (
-            <LaneRow key={lane.id} pillarId={pillar.id} lane={lane} />
+            <LaneBox key={lane.id} pillarId={pillar.id} lane={lane} />
           ))}
         </div>
       </div>
     );
   }
 
-  // Everything else: a single clean list.
+  // Everything else: a single grid of boxes.
   return (
-    <div className="pk-list">
+    <div className="pk-lanes">
       {pillar.lanes.map((lane) => (
-        <LaneRow key={lane.id} pillarId={pillar.id} lane={lane} />
+        <LaneBox key={lane.id} pillarId={pillar.id} lane={lane} />
       ))}
     </div>
   );

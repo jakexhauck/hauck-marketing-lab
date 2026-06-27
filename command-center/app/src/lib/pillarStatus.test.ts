@@ -55,6 +55,7 @@ describe("liveStatus", () => {
       id: "x",
       label: "X",
       what: "",
+      emoji: "🧪",
       status: "planned",
       scoreboard: [{ label: "Clients", metricKey: "activeClients" }],
     };
