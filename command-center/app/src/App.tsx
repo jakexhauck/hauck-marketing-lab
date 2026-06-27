@@ -36,6 +36,8 @@ import AdminOnboarding from "./routes/admin/AdminOnboarding";
 import AdminOnboardingDetail from "./routes/admin/AdminOnboardingDetail";
 import AdminPillar from "./routes/admin/AdminPillar";
 import AdminLane from "./routes/admin/AdminLane";
+import AdminAds from "./routes/admin/AdminAds";
+import AdminAdsClient from "./routes/admin/AdminAdsClient";
 import AdminInfrastructure from "./routes/admin/AdminInfrastructure";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
@@ -366,6 +368,23 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminInfrastructure />
+                  </AdminRoute>
+                }
+              />
+              {/* Service Delivery > Paid Ads: the per-client ad tracker. */}
+              <Route
+                path="/admin/ads"
+                element={
+                  <AdminRoute>
+                    <AdminAds />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/ads/:clientId"
+                element={
+                  <AdminRoute>
+                    <AdminAdsClient />
                   </AdminRoute>
                 }
               />
