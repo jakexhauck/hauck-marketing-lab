@@ -6,6 +6,7 @@
 import { Link, Navigate, useParams } from "react-router-dom";
 import { getPillar } from "../../lib/pillarStatus";
 import { Scoreboard, pillarIcon } from "../../components/pillars/PillarKit";
+import { usePillarTasks } from "../../hooks/usePillarTasks";
 import type { PillarTab } from "../../lib/pillars";
 import OverviewTab from "../../components/pillars/tabs/OverviewTab";
 import LanesTab from "../../components/pillars/tabs/LanesTab";
@@ -17,6 +18,9 @@ import StackTab from "../../components/pillars/tabs/StackTab";
 export default function AdminPillar() {
   const { pillarId, tabId } = useParams();
   const pillar = getPillar(pillarId ?? "");
+  // Hook runs unconditionally (no pillar -> empty id -> no fetch). One instance
+  // feeds both the Tasks tab badge and the TasksTab list, so they share a fetch.
+  const pillarTasks = usePillarTasks(pillar?.id ?? "");
   if (!pillar) return <Navigate to="/admin/clients" replace />;
 
   // Default to the first tab (Overview) when no tab or an unknown tab is given.
@@ -57,7 +61,11 @@ export default function AdminPillar() {
             className={`pk-tab${t.id === active.id ? " on" : ""}`}
           >
             {t.label}
-            {t.kind === "tasks" && <span className="pk-tabcount">{pillar.tasks.length}</span>}
+            {t.kind === "tasks" && (
+              <span className="pk-tabcount">
+                {pillarTasks.loading ? pillar.tasks.length : pillarTasks.tasks.length}
+              </span>
+            )}
             {t.kind === "team" && <span className="pk-tabcount">{pillar.team.length}</span>}
           </Link>
         ))}
@@ -66,7 +74,7 @@ export default function AdminPillar() {
       {active.kind === "overview" && <OverviewTab pillar={pillar} />}
       {active.kind === "lanes" && <LanesTab pillar={pillar} />}
       {active.kind === "team" && <TeamTab pillar={pillar} />}
-      {active.kind === "tasks" && <TasksTab pillar={pillar} />}
+      {active.kind === "tasks" && <TasksTab tasks={pillarTasks} />}
       {active.kind === "reporting" && <ReportingTab pillar={pillar} />}
       {active.kind === "stack" && <StackTab pillar={pillar} />}
     </div>

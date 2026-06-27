@@ -254,13 +254,17 @@ export interface AdminClient {
   createdAt: string;
 }
 
-// An agency task in the admin "Tasks" tab. tenantId null means agency-wide;
-// otherwise it is tied to that client (clientName is the joined display label).
+// An agency task in the admin "Tasks" tab, or a pillar task in a pillar
+// workspace's Tasks tab. tenantId null + pillarId null = agency-wide; tenantId
+// set = tied to that client (clientName is the joined label); pillarId set = a
+// pillar task (operations, outreach, ...). A task is never both client + pillar.
 export interface AdminTask {
   id: string;
   tenantId: string | null;
+  pillarId: string | null;
   clientName: string | null;
   title: string;
+  note: string | null;
   dueDate: string | null;
   completed: boolean;
   createdAt: string;

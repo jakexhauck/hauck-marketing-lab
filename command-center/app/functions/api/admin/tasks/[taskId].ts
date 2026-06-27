@@ -1,10 +1,14 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 
+const SELECT = "id, tenant_id, pillar_id, title, note, due_date, completed, created_at, tenants(name)";
+
 interface PatchBody {
   title?: string;
   // null clears the category back to agency-wide; a string re-tags to a client.
   tenantId?: string | null;
+  // Optional context line under the title. Empty string clears it.
+  note?: string | null;
   dueDate?: string | null;
   completed?: boolean;
 }
@@ -33,13 +37,14 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     update.title = title;
   }
   if ("tenantId" in body) update.tenant_id = body.tenantId ? body.tenantId : null;
+  if ("note" in body) update.note = body.note && body.note.trim() ? body.note.trim() : null;
   if ("dueDate" in body) update.due_date = body.dueDate ? body.dueDate : null;
 
   const { data, error } = await client
     .from("admin_tasks")
     .update(update)
     .eq("id", taskId)
-    .select("id, tenant_id, title, due_date, completed, created_at, tenants(name)")
+    .select(SELECT)
     .single();
   if (error || !data) {
     return Response.json({ error: error?.message ?? "task not found" }, { status: 404 });
@@ -48,7 +53,9 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   const row = data as unknown as {
     id: string;
     tenant_id: string | null;
+    pillar_id: string | null;
     title: string;
+    note: string | null;
     due_date: string | null;
     completed: boolean;
     created_at: string;
@@ -58,8 +65,10 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     task: {
       id: row.id,
       tenantId: row.tenant_id,
+      pillarId: row.pillar_id,
       clientName: row.tenants?.name ?? null,
       title: row.title,
+      note: row.note,
       dueDate: row.due_date,
       completed: row.completed,
       createdAt: row.created_at,
