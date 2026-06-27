@@ -40,14 +40,15 @@ export interface PillarLane {
 }
 
 // A pillar's tabs. Every pillar has 'overview', its lanes tab, 'team', 'tasks';
-// most have 'reporting'; Operations adds 'clients' and 'stack'.
+// most have 'reporting'; Operations adds 'stack' and 'build' (the Build Lab).
 export type PillarTabKind =
   | "overview"
   | "lanes"
   | "team"
   | "tasks"
   | "reporting"
-  | "stack";
+  | "stack"
+  | "build";
 
 export interface PillarTab {
   id: string; // URL segment, e.g. "team"
@@ -94,6 +95,7 @@ const tab = {
   tasks: { id: "tasks", label: "Tasks", kind: "tasks" } as PillarTab,
   reporting: { id: "reporting", label: "Reporting", kind: "reporting" } as PillarTab,
   stack: { id: "stack", label: "Stack", kind: "stack" } as PillarTab,
+  build: { id: "build", label: "Build Lab", kind: "build" } as PillarTab,
   lanes: (label: string): PillarTab => ({ id: "lanes", label, kind: "lanes" }),
 };
 
@@ -115,7 +117,7 @@ const operations: Pillar = {
   ],
   // Overview is the command deck (greeting hero + live clients board), so there
   // is no separate Clients tab: the clients live in Operations' Overview.
-  tabs: [tab.overview, tab.lanes("Functions"), tab.stack, tab.team, tab.tasks, tab.reporting],
+  tabs: [tab.overview, tab.lanes("Functions"), tab.build, tab.stack, tab.team, tab.tasks, tab.reporting],
   team: [
     { name: "Jake Hauck", role: "Owner / Operator", kind: "human", status: "active" },
     { name: "Operations Hermes", role: "Conductor: coordinates every pillar agent", kind: "agent", status: "planned" },

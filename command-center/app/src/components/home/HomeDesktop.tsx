@@ -225,14 +225,14 @@ export default function HomeDesktop() {
 
                     {/* The rest */}
                     {rest.length > 0 && (
-                      <ul className="mt-2">
+                      <ul className="fx-stagger mt-2">
                         {rest.map((p) => {
                           const pct =
                             p.total > 0
                               ? Math.round((p.open / p.total) * 100)
                               : 0;
                           return (
-                            <li key={p.id}>
+                            <li key={p.id} className="fx-item">
                               <button
                                 type="button"
                                 onClick={() => openCard(p.id)}
@@ -294,9 +294,9 @@ export default function HomeDesktop() {
                       No recent activity yet.
                     </div>
                   ) : (
-                    <ul className="-mt-1">
+                    <ul className="fx-stagger -mt-1">
                       {activity.slice(0, 8).map((a, idx, arr) => (
-                        <li key={a.id}>
+                        <li key={a.id} className="fx-item">
                           <div
                             className={
                               "flex items-center gap-3 py-3" +

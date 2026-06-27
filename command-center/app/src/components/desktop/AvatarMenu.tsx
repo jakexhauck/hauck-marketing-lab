@@ -58,7 +58,7 @@ export default function AvatarMenu() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+8px)] z-30 w-56 overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-lg)]"
+          className="fx-menu absolute right-0 top-[calc(100%+8px)] z-30 w-56 overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-lg)]"
         >
           <div className="border-b border-divider px-4 py-3">
             <div className="truncate text-[13px] font-semibold text-text">

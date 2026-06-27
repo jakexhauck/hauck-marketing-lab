@@ -24,7 +24,7 @@ function Group({
   children: React.ReactNode;
 }) {
   return (
-    <section>
+    <section className="fx-item">
       <h2 className="label-cap mb-2">{label}</h2>
       {children}
     </section>
@@ -42,7 +42,7 @@ export default function SettingsDesktop() {
       title="Settings"
       subtitle="Your account and preferences"
     >
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
+      <div className="fx-stagger mx-auto flex w-full max-w-3xl flex-col gap-8">
         {/* Account */}
         <Group label="Account">
           <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-sm)]">

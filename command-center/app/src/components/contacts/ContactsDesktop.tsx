@@ -106,7 +106,7 @@ export default function ContactsDesktop() {
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="fx-stagger">
               {visible.map((c) => (
                 <ContactRow key={c.id} contact={c} now={now} />
               ))}
@@ -126,7 +126,7 @@ function ContactRow({ contact, now }: { contact: ApiContact; now: number }) {
   const extraTags = contact.tags.length - visibleTags.length;
 
   return (
-    <tr className="border-b border-divider transition-colors last:border-0 hover:bg-surface-2">
+    <tr className="fx-item border-b border-divider transition-colors last:border-0 hover:bg-surface-2">
       {/* Name + email */}
       <td className="px-6 py-3.5">
         <div className="flex items-center gap-3">

@@ -90,9 +90,9 @@ export default function ConversationsDesktop() {
           />
         </div>
       ) : (
-        <ul className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+        <ul className="fx-stagger overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
           {visible.map((c, idx) => (
-            <li key={c.id}>
+            <li key={c.id} className="fx-item">
               <ConversationRow
                 conv={c}
                 now={now}

@@ -517,9 +517,24 @@ body {
   animation: shimmer 1.4s linear infinite;
 }
 
+/* Dropdown / popover entrance. Scales in from the trigger rather than from
+   nowhere: callers set transform-origin to match where the menu is anchored
+   (e.g. top right under a top-right avatar). Enter-only; close stays instant. */
+@keyframes fx-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+}
+.fx-menu {
+  animation: fx-menu-in 150ms var(--ease-out) backwards;
+  transform-origin: top right;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fx-rise,
-  .fx-item {
+  .fx-item,
+  .fx-menu {
     animation: none;
   }
   .fx-lift:hover {

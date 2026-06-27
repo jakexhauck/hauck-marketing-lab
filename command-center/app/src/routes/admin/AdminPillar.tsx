@@ -14,6 +14,7 @@ import TeamTab from "../../components/pillars/tabs/TeamTab";
 import TasksTab from "../../components/pillars/tabs/TasksTab";
 import ReportingTab from "../../components/pillars/tabs/ReportingTab";
 import StackTab from "../../components/pillars/tabs/StackTab";
+import BuildTab from "../../components/pillars/tabs/BuildTab";
 
 export default function AdminPillar() {
   const { pillarId, tabId } = useParams();
@@ -77,6 +78,7 @@ export default function AdminPillar() {
       {active.kind === "tasks" && <TasksTab tasks={pillarTasks} />}
       {active.kind === "reporting" && <ReportingTab pillar={pillar} />}
       {active.kind === "stack" && <StackTab pillar={pillar} />}
+      {active.kind === "build" && <BuildTab />}
     </div>
   );
 }

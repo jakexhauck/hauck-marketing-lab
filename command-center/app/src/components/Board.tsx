@@ -99,7 +99,7 @@ export default function Board({ leads, stages, pipelineId }: Props) {
                 </span>
               </header>
 
-              <div className="flex flex-col gap-2 rounded-2xl bg-[var(--surface-2)] p-2">
+              <div className="fx-stagger flex flex-col gap-2 rounded-2xl bg-[var(--surface-2)] p-2">
                 {items.length === 0 ? (
                   <p className="px-2 py-6 text-center text-[12px] text-[var(--text-faint)]">
                     Empty
@@ -108,7 +108,7 @@ export default function Board({ leads, stages, pipelineId }: Props) {
                   items.map((lead) => (
                     <div
                       key={lead.id}
-                      className="relative rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
+                      className="fx-item fx-lift relative rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
                     >
                       {pendingLeadId === lead.id && (
                         <div
