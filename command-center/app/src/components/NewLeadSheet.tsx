@@ -1,9 +1,38 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import type { ApiPipelineSummary } from "../lib/api";
 import { useToast } from "../context/ToastContext";
+import { e164 } from "../lib/phone";
+
+// Progressive "as you type" US formatter. phone.ts has formatPhone (one shot,
+// 10 digits only) and e164 (normalizer), but no incremental formatter, so the
+// display logic lives here. International or longer-than-US input is left
+// largely intact so a leading + and country codes survive.
+function formatPhoneInput(input: string): string {
+  if (input.trim().startsWith("+")) return input;
+  const digits = input.replace(/\D/g, "");
+  if (digits.length > 10) return input;
+  if (digits.length === 0) return "";
+  if (digits.length < 4) return `(${digits}`;
+  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+}
+
+// Map a digit count to a caret index within a formatted string, so the cursor
+// stays put after we reflow the formatting on each keystroke.
+function caretForDigitCount(formatted: string, digitCount: number): number {
+  if (digitCount <= 0) return 0;
+  let seen = 0;
+  for (let i = 0; i < formatted.length; i++) {
+    if (/\d/.test(formatted[i])) {
+      seen++;
+      if (seen === digitCount) return i + 1;
+    }
+  }
+  return formatted.length;
+}
 
 interface Props {
   open: boolean;
@@ -38,8 +67,37 @@ export default function NewLeadSheet({ open, pipeline, onClose, leadsKey }: Prop
     setSubmitting(false);
   }, [open, stages]);
 
+  // Quiet validation: a present, non-international phone needs 10+ digits.
+  // Empty stays allowed. Anything starting with + is treated as international
+  // and left to the backend to validate.
+  const phoneDigits = phone.replace(/\D/g, "");
+  const phoneIsInternational = phone.trim().startsWith("+");
+  const phoneTooShort =
+    phone.trim() !== "" &&
+    !phoneIsInternational &&
+    phoneDigits.length > 0 &&
+    phoneDigits.length < 10;
+
   const canSubmit =
-    name.trim() !== "" && Boolean(pipeline) && stageId !== "" && !submitting;
+    name.trim() !== "" &&
+    Boolean(pipeline) &&
+    stageId !== "" &&
+    !phoneTooShort &&
+    !submitting;
+
+  function handlePhoneChange(e: ChangeEvent<HTMLInputElement>) {
+    const input = e.currentTarget;
+    const raw = input.value;
+    const selectionStart = input.selectionStart ?? raw.length;
+    const digitsBeforeCaret = raw.slice(0, selectionStart).replace(/\D/g, "").length;
+    const formatted = formatPhoneInput(raw);
+    setPhone(formatted);
+    // Restore the caret after React reflows the controlled value.
+    requestAnimationFrame(() => {
+      const pos = caretForDigitCount(formatted, digitsBeforeCaret);
+      input.setSelectionRange(pos, pos);
+    });
+  }
 
   async function handleSubmit() {
     if (!canSubmit || !pipeline) return;
@@ -49,7 +107,7 @@ export default function NewLeadSheet({ open, pipeline, onClose, leadsKey }: Prop
         method: "POST",
         body: JSON.stringify({
           name: name.trim(),
-          phone: phone.trim() || undefined,
+          phone: phone.trim() ? e164(phone) : undefined,
           email: email.trim() || undefined,
           pipelineId: pipeline.id,
           pipelineStageId: stageId,
@@ -124,10 +182,20 @@ export default function NewLeadSheet({ open, pipeline, onClose, leadsKey }: Prop
                 type="tel"
                 inputMode="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={handlePhoneChange}
                 placeholder="Optional"
-                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-faint)] focus:border-[var(--ring)]"
+                aria-invalid={phoneTooShort}
+                className={`rounded-xl border bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-faint)] ${
+                  phoneTooShort
+                    ? "border-[var(--danger)] focus:border-[var(--danger)]"
+                    : "border-[var(--border)] focus:border-[var(--ring)]"
+                }`}
               />
+              {phoneTooShort && (
+                <span className="px-1 text-xs text-[var(--danger)]">
+                  Enter a full phone number, or leave it blank.
+                </span>
+              )}
             </label>
 
             <label className="flex flex-col gap-1">

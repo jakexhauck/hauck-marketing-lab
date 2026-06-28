@@ -1,11 +1,13 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
   ChevronRight,
   Filter,
   LogOut,
   Receipt,
+  RefreshCw,
   Search,
   Settings,
   TrendingUp,
@@ -20,6 +22,7 @@ import BottomNav from "../components/BottomNav";
 import EmptyState from "../components/EmptyState";
 import NotificationPrompt from "../components/NotificationPrompt";
 import NotificationBell from "../components/NotificationBell";
+import { Skeleton } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { usePipelines } from "../context/PipelinesContext";
 import { useNow } from "../context/NowContext";
@@ -27,6 +30,7 @@ import PullToRefresh from "../components/PullToRefresh";
 import { useActivityQuery, useSummaryQuery } from "../hooks/useApi";
 import { APP_BRAND } from "../lib/appBrand";
 import { activityLabel } from "../lib/activityLabels";
+import { timeAgo } from "../lib/timeAgo";
 import type { ApiActivity, PipelineSummary } from "../lib/api";
 
 function activityTitle(a: ApiActivity): string {
@@ -68,14 +72,39 @@ function shortName(name: string): string {
   return name.replace(/\s+Pipeline$/i, "").trim();
 }
 
+// "Updated 2m ago" / "Updated just now" for the hero freshness line. Built from
+// react-query's dataUpdatedAt so the time is real, never fabricated.
+function freshnessLabel(updatedAt: number, now: number): string {
+  if (!updatedAt) return "";
+  const rel = timeAgo(new Date(updatedAt).toISOString(), now);
+  // Collapse sub-minute updates into a calmer "just now".
+  if (!rel || rel.endsWith("s ago")) return "Updated just now";
+  return `Updated ${rel}`;
+}
+
+// The Home screen shares these query keys with pull-to-refresh; tapping the
+// freshness line and overscrolling both invalidate the same set.
+const REFRESH_KEYS: unknown[][] = [["summary"], ["activity"], ["notifications"]];
+
 export default function Home() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { session, mode, signOut, isOwner, can } = useAuth();
   const { setSelectedId } = usePipelines();
   const now = useNow();
   const useReal = Boolean(session);
   const query = useSummaryQuery(useReal);
   const activityQuery = useActivityQuery(useReal);
+
+  // Sign out is destructive, so the row arms on first tap and only signs out on
+  // the second. The arm auto-disarms after a few seconds so a stray tap cannot
+  // leave it primed indefinitely.
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  useEffect(() => {
+    if (!confirmSignOut) return;
+    const t = window.setTimeout(() => setConfirmSignOut(false), 3500);
+    return () => window.clearTimeout(t);
+  }, [confirmSignOut]);
 
   const summary = query.data;
   const activity = activityQuery.data?.activity ?? [];
@@ -85,6 +114,17 @@ export default function Home() {
     month: "short",
     day: "numeric",
   });
+
+  // Real last-success time from the cache, not a fabricated Date.now().
+  const updatedLabel = freshnessLabel(query.dataUpdatedAt, now);
+
+  const refreshAll = () => {
+    void Promise.all(
+      REFRESH_KEYS.map((key) =>
+        queryClient.invalidateQueries({ queryKey: key }),
+      ),
+    );
+  };
 
   const openCard = (pipelineId: string) => {
     setSelectedId(pipelineId);
@@ -127,6 +167,20 @@ export default function Home() {
               <div className="truncate text-[12px] text-white/60">
                 {greeting(now)}, {today}
               </div>
+              {updatedLabel && (
+                <button
+                  type="button"
+                  onClick={refreshAll}
+                  className="mt-1 inline-flex items-center gap-1 text-[11px] text-white/40 transition-colors active:text-white/70"
+                >
+                  <RefreshCw
+                    size={11}
+                    className={query.isFetching ? "animate-spin" : undefined}
+                    aria-hidden="true"
+                  />
+                  {updatedLabel}
+                </button>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2.5">
@@ -153,11 +207,29 @@ export default function Home() {
             {(query.error as Error | null)?.message ?? "Try again."}
           </div>
         ) : query.isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div
-              className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--brand-primary)]"
-              aria-hidden="true"
-            />
+          // First load only (no cached summary yet). Skeletons mirror the real
+          // layout: featured card then the pipeline list rows. Background
+          // refetches keep the live content and never fall back to this.
+          <div aria-hidden="true">
+            <div className="px-[22px] pb-1 pt-5">
+              <Skeleton className="h-3 w-20" />
+            </div>
+            <Skeleton className="mx-[22px] h-[128px] w-[calc(100%-44px)] rounded-[18px]" />
+            <div className="px-[22px] pb-2 pt-5">
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <div className="mx-[22px] divide-y divide-[var(--divider)] overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-3.5 px-4 py-3.5">
+                  <Skeleton className="h-[38px] w-[38px] rounded-xl" />
+                  <div className="min-w-0 flex-1">
+                    <Skeleton className="h-3.5 w-1/2" />
+                    <Skeleton className="mt-2 h-3 w-1/3" />
+                  </div>
+                  <Skeleton className="h-5 w-6" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : !summary || !featured ? (
           <EmptyState
@@ -269,15 +341,27 @@ export default function Home() {
                 { key: "settings", label: "Settings", sub: "Account and preferences", to: "/settings", Icon: Settings, color: "#475569" },
                 { key: "signout", label: "Sign out", sub: "Log out of this device", to: "", Icon: LogOut, color: "#be123c" },
               ].map(
-                (link, idx, arr) => (
+                (link, idx, arr) => {
+                  const isSignout = link.key === "signout";
+                  const confirming = isSignout && confirmSignOut;
+                  const label = confirming ? "Tap again to sign out" : link.label;
+                  const sub = confirming
+                    ? "This logs you out of this device"
+                    : link.sub;
+                  return (
                   <li key={link.key}>
                     <button
                       type="button"
                       onClick={() => {
-                        if (link.key === "signout") {
-                          // signOut tears down push + caches, then the route
-                          // guard sends us to /login; navigate just makes it
-                          // immediate.
+                        if (isSignout) {
+                          // First tap arms the destructive action; only the
+                          // second tap actually signs out. signOut tears down
+                          // push + caches, then the route guard sends us to
+                          // /login; navigate just makes it immediate.
+                          if (!confirmSignOut) {
+                            setConfirmSignOut(true);
+                            return;
+                          }
                           void signOut().then(() =>
                             navigate("/login", { replace: true }),
                           );
@@ -286,7 +370,10 @@ export default function Home() {
                         navigate(link.to);
                       }}
                       className={
-                        "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
+                        "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors" +
+                        (confirming
+                          ? " bg-rose-50 active:bg-rose-100 dark:bg-rose-950/50 dark:active:bg-rose-950"
+                          : " active:bg-[var(--surface-2)]") +
                         (idx === arr.length - 1
                           ? ""
                           : " border-b border-[var(--divider)]")
@@ -299,17 +386,39 @@ export default function Home() {
                         <link.Icon size={18} strokeWidth={2} />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate font-display text-[15px] font-bold text-[var(--text)]">
-                          {link.label}
+                        <div
+                          className={
+                            "truncate font-display text-[15px] font-bold" +
+                            (confirming
+                              ? " text-rose-700 dark:text-rose-300"
+                              : " text-[var(--text)]")
+                          }
+                        >
+                          {label}
                         </div>
-                        <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">
-                          {link.sub}
+                        <div
+                          className={
+                            "mt-0.5 text-[12px]" +
+                            (confirming
+                              ? " text-rose-600 dark:text-rose-400"
+                              : " text-[var(--text-muted)]")
+                          }
+                        >
+                          {sub}
                         </div>
                       </div>
-                      <ChevronRight size={18} className="text-[var(--text-faint)]" />
+                      <ChevronRight
+                        size={18}
+                        className={
+                          confirming
+                            ? "text-rose-400 dark:text-rose-500"
+                            : "text-[var(--text-faint)]"
+                        }
+                      />
                     </button>
                   </li>
-                ),
+                  );
+                },
               )}
             </ul>
 

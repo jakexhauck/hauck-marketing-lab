@@ -6,7 +6,7 @@ import MoveStageSheet from "./MoveStageSheet";
 import { useToast } from "../context/ToastContext";
 import { useNow } from "../context/NowContext";
 import { useMoveLeadStage } from "../hooks/useApi";
-import { formatMoney } from "../lib/formatMoney";
+import { formatMoney, formatMoneyExact } from "../lib/formatMoney";
 import { timeAgo } from "../lib/timeAgo";
 import type { ApiLead } from "../lib/api";
 
@@ -133,7 +133,7 @@ export default function Board({ leads, stages, pipelineId }: Props) {
                           </div>
                           <div className="mt-0.5 truncate text-[11px] text-[var(--text-faint)]">
                             {lead.value && lead.value > 0
-                              ? `${formatMoney(lead.value)} · `
+                              ? `${formatMoneyExact(lead.value)} · `
                               : ""}
                             {timeAgo(lead.lastActivityAt, now)}
                           </div>

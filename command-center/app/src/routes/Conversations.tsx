@@ -16,7 +16,43 @@ import { useConversationsQuery } from "../hooks/useApi";
 import { APP_BRAND } from "../lib/appBrand";
 import { timeAgo } from "../lib/timeAgo";
 import type { ApiConversation } from "../lib/api";
+import { Skeleton } from "../components/ui";
 import ConversationsDesktop from "../components/conversations/ConversationsDesktop";
+
+// One day in ms. Below this we show a relative time ("3m ago"); above it the
+// relative figure stops being useful, so we fall back to an absolute short date
+// ("Jun 22"), matching how the rest of the app formats older timestamps.
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function messageTime(iso: string, now: number): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  if (now - then < DAY_MS) return timeAgo(iso, now);
+  return new Date(then).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+// Map a raw GHL message type (e.g. "TYPE_SMS", "Facebook", "Instagram DM") to a
+// short, friendly channel label. Returns null for empty/unknown types so the row
+// omits the badge rather than inventing a channel.
+function channelLabel(raw: string | null | undefined): string | null {
+  const key = (raw ?? "")
+    .toLowerCase()
+    .replace(/^type[_-]?/, "")
+    .replace(/[^a-z]/g, "");
+  if (!key) return null;
+  if (key.includes("whatsapp")) return "WhatsApp";
+  if (key.includes("instagram") || key === "ig") return "IG";
+  if (key.includes("facebook") || key.includes("messenger") || key === "fb")
+    return "FB";
+  if (key.includes("email")) return "Email";
+  if (key.includes("sms") || key.includes("text")) return "SMS";
+  if (key.includes("call") || key.includes("phone") || key.includes("voice"))
+    return "Call";
+  return null;
+}
 
 export default function Conversations() {
   const navigate = useNavigate();
@@ -96,12 +132,7 @@ export default function Conversations() {
             {(query.error as Error | null)?.message ?? "Try again."}
           </div>
         ) : query.isLoading ? (
-          <div className="flex flex-1 items-center justify-center py-16">
-            <div
-              className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--brand)]"
-              aria-hidden="true"
-            />
-          </div>
+          <ConversationsSkeleton />
         ) : visible.length === 0 ? (
           trimmed ? (
             <EmptyState
@@ -146,6 +177,7 @@ interface ConversationRowProps {
 function ConversationRow({ conv, isLast, onTap }: ConversationRowProps) {
   const now = useNow();
   const hasUnread = conv.unreadCount > 0;
+  const channel = channelLabel(conv.lastMessageType);
   return (
     <button
       type="button"
@@ -163,10 +195,15 @@ function ConversationRow({ conv, isLast, onTap }: ConversationRowProps) {
             {conv.name}
           </div>
           <span className="tabular-figs shrink-0 text-[10.5px] font-semibold text-[var(--text-faint)]">
-            {timeAgo(conv.lastMessageAt, now)}
+            {messageTime(conv.lastMessageAt, now)}
           </span>
         </div>
         <div className="mt-0.5 flex items-center gap-2">
+          {channel && (
+            <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-[9.5px] font-semibold tracking-wide text-[var(--text-faint)]">
+              {channel}
+            </span>
+          )}
           <div
             className={
               "min-w-0 flex-1 truncate text-xs " +
@@ -192,5 +229,37 @@ function ConversationRow({ conv, isLast, onTap }: ConversationRowProps) {
         </div>
       </div>
     </button>
+  );
+}
+
+// First-load placeholder that mirrors the conversation list shape (avatar plus
+// two text lines per row) so the layout does not jump when data arrives. Shown
+// only on the initial load, not on background refetches.
+function ConversationsSkeleton() {
+  return (
+    <ul
+      className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]"
+      aria-busy="true"
+    >
+      {Array.from({ length: 7 }).map((_, i) => (
+        <li
+          key={i}
+          className={
+            "flex items-center gap-3 px-4 py-3.5" +
+            (i === 6 ? "" : " border-b border-[var(--divider)]")
+          }
+          style={{ minHeight: "68px" }}
+        >
+          <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <Skeleton className="h-3.5 w-32" />
+              <Skeleton className="h-2.5 w-10" />
+            </div>
+            <Skeleton className="h-3 w-[60%]" />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -27,7 +27,7 @@ import { usePipelines } from "../context/PipelinesContext";
 import { useClient } from "../context/ClientContext";
 import { useAuth } from "../context/AuthContext";
 import { timeAgo } from "../lib/timeAgo";
-import { formatMoney } from "../lib/formatMoney";
+import { formatMoneyExact } from "../lib/formatMoney";
 import { leadStageLabel } from "../lib/stageColors";
 import { e164, formatPhone } from "../lib/phone";
 import ConversationThread from "../components/ConversationThread";
@@ -92,7 +92,7 @@ function TimelineEntry({ entry, isLast, wonLabel }: TimelineEntryProps) {
     title = "Note added";
     body = entry.body ?? null;
   } else if (entry.kind === "won-recorded") {
-    title = `Marked ${wonLabel}: ${formatMoney(entry.value ?? 0)}`;
+    title = `Marked ${wonLabel}: ${formatMoneyExact(entry.value ?? 0)}`;
   }
 
   const iso = new Date(entry.at).toISOString();

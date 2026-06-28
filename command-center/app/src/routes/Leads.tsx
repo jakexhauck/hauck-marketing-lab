@@ -19,11 +19,24 @@ import { usePipelines } from "../context/PipelinesContext";
 import { useNow } from "../context/NowContext";
 import { usePipelineLeadsQuery, useSummaryQuery } from "../hooks/useApi";
 import { APP_BRAND } from "../lib/appBrand";
-import { formatMoney } from "../lib/formatMoney";
+import { formatMoney, formatMoneyExact } from "../lib/formatMoney";
 import { timeAgo } from "../lib/timeAgo";
+import { Skeleton } from "../components/ui";
 import type { ApiLead } from "../lib/api";
 
 const ALL = "__all__";
+
+// Persist the list/board choice so returning to Leads keeps the last view.
+const VIEW_MODE_KEY = "hml.leadsViewMode";
+
+function readStoredViewMode(): "list" | "board" | null {
+  try {
+    const v = localStorage.getItem(VIEW_MODE_KEY);
+    return v === "list" || v === "board" ? v : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function Leads() {
   const navigate = useNavigate();
@@ -37,15 +50,25 @@ export default function Leads() {
   const [activeStage, setActiveStage] = useState<string>(ALL);
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
-  // Desktop users expect the kanban board by default (the wide layout shows
-  // every stage at once); the phone keeps the list, which reads better on a
-  // narrow screen.
-  const [viewMode, setViewMode] = useState<"list" | "board">(() =>
-    typeof window !== "undefined" &&
-    window.matchMedia("(min-width: 1024px)").matches
+  // Remembered choice wins; otherwise desktop users expect the kanban board by
+  // default (the wide layout shows every stage at once) and the phone keeps the
+  // list, which reads better on a narrow screen.
+  const [viewMode, setViewModeState] = useState<"list" | "board">(() => {
+    const stored = readStoredViewMode();
+    if (stored) return stored;
+    return typeof window !== "undefined" &&
+      window.matchMedia("(min-width: 1024px)").matches
       ? "board"
-      : "list",
-  );
+      : "list";
+  });
+  const setViewMode = (mode: "list" | "board") => {
+    setViewModeState(mode);
+    try {
+      localStorage.setItem(VIEW_MODE_KEY, mode);
+    } catch {
+      // ignore storage failures (private mode, etc.)
+    }
+  };
   const [showNewLead, setShowNewLead] = useState(false);
 
   // Reset stage filter + search whenever the pipeline changes.
@@ -213,12 +236,7 @@ export default function Leads() {
               </button>
             </div>
           ) : leadsQuery.isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <div
-                className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--brand-primary)]"
-                aria-hidden="true"
-              />
-            </div>
+            <BoardSkeleton />
           ) : stages.length === 0 ? (
             <EmptyState message="No stages in this pipeline." />
           ) : (
@@ -269,12 +287,7 @@ export default function Leads() {
               {(leadsQuery.error as Error | null)?.message ?? "Try again."}
             </div>
           ) : leadsQuery.isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <div
-                className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--brand-primary)]"
-                aria-hidden="true"
-              />
-            </div>
+            <LeadListSkeleton />
           ) : visible.length === 0 ? (
             <EmptyState
               message={
@@ -312,7 +325,7 @@ export default function Leads() {
                     <div className="shrink-0 text-right">
                       <div className="font-display text-[15px] font-extrabold tracking-tight text-[var(--text)]">
                         {lead.value && lead.value > 0
-                          ? formatMoney(lead.value)
+                          ? formatMoneyExact(lead.value)
                           : ""}
                       </div>
                       <div className="mt-0.5 text-[11px] font-semibold text-[var(--text-faint)]">
@@ -344,6 +357,70 @@ export default function Leads() {
 
       <BottomNav active="leads" />
     </Shell>
+  );
+}
+
+function LeadListSkeleton() {
+  return (
+    <ul className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <li
+          key={i}
+          className={
+            "flex items-center gap-3 px-4 py-3.5" +
+            (i === 5 ? "" : " border-b border-[var(--divider)]")
+          }
+          style={{ minHeight: "66px" }}
+        >
+          <Skeleton className="h-11 w-11 rounded-2xl" />
+          <div className="min-w-0 flex-1">
+            <Skeleton className="h-3.5 w-32" />
+            <Skeleton className="mt-2 h-3 w-20" />
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <Skeleton className="h-3.5 w-14" />
+            <Skeleton className="h-2.5 w-10" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function BoardSkeleton() {
+  return (
+    <div className="pt-2">
+      <div className="no-scrollbar flex gap-3 overflow-x-auto px-5 pb-2">
+        {Array.from({ length: 3 }).map((_, c) => (
+          <section
+            key={c}
+            className="flex w-[78vw] max-w-[300px] shrink-0 flex-col gap-2 lg:w-[300px] lg:max-w-none"
+          >
+            <header className="flex items-baseline justify-between px-1">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-3 w-10" />
+            </header>
+            <div className="flex flex-col gap-2 rounded-2xl bg-[var(--surface-2)] p-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Skeleton className="h-8 w-8 rounded-2xl" />
+                    <div className="min-w-0 flex-1">
+                      <Skeleton className="h-3.5 w-28" />
+                      <Skeleton className="mt-2 h-3 w-20" />
+                    </div>
+                  </div>
+                  <Skeleton className="mt-2 h-7 w-full rounded-lg" />
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
   );
 }
 

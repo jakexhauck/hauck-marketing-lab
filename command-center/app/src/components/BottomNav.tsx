@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { NAV, filterNav } from "../lib/nav";
 import { useAuth } from "../context/AuthContext";
+import { useConversationsQuery } from "../hooks/useApi";
 
 // The four day-to-day surfaces map 1:1 to the bottom-bar tabs. Screens still
 // pass which one is active by key; we resolve that to a route via this map so
@@ -18,13 +19,24 @@ const ROUTE_BY_KEY: Record<NavKey, string> = {
 
 export default function BottomNav({ active }: { active: NavKey }) {
   const navigate = useNavigate();
-  const { isOwner, can } = useAuth();
+  const { isOwner, can, session } = useAuth();
   // Only the bottom-bar surfaces, then only the ones this user may see.
   const items = filterNav(
     NAV.filter((item) => item.bottomNav),
     { isOwner, can },
   );
   const activeRoute = ROUTE_BY_KEY[active];
+
+  // Reuse the Conversations route's cached ["conversations"] query (same key +
+  // fetcher) so this badge shares its data and 30s refetch cycle rather than
+  // adding a new network dependency. When the user reads messages the query
+  // refetches and the badge updates via react-query's cache subscription.
+  // No data yet means no badge (we never fabricate a count).
+  const conversations = useConversationsQuery(Boolean(session));
+  const unreadConversations = (conversations.data?.conversations ?? []).reduce(
+    (n, c) => n + (c.unreadCount > 0 ? c.unreadCount : 0),
+    0,
+  );
 
   return (
     <nav
@@ -36,6 +48,12 @@ export default function BottomNav({ active }: { active: NavKey }) {
         {items.map((item) => {
           const isActive = item.to === activeRoute;
           const Icon = item.icon;
+          // iOS Mail-style unread pill on the Chats tab only. Cap large counts
+          // at "9+" so the pill stays round and legible in the small bar.
+          const showBadge =
+            item.to === "/conversations" && unreadConversations > 0;
+          const badgeText =
+            unreadConversations > 9 ? "9+" : String(unreadConversations);
           return (
             <button
               key={item.to}
@@ -58,7 +76,21 @@ export default function BottomNav({ active }: { active: NavKey }) {
                     : undefined
                 }
               >
-                <Icon size={21} strokeWidth={isActive ? 2.4 : 2} />
+                <span className="relative flex items-center justify-center">
+                  <Icon size={21} strokeWidth={isActive ? 2.4 : 2} />
+                  {showBadge && (
+                    <span
+                      aria-label={`${unreadConversations} unread conversations`}
+                      className="absolute -right-2.5 -top-2 flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white"
+                      style={{
+                        backgroundColor: "var(--brand-primary)",
+                        boxShadow: "0 0 0 2px var(--surface)",
+                      }}
+                    >
+                      {badgeText}
+                    </span>
+                  )}
+                </span>
               </span>
               <span className="text-[10.5px] font-semibold">
                 {item.shortLabel ?? item.label}

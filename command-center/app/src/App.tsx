@@ -13,6 +13,7 @@ import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
 import { Activity } from "./routes/Activity";
 import Contacts from "./routes/Contacts";
+import ContactDetail from "./routes/ContactDetail";
 import Conversations from "./routes/Conversations";
 import ConversationDetail from "./routes/ConversationDetail";
 import LeadDetail from "./routes/LeadDetail";
@@ -194,6 +195,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Contacts />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/contacts/:contactId"
+                element={
+                  <ProtectedRoute>
+                    <ContactDetail />
                   </ProtectedRoute>
                 }
               />

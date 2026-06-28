@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Phone, Mail, Search } from "lucide-react";
 import Shell from "../components/Shell";
 import ContactsDesktop from "../components/contacts/ContactsDesktop";
@@ -144,16 +145,29 @@ interface ContactRowProps {
 
 function ContactRow({ contact, isLast }: ContactRowProps) {
   const now = useNow();
+  const navigate = useNavigate();
   const telDigits = contact.phone.replace(/[^0-9+]/g, "");
   const hasPhone = telDigits.length > 0;
   const hasEmail = contact.email.length > 0;
   const visibleTags = contact.tags.slice(0, 2);
   const extraTags = contact.tags.length - visibleTags.length;
 
+  const openDetail = () => navigate(`/contacts/${contact.id}`);
+
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={openDetail}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openDetail();
+        }
+      }}
+      aria-label={`View ${contact.name}`}
       className={
-        "flex items-center gap-3 bg-[var(--surface)] px-4 py-3.5" +
+        "flex cursor-pointer items-center gap-3 bg-[var(--surface)] px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
         (isLast ? "" : " border-b border-[var(--divider)]")
       }
       style={{ minHeight: "64px" }}
@@ -189,6 +203,7 @@ function ContactRow({ contact, isLast }: ContactRowProps) {
           <a
             href={`tel:${telDigits}`}
             aria-label={`Call ${contact.name}`}
+            onClick={(e) => e.stopPropagation()}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-muted)] transition-colors active:scale-95 active:bg-[var(--surface-2)]"
           >
             <Phone size={16} aria-hidden="true" />
@@ -198,6 +213,7 @@ function ContactRow({ contact, isLast }: ContactRowProps) {
           <a
             href={`mailto:${contact.email}`}
             aria-label={`Email ${contact.name}`}
+            onClick={(e) => e.stopPropagation()}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-muted)] transition-colors active:scale-95 active:bg-[var(--surface-2)]"
           >
             <Mail size={16} aria-hidden="true" />
