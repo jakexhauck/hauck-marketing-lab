@@ -33,6 +33,7 @@ import { leadStageLabel } from "../lib/stageColors";
 import { e164, formatPhone } from "../lib/phone";
 import ConversationThread from "../components/ConversationThread";
 import MessageComposer from "../components/MessageComposer";
+import { ChannelFilterProvider } from "../context/ChannelFilterContext";
 import NoteList from "../components/NoteList";
 import TaskList from "../components/TaskList";
 import type { LeadActivity } from "../types";
@@ -418,8 +419,10 @@ export default function LeadDetail() {
               />
               <h2 className="label-cap">Messages</h2>
             </div>
-            <ConversationThread leadId={lead.id} />
-            <MessageComposer leadId={lead.id} disabled={!hasPhone} />
+            <ChannelFilterProvider key={lead.id}>
+              <ConversationThread leadId={lead.id} />
+              <MessageComposer leadId={lead.id} disabled={!hasPhone} />
+            </ChannelFilterProvider>
             {!hasPhone && (
               <p className="text-xs text-[var(--text-muted)]">
                 No phone number on file. Add one in GHL to send SMS.

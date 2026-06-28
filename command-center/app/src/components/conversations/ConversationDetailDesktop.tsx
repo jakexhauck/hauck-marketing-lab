@@ -6,6 +6,7 @@ import { Button } from "../ui/Button";
 import Avatar from "../Avatar";
 import ConversationThread from "../ConversationThread";
 import MessageComposer from "../MessageComposer";
+import { ChannelFilterProvider } from "../../context/ChannelFilterContext";
 import { useAuth } from "../../context/AuthContext";
 import {
   useConversationMessagesQuery,
@@ -89,14 +90,16 @@ export default function ConversationDetailDesktop() {
         className="mx-auto flex w-full max-w-3xl flex-col"
         style={{ height: "calc(100dvh - 64px - 56px)" }}
       >
-        <div className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-6 pb-4 pt-5">
-            <ConversationThread contactId={contactId} fill />
+        <ChannelFilterProvider key={contactId}>
+          <div className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-6 pb-4 pt-5">
+              <ConversationThread contactId={contactId} fill />
+            </div>
+            <div className="border-t border-border px-6 py-4">
+              <MessageComposer contactId={contactId} />
+            </div>
           </div>
-          <div className="border-t border-border px-6 py-4">
-            <MessageComposer contactId={contactId} />
-          </div>
-        </div>
+        </ChannelFilterProvider>
       </div>
     </DesktopPage>
   );

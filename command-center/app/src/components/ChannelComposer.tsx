@@ -1,12 +1,11 @@
 import {
-  useEffect,
-  useRef,
   useState,
   type FormEvent,
   type KeyboardEvent,
 } from "react";
 import BrandedButton from "./BrandedButton";
 import { haptic } from "../lib/haptics";
+import { useChannelFilter } from "../context/ChannelFilterContext";
 
 const MAX_CHARS = 5000;
 const WARN_CHARS = 1400;
@@ -52,15 +51,13 @@ export default function ChannelComposer({
 }: Props) {
   const channels =
     availableChannels.length > 0 ? availableChannels : ["SMS", "Email"];
-  const [channel, setChannel] = useState(defaultChannel);
+  // The active channel is shared with the thread (see ChannelFilterContext):
+  // tapping a chip both retargets the send and filters the history shown above.
+  // `selected` is null until the user taps, so we fall back to the default.
+  const { selected, select } = useChannelFilter();
+  const channel = selected ?? defaultChannel;
   const [text, setText] = useState("");
   const [subject, setSubject] = useState("");
-  const touched = useRef(false);
-
-  // Adopt the thread's default channel until the user picks one manually.
-  useEffect(() => {
-    if (!touched.current) setChannel(defaultChannel);
-  }, [defaultChannel]);
 
   const isEmail = channel === "Email";
   const blocked = channel === "SMS" && smsDisabled;
@@ -105,10 +102,7 @@ export default function ChannelComposer({
             <button
               key={c}
               type="button"
-              onClick={() => {
-                touched.current = true;
-                setChannel(c);
-              }}
+              onClick={() => select(c)}
               aria-pressed={channel === c}
               className="shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold transition-colors"
               style={{

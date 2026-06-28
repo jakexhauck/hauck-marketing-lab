@@ -7,6 +7,7 @@ import { HeroIconButton } from "../components/HeroUi";
 import Avatar from "../components/Avatar";
 import ConversationThread from "../components/ConversationThread";
 import MessageComposer from "../components/MessageComposer";
+import { ChannelFilterProvider } from "../context/ChannelFilterContext";
 import ConversationDetailDesktop from "../components/conversations/ConversationDetailDesktop";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "../hooks/useApi";
@@ -78,15 +79,17 @@ export default function ConversationDetail() {
           </div>
         </NavyHero>
 
-        <main className="flex min-h-0 flex-1 flex-col gap-3 px-5 pb-4 pt-4">
-          <ConversationThread contactId={contactId} fill />
-          <div
-            className="border-t border-[var(--border)] pt-3"
-            style={{ paddingBottom: keyboardInset }}
-          >
-            <MessageComposer contactId={contactId} />
-          </div>
-        </main>
+        <ChannelFilterProvider key={contactId}>
+          <main className="flex min-h-0 flex-1 flex-col gap-3 px-5 pb-4 pt-4">
+            <ConversationThread contactId={contactId} fill />
+            <div
+              className="border-t border-[var(--border)] pt-3"
+              style={{ paddingBottom: keyboardInset }}
+            >
+              <MessageComposer contactId={contactId} />
+            </div>
+          </main>
+        </ChannelFilterProvider>
       </div>
 
       {/* Desktop (lg+): centered thread column inside the command-deck shell. */}

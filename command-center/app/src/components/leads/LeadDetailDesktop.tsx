@@ -16,6 +16,7 @@ import MoveStageSheet from "../MoveStageSheet";
 import Avatar from "../Avatar";
 import ConversationThread from "../ConversationThread";
 import MessageComposer from "../MessageComposer";
+import { ChannelFilterProvider } from "../../context/ChannelFilterContext";
 import NoteList from "../NoteList";
 import TaskList from "../TaskList";
 import { useToast } from "../../context/ToastContext";
@@ -315,7 +316,7 @@ export default function LeadDetailDesktop() {
             </div>
             <div className="flex flex-1 flex-col gap-4 p-6">
               {session ? (
-                <>
+                <ChannelFilterProvider key={lead.id}>
                   <ConversationThread leadId={lead.id} fill />
                   <div className="mt-auto">
                     <MessageComposer leadId={lead.id} disabled={!hasPhone} />
@@ -325,7 +326,7 @@ export default function LeadDetailDesktop() {
                       </p>
                     )}
                   </div>
-                </>
+                </ChannelFilterProvider>
               ) : (
                 <p className="text-sm text-muted">
                   Sign in to view the conversation history.
