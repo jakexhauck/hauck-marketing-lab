@@ -168,7 +168,7 @@ export default function BillingDesktop() {
 
   return (
     <DesktopPage
-      title="Billing"
+      title="Revenue"
       subtitle={subtitle}
     >
       {/* Ledger summary band */}
@@ -180,7 +180,7 @@ export default function BillingDesktop() {
           icon={<Receipt size={16} />}
         />
         <MoneyKpi
-          label="Paid this month"
+          label="Revenue this month"
           value={money.format(paidThisMonth)}
           sub="Payments received this month"
           icon={<Wallet size={16} />}

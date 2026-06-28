@@ -76,12 +76,6 @@ export default function PullToRefresh({ queryKeys }: Props) {
 
   const armed = pull >= THRESHOLD;
 
-  const label = refreshing
-    ? "Refreshing..."
-    : armed
-      ? "Release to refresh"
-      : "Pull to refresh";
-
   return (
     <div
       aria-hidden="true"
@@ -107,14 +101,14 @@ export default function PullToRefresh({ queryKeys }: Props) {
           }
         />
       </span>
-      <span
-        className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10.5px] font-semibold shadow-sm"
-        style={{
-          color: armed || refreshing ? "var(--brand-text)" : "var(--text-faint)",
-        }}
-      >
-        {label}
-      </span>
+      {(armed || refreshing) && (
+        <span
+          className="text-[11px] font-semibold"
+          style={{ color: "var(--brand-text)" }}
+        >
+          {refreshing ? "Refreshing..." : "Release to refresh"}
+        </span>
+      )}
     </div>
   );
 }

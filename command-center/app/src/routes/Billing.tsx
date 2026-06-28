@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, RefreshCw, X } from "lucide-react";
 import Shell from "../components/Shell";
 import BillingDesktop from "../components/billing/BillingDesktop";
 import NavyHero from "../components/NavyHero";
@@ -17,6 +18,7 @@ import {
   useTransactionsQuery,
 } from "../hooks/useApi";
 import { freshnessLabel } from "../lib/freshness";
+import { outstandingTotal, revenueThisMonth } from "../lib/revenue";
 import type { ApiInvoice } from "../lib/api";
 
 const money = new Intl.NumberFormat("en-US", {
@@ -53,14 +55,22 @@ const FILTERS = [
   { key: "draft", label: "Draft" },
 ];
 
-const PAID_STATES = new Set(["succeeded", "paid", "completed", "success"]);
-
 export default function Billing() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { session, mode } = useAuth();
   const now = useNow();
   const useReal = Boolean(session);
   const isTest = mode === "test";
+
+  // Tapping the freshness line re-pulls the same data pull-to-refresh does, so
+  // a client can trust the revenue figures are current without leaving the hero.
+  const refreshAll = () => {
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+      queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+    ]);
+  };
 
   const [filter, setFilter] = useState("all");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -87,27 +97,15 @@ export default function Billing() {
     [invoices, filter],
   );
 
-  // Real sums only, no fabricated trends.
-  const outstanding = useMemo(
-    () =>
-      invoices
-        .filter((i) => i.status === "sent" || i.status === "overdue")
-        .reduce((sum, i) => sum + i.total, 0),
-    [invoices],
+  // Real sums only, no fabricated trends. Shared with the Home revenue glance
+  // so both screens show the exact same figures.
+  const outstanding = useMemo(() => outstandingTotal(invoices), [invoices]);
+  const paidThisMonth = useMemo(
+    () => revenueThisMonth(transactions, now),
+    [transactions, now],
   );
 
-  const paidThisMonth = useMemo(() => {
-    const now = new Date();
-    const m = now.getMonth();
-    const y = now.getFullYear();
-    return transactions
-      .filter((t) => PAID_STATES.has(t.status) && t.createdAt)
-      .filter((t) => {
-        const d = new Date(t.createdAt as string);
-        return d.getMonth() === m && d.getFullYear() === y;
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-  }, [transactions]);
+  const updatedLabel = freshnessLabel(invoicesQuery.dataUpdatedAt, now);
 
   return (
     <Shell>
@@ -125,12 +123,21 @@ export default function Billing() {
             </HeroIconButton>
             <div className="min-w-0">
               <div className="font-display text-[17px] font-bold text-white">
-                Billing
+                Revenue
               </div>
-              {freshnessLabel(invoicesQuery.dataUpdatedAt, now) && (
-                <div className="truncate text-[12px] text-white/60">
-                  {freshnessLabel(invoicesQuery.dataUpdatedAt, now)}
-                </div>
+              {updatedLabel && (
+                <button
+                  type="button"
+                  onClick={refreshAll}
+                  className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate text-[12px] text-white/60 transition-colors active:text-white/90"
+                >
+                  <RefreshCw
+                    size={11}
+                    className={invoicesQuery.isFetching ? "animate-spin" : undefined}
+                    aria-hidden="true"
+                  />
+                  {updatedLabel}
+                </button>
               )}
             </div>
           </div>
@@ -144,7 +151,7 @@ export default function Billing() {
             </div>
           </div>
           <div className="rounded-2xl bg-white/12 px-4 py-3">
-            <div className="label-cap-light">Paid this month</div>
+            <div className="label-cap-light">Revenue this month</div>
             <div className="mt-1 font-display text-[22px] font-black text-white">
               {money.format(paidThisMonth)}
             </div>
@@ -198,7 +205,7 @@ export default function Billing() {
                     type="button"
                     onClick={() => setOpenId(inv.id)}
                     className={
-                      "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-[background-color,transform] active:scale-[0.99] active:bg-[var(--surface-2)]" +
+                      "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
                       (idx === visible.length - 1
                         ? ""
                         : " border-b border-[var(--divider)]")

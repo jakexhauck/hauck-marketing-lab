@@ -112,7 +112,7 @@ export const NAV: NavEntry[] = [
     id: "company",
     label: "Company",
     items: [
-      { to: "/billing", label: "Billing", icon: Receipt, capability: "billing" },
+      { to: "/billing", label: "Revenue", icon: Receipt, capability: "billing" },
       { to: "/company/documents", label: "Documents & Resources", shortLabel: "Docs", icon: FolderOpen, comingSoon: true },
       { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
     ],

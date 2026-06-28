@@ -4,9 +4,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
   ChevronRight,
+  DollarSign,
   Filter,
   LogOut,
-  Receipt,
   RefreshCw,
   Search,
   Settings,
@@ -27,10 +27,17 @@ import { useAuth } from "../context/AuthContext";
 import { usePipelines } from "../context/PipelinesContext";
 import { useNow } from "../context/NowContext";
 import PullToRefresh from "../components/PullToRefresh";
-import { useActivityQuery, useSummaryQuery } from "../hooks/useApi";
+import {
+  useActivityQuery,
+  useInvoicesQuery,
+  useSummaryQuery,
+  useTransactionsQuery,
+} from "../hooks/useApi";
 import { APP_BRAND } from "../lib/appBrand";
 import { activityLabel } from "../lib/activityLabels";
 import { freshnessLabel } from "../lib/freshness";
+import { formatMoney } from "../lib/formatMoney";
+import { outstandingTotal, revenueThisMonth } from "../lib/revenue";
 import type { ApiActivity, PipelineSummary } from "../lib/api";
 
 function activityTitle(a: ApiActivity): string {
@@ -85,6 +92,21 @@ export default function Home() {
   const useReal = Boolean(session);
   const query = useSummaryQuery(useReal);
   const activityQuery = useActivityQuery(useReal);
+
+  // Revenue glance: only fetched when this user may see billing, so staff
+  // without access never trigger a 403. Shares the Revenue screen's cache (same
+  // query keys), so the figures match exactly and there is no double fetch.
+  const canSeeRevenue = can("billing", "view");
+  const txQuery = useTransactionsQuery(useReal && canSeeRevenue);
+  const invoicesQuery = useInvoicesQuery("all", useReal && canSeeRevenue);
+  const revenueMonth = useMemo(
+    () => revenueThisMonth(txQuery.data?.transactions ?? [], now),
+    [txQuery.data, now],
+  );
+  const revenueOutstanding = useMemo(
+    () => outstandingTotal(invoicesQuery.data?.invoices ?? []),
+    [invoicesQuery.data],
+  );
 
   // Sign out is destructive, so the row arms on first tap and only signs out on
   // the second. The arm auto-disarms after a few seconds so a stray tap cannot
@@ -228,6 +250,41 @@ export default function Home() {
           />
         ) : (
           <>
+            {/* Revenue glance: a client's money this month, tappable through to
+                the full Revenue screen. Gated to users who may see billing. */}
+            {canSeeRevenue && (
+              <>
+                <div className="px-[22px] pb-2 pt-5">
+                  <span className="sec-kicker">Revenue</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate("/billing")}
+                  className="mx-[22px] flex w-[calc(100%-44px)] items-center justify-between gap-3 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-4 text-left transition-colors active:bg-[var(--surface-2)]"
+                >
+                  <div className="min-w-0">
+                    <div className="text-[12.5px] font-medium text-[var(--text-muted)]">
+                      This month
+                    </div>
+                    <div className="mt-0.5 font-display text-[26px] font-black leading-none text-[var(--text)]">
+                      {txQuery.isLoading ? "--" : formatMoney(revenueMonth)}
+                    </div>
+                    {revenueOutstanding > 0 && (
+                      <div className="mt-1.5 text-[12px] text-[var(--text-faint)]">
+                        {formatMoney(revenueOutstanding)} outstanding
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-xl text-white"
+                    style={{ backgroundColor: "#15803d" }}
+                  >
+                    <DollarSign size={20} strokeWidth={2.2} />
+                  </span>
+                </button>
+              </>
+            )}
+
             {/* Featured: busiest pipeline */}
             <div className="px-[22px] pb-1 pt-5">
               <span className="sec-kicker">Most active</span>
@@ -280,7 +337,7 @@ export default function Home() {
                     type="button"
                     onClick={() => openCard(p.id)}
                     className={
-                      "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-[background-color,transform] active:scale-[0.99] active:bg-[var(--surface-2)]" +
+                      "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
                       (idx === rest.length - 1
                         ? ""
                         : " border-b border-[var(--divider)]")
@@ -321,9 +378,6 @@ export default function Home() {
                 ...(can("calendar", "view")
                   ? [{ key: "calendar", label: "Calendar", sub: "Upcoming appointments", to: "/calendar", Icon: CalendarDays, color: "#7c3aed" }]
                   : []),
-                ...(can("billing", "view")
-                  ? [{ key: "billing", label: "Billing", sub: "Invoices and payments", to: "/billing", Icon: Receipt, color: "#15803d" }]
-                  : []),
                 // Team management is owner-only (staff cannot add staff).
                 ...(isOwner
                   ? [{ key: "team", label: "Team", sub: "Add employees and set access", to: "/team", Icon: Users, color: "#1a4d8f" }]
@@ -360,7 +414,7 @@ export default function Home() {
                         navigate(link.to);
                       }}
                       className={
-                        "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-[background-color,transform] active:scale-[0.99]" +
+                        "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors" +
                         (confirming
                           ? " bg-rose-50 active:bg-rose-100 dark:bg-rose-950/50 dark:active:bg-rose-950"
                           : " active:bg-[var(--surface-2)]") +

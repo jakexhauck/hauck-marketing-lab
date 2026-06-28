@@ -183,7 +183,7 @@ function ConversationRow({ conv, isLast, onTap }: ConversationRowProps) {
       type="button"
       onClick={onTap}
       className={
-        "flex w-full items-center gap-3 bg-[var(--surface)] px-4 py-3.5 text-left transition-[background-color,transform] active:scale-[0.99] active:bg-[var(--surface-2)]" +
+        "flex w-full items-center gap-3 bg-[var(--surface)] px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
         (isLast ? "" : " border-b border-[var(--divider)]")
       }
       style={{ minHeight: "68px" }}

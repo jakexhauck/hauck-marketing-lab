@@ -333,14 +333,14 @@ interface ActionTileProps {
 // disabled placeholder when the contact lacks the channel (no phone or email).
 function ActionTile({ href, icon, label }: ActionTileProps) {
   const base =
-    "flex flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-4 text-[13px] font-semibold transition-colors";
+    "flex min-h-[88px] flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-4 text-[13px] font-semibold transition-colors";
   if (!href) {
     return (
       <div
         aria-disabled="true"
         className={
           base +
-          " cursor-not-allowed border-[var(--border)] bg-[var(--surface)] text-[var(--text-faint)]"
+          " cursor-not-allowed border-[var(--border)] bg-[var(--surface)] text-[var(--text-faint)] opacity-70"
         }
       >
         {icon}
