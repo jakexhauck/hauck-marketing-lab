@@ -6,6 +6,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import BrandedButton from "./BrandedButton";
+import { haptic } from "../lib/haptics";
 
 const MAX_CHARS = 5000;
 const WARN_CHARS = 1400;
@@ -71,6 +72,7 @@ export default function ChannelComposer({
 
   const submit = () => {
     if (!canSend) return;
+    haptic();
     onSend({
       channel,
       body: text.trim(),

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { haptic } from "../lib/haptics";
 
 // Touch-driven pull-to-refresh for the list screens: installed PWAs have no
 // address bar and therefore no other way to force a refetch. Overscrolling
@@ -19,6 +20,9 @@ export default function PullToRefresh({ queryKeys }: Props) {
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const startY = useRef<number | null>(null);
+  // Tracks whether the pull has crossed the commit threshold so we fire a
+  // single haptic tick at the moment it arms, not on every move event.
+  const armedRef = useRef(false);
   // Keys live in a ref so the touch listeners bind once per mount instead of
   // re-subscribing every render (callers pass array literals).
   const keysRef = useRef(queryKeys);
@@ -31,11 +35,18 @@ export default function PullToRefresh({ queryKeys }: Props) {
     const onTouchMove = (e: TouchEvent) => {
       if (startY.current === null) return;
       const delta = e.touches[0].clientY - startY.current;
-      setPull(delta > 0 && window.scrollY <= 0 ? Math.min(delta, MAX_PULL) : 0);
+      const next = delta > 0 && window.scrollY <= 0 ? Math.min(delta, MAX_PULL) : 0;
+      // Fire a single tick the moment the gesture crosses into "release to
+      // refresh" territory, giving the pull a tactile commit point.
+      const armed = next >= THRESHOLD;
+      if (armed && !armedRef.current) haptic(10);
+      armedRef.current = armed;
+      setPull(next);
     };
     const onTouchEnd = () => {
       if (startY.current === null) return;
       startY.current = null;
+      armedRef.current = false;
       setPull((current) => {
         if (current >= THRESHOLD) {
           setRefreshing(true);
@@ -65,10 +76,16 @@ export default function PullToRefresh({ queryKeys }: Props) {
 
   const armed = pull >= THRESHOLD;
 
+  const label = refreshing
+    ? "Refreshing..."
+    : armed
+      ? "Release to refresh"
+      : "Pull to refresh";
+
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-x-0 z-40 flex justify-center"
+      className="pointer-events-none fixed inset-x-0 z-40 flex flex-col items-center gap-1.5"
       style={{
         top: "calc(env(safe-area-inset-top) + 8px)",
         opacity: refreshing ? 1 : Math.min(pull / THRESHOLD, 1),
@@ -89,6 +106,14 @@ export default function PullToRefresh({ queryKeys }: Props) {
               : { transform: `rotate(${(pull / MAX_PULL) * 360}deg)` }
           }
         />
+      </span>
+      <span
+        className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10.5px] font-semibold shadow-sm"
+        style={{
+          color: armed || refreshing ? "var(--brand-text)" : "var(--text-faint)",
+        }}
+      >
+        {label}
       </span>
     </div>
   );

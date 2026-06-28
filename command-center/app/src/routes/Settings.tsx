@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ChevronRight, Compass, LogOut, Users } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Compass, LogOut, Users } from "lucide-react";
 import Shell from "../components/Shell";
 import SettingsDesktop from "../components/settings/SettingsDesktop";
-import BackButton from "../components/BackButton";
+import NavyHero from "../components/NavyHero";
+import { HeroIconButton } from "../components/HeroUi";
 import { useAuth } from "../context/AuthContext";
 import { useTour } from "../context/TourContext";
 import { useClient } from "../context/ClientContext";
@@ -121,16 +122,16 @@ export default function Settings() {
           SettingsDesktop instead; both share the same auth, client and
           notification-preference state. */}
       <div className="flex min-h-0 flex-1 flex-col lg:hidden">
-      <div
-        className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2"
-        style={{ paddingTop: "calc(env(safe-area-inset-top) + 8px)" }}
-      >
-        <BackButton to="/home" />
-        <span className="font-display text-[15px] font-bold text-[var(--text)]">
-          Settings
-        </span>
-        <span className="w-9" aria-hidden="true" />
-      </div>
+      <NavyHero>
+        <div className="flex items-center gap-2.5">
+          <HeroIconButton label="Back to home" onClick={() => navigate("/home")}>
+            <ChevronLeft size={20} />
+          </HeroIconButton>
+          <div className="font-display text-[17px] font-bold text-white">
+            Settings
+          </div>
+        </div>
+      </NavyHero>
 
       <div className="flex-1 overflow-y-auto px-[22px] pb-28 pt-5">
         {/* Account */}

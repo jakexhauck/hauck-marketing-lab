@@ -5,6 +5,7 @@ import { api, ApiError } from "../lib/api";
 import type { ApiPipelineSummary } from "../lib/api";
 import { useToast } from "../context/ToastContext";
 import { e164 } from "../lib/phone";
+import { haptic } from "../lib/haptics";
 
 // Progressive "as you type" US formatter. phone.ts has formatPhone (one shot,
 // 10 digits only) and e164 (normalizer), but no incremental formatter, so the
@@ -115,6 +116,7 @@ export default function NewLeadSheet({ open, pipeline, onClose, leadsKey }: Prop
       });
       qc.invalidateQueries({ queryKey: leadsKey });
       qc.invalidateQueries({ queryKey: ["summary"] });
+      haptic();
       showToast("Lead created");
       onClose();
     } catch (err) {

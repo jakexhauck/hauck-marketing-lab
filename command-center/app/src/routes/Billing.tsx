@@ -10,11 +10,13 @@ import EmptyState from "../components/EmptyState";
 import PullToRefresh from "../components/PullToRefresh";
 import StatusBadge from "../components/StatusBadge";
 import { useAuth } from "../context/AuthContext";
+import { useNow } from "../context/NowContext";
 import {
   useInvoiceQuery,
   useInvoicesQuery,
   useTransactionsQuery,
 } from "../hooks/useApi";
+import { freshnessLabel } from "../lib/freshness";
 import type { ApiInvoice } from "../lib/api";
 
 const money = new Intl.NumberFormat("en-US", {
@@ -56,6 +58,7 @@ const PAID_STATES = new Set(["succeeded", "paid", "completed", "success"]);
 export default function Billing() {
   const navigate = useNavigate();
   const { session, mode } = useAuth();
+  const now = useNow();
   const useReal = Boolean(session);
   const isTest = mode === "test";
 
@@ -116,12 +119,19 @@ export default function Billing() {
 
       <NavyHero flushTop={isTest}>
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
+          <div className="flex min-w-0 items-center gap-2.5">
             <HeroIconButton label="Back to home" onClick={() => navigate("/home")}>
               <ChevronLeft size={20} />
             </HeroIconButton>
-            <div className="font-display text-[17px] font-bold text-white">
-              Billing
+            <div className="min-w-0">
+              <div className="font-display text-[17px] font-bold text-white">
+                Billing
+              </div>
+              {freshnessLabel(invoicesQuery.dataUpdatedAt, now) && (
+                <div className="truncate text-[12px] text-white/60">
+                  {freshnessLabel(invoicesQuery.dataUpdatedAt, now)}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -188,7 +198,7 @@ export default function Billing() {
                     type="button"
                     onClick={() => setOpenId(inv.id)}
                     className={
-                      "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
+                      "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-[background-color,transform] active:scale-[0.99] active:bg-[var(--surface-2)]" +
                       (idx === visible.length - 1
                         ? ""
                         : " border-b border-[var(--divider)]")

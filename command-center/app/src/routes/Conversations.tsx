@@ -183,7 +183,7 @@ function ConversationRow({ conv, isLast, onTap }: ConversationRowProps) {
       type="button"
       onClick={onTap}
       className={
-        "flex w-full items-center gap-3 bg-[var(--surface)] px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
+        "flex w-full items-center gap-3 bg-[var(--surface)] px-4 py-3.5 text-left transition-[background-color,transform] active:scale-[0.99] active:bg-[var(--surface-2)]" +
         (isLast ? "" : " border-b border-[var(--divider)]")
       }
       style={{ minHeight: "68px" }}
@@ -194,13 +194,13 @@ function ConversationRow({ conv, isLast, onTap }: ConversationRowProps) {
           <div className="min-w-0 flex-1 truncate font-display text-[15px] font-bold text-[var(--text)]">
             {conv.name}
           </div>
-          <span className="tabular-figs shrink-0 text-[10.5px] font-semibold text-[var(--text-faint)]">
+          <span className="tabular-figs shrink-0 text-[11px] font-semibold text-[var(--text-faint)]">
             {messageTime(conv.lastMessageAt, now)}
           </span>
         </div>
         <div className="mt-0.5 flex items-center gap-2">
           {channel && (
-            <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-[9.5px] font-semibold tracking-wide text-[var(--text-faint)]">
+            <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-[var(--text-faint)]">
               {channel}
             </span>
           )}

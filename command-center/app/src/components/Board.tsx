@@ -8,6 +8,7 @@ import { useNow } from "../context/NowContext";
 import { useMoveLeadStage } from "../hooks/useApi";
 import { formatMoney, formatMoneyExact } from "../lib/formatMoney";
 import { timeAgo } from "../lib/timeAgo";
+import { haptic } from "../lib/haptics";
 import type { ApiLead } from "../lib/api";
 
 interface Stage {
@@ -50,6 +51,7 @@ export default function Board({ leads, stages, pipelineId }: Props) {
   const moveToStage = (lead: ApiLead, stageId: string) => {
     setMoving(null);
     if (lead.pipelineStageId === stageId) return;
+    haptic();
     const stage = stages.find((s) => s.id === stageId);
     move.mutate(
       { leadId: lead.id, pipelineStageId: stageId },
@@ -62,6 +64,7 @@ export default function Board({ leads, stages, pipelineId }: Props) {
 
   const markLost = (lead: ApiLead) => {
     setMoving(null);
+    haptic();
     move.mutate(
       { leadId: lead.id, status: "lost" },
       { onSuccess: () => showToast("Marked Lost"), onError },
@@ -72,6 +75,7 @@ export default function Board({ leads, stages, pipelineId }: Props) {
     const lead = wonFor;
     setWonFor(null);
     if (!lead) return;
+    haptic();
     move.mutate(
       { leadId: lead.id, status: "won", value },
       { onSuccess: () => showToast("Marked Won"), onError },

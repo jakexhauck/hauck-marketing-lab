@@ -191,7 +191,7 @@ export default function Notifications() {
                         type="button"
                         onClick={() => openItem(n)}
                         className={
-                          "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
+                          "flex w-full items-center gap-3 px-4 py-3.5 text-left transition-[background-color,transform] active:scale-[0.99] active:bg-[var(--surface-2)]" +
                           (idx === g.items.length - 1
                             ? ""
                             : " border-b border-[var(--divider)]") +

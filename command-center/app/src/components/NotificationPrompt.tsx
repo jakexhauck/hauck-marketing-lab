@@ -85,7 +85,7 @@ export default function NotificationPrompt() {
           ? "Could not enable notifications. Check your connection and try again."
           : reEnable
             ? "Notifications were turned off on this device. Tap to turn them back on."
-            : "Get a buzz the moment a lead texts back or a new lead arrives.";
+            : "One quick buzz per new lead or reply. Nothing else, and you can turn it off anytime.";
 
   return (
     <div className="mx-[22px] mt-5 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4">

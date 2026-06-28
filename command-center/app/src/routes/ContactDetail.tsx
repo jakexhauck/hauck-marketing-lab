@@ -141,7 +141,7 @@ export default function ContactDetail() {
               <a
                 href={`tel:${telDigits}`}
                 aria-label={`Call ${contact.name}`}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-colors active:scale-[0.96]"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white transition-colors active:scale-[0.96]"
                 style={{ background: "rgba(255,255,255,0.14)" }}
               >
                 <Phone size={18} />
@@ -340,11 +340,12 @@ function ActionTile({ href, icon, label }: ActionTileProps) {
         aria-disabled="true"
         className={
           base +
-          " cursor-not-allowed border-[var(--border)] bg-[var(--surface)] text-[var(--text-faint)] opacity-50"
+          " cursor-not-allowed border-[var(--border)] bg-[var(--surface)] text-[var(--text-faint)]"
         }
       >
         {icon}
         <span>{label}</span>
+        <span className="text-[10px] font-medium normal-case">Not available</span>
       </div>
     );
   }

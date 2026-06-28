@@ -48,7 +48,7 @@ export default function SearchBar({
           type="button"
           onClick={handleClear}
           aria-label="Clear search"
-          className="absolute right-1.5 flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)] active:scale-[0.94]"
+          className="absolute right-1 flex h-11 w-11 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)] active:scale-[0.94]"
         >
           <X size={16} />
         </button>

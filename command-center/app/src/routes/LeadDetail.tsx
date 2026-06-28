@@ -27,6 +27,7 @@ import { usePipelines } from "../context/PipelinesContext";
 import { useClient } from "../context/ClientContext";
 import { useAuth } from "../context/AuthContext";
 import { timeAgo } from "../lib/timeAgo";
+import { haptic } from "../lib/haptics";
 import { formatMoneyExact } from "../lib/formatMoney";
 import { leadStageLabel } from "../lib/stageColors";
 import { e164, formatPhone } from "../lib/phone";
@@ -238,6 +239,7 @@ export default function LeadDetail() {
   // navigation back to the list) instead of navigate-with-state.
   const handleWonSave = (value: number) => {
     setWonOpen(false);
+    haptic();
     markWon(lead.id, value);
     showToast(`Marked as ${wonLabel}, ${currencyFmt.format(value)}`);
     navigate("/leads");
@@ -245,6 +247,7 @@ export default function LeadDetail() {
 
   const handleLost = () => {
     setMoveOpen(false);
+    haptic();
     markLost(lead.id);
     showToast("Marked as Lost");
     navigate("/leads");
@@ -252,6 +255,7 @@ export default function LeadDetail() {
 
   const handleMove = (stageId: string, stageName: string) => {
     setMoveOpen(false);
+    haptic();
     moveStage(lead.id, stageId, stageName);
     showToast(`Moved to ${stageName}`);
     navigate("/leads");
@@ -287,7 +291,7 @@ export default function LeadDetail() {
             <a
               href={`tel:${telDigits}`}
               aria-label={`Call ${lead.name}`}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-colors active:scale-[0.96]"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white transition-colors active:scale-[0.96]"
               style={{ background: "rgba(255,255,255,0.14)" }}
             >
               <Phone size={18} />

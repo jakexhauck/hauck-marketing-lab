@@ -30,7 +30,7 @@ import PullToRefresh from "../components/PullToRefresh";
 import { useActivityQuery, useSummaryQuery } from "../hooks/useApi";
 import { APP_BRAND } from "../lib/appBrand";
 import { activityLabel } from "../lib/activityLabels";
-import { timeAgo } from "../lib/timeAgo";
+import { freshnessLabel } from "../lib/freshness";
 import type { ApiActivity, PipelineSummary } from "../lib/api";
 
 function activityTitle(a: ApiActivity): string {
@@ -70,16 +70,6 @@ function greeting(now: number): string {
 
 function shortName(name: string): string {
   return name.replace(/\s+Pipeline$/i, "").trim();
-}
-
-// "Updated 2m ago" / "Updated just now" for the hero freshness line. Built from
-// react-query's dataUpdatedAt so the time is real, never fabricated.
-function freshnessLabel(updatedAt: number, now: number): string {
-  if (!updatedAt) return "";
-  const rel = timeAgo(new Date(updatedAt).toISOString(), now);
-  // Collapse sub-minute updates into a calmer "just now".
-  if (!rel || rel.endsWith("s ago")) return "Updated just now";
-  return `Updated ${rel}`;
 }
 
 // The Home screen shares these query keys with pull-to-refresh; tapping the
@@ -290,7 +280,7 @@ export default function Home() {
                     type="button"
                     onClick={() => openCard(p.id)}
                     className={
-                      "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
+                      "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-[background-color,transform] active:scale-[0.99] active:bg-[var(--surface-2)]" +
                       (idx === rest.length - 1
                         ? ""
                         : " border-b border-[var(--divider)]")
@@ -370,7 +360,7 @@ export default function Home() {
                         navigate(link.to);
                       }}
                       className={
-                        "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors" +
+                        "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-[background-color,transform] active:scale-[0.99]" +
                         (confirming
                           ? " bg-rose-50 active:bg-rose-100 dark:bg-rose-950/50 dark:active:bg-rose-950"
                           : " active:bg-[var(--surface-2)]") +

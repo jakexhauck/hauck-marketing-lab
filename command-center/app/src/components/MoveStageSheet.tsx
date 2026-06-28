@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Check, X } from "lucide-react";
 
 interface Stage {
@@ -26,6 +27,15 @@ export default function MoveStageSheet({
   onWon,
   onLost,
 }: Props) {
+  // Latches on the first action so a quick double-tap cannot fire two moves
+  // before the sheet unmounts. The sheet is remounted per open, so no reset.
+  const [busy, setBusy] = useState(false);
+  const once = (fn: () => void) => () => {
+    if (busy) return;
+    setBusy(true);
+    fn();
+  };
+
   return (
     <div
       className="fixed inset-0 z-40 flex items-end justify-center bg-black/40"
@@ -58,8 +68,8 @@ export default function MoveStageSheet({
               <button
                 key={s.id}
                 type="button"
-                disabled={current}
-                onClick={() => onPickStage(s.id, s.name)}
+                disabled={current || busy}
+                onClick={once(() => onPickStage(s.id, s.name))}
                 className="flex items-center justify-between rounded-xl px-3 py-3 text-left text-sm font-semibold text-[var(--text)] transition-colors active:bg-[var(--surface-2)] disabled:opacity-50"
               >
                 <span>{s.name}</span>
@@ -80,8 +90,9 @@ export default function MoveStageSheet({
             {onWon && (
               <button
                 type="button"
-                onClick={onWon}
-                className="flex-1 rounded-xl bg-emerald-600 py-3 text-[13px] font-bold uppercase tracking-wider text-white active:scale-[0.98]"
+                disabled={busy}
+                onClick={once(onWon)}
+                className="flex-1 rounded-xl bg-emerald-600 py-3 text-[13px] font-bold uppercase tracking-wider text-white transition-transform active:scale-[0.98] disabled:opacity-50"
               >
                 Mark Won
               </button>
@@ -89,8 +100,9 @@ export default function MoveStageSheet({
             {onLost && (
               <button
                 type="button"
-                onClick={onLost}
-                className="flex-1 rounded-xl border border-[var(--border)] py-3 text-[13px] font-bold uppercase tracking-wider text-[var(--text-muted)] active:scale-[0.98] active:bg-[var(--surface-2)]"
+                disabled={busy}
+                onClick={once(onLost)}
+                className="flex-1 rounded-xl border border-[var(--border)] py-3 text-[13px] font-bold uppercase tracking-wider text-[var(--text-muted)] transition-transform active:scale-[0.98] active:bg-[var(--surface-2)] disabled:opacity-50"
               >
                 Mark Lost
               </button>

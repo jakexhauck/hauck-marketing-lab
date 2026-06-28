@@ -94,7 +94,7 @@ export default function ConversationThread({ leadId, contactId, fill }: Props) {
             >
               {m.body || (m.type !== "SMS" ? `[${m.type}]` : "")}
               <div
-                className={`mt-1 text-[10px] ${
+                className={`mt-1 text-[11px] ${
                   out ? "text-white/70" : "text-[var(--text-faint)]"
                 }`}
               >

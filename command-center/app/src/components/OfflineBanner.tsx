@@ -23,20 +23,27 @@ export default function OfflineBanner() {
   // Server snapshot returns true so SSR/first paint never flashes the banner.
   const online = useSyncExternalStore(subscribe, getSnapshot, () => true);
 
-  if (online) return null;
-
+  // The element stays mounted and animates its height + opacity so going
+  // offline fades the banner in and coming back online collapses it smoothly,
+  // rather than snapping the layout. aria-hidden while online keeps it out of
+  // the a11y tree until it actually has something to say.
   return (
     <div
       role="status"
       aria-live="polite"
+      aria-hidden={online}
       style={{
         flexShrink: 0,
+        overflow: "hidden",
+        maxHeight: online ? 0 : "60px",
+        opacity: online ? 0 : 1,
+        transition: "max-height 260ms ease, opacity 260ms ease",
         textAlign: "center",
         fontSize: "0.75rem",
         fontWeight: 600,
         letterSpacing: "0.01em",
-        padding: "4px 8px",
-        paddingTop: "calc(4px + env(safe-area-inset-top))",
+        padding: online ? "0 8px" : "4px 8px",
+        paddingTop: online ? 0 : "calc(4px + env(safe-area-inset-top))",
         background: "#b45309",
         color: "#fff",
       }}

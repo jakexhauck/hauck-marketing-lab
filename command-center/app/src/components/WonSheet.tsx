@@ -12,9 +12,15 @@ export default function WonSheet({ open, onCancel, onSave }: Props) {
   const { client } = useClient();
   const valueLabel = client.pipeline.valueLabel;
   const [raw, setRaw] = useState("");
+  // Disables Save after the first tap so a quick double-tap cannot record the
+  // win twice before the sheet closes. Resets each time the sheet reopens.
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    if (!open) setRaw("");
+    if (!open) {
+      setRaw("");
+      setSubmitted(false);
+    }
   }, [open]);
 
   const numeric = Number(raw);
@@ -87,12 +93,16 @@ export default function WonSheet({ open, onCancel, onSave }: Props) {
             </button>
             <button
               type="button"
-              disabled={!valid}
-              onClick={() => valid && onSave(numeric)}
+              disabled={!valid || submitted}
+              onClick={() => {
+                if (!valid || submitted) return;
+                setSubmitted(true);
+                onSave(numeric);
+              }}
               className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-[13px] font-bold uppercase tracking-wider text-white transition-transform active:scale-[0.98] active:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-[var(--surface-2)] disabled:text-[var(--text-faint)]"
               style={{ minHeight: "52px" }}
             >
-              Save
+              {submitted ? "Saving..." : "Save"}
             </button>
           </div>
         </div>
