@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useAuth } from "../../context/AuthContext";
 import NotificationBell from "../NotificationBell";
+import ChatLauncher from "../comms/ChatLauncher";
 import GlobalSearch from "./GlobalSearch";
 import AvatarMenu from "./AvatarMenu";
 
@@ -33,6 +34,7 @@ export default function DesktopPage({
         {actions && (
           <div className="flex shrink-0 items-center gap-3">{actions}</div>
         )}
+        <ChatLauncher />
         <NotificationBell enabled={Boolean(session)} variant="surface" />
         <AvatarMenu />
       </header>

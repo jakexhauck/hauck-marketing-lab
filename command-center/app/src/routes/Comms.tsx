@@ -40,10 +40,12 @@ export default function Comms() {
         )}
       </div>
 
-      {/* lg+: the docked RightRail already shows comms beside content, so the route
-          body is empty there and the user is gently pointed to the rail. */}
+      {/* lg+: the agency chat now lives in the top-right icon, so the desktop
+          route body just points the user there. */}
       <div className="hidden min-h-dvh flex-1 items-center justify-center lg:flex">
-        <p className="text-[14px] text-[var(--text-muted)]">Team chat lives in the right rail.</p>
+        <p className="text-[14px] text-[var(--text-muted)]">
+          Chat with the agency from the message icon, top right.
+        </p>
       </div>
 
       <BottomNav active="comms" />

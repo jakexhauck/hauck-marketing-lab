@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import Sidebar from "./Sidebar";
-import RightRail from "./comms/RightRail";
 import { useAuth } from "../context/AuthContext";
 import { cn } from "../lib/cn";
 
@@ -8,8 +7,10 @@ import { cn } from "../lib/cn";
 // column capped at max-w-md, with each screen rendering its own bottom tab bar.
 // For authenticated sessions at lg+ it becomes the desktop layout: a persistent
 // sidebar rail beside a wide, uncapped content column (the bottom bar hides
-// itself at lg). The login screen also renders inside Shell, so the wide layout
-// is gated on a session: unauthenticated, it stays the centered phone column.
+// itself at lg). The agency chat lives in the top-right ChatLauncher icon, so
+// there is no docked right rail. The login screen also renders inside Shell, so
+// the wide layout is gated on a session: unauthenticated, it stays the centered
+// phone column.
 export default function Shell({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const authed = Boolean(session);
@@ -30,7 +31,6 @@ export default function Shell({ children }: { children: ReactNode }) {
       >
         {children}
       </div>
-      {authed && <RightRail />}
     </div>
   );
 }

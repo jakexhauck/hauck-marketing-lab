@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { NAV, filterNav } from "../lib/nav";
+import { NAV, filterNav, flattenNav } from "../lib/nav";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "../hooks/useApi";
+import { haptic } from "../lib/haptics";
 
 // The four day-to-day surfaces map 1:1 to the bottom-bar tabs. Screens still
 // pass which one is active by key; we resolve that to a route via this map so
@@ -17,15 +18,16 @@ const ROUTE_BY_KEY: Record<NavKey, string> = {
   comms: "/comms",
 };
 
-export default function BottomNav({ active }: { active: NavKey }) {
+export default function BottomNav({ active }: { active?: NavKey }) {
   const navigate = useNavigate();
   const { isOwner, can, session } = useAuth();
   // Only the bottom-bar surfaces, then only the ones this user may see.
   const items = filterNav(
-    NAV.filter((item) => item.bottomNav),
+    flattenNav(NAV).filter((item) => item.bottomNav),
     { isOwner, can },
   );
-  const activeRoute = ROUTE_BY_KEY[active];
+  // Coming-soon pages have no matching tab; passing no key highlights nothing.
+  const activeRoute = active ? ROUTE_BY_KEY[active] : undefined;
 
   // Reuse the Conversations route's cached ["conversations"] query (same key +
   // fetcher) so this badge shares its data and 30s refetch cycle rather than
@@ -60,7 +62,10 @@ export default function BottomNav({ active }: { active: NavKey }) {
               type="button"
               data-tour={`bottomnav-${item.to.slice(1)}`}
               onClick={() => {
-                if (!isActive) navigate(item.to);
+                if (!isActive) {
+                  haptic(10);
+                  navigate(item.to);
+                }
               }}
               aria-current={isActive ? "page" : undefined}
               className="flex flex-1 flex-col items-center gap-1 pb-2 pt-0.5"
@@ -92,7 +97,7 @@ export default function BottomNav({ active }: { active: NavKey }) {
                   )}
                 </span>
               </span>
-              <span className="text-[10.5px] font-semibold">
+              <span className="text-[11px] font-semibold">
                 {item.shortLabel ?? item.label}
               </span>
             </button>
