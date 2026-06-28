@@ -94,6 +94,20 @@ COMPANY
 - Manual: sidebar shows the five groups, every new row opens a centered "coming soon", the
   top-right chat icon opens the Hauck thread, no right rail, content centered.
 
+## Revision (after first pass)
+
+- **Automations** (Operations) is **built**, not a stub: a read-only command view of
+  follow-up sequences + database reactivation, signature element = a channel-coded sequence
+  flow. Sample data via `src/lib/automations.ts`, clearly labelled with the sample-data
+  banner; no fabricated performance figures. Files: `routes/Automations.tsx`,
+  `components/automations/{AutomationsDesktop,AutomationCard,SequenceFlow}.tsx`.
+- **Reactivation** leaves Sales (folded into Automations).
+- **Form Submissions + Chat Widget → "New Inquiries"** (`/sales/inquiries`), one friendly
+  coming-soon page, kept out of the Pipeline. Existing `/sales/forms` page retired from the
+  sidebar (route/component still exist).
+- **Website** stays coming soon; its blurb now says funnels/landing pages live there.
+- **Google Reviews** keeps its name (no rename).
+
 ## Out of scope (later)
 
 - Filling in any coming-soon page's real content.

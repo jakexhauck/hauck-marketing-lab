@@ -9,10 +9,9 @@ import {
   Receipt,
   Activity,
   UserCog,
-  ClipboardList,
+  Inbox,
   LayoutDashboard,
-  RefreshCw,
-  MessageCircle,
+  Workflow,
   ScrollText,
   BarChart3,
   Star,
@@ -77,13 +76,11 @@ export const NAV: NavEntry[] = [
     label: "Sales",
     items: [
       { to: "/sales/overview", label: "Sales Overview", icon: LayoutDashboard, comingSoon: true },
-      // Inbound estimate requests from the client's website. Gated behind the
-      // pipeline capability: anyone who can see the pipeline can see the leads
-      // feeding it.
-      { to: "/sales/forms", label: "Form Submissions", shortLabel: "Forms", icon: ClipboardList, capability: "pipeline" },
+      // Inbound from the website: estimate-request forms and chat-widget messages,
+      // gathered in one friendly place (kept separate from the Pipeline on
+      // purpose). Open to everyone for now.
+      { to: "/sales/inquiries", label: "New Inquiries", shortLabel: "Inquiries", icon: Inbox, comingSoon: true },
       { to: "/leads", label: "Pipeline", shortLabel: "Leads", icon: GitBranch, capability: "pipeline", bottomNav: true },
-      { to: "/sales/reactivation", label: "Reactivation", icon: RefreshCw, comingSoon: true },
-      { to: "/sales/chat-widget", label: "Chat Widget", icon: MessageCircle, comingSoon: true },
       { to: "/sales/scripts", label: "Sales Scripts", icon: ScrollText, comingSoon: true },
     ],
   },
@@ -94,6 +91,8 @@ export const NAV: NavEntry[] = [
       { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
       { to: "/contacts", label: "Contacts", icon: Users, capability: "contacts", bottomNav: true },
       { to: "/calendar", label: "Calendar", icon: CalendarDays, capability: "calendar" },
+      // Built and live (read-only): the follow-up + reactivation engine.
+      { to: "/operations/automations", label: "Automations", icon: Workflow },
       { to: "/operations/reports", label: "Reports & Analytics", shortLabel: "Reports", icon: BarChart3, comingSoon: true },
       { to: "/activity", label: "Activity", icon: Activity, capability: "activity" },
     ],

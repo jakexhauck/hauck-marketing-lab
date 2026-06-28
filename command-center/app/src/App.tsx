@@ -26,6 +26,7 @@ import Notifications from "./routes/Notifications";
 import Team from "./routes/Team";
 import Settings from "./routes/Settings";
 import Comms from "./routes/Comms";
+import Automations from "./routes/Automations";
 import ComingSoon from "./routes/ComingSoon";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
@@ -299,17 +300,25 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              {/* Automations: built and live (read-only). */}
+              <Route
+                path="/operations/automations"
+                element={
+                  <ProtectedRoute>
+                    <Automations />
+                  </ProtectedRoute>
+                }
+              />
               {/* Skeleton surfaces: a home (route + sidebar row) exists ahead of
                   the feature; each renders the shared "coming soon" screen. */}
               <Route path="/sales/overview" element={<ProtectedRoute><ComingSoon title="Sales Overview" blurb="A single view of your whole sales process, end to end. Coming soon." /></ProtectedRoute>} />
-              <Route path="/sales/reactivation" element={<ProtectedRoute><ComingSoon title="Reactivation" blurb="Results from database reactivation campaigns will live here. Coming soon." /></ProtectedRoute>} />
-              <Route path="/sales/chat-widget" element={<ProtectedRoute><ComingSoon title="Chat Widget" blurb="Your website chat widget and the leads it captures. Coming soon." /></ProtectedRoute>} />
+              <Route path="/sales/inquiries" element={<ProtectedRoute><ComingSoon title="New Inquiries" blurb="Website form requests and chat-widget messages, gathered in one easy place. Coming soon." /></ProtectedRoute>} />
               <Route path="/sales/scripts" element={<ProtectedRoute><ComingSoon title="Sales Scripts" blurb="Your call and message scripts, ready to use. Coming soon." /></ProtectedRoute>} />
               <Route path="/operations/reports" element={<ProtectedRoute><ComingSoon title="Reports & Analytics" blurb="Performance across ads, leads, and revenue in one place. Coming soon." /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads" element={<ProtectedRoute><ComingSoon title="Paid Ads" blurb="Your paid advertising results, reimagined. Coming soon." /></ProtectedRoute>} />
               <Route path="/marketing/reviews" element={<ProtectedRoute><GoogleReviews /></ProtectedRoute>} />
               <Route path="/marketing/email" element={<ProtectedRoute><ComingSoon title="Email Campaigns" blurb="Your email campaigns and how they perform. Coming soon." /></ProtectedRoute>} />
-              <Route path="/marketing/website" element={<ProtectedRoute><ComingSoon title="Website" blurb="Your website's traffic and performance. Coming soon." /></ProtectedRoute>} />
+              <Route path="/marketing/website" element={<ProtectedRoute><ComingSoon title="Website" blurb="Your website and the funnels and landing pages we build for your campaigns. Coming soon." /></ProtectedRoute>} />
               <Route path="/marketing/social" element={<ProtectedRoute><ComingSoon title="Social Media" blurb="Your social media presence and results. Coming soon." /></ProtectedRoute>} />
               <Route path="/company/documents" element={<ProtectedRoute><ComingSoon title="Documents & Resources" blurb="Contracts, brand assets, and reports in one place. Coming soon." /></ProtectedRoute>} />
               <Route path="/admin" element={<Navigate to="/admin/pillar/operations" replace />} />
