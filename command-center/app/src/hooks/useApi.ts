@@ -17,6 +17,7 @@ import {
   type ApiCalendarEvent,
   type ApiTenant,
   type AdminClient,
+  type ApiReviewsResponse,
 } from "../lib/api";
 
 // Tenant display config (branding, labels, real spend). Changes rarely; a
@@ -137,6 +138,50 @@ export function useMarkNotificationsRead() {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+}
+
+// Completed-job contacts for the Google Reviews surface. Newest first; each
+// flagged with whether the review campaign already started.
+export function useReviewsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["reviews"],
+    enabled,
+    staleTime: 30_000,
+    queryFn: () => api<ApiReviewsResponse>("/api/reviews"),
+  });
+}
+
+// Start the review campaign for one contact: adds the review tag in GHL, which
+// enrolls them. Optimistically flips that row to started so the button settles
+// immediately; rolls back on error.
+export function useStartReviewCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { contactId: string }) =>
+      api<{ ok: boolean }>("/api/reviews", {
+        method: "POST",
+        body: JSON.stringify({ contactId: input.contactId }),
+      }),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ["reviews"] });
+      const previous = qc.getQueryData<ApiReviewsResponse>(["reviews"]);
+      if (previous) {
+        qc.setQueryData<ApiReviewsResponse>(["reviews"], {
+          ...previous,
+          contacts: previous.contacts.map((c) =>
+            c.contactId === input.contactId ? { ...c, started: true } : c,
+          ),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(["reviews"], context.previous);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["reviews"] });
     },
   });
 }

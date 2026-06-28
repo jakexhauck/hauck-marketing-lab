@@ -134,6 +134,27 @@ export interface ApiContact {
   lastActivityAt: string;
 }
 
+// A completed-job contact on the Google Reviews surface. started = the review
+// campaign tag is already on the contact (campaign running), so the button is
+// spent. Source of truth is the GHL contact tag; see functions/api/reviews.
+export interface ApiReviewContact {
+  contactId: string;
+  name: string;
+  phone: string;
+  email: string;
+  completedAt: string;
+  started: boolean;
+}
+
+export interface ApiReviewsResponse {
+  contacts: ApiReviewContact[];
+  // Set when no Sales / Job Completed stage was found for the tenant; the page
+  // shows a quiet note instead of an error.
+  configError?: string;
+  // When present, "already started" was only computed for the newest N rows.
+  truncatedAt?: number;
+}
+
 export interface ApiConversation {
   id: string;
   contactId: string;

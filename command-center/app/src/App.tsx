@@ -12,6 +12,7 @@ import Leads from "./routes/Leads";
 import FormSubmissions from "./routes/FormSubmissions";
 import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
+import GoogleReviews from "./routes/GoogleReviews";
 import { Activity } from "./routes/Activity";
 import Contacts from "./routes/Contacts";
 import ContactDetail from "./routes/ContactDetail";
@@ -306,7 +307,7 @@ export default function App() {
               <Route path="/sales/scripts" element={<ProtectedRoute><ComingSoon title="Sales Scripts" blurb="Your call and message scripts, ready to use. Coming soon." /></ProtectedRoute>} />
               <Route path="/operations/reports" element={<ProtectedRoute><ComingSoon title="Reports & Analytics" blurb="Performance across ads, leads, and revenue in one place. Coming soon." /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads" element={<ProtectedRoute><ComingSoon title="Paid Ads" blurb="Your paid advertising results, reimagined. Coming soon." /></ProtectedRoute>} />
-              <Route path="/marketing/reviews" element={<ProtectedRoute><ComingSoon title="Google Reviews" blurb="Results from your Google review campaign. Coming soon." /></ProtectedRoute>} />
+              <Route path="/marketing/reviews" element={<ProtectedRoute><GoogleReviews /></ProtectedRoute>} />
               <Route path="/marketing/email" element={<ProtectedRoute><ComingSoon title="Email Campaigns" blurb="Your email campaigns and how they perform. Coming soon." /></ProtectedRoute>} />
               <Route path="/marketing/website" element={<ProtectedRoute><ComingSoon title="Website" blurb="Your website's traffic and performance. Coming soon." /></ProtectedRoute>} />
               <Route path="/marketing/social" element={<ProtectedRoute><ComingSoon title="Social Media" blurb="Your social media presence and results. Coming soon." /></ProtectedRoute>} />

@@ -103,7 +103,7 @@ export const NAV: NavEntry[] = [
     label: "Marketing",
     items: [
       { to: "/marketing/paid-ads", label: "Paid Ads", icon: Megaphone, comingSoon: true },
-      { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star, comingSoon: true },
+      { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
       { to: "/marketing/email", label: "Email Campaigns", shortLabel: "Email", icon: Mail, comingSoon: true },
       { to: "/marketing/website", label: "Website", icon: Globe, comingSoon: true },
       { to: "/marketing/social", label: "Social Media", shortLabel: "Social", icon: Share2, comingSoon: true },
