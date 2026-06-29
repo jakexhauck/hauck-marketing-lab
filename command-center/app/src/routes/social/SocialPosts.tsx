@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { LayoutGrid, Plus } from "lucide-react";
+import { LayoutGrid, Plus, Trash2 } from "lucide-react";
 import Shell from "../../components/Shell";
+import SocialMobileTabs from "../../components/social/SocialMobileTabs";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, Badge, Button, EmptyState, Segmented } from "../../components/ui";
 import type { Tone } from "../../lib/status";
+import { useToast } from "../../context/ToastContext";
 import { demoMode } from "../../demo/demoMode";
 import { Platform, PlatformGlyph, NotConnectedNotice, SOCIAL_CONTAINER } from "./shared";
 import SocialComposerDialog from "../../components/social/SocialComposerDialog";
@@ -73,25 +75,46 @@ const EMPTY_COPY: Record<Status, string> = {
 
 export default function SocialPosts() {
   const demo = demoMode();
+  const { showToast } = useToast();
   const [tab, setTab] = useState<Status>("scheduled");
   const [composerOpen, setComposerOpen] = useState(false);
+  const [composeSource, setComposeSource] = useState<string | undefined>(undefined);
+  const [posts, setPosts] = useState<Record<Status, Post[]>>(POSTS);
+
+  function openNew() {
+    setComposeSource(undefined);
+    setComposerOpen(true);
+  }
+  function editPost(title: string) {
+    setComposeSource(title);
+    setComposerOpen(true);
+  }
+  function removePost(status: Status, title: string) {
+    setPosts((prev) => ({ ...prev, [status]: prev[status].filter((p) => p.title !== title) }));
+    showToast("Removed (demo)");
+  }
 
   const options = [
-    { value: "scheduled" as const, label: "Scheduled", count: demo ? POSTS.scheduled.length : 0 },
-    { value: "drafts" as const, label: "Drafts", count: demo ? POSTS.drafts.length : 0 },
-    { value: "posted" as const, label: "Posted", count: demo ? POSTS.posted.length : 0 },
+    { value: "scheduled" as const, label: "Scheduled", count: demo ? posts.scheduled.length : 0 },
+    { value: "drafts" as const, label: "Drafts", count: demo ? posts.drafts.length : 0 },
+    { value: "posted" as const, label: "Posted", count: demo ? posts.posted.length : 0 },
   ];
-  const rows = demo ? POSTS[tab] : [];
+  const rows = demo ? posts[tab] : [];
 
   return (
     <Shell>
-      <SocialComposerDialog open={composerOpen} onClose={() => setComposerOpen(false)} />
+      <SocialComposerDialog
+        open={composerOpen}
+        sourceIdea={composeSource}
+        onClose={() => setComposerOpen(false)}
+      />
       <div className={SOCIAL_CONTAINER}>
+        <SocialMobileTabs />
         <PageHeader
           title="My Posts"
           description="Everything you've scheduled, drafted, and published."
           actions={
-            <Button variant="primary" size="md" onClick={() => setComposerOpen(true)}>
+            <Button variant="primary" size="md" onClick={openNew}>
               <Plus size={16} /> New Post
             </Button>
           }
@@ -111,13 +134,19 @@ export default function SocialPosts() {
               {rows.map((p) => (
                 <li
                   key={p.title}
-                  className="flex items-center gap-3 border-b border-divider px-4 py-3 last:border-b-0"
+                  className="group flex items-center gap-3 border-b border-divider px-4 py-3 last:border-b-0 transition-colors hover:bg-surface-2"
                 >
-                  <PlatformGlyph p={p.platform} />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-display text-[14px] text-text">{p.title}</div>
-                    <div className="mt-0.5 text-[12.5px] text-faint">{p.meta}</div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => editPost(p.title)}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
+                    <PlatformGlyph p={p.platform} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-display text-[14px] text-text">{p.title}</div>
+                      <div className="mt-0.5 text-[12.5px] text-faint">{p.meta}</div>
+                    </div>
+                  </button>
                   {p.badge && <Badge tone={p.badge.tone}>{p.badge.label}</Badge>}
                   {p.metric && (
                     <div className="shrink-0 text-right">
@@ -125,6 +154,14 @@ export default function SocialPosts() {
                       <div className="text-[11px] text-faint">{p.metric.sub}</div>
                     </div>
                   )}
+                  <button
+                    type="button"
+                    aria-label={`Delete ${p.title}`}
+                    onClick={() => removePost(tab, p.title)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-faint transition-colors hover:bg-danger-tint hover:text-danger"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </li>
               ))}
             </ul>

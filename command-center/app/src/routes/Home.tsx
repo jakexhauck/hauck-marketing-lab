@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Search,
   Settings,
+  Share2,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -372,6 +373,7 @@ export default function Home() {
             </div>
             <ul className="mx-[22px] overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
               {[
+                { key: "social", label: "Social Media", sub: "Plan and schedule your posts", to: "/marketing/social", Icon: Share2, color: "#4f46e5" },
                 // Calendar + Billing honour the same per-surface permissions as
                 // the sidebar/bottom nav; a staff member without view access must
                 // not be offered a link the backend will refuse.

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Sparkles, ArrowRight, Plus } from "lucide-react";
 import Shell from "../../components/Shell";
+import SocialMobileTabs from "../../components/social/SocialMobileTabs";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, Badge, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
@@ -63,6 +64,7 @@ export default function SocialIdeas() {
         onClose={() => setComposeIdea(null)}
       />
       <div className={SOCIAL_CONTAINER}>
+        <SocialMobileTabs />
         <PageHeader
           title="Ideas"
           count={demo ? `${IDEAS.length}` : undefined}

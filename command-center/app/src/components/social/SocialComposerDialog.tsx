@@ -32,6 +32,7 @@ export default function SocialComposerDialog({
     demo ? { ig: true, fb: true, gb: false } : { ig: false, fb: false, gb: false },
   );
   const [previewTab, setPreviewTab] = useState<Platform>("ig");
+  const [when, setWhen] = useState("");
 
   function togglePlatform(p: Platform) {
     setPlatforms((prev) => ({ ...prev, [p]: !prev[p] }));
@@ -164,6 +165,19 @@ export default function SocialComposerDialog({
             >
               <Plus size={20} /> Add photo
             </button>
+          </div>
+
+          <div className="mt-5">
+            <span className="label-cap">Schedule for</span>
+            <input
+              type="datetime-local"
+              value={when}
+              onChange={(e) => setWhen(e.target.value)}
+              className="mt-2 w-full rounded-xl border border-border-strong bg-surface px-3.5 py-2.5 text-[14px] text-text outline-none focus:border-brand"
+            />
+            <p className="mt-1.5 text-[11px] text-faint">
+              Leave blank to save as a draft.{!demo && " Scheduling turns on once your accounts are connected."}
+            </p>
           </div>
         </div>
 

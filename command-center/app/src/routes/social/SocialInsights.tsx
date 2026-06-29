@@ -1,5 +1,6 @@
 import { BarChart3, Zap } from "lucide-react";
 import Shell from "../../components/Shell";
+import SocialMobileTabs from "../../components/social/SocialMobileTabs";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
@@ -36,6 +37,7 @@ export default function SocialInsights() {
   return (
     <Shell>
       <div className={SOCIAL_CONTAINER}>
+        <SocialMobileTabs />
         <PageHeader title="What's working" description="Last 30 days." />
 
         {!demo && (

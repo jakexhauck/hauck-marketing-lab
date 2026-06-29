@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import Shell from "../../components/Shell";
+import SocialMobileTabs from "../../components/social/SocialMobileTabs";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { Platform, NotConnectedNotice, SOCIAL_CONTAINER, PLATFORM } from "./shared";
 import PlanMonthDialog from "../../components/social/PlanMonthDialog";
+import SocialComposerDialog from "../../components/social/SocialComposerDialog";
 
 // Month calendar. Populated demo month in preview; empty not-connected otherwise.
 
@@ -31,11 +33,24 @@ const CELLS: { day: number; out?: boolean; today?: boolean; events?: Ev[] }[] = 
 export default function SocialCalendar() {
   const demo = demoMode();
   const [planOpen, setPlanOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composeSource, setComposeSource] = useState<string | undefined>(undefined);
+
+  function openCompose(label?: string) {
+    setComposeSource(label);
+    setComposerOpen(true);
+  }
 
   return (
     <Shell>
       <PlanMonthDialog open={planOpen} onClose={() => setPlanOpen(false)} />
+      <SocialComposerDialog
+        open={composerOpen}
+        sourceIdea={composeSource}
+        onClose={() => setComposerOpen(false)}
+      />
       <div className={SOCIAL_CONTAINER}>
+        <SocialMobileTabs />
         <PageHeader
           title="Calendar"
           description="Your whole month of posts at a glance."
@@ -76,29 +91,40 @@ export default function SocialCalendar() {
               {CELLS.map((c, i) => (
                 <div
                   key={i}
-                  className={`flex min-h-[94px] flex-col gap-1.5 rounded-[11px] border p-2 ${
+                  onClick={() => !c.out && openCompose()}
+                  className={`group flex min-h-[94px] flex-col gap-1.5 rounded-[11px] border p-2 ${
                     c.today
                       ? "border-brand bg-brand-tint"
                       : c.out
                         ? "border-border bg-surface-2 opacity-60"
-                        : "border-border bg-surface"
+                        : "cursor-pointer border-border bg-surface hover:border-brand"
                   }`}
                 >
                   <span className={`font-display text-[12.5px] ${c.today ? "text-brand-text" : "text-faint"}`}>
                     {c.day}
                   </span>
                   {c.events?.map((e, j) => (
-                    <div
+                    <button
                       key={j}
-                      className="flex items-center gap-1.5 truncate rounded-md bg-surface-2 px-1.5 py-1 text-[10.5px] font-medium text-muted"
+                      type="button"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        openCompose(e.label);
+                      }}
+                      className="flex w-full items-center gap-1.5 truncate rounded-md bg-surface-2 px-1.5 py-1 text-left text-[10.5px] font-medium text-muted hover:text-text"
                     >
                       <span
                         className="h-1.5 w-1.5 shrink-0 rounded-sm"
                         style={{ background: PLATFORM[e.p].bg }}
                       />
                       <span className="truncate">{e.label}</span>
-                    </div>
+                    </button>
                   ))}
+                  {!c.out && !c.events && (
+                    <span className="mt-auto text-[10px] text-faint opacity-0 transition-opacity group-hover:opacity-100">
+                      + add
+                    </span>
+                  )}
                 </div>
               ))}
             </div>

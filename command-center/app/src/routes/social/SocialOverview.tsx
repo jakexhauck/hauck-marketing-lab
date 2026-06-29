@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Plus, CalendarDays, Sparkles, BarChart3, Zap, ArrowRight } from "lucide-react";
 import Shell from "../../components/Shell";
+import SocialMobileTabs from "../../components/social/SocialMobileTabs";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, PanelHeader, Badge, Button, EmptyState } from "../../components/ui";
 import type { Tone } from "../../lib/status";
@@ -77,6 +78,7 @@ export default function SocialOverview() {
       <SocialComposerDialog open={dialog === "composer"} onClose={() => setDialog(null)} />
       <PlanMonthDialog open={dialog === "plan"} onClose={() => setDialog(null)} />
       <div className={SOCIAL_CONTAINER}>
+        <SocialMobileTabs />
         <PageHeader
           title="Social Media"
           description="Your social at a glance. Here's what's next and what's working."
