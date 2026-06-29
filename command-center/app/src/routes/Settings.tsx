@@ -3,6 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Check, ChevronLeft, ChevronRight, Compass, LogOut, Users } from "lucide-react";
 import Shell from "../components/Shell";
 import SettingsDesktop from "../components/settings/SettingsDesktop";
+import {
+  AppearanceControl,
+  ThisDeviceControl,
+  ChannelsControl,
+  ChangePasswordControl,
+} from "../components/settings/SettingsControls";
 import NavyHero from "../components/NavyHero";
 import { HeroIconButton } from "../components/HeroUi";
 import { useAuth } from "../context/AuthContext";
@@ -146,6 +152,28 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Appearance */}
+        <div className="pt-6">
+          <span className="sec-kicker">Appearance</span>
+        </div>
+        <div className="mt-2">
+          <AppearanceControl />
+        </div>
+
+        {/* Notifications */}
+        <div className="pt-6">
+          <span className="sec-kicker">Notifications</span>
+        </div>
+        <div className="mt-2 space-y-3">
+          <ThisDeviceControl />
+          {isOwner && (
+            <>
+              <ChannelsControl />
+              <NotifyAudienceCard />
+            </>
+          )}
+        </div>
+
         {/* Manage (owner only) */}
         {isOwner && (
           <>
@@ -177,13 +205,16 @@ export default function Settings() {
                 </button>
               </li>
             </ul>
-
-            <div className="pt-6">
-              <span className="sec-kicker">Notifications</span>
-            </div>
-            <NotifyAudienceCard />
           </>
         )}
+
+        {/* Security */}
+        <div className="pt-6">
+          <span className="sec-kicker">Security</span>
+        </div>
+        <div className="mt-2">
+          <ChangePasswordControl />
+        </div>
 
         {/* Help */}
         <div className="pt-6">
@@ -249,6 +280,8 @@ export default function Settings() {
 
         <p className="mt-8 text-center text-[11px] font-medium text-[var(--text-faint)]">
           {client.brand.appName}. Secured by {APP_BRAND.securedBy}.
+          <br />
+          Version {__APP_VERSION__}
         </p>
       </div>
       </div>

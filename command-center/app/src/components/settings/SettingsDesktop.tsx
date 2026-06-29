@@ -3,6 +3,12 @@ import { ChevronRight, Compass, LogOut, Users } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
 import { Button } from "../ui/Button";
 import { NotifyAudienceCard } from "../../routes/Settings";
+import {
+  AppearanceControl,
+  ThisDeviceControl,
+  ChannelsControl,
+  ChangePasswordControl,
+} from "./SettingsControls";
 import { useAuth } from "../../context/AuthContext";
 import { useTour } from "../../context/TourContext";
 import { useClient } from "../../context/ClientContext";
@@ -56,37 +62,54 @@ export default function SettingsDesktop() {
           </div>
         </Group>
 
-        {/* Manage + Notifications (owner only) */}
-        {isOwner && (
-          <>
-            <Group label="Manage">
-              <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-                <button
-                  type="button"
-                  onClick={() => navigate("/team")}
-                  className="flex w-full items-center gap-4 px-6 py-4 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius)] bg-brand-tint text-brand-text">
-                    <Users size={18} strokeWidth={2} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display text-[15px] font-semibold text-text">
-                      Team
-                    </div>
-                    <div className="mt-0.5 text-[13px] text-muted">
-                      Add employees and set what they can see
-                    </div>
-                  </div>
-                  <ChevronRight size={18} className="shrink-0 text-faint" />
-                </button>
-              </div>
-            </Group>
+        {/* Appearance */}
+        <Group label="Appearance">
+          <AppearanceControl />
+        </Group>
 
-            <Group label="Notifications">
-              <NotifyAudienceCard />
-            </Group>
-          </>
+        {/* Notifications */}
+        <Group label="Notifications">
+          <div className="space-y-3">
+            <ThisDeviceControl />
+            {isOwner && (
+              <>
+                <ChannelsControl />
+                <NotifyAudienceCard />
+              </>
+            )}
+          </div>
+        </Group>
+
+        {/* Manage (owner only) */}
+        {isOwner && (
+          <Group label="Manage">
+            <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+              <button
+                type="button"
+                onClick={() => navigate("/team")}
+                className="flex w-full items-center gap-4 px-6 py-4 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius)] bg-brand-tint text-brand-text">
+                  <Users size={18} strokeWidth={2} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="font-display text-[15px] font-semibold text-text">
+                    Team
+                  </div>
+                  <div className="mt-0.5 text-[13px] text-muted">
+                    Add employees and set what they can see
+                  </div>
+                </div>
+                <ChevronRight size={18} className="shrink-0 text-faint" />
+              </button>
+            </div>
+          </Group>
         )}
+
+        {/* Security */}
+        <Group label="Security">
+          <ChangePasswordControl />
+        </Group>
 
         {/* Help */}
         <Group label="Help">
@@ -142,7 +165,8 @@ export default function SettingsDesktop() {
         </Group>
 
         <p className="pt-2 text-center text-[12px] font-medium text-faint">
-          {client.brand.appName}. Secured by {APP_BRAND.securedBy}.
+          {client.brand.appName}. Secured by {APP_BRAND.securedBy}. Version{" "}
+          {__APP_VERSION__}
         </p>
       </div>
     </DesktopPage>

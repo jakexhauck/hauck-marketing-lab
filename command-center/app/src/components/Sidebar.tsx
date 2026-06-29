@@ -1,9 +1,8 @@
 import { NavLink } from "react-router-dom";
-import { Settings, Sun, Moon, LogOut } from "lucide-react";
+import { Settings } from "lucide-react";
 import { NAV, visibleNav, isNavSection, type NavItem, type NavSection } from "../lib/nav";
 import { useClient } from "../context/ClientContext";
 import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
 
 // A single nav row. Shared by top-level items and group children so the active
 // (gradient) and hover treatments stay identical wherever a surface lives.
@@ -50,8 +49,7 @@ function NavSectionBlock({ section }: { section: NavSection }) {
 // same permission gate the bottom bar uses, so the two never drift.
 export default function Sidebar() {
   const { client } = useClient();
-  const { session, isOwner, mode, can, signOut } = useAuth();
-  const { resolved, toggle } = useTheme();
+  const { session, isOwner, mode, can } = useAuth();
   const navEntries = visibleNav(NAV, { isOwner, can });
   const brand = client.brand;
 
@@ -113,21 +111,6 @@ export default function Sidebar() {
         >
           <Settings size={16} className="shrink-0 opacity-80" /> Settings
         </NavLink>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={toggle}
-            className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg text-[12.5px] text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-          >
-            {resolved === "light" ? <Moon size={15} /> : <Sun size={15} />}
-            {resolved === "light" ? "Dark" : "Light"}
-          </button>
-          <button
-            onClick={() => void signOut()}
-            className="flex h-8 items-center justify-center gap-1.5 rounded-lg px-2.5 text-[12.5px] text-[var(--text-muted)] hover:bg-red-500/10 hover:text-red-600"
-          >
-            <LogOut size={15} /> Sign out
-          </button>
-        </div>
       </div>
     </aside>
   );

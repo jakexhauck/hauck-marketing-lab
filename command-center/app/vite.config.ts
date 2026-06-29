@@ -5,8 +5,13 @@ import { VitePWA } from "vite-plugin-pwa";
 // One brand source: the manifest reads the same constant the app renders, so
 // the home-screen label can never drift from the in-app identity.
 import { APP_BRAND } from "./src/lib/appBrand";
+import { version as pkgVersion } from "./package.json";
 
 export default defineConfig({
+  // Expose the build version to the app (Settings shows it for support).
+  define: {
+    __APP_VERSION__: JSON.stringify(pkgVersion),
+  },
   plugins: [
     react(),
     tailwindcss(),
