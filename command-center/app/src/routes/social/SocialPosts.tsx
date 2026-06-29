@@ -6,6 +6,7 @@ import { Panel, Badge, Button, EmptyState, Segmented } from "../../components/ui
 import type { Tone } from "../../lib/status";
 import { demoMode } from "../../demo/demoMode";
 import { Platform, PlatformGlyph, NotConnectedNotice, SOCIAL_CONTAINER } from "./shared";
+import SocialComposerDialog from "../../components/social/SocialComposerDialog";
 
 // The client's own pipeline of posts. Demo shows sample posts per status; a real
 // session shows an empty state per tab plus the not-connected notice.
@@ -73,6 +74,7 @@ const EMPTY_COPY: Record<Status, string> = {
 export default function SocialPosts() {
   const demo = demoMode();
   const [tab, setTab] = useState<Status>("scheduled");
+  const [composerOpen, setComposerOpen] = useState(false);
 
   const options = [
     { value: "scheduled" as const, label: "Scheduled", count: demo ? POSTS.scheduled.length : 0 },
@@ -83,12 +85,13 @@ export default function SocialPosts() {
 
   return (
     <Shell>
+      <SocialComposerDialog open={composerOpen} onClose={() => setComposerOpen(false)} />
       <div className={SOCIAL_CONTAINER}>
         <PageHeader
           title="My Posts"
           description="Everything you've scheduled, drafted, and published."
           actions={
-            <Button variant="primary" size="md" disabled={!demo}>
+            <Button variant="primary" size="md" onClick={() => setComposerOpen(true)}>
               <Plus size={16} /> New Post
             </Button>
           }

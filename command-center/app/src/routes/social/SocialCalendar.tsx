@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import Shell from "../../components/Shell";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { Platform, NotConnectedNotice, SOCIAL_CONTAINER, PLATFORM } from "./shared";
+import PlanMonthDialog from "../../components/social/PlanMonthDialog";
 
 // Month calendar. Populated demo month in preview; empty not-connected otherwise.
 
@@ -28,15 +30,17 @@ const CELLS: { day: number; out?: boolean; today?: boolean; events?: Ev[] }[] = 
 
 export default function SocialCalendar() {
   const demo = demoMode();
+  const [planOpen, setPlanOpen] = useState(false);
 
   return (
     <Shell>
+      <PlanMonthDialog open={planOpen} onClose={() => setPlanOpen(false)} />
       <div className={SOCIAL_CONTAINER}>
         <PageHeader
           title="Calendar"
           description="Your whole month of posts at a glance."
           actions={
-            <Button variant="primary" size="md" disabled={!demo}>
+            <Button variant="primary" size="md" onClick={() => setPlanOpen(true)}>
               <CalendarDays size={16} /> Plan My Month
             </Button>
           }

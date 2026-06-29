@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { Plus, CalendarDays, Sparkles, BarChart3, Zap, ArrowRight } from "lucide-react";
 import Shell from "../../components/Shell";
 import { PageHeader } from "../../components/PageHeader";
@@ -7,6 +7,8 @@ import { Panel, PanelHeader, Badge, Button, EmptyState } from "../../components/
 import type { Tone } from "../../lib/status";
 import { demoMode } from "../../demo/demoMode";
 import { Platform, PlatformGlyph, NotConnectedNotice, SOCIAL_CONTAINER } from "./shared";
+import SocialComposerDialog from "../../components/social/SocialComposerDialog";
+import PlanMonthDialog from "../../components/social/PlanMonthDialog";
 
 // The Social hub overview ("Glance"). Populated, designed layout in demo/preview;
 // zeroed + not-connected state for a real session (see ./shared).
@@ -66,12 +68,14 @@ function SeeAll({ to, children }: { to: string; children: ReactNode }) {
 }
 
 export default function SocialOverview() {
-  const navigate = useNavigate();
   const demo = demoMode();
   const kpis = demo ? SAMPLE_KPIS : EMPTY_KPIS;
+  const [dialog, setDialog] = useState<null | "composer" | "plan">(null);
 
   return (
     <Shell>
+      <SocialComposerDialog open={dialog === "composer"} onClose={() => setDialog(null)} />
+      <PlanMonthDialog open={dialog === "plan"} onClose={() => setDialog(null)} />
       <div className={SOCIAL_CONTAINER}>
         <PageHeader
           title="Social Media"
@@ -82,11 +86,11 @@ export default function SocialOverview() {
                 variant="secondary"
                 size="md"
                 className="hidden sm:inline-flex"
-                onClick={() => navigate("/marketing/social/calendar")}
+                onClick={() => setDialog("plan")}
               >
                 <CalendarDays size={16} /> Plan my month
               </Button>
-              <Button variant="primary" size="md" onClick={() => navigate("/marketing/social/ideas")}>
+              <Button variant="primary" size="md" onClick={() => setDialog("composer")}>
                 <Plus size={16} /> New post
               </Button>
             </>

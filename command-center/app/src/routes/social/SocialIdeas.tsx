@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Sparkles, ArrowRight, Plus } from "lucide-react";
 import Shell from "../../components/Shell";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, Badge, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { Platform, PlatformGlyph, NotConnectedNotice, SOCIAL_CONTAINER } from "./shared";
+import NewIdeaDialog from "../../components/social/NewIdeaDialog";
+import SocialComposerDialog from "../../components/social/SocialComposerDialog";
 
 // The idea feed. Populated in demo/preview; not-connected empty state otherwise.
 
@@ -48,16 +51,24 @@ const IDEAS: { kind: string; title: string; why: string; platforms: Platform[] }
 
 export default function SocialIdeas() {
   const demo = demoMode();
+  const [ideaOpen, setIdeaOpen] = useState(false);
+  const [composeIdea, setComposeIdea] = useState<string | null>(null);
 
   return (
     <Shell>
+      <NewIdeaDialog open={ideaOpen} onClose={() => setIdeaOpen(false)} />
+      <SocialComposerDialog
+        open={composeIdea !== null}
+        sourceIdea={composeIdea ?? undefined}
+        onClose={() => setComposeIdea(null)}
+      />
       <div className={SOCIAL_CONTAINER}>
         <PageHeader
           title="Ideas"
           count={demo ? `${IDEAS.length}` : undefined}
           description="Post ideas built from your jobs, your offers, and what's working this week."
           actions={
-            <Button variant="primary" size="md" disabled={!demo}>
+            <Button variant="primary" size="md" onClick={() => setIdeaOpen(true)}>
               <Plus size={16} /> New Post Idea
             </Button>
           }
@@ -85,7 +96,10 @@ export default function SocialIdeas() {
               {IDEAS.map((idea) => (
                 <Panel
                   key={idea.title}
-                  className="relative flex flex-col overflow-hidden p-5 pl-6 transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-md)]"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setComposeIdea(idea.title)}
+                  className="relative flex cursor-pointer flex-col overflow-hidden p-5 pl-6 transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[var(--shadow-md)]"
                 >
                   <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundImage: "var(--grad-brand)" }} />
                   <div className="label-cap text-brand-text">{idea.kind}</div>
