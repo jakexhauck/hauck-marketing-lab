@@ -1,4 +1,4 @@
-import { CalendarDays, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import Shell from "../../components/Shell";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, Button, EmptyState } from "../../components/ui";
@@ -37,7 +37,7 @@ export default function SocialCalendar() {
           description="Your whole month of posts at a glance."
           actions={
             <Button variant="primary" size="md" disabled={!demo}>
-              <Plus size={16} /> New post
+              <CalendarDays size={16} /> Plan My Month
             </Button>
           }
         />

@@ -89,7 +89,7 @@ export default function SocialPosts() {
           description="Everything you've scheduled, drafted, and published."
           actions={
             <Button variant="primary" size="md" disabled={!demo}>
-              <Plus size={16} /> New post
+              <Plus size={16} /> New Post
             </Button>
           }
         />

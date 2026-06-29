@@ -58,7 +58,7 @@ export default function SocialIdeas() {
           description="Post ideas built from your jobs, your offers, and what's working this week."
           actions={
             <Button variant="primary" size="md" disabled={!demo}>
-              <Plus size={16} /> Plan my month
+              <Plus size={16} /> New Post Idea
             </Button>
           }
         />
