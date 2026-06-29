@@ -1,28 +1,78 @@
+import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, CalendarDays, Sparkles, BarChart3, Link2 } from "lucide-react";
+import { Plus, CalendarDays, Sparkles, BarChart3, Zap, ArrowRight } from "lucide-react";
 import Shell from "../../components/Shell";
 import { PageHeader } from "../../components/PageHeader";
-import { Panel, PanelHeader, Button, EmptyState } from "../../components/ui";
+import { Panel, PanelHeader, Badge, Button, EmptyState } from "../../components/ui";
+import type { Tone } from "../../lib/status";
+import { demoMode } from "../../demo/demoMode";
+import { Platform, PlatformGlyph, NotConnectedNotice, SOCIAL_CONTAINER } from "./shared";
 
-// The Social hub overview. There is NO live data here yet: this surface is not
-// connected to anything. The client's social accounts still need to be linked
-// (via GoHighLevel) before any real posts or numbers can appear. Until then every
-// metric reads 0 and every list shows an empty state, and the banner up top says
-// so explicitly. Do not fill these with sample data.
+// The Social hub overview ("Glance"). Populated, designed layout in demo/preview;
+// zeroed + not-connected state for a real session (see ./shared).
 
-const KPIS: { label: string; value: string }[] = [
-  { label: "Posts this month", value: "0" },
-  { label: "Calls & messages", value: "0" },
-  { label: "People reached", value: "0" },
-  { label: "Scheduled", value: "0" },
+const SAMPLE_KPIS: { label: string; value: string; brand?: boolean }[] = [
+  { label: "Posts this month", value: "9" },
+  { label: "Calls & messages", value: "14", brand: true },
+  { label: "People reached", value: "2,100" },
+  { label: "Scheduled", value: "5" },
 ];
+
+const EMPTY_KPIS = SAMPLE_KPIS.map((k) => ({ ...k, value: "0", brand: false }));
+
+const UP_NEXT: {
+  platform: Platform;
+  title: string;
+  meta: string;
+  status: { tone: Tone; label: string };
+}[] = [
+  {
+    platform: "ig",
+    title: "Same-day hot water — Thompson job",
+    meta: "Sat 6:00 PM · Instagram + Facebook",
+    status: { tone: "brand", label: "Scheduled" },
+  },
+  {
+    platform: "fb",
+    title: "AC tune-up before the heat wave",
+    meta: "Sun 9:00 AM · Facebook",
+    status: { tone: "brand", label: "Scheduled" },
+  },
+  {
+    platform: "gb",
+    title: "Drain mistake every homeowner makes",
+    meta: "Needs a photo before it can post",
+    status: { tone: "warning", label: "Draft" },
+  },
+];
+
+const RECENT: { platform: Platform; title: string; meta: string; metric: string; sub: string }[] = [
+  { platform: "ig", title: "5★ review from the Garcias", meta: "Jun 14 · Instagram", metric: "4 calls", sub: "412 seen" },
+  { platform: "fb", title: "Burst pipe save, before/after", meta: "Jun 9 · Facebook", metric: "3 calls", sub: "388 seen" },
+];
+
+const IDEAS: { kind: string; title: string; platforms: Platform[] }[] = [
+  { kind: "Social proof", title: "Show off the Thompson water-heater job", platforms: ["ig", "fb"] },
+  { kind: "Seasonal", title: "AC tune-up reminder for the heat wave", platforms: ["fb"] },
+  { kind: "Review", title: "Turn the Garcia 5★ into a post", platforms: ["ig"] },
+];
+
+function SeeAll({ to, children }: { to: string; children: ReactNode }) {
+  return (
+    <Link to={to} className="flex items-center gap-1 text-[12px] font-medium text-brand-text hover:underline">
+      {children} <ArrowRight size={12} />
+    </Link>
+  );
+}
 
 export default function SocialOverview() {
   const navigate = useNavigate();
+  const demo = demoMode();
+  const kpis = demo ? SAMPLE_KPIS : EMPTY_KPIS;
 
   return (
     <Shell>
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5 pb-12 pt-5 lg:px-8">
+      <div className={SOCIAL_CONTAINER}>
         <PageHeader
           title="Social Media"
           description="Your social at a glance. Here's what's next and what's working."
@@ -43,54 +93,91 @@ export default function SocialOverview() {
           }
         />
 
-        {/* Not-connected notice. This stays until the social accounts are linked. */}
-        <Panel className="mb-4 flex flex-col gap-3 border-brand/30 bg-brand-tint p-4 sm:flex-row sm:items-center">
-          <Link2 size={20} className="shrink-0 text-brand-text" />
-          <div className="flex-1 text-[13px] leading-snug text-text">
-            <span className="font-semibold">Not connected yet.</span> These numbers are all 0
-            because nothing is linked. To see real posts and results, we still need to connect
-            your social accounts (Facebook, Instagram, Google) through GoHighLevel.
-          </div>
-          <Button variant="secondary" size="sm" disabled className="shrink-0">
-            Connect accounts (coming soon)
-          </Button>
-        </Panel>
+        {!demo && <NotConnectedNotice message="These numbers are all 0 because nothing is linked. To see real posts and results, we still need to connect your social accounts (Facebook, Instagram, Google) through GoHighLevel." />}
 
-        {/* KPI row — all 0 until connected */}
+        {/* KPI row */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {KPIS.map((k) => (
+          {kpis.map((k) => (
             <Panel key={k.label} className="p-4">
               <div className="text-[13px] text-muted">{k.label}</div>
-              <div className="mt-2 font-data text-[28px] font-semibold tnum text-faint">
+              <div
+                className={`mt-2 font-data text-[28px] font-semibold tnum ${
+                  k.brand ? "text-brand-text" : demo ? "text-text" : "text-faint"
+                }`}
+              >
                 {k.value}
               </div>
             </Panel>
           ))}
         </div>
 
-        {/* Two-column body — empty states until connected */}
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="flex flex-col gap-4 lg:col-span-2">
             <Panel className="overflow-hidden">
-              <PanelHeader title="Up next" />
-              <div className="px-4 py-10">
-                <EmptyState
-                  icon={<CalendarDays size={22} />}
-                  title="Nothing scheduled yet"
-                  description="Once your accounts are connected, your scheduled posts show up here."
-                />
-              </div>
+              <PanelHeader
+                title="Up next"
+                action={demo ? <SeeAll to="/marketing/social/calendar">Calendar</SeeAll> : undefined}
+              />
+              {demo ? (
+                <ul>
+                  {UP_NEXT.map((p) => (
+                    <li
+                      key={p.title}
+                      className="flex items-center gap-3 border-b border-divider px-4 py-3 last:border-b-0"
+                    >
+                      <PlatformGlyph p={p.platform} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-display text-[14px] text-text">{p.title}</div>
+                        <div className="mt-0.5 text-[12.5px] text-faint">{p.meta}</div>
+                      </div>
+                      <Badge tone={p.status.tone}>{p.status.label}</Badge>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="px-4 py-10">
+                  <EmptyState
+                    icon={<CalendarDays size={22} />}
+                    title="Nothing scheduled yet"
+                    description="Once your accounts are connected, your scheduled posts show up here."
+                  />
+                </div>
+              )}
             </Panel>
 
             <Panel className="overflow-hidden">
-              <PanelHeader title="Recently posted" />
-              <div className="px-4 py-10">
-                <EmptyState
-                  icon={<BarChart3 size={22} />}
-                  title="No posts yet"
-                  description="After your accounts are linked, published posts and how they performed appear here."
-                />
-              </div>
+              <PanelHeader
+                title="Recently posted"
+                action={demo ? <SeeAll to="/marketing/social/insights">What's working</SeeAll> : undefined}
+              />
+              {demo ? (
+                <ul>
+                  {RECENT.map((p) => (
+                    <li
+                      key={p.title}
+                      className="flex items-center gap-3 border-b border-divider px-4 py-3 last:border-b-0"
+                    >
+                      <PlatformGlyph p={p.platform} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-display text-[14px] text-text">{p.title}</div>
+                        <div className="mt-0.5 text-[12.5px] text-faint">{p.meta}</div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="font-data text-[13px] font-semibold text-positive">{p.metric}</div>
+                        <div className="text-[11px] text-faint">{p.sub}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="px-4 py-10">
+                  <EmptyState
+                    icon={<BarChart3 size={22} />}
+                    title="No posts yet"
+                    description="After your accounts are linked, published posts and how they performed appear here."
+                  />
+                </div>
+              )}
             </Panel>
           </div>
 
@@ -98,30 +185,54 @@ export default function SocialOverview() {
             <Panel className="overflow-hidden">
               <PanelHeader
                 title="Ideas for you"
-                action={
-                  <Link
-                    to="/marketing/social/ideas"
-                    className="text-[12px] font-medium text-brand-text hover:underline"
-                  >
-                    See all
-                  </Link>
-                }
+                action={<SeeAll to="/marketing/social/ideas">See all</SeeAll>}
               />
-              <div className="px-4 py-10">
-                <EmptyState
-                  icon={<Sparkles size={22} />}
-                  title="Ideas are on the way"
-                  description="Post ideas built from your jobs and the week ahead will appear once you're connected."
-                />
-              </div>
+              {demo ? (
+                <div className="flex flex-col gap-2.5 p-3">
+                  {IDEAS.map((idea) => (
+                    <Link
+                      key={idea.title}
+                      to="/marketing/social/ideas"
+                      className="group relative overflow-hidden rounded-[12px] border border-border bg-surface px-3.5 py-3 pl-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-sm)]"
+                    >
+                      <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundImage: "var(--grad-brand)" }} />
+                      <div className="label-cap text-brand-text">{idea.kind}</div>
+                      <div className="mt-1.5 text-[13.5px] font-semibold leading-snug text-text">{idea.title}</div>
+                      <div className="mt-2.5 flex items-center justify-between">
+                        <div className="flex gap-1">
+                          {idea.platforms.map((p) => (
+                            <PlatformGlyph key={p} p={p} size={19} />
+                          ))}
+                        </div>
+                        <span className="flex items-center gap-1 text-[12.5px] font-medium text-brand-text">
+                          Write it <ArrowRight size={12} />
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-4 py-10">
+                  <EmptyState
+                    icon={<Sparkles size={22} />}
+                    title="Ideas are on the way"
+                    description="Post ideas built from your jobs and the week ahead appear once you're connected."
+                  />
+                </div>
+              )}
             </Panel>
+
+            {demo && (
+              <Panel className="flex items-center gap-3 border-warning/30 bg-warning-tint p-4">
+                <Zap size={20} className="shrink-0 text-warning" />
+                <div className="flex-1 text-[13px] leading-snug text-text">
+                  Your "hot water" post is taking off.{" "}
+                  <span className="font-semibold text-warning">Boost it as an ad?</span>
+                </div>
+              </Panel>
+            )}
           </div>
         </div>
-
-        <p className="mt-6 text-[11.5px] text-faint">
-          No live data yet. This page stays empty until your social accounts are connected through
-          GoHighLevel.
-        </p>
       </div>
     </Shell>
   );
