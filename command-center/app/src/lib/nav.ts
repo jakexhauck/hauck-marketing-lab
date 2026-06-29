@@ -19,6 +19,9 @@ import {
   Globe,
   Share2,
   FolderOpen,
+  TrendingUp,
+  Building2,
+  Contact,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -56,6 +59,10 @@ export interface NavItem {
 export interface NavSection {
   id: string;
   label: string;
+  // Shown on the section's top-level button in the desktop sidebar. Clicking the
+  // button reveals this section's items in the lower zone and jumps to its first
+  // real (non-coming-soon) page.
+  icon: LucideIcon;
   items: NavItem[];
 }
 
@@ -72,34 +79,9 @@ export function isNavSection(entry: NavEntry): entry is NavSection {
 export const NAV: NavEntry[] = [
   { to: "/home", label: "Home", icon: Home, capability: "overview", bottomNav: true },
   {
-    id: "sales",
-    label: "Sales",
-    items: [
-      { to: "/sales/overview", label: "Sales Overview", icon: LayoutDashboard, comingSoon: true },
-      // Inbound from the website: estimate-request forms and chat-widget messages,
-      // gathered in one friendly place (kept separate from the Pipeline on
-      // purpose). Open to everyone for now.
-      { to: "/sales/inquiries", label: "New Inquiries", shortLabel: "Inquiries", icon: Inbox, comingSoon: true },
-      { to: "/leads", label: "Pipeline", shortLabel: "Leads", icon: GitBranch, capability: "pipeline", bottomNav: true },
-      { to: "/sales/scripts", label: "Sales Scripts", icon: ScrollText, comingSoon: true },
-    ],
-  },
-  {
-    id: "operations",
-    label: "Operations",
-    items: [
-      { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
-      { to: "/contacts", label: "Contacts", icon: Users, capability: "contacts", bottomNav: true },
-      { to: "/calendar", label: "Calendar", icon: CalendarDays, capability: "calendar" },
-      // Built and live (read-only): the follow-up + reactivation engine.
-      { to: "/operations/automations", label: "Automations", icon: Workflow },
-      { to: "/operations/reports", label: "Reports & Analytics", shortLabel: "Reports", icon: BarChart3, comingSoon: true },
-      { to: "/activity", label: "Activity", icon: Activity, capability: "activity" },
-    ],
-  },
-  {
     id: "marketing",
     label: "Marketing",
+    icon: Megaphone,
     items: [
       { to: "/marketing/paid-ads", label: "Paid Ads", icon: Megaphone, comingSoon: true },
       { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
@@ -109,10 +91,39 @@ export const NAV: NavEntry[] = [
     ],
   },
   {
-    id: "company",
-    label: "Company",
+    id: "sales",
+    label: "Sales",
+    icon: TrendingUp,
+    items: [
+      { to: "/sales/overview", label: "Sales Overview", shortLabel: "Overview", icon: LayoutDashboard, comingSoon: true },
+      // Inbound from the website: estimate-request forms and chat-widget messages,
+      // gathered in one friendly place (kept separate from the Pipeline on
+      // purpose). Open to everyone for now.
+      { to: "/sales/inquiries", label: "New Inquiries", shortLabel: "Inquiries", icon: Inbox, comingSoon: true },
+      { to: "/leads", label: "Pipeline", shortLabel: "Leads", icon: GitBranch, capability: "pipeline", bottomNav: true },
+      { to: "/sales/scripts", label: "Sales Scripts", shortLabel: "Scripts", icon: ScrollText, comingSoon: true },
+    ],
+  },
+  {
+    id: "customers",
+    label: "Customers",
+    icon: Users,
+    items: [
+      { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
+      { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
+      { to: "/calendar", label: "Calendar", icon: CalendarDays, capability: "calendar" },
+      { to: "/activity", label: "Activity", icon: Activity, capability: "activity" },
+    ],
+  },
+  {
+    id: "operations",
+    label: "Operations",
+    icon: Building2,
     items: [
       { to: "/billing", label: "Revenue", icon: Receipt, capability: "billing" },
+      { to: "/operations/reports", label: "Reports & Analytics", shortLabel: "Reports", icon: BarChart3, comingSoon: true },
+      // Built and live (read-only): the follow-up + reactivation engine.
+      { to: "/operations/automations", label: "Automations", icon: Workflow },
       { to: "/company/documents", label: "Documents & Resources", shortLabel: "Docs", icon: FolderOpen, comingSoon: true },
       { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
     ],
