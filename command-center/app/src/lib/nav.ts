@@ -22,6 +22,8 @@ import {
   TrendingUp,
   Building2,
   Contact,
+  Sparkles,
+  LayoutGrid,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -50,6 +52,13 @@ export interface NavItem {
   // the phone bottom bar. Used by the agency chat, which on desktop lives in a
   // top-right icon instead of a sidebar row.
   sidebarHidden?: boolean;
+  // Sub-pages that live one level below this item in the desktop sidebar. When
+  // present, the item renders as an expandable row inside its section's lower
+  // zone: clicking it opens the group and lands on this item's own route (the
+  // overview), and the children appear indented beneath it. Used by Social
+  // Media, whose overview/ideas/calendar/posts/insights all live under
+  // /marketing/social. One level only — children never nest further.
+  children?: NavItem[];
 }
 
 // A static (non-collapsible) section in the desktop sidebar that groups related
@@ -87,7 +96,19 @@ export const NAV: NavEntry[] = [
       { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
       { to: "/marketing/email", label: "Email Campaigns", shortLabel: "Email", icon: Mail, comingSoon: true },
       { to: "/marketing/website", label: "Website", icon: Globe, comingSoon: true },
-      { to: "/marketing/social", label: "Social Media", shortLabel: "Social", icon: Share2, comingSoon: true },
+      {
+        to: "/marketing/social",
+        label: "Social Media",
+        shortLabel: "Social",
+        icon: Share2,
+        children: [
+          { to: "/marketing/social", label: "Overview", icon: LayoutDashboard },
+          { to: "/marketing/social/ideas", label: "Ideas", icon: Sparkles },
+          { to: "/marketing/social/calendar", label: "Calendar", icon: CalendarDays },
+          { to: "/marketing/social/posts", label: "My Posts", shortLabel: "Posts", icon: LayoutGrid },
+          { to: "/marketing/social/insights", label: "What's working", shortLabel: "Insights", icon: BarChart3 },
+        ],
+      },
     ],
   },
   {
@@ -133,10 +154,20 @@ export const NAV: NavEntry[] = [
   { to: "/comms", label: "Chat", shortLabel: "Chat", icon: MessagesSquare, bottomNav: true, sidebarHidden: true },
 ];
 
-// Every leaf nav item, with sections expanded in place. Used by the bottom bar
-// and anywhere a flat list of surfaces is needed.
+// A single item's leaf pages: its children when it has them (the parent's own
+// route equals its overview child, so the parent itself is not a separate leaf),
+// otherwise just the item. Keeps flat consumers (bottom bar, global search) free
+// of duplicate routes.
+function leafItems(item: NavItem): NavItem[] {
+  return item.children?.length ? item.children : [item];
+}
+
+// Every leaf nav item, with sections and item children expanded in place. Used
+// by the bottom bar and anywhere a flat list of surfaces is needed.
 export function flattenNav(entries: NavEntry[]): NavItem[] {
-  return entries.flatMap((entry) => (isNavSection(entry) ? entry.items : [entry]));
+  return entries.flatMap((entry) =>
+    isNavSection(entry) ? entry.items.flatMap(leafItems) : leafItems(entry),
+  );
 }
 
 // Permission gate for a flat list of items: owner-only items need owner;

@@ -28,6 +28,11 @@ import Settings from "./routes/Settings";
 import Comms from "./routes/Comms";
 import Automations from "./routes/Automations";
 import ComingSoon from "./routes/ComingSoon";
+import SocialOverview from "./routes/social/SocialOverview";
+import SocialIdeas from "./routes/social/SocialIdeas";
+import SocialCalendar from "./routes/social/SocialCalendar";
+import SocialPosts from "./routes/social/SocialPosts";
+import SocialInsights from "./routes/social/SocialInsights";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminTasks from "./routes/admin/AdminTasks";
@@ -319,7 +324,11 @@ export default function App() {
               <Route path="/marketing/reviews" element={<ProtectedRoute><GoogleReviews /></ProtectedRoute>} />
               <Route path="/marketing/email" element={<ProtectedRoute><ComingSoon title="Email Campaigns" blurb="Your email campaigns and how they perform. Coming soon." /></ProtectedRoute>} />
               <Route path="/marketing/website" element={<ProtectedRoute><ComingSoon title="Website" blurb="Your website and the funnels and landing pages we build for your campaigns. Coming soon." /></ProtectedRoute>} />
-              <Route path="/marketing/social" element={<ProtectedRoute><ComingSoon title="Social Media" blurb="Your social media presence and results. Coming soon." /></ProtectedRoute>} />
+              <Route path="/marketing/social" element={<ProtectedRoute><SocialOverview /></ProtectedRoute>} />
+              <Route path="/marketing/social/ideas" element={<ProtectedRoute><SocialIdeas /></ProtectedRoute>} />
+              <Route path="/marketing/social/calendar" element={<ProtectedRoute><SocialCalendar /></ProtectedRoute>} />
+              <Route path="/marketing/social/posts" element={<ProtectedRoute><SocialPosts /></ProtectedRoute>} />
+              <Route path="/marketing/social/insights" element={<ProtectedRoute><SocialInsights /></ProtectedRoute>} />
               <Route path="/company/documents" element={<ProtectedRoute><ComingSoon title="Documents & Resources" blurb="Contracts, brand assets, and reports in one place. Coming soon." /></ProtectedRoute>} />
               <Route path="/admin" element={<Navigate to="/admin/pillar/operations" replace />} />
               {/* Clients now live inside Operations (the command deck). The old

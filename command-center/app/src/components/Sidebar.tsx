@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Settings } from "lucide-react";
+import { Settings, ChevronDown } from "lucide-react";
 import {
   NAV,
   visibleNav,
@@ -13,11 +13,14 @@ import { useAuth } from "../context/AuthContext";
 
 // A single page row. Used for the standalone Home button and for the children of
 // the open section in the lower zone, so the active (gradient) and hover
-// treatments stay identical wherever a real page lives.
-function NavItemLink({ item }: { item: NavItem }) {
+// treatments stay identical wherever a real page lives. `end` forces an exact
+// route match (used for a group's overview child, whose route is a prefix of its
+// siblings, so it does not stay active on the deeper pages).
+function NavItemLink({ item, end }: { item: NavItem; end?: boolean }) {
   return (
     <NavLink
       to={item.to}
+      end={end}
       data-tour={`nav-${item.to.slice(1)}`}
       className={({ isActive }) =>
         [
@@ -32,6 +35,71 @@ function NavItemLink({ item }: { item: NavItem }) {
       <item.icon size={17} className="shrink-0 opacity-80" />
       {item.label}
     </NavLink>
+  );
+}
+
+// Is `path` inside this item's subtree (its own route or any child route)?
+function itemHasPath(item: NavItem, path: string): boolean {
+  if (path === item.to) return true;
+  return (item.children ?? []).some(
+    (c) => path === c.to || path.startsWith(c.to + "/"),
+  );
+}
+
+// An expandable page row in the lower zone: a parent that owns sub-pages. Unlike
+// a section, the parent is itself a real page (its overview), so clicking it both
+// opens the group and navigates to its route. Children render indented beneath
+// with a guide rule; the active gradient pill stays on the child (or the
+// overview child when on the parent route).
+function NavItemGroup({ item }: { item: NavItem }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const children = item.children ?? [];
+  const within = itemHasPath(item, location.pathname);
+  const [open, setOpen] = useState(within);
+
+  // Keep the group open whenever the route lands inside it (deep link, back
+  // button, a child clicked elsewhere). Manual collapse still works otherwise.
+  useEffect(() => {
+    if (within) setOpen(true);
+  }, [within]);
+
+  const Icon = item.icon;
+  return (
+    <div className="mb-0.5">
+      <button
+        type="button"
+        data-tour={`nav-${item.to.slice(1)}`}
+        aria-expanded={open}
+        onClick={() => {
+          setOpen(true);
+          if (location.pathname !== item.to) navigate(item.to);
+        }}
+        className={[
+          "group relative flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-[color,background,transform] duration-200",
+          within
+            ? "bg-white/70 text-[var(--brand-text)] dark:bg-white/[0.06]"
+            : "text-[var(--text-muted)] hover:translate-x-0.5 hover:bg-white/60 hover:text-[var(--text)] dark:hover:bg-white/5",
+        ].join(" ")}
+      >
+        <Icon size={17} className="shrink-0 opacity-80" />
+        <span className="flex-1 text-left">{item.label}</span>
+        <ChevronDown
+          size={15}
+          className={[
+            "shrink-0 opacity-60 transition-transform duration-200",
+            open ? "rotate-180" : "",
+          ].join(" ")}
+        />
+      </button>
+      {open && (
+        <div className="ml-[22px] mt-0.5 flex flex-col border-l border-[var(--divider)] pl-2.5">
+          {children.map((child) => (
+            <NavItemLink key={child.to} item={child} end={child.to === item.to} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -166,9 +234,13 @@ export default function Sidebar() {
             <div className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-faint)]">
               {openSection.label}
             </div>
-            {openSection.items.map((item) => (
-              <NavItemLink key={item.to} item={item} />
-            ))}
+            {openSection.items.map((item) =>
+              item.children?.length ? (
+                <NavItemGroup key={item.to} item={item} />
+              ) : (
+                <NavItemLink key={item.to} item={item} />
+              ),
+            )}
           </>
         )}
       </div>
