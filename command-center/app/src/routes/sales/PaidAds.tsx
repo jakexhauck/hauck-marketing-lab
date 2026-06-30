@@ -62,7 +62,7 @@ export default function PaidAdsSales() {
   if (!demo || leads.length === 0) {
     return (
       <Shell>
-        <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-5 pb-12 pt-6 lg:px-8">
+        <div className="flex min-h-0 w-full flex-1 flex-col px-5 pb-12 pt-6 lg:px-6">
           <header className="mb-5">
             <h1 className="font-display text-[22px] leading-none text-text">Paid Ads</h1>
             <p className="mt-1.5 text-sm text-muted">
@@ -90,7 +90,7 @@ export default function PaidAdsSales() {
   // --- Populated worklist (demo / preview) ----------------------------------
   return (
     <Shell>
-      <div className="mx-auto w-full max-w-5xl px-5 pb-16 pt-6 lg:px-8">
+      <div className="w-full px-5 pb-16 pt-6 lg:px-6">
         <header className="mb-4">
           <h1 className="font-display text-[22px] leading-none text-text">Paid Ads</h1>
           <p className="mt-1.5 text-sm text-muted">

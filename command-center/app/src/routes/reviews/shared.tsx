@@ -1,5 +1,6 @@
 import { Star, Link2 } from "lucide-react";
 import { Panel, Button } from "../../components/ui";
+import { PAGE_CONTAINER } from "../../lib/layout";
 
 // Shared bits for the Google Reviews surfaces. Same golden rule as Social: a real
 // (connected) client must never see fabricated content. Pages render their
@@ -78,8 +79,7 @@ export function NotConnectedNotice({ message }: { message?: string }) {
 }
 
 // Shared scroll container for a Reviews page (matches the Social container).
-export const REVIEWS_CONTAINER =
-  "mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5 pb-12 pt-5 lg:px-8";
+export const REVIEWS_CONTAINER = PAGE_CONTAINER;
 
 // Color used for review stars. Defined here as a fallback in case the token is
 // ever read in JS; the CSS token lives in index.css.

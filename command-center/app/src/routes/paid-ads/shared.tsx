@@ -1,5 +1,6 @@
 import { Link2 } from "lucide-react";
 import { Panel, Button, Badge } from "../../components/ui";
+import { PAGE_CONTAINER } from "../../lib/layout";
 import { toneDot, type Tone } from "../../lib/status";
 import { cn } from "../../lib/cn";
 
@@ -9,9 +10,8 @@ import { cn } from "../../lib/cn";
 // session shows the empty / zeroed state plus <NotConnectedNotice/> until the
 // Meta ad account is linked through GoHighLevel.
 
-// Shared scroll container for a Paid Ads page (mirrors Social's SOCIAL_CONTAINER).
-export const PAID_ADS_CONTAINER =
-  "mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5 pb-12 pt-5 lg:px-8";
+// Shared scroll container for a Paid Ads page. The one app-wide page container.
+export const PAID_ADS_CONTAINER = PAGE_CONTAINER;
 
 // ---------------------------------------------------------------------------
 // Lead status buckets. These are NOT raw GHL stage names: a paid-ad lead's real

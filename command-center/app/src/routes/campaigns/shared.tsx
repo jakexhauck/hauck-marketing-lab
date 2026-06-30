@@ -1,6 +1,7 @@
 import { Link2, Mail, MessageSquare } from "lucide-react";
 import { Panel, Button } from "../../components/ui";
 import { type Tone } from "../../lib/status";
+import { PAGE_CONTAINER } from "../../lib/layout";
 
 // Shared bits for the Campaigns surfaces (SMS + email the client sends to their
 // own customers). Same golden rule as Social / Paid Ads: a real (connected)
@@ -9,9 +10,8 @@ import { type Tone } from "../../lib/status";
 // the empty / zeroed state plus <NotConnectedNotice/> until the customer list
 // and a texting/email number are linked through GoHighLevel.
 
-// Shared scroll container for a Campaigns page (mirrors SOCIAL_CONTAINER).
-export const CAMPAIGNS_CONTAINER =
-  "mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5 pb-12 pt-5 lg:px-8";
+// Shared scroll container for a Campaigns page. The one app-wide page container.
+export const CAMPAIGNS_CONTAINER = PAGE_CONTAINER;
 
 // ---------------------------------------------------------------------------
 // Channels. The two ways a client reaches their customers. Email leans on the

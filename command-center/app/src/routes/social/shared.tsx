@@ -1,5 +1,6 @@
 import { Link2 } from "lucide-react";
 import { Panel, Button } from "../../components/ui";
+import { PAGE_CONTAINER } from "../../lib/layout";
 
 // Shared bits for the Social surfaces. The golden rule: a real (connected) client
 // must never see fabricated content. Pages render their designed, populated layout
@@ -45,6 +46,5 @@ export function NotConnectedNotice({ message }: { message?: string }) {
   );
 }
 
-// Shared scroll container for a Social page.
-export const SOCIAL_CONTAINER =
-  "mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5 pb-12 pt-5 lg:px-8";
+// Shared scroll container for a Social page. The one app-wide page container.
+export const SOCIAL_CONTAINER = PAGE_CONTAINER;

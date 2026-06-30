@@ -12,7 +12,7 @@ export function PageHeader({
   filters,
   className,
 }: {
-  title: string;
+  title: ReactNode;
   count?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;

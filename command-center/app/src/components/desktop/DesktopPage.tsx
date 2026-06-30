@@ -1,14 +1,12 @@
 import type { ReactNode } from "react";
-import { useAuth } from "../../context/AuthContext";
-import NotificationBell from "../NotificationBell";
-import ChatLauncher from "../comms/ChatLauncher";
-import GlobalSearch from "./GlobalSearch";
-import AvatarMenu from "./AvatarMenu";
+import { PageHeader } from "../PageHeader";
 
-// Shared chrome for every client desktop (lg+) surface: the Modern Motion kit's
-// merged glass topbar. Page title (and optional subtitle) on the left; the
-// global controls (search, page actions, notifications, account menu) on the
-// right. The bell is rendered here once, so pages no longer pass it in actions.
+// Shared chrome for every client desktop (lg+) surface. One structure across the
+// whole app: the sidebar (which now owns the global controls: search, bell,
+// agency chat, account menu) beside a full-width content column that opens with
+// the standard <PageHeader> (Poppins title + description + right-aligned
+// actions). No centered max-width cap and no per-page top bar, so every page
+// reads the same. See docs/PAGE_LAYOUT.md.
 export default function DesktopPage({
   title,
   subtitle,
@@ -20,38 +18,27 @@ export default function DesktopPage({
   subtitle?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
-  // Full-bleed surfaces (e.g. the Unified Inbox three-pane) drop the centered
-  // max-w container and own the full area below the topbar; children manage
-  // their own scroll regions, so the page itself does not scroll.
+  // Full-bleed surfaces (e.g. the Unified Inbox three-pane) keep the header but
+  // hand the rest of the area to children, which manage their own scroll
+  // regions, so the page itself does not scroll.
   flush?: boolean;
 }) {
-  const { session } = useAuth();
   return (
     <div
       className={
-        "flex flex-1 flex-col " +
-        (flush ? "overflow-hidden" : "overflow-y-auto")
+        "flex flex-1 flex-col " + (flush ? "overflow-hidden" : "overflow-y-auto")
       }
     >
-      <header className="glass sticky top-0 z-10 flex items-center gap-4 border-b border-white/50 px-9 py-4 dark:border-white/10">
-        <div className="min-w-0 flex-1">
-          <h1 className="font-display text-[22px] font-bold leading-tight text-text">
-            {title}
-          </h1>
-          {subtitle && <p className="mt-0.5 text-[13px] text-muted">{subtitle}</p>}
-        </div>
-        <GlobalSearch />
-        {actions && (
-          <div className="flex shrink-0 items-center gap-3">{actions}</div>
-        )}
-        <ChatLauncher />
-        <NotificationBell enabled={Boolean(session)} variant="surface" />
-        <AvatarMenu />
-      </header>
       {flush ? (
-        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="px-6 pt-5">
+            <PageHeader title={title} description={subtitle} actions={actions} />
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        </div>
       ) : (
-        <div className="fx-rise mx-auto w-full max-w-[1220px] px-9 py-7">
+        <div className="fx-rise flex w-full flex-1 flex-col px-6 pb-12 pt-5">
+          <PageHeader title={title} description={subtitle} actions={actions} />
           {children}
         </div>
       )}

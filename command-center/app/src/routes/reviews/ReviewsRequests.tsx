@@ -92,7 +92,7 @@ export default function ReviewsRequests() {
 
   return (
     <Shell>
-      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-5 pb-12 pt-5 lg:px-8">
+      <div className="flex min-h-0 w-full flex-1 flex-col px-5 pb-12 pt-5 lg:px-6">
         <PageHeader
           title="Ask for Reviews"
           count={contacts.length ? `${contacts.length}` : undefined}

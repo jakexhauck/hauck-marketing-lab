@@ -3,6 +3,7 @@ import Shell from "../../components/Shell";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
+import { PAGE_CONTAINER } from "../../lib/layout";
 import {
   NotConnectedNotice,
   REACT_KPIS,
@@ -20,8 +21,7 @@ import {
 // populated layout only renders in demo/preview (`?demo=1`).
 
 // Page scroll container, matching the other client surfaces.
-const REACTIVATION_CONTAINER =
-  "mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5 pb-12 pt-5 lg:px-8";
+const REACTIVATION_CONTAINER = PAGE_CONTAINER;
 
 export default function Reactivation() {
   const demo = demoMode();

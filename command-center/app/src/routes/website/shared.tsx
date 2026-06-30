@@ -3,6 +3,7 @@ import { Globe, Lock, Droplet, Flame, AlertTriangle, Phone, Mail, MapPin, ArrowR
 import { Panel, Button, Segmented } from "../../components/ui";
 import type { Tone } from "../../lib/status";
 import { cn } from "../../lib/cn";
+import { PAGE_CONTAINER } from "../../lib/layout";
 
 // Shared kit for the Website surfaces (the "Storefront" direction). The golden
 // rule from Social applies: a real (connected) client must never see fabricated
@@ -10,10 +11,8 @@ import { cn } from "../../lib/cn";
 // mode (`?demo=1`); in a real session they show the zeroed / empty state plus
 // <NotConnectedNotice/> until the site and its analytics are connected.
 
-// Shared scroll container. Mirrors SOCIAL_CONTAINER but a wider max-width so the
-// large browser previews have room to breathe.
-export const WEBSITE_CONTAINER =
-  "mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col px-5 pb-12 pt-5 lg:px-8";
+// Shared scroll container. The one app-wide page container (full width).
+export const WEBSITE_CONTAINER = PAGE_CONTAINER;
 
 // The demo client's domain, shown in every browser address bar.
 export const WEBSITE_DOMAIN = "rivertownplumbing.com";
