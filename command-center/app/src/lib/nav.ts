@@ -172,6 +172,10 @@ export const NAV: NavEntry[] = [
       // "Website Form"): a conversation inbox where each lead replies with what
       // they want and a rep picks the next step. Open to everyone for now.
       { to: "/sales/forms", label: "Estimate Forms", shortLabel: "Estimates", icon: Inbox },
+      // The chat-widget twin of Estimate Forms: the same conversation inbox over
+      // the Organic Pipeline, source = "chat widget" (leads start in the website
+      // chat bubble instead of a form). Open to everyone for now.
+      { to: "/sales/chat", label: "Chat Widget", shortLabel: "Chat", icon: MessagesSquare },
       { to: "/leads", label: "Pipeline", shortLabel: "Leads", icon: GitBranch, capability: "pipeline", bottomNav: true },
       // The always-on win-back campaign for dormant past customers. Its own
       // category in Sales (was a Campaigns sub-page); can grow sub-pages later.

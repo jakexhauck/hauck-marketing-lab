@@ -10,6 +10,7 @@ import Login from "./routes/Login";
 import Home from "./routes/Home";
 import Leads from "./routes/Leads";
 import EstimateForms from "./routes/sales/EstimateForms";
+import ChatWidget from "./routes/sales/ChatWidget";
 import SalesPaidAds from "./routes/sales/PaidAds";
 import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
@@ -198,6 +199,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <EstimateForms />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sales/chat"
+                element={
+                  <ProtectedRoute>
+                    <ChatWidget />
                   </ProtectedRoute>
                 }
               />
