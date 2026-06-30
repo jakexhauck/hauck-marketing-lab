@@ -1,11 +1,9 @@
 import { RotateCcw, Zap, Users, CalendarCheck } from "lucide-react";
 import Shell from "../../components/Shell";
-import CampaignsMobileTabs from "../../components/campaigns/CampaignsMobileTabs";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import {
-  CAMPAIGNS_CONTAINER,
   NotConnectedNotice,
   ChannelGlyph,
   ChannelChip,
@@ -15,23 +13,26 @@ import {
   REACT_REACHED,
   REACT_SEQUENCE,
   REACT_RECENT,
-} from "./shared";
+} from "../campaigns/shared";
 
-// Reactivation: the client-facing layer over the standing GHL "Database
-// Reactivation" pipeline. An always-on campaign that wins back dormant past
-// customers with a short text + email sequence. Same golden rule as the rest of
-// Campaigns: a real (connected) client sees the zeroed/not-connected state until
-// the customer list is linked; the designed, populated layout only renders in
-// demo/preview (`?demo=1`).
+// Reactivation: a standing Sales surface (its own category in the Sales group)
+// that layers over the always-on GHL "Database Reactivation" pipeline. It wins
+// back dormant past customers with a short text + email sequence. Same golden
+// rule as the rest of the client app: a real (connected) client sees the
+// zeroed/not-connected state until the customer list is linked; the designed,
+// populated layout only renders in demo/preview (`?demo=1`).
 
-export default function CampaignsReactivation() {
+// Page scroll container, matching the other client surfaces.
+const REACTIVATION_CONTAINER =
+  "mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5 pb-12 pt-5 lg:px-8";
+
+export default function Reactivation() {
   const demo = demoMode();
   const kpis = demo ? REACT_KPIS : REACT_KPIS.map((k) => ({ ...k, value: "0", brand: false }));
 
   return (
     <Shell>
-      <div className={CAMPAIGNS_CONTAINER}>
-        <CampaignsMobileTabs />
+      <div className={REACTIVATION_CONTAINER}>
         <PageHeader
           title="Reactivation"
           description="Quietly win back customers who haven't booked in a while, on autopilot."

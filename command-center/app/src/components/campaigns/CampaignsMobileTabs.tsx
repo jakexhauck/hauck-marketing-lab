@@ -6,7 +6,6 @@ import { NavLink } from "react-router-dom";
 const TABS = [
   { to: "/marketing/campaigns", label: "Overview", end: true },
   { to: "/marketing/campaigns/all", label: "Campaigns" },
-  { to: "/marketing/campaigns/reactivation", label: "Reactivation" },
   { to: "/marketing/campaigns/audiences", label: "Audiences" },
   { to: "/marketing/campaigns/templates", label: "Templates" },
   { to: "/marketing/campaigns/insights", label: "What's working" },

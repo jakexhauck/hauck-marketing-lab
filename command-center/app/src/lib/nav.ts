@@ -127,7 +127,6 @@ export const NAV: NavEntry[] = [
         children: [
           { to: "/marketing/campaigns", label: "Overview", icon: LayoutDashboard },
           { to: "/marketing/campaigns/all", label: "Campaigns", icon: Send },
-          { to: "/marketing/campaigns/reactivation", label: "Reactivation", shortLabel: "Win-back", icon: RotateCcw },
           { to: "/marketing/campaigns/audiences", label: "Audiences", shortLabel: "Lists", icon: Users },
           { to: "/marketing/campaigns/templates", label: "Templates", icon: LayoutGrid },
           { to: "/marketing/campaigns/insights", label: "What's working", shortLabel: "Insights", icon: BarChart3 },
@@ -170,6 +169,9 @@ export const NAV: NavEntry[] = [
       // they want and a rep picks the next step. Open to everyone for now.
       { to: "/sales/forms", label: "Estimate Forms", shortLabel: "Estimates", icon: Inbox },
       { to: "/leads", label: "Pipeline", shortLabel: "Leads", icon: GitBranch, capability: "pipeline", bottomNav: true },
+      // The always-on win-back campaign for dormant past customers. Its own
+      // category in Sales (was a Campaigns sub-page); can grow sub-pages later.
+      { to: "/sales/reactivation", label: "Reactivation", shortLabel: "Win-back", icon: RotateCcw },
       { to: "/sales/scripts", label: "Sales Scripts", shortLabel: "Scripts", icon: ScrollText, comingSoon: true },
     ],
   },

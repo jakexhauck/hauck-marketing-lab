@@ -46,7 +46,7 @@ import AdsLeads from "./routes/paid-ads/AdsLeads";
 import AdsInsights from "./routes/paid-ads/AdsInsights";
 import CampaignsOverview from "./routes/campaigns/CampaignsOverview";
 import CampaignsList from "./routes/campaigns/CampaignsList";
-import CampaignsReactivation from "./routes/campaigns/CampaignsReactivation";
+import Reactivation from "./routes/sales/Reactivation";
 import CampaignsAudiences from "./routes/campaigns/CampaignsAudiences";
 import CampaignsTemplates from "./routes/campaigns/CampaignsTemplates";
 import CampaignsInsights from "./routes/campaigns/CampaignsInsights";
@@ -334,6 +334,7 @@ export default function App() {
               {/* Skeleton surfaces: a home (route + sidebar row) exists ahead of
                   the feature; each renders the shared "coming soon" screen. */}
               <Route path="/sales/overview" element={<ProtectedRoute><ComingSoon title="Sales Overview" blurb="A single view of your whole sales process, end to end. Coming soon." /></ProtectedRoute>} />
+              <Route path="/sales/reactivation" element={<ProtectedRoute><Reactivation /></ProtectedRoute>} />
               <Route path="/sales/scripts" element={<ProtectedRoute><ComingSoon title="Sales Scripts" blurb="Your call and message scripts, ready to use. Coming soon." /></ProtectedRoute>} />
               <Route path="/operations/reports" element={<ProtectedRoute><ComingSoon title="Reports & Analytics" blurb="Performance across ads, leads, and revenue in one place. Coming soon." /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsOverview /></ProtectedRoute>} />
@@ -346,7 +347,6 @@ export default function App() {
               <Route path="/marketing/reviews/insights" element={<ProtectedRoute><ReviewsInsights /></ProtectedRoute>} />
               <Route path="/marketing/campaigns" element={<ProtectedRoute><CampaignsOverview /></ProtectedRoute>} />
               <Route path="/marketing/campaigns/all" element={<ProtectedRoute><CampaignsList /></ProtectedRoute>} />
-              <Route path="/marketing/campaigns/reactivation" element={<ProtectedRoute><CampaignsReactivation /></ProtectedRoute>} />
               <Route path="/marketing/campaigns/audiences" element={<ProtectedRoute><CampaignsAudiences /></ProtectedRoute>} />
               <Route path="/marketing/campaigns/templates" element={<ProtectedRoute><CampaignsTemplates /></ProtectedRoute>} />
               <Route path="/marketing/campaigns/insights" element={<ProtectedRoute><CampaignsInsights /></ProtectedRoute>} />
