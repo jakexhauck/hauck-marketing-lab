@@ -28,6 +28,15 @@ const MESSAGE_META = {
   availableChannels: ["SMS", "Email"],
 };
 
+// Review campaigns started in this demo tab, by contact id. The real endpoint
+// reads the GHL tag; the demo keeps it in memory for the tab's lifetime so a
+// started row stays started on refetch.
+const startedReviews = new Set<string>();
+// Cached completed-job sample so the "ask" timestamps stay stable within a tab.
+let reviewCache:
+  | { contactId: string; name: string; phone: string; email: string; completedAt: string }[]
+  | null = null;
+
 export async function handleDemoRequest<T>(
   path: string,
   init: RequestInit = {},
@@ -209,6 +218,32 @@ export async function handleDemoRequest<T>(
     const invoice = d.invoiceDetails[seg[2]];
     if (!invoice) throw new ApiError(404, "Invoice not found", null);
     return r({ invoice });
+  }
+
+  // ----- Reviews (Ask for Reviews: completed-job contacts) -----
+  // Demo surfaces a few demo contacts as finished jobs so the page shows sample
+  // data instead of a 404. POST flips a row to started for the tab's lifetime.
+  if (clean === "/api/reviews") {
+    if (method === "POST") {
+      if (typeof body.contactId === "string") startedReviews.add(body.contactId);
+      return r({ ok: true });
+    }
+    if (!reviewCache) {
+      const DAY = 86_400_000;
+      const now = Date.now();
+      reviewCache = d.contacts.slice(0, 6).map((c, i) => ({
+        contactId: c.id,
+        name: c.name,
+        phone: c.phone,
+        email: c.email,
+        completedAt: new Date(now - (i + 1) * DAY).toISOString(),
+      }));
+    }
+    const contacts = reviewCache.map((c) => ({
+      ...c,
+      started: startedReviews.has(c.contactId),
+    }));
+    return r({ contacts });
   }
 
   // ----- Comms (Phase 04): minimal stubs so the screen never crashes -----

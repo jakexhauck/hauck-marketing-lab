@@ -11,6 +11,7 @@ import {
   ErrorState,
 } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
+import { demoMode } from "../../demo/demoMode";
 import { useReviewsQuery, useStartReviewCampaign } from "../../hooks/useApi";
 import { relativeTime, formatPhone } from "../../lib/format";
 import type { ApiReviewContact } from "../../lib/api";
@@ -75,8 +76,11 @@ function ReviewRow({
 
 export default function ReviewsRequests() {
   const { session } = useAuth();
-  const useReal = Boolean(session);
-  const query = useReviewsQuery(useReal);
+  // Fetch whenever a real session is present, or in demo mode (api() routes demo
+  // calls to the in-memory store, which returns sample finished jobs). Without
+  // this, a demo viewer with no session would see an empty list.
+  const enabled = demoMode() || Boolean(session);
+  const query = useReviewsQuery(enabled);
   const start = useStartReviewCampaign();
 
   const contacts: ApiReviewContact[] = useMemo(
