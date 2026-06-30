@@ -165,10 +165,10 @@ export const NAV: NavEntry[] = [
     icon: TrendingUp,
     items: [
       { to: "/sales/overview", label: "Sales Overview", shortLabel: "Overview", icon: LayoutDashboard, comingSoon: true },
-      // Inbound from the website: estimate-request forms and chat-widget messages,
-      // gathered in one friendly place (kept separate from the Pipeline on
-      // purpose). Open to everyone for now.
-      { to: "/sales/inquiries", label: "New Inquiries", shortLabel: "Inquiries", icon: Inbox, comingSoon: true },
+      // Inbound estimate requests from the website (Organic Pipeline, source =
+      // "Website Form"): a conversation inbox where each lead replies with what
+      // they want and a rep picks the next step. Open to everyone for now.
+      { to: "/sales/forms", label: "Estimate Forms", shortLabel: "Estimates", icon: Inbox },
       { to: "/leads", label: "Pipeline", shortLabel: "Leads", icon: GitBranch, capability: "pipeline", bottomNav: true },
       { to: "/sales/scripts", label: "Sales Scripts", shortLabel: "Scripts", icon: ScrollText, comingSoon: true },
     ],

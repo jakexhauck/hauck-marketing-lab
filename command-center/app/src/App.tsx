@@ -9,7 +9,7 @@ import { PipelinesProvider } from "./context/PipelinesContext";
 import Login from "./routes/Login";
 import Home from "./routes/Home";
 import Leads from "./routes/Leads";
-import FormSubmissions from "./routes/FormSubmissions";
+import EstimateForms from "./routes/sales/EstimateForms";
 import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
 import ReviewsOverview from "./routes/reviews/ReviewsOverview";
@@ -196,7 +196,7 @@ export default function App() {
                 path="/sales/forms"
                 element={
                   <ProtectedRoute>
-                    <FormSubmissions />
+                    <EstimateForms />
                   </ProtectedRoute>
                 }
               />
@@ -334,7 +334,6 @@ export default function App() {
               {/* Skeleton surfaces: a home (route + sidebar row) exists ahead of
                   the feature; each renders the shared "coming soon" screen. */}
               <Route path="/sales/overview" element={<ProtectedRoute><ComingSoon title="Sales Overview" blurb="A single view of your whole sales process, end to end. Coming soon." /></ProtectedRoute>} />
-              <Route path="/sales/inquiries" element={<ProtectedRoute><ComingSoon title="New Inquiries" blurb="Website form requests and chat-widget messages, gathered in one easy place. Coming soon." /></ProtectedRoute>} />
               <Route path="/sales/scripts" element={<ProtectedRoute><ComingSoon title="Sales Scripts" blurb="Your call and message scripts, ready to use. Coming soon." /></ProtectedRoute>} />
               <Route path="/operations/reports" element={<ProtectedRoute><ComingSoon title="Reports & Analytics" blurb="Performance across ads, leads, and revenue in one place. Coming soon." /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsOverview /></ProtectedRoute>} />
