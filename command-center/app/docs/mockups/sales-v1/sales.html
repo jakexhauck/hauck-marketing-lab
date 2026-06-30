@@ -1,0 +1,535 @@
+<!doctype html><html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sales — Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+   Sales mockup — faithful extract of the command-center "Console / Modern
+   Motion" tokens + components. Built for a contractor owner: money first,
+   one-tap actions, no pipeline jargon. The GHL Sales pipeline stages run
+   underneath; the owner only sees New Leads -> Booked Visits -> Waiting on a
+   Yes -> Won.
+   ========================================================================= */
+:root{
+  --brand-fg:#fff; --bg:#f6f7fb; --surface:#fff; --surface-2:#f1f3f9; --surface-3:#e9ebf3; --rail:#fbfcfe;
+  --text:#14161f; --text-muted:#555a6b; --text-faint:#8a90a3;
+  --border:#e7e9f1; --border-strong:#d4d8e6; --divider:#f1f3f9;
+  --brand:#4f46e5; --brand-2:#7c73f0; --brand-strong:#4338ca; --brand-text:#4f46e5;
+  --brand-tint:color-mix(in srgb,var(--brand) 10%,transparent);
+  --brand-tint-strong:color-mix(in srgb,var(--brand) 18%,transparent);
+  --grad-brand:linear-gradient(135deg,#4f46e5 0%,#7c73f0 100%);
+  --money:#16a34a; --money-tint:color-mix(in srgb,#16a34a 12%,transparent);
+  --money-grad:linear-gradient(135deg,#15803d 0%,#22c55e 100%);
+  --sms:#0ea5e9; --sms-tint:color-mix(in srgb,#0ea5e9 12%,transparent);
+  --positive:#16a34a; --positive-tint:color-mix(in srgb,#16a34a 12%,transparent);
+  --warning:#d97706; --warning-tint:color-mix(in srgb,#d97706 14%,transparent);
+  --danger:#dc2626; --danger-tint:color-mix(in srgb,#dc2626 12%,transparent);
+  --shadow-sm:0 1px 2px rgba(20,22,31,.04),0 1px 3px rgba(20,22,31,.05);
+  --shadow-md:0 6px 18px rgba(40,42,70,.07),0 2px 6px rgba(40,42,70,.05);
+  --shadow-lg:0 18px 40px rgba(40,42,70,.12),0 6px 14px rgba(40,42,70,.07);
+  --shadow-brand:0 8px 22px rgba(79,70,229,.28);
+  --shadow-money:0 8px 22px rgba(22,163,74,.26);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --font-display:"Poppins","Inter",ui-sans-serif,system-ui,sans-serif;
+  --font-body:"Inter",ui-sans-serif,system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",monospace;
+  --radius-sm:8px; --radius:10px; --radius-lg:14px;
+}
+[data-theme="dark"]{
+  --bg:#0c0d14; --surface:#15161f; --surface-2:#1c1d28; --surface-3:#232536; --rail:#11121b;
+  --text:#f4f4fb; --text-muted:#a8adc0; --text-faint:#6b7088;
+  --border:#262837; --border-strong:#34374a; --divider:#20222e;
+  --brand-text:color-mix(in srgb,var(--brand) 70%,white);
+  --money:#4ade80; --money-tint:color-mix(in srgb,#22c55e 16%,transparent);
+  --positive:#4ade80; --warning:#fbbf24; --danger:#f87171; --sms:#38bdf8;
+  --shadow-brand:0 8px 22px rgba(79,70,229,.45);
+  --shadow-money:0 8px 22px rgba(34,197,94,.34);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  font-family:var(--font-body);-webkit-font-smoothing:antialiased;color:var(--text);background-color:var(--bg);
+  background-image:
+    radial-gradient(60rem 40rem at 12% -8%,rgba(124,115,240,.16),transparent 60%),
+    radial-gradient(50rem 38rem at 100% 0%,rgba(79,70,229,.12),transparent 55%),
+    radial-gradient(46rem 36rem at 50% 120%,rgba(99,102,241,.1),transparent 60%);
+  background-attachment:fixed;
+}
+[data-theme="dark"] body{background-image:
+  radial-gradient(60rem 40rem at 12% -8%,rgba(124,115,240,.1),transparent 60%),
+  radial-gradient(50rem 38rem at 100% 0%,rgba(79,70,229,.08),transparent 55%),
+  radial-gradient(46rem 36rem at 50% 120%,rgba(99,102,241,.07),transparent 60%);}
+
+.font-display{font-family:var(--font-display);letter-spacing:-.025em}
+.font-data{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.label-cap{text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:10.5px;color:var(--text-muted)}
+.muted{color:var(--text-muted)} .faint{color:var(--text-faint)} .brand-text{color:var(--brand-text)}
+
+/* ---- shell ---- */
+.glass{background:color-mix(in srgb,var(--surface) 62%,transparent);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4)}
+.app{display:flex;min-height:100dvh}
+.sidebar{width:244px;flex-shrink:0;position:sticky;top:0;height:100dvh;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.5);overflow-y:auto}
+[data-theme="dark"] .sidebar{border-right-color:rgba(255,255,255,.1)}
+.brandmark{height:34px;width:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;background-image:var(--grad-brand);box-shadow:var(--shadow-brand)}
+.nav-row{display:flex;align-items:center;gap:12px;width:100%;border-radius:10px;padding:10px 12px;font-size:13.5px;font-weight:500;color:var(--text-muted);background:none;border:none;cursor:pointer;text-decoration:none;transition:color .2s,background .2s,transform .2s;text-align:left;margin-bottom:2px}
+.nav-row:hover{background:rgba(255,255,255,.6);color:var(--text);transform:translateX(2px)}
+[data-theme="dark"] .nav-row:hover{background:rgba(255,255,255,.05)}
+.nav-row.active{background-image:var(--grad-brand);color:#fff;box-shadow:var(--shadow-brand)}
+.nav-row.open{background:rgba(255,255,255,.7);color:var(--brand-text)}
+[data-theme="dark"] .nav-row.open{background:rgba(255,255,255,.06)}
+.nav-row svg{width:17px;height:17px;flex-shrink:0;opacity:.8}
+.nav-row .count{margin-left:auto;font-family:var(--font-mono);font-size:11px;font-weight:600;background:var(--brand-tint);color:var(--brand-text);border-radius:999px;padding:1px 7px;opacity:1}
+.nav-row.active .count{background:rgba(255,255,255,.22);color:#fff}
+.nav-children{margin-left:22px;margin-top:2px;padding-left:10px;border-left:1px solid var(--divider);display:flex;flex-direction:column}
+.nav-children .nav-row{font-size:13px;padding:8px 12px}
+.main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.topbar{height:56px;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 22px;border-bottom:1px solid var(--border)}
+.container{width:100%;max-width:72rem;margin:0 auto;flex:1 1 auto;padding:20px 32px 64px}
+
+/* ---- page header ---- */
+.page-header{margin-bottom:18px}
+.page-title{font-family:var(--font-display);font-size:22px;line-height:1;color:var(--text);letter-spacing:-.025em;margin:0;font-weight:600}
+.page-desc{margin:6px 0 0;font-size:14px;color:var(--text-muted)}
+.head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.head-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+
+/* ---- panel ---- */
+.panel{border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-sm)}
+.panel-header{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--divider);padding:12px 16px}
+.panel-header h3{font-family:var(--font-display);font-size:15px;color:var(--text);margin:0;font-weight:600}
+.see-all{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--brand-text);text-decoration:none;cursor:pointer}
+.see-all:hover{text-decoration:underline}
+
+/* ---- buttons ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-body);font-weight:600;white-space:nowrap;cursor:pointer;height:38px;padding:0 16px;font-size:14px;border-radius:var(--radius);border:1px solid transparent;transition:background-color .12s,transform .1s,filter .12s}
+.btn:active{transform:scale(.97)} .btn svg{width:16px;height:16px}
+.btn-primary{background:var(--brand);color:var(--brand-fg);box-shadow:var(--shadow-sm)}
+.btn-primary:hover{background:var(--brand-strong)}
+.btn-money{background-image:var(--money-grad);color:#fff;box-shadow:var(--shadow-money)}
+.btn-money:hover{filter:brightness(1.05)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text);font-weight:500}
+.btn-secondary:hover{background:var(--surface-2)}
+.btn-sm{height:32px;padding:0 12px;font-size:13px;border-radius:var(--radius-sm);gap:6px}
+.btn-ghost{background:transparent;color:var(--text-muted);border-color:transparent;font-weight:500}
+.btn-ghost:hover{background:var(--surface-2);color:var(--text)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn[disabled]:active{transform:none}
+
+/* ---- badge / tones ---- */
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600;letter-spacing:.01em}
+.badge .dot{width:6px;height:6px;border-radius:999px;background:currentColor}
+.tone-brand{background:var(--brand-tint);color:var(--brand-text)}
+.tone-warning{background:var(--warning-tint);color:var(--warning)}
+.tone-positive{background:var(--positive-tint);color:var(--positive)}
+.tone-money{background:var(--money-tint);color:var(--money)}
+.tone-neutral{background:var(--surface-2);color:var(--text-muted)}
+.tone-danger{background:var(--danger-tint);color:var(--danger)}
+.tone-sms{background:var(--sms-tint);color:var(--sms)}
+.src{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px 2px 7px;font-size:11px;font-weight:600;background:var(--surface-2);color:var(--text-muted)}
+.src svg{width:12px;height:12px}
+.src.ads{background:var(--brand-tint);color:var(--brand-text)}
+.src.review{background:var(--warning-tint);color:var(--warning)}
+.src.web{background:var(--sms-tint);color:var(--sms)}
+
+/* ---- money hero ---- */
+.hero{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:16px}
+@media (max-width:980px){.hero{grid-template-columns:1fr}}
+.hero-money{border-radius:var(--radius-lg);padding:20px 22px;color:#fff;background-image:var(--money-grad);box-shadow:var(--shadow-money);position:relative;overflow:hidden}
+.hero-money::after{content:"";position:absolute;right:-30px;top:-30px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.12)}
+.hero-money .hm-label{font-size:13px;font-weight:600;opacity:.9;display:flex;align-items:center;gap:7px}
+.hero-money .hm-value{font-family:var(--font-display);font-weight:800;letter-spacing:-.04em;font-size:46px;line-height:1;margin-top:10px;font-variant-numeric:tabular-nums}
+.hero-money .hm-sub{margin-top:8px;font-size:13.5px;opacity:.92}
+.hero-money .hm-foot{margin-top:16px;display:flex;gap:18px;position:relative;z-index:1}
+.hero-money .hm-foot .hf{font-size:12px;opacity:.85}
+.hero-money .hm-foot .hf b{display:block;font-family:var(--font-mono);font-size:18px;font-weight:700;margin-top:2px}
+.hero-side{border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-sm);padding:18px 20px;display:flex;flex-direction:column;justify-content:center}
+.hero-side .hs-label{font-size:13px;color:var(--text-muted);font-weight:600;display:flex;align-items:center;gap:7px}
+.hero-side .hs-value{font-family:var(--font-display);font-weight:800;letter-spacing:-.04em;font-size:40px;line-height:1;margin-top:10px;color:var(--money);font-variant-numeric:tabular-nums}
+.hero-side .hs-sub{margin-top:7px;font-size:13px;color:var(--text-faint)}
+.hero-side .hs-cta{margin-top:14px}
+
+/* ---- mini stat row ---- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media (max-width:980px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{padding:14px 16px}
+.stat .s-label{font-size:12.5px;color:var(--text-muted)}
+.stat .s-value{margin-top:6px;font-family:var(--font-mono);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text)}
+.stat .s-sub{margin-top:3px;font-size:11.5px;color:var(--text-faint)}
+
+/* ---- list rows ---- */
+.list-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--divider)}
+.list-row:last-child{border-bottom:none}
+.avatar{width:38px;height:38px;border-radius:999px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text-muted);flex-shrink:0}
+.avatar.warm{background:var(--warning-tint);color:var(--warning)}
+.row-main{flex:1 1 auto;min-width:0}
+.row-title{font-family:var(--font-display);font-size:14.5px;font-weight:600;letter-spacing:-.015em;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row-meta{font-size:12.5px;color:var(--text-faint);margin-top:3px}
+.row-money{font-family:var(--font-mono);font-weight:700;font-size:15px;color:var(--money);font-variant-numeric:tabular-nums}
+.row-actions{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.icon-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.14s}
+.icon-btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--border-strong)}
+.icon-btn.call:hover{background:var(--money-tint);color:var(--money);border-color:var(--money)}
+.icon-btn.text:hover{background:var(--sms-tint);color:var(--sms);border-color:var(--sms)}
+.icon-btn svg{width:16px;height:16px}
+
+/* ---- lead cards ---- */
+.lead-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media (max-width:980px){.lead-grid{grid-template-columns:1fr}}
+.lead-card{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);box-shadow:var(--shadow-sm);overflow:hidden;display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s,border-color .15s}
+.lead-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--border-strong)}
+.lead-card.fresh{border-color:var(--money);box-shadow:0 0 0 1px var(--money-tint),var(--shadow-sm)}
+.lead-top{display:flex;align-items:flex-start;gap:12px;padding:16px 16px 12px}
+.lead-name{font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:-.02em}
+.lead-need{font-size:13.5px;color:var(--text-muted);margin-top:4px;line-height:1.4}
+.lead-chips{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:0 16px 14px}
+.lead-foot{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--divider);border-top:1px solid var(--divider);margin-top:auto}
+.lead-act{background:var(--surface);border:none;cursor:pointer;font-family:var(--font-body);font-size:12.5px;font-weight:600;color:var(--text-muted);padding:11px 0;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:.14s}
+.lead-act svg{width:15px;height:15px}
+.lead-act:hover{background:var(--surface-2);color:var(--text)}
+.lead-act.book{color:var(--brand-text)}
+.lead-act.book:hover{background:var(--brand-tint)}
+.fresh-flag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--money);text-transform:uppercase;letter-spacing:.05em}
+.fresh-flag .pulse{width:7px;height:7px;border-radius:999px;background:var(--money);box-shadow:0 0 0 0 var(--money);animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--money) 55%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+
+/* ---- waiting / quote rows ---- */
+.q-aged{color:var(--warning)}
+.q-cold{color:var(--danger)}
+
+/* ---- callout ---- */
+.callout{display:flex;align-items:flex-start;gap:12px;border-radius:var(--radius-lg);padding:15px 16px;border:1px solid var(--brand);background:var(--brand-tint);margin-top:16px}
+.callout.money{border-color:var(--money);background:var(--money-tint)}
+.callout svg{width:20px;height:20px;flex-shrink:0;color:var(--brand-text)}
+.callout.money svg{color:var(--money)}
+.callout .txt{font-size:13.5px;line-height:1.45;color:var(--text)}
+
+.lower{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+@media (max-width:980px){.lower{grid-template-columns:1fr}}
+
+/* ---- filter chips ---- */
+.filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{border:1px solid var(--border);background:var(--surface);color:var(--text-muted);border-radius:999px;height:30px;padding:0 14px;font-size:12.5px;font-weight:500;cursor:pointer;font-family:var(--font-body);transition:.15s}
+.chip:hover{color:var(--text);border-color:var(--border-strong)}
+.chip.on{background:var(--brand-tint);border-color:var(--brand);color:var(--brand-text)}
+
+/* ---- progress / funnel ---- */
+.funnel{display:flex;flex-direction:column;gap:11px;padding:16px}
+.fl{display:flex;align-items:center;gap:12px}
+.fl .fl-name{font-size:13px;color:var(--text-muted);width:120px;flex-shrink:0}
+.fl .fl-track{flex:1;height:26px;border-radius:8px;background:var(--surface-2);overflow:hidden;position:relative}
+.fl .fl-fill{height:100%;border-radius:8px;background-image:var(--grad-brand);display:flex;align-items:center;padding-left:10px}
+.fl .fl-fill.money{background-image:var(--money-grad)}
+.fl .fl-num{font-family:var(--font-mono);font-size:12px;font-weight:700;color:#fff}
+.fl .fl-val{font-family:var(--font-mono);font-size:12.5px;font-weight:600;color:var(--text-muted);width:64px;text-align:right;flex-shrink:0}
+
+/* ---- visits / calendar-ish list ---- */
+.day-head{font-family:var(--font-display);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:14px 16px 6px}
+.visit{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--divider)}
+.visit:last-child{border-bottom:none}
+.vtime{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text);width:74px;flex-shrink:0;text-align:center;line-height:1.3}
+.vtime small{display:block;font-size:10px;color:var(--text-faint);font-weight:500;letter-spacing:.04em}
+.vbar{width:3px;align-self:stretch;border-radius:999px;background-image:var(--grad-brand);flex-shrink:0}
+
+/* ---- dialog ---- */
+.scrim{position:fixed;inset:0;background:rgba(15,16,28,.5);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:60;padding:24px}
+.scrim.show{display:flex}
+.dialog{width:100%;max-width:480px;max-height:88vh;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);overflow:hidden}
+.dlg-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--divider)}
+.dlg-head h3{font-family:var(--font-display);font-size:17px;font-weight:600;margin:0}
+.dlg-x{width:32px;height:32px;border-radius:8px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.dlg-x:hover{background:var(--surface-2);color:var(--text)}
+.dlg-body{padding:20px;overflow-y:auto}
+.dlg-foot{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--divider);background:var(--rail)}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:6px}
+.input,.textarea,select.input{width:100%;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text);font-family:var(--font-body);font-size:14px;padding:10px 12px}
+.input:focus,.textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-tint)}
+.textarea{resize:vertical;min-height:80px;line-height:1.5}
+.slot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.slot{border:1px solid var(--border-strong);border-radius:var(--radius);padding:9px 0;text-align:center;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-mono);color:var(--text);transition:.14s}
+.slot:hover{border-color:var(--brand)}
+.slot.sel{border-color:var(--brand);background:var(--brand-tint);color:var(--brand-text);box-shadow:0 0 0 1px var(--brand) inset}
+
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:999px;font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);opacity:0;transition:.25s var(--ease);z-index:80;pointer-events:none;display:flex;align-items:center;gap:8px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast svg{width:16px;height:16px;color:var(--money)}
+
+@media (max-width:900px){.sidebar{display:none}.container{padding:18px 18px 64px}.hero-money .hm-value{font-size:38px}}
+</style>
+</head><body>
+<div class="app">
+  <aside class="sidebar glass">
+    <div style="display:flex;align-items:center;gap:10px;padding:16px;">
+      <span class="brandmark">WP</span>
+      <div style="min-width:0;">
+        <div class="font-display" style="font-size:15px;font-weight:600;line-height:1.1;">Willis Plumbing</div>
+        <div class="faint" style="font-size:11px;">Plumbing &amp; HVAC</div>
+      </div>
+    </div>
+    <nav style="padding:4px 12px;">
+      <a class="nav-row" href="#" data-icon="home">Home</a>
+      <button class="nav-row" data-icon="megaphone">Marketing</button>
+      <button class="nav-row open" data-icon="trending" style="justify-content:flex-start;">
+        <span style="flex:1;text-align:left;">Sales</span>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;transform:rotate(180deg);"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="nav-children">
+        <a class="nav-row active" href="#" data-page="overview" data-icon="layout">Overview</a>
+        <a class="nav-row" href="#" data-page="leads" data-icon="zap">New Leads <span class="count">4</span></a>
+        <a class="nav-row" href="#" data-page="visits" data-icon="calendar">Booked Visits <span class="count">3</span></a>
+        <a class="nav-row" href="#" data-page="quotes" data-icon="clock">Waiting on a Yes <span class="count">5</span></a>
+        <a class="nav-row" href="#" data-page="won" data-icon="trophy">Won</a>
+      </div>
+      <button class="nav-row" data-icon="users">Customers</button>
+      <button class="nav-row" data-icon="building">Operations</button>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button id="themeBtn" class="btn btn-ghost btn-sm" title="Toggle theme"></button>
+      <span class="brandmark" style="width:30px;height:30px;font-size:11px;">JW</span>
+    </div>
+    <div class="container" id="page"></div>
+  </main>
+</div>
+
+<!-- Book a visit dialog -->
+<div class="scrim" id="bookDlg">
+  <div class="dialog">
+    <div class="dlg-head"><h3 id="bookTitle">Book a visit</h3><button class="dlg-x" data-close>&times;</button></div>
+    <div class="dlg-body" id="bookBody"></div>
+    <div class="dlg-foot">
+      <button class="btn btn-secondary" data-close>Cancel</button>
+      <button class="btn btn-primary" data-icon="calendar" data-isz="16" id="bookConfirm">Book visit</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================ icons ============================ */
+const ICONS={
+  home:'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+  megaphone:'<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+  trending:'<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  building:'<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4M9 6h.01M15 6h.01M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/>',
+  layout:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M9 21V9"/>',
+  zap:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  calendar:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  trophy:'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+  phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  msg:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/>',
+  plus:'<path d="M5 12h14M12 5v14"/>',
+  arrowsm:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  checkc:'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  bolt:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  star:'<polygon points="12 2 15 9 22 9.3 17 14 18.5 21 12 17.3 5.5 21 7 14 2 9.3 9 9"/>',
+  globe:'<circle cx="12" cy="12" r="10"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20M2 12h20"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>',
+  dollar:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>',
+};
+function icon(n,s){s=s||17;return '<svg viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[n]||'')+'</svg>';}
+function fillIcons(root){(root||document).querySelectorAll('[data-icon]').forEach(el=>{if(!el.dataset.done){el.insertAdjacentHTML('afterbegin',icon(el.dataset.icon,el.dataset.isz?+el.dataset.isz:17));el.dataset.done=1;}});}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ============================ demo data ============================ */
+const DATA={
+  bookedMonth:"$18,400", bookedJobs:6, avgJob:"$3,067",
+  onTable:"$9,200", quotesOut:5,
+  callToday:[
+    {name:"Dave Carlton",init:"DC",reason:"Quote sent 4 days ago, no reply",money:"$4,800",tone:"warm"},
+    {name:"The Reyes",init:"R",reason:"Asked for a callback this morning",money:null,tone:""},
+    {name:"Janet R.",init:"J",reason:"Estimate visit tomorrow, confirm time",money:null,tone:""},
+  ],
+  leads:[
+    {name:"Mike Donnelly",init:"MD",need:"Water heater leaking, wants it replaced this week",src:"ads",srcLabel:"Paid Ad",ago:"8 min ago",fresh:true},
+    {name:"The Hendersons",init:"H",need:"AC not cooling, looking for a tune-up or repair",src:"ads",srcLabel:"Paid Ad",ago:"1 hr ago",fresh:true},
+    {name:"Sara Whitfield",init:"SW",need:"Kitchen sink backing up, needs a plumber out",src:"web",srcLabel:"Website",ago:"3 hrs ago",fresh:false},
+    {name:"Tom Brewer",init:"TB",need:"Wants a quote on a whole-home repipe",src:"review",srcLabel:"Google",ago:"Yesterday",fresh:false},
+  ],
+  visits:[
+    {day:"Today",items:[
+      {time:"2:30",ap:"PM",name:"Janet R.",need:"Drain cleaning estimate",addr:"412 Oak St",money:null},
+    ]},
+    {day:"Tomorrow",items:[
+      {time:"9:00",ap:"AM",name:"The Garcias",need:"Water heater replacement quote",addr:"88 Maple Ave",money:"~$3,200"},
+      {time:"1:00",ap:"PM",name:"Mark Tellez",need:"AC install estimate",addr:"1500 Birch Rd",money:"~$6,500"},
+    ]},
+  ],
+  quotes:[
+    {name:"Dave Carlton",init:"DC",job:"Whole-home repipe",money:"$4,800",days:4,heat:"aged"},
+    {name:"The Coopers",init:"C",job:"AC system replacement",money:"$6,200",days:2,heat:""},
+    {name:"Lena Marsh",init:"LM",job:"Water heater + softener",money:"$3,900",days:1,heat:""},
+    {name:"Rick Alvarez",init:"RA",job:"Sewer line repair",money:"$5,500",days:7,heat:"cold"},
+    {name:"The Nguyens",init:"N",job:"Bathroom remodel plumbing",money:"$2,800",days:3,heat:"aged"},
+  ],
+  won:[
+    {name:"The Garcias",init:"G",job:"Water heater replacement",money:"$3,200",when:"Booked today"},
+    {name:"Mark Tellez",init:"M",job:"AC tune-up + repair",money:"$1,450",when:"Booked yesterday"},
+    {name:"Priya Shah",init:"PS",job:"Drain cleaning",money:"$480",when:"2 days ago"},
+    {name:"The Bennetts",init:"B",job:"Sump pump install",money:"$2,100",when:"4 days ago"},
+    {name:"Carlos M.",init:"CM",job:"Faucet + disposal",money:"$640",when:"5 days ago"},
+    {name:"The Reyes",init:"R",job:"AC system install",money:"$6,500",when:"Last week"},
+  ],
+  funnel:[
+    {name:"New leads",num:4,val:"",money:false},
+    {name:"Visits booked",num:3,val:"",money:false},
+    {name:"Quotes out",num:5,val:"$9,200",money:false},
+    {name:"Won this month",num:6,val:"$18,400",money:true},
+  ],
+};
+
+/* ============================ builders ============================ */
+function pageTop(title,desc,actions){return '<div class="head"><div class="page-header"><h2 class="page-title">'+esc(title)+'</h2><p class="page-desc">'+esc(desc)+'</p></div>'+(actions?'<div class="head-actions">'+actions+'</div>':'')+'</div>';}
+const srcChip=(s,l)=>'<span class="src '+s+'">'+icon(s==='ads'?'megaphone':s==='review'?'star':'globe',12)+esc(l)+'</span>';
+
+/* ============================ pages ============================ */
+const PAGES={
+overview(){
+  const callRows=DATA.callToday.map(c=>'<div class="list-row"><div class="avatar '+(c.tone||'')+'">'+esc(c.init)+'</div>'+
+    '<div class="row-main"><div class="row-title">'+esc(c.name)+(c.money?' <span class="badge tone-money"><span class="dot"></span>'+esc(c.money)+'</span>':'')+'</div><div class="row-meta">'+esc(c.reason)+'</div></div>'+
+    '<div class="row-actions"><button class="icon-btn call" title="Call" data-toast="Calling '+esc(c.name)+'…">'+icon('phone',16)+'</button><button class="icon-btn text" title="Text" data-toast="Texting '+esc(c.name)+'…">'+icon('msg',16)+'</button></div></div>').join('');
+
+  const funnelRows=DATA.funnel.map((f,i)=>{const w=[100,72,58,44][i];return '<div class="fl"><div class="fl-name">'+esc(f.name)+'</div><div class="fl-track"><div class="fl-fill'+(f.money?' money':'')+'" style="width:'+w+'%;"><span class="fl-num">'+f.num+'</span></div></div><div class="fl-val">'+esc(f.val||'')+'</div></div>';}).join('');
+
+  return pageTop('Sales',"Where your money is, and who to call to make more.",'<button class="btn btn-primary btn-sm" data-icon="plus" data-isz="16" data-book="a new lead">Add a lead</button>')+
+    /* money hero */
+    '<div class="hero">'+
+      '<div class="hero-money"><div class="hm-label">'+icon('dollar',15)+'Booked this month</div>'+
+        '<div class="hm-value">'+esc(DATA.bookedMonth)+'</div>'+
+        '<div class="hm-sub">'+DATA.bookedJobs+' jobs booked · '+esc(DATA.avgJob)+' average</div>'+
+        '<div class="hm-foot"><div class="hf">Jobs<b>'+DATA.bookedJobs+'</b></div><div class="hf">Avg job<b>'+esc(DATA.avgJob)+'</b></div><div class="hf">Up vs last month<b>+18%</b></div></div>'+
+      '</div>'+
+      '<div class="hero-side"><div class="hs-label">'+icon('clock',15)+'Money on the table</div>'+
+        '<div class="hs-value">'+esc(DATA.onTable)+'</div>'+
+        '<div class="hs-sub">'+DATA.quotesOut+' quotes still waiting on a yes</div>'+
+        '<div class="hs-cta"><button class="btn btn-money btn-sm" data-goto="quotes">Chase these '+icon('arrowsm',14)+'</button></div>'+
+      '</div>'+
+    '</div>'+
+    /* mini stats */
+    '<div class="stats">'+
+      stat('New leads','4','waiting for a first call','leads')+
+      stat('Visits this week','3','estimates on the calendar','visits')+
+      stat('Quotes out','5','worth $9,200','quotes')+
+      stat('Won this month','6','your best month yet','won')+
+    '</div>'+
+    /* two columns */
+    '<div class="lower"><div class="col">'+
+      '<div class="panel"><div class="panel-header"><h3>Call these today</h3><span class="badge tone-warning"><span class="dot"></span>3 need you</span></div>'+callRows+'</div>'+
+      '<div class="panel"><div class="panel-header"><h3>New leads</h3><a class="see-all" data-goto="leads">See all 4 '+icon('arrowsm',13)+'</a></div>'+
+        DATA.leads.slice(0,2).map(l=>leadRowMini(l)).join('')+'</div>'+
+    '</div><div class="col">'+
+      '<div class="panel"><div class="panel-header"><h3>Your sales at a glance</h3></div>'+'<div class="funnel">'+funnelRows+'</div></div>'+
+      '<div class="callout money">'+icon('bolt',20)+'<div class="txt">Your average job is up <strong>$420</strong> this month. Quoting the AC installs paid off.</div></div>'+
+    '</div></div>';
+},
+
+leads(){
+  const cards=DATA.leads.map(l=>'<div class="lead-card'+(l.fresh?' fresh':'')+'">'+
+    '<div class="lead-top"><div class="avatar">'+esc(l.init)+'</div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div class="lead-name">'+esc(l.name)+'</div>'+(l.fresh?'<span class="fresh-flag"><span class="pulse"></span>New</span>':'')+'</div><div class="lead-need">'+esc(l.need)+'</div></div></div>'+
+    '<div class="lead-chips">'+srcChip(l.src,l.srcLabel)+'<span class="faint" style="font-size:12px;">'+esc(l.ago)+'</span></div>'+
+    '<div class="lead-foot"><button class="lead-act" data-toast="Calling '+esc(l.name)+'…">'+icon('phone',15)+'Call</button><button class="lead-act" data-toast="Texting '+esc(l.name)+'…">'+icon('msg',15)+'Text</button><button class="lead-act book" data-book="'+esc(l.name)+'">'+icon('calendar',15)+'Book visit</button></div>'+
+  '</div>').join('');
+  return pageTop('New Leads',"Fresh people who want a quote. The faster you call, the more you book.",'')+
+    '<div class="callout">'+icon('bolt',20)+'<div class="txt"><strong>2 leads came in within the hour.</strong> Calling within 5 minutes books almost twice as many jobs, so start at the top.</div></div>'+
+    '<div class="lead-grid" style="margin-top:16px;">'+cards+'</div>';
+},
+
+visits(){
+  const groups=DATA.visits.map(g=>'<div class="day-head">'+esc(g.day)+'</div>'+g.items.map(v=>'<div class="visit"><div class="vbar"></div><div class="vtime">'+esc(v.time)+'<small>'+esc(v.ap)+'</small></div>'+
+    '<div class="row-main"><div class="row-title">'+esc(v.name)+(v.money?' <span class="badge tone-money"><span class="dot"></span>'+esc(v.money)+'</span>':'')+'</div><div class="row-meta">'+esc(v.need)+' · '+icon('pin',12)+' '+esc(v.addr)+'</div></div>'+
+    '<div class="row-actions"><button class="icon-btn call" title="Call" data-toast="Calling '+esc(v.name)+'…">'+icon('phone',16)+'</button><button class="icon-btn" title="Reschedule" data-book="'+esc(v.name)+'">'+icon('calendar',16)+'</button></div></div>').join('')).join('');
+  return pageTop('Booked Visits',"Estimate visits on the calendar. Show up, win the job.",'<button class="btn btn-primary btn-sm" data-icon="plus" data-isz="16" data-book="a customer">Book a visit</button>')+
+    '<div class="panel">'+groups+'</div>'+
+    '<div class="callout" style="margin-top:16px;">'+icon('check',20)+'<div class="txt">Customers get an automatic text reminder the morning of their visit, so fewer no-shows.</div></div>';
+},
+
+quotes(){
+  const rows=DATA.quotes.slice().sort((a,b)=>b.days-a.days).map(q=>{
+    const heatCls=q.heat==='cold'?'q-cold':q.heat==='aged'?'q-aged':'';
+    const heatTxt=q.days+' day'+(q.days>1?'s':'')+' waiting';
+    return '<div class="list-row"><div class="avatar'+(q.heat==='cold'?' warm':'')+'">'+esc(q.init)+'</div>'+
+      '<div class="row-main"><div class="row-title">'+esc(q.name)+'</div><div class="row-meta">'+esc(q.job)+' · <span class="'+heatCls+'" style="font-weight:600;">'+esc(heatTxt)+'</span></div></div>'+
+      '<div class="row-money" style="margin-right:6px;">'+esc(q.money)+'</div>'+
+      '<div class="row-actions"><button class="icon-btn call" title="Call" data-toast="Calling '+esc(q.name)+'…">'+icon('phone',16)+'</button><button class="icon-btn text" title="Follow up by text" data-toast="Follow-up text sent to '+esc(q.name)+'.">'+icon('msg',16)+'</button></div></div>';
+  }).join('');
+  return pageTop('Waiting on a Yes',"Quotes you've sent. Follow up the quiet ones, that's where the money hides.",'')+
+    '<div class="callout money">'+icon('dollar',20)+'<div class="txt"><strong>$9,200 in quotes are still open.</strong> Two have gone quiet for several days, a quick follow-up text often closes them.</div></div>'+
+    '<div class="panel" style="margin-top:16px;"><div class="panel-header"><h3>Open quotes</h3><span class="faint" style="font-size:12px;">Oldest first</span></div>'+rows+'</div>';
+},
+
+won(){
+  const total=DATA.won.reduce((s,w)=>s+ +w.money.replace(/[$,]/g,''),0);
+  const rows=DATA.won.map(w=>'<div class="list-row"><div class="avatar" style="background:var(--money-tint);color:var(--money);">'+icon('check',16)+'</div>'+
+    '<div class="row-main"><div class="row-title">'+esc(w.name)+'</div><div class="row-meta">'+esc(w.job)+' · '+esc(w.when)+'</div></div>'+
+    '<div class="row-money">'+esc(w.money)+'</div></div>').join('');
+  return pageTop('Won',"Every job you've booked this month, and what it's worth.",'')+
+    '<div class="hero"><div class="hero-money"><div class="hm-label">'+icon('trophy',15)+'Booked this month</div><div class="hm-value">$'+total.toLocaleString()+'</div><div class="hm-sub">'+DATA.won.length+' jobs won · keep it going</div></div>'+
+      '<div class="hero-side"><div class="hs-label">'+icon('star',15)+'Biggest win</div><div class="hs-value" style="font-size:34px;">$6,500</div><div class="hs-sub">The Reyes · AC system install</div></div></div>'+
+    '<div class="panel"><div class="panel-header"><h3>Jobs booked</h3></div>'+rows+'</div>';
+},
+};
+
+function stat(label,value,sub,goto){return '<div class="panel stat'+(goto?' ':'')+'" '+(goto?'style="cursor:pointer" data-goto="'+goto+'"':'')+'><div class="s-label">'+esc(label)+'</div><div class="s-value">'+esc(value)+'</div><div class="s-sub">'+esc(sub)+'</div></div>';}
+function leadRowMini(l){return '<div class="list-row"><div class="avatar">'+esc(l.init)+'</div><div class="row-main"><div class="row-title">'+esc(l.name)+(l.fresh?' <span class="badge tone-money"><span class="dot"></span>New</span>':'')+'</div><div class="row-meta">'+esc(l.need)+'</div></div><div class="row-actions"><button class="icon-btn call" title="Call" data-toast="Calling '+esc(l.name)+'…">'+icon('phone',16)+'</button><button class="icon-btn" title="Book visit" data-book="'+esc(l.name)+'">'+icon('calendar',16)+'</button></div></div>';}
+
+/* ============================ router ============================ */
+const state={page:'overview'};
+function render(){
+  const el=document.getElementById('page');
+  el.innerHTML=(PAGES[state.page]||PAGES.overview)();
+  fillIcons(el);
+  document.querySelectorAll('.nav-children .nav-row').forEach(n=>n.classList.toggle('active',n.dataset.page===state.page));
+  el.scrollIntoView({block:'start'});
+}
+function goto(p){state.page=p;render();}
+
+/* ============================ book dialog ============================ */
+const SLOTS=['Today 2:30','Today 4:00','Tmrw 9:00','Tmrw 11:00','Tmrw 1:00','Fri 10:00'];
+function openBook(name){
+  document.getElementById('bookTitle').textContent='Book a visit'+(name&&name!=='a customer'&&name!=='a new lead'?' — '+name:'');
+  document.getElementById('bookBody').innerHTML=
+    '<div class="field"><label>Pick a time</label><div class="slot-grid">'+SLOTS.map((s,i)=>'<div class="slot'+(i===2?' sel':'')+'" data-slot>'+esc(s)+'</div>').join('')+'</div></div>'+
+    '<div class="field"><label>What&rsquo;s the job?</label><input class="input" value="'+(name==='a new lead'||name==='a customer'?'':'Estimate visit')+'" placeholder="e.g. Water heater estimate"></div>'+
+    '<div class="field" style="margin-bottom:0;"><label>Note for your tech (optional)</label><textarea class="textarea" placeholder="Gate code, parking, what to bring…"></textarea></div>';
+  document.querySelectorAll('#bookBody [data-slot]').forEach(s=>s.onclick=()=>{document.querySelectorAll('#bookBody [data-slot]').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');});
+  document.getElementById('bookDlg').classList.add('show');
+}
+
+/* ============================ toast ============================ */
+let toastT;
+function toast(msg,money){const t=document.getElementById('toast');t.innerHTML=(money?icon('checkc',16):'')+esc(msg);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2400);}
+
+/* ============================ events ============================ */
+document.addEventListener('click',e=>{
+  const nav=e.target.closest('[data-page]'); if(nav){e.preventDefault();goto(nav.dataset.page);return;}
+  const go=e.target.closest('[data-goto]'); if(go){e.preventDefault();goto(go.dataset.goto);return;}
+  const bk=e.target.closest('[data-book]'); if(bk){e.preventDefault();openBook(bk.dataset.book);return;}
+  const tt=e.target.closest('[data-toast]'); if(tt){e.preventDefault();toast(tt.dataset.toast);return;}
+  if(e.target.closest('[data-close]')){document.getElementById('bookDlg').classList.remove('show');return;}
+  if(e.target.id==='bookConfirm'){document.getElementById('bookDlg').classList.remove('show');toast('Visit booked. Customer got a confirmation text.',true);return;}
+  if(e.target===document.getElementById('bookDlg')){document.getElementById('bookDlg').classList.remove('show');}
+});
+
+/* theme */
+const themeBtn=document.getElementById('themeBtn');
+function setTheme(t){document.documentElement.dataset.theme=t;themeBtn.innerHTML=icon(t==='dark'?'sun':'moon',16);}
+themeBtn.onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+
+/* init */
+fillIcons(document);
+setTheme('light');
+render();
+</script>
+</body></html>

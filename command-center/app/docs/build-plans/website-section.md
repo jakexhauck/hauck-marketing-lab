@@ -101,12 +101,12 @@ This is the only page with genuinely new behaviour, not just a styled view.
 Three real sources to connect, each can land after the UI ships on demo data:
 
 1. **Visitor analytics** (visitors, sources, time on page, per-page views). Likely GA4 or the site platform's analytics. Decide the source and a small fetch layer.
-2. **The live site + its pages list.** Since these are sites we build (GHL funnels/landing pages), we likely control the domain and can enumerate pages.
+2. **The live site + its pages list.** Client sites are hosted in their GoHighLevel sub-account (GHL funnel/website builder), confirmed for Willis Windows. So we control them and can enumerate funnels/pages via the GHL API (the `ghl` CLI is available). This also means we can pull page previews/screenshots straight from GHL.
 3. **Change-request store** (Phase 4 table) + the agency-side surface.
 
 ### Open decision (needs Jake): how do we render the real site for click-to-pin?
 
-The mockup uses a hand-built homepage. For the real build, two viable approaches:
+The mockup uses a hand-built homepage. The real sites are GHL-hosted, which leans the answer toward what GHL allows (its pages may block iframe embedding, but we can render/screenshot them through GHL). Two viable approaches:
 
 - **A. Live embed (iframe).** Interactive and always current, but: many sites block embedding (X-Frame-Options / CSP), and we can only capture *where* they clicked, not which element. Works cleanly **only because we build/host these sites**, so we can allow our own pages to embed. Best if every client site is one we control.
 - **B. Screenshot annotation (recommended default).** We render a server-side screenshot of each page and let the client pin on the image. Works on **any** site regardless of embedding rules, pins are rock-solid, and it is what proven markup tools (Markup.io, BugHerd, Pastel) do. Trade-off: the image is a snapshot, refreshed on a schedule or on demand, not live.

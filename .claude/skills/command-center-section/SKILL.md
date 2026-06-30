@@ -29,13 +29,15 @@ Do **not** use it for the standalone client mobile PWA (`Hauck Command Center (C
 This is the default workflow: **agree the page list → mockup → Jake approves → build the code right after.** Never go straight to in-app demo code.
 
 0. **First, figure out every page.** Before any mockup, write the full list of pages the section will have — the Overview + each sub-page (the sidebar children) AND the secondary flows each page opens (create/edit dialogs, filters, detail/onboarding views). Confirm that list with Jake before drawing anything. Settling the page list first is what prevents going back later (e.g. the Social create dialogs).
+   - **Stop and ask for explicit confirmation before building the mockups.** Once the page list is agreed, do not start mocking on your own initiative. Put the question plainly ("Shall I build the mockups for these pages, Sir?") and wait for a clear yes. Only then move to step 1. Agreeing the page list is **not** approval to start drawing.
 1. Reuse the kit: `kit.css` is the `design-kit.html` `<style>` block (light/indigo/Poppins). Mockups link it.
-2. Build the screens as **static HTML on `kit.css`**, framed realistically — phone frames for mobile, browser-window chrome for desktop, centered modal / bottom-sheet for dialogs. When the direction is open, show **2-3 options** and let Jake pick.
+2. Build the screens as **static HTML on `kit.css`**, framed realistically — phone frames for mobile, browser-window chrome for desktop, centered modal / bottom-sheet for dialogs. **Always build three distinct variations** that differ in formatting/layout (not just color) so Jake has real options to pick from — e.g. `<section>-v1/`, `-v2/`, `-v3/`.
+   - **Each page's content must fit its frame.** Size the content to the frame it sits in (phone frame, desktop browser-window chrome) so nothing overflows or gets cut off, and there's no awkward dead space. The whole page should read at a glance without the frame's content spilling past its edges or needing the frame itself to scroll oddly. Check every variation and every page for this before opening them.
    - **Mock the WHOLE thing, not just the main pages.** Include every part the section implies up front so nothing gets discovered late: each page's **empty/not-connected state** AND every **secondary flow** a button opens — the create/edit dialogs behind "New post", "New idea", "Plan my month", filters, detail/edit views, settings/onboarding. (We had to go back and add the create dialogs after the fact on Social — don't repeat that.) Walk every button in the mockup and ask "what does this open?" — mock that too.
-3. Open for review (`open <file>`, or serve the folder with `python3 -m http.server` and view via the browser tools) and iterate until he approves.
+3. Open all three for review in Jake's own browser with `open <file>` (one `open` per variation, so each lands as its own browser tab). **Do not view them through the claude-in-chrome browser tools** — that spins up a separate Claude-controlled browser instance, which is not what he wants. Just open the plain HTML in his default browser and iterate until he approves.
 4. Only **after approval**, build the real demo-aware/gated app code (Build procedure below). Build it "right after" approval — don't wait.
 
-Save mockups under the app folder, e.g. `mockups/<section>-v1/`. Reference set: `Hauck Command Center (Clients)/Mobile App/mockups/social-v1/` (`home.html`, `desktop.html`, `create-flows.html`, `kit.css`).
+Save mockups under the app folder, one folder per variation: `mockups/<section>-v1/`, `mockups/<section>-v2/`, `mockups/<section>-v3/` (each with its own `kit.css` copy or a shared one). Reference set: `Hauck Command Center (Clients)/Mobile App/mockups/social-v1/` (`home.html`, `desktop.html`, `create-flows.html`, `kit.css`).
 
 ## Build procedure
 
@@ -52,6 +54,7 @@ Save mockups under the app folder, e.g. `mockups/<section>-v1/`. Reference set: 
 
 - `npx tsc --noEmit` then `npm run build` (both from `command-center/app`).
 - Run it: `npm run dev`, open `http://localhost:5173/<route>?demo=1` (the demo sandbox needs no login/network), screenshot the real pages and dialogs. Resize won't reliably force the mobile viewport in the screenshot — confirm mobile by code/build, verify desktop on screen.
+- **Check both themes.** The app has a light/dark toggle (`data-theme`). Screenshot the section in both — a section built/verified only in one theme often breaks in the other (hardcoded hex, wrong-direction contrast). Use the semantic tokens and confirm dark mode reads correctly.
 
 ## Ship
 
@@ -92,5 +95,7 @@ Keep the file current: flip statuses as connections get wired. Reference: `comma
 - `src/lib/nav.ts` — `NavItem.children`, `leafItems`, `flattenNav`.
 - `src/components/Sidebar.tsx` — `NavItemGroup` (expandable nested nav).
 - `src/routes/social/` — the reference section (Overview/Ideas/Calendar/Posts/Insights + `shared.tsx`).
+- `src/routes/paid-ads/` — Paid Ads section (Overview/Creatives/Leads/Insights + `shared.tsx`); another full build of this pattern.
+- `src/routes/website/` — Website section (Overview/Pages/Insights/RequestChange + `shared.tsx`); includes an interactive click-to-pin flow worth copying.
 - `src/components/social/SocialDialog.tsx` — reusable dialog overlay; `SocialComposerDialog`/`NewIdeaDialog`/`PlanMonthDialog` — create-flow examples; `SocialMobileTabs.tsx` — mobile sub-nav.
 - `design-kit.html` (repo root) — canonical tokens/components.

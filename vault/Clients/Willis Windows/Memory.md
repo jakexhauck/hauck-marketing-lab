@@ -48,4 +48,6 @@ Format: `- YYYY-MM-DD — fact (optional: source/tag)`
 - 2026-05-25, Standard full-house window cleaning runs around $300+ in Willis Windows' market.
 - 2026-05-25, Willis Windows offers services beyond windows: gutter cleaning, screen washing, and acid-free hard-water mineral spot treatment, and customers often bundle gutters with windows.
 - 2026-05-25, Willis Windows positions as a young, local, fully insured crew that handles two and three-story homes, with 60+ five-star reviews.
+- 2026-06-29, Willis Windows' website is hosted in their GoHighLevel sub-account (GHL funnel/website builder). This is the source for the client dashboard's Website section (pages, previews, and the Request a Change canvas); pull pages/previews via GHL.
+
 <!-- Add new facts above this line. When this file exceeds ~100 lines, older entries get moved to Memory-Archive.md. -->
