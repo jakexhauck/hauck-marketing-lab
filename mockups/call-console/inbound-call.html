@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Inbound Call · Call Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{ --indigo:#6366f1; --violet:#8b5cf6; --grad:linear-gradient(135deg,#6366f1,#8b5cf6);
+    --green:#16a34a; --amber:#d97706; --rose:#e11d48; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;color:#e7e9f6;-webkit-font-smoothing:antialiased;
+    min-height:100vh;background:radial-gradient(1200px 700px at 75% -5%,#2a2358,#0c0e22 60%);padding:34px 26px 60px}
+  h1,h2,h3{font-family:'Poppins',sans-serif;letter-spacing:-.02em}
+  .wrap{max-width:1080px;margin:0 auto}
+  .step-lab{font-family:'Poppins';font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#8b91bd;margin:36px 0 14px;display:flex;align-items:center;gap:10px}
+  .step-lab .n{width:22px;height:22px;border-radius:7px;background:var(--grad);color:#fff;display:grid;place-items:center;font-size:12px}
+  .step-lab:first-child{margin-top:0}
+
+  /* ring pops */
+  .pops{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .pop{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:18px 20px;backdrop-filter:blur(10px);box-shadow:0 20px 50px -20px rgba(0,0,0,.6)}
+  .pop .ringrow{display:flex;align-items:center;gap:14px}
+  .pop .ava{width:54px;height:54px;border-radius:15px;display:grid;place-items:center;font-family:'Poppins';font-weight:700;font-size:21px;color:#fff;flex:none}
+  .pop .ava.known{background:var(--grad)}
+  .pop .ava.unknown{background:rgba(148,163,184,.25);font-size:24px}
+  .pop .inc{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#6ee7a8;display:flex;align-items:center;gap:7px}
+  .pop .inc .pulse{width:7px;height:7px;border-radius:50%;background:#4ade80;animation:p 1.3s infinite}
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+  .pop .nm{font-family:'Poppins';font-weight:600;font-size:18px;color:#fff;margin-top:3px}
+  .pop .num{font-size:12.5px;color:#aab0d6}
+  .matchline{margin-top:13px;font-size:12.5px;padding:9px 12px;border-radius:10px;display:flex;align-items:center;gap:8px}
+  .matchline.ok{background:rgba(99,102,241,.16);color:#b4bbff}
+  .matchline.no{background:rgba(148,163,184,.12);color:#aab0d6}
+  .popbtns{display:flex;gap:10px;margin-top:15px}
+  .answer{flex:1;background:#16a34a;color:#fff;border:none;border-radius:11px;font-family:'Poppins';font-weight:600;font-size:14px;padding:12px;cursor:pointer}
+  .decline{background:rgba(225,29,72,.9);color:#fff;border:none;border-radius:11px;font-family:'Poppins';font-weight:600;font-size:14px;padding:12px 18px;cursor:pointer}
+
+  /* console (unknown answered) */
+  .console{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:20px;padding:22px}
+  .callbar{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+  .live{display:inline-flex;align-items:center;gap:8px;background:rgba(34,197,94,.16);color:#4ade80;font-weight:600;font-size:12.5px;padding:7px 13px;border-radius:999px}
+  .live .pulse{width:8px;height:8px;border-radius:50%;background:#4ade80}
+  .callbar .num{font-size:13px;color:#aab0d6}
+  .callbar .sp{flex:1}
+  .timer{font-family:'Poppins';font-weight:600;font-size:16px;color:#cbd0f0}
+  .hangb{background:#e11d48;color:#fff;border:none;border-radius:11px;font-family:'Poppins';font-weight:600;font-size:13px;padding:10px 15px;cursor:pointer}
+
+  .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:20px}
+  .newtag{display:inline-flex;align-items:center;gap:7px;background:rgba(245,158,11,.16);color:#fbbf24;font-weight:600;font-size:12px;padding:6px 12px;border-radius:999px;margin-bottom:14px}
+
+  .capture{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:18px}
+  .capture .lab{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8b91bd;margin-bottom:14px}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:11.5px;color:#9298c4;margin-bottom:6px;font-weight:500}
+  .field input, .field select, .field textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);border-radius:10px;padding:11px 13px;color:#fff;font-family:inherit;font-size:13.5px}
+  .field textarea{resize:none;height:54px}
+  .field input::placeholder, .field textarea::placeholder{color:#6b7099}
+  .hint{font-size:11px;color:#7a80aa;margin-top:5px}
+  .src-hl{border-color:rgba(245,158,11,.5)!important;box-shadow:0 0 0 3px rgba(245,158,11,.12)}
+
+  .outcomes .out-h{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8b91bd;margin-bottom:13px}
+  .obtns{display:flex;flex-direction:column;gap:10px}
+  .ob{display:flex;align-items:center;gap:13px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);border-radius:13px;padding:13px 15px;cursor:pointer;transition:all .14s;width:100%;text-align:left}
+  .ob:hover{background:rgba(255,255,255,.1);transform:translateY(-1px)}
+  .ob .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:18px;flex:none}
+  .ob .tt{font-family:'Poppins';font-weight:600;font-size:14.5px;color:#fff}
+  .ob .rt{font-size:11px;color:#9298c4;margin-top:2px}
+  .ob .arr{margin-left:auto;color:#6b7099}
+  .ob.book{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.12)} .ob.book .ic{background:rgba(34,197,94,.22)}
+  .ob.visit .ic{background:rgba(139,92,246,.22)}
+  .ob.follow .ic{background:rgba(217,119,6,.22)}
+  .ob.dq .ic{background:rgba(225,29,72,.18)}
+  .createnote{margin-top:14px;font-size:11.5px;color:#9298c4;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.14);border-radius:11px;padding:11px 13px}
+  .createnote b{color:#fbbf24}
+
+  .badge-note{position:fixed;left:18px;bottom:16px;background:rgba(255,255,255,.1);color:#cbd0f0;font-size:11.5px;padding:6px 13px;border-radius:999px;font-family:'Poppins';font-weight:500}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- STEP 1: the ring -->
+  <div class="step-lab"><span class="n">1</span> The phone rings · a screen pop appears over whatever you're doing</div>
+  <div class="pops">
+
+    <!-- known -->
+    <div class="pop">
+      <div class="ringrow">
+        <div class="ava known">SM</div>
+        <div>
+          <div class="inc"><span class="pulse"></span> Incoming call</div>
+          <div class="nm">Sarah Mitchell</div>
+          <div class="num">(248) 555-0142</div>
+        </div>
+      </div>
+      <div class="matchline ok">✓ Known · Estimate-form lead · Royal Oak · "wants int + ext, ~18 windows"</div>
+      <div class="popbtns">
+        <button class="answer">📞 Answer</button>
+        <button class="decline">Decline</button>
+      </div>
+    </div>
+
+    <!-- unknown -->
+    <div class="pop">
+      <div class="ringrow">
+        <div class="ava unknown">❓</div>
+        <div>
+          <div class="inc"><span class="pulse"></span> Incoming call</div>
+          <div class="nm">Unknown number</div>
+          <div class="num">(586) 555-0199</div>
+        </div>
+      </div>
+      <div class="matchline no">○ No match · brand-new caller</div>
+      <div class="popbtns">
+        <button class="answer">📞 Answer</button>
+        <button class="decline">Decline</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: answered, unknown caller -->
+  <div class="step-lab"><span class="n">2</span> You answer an unknown caller · the console opens in capture mode</div>
+  <div class="console">
+    <div class="callbar">
+      <span class="live"><span class="pulse"></span> On call</span>
+      <span class="num">(586) 555-0199</span>
+      <div class="sp"></div>
+      <span class="timer">00:48</span>
+      <button class="hangb">📞 End call</button>
+    </div>
+
+    <div class="grid">
+      <!-- capture -->
+      <div>
+        <div class="newtag">✨ New caller · capture while you talk</div>
+        <div class="capture">
+          <div class="lab">Who's calling?</div>
+          <div class="field">
+            <label>Name</label>
+            <input value="Greg Hanson" />
+          </div>
+          <div class="field">
+            <label>What do they want?</label>
+            <textarea>Exterior windows + gutter cleaning, ranch house. Got a flyer from us.</textarea>
+          </div>
+          <div class="field">
+            <label>City / ZIP</label>
+            <input value="Warren · 48089" />
+          </div>
+          <div class="field">
+            <label>How'd you hear about us? &nbsp;<span style="color:#fbbf24">→ sets the source</span></label>
+            <select class="src-hl">
+              <option>Saw our Facebook ad</option>
+              <option>Google search</option>
+              <option>Referral from a friend</option>
+              <option>Past customer</option>
+              <option>Flyer / door hanger</option>
+              <option>Not sure</option>
+            </select>
+            <div class="hint">This tags the new lead's channel so attribution still works.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- outcomes -->
+      <div class="outcomes">
+        <div class="out-h">When the call ends — one tap creates the lead + routes it</div>
+        <div class="obtns">
+          <button class="ob book">
+            <span class="ic">✅</span>
+            <span><span class="tt">Booked the job</span><span class="rt">Creates lead → Job Booked → Jobs</span></span>
+            <span class="arr">›</span>
+          </button>
+          <button class="ob visit">
+            <span class="ic">📐</span>
+            <span><span class="tt">Booked in-person visit</span><span class="rt">Creates lead → Estimate Scheduled + Calendar</span></span>
+            <span class="arr">›</span>
+          </button>
+          <button class="ob follow">
+            <span class="ic">↻</span>
+            <span><span class="tt">Follow up later</span><span class="rt">Creates lead → callback on Today</span></span>
+            <span class="arr">›</span>
+          </button>
+          <button class="ob dq">
+            <span class="ic">🚫</span>
+            <span><span class="tt">Not a fit</span><span class="rt">Logs the call, no lead created</span></span>
+            <span class="arr">›</span>
+          </button>
+        </div>
+        <div class="createnote">
+          On any outcome we create the contact + opportunity, tagged <b>source = "Saw our Facebook ad"</b>, and drop it straight into the right stage. Nothing typed twice.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="badge-note">Inbound Call · ring pop + unknown-caller capture</div>
+</body>
+</html>

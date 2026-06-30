@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Call Console · Hauck Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{ --indigo:#6366f1; --violet:#8b5cf6; --grad:linear-gradient(135deg,#6366f1,#8b5cf6);
+    --ink:#0f172a; --muted:#64748b; --faint:#94a3b8; --line:#e7e9f2; --card:#fff;
+    --green:#16a34a; --amber:#d97706; --sky:#0284c7; --rose:#e11d48; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;color:#e7e9f6;-webkit-font-smoothing:antialiased;
+    min-height:100vh;background:radial-gradient(1200px 700px at 75% -5%,#2a2358,#0c0e22 60%)}
+  h1,h2,h3{font-family:'Poppins',sans-serif;letter-spacing:-.02em}
+  .console{max-width:1080px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:22px 26px 30px}
+
+  /* top: who + timer */
+  .callbar{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+  .live{display:inline-flex;align-items:center;gap:8px;background:rgba(34,197,94,.16);color:#4ade80;font-weight:600;font-size:12.5px;padding:7px 13px;border-radius:999px}
+  .live .pulse{width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.6);animation:p 1.6s infinite}
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5)}70%{box-shadow:0 0 0 9px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+  .callbar .sp{flex:1}
+  .timer{font-family:'Poppins';font-weight:600;font-size:16px;color:#cbd0f0;font-variant-numeric:tabular-nums}
+  .muteb,.hangb{border:none;border-radius:11px;font-family:'Poppins';font-weight:600;font-size:13px;padding:10px 15px;cursor:pointer}
+  .muteb{background:rgba(255,255,255,.1);color:#cbd0f0}
+  .hangb{background:#e11d48;color:#fff}
+
+  .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:20px;flex:1;min-height:0}
+
+  /* LEFT: context */
+  .who{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+  .ava{width:62px;height:62px;border-radius:18px;background:var(--grad);display:grid;place-items:center;color:#fff;font-family:'Poppins';font-weight:700;font-size:24px}
+  .who .nm{font-size:25px;font-weight:600;color:#fff}
+  .who .ph{font-size:14px;color:#aab0d6;margin-top:3px}
+  .who .src{font-size:11px;color:#8b91bd;margin-top:5px;text-transform:uppercase;letter-spacing:.06em}
+
+  .panel{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:17px 19px;margin-bottom:14px;backdrop-filter:blur(8px)}
+  .panel .lab{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8b91bd;margin-bottom:10px}
+  .want{font-size:16px;color:#fff;font-weight:500;line-height:1.5}
+  .meta-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+  .tagx{font-size:12px;font-weight:600;background:rgba(99,102,241,.2);color:#a5b0ff;border-radius:999px;padding:5px 11px}
+  .tagx.ok{background:rgba(34,197,94,.16);color:#6ee7a8}
+  .offer{display:flex;align-items:center;gap:11px}
+  .offer .gift{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#f59e0b,#f97316);display:grid;place-items:center;font-size:18px}
+  .offer .ot{font-family:'Poppins';font-weight:600;font-size:15px;color:#fff}
+  .offer .os{font-size:12px;color:#aab0d6}
+  .points{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .points li{font-size:13px;color:#cbd0f0;display:flex;gap:9px}
+  .points li::before{content:"•";color:var(--violet);font-weight:700}
+
+  /* RIGHT: outcomes */
+  .outcomes{display:flex;flex-direction:column}
+  .out-h{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8b91bd;margin-bottom:13px}
+  .obtns{display:flex;flex-direction:column;gap:11px}
+  .ob{display:flex;align-items:center;gap:14px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);border-radius:14px;padding:15px 17px;cursor:pointer;transition:all .14s;text-align:left;width:100%}
+  .ob:hover{background:rgba(255,255,255,.1);transform:translateY(-1px)}
+  .ob .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex:none}
+  .ob .tt{font-family:'Poppins';font-weight:600;font-size:15.5px;color:#fff}
+  .ob .rt{font-size:11.5px;color:#9298c4;margin-top:2px}
+  .ob .arr{margin-left:auto;color:#6b7099;font-size:18px}
+  .ob.book{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.12)}
+  .ob.book .ic{background:rgba(34,197,94,.22)} .ob.book:hover{background:rgba(34,197,94,.2)}
+  .ob.visit .ic{background:rgba(139,92,246,.22)}
+  .ob.follow .ic{background:rgba(217,119,6,.22)}
+  .ob.noans .ic{background:rgba(148,163,184,.2)}
+  .ob.dq .ic{background:rgba(225,29,72,.18)}
+
+  /* booked inline confirm */
+  .confirm{margin-top:12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .confirm .cl{font-size:12px;font-weight:600;color:#6ee7a8}
+  .priceb{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1.5px solid rgba(34,197,94,.4);border-radius:10px;padding:9px 13px;font-family:'Poppins';font-weight:600;font-size:17px;color:#fff}
+  .priceb span{color:#9298c4;font-size:14px}
+  .confirmb{margin-left:auto;background:#16a34a;color:#fff;border:none;border-radius:10px;font-family:'Poppins';font-weight:600;font-size:13.5px;padding:11px 18px;cursor:pointer}
+
+  .notes{margin-top:14px}
+  .notes textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 14px;color:#e7e9f6;font-family:inherit;font-size:13px;resize:none;height:60px}
+  .notes textarea::placeholder{color:#6b7099}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#16a34a;color:#fff;font-family:'Poppins';font-weight:600;font-size:13px;padding:11px 20px;border-radius:999px;box-shadow:0 12px 30px -10px rgba(22,163,74,.6)}
+  .badge-note{position:fixed;left:18px;bottom:16px;background:rgba(255,255,255,.1);color:#cbd0f0;font-size:11.5px;padding:6px 13px;border-radius:999px;font-family:'Poppins';font-weight:500}
+</style>
+</head>
+<body>
+<div class="console">
+
+  <div class="callbar">
+    <span class="live"><span class="pulse"></span> On call</span>
+    <span class="timer">02:14</span>
+    <div class="sp"></div>
+    <button class="muteb">🔇 Mute</button>
+    <button class="hangb">📞 End call</button>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT context -->
+    <div class="context">
+      <div class="who">
+        <div class="ava">SM</div>
+        <div>
+          <div class="nm">Sarah Mitchell</div>
+          <div class="ph">📞 (248) 555-0142 · 📍 Royal Oak, 48067</div>
+          <div class="src">Estimate form · replied by text</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="lab">What she wants</div>
+        <div class="want">Interior + exterior window cleaning, 2-story colonial, ~18 windows. Also wants screen cleaning.</div>
+        <div class="meta-row">
+          <span class="tagx">2-story colonial</span>
+          <span class="tagx">~18 windows</span>
+          <span class="tagx">+ screens</span>
+          <span class="tagx ok">✓ within 30mi radius</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="lab">Offer to mention</div>
+        <div class="offer">
+          <div class="gift">🎁</div>
+          <div>
+            <div class="ot">$100 off + free screen cleaning</div>
+            <div class="os">Willis Windows new-customer offer</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="lab">Talking points</div>
+        <ul class="points">
+          <li>Confirm interior + exterior + screens for the colonial</li>
+          <li>Mornings work best for her this week</li>
+          <li>Quote the job, apply the $100 off</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- RIGHT outcomes -->
+    <div class="outcomes">
+      <div class="out-h">When the call ends — one tap</div>
+      <div class="obtns">
+
+        <button class="ob book">
+          <span class="ic">✅</span>
+          <span><span class="tt">Booked the job</span><span class="rt">Logs the price → moves to Jobs</span></span>
+          <span class="arr">›</span>
+        </button>
+
+        <!-- inline confirm shown for the booked path -->
+        <div class="confirm">
+          <span class="cl">Quote</span>
+          <div class="priceb"><span>$</span>340</div>
+          <button class="confirmb">Confirm · Job Booked →</button>
+        </div>
+
+        <button class="ob visit">
+          <span class="ic">📐</span>
+          <span><span class="tt">Booked in-person visit</span><span class="rt">Pick a time → Estimate Scheduled + Calendar</span></span>
+          <span class="arr">›</span>
+        </button>
+
+        <button class="ob follow">
+          <span class="ic">↻</span>
+          <span><span class="tt">Follow up later</span><span class="rt">Set a callback → shows on Today</span></span>
+          <span class="arr">›</span>
+        </button>
+
+        <button class="ob noans">
+          <span class="ic">📭</span>
+          <span><span class="tt">No answer / voicemail</span><span class="rt">Logs the attempt, auto-retry later</span></span>
+          <span class="arr">›</span>
+        </button>
+
+        <button class="ob dq">
+          <span class="ic">🚫</span>
+          <span><span class="tt">Not qualified</span><span class="rt">Out of area or not a fit → off-ramp</span></span>
+          <span class="arr">›</span>
+        </button>
+      </div>
+
+      <div class="notes">
+        <textarea placeholder="Quick note from the call (optional)…"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast">✓ One tap logs the outcome and moves her automatically</div>
+<div class="badge-note">Call Console · the shared "on the call" screen</div>
+</body>
+</html>

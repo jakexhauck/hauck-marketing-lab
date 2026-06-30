@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jobs · V1 · Calendar-first</title>
+<link rel="stylesheet" href="kit.css" />
+<style>
+  .page{flex:1;display:flex;flex-direction:column;min-height:0}
+  .phead{padding:16px 24px 4px;display:flex;align-items:flex-end;gap:14px}
+  .phead h1{font-size:19px;font-weight:600}
+  .phead .sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .phead .sp{flex:1}
+  /* view toggle */
+  .vtog{display:flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .vtog button{font-family:'Poppins';font-weight:600;font-size:12px;border:none;background:#fff;color:var(--muted);padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .vtog button.on{background:var(--indigo-tint);color:var(--indigo)}
+
+  /* summary strip */
+  .summ{display:flex;gap:10px;padding:12px 24px 4px}
+  .scard{flex:1;background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 15px}
+  .scard .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  .scard .n{font-family:'Poppins';font-weight:600;font-size:22px;margin-top:5px}
+  .scard.rev .n{color:var(--green)}
+
+  /* week toolbar */
+  .wktool{display:flex;align-items:center;gap:12px;padding:14px 24px 8px}
+  .wktool .rng{font-family:'Poppins';font-weight:600;font-size:14px}
+  .navbtn{width:30px;height:30px;border-radius:9px;border:1.5px solid var(--line);background:#fff;cursor:pointer;display:grid;place-items:center;color:var(--muted)}
+  .legend{margin-left:auto;display:flex;gap:14px;font-size:11px;color:var(--muted);align-items:center}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .legend i{width:9px;height:9px;border-radius:3px;display:inline-block}
+
+  /* calendar grid */
+  .calwrap{flex:1;overflow-y:auto;padding:4px 24px 20px}
+  .cal{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;min-height:100%}
+  .col{background:#fafbff;border:1px solid var(--line);border-radius:13px;overflow:hidden;display:flex;flex-direction:column}
+  .col.today{border-color:#c7d2fe;box-shadow:0 0 0 2px var(--indigo-tint)}
+  .colh{padding:9px 11px;border-bottom:1px solid var(--line);background:#fff}
+  .colh .dow{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700}
+  .colh .dt{font-family:'Poppins';font-weight:600;font-size:15px;margin-top:1px;display:flex;align-items:center;gap:7px}
+  .colh .dt .cnt{font-size:10px;font-weight:700;color:var(--indigo);background:var(--indigo-tint);border-radius:999px;padding:1px 7px}
+  .colb{padding:9px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .jb{border-radius:11px;padding:9px 10px;cursor:pointer;border:1px solid transparent;transition:.13s;position:relative}
+  .jb:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+  .jb .tm{font-size:10px;font-weight:700;letter-spacing:.02em;opacity:.85}
+  .jb .who{font-family:'Poppins';font-weight:600;font-size:12.5px;margin-top:2px}
+  .jb .svc{font-size:10.5px;margin-top:3px;opacity:.78;line-height:1.3}
+  .jb .amt{font-family:'Poppins';font-weight:600;font-size:11px;margin-top:6px}
+  /* booked = indigo, completed = green */
+  .jb.booked{background:var(--indigo-tint);border-color:#dfe3ff;color:#312e81}
+  .jb.completed{background:var(--green-tint);border-color:#bbf7d0;color:#14532d}
+  .jb.completed .who::after{content:" ✓";color:var(--green)}
+  .jb.unpaid{background:var(--amber-tint);border-color:#fde68a;color:#92400e}
+  .jb .tag{position:absolute;top:8px;right:8px;font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;opacity:.7}
+  .colb .none{font-size:10.5px;color:var(--faint);padding:8px 4px;text-align:center}
+
+  /* drawer */
+  .scrim{position:absolute;inset:0;background:rgba(15,18,48,.32);opacity:0;pointer-events:none;transition:.18s;z-index:20}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .drawer{position:absolute;top:0;right:0;height:100%;width:392px;background:#fff;box-shadow:var(--shadow-lg);transform:translateX(100%);transition:.22s cubic-bezier(.4,0,.2,1);z-index:21;display:flex;flex-direction:column}
+  .drawer.on{transform:translateX(0)}
+  .dwh{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  .dwh .x{margin-left:auto;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:15px;color:var(--muted)}
+  .dwbody{flex:1;overflow-y:auto;padding:16px 18px}
+  .jobmeta{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0}
+  .jm{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+  .jm .k{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--faint)}
+  .jm .v{font-family:'Poppins';font-weight:600;font-size:13.5px;margin-top:4px}
+  .blk-lab{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--indigo);margin:18px 0 10px}
+  .actgrid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .menu-anchor{position:relative}
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="board-head">
+    <span class="tag">Jobs · Variation 1</span>
+    <h1>Calendar-first</h1>
+    <p>The week's schedule is the whole page. Booked jobs sit indigo, completed jobs go green with a check. Read your week at a glance, tap any block for the full job and its actions. A List toggle sits up top for when you'd rather scan a flat list.</p>
+  </div>
+
+  <div class="winframe">
+    <div class="winbar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">app.hauckmarketing.com/sales/jobs</span></div>
+    <div class="app">
+      <nav class="rail">
+        <div class="logo">W</div>
+        <div class="ic">📣</div><div class="ic">📝</div><div class="ic">💬</div>
+        <div class="ic">📞</div><div class="ic">📐</div><div class="ic on">🗓️</div><div class="ic">⭐</div>
+      </nav>
+      <div class="main">
+        <header class="top"><div class="crumb">Sales / <b>Jobs</b></div><div class="sp"></div><div class="avatar sm">JH</div></header>
+        <div class="page">
+          <div class="phead">
+            <div><h1>Jobs</h1><div class="sub">Booked and completed work, on the calendar</div></div>
+            <div class="sp"></div>
+            <div class="vtog"><button class="on">🗓️ Calendar</button><button>☰ List</button></div>
+          </div>
+
+          <!-- summary -->
+          <div class="summ">
+            <div class="scard"><div class="l">Booked this week</div><div class="n">4</div></div>
+            <div class="scard"><div class="l">Completed</div><div class="n">3</div></div>
+            <div class="scard rev"><div class="l">Booked value</div><div class="n">$1,730</div></div>
+            <div class="scard rev"><div class="l">Collected</div><div class="n">$930</div></div>
+          </div>
+
+          <!-- week toolbar -->
+          <div class="wktool">
+            <button class="navbtn">‹</button>
+            <span class="rng">Jun 30 – Jul 5, 2026</span>
+            <button class="navbtn">›</button>
+            <div class="legend">
+              <span><i style="background:var(--indigo)"></i> Booked</span>
+              <span><i style="background:var(--green)"></i> Completed</span>
+              <span><i style="background:var(--amber)"></i> Unpaid</span>
+            </div>
+          </div>
+
+          <!-- calendar -->
+          <div class="calwrap">
+            <div class="cal">
+              <!-- Mon -->
+              <div class="col today">
+                <div class="colh"><div class="dow">Mon · Today</div><div class="dt">30 <span class="cnt">1</span></div></div>
+                <div class="colb">
+                  <div class="jb completed" onclick="openJob(this)" data-nm="Dana Park" data-svc="Full exterior + screens" data-amt="$520" data-when="Mon Jun 30 · 8:00 AM" data-loc="Warren · 48091" data-status="completed">
+                    <span class="tag">Paid</span>
+                    <div class="tm">8:00 AM</div><div class="who">Dana Park</div>
+                    <div class="svc">Full exterior + screens</div><div class="amt">$520</div>
+                  </div>
+                </div>
+              </div>
+              <!-- Tue -->
+              <div class="col">
+                <div class="colh"><div class="dow">Tue</div><div class="dt">1 <span class="cnt">1</span></div></div>
+                <div class="colb">
+                  <div class="jb completed" onclick="openJob(this)" data-nm="Greg Olsen" data-svc="Exterior windows, 1-story" data-amt="$410" data-when="Tue Jul 1 · 11:00 AM" data-loc="Sterling Heights · 48310" data-status="completed">
+                    <span class="tag">Paid</span>
+                    <div class="tm">11:00 AM</div><div class="who">Greg Olsen</div>
+                    <div class="svc">Exterior windows, 1-story</div><div class="amt">$410</div>
+                  </div>
+                </div>
+              </div>
+              <!-- Wed -->
+              <div class="col">
+                <div class="colh"><div class="dow">Wed</div><div class="dt">2 <span class="cnt">1</span></div></div>
+                <div class="colb">
+                  <div class="jb unpaid" onclick="openJob(this)" data-nm="Sofia Russo" data-svc="2-story full house + skylights" data-amt="$675" data-when="Wed Jul 2 · 9:30 AM" data-loc="Bloomfield · 48302" data-status="unpaid">
+                    <span class="tag">Invoice sent</span>
+                    <div class="tm">9:30 AM</div><div class="who">Sofia Russo</div>
+                    <div class="svc">2-story full house + skylights</div><div class="amt">$675 · unpaid</div>
+                  </div>
+                </div>
+              </div>
+              <!-- Thu -->
+              <div class="col">
+                <div class="colh"><div class="dow">Thu</div><div class="dt">3 <span class="cnt">1</span></div></div>
+                <div class="colb">
+                  <div class="jb booked" onclick="openJob(this)" data-nm="Tom Willis" data-svc="Full exterior + screens" data-amt="$450" data-when="Thu Jul 3 · 9:00 AM" data-loc="Rochester Hills · 48307" data-status="booked">
+                    <div class="tm">9:00 AM</div><div class="who">Tom Willis</div>
+                    <div class="svc">Full exterior + screens</div><div class="amt">$450</div>
+                  </div>
+                </div>
+              </div>
+              <!-- Fri -->
+              <div class="col">
+                <div class="colh"><div class="dow">Fri</div><div class="dt">4 <span class="cnt">1</span></div></div>
+                <div class="colb">
+                  <div class="jb booked" onclick="openJob(this)" data-nm="Janet Doe" data-svc="Exterior windows" data-amt="$300" data-when="Fri Jul 4 · 1:00 PM" data-loc="Troy · 48084" data-status="booked">
+                    <div class="tm">1:00 PM</div><div class="who">Janet Doe</div>
+                    <div class="svc">Exterior windows</div><div class="amt">$300</div>
+                  </div>
+                </div>
+              </div>
+              <!-- Sat -->
+              <div class="col">
+                <div class="colh"><div class="dow">Sat</div><div class="dt">5 <span class="cnt">2</span></div></div>
+                <div class="colb">
+                  <div class="jb booked" onclick="openJob(this)" data-nm="Kevin Lee" data-svc="2-story full house" data-amt="$600" data-when="Sat Jul 5 · 8:00 AM" data-loc="Birmingham · 48009" data-status="booked">
+                    <div class="tm">8:00 AM</div><div class="who">Kevin Lee</div>
+                    <div class="svc">2-story full house</div><div class="amt">$600</div>
+                  </div>
+                  <div class="jb booked" onclick="openJob(this)" data-nm="Maria Santos" data-svc="Exterior + gutters" data-amt="$380" data-when="Sat Jul 5 · 1:30 PM" data-loc="Royal Oak · 48067" data-status="booked">
+                    <div class="tm">1:30 PM</div><div class="who">Maria Santos</div>
+                    <div class="svc">Exterior + gutters</div><div class="amt">$380</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DRAWER -->
+      <div class="scrim" id="scrim" onclick="closeAll()"></div>
+      <aside class="drawer" id="drawer">
+        <div class="dwh">
+          <div class="avatar lg" id="dwAv">TW</div>
+          <div><div class="nm" style="font-family:'Poppins';font-weight:600;font-size:16px" id="dwNm">Tom Willis</div>
+            <div class="infoline" style="font-size:11.5px;color:var(--muted);margin-top:3px" id="dwLoc">📍 Rochester Hills · 48307</div></div>
+          <button class="x" onclick="closeAll()">✕</button>
+        </div>
+        <div class="dwbody">
+          <span class="pill s-resp" id="dwStatus"><span class="d"></span>Booked</span>
+          <div class="jobmeta">
+            <div class="jm"><div class="k">When</div><div class="v" id="dwWhen">Thu Jul 3 · 9:00 AM</div></div>
+            <div class="jm"><div class="k">Amount</div><div class="v" id="dwAmt">$450</div></div>
+            <div class="jm" style="grid-column:1/-1"><div class="k">Service</div><div class="v" id="dwSvc">Full exterior + screens</div></div>
+          </div>
+          <div class="blk-lab">Job actions</div>
+          <div class="actgrid2">
+            <div class="acttile confirm"><div class="tt">✅ Mark completed</div><div class="dd">Job done — move to Completed.</div><div class="route">→ Job Completed</div></div>
+            <div class="acttile"><div class="tt">🗓️ Reschedule</div><div class="dd">Pick a new date and time.</div><div class="route">→ Updates calendar</div></div>
+            <div class="acttile"><div class="tt">💬 Open conversation</div><div class="dd">Text or call this customer.</div><div class="route">→ Inbox</div></div>
+            <div class="acttile"><div class="tt">💵 Record payment</div><div class="dd">Log the amount + paid.</div><div class="route">→ Revenue</div></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- secondary -->
+  <div class="section-label"><span class="t">Empty state · mobile</span><span class="ln"></span></div>
+  <div class="states">
+    <div class="statecard">
+      <div class="cap">Real session · before GoHighLevel connects</div>
+      <div class="body">
+        <div class="empty">
+          <div class="badge-ic">🗓️</div>
+          <h3>No jobs scheduled yet</h3>
+          <p>Once a lead books, the job lands on this calendar — booked work in indigo, finished jobs in green. Your week, at a glance.</p>
+          <div class="notice">🔌 Fills in as leads turn into booked jobs</div>
+        </div>
+      </div>
+    </div>
+    <div class="statecard" style="background:transparent;border:none;box-shadow:none">
+      <div class="cap" style="border:none;background:transparent;padding-left:0">📱 Mobile · agenda</div>
+      <div class="body" style="padding:0;display:flex;justify-content:center">
+        <div class="phone">
+          <div class="screen">
+            <div class="notch"></div>
+            <div class="pbar"><span style="font-size:18px">🗓️</span><span class="nm">Jobs</span><span style="margin-left:auto;font-size:11px;color:var(--faint)">This week</span></div>
+            <div class="pbody">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin:2px 0 8px">Thu · Jul 3</div>
+              <div class="jb booked" style="margin-bottom:10px"><div class="tm">9:00 AM</div><div class="who">Tom Willis</div><div class="svc">Full exterior + screens</div><div class="amt">$450</div></div>
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin:6px 0 8px">Sat · Jul 5</div>
+              <div class="jb booked" style="margin-bottom:10px"><div class="tm">8:00 AM</div><div class="who">Kevin Lee</div><div class="svc">2-story full house</div><div class="amt">$600</div></div>
+              <div class="jb booked"><div class="tm">1:30 PM</div><div class="who">Maria Santos</div><div class="svc">Exterior + gutters</div><div class="amt">$380</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openJob(el){
+    document.getElementById('dwNm').textContent = el.dataset.nm;
+    document.getElementById('dwAv').textContent = el.dataset.nm.split(' ').map(w=>w[0]).join('');
+    document.getElementById('dwLoc').textContent = '📍 '+el.dataset.loc;
+    document.getElementById('dwWhen').textContent = el.dataset.when;
+    document.getElementById('dwAmt').textContent = el.dataset.amt;
+    document.getElementById('dwSvc').textContent = el.dataset.svc;
+    var st = document.getElementById('dwStatus');
+    var map = {booked:['s-resp','Booked'], completed:['s-conf','Completed · paid'], unpaid:['s-wait','Completed · unpaid']};
+    var m = map[el.dataset.status]||map.booked;
+    st.className = 'pill '+m[0]; st.innerHTML = '<span class="d"></span>'+m[1];
+    document.getElementById('scrim').classList.add('on'); document.getElementById('drawer').classList.add('on');
+  }
+  function closeAll(){ document.getElementById('scrim').classList.remove('on'); document.getElementById('drawer').classList.remove('on'); }
+</script>
+</body>
+</html>

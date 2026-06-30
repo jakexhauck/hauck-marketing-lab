@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Paid Ads · V2 · Kanban board</title>
+<link rel="stylesheet" href="kit.css" />
+<style>
+  /* ---- V2 specifics ---- */
+  .page{flex:1;display:flex;flex-direction:column;min-height:0}
+  .phead{padding:15px 22px 6px;display:flex;align-items:center;gap:12px}
+  .phead h1{font-size:19px;font-weight:600}
+  .phead .sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .phead .sp{flex:1}
+  .seg{display:flex;background:#eef0f7;border-radius:9px;padding:3px}
+  .seg span{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:7px;color:var(--muted);cursor:pointer}
+  .seg span.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+  .boardx{flex:1;overflow-x:auto;overflow-y:hidden;padding:14px 22px 18px;display:flex;gap:13px}
+  .col{flex:none;width:228px;display:flex;flex-direction:column;min-height:0}
+  .colh{display:flex;align-items:center;gap:8px;padding:0 4px 10px}
+  .colh .d{width:8px;height:8px;border-radius:50%;flex:none}
+  .colh .nm{font-family:'Poppins';font-weight:600;font-size:12.5px}
+  .colh .ct{font-size:11px;font-weight:700;color:var(--faint);background:#eef0f7;border-radius:999px;padding:1px 8px;margin-left:auto}
+  .coltrack{background:#eef0f7;border-radius:13px;padding:8px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+  .coltrack.off{background:#fff1f3}
+  .kcard{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px;cursor:pointer;box-shadow:0 1px 2px rgba(15,23,42,.05);transition:.13s}
+  .kcard:hover{box-shadow:var(--shadow);transform:translateY(-1px);border-color:#c7d2fe}
+  .kcard .r1{display:flex;align-items:center;gap:8px}
+  .kcard .nm{font-family:'Poppins';font-weight:600;font-size:12.5px}
+  .kcard .t{font-size:9.5px;color:var(--faint);margin-left:auto}
+  .kcard .loc{font-size:10.5px;color:var(--muted);margin:6px 0 0}
+  .kcard .want{font-size:11px;color:#475569;margin:7px 0 8px;line-height:1.4}
+  .kcard .foot{display:flex;align-items:center;gap:6px}
+  .kcard .note{font-size:10px;color:var(--amber);font-weight:600;display:flex;align-items:center;gap:4px}
+  .colmeta{font-size:10px;color:var(--faint);text-align:center;padding:8px 4px 2px}
+
+  /* reuse v1 drawer */
+  .scrim{position:absolute;inset:0;background:rgba(15,18,48,.32);opacity:0;pointer-events:none;transition:.18s;z-index:20}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .drawer{position:absolute;top:0;right:0;height:100%;width:392px;background:#fff;box-shadow:var(--shadow-lg);transform:translateX(100%);transition:.22s cubic-bezier(.4,0,.2,1);z-index:21;display:flex;flex-direction:column}
+  .drawer.on{transform:translateX(0)}
+  .dwh{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  .dwh .x{margin-left:auto;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:15px;color:var(--muted)}
+  .dwbody{flex:1;overflow-y:auto;padding:16px 18px}
+  .infoline{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .from-strip{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin:14px 0;font-size:12px}
+  .from-strip .k{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin-bottom:5px}
+  .blk-lab{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--indigo);margin:18px 0 10px}
+  .convo{display:flex;flex-direction:column;gap:9px}
+  .msg{max-width:84%;padding:9px 12px;border-radius:12px;font-size:12.5px;line-height:1.45}
+  .msg.in{background:var(--bg);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:4px}
+  .msg.out{background:var(--grad);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .msg .who{font-size:9.5px;font-weight:600;opacity:.7;margin-bottom:3px}
+  .menu-anchor{position:relative}
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="board-head">
+    <span class="tag">Paid Ads · Variation 2</span>
+    <h1>Kanban board</h1>
+    <p>Every pipeline stage is a column; leads are cards you drag forward as they progress. The most "pipeline-native" of the three — you see the whole funnel and where everyone sits at a glance.</p>
+  </div>
+
+  <!-- MAIN DESKTOP VIEW -->
+  <div class="winframe">
+    <div class="winbar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">app.hauckmarketing.com/marketing/paid-ads</span></div>
+    <div class="app">
+      <nav class="rail">
+        <div class="logo">W</div>
+        <div class="ic on">📣</div><div class="ic">📝</div><div class="ic">💬</div>
+        <div class="ic">📞</div><div class="ic">📐</div><div class="ic">🗓️</div><div class="ic">⭐</div>
+      </nav>
+      <div class="main">
+        <header class="top"><div class="crumb">Sales / <b>Paid Ads</b></div><div class="sp"></div><div class="avatar sm">JH</div></header>
+        <div class="page">
+          <div class="phead">
+            <div><h1>Paid Ads</h1><div class="sub">8 active leads · drag a card forward as it moves</div></div>
+            <div class="sp"></div>
+            <div class="seg"><span class="on">Board</span><span>List</span></div>
+          </div>
+
+          <div class="boardx">
+            <!-- New -->
+            <div class="col">
+              <div class="colh"><span class="d" style="background:#0284c7"></span><span class="nm">New</span><span class="ct">2</span></div>
+              <div class="coltrack">
+                <div class="kcard" onclick="openDrawer(this)" data-nm="Marcus Bell" data-loc="Troy · 48084" data-stage="s-new" data-stagelab="New" data-src="fb" data-ad="$100 Off First Clean">
+                  <div class="r1"><div class="avatar sm">MB</div><div class="nm">Marcus Bell</div><div class="t">8m</div></div>
+                  <div class="loc">📍 Troy · 48084</div>
+                  <div class="want">Exterior + screens, 18 windows.</div>
+                  <div class="foot"><span class="src fb">📘 $100 Off</span></div>
+                </div>
+                <div class="kcard" onclick="openDrawer(this)" data-nm="Greg Olsen" data-loc="Royal Oak · 48067" data-stage="s-new" data-stagelab="No appt yet" data-src="ig" data-ad="Free Screen Cleaning">
+                  <div class="r1"><div class="avatar sm">GO</div><div class="nm">Greg Olsen</div><div class="t">2h</div></div>
+                  <div class="loc">📍 Royal Oak · 48067</div>
+                  <div class="want">Clicked, no time booked yet.</div>
+                  <div class="foot"><span class="src ig">📷 Free screens</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Responded -->
+            <div class="col">
+              <div class="colh"><span class="d" style="background:#4f46e5"></span><span class="nm">Responded</span><span class="ct">1</span></div>
+              <div class="coltrack">
+                <div class="kcard" onclick="openDrawer(this)" data-nm="Priya Nair" data-loc="Rochester Hills · 48307" data-stage="s-resp" data-stagelab="Responded" data-src="ig" data-ad="Spring Clean Special">
+                  <div class="r1"><div class="avatar sm">PN</div><div class="nm">Priya Nair</div><div class="t">22m</div></div>
+                  <div class="loc">📍 Rochester Hills · 48307</div>
+                  <div class="want">"What times this week?"</div>
+                  <div class="foot"><span class="src ig">📷 Spring special</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Call booked -->
+            <div class="col">
+              <div class="colh"><span class="d" style="background:#d97706"></span><span class="nm">Intro call booked</span><span class="ct">1</span></div>
+              <div class="coltrack">
+                <div class="kcard" onclick="openDrawer(this)" data-nm="Dana Whitfield" data-loc="Birmingham · 48009" data-stage="s-wait" data-stagelab="Awaiting confirm" data-src="fb" data-ad="$100 Off First Clean">
+                  <div class="r1"><div class="avatar sm">DW</div><div class="nm">Dana Whitfield</div><div class="t">1h</div></div>
+                  <div class="loc">📍 Birmingham · 48009</div>
+                  <div class="want">Thu 2:00 PM intro call.</div>
+                  <div class="foot"><span class="note">⏳ awaiting confirm</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Confirmed (handoff) -->
+            <div class="col">
+              <div class="colh"><span class="d" style="background:#16a34a"></span><span class="nm">Confirmed → Sales</span><span class="ct">0</span></div>
+              <div class="coltrack">
+                <div class="colmeta">When they confirm, the card moves on to 📞 Intro Calls.</div>
+              </div>
+            </div>
+
+            <!-- Estimate set -->
+            <div class="col">
+              <div class="colh"><span class="d" style="background:#7c3aed"></span><span class="nm">Estimate set</span><span class="ct">1</span></div>
+              <div class="coltrack">
+                <div class="kcard" onclick="openDrawer(this)" data-nm="Tamara Hayes" data-loc="Sterling Heights · 48310" data-stage="s-est" data-stagelab="Estimate set" data-src="fb" data-ad="$100 Off First Clean">
+                  <div class="r1"><div class="avatar sm">TH</div><div class="nm">Tamara Hayes</div><div class="t">3h</div></div>
+                  <div class="loc">📍 Sterling Heights · 48310</div>
+                  <div class="want">In-person estimate Fri 10 AM.</div>
+                  <div class="foot"><span class="src fb">📘 $100 Off</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quote given -->
+            <div class="col">
+              <div class="colh"><span class="d" style="background:#059669"></span><span class="nm">Quote given</span><span class="ct">1</span></div>
+              <div class="coltrack">
+                <div class="kcard" onclick="openDrawer(this)" data-nm="Sofia Russo" data-loc="Bloomfield · 48302" data-stage="s-quote" data-stagelab="Quote given · $420" data-src="fb" data-ad="$100 Off First Clean">
+                  <div class="r1"><div class="avatar sm">SR</div><div class="nm">Sofia Russo</div><div class="t">1d</div></div>
+                  <div class="loc">📍 Bloomfield · 48302</div>
+                  <div class="want">Quoted $420 · follow up Wed.</div>
+                  <div class="foot"><span class="pill s-quote"><span class="d"></span>$420</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Parked -->
+            <div class="col">
+              <div class="colh"><span class="d" style="background:#e11d48"></span><span class="nm">Parked</span><span class="ct">2</span></div>
+              <div class="coltrack off">
+                <div class="kcard" onclick="openDrawer(this)" data-nm="Victor Cruz" data-loc="Warren · 48091" data-stage="s-off" data-stagelab="No answer" data-src="ig" data-ad="Spring Clean Special">
+                  <div class="r1"><div class="avatar sm">VC</div><div class="nm">Victor Cruz</div><div class="t">5h</div></div>
+                  <div class="loc">📍 Warren · 48091</div>
+                  <div class="want">No answer · 2 retries left.</div>
+                  <div class="foot"><span class="pill s-off"><span class="d"></span>No answer</span></div>
+                </div>
+                <div class="kcard" onclick="openDrawer(this)" data-nm="Derek Madsen" data-loc="Novi · 48375" data-stage="s-off" data-stagelab="Not qualified" data-src="ig" data-ad="Free Screen Cleaning">
+                  <div class="r1"><div class="avatar sm">DM</div><div class="nm">Derek Madsen</div><div class="t">1d</div></div>
+                  <div class="loc">📍 Novi · 48375</div>
+                  <div class="want">Out of service area.</div>
+                  <div class="foot"><span class="pill s-off"><span class="d"></span>Not qualified</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DRAWER -->
+      <div class="scrim" id="scrim" onclick="closeAll()"></div>
+      <aside class="drawer" id="drawer">
+        <div class="dwh">
+          <div class="avatar lg" id="dwAv">DW</div>
+          <div><div class="nm" style="font-family:'Poppins';font-weight:600;font-size:16px" id="dwNm">Dana Whitfield</div>
+            <div class="infoline" id="dwInfo">📍 Birmingham · 48009 · 📞 (248) 555-0173</div></div>
+          <button class="x" onclick="closeAll()">✕</button>
+        </div>
+        <div class="dwbody">
+          <div style="display:flex;align-items:center;gap:8px"><span class="pill s-wait" id="dwStage"><span class="d"></span>Awaiting confirm</span><span class="src fb" id="dwSrc">📘 $100 Off ad</span></div>
+          <div class="from-strip"><div class="k">Where this lead came from</div><span id="dwAd">📣 "$100 Off First Clean" ad · Facebook</span></div>
+          <div class="drawer-actbar">
+            <div class="ab-h">What's the next step? <span style="font-weight:400;color:var(--faint);font-size:11px">— cold lead, get the intro call</span></div>
+            <div class="actgrid">
+              <div class="acttile primary"><div class="tt">📞 Call now</div><div class="dd">Ring them, opens the Call Console.</div><div class="route">→ Call Console</div></div>
+              <div class="acttile" onclick="openDialog(event)"><div class="tt">🗓️ Book intro call</div><div class="dd">Pick a time, fire the confirm text.</div><div class="route">→ Awaiting confirmation</div></div>
+              <div class="acttile confirm"><div class="tt">✅ Confirm call</div><div class="dd">They tapped confirm — hand to Sales.</div><div class="route">→ Intro Calls</div></div>
+              <div class="menu-anchor"><div class="acttile" onclick="toggleMenu(event)"><div class="tt">⋯ Other</div><div class="dd">No answer · not qualified · parked.</div><div class="route">→ Off-ramp</div></div>
+                <div id="offmenu" style="display:none;position:absolute;bottom:100%;right:0;margin-bottom:6px"></div>
+              </div>
+            </div>
+          </div>
+          <div class="blk-lab">💬 Conversation</div>
+          <div class="convo">
+            <div class="msg out"><div class="who">Auto · SMS</div>Hi Dana! Confirming your intro call with Willis Windows for Thu at 2:00 PM. Reply YES to lock it in 👍</div>
+            <div class="msg in"><div class="who">Dana</div>Perfect, talk then.</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- SECONDARY STATES -->
+  <div class="section-label"><span class="t">Secondary flows</span><span class="ln"></span></div>
+  <div class="states">
+    <div class="statecard">
+      <div class="cap">🗓️ Book intro call dialog</div>
+      <div class="body" style="display:flex;justify-content:center;background:var(--bg)">
+        <div class="dialog">
+          <div class="dh"><h3>Book intro call · Marcus Bell</h3><p>Pick a slot. A confirmation text fires automatically.</p></div>
+          <div class="db">
+            <div class="field-lab">Thursday, Jul 2</div>
+            <div class="slotgrid" style="margin-bottom:14px"><div class="slot">10:00</div><div class="slot on">2:00 PM</div><div class="slot">4:30</div></div>
+            <div class="field-lab">Friday, Jul 3</div>
+            <div class="slotgrid"><div class="slot">9:30</div><div class="slot">1:00</div><div class="slot">3:30</div></div>
+          </div>
+          <div class="df"><button class="btn ghost sm">Cancel</button><button class="btn grad sm">Book + send confirm</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="statecard">
+      <div class="cap">⋯ Off-ramp menu</div>
+      <div class="body" style="display:flex;justify-content:center;background:var(--bg)">
+        <div class="popover" style="box-shadow:var(--shadow)">
+          <div class="opt"><span class="ico">📭</span> No answer / voicemail <span style="margin-left:auto;font-size:10px;color:var(--faint)">auto-retry</span></div>
+          <div class="opt"><span class="ico">↻</span> Followup — not ready</div>
+          <div class="sep"></div>
+          <div class="opt bad"><span class="ico">🚫</span> Not qualified</div>
+          <div class="opt bad"><span class="ico">✕</span> Intro call — no confirmation</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label"><span class="t">Empty state · mobile</span><span class="ln"></span></div>
+  <div class="states">
+    <div class="statecard">
+      <div class="cap">Real session · before accounts connect</div>
+      <div class="body">
+        <div class="empty">
+          <div class="badge-ic">📣</div>
+          <h3>No paid leads yet</h3>
+          <p>Once your Meta ads are connected, every lead from a paid ad lands on this board, ready for an intro call.</p>
+          <div class="notice">🔌 Turns on once your ad account is connected</div>
+        </div>
+      </div>
+    </div>
+    <div class="statecard" style="background:transparent;border:none;box-shadow:none">
+      <div class="cap" style="border:none;background:transparent;padding-left:0">📱 Mobile · stage swiper</div>
+      <div class="body" style="padding:0;display:flex;justify-content:center">
+        <div class="phone">
+          <div class="screen">
+            <div class="notch"></div>
+            <div class="pbar"><span style="font-size:18px">📣</span><span class="nm">Paid Ads</span><span style="margin-left:auto" class="seg"><span class="on" style="font-size:10px;padding:3px 7px">New</span><span style="font-size:10px;padding:3px 7px">Resp.</span></span></div>
+            <div class="pbody">
+              <div class="colh"><span class="d" style="background:#0284c7"></span><span class="nm">New</span><span class="ct">2</span></div>
+              <div class="kcard" style="margin-bottom:9px">
+                <div class="r1"><div class="avatar sm">MB</div><div class="nm">Marcus Bell</div><div class="t">8m</div></div>
+                <div class="loc">📍 Troy · 48084</div>
+                <div class="want">Exterior + screens, 18 windows.</div>
+                <div class="foot"><span class="src fb">📘 $100 Off</span></div>
+              </div>
+              <div class="kcard">
+                <div class="r1"><div class="avatar sm">GO</div><div class="nm">Greg Olsen</div><div class="t">2h</div></div>
+                <div class="loc">📍 Royal Oak · 48067</div>
+                <div class="want">Clicked, no time booked.</div>
+                <div class="foot"><span class="src ig">📷 Free screens</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openDrawer(card){
+    document.getElementById('dwNm').textContent = card.dataset.nm;
+    document.getElementById('dwAv').textContent = card.dataset.nm.split(' ').map(w=>w[0]).join('');
+    var st = document.getElementById('dwStage'); st.className='pill '+card.dataset.stage; st.innerHTML='<span class="d"></span>'+card.dataset.stagelab;
+    var src = document.getElementById('dwSrc'); src.className='src '+card.dataset.src; src.textContent=(card.dataset.src==='ig'?'📷 ':'📘 ')+card.dataset.ad;
+    document.getElementById('dwAd').textContent='📣 "'+card.dataset.ad+'" ad · '+(card.dataset.src==='ig'?'Instagram':'Facebook');
+    document.getElementById('scrim').classList.add('on'); document.getElementById('drawer').classList.add('on');
+  }
+  function closeAll(){ document.getElementById('scrim').classList.remove('on'); document.getElementById('drawer').classList.remove('on'); document.getElementById('offmenu').style.display='none'; }
+  function openDialog(e){ e.stopPropagation(); alert('Opens the Book-intro-call dialog (shown below the main view).'); }
+  function toggleMenu(e){ e.stopPropagation(); var m=document.getElementById('offmenu'); if(m.innerHTML===''){ m.innerHTML=document.querySelector('.popover').outerHTML; } m.style.display=m.style.display==='none'?'block':'none'; }
+</script>
+</body>
+</html>

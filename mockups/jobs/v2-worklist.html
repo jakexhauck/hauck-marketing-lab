@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jobs · V2 · Worklist</title>
+<link rel="stylesheet" href="kit.css" />
+<style>
+  .page{flex:1;display:flex;flex-direction:column;min-height:0}
+  .phead{padding:16px 24px 4px;display:flex;align-items:flex-end;gap:14px}
+  .phead h1{font-size:19px;font-weight:600}
+  .phead .sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .phead .sp{flex:1}
+  .vtog{display:flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .vtog button{font-family:'Poppins';font-weight:600;font-size:12px;border:none;background:#fff;color:var(--muted);padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .vtog button.on{background:var(--indigo-tint);color:var(--indigo)}
+
+  .summ{display:flex;gap:10px;padding:12px 24px 4px}
+  .scard{flex:1;background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 15px}
+  .scard .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+  .scard .n{font-family:'Poppins';font-weight:600;font-size:22px;margin-top:5px}
+  .scard.rev .n{color:var(--green)}
+
+  /* filter chips */
+  .chips{display:flex;gap:7px;padding:14px 24px 6px;align-items:center}
+  .chip{font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px}
+  .chip .d{width:6px;height:6px;border-radius:50%}
+  .chip.on{border-color:var(--indigo);background:var(--indigo-tint);color:var(--indigo)}
+  .chip .ct{font-weight:700;opacity:.7}
+  .chip-sp{flex:1}
+
+  /* list */
+  .listwrap{flex:1;overflow-y:auto;padding:6px 24px 18px}
+  .grp{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin:14px 2px 9px;display:flex;align-items:center;gap:8px}
+  .grp .ct{color:var(--indigo);background:var(--indigo-tint);border-radius:999px;padding:1px 8px;font-size:10px}
+  .grp.done .ct{color:#15803d;background:var(--green-tint)}
+  .lrow{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 16px;margin-bottom:9px;cursor:pointer;transition:.13s}
+  .lrow:hover{border-color:#c7d2fe;box-shadow:var(--shadow)}
+  .lrow .daychip{width:50px;text-align:center;flex:none}
+  .lrow .daychip .dow{font-size:9.5px;font-weight:700;text-transform:uppercase;color:var(--faint)}
+  .lrow .daychip .num{font-family:'Poppins';font-weight:600;font-size:20px;line-height:1}
+  .lrow .daychip .tm{font-size:9.5px;color:var(--muted);margin-top:2px}
+  .lrow .who{min-width:165px}
+  .lrow .nm{font-family:'Poppins';font-weight:600;font-size:14px}
+  .lrow .loc{font-size:11px;color:var(--muted);margin-top:2px}
+  .lrow .svc{flex:1;font-size:12.5px;color:#334155;line-height:1.4}
+  .lrow .amt{font-family:'Poppins';font-weight:600;font-size:15px;min-width:64px;text-align:right}
+  .lrow .meta{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:118px}
+  .lrow .qa{display:flex;gap:6px;opacity:0;transition:.13s}
+  .lrow:hover .qa{opacity:1}
+  .qbtn{width:32px;height:32px;border-radius:9px;border:1.5px solid var(--line);background:#fff;display:grid;place-items:center;font-size:14px;cursor:pointer}
+  .qbtn:hover{border-color:var(--indigo);background:var(--indigo-tint)}
+  .qbtn.go{border-color:#86efac;background:var(--green-tint)}
+  .lrow.dim{opacity:.92}
+
+  /* drawer */
+  .scrim{position:absolute;inset:0;background:rgba(15,18,48,.32);opacity:0;pointer-events:none;transition:.18s;z-index:20}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .drawer{position:absolute;top:0;right:0;height:100%;width:392px;background:#fff;box-shadow:var(--shadow-lg);transform:translateX(100%);transition:.22s cubic-bezier(.4,0,.2,1);z-index:21;display:flex;flex-direction:column}
+  .drawer.on{transform:translateX(0)}
+  .dwh{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  .dwh .x{margin-left:auto;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:15px;color:var(--muted)}
+  .dwbody{flex:1;overflow-y:auto;padding:16px 18px}
+  .jobmeta{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0}
+  .jm{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+  .jm .k{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--faint)}
+  .jm .v{font-family:'Poppins';font-weight:600;font-size:13.5px;margin-top:4px}
+  .blk-lab{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--indigo);margin:18px 0 10px}
+  .actgrid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="board-head">
+    <span class="tag">Jobs · Variation 2</span>
+    <h1>Worklist</h1>
+    <p>The same shape as Paid Ads and Estimate Forms: one calm, scannable list grouped Booked then Completed. Each row carries the day, the amount, and a status pill, with quick actions on hover. Most consistent with the rest of the Sales spine. A Calendar toggle sits up top for the schedule view.</p>
+  </div>
+
+  <div class="winframe">
+    <div class="winbar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">app.hauckmarketing.com/sales/jobs</span></div>
+    <div class="app">
+      <nav class="rail">
+        <div class="logo">W</div>
+        <div class="ic">📣</div><div class="ic">📝</div><div class="ic">💬</div>
+        <div class="ic">📞</div><div class="ic">📐</div><div class="ic on">🗓️</div><div class="ic">⭐</div>
+      </nav>
+      <div class="main">
+        <header class="top"><div class="crumb">Sales / <b>Jobs</b></div><div class="sp"></div><div class="avatar sm">JH</div></header>
+        <div class="page">
+          <div class="phead">
+            <div><h1>Jobs</h1><div class="sub">Booked work to do, and jobs you've completed</div></div>
+            <div class="sp"></div>
+            <div class="vtog"><button class="on">☰ List</button><button>🗓️ Calendar</button></div>
+          </div>
+
+          <div class="summ">
+            <div class="scard"><div class="l">Booked</div><div class="n">4</div></div>
+            <div class="scard"><div class="l">Completed this week</div><div class="n">3</div></div>
+            <div class="scard rev"><div class="l">Booked value</div><div class="n">$1,730</div></div>
+            <div class="scard rev"><div class="l">Awaiting payment</div><div class="n">$675</div></div>
+          </div>
+
+          <div class="chips">
+            <span class="chip on">All <span class="ct">7</span></span>
+            <span class="chip"><span class="d" style="background:var(--indigo)"></span>Booked <span class="ct">4</span></span>
+            <span class="chip"><span class="d" style="background:var(--green)"></span>Completed <span class="ct">3</span></span>
+            <span class="chip"><span class="d" style="background:var(--amber)"></span>Unpaid <span class="ct">1</span></span>
+            <span class="chip-sp"></span>
+            <span class="chip" style="border-style:dashed">⤓ Export</span>
+          </div>
+
+          <div class="listwrap">
+            <div class="grp">📋 Booked — upcoming <span class="ct">4</span></div>
+
+            <div class="lrow" onclick="openJob(this)" data-nm="Tom Willis" data-svc="Full exterior + screens" data-amt="$450" data-when="Thu Jul 3 · 9:00 AM" data-loc="Rochester Hills · 48307" data-status="booked">
+              <div class="daychip"><div class="dow">Thu</div><div class="num">3</div><div class="tm">9:00a</div></div>
+              <div class="who"><div class="nm">Tom Willis</div><div class="loc">📍 Rochester Hills</div></div>
+              <div class="svc">Full exterior + screens · 2-story</div>
+              <div class="amt">$450</div>
+              <div class="meta"><span class="pill s-resp"><span class="d"></span>Booked</span></div>
+              <div class="qa"><div class="qbtn go" title="Mark completed">✅</div><div class="qbtn" title="Reschedule">🗓️</div></div>
+            </div>
+
+            <div class="lrow" onclick="openJob(this)" data-nm="Janet Doe" data-svc="Exterior windows" data-amt="$300" data-when="Fri Jul 4 · 1:00 PM" data-loc="Troy · 48084" data-status="booked">
+              <div class="daychip"><div class="dow">Fri</div><div class="num">4</div><div class="tm">1:00p</div></div>
+              <div class="who"><div class="nm">Janet Doe</div><div class="loc">📍 Troy</div></div>
+              <div class="svc">Exterior windows · ranch</div>
+              <div class="amt">$300</div>
+              <div class="meta"><span class="pill s-resp"><span class="d"></span>Booked</span></div>
+              <div class="qa"><div class="qbtn go" title="Mark completed">✅</div><div class="qbtn" title="Reschedule">🗓️</div></div>
+            </div>
+
+            <div class="lrow" onclick="openJob(this)" data-nm="Kevin Lee" data-svc="2-story full house" data-amt="$600" data-when="Sat Jul 5 · 8:00 AM" data-loc="Birmingham · 48009" data-status="booked">
+              <div class="daychip"><div class="dow">Sat</div><div class="num">5</div><div class="tm">8:00a</div></div>
+              <div class="who"><div class="nm">Kevin Lee</div><div class="loc">📍 Birmingham</div></div>
+              <div class="svc">2-story full house, in + out</div>
+              <div class="amt">$600</div>
+              <div class="meta"><span class="pill s-resp"><span class="d"></span>Booked</span></div>
+              <div class="qa"><div class="qbtn go" title="Mark completed">✅</div><div class="qbtn" title="Reschedule">🗓️</div></div>
+            </div>
+
+            <div class="lrow" onclick="openJob(this)" data-nm="Maria Santos" data-svc="Exterior + gutters" data-amt="$380" data-when="Sat Jul 5 · 1:30 PM" data-loc="Royal Oak · 48067" data-status="booked">
+              <div class="daychip"><div class="dow">Sat</div><div class="num">5</div><div class="tm">1:30p</div></div>
+              <div class="who"><div class="nm">Maria Santos</div><div class="loc">📍 Royal Oak</div></div>
+              <div class="svc">Exterior windows + gutter clear</div>
+              <div class="amt">$380</div>
+              <div class="meta"><span class="pill s-resp"><span class="d"></span>Booked</span></div>
+              <div class="qa"><div class="qbtn go" title="Mark completed">✅</div><div class="qbtn" title="Reschedule">🗓️</div></div>
+            </div>
+
+            <div class="grp done">✓ Completed — this week <span class="ct">3</span></div>
+
+            <div class="lrow dim" onclick="openJob(this)" data-nm="Sofia Russo" data-svc="2-story full house + skylights" data-amt="$675" data-when="Wed Jul 2 · 9:30 AM" data-loc="Bloomfield · 48302" data-status="unpaid">
+              <div class="daychip"><div class="dow">Wed</div><div class="num">2</div><div class="tm">9:30a</div></div>
+              <div class="who"><div class="nm">Sofia Russo</div><div class="loc">📍 Bloomfield</div></div>
+              <div class="svc">2-story full house + skylights</div>
+              <div class="amt">$675</div>
+              <div class="meta"><span class="pill s-wait"><span class="d"></span>Unpaid</span></div>
+              <div class="qa"><div class="qbtn go" title="Record payment">💵</div><div class="qbtn" title="Open conversation">💬</div></div>
+            </div>
+
+            <div class="lrow dim" onclick="openJob(this)" data-nm="Greg Olsen" data-svc="Exterior windows, 1-story" data-amt="$410" data-when="Tue Jul 1 · 11:00 AM" data-loc="Sterling Heights · 48310" data-status="completed">
+              <div class="daychip"><div class="dow">Tue</div><div class="num">1</div><div class="tm">11:00a</div></div>
+              <div class="who"><div class="nm">Greg Olsen</div><div class="loc">📍 Sterling Heights</div></div>
+              <div class="svc">Exterior windows, 1-story</div>
+              <div class="amt">$410</div>
+              <div class="meta"><span class="pill s-conf"><span class="d"></span>Paid</span></div>
+              <div class="qa"><div class="qbtn" title="Open conversation">💬</div></div>
+            </div>
+
+            <div class="lrow dim" onclick="openJob(this)" data-nm="Dana Park" data-svc="Full exterior + screens" data-amt="$520" data-when="Mon Jun 30 · 8:00 AM" data-loc="Warren · 48091" data-status="completed">
+              <div class="daychip"><div class="dow">Mon</div><div class="num">30</div><div class="tm">8:00a</div></div>
+              <div class="who"><div class="nm">Dana Park</div><div class="loc">📍 Warren</div></div>
+              <div class="svc">Full exterior + screens</div>
+              <div class="amt">$520</div>
+              <div class="meta"><span class="pill s-conf"><span class="d"></span>Paid</span></div>
+              <div class="qa"><div class="qbtn" title="Open conversation">💬</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DRAWER -->
+      <div class="scrim" id="scrim" onclick="closeAll()"></div>
+      <aside class="drawer" id="drawer">
+        <div class="dwh">
+          <div class="avatar lg" id="dwAv">TW</div>
+          <div><div class="nm" style="font-family:'Poppins';font-weight:600;font-size:16px" id="dwNm">Tom Willis</div>
+            <div class="infoline" style="font-size:11.5px;color:var(--muted);margin-top:3px" id="dwLoc">📍 Rochester Hills · 48307</div></div>
+          <button class="x" onclick="closeAll()">✕</button>
+        </div>
+        <div class="dwbody">
+          <span class="pill s-resp" id="dwStatus"><span class="d"></span>Booked</span>
+          <div class="jobmeta">
+            <div class="jm"><div class="k">When</div><div class="v" id="dwWhen">Thu Jul 3 · 9:00 AM</div></div>
+            <div class="jm"><div class="k">Amount</div><div class="v" id="dwAmt">$450</div></div>
+            <div class="jm" style="grid-column:1/-1"><div class="k">Service</div><div class="v" id="dwSvc">Full exterior + screens</div></div>
+          </div>
+          <div class="blk-lab">Job actions</div>
+          <div class="actgrid2">
+            <div class="acttile confirm"><div class="tt">✅ Mark completed</div><div class="dd">Job done — move to Completed.</div><div class="route">→ Job Completed</div></div>
+            <div class="acttile"><div class="tt">🗓️ Reschedule</div><div class="dd">Pick a new date and time.</div><div class="route">→ Updates calendar</div></div>
+            <div class="acttile"><div class="tt">💬 Open conversation</div><div class="dd">Text or call this customer.</div><div class="route">→ Inbox</div></div>
+            <div class="acttile"><div class="tt">💵 Record payment</div><div class="dd">Log the amount + paid.</div><div class="route">→ Revenue</div></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- secondary -->
+  <div class="section-label"><span class="t">Empty state · mobile</span><span class="ln"></span></div>
+  <div class="states">
+    <div class="statecard">
+      <div class="cap">Real session · before GoHighLevel connects</div>
+      <div class="body">
+        <div class="empty">
+          <div class="badge-ic">🗓️</div>
+          <h3>No jobs yet</h3>
+          <p>When a lead books, the job shows here — upcoming work up top, finished jobs below, each with its amount and status.</p>
+          <div class="notice">🔌 Fills in as leads turn into booked jobs</div>
+        </div>
+      </div>
+    </div>
+    <div class="statecard" style="background:transparent;border:none;box-shadow:none">
+      <div class="cap" style="border:none;background:transparent;padding-left:0">📱 Mobile</div>
+      <div class="body" style="padding:0;display:flex;justify-content:center">
+        <div class="phone">
+          <div class="screen">
+            <div class="notch"></div>
+            <div class="pbar"><span style="font-size:18px">🗓️</span><span class="nm">Jobs</span><span style="margin-left:auto;font-size:11px;color:var(--faint)">4 booked</span></div>
+            <div class="pbody">
+              <div class="chips" style="padding:0 0 11px"><span class="chip on" style="font-size:10px">All 7</span><span class="chip" style="font-size:10px"><span class="d" style="background:var(--indigo)"></span>Booked 4</span><span class="chip" style="font-size:10px"><span class="d" style="background:var(--green)"></span>Done 3</span></div>
+              <div class="lrow" style="gap:10px;padding:12px">
+                <div class="daychip"><div class="dow">Thu</div><div class="num">3</div><div class="tm">9:00a</div></div>
+                <div style="flex:1"><div class="nm" style="font-size:13px">Tom Willis</div><div class="svc" style="font-size:11px">Full exterior + screens</div><div style="display:flex;align-items:center;gap:8px;margin-top:5px"><span class="pill s-resp"><span class="d"></span>Booked</span><span class="amt" style="margin-left:auto;font-size:14px">$450</span></div></div>
+              </div>
+              <div class="lrow" style="gap:10px;padding:12px;margin-top:9px">
+                <div class="daychip"><div class="dow">Sat</div><div class="num">5</div><div class="tm">8:00a</div></div>
+                <div style="flex:1"><div class="nm" style="font-size:13px">Kevin Lee</div><div class="svc" style="font-size:11px">2-story full house</div><div style="display:flex;align-items:center;gap:8px;margin-top:5px"><span class="pill s-resp"><span class="d"></span>Booked</span><span class="amt" style="margin-left:auto;font-size:14px">$600</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openJob(el){
+    document.getElementById('dwNm').textContent = el.dataset.nm;
+    document.getElementById('dwAv').textContent = el.dataset.nm.split(' ').map(w=>w[0]).join('');
+    document.getElementById('dwLoc').textContent = '📍 '+el.dataset.loc;
+    document.getElementById('dwWhen').textContent = el.dataset.when;
+    document.getElementById('dwAmt').textContent = el.dataset.amt;
+    document.getElementById('dwSvc').textContent = el.dataset.svc;
+    var st = document.getElementById('dwStatus');
+    var map = {booked:['s-resp','Booked'], completed:['s-conf','Completed · paid'], unpaid:['s-wait','Completed · unpaid']};
+    var m = map[el.dataset.status]||map.booked;
+    st.className = 'pill '+m[0]; st.innerHTML = '<span class="d"></span>'+m[1];
+    document.getElementById('scrim').classList.add('on'); document.getElementById('drawer').classList.add('on');
+  }
+  function closeAll(){ document.getElementById('scrim').classList.remove('on'); document.getElementById('drawer').classList.remove('on'); }
+</script>
+</body>
+</html>
