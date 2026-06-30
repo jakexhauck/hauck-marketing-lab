@@ -154,6 +154,16 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     "call",
     "social",
   ] as const;
+  // Realistic raw "source" strings (what GHL would store), shown in the
+  // origin strip alongside the classified badge.
+  const DEMO_SOURCE_LABEL: Record<(typeof DEMO_ORIGINS)[number], string> = {
+    form: "Website Form",
+    chat: "Chat Widget",
+    paid: "Facebook Ads",
+    react: "Reactivation Campaign",
+    call: "Inbound Call",
+    social: "Instagram DM",
+  };
   const notes: Record<string, ApiNote[]> = {};
   const tasks: Record<string, ApiTask[]> = {};
 
@@ -248,7 +258,7 @@ export function buildDemoData(now: number = Date.now()): DemoData {
         unreadCount: unread,
         channel: DEMO_CHANNELS[i % DEMO_CHANNELS.length],
         origin: DEMO_ORIGINS[i % DEMO_ORIGINS.length],
-        source: DEMO_ORIGINS[i % DEMO_ORIGINS.length],
+        source: DEMO_SOURCE_LABEL[DEMO_ORIGINS[i % DEMO_ORIGINS.length]],
         firstTouchAt: new Date(createdAt).toISOString(),
       });
     }

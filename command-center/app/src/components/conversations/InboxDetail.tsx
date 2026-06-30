@@ -7,7 +7,6 @@ import {
   CHANNEL_BY_KEY,
   convChannel,
   convOrigin,
-  ORIGIN_BY_KEY,
 } from "../../lib/inboxFilters";
 import type { ApiConversation } from "../../lib/api";
 
@@ -31,7 +30,6 @@ export default function InboxDetail({ conv }: { conv: ApiConversation | null }) 
 
   const origin = convOrigin(conv);
   const channelMeta = CHANNEL_BY_KEY[convChannel(conv)];
-  const originMeta = ORIGIN_BY_KEY[origin];
   const touch = firstTouchLabel(conv.firstTouchAt);
 
   return (
@@ -51,9 +49,9 @@ export default function InboxDetail({ conv }: { conv: ApiConversation | null }) 
         <div className="mt-2.5 flex flex-wrap items-center gap-2.5 rounded-[11px] border border-brand-primary/15 bg-brand-tint/50 px-3 py-2">
           <SourceBadge origin={origin} />
           <span className="text-[11.5px] text-muted">
-            First touch via <b className="text-text">{originMeta.label}</b>
-            {touch ? ` . ${touch}` : ""}
-            {conv.source ? ` . ${conv.source}` : ""}
+            First touch
+            {touch ? ` · ${touch}` : ""}
+            {conv.source ? ` · ${conv.source}` : ""}
           </span>
         </div>
       </div>
