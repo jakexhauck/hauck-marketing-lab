@@ -164,6 +164,10 @@ export const NAV: NavEntry[] = [
     icon: TrendingUp,
     items: [
       { to: "/sales/overview", label: "Sales Overview", shortLabel: "Overview", icon: LayoutDashboard, comingSoon: true },
+      // Paid-ad leads (Paid Ad's Pipeline): the only channel qualified by an
+      // intro call. A friendly, lead-first worklist that books + confirms the
+      // intro call, then hands off to the Sales spine. Open to everyone for now.
+      { to: "/sales/paid-ads", label: "Paid Ads", shortLabel: "Paid Ads", icon: Megaphone },
       // Inbound estimate requests from the website (Organic Pipeline, source =
       // "Website Form"): a conversation inbox where each lead replies with what
       // they want and a rep picks the next step. Open to everyone for now.
