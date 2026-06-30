@@ -5,6 +5,7 @@ import {
   MessagesSquare,
   Users,
   CalendarDays,
+  CalendarCheck,
   Receipt,
   UserCog,
   Inbox,
@@ -173,6 +174,10 @@ export const NAV: NavEntry[] = [
       // the Organic Pipeline, source = "chat widget" (leads start in the website
       // chat bubble instead of a form). Open to everyone for now.
       { to: "/sales/chat", label: "Chat Widget", shortLabel: "Chat", icon: MessagesSquare },
+      // The tail of the Sales spine: jobs at the Sales Pipeline's Job Booked +
+      // Job Completed stages, on a month calendar. Pick a day, work its jobs
+      // (mark completed, reschedule, take payment). Open to everyone for now.
+      { to: "/sales/jobs", label: "Jobs", shortLabel: "Jobs", icon: CalendarCheck },
       // The always-on win-back campaign for dormant past customers. Its own
       // category in Sales (was a Campaigns sub-page); can grow sub-pages later.
       { to: "/sales/reactivation", label: "Reactivation", shortLabel: "Win-back", icon: RotateCcw },
