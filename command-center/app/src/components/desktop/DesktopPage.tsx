@@ -14,15 +14,25 @@ export default function DesktopPage({
   subtitle,
   actions,
   children,
+  flush = false,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
+  // Full-bleed surfaces (e.g. the Unified Inbox three-pane) drop the centered
+  // max-w container and own the full area below the topbar; children manage
+  // their own scroll regions, so the page itself does not scroll.
+  flush?: boolean;
 }) {
   const { session } = useAuth();
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto">
+    <div
+      className={
+        "flex flex-1 flex-col " +
+        (flush ? "overflow-hidden" : "overflow-y-auto")
+      }
+    >
       <header className="glass sticky top-0 z-10 flex items-center gap-4 border-b border-white/50 px-9 py-4 dark:border-white/10">
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-[22px] font-bold leading-tight text-text">
@@ -38,9 +48,13 @@ export default function DesktopPage({
         <NotificationBell enabled={Boolean(session)} variant="surface" />
         <AvatarMenu />
       </header>
-      <div className="fx-rise mx-auto w-full max-w-[1220px] px-9 py-7">
-        {children}
-      </div>
+      {flush ? (
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      ) : (
+        <div className="fx-rise mx-auto w-full max-w-[1220px] px-9 py-7">
+          {children}
+        </div>
+      )}
     </div>
   );
 }

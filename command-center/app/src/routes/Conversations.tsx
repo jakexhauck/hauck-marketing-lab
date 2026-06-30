@@ -8,6 +8,8 @@ import TestBanner from "../components/TestBanner";
 import BottomNav from "../components/BottomNav";
 import SearchBar from "../components/SearchBar";
 import Avatar from "../components/Avatar";
+import SourceBadge from "../components/conversations/SourceBadge";
+import { convOrigin } from "../lib/inboxFilters";
 import EmptyState from "../components/EmptyState";
 import PullToRefresh from "../components/PullToRefresh";
 import { useAuth } from "../context/AuthContext";
@@ -199,6 +201,7 @@ function ConversationRow({ conv, isLast, onTap }: ConversationRowProps) {
           </span>
         </div>
         <div className="mt-0.5 flex items-center gap-2">
+          <SourceBadge origin={convOrigin(conv)} size="sm" />
           {channel && (
             <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-[var(--text-faint)]">
               {channel}
