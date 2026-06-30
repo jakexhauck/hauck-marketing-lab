@@ -1,17 +1,14 @@
 import {
   Home,
-  GitBranch,
   Megaphone,
   MessageSquare,
   MessagesSquare,
   Users,
   CalendarDays,
   Receipt,
-  Activity,
   UserCog,
   Inbox,
   LayoutDashboard,
-  Workflow,
   ScrollText,
   BarChart3,
   Star,
@@ -172,33 +169,22 @@ export const NAV: NavEntry[] = [
       // "Website Form"): a conversation inbox where each lead replies with what
       // they want and a rep picks the next step. Open to everyone for now.
       { to: "/sales/forms", label: "Estimate Forms", shortLabel: "Estimates", icon: Inbox },
-      { to: "/leads", label: "Pipeline", shortLabel: "Leads", icon: GitBranch, capability: "pipeline", bottomNav: true },
       // The always-on win-back campaign for dormant past customers. Its own
       // category in Sales (was a Campaigns sub-page); can grow sub-pages later.
       { to: "/sales/reactivation", label: "Reactivation", shortLabel: "Win-back", icon: RotateCcw },
       { to: "/sales/scripts", label: "Sales Scripts", shortLabel: "Scripts", icon: ScrollText, comingSoon: true },
+      { to: "/operations/reports", label: "Reports & Analytics", shortLabel: "Reports", icon: BarChart3, comingSoon: true },
     ],
   },
   {
-    id: "customers",
-    label: "Customers",
-    icon: Users,
+    id: "company",
+    label: "Company",
+    icon: Building2,
     items: [
       { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
       { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
       { to: "/calendar", label: "Calendar", icon: CalendarDays, capability: "calendar" },
-      { to: "/activity", label: "Activity", icon: Activity, capability: "activity" },
-    ],
-  },
-  {
-    id: "operations",
-    label: "Operations",
-    icon: Building2,
-    items: [
       { to: "/billing", label: "Revenue", icon: Receipt, capability: "billing" },
-      { to: "/operations/reports", label: "Reports & Analytics", shortLabel: "Reports", icon: BarChart3, comingSoon: true },
-      // Built and live (read-only): the follow-up + reactivation engine.
-      { to: "/operations/automations", label: "Automations", icon: Workflow },
       { to: "/company/documents", label: "Documents & Resources", shortLabel: "Docs", icon: FolderOpen, comingSoon: true },
       { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
     ],
