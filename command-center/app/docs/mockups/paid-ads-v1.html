@@ -1,0 +1,981 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Paid Ads · Thompson Heating &amp; Air</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     Tokens — lifted directly from command-center/app/src/index.css
+     so this mockup reads as a native screen of the real app.
+     ============================================================ */
+  :root {
+    --brand: #4f46e5;
+    --brand-2: #7c73f0;
+    --brand-strong: #4338ca;
+    --brand-text: #4f46e5;
+    --brand-fg: #ffffff;
+    --grad-brand: linear-gradient(135deg, #4f46e5 0%, #7c73f0 100%);
+    --brand-tint: rgba(79, 70, 229, 0.10);
+    --brand-tint-strong: rgba(79, 70, 229, 0.18);
+
+    --bg: #f6f7fb;
+    --surface: #ffffff;
+    --surface-2: #f1f3f9;
+    --surface-3: #e9ebf3;
+
+    --text: #14161f;
+    --muted: #555a6b;
+    --faint: #8a90a3;
+
+    --border: #e7e9f1;
+    --border-strong: #d4d8e6;
+    --divider: #f1f3f9;
+
+    --ledger: #9a6f1e;
+    --ledger-tint: rgba(154, 111, 30, 0.12);
+    --positive: #16a34a;
+    --positive-tint: rgba(22, 163, 74, 0.12);
+    --warning: #d97706;
+    --warning-tint: rgba(217, 119, 6, 0.14);
+    --danger: #dc2626;
+    --danger-tint: rgba(220, 38, 38, 0.12);
+
+    --shadow-sm: 0 1px 2px rgba(20, 22, 31, 0.04), 0 1px 3px rgba(20, 22, 31, 0.05);
+    --shadow-md: 0 6px 18px rgba(40, 42, 70, 0.07), 0 2px 6px rgba(40, 42, 70, 0.05);
+    --shadow-lg: 0 18px 40px rgba(40, 42, 70, 0.12), 0 6px 14px rgba(40, 42, 70, 0.07);
+    --shadow-brand: 0 8px 22px rgba(79, 70, 229, 0.28);
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --radius: 10px;
+    --radius-lg: 14px;
+
+    --font-display: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+
+  body {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    color: var(--text);
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(60rem 40rem at 12% -8%, rgba(124, 115, 240, 0.16), transparent 60%),
+      radial-gradient(50rem 38rem at 100% 0%, rgba(79, 70, 229, 0.12), transparent 55%),
+      radial-gradient(46rem 36rem at 50% 120%, rgba(99, 102, 241, 0.10), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1, "ss01" 1; }
+  .display { font-family: var(--font-display); letter-spacing: -0.025em; }
+
+  /* ============================================================ shell */
+  .app-shell { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 244px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.5);
+    background: color-mix(in srgb, var(--surface) 62%, transparent);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 16px 16px;
+  }
+  .brand-mark {
+    width: 34px; height: 34px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 10px;
+    background-image: var(--grad-brand);
+    box-shadow: var(--shadow-brand);
+    color: #fff;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .brand-name { font-family: var(--font-display); font-weight: 600; font-size: 15px; line-height: 1.15; color: var(--text); }
+  .brand-niche { font-size: 11px; color: var(--faint); margin-top: 1px; }
+
+  nav.rail { padding: 4px 12px; }
+  .rail-group { margin-top: 6px; }
+  .rail-label {
+    padding: 4px 12px 6px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  .nav-item {
+    position: relative;
+    display: flex; align-items: center; gap: 12px;
+    width: 100%;
+    margin-bottom: 2px;
+    padding: 10px 12px;
+    border: 0;
+    background: transparent;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.2s, background 0.2s, transform 0.2s;
+  }
+  .nav-item svg { flex-shrink: 0; opacity: 0.8; }
+  .nav-item:hover { background: rgba(255, 255, 255, 0.6); color: var(--text); transform: translateX(2px); }
+  .nav-item .label { flex: 1; }
+  .nav-item .chev { opacity: 0.6; transition: transform 0.2s; }
+  .nav-item.open-parent { background: rgba(255, 255, 255, 0.7); color: var(--brand-text); }
+  .nav-item.open-parent .chev { transform: rotate(180deg); }
+
+  .nav-item.active {
+    color: #fff;
+    background-image: var(--grad-brand);
+    box-shadow: var(--shadow-brand);
+  }
+  .nav-item.active:hover { transform: none; }
+  .nav-item.active svg { opacity: 0.95; }
+
+  .subnav {
+    margin: 2px 0 4px 22px;
+    padding-left: 10px;
+    border-left: 1px solid var(--divider);
+    display: flex; flex-direction: column;
+  }
+  .subnav .nav-item { font-size: 13px; padding: 8px 12px; }
+
+  .rail-spacer { flex: 1; }
+  .rail-footer { padding: 12px; border-top: 1px solid var(--divider); }
+
+  /* ============================================================ main */
+  .main { flex: 1; min-width: 0; }
+  .page-wrap { max-width: 72rem; margin: 0 auto; padding: 20px 20px 56px; }
+  @media (min-width: 1024px) { .page-wrap { padding-left: 32px; padding-right: 32px; } }
+
+  .page-header { margin-bottom: 20px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .page-title { font-family: var(--font-display); font-size: 22px; line-height: 1; color: var(--text); margin: 0; font-weight: 700; letter-spacing: -0.03em; }
+  .page-desc { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+
+  /* segmented range control */
+  .segmented {
+    display: inline-flex; align-items: center;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    border-radius: 999px;
+    padding: 4px;
+    gap: 2px;
+  }
+  .seg-btn {
+    border: 0; background: transparent; cursor: pointer;
+    height: 32px; padding: 0 14px;
+    border-radius: 999px;
+    font-family: var(--font-body); font-size: 13px; font-weight: 500;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+  .seg-btn:hover { color: var(--text); }
+  .seg-btn.active {
+    color: #fff;
+    background-image: var(--grad-brand);
+    box-shadow: var(--shadow-brand);
+  }
+
+  /* buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 38px; padding: 0 16px;
+    border-radius: var(--radius);
+    font-family: var(--font-body); font-size: 14px; font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+    transition: background 0.12s, transform 0.1s, filter 0.12s;
+    border: 1px solid transparent;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--brand); color: #fff; box-shadow: var(--shadow-sm); }
+  .btn-primary:hover { background: var(--brand-strong); }
+  .btn-secondary { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
+  .btn-secondary:hover { background: var(--surface-2); }
+
+  /* panel */
+  .panel {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--divider);
+  }
+  .panel-header h3 { margin: 0; font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--text); }
+  .panel-header .kicker { font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+
+  .see-all { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; color: var(--brand-text); text-decoration: none; }
+  .see-all:hover { text-decoration: underline; }
+
+  /* badges */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    border-radius: 999px; padding: 2px 9px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  }
+  .badge .dot { width: 6px; height: 6px; border-radius: 999px; }
+  .badge.neutral { background: var(--surface-3); color: var(--muted); }
+  .badge.neutral .dot { background: var(--faint); }
+  .badge.brand { background: var(--brand-tint); color: var(--brand-text); }
+  .badge.brand .dot { background: var(--brand); }
+  .badge.positive { background: var(--positive-tint); color: var(--positive); }
+  .badge.positive .dot { background: var(--positive); }
+  .badge.warning { background: var(--warning-tint); color: var(--warning); }
+  .badge.warning .dot { background: var(--warning); }
+
+  /* platform glyphs */
+  .glyph {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 7px;
+    color: #fff; font-weight: 700; font-size: 10px;
+    font-family: var(--font-display);
+  }
+  .glyph.ig { background: linear-gradient(135deg,#feda75,#d62976,#962fbf); }
+  .glyph.fb { background: #1877f2; }
+
+  /* info banner */
+  .banner {
+    display: flex; align-items: flex-start; gap: 12px;
+    border: 1px solid var(--brand-tint-strong);
+    background: var(--brand-tint);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .banner .ico { color: var(--brand-text); flex-shrink: 0; margin-top: 1px; }
+  .banner .txt { flex: 1; font-size: 13px; line-height: 1.45; color: var(--text); }
+  .banner .txt b { font-weight: 600; }
+  .banner .x {
+    flex-shrink: 0; border: 0; background: transparent; cursor: pointer;
+    color: var(--faint); padding: 2px; border-radius: 6px; line-height: 0;
+  }
+  .banner .x:hover { background: rgba(79,70,229,0.10); color: var(--brand-text); }
+
+  /* KPI grid */
+  .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (min-width: 720px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 1100px) { .kpi-grid { grid-template-columns: repeat(6, 1fr); } }
+  .kpi {
+    position: relative; overflow: hidden;
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+    padding: 16px;
+    transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  }
+  .kpi::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+    background: var(--grad-brand); opacity: 0; transition: opacity 0.2s var(--ease);
+  }
+  .kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .kpi:hover::before { opacity: 1; }
+  .kpi .k-label { font-size: 12px; color: var(--muted); }
+  .kpi .k-value { margin-top: 8px; font-family: var(--font-display); font-weight: 800; font-size: 28px; letter-spacing: -0.035em; line-height: 1; color: var(--text); }
+  .kpi .k-value.money { color: var(--ledger); }
+  .kpi .k-value.brand { color: var(--brand-text); }
+  .kpi .k-value.pos { color: var(--positive); }
+  .kpi .k-cap { margin-top: 6px; font-size: 11px; color: var(--faint); }
+
+  /* two-column area */
+  .cols { margin-top: 16px; display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 1024px) { .cols { grid-template-columns: 2fr 1fr; } }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+
+  /* list rows */
+  .row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--divider); }
+  .row:last-child { border-bottom: 0; }
+  .row .body { min-width: 0; flex: 1; }
+  .row .title { font-family: var(--font-display); font-weight: 500; font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .meta { margin-top: 2px; font-size: 12.5px; color: var(--faint); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .row .right { flex-shrink: 0; text-align: right; }
+  .row .right .num { font-family: var(--font-display); font-weight: 600; font-size: 13px; color: var(--positive); }
+  .row .right .sub { font-size: 11px; color: var(--faint); }
+
+  /* thumb block for running-now rows */
+  .thumb-sm {
+    width: 44px; height: 44px; flex-shrink: 0; border-radius: 9px;
+    position: relative; overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(20,22,31,0.04);
+  }
+
+  /* highlight nudge */
+  .nudge {
+    display: flex; align-items: flex-start; gap: 12px;
+    border: 1px solid var(--warning-tint); background: var(--warning-tint);
+    border-radius: var(--radius-lg); padding: 14px 16px;
+  }
+  .nudge .ico { color: var(--warning); flex-shrink: 0; margin-top: 1px; }
+  .nudge .txt { flex: 1; font-size: 13px; line-height: 1.45; color: var(--text); }
+  .nudge .txt b { color: var(--warning); font-weight: 600; }
+
+  .how-card { padding: 18px; }
+  .how-lead { font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--text); letter-spacing: -0.02em; }
+  .how-lead .hl { background: linear-gradient(120deg, var(--brand) 30%, var(--brand-2) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .how-sub { margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .pace-bar { margin-top: 16px; }
+  .pace-track { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .pace-fill { height: 100%; width: 72%; border-radius: 999px; background-image: var(--grad-brand); }
+  .pace-row { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11.5px; color: var(--faint); }
+  .pace-row b { font-family: var(--font-display); color: var(--text); font-weight: 600; }
+
+  /* ======================= Your Ads gallery ======================= */
+  .ads-grid { margin-top: 4px; display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 640px) { .ads-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1100px) { .ads-grid { grid-template-columns: repeat(3, 1fr); } }
+  .ad-card {
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  }
+  .ad-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+  .ad-thumb {
+    position: relative; aspect-ratio: 16 / 10;
+    display: flex; align-items: flex-end; padding: 12px;
+  }
+  .ad-thumb .photo-label {
+    font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.92);
+    background: rgba(20,22,31,0.32); backdrop-filter: blur(4px);
+    padding: 3px 9px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .ad-thumb .status-badge { position: absolute; top: 12px; right: 12px; }
+  .ad-thumb .badge { box-shadow: 0 1px 4px rgba(20,22,31,0.12); }
+  .ad-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .ad-head { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--text); line-height: 1.25; letter-spacing: -0.01em; }
+  .ad-copy { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .ad-chips { display: flex; gap: 6px; margin-top: 2px; }
+  .ad-stats { margin-top: auto; display: flex; gap: 0; border-top: 1px solid var(--divider); padding-top: 12px; }
+  .ad-stat { flex: 1; }
+  .ad-stat + .ad-stat { border-left: 1px solid var(--divider); padding-left: 14px; }
+  .ad-stat .s-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+  .ad-stat .s-num { margin-top: 3px; font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: -0.02em; color: var(--text); }
+  .ad-stat .s-num.pos { color: var(--positive); }
+
+  /* gradient placeholders for creatives */
+  .ph-water { background: linear-gradient(135deg, #2563eb 0%, #38bdf8 55%, #a5f3fc 100%); }
+  .ph-ac { background: linear-gradient(135deg, #0891b2 0%, #22d3ee 50%, #d1fae5 100%); }
+  .ph-pipe { background: linear-gradient(135deg, #b91c1c 0%, #f97316 55%, #fde68a 100%); }
+  .ph-review { background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 55%, #fbcfe8 100%); }
+
+  /* ======================= Leads table ======================= */
+  .summary-strip {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px;
+    margin-bottom: 16px; padding: 14px 18px;
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+  }
+  .summary-strip .stat { display: flex; align-items: baseline; gap: 8px; }
+  .summary-strip .stat .n { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -0.03em; color: var(--text); }
+  .summary-strip .stat .n.pos { color: var(--positive); }
+  .summary-strip .stat .l { font-size: 13px; color: var(--muted); }
+  .summary-strip .sep { width: 1px; height: 24px; background: var(--divider); }
+
+  table.leads { width: 100%; border-collapse: collapse; }
+  table.leads thead th {
+    text-align: left; padding: 11px 16px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--faint); border-bottom: 1px solid var(--divider);
+    background: var(--surface);
+  }
+  table.leads tbody td { padding: 14px 16px; border-bottom: 1px solid var(--divider); font-size: 13.5px; color: var(--text); vertical-align: middle; }
+  table.leads tbody tr:last-child td { border-bottom: 0; }
+  table.leads tbody tr:hover { background: var(--surface-2); }
+  table.leads .name { font-weight: 500; }
+  table.leads .avatar {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 999px; margin-right: 10px;
+    font-family: var(--font-display); font-weight: 600; font-size: 12px; color: var(--brand-text);
+    background: var(--brand-tint); vertical-align: middle;
+  }
+  table.leads .when { color: var(--muted); white-space: nowrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500; color: var(--muted);
+    background: var(--surface-2); border-radius: 999px; padding: 3px 10px;
+  }
+  .chip svg { opacity: 0.7; }
+
+  /* ======================= What's working ======================= */
+  .insight-grid { margin-top: 4px; display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 720px) { .insight-grid { grid-template-columns: repeat(2, 1fr); } }
+  .insight {
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 20px;
+    display: flex; gap: 16px; align-items: flex-start;
+  }
+  .insight .ic {
+    flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--brand-tint); color: var(--brand-text);
+  }
+  .insight .ic.pos { background: var(--positive-tint); color: var(--positive); }
+  .insight .i-label { font-size: 12.5px; color: var(--muted); }
+  .insight .i-value { margin-top: 6px; font-family: var(--font-display); font-weight: 600; font-size: 19px; letter-spacing: -0.02em; color: var(--text); line-height: 1.25; }
+  .insight .i-value .pos { color: var(--positive); display: inline-flex; align-items: center; gap: 4px; }
+  .insight .i-sub { margin-top: 6px; font-size: 12.5px; color: var(--faint); line-height: 1.45; }
+
+  .reassure {
+    margin-top: 16px; display: flex; align-items: center; gap: 12px;
+    border: 1px solid var(--positive-tint); background: var(--positive-tint);
+    border-radius: var(--radius-lg); padding: 14px 18px;
+    font-size: 13px; color: var(--text);
+  }
+  .reassure svg { color: var(--positive); flex-shrink: 0; }
+
+  /* page switch */
+  .page { display: none; animation: rise 0.3s var(--ease) both; }
+  .page.active { display: block; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page, .kpi, .ad-card { animation: none !important; transition: none !important; }
+  }
+
+  /* hide sidebar gracefully on narrow viewports */
+  @media (max-width: 1023px) { .sidebar { display: none; } }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ============================== SIDEBAR ============================== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">TH</span>
+      <div style="min-width:0">
+        <div class="brand-name">Thompson Heating &amp; Air</div>
+        <div class="brand-niche">Home services</div>
+      </div>
+    </div>
+
+    <nav class="rail">
+      <!-- Home -->
+      <button class="nav-item" type="button">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg>
+        <span class="label">Home</span>
+      </button>
+
+      <!-- MARKETING group -->
+      <div class="rail-group">
+        <div class="rail-label">Marketing</div>
+
+        <button class="nav-item" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.1l1-5.8L3.5 9.2l5.9-.9L12 3Z"/></svg>
+          <span class="label">Reviews</span>
+        </button>
+
+        <button class="nav-item" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+          <span class="label">Email</span>
+        </button>
+
+        <button class="nav-item" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+          <span class="label">Website</span>
+        </button>
+
+        <button class="nav-item" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
+          <span class="label">Social Media</span>
+        </button>
+
+        <!-- Paid Ads expanded parent -->
+        <button class="nav-item open-parent" type="button" id="parentBtn">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 14-7v16L3 13Z"/><path d="M17 8a3 3 0 0 1 0 8"/><path d="M7 13v5a1 1 0 0 0 1 1h2"/></svg>
+          <span class="label">Paid Ads</span>
+          <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+
+        <div class="subnav" id="subnav">
+          <button class="nav-item active" type="button" data-page="overview">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+            <span class="label">Overview</span>
+          </button>
+          <button class="nav-item" type="button" data-page="ads">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L7 21"/></svg>
+            <span class="label">Your Ads</span>
+          </button>
+          <button class="nav-item" type="button" data-page="leads">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+            <span class="label">Leads</span>
+          </button>
+          <button class="nav-item" type="button" data-page="insights">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/></svg>
+            <span class="label">What's working</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sales / Customers / Operations (inert) -->
+      <div class="rail-group">
+        <button class="nav-item" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+          <span class="label">Sales</span>
+        </button>
+        <button class="nav-item" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="label">Customers</span>
+        </button>
+        <button class="nav-item" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6Z"/></svg>
+          <span class="label">Operations</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="rail-spacer"></div>
+    <div class="rail-footer">
+      <button class="nav-item" type="button" style="margin-bottom:0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        <span class="label">Settings</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============================== MAIN ============================== -->
+  <main class="main">
+    <div class="page-wrap">
+
+      <!-- ========================= OVERVIEW ========================= -->
+      <section class="page active" id="page-overview">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Paid Ads</h1>
+            <p class="page-desc">Your ad results at a glance.</p>
+          </div>
+          <div class="segmented" role="tablist" aria-label="Date range">
+            <button class="seg-btn" type="button">7d</button>
+            <button class="seg-btn active" type="button">30d</button>
+            <button class="seg-btn" type="button">90d</button>
+          </div>
+        </div>
+
+        <div class="banner" id="overviewBanner">
+          <svg class="ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <div class="txt"><b>This is a preview with sample numbers.</b> Real ad results show up here once your Meta ad account is linked through GoHighLevel. Until then, you'll see a "Not connected yet" screen.</div>
+          <button class="x" type="button" aria-label="Dismiss" onclick="document.getElementById('overviewBanner').style.display='none'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- KPI row -->
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="k-label">Spend</div>
+            <div class="k-value money tnum">$1,840</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Leads</div>
+            <div class="k-value tnum">32</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Cost per lead</div>
+            <div class="k-value tnum">$58</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">New customers</div>
+            <div class="k-value tnum">7</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Revenue</div>
+            <div class="k-value money tnum">$14,200</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Return</div>
+            <div class="k-value pos tnum">7.7x</div>
+            <div class="k-cap">every $1 brought back $7.70</div>
+          </div>
+        </div>
+
+        <!-- two-column area -->
+        <div class="cols">
+          <div class="stack">
+            <!-- Running now -->
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Running now</h3>
+                <a class="see-all" href="#" onclick="showPage('ads');return false;">Your ads
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+              </div>
+              <div class="row">
+                <span class="thumb-sm ph-water"></span>
+                <div class="body">
+                  <div class="title">Same-day hot water</div>
+                  <div class="meta"><span class="glyph ig">IG</span><span class="glyph fb">f</span> Active</div>
+                </div>
+                <div class="right">
+                  <div class="num">12 leads</div>
+                  <div class="sub">this month</div>
+                </div>
+              </div>
+              <div class="row">
+                <span class="thumb-sm ph-ac"></span>
+                <div class="body">
+                  <div class="title">$59 AC tune-up</div>
+                  <div class="meta"><span class="glyph fb">f</span> Active</div>
+                </div>
+                <div class="right">
+                  <div class="num">9 leads</div>
+                  <div class="sub">this month</div>
+                </div>
+              </div>
+              <div class="row">
+                <span class="thumb-sm ph-pipe"></span>
+                <div class="body">
+                  <div class="title">Burst pipe 24/7</div>
+                  <div class="meta"><span class="glyph ig">IG</span> Active</div>
+                </div>
+                <div class="right">
+                  <div class="num">6 leads</div>
+                  <div class="sub">this month</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recently brought in -->
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Recently brought in</h3>
+                <a class="see-all" href="#" onclick="showPage('leads');return false;">All leads
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+              </div>
+              <div class="row">
+                <span class="avatar">MW</span>
+                <div class="body">
+                  <div class="title">Marcus Webb</div>
+                  <div class="meta">Called about Same-day hot water</div>
+                </div>
+                <div class="right"><span class="badge brand"><span class="dot"></span>New</span><div class="sub" style="margin-top:4px">2h ago</div></div>
+              </div>
+              <div class="row">
+                <span class="avatar">DL</span>
+                <div class="body">
+                  <div class="title">Dana Liu</div>
+                  <div class="meta">Form from $59 AC tune-up</div>
+                </div>
+                <div class="right"><span class="badge warning"><span class="dot"></span>Contacted</span><div class="sub" style="margin-top:4px">Today 9:14 AM</div></div>
+              </div>
+              <div class="row">
+                <span class="avatar">TG</span>
+                <div class="body">
+                  <div class="title">The Garcias</div>
+                  <div class="meta">Called about Burst pipe 24/7</div>
+                </div>
+                <div class="right"><span class="badge positive"><span class="dot"></span>Booked</span><div class="sub" style="margin-top:4px">Yesterday</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- right column -->
+          <div class="stack">
+            <div class="panel how-card">
+              <div style="font-size:10.5px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">How this month is going</div>
+              <div class="how-lead">You're on pace for your <span class="hl">best month yet</span>, 18% more leads than last month.</div>
+              <div class="pace-bar">
+                <div class="pace-track"><div class="pace-fill"></div></div>
+                <div class="pace-row"><span><b>32</b> leads so far</span><span>on pace for <b>44</b></span></div>
+              </div>
+            </div>
+
+            <div class="nudge">
+              <svg class="ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-9 12h7l-2 8 9-12h-7l2-8Z"/></svg>
+              <div class="txt">Your <b>"Same-day hot water"</b> ad is taking off. It brought in more leads than your other two ads combined.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================= YOUR ADS ========================= -->
+      <section class="page" id="page-ads">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Your Ads</h1>
+            <p class="page-desc">Every ad we're running for you, and what each one is bringing in.</p>
+          </div>
+          <button class="btn btn-secondary" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            Want a new ad?
+          </button>
+        </div>
+
+        <div class="ads-grid">
+          <!-- Same-day hot water -->
+          <div class="ad-card">
+            <div class="ad-thumb ph-water">
+              <span class="status-badge"><span class="badge positive"><span class="dot"></span>Active</span></span>
+              <span class="photo-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 16-4-4-9 7"/></svg>
+                Photo: water heater install
+              </span>
+            </div>
+            <div class="ad-body">
+              <div class="ad-head">Same-day hot water</div>
+              <div class="ad-copy">Cold shower this morning? We can have hot water back today. Same-day water heater repair, $59 service call.</div>
+              <div class="ad-chips"><span class="glyph ig">IG</span><span class="glyph fb">f</span></div>
+              <div class="ad-stats">
+                <div class="ad-stat"><div class="s-label">People reached</div><div class="s-num tnum">2,100</div></div>
+                <div class="ad-stat"><div class="s-label">Leads</div><div class="s-num pos tnum">12</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- $59 AC tune-up -->
+          <div class="ad-card">
+            <div class="ad-thumb ph-ac">
+              <span class="status-badge"><span class="badge positive"><span class="dot"></span>Active</span></span>
+              <span class="photo-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 16-4-4-9 7"/></svg>
+                Photo: AC tune-up service
+              </span>
+            </div>
+            <div class="ad-body">
+              <div class="ad-head">$59 AC tune-up before the heat wave</div>
+              <div class="ad-copy">Beat the heat. Get your AC tuned up for just $59 before summer hits. Book in 60 seconds.</div>
+              <div class="ad-chips"><span class="glyph fb">f</span></div>
+              <div class="ad-stats">
+                <div class="ad-stat"><div class="s-label">People reached</div><div class="s-num tnum">1,840</div></div>
+                <div class="ad-stat"><div class="s-label">Leads</div><div class="s-num pos tnum">9</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Burst pipe 24/7 -->
+          <div class="ad-card">
+            <div class="ad-thumb ph-pipe">
+              <span class="status-badge"><span class="badge positive"><span class="dot"></span>Active</span></span>
+              <span class="photo-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 16-4-4-9 7"/></svg>
+                Photo: emergency call-out van
+              </span>
+            </div>
+            <div class="ad-body">
+              <div class="ad-head">Burst pipe? We're here 24/7</div>
+              <div class="ad-copy">Water everywhere? Call now, we answer 24/7 and can be there fast.</div>
+              <div class="ad-chips"><span class="glyph ig">IG</span></div>
+              <div class="ad-stats">
+                <div class="ad-stat"><div class="s-label">People reached</div><div class="s-num tnum">980</div></div>
+                <div class="ad-stat"><div class="s-label">Leads</div><div class="s-num pos tnum">6</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5 stars from the Garcias (paused) -->
+          <div class="ad-card">
+            <div class="ad-thumb ph-review">
+              <span class="status-badge"><span class="badge neutral"><span class="dot"></span>Paused</span></span>
+              <span class="photo-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="m21 16-4-4-9 7"/></svg>
+                Photo: happy customer review
+              </span>
+            </div>
+            <div class="ad-body">
+              <div class="ad-head">5 stars from the Garcias</div>
+              <div class="ad-copy">Real review from a real neighbor. See why families trust us with their home.</div>
+              <div class="ad-chips"><span class="glyph fb">f</span></div>
+              <div class="ad-stats">
+                <div class="ad-stat"><div class="s-label">People reached</div><div class="s-num tnum">760</div></div>
+                <div class="ad-stat"><div class="s-label">Leads</div><div class="s-num pos tnum">5</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================= LEADS ========================= -->
+      <section class="page" id="page-leads">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Leads</h1>
+            <p class="page-desc">The real people your ads brought in.</p>
+          </div>
+        </div>
+
+        <div class="summary-strip">
+          <div class="stat"><span class="n tnum">32</span><span class="l">leads this month</span></div>
+          <div class="sep"></div>
+          <div class="stat"><span class="n pos tnum">7</span><span class="l">booked</span></div>
+        </div>
+
+        <div class="panel" style="overflow:hidden">
+          <table class="leads">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>When</th>
+                <th>How</th>
+                <th>From ad</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="name"><span class="avatar">MW</span>Marcus Webb</span></td>
+                <td class="when">2h ago</td>
+                <td><span class="chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2Z"/></svg>Call</span></td>
+                <td>Same-day hot water</td>
+                <td><span class="badge brand"><span class="dot"></span>New</span></td>
+              </tr>
+              <tr>
+                <td><span class="name"><span class="avatar">DL</span>Dana Liu</span></td>
+                <td class="when">Today 9:14 AM</td>
+                <td><span class="chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>Form</span></td>
+                <td>$59 AC tune-up</td>
+                <td><span class="badge warning"><span class="dot"></span>Contacted</span></td>
+              </tr>
+              <tr>
+                <td><span class="name"><span class="avatar">TG</span>The Garcias</span></td>
+                <td class="when">Yesterday</td>
+                <td><span class="chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2Z"/></svg>Call</span></td>
+                <td>Burst pipe 24/7</td>
+                <td><span class="badge positive"><span class="dot"></span>Booked</span></td>
+              </tr>
+              <tr>
+                <td><span class="name"><span class="avatar">PS</span>Priya Shah</span></td>
+                <td class="when">Yesterday</td>
+                <td><span class="chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>Form</span></td>
+                <td>Same-day hot water</td>
+                <td><span class="badge warning"><span class="dot"></span>Contacted</span></td>
+              </tr>
+              <tr>
+                <td><span class="name"><span class="avatar">TB</span>Tom Becker</span></td>
+                <td class="when">2 days ago</td>
+                <td><span class="chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.5-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2Z"/></svg>Call</span></td>
+                <td>$59 AC tune-up</td>
+                <td><span class="badge brand"><span class="dot"></span>New</span></td>
+              </tr>
+              <tr>
+                <td><span class="name"><span class="avatar">LO</span>Lena Ortiz</span></td>
+                <td class="when">3 days ago</td>
+                <td><span class="chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>Form</span></td>
+                <td>Same-day hot water</td>
+                <td><span class="badge positive"><span class="dot"></span>Booked</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ========================= WHAT'S WORKING ========================= -->
+      <section class="page" id="page-insights">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">What's working</h1>
+            <p class="page-desc">The simple takeaways from this month, in plain English.</p>
+          </div>
+        </div>
+
+        <div class="insight-grid">
+          <div class="insight">
+            <span class="ic">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.1l1-5.8L3.5 9.2l5.9-.9L12 3Z"/></svg>
+            </span>
+            <div>
+              <div class="i-label">Your best ad this month</div>
+              <div class="i-value">Same-day hot water</div>
+              <div class="i-sub">Brought in 12 leads, more than any other ad.</div>
+            </div>
+          </div>
+
+          <div class="insight">
+            <span class="ic pos">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+            </span>
+            <div>
+              <div class="i-label">Leads vs last month</div>
+              <div class="i-value"><span class="pos">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                Up 18%</span></div>
+              <div class="i-sub">32 leads this month, up from 27 last month.</div>
+            </div>
+          </div>
+
+          <div class="insight">
+            <span class="ic">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
+            </span>
+            <div>
+              <div class="i-label">Where most leads came from</div>
+              <div class="i-value">Instagram</div>
+              <div class="i-sub">A little over half of this month's leads came from Instagram.</div>
+            </div>
+          </div>
+
+          <div class="insight">
+            <span class="ic">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </span>
+            <div>
+              <div class="i-label">Best time to reach people</div>
+              <div class="i-value">Weekday evenings</div>
+              <div class="i-sub">More people call and fill out forms between 5 and 8 PM.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reassure">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          Everything is pointed the right way this month. We'll keep leaning into what's working and quietly trim what isn't.
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
+    var el = document.getElementById('page-' + name);
+    if (el) el.classList.add('active');
+    document.querySelectorAll('#subnav .nav-item').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-page') === name);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  document.querySelectorAll('#subnav .nav-item').forEach(function (b) {
+    b.addEventListener('click', function () { showPage(b.getAttribute('data-page')); });
+  });
+
+  // Range segmented control (visual only)
+  document.querySelectorAll('.segmented').forEach(function (seg) {
+    seg.querySelectorAll('.seg-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        seg.querySelectorAll('.seg-btn').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+      });
+    });
+  });
+</script>
+</body>
+</html>

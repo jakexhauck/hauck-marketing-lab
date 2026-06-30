@@ -178,6 +178,9 @@ body {
      The dark theme overrides this with a lighter indigo. */
   --brand-text: #4f46e5;
 
+  /* Review stars. Gold, reserved for ratings (distinct from ledger money gold). */
+  --star: #f5a524;
+
   /* Ledger gold: money only, never decorative. */
   --ledger: #9a6f1e;
   --ledger-tint: color-mix(in srgb, #9a6f1e 12%, transparent);
@@ -215,6 +218,8 @@ body {
   --brand-tint: color-mix(in srgb, var(--brand) 18%, transparent);
   --brand-tint-strong: color-mix(in srgb, var(--brand) 28%, transparent);
   --brand-text: color-mix(in srgb, var(--brand) 70%, white);
+
+  --star: #fbbf24;
 
   --ledger: #d7ab51;
   --ledger-tint: color-mix(in srgb, #d7ab51 16%, transparent);

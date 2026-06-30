@@ -318,6 +318,10 @@ const service: Pillar = {
         "Per-client config checklist (ad account id, GHL id, tracking)",
       ],
       links: [
+        // Opens the client dashboard in a new tab with fabricated demo data
+        // (per-tab `?demo=1`), so you can see exactly what a client sees without
+        // touching real client data. Same entry point the Build Lab uses.
+        { label: "View as a client", to: "/home?demo=1", external: true },
         { label: "Build Lab", to: "/admin/build" },
         { label: "Clients", to: "/admin/clients" },
         { label: "GoHighLevel", to: "https://app.gohighlevel.com", external: true },

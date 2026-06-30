@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Star, Mail, Phone, Clock, CheckCircle2 } from "lucide-react";
-import Shell from "../components/Shell";
-import { PageHeader } from "../components/PageHeader";
+import Shell from "../../components/Shell";
+import { PageHeader } from "../../components/PageHeader";
 import {
   Panel,
   Badge,
@@ -9,11 +9,11 @@ import {
   EmptyState,
   LoadingState,
   ErrorState,
-} from "../components/ui";
-import { useAuth } from "../context/AuthContext";
-import { useReviewsQuery, useStartReviewCampaign } from "../hooks/useApi";
-import { relativeTime, formatPhone } from "../lib/format";
-import type { ApiReviewContact } from "../lib/api";
+} from "../../components/ui";
+import { useAuth } from "../../context/AuthContext";
+import { useReviewsQuery, useStartReviewCampaign } from "../../hooks/useApi";
+import { relativeTime, formatPhone } from "../../lib/format";
+import type { ApiReviewContact } from "../../lib/api";
 
 function ReviewRow({
   contact,
@@ -73,7 +73,7 @@ function ReviewRow({
   );
 }
 
-export default function GoogleReviews() {
+export default function ReviewsRequests() {
   const { session } = useAuth();
   const useReal = Boolean(session);
   const query = useReviewsQuery(useReal);
@@ -90,7 +90,7 @@ export default function GoogleReviews() {
     <Shell>
       <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-5 pb-12 pt-5 lg:px-8">
         <PageHeader
-          title="Google Reviews"
+          title="Ask for Reviews"
           count={contacts.length ? `${contacts.length}` : undefined}
           description="Finished jobs. Tap Start Campaign to ask that customer for a Google review."
         />

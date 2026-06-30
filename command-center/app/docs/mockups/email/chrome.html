@@ -1,0 +1,50 @@
+<!-- Shared chrome for all Email Campaigns mockups: desktop sidebar (Marketing
+     section open, Email Campaigns group expanded, Overview active) + topbar.
+     Paste verbatim inside <div class="app"> ... before <main>. Icons are filled
+     by initChrome() in the variant's script (calls window.icon). -->
+<aside class="sidebar glass">
+  <!-- brand mark -->
+  <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 16px;">
+    <span class="brandmark">WP</span>
+    <div style="min-width:0;">
+      <div class="font-display" style="font-size:15px;font-weight:600;line-height:1.1;">Willis Plumbing</div>
+      <div class="faint" style="font-size:11px;">Plumbing &amp; HVAC</div>
+    </div>
+  </div>
+
+  <!-- top zone: Home + section buttons -->
+  <nav style="padding:4px 12px;">
+    <a class="nav-row" href="#" data-icon="home">Home</a>
+    <button class="nav-row open" data-icon="megaphone">Marketing</button>
+    <button class="nav-row" data-icon="trending">Sales</button>
+    <button class="nav-row" data-icon="users">Customers</button>
+    <button class="nav-row" data-icon="building">Operations</button>
+  </nav>
+
+  <!-- lower zone: the open section's (Marketing) pages -->
+  <div style="padding:6px 12px;border-top:1px solid var(--divider);margin-top:6px;">
+    <a class="nav-row" href="#" data-icon="megaphone">Paid Ads</a>
+    <a class="nav-row" href="#" data-icon="star">Google Reviews</a>
+
+    <!-- Email Campaigns: expandable group (expanded), Overview active -->
+    <button class="nav-row open" data-icon="mail" style="justify-content:flex-start;">
+      <span style="flex:1;text-align:left;">Email Campaigns</span>
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;transform:rotate(180deg);"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="nav-children">
+      <a class="nav-row active" href="#" data-icon="layout">Overview</a>
+      <a class="nav-row" href="#" data-icon="sparkles">Ideas</a>
+      <a class="nav-row" href="#" data-icon="calendar">Calendar</a>
+      <a class="nav-row" href="#" data-icon="mail">Campaigns</a>
+      <a class="nav-row" href="#" data-icon="bar">What's working</a>
+    </div>
+
+    <a class="nav-row" href="#" data-icon="globe">Website</a>
+
+    <!-- Social Media: expandable group (collapsed) -->
+    <button class="nav-row" data-icon="share" style="justify-content:flex-start;">
+      <span style="flex:1;text-align:left;">Social Media</span>
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+  </div>
+</aside>

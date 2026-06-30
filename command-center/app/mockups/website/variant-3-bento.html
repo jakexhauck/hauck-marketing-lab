@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Website · Rivertown Plumbing &amp; Heating</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7fb; --surface:#fff; --surface-2:#f1f3f9; --surface-3:#e9ebf3;
+  --text:#14161f; --text-muted:#555a6b; --text-faint:#8a90a3;
+  --border:#e7e9f1; --border-strong:#d4d8e6; --divider:#f1f3f9;
+  --brand:#4f46e5; --brand-2:#7c73f0; --brand-tint:#eceaff; --brand-text:#4f46e5; --brand-fg:#fff;
+  --grad-brand:linear-gradient(135deg,#4f46e5 0%,#7c73f0 100%);
+  --warm:#f59e0b; --warm-tint:rgba(245,158,11,.14); --warm-soft:#fef3e2;
+  --positive:#16a34a; --positive-tint:rgba(22,163,74,.12);
+  --danger:#dc2626;
+  --font-display:"Poppins",sans-serif; --font-body:"Inter",sans-serif;
+  --radius:10px; --radius-lg:14px; --radius-xl:20px; --radius-sm:8px;
+  --shadow-sm:0 1px 2px rgba(20,22,31,.04),0 1px 3px rgba(20,22,31,.05);
+  --shadow-md:0 6px 18px rgba(40,42,70,.07),0 2px 6px rgba(40,42,70,.05);
+  --shadow-lg:0 18px 40px rgba(40,42,70,.12),0 6px 14px rgba(40,42,70,.07);
+  --shadow-brand:0 8px 22px rgba(79,70,229,.28);
+}
+[data-theme="dark"]{--bg:#0c0d14;--surface:#15161f;--surface-2:#1c1d28;--surface-3:#232536;--text:#f4f4fb;--text-muted:#a8adc0;--text-faint:#6b7088;--border:#262837;--border-strong:#34374a;--divider:#20222e;--brand-tint:#1e1b3a;--warm-soft:#2a2113;}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--font-body);
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.5;
+}
+h1,h2,h3,h4{font-family:var(--font-display);line-height:1.15;letter-spacing:-.01em}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+::selection{background:var(--brand-tint);color:var(--brand-text)}
+
+.label-cap{text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:10.5px;color:var(--text-faint)}
+
+/* ===== APP SHELL ===== */
+.app{display:flex;min-height:100vh}
+
+/* Sidebar */
+.sidebar{
+  width:244px;flex:0 0 244px;
+  position:sticky;top:0;height:100vh;
+  background:rgba(255,255,255,.7);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:18px 14px;
+  overflow-y:auto;
+}
+[data-theme="dark"] .sidebar{background:rgba(21,22,31,.72)}
+
+.brand{display:flex;align-items:center;gap:11px;padding:4px 8px 18px}
+.brand-mark{
+  width:34px;height:34px;border-radius:11px;flex:0 0 34px;
+  background:var(--grad-brand);
+  display:grid;place-items:center;
+  color:#fff;font-family:var(--font-display);font-weight:700;font-size:14px;
+  box-shadow:var(--shadow-brand);
+}
+.brand-name{font-family:var(--font-display);font-weight:600;font-size:15px;line-height:1.2}
+.brand-niche{font-size:11px;color:var(--text-faint);line-height:1.2}
+
+.nav-group{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+.nav-item{
+  display:flex;align-items:center;gap:11px;
+  padding:9px 11px;border-radius:var(--radius);
+  font-size:13.5px;font-weight:500;color:var(--text-muted);
+  transition:background .15s,color .15s;
+  width:100%;text-align:left;
+}
+.nav-item svg{width:17px;height:17px;flex:0 0 17px;opacity:.85}
+.nav-item:hover{background:var(--surface-2);color:var(--text)}
+.nav-item.active{
+  background:var(--grad-brand);color:#fff;font-weight:600;
+  box-shadow:var(--shadow-brand);
+}
+.nav-item.active svg{opacity:1}
+
+.nav-sep{height:1px;background:var(--divider);margin:12px 8px}
+.nav-label{padding:6px 11px 6px}
+
+.nav-parent{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:var(--radius);font-size:13.5px;font-weight:600;color:var(--text)}
+.nav-parent svg{width:17px;height:17px;opacity:.85}
+.nav-children{display:flex;flex-direction:column;gap:1px;margin:2px 0 4px;padding-left:14px;border-left:1.5px solid var(--divider);margin-left:18px}
+.nav-child{
+  display:block;padding:7px 11px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:500;color:var(--text-muted);
+  transition:background .15s,color .15s;text-align:left;width:100%;
+}
+.nav-child:hover{background:var(--surface-2);color:var(--text)}
+.nav-child.active{background:var(--brand-tint);color:var(--brand-text);font-weight:600}
+
+.sidebar-footer{margin-top:auto;padding-top:14px}
+
+/* Main */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{
+  display:flex;justify-content:flex-end;align-items:center;
+  padding:16px 32px 0;
+}
+.theme-toggle{
+  display:flex;align-items:center;gap:7px;
+  padding:8px 13px;border-radius:999px;
+  background:var(--surface);border:1px solid var(--border);
+  font-size:12.5px;font-weight:600;color:var(--text-muted);
+  box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s;
+}
+.theme-toggle:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.theme-toggle svg{width:15px;height:15px}
+
+.content{max-width:1120px;width:100%;margin:0 auto;padding:20px 32px 64px}
+.page{display:none;animation:fade .3s ease}
+.page.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Page header */
+.page-head{margin-bottom:24px}
+.page-head h1{font-size:30px;font-weight:800;margin-bottom:5px}
+.page-head p{font-size:15px;color:var(--text-muted);max-width:560px}
+
+/* ===== BENTO GRID ===== */
+.bento{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  grid-auto-rows:minmax(120px,auto);
+}
+.tile{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-xl);
+  padding:22px;
+  box-shadow:var(--shadow-sm);
+  transition:transform .18s ease,box-shadow .18s ease;
+  display:flex;flex-direction:column;
+}
+.tile:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.tile-head{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+.tile-icon{
+  width:34px;height:34px;border-radius:11px;flex:0 0 34px;
+  display:grid;place-items:center;background:var(--brand-tint);color:var(--brand-text);
+}
+.tile-icon svg{width:18px;height:18px}
+.tile-icon.warm{background:var(--warm-tint);color:var(--warm)}
+.tile-title{font-size:13px;font-weight:600;color:var(--text-muted)}
+
+.span2{grid-column:span 2}
+.row2{grid-row:span 2}
+
+/* Hero tile */
+.tile-hero{grid-column:span 2;background:var(--surface);position:relative;overflow:hidden}
+.hero-num{font-family:var(--font-display);font-size:54px;font-weight:800;line-height:1;letter-spacing:-.02em}
+.hero-sub{font-size:14px;color:var(--text-muted);margin-top:6px}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;
+}
+.chip.warm{background:var(--warm-tint);color:var(--warm)}
+.chip.pos{background:var(--positive-tint);color:var(--positive)}
+.chip svg{width:13px;height:13px}
+
+/* mini trend bars */
+.bars{display:flex;align-items:flex-end;gap:5px;height:48px;margin-top:18px}
+.bars .bar{flex:1;background:var(--brand-tint);border-radius:5px 5px 3px 3px;min-height:8px}
+.bars .bar.lead{background:var(--grad-brand)}
+
+/* big stat */
+.stat-big{font-family:var(--font-display);font-size:40px;font-weight:800;line-height:1;letter-spacing:-.02em}
+.stat-label{font-size:13px;color:var(--text-muted);margin-top:6px}
+
+/* mini preview tile */
+.preview-tile{padding:18px}
+.mini-browser{
+  border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
+  background:var(--surface-2);flex:1;display:flex;flex-direction:column;min-height:120px;
+}
+.mini-chrome{
+  display:flex;align-items:center;gap:5px;padding:7px 9px;background:var(--surface-3);
+  border-bottom:1px solid var(--border);
+}
+.mini-dot{width:8px;height:8px;border-radius:50%;background:var(--text-faint);opacity:.5}
+.mini-url{margin-left:6px;font-size:9.5px;color:var(--text-faint);background:var(--surface);padding:2px 8px;border-radius:5px}
+.mini-body{flex:1;background:linear-gradient(160deg,var(--brand) 0%,var(--brand-2) 60%,#9a93f5 100%);padding:14px;color:#fff;display:flex;flex-direction:column;justify-content:center;gap:6px}
+.mini-body .mh{font-family:var(--font-display);font-weight:700;font-size:13px}
+.mini-body .mp{font-size:9px;opacity:.85}
+.mini-body .mbtn{align-self:flex-start;background:#fff;color:var(--brand);font-size:9px;font-weight:700;padding:4px 9px;border-radius:6px;margin-top:3px}
+
+/* top pages list */
+.list-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--divider);font-size:13.5px}
+.list-row:last-child{border-bottom:none}
+.list-row .nm{font-weight:600}
+.list-row .vw{color:var(--text-faint);font-size:12.5px;font-weight:500}
+
+/* sources bars */
+.src{margin-bottom:13px}
+.src:last-child{margin-bottom:0}
+.src-top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px}
+.src-top .sl{font-weight:600}
+.src-top .sn{color:var(--text-faint);font-weight:600}
+.src-track{height:9px;background:var(--surface-2);border-radius:999px;overflow:hidden}
+.src-fill{height:100%;border-radius:999px;background:var(--grad-brand)}
+.src-fill.g{background:var(--brand)}
+.src-fill.warm{background:var(--warm)}
+
+/* warm requests tile */
+.tile-warm{background:var(--warm-soft);border-color:transparent}
+[data-theme="dark"] .tile-warm{border-color:var(--border)}
+
+.btn{
+  display:inline-flex;align-items:center;gap:7px;justify-content:center;
+  padding:9px 15px;border-radius:var(--radius);
+  font-size:13px;font-weight:600;transition:transform .15s,box-shadow .15s,background .15s;
+}
+.btn svg{width:15px;height:15px}
+.btn-grad{background:var(--grad-brand);color:#fff;box-shadow:var(--shadow-brand)}
+.btn-grad:hover{transform:translateY(-1px)}
+.btn-ghost{background:var(--surface-2);color:var(--text)}
+.btn-ghost:hover{background:var(--surface-3)}
+.btn-sm{padding:7px 12px;font-size:12px}
+.btn-link{color:var(--brand-text);font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:5px}
+.btn-link svg{width:14px;height:14px;transition:transform .15s}
+.btn-link:hover svg{transform:translateX(3px)}
+
+/* ===== PAGES GALLERY ===== */
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.page-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);
+  overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .18s,box-shadow .18s;
+  display:flex;flex-direction:column;
+}
+.page-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.peek{height:128px;position:relative;overflow:hidden;border-bottom:1px solid var(--border)}
+.peek-hero{background:linear-gradient(155deg,var(--brand),var(--brand-2))}
+.peek-services{background:var(--surface-2)}
+.peek-about{background:linear-gradient(155deg,#eef0fb,#e3e6f6)}
+.peek-reviews{background:var(--warm-soft)}
+.peek-contact{background:var(--surface-3)}
+.peek-book{background:linear-gradient(155deg,#4f46e5,#9a93f5)}
+.peek-deco{position:absolute;inset:0;padding:16px;display:flex;flex-direction:column;gap:7px}
+.pd{height:8px;border-radius:5px;background:rgba(255,255,255,.55)}
+.pd.dark{background:rgba(20,22,31,.12)}
+.pd.w70{width:70%}.pd.w50{width:50%}.pd.w40{width:40%}.pd.w90{width:90%}
+.peek-cards{display:flex;gap:7px;margin-top:auto}
+.peek-cards .pc{flex:1;height:34px;border-radius:7px;background:rgba(255,255,255,.6)}
+.peek-cards .pc.dark{background:var(--surface)}
+.pcard-body{padding:16px 18px 18px}
+.pcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.pcard-name{font-family:var(--font-display);font-size:17px;font-weight:700}
+.pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--positive-tint);color:var(--positive);display:inline-flex;align-items:center;gap:4px}
+.pill .pdot{width:6px;height:6px;border-radius:50%;background:var(--positive)}
+.pcard-meta{font-size:12px;color:var(--text-faint);margin-bottom:14px}
+.pcard-meta b{color:var(--text-muted);font-weight:600}
+.pcard-foot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--divider);padding-top:13px}
+
+/* ===== REQUEST A CHANGE ===== */
+.rac{display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start}
+@media(max-width:1100px){.rac{grid-template-columns:1fr}}
+
+.browser{
+  border:1px solid var(--border);border-radius:var(--radius-xl);overflow:hidden;
+  background:var(--surface);box-shadow:var(--shadow-md);
+}
+.chrome{display:flex;align-items:center;gap:7px;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--border)}
+.chrome-dots{display:flex;gap:6px}
+.chrome-dots span{width:11px;height:11px;border-radius:50%}
+.cd1{background:#ff5f57}.cd2{background:#febc2e}.cd3{background:#28c840}
+.chrome-url{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 12px;font-size:12px;color:var(--text-faint);margin-left:8px}
+.chrome-hint{font-size:11px;color:var(--brand-text);font-weight:600;display:flex;align-items:center;gap:5px}
+.chrome-hint svg{width:13px;height:13px}
+
+/* click canvas */
+.canvas{position:relative;cursor:crosshair;user-select:none;background:var(--surface)}
+.canvas *{pointer-events:none}
+.site-nav{display:flex;align-items:center;justify-content:space-between;padding:16px 26px;border-bottom:1px solid var(--divider)}
+.site-logo{font-family:var(--font-display);font-weight:700;font-size:15px;display:flex;align-items:center;gap:9px}
+.site-logo .lm{width:26px;height:26px;border-radius:8px;background:var(--grad-brand);display:grid;place-items:center;color:#fff;font-size:11px;font-weight:700}
+.site-navlinks{display:flex;gap:20px;font-size:12.5px;color:var(--text-muted);font-weight:500}
+.site-cta{background:var(--grad-brand);color:#fff;font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px}
+.site-hero{padding:52px 26px;text-align:center;background:linear-gradient(170deg,var(--surface) 0%,var(--surface-2) 100%)}
+.site-hero h2{font-size:30px;font-weight:800;max-width:480px;margin:0 auto 14px}
+.site-hero p{color:var(--text-muted);max-width:380px;margin:0 auto 22px;font-size:14px}
+.site-hero .hbtn{display:inline-block;background:var(--grad-brand);color:#fff;font-weight:700;font-size:14px;padding:12px 26px;border-radius:10px;box-shadow:var(--shadow-brand)}
+.site-services{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:34px 26px}
+.svc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;text-align:center}
+.svc .si{width:40px;height:40px;border-radius:12px;background:var(--brand-tint);color:var(--brand-text);display:grid;place-items:center;margin:0 auto 11px}
+.svc .si svg{width:20px;height:20px}
+.svc h4{font-size:14px;font-weight:700;margin-bottom:5px}
+.svc p{font-size:11.5px;color:var(--text-muted)}
+.site-foot{background:var(--surface-3);padding:24px 26px;text-align:center;font-size:11.5px;color:var(--text-muted)}
+
+/* bubble pins */
+.pin{
+  position:absolute;transform:translate(-50%,-100%);
+  z-index:5;pointer-events:auto;cursor:pointer;
+  filter:drop-shadow(0 4px 8px rgba(40,42,70,.28));
+}
+.pin-bubble{
+  background:var(--grad-brand);color:#fff;
+  width:30px;height:30px;border-radius:14px 14px 14px 4px;
+  display:grid;place-items:center;
+  font-family:var(--font-display);font-weight:700;font-size:13px;
+  border:2px solid #fff;
+  transition:transform .15s;
+}
+.pin:hover .pin-bubble{transform:scale(1.12)}
+@keyframes pinPulse{0%{transform:translate(-50%,-100%) scale(1)}30%{transform:translate(-50%,-100%) scale(1.45)}100%{transform:translate(-50%,-100%) scale(1)}}
+.pin.pulse{animation:pinPulse .6s ease}
+
+/* composer popover */
+.composer{
+  position:absolute;z-index:20;width:266px;
+  background:var(--surface);border:1px solid var(--border-strong);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);
+  padding:14px;transform:translate(12px,-10px);pointer-events:auto;
+}
+.composer h4{font-size:13.5px;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.composer textarea{
+  width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--surface-2);padding:9px 11px;font-family:inherit;font-size:13px;
+  resize:none;min-height:64px;color:var(--text);
+}
+.composer textarea:focus{outline:2px solid var(--brand);outline-offset:1px;background:var(--surface)}
+.composer-actions{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}
+
+/* notes panel */
+.notes{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);
+  box-shadow:var(--shadow-sm);position:sticky;top:18px;overflow:hidden;
+}
+.notes-head{padding:16px 18px;border-bottom:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between}
+.notes-head h3{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.notes-count{background:var(--brand-tint);color:var(--brand-text);font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px}
+.notes-list{max-height:560px;overflow-y:auto;padding:8px}
+.thread{
+  display:flex;gap:11px;padding:13px;border-radius:var(--radius-lg);
+  transition:background .15s;cursor:pointer;
+}
+.thread:hover{background:var(--surface-2)}
+.avatar{
+  width:32px;height:32px;border-radius:50%;flex:0 0 32px;
+  display:grid;place-items:center;color:#fff;font-family:var(--font-display);
+  font-weight:700;font-size:12px;
+}
+.av-brand{background:var(--grad-brand)}
+.av-amber{background:var(--warm)}
+.av-green{background:var(--positive)}
+.thread-body{flex:1;min-width:0}
+.thread-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.thread-num{font-size:12px;font-weight:700;color:var(--text)}
+.thread-msg{font-size:13px;color:var(--text);line-height:1.45}
+.thread-foot{display:flex;align-items:center;gap:9px;margin-top:7px}
+.status{font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px}
+.status.open{background:var(--brand-tint);color:var(--brand-text)}
+.status.prog{background:var(--warm-tint);color:var(--warm)}
+.status.done{background:var(--positive-tint);color:var(--positive)}
+.thread-time{font-size:11px;color:var(--text-faint)}
+.notes-empty{padding:30px 18px;text-align:center;color:var(--text-faint);font-size:13px}
+
+/* ===== WHAT'S WORKING ===== */
+.ww-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.ww-hero{grid-column:span 4;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.ww-hero-left{flex:1;min-width:240px}
+.ww-bars{display:flex;align-items:flex-end;gap:7px;height:88px;flex:1;min-width:240px}
+.ww-bars .bar{flex:1;background:var(--brand-tint);border-radius:6px 6px 4px 4px;min-height:10px}
+.ww-bars .bar.lead{background:var(--grad-brand)}
+.insight{grid-column:span 2}
+.insight .tile-head{margin-bottom:11px}
+.insight p{font-size:13.5px;color:var(--text-muted);line-height:1.5}
+.insight p b{color:var(--text);font-weight:600}
+
+@media(max-width:920px){
+  .bento,.ww-grid{grid-template-columns:repeat(2,1fr)}
+  .tile-hero,.span2{grid-column:span 2}
+  .ww-hero{grid-column:span 2}.insight{grid-column:span 2}
+  .gallery{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:640px){
+  .sidebar{display:none}
+  .gallery,.bento,.ww-grid{grid-template-columns:1fr}
+  .tile-hero,.span2,.ww-hero,.insight{grid-column:span 1}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">RP</div>
+      <div>
+        <div class="brand-name">Rivertown Plumbing</div>
+        <div class="brand-niche">Plumbing &amp; Heating</div>
+      </div>
+    </div>
+
+    <nav class="nav-group">
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 9v11h14V9"/></svg>
+        Home
+      </button>
+      <button class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+        Marketing
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>
+        Sales
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/></svg>
+        Customers
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a7.97 7.97 0 0 0 .1-1.7l1.8-1.4-1.8-3.1-2.2.7a8 8 0 0 0-1.5-.9L15.4 4h-3.6l-.4 2.3c-.5.2-1 .5-1.5.9l-2.2-.7-1.8 3.1L7.7 11a8 8 0 0 0 0 1.7l-1.8 1.4 1.8 3.1 2.2-.7c.5.4 1 .7 1.5.9l.4 2.3h3.6l.4-2.3"/></svg>
+        Operations
+      </button>
+    </nav>
+
+    <div class="nav-sep"></div>
+    <div class="nav-label label-cap">Marketing</div>
+
+    <nav class="nav-group">
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/></svg>
+        Paid Ads
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.9 6.3 6.9.6-5.2 4.5 1.6 6.7L12 16.9 5.8 20.6l1.6-6.7L2.2 8.9l6.9-.6L12 2z"/></svg>
+        Google Reviews
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        Email Campaigns
+      </button>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
+        Social Media
+      </button>
+
+      <div class="nav-parent">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+        Website
+      </div>
+      <div class="nav-children">
+        <button class="nav-child active" data-page="overview">Overview</button>
+        <button class="nav-child" data-page="pages">Pages</button>
+        <button class="nav-child" data-page="request">Request a Change</button>
+        <button class="nav-child" data-page="working">What's working</button>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="nav-sep"></div>
+      <button class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a7.97 7.97 0 0 0 .1-1.7l1.8-1.4-1.8-3.1-2.2.7a8 8 0 0 0-1.5-.9L15.4 4h-3.6l-.4 2.3c-.5.2-1 .5-1.5.9l-2.2-.7-1.8 3.1L7.7 11a8 8 0 0 0 0 1.7l-1.8 1.4 1.8 3.1 2.2-.7c.5.4 1 .7 1.5.9l.4 2.3h3.6l.4-2.3"/></svg>
+        Settings
+      </button>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <div class="main">
+    <div class="topbar">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark mode">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <span id="themeLabel">Light</span>
+      </button>
+    </div>
+
+    <div class="content">
+
+      <!-- ===== 1. OVERVIEW ===== -->
+      <section class="page active" id="page-overview">
+        <div class="page-head">
+          <h1>Website</h1>
+          <p>Here's how your website is doing this month. Everything's running smoothly, and you've got a few notes waiting.</p>
+        </div>
+
+        <div class="bento">
+          <!-- Hero visitors -->
+          <div class="tile tile-hero">
+            <div class="tile-head">
+              <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
+              <span class="tile-title">Visitors this month</span>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+              <div class="hero-num">1,240</div>
+              <div class="chip warm" style="margin-bottom:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M17 8h4v4"/></svg> +8%</div>
+            </div>
+            <div class="hero-sub">People who looked at your site, up a little from last month.</div>
+            <div class="bars">
+              <div class="bar" style="height:42%"></div>
+              <div class="bar" style="height:58%"></div>
+              <div class="bar" style="height:50%"></div>
+              <div class="bar" style="height:70%"></div>
+              <div class="bar" style="height:62%"></div>
+              <div class="bar" style="height:78%"></div>
+              <div class="bar lead" style="height:92%"></div>
+            </div>
+          </div>
+
+          <!-- Leads -->
+          <div class="tile">
+            <div class="tile-head">
+              <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></div>
+              <span class="tile-title">Leads</span>
+            </div>
+            <div class="stat-big">18</div>
+            <div class="stat-label">enquiries from your site</div>
+          </div>
+
+          <!-- Mini preview -->
+          <div class="tile preview-tile row2">
+            <div class="tile-head">
+              <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9h20"/></svg></div>
+              <span class="tile-title">Your homepage</span>
+            </div>
+            <div class="mini-browser">
+              <div class="mini-chrome">
+                <span class="mini-dot"></span><span class="mini-dot"></span><span class="mini-dot"></span>
+                <span class="mini-url">rivertownplumbing.com</span>
+              </div>
+              <div class="mini-body">
+                <div class="mh">Fast, reliable plumbing</div>
+                <div class="mp">Serving Rivertown since 2009</div>
+                <div class="mbtn">Book now</div>
+              </div>
+            </div>
+            <a href="#" class="btn btn-grad btn-sm" style="margin-top:14px" onclick="return false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+              View live site
+            </a>
+          </div>
+
+          <!-- Top pages -->
+          <div class="tile span2 row2">
+            <div class="tile-head">
+              <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></div>
+              <span class="tile-title">Most visited pages</span>
+            </div>
+            <div class="list-row"><span class="nm">Home</span><span class="vw">512 views</span></div>
+            <div class="list-row"><span class="nm">Services</span><span class="vw">348 views</span></div>
+            <div class="list-row"><span class="nm">Book Now</span><span class="vw">196 views</span></div>
+            <div class="list-row"><span class="nm">Reviews</span><span class="vw">112 views</span></div>
+            <div class="list-row"><span class="nm">Contact</span><span class="vw">72 views</span></div>
+          </div>
+
+          <!-- Pages live stat -->
+          <div class="tile">
+            <div class="tile-head">
+              <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+              <span class="tile-title">Pages</span>
+            </div>
+            <div class="stat-big">6</div>
+            <div class="stat-label">pages live and online</div>
+          </div>
+
+          <!-- Open requests (warm) -->
+          <div class="tile tile-warm">
+            <div class="tile-head">
+              <div class="tile-icon warm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+              <span class="tile-title">Open requests</span>
+            </div>
+            <div class="stat-big" style="color:var(--warm)">3</div>
+            <div class="stat-label" style="margin-bottom:12px">changes you've asked for</div>
+            <button class="btn-link" data-goto="request" style="margin-top:auto;align-self:flex-start">
+              View notes
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+
+          <!-- Sources -->
+          <div class="tile span2">
+            <div class="tile-head">
+              <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18M3 12h18"/></svg></div>
+              <span class="tile-title">Where visitors come from</span>
+            </div>
+            <div class="src"><div class="src-top"><span class="sl">Google search</span><span class="sn">58%</span></div><div class="src-track"><div class="src-fill g" style="width:58%"></div></div></div>
+            <div class="src"><div class="src-top"><span class="sl">Direct</span><span class="sn">22%</span></div><div class="src-track"><div class="src-fill" style="width:22%"></div></div></div>
+            <div class="src"><div class="src-top"><span class="sl">Social</span><span class="sn">14%</span></div><div class="src-track"><div class="src-fill warm" style="width:14%"></div></div></div>
+            <div class="src"><div class="src-top"><span class="sl">Referrals</span><span class="sn">6%</span></div><div class="src-track"><div class="src-fill" style="width:6%"></div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 2. PAGES ===== -->
+      <section class="page" id="page-pages">
+        <div class="page-head">
+          <h1>Pages</h1>
+          <p>Every page on your website. Take a peek, see how it's performing, and ask for any change you like.</p>
+        </div>
+        <div class="gallery" id="galleryGrid"></div>
+      </section>
+
+      <!-- ===== 3. REQUEST A CHANGE ===== -->
+      <section class="page" id="page-request">
+        <div class="page-head">
+          <h1>Request a change</h1>
+          <p>Click anywhere on your site and leave a note about what you'd like changed. We'll see it straight away.</p>
+        </div>
+
+        <div class="rac">
+          <div>
+            <div class="browser">
+              <div class="chrome">
+                <div class="chrome-dots"><span class="cd1"></span><span class="cd2"></span><span class="cd3"></span></div>
+                <div class="chrome-url">rivertownplumbing.com</div>
+                <div class="chrome-hint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+                  Click to add a note
+                </div>
+              </div>
+              <div class="canvas" id="canvas">
+                <div class="site-nav">
+                  <div class="site-logo"><span class="lm">RP</span> Rivertown Plumbing</div>
+                  <div class="site-navlinks"><span>Services</span><span>About</span><span>Reviews</span><span>Contact</span></div>
+                  <div class="site-cta">Book now</div>
+                </div>
+                <div class="site-hero">
+                  <h2>Fast, reliable plumbing in Rivertown</h2>
+                  <p>Emergency callouts, boiler repairs and installs. Trusted by neighbours since 2009.</p>
+                  <span class="hbtn">Book a visit</span>
+                </div>
+                <div class="site-services">
+                  <div class="svc">
+                    <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13v8H3zM16 10h3l2 2v3h-5"/><circle cx="7" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></svg></div>
+                    <h4>Emergency callouts</h4>
+                    <p>Same-day help when a pipe bursts.</p>
+                  </div>
+                  <div class="svc">
+                    <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M10 7h4M12 16v.01"/></svg></div>
+                    <h4>Boiler repairs</h4>
+                    <p>Keep your home warm all winter.</p>
+                  </div>
+                  <div class="svc">
+                    <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                    <h4>New installs</h4>
+                    <p>Bathrooms, taps and fittings.</p>
+                  </div>
+                </div>
+                <div class="site-foot">Rivertown Plumbing &amp; Heating · Open Mon to Sat · Call (555) 014-2280</div>
+              </div>
+            </div>
+          </div>
+
+          <aside class="notes">
+            <div class="notes-head">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Notes
+              </h3>
+              <span class="notes-count" id="notesCount">0</span>
+            </div>
+            <div class="notes-list" id="notesList"></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ===== 4. WHAT'S WORKING ===== -->
+      <section class="page" id="page-working">
+        <div class="page-head">
+          <h1>What's working</h1>
+          <p>The plain-English version of how your site is doing, and where the wins are coming from.</p>
+        </div>
+
+        <div class="ww-grid">
+          <div class="tile ww-hero">
+            <div class="ww-hero-left">
+              <div class="tile-head">
+                <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                <span class="tile-title">Visitors this month</span>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:14px">
+                <div class="hero-num">1,240</div>
+                <div class="chip pos" style="margin-bottom:8px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M17 8h4v4"/></svg> +8% vs last month</div>
+              </div>
+              <div class="hero-sub">A steady climb. More people are finding you on Google.</div>
+            </div>
+            <div class="ww-bars">
+              <div class="bar" style="height:40%"></div>
+              <div class="bar" style="height:52%"></div>
+              <div class="bar" style="height:46%"></div>
+              <div class="bar" style="height:64%"></div>
+              <div class="bar" style="height:58%"></div>
+              <div class="bar" style="height:72%"></div>
+              <div class="bar" style="height:68%"></div>
+              <div class="bar lead" style="height:88%"></div>
+            </div>
+          </div>
+
+          <div class="tile span2">
+            <div class="tile-head">
+              <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18M3 12h18"/></svg></div>
+              <span class="tile-title">Where your visitors come from</span>
+            </div>
+            <div class="src"><div class="src-top"><span class="sl">Google</span><span class="sn">58%</span></div><div class="src-track"><div class="src-fill g" style="width:58%"></div></div></div>
+            <div class="src"><div class="src-top"><span class="sl">Direct</span><span class="sn">22%</span></div><div class="src-track"><div class="src-fill" style="width:22%"></div></div></div>
+            <div class="src"><div class="src-top"><span class="sl">Social</span><span class="sn">14%</span></div><div class="src-track"><div class="src-fill warm" style="width:14%"></div></div></div>
+            <div class="src"><div class="src-top"><span class="sl">Referral</span><span class="sn">6%</span></div><div class="src-track"><div class="src-fill" style="width:6%"></div></div></div>
+          </div>
+
+          <div class="tile span2 tile-warm">
+            <div class="tile-head">
+              <div class="tile-icon warm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.9 6.3 6.9.6-5.2 4.5 1.6 6.7L12 16.9 5.8 20.6l1.6-6.7L2.2 8.9l6.9-.6L12 2z"/></svg></div>
+              <span class="tile-title">Top performing page</span>
+            </div>
+            <div style="font-family:var(--font-display);font-size:22px;font-weight:700;margin-bottom:6px">Services page</div>
+            <p style="font-size:13.5px;color:var(--text-muted);line-height:1.5">It turns visitors into enquiries best, about <b style="color:var(--warm)">4.2%</b> of people who land here get in touch. Worth keeping it front and centre.</p>
+          </div>
+
+          <div class="tile insight">
+            <div class="tile-head">
+              <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1h6c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg></div>
+              <span class="tile-title">Good to know</span>
+            </div>
+            <p>Most people visit on a phone (about <b>7 in 10</b>), so your site looking tidy on mobile really matters. It does.</p>
+          </div>
+
+          <div class="tile insight">
+            <div class="tile-head">
+              <div class="tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+              <span class="tile-title">A small idea</span>
+            </div>
+            <p>Visitors spend the most time on your <b>Reviews</b> page. Adding a couple of recent ones could nudge a few more to book.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Theme toggle ---------- */
+  var html=document.documentElement;
+  var tBtn=document.getElementById('themeToggle');
+  var tLabel=document.getElementById('themeLabel');
+  var tIcon=document.getElementById('themeIcon');
+  var sun='<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+  var moon='<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>';
+  tBtn.addEventListener('click',function(){
+    var dark=html.getAttribute('data-theme')==='dark';
+    html.setAttribute('data-theme',dark?'light':'dark');
+    tLabel.textContent=dark?'Light':'Dark';
+    tIcon.innerHTML=dark?sun:moon;
+  });
+
+  /* ---------- Page switching ---------- */
+  var children=document.querySelectorAll('.nav-child');
+  function show(page){
+    document.querySelectorAll('.page').forEach(function(s){s.classList.remove('active');});
+    var el=document.getElementById('page-'+page);
+    if(el) el.classList.add('active');
+    children.forEach(function(c){c.classList.toggle('active',c.dataset.page===page);});
+    window.scrollTo({top:0,behavior:'auto'});
+  }
+  children.forEach(function(c){c.addEventListener('click',function(){show(c.dataset.page);});});
+  document.querySelectorAll('[data-goto]').forEach(function(b){
+    b.addEventListener('click',function(){show(b.dataset.goto);});
+  });
+
+  /* ---------- Pages gallery ---------- */
+  var pagesData=[
+    {name:'Home',cls:'peek-hero',deco:'hero',updated:'3 days ago',views:'512'},
+    {name:'Services',cls:'peek-services',deco:'cards',updated:'1 week ago',views:'348'},
+    {name:'About',cls:'peek-about',deco:'text',updated:'3 weeks ago',views:'94'},
+    {name:'Reviews',cls:'peek-reviews',deco:'cards',updated:'2 days ago',views:'112'},
+    {name:'Contact',cls:'peek-contact',deco:'text',updated:'1 month ago',views:'72'},
+    {name:'Book Now',cls:'peek-book',deco:'hero',updated:'5 days ago',views:'196'}
+  ];
+  function decoHtml(kind,light){
+    var d=light?'':' dark';
+    if(kind==='hero'){
+      return '<div class="pd'+d+' w50"></div><div class="pd'+d+' w90" style="height:14px"></div><div class="pd'+d+' w70"></div><div class="peek-cards"><div class="pc'+(light?'':' dark')+'"></div></div>';
+    }
+    if(kind==='cards'){
+      return '<div class="pd'+d+' w40"></div><div class="peek-cards"><div class="pc'+(light?'':' dark')+'"></div><div class="pc'+(light?'':' dark')+'"></div><div class="pc'+(light?'':' dark')+'"></div></div>';
+    }
+    return '<div class="pd'+d+' w70"></div><div class="pd'+d+' w90"></div><div class="pd'+d+' w50"></div><div class="pd'+d+' w70"></div>';
+  }
+  var grid=document.getElementById('galleryGrid');
+  grid.innerHTML=pagesData.map(function(p){
+    var lightDeco=(p.cls==='peek-hero'||p.cls==='peek-book');
+    return '<article class="page-card">'+
+      '<div class="peek '+p.cls+'"><div class="peek-deco">'+decoHtml(p.deco,lightDeco)+'</div></div>'+
+      '<div class="pcard-body">'+
+        '<div class="pcard-top"><span class="pcard-name">'+p.name+'</span>'+
+        '<span class="pill"><span class="pdot"></span>Live</span></div>'+
+        '<div class="pcard-meta">Updated '+p.updated+' · <b>'+p.views+' views</b></div>'+
+        '<div class="pcard-foot">'+
+          '<a href="#" class="btn-link" data-req>Request a change <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>'+
+        '</div>'+
+      '</div></article>';
+  }).join('');
+  grid.querySelectorAll('[data-req]').forEach(function(a){
+    a.addEventListener('click',function(e){e.preventDefault();show('request');});
+  });
+
+  /* ---------- Request a change: Figma comments ---------- */
+  var canvas=document.getElementById('canvas');
+  var notesList=document.getElementById('notesList');
+  var notesCount=document.getElementById('notesCount');
+  var composer=null;
+  var counter=0;
+  var avatars=['av-brand','av-amber','av-green'];
+
+  // seed threads (xPct/yPct relative to canvas)
+  var threads=[
+    {x:50,y:18,msg:"Can we make the main headline a bit bigger and bolder? It's the first thing people see.",status:'open',time:'2 days ago'},
+    {x:18,y:78,msg:"Please change this service to 'Drain cleaning' instead of new installs, that's busier for us.",status:'prog',time:'4 days ago'},
+    {x:84,y:14,msg:"Add our phone number next to the Book now button up here so people can call quickly.",status:'done',time:'1 week ago'}
+  ];
+
+  function statusLabel(s){return s==='open'?'Open':s==='prog'?'In progress':'Done';}
+
+  function render(){
+    // pins
+    canvas.querySelectorAll('.pin').forEach(function(p){p.remove();});
+    threads.forEach(function(t,i){
+      var pin=document.createElement('div');
+      pin.className='pin';
+      pin.style.left=t.x+'%';
+      pin.style.top=t.y+'%';
+      pin.dataset.idx=i;
+      pin.innerHTML='<div class="pin-bubble">'+(i+1)+'</div>';
+      pin.addEventListener('click',function(e){
+        e.stopPropagation();
+        var th=notesList.querySelector('[data-idx="'+i+'"]');
+        if(th){th.scrollIntoView({block:'nearest',behavior:'smooth'});flashThread(th);}
+      });
+      canvas.appendChild(pin);
+    });
+    // threads
+    if(!threads.length){
+      notesList.innerHTML='<div class="notes-empty">No notes yet. Click anywhere on your site to leave one.</div>';
+    } else {
+      notesList.innerHTML=threads.map(function(t,i){
+        return '<div class="thread" data-idx="'+i+'">'+
+          '<div class="avatar '+avatars[i%avatars.length]+'">RP</div>'+
+          '<div class="thread-body">'+
+            '<div class="thread-top"><span class="thread-num">Note '+(i+1)+'</span></div>'+
+            '<div class="thread-msg">'+escapeHtml(t.msg)+'</div>'+
+            '<div class="thread-foot"><span class="status '+t.status+'">'+statusLabel(t.status)+'</span><span class="thread-time">'+t.time+'</span></div>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+      notesList.querySelectorAll('.thread').forEach(function(th){
+        th.addEventListener('click',function(){
+          var idx=+th.dataset.idx;
+          var pin=canvas.querySelector('.pin[data-idx="'+idx+'"]');
+          if(pin){pin.classList.remove('pulse');void pin.offsetWidth;pin.classList.add('pulse');}
+        });
+      });
+    }
+    notesCount.textContent=threads.length;
+  }
+
+  function flashThread(th){
+    th.style.background='var(--brand-tint)';
+    setTimeout(function(){th.style.background='';},700);
+  }
+
+  function escapeHtml(s){return s.replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+  function closeComposer(){
+    if(composer){composer.remove();composer=null;}
+  }
+
+  canvas.addEventListener('click',function(e){
+    if(e.target.closest('.pin')||e.target.closest('.composer')) return;
+    closeComposer();
+    var rect=canvas.getBoundingClientRect();
+    var xPct=((e.clientX-rect.left)/rect.width)*100;
+    var yPct=((e.clientY-rect.top)/rect.height)*100;
+
+    // temp preview pin
+    var tempPin=document.createElement('div');
+    tempPin.className='pin';
+    tempPin.style.left=xPct+'%';
+    tempPin.style.top=yPct+'%';
+    tempPin.style.opacity='.6';
+    tempPin.innerHTML='<div class="pin-bubble">'+(threads.length+1)+'</div>';
+    canvas.appendChild(tempPin);
+
+    composer=document.createElement('div');
+    composer.className='composer';
+    // keep popover inside the canvas horizontally
+    var leftPct=xPct;
+    if(xPct>62){composer.style.transform='translate(calc(-100% - 12px),-10px)';}
+    composer.style.left=leftPct+'%';
+    composer.style.top=yPct+'%';
+    composer.innerHTML=
+      '<h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Leave a note</h4>'+
+      '<textarea placeholder="What would you like changed here?"></textarea>'+
+      '<div class="composer-actions">'+
+        '<button class="btn btn-ghost btn-sm" data-cancel>Cancel</button>'+
+        '<button class="btn btn-grad btn-sm" data-send>Leave note</button>'+
+      '</div>';
+    canvas.appendChild(composer);
+    var ta=composer.querySelector('textarea');
+    ta.focus();
+
+    composer.querySelector('[data-cancel]').addEventListener('click',function(ev){
+      ev.stopPropagation();
+      tempPin.remove();
+      closeComposer();
+    });
+    composer.querySelector('[data-send]').addEventListener('click',function(ev){
+      ev.stopPropagation();
+      var val=ta.value.trim();
+      if(!val){ta.focus();ta.style.outline='2px solid var(--danger)';return;}
+      threads.push({x:xPct,y:yPct,msg:val,status:'open',time:'Just now'});
+      tempPin.remove();
+      closeComposer();
+      render();
+      // scroll new thread into view + pulse
+      var newIdx=threads.length-1;
+      var pin=canvas.querySelector('.pin[data-idx="'+newIdx+'"]');
+      if(pin){pin.classList.add('pulse');}
+      var th=notesList.querySelector('[data-idx="'+newIdx+'"]');
+      if(th){th.scrollIntoView({block:'nearest',behavior:'smooth'});}
+    });
+    composer.addEventListener('click',function(ev){ev.stopPropagation();});
+  });
+
+  // Escape closes composer
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'&&composer){
+      var temp=canvas.querySelectorAll('.pin');
+      // remove any temp (opacity .6) pin
+      temp.forEach(function(p){if(p.style.opacity==='0.6'||p.style.opacity==='.6')p.remove();});
+      closeComposer();
+      render();
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

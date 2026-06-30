@@ -1,0 +1,500 @@
+<!doctype html><html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Email Campaigns — Variant B (Hero)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./kit.css">
+<style>
+  /* ---- Variant B local styles: hero band + timeline + grid only ---- */
+  .vb-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 24px; margin-bottom: 22px; flex-wrap: wrap;
+  }
+  .vb-header-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+
+  /* hero band */
+  .vb-hero {
+    position: relative; overflow: hidden;
+    padding: 30px 30px 30px 34px; margin-bottom: 22px;
+    display: grid; grid-template-columns: minmax(0,1.05fr) minmax(0,1fr);
+    gap: 30px; align-items: center;
+  }
+  .vb-hero::before {
+    content: ""; position: absolute; inset: 0 auto 0 0; width: 5px;
+    background-image: var(--grad-brand);
+  }
+  .vb-hero.is-commercial::before {
+    background-image: linear-gradient(160deg, var(--ledger) 0%, #c79a4a 100%);
+  }
+  .vb-hero-left { min-width: 0; }
+  .vb-hero-num {
+    display: flex; align-items: baseline; gap: 12px; margin: 16px 0 6px;
+    flex-wrap: wrap;
+  }
+  .vb-hero-num .num { font-size: 64px; }
+  .vb-hero-num .unit { font-size: 22px; font-weight: 700; color: var(--text); }
+  .vb-hero-sub { font-size: 14.5px; color: var(--text-muted); margin: 0; }
+
+  .vb-hero-right {
+    display: flex; align-items: stretch; justify-content: space-between;
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+    backdrop-filter: blur(8px);
+  }
+  .vb-stat { flex: 1 1 0; padding: 16px 18px; min-width: 0; }
+  .vb-stat + .vb-stat { border-left: 1px solid var(--divider); }
+  .vb-stat .stat-num { font-size: 26px; margin-top: 8px; display: block; }
+
+  /* slim hero strip (Ideas / Calendar lead) */
+  .vb-strip {
+    position: relative; overflow: hidden; display: flex; align-items: center;
+    gap: 18px; padding: 20px 26px; margin-bottom: 22px; flex-wrap: wrap;
+  }
+  .vb-strip::before {
+    content: ""; position: absolute; inset: 0 auto 0 0; width: 5px;
+    background-image: var(--grad-brand);
+  }
+  .vb-strip.is-commercial::before {
+    background-image: linear-gradient(160deg, var(--ledger) 0%, #c79a4a 100%);
+  }
+  .vb-strip-line {
+    font-family: var(--font-display); font-weight: 600; letter-spacing: -0.02em;
+    font-size: 20px; color: var(--text); margin: 0; line-height: 1.2;
+  }
+  .vb-strip-line b { color: var(--brand-text); font-weight: 800; }
+  .vb-strip.is-commercial .vb-strip-line b { color: var(--ledger); }
+  .vb-strip-count {
+    flex-shrink: 0; font-family: var(--font-display); font-weight: 900;
+    letter-spacing: -0.055em; line-height: 0.9; font-size: 52px;
+  }
+
+  /* main split grid */
+  .vb-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 22px; align-items: start; }
+  .vb-rail { display: flex; flex-direction: column; gap: 18px; }
+
+  /* timeline */
+  .vb-timeline { padding: 6px 18px 10px; }
+  .vb-node { position: relative; display: flex; gap: 16px; padding: 16px 0; }
+  .vb-node + .vb-node { border-top: 1px solid var(--divider); }
+  .vb-rail-col { position: relative; flex: 0 0 12px; display: flex; justify-content: center; }
+  .vb-line {
+    position: absolute; top: -16px; bottom: -16px; left: 50%;
+    width: 2px; transform: translateX(-50%); background: var(--border);
+  }
+  .vb-node:first-child .vb-line { top: 22px; }
+  .vb-node:last-child .vb-line { bottom: auto; height: 22px; }
+  .vb-dot {
+    position: relative; z-index: 1; margin-top: 4px;
+    width: 12px; height: 12px; border-radius: 999px;
+    background-image: var(--grad-brand); box-shadow: 0 0 0 4px var(--surface);
+  }
+  .vb-dot.is-warning { background: var(--warning); background-image: none; }
+  .vb-dot.is-positive { background: var(--positive); background-image: none; }
+  .vb-dot.is-neutral { background: var(--border-strong); background-image: none; }
+  .vb-node-body { min-width: 0; flex: 1; }
+  .vb-node-meta { margin-bottom: 5px; }
+  .vb-node-title { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; line-height: 1.25; margin: 0 0 8px; }
+
+  /* idea cards (overview rail) */
+  .vb-idea { padding: 13px 16px 14px; border-bottom: 1px solid var(--divider); }
+  .vb-idea:last-child { border-bottom: none; }
+  .vb-idea .kind { margin-bottom: 5px; }
+  .vb-idea .title { font-size: 13.5px; font-weight: 600; color: var(--text); line-height: 1.35; margin: 0 0 8px; }
+  .vb-write { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--brand-text); text-decoration: none; }
+  .vb-write svg { width: 13px; height: 13px; }
+
+  /* editorial idea grid (Ideas page) */
+  .vb-ideas-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+  .vb-idea-card {
+    position: relative; padding: 20px 22px 20px 24px;
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    background: var(--surface); box-shadow: var(--shadow-sm);
+    display: flex; flex-direction: column; transition: transform .18s var(--ease), box-shadow .18s var(--ease);
+  }
+  .vb-idea-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+  .vb-idea-card::before {
+    content: ""; position: absolute; inset: 0 auto 0 0; width: 4px;
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg); background-image: var(--grad-brand);
+  }
+  .vb-idea-card .kind { margin-bottom: 10px; }
+  .vb-idea-card .title {
+    font-family: var(--font-display); font-size: 16px; font-weight: 600;
+    letter-spacing: -0.02em; line-height: 1.25; color: var(--text); margin: 0 0 8px;
+  }
+  .vb-idea-card .why { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 0 0 16px; flex: 1; }
+  .vb-idea-card .vb-write { margin-top: auto; }
+
+  /* calendar */
+  .vb-cal { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 7px; }
+  .vb-cal-head { text-align: center; padding: 2px 0 6px; }
+  .vb-cell {
+    min-height: 84px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface); padding: 7px 7px 8px; display: flex; flex-direction: column; gap: 5px;
+  }
+  .vb-cell.empty { border: none; background: transparent; }
+  .vb-cell.today { box-shadow: inset 0 0 0 2px var(--brand); border-color: transparent; }
+  .vb-cell .dom { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-muted); }
+  .vb-cell.today .dom { color: var(--brand-text); }
+  .vb-cal-chip {
+    border-radius: 7px; padding: 4px 6px; font-size: 10.5px; line-height: 1.25;
+    overflow: hidden; display: flex; flex-direction: column; gap: 1px;
+  }
+  .vb-cal-chip .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vb-cal-chip .hr { font-family: var(--font-mono); font-size: 9.5px; opacity: .85; }
+
+  /* insights performance bars */
+  .vb-perf { display: flex; align-items: center; gap: 18px; padding: 16px; border-bottom: 1px solid var(--divider); }
+  .vb-perf:last-child { border-bottom: none; }
+  .vb-bar-track { margin-top: 9px; height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .vb-bar { height: 100%; border-radius: 999px; background-image: var(--grad-brand); }
+  .vb-perf.is-commercial .vb-bar { background-image: linear-gradient(135deg, var(--ledger) 0%, #c79a4a 100%); }
+
+  /* callout */
+  .vb-callout { display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; }
+  .vb-callout.tone-warning { background: var(--warning-tint); }
+  .vb-callout.tone-brand { background: var(--brand-tint); }
+  .vb-callout-ico { flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: #fff; }
+  .vb-callout.tone-warning .vb-callout-ico { background: var(--warning); }
+  .vb-callout.tone-brand .vb-callout-ico { background: var(--brand); }
+  .vb-callout p { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--text); }
+  .vb-callout p strong { font-weight: 700; }
+
+  @media (max-width: 1000px) {
+    .vb-hero { grid-template-columns: 1fr; }
+    .vb-grid { grid-template-columns: 1fr; }
+    .vb-ideas-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .vb-cal { gap: 4px; }
+    .vb-cell { min-height: 62px; }
+    .vb-cal-head .label-cap { font-size: 9px; }
+  }
+  @media (max-width: 560px) {
+    .vb-hero-right { flex-direction: column; }
+    .vb-stat + .vb-stat { border-left: none; border-top: 1px solid var(--divider); }
+    .vb-hero-num .num { font-size: 52px; }
+  }
+</style>
+</head><body>
+<div class="app">
+  <aside class="sidebar glass">
+    <!-- brand mark -->
+    <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 16px;">
+      <span class="brandmark">WP</span>
+      <div style="min-width:0;">
+        <div class="font-display" style="font-size:15px;font-weight:600;line-height:1.1;">Willis Plumbing</div>
+        <div class="faint" style="font-size:11px;">Plumbing &amp; HVAC</div>
+      </div>
+    </div>
+
+    <!-- top zone: Home + section buttons -->
+    <nav style="padding:4px 12px;">
+      <a class="nav-row" href="#" data-icon="home">Home</a>
+      <button class="nav-row open" data-icon="megaphone">Marketing</button>
+      <button class="nav-row" data-icon="trending">Sales</button>
+      <button class="nav-row" data-icon="users">Customers</button>
+      <button class="nav-row" data-icon="building">Operations</button>
+    </nav>
+
+    <!-- lower zone: the open section's (Marketing) pages -->
+    <div style="padding:6px 12px;border-top:1px solid var(--divider);margin-top:6px;">
+      <a class="nav-row" href="#" data-icon="megaphone">Paid Ads</a>
+      <a class="nav-row" href="#" data-icon="star">Google Reviews</a>
+
+      <!-- Email Campaigns: expandable group (expanded) -->
+      <button class="nav-row open" data-icon="mail" style="justify-content:flex-start;">
+        <span style="flex:1;text-align:left;">Email Campaigns</span>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;transform:rotate(180deg);"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="nav-children">
+        <a class="nav-row" href="#" data-page="overview" data-icon="layout">Overview</a>
+        <a class="nav-row" href="#" data-page="ideas" data-icon="sparkles">Ideas</a>
+        <a class="nav-row" href="#" data-page="calendar" data-icon="calendar">Calendar</a>
+        <a class="nav-row" href="#" data-page="campaigns" data-icon="mail">Campaigns</a>
+        <a class="nav-row" href="#" data-page="insights" data-icon="bar">What's working</a>
+      </div>
+
+      <a class="nav-row" href="#" data-icon="globe">Website</a>
+
+      <!-- Social Media: expandable group (collapsed) -->
+      <button class="nav-row" data-icon="share" style="justify-content:flex-start;">
+        <span style="flex:1;text-align:left;">Social Media</span>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button id="themeBtn" class="btn btn-ghost btn-sm" title="Toggle theme"></button>
+      <span class="brandmark" style="width:30px;height:30px;font-size:11px;">JW</span>
+    </div>
+    <div class="container" id="page"></div>
+  </main>
+</div>
+
+<script src="./data.js"></script>
+<script>
+function fillIcons(root){ (root||document).querySelectorAll('[data-icon]').forEach(function(el){ if(!el.dataset.done){ el.insertAdjacentHTML('afterbegin', window.icon(el.dataset.icon, el.dataset.isz?+el.dataset.isz:17)); el.dataset.done=1; }});}
+function initSegmented(seg,onChange){var pill=seg.querySelector('.pill');var btns=[].slice.call(seg.querySelectorAll('button'));function move(b){pill.style.left=b.offsetLeft+'px';pill.style.width=b.offsetWidth+'px';}btns.forEach(function(b){b.addEventListener('click',function(){btns.forEach(function(x){x.classList.remove('active');});b.classList.add('active');move(b);onChange(b.dataset.track);});});requestAnimationFrame(function(){move(seg.querySelector('button.active'));});}
+function initTheme(){var b=document.getElementById('themeBtn');function set(t){document.documentElement.dataset.theme=t;b.innerHTML=window.icon('sun',16)+'<span style="margin-left:2px">'+(t==='dark'?'Light':'Dark')+'</span>';}b.onclick=function(){set(document.documentElement.dataset.theme==='dark'?'light':'dark');};set('light');}
+
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+/* ---------------- router state ---------------- */
+var state = { page: 'overview', track: 'customers' };
+
+function isCom(){ return state.track === 'commercial'; }
+function comClass(){ return isCom() ? ' is-commercial' : ''; }
+
+function toggleHTML(){
+  return '<div class="segmented" id="trackToggle"><span class="pill"></span>' +
+    '<button data-track="customers" class="' + (state.track==='customers'?'active':'') + '">Customers</button>' +
+    '<button data-track="commercial" class="' + (state.track==='commercial'?'active':'') + '">Commercial Outreach</button>' +
+  '</div>';
+}
+function chipHTML(d){
+  return '<span class="audience-chip' + (isCom()?' commercial':'') + '">' +
+    '<span data-icon="' + (isCom()?'building':'users') + '" data-isz="13"></span>' + esc(d.audienceChip) + '</span>';
+}
+function headerHTML(title, desc, actions){
+  return '<div class="vb-header">' +
+    '<div><h2 class="page-title">' + esc(title) + '</h2><p class="page-desc">' + esc(desc) + '</p></div>' +
+    '<div class="vb-header-actions">' + toggleHTML() + (actions||'') + '</div>' +
+  '</div>';
+}
+var NEW_EMAIL = '<button class="btn btn-primary" data-icon="plus" data-isz="16">New email</button>';
+
+/* ---------------- pages ---------------- */
+var PAGES = {
+
+  /* ----- OVERVIEW (unchanged layout) ----- */
+  overview: { render: function(d){
+    var support = d.kpis.filter(function(k){ return !k.brand; });
+    var statBlocks = support.map(function(k){
+      return '<div class="vb-stat"><div class="label-cap">' + esc(k.label) + '</div>' +
+        '<span class="stat-num">' + esc(k.value) + '</span></div>';
+    }).join('');
+
+    var timeline = d.upNext.map(function(n){
+      return '<div class="vb-node">' +
+        '<div class="vb-rail-col"><span class="vb-line"></span><span class="vb-dot' + (n.tone==='warning'?' is-warning':'') + '"></span></div>' +
+        '<div class="vb-node-body">' +
+          '<div class="vb-node-meta label-cap faint">' + esc(n.meta) + '</div>' +
+          '<p class="vb-node-title">' + esc(n.title) + '</p>' +
+          '<span class="badge tone-' + esc(n.tone) + '"><span class="dot"></span>' + esc(n.status) + '</span>' +
+        '</div></div>';
+    }).join('');
+
+    var ideas = d.ideas.map(function(i){
+      return '<div class="vb-idea accent-l" style="padding-left:18px;">' +
+        '<div class="kind label-cap brand-text">' + esc(i.kind) + '</div>' +
+        '<p class="title">' + esc(i.title) + '</p>' +
+        '<a class="vb-write" href="#" onclick="return false;">Write it <span data-icon="arrowsm" data-isz="13"></span></a>' +
+      '</div>';
+    }).join('');
+
+    var recent = d.recent.map(function(r){
+      return '<div class="list-row"><div style="min-width:0;">' +
+        '<div class="font-display" style="font-size:13.5px;font-weight:600;line-height:1.2;">' + esc(r.title) + '</div>' +
+        '<div class="faint" style="font-size:11.5px;margin-top:3px;">' + esc(r.meta) + '</div></div>' +
+        '<div class="vb-recent-metric" style="margin-left:auto;text-align:right;flex-shrink:0;">' +
+        '<div class="font-data" style="color:var(--positive);font-size:14px;font-weight:600;">' + esc(r.metric) + '</div>' +
+        '<div class="faint" style="font-size:11.5px;margin-top:2px;">' + esc(r.sub) + '</div></div>' +
+      '</div>';
+    }).join('');
+
+    return headerHTML('Email Campaigns', "What you sent, what's going out next, and what it booked.", NEW_EMAIL) +
+      '<div class="panel vb-hero' + comClass() + '" style="background:linear-gradient(135deg,' + (isCom()?'var(--ledger-tint)':'var(--brand-tint)') + ', transparent 70%);">' +
+        '<div class="vb-hero-left">' + chipHTML(d) +
+          '<div class="vb-hero-num"><span class="num hero-num grad-text">' + esc(d.headline.value) + '</span>' +
+          '<span class="unit font-display">' + esc(d.headline.unit) + '</span></div>' +
+          '<p class="vb-hero-sub">' + esc(d.headline.sub) + ' · ' + esc(d.audience) + '</p>' +
+        '</div>' +
+        '<div class="vb-hero-right">' + statBlocks + '</div>' +
+      '</div>' +
+      '<div class="vb-grid">' +
+        '<div class="panel">' +
+          '<div class="panel-header"><h3>Up next</h3><a class="see-all" href="#" data-goto="calendar">Calendar <span data-icon="arrowsm" data-isz="13"></span></a></div>' +
+          '<div class="vb-timeline">' + timeline + '</div>' +
+        '</div>' +
+        '<div class="vb-rail">' +
+          '<div class="panel"><div class="panel-header"><h3>Ideas for you</h3><a class="see-all" href="#" data-goto="ideas">See all</a></div><div>' + ideas + '</div></div>' +
+          '<div class="panel"><div class="panel-header"><h3>Recently sent</h3><a class="see-all" href="#" data-goto="insights">What\'s working <span data-icon="arrowsm" data-isz="13"></span></a></div><div>' + recent + '</div></div>' +
+          '<div class="panel vb-callout tone-' + esc(d.callout.tone) + '"><span class="vb-callout-ico" data-icon="zap" data-isz="16"></span>' +
+          '<p>' + esc(d.callout.text) + ' <strong>' + esc(d.callout.strong) + '</strong></p></div>' +
+        '</div>' +
+      '</div>';
+  }},
+
+  /* ----- IDEAS ----- */
+  ideas: { render: function(d){
+    var n = d.ideasFull.length;
+    var cards = d.ideasFull.map(function(i){
+      return '<div class="vb-idea-card">' +
+        '<div class="kind label-cap brand-text">' + esc(i.kind) + '</div>' +
+        '<p class="title">' + esc(i.title) + '</p>' +
+        '<p class="why">' + esc(i.why) + '</p>' +
+        '<a class="vb-write" href="#" onclick="return false;">Write it <span data-icon="arrowsm" data-isz="13"></span></a>' +
+      '</div>';
+    }).join('');
+
+    return headerHTML('Ideas', 'Emails worth sending, picked from what your customers are doing now.', NEW_EMAIL) +
+      '<div class="panel vb-strip' + comClass() + '" style="background:linear-gradient(135deg,' + (isCom()?'var(--ledger-tint)':'var(--brand-tint)') + ', transparent 70%);">' +
+        chipHTML(d) +
+        '<p class="vb-strip-line"><b>' + n + '</b> emails worth sending this week.</p>' +
+        '<span class="vb-strip-count grad-text" style="margin-left:auto;">' + n + '</span>' +
+      '</div>' +
+      '<div class="vb-ideas-grid">' + cards + '</div>';
+  }},
+
+  /* ----- CALENDAR ----- */
+  calendar: { render: function(d){
+    var cal = d.calendar;
+    var evBy = {};
+    cal.events.forEach(function(e){ evBy[e.dom] = e; });
+    var scheduled = cal.events.filter(function(e){ return e.status === 'Scheduled'; }).length;
+
+    var heads = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(function(x){
+      return '<div class="vb-cal-head label-cap">' + x + '</div>';
+    }).join('');
+
+    var lead = 1, days = 30, today = 29; // June 1 2026 = Monday, today = Jun 29
+    var cells = '';
+    for (var i = 0; i < lead; i++) cells += '<div class="vb-cell empty"></div>';
+    for (var dom = 1; dom <= days; dom++) {
+      var e = evBy[dom];
+      cells += '<div class="vb-cell' + (dom===today?' today':'') + '">' +
+        '<div class="dom">' + dom + '</div>' +
+        (e ? '<div class="vb-cal-chip tone-' + esc(e.tone) + '"><span class="t">' + esc(e.title) + '</span><span class="hr">' + esc(e.time) + '</span></div>' : '') +
+      '</div>';
+    }
+
+    var agenda = cal.events.map(function(e){
+      return '<div class="list-row">' +
+        '<span class="vb-dot is-' + (e.tone==='brand'?'':'neutral') + '" style="margin-top:0;"></span>' +
+        '<div style="min-width:0;"><div class="font-display" style="font-size:13.5px;font-weight:600;line-height:1.2;">' + esc(e.title) + '</div>' +
+        '<div class="faint" style="font-size:11.5px;margin-top:3px;">' + esc(cal.month.split(' ')[0]) + ' ' + e.dom + ' · ' + esc(e.time) + '</div></div>' +
+        '<span class="badge tone-' + esc(e.tone==='brand'?'brand':'neutral') + '" style="margin-left:auto;flex-shrink:0;"><span class="dot"></span>' + esc(e.status) + '</span>' +
+      '</div>';
+    }).join('');
+
+    return headerHTML('Calendar', 'Everything going out this month, at a glance.', NEW_EMAIL) +
+      '<div class="panel vb-strip' + comClass() + '" style="background:linear-gradient(135deg,' + (isCom()?'var(--ledger-tint)':'var(--brand-tint)') + ', transparent 70%);">' +
+        chipHTML(d) +
+        '<p class="vb-strip-line"><b>' + scheduled + '</b> emails scheduled in ' + esc(cal.month) + '.</p>' +
+        '<span class="vb-strip-count grad-text" style="margin-left:auto;">' + scheduled + '</span>' +
+      '</div>' +
+      '<div class="panel" style="padding:18px;">' +
+        '<div class="panel-header" style="border:none;padding:0 0 14px;"><h3>' + esc(cal.month) + '</h3></div>' +
+        '<div class="vb-cal">' + heads + cells + '</div>' +
+      '</div>' +
+      '<div class="panel" style="margin-top:18px;"><div class="panel-header"><h3>Agenda</h3></div><div>' + agenda + '</div></div>';
+  }},
+
+  /* ----- CAMPAIGNS ----- */
+  campaigns: { render: function(d){
+    var total = d.campaigns.length;
+    var by = function(s){ return d.campaigns.filter(function(c){ return c.status === s; }).length; };
+    var sched = by('Scheduled'), draft = by('Draft'), sent = by('Sent');
+
+    var stats =
+      '<div class="vb-stat"><div class="label-cap">Sent</div><span class="stat-num">' + sent + '</span></div>' +
+      '<div class="vb-stat"><div class="label-cap">Scheduled</div><span class="stat-num">' + sched + '</span></div>' +
+      '<div class="vb-stat"><div class="label-cap">Drafts</div><span class="stat-num">' + draft + '</span></div>';
+
+    var rows = d.campaigns.map(function(c){
+      var done = c.status === 'Sent';
+      var dotc = c.tone==='warning' ? 'is-warning' : (c.tone==='positive' ? 'is-positive' : '');
+      var right = done
+        ? '<span class="font-data" style="color:var(--positive);font-size:14px;font-weight:600;">' + esc(c.result) + '</span>'
+        : '<span class="badge tone-' + esc(c.tone) + '"><span class="dot"></span>' + esc(c.status) + '</span>';
+      return '<div class="vb-node">' +
+        '<div class="vb-rail-col"><span class="vb-line"></span><span class="vb-dot ' + dotc + '"></span></div>' +
+        '<div class="vb-node-body" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">' +
+          '<div style="min-width:0;">' +
+            '<div class="vb-node-meta label-cap faint">' + esc(c.when) + '</div>' +
+            '<p class="vb-node-title">' + esc(c.title) + '</p>' +
+            '<div class="faint" style="font-size:12px;">To ' + esc(d.audienceWord.toLowerCase()) + '</div>' +
+          '</div>' +
+          '<div style="flex-shrink:0;text-align:right;padding-top:2px;">' + right + '</div>' +
+        '</div></div>';
+    }).join('');
+
+    return headerHTML('Campaigns', 'Every email, scheduled, drafting, or already out the door.', NEW_EMAIL) +
+      '<div class="panel vb-hero' + comClass() + '" style="background:linear-gradient(135deg,' + (isCom()?'var(--ledger-tint)':'var(--brand-tint)') + ', transparent 70%);">' +
+        '<div class="vb-hero-left">' + chipHTML(d) +
+          '<div class="vb-hero-num"><span class="num hero-num grad-text">' + total + '</span>' +
+          '<span class="unit font-display">campaigns</span></div>' +
+          '<p class="vb-hero-sub">Scheduled, drafting, and sent · ' + esc(d.audience) + '</p>' +
+        '</div>' +
+        '<div class="vb-hero-right">' + stats + '</div>' +
+      '</div>' +
+      '<div class="panel"><div class="panel-header"><h3>All campaigns</h3><a class="see-all" href="#" data-goto="calendar">Calendar <span data-icon="arrowsm" data-isz="13"></span></a></div>' +
+      '<div class="vb-timeline">' + rows + '</div></div>';
+  }},
+
+  /* ----- INSIGHTS (What's working) ----- */
+  insights: { render: function(d){
+    var brand = d.insights.summary.filter(function(s){ return s.brand; })[0];
+    var others = d.insights.summary.filter(function(s){ return !s.brand; });
+
+    var stats = others.map(function(s){
+      return '<div class="vb-stat"><div class="label-cap">' + esc(s.label) + '</div>' +
+        '<span class="stat-num">' + esc(s.value) + '</span></div>';
+    }).join('');
+
+    var nums = d.insights.topPerformers.map(function(p){ return parseInt(p.metric, 10) || 0; });
+    var max = Math.max.apply(null, nums.concat([1]));
+    var perf = d.insights.topPerformers.map(function(p){
+      var n = parseInt(p.metric, 10) || 0;
+      var w = Math.round(n / max * 100);
+      return '<div class="vb-perf' + comClass() + '">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div class="font-display" style="font-size:13.5px;font-weight:600;line-height:1.2;">' + esc(p.title) + '</div>' +
+          '<div class="faint" style="font-size:11.5px;margin-top:3px;">' + esc(p.sub) + '</div>' +
+          '<div class="vb-bar-track"><div class="vb-bar" style="width:' + w + '%;"></div></div>' +
+        '</div>' +
+        '<div class="font-data" style="color:var(--positive);font-size:14px;font-weight:600;flex-shrink:0;">' + esc(p.metric) + '</div>' +
+      '</div>';
+    }).join('');
+
+    return headerHTML("What's working", 'The emails that booked work, and what to keep doing.', NEW_EMAIL) +
+      '<div class="panel vb-hero' + comClass() + '" style="background:linear-gradient(135deg,' + (isCom()?'var(--ledger-tint)':'var(--brand-tint)') + ', transparent 70%);">' +
+        '<div class="vb-hero-left">' + chipHTML(d) +
+          '<div class="vb-hero-num"><span class="num hero-num grad-text">' + esc(brand.value) + '</span>' +
+          '<span class="unit font-display">' + esc(brand.label.toLowerCase()) + '</span></div>' +
+          '<p class="vb-hero-sub">' + esc(d.audience) + '</p>' +
+        '</div>' +
+        '<div class="vb-hero-right">' + stats + '</div>' +
+      '</div>' +
+      '<div class="panel"><div class="panel-header"><h3>Top performers</h3></div><div>' + perf + '</div></div>' +
+      '<div class="panel vb-callout tone-brand" style="margin-top:18px;"><span class="vb-callout-ico" data-icon="zap" data-isz="16"></span>' +
+      '<p><strong>' + esc(d.insights.takeaway) + '</strong></p></div>';
+  }}
+};
+
+/* ---------------- mount / routing ---------------- */
+function mount(){
+  var d = window.EMAIL_DATA[state.track];
+  document.getElementById('page').innerHTML = PAGES[state.page].render(d);
+  document.querySelectorAll('[data-page]').forEach(function(a){ a.classList.toggle('active', a.dataset.page===state.page); });
+  fillIcons(document);
+  var seg = document.getElementById('trackToggle');
+  if (seg) initSegmented(seg, function(t){ state.track = t; mount(); });
+  // in-page "see all" shortcuts
+  document.querySelectorAll('[data-goto]').forEach(function(a){
+    a.addEventListener('click', function(e){ e.preventDefault(); go(a.dataset.goto); });
+  });
+}
+function go(p){ state.page = p; mount(); }
+
+document.querySelectorAll('[data-page]').forEach(function(a){
+  a.addEventListener('click', function(e){ e.preventDefault(); go(a.dataset.page); });
+});
+
+initTheme();
+fillIcons(document);
+mount();
+</script>
+</body></html>

@@ -18,12 +18,16 @@ import {
   Mail,
   Globe,
   Share2,
+  Images,
+  UserPlus,
   FolderOpen,
   TrendingUp,
   Building2,
   Contact,
   Sparkles,
   LayoutGrid,
+  MousePointerClick,
+  Send,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -92,10 +96,42 @@ export const NAV: NavEntry[] = [
     label: "Marketing",
     icon: Megaphone,
     items: [
-      { to: "/marketing/paid-ads", label: "Paid Ads", icon: Megaphone, comingSoon: true },
-      { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
+      {
+        to: "/marketing/paid-ads",
+        label: "Paid Ads",
+        shortLabel: "Ads",
+        icon: Megaphone,
+        children: [
+          { to: "/marketing/paid-ads", label: "Overview", icon: LayoutDashboard },
+          { to: "/marketing/paid-ads/creatives", label: "Your Ads", shortLabel: "Ads", icon: Images },
+          { to: "/marketing/paid-ads/leads", label: "Leads", icon: UserPlus },
+          { to: "/marketing/paid-ads/insights", label: "What's working", shortLabel: "Results", icon: BarChart3 },
+        ],
+      },
+      {
+        to: "/marketing/reviews",
+        label: "Google Reviews",
+        shortLabel: "Reviews",
+        icon: Star,
+        children: [
+          { to: "/marketing/reviews", label: "Overview", icon: LayoutDashboard },
+          { to: "/marketing/reviews/requests", label: "Ask for Reviews", shortLabel: "Ask", icon: Send },
+          { to: "/marketing/reviews/all", label: "All Reviews", shortLabel: "Reviews", icon: MessageSquare },
+          { to: "/marketing/reviews/insights", label: "What's working", shortLabel: "Insights", icon: BarChart3 },
+        ],
+      },
       { to: "/marketing/email", label: "Email Campaigns", shortLabel: "Email", icon: Mail, comingSoon: true },
-      { to: "/marketing/website", label: "Website", icon: Globe, comingSoon: true },
+      {
+        to: "/marketing/website",
+        label: "Website",
+        icon: Globe,
+        children: [
+          { to: "/marketing/website", label: "Overview", icon: LayoutDashboard },
+          { to: "/marketing/website/pages", label: "Pages", icon: LayoutGrid },
+          { to: "/marketing/website/request", label: "Request a Change", shortLabel: "Requests", icon: MousePointerClick },
+          { to: "/marketing/website/insights", label: "What's working", shortLabel: "Insights", icon: BarChart3 },
+        ],
+      },
       {
         to: "/marketing/social",
         label: "Social Media",

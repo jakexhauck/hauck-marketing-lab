@@ -1,0 +1,453 @@
+<!doctype html><html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Email Campaigns — Variant C (Command table)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./kit.css">
+<style>
+  /* Variant C — additive layout only, all tokens from kit.css */
+  .head-row { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:18px; }
+  .control-row { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
+  .audience-desc { display:inline-flex; align-items:center; gap:10px; }
+  .audience-desc .ad-text { font-size:13px; color:var(--text-muted); }
+
+  /* compact stat strip */
+  .stat-strip { display:flex; overflow:hidden; }
+  .stat-cell { flex:1; padding:14px 18px; border-left:1px solid var(--divider); min-width:0; }
+  .stat-cell:first-child { border-left:none; }
+  .stat-cell .sc-val { margin-top:7px; font-size:24px; }
+
+  /* command table */
+  .ctable { width:100%; border-collapse:collapse; }
+  .ctable thead th {
+    padding:11px 16px; border-bottom:1px solid var(--border); text-align:left;
+    white-space:nowrap; background:var(--surface);
+  }
+  .ctable thead th.num { text-align:right; }
+  .ctable tbody td { padding:12px 16px; border-bottom:1px solid var(--divider); vertical-align:middle; }
+  .ctable tbody tr:last-child td { border-bottom:none; }
+  .ctable tbody tr { transition:background .14s var(--ease); }
+  .ctable tbody tr:hover { background:var(--surface-2); }
+  .ctable td.num { text-align:right; white-space:nowrap; }
+  .cell-email { display:flex; align-items:center; gap:10px; min-width:0; }
+  .cell-email .mailg {
+    display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+    width:28px; height:28px; border-radius:8px; background:var(--brand-tint); color:var(--brand-text);
+  }
+  .cell-email .mailg svg { width:15px; height:15px; }
+  .email-title { font-family:var(--font-display); font-size:14px; font-weight:600; letter-spacing:-0.02em; color:var(--text); line-height:1.25; }
+  .aud-word { font-size:12.5px; color:var(--text-muted); white-space:nowrap; }
+  .when-cell { font-size:12.5px; color:var(--text-muted); white-space:nowrap; }
+  .num-faint { color:var(--text-faint); }
+  .result-pos { color:var(--positive); font-weight:600; }
+
+  /* ideas grid */
+  .ideas-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .idea-card {
+    border-radius:var(--radius); border:1px solid var(--border); background:var(--surface);
+    box-shadow:var(--shadow-sm); padding:14px 14px 14px 18px;
+    transition:transform .16s var(--ease), box-shadow .16s var(--ease);
+  }
+  .idea-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); }
+  .idea-card .i-kind { margin-bottom:7px; }
+  .idea-card .i-title { font-size:14px; font-weight:600; line-height:1.32; color:var(--text); letter-spacing:-0.01em; }
+  .idea-card .i-why { font-size:12.5px; color:var(--text-muted); line-height:1.4; margin-top:6px; }
+  .idea-card .i-write { display:inline-flex; align-items:center; gap:4px; margin-top:10px; font-size:12px; font-weight:500; color:var(--brand-text); }
+  .idea-card .i-write svg { width:13px; height:13px; }
+
+  /* callout banner */
+  .callout {
+    display:flex; align-items:center; gap:12px; margin-top:14px; padding:13px 18px;
+    border-radius:var(--radius); border:1px solid var(--border); font-size:13.5px; color:var(--text);
+  }
+  .callout .c-ico { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:30px; height:30px; border-radius:8px; }
+  .callout .c-ico svg { width:16px; height:16px; }
+  .callout.tone-warning { background:var(--warning-tint); border-color:color-mix(in srgb, var(--warning) 26%, transparent); }
+  .callout.tone-warning .c-ico { background:var(--warning); color:#fff; }
+  .callout.tone-brand { background:var(--brand-tint); border-color:color-mix(in srgb, var(--brand) 26%, transparent); }
+  .callout.tone-brand .c-ico { background-image:var(--grad-brand); color:#fff; }
+  .callout.tone-positive { background:var(--positive-tint); border-color:color-mix(in srgb, var(--positive) 26%, transparent); }
+  .callout.tone-positive .c-ico { background:var(--positive); color:#fff; }
+  .section-cap { margin:26px 0 12px; }
+
+  /* filter chips (campaigns page) */
+  .fchips { display:flex; gap:8px; }
+  .fchip {
+    height:30px; padding:0 14px; border-radius:999px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text-muted); font-size:12.5px; font-weight:500;
+    font-family:var(--font-body); cursor:pointer; display:inline-flex; align-items:center;
+    transition:background .14s var(--ease), color .14s, border-color .14s;
+  }
+  .fchip:hover { background:var(--surface-2); color:var(--text); }
+  .fchip.active { background-image:var(--grad-brand); color:#fff; border-color:transparent; box-shadow:var(--shadow-brand); }
+
+  /* calendar (calendar page) */
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:var(--surface); }
+  .cal-wh { padding:9px 10px; background:var(--surface-2); border-left:1px solid var(--divider); color:var(--text-muted); }
+  .cal-wh:nth-child(1) { border-left:none; }
+  .cal-cell { min-height:84px; padding:6px 7px; border-left:1px solid var(--divider); border-top:1px solid var(--divider); position:relative; }
+  .cal-cell:nth-child(7n+1) { border-left:none; }
+  .cal-empty { background:var(--surface-2); opacity:.45; }
+  .cal-day-num { font-family:var(--font-mono); font-size:12px; color:var(--text-faint); margin-bottom:5px; }
+  .cal-today { background:var(--brand-tint); box-shadow:inset 0 0 0 1.5px var(--brand); }
+  .cal-today .cal-day-num { color:var(--brand-text); font-weight:700; }
+  .cal-ev { display:flex; flex-direction:column; gap:1px; border-radius:6px; padding:4px 7px; line-height:1.25; overflow:hidden; }
+  .cal-ev-t { font-size:10.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cal-ev-time { font-size:9.5px; opacity:.8; }
+
+  /* row-bars (insights page) */
+  .perf-row { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(110px,1fr) auto; align-items:center; gap:18px; padding:14px 16px; border-bottom:1px solid var(--divider); }
+  .perf-row:last-child { border-bottom:none; }
+  .perf-title { font-family:var(--font-display); font-size:14px; font-weight:600; letter-spacing:-0.02em; color:var(--text); }
+  .perf-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+  .perf-track { height:9px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
+  .perf-fill { height:100%; border-radius:999px; background-image:var(--grad-brand); transition:width .4s var(--ease); }
+  .perf-metric { font-size:14px; white-space:nowrap; text-align:right; }
+
+  @media (max-width:760px){
+    .stat-strip { flex-wrap:wrap; }
+    .stat-cell { flex:1 0 50%; border-left:none; border-top:1px solid var(--divider); }
+    .stat-cell:first-child, .stat-cell:nth-child(2) { border-top:none; }
+    .ideas-grid { grid-template-columns:1fr; }
+    .ctable thead th.hide-sm, .ctable td.hide-sm { display:none; }
+    .perf-row { grid-template-columns:1fr auto; }
+    .perf-track { display:none; }
+  }
+</style>
+</head><body>
+<div class="app">
+  <aside class="sidebar glass">
+    <!-- brand mark -->
+    <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 16px;">
+      <span class="brandmark">WP</span>
+      <div style="min-width:0;">
+        <div class="font-display" style="font-size:15px;font-weight:600;line-height:1.1;">Willis Plumbing</div>
+        <div class="faint" style="font-size:11px;">Plumbing &amp; HVAC</div>
+      </div>
+    </div>
+
+    <!-- top zone: Home + section buttons -->
+    <nav style="padding:4px 12px;">
+      <a class="nav-row" href="#" data-icon="home">Home</a>
+      <button class="nav-row open" data-icon="megaphone">Marketing</button>
+      <button class="nav-row" data-icon="trending">Sales</button>
+      <button class="nav-row" data-icon="users">Customers</button>
+      <button class="nav-row" data-icon="building">Operations</button>
+    </nav>
+
+    <!-- lower zone: the open section's (Marketing) pages -->
+    <div style="padding:6px 12px;border-top:1px solid var(--divider);margin-top:6px;">
+      <a class="nav-row" href="#" data-icon="megaphone">Paid Ads</a>
+      <a class="nav-row" href="#" data-icon="star">Google Reviews</a>
+
+      <!-- Email Campaigns: expandable group (expanded) -->
+      <button class="nav-row open" data-icon="mail" style="justify-content:flex-start;">
+        <span style="flex:1;text-align:left;">Email Campaigns</span>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;transform:rotate(180deg);"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="nav-children">
+        <a class="nav-row" href="#" data-page="overview" data-icon="layout">Overview</a>
+        <a class="nav-row" href="#" data-page="ideas" data-icon="sparkles">Ideas</a>
+        <a class="nav-row" href="#" data-page="calendar" data-icon="calendar">Calendar</a>
+        <a class="nav-row" href="#" data-page="campaigns" data-icon="mail">Campaigns</a>
+        <a class="nav-row" href="#" data-page="insights" data-icon="bar">What's working</a>
+      </div>
+
+      <a class="nav-row" href="#" data-icon="globe">Website</a>
+
+      <!-- Social Media: expandable group (collapsed) -->
+      <button class="nav-row" data-icon="share" style="justify-content:flex-start;">
+        <span style="flex:1;text-align:left;">Social Media</span>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button id="themeBtn" class="btn btn-ghost btn-sm" title="Toggle theme"></button>
+      <span class="brandmark" style="width:30px;height:30px;font-size:11px;">JW</span>
+    </div>
+    <div class="container" id="page"></div>
+  </main>
+</div>
+<script src="./data.js"></script>
+<script>
+function fillIcons(root){ (root||document).querySelectorAll('[data-icon]').forEach(el=>{ if(!el.dataset.done){ el.insertAdjacentHTML('afterbegin', window.icon(el.dataset.icon, el.dataset.isz?+el.dataset.isz:17)); el.dataset.done=1; }});}
+function initSegmented(seg,onChange){const pill=seg.querySelector('.pill');const btns=[...seg.querySelectorAll('button')];function move(b){pill.style.left=b.offsetLeft+'px';pill.style.width=b.offsetWidth+'px';}btns.forEach(b=>b.addEventListener('click',()=>{btns.forEach(x=>x.classList.remove('active'));b.classList.add('active');move(b);onChange(b.dataset.track);}));requestAnimationFrame(()=>move(seg.querySelector('button.active')));}
+function initTheme(){const b=document.getElementById('themeBtn');const set=t=>{document.documentElement.dataset.theme=t;b.innerHTML=window.icon('sun',16)+'<span style="margin-left:2px">'+(t==='dark'?'Light':'Dark')+'</span>';};b.onclick=()=>set(document.documentElement.dataset.theme==='dark'?'light':'dark');set('light');}
+
+/* ---- helpers ---- */
+function esc(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function audWord(track){ return track==='customers' ? 'Customers' : 'Prospects'; }
+function parseCount(frag){ const m=(frag||'').match(/[\d,]+/); return m?m[0]:'—'; }
+function parseOpened(sub){ const m=(sub||'').match(/\d+%/); return m?m[0]:null; }
+function parseNum(s){ const m=(s||'').replace(/,/g,'').match(/[\d.]+/); return m?parseFloat(m[0]):0; }
+
+/* shared chrome: header + track-toggle control row (appears on every page) */
+function trackToggleHTML(){
+  return '<div class="segmented" id="trackToggle"><span class="pill"></span>'+
+    '<button data-track="customers" class="'+(state.track==='customers'?'active':'')+'">Customers</button>'+
+    '<button data-track="commercial" class="'+(state.track==='commercial'?'active':'')+'">Commercial Outreach</button></div>';
+}
+function pageChrome(title, desc, d){
+  const commercial = state.track==='commercial';
+  return ''+
+    '<div class="head-row">'+
+      '<div>'+
+        '<h2 class="page-title">'+esc(title)+'</h2>'+
+        '<p class="page-desc">'+esc(desc)+'</p>'+
+      '</div>'+
+      '<button class="btn btn-primary" data-icon="plus" data-isz="16">New email</button>'+
+    '</div>'+
+    '<div class="control-row">'+
+      trackToggleHTML()+
+      '<div class="audience-desc">'+
+        '<span class="ad-text">'+esc(d.audience)+'</span>'+
+        '<span class="audience-chip'+(commercial?' commercial':'')+'">'+
+          window.icon(commercial?'building':'users',14)+'<span>'+esc(d.audienceChip)+'</span>'+
+        '</span>'+
+      '</div>'+
+    '</div>';
+}
+
+function statStripHTML(items){
+  return '<div class="panel" style="margin-bottom:18px;"><div class="stat-strip">'+
+    items.map(k=>
+      '<div class="stat-cell">'+
+        '<div class="label-cap">'+esc(k.label)+'</div>'+
+        '<div class="sc-val stat-num'+(k.brand?' brand-text':'')+'">'+esc(k.value)+'</div>'+
+      '</div>'
+    ).join('')+
+  '</div></div>';
+}
+
+/* ---------- OVERVIEW (kept intact: stat strip + merged table + ideas + callout) ---------- */
+function overviewTable(d){
+  const word = audWord(state.track);
+  let rows = '';
+  d.upNext.forEach(u => {
+    const when = (u.meta || '').split('·')[0].trim();
+    rows +=
+      '<tr>'+
+        '<td><div class="cell-email"><span class="mailg">'+window.icon('mail',15)+'</span>'+
+          '<span class="email-title">'+esc(u.title)+'</span></div></td>'+
+        '<td class="hide-sm"><span class="aud-word">'+esc(word)+'</span></td>'+
+        '<td class="hide-sm"><span class="when-cell">'+esc(when)+'</span></td>'+
+        '<td class="num font-data num-faint">—</td>'+
+        '<td class="num font-data num-faint hide-sm">—</td>'+
+        '<td class="num font-data num-faint">—</td>'+
+        '<td><span class="badge tone-'+esc(u.tone)+'"><span class="dot"></span>'+esc(u.status)+'</span></td>'+
+      '</tr>';
+  });
+  d.recent.forEach(r => {
+    const parts = (r.meta || '').split('·').map(s => s.trim());
+    const when = parts[0] || '';
+    const sent = parseCount(parts[1] || '');
+    const opened = parseOpened(r.sub);
+    rows +=
+      '<tr>'+
+        '<td><div class="cell-email"><span class="mailg">'+window.icon('mail',15)+'</span>'+
+          '<span class="email-title">'+esc(r.title)+'</span></div></td>'+
+        '<td class="hide-sm"><span class="aud-word">'+esc(word)+'</span></td>'+
+        '<td class="hide-sm"><span class="when-cell">'+esc(when)+'</span></td>'+
+        '<td class="num font-data">'+esc(sent)+'</td>'+
+        '<td class="num font-data hide-sm">'+(opened ? esc(opened) : '<span class="num-faint">—</span>')+'</td>'+
+        '<td class="num font-data result-pos">'+esc(r.metric)+'</td>'+
+        '<td><span class="badge tone-positive"><span class="dot"></span>Sent</span></td>'+
+      '</tr>';
+  });
+  return ''+
+    '<div class="panel">'+
+      '<div class="panel-header"><h3>Campaigns</h3>'+
+        '<a class="see-all" href="#" data-page-link="campaigns">See all <span data-icon="arrowsm" data-isz="13"></span></a></div>'+
+      '<div style="overflow-x:auto;"><table class="ctable"><thead><tr>'+
+        '<th class="label-cap">Email</th>'+
+        '<th class="label-cap hide-sm">Audience</th>'+
+        '<th class="label-cap hide-sm">When</th>'+
+        '<th class="label-cap num">Sent</th>'+
+        '<th class="label-cap num hide-sm">Opened</th>'+
+        '<th class="label-cap num">Result</th>'+
+        '<th class="label-cap">Status</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '</div>';
+}
+function overviewIdeas(d){
+  const cards = d.ideas.map(i =>
+    '<div class="idea-card accent-l">'+
+      '<div class="i-kind label-cap brand-text">'+esc(i.kind)+'</div>'+
+      '<div class="i-title">'+esc(i.title)+'</div>'+
+      '<span class="i-write">Write it '+window.icon('arrowsm',13)+'</span>'+
+    '</div>'
+  ).join('');
+  return ''+
+    '<div class="head-row section-cap" style="margin-bottom:12px;">'+
+      '<div><div class="label-cap">Worth a send</div>'+
+      '<h3 class="font-display" style="font-size:17px;font-weight:600;margin:4px 0 0;letter-spacing:-0.02em;">Ideas</h3></div>'+
+    '</div>'+
+    '<div class="ideas-grid">'+cards+'</div>'+
+    '<div class="callout tone-'+esc(d.callout.tone)+'">'+
+      '<span class="c-ico">'+window.icon('zap',16)+'</span>'+
+      '<span><span class="muted">'+esc(d.callout.text)+'</span> <strong>'+esc(d.callout.strong)+'</strong></span>'+
+    '</div>';
+}
+
+/* ---------- IDEAS ---------- */
+function ideasPage(d){
+  const cards = d.ideasFull.map(i =>
+    '<div class="idea-card accent-l">'+
+      '<div class="i-kind label-cap brand-text">'+esc(i.kind)+'</div>'+
+      '<div class="i-title">'+esc(i.title)+'</div>'+
+      '<div class="i-why">'+esc(i.why)+'</div>'+
+      '<span class="i-write">Write it '+window.icon('arrowsm',13)+'</span>'+
+    '</div>'
+  ).join('');
+  return '<div class="ideas-grid">'+cards+'</div>';
+}
+
+/* ---------- CALENDAR ---------- */
+function calendarPage(d){
+  const cal = d.calendar, today = 29, lead = 1, days = 30;
+  const evMap = {}; cal.events.forEach(e => evMap[e.dom] = e);
+  const wk = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let cells = wk.map(w => '<div class="cal-wh label-cap">'+w+'</div>').join('');
+  for (let i=0;i<lead;i++) cells += '<div class="cal-cell cal-empty"></div>';
+  for (let dom=1; dom<=days; dom++){
+    const e = evMap[dom];
+    cells +=
+      '<div class="cal-cell'+(dom===today?' cal-today':'')+'">'+
+        '<div class="cal-day-num">'+dom+'</div>'+
+        (e ? '<div class="cal-ev tone-'+esc(e.tone)+'">'+
+               '<span class="cal-ev-t">'+esc(e.title)+'</span>'+
+               '<span class="cal-ev-time">'+esc(e.time)+'</span></div>' : '')+
+      '</div>';
+  }
+  const word = audWord(state.track);
+  const agenda = cal.events.map(e =>
+    '<tr>'+
+      '<td class="when-cell">Jun '+e.dom+'</td>'+
+      '<td><div class="cell-email"><span class="mailg">'+window.icon('mail',15)+'</span>'+
+        '<span class="email-title">'+esc(e.title)+'</span></div></td>'+
+      '<td class="when-cell">'+esc(e.time)+'</td>'+
+      '<td><span class="aud-word">'+esc(word)+'</span></td>'+
+      '<td><span class="badge tone-'+esc(e.tone)+'"><span class="dot"></span>'+esc(e.status)+'</span></td>'+
+    '</tr>'
+  ).join('');
+  return ''+
+    '<div class="panel" style="padding:14px;margin-bottom:18px;">'+
+      '<div class="cal-grid">'+cells+'</div>'+
+    '</div>'+
+    '<div class="panel">'+
+      '<div class="panel-header"><h3>'+esc(cal.month)+' agenda</h3></div>'+
+      '<div style="overflow-x:auto;"><table class="ctable"><thead><tr>'+
+        '<th class="label-cap">Date</th>'+
+        '<th class="label-cap">Email</th>'+
+        '<th class="label-cap">Time</th>'+
+        '<th class="label-cap hide-sm">Audience</th>'+
+        '<th class="label-cap">Status</th>'+
+      '</tr></thead><tbody>'+agenda+'</tbody></table></div>'+
+    '</div>';
+}
+
+/* ---------- CAMPAIGNS (signature operational table) ---------- */
+let campaignFilter = 'all';
+function setCampaignFilter(f){ campaignFilter = f; mount(); }
+function campaignsPage(d){
+  const word = audWord(state.track);
+  let rows = d.campaigns;
+  if (campaignFilter === 'scheduled') rows = rows.filter(r => r.status !== 'Sent');
+  else if (campaignFilter === 'sent') rows = rows.filter(r => r.status === 'Sent');
+
+  const body = rows.map(r => {
+    const sentCell = r.sent === '—' ? '<span class="num-faint">—</span>' : esc(r.sent);
+    const openCell = r.opened === '—' ? '<span class="num-faint">—</span>' : esc(r.opened);
+    const resCell  = r.result === '—' ? '<span class="num-faint">—</span>' : '<span class="result-pos">'+esc(r.result)+'</span>';
+    return '<tr>'+
+      '<td><div class="cell-email"><span class="mailg">'+window.icon('mail',15)+'</span>'+
+        '<span class="email-title">'+esc(r.title)+'</span></div></td>'+
+      '<td class="hide-sm"><span class="aud-word">'+esc(word)+'</span></td>'+
+      '<td class="hide-sm"><span class="when-cell">'+esc(r.when)+'</span></td>'+
+      '<td class="num font-data">'+sentCell+'</td>'+
+      '<td class="num font-data hide-sm">'+openCell+'</td>'+
+      '<td class="num font-data">'+resCell+'</td>'+
+      '<td><span class="badge tone-'+esc(r.tone)+'"><span class="dot"></span>'+esc(r.status)+'</span></td>'+
+    '</tr>';
+  }).join('');
+
+  const chip = (key,label) => '<button class="fchip'+(campaignFilter===key?' active':'')+'" onclick="setCampaignFilter(\''+key+'\')">'+label+'</button>';
+
+  return ''+
+    '<div class="control-row" style="margin-bottom:14px;">'+
+      '<div class="fchips">'+chip('all','All')+chip('scheduled','Scheduled')+chip('sent','Sent')+'</div>'+
+      '<span class="ad-text" style="font-size:13px;color:var(--text-muted);">'+rows.length+' of '+d.campaigns.length+' emails</span>'+
+    '</div>'+
+    '<div class="panel"><div style="overflow-x:auto;"><table class="ctable"><thead><tr>'+
+      '<th class="label-cap">Email</th>'+
+      '<th class="label-cap hide-sm">Audience</th>'+
+      '<th class="label-cap hide-sm">When</th>'+
+      '<th class="label-cap num">Sent</th>'+
+      '<th class="label-cap num hide-sm">Opened</th>'+
+      '<th class="label-cap num">Result</th>'+
+      '<th class="label-cap">Status</th>'+
+    '</tr></thead><tbody>'+(body || '<tr><td colspan="7" class="muted" style="text-align:center;padding:26px;">No emails match this filter.</td></tr>')+'</tbody></table></div></div>';
+}
+
+/* ---------- INSIGHTS (what's working) ---------- */
+function insightsPage(d){
+  const ins = d.insights;
+  const max = Math.max.apply(null, ins.topPerformers.map(p => parseNum(p.metric))) || 1;
+  const bars = ins.topPerformers.map(p => {
+    const w = Math.max(8, Math.round(parseNum(p.metric) / max * 100));
+    return '<div class="perf-row">'+
+      '<div><div class="perf-title">'+esc(p.title)+'</div><div class="perf-sub">'+esc(p.sub)+'</div></div>'+
+      '<div class="perf-track"><div class="perf-fill" style="width:'+w+'%"></div></div>'+
+      '<div class="perf-metric font-data result-pos">'+esc(p.metric)+'</div>'+
+    '</div>';
+  }).join('');
+  return ''+
+    statStripHTML(ins.summary)+
+    '<div class="panel">'+
+      '<div class="panel-header"><h3>Top performers</h3>'+
+        '<span class="label-cap">Result per email</span></div>'+
+      bars+
+    '</div>'+
+    '<div class="callout tone-positive" style="margin-top:18px;">'+
+      '<span class="c-ico">'+window.icon('zap',16)+'</span>'+
+      '<span>'+esc(ins.takeaway)+'</span>'+
+    '</div>';
+}
+
+/* ---------- router ---------- */
+const PAGES = {
+  overview: { title:'Email Campaigns', desc:"Everything going out and how it's doing, in one place.",
+              body:d => statStripHTML(d.kpis) + overviewTable(d) + overviewIdeas(d) },
+  ideas:    { title:'Ideas', desc:'Emails worth sending, picked for you.', body:ideasPage },
+  calendar: { title:'Calendar', desc:"What's going out, and when.", body:calendarPage },
+  campaigns:{ title:'Campaigns', desc:"Everything you've sent and scheduled.", body:campaignsPage },
+  insights: { title:"What's working", desc:'Which emails turned into real work.', body:insightsPage },
+};
+
+const state = { page:'overview', track:'customers' };
+
+function mount(){
+  const d = window.EMAIL_DATA[state.track];
+  const p = PAGES[state.page];
+  document.getElementById('page').innerHTML = pageChrome(p.title, p.desc, d) + p.body(d);
+  document.querySelectorAll('[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === state.page));
+  fillIcons(document);
+  const seg = document.getElementById('trackToggle');
+  if (seg) initSegmented(seg, t => { state.track = t; mount(); });
+  // in-page "See all" links that jump to a page
+  document.querySelectorAll('[data-page-link]').forEach(a =>
+    a.addEventListener('click', e => { e.preventDefault(); go(a.dataset.pageLink); }));
+}
+function go(p){ state.page = p; mount(); }
+
+document.querySelectorAll('[data-page]').forEach(a =>
+  a.addEventListener('click', e => { e.preventDefault(); go(a.dataset.page); }));
+
+initTheme();
+fillIcons();
+mount();
+</script>
+</body></html>

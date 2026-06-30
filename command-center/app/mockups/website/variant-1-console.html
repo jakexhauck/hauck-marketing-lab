@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Website · Rivertown Plumbing & Heating</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#f6f7fb; --surface:#fff; --surface-2:#f1f3f9; --surface-3:#e9ebf3;
+  --text:#14161f; --text-muted:#555a6b; --text-faint:#8a90a3;
+  --border:#e7e9f1; --border-strong:#d4d8e6; --divider:#f1f3f9;
+  --brand:#4f46e5; --brand-2:#7c73f0; --brand-tint:#eceaff; --brand-text:#4f46e5; --brand-fg:#fff;
+  --grad-brand:linear-gradient(135deg,#4f46e5 0%,#7c73f0 100%);
+  --positive:#16a34a; --positive-tint:rgba(22,163,74,.12);
+  --warning:#d97706; --warning-tint:rgba(217,119,6,.14);
+  --danger:#dc2626; --danger-tint:rgba(220,38,38,.12);
+  --font-display:"Poppins",sans-serif; --font-body:"Inter",sans-serif;
+  --radius:10px; --radius-lg:14px; --radius-sm:8px;
+  --shadow-sm:0 1px 2px rgba(20,22,31,.04),0 1px 3px rgba(20,22,31,.05);
+  --shadow-md:0 6px 18px rgba(40,42,70,.07),0 2px 6px rgba(40,42,70,.05);
+  --shadow-brand:0 8px 22px rgba(79,70,229,.28);
+}
+[data-theme="dark"]{--bg:#0c0d14;--surface:#15161f;--surface-2:#1c1d28;--surface-3:#232536;--text:#f4f4fb;--text-muted:#a8adc0;--text-faint:#6b7088;--border:#262837;--border-strong:#34374a;--divider:#20222e;--brand-tint:#1e1b3a;}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  min-height:100vh;
+}
+h1,h2,h3,h4{font-family:var(--font-display);letter-spacing:-0.025em;color:var(--text);}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+.tnum{font-variant-numeric:tabular-nums;}
+.label-cap{text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:10.5px;color:var(--text-muted);}
+
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px;}
+
+/* ---------- SIDEBAR ---------- */
+.sidebar{
+  width:244px;
+  flex-shrink:0;
+  position:sticky;
+  top:0;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  background:rgba(255,255,255,.7);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  border-right:1px solid var(--border);
+}
+[data-theme="dark"] .sidebar{background:rgba(21,22,31,.7);}
+.sb-brand{
+  display:flex;align-items:center;gap:10px;
+  padding:18px 16px 16px;
+}
+.sb-mark{
+  width:34px;height:34px;border-radius:10px;
+  background:var(--grad-brand);
+  box-shadow:var(--shadow-brand);
+  color:#fff;font-family:var(--font-display);font-weight:700;font-size:14px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.sb-brand-name{font-family:var(--font-display);font-weight:600;font-size:15px;line-height:1.15;}
+.sb-brand-sub{font-size:11px;color:var(--text-faint);line-height:1.2;}
+
+.sb-scroll{flex:1;overflow-y:auto;padding:4px 12px 12px;}
+.sb-row{
+  display:flex;align-items:center;gap:10px;
+  width:100%;text-align:left;
+  padding:8px 10px;border-radius:var(--radius-sm);
+  font-size:13.5px;font-weight:500;color:var(--text-muted);
+  margin-bottom:2px;transition:background .15s,color .15s;
+}
+.sb-row svg{width:17px;height:17px;opacity:.8;flex-shrink:0;}
+.sb-row:hover{background:var(--surface-2);color:var(--text);}
+.sb-row.active{background:var(--grad-brand);color:#fff;box-shadow:var(--shadow-brand);}
+.sb-row.active svg{opacity:1;}
+.sb-row .chev{margin-left:auto;width:14px;height:14px;transition:transform .2s;opacity:.7;}
+.sb-row.open .chev{transform:rotate(90deg);}
+
+.sb-group-label{padding:14px 10px 6px;}
+.sb-children{
+  margin:2px 0 6px 20px;
+  padding-left:12px;
+  border-left:1px solid var(--border-strong);
+  display:flex;flex-direction:column;gap:1px;
+}
+.sb-child{
+  text-align:left;width:100%;
+  padding:6px 10px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:500;color:var(--text-muted);
+  transition:background .15s,color .15s;
+}
+.sb-child:hover{background:var(--surface-2);color:var(--text);}
+.sb-child.active{background:var(--brand-tint);color:var(--brand-text);font-weight:600;}
+
+.sb-footer{padding:10px 12px;border-top:1px solid var(--border);}
+
+/* ---------- MAIN ---------- */
+.main{flex:1;min-width:0;overflow-x:hidden;}
+.main-inner{max-width:1024px;margin:0 auto;padding:20px 32px 64px;}
+.topbar{display:flex;justify-content:flex-end;padding-bottom:4px;}
+.theme-toggle{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 12px;border-radius:999px;
+  border:1px solid var(--border);background:var(--surface);
+  font-size:12.5px;font-weight:500;color:var(--text-muted);
+  box-shadow:var(--shadow-sm);
+}
+.theme-toggle:hover{border-color:var(--border-strong);color:var(--text);}
+.theme-toggle svg{width:15px;height:15px;}
+
+/* ---------- PAGE HEADER ---------- */
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:14px 0 24px;flex-wrap:wrap;}
+.page-head h2{font-size:22px;font-weight:600;}
+.page-head .sub{color:var(--text-muted);font-size:13.5px;margin-top:3px;max-width:520px;}
+.head-actions{display:flex;gap:10px;flex-shrink:0;}
+
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 15px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:600;
+  transition:transform .12s,box-shadow .15s,background .15s,border-color .15s;
+}
+.btn svg{width:15px;height:15px;}
+.btn-primary{background:var(--grad-brand);color:#fff;box-shadow:var(--shadow-brand);}
+.btn-primary:hover{transform:translateY(-1px);}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border-strong);box-shadow:var(--shadow-sm);}
+.btn-secondary:hover{background:var(--surface-2);}
+.btn-sm{padding:7px 12px;font-size:12.5px;}
+
+/* ---------- CARDS / PANELS ---------- */
+.panel{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);
+  padding:18px;
+}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.panel-head h3{font-size:14.5px;font-weight:600;}
+.panel-head .link{font-size:12.5px;font-weight:600;color:var(--brand-text);display:inline-flex;align-items:center;gap:3px;}
+.panel-head .link:hover{text-decoration:underline;}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.kpi{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);
+  padding:16px 16px 18px;
+}
+.kpi .label-cap{display:block;margin-bottom:10px;}
+.kpi .num{font-family:var(--font-display);font-weight:700;font-size:28px;line-height:1;letter-spacing:-0.03em;}
+.kpi .num .unit{font-size:16px;font-weight:600;color:var(--text-muted);}
+.kpi .foot{font-size:12px;color:var(--text-faint);margin-top:7px;}
+
+.two-col{display:grid;grid-template-columns:2fr 1fr;gap:18px;align-items:start;}
+.stack{display:flex;flex-direction:column;gap:18px;}
+
+/* ---------- BROWSER CHROME ---------- */
+.browser{border:1px solid var(--border-strong);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-sm);}
+.browser-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface-2);border-bottom:1px solid var(--border);}
+.dots{display:flex;gap:5px;}
+.dots span{width:9px;height:9px;border-radius:50%;background:var(--border-strong);}
+.dots span:nth-child(1){background:#f0625a;}
+.dots span:nth-child(2){background:#f5bf4f;}
+.dots span:nth-child(3){background:#5dc466;}
+.url{
+  flex:1;background:var(--surface);border:1px solid var(--border);
+  border-radius:999px;padding:4px 12px;font-size:11.5px;color:var(--text-muted);
+  display:flex;align-items:center;gap:6px;
+}
+.url svg{width:11px;height:11px;opacity:.7;}
+
+/* ---------- RENDERED HOMEPAGE MOCK ---------- */
+.site{font-family:var(--font-body);}
+.site-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);}
+.site-logo{font-family:var(--font-display);font-weight:700;font-size:13px;color:#0d2b4e;}
+[data-theme="dark"] .site-logo{color:#9fc2ff;}
+.site-nav-links{display:flex;gap:14px;font-size:10.5px;color:var(--text-muted);}
+.site-hero{
+  padding:30px 22px;
+  background:linear-gradient(135deg,#0d2b4e 0%,#19518a 100%);
+  color:#fff;
+}
+.site-hero h4{color:#fff;font-size:21px;font-weight:700;line-height:1.18;max-width:330px;letter-spacing:-0.02em;}
+.site-hero p{color:rgba(255,255,255,.82);font-size:11.5px;margin-top:9px;max-width:320px;}
+.site-hero .cta{display:inline-block;margin-top:14px;background:#f5bf4f;color:#14161f;font-weight:700;font-size:11.5px;padding:8px 16px;border-radius:7px;}
+.site-services{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:18px 22px;}
+.svc{border:1px solid var(--border);border-radius:9px;padding:12px;background:var(--surface);}
+.svc .ic{width:26px;height:26px;border-radius:7px;background:var(--brand-tint);display:flex;align-items:center;justify-content:center;margin-bottom:8px;}
+.svc .ic svg{width:15px;height:15px;color:var(--brand-text);}
+.svc h5{font-family:var(--font-display);font-size:11.5px;font-weight:600;margin-bottom:3px;}
+.svc p{font-size:10px;color:var(--text-faint);line-height:1.4;}
+.site-foot{padding:14px 22px;background:var(--surface-2);border-top:1px solid var(--border);font-size:10px;color:var(--text-faint);display:flex;justify-content:space-between;}
+
+/* ---------- BARS / LISTS ---------- */
+.row-list{display:flex;flex-direction:column;gap:13px;}
+.bar-row{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;}
+.bar-row .nm{font-size:13px;font-weight:500;}
+.bar-row .vl{font-size:12.5px;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.bar-track{grid-column:1 / -1;height:6px;border-radius:999px;background:var(--surface-3);overflow:hidden;}
+.bar-fill{height:100%;border-radius:999px;background:var(--grad-brand);}
+.bar-fill.muted{background:var(--border-strong);}
+
+.src-row{display:flex;align-items:center;gap:12px;}
+.src-row .dot{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+.src-row .nm{font-size:13px;font-weight:500;width:64px;flex-shrink:0;}
+.src-row .track{flex:1;height:7px;border-radius:999px;background:var(--surface-3);overflow:hidden;}
+.src-row .fill{height:100%;border-radius:999px;}
+.src-row .pct{font-size:12.5px;color:var(--text-muted);width:34px;text-align:right;font-variant-numeric:tabular-nums;}
+
+/* ---------- PILLS ---------- */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+.pill.pos{background:var(--positive-tint);color:var(--positive);}
+.pill.warn{background:var(--warning-tint);color:var(--warning);}
+.pill.neutral{background:var(--surface-3);color:var(--text-muted);}
+.pill.plain{padding:3px 9px;}
+.pill.plain::before{display:none;}
+
+/* ---------- INSIGHT LINE ---------- */
+.insight-line{
+  display:flex;align-items:flex-start;gap:10px;
+  margin-top:20px;padding:14px 16px;
+  background:var(--brand-tint);border:1px solid var(--border);
+  border-radius:var(--radius);font-size:13px;color:var(--text);
+}
+.insight-line svg{width:17px;height:17px;color:var(--brand-text);flex-shrink:0;margin-top:1px;}
+
+/* open requests mini */
+.req-mini{display:flex;flex-direction:column;gap:10px;}
+.req-mini-item{display:flex;align-items:flex-start;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--divider);}
+.req-mini-item:last-child{border-bottom:none;padding-bottom:0;}
+.req-mini-num{width:22px;height:22px;border-radius:50%;background:var(--grad-brand);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.req-mini-item .tx{font-size:12.5px;line-height:1.35;flex:1;}
+.big-count{font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:-0.03em;}
+
+/* ---------- PAGES GRID ---------- */
+.pages-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.page-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);
+  overflow:hidden;transition:transform .15s,box-shadow .15s;
+}
+.page-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.page-thumb{height:104px;border-bottom:1px solid var(--border);overflow:hidden;position:relative;}
+.page-card-body{padding:14px 15px 15px;}
+.page-card-body .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.page-card-body h3{font-family:var(--font-display);font-size:16px;font-weight:600;}
+.page-meta{display:flex;gap:14px;font-size:11.5px;color:var(--text-faint);margin-bottom:12px;}
+.page-meta b{color:var(--text-muted);font-weight:600;}
+.req-link{font-size:12.5px;font-weight:600;color:var(--brand-text);display:inline-flex;align-items:center;gap:4px;}
+.req-link:hover{gap:7px;}
+.req-link svg{width:13px;height:13px;transition:transform .15s;}
+
+/* mini thumbs */
+.th{width:100%;height:100%;display:flex;flex-direction:column;}
+.th-hero{flex:1;background:linear-gradient(135deg,#0d2b4e 0%,#19518a 100%);padding:12px 14px;display:flex;flex-direction:column;justify-content:center;}
+.th-hero .l1{height:7px;width:62%;background:rgba(255,255,255,.85);border-radius:3px;margin-bottom:5px;}
+.th-hero .l2{height:5px;width:40%;background:rgba(255,255,255,.4);border-radius:3px;margin-bottom:9px;}
+.th-hero .b{height:13px;width:54px;background:#f5bf4f;border-radius:4px;}
+.th-rows{padding:9px 14px;display:flex;gap:6px;}
+.th-rows .c{flex:1;height:24px;background:var(--surface-2);border:1px solid var(--border);border-radius:5px;}
+.th-list{padding:11px 14px;display:flex;flex-direction:column;gap:6px;justify-content:center;flex:1;}
+.th-list .r{height:8px;background:var(--surface-3);border-radius:3px;}
+.th-list .r:nth-child(2){width:80%;}
+.th-list .r:nth-child(3){width:65%;}
+
+/* ---------- REQUEST A CHANGE ---------- */
+.rc-layout{display:grid;grid-template-columns:2fr 1fr;gap:18px;align-items:start;}
+.canvas-wrap{position:relative;}
+.dm-toggle{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:3px;}
+.dm-toggle button{padding:4px 12px;border-radius:999px;font-size:11.5px;font-weight:600;color:var(--text-muted);}
+.dm-toggle button.on{background:var(--grad-brand);color:#fff;}
+
+.canvas{position:relative;cursor:crosshair;transition:max-width .25s ease;margin:0 auto;}
+.canvas.mobile{max-width:340px;}
+.canvas-hint{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  pointer-events:none;background:rgba(20,22,31,.78);color:#fff;
+  font-size:12px;font-weight:500;padding:7px 14px;border-radius:999px;
+  display:flex;align-items:center;gap:6px;opacity:.0;transition:opacity .2s;
+}
+.canvas:hover .canvas-hint{opacity:.0;}
+
+.pin{
+  position:absolute;width:26px;height:26px;border-radius:50%;
+  background:var(--grad-brand);color:#fff;
+  font-size:12px;font-weight:700;font-family:var(--font-display);
+  display:flex;align-items:center;justify-content:center;
+  transform:translate(-50%,-50%);box-shadow:0 3px 10px rgba(79,70,229,.5);
+  border:2px solid #fff;z-index:5;
+}
+.pin.pulse{animation:pinPulse 1.1s ease 2;}
+@keyframes pinPulse{0%,100%{box-shadow:0 3px 10px rgba(79,70,229,.5);}50%{box-shadow:0 0 0 9px rgba(79,70,229,.28);}}
+
+.composer{
+  position:absolute;z-index:20;width:248px;
+  background:var(--surface);border:1px solid var(--border-strong);
+  border-radius:var(--radius);box-shadow:var(--shadow-md);
+  padding:13px;transform:translate(-50%,12px);
+}
+.composer h4{font-family:var(--font-display);font-size:13px;font-weight:600;margin-bottom:8px;}
+.composer textarea{
+  width:100%;min-height:64px;resize:vertical;
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--surface-2);color:var(--text);
+  font-family:var(--font-body);font-size:12.5px;padding:9px 10px;
+}
+.composer textarea:focus{outline:2px solid var(--brand);outline-offset:0;border-color:transparent;}
+.composer-actions{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.composer-actions .cancel{font-size:12px;font-weight:600;color:var(--text-muted);}
+.composer-actions .cancel:hover{color:var(--text);}
+
+.rc-rail{display:flex;flex-direction:column;gap:12px;}
+.rc-rail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+.rc-rail-head h3{font-size:14.5px;font-weight:600;}
+.rc-rail-head .cnt{font-size:11.5px;color:var(--text-faint);}
+.req-card{
+  display:flex;gap:11px;padding:13px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);box-shadow:var(--shadow-sm);
+  text-align:left;width:100%;transition:border-color .15s,box-shadow .15s;
+}
+.req-card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-md);}
+.req-card .num{width:24px;height:24px;border-radius:50%;background:var(--grad-brand);color:#fff;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.req-card .body{flex:1;min-width:0;}
+.req-card .tx{font-size:12.5px;line-height:1.4;margin-bottom:8px;}
+.req-card .foot{display:flex;align-items:center;justify-content:space-between;}
+.req-card .ts{font-size:11px;color:var(--text-faint);}
+
+/* ---------- WHAT'S WORKING ---------- */
+.hero-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:22px;margin-bottom:18px;}
+.hero-stat .top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+.hero-stat .big{font-family:var(--font-display);font-weight:700;font-size:34px;letter-spacing:-0.03em;line-height:1;}
+.hero-stat .lbl{color:var(--text-muted);font-size:13px;}
+.spark{display:flex;align-items:flex-end;gap:6px;height:58px;}
+.spark .bar{flex:1;background:var(--surface-3);border-radius:4px 4px 0 0;min-height:8px;transition:background .15s;}
+.spark .bar.hi{background:var(--grad-brand);}
+
+.callout{
+  display:flex;align-items:center;gap:13px;margin:18px 0;
+  padding:16px 18px;border-radius:var(--radius-lg);
+  background:var(--brand-tint);border:1px solid var(--border);
+}
+.callout .ic{width:38px;height:38px;border-radius:10px;background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:var(--shadow-sm);}
+.callout .ic svg{width:19px;height:19px;color:var(--brand-text);}
+.callout .t1{font-family:var(--font-display);font-weight:600;font-size:14.5px;}
+.callout .t2{font-size:12.5px;color:var(--text-muted);margin-top:2px;}
+
+.insight-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.icard{display:flex;gap:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:16px;}
+.icard .ic{width:34px;height:34px;border-radius:9px;background:var(--brand-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.icard .ic svg{width:17px;height:17px;color:var(--brand-text);}
+.icard h4{font-family:var(--font-display);font-size:13.5px;font-weight:600;margin-bottom:3px;}
+.icard p{font-size:12.5px;color:var(--text-muted);line-height:1.45;}
+
+/* ---------- PAGE SWITCH ---------- */
+.page{display:none;}
+.page.active{display:block;animation:fade .25s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+@media(max-width:980px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .two-col,.rc-layout{grid-template-columns:1fr;}
+  .pages-grid{grid-template-columns:repeat(2,1fr);}
+  .insight-cards{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== SIDEBAR ===================== -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-mark">RP</div>
+    <div>
+      <div class="sb-brand-name">Rivertown Plumbing</div>
+      <div class="sb-brand-sub">Plumbing &amp; Heating</div>
+    </div>
+  </div>
+
+  <nav class="sb-scroll">
+    <button class="sb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+      Home
+    </button>
+
+    <button class="sb-row active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+      Marketing
+    </button>
+    <button class="sb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+      Sales
+    </button>
+    <button class="sb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Customers
+    </button>
+    <button class="sb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      Operations
+    </button>
+
+    <div class="sb-group-label label-cap">Marketing</div>
+
+    <button class="sb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+      Paid Ads
+    </button>
+    <button class="sb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Google Reviews
+    </button>
+    <button class="sb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      Email Campaigns
+    </button>
+    <button class="sb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      Social Media
+    </button>
+
+    <!-- WEBSITE expanded parent -->
+    <button class="sb-row open" id="websiteParent">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      Website
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <div class="sb-children" id="websiteChildren">
+      <button class="sb-child active" data-page="overview">Overview</button>
+      <button class="sb-child" data-page="pages">Pages</button>
+      <button class="sb-child" data-page="request">Request a Change</button>
+      <button class="sb-child" data-page="working">What's working</button>
+    </div>
+  </nav>
+
+  <div class="sb-footer">
+    <button class="sb-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      Settings
+    </button>
+  </div>
+</aside>
+
+<!-- ===================== MAIN ===================== -->
+<main class="main">
+  <div class="main-inner">
+    <div class="topbar">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark theme">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <span id="themeLabel">Light</span>
+      </button>
+    </div>
+
+    <!-- ============ PAGE 1: OVERVIEW ============ -->
+    <section class="page active" id="page-overview">
+      <div class="page-head">
+        <div>
+          <h2>Website</h2>
+          <p class="sub">Your site at a glance. Here's who's visiting and what's working.</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+            View live site
+          </button>
+          <button class="btn btn-secondary" data-goto="request">Request a change</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi"><span class="label-cap">Visitors this month</span><div class="num tnum">1,240</div><div class="foot">Real people, last 30 days</div></div>
+        <div class="kpi"><span class="label-cap">Leads from your site</span><div class="num tnum">18</div><div class="foot">Calls and form fills</div></div>
+        <div class="kpi"><span class="label-cap">Avg. time on page</span><div class="num tnum">1m 12s</div><div class="foot">How long people stay</div></div>
+        <div class="kpi"><span class="label-cap">Pages live</span><div class="num tnum">6</div><div class="foot">All up and running</div></div>
+      </div>
+
+      <div class="two-col">
+        <div class="stack">
+          <div class="panel">
+            <div class="panel-head"><h3>Your site</h3><span class="pill pos plain" style="font-weight:600;">Live</span></div>
+            <div class="browser">
+              <div class="browser-bar">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <div class="url"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>rivertownplumbing.com</div>
+              </div>
+              <div class="site">
+                <div class="site-nav">
+                  <div class="site-logo">Rivertown Plumbing</div>
+                  <div class="site-nav-links"><span>Services</span><span>About</span><span>Reviews</span><span>Contact</span></div>
+                </div>
+                <div class="site-hero">
+                  <h4>Fast, honest plumbing for your home</h4>
+                  <p>Same-day service across Rivertown. Licensed, insured, and on time, every time.</p>
+                  <span class="cta">Book a visit</span>
+                </div>
+                <div class="site-services">
+                  <div class="svc"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></div><h5>Repairs</h5><p>Leaks, clogs, and fixes done right.</p></div>
+                  <div class="svc"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6M3 21l8-8"/><path d="M14 7l3 3"/></svg></div><h5>Water heaters</h5><p>Install and service all brands.</p></div>
+                  <div class="svc"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M5 9l7-7 7 7"/></svg></div><h5>Heating</h5><p>Keep your home warm all winter.</p></div>
+                </div>
+                <div class="site-foot"><span>(555) 482-1190</span><span>Open Mon to Sat</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Top pages</h3><span class="label-cap">Views, last 30 days</span></div>
+            <div class="row-list">
+              <div class="bar-row"><span class="nm">Home</span><span class="vl tnum">512</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div></div>
+              <div class="bar-row"><span class="nm">Services</span><span class="vl tnum">318</span><div class="bar-track"><div class="bar-fill" style="width:62%"></div></div></div>
+              <div class="bar-row"><span class="nm">Reviews</span><span class="vl tnum">204</span><div class="bar-track"><div class="bar-fill" style="width:40%"></div></div></div>
+              <div class="bar-row"><span class="nm">Book Now</span><span class="vl tnum">141</span><div class="bar-track"><div class="bar-fill" style="width:28%"></div></div></div>
+              <div class="bar-row"><span class="nm">Contact</span><span class="vl tnum">65</span><div class="bar-track"><div class="bar-fill muted" style="width:13%"></div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="panel">
+            <div class="panel-head"><h3>Where visitors come from</h3></div>
+            <div class="row-list">
+              <div class="src-row"><span class="dot" style="background:#4f46e5"></span><span class="nm">Google</span><div class="track"><div class="fill" style="width:61%;background:#4f46e5"></div></div><span class="pct">61%</span></div>
+              <div class="src-row"><span class="dot" style="background:#7c73f0"></span><span class="nm">Direct</span><div class="track"><div class="fill" style="width:22%;background:#7c73f0"></div></div><span class="pct">22%</span></div>
+              <div class="src-row"><span class="dot" style="background:#a9a3f6"></span><span class="nm">Social</span><div class="track"><div class="fill" style="width:11%;background:#a9a3f6"></div></div><span class="pct">11%</span></div>
+              <div class="src-row"><span class="dot" style="background:var(--border-strong)"></span><span class="nm">Other</span><div class="track"><div class="fill" style="width:6%;background:var(--border-strong)"></div></div><span class="pct">6%</span></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Open change requests</h3><button class="link" data-goto="request">View all<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+            <div class="big-count tnum" style="margin-bottom:14px;">3</div>
+            <div class="req-mini">
+              <div class="req-mini-item"><div class="req-mini-num">1</div><div class="tx">Update the phone number in the header to our new line.</div><span class="pill warn plain" style="font-weight:600;flex-shrink:0;">In progress</span></div>
+              <div class="req-mini-item"><div class="req-mini-num">2</div><div class="tx">Add a winter heating tune-up offer to the homepage.</div><span class="pill neutral plain" style="font-weight:600;flex-shrink:0;">Open</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="insight-line">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
+        Most visitors land on your Home page from Google, then click Services. Your Contact page gets the fewest visits.
+      </div>
+    </section>
+
+    <!-- ============ PAGE 2: PAGES ============ -->
+    <section class="page" id="page-pages">
+      <div class="page-head">
+        <div>
+          <h2>Pages</h2>
+          <p class="sub">Every page on your website.</p>
+        </div>
+        <div class="head-actions">
+          <button class="btn btn-secondary" data-goto="request">Request a change</button>
+        </div>
+      </div>
+
+      <div class="pages-grid" id="pagesGrid"><!-- filled by JS --></div>
+    </section>
+
+    <!-- ============ PAGE 3: REQUEST A CHANGE ============ -->
+    <section class="page" id="page-request">
+      <div class="page-head">
+        <div>
+          <h2>Request a change</h2>
+          <p class="sub">Click anywhere on your site to point at what you'd like changed.</p>
+        </div>
+      </div>
+
+      <div class="rc-layout">
+        <div class="canvas-wrap">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+            <div class="dm-toggle">
+              <button class="on" id="dmDesktop">Desktop</button>
+              <button id="dmMobile">Mobile</button>
+            </div>
+          </div>
+
+          <div class="browser">
+            <div class="browser-bar">
+              <div class="dots"><span></span><span></span><span></span></div>
+              <div class="url"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>rivertownplumbing.com</div>
+            </div>
+            <div class="canvas" id="canvas">
+              <div class="site">
+                <div class="site-nav">
+                  <div class="site-logo">Rivertown Plumbing</div>
+                  <div class="site-nav-links"><span>Services</span><span>About</span><span>Reviews</span><span>Contact</span></div>
+                </div>
+                <div class="site-hero">
+                  <h4>Fast, honest plumbing for your home</h4>
+                  <p>Same-day service across Rivertown. Licensed, insured, and on time, every time.</p>
+                  <span class="cta">Book a visit</span>
+                </div>
+                <div class="site-services">
+                  <div class="svc"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></div><h5>Repairs</h5><p>Leaks, clogs, and fixes done right.</p></div>
+                  <div class="svc"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6M3 21l8-8"/><path d="M14 7l3 3"/></svg></div><h5>Water heaters</h5><p>Install and service all brands.</p></div>
+                  <div class="svc"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M5 9l7-7 7 7"/></svg></div><h5>Heating</h5><p>Keep your home warm all winter.</p></div>
+                </div>
+                <div class="site-foot"><span>(555) 482-1190</span><span>Open Mon to Sat</span></div>
+              </div>
+              <div class="canvas-hint">Click to drop a pin</div>
+              <!-- pins injected here -->
+            </div>
+          </div>
+        </div>
+
+        <div class="rc-rail">
+          <div class="rc-rail-head">
+            <h3>Your requests</h3>
+            <span class="cnt" id="reqCount">5 requests &middot; 2 open</span>
+          </div>
+          <div id="reqList"><!-- filled by JS --></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PAGE 4: WHAT'S WORKING ============ -->
+    <section class="page" id="page-working">
+      <div class="page-head">
+        <div>
+          <h2>What's working</h2>
+          <p class="sub">Your website's performance, in plain English.</p>
+        </div>
+      </div>
+
+      <div class="hero-stat">
+        <div class="top">
+          <div class="big tnum">1,240 visitors</div>
+          <span class="lbl">this month</span>
+          <span class="pill pos">+8% vs last month</span>
+        </div>
+        <div class="spark" id="spark"><!-- bars by JS --></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:18px;">
+        <div class="panel-head"><h3>Where your visitors come from</h3></div>
+        <div class="row-list">
+          <div class="src-row"><span class="dot" style="background:#4f46e5"></span><span class="nm">Google</span><div class="track"><div class="fill" style="width:61%;background:#4f46e5"></div></div><span class="pct">61%</span></div>
+          <div class="src-row"><span class="dot" style="background:#7c73f0"></span><span class="nm">Direct</span><div class="track"><div class="fill" style="width:22%;background:#7c73f0"></div></div><span class="pct">22%</span></div>
+          <div class="src-row"><span class="dot" style="background:#a9a3f6"></span><span class="nm">Social</span><div class="track"><div class="fill" style="width:11%;background:#a9a3f6"></div></div><span class="pct">11%</span></div>
+          <div class="src-row"><span class="dot" style="background:var(--border-strong)"></span><span class="nm">Referral</span><div class="track"><div class="fill" style="width:6%;background:var(--border-strong)"></div></div><span class="pct">6%</span></div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+        <div>
+          <div class="t1">Top performing page</div>
+          <div class="t2">Your Services page turns the most visitors into leads (4.2%).</div>
+        </div>
+      </div>
+
+      <div class="insight-cards">
+        <div class="icard">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+          <div><h4>People spend the longest on your Reviews page</h4><p>Proof matters. Real customer reviews keep visitors reading before they call.</p></div>
+        </div>
+        <div class="icard">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div><h4>Most visits happen Mon to Wed mornings</h4><p>That's when people look for help. A quick reply window then wins more jobs.</p></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- THEME TOGGLE ---------- */
+  var html = document.documentElement;
+  var tBtn = document.getElementById('themeToggle');
+  var tLabel = document.getElementById('themeLabel');
+  var tIcon = document.getElementById('themeIcon');
+  var sunPath = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>';
+  var moonPath = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>';
+  tBtn.addEventListener('click', function(){
+    var dark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', dark ? 'light' : 'dark');
+    tLabel.textContent = dark ? 'Light' : 'Dark';
+    tIcon.innerHTML = dark ? sunPath : moonPath;
+  });
+
+  /* ---------- PAGE SWITCHING ---------- */
+  var children = document.querySelectorAll('.sb-child');
+  function showPage(name){
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+    var target = document.getElementById('page-' + name);
+    if(target) target.classList.add('active');
+    children.forEach(function(c){ c.classList.toggle('active', c.dataset.page === name); });
+    document.querySelector('.main').scrollTop = 0;
+    window.scrollTo(0,0);
+  }
+  children.forEach(function(c){
+    c.addEventListener('click', function(){ showPage(c.dataset.page); });
+  });
+  document.querySelectorAll('[data-goto]').forEach(function(b){
+    b.addEventListener('click', function(){ showPage(b.dataset.goto); });
+  });
+
+  /* collapse / expand website parent (keeps children, just toggles visual) */
+  var parent = document.getElementById('websiteParent');
+  var kids = document.getElementById('websiteChildren');
+  parent.addEventListener('click', function(){
+    parent.classList.toggle('open');
+    kids.style.display = parent.classList.contains('open') ? 'flex' : 'none';
+  });
+
+  /* ---------- PAGES GRID ---------- */
+  var pageData = [
+    { name:'Home', thumb:'hero', updated:'Updated Jun 12', views:'512' },
+    { name:'Services', thumb:'rows', updated:'Updated Jun 12', views:'318' },
+    { name:'About', thumb:'list', updated:'Updated May 28', views:'97' },
+    { name:'Reviews', thumb:'list', updated:'Updated Jun 20', views:'204' },
+    { name:'Contact', thumb:'rows', updated:'Updated Apr 09', views:'65' },
+    { name:'Book Now', thumb:'hero', updated:'Updated Jun 18', views:'141' }
+  ];
+  function thumbHTML(kind){
+    if(kind === 'hero') return '<div class="th"><div class="th-hero"><div class="l1"></div><div class="l2"></div><div class="b"></div></div></div>';
+    if(kind === 'rows') return '<div class="th"><div class="th-hero" style="flex:0 0 46px;"><div class="l1"></div></div><div class="th-rows"><div class="c"></div><div class="c"></div><div class="c"></div></div></div>';
+    return '<div class="th"><div class="th-hero" style="flex:0 0 40px;"><div class="l1"></div></div><div class="th-list"><div class="r"></div><div class="r"></div><div class="r"></div></div></div>';
+  }
+  var grid = document.getElementById('pagesGrid');
+  grid.innerHTML = pageData.map(function(p){
+    return '<article class="page-card">' +
+      '<div class="page-thumb">' + thumbHTML(p.thumb) + '</div>' +
+      '<div class="page-card-body">' +
+        '<div class="top"><h3>' + p.name + '</h3><span class="pill pos plain" style="font-weight:600;">Live</span></div>' +
+        '<div class="page-meta"><span>' + p.updated + '</span><span><b>' + p.views + '</b> views</span></div>' +
+        '<button class="req-link" data-goto="request">Request a change' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>' +
+        '</button>' +
+      '</div></article>';
+  }).join('');
+  grid.querySelectorAll('[data-goto]').forEach(function(b){
+    b.addEventListener('click', function(){ showPage(b.dataset.goto); });
+  });
+
+  /* ---------- REQUEST A CHANGE (signature interaction) ---------- */
+  var canvas = document.getElementById('canvas');
+  var reqList = document.getElementById('reqList');
+  var reqCount = document.getElementById('reqCount');
+  var activeComposer = null;
+
+  // seed requests (x,y are percentages of canvas for responsiveness)
+  var requests = [
+    { n:1, x:50, y:9,  text:'Update the phone number in the header to our new line.', status:'In progress', ts:'2 days ago' },
+    { n:2, x:24, y:34, text:'Add a winter heating tune-up offer to the homepage.', status:'Open', ts:'4 days ago' },
+    { n:3, x:78, y:62, text:'Make the "Book a visit" button bigger and easier to tap.', status:'Done', ts:'1 week ago' }
+  ];
+  var counter = 3;
+
+  function statusClass(s){
+    if(s === 'Open') return 'neutral';
+    if(s === 'In progress') return 'warn';
+    return 'pos';
+  }
+
+  function renderPins(){
+    canvas.querySelectorAll('.pin').forEach(function(p){ p.remove(); });
+    requests.forEach(function(r){
+      var pin = document.createElement('div');
+      pin.className = 'pin';
+      pin.dataset.n = r.n;
+      pin.style.left = r.x + '%';
+      pin.style.top = r.y + '%';
+      pin.textContent = r.n;
+      canvas.appendChild(pin);
+    });
+  }
+
+  function renderRail(){
+    var open = requests.filter(function(r){ return r.status === 'Open'; }).length;
+    reqCount.innerHTML = requests.length + ' requests &middot; ' + open + ' open';
+    reqList.innerHTML = requests.map(function(r){
+      return '<button class="req-card" data-n="' + r.n + '" style="margin-bottom:12px;">' +
+        '<span class="num">' + r.n + '</span>' +
+        '<span class="body">' +
+          '<span class="tx" style="display:block;">' + r.text + '</span>' +
+          '<span class="foot"><span class="pill ' + statusClass(r.status) + ' plain" style="font-weight:600;">' + r.status + '</span>' +
+          '<span class="ts">' + r.ts + '</span></span>' +
+        '</span></button>';
+    }).join('');
+    reqList.querySelectorAll('.req-card').forEach(function(card){
+      card.addEventListener('click', function(){
+        var n = card.dataset.n;
+        var pin = canvas.querySelector('.pin[data-n="' + n + '"]');
+        if(pin){
+          pin.classList.remove('pulse');
+          void pin.offsetWidth; // restart animation
+          pin.classList.add('pulse');
+        }
+      });
+    });
+  }
+
+  function closeComposer(){
+    if(activeComposer){ activeComposer.remove(); activeComposer = null; }
+    var tmp = canvas.querySelector('.pin.tmp');
+    if(tmp) tmp.remove();
+  }
+
+  canvas.addEventListener('click', function(e){
+    // ignore clicks on existing pins or open composer
+    if(e.target.closest('.pin') || e.target.closest('.composer')) return;
+    closeComposer();
+
+    var rect = canvas.getBoundingClientRect();
+    var xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    var yPct = ((e.clientY - rect.top) / rect.height) * 100;
+
+    // temporary pin preview
+    var nextN = counter + 1;
+    var tmpPin = document.createElement('div');
+    tmpPin.className = 'pin tmp';
+    tmpPin.style.left = xPct + '%';
+    tmpPin.style.top = yPct + '%';
+    tmpPin.textContent = nextN;
+    canvas.appendChild(tmpPin);
+
+    // composer popover
+    var comp = document.createElement('div');
+    comp.className = 'composer';
+    comp.style.left = Math.min(Math.max(xPct, 20), 80) + '%';
+    comp.style.top = yPct + '%';
+    comp.innerHTML =
+      '<h4>What would you like changed here?</h4>' +
+      '<textarea placeholder="Tell us what to change..."></textarea>' +
+      '<div class="composer-actions">' +
+        '<button class="btn btn-primary btn-sm" type="button">Send request</button>' +
+        '<button class="cancel" type="button">Cancel</button>' +
+      '</div>';
+    canvas.appendChild(comp);
+    activeComposer = comp;
+    var ta = comp.querySelector('textarea');
+    ta.focus();
+
+    comp.querySelector('.cancel').addEventListener('click', function(ev){
+      ev.stopPropagation();
+      closeComposer();
+    });
+    comp.querySelector('.btn-primary').addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var val = ta.value.trim();
+      if(!val) val = 'New change request on the homepage.';
+      counter += 1;
+      requests.push({ n:counter, x:xPct, y:yPct, text:val, status:'Open', ts:'Just now' });
+      closeComposer();
+      renderPins();
+      renderRail();
+    });
+    // stop the click that opened it from bubbling to a close handler
+    comp.addEventListener('click', function(ev){ ev.stopPropagation(); });
+  });
+
+  // Desktop / Mobile toggle
+  var dmDesktop = document.getElementById('dmDesktop');
+  var dmMobile = document.getElementById('dmMobile');
+  dmDesktop.addEventListener('click', function(){
+    canvas.classList.remove('mobile');
+    dmDesktop.classList.add('on'); dmMobile.classList.remove('on');
+    closeComposer();
+  });
+  dmMobile.addEventListener('click', function(){
+    canvas.classList.add('mobile');
+    dmMobile.classList.add('on'); dmDesktop.classList.remove('on');
+    closeComposer();
+  });
+
+  renderPins();
+  renderRail();
+
+  /* ---------- SPARKLINE ---------- */
+  var spark = document.getElementById('spark');
+  var heights = [42,55,38,61,48,70,52,66,58,74,63,82];
+  spark.innerHTML = heights.map(function(h,i){
+    var hi = i >= heights.length - 3 ? ' hi' : '';
+    return '<div class="bar' + hi + '" style="height:' + h + '%"></div>';
+  }).join('');
+
+})();
+</script>
+</body>
+</html>

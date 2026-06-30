@@ -12,7 +12,10 @@ import Leads from "./routes/Leads";
 import FormSubmissions from "./routes/FormSubmissions";
 import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
-import GoogleReviews from "./routes/GoogleReviews";
+import ReviewsOverview from "./routes/reviews/ReviewsOverview";
+import ReviewsRequests from "./routes/reviews/ReviewsRequests";
+import ReviewsAll from "./routes/reviews/ReviewsAll";
+import ReviewsInsights from "./routes/reviews/ReviewsInsights";
 import { Activity } from "./routes/Activity";
 import Contacts from "./routes/Contacts";
 import ContactDetail from "./routes/ContactDetail";
@@ -33,6 +36,14 @@ import SocialIdeas from "./routes/social/SocialIdeas";
 import SocialCalendar from "./routes/social/SocialCalendar";
 import SocialPosts from "./routes/social/SocialPosts";
 import SocialInsights from "./routes/social/SocialInsights";
+import WebsiteOverview from "./routes/website/WebsiteOverview";
+import WebsitePages from "./routes/website/WebsitePages";
+import WebsiteRequestChange from "./routes/website/WebsiteRequestChange";
+import WebsiteInsights from "./routes/website/WebsiteInsights";
+import AdsOverview from "./routes/paid-ads/AdsOverview";
+import AdsCreatives from "./routes/paid-ads/AdsCreatives";
+import AdsLeads from "./routes/paid-ads/AdsLeads";
+import AdsInsights from "./routes/paid-ads/AdsInsights";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminTasks from "./routes/admin/AdminTasks";
@@ -320,10 +331,19 @@ export default function App() {
               <Route path="/sales/inquiries" element={<ProtectedRoute><ComingSoon title="New Inquiries" blurb="Website form requests and chat-widget messages, gathered in one easy place. Coming soon." /></ProtectedRoute>} />
               <Route path="/sales/scripts" element={<ProtectedRoute><ComingSoon title="Sales Scripts" blurb="Your call and message scripts, ready to use. Coming soon." /></ProtectedRoute>} />
               <Route path="/operations/reports" element={<ProtectedRoute><ComingSoon title="Reports & Analytics" blurb="Performance across ads, leads, and revenue in one place. Coming soon." /></ProtectedRoute>} />
-              <Route path="/marketing/paid-ads" element={<ProtectedRoute><ComingSoon title="Paid Ads" blurb="Your paid advertising results, reimagined. Coming soon." /></ProtectedRoute>} />
-              <Route path="/marketing/reviews" element={<ProtectedRoute><GoogleReviews /></ProtectedRoute>} />
+              <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsOverview /></ProtectedRoute>} />
+              <Route path="/marketing/paid-ads/creatives" element={<ProtectedRoute><AdsCreatives /></ProtectedRoute>} />
+              <Route path="/marketing/paid-ads/leads" element={<ProtectedRoute><AdsLeads /></ProtectedRoute>} />
+              <Route path="/marketing/paid-ads/insights" element={<ProtectedRoute><AdsInsights /></ProtectedRoute>} />
+              <Route path="/marketing/reviews" element={<ProtectedRoute><ReviewsOverview /></ProtectedRoute>} />
+              <Route path="/marketing/reviews/requests" element={<ProtectedRoute><ReviewsRequests /></ProtectedRoute>} />
+              <Route path="/marketing/reviews/all" element={<ProtectedRoute><ReviewsAll /></ProtectedRoute>} />
+              <Route path="/marketing/reviews/insights" element={<ProtectedRoute><ReviewsInsights /></ProtectedRoute>} />
               <Route path="/marketing/email" element={<ProtectedRoute><ComingSoon title="Email Campaigns" blurb="Your email campaigns and how they perform. Coming soon." /></ProtectedRoute>} />
-              <Route path="/marketing/website" element={<ProtectedRoute><ComingSoon title="Website" blurb="Your website and the funnels and landing pages we build for your campaigns. Coming soon." /></ProtectedRoute>} />
+              <Route path="/marketing/website" element={<ProtectedRoute><WebsiteOverview /></ProtectedRoute>} />
+              <Route path="/marketing/website/pages" element={<ProtectedRoute><WebsitePages /></ProtectedRoute>} />
+              <Route path="/marketing/website/request" element={<ProtectedRoute><WebsiteRequestChange /></ProtectedRoute>} />
+              <Route path="/marketing/website/insights" element={<ProtectedRoute><WebsiteInsights /></ProtectedRoute>} />
               <Route path="/marketing/social" element={<ProtectedRoute><SocialOverview /></ProtectedRoute>} />
               <Route path="/marketing/social/ideas" element={<ProtectedRoute><SocialIdeas /></ProtectedRoute>} />
               <Route path="/marketing/social/calendar" element={<ProtectedRoute><SocialCalendar /></ProtectedRoute>} />
