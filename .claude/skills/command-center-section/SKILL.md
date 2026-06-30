@@ -58,6 +58,23 @@ Save mockups under the app folder, e.g. `mockups/<section>-v1/`. Reference set: 
 3. Commit (end message with the Co-Authored-By line) and `git push origin main`.
 4. Poll until the live bundle hash changes (CF build ~75-120s). Then download the new bundle and `grep` it for a unique string you shipped to prove your code is live (you can't log into prod to check visually).
 
+## Final — Connections backlog (what it needs to be fully functional)
+
+A section ships **demo-complete but not connected**. Before moving on, write down every connection it needs to become real, so the integration work is a known backlog, not a rediscovery later.
+
+Save one file per section at **`command-center/app/docs/connections/<section>.md`** — all sections' connection lists live together in that folder. List each with a status (❌ not wired / ⚠️ partial / ✅ live):
+
+- **Data source(s)** — GoHighLevel resources/endpoints (or other SaaS) the section reads/writes, and what each powers.
+- **AI** — any Claude calls (what they generate + suggested model), always server-side via a Pages Function, never client-side.
+- **Backend endpoints** — the `/api/<section>/*` Pages Functions to build (the bridge).
+- **Auth / identity** — session mode (live/test) and how the right tokens get injected.
+- **Secrets / env vars** — every key/ID needed; mark which already exist vs new.
+- **Webhooks** — inbound events, if any.
+- **Persistence** — any store needed (drafts, settings) beyond the source of truth.
+- **Per-action gating** — for each gated action (save / schedule / publish / generate), which connection turns it on.
+
+Keep the file current: flip statuses as connections get wired. Reference: `command-center/app/docs/connections/social.md`.
+
 ## Gotchas
 
 - **Solid-color backgrounds need `background`, not `backgroundImage`.** `style={{ backgroundImage: "#1877f2" }}` renders nothing (white-on-white). Use `background: meta.bg` so both solid colors and `linear-gradient(...)` paint. Bit us on platform glyphs and chart bars.
