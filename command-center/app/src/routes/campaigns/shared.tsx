@@ -241,6 +241,83 @@ export const DEMO_IDEAS: DemoIdea[] = [
   { kind: "Review", ch: "sms", title: "Turn the Garcia 5★ into a thank-you text" },
 ];
 
+// ---------------------------------------------------------------------------
+// Reactivation. A standing, always-on campaign that wins back dormant past
+// customers with a short text + email sequence. The client-facing layer over
+// the real GHL "Database Reactivation" pipeline (Lead Contacted -> Lead
+// Responded -> No answer / Not Qualified); we roll those raw stages up into
+// plain-English buckets so a business owner can read it at a glance. Numbers are
+// modest and plausible (no fabricated growth %); replaced by live GHL counts
+// later, the shapes stay the same.
+// ---------------------------------------------------------------------------
+
+// Headline KPIs for the campaign so far. `brand` highlights the one that matters
+// most (jobs booked) in the same way the Overview / Insights rows do.
+export const REACT_KPIS: { label: string; value: string; brand?: boolean }[] = [
+  { label: "Dormant customers", value: "640" },
+  { label: "Reached out to", value: "412" },
+  { label: "Replied", value: "58" },
+  { label: "Jobs booked", value: "12", brand: true },
+];
+
+// The plain-English funnel. Each step rolls up one or more real pipeline stages;
+// `of` is the count we measure the bar against (the dormant pool) so the widths
+// read as a true drop-off, not a re-based percentage.
+export interface ReactStep {
+  label: string;
+  hint: string; // which real stage(s) this rolls up, in plain words
+  count: number;
+}
+export const REACT_FUNNEL: ReactStep[] = [
+  { label: "Reached out", hint: "We've started the sequence", count: 412 },
+  { label: "Replied", hint: "Texted or emailed us back", count: 58 },
+  { label: "Booked a job", hint: "On the calendar", count: 12 },
+];
+export const REACT_DORMANT_TOTAL = 640;
+
+// The message sequence the dormant list moves through. Grounded in the existing
+// "We miss you" win-back template; spaced over a couple of weeks.
+export interface ReactMessage {
+  step: number;
+  ch: Channel;
+  when: string; // plain timing, e.g. "Day 1"
+  title: string;
+  body: string;
+  subject?: string;
+}
+export const REACT_SEQUENCE: ReactMessage[] = [
+  {
+    step: 1,
+    ch: "sms",
+    when: "Day 1",
+    title: "We miss you",
+    body: "Hi {{first}}, it's Willis Plumbing. It's been a while! Book any service this month and take $25 off. Reply BOOK and we'll text you times.",
+  },
+  {
+    step: 2,
+    ch: "email",
+    when: "Day 4",
+    title: "A little reminder (and $25 off)",
+    subject: "We'd love to look after your home again, {{first}}",
+    body: "It's been over a year since we last helped out. Here's $25 off any job this month, plus a quick checklist of what's worth checking before summer.",
+  },
+  {
+    step: 3,
+    ch: "sms",
+    when: "Day 10",
+    title: "Last chance this month",
+    body: "Hi {{first}}, your $25 off ends Friday. Want us to hold a spot? Reply YES and we'll find a time that works.",
+  },
+];
+
+// A few customers the campaign has brought back, for a calm "real people" proof
+// list. Reuses the audience-member shape/initials style.
+export const REACT_RECENT: { name: string; sub: string; initials: string }[] = [
+  { name: "The Hendersons", sub: "Drain cleaning · booked Jun 24", initials: "H" },
+  { name: "Carl D.", sub: "Water heater flush · booked Jun 19", initials: "C" },
+  { name: "The Okafors", sub: "AC tune-up · booked Jun 14", initials: "O" },
+];
+
 export const DEMO_INSIGHTS = {
   summary: [
     { label: "Messages sent", value: "4,440" },

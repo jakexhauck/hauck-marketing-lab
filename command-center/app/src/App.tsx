@@ -46,6 +46,7 @@ import AdsLeads from "./routes/paid-ads/AdsLeads";
 import AdsInsights from "./routes/paid-ads/AdsInsights";
 import CampaignsOverview from "./routes/campaigns/CampaignsOverview";
 import CampaignsList from "./routes/campaigns/CampaignsList";
+import CampaignsReactivation from "./routes/campaigns/CampaignsReactivation";
 import CampaignsAudiences from "./routes/campaigns/CampaignsAudiences";
 import CampaignsTemplates from "./routes/campaigns/CampaignsTemplates";
 import CampaignsInsights from "./routes/campaigns/CampaignsInsights";
@@ -346,6 +347,7 @@ export default function App() {
               <Route path="/marketing/reviews/insights" element={<ProtectedRoute><ReviewsInsights /></ProtectedRoute>} />
               <Route path="/marketing/campaigns" element={<ProtectedRoute><CampaignsOverview /></ProtectedRoute>} />
               <Route path="/marketing/campaigns/all" element={<ProtectedRoute><CampaignsList /></ProtectedRoute>} />
+              <Route path="/marketing/campaigns/reactivation" element={<ProtectedRoute><CampaignsReactivation /></ProtectedRoute>} />
               <Route path="/marketing/campaigns/audiences" element={<ProtectedRoute><CampaignsAudiences /></ProtectedRoute>} />
               <Route path="/marketing/campaigns/templates" element={<ProtectedRoute><CampaignsTemplates /></ProtectedRoute>} />
               <Route path="/marketing/campaigns/insights" element={<ProtectedRoute><CampaignsInsights /></ProtectedRoute>} />

@@ -27,6 +27,7 @@ import {
   LayoutGrid,
   MousePointerClick,
   Send,
+  RotateCcw,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -126,6 +127,7 @@ export const NAV: NavEntry[] = [
         children: [
           { to: "/marketing/campaigns", label: "Overview", icon: LayoutDashboard },
           { to: "/marketing/campaigns/all", label: "Campaigns", icon: Send },
+          { to: "/marketing/campaigns/reactivation", label: "Reactivation", shortLabel: "Win-back", icon: RotateCcw },
           { to: "/marketing/campaigns/audiences", label: "Audiences", shortLabel: "Lists", icon: Users },
           { to: "/marketing/campaigns/templates", label: "Templates", icon: LayoutGrid },
           { to: "/marketing/campaigns/insights", label: "What's working", shortLabel: "Insights", icon: BarChart3 },
