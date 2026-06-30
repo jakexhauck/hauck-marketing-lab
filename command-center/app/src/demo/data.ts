@@ -143,6 +143,17 @@ export function buildDemoData(now: number = Date.now()): DemoData {
   const contacts: ApiContact[] = [];
   const messages: Record<string, ApiMessage[]> = {};
   const conversations: ApiConversation[] = [];
+  // Cycle channel + source across demo conversations so the Unified Inbox
+  // filter rails show real spread in demo / test mode.
+  const DEMO_CHANNELS = ["sms", "email", "ig", "messenger", "sms", "sms"] as const;
+  const DEMO_ORIGINS = [
+    "form",
+    "chat",
+    "paid",
+    "react",
+    "call",
+    "social",
+  ] as const;
   const notes: Record<string, ApiNote[]> = {};
   const tasks: Record<string, ApiTask[]> = {};
 
@@ -235,6 +246,10 @@ export function buildDemoData(now: number = Date.now()): DemoData {
         lastMessageType: lastMsg.type,
         lastMessageAt: lastMsg.at,
         unreadCount: unread,
+        channel: DEMO_CHANNELS[i % DEMO_CHANNELS.length],
+        origin: DEMO_ORIGINS[i % DEMO_ORIGINS.length],
+        source: DEMO_ORIGINS[i % DEMO_ORIGINS.length],
+        firstTouchAt: new Date(createdAt).toISOString(),
       });
     }
 
