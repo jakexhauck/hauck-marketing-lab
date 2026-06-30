@@ -10,10 +10,6 @@ import {
 } from "../lib/nav";
 import { useClient } from "../context/ClientContext";
 import { useAuth } from "../context/AuthContext";
-import GlobalSearch from "./desktop/GlobalSearch";
-import AvatarMenu from "./desktop/AvatarMenu";
-import ChatLauncher from "./comms/ChatLauncher";
-import NotificationBell from "./NotificationBell";
 
 // A single page row. Used for the standalone Home button and for the children of
 // the open section in the lower zone, so the active (gradient) and hover
@@ -249,21 +245,18 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Footer: the global controls (search, notifications, agency chat, account
-          menu) live here so every page shares one structure and the page header
-          stays clean. Settings keeps its own row. */}
+      {/* Footer controls */}
       <div className="border-t border-[var(--divider)] px-3 py-3">
         {mode === "test" && (
           <div className="mb-2 flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-amber-600">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Test account
           </div>
         )}
-        <GlobalSearch sidebar />
         <NavLink
           to="/settings"
           className={({ isActive }) =>
             [
-              "mb-2 mt-2 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-medium transition-[color,background,transform] duration-200",
+              "mb-1 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-medium transition-[color,background,transform] duration-200",
               isActive
                 ? "shadow-brand text-white"
                 : "text-[var(--text-muted)] hover:translate-x-0.5 hover:bg-white/60 hover:text-[var(--text)] dark:hover:bg-white/5",
@@ -275,11 +268,6 @@ export default function Sidebar() {
         >
           <Settings size={16} className="shrink-0 opacity-80" /> Settings
         </NavLink>
-        <div className="flex items-center gap-2">
-          <NotificationBell enabled={Boolean(session)} variant="surface" />
-          <ChatLauncher />
-          <AvatarMenu up />
-        </div>
       </div>
     </aside>
   );

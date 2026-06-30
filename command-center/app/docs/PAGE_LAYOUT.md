@@ -5,24 +5,25 @@ single product, not a pile of screens:
 
 ```
 ┌──────────┬───────────────────────────────────┐
-│ Sidebar  │  PageHeader  (title + description, │
-│          │               actions on the right)│
+│ Sidebar  │  PageHeader   title   🔍 🔔 💬 👤 │
+│          │               description line     │
 │  nav…    │                                    │
 │          │  …full-width content (24px gutter) │
-│ search   │   cards / tables / charts          │
-│ 🔔 💬 👤 │                                    │
+│          │   cards / tables / charts          │
+│ Settings │                                    │
 └──────────┴───────────────────────────────────┘
 ```
 
 - **Header:** the `PageHeader` component (`src/components/PageHeader.tsx`) — Poppins
-  22px title, a muted description line, and right-aligned `actions`. This is the
-  "Paid Ads" header. Do **not** add a per-page top bar.
+  22px title, a muted description line, the page's own `actions`, and the global
+  controls, all on the header row. This is the "Paid Ads" header. Do **not** add a
+  per-page top bar.
 - **Content width:** full-bleed with a 24px desktop gutter. Use `PAGE_CONTAINER`
   from `src/lib/layout.ts`. No `max-w-…` cap and no `mx-auto` on the page column
   (those are the left/right "white space" we removed).
-- **Global controls** (search, notifications bell, agency chat, account menu) live
-  in the **sidebar footer** (`src/components/Sidebar.tsx`), once, for every page.
-  Never re-add them to a page.
+- **Global controls** (search, agency chat, notifications bell, account menu) are
+  rendered automatically by `PageHeader`, top-right, desktop only (`lg+`). You get
+  them for free by using `PageHeader`; never add them to a page by hand.
 
 ## New responsive page (Marketing/Sales pattern — preferred)
 
@@ -77,6 +78,7 @@ own scroll regions below the header.
 
 - No `mx-auto max-w-6xl` (or any `max-w` cap) on a page column — that brings back the
   white space.
-- No second header style and no per-page search / bell / avatar.
+- No second header style and no per-page search / bell / avatar (PageHeader already
+  renders the global controls top-right).
 - Desktop is standardized; phone layouts are a separate later pass — don't change phone
   gutters here.

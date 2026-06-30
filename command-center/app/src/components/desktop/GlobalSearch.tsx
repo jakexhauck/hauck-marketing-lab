@@ -2,11 +2,10 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 
-// The search pill. Routes to the Leads board with the query prefilled (the Leads
-// page reads ?q). No network: it is a typed jump to Leads. Two looks: the default
-// topbar pill (hidden below xl) and the `sidebar` variant (full width, always
-// visible) used in the sidebar footer where the global controls now live.
-export default function GlobalSearch({ sidebar = false }: { sidebar?: boolean }) {
+// The kit topbar's search pill. Routes to the Leads board with the query
+// prefilled (the Leads page reads ?q). Hidden below xl so narrow desktops keep
+// the title and actions uncrowded. No network: it is a typed jump to Leads.
+export default function GlobalSearch() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
 
@@ -20,11 +19,7 @@ export default function GlobalSearch({ sidebar = false }: { sidebar?: boolean })
   return (
     <form
       onSubmit={onSubmit}
-      className={
-        sidebar
-          ? "flex h-9 w-full items-center gap-2 rounded-full border border-border bg-surface-2 px-3.5 text-[13px] text-muted transition-colors focus-within:border-brand focus-within:bg-surface"
-          : "hidden h-9 w-[280px] items-center gap-2 rounded-full border border-border bg-surface-2 px-3.5 text-[13px] text-muted transition-colors focus-within:border-brand focus-within:bg-surface xl:flex"
-      }
+      className="hidden h-9 w-[280px] items-center gap-2 rounded-full border border-border bg-surface-2 px-3.5 text-[13px] text-muted transition-colors focus-within:border-brand focus-within:bg-surface xl:flex"
     >
       <Search size={15} className="shrink-0 text-faint" />
       <input

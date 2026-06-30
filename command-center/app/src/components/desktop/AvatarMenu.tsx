@@ -15,7 +15,7 @@ function initialsOf(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export default function AvatarMenu({ up = false }: { up?: boolean }) {
+export default function AvatarMenu() {
   const { staff, signOut } = useAuth();
   const { client } = useClient();
   const { resolved, toggle } = useTheme();
@@ -58,14 +58,7 @@ export default function AvatarMenu({ up = false }: { up?: boolean }) {
       {open && (
         <div
           role="menu"
-          className={
-            "fx-menu absolute z-30 w-56 overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-lg)] " +
-            // In the sidebar footer the avatar sits bottom-left, so the menu
-            // opens upward and to the right (left-0); in a top bar it opens
-            // downward and to the left (right-0).
-            (up ? "bottom-[calc(100%+8px)] left-0" : "right-0 top-[calc(100%+8px)]")
-          }
-          style={up ? { transformOrigin: "bottom left" } : undefined}
+          className="fx-menu absolute right-0 top-[calc(100%+8px)] z-30 w-56 overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-lg)]"
         >
           <div className="border-b border-divider px-4 py-3">
             <div className="truncate text-[13px] font-semibold text-text">
