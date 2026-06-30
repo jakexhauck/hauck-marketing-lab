@@ -26,8 +26,9 @@ Do **not** use it for the standalone client mobile PWA (`Hauck Command Center (C
 
 ## Phase 0 — Mockups first (get approval before any code)
 
-This is the default workflow: **mockup → Jake approves → build the code right after.** Never go straight to in-app demo code.
+This is the default workflow: **agree the page list → mockup → Jake approves → build the code right after.** Never go straight to in-app demo code.
 
+0. **First, figure out every page.** Before any mockup, write the full list of pages the section will have — the Overview + each sub-page (the sidebar children) AND the secondary flows each page opens (create/edit dialogs, filters, detail/onboarding views). Confirm that list with Jake before drawing anything. Settling the page list first is what prevents going back later (e.g. the Social create dialogs).
 1. Reuse the kit: `kit.css` is the `design-kit.html` `<style>` block (light/indigo/Poppins). Mockups link it.
 2. Build the screens as **static HTML on `kit.css`**, framed realistically — phone frames for mobile, browser-window chrome for desktop, centered modal / bottom-sheet for dialogs. When the direction is open, show **2-3 options** and let Jake pick.
    - **Mock the WHOLE thing, not just the main pages.** Include every part the section implies up front so nothing gets discovered late: each page's **empty/not-connected state** AND every **secondary flow** a button opens — the create/edit dialogs behind "New post", "New idea", "Plan my month", filters, detail/edit views, settings/onboarding. (We had to go back and add the create dialogs after the fact on Social — don't repeat that.) Walk every button in the mockup and ask "what does this open?" — mock that too.
