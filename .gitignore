@@ -18,6 +18,13 @@ dist/
 dist-ssr/
 *.local
 
+# TypeScript / Vite emitted artifacts (compiled next to their .ts source, never commit)
+*.tsbuildinfo
+command-center/app/vite.config.js
+command-center/app/vite.config.d.ts
+command-center/app/src/lib/appBrand.js
+command-center/app/src/lib/appBrand.d.ts
+
 # Wrangler local cache / state
 **/.wrangler/
 
@@ -43,6 +50,10 @@ desktop.ini
 .env
 .env.local
 .env.*.local
+
+# Cloudflare Wrangler local secrets (never commit)
+.dev.vars
+**/.dev.vars
 
 # App runtime config (per-machine paths, not portable)
 app-config.local.json
