@@ -26,6 +26,7 @@ import {
   MousePointerClick,
   Send,
   RotateCcw,
+  Split,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -162,18 +163,30 @@ export const NAV: NavEntry[] = [
     icon: TrendingUp,
     items: [
       { to: "/sales/overview", label: "Sales Overview", shortLabel: "Overview", icon: LayoutDashboard, comingSoon: true },
-      // Paid-ad leads (Paid Ad's Pipeline): the only channel qualified by an
-      // intro call. A friendly, lead-first worklist that books + confirms the
-      // intro call, then hands off to the Sales spine. Open to everyone for now.
-      { to: "/sales/paid-ads", label: "Paid Ads", shortLabel: "Paid Ads", icon: Megaphone },
-      // Inbound estimate requests from the website (Organic Pipeline, source =
-      // "Website Form"): a conversation inbox where each lead replies with what
-      // they want and a rep picks the next step. Open to everyone for now.
-      { to: "/sales/forms", label: "Estimate Forms", shortLabel: "Estimates", icon: Inbox },
-      // The chat-widget twin of Estimate Forms: the same conversation inbox over
-      // the Organic Pipeline, source = "chat widget" (leads start in the website
-      // chat bubble instead of a form). Open to everyone for now.
-      { to: "/sales/chat", label: "Chat Widget", shortLabel: "Chat", icon: MessagesSquare },
+      // The three lead channels that feed the Sales spine, grouped under one
+      // expandable "Channels" row. The parent owns no page of its own: its route
+      // equals the first channel (Paid Ads), so clicking it opens the group and
+      // lands on a real surface. Children are the per-channel worklists below.
+      {
+        to: "/sales/paid-ads",
+        label: "Channels",
+        shortLabel: "Channels",
+        icon: Split,
+        children: [
+          // Paid-ad leads (Paid Ad's Pipeline): the only channel qualified by an
+          // intro call. A friendly, lead-first worklist that books + confirms the
+          // intro call, then hands off to the Sales spine. Open to everyone for now.
+          { to: "/sales/paid-ads", label: "Paid Ads", shortLabel: "Paid Ads", icon: Megaphone },
+          // Inbound estimate requests from the website (Organic Pipeline, source =
+          // "Website Form"): a conversation inbox where each lead replies with what
+          // they want and a rep picks the next step. Open to everyone for now.
+          { to: "/sales/forms", label: "Estimate Forms", shortLabel: "Estimates", icon: Inbox },
+          // The chat-widget twin of Estimate Forms: the same conversation inbox over
+          // the Organic Pipeline, source = "chat widget" (leads start in the website
+          // chat bubble instead of a form). Open to everyone for now.
+          { to: "/sales/chat", label: "Chat Widget", shortLabel: "Chat", icon: MessagesSquare },
+        ],
+      },
       // The tail of the Sales spine: jobs at the Sales Pipeline's Job Booked +
       // Job Completed stages, on a month calendar. Pick a day, work its jobs
       // (mark completed, reschedule, take payment). Open to everyone for now.
