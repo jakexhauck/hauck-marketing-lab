@@ -1,6 +1,5 @@
 import {
   Home,
-  GitBranch,
   Megaphone,
   MessageSquare,
   MessagesSquare,
@@ -176,7 +175,6 @@ export const NAV: NavEntry[] = [
       // the Organic Pipeline, source = "chat widget" (leads start in the website
       // chat bubble instead of a form). Open to everyone for now.
       { to: "/sales/chat", label: "Chat Widget", shortLabel: "Chat", icon: MessagesSquare },
-      { to: "/leads", label: "Pipeline", shortLabel: "Leads", icon: GitBranch, capability: "pipeline", bottomNav: true },
       // The always-on win-back campaign for dormant past customers. Its own
       // category in Sales (was a Campaigns sub-page); can grow sub-pages later.
       { to: "/sales/reactivation", label: "Reactivation", shortLabel: "Win-back", icon: RotateCcw },
