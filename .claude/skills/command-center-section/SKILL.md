@@ -30,6 +30,7 @@ This is the default workflow: **mockup → Jake approves → build the code righ
 
 1. Reuse the kit: `kit.css` is the `design-kit.html` `<style>` block (light/indigo/Poppins). Mockups link it.
 2. Build the screens as **static HTML on `kit.css`**, framed realistically — phone frames for mobile, browser-window chrome for desktop, centered modal / bottom-sheet for dialogs. When the direction is open, show **2-3 options** and let Jake pick.
+   - **Mock the WHOLE thing, not just the main pages.** Include every part the section implies up front so nothing gets discovered late: each page's **empty/not-connected state** AND every **secondary flow** a button opens — the create/edit dialogs behind "New post", "New idea", "Plan my month", filters, detail/edit views, settings/onboarding. (We had to go back and add the create dialogs after the fact on Social — don't repeat that.) Walk every button in the mockup and ask "what does this open?" — mock that too.
 3. Open for review (`open <file>`, or serve the folder with `python3 -m http.server` and view via the browser tools) and iterate until he approves.
 4. Only **after approval**, build the real demo-aware/gated app code (Build procedure below). Build it "right after" approval — don't wait.
 
