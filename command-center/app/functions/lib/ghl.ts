@@ -271,6 +271,52 @@ export async function fetchAllConversations(
   return all;
 }
 
+export interface GhlContactRecord {
+  id: string;
+  contactName?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  dateAdded?: string;
+  dateUpdated?: string;
+  tags?: string[];
+  source?: string;
+}
+
+interface ContactsPage {
+  contacts?: GhlContactRecord[];
+  meta?: { total?: number; nextPageUrl?: string };
+}
+
+// Paginated fetch of every contact for a location (id, source, tags, dates).
+// Shared by the Contacts surface and the Unified Inbox source join.
+export async function fetchAllContacts(
+  ctx: GhlContext,
+  opts: { maxPages?: number } = {},
+): Promise<GhlContactRecord[]> {
+  const maxPages = opts.maxPages ?? 10;
+  const all: GhlContactRecord[] = [];
+  const seen = new Set<string>();
+  let url = `/contacts/?locationId=${encodeURIComponent(ctx.locationId)}&limit=100`;
+  let pageCount = 0;
+  while (url && pageCount < maxPages) {
+    const data = await ghlJson<ContactsPage>(ctx, url);
+    const page = data.contacts ?? [];
+    for (const c of page) {
+      if (c.id && !seen.has(c.id)) {
+        seen.add(c.id);
+        all.push(c);
+      }
+    }
+    const next = data.meta?.nextPageUrl;
+    if (!next || page.length === 0) break;
+    url = next;
+    pageCount += 1;
+  }
+  return all;
+}
+
 // Resolve the location's custom-field ids to their fieldKeys (e.g.
 // "contact.utm_source"), cached in-memory for an hour. Contact records only
 // carry {id, value} pairs; this map is what makes them readable.

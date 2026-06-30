@@ -1,23 +1,5 @@
 import type { Env, ApiData } from "../lib/env";
-import { ghlJson } from "../lib/ghl";
-
-interface GhlContact {
-  id: string;
-  contactName?: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  dateAdded?: string;
-  dateUpdated?: string;
-  tags?: string[];
-  source?: string;
-}
-
-interface ContactsResponse {
-  contacts: GhlContact[];
-  meta?: { total?: number; nextPageUrl?: string };
-}
+import { fetchAllContacts, type GhlContactRecord } from "../lib/ghl";
 
 export interface ApiContact {
   id: string;
@@ -30,7 +12,7 @@ export interface ApiContact {
   lastActivityAt: string;
 }
 
-function shapeContact(c: GhlContact): ApiContact {
+function shapeContact(c: GhlContactRecord): ApiContact {
   const fullName =
     c.contactName ||
     [c.firstName, c.lastName].filter(Boolean).join(" ").trim() ||
@@ -51,34 +33,13 @@ function shapeContact(c: GhlContact): ApiContact {
 
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const t = ctx.data.tenant;
-  const all: GhlContact[] = [];
-  const seen = new Set<string>();
-  let url = `/contacts/?locationId=${encodeURIComponent(t.ghl_location_id)}&limit=100`;
-  let pageCount = 0;
-  const maxPages = 10;
-
-  while (url && pageCount < maxPages) {
-    const data = await ghlJson<ContactsResponse>(
-      { token: t.ghl_token, locationId: t.ghl_location_id },
-      url,
-    );
-    const page = data.contacts ?? [];
-    for (const c of page) {
-      if (c.id && !seen.has(c.id)) {
-        seen.add(c.id);
-        all.push(c);
-      }
-    }
-    const next = data.meta?.nextPageUrl;
-    if (!next || page.length === 0) break;
-    url = next;
-    pageCount += 1;
-  }
-
+  const all = await fetchAllContacts({
+    token: t.ghl_token,
+    locationId: t.ghl_location_id,
+  });
   const contacts = all.map(shapeContact);
   contacts.sort(
     (a, b) => +new Date(b.lastActivityAt) - +new Date(a.lastActivityAt),
   );
-
   return Response.json({ contacts, total: contacts.length });
 };
