@@ -44,6 +44,11 @@ import AdsOverview from "./routes/paid-ads/AdsOverview";
 import AdsCreatives from "./routes/paid-ads/AdsCreatives";
 import AdsLeads from "./routes/paid-ads/AdsLeads";
 import AdsInsights from "./routes/paid-ads/AdsInsights";
+import CampaignsOverview from "./routes/campaigns/CampaignsOverview";
+import CampaignsList from "./routes/campaigns/CampaignsList";
+import CampaignsAudiences from "./routes/campaigns/CampaignsAudiences";
+import CampaignsTemplates from "./routes/campaigns/CampaignsTemplates";
+import CampaignsInsights from "./routes/campaigns/CampaignsInsights";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminTasks from "./routes/admin/AdminTasks";
@@ -339,7 +344,11 @@ export default function App() {
               <Route path="/marketing/reviews/requests" element={<ProtectedRoute><ReviewsRequests /></ProtectedRoute>} />
               <Route path="/marketing/reviews/all" element={<ProtectedRoute><ReviewsAll /></ProtectedRoute>} />
               <Route path="/marketing/reviews/insights" element={<ProtectedRoute><ReviewsInsights /></ProtectedRoute>} />
-              <Route path="/marketing/email" element={<ProtectedRoute><ComingSoon title="Email Campaigns" blurb="Your email campaigns and how they perform. Coming soon." /></ProtectedRoute>} />
+              <Route path="/marketing/campaigns" element={<ProtectedRoute><CampaignsOverview /></ProtectedRoute>} />
+              <Route path="/marketing/campaigns/all" element={<ProtectedRoute><CampaignsList /></ProtectedRoute>} />
+              <Route path="/marketing/campaigns/audiences" element={<ProtectedRoute><CampaignsAudiences /></ProtectedRoute>} />
+              <Route path="/marketing/campaigns/templates" element={<ProtectedRoute><CampaignsTemplates /></ProtectedRoute>} />
+              <Route path="/marketing/campaigns/insights" element={<ProtectedRoute><CampaignsInsights /></ProtectedRoute>} />
               <Route path="/marketing/website" element={<ProtectedRoute><WebsiteOverview /></ProtectedRoute>} />
               <Route path="/marketing/website/pages" element={<ProtectedRoute><WebsitePages /></ProtectedRoute>} />
               <Route path="/marketing/website/request" element={<ProtectedRoute><WebsiteRequestChange /></ProtectedRoute>} />

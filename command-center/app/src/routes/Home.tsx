@@ -9,6 +9,7 @@ import {
   LogOut,
   RefreshCw,
   Search,
+  Send,
   Settings,
   Share2,
   TrendingUp,
@@ -374,6 +375,7 @@ export default function Home() {
             <ul className="mx-[22px] overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
               {[
                 { key: "social", label: "Social Media", sub: "Plan and schedule your posts", to: "/marketing/social", Icon: Share2, color: "#4f46e5" },
+                { key: "campaigns", label: "Campaigns", sub: "Text and email your customers", to: "/marketing/campaigns", Icon: Send, color: "#0ea5e9" },
                 // Calendar + Billing honour the same per-surface permissions as
                 // the sidebar/bottom nav; a staff member without view access must
                 // not be offered a link the backend will refuse.

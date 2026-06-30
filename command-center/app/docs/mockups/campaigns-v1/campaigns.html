@@ -1,0 +1,689 @@
+<!doctype html><html lang="en" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Campaigns — Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+   Campaigns mockup — faithful extract of the command-center "Console /
+   Modern Motion" tokens + components, so this reads as a drop-in. SMS + email
+   campaigns the client sends to their customers. Demo + not-connected states.
+   ========================================================================= */
+:root{
+  --brand-fg:#fff; --bg:#f6f7fb; --surface:#fff; --surface-2:#f1f3f9; --surface-3:#e9ebf3; --rail:#fbfcfe;
+  --text:#14161f; --text-muted:#555a6b; --text-faint:#8a90a3;
+  --border:#e7e9f1; --border-strong:#d4d8e6; --divider:#f1f3f9;
+  --brand:#4f46e5; --brand-2:#7c73f0; --brand-strong:#4338ca; --brand-text:#4f46e5;
+  --brand-tint:color-mix(in srgb,var(--brand) 10%,transparent);
+  --brand-tint-strong:color-mix(in srgb,var(--brand) 18%,transparent);
+  --grad-brand:linear-gradient(135deg,#4f46e5 0%,#7c73f0 100%);
+  --sms:#0ea5e9; --sms-tint:color-mix(in srgb,#0ea5e9 12%,transparent);
+  --positive:#16a34a; --positive-tint:color-mix(in srgb,#16a34a 12%,transparent);
+  --warning:#d97706; --warning-tint:color-mix(in srgb,#d97706 14%,transparent);
+  --danger:#dc2626; --danger-tint:color-mix(in srgb,#dc2626 12%,transparent);
+  --shadow-sm:0 1px 2px rgba(20,22,31,.04),0 1px 3px rgba(20,22,31,.05);
+  --shadow-md:0 6px 18px rgba(40,42,70,.07),0 2px 6px rgba(40,42,70,.05);
+  --shadow-lg:0 18px 40px rgba(40,42,70,.12),0 6px 14px rgba(40,42,70,.07);
+  --shadow-brand:0 8px 22px rgba(79,70,229,.28);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --font-display:"Poppins","Inter",ui-sans-serif,system-ui,sans-serif;
+  --font-body:"Inter",ui-sans-serif,system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",monospace;
+  --radius-sm:8px; --radius:10px; --radius-lg:14px;
+}
+[data-theme="dark"]{
+  --bg:#0c0d14; --surface:#15161f; --surface-2:#1c1d28; --surface-3:#232536; --rail:#11121b;
+  --text:#f4f4fb; --text-muted:#a8adc0; --text-faint:#6b7088;
+  --border:#262837; --border-strong:#34374a; --divider:#20222e;
+  --brand-text:color-mix(in srgb,var(--brand) 70%,white);
+  --positive:#4ade80; --warning:#fbbf24; --danger:#f87171; --sms:#38bdf8;
+  --shadow-brand:0 8px 22px rgba(79,70,229,.45);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  font-family:var(--font-body);-webkit-font-smoothing:antialiased;color:var(--text);background-color:var(--bg);
+  background-image:
+    radial-gradient(60rem 40rem at 12% -8%,rgba(124,115,240,.16),transparent 60%),
+    radial-gradient(50rem 38rem at 100% 0%,rgba(79,70,229,.12),transparent 55%),
+    radial-gradient(46rem 36rem at 50% 120%,rgba(99,102,241,.1),transparent 60%);
+  background-attachment:fixed;
+}
+[data-theme="dark"] body{background-image:
+  radial-gradient(60rem 40rem at 12% -8%,rgba(124,115,240,.1),transparent 60%),
+  radial-gradient(50rem 38rem at 100% 0%,rgba(79,70,229,.08),transparent 55%),
+  radial-gradient(46rem 36rem at 50% 120%,rgba(99,102,241,.07),transparent 60%);}
+
+.font-display{font-family:var(--font-display);letter-spacing:-.025em}
+.font-data{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.label-cap{text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:10.5px;color:var(--text-muted)}
+.muted{color:var(--text-muted)} .faint{color:var(--text-faint)} .brand-text{color:var(--brand-text)}
+
+/* ---- shell ---- */
+.glass{background:color-mix(in srgb,var(--surface) 62%,transparent);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4)}
+.app{display:flex;min-height:100dvh}
+.sidebar{width:244px;flex-shrink:0;position:sticky;top:0;height:100dvh;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.5)}
+[data-theme="dark"] .sidebar{border-right-color:rgba(255,255,255,.1)}
+.brandmark{height:34px;width:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;background-image:var(--grad-brand);box-shadow:var(--shadow-brand)}
+.nav-row{display:flex;align-items:center;gap:12px;width:100%;border-radius:10px;padding:10px 12px;font-size:13.5px;font-weight:500;color:var(--text-muted);background:none;border:none;cursor:pointer;text-decoration:none;transition:color .2s,background .2s,transform .2s;text-align:left;margin-bottom:2px}
+.nav-row:hover{background:rgba(255,255,255,.6);color:var(--text);transform:translateX(2px)}
+[data-theme="dark"] .nav-row:hover{background:rgba(255,255,255,.05)}
+.nav-row.active{background-image:var(--grad-brand);color:#fff;box-shadow:var(--shadow-brand)}
+.nav-row.open{background:rgba(255,255,255,.7);color:var(--brand-text)}
+[data-theme="dark"] .nav-row.open{background:rgba(255,255,255,.06)}
+.nav-row svg{width:17px;height:17px;flex-shrink:0;opacity:.8}
+.nav-children{margin-left:22px;margin-top:2px;padding-left:10px;border-left:1px solid var(--divider);display:flex;flex-direction:column}
+.nav-children .nav-row{font-size:13px;padding:8px 12px}
+.main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.topbar{height:56px;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 22px;border-bottom:1px solid var(--border)}
+.container{width:100%;max-width:72rem;margin:0 auto;flex:1 1 auto;padding:20px 32px 64px}
+
+/* ---- page header ---- */
+.page-header{margin-bottom:20px}
+.page-title{font-family:var(--font-display);font-size:22px;line-height:1;color:var(--text);letter-spacing:-.025em;margin:0;font-weight:600}
+.page-desc{margin:6px 0 0;font-size:14px;color:var(--text-muted)}
+.head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.head-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+
+/* ---- panel ---- */
+.panel{border-radius:var(--radius-lg);border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow-sm)}
+.panel-header{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--divider);padding:12px 16px}
+.panel-header h3{font-family:var(--font-display);font-size:15px;color:var(--text);margin:0;font-weight:600}
+.see-all{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--brand-text);text-decoration:none;cursor:pointer}
+.see-all:hover{text-decoration:underline}
+
+/* ---- buttons ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-body);font-weight:500;white-space:nowrap;cursor:pointer;height:38px;padding:0 16px;font-size:14px;border-radius:var(--radius);border:1px solid transparent;transition:background-color .12s,transform .1s,filter .12s}
+.btn:active{transform:scale(.97)} .btn svg{width:16px;height:16px}
+.btn-primary{background:var(--brand);color:var(--brand-fg);box-shadow:var(--shadow-sm)}
+.btn-primary:hover{background:var(--brand-strong)}
+.btn-secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}
+.btn-secondary:hover{background:var(--surface-2)}
+.btn-sm{height:32px;padding:0 12px;font-size:13px;border-radius:var(--radius-sm);gap:6px}
+.btn-ghost{background:transparent;color:var(--text-muted);border-color:transparent}
+.btn-ghost:hover{background:var(--surface-2);color:var(--text)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn[disabled]:active{transform:none}
+
+/* ---- badge / tones ---- */
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600;letter-spacing:.01em}
+.badge .dot{width:6px;height:6px;border-radius:999px;background:currentColor}
+.tone-brand{background:var(--brand-tint);color:var(--brand-text)}
+.tone-warning{background:var(--warning-tint);color:var(--warning)}
+.tone-positive{background:var(--positive-tint);color:var(--positive)}
+.tone-neutral{background:var(--surface-2);color:var(--text-muted)}
+.tone-danger{background:var(--danger-tint);color:var(--danger)}
+.tone-sms{background:var(--sms-tint);color:var(--sms)}
+
+/* ---- channel chip (Email / SMS) ---- */
+.chan{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px 2px 7px;font-size:11px;font-weight:600}
+.chan svg{width:13px;height:13px}
+.chan.email{background:var(--brand-tint);color:var(--brand-text)}
+.chan.sms{background:var(--sms-tint);color:var(--sms)}
+
+/* ---- kpi card ---- */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+.kpi{padding:16px}
+.kpi .k-label{font-size:13px;color:var(--text-muted)}
+.kpi .k-value{margin-top:8px;font-family:var(--font-mono);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text)}
+.kpi .k-value.brand{color:var(--brand-text)}
+.kpi .k-sub{margin-top:4px;font-size:11.5px;color:var(--text-faint)}
+
+/* ---- list rows ---- */
+.list-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--divider)}
+.list-row:last-child{border-bottom:none}
+.glyph{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center}
+.glyph.email{background:var(--brand-tint);color:var(--brand-text)}
+.glyph.sms{background:var(--sms-tint);color:var(--sms)}
+.row-main{flex:1 1 auto;min-width:0}
+.row-title{font-family:var(--font-display);font-size:14px;font-weight:600;letter-spacing:-.015em;color:var(--text);display:flex;align-items:center;gap:8px}
+.row-meta{font-size:12.5px;color:var(--text-faint);margin-top:3px}
+.row-right{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.metric{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--positive);font-variant-numeric:tabular-nums}
+.sub{font-size:11px;color:var(--text-faint)}
+.clickable{cursor:pointer;transition:background .15s}
+.clickable:hover{background:var(--surface-2)}
+
+.lower{display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+@media (max-width:980px){.lower{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+
+/* ---- ideas / callout ---- */
+.idea{border:1px solid var(--border);border-radius:var(--radius);padding:12px 12px 12px 16px;background:var(--surface);position:relative;transition:border-color .15s,transform .15s,box-shadow .15s}
+.idea::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;border-radius:var(--radius) 0 0 var(--radius);background-image:var(--grad-brand)}
+.idea:hover{border-color:var(--border-strong);transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+.idea-title{font-size:13.5px;font-weight:600;color:var(--text);margin-top:5px;line-height:1.35}
+.idea-cta{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;color:var(--brand-text);margin-top:8px;cursor:pointer}
+.idea-cta svg{width:14px;height:14px}
+.callout{display:flex;align-items:flex-start;gap:12px;border-radius:var(--radius-lg);padding:16px;border:1px solid var(--brand);background:var(--brand-tint)}
+.callout.warn{border-color:var(--warning);background:var(--warning-tint)}
+.callout svg{width:20px;height:20px;flex-shrink:0}
+.callout .txt{font-size:13.5px;line-height:1.45;color:var(--text)}
+
+/* ---- chips / filters ---- */
+.filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{border:1px solid var(--border);background:var(--surface);color:var(--text-muted);border-radius:999px;height:30px;padding:0 14px;font-size:12.5px;font-weight:500;cursor:pointer;font-family:var(--font-body);transition:color .15s,background .15s,border-color .15s}
+.chip:hover{color:var(--text);border-color:var(--border-strong)}
+.chip.on{background:var(--brand-tint);border-color:var(--brand);color:var(--brand-text)}
+
+/* ---- audiences / templates grids ---- */
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media (max-width:980px){.grid2,.grid3{grid-template-columns:1fr}}
+.aud-card{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);padding:16px;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s,border-color .15s;cursor:pointer}
+.aud-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--border-strong)}
+.aud-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.aud-num{font-family:var(--font-display);font-weight:800;letter-spacing:-.04em;font-size:30px;line-height:1;color:var(--text);margin-top:12px;font-variant-numeric:tabular-nums}
+.aud-name{font-family:var(--font-display);font-weight:600;font-size:15px;color:var(--text)}
+.aud-desc{font-size:13px;color:var(--text-muted);margin-top:6px;line-height:1.45}
+.tpl-card{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);padding:0;box-shadow:var(--shadow-sm);overflow:hidden;display:flex;flex-direction:column}
+.tpl-body{padding:14px 16px;flex:1}
+.tpl-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 16px;border-top:1px solid var(--divider);background:var(--rail)}
+.tpl-text{font-size:13px;color:var(--text-muted);line-height:1.5;margin-top:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+/* ---- insights bars ---- */
+.bar-track{margin-top:9px;height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.bar-fill{height:100%;border-radius:999px;background-image:var(--grad-brand)}
+.bar-fill.sms{background-image:linear-gradient(135deg,#0ea5e9,#38bdf8)}
+
+/* ---- empty / not connected ---- */
+.notice{display:flex;align-items:flex-start;gap:12px;border:1px solid var(--warning);background:var(--warning-tint);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:18px}
+.notice svg{width:20px;height:20px;color:var(--warning);flex-shrink:0;margin-top:1px}
+.notice .t{font-size:13.5px;line-height:1.45;color:var(--text)}
+.notice .t strong{font-weight:700}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:48px 24px;color:var(--text-faint)}
+.empty .ei{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--text-faint);margin-bottom:14px}
+.empty h4{font-family:var(--font-display);font-size:16px;color:var(--text);margin:0 0 4px;font-weight:600}
+.empty p{margin:0;font-size:13.5px;max-width:340px}
+
+/* ---- dialog ---- */
+.scrim{position:fixed;inset:0;background:rgba(15,16,28,.5);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:60;padding:24px}
+.scrim.show{display:flex}
+.dialog{width:100%;max-width:680px;max-height:88vh;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);overflow:hidden}
+.dialog.wide{max-width:760px}
+.dlg-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--divider)}
+.dlg-head h3{font-family:var(--font-display);font-size:17px;font-weight:600;margin:0}
+.dlg-x{width:32px;height:32px;border-radius:8px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.dlg-x:hover{background:var(--surface-2);color:var(--text)}
+.dlg-body{padding:20px;overflow-y:auto}
+.dlg-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-top:1px solid var(--divider);background:var(--rail)}
+.steps{display:flex;align-items:center;gap:6px}
+.step{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text-faint)}
+.step .n{width:20px;height:20px;border-radius:999px;background:var(--surface-2);color:var(--text-faint);display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+.step.on .n{background-image:var(--grad-brand);color:#fff}
+.step.on{color:var(--text)}
+.step.done .n{background:var(--positive-tint);color:var(--positive)}
+.step-sep{width:14px;height:1px;background:var(--border-strong)}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:6px}
+.input,.textarea{width:100%;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text);font-family:var(--font-body);font-size:14px;padding:10px 12px}
+.input:focus,.textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-tint)}
+.textarea{resize:vertical;min-height:96px;line-height:1.5}
+.pick{display:grid;gap:12px}
+.pick.two{grid-template-columns:1fr 1fr}
+.opt{border:1px solid var(--border-strong);border-radius:var(--radius-lg);padding:16px;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:border-color .15s,background .15s}
+.opt:hover{border-color:var(--brand)}
+.opt.sel{border-color:var(--brand);background:var(--brand-tint);box-shadow:0 0 0 1px var(--brand) inset}
+.opt .oi{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.opt .ot{font-family:var(--font-display);font-weight:600;font-size:14.5px}
+.opt .od{font-size:12.5px;color:var(--text-muted);margin-top:3px;line-height:1.4}
+.opt .chk{margin-left:auto;color:var(--brand);opacity:0}
+.opt.sel .chk{opacity:1}
+.compose-grid{display:grid;grid-template-columns:1fr 240px;gap:18px}
+@media (max-width:680px){.compose-grid{grid-template-columns:1fr}}
+.charbar{display:flex;align-items:center;justify-content:space-between;margin-top:6px;font-size:11.5px;color:var(--text-faint)}
+/* phone + email preview */
+.preview-wrap{display:flex;flex-direction:column;gap:8px}
+.preview-cap{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint)}
+.phone{border:8px solid #1b1d29;border-radius:26px;background:#0c0d14;padding:10px 8px 14px;box-shadow:var(--shadow-md)}
+.phone .pstatus{display:flex;justify-content:center;margin-bottom:8px}
+.phone .pstatus span{width:46px;height:5px;border-radius:999px;background:#2a2c3a}
+.bubble{background:#26283a;color:#fff;border-radius:14px 14px 14px 4px;padding:9px 11px;font-size:12.5px;line-height:1.45;max-width:88%}
+.bubble .from{font-size:10px;color:#9aa0b8;margin-bottom:4px}
+.email-prev{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+.email-prev .ep-head{padding:10px 12px;border-bottom:1px solid var(--divider);background:var(--rail)}
+.email-prev .ep-subj{font-family:var(--font-display);font-weight:600;font-size:13px}
+.email-prev .ep-from{font-size:11px;color:var(--text-faint);margin-top:2px}
+.email-prev .ep-body{padding:12px;font-size:12px;color:var(--text-muted);line-height:1.5}
+.summary-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--divider);font-size:13px}
+.summary-row:last-child{border-bottom:none}
+.summary-row .sl{color:var(--text-muted)}
+.summary-row .sv{font-weight:600;color:var(--text)}
+.seg-row{display:flex;gap:10px;margin-bottom:16px}
+.seg-row label{flex:1;border:1px solid var(--border-strong);border-radius:var(--radius);padding:12px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;transition:border-color .15s,background .15s}
+.seg-row input{accent-color:var(--brand)}
+.seg-row label:has(input:checked){border-color:var(--brand);background:var(--brand-tint)}
+
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:999px;font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);opacity:0;transition:.25s var(--ease);z-index:80;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* report detail */
+.report-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+@media (max-width:680px){.report-kpis{grid-template-columns:repeat(2,1fr)}}
+.back{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;margin-bottom:14px;background:none;border:none;padding:0}
+.back:hover{color:var(--text)}
+.contact-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--divider)}
+.contact-row:last-child{border-bottom:none}
+.avatar{width:32px;height:32px;border-radius:999px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text-muted);flex-shrink:0}
+.seg-toggle{display:inline-flex;border:1px solid var(--border);border-radius:999px;background:var(--surface-2);padding:3px}
+.seg-toggle button{border:none;background:none;cursor:pointer;border-radius:999px;height:26px;padding:0 12px;font-size:12px;font-weight:600;color:var(--text-muted);font-family:var(--font-body)}
+.seg-toggle button.on{background:var(--surface);color:var(--brand-text);box-shadow:var(--shadow-sm)}
+
+@media (max-width:900px){.sidebar{display:none}.container{padding:18px 18px 64px}}
+</style>
+</head><body>
+<div class="app">
+  <aside class="sidebar glass">
+    <div style="display:flex;align-items:center;gap:10px;padding:16px;">
+      <span class="brandmark">WP</span>
+      <div style="min-width:0;">
+        <div class="font-display" style="font-size:15px;font-weight:600;line-height:1.1;">Willis Plumbing</div>
+        <div class="faint" style="font-size:11px;">Plumbing &amp; HVAC</div>
+      </div>
+    </div>
+    <nav style="padding:4px 12px;">
+      <a class="nav-row" href="#" data-icon="home">Home</a>
+      <button class="nav-row open" data-icon="megaphone">Marketing</button>
+      <button class="nav-row" data-icon="trending">Sales</button>
+      <button class="nav-row" data-icon="users">Customers</button>
+      <button class="nav-row" data-icon="building">Operations</button>
+    </nav>
+    <div style="padding:6px 12px;border-top:1px solid var(--divider);margin-top:6px;">
+      <a class="nav-row" href="#" data-icon="megaphone">Paid Ads</a>
+      <a class="nav-row" href="#" data-icon="star">Google Reviews</a>
+      <button class="nav-row open" data-icon="send" style="justify-content:flex-start;">
+        <span style="flex:1;text-align:left;">Campaigns</span>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;transform:rotate(180deg);"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="nav-children">
+        <a class="nav-row active" href="#" data-page="overview" data-icon="layout">Overview</a>
+        <a class="nav-row" href="#" data-page="campaigns" data-icon="send">Campaigns</a>
+        <a class="nav-row" href="#" data-page="audiences" data-icon="users">Audiences</a>
+        <a class="nav-row" href="#" data-page="templates" data-icon="grid">Templates</a>
+        <a class="nav-row" href="#" data-page="insights" data-icon="bar">What's working</a>
+      </div>
+      <a class="nav-row" href="#" data-icon="globe">Website</a>
+      <button class="nav-row" data-icon="share" style="justify-content:flex-start;">
+        <span style="flex:1;text-align:left;">Social Media</span>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="seg-toggle" id="modeToggle" title="Preview mode">
+        <button data-mode="demo" class="on">Demo data</button>
+        <button data-mode="empty">Not connected</button>
+      </div>
+      <button id="themeBtn" class="btn btn-ghost btn-sm" title="Toggle theme"></button>
+      <span class="brandmark" style="width:30px;height:30px;font-size:11px;">JW</span>
+    </div>
+    <div class="container" id="page"></div>
+  </main>
+</div>
+
+<!-- New Campaign dialog -->
+<div class="scrim" id="wizard">
+  <div class="dialog wide">
+    <div class="dlg-head">
+      <h3>New campaign</h3>
+      <button class="dlg-x" data-close>&times;</button>
+    </div>
+    <div class="dlg-body" id="wizBody"></div>
+    <div class="dlg-foot" id="wizFoot"></div>
+  </div>
+</div>
+
+<!-- Audience detail dialog -->
+<div class="scrim" id="audDlg">
+  <div class="dialog">
+    <div class="dlg-head"><h3 id="audTitle">Audience</h3><button class="dlg-x" data-close>&times;</button></div>
+    <div class="dlg-body" id="audBody" style="padding:0;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================ icons ============================ */
+const ICONS={
+  home:'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+  megaphone:'<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+  star:'<polygon points="12 2 15 9 22 9.3 17 14 18.5 21 12 17.3 5.5 21 7 14 2 9.3 9 9"/>',
+  mail:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  msg:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/>',
+  globe:'<circle cx="12" cy="12" r="10"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20M2 12h20"/>',
+  share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5"/>',
+  trending:'<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  building:'<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4M9 6h.01M15 6h.01M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/>',
+  layout:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M9 21V9"/>',
+  sparkles:'<path d="m12 3-1.9 5.8L4 11l6.1 2.2L12 19l1.9-5.8L20 11l-6.1-2.2z"/>',
+  calendar:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/>',
+  grid:'<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+  bar:'<path d="M3 3v18h18"/><rect width="4" height="7" x="7" y="10"/><rect width="4" height="11" x="15" y="6"/>',
+  plus:'<path d="M5 12h14M12 5v14"/>',
+  send:'<path d="M14.5 2.4 21 12l-6.5 9.6L13 13l-9-1 17-9z"/><path d="m13 13-1 8"/>',
+  send2:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  arrowsm:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  zap:'<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  back:'<path d="m12 19-7-7 7-7M19 12H5"/>',
+  eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  plug:'<path d="M12 22v-5M9 8V2M15 8V2M5 8h14v3a7 7 0 0 1-14 0z"/>',
+};
+function icon(n,s){s=s||17;return '<svg viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[n]||'')+'</svg>';}
+function fillIcons(root){(root||document).querySelectorAll('[data-icon]').forEach(el=>{if(!el.dataset.done){el.insertAdjacentHTML('afterbegin',icon(el.dataset.icon,el.dataset.isz?+el.dataset.isz:17));el.dataset.done=1;}});}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ============================ demo data ============================ */
+const DATA={
+  kpis:[
+    {label:"Sent this month",value:"3",sub:"2 email · 1 SMS"},
+    {label:"Email open rate",value:"43%",sub:"above your average"},
+    {label:"Link clicks",value:"168",sub:"across all sends"},
+    {label:"Replies",value:"22",sub:"texts back"},
+    {label:"Jobs booked",value:"14",brand:true,sub:"from campaigns"},
+  ],
+  upNext:[
+    {ch:"sms",title:"Summer AC tune-up reminder",meta:"Sat 9:00 AM · 1,420 customers",tone:"brand",status:"Scheduled"},
+    {ch:"email",title:"Refer a friend, get $25 off",meta:"Mon 8:00 AM · 1,420 customers",tone:"brand",status:"Scheduled"},
+    {ch:"email",title:"Garcia 5★ thank-you + review ask",meta:"Needs your approval",tone:"warning",status:"Draft"},
+  ],
+  recent:[
+    {ch:"email",title:"Spring drain-cleaning special",meta:"Jun 12 · 1,380 sent",metric:"7 jobs",sub:"43% opened"},
+    {ch:"sms",title:"Heat wave: book your AC check",meta:"Jun 8 · 980 sent",metric:"5 jobs",sub:"31 replies"},
+    {ch:"email",title:"Meet your technician",meta:"Jun 5 · 1,360 sent",metric:"2 jobs",sub:"44% opened"},
+  ],
+  ideas:[
+    {kind:"Seasonal",title:"Text an AC tune-up reminder before the heat wave"},
+    {kind:"Win-back",title:"Email the 12 customers overdue for service"},
+    {kind:"Review",title:"Turn the Garcia 5★ into a thank-you text"},
+  ],
+  callout:{text:"Your spring special booked 7 jobs.",strong:"Send it again next month?"},
+  campaigns:[
+    {ch:"sms",title:"Summer AC tune-up reminder",aud:"All customers",when:"Jun 28",sent:"—",rate:"—",result:"—",tone:"brand",status:"Scheduled"},
+    {ch:"email",title:"Refer a friend, get $25 off",aud:"All customers",when:"Jun 30",sent:"—",rate:"—",result:"—",tone:"brand",status:"Scheduled"},
+    {ch:"email",title:"Garcia 5★ thank-you + review ask",aud:"Recent 5★ jobs",when:"Draft",sent:"—",rate:"—",result:"—",tone:"warning",status:"Draft"},
+    {ch:"email",title:"Spring drain-cleaning special",aud:"All customers",when:"Jun 12",sent:"1,380",rate:"43% opened",result:"7 jobs",tone:"positive",status:"Sent"},
+    {ch:"sms",title:"Heat wave: book your AC check",aud:"No A/C service in 12mo",when:"Jun 8",sent:"980",rate:"31 replies",result:"5 jobs",tone:"positive",status:"Sent"},
+    {ch:"email",title:"Meet your technician",aud:"New customers",when:"Jun 5",sent:"1,360",rate:"44% opened",result:"2 jobs",tone:"positive",status:"Sent"},
+    {ch:"email",title:"May newsletter: 3 spring plumbing tips",aud:"All customers",when:"May 20",sent:"1,340",rate:"39% opened",result:"2 jobs",tone:"positive",status:"Sent"},
+  ],
+  audiences:[
+    {name:"All customers",count:"1,420",desc:"Everyone in your customer list with a phone or email on file."},
+    {name:"Past customers",count:"640",desc:"No booked job in the last 12 months. Ripe for a win-back."},
+    {name:"Repeat / VIP",count:"212",desc:"Booked 3+ jobs. Your most loyal customers."},
+    {name:"New customers",count:"96",desc:"First job booked in the last 60 days."},
+    {name:"Recent 5★ jobs",count:"28",desc:"Left a 5★ review or rated the job highly. Great for referrals."},
+    {name:"No A/C service in 12mo",count:"980",desc:"Due for a tune-up before the summer heat."},
+  ],
+  audienceMembers:[
+    {name:"The Garcias",sub:"Water heater · Jun 2",init:"G"},
+    {name:"Mark T.",sub:"AC tune-up · May 28",init:"M"},
+    {name:"Janet R.",sub:"Drain cleaning · May 21",init:"J"},
+    {name:"The Reyes",sub:"AC install · May 14",init:"R"},
+    {name:"Tom B.",sub:"Burst pipe · May 9",init:"T"},
+    {name:"The Hendersons",sub:"Last job Jun 2025",init:"H"},
+  ],
+  templates:[
+    {ch:"sms",cat:"Reminder",title:"Seasonal tune-up reminder",text:"Hi {{first}}, it's Willis Plumbing. Beat the summer rush, book your AC tune-up and we'll keep it running cool all season. Reply YES and we'll text you times."},
+    {ch:"email",cat:"Promo",title:"Monthly special",text:"Subject: This month only — $25 off drain cleaning. A quick, clean fix before a small clog becomes a weekend emergency. Book online in under a minute."},
+    {ch:"email",cat:"Review",title:"5★ thank-you + review ask",text:"Subject: Thank you, {{first}}! We loved helping with your recent job. If we earned it, a quick Google review helps your neighbors find us. Here's the link."},
+    {ch:"sms",cat:"Win-back",title:"We miss you",text:"Hi {{first}}, it's been a while! Your plumbing deserves a checkup. Book this month and take $25 off any service. Reply BOOK to grab a slot."},
+    {ch:"email",cat:"Referral",title:"Refer a friend",text:"Subject: Give $25, get $25. Know a neighbor who needs a great plumber? Send them our way, you both save $25 on your next job."},
+    {ch:"sms",cat:"Confirmation",title:"Appointment reminder",text:"Reminder: your Willis Plumbing visit is tomorrow between {{window}}. Reply C to confirm or R to reschedule."},
+  ],
+  insights:{
+    summary:[
+      {label:"Messages sent",value:"4,440"},
+      {label:"Email open rate",value:"42%"},
+      {label:"SMS reply rate",value:"4.1%"},
+      {label:"Jobs booked",value:"14",brand:true},
+    ],
+    performers:[
+      {ch:"email",title:"Spring drain-cleaning special",metric:"7 jobs",sub:"43% opened · 1,380 sent"},
+      {ch:"sms",title:"Heat wave: book your AC check",metric:"5 jobs",sub:"31 replies · 980 sent"},
+      {ch:"email",title:"Meet your technician",metric:"2 jobs",sub:"44% opened · 1,360 sent"},
+      {ch:"email",title:"May newsletter: spring tips",metric:"2 jobs",sub:"39% opened · 1,340 sent"},
+    ],
+    takeaway:"SMS gets a faster response, email reaches more people. Sending Friday mornings books the most jobs, so we'll keep leading there.",
+  },
+};
+
+/* ============================ small builders ============================ */
+const chanChip=ch=>'<span class="chan '+ch+'">'+icon(ch==='sms'?'msg':'mail',13)+(ch==='sms'?'SMS':'Email')+'</span>';
+const rowGlyph=ch=>'<span class="glyph '+ch+'">'+icon(ch==='sms'?'msg':'mail',16)+'</span>';
+function kpiGrid(kpis){return '<div class="kpis">'+kpis.map(k=>'<div class="panel kpi"><div class="k-label">'+esc(k.label)+'</div><div class="k-value'+(k.brand?' brand':'')+'">'+esc(k.value)+'</div>'+(k.sub?'<div class="k-sub">'+esc(k.sub)+'</div>':'')+'</div>').join('')+'</div>';}
+function pageTop(title,desc,actions){return '<div class="head"><div class="page-header"><h2 class="page-title">'+esc(title)+'</h2><p class="page-desc">'+esc(desc)+'</p></div>'+(actions?'<div class="head-actions">'+actions+'</div>':'')+'</div>';}
+const newBtn='<button class="btn btn-primary btn-sm" data-icon="plus" data-isz="16" data-new>New campaign</button>';
+function notice(){return '<div class="notice">'+icon('plug',20)+'<div class="t"><strong>Your messaging isn\'t connected yet.</strong> Once we link your customer list and texting/email number, your campaigns, audiences and results show up here. Sending stays switched off until then.</div></div>';}
+function emptyState(ico,h,p){return '<div class="panel"><div class="empty"><span class="ei">'+icon(ico,22)+'</span><h4>'+esc(h)+'</h4><p>'+esc(p)+'</p></div></div>';}
+
+/* ============================ pages ============================ */
+const PAGES={
+overview(empty){
+  if(empty){
+    return pageTop('Campaigns',"Send the right message to the right customers, at the right time.",newBtn)+
+      notice()+
+      kpiGrid(DATA.kpis.map(k=>({label:k.label,value:'—'})))+
+      '<div class="lower"><div class="col">'+
+        emptyState('send','No campaigns yet',"When your account is connected, every text and email you send will live here with its results.")+
+      '</div><div class="col">'+
+        emptyState('sparkles','Ideas land here',"We'll suggest campaigns worth sending based on your customers and season.")+
+      '</div></div>';
+  }
+  const upNext=DATA.upNext.map(r=>'<div class="list-row">'+rowGlyph(r.ch)+'<div class="row-main"><div class="row-title">'+esc(r.title)+'</div><div class="row-meta">'+esc(r.meta)+'</div></div><span class="badge tone-'+r.tone+'"><span class="dot"></span>'+esc(r.status)+'</span></div>').join('');
+  const recent=DATA.recent.map((r,i)=>'<div class="list-row clickable" data-report="'+i+'">'+rowGlyph(r.ch)+'<div class="row-main"><div class="row-title">'+esc(r.title)+'</div><div class="row-meta">'+esc(r.meta)+'</div></div><div class="row-right"><div class="metric">'+esc(r.metric)+'</div><div class="sub">'+esc(r.sub)+'</div></div></div>').join('');
+  const ideas=DATA.ideas.map(i=>'<div class="idea"><div class="label-cap brand-text">'+esc(i.kind)+'</div><div class="idea-title">'+esc(i.title)+'</div><div class="idea-cta" data-new>Build it '+icon('arrowsm',14)+'</div></div>').join('');
+  const callout='<div class="callout">'+icon('zap',20)+'<div class="txt">'+esc(DATA.callout.text)+' <strong>'+esc(DATA.callout.strong)+'</strong></div></div>';
+  return pageTop('Campaigns',"Send the right message to the right customers, at the right time.",newBtn)+
+    kpiGrid(DATA.kpis)+
+    '<div class="lower"><div class="col">'+
+      '<div class="panel"><div class="panel-header"><h3>Up next</h3><a class="see-all" data-goto="campaigns">All campaigns '+icon('arrowsm',13)+'</a></div>'+upNext+'</div>'+
+      '<div class="panel"><div class="panel-header"><h3>Recently sent</h3><a class="see-all" data-goto="insights">What\'s working '+icon('arrowsm',13)+'</a></div>'+recent+'</div>'+
+    '</div><div class="col">'+
+      '<div class="panel"><div class="panel-header"><h3>Ideas for you</h3></div><div style="display:flex;flex-direction:column;gap:10px;padding:12px;">'+ideas+'</div></div>'+
+      callout+
+    '</div></div>';
+},
+
+campaigns(empty){
+  if(empty) return pageTop('Campaigns',"Every text and email you've sent.",newBtn)+notice()+emptyState('send','No campaigns yet',"Create your first campaign and it'll show up here with delivery and results once it sends.");
+  const filt=state.filt||'all';
+  const chips=[['all','All'],['Scheduled','Scheduled'],['Draft','Drafts'],['Sent','Sent']].map(p=>'<button class="chip'+(filt===p[0]?' on':'')+'" data-filter="'+p[0]+'">'+p[1]+'</button>').join('');
+  const rows=DATA.campaigns.map((c,i)=>({c,i})).filter(({c})=>filt==='all'||c.status===filt).map(({c,i})=>{
+    const right=c.status==='Sent'
+      ?'<div class="row-right"><div class="metric">'+esc(c.result)+'</div><div class="sub">'+esc(c.rate)+' · '+esc(c.sent)+' sent</div></div>'
+      :'<span class="badge tone-'+c.tone+'"><span class="dot"></span>'+esc(c.status)+'</span>';
+    const clk=c.status==='Sent'?' clickable" data-report="r'+i:'';
+    return '<div class="list-row'+clk+'">'+rowGlyph(c.ch)+'<div class="row-main"><div class="row-title">'+esc(c.title)+' '+chanChip(c.ch)+'</div><div class="row-meta">'+esc(c.aud)+' · '+esc(c.when)+'</div></div>'+right+'</div>';
+  }).join('')||'<div style="padding:24px 16px;color:var(--text-faint);font-size:13px;">No campaigns here yet.</div>';
+  return pageTop('Campaigns',"Every text and email you've sent.",newBtn)+
+    '<div class="filter">'+chips+'</div>'+
+    '<div class="panel"><div class="panel-header"><h3>All campaigns</h3></div>'+rows+'</div>';
+},
+
+audiences(empty){
+  if(empty) return pageTop('Audiences',"The customer lists you can send to.","")+notice()+emptyState('users','No audiences yet',"Once your customer list is connected, we'll build smart lists like 'past customers' and 'due for a tune-up' automatically.");
+  const cards=DATA.audiences.map((a,i)=>'<div class="aud-card" data-aud="'+i+'"><div class="aud-top"><span class="glyph email">'+icon('users',16)+'</span><span class="see-all">View '+icon('arrowsm',13)+'</span></div><div class="aud-num">'+esc(a.count)+'</div><div class="aud-name" style="margin-top:6px;">'+esc(a.name)+'</div><div class="aud-desc">'+esc(a.desc)+'</div></div>').join('');
+  return pageTop('Audiences',"The customer lists you can send to. We build these from your customer records.",'<button class="btn btn-secondary btn-sm" data-icon="plus" data-isz="16" data-toast="Custom audience builder turns on once your customer list is connected.">New list</button>')+
+    '<div class="grid3">'+cards+'</div>';
+},
+
+templates(empty){
+  if(empty) return pageTop('Templates',"Reusable messages you can send in a couple of taps.",'<button class="btn btn-secondary btn-sm" data-icon="plus" data-isz="16" disabled>New template</button>')+notice()+emptyState('grid','No templates yet',"Save a message once and reuse it any time. We'll also stock a few proven ones for your trade.");
+  const cards=DATA.templates.map(t=>'<div class="tpl-card"><div class="tpl-body"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'+chanChip(t.ch)+'<span class="label-cap">'+esc(t.cat)+'</span></div><div class="aud-name" style="margin-top:10px;font-size:14.5px;">'+esc(t.title)+'</div><div class="tpl-text">'+esc(t.text)+'</div></div><div class="tpl-foot"><span class="faint" style="font-size:12px;">Used in 2 campaigns</span><button class="btn btn-primary btn-sm" data-new>Use</button></div></div>').join('');
+  return pageTop('Templates',"Reusable messages you can drop into any campaign.",'<button class="btn btn-primary btn-sm" data-icon="plus" data-isz="16" data-toast="Saving custom templates turns on once your account is connected.">New template</button>')+
+    '<div class="grid2">'+cards+'</div>';
+},
+
+insights(empty){
+  if(empty) return pageTop("What's working","See which messages actually book jobs.","")+notice()+kpiGrid(DATA.insights.summary.map(k=>({label:k.label,value:'—'})))+emptyState('bar','No results yet',"After your first few campaigns, we'll show what books the most jobs and the best time to send.");
+  const n=DATA.insights.performers.length;
+  const bars=DATA.insights.performers.map((p,idx)=>{const w=Math.round((n-idx)/n*100);return '<div class="list-row" style="display:block;"><div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;"><div class="row-title">'+esc(p.title)+' '+chanChip(p.ch)+'</div><div class="metric">'+esc(p.metric)+'</div></div><div class="row-meta">'+esc(p.sub)+'</div><div class="bar-track"><div class="bar-fill'+(p.ch==='sms'?' sms':'')+'" style="width:'+w+'%;"></div></div></div>';}).join('');
+  const callout='<div class="callout" style="margin-top:16px;">'+icon('zap',20)+'<div class="txt">'+esc(DATA.insights.takeaway)+'</div></div>';
+  return pageTop("What's working","Which messages turned into real, booked work.","")+
+    kpiGrid(DATA.insights.summary)+
+    '<div class="panel"><div class="panel-header"><h3>Top campaigns</h3></div>'+bars+'</div>'+callout;
+},
+
+/* report drilldown (rendered into the page, with a back button) */
+report(idx){
+  let c;
+  if(typeof idx==='string'&&idx[0]==='r') c=DATA.campaigns[+idx.slice(1)];
+  else c=DATA.recent[+idx]&&DATA.campaigns.find(x=>x.title===DATA.recent[+idx].title);
+  c=c||DATA.campaigns[3];
+  const rep=[
+    {label:"Delivered",value:c.sent||"1,380"},
+    {label:c.ch==='sms'?"Replies":"Opened",value:c.ch==='sms'?"31":"43%"},
+    {label:"Link clicks",value:c.ch==='sms'?"54":"96"},
+    {label:"Jobs booked",value:(c.result||"7 jobs").replace(' jobs',''),brand:true},
+  ];
+  const preview=c.ch==='sms'
+    ?'<div class="phone"><div class="pstatus"><span></span></div><div class="bubble"><div class="from">Willis Plumbing</div>Hi Mark, beat the summer rush, book your AC tune-up and we\'ll keep it running cool all season. Reply YES for times.</div></div>'
+    :'<div class="email-prev"><div class="ep-head"><div class="ep-subj">'+esc(c.title)+'</div><div class="ep-from">Willis Plumbing &lt;hello@willisplumbing.com&gt;</div></div><div class="ep-body">Hi {{first}}, a quick, clean fix before a small clog becomes a weekend emergency. $25 off drain cleaning this month, book online in under a minute.</div></div>';
+  return '<button class="back" data-goto="campaigns">'+icon('back',15)+'Back to campaigns</button>'+
+    pageTop(c.title,esc(c.aud)+' · '+esc(c.when),chanChip(c.ch))+
+    '<div class="report-kpis">'+rep.map(k=>'<div class="panel kpi"><div class="k-label">'+esc(k.label)+'</div><div class="k-value'+(k.brand?' brand':'')+'">'+esc(k.value)+'</div></div>').join('')+'</div>'+
+    '<div class="lower"><div class="col"><div class="panel"><div class="panel-header"><h3>Timeline</h3></div>'+
+      ['Delivered to '+(c.sent||'1,380')+' customers','First open within 4 minutes','Peak opens 9–11 AM','14 link clicks in the first hour'].map(t=>'<div class="list-row">'+icon('check',16)+'<div class="row-main"><div class="row-title" style="font-size:13px;font-weight:500;">'+esc(t)+'</div></div></div>').join('')+
+    '</div></div><div class="col"><div class="preview-wrap"><div class="preview-cap">What customers saw</div>'+preview+'</div></div></div>';
+},
+};
+
+/* ============================ wizard (New campaign) ============================ */
+const wiz={step:1,ch:null,aud:0,when:'now'};
+const WIZ_AUD=DATA.audiences;
+function openWiz(){wiz.step=1;wiz.ch=null;wiz.aud=0;wiz.when='now';renderWiz();show('wizard');}
+function renderWiz(){
+  const steps=['Channel','Audience','Compose','Schedule'];
+  const head=steps.map((s,i)=>{const n=i+1;const cls=wiz.step===n?'on':(wiz.step>n?'done':'');return '<div class="step '+cls+'"><span class="n">'+(wiz.step>n?icon('check',12):n)+'</span>'+s+'</div>';}).join('<span class="step-sep"></span>');
+  let body='';
+  if(wiz.step===1){
+    body='<div class="field"><label>How do you want to reach them?</label><div class="pick two">'+
+      '<div class="opt'+(wiz.ch==='sms'?' sel':'')+'" data-ch="sms"><span class="oi" style="background:var(--sms-tint);color:var(--sms)">'+icon('msg',18)+'</span><div><div class="ot">Text message</div><div class="od">Lands instantly, best reply rate. Great for reminders and time-sensitive offers.</div></div><span class="chk">'+icon('check',18)+'</span></div>'+
+      '<div class="opt'+(wiz.ch==='email'?' sel':'')+'" data-ch="email"><span class="oi" style="background:var(--brand-tint);color:var(--brand-text)">'+icon('mail',18)+'</span><div><div class="ot">Email</div><div class="od">Room for detail and images. Best for newsletters, specials and longer updates.</div></div><span class="chk">'+icon('check',18)+'</span></div>'+
+    '</div></div>';
+  } else if(wiz.step===2){
+    body='<div class="field"><label>Who should get this?</label><div class="pick">'+WIZ_AUD.map((a,i)=>'<div class="opt'+(wiz.aud===i?' sel':'')+'" data-aud="'+i+'"><span class="oi" style="background:var(--brand-tint);color:var(--brand-text)">'+icon('users',16)+'</span><div><div class="ot">'+esc(a.name)+' <span class="faint" style="font-weight:500;">· '+esc(a.count)+'</span></div><div class="od">'+esc(a.desc)+'</div></div><span class="chk">'+icon('check',18)+'</span></div>').join('')+'</div></div>';
+  } else if(wiz.step===3){
+    const sms=wiz.ch==='sms';
+    body='<div class="compose-grid"><div>'+
+      '<div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button class="btn btn-secondary btn-sm" data-icon="sparkles" data-isz="15" data-ai>Write it for me</button></div>'+
+      (sms?'':'<div class="field"><label>Subject line</label><input class="input" id="f-subj" placeholder="e.g. $25 off drain cleaning this month" value="$25 off drain cleaning this month"></div>')+
+      '<div class="field"><label>Message</label><textarea class="textarea" id="f-body" '+(sms?'maxlength="320"':'')+'>'+(sms?"Hi {{first}}, it's Willis Plumbing. Beat the summer rush, book your AC tune-up and we'll keep it cool all season. Reply YES for times.":"Hi {{first}}, a quick, clean fix before a small clog becomes a weekend emergency. $25 off drain cleaning this month, book online in under a minute.")+'</textarea>'+
+        (sms?'<div class="charbar"><span id="charc">0 characters</span><span id="segc">1 text per recipient</span></div>':'<div class="charbar"><span>{{first}} fills in each customer\'s name.</span><a class="see-all" data-tpl>Use a template</a></div>')+
+      '</div></div>'+
+      '<div class="preview-wrap"><div class="preview-cap">Live preview</div><div id="prev"></div></div>'+
+    '</div>';
+  } else {
+    const a=WIZ_AUD[wiz.aud];
+    body='<div class="field"><label>When should it go out?</label><div class="seg-row">'+
+      '<label><input type="radio" name="when" value="now" '+(wiz.when==='now'?'checked':'')+'> Send now</label>'+
+      '<label><input type="radio" name="when" value="later" '+(wiz.when==='later'?'checked':'')+'> Schedule</label></div>'+
+      (wiz.when==='later'?'<div class="field" style="display:flex;gap:10px;"><input class="input" type="date" value="2026-07-03"><input class="input" type="time" value="09:00"></div>':'')+
+      '<div class="panel" style="margin-top:6px;"><div class="panel-header"><h3>Review</h3></div><div style="padding:6px 16px 12px;">'+
+        '<div class="summary-row"><span class="sl">Channel</span><span class="sv">'+(wiz.ch==='sms'?'Text message':'Email')+'</span></div>'+
+        '<div class="summary-row"><span class="sl">Audience</span><span class="sv">'+esc(a.name)+' ('+esc(a.count)+')</span></div>'+
+        '<div class="summary-row"><span class="sl">Goes to</span><span class="sv">'+esc(a.count)+(wiz.ch==='sms'?' text messages':' inboxes')+'</span></div>'+
+        '<div class="summary-row"><span class="sl">Sends</span><span class="sv">'+(wiz.when==='now'?'Right away':'Jul 3, 9:00 AM')+'</span></div>'+
+      '</div></div>';
+  }
+  document.getElementById('wizBody').innerHTML='<div class="steps" style="margin-bottom:20px;">'+head+'</div>'+body;
+  // footer
+  const canNext=(wiz.step===1&&wiz.ch)||(wiz.step===2)||(wiz.step===3)||(wiz.step===4);
+  const back=wiz.step>1?'<button class="btn btn-secondary btn-sm" data-wback>Back</button>':'<span></span>';
+  const next=wiz.step<4
+    ?'<button class="btn btn-primary btn-sm" data-wnext '+(canNext?'':'disabled')+'>Continue</button>'
+    :'<button class="btn btn-primary btn-sm" data-icon="send2" data-isz="15" disabled title="Connect your account to send">Send campaign</button>';
+  const note=wiz.step===4?'<span class="faint" style="font-size:12px;display:flex;align-items:center;gap:6px;">'+icon('plug',14)+'Sending turns on once your account is connected.</span>':'<span></span>';
+  document.getElementById('wizFoot').innerHTML='<div>'+back+'</div><div style="display:flex;align-items:center;gap:14px;">'+note+next+'</div>';
+  fillIcons(document.getElementById('wizard'));
+  if(wiz.step===3) updatePreview();
+}
+function updatePreview(){
+  const sms=wiz.ch==='sms';
+  const body=(document.getElementById('f-body')||{}).value||'';
+  const subj=(document.getElementById('f-subj')||{}).value||'';
+  const filled=body.replace(/{{first}}/g,'Mark');
+  const prev=document.getElementById('prev');
+  if(!prev) return;
+  if(sms){
+    prev.innerHTML='<div class="phone"><div class="pstatus"><span></span></div><div class="bubble"><div class="from">Willis Plumbing</div>'+esc(filled)+'</div></div>';
+    const c=document.getElementById('charc'),s=document.getElementById('segc');
+    if(c) c.textContent=body.length+' characters';
+    if(s) s.textContent=(Math.max(1,Math.ceil(body.length/160)))+' text'+(Math.ceil(body.length/160)>1?'s':'')+' per recipient';
+  } else {
+    prev.innerHTML='<div class="email-prev"><div class="ep-head"><div class="ep-subj">'+esc(subj||'(no subject)')+'</div><div class="ep-from">Willis Plumbing</div></div><div class="ep-body">'+esc(filled)+'</div></div>';
+  }
+}
+
+/* ============================ audience detail dialog ============================ */
+function openAud(i){
+  const a=DATA.audiences[i];
+  document.getElementById('audTitle').textContent=a.name+' · '+a.count;
+  document.getElementById('audBody').innerHTML=
+    '<div style="padding:14px 16px;border-bottom:1px solid var(--divider);"><div class="muted" style="font-size:13px;line-height:1.5;">'+esc(a.desc)+'</div><div style="margin-top:12px;display:flex;gap:8px;"><button class="btn btn-primary btn-sm" data-icon="plus" data-isz="15" data-new>Send to this list</button></div></div>'+
+    '<div class="panel-header" style="border-bottom:none;padding-top:14px;"><h3 style="font-size:13px;">Sample of who\'s in this list</h3></div>'+
+    DATA.audienceMembers.map(m=>'<div class="contact-row"><span class="avatar">'+esc(m.init)+'</span><div class="row-main"><div class="row-title" style="font-size:13.5px;">'+esc(m.name)+'</div><div class="row-meta">'+esc(m.sub)+'</div></div></div>').join('')+
+    '<div style="padding:12px 16px;text-align:center;font-size:12px;color:var(--text-faint);">Showing 6 of '+a.count+'</div>';
+  show('audDlg');
+}
+
+/* ============================ router + wiring ============================ */
+const state={page:'overview',filt:'all',mode:'demo'};
+function render(){
+  const empty=state.mode==='empty';
+  let html;
+  if(state.page==='report') html=PAGES.report(state.reportId);
+  else html=PAGES[state.page](empty);
+  document.getElementById('page').innerHTML=html;
+  document.querySelectorAll('[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===state.page));
+  fillIcons(document);
+}
+function go(p){if(p!==state.page)state.filt='all';state.page=p;render();window.scrollTo(0,0);}
+function show(id){document.getElementById(id).classList.add('show');}
+function hide(id){document.getElementById(id).classList.remove('show');}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);}
+
+// sidebar nav
+document.querySelectorAll('[data-page]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();go(a.dataset.page);}));
+// mode toggle
+document.getElementById('modeToggle').addEventListener('click',e=>{const b=e.target.closest('[data-mode]');if(!b)return;state.mode=b.dataset.mode;[...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));render();});
+// theme
+(function(){const b=document.getElementById('themeBtn');const set=t=>{document.documentElement.dataset.theme=t;b.innerHTML=icon('sun',16)+'<span style="margin-left:2px">'+(t==='dark'?'Light':'Dark')+'</span>';};b.onclick=()=>set(document.documentElement.dataset.theme==='dark'?'light':'dark');set('light');})();
+
+// delegated page clicks
+document.getElementById('page').addEventListener('click',e=>{
+  const g=e.target.closest('[data-goto]'); if(g){go(g.dataset.goto);return;}
+  const f=e.target.closest('[data-filter]'); if(f){state.filt=f.dataset.filter;render();return;}
+  const n=e.target.closest('[data-new]'); if(n){openWiz();return;}
+  const r=e.target.closest('[data-report]'); if(r){state.reportId=r.dataset.report;go('report');return;}
+  const a=e.target.closest('[data-aud]'); if(a){openAud(+a.dataset.aud);return;}
+  const t=e.target.closest('[data-toast]'); if(t){toast(t.dataset.toast);return;}
+});
+
+// dialogs: close + wizard interactions
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-close]')){hide('wizard');hide('audDlg');return;}
+  if(e.target.classList&&e.target.classList.contains('scrim')){e.target.classList.remove('show');return;}
+  const ch=e.target.closest('[data-ch]'); if(ch){wiz.ch=ch.dataset.ch;renderWiz();return;}
+  const au=e.target.closest('#wizBody [data-aud]'); if(au){wiz.aud=+au.dataset.aud;renderWiz();return;}
+  if(e.target.closest('[data-wnext]')){wiz.step=Math.min(4,wiz.step+1);renderWiz();return;}
+  if(e.target.closest('[data-wback]')){wiz.step=Math.max(1,wiz.step-1);renderWiz();return;}
+  if(e.target.closest('[data-ai]')){toast("Drafted with AI from your business + this audience.");return;}
+  if(e.target.closest('[data-tpl]')){go('templates');hide('wizard');return;}
+});
+document.addEventListener('input',e=>{if(e.target.id==='f-body'||e.target.id==='f-subj')updatePreview();});
+document.addEventListener('change',e=>{if(e.target.name==='when'){wiz.when=e.target.value;renderWiz();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){hide('wizard');hide('audDlg');}});
+
+fillIcons(document);
+render();
+</script>
+</body></html>

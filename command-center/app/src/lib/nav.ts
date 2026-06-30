@@ -15,7 +15,6 @@ import {
   ScrollText,
   BarChart3,
   Star,
-  Mail,
   Globe,
   Share2,
   Images,
@@ -120,7 +119,18 @@ export const NAV: NavEntry[] = [
           { to: "/marketing/reviews/insights", label: "What's working", shortLabel: "Insights", icon: BarChart3 },
         ],
       },
-      { to: "/marketing/email", label: "Email Campaigns", shortLabel: "Email", icon: Mail, comingSoon: true },
+      {
+        to: "/marketing/campaigns",
+        label: "Campaigns",
+        icon: Send,
+        children: [
+          { to: "/marketing/campaigns", label: "Overview", icon: LayoutDashboard },
+          { to: "/marketing/campaigns/all", label: "Campaigns", icon: Send },
+          { to: "/marketing/campaigns/audiences", label: "Audiences", shortLabel: "Lists", icon: Users },
+          { to: "/marketing/campaigns/templates", label: "Templates", icon: LayoutGrid },
+          { to: "/marketing/campaigns/insights", label: "What's working", shortLabel: "Insights", icon: BarChart3 },
+        ],
+      },
       {
         to: "/marketing/website",
         label: "Website",
