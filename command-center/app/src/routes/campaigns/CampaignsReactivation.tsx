@@ -10,8 +10,9 @@ import {
   ChannelGlyph,
   ChannelChip,
   REACT_KPIS,
-  REACT_FUNNEL,
+  REACT_STAGES,
   REACT_DORMANT_TOTAL,
+  REACT_REACHED,
   REACT_SEQUENCE,
   REACT_RECENT,
 } from "./shared";
@@ -77,31 +78,40 @@ export default function CampaignsReactivation() {
 
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="flex flex-col gap-4 lg:col-span-2">
-            {/* The funnel: dormant -> reached -> replied -> booked */}
+            {/* Where the reached customers are now: one row per real pipeline
+                stage (Lead Responded, No answer, Not Qualified) plus the Won
+                outcome. Bars are measured against the reached total. */}
             <Panel className="overflow-hidden">
-              <PanelHeader title="How it's going" />
+              <PanelHeader title="Where they are now" />
               {demo ? (
                 <div className="flex flex-col gap-4 p-4">
-                  {REACT_FUNNEL.map((s) => (
+                  {REACT_STAGES.map((s) => (
                     <div key={s.label}>
                       <div className="flex items-baseline justify-between gap-3">
-                        <div className="font-display text-[14px] text-text">{s.label}</div>
+                        <div className="flex items-center gap-2 font-display text-[14px] text-text">
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={s.grad ? { backgroundImage: s.bar } : { background: s.bar }}
+                            aria-hidden
+                          />
+                          {s.label}
+                        </div>
                         <div className="shrink-0 font-data text-[13px] font-semibold text-text">{s.count}</div>
                       </div>
-                      <div className="mt-1 text-[12px] text-faint">{s.hint}</div>
+                      <div className="mt-1 pl-[18px] text-[12px] text-faint">{s.hint}</div>
                       <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2">
                         <div
                           className="h-full rounded-full"
                           style={{
-                            width: `${Math.max((s.count / REACT_DORMANT_TOTAL) * 100, 3)}%`,
-                            backgroundImage: "var(--grad-brand)",
+                            width: `${Math.max((s.count / REACT_REACHED) * 100, 3)}%`,
+                            ...(s.grad ? { backgroundImage: s.bar } : { background: s.bar }),
                           }}
                         />
                       </div>
                     </div>
                   ))}
                   <div className="flex items-center gap-1.5 pt-1 text-[12px] text-faint">
-                    <Users size={13} /> Measured against {REACT_DORMANT_TOTAL} dormant customers
+                    <Users size={13} /> {REACT_REACHED} of {REACT_DORMANT_TOTAL} dormant customers reached so far
                   </div>
                 </div>
               ) : (

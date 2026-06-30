@@ -244,11 +244,12 @@ export const DEMO_IDEAS: DemoIdea[] = [
 // ---------------------------------------------------------------------------
 // Reactivation. A standing, always-on campaign that wins back dormant past
 // customers with a short text + email sequence. The client-facing layer over
-// the real GHL "Database Reactivation" pipeline (Lead Contacted -> Lead
-// Responded -> No answer / Not Qualified); we roll those raw stages up into
-// plain-English buckets so a business owner can read it at a glance. Numbers are
-// modest and plausible (no fabricated growth %); replaced by live GHL counts
-// later, the shapes stay the same.
+// the real GHL "Database Reactivation" pipeline. Every stage of that pipeline is
+// represented one-to-one below (Lead Responded, No answer, Not Qualified), plus
+// the Won outcome (a job booked) which in GHL is the opportunity `status` field,
+// not a stage. Numbers are modest and plausible (no fabricated growth %) and the
+// breakdown sums to the reached total; replaced by live GHL counts later, the
+// shapes stay the same.
 // ---------------------------------------------------------------------------
 
 // Headline KPIs for the campaign so far. `brand` highlights the one that matters
@@ -260,20 +261,26 @@ export const REACT_KPIS: { label: string; value: string; brand?: boolean }[] = [
   { label: "Jobs booked", value: "12", brand: true },
 ];
 
-// The plain-English funnel. Each step rolls up one or more real pipeline stages;
-// `of` is the count we measure the bar against (the dormant pool) so the widths
-// read as a true drop-off, not a re-based percentage.
-export interface ReactStep {
+export const REACT_DORMANT_TOTAL = 640; // everyone the campaign targets
+export const REACT_REACHED = 412; // moved into the sequence so far (Lead Contacted)
+
+// Where the reached customers are right now. Each row maps one-to-one to a real
+// GHL stage/status; `bar` is a theme-aware fill (gradient flagged by `grad`) so
+// the four buckets stay visually distinct. Counts sum to REACT_REACHED so the
+// bars read as "of everyone we reached, here's where they landed."
+export interface ReactStage {
   label: string;
-  hint: string; // which real stage(s) this rolls up, in plain words
+  hint: string; // plain-English meaning of the real stage/status
   count: number;
+  bar: string; // CSS color or gradient token
+  grad?: boolean; // true => apply as backgroundImage (gradient)
 }
-export const REACT_FUNNEL: ReactStep[] = [
-  { label: "Reached out", hint: "We've started the sequence", count: 412 },
-  { label: "Replied", hint: "Texted or emailed us back", count: 58 },
-  { label: "Booked a job", hint: "On the calendar", count: 12 },
+export const REACT_STAGES: ReactStage[] = [
+  { label: "Replied", hint: "Texted or emailed us back (Lead Responded)", count: 58, bar: "var(--grad-brand)", grad: true },
+  { label: "Booked a job", hint: "Won back, now on the calendar", count: 12, bar: "var(--positive)" },
+  { label: "No answer", hint: "Reached, no reply yet", count: 286, bar: "var(--surface-3)" },
+  { label: "Not a fit", hint: "Not interested or asked us to stop", count: 56, bar: "var(--text-faint)" },
 ];
-export const REACT_DORMANT_TOTAL = 640;
 
 // The message sequence the dormant list moves through. Grounded in the existing
 // "We miss you" win-back template; spaced over a couple of weeks.
