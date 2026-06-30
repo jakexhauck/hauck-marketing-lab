@@ -19,9 +19,21 @@ Do **not** use it for the standalone client mobile PWA (`Hauck Command Center (C
 
 ## Non-negotiables
 
+- **Mockups before code — always.** Build static HTML mockups first, present them for Jake's approval, and only write app code after he approves. Do not jump straight to in-app demo code. (See Phase 0.)
 - **Never show fabricated data to a real client.** Every surface is demo-aware: populated sample content under `demoMode()` (the `?demo=1` preview / "View as a client" path); a real session shows empty/zeroed states + a "not connected" notice, and terminal actions (save/schedule/publish) are **disabled with a "turns on once your accounts are connected" note** until the backend exists.
 - **Design kit:** light / indigo / Poppins ("Modern Motion"), source of truth `design-kit.html` at repo root. Build on the app's semantic Tailwind tokens, never hardcode hex (except platform brand colors).
 - **Deploy = push to `main`** (Cloudflare Pages "hauck-command-center", live at app.hauckmarketing.com / hauck-dashboard.pages.dev). Verify the deploy by bundle hash + string grep — the app sits behind login so you can't click through prod.
+
+## Phase 0 — Mockups first (get approval before any code)
+
+This is the default workflow: **mockup → Jake approves → build the code right after.** Never go straight to in-app demo code.
+
+1. Reuse the kit: `kit.css` is the `design-kit.html` `<style>` block (light/indigo/Poppins). Mockups link it.
+2. Build the screens as **static HTML on `kit.css`**, framed realistically — phone frames for mobile, browser-window chrome for desktop, centered modal / bottom-sheet for dialogs. When the direction is open, show **2-3 options** and let Jake pick.
+3. Open for review (`open <file>`, or serve the folder with `python3 -m http.server` and view via the browser tools) and iterate until he approves.
+4. Only **after approval**, build the real demo-aware/gated app code (Build procedure below). Build it "right after" approval — don't wait.
+
+Save mockups under the app folder, e.g. `mockups/<section>-v1/`. Reference set: `Hauck Command Center (Clients)/Mobile App/mockups/social-v1/` (`home.html`, `desktop.html`, `create-flows.html`, `kit.css`).
 
 ## Build procedure
 
