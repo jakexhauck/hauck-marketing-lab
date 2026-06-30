@@ -17,6 +17,7 @@ import { Panel, Badge, EmptyState } from "../../components/ui";
 import { useToast } from "../../context/ToastContext";
 import { cn } from "../../lib/cn";
 import { demoMode } from "../../demo/demoMode";
+import { PAGE_CONTAINER } from "../../lib/layout";
 import { useJobs } from "../../hooks/useJobs";
 import {
   monthGrid,
@@ -43,9 +44,8 @@ import { NotConnectedNotice } from "./shared";
 // demo/preview; a real session shows an empty calendar + not-connected notice.
 // Terminal actions are gated (toast + no write) until the GHL feed is wired.
 
-// Page scroll container, matching the other client surfaces (wider for the split).
-const JOBS_CONTAINER =
-  "mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5 pb-12 pt-5 lg:px-8";
+// Page scroll container, matching the other client surfaces.
+const JOBS_CONTAINER = PAGE_CONTAINER;
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
