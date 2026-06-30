@@ -5,13 +5,10 @@ import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import {
   NotConnectedNotice,
-  ChannelGlyph,
-  ChannelChip,
   REACT_KPIS,
   REACT_STAGES,
   REACT_DORMANT_TOTAL,
   REACT_REACHED,
-  REACT_SEQUENCE,
   REACT_RECENT,
 } from "../campaigns/shared";
 
@@ -121,42 +118,6 @@ export default function Reactivation() {
                     icon={<RotateCcw size={22} />}
                     title="Nothing to show yet"
                     description="Once we connect your list, you'll see how many dormant customers we've reached and won back."
-                  />
-                </div>
-              )}
-            </Panel>
-
-            {/* The message sequence */}
-            <Panel className="overflow-hidden">
-              <PanelHeader title="The sequence" />
-              {demo ? (
-                <ol>
-                  {REACT_SEQUENCE.map((m) => (
-                    <li
-                      key={m.step}
-                      className="flex gap-3 border-b border-divider px-4 py-3.5 last:border-b-0"
-                    >
-                      <ChannelGlyph ch={m.ch} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-display text-[14px] text-text">{m.title}</span>
-                          <ChannelChip ch={m.ch} />
-                          <span className="ml-auto shrink-0 text-[12px] font-medium text-faint">{m.when}</span>
-                        </div>
-                        {m.subject && (
-                          <div className="mt-1 text-[12.5px] font-medium text-muted">Subject: {m.subject}</div>
-                        )}
-                        <div className="mt-1 text-[12.5px] leading-snug text-faint">{m.body}</div>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <div className="px-4 py-10">
-                  <EmptyState
-                    icon={<RotateCcw size={22} />}
-                    title="Your sequence lives here"
-                    description="The texts and emails we send to win back past customers will show up here once it's live."
                   />
                 </div>
               )}
