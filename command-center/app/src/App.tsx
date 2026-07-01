@@ -34,6 +34,7 @@ import Settings from "./routes/Settings";
 import Comms from "./routes/Comms";
 import Automations from "./routes/Automations";
 import ComingSoon from "./routes/ComingSoon";
+import ClientAssets from "./routes/Assets";
 import SocialOverview from "./routes/social/SocialOverview";
 import SocialIdeas from "./routes/social/SocialIdeas";
 import SocialCalendar from "./routes/social/SocialCalendar";
@@ -386,7 +387,7 @@ export default function App() {
               <Route path="/marketing/social/calendar" element={<ProtectedRoute><SocialCalendar /></ProtectedRoute>} />
               <Route path="/marketing/social/posts" element={<ProtectedRoute><SocialPosts /></ProtectedRoute>} />
               <Route path="/marketing/social/insights" element={<ProtectedRoute><SocialInsights /></ProtectedRoute>} />
-              <Route path="/company/documents" element={<ProtectedRoute><ComingSoon title="Documents & Resources" blurb="Contracts, brand assets, and reports in one place. Coming soon." /></ProtectedRoute>} />
+              <Route path="/company/documents" element={<ProtectedRoute><ClientAssets /></ProtectedRoute>} />
               <Route path="/admin" element={<Navigate to="/admin/pillar/operations" replace />} />
               {/* Clients now live inside Operations (the command deck). The old
                   standalone route redirects there; client detail pages stay. */}
