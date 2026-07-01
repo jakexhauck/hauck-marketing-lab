@@ -191,6 +191,18 @@ body {
   --danger: #dc2626;
   --danger-tint: color-mix(in srgb, #dc2626 12%, transparent);
 
+  /* Unified calendar source colors (appointment/job/social/campaign). Each
+     stream on the Company calendar reads its color from these so the legend,
+     pills and blocks stay in sync and theme-aware. */
+  --source-appointment: #4f46e5;
+  --source-appointment-tint: color-mix(in srgb, #4f46e5 10%, transparent);
+  --source-job: #16a34a;
+  --source-job-tint: color-mix(in srgb, #16a34a 12%, transparent);
+  --source-social: #7c3aed;
+  --source-social-tint: color-mix(in srgb, #7c3aed 12%, transparent);
+  --source-campaign: #d97706;
+  --source-campaign-tint: color-mix(in srgb, #d97706 14%, transparent);
+
   --shadow-sm: 0 1px 2px rgba(20, 22, 31, 0.04), 0 1px 3px rgba(20, 22, 31, 0.05);
   --shadow-md: 0 6px 18px rgba(40, 42, 70, 0.07), 0 2px 6px rgba(40, 42, 70, 0.05);
   --shadow-lg: 0 18px 40px rgba(40, 42, 70, 0.12), 0 6px 14px rgba(40, 42, 70, 0.07);
@@ -229,6 +241,16 @@ body {
   --warning-tint: color-mix(in srgb, #fbbf24 16%, transparent);
   --danger: #f87171;
   --danger-tint: color-mix(in srgb, #f87171 16%, transparent);
+
+  /* Calendar source colors, tuned for dark: lighter foregrounds, stronger tints. */
+  --source-appointment: #a5b4fc;
+  --source-appointment-tint: color-mix(in srgb, #4f46e5 26%, transparent);
+  --source-job: #4ade80;
+  --source-job-tint: color-mix(in srgb, #4ade80 18%, transparent);
+  --source-social: #c4b5fd;
+  --source-social-tint: color-mix(in srgb, #7c3aed 26%, transparent);
+  --source-campaign: #fbbf24;
+  --source-campaign-tint: color-mix(in srgb, #fbbf24 18%, transparent);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.34);
   --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.34);
