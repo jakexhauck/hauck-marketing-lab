@@ -3,6 +3,7 @@ import {
   type CalendarItem,
   CALENDAR_SOURCE_META,
   layoutWeek,
+  packDayColumns,
 } from "../../lib/calendarModel";
 import { toIso, isoToLocalDate } from "../../lib/jobsPipeline";
 
@@ -139,21 +140,22 @@ export function WeekView({
                   style={{ top: (min - DAY_START_MIN) * PPM }}
                 />
               ))}
-              {col.timed.map((item) => {
-                const start = item.startMinutes as number;
-                const end = item.endMinutes ?? start + 60;
-                const top = (start - DAY_START_MIN) * PPM;
-                const height = Math.max(28, (end - start) * PPM);
+              {packDayColumns(col.timed).map((p) => {
+                const top = (p.start - DAY_START_MIN) * PPM;
+                const height = Math.max(28, (p.end - p.start) * PPM);
+                // Split the column into lanes so overlapping items sit side by
+                // side. Each lane is (100/cols)% wide with a small gutter.
+                const widthPct = 100 / p.cols;
                 return (
                   <Block
-                    key={item.id}
-                    item={item}
+                    key={p.item.id}
+                    item={p.item}
                     style={{
                       position: "absolute",
                       top,
                       height,
-                      left: 4,
-                      right: 4,
+                      left: `calc(${p.col * widthPct}% + 3px)`,
+                      width: `calc(${widthPct}% - 5px)`,
                     }}
                   />
                 );

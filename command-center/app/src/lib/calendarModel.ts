@@ -180,6 +180,58 @@ export function groupItemsByDay(
     .map(([iso, its]) => ({ iso, items: its.sort(bySchedule) }));
 }
 
+// A timed item placed into a horizontal lane so overlapping items sit side by
+// side instead of on top of each other. `col` is the lane index (0-based) and
+// `cols` is how many lanes its overlap cluster needs.
+export interface PlacedItem {
+  item: CalendarItem;
+  start: number;
+  end: number;
+  col: number;
+  cols: number;
+}
+
+// Default slot length (minutes) for an item with no explicit end.
+const DEFAULT_DURATION = 60;
+
+// Pack a day's timed items into lanes: items whose [start,end) overlap share a
+// cluster and each gets its own lane; the cluster's width is its max concurrency.
+// Greedy interval partitioning, stable by start then end.
+export function packDayColumns(timed: CalendarItem[]): PlacedItem[] {
+  const spans = timed
+    .filter((i) => i.startMinutes != null)
+    .map((item) => {
+      const start = item.startMinutes as number;
+      return { item, start, end: item.endMinutes ?? start + DEFAULT_DURATION };
+    })
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+
+  const placed: PlacedItem[] = [];
+  let cluster: PlacedItem[] = [];
+  let clusterEnd = -Infinity;
+
+  const flush = () => {
+    const cols = cluster.reduce((m, p) => Math.max(m, p.col + 1), 0);
+    for (const p of cluster) p.cols = cols;
+    placed.push(...cluster);
+    cluster = [];
+  };
+
+  for (const span of spans) {
+    // A gap from every item so far starts a fresh cluster.
+    if (span.start >= clusterEnd && cluster.length) flush();
+    // First free lane whose last item has ended.
+    const laneEnds: number[] = [];
+    for (const p of cluster) laneEnds[p.col] = Math.max(laneEnds[p.col] ?? -Infinity, p.end);
+    let col = laneEnds.findIndex((e) => e <= span.start);
+    if (col === -1) col = cluster.length ? laneEnds.length : 0;
+    cluster.push({ ...span, col, cols: 1 });
+    clusterEnd = Math.max(clusterEnd, span.end);
+  }
+  if (cluster.length) flush();
+  return placed;
+}
+
 export function layoutWeek(
   items: CalendarItem[],
   weekIsos: string[],

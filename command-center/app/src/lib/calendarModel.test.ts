@@ -6,6 +6,7 @@ import {
   itemsOnDay,
   groupItemsByDay,
   minutesToLabel,
+  packDayColumns,
   type CalendarItem,
   type CalendarSource,
 } from "./calendarModel";
@@ -156,6 +157,51 @@ describe("groupItemsByDay", () => {
       mk("a", "2026-07-01"),
     ]);
     expect(groups.map((g) => g.iso)).toEqual(["2026-07-01", "2026-07-02"]);
+  });
+});
+
+describe("packDayColumns", () => {
+  const mk = (id: string, start: number, end: number): CalendarItem => ({
+    id,
+    source: "appointment",
+    title: id,
+    subtitle: "",
+    date: "2026-07-02",
+    startMinutes: start,
+    endMinutes: end,
+    timeLabel: "",
+    status: "",
+    amount: null,
+    location: "",
+    meetingUrl: "",
+    contactId: "",
+  });
+
+  it("gives two overlapping items separate lanes with cols=2", () => {
+    const placed = packDayColumns([mk("a", 570, 630), mk("b", 600, 660)]);
+    const a = placed.find((p) => p.item.id === "a")!;
+    const b = placed.find((p) => p.item.id === "b")!;
+    expect(a.cols).toBe(2);
+    expect(b.cols).toBe(2);
+    expect(a.col).not.toBe(b.col);
+  });
+
+  it("keeps non-overlapping items full width in separate clusters", () => {
+    const placed = packDayColumns([mk("a", 480, 540), mk("b", 600, 660)]);
+    expect(placed.every((p) => p.cols === 1 && p.col === 0)).toBe(true);
+  });
+
+  it("reuses a freed lane for a later non-overlapping item", () => {
+    // a:8-9, b:8-10 (overlap, 2 lanes), c:9:30-10:30 overlaps b only -> lane of a reused
+    const placed = packDayColumns([
+      mk("a", 480, 540),
+      mk("b", 480, 600),
+      mk("c", 570, 630),
+    ]);
+    const cols = placed[0].cols;
+    expect(cols).toBe(2);
+    const c = placed.find((p) => p.item.id === "c")!;
+    expect(c.col).toBe(0);
   });
 });
 
