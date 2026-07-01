@@ -249,6 +249,17 @@ export interface ApiCalendarEvent {
   notes: string;
 }
 
+export interface ApiRecurrence {
+  contactId: string;
+  cadenceWeeks: number;
+  weekday: number;
+  anchorDate: string; // "YYYY-MM-DD"
+  visitTime: string | null;
+  service: string | null;
+  priceCents: number | null;
+  active: boolean;
+}
+
 export interface ApiActivity {
   id: number;
   action: string;

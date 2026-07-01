@@ -18,6 +18,7 @@ import {
   type ApiTenant,
   type AdminClient,
   type ApiReviewsResponse,
+  type ApiRecurrence,
 } from "../lib/api";
 
 // Tenant display config (branding, labels, real spend). Changes rarely; a
@@ -664,5 +665,46 @@ export function useCalendarEventsQuery(enabled: boolean) {
       api<{ events: ApiCalendarEvent[]; timezone: string | null }>(
         "/api/calendar/events",
       ),
+  });
+}
+
+// Per-customer recurring schedules (app-owned). Rare writes, so a modest
+// staleTime; invalidated on upsert/delete and by the Jobs calendar merge.
+export function useRecurrenceQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["recurrence"],
+    enabled,
+    staleTime: 60_000,
+    queryFn: () => api<{ recurrences: ApiRecurrence[] }>("/api/recurrence"),
+  });
+}
+
+export function useUpsertRecurrence() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ApiRecurrence) =>
+      api<{ recurrence: ApiRecurrence }>("/api/recurrence", {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["recurrence"] });
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+}
+
+export function useDeleteRecurrence() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { contactId: string }) =>
+      api<{ ok: boolean }>(
+        `/api/recurrence?contactId=${encodeURIComponent(input.contactId)}`,
+        { method: "DELETE" },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["recurrence"] });
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+    },
   });
 }
