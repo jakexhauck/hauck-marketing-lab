@@ -49,6 +49,32 @@ export const CHANNEL_BY_KEY = Object.fromEntries(
   CHANNELS.map((c) => [c.key, c]),
 ) as Record<ChannelKey, ChannelMeta>;
 
+// Client mirror of ORIGIN_RULES in functions/lib/origin.ts; keep both in sync.
+// Ordered, first match wins. react/call sit first because those leads can also
+// carry a form/social source string. Used to badge a contact by where it came
+// from, since ApiContact carries a raw source + tags but no server origin.
+const ORIGIN_RULES: { key: OriginKey; test: RegExp }[] = [
+  { key: "react", test: /reactivat|win[\s-]?back|dormant/ },
+  { key: "call", test: /inbound call|phone call|missed call|\bcall\b|\bcaller\b/ },
+  { key: "chat", test: /chat ?widget|live ?chat|website chat|webchat/ },
+  { key: "form", test: /website form|estimate|contact form|quote request|\bform\b/ },
+  {
+    key: "paid",
+    test: /paid|\bads?\b|facebook ad|instagram ad|google ad|adwords|ppc|utm|campaign/,
+  },
+  { key: "social", test: /instagram|facebook|messenger|\big\b|\bfb\b|social/ },
+];
+
+export function classifyOrigin(
+  source: string | null | undefined,
+  tags: string[] | undefined,
+): OriginKey {
+  const hay = [source ?? "", ...(tags ?? [])].join(" ").toLowerCase().trim();
+  if (!hay) return "other";
+  for (const rule of ORIGIN_RULES) if (rule.test.test(hay)) return rule.key;
+  return "other";
+}
+
 export function channelFromType(raw: string | null | undefined): ChannelKey {
   const key = (raw ?? "")
     .toLowerCase()

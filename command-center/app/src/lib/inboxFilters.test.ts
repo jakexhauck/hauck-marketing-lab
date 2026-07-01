@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   channelFromType,
+  classifyOrigin,
   convOrigin,
   filterConversations,
   countByChannel,
@@ -24,6 +25,28 @@ describe("channelFromType", () => {
   it("derives a channel when the field is missing", () => {
     expect(channelFromType("TYPE_SMS")).toBe("sms");
     expect(channelFromType("Email")).toBe("email");
+  });
+});
+
+describe("classifyOrigin", () => {
+  it("classifies from the source string", () => {
+    expect(classifyOrigin("Facebook Ad", [])).toBe("paid"); // an ad beats bare social
+    expect(classifyOrigin("Instagram DM", [])).toBe("social");
+    expect(classifyOrigin("Website Form", [])).toBe("form");
+    expect(classifyOrigin("Inbound Call", [])).toBe("call");
+    expect(classifyOrigin("Chat Widget", [])).toBe("chat");
+  });
+  it("falls back to tags when source is empty", () => {
+    expect(classifyOrigin("", ["Estimate"])).toBe("form");
+    expect(classifyOrigin(null, ["Paid", "AC"])).toBe("paid");
+  });
+  it("prefers reactivation and call over a form/social source", () => {
+    expect(classifyOrigin("Facebook Ad", ["Win-back"])).toBe("react");
+    expect(classifyOrigin("Website Form", ["Missed Call"])).toBe("call");
+  });
+  it("returns other when nothing matches or input is empty", () => {
+    expect(classifyOrigin("", [])).toBe("other");
+    expect(classifyOrigin("walk-in", ["referral"])).toBe("other");
   });
 });
 
