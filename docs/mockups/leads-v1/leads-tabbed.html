@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Leads — Three pages in line</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="kit.css" />
+<style>
+  .col{height:100dvh;display:flex;flex-direction:column}
+  .topbar{display:flex;align-items:center;gap:22px;padding:15px 22px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+  .topbar h1{font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:-.02em}
+  .lead-app{flex:1;display:grid;grid-template-columns:390px 1fr;min-height:0}
+  .lead-list{display:flex;flex-direction:column;min-height:0;background:var(--surface);border-right:1px solid var(--border)}
+  .list-sub{display:flex;align-items:center;gap:8px;padding:14px 18px 12px;border-bottom:1px solid var(--divider)}
+  .list-sub .lbl{font-family:var(--font-display);font-size:12.5px;font-weight:600;color:var(--text)}
+  .list-sub .hint{font-size:11.5px;color:var(--faint)}
+  .list-sub .spacer{flex:1}
+  .list-scroll{flex:1;overflow:auto;min-height:0}
+  .grp{padding:12px 18px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--faint)}
+
+  /* generic row */
+  .lrow{display:flex;gap:12px;padding:13px 16px;border-bottom:1px solid var(--divider);cursor:pointer;width:100%;text-align:left;
+    background:none;border-top:none;border-right:none;border-left:none;font-family:var(--font-body);align-items:flex-start}
+  .lrow:hover{background:var(--surface-2)}
+  .lrow.on{background:var(--brand-tint)}
+  .lrow .txt{min-width:0;flex:1}
+  .lrow .top{display:flex;align-items:center;gap:8px}
+  .lrow .nm{font-family:var(--font-display);font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lrow .when{margin-left:auto;font-size:10.5px;color:var(--faint);flex-shrink:0}
+  .lrow .sub{margin-top:3px;font-size:12px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  .lrow .adname{margin-top:4px;font-size:10.5px;color:var(--faint);display:inline-flex;align-items:center;gap:5px}
+  /* follow-up row footer */
+  .lrow .fufoot{margin-top:8px;display:flex;align-items:center;gap:10px}
+  .badge-new{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--brand-text);background:var(--brand-tint);border-radius:5px;padding:1px 6px}
+
+  /* detail */
+  .lead-detail{display:flex;flex-direction:column;min-height:0;background:var(--bg)}
+  .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--faint);gap:12px;text-align:center;padding:40px}
+  .empty .ic{width:56px;height:56px;border-radius:16px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;color:var(--faint)}
+  .empty .ic svg{width:26px;height:26px}
+  .empty .t{font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--muted)}
+  .dhead{display:flex;align-items:center;gap:12px;padding:15px 22px;background:var(--surface);border-bottom:1px solid var(--border)}
+  .dhead .who{min-width:0;flex:1}
+  .dhead .who .nm{font-family:var(--font-display);font-size:16.5px;font-weight:600}
+  .dhead .who .meta{margin-top:3px;display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--muted)}
+  .dhead .who .meta span{display:inline-flex;align-items:center;gap:5px}
+  .dhead .who .meta svg{width:12px;height:12px;color:var(--faint)}
+  .dhead .tags{display:flex;align-items:center;gap:9px;flex-shrink:0}
+  .dscroll{flex:1;overflow:auto;min-height:0;padding:20px 24px}
+  /* flat sections — no boxes */
+  .sec{margin-bottom:24px}
+  .sec-h{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+  .sec-h .t{font-family:var(--font-display);font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
+  .sec-h .spacer{flex:1}
+  .autonote{margin-top:16px;display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--muted);line-height:1.45}
+  .autonote .z{color:var(--brand-text);flex-shrink:0;margin-top:1px}
+  .autonote .z svg{width:15px;height:15px}
+  /* Next-step CTA */
+  .nextrow{display:flex;align-items:center;gap:12px}
+  .nextbtn{display:inline-flex;align-items:center;gap:9px;background:var(--grad-brand);color:#fff;border:none;border-radius:12px;
+    padding:12px 18px;font-family:var(--font-display);font-weight:600;font-size:14px;cursor:pointer;box-shadow:var(--shadow-brand)}
+  .nextbtn svg{width:17px;height:17px}
+  .dhead .nextbtn{padding:9px 15px;font-size:13px;flex-shrink:0}
+  .nexthint{font-size:12px;color:var(--faint)}
+  /* SMS / Email toggle row */
+  .chanrow{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+  .chantoggle{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px}
+  .chantoggle button{border:none;background:transparent;font-family:var(--font-body);font-weight:600;font-size:12.5px;color:var(--muted);
+    padding:7px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .chantoggle button svg{width:14px;height:14px}
+  .chantoggle button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
+  .chantoggle button .n{font-size:10px;font-weight:800;background:var(--surface-3);color:var(--muted);border-radius:999px;padding:0 6px}
+  .chantoggle button.on .n{background:var(--brand-tint);color:var(--brand-text)}
+  .emptythread{padding:28px;text-align:center;color:var(--faint);font-size:12.5px}
+  /* Next-step popup */
+  .mscrim{position:fixed;inset:0;background:rgba(15,18,48,.42);z-index:70;display:grid;place-items:center;padding:20px}
+  .modal{width:100%;max-width:470px;background:var(--surface);border-radius:var(--radius-xl);box-shadow:var(--shadow-lg);overflow:hidden}
+  .modal .mh{padding:20px 22px 6px;display:flex;align-items:flex-start;gap:12px}
+  .modal .mh .t{font-family:var(--font-display);font-size:16.5px;font-weight:600}
+  .modal .mh .s{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .modal .mh .x{margin-left:auto;width:30px;height:30px;border-radius:50%;border:none;background:var(--surface-2);color:var(--muted);cursor:pointer;display:grid;place-items:center;flex-shrink:0}
+  .modal .mh .x svg{width:16px;height:16px}
+  .modal .mb{padding:12px 22px 22px;display:flex;flex-direction:column;gap:9px}
+  .mact{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;border-radius:13px;background:var(--surface-2);cursor:pointer;text-align:left;border:none;font-family:var(--font-body)}
+  .mact:hover{background:var(--brand-tint)}
+  .mact.primary{background:var(--brand-tint)}
+  .mact .i{width:36px;height:36px;border-radius:10px;background:var(--surface);display:grid;place-items:center;color:var(--brand-text);flex-shrink:0}
+  .mact .i svg{width:17px;height:17px}
+  .mact .mt{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text)}
+  .mact .md{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+  .mact .anote{margin-top:8px;display:flex;gap:6px;align-items:flex-start;font-size:11px;color:var(--brand-text);background:var(--surface);border-radius:8px;padding:7px 9px;line-height:1.4}
+  .mact .anote svg{width:13px;height:13px;flex-shrink:0;margin-top:1px}
+  @media(max-width:1240px){.lead-app{grid-template-columns:340px 1fr}}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script src="data.js"></script>
+<script>
+let activeTab = "ad";                 // ad | form | chat
+let selId = { ad: null, form: null, chat: null };
+let channel = "sms";                  // sms | email
+let modalOpen = false;
+
+// auto-open the first lead that needs attention so the inline conversation
+// shows on load; clicking any other contact swaps it in.
+function ensureSel(){
+  if (selId[activeTab]) return;
+  const first = bySource(activeTab).find(isNew) || bySource(activeTab)[0];
+  selId[activeTab] = first ? first.id : null;
+}
+
+const TAB_META = {
+  ad:   { label: "Paid Ads",      sub: "Lead-form leads on auto follow-up. See where each one is and if they replied.", grpNew: "Needs a human", grpRest: "In the sequence" },
+  form: { label: "Estimate Forms", sub: "Every estimate request from your website. Click a contact to open the conversation.", grpNew: "New submissions", grpRest: "Earlier" },
+  chat: { label: "Chat Widget",   sub: "Every chat from your website bubble. Click a contact to open the conversation.", grpNew: "New chats", grpRest: "Earlier" },
+};
+
+function listFor(tab){
+  const rows = bySource(tab);
+  // new (unworked) first, then worked
+  return { fresh: rows.filter(isNew), rest: rows.filter((l)=>!isNew(l)) };
+}
+
+function render(){
+  ensureSel();
+  const meta = TAB_META[activeTab];
+  const { fresh, rest } = listFor(activeTab);
+  const sel = LEADS.find((l)=>l.id===selId[activeTab]);
+  document.getElementById("app").innerHTML = `
+    ${railHTML()}
+    <div class="col">
+      <div class="topbar">
+        <h1>Leads</h1>
+        <div class="tabs">${tabBtn("ad")} ${tabBtn("form")} ${tabBtn("chat")}</div>
+      </div>
+      <div class="lead-app">
+        <aside class="lead-list">
+          <div class="list-sub">
+            <span class="lbl">${meta.label}</span>
+            <div class="spacer"></div>
+            <span class="hint">${activeTab==="ad" ? bySource("ad").length+" leads" : fresh.length+" new"}</span>
+          </div>
+          <div class="list-scroll">
+            ${fresh.length ? `<div class="grp">${meta.grpNew} · ${fresh.length}</div>` : ""}
+            ${fresh.map((l)=>rowHTML(l)).join("")}
+            ${rest.length ? `<div class="grp">${meta.grpRest} · ${rest.length}</div>` : ""}
+            ${rest.map((l)=>rowHTML(l)).join("")}
+          </div>
+        </aside>
+        <section class="lead-detail">
+          ${sel ? detailHTML(sel) : emptyHTML()}
+        </section>
+      </div>
+    </div>
+    ${modalOpen && sel ? modalHTML(sel) : ""}
+    <button class="themebtn" onclick="(function(h){var d=h.dataset;d.theme=d.theme==='dark'?'light':'dark'})(document.documentElement)">Toggle theme</button>
+  `;
+}
+
+function tabBtn(tab){
+  const s = SOURCES[tab], m = TAB_META[tab];
+  const n = tab==="ad" ? newCount("ad") : listFor(tab).fresh.length;
+  return `<button class="${activeTab===tab?"on":""}" onclick="setTab('${tab}')">
+    <span class="g" style="background:${s.accent}">${IC[s.icon]}</span>${m.label}
+    ${n?`<span class="n">${n}</span>`:""}
+  </button>`;
+}
+
+function rowHTML(l){
+  const on = l.id===selId[activeTab];
+  if(l.source==="ad"){
+    return `<button class="lrow ${on?"on":""}" onclick="pick('${l.id}')">
+      ${avatar(l.name,42)}
+      <div class="txt">
+        <div class="top"><span class="nm">${l.name}</span><span class="when">${l.when}</span></div>
+        <div class="adname">${IC.megaphone} ${l.ad}</div>
+        <div class="fufoot">${fuDots(l)} ${fuChip(l)}</div>
+      </div>
+    </button>`;
+  }
+  // form + chat: submission bucket row (forms also carry a follow-up status chip)
+  return `<button class="lrow ${on?"on":""}" onclick="pick('${l.id}')">
+    ${avatar(l.name,42)}
+    <div class="txt">
+      <div class="top"><span class="nm">${l.name}</span>${isNew(l)?`<span class="badge-new">New</span>`:""}<span class="when">${l.when}</span></div>
+      <div class="sub">${l.source==="chat" ? "“"+l.preview+"”" : l.intent}</div>
+      ${l.fu?`<div class="fufoot">${fuChip(l)}</div>`:""}
+    </div>
+  </button>`;
+}
+
+function emptyHTML(){
+  const m = TAB_META[activeTab];
+  return `<div class="empty">
+    <div class="ic">${IC[SOURCES[activeTab].icon]}</div>
+    <div><div class="t">Select a contact</div><div style="margin-top:4px;font-size:12.5px;max-width:260px">${m.sub}</div></div>
+  </div>`;
+}
+
+function detailHTML(l){
+  const first = l.name.replace(/^The\s+/,"").split(" ")[0];
+  const emails = l.emails || [];
+  const thread = channel==="sms" ? l.msgs : emails;
+  return `
+    <div class="dhead">
+      ${avatar(l.name,44)}
+      <div class="who">
+        <div class="nm">${l.name}</div>
+        <div class="meta"><span>${IC.pin} ${l.location} · ${l.zip}</span><span>${IC.phone} ${l.phone}</span></div>
+      </div>
+      <div class="tags">${sourceBadge(l.source)} ${statusPill(l.status)}</div>
+      <button class="nextbtn" onclick="openModal()">${IC.zap} Next step</button>
+    </div>
+
+    <div class="dscroll">
+      ${l.fu ? `
+        <div class="sec">
+          <div class="sec-h"><span class="t">Follow-up sequence</span><div class="spacer"></div>${fuChip(l)}</div>
+          ${fuTrackH(l)}
+          <div class="autonote"><span class="z">${IC.zap}</span><span>${automationNote(l)}</span></div>
+        </div>` : ""}
+
+      <div class="sec" style="margin-bottom:8px">
+        <div class="chanrow">
+          <div class="chantoggle">
+            <button class="${channel==="sms"?"on":""}" onclick="setChannel('sms')">${IC.msg} SMS <span class="n">${l.msgs.length}</span></button>
+            <button class="${channel==="email"?"on":""}" onclick="setChannel('email')">${IC.mail} Email <span class="n">${emails.length}</span></button>
+          </div>
+        </div>
+        ${thread.length ? `<div class="thread">${thread.map(bubHTML).join("")}</div>`
+                        : `<div class="emptythread">No ${channel==="sms"?"texts":"emails"} in this thread yet.</div>`}
+      </div>
+    </div>
+
+    <div class="composer">
+      <span class="chan">${channel==="email"?"Reply by Email":(l.source==="chat"?"Reply in chat":"Reply by SMS")}</span>
+      <input placeholder="${channel==="email"?"Email":"Message"} ${first}…" />
+      <button class="go">${IC.send}</button>
+    </div>
+  `;
+}
+
+function modalHTML(l){
+  const first = l.name.replace(/^The\s+/,"").split(" ")[0];
+  return `<div class="mscrim" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="mh">
+        <div>
+          <div class="t">Next step with ${l.name}</div>
+          <div class="s">${l.source==="ad"?"Cold lead from a paid ad. Get them on an intro call.":"Warm lead. Quotes happen on the phone."}</div>
+        </div>
+        <button class="x" onclick="closeModal()">${IC.x}</button>
+      </div>
+      <div class="mb">
+        ${nextSteps(l.source).map((s)=>`
+          <button class="mact ${s.primary?"primary":""}" onclick="closeModal()">
+            <span class="i">${IC[s.icon]}</span>
+            <div>
+              <div class="mt">${s.title}</div>
+              <div class="md">${s.desc}</div>
+              ${s.auto?`<div class="anote">${IC.zap}<span>${s.auto}</span></div>`:""}
+            </div>
+          </button>`).join("")}
+      </div>
+    </div>
+  </div>`;
+}
+
+function bubHTML(m){
+  return `<div class="bub ${m.dir==="out"?"out":"in"}">
+    <div class="meta">${m.from}${m.auto?`<span class="auto">auto</span>`:""} · ${m.at}</div>
+    <div class="body">${m.body}</div>
+  </div>`;
+}
+
+function setTab(t){ activeTab=t; channel="sms"; modalOpen=false; render(); }
+function pick(id){ selId[activeTab]=id; channel="sms"; render(); }
+function setChannel(c){ channel=c; render(); }
+function openModal(){ modalOpen=true; render(); }
+function closeModal(){ modalOpen=false; render(); }
+render();
+</script>
+</body>
+</html>
