@@ -63,11 +63,12 @@ const PLACEHOLDER_CUSTOMERS: {
   { name: "Dana Whitfield", jobs: 2, amount: 6540, color: "#10b981" },
 ];
 
-// Master switch for the not-yet-wired sections. Shipped OFF so the live client
-// only ever sees real figures (Outstanding, Revenue this month, Invoices,
-// Payments). Flip to true once the trend, MoM, Top Customers, Collected YTD and
-// Avg invoice are backed by real data — the layout is already built behind it.
-const SHOW_UNWIRED_SECTIONS = false;
+// Master switch for the not-yet-wired sections (trend, MoM, Top Customers,
+// Collected YTD, Avg invoice). While ON, those render with SAMPLE data and the
+// page shows a "sample data" banner so the live client is never misled. Once
+// they are backed by real aggregates, drop the banner. The two live KPIs
+// (Outstanding, Revenue this month value) are always real regardless.
+const SHOW_UNWIRED_SECTIONS = true;
 
 function initials(name: string): string {
   return name
@@ -340,6 +341,22 @@ export default function BillingDesktop() {
 
   return (
     <DesktopPage title="Revenue" subtitle={subtitle}>
+      {/* Sample-data notice while the new sections are unwired. Remove with the
+          banner once trend / Top Customers / YTD are backed by real data. */}
+      {SHOW_UNWIRED_SECTIONS && (
+        <div className="mb-5 flex items-center gap-2.5 rounded-[var(--radius-lg)] border border-brand/25 bg-brand-tint px-4 py-2.5 text-[13px] font-medium text-brand-text">
+          <span
+            className="inline-flex items-center rounded-full bg-brand px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white"
+            aria-hidden
+          >
+            Sample
+          </span>
+          The revenue trend, top customers, and year-to-date figures use sample
+          data while we connect your full history. Outstanding, revenue this
+          month, invoices, and payments are your real numbers.
+        </div>
+      )}
+
       {/* KPI band. Outstanding + Revenue this month are live. The MoM pill,
           Collected YTD and Avg invoice are placeholders, gated OFF for launch
           (see SHOW_UNWIRED_SECTIONS). */}
