@@ -31,4 +31,12 @@ describe("demo data", () => {
   it("has both recurring and one-time customers", () => {
     expect(DEMO_CUSTOMERS.length).toBeGreaterThan(Object.keys(DEMO_RECURRENCE).length);
   });
+  it("job history is sorted newest-first (descending by date)", () => {
+    const c14 = DEMO_CUSTOMERS.find((c) => c.id === "cust-14");
+    if (c14 && c14.jobs.length > 1) {
+      for (let i = 0; i < c14.jobs.length - 1; i++) {
+        expect(c14.jobs[i].date >= c14.jobs[i + 1].date).toBe(true);
+      }
+    }
+  });
 });

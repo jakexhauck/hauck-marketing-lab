@@ -75,6 +75,8 @@ function history(custId: string, lastJobAt: string, service: string, price: numb
       paid: true,
     });
   }
+  // Sort by date descending (newest first) to guarantee chronological order.
+  out.sort((a, b) => b.date.localeCompare(a.date));
   return out;
 }
 
