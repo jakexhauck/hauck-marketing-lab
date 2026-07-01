@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Page Shell — proposed standard layout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ---- Real app tokens (copied from command-center/app/src/index.css) ---- */
+:root{
+  --brand-primary:#4f46e5; --brand-2:#7c73f0; --brand-text:#4f46e5;
+  --grad-brand:linear-gradient(135deg,#4f46e5 0%,#7c73f0 100%);
+  --brand-tint:color-mix(in srgb,#4f46e5 10%,transparent);
+  --font-display:"Poppins","Inter",ui-sans-serif,system-ui,sans-serif;
+  --font-body:"Inter",ui-sans-serif,system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,monospace;
+  --bg:#f6f7fb; --surface:#ffffff; --surface-2:#f1f3f9; --rail:#fbfcfe;
+  --text:#14161f; --muted:#555a6b; --faint:#8a90a3;
+  --border:#e7e9f1; --divider:#f1f3f9;
+  --ledger:#9a6f1e; --positive:#16a34a; --warning:#d97706;
+  --radius:10px; --radius-lg:14px; --radius-xl:20px;
+  --shadow-sm:0 1px 2px rgba(20,22,31,.04),0 1px 3px rgba(20,22,31,.05);
+  --shadow-md:0 6px 18px rgba(40,42,70,.07),0 2px 6px rgba(40,42,70,.05);
+  --shadow-brand:0 8px 22px rgba(79,70,229,.28);
+}
+[data-theme="dark"]{
+  --bg:#0c0d14; --surface:#15161f; --surface-2:#1c1d28; --rail:#0a0b11;
+  --text:#f4f4fb; --muted:#a8adc0; --faint:#6b7088;
+  --border:#262837; --divider:#20222e; --brand-text:#a5a0f5;
+  --ledger:#d7ab51; --positive:#4ade80; --warning:#fbbf24;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3),0 1px 3px rgba(0,0,0,.34);
+  --shadow-md:0 6px 18px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.34);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--font-body); color:var(--text);
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(60rem 40rem at 12% -8%,rgba(124,115,240,.16),transparent 60%),
+    radial-gradient(50rem 38rem at 100% 0%,rgba(79,70,229,.12),transparent 55%);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+}
+.font-display{font-family:var(--font-display);letter-spacing:-.025em}
+.tnum{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.label-cap{text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:10.5px;color:var(--muted)}
+.glass{background:color-mix(in srgb,var(--surface) 62%,transparent);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4)}
+.grad-brand{background-image:var(--grad-brand)}
+
+/* ---- App frame ---- */
+.app{display:flex;min-height:100dvh}
+
+/* Sidebar (representative of the real client rail) */
+.rail{width:248px;flex-shrink:0;background:var(--rail);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;padding:18px 14px;gap:4px;position:sticky;top:0;height:100dvh;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px}
+.brand .mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;box-shadow:var(--shadow-brand)}
+.brand .name{font-family:var(--font-display);font-weight:700;font-size:15px}
+.nav-sec{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--faint);padding:14px 8px 6px}
+.nav-i{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:9px;font-size:13.5px;color:var(--muted);cursor:pointer;font-weight:500}
+.nav-i:hover{background:var(--surface-2);color:var(--text)}
+.nav-i.on{background:var(--brand-tint);color:var(--brand-text);font-weight:600}
+.nav-i .dot{width:16px;height:16px;border-radius:5px;background:currentColor;opacity:.55;flex-shrink:0}
+.nav-i.on .dot{opacity:1}
+
+/* Page column */
+.col{flex:1;min-width:0;display:flex;flex-direction:column}
+
+/* === THE REAL PAID ADS HEADER (the PageHeader component) ===
+   Big Poppins 22px title + a muted description line, optional actions on the
+   right. No search box / bell / avatar — exactly what Paid Ads shows today. */
+.page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+.page-header .title-wrap{min-width:0}
+.page-header h1{font-family:var(--font-display);font-size:22px;font-weight:600;line-height:1;letter-spacing:-.025em;color:var(--text)}
+.page-header .sub{margin-top:7px;font-size:14px;color:var(--muted)}
+.page-header .actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.btn{border:none;cursor:pointer;font-family:var(--font-body);font-weight:600;font-size:13px;border-radius:10px;padding:9px 15px;display:inline-flex;align-items:center;gap:7px}
+.btn.primary{background:var(--grad-brand);color:#fff;box-shadow:var(--shadow-brand)}
+.btn.ghost{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.chip{display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--positive-tint,#e6f6ec);padding:6px 12px;font-size:12.5px;font-weight:600;color:var(--positive)}
+.chip .led{width:6px;height:6px;border-radius:50%;background:var(--positive)}
+
+/* === THE CONTENT AREA — this is the "white space" lever === */
+.body{flex:1;overflow:auto}
+.content{margin-inline:auto;width:100%;padding:24px}
+/* width modes set on .content via data-width */
+.content[data-width="paid"]{max-width:1220px}      /* match Paid Ads today */
+.content[data-width="wide"]{max-width:1440px}      /* wider cap */
+.content[data-width="full"]{max-width:none}        /* edge to edge */
+
+/* sample content */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
+.kpi{padding:18px 20px}
+.kpi .k{font-size:13px;color:var(--muted)}
+.kpi .v{margin-top:8px;font-family:var(--font-display);font-weight:800;font-size:30px;letter-spacing:-.03em}
+.kpi .v.brand{color:var(--brand-text)}
+.kpi .v.money{font-family:var(--font-mono);color:var(--ledger);font-weight:600}
+.grid2{display:grid;grid-template-columns:1.6fr 1fr;gap:20px;margin-top:20px}
+.panel-h{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid var(--divider)}
+.panel-h .kick{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--brand-text)}
+.panel-h h2{font-family:var(--font-display);font-size:16px;font-weight:600;margin-top:3px}
+.panel-b{padding:22px}
+.chart{height:180px;border-radius:10px;background:
+  linear-gradient(180deg,rgba(79,70,229,.14),transparent 70%);
+  border:1px dashed var(--border);display:grid;place-items:center;color:var(--faint);font-size:12.5px}
+.rows{margin-top:20px}
+.row{display:flex;align-items:center;gap:14px;padding:13px 22px;border-bottom:1px solid var(--divider)}
+.row:last-child{border-bottom:none}
+.row .pic{width:34px;height:34px;border-radius:9px;flex-shrink:0}
+.row .nm{font-size:14px;font-weight:500}
+.row .mt{font-size:12.5px;color:var(--faint);margin-top:2px}
+.row .badge{margin-left:auto;font-size:11.5px;padding:4px 10px;border-radius:999px;background:var(--brand-tint);color:var(--brand-text);font-weight:600}
+
+/* ---- floating config dock ---- */
+.dock{position:fixed;right:18px;bottom:18px;z-index:50;background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;box-shadow:var(--shadow-md);padding:14px 16px;width:300px;font-size:13px}
+.dock h3{font-family:var(--font-display);font-size:13px;font-weight:700;margin-bottom:2px}
+.dock p{color:var(--faint);font-size:11.5px;margin-bottom:12px;line-height:1.4}
+.dock .field{margin-bottom:12px}
+.dock label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:6px}
+.opts{display:flex;gap:6px;flex-wrap:wrap}
+.opt{flex:1;min-width:fit-content;text-align:center;padding:7px 8px;border:1px solid var(--border);border-radius:9px;
+  background:var(--surface-2);cursor:pointer;font-size:12px;color:var(--muted);font-weight:500;white-space:nowrap}
+.opt.on{background:var(--brand-tint);border-color:var(--brand-primary);color:var(--brand-text);font-weight:700}
+.dock .readout{margin-top:4px;font-size:11px;color:var(--faint);font-family:var(--font-mono)}
+.dock .hint{font-size:11px;color:var(--muted);border-top:1px solid var(--divider);margin-top:10px;padding-top:10px;line-height:1.45}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar (unchanged — shown for context) -->
+  <aside class="rail">
+    <div class="brand">
+      <div class="mark grad-brand">W</div>
+      <div class="name">Willis</div>
+    </div>
+    <div class="nav-i"><span class="dot"></span>Home</div>
+    <div class="nav-sec">Marketing</div>
+    <div class="nav-i on"><span class="dot"></span>Paid Ads</div>
+    <div class="nav-i"><span class="dot"></span>Google Reviews</div>
+    <div class="nav-i"><span class="dot"></span>Campaigns</div>
+    <div class="nav-i"><span class="dot"></span>Website</div>
+    <div class="nav-i"><span class="dot"></span>Social Media</div>
+    <div class="nav-sec">Company</div>
+    <div class="nav-i"><span class="dot"></span>Inbox</div>
+    <div class="nav-i"><span class="dot"></span>Contacts</div>
+    <div class="nav-i"><span class="dot"></span>Revenue</div>
+  </aside>
+
+  <!-- Page column -->
+  <div class="col">
+    <!-- THE CONTENT AREA (width is the configurable bit) -->
+    <div class="body">
+      <div class="content" id="content" data-width="full">
+        <!-- THE REAL PAID ADS HEADER, applied to every page -->
+        <div class="page-header">
+          <div class="title-wrap">
+            <h1 id="pgTitle">Paid Ads</h1>
+            <div class="sub" id="pgSub">Your ad money at a glance. Here is what it brought in this month, in plain numbers.</div>
+          </div>
+          <div class="actions" id="pgActions">
+            <span class="chip"><span class="led"></span>3 ads running now</span>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="card kpi"><div class="k">Spend</div><div class="v money">$4,180</div></div>
+          <div class="card kpi"><div class="k">Leads</div><div class="v brand">37</div></div>
+          <div class="card kpi"><div class="k">Cost / lead</div><div class="v money">$113</div></div>
+          <div class="card kpi"><div class="k">Booked jobs</div><div class="v">11</div></div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="panel-h"><div><div class="kick">Daily delivery</div><h2>Spend vs leads</h2></div></div>
+            <div class="panel-b"><div class="chart">chart area</div></div>
+          </div>
+          <div class="card">
+            <div class="panel-h"><div><div class="kick">Acquisition</div><h2>Funnel</h2></div></div>
+            <div class="panel-b"><div class="chart">funnel</div></div>
+          </div>
+        </div>
+
+        <div class="card rows">
+          <div class="panel-h"><div><div class="kick">By lead</div><h2>Recent leads</h2></div><span class="label-cap">6 total</span></div>
+          <div class="row"><div class="pic grad-brand"></div><div><div class="nm">Marcus Webb</div><div class="mt">2h ago · Same-day hot water</div></div><span class="badge">New</span></div>
+          <div class="row"><div class="pic grad-brand"></div><div><div class="nm">Dana Liu</div><div class="mt">Today 9:14 AM · $59 AC tune-up</div></div><span class="badge">In touch</span></div>
+          <div class="row"><div class="pic grad-brand"></div><div><div class="nm">The Garcias</div><div class="mt">Yesterday · Burst pipe 24/7</div></div><span class="badge">Won</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Config dock -->
+<div class="dock">
+  <h3>Configure the shell</h3>
+  <p>This is the standard layout proposed for <b>every</b> client page. Flip the switches to dial it in.</p>
+
+  <div class="field">
+    <label>Content width (the white-space lever)</label>
+    <div class="opts" id="widthOpts">
+      <div class="opt" data-w="paid">Paid Ads (1220)</div>
+      <div class="opt" data-w="wide">Wider (1440)</div>
+      <div class="opt on" data-w="full">Full width</div>
+    </div>
+    <div class="readout" id="wRead">max-width: none (edge to edge) · side padding 24px</div>
+  </div>
+
+  <div class="field">
+    <label>Side padding</label>
+    <div class="opts" id="padOpts">
+      <div class="opt on" data-p="24">24px</div>
+      <div class="opt" data-p="36">36px</div>
+      <div class="opt" data-p="56">56px</div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Theme</label>
+    <div class="opts" id="themeOpts">
+      <div class="opt on" data-t="light">Light</div>
+      <div class="opt" data-t="dark">Dark</div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Sample page (header text only)</label>
+    <div class="opts" id="pageOpts" style="flex-direction:column">
+      <div class="opt on" data-title="Paid Ads" data-sub="Your ad money at a glance. Here is what it brought in this month, in plain numbers.">Paid Ads</div>
+      <div class="opt" data-title="Social Media" data-sub="Your social at a glance. Here's what's next and what's working.">Social Media</div>
+      <div class="opt" data-title="Google Reviews" data-sub="Every review in one place, and an easy way to ask for more.">Google Reviews</div>
+      <div class="opt" data-title="Revenue" data-sub="What you've been paid and what's still outstanding this month.">Revenue</div>
+    </div>
+  </div>
+
+  <div class="hint">The sidebar + top bar stay identical on every page. Only the cards/charts inside the content area change per page.</div>
+</div>
+
+<script>
+const content = document.getElementById('content');
+const wRead = document.getElementById('wRead');
+const widthLabels = {paid:'1220px', wide:'1440px', full:'none (edge to edge)'};
+let curPad = 24;
+
+function setWidth(w){
+  content.dataset.width = w;
+  document.querySelectorAll('#widthOpts .opt').forEach(o=>o.classList.toggle('on',o.dataset.w===w));
+  updateRead();
+}
+function setPad(p){
+  curPad = p;
+  content.style.paddingInline = p+'px';
+  document.querySelectorAll('#padOpts .opt').forEach(o=>o.classList.toggle('on',o.dataset.p===String(p)));
+  updateRead();
+}
+function updateRead(){
+  wRead.textContent = 'max-width: '+widthLabels[content.dataset.width]+' · side padding '+curPad+'px';
+}
+
+document.querySelectorAll('#widthOpts .opt').forEach(o=>o.onclick=()=>setWidth(o.dataset.w));
+document.querySelectorAll('#padOpts .opt').forEach(o=>o.onclick=()=>setPad(+o.dataset.p));
+document.querySelectorAll('#themeOpts .opt').forEach(o=>o.onclick=()=>{
+  document.documentElement.dataset.theme=o.dataset.t;
+  document.querySelectorAll('#themeOpts .opt').forEach(x=>x.classList.toggle('on',x===o));
+});
+document.querySelectorAll('#pageOpts .opt').forEach(o=>o.onclick=()=>{
+  document.getElementById('pgTitle').textContent=o.dataset.title;
+  document.getElementById('pgSub').innerHTML=o.dataset.sub;
+  document.querySelectorAll('#pageOpts .opt').forEach(x=>x.classList.toggle('on',x===o));
+});
+</script>
+</body>
+</html>
