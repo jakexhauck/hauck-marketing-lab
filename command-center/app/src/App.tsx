@@ -22,6 +22,8 @@ import ReviewsInsights from "./routes/reviews/ReviewsInsights";
 import { Activity } from "./routes/Activity";
 import Contacts from "./routes/Contacts";
 import ContactDetail from "./routes/ContactDetail";
+import Customers from "./routes/Customers";
+import CustomerDetail from "./routes/CustomerDetail";
 import Conversations from "./routes/Conversations";
 import ConversationDetail from "./routes/ConversationDetail";
 import LeadDetail from "./routes/LeadDetail";
@@ -265,6 +267,22 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <ContactDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customers"
+                element={
+                  <ProtectedRoute>
+                    <Customers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customers/:customerId"
+                element={
+                  <ProtectedRoute>
+                    <CustomerDetail />
                   </ProtectedRoute>
                 }
               />

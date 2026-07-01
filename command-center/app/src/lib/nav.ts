@@ -98,6 +98,7 @@ export const NAV: NavEntry[] = [
       { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
       { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
       { to: "/calendar", label: "Calendar", icon: CalendarDays, capability: "calendar" },
+      { to: "/customers", label: "Customers", icon: Users, capability: "contacts", bottomNav: false },
       { to: "/billing", label: "Revenue", icon: Receipt, capability: "billing" },
       { to: "/company/documents", label: "Assets", icon: FolderOpen },
       { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
