@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contacts — Variant C · Lifecycle groups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="kit.css" />
+<style>
+  .viewtog{display:flex;gap:3px;background:var(--surface-2);border-radius:10px;padding:3px}
+  .viewtog button{border:none;background:transparent;font-family:var(--font-body);font-size:12.5px;font-weight:600;
+    color:var(--muted);padding:7px 13px;border-radius:8px;cursor:pointer}
+  .viewtog button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
+
+  .group{margin-bottom:14px}
+  .ghead{display:flex;align-items:center;gap:12px;padding:12px 6px;cursor:pointer}
+  .ghead .caret{width:20px;height:20px;color:var(--faint);transition:transform .18s;flex-shrink:0}
+  .group.collapsed .caret{transform:rotate(-90deg)}
+  .ghead .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .ghead .gname{font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:-.02em}
+  .ghead .gcount{font-size:12px;font-weight:700;color:var(--faint);background:var(--surface-2);border-radius:999px;padding:2px 9px;font-variant-numeric:tabular-nums}
+  .ghead .nudge{margin-left:auto;font-size:12px;font-weight:600;color:var(--brand-text);background:var(--brand-tint);
+    border:none;border-radius:999px;padding:6px 13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .ghead .nudge svg{width:13px;height:13px}
+  .glist{overflow:hidden}
+  .group.collapsed .glist{display:none}
+
+  .prow{display:flex;align-items:center;gap:14px;padding:11px 16px;border-bottom:1px solid var(--divider);cursor:pointer;transition:background .1s}
+  .prow:last-child{border-bottom:none}
+  .prow:hover{background:var(--surface-2)}
+  .prow .grow{min-width:0;flex:1}
+  .prow .meta{display:flex;align-items:center;gap:10px;margin-top:3px;flex-wrap:wrap}
+  .prow .dotsep{width:3px;height:3px;border-radius:50%;background:var(--faint);opacity:.6}
+  .prow .qa{opacity:.35}
+  .prow:hover .qa{opacity:1}
+  @media (max-width:900px){ .prow .hide-sm{display:none} }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script src="data.js"></script>
+<script>
+const GROUPS = [
+  { id: "new",      name: "New leads",  dot: "#4f46e5", nudge: "Follow up all",   test: (c) => c.stage === "new" },
+  { id: "touch",    name: "In touch",   dot: "#d97706", nudge: "Send reminders",  test: (c) => c.stage === "touch" },
+  { id: "customer", name: "Customers",  dot: "#16a34a", nudge: "Ask for review",  test: (c) => c.stage === "customer" },
+  { id: "repeat",   name: "Repeat",     dot: "#7c3aed", nudge: "Offer plan",      test: (c) => c.stage === "repeat" },
+  { id: "lapsed",   name: "Lapsed",     dot: "#8a90a3", nudge: "Win-back blast",  test: (c) => c.stage === "lapsed" },
+];
+const collapsed = new Set();
+
+function render() {
+  document.getElementById("app").innerHTML = `
+    ${railHTML("contacts")}
+    <div class="col"><div class="body"><div class="content">
+
+      <div class="page-header">
+        <div class="title-wrap">
+          <h1>Contacts</h1>
+          <div class="sub">Grouped by where each person is in the journey, so you always know who to chase next.</div>
+        </div>
+        <div class="actions">
+          <div class="viewtog">
+            <button class="on">Lifecycle</button>
+            <button onclick="location.href='variant-a-segmented-table.html'">Table</button>
+          </div>
+          <button class="btn primary">${IC.plus} Add contact</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search" style="max-width:380px">${IC.search}<input placeholder="Search name, email, or phone" /></div>
+        <div class="spacer"></div>
+        <span class="count-pill">${CONTACTS.length} contacts</span>
+      </div>
+
+      ${GROUPS.map(groupHTML).join("")}
+
+    </div></div></div>
+    ${chromeHTML("c-lifecycle-groups")}
+  `;
+}
+
+function groupHTML(g) {
+  const rows = CONTACTS.filter(g.test);
+  if (!rows.length) return "";
+  const isColl = collapsed.has(g.id);
+  return `<div class="group ${isColl ? "collapsed" : ""}">
+    <div class="ghead" onclick="toggleGroup('${g.id}')">
+      <span class="caret">${IC.chevron}</span>
+      <span class="dot" style="background:${g.dot}"></span>
+      <span class="gname">${g.name}</span>
+      <span class="gcount">${rows.length}</span>
+      <button class="nudge" onclick="event.stopPropagation()">${IC.send} ${g.nudge}</button>
+    </div>
+    <div class="card glist">
+      ${rows.map((c) => prowHTML(c)).join("")}
+    </div>
+  </div>`;
+}
+
+function prowHTML(c) {
+  return `<div class="prow" onclick="location.href='#detail'">
+    ${avatar(c.name, 40)}
+    <div class="grow">
+      <div class="nm">${c.name}</div>
+      <div class="meta">
+        ${sourceBadge(c.src)}
+        <span class="dotsep hide-sm"></span>
+        <span class="hide-sm">${tagPills(c.tags, 2)}</span>
+      </div>
+    </div>
+    <span class="ph hide-sm">${c.phone}</span>
+    <span class="when" style="min-width:74px;text-align:right">${c.when}</span>
+    ${quickActions(c)}
+  </div>`;
+}
+
+function toggleGroup(id) { collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id); render(); }
+render();
+</script>
+</body>
+</html>

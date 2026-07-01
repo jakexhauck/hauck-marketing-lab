@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contacts — Variant B · Roster with segment rail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="kit.css" />
+<style>
+  /* two-column content: segment rail + roster */
+  .roster{display:grid;grid-template-columns:230px 1fr;gap:22px;align-items:start}
+  .segrail{position:sticky;top:24px;display:flex;flex-direction:column;gap:2px}
+  .segrail .grp{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--faint);padding:16px 10px 6px}
+  .seg{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;cursor:pointer;font-size:13.5px;
+    font-weight:500;color:var(--muted);border:1px solid transparent}
+  .seg:hover{background:var(--surface-2);color:var(--text)}
+  .seg.on{background:var(--surface);border-color:var(--border);color:var(--text);font-weight:600;box-shadow:var(--shadow-sm)}
+  .seg .swatch{width:9px;height:9px;border-radius:3px;flex-shrink:0;background:var(--faint)}
+  .seg.on .swatch{box-shadow:0 0 0 3px var(--brand-tint)}
+  .seg .n{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--faint);font-variant-numeric:tabular-nums}
+  .seg.on .n{color:var(--brand-text)}
+  .newseg{margin-top:6px;color:var(--faint);font-size:12.5px;font-weight:600;padding:9px 11px;cursor:pointer;display:flex;align-items:center;gap:8px}
+  .newseg:hover{color:var(--brand-text)}
+  .newseg svg{width:14px;height:14px}
+  @media (max-width:1100px){ .roster{grid-template-columns:1fr} .segrail{position:static;flex-direction:row;overflow:auto} }
+  @media (max-width:1180px){ .hide-lg{display:none} }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script src="data.js"></script>
+<script>
+let seg = "all";
+const RAIL = [
+  { grp: "Lists" },
+  { id: "all",      label: "All contacts", sw: "linear-gradient(135deg,#4f46e5,#7c73f0)", test: () => true },
+  { id: "new",      label: "New leads",    sw: "#4f46e5", test: (c) => c.stage === "new" },
+  { id: "touch",    label: "In touch",     sw: "#d97706", test: (c) => c.stage === "touch" },
+  { id: "customer", label: "Customers",    sw: "#16a34a", test: (c) => c.stage === "customer" || c.stage === "repeat" },
+  { id: "lapsed",   label: "Lapsed",       sw: "#8a90a3", test: (c) => c.stage === "lapsed" },
+  { grp: "Saved segments" },
+  { id: "vip",      label: "VIP / plan",   sw: "#7c3aed", test: (c) => c.tags.some((t) => /VIP|plan/i.test(t)) },
+  { id: "fb",       label: "From Facebook",sw: "#1877f2", test: (c) => c.src === "fb" },
+  { id: "emergency",label: "Emergency jobs",sw: "#dc2626",test: (c) => c.tags.some((t) => /emergency|burst|same-day/i.test(t)) },
+];
+function cur() { return RAIL.find((r) => r.id === seg); }
+function count(r) { return CONTACTS.filter(r.test).length; }
+
+function render() {
+  const rows = CONTACTS.filter(cur().test);
+  document.getElementById("app").innerHTML = `
+    ${railHTML("contacts")}
+    <div class="col"><div class="body"><div class="content">
+
+      <div class="page-header">
+        <div class="title-wrap">
+          <h1>Contacts</h1>
+          <div class="sub">Pick a list on the left, then work it. Every contact is one tap from a call, text, or email.</div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost">${IC.download} Export</button>
+          <button class="btn primary">${IC.plus} Add contact</button>
+        </div>
+      </div>
+
+      <div class="roster">
+        <nav class="segrail">
+          ${RAIL.map((r) => r.grp
+            ? `<div class="grp">${r.grp}</div>`
+            : `<div class="seg ${seg === r.id ? "on" : ""}" onclick="setSeg('${r.id}')">
+                 <span class="swatch" style="background:${r.sw}"></span>${r.label}
+                 <span class="n">${count(r)}</span>
+               </div>`
+          ).join("")}
+          <div class="newseg">${IC.plus} New segment</div>
+        </nav>
+
+        <div>
+          <div class="toolbar" style="margin-bottom:14px">
+            <div class="search" style="max-width:none;flex:1">${IC.search}<input placeholder="Search ${cur().label.toLowerCase()}" /></div>
+            <span class="count-pill">${rows.length} shown</span>
+          </div>
+          <div class="card">
+            <table class="tbl">
+              <thead><tr>
+                <th>Name</th>
+                <th>Source</th>
+                <th class="hide-lg">Tags</th>
+                <th>Phone</th>
+                <th>Last active</th>
+                <th style="text-align:right">Actions</th>
+              </tr></thead>
+              <tbody>
+                ${rows.map((c, i) => `
+                  <tr onclick="location.href='#detail-${i}'">
+                    <td><div class="person">${avatar(c.name)}<div class="txt">
+                      <div class="nm">${c.name}</div><div class="sub-e">${c.email}</div>
+                    </div></div></td>
+                    <td>${sourceBadge(c.src)}</td>
+                    <td class="hide-lg">${tagPills(c.tags)}</td>
+                    <td><span class="ph">${c.phone}</span></td>
+                    <td><span class="when">${c.when}</span></td>
+                    <td style="text-align:right">${quickActions(c)}</td>
+                  </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div></div></div>
+    ${chromeHTML("b-roster-rail")}
+  `;
+}
+function setSeg(id) { seg = id; render(); }
+render();
+</script>
+</body>
+</html>

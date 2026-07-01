@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Customers — Variant C · Master–Detail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="kit.css" />
+<style>
+  .split{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+  @media (max-width:1100px){.split{grid-template-columns:1fr}}
+
+  /* Master list */
+  .master{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;position:sticky;top:24px}
+  .master .m-search{padding:12px 12px 8px}
+  .master .m-chips{display:flex;gap:6px;padding:0 12px 10px;border-bottom:1px solid var(--divider)}
+  .m-chip{flex:1;text-align:center;border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
+  .m-chip.on{background:var(--brand-tint);border-color:transparent;color:var(--brand-text)}
+  .m-list{max-height:calc(100dvh - 180px);overflow:auto}
+  .m-row{display:flex;align-items:center;gap:11px;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--divider)}
+  .m-row:hover{background:var(--surface-2)}
+  .m-row.on{background:var(--brand-tint)}
+  .m-row.on .nm{color:var(--brand-text)}
+  .m-row .txt{flex:1;min-width:0}
+  .m-row .nm{font-family:var(--font-display);font-size:13.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .m-row .meta{font-size:11.5px;color:var(--faint);margin-top:1px;display:flex;align-items:center;gap:6px}
+  .m-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .m-dot.rec{background:var(--brand-primary)}
+  .m-dot.one{background:var(--faint)}
+  .m-row .lv{font-family:var(--font-mono);font-size:12px;color:var(--ledger);font-variant-numeric:tabular-nums}
+
+  /* Detail */
+  .detail{display:flex;flex-direction:column;gap:16px}
+  .d-head{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:20px}
+  .d-top{display:flex;align-items:center;gap:14px}
+  .d-top .d-name{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--text)}
+  .d-top .d-sub{font-size:13px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:7px}
+  .d-actions{margin-left:auto;display:flex;gap:8px}
+  .d-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid var(--divider)}
+  .d-stat .s-lab{font-size:11px;color:var(--faint);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+  .d-stat .s-val{font-family:var(--font-display);font-weight:800;font-size:20px;margin-top:4px;letter-spacing:-.02em}
+  .d-stat .s-val.money{font-family:var(--font-mono);font-weight:600;color:var(--ledger)}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
+  .p-head{display:flex;align-items:center;gap:9px;padding:15px 18px;border-bottom:1px solid var(--divider)}
+  .p-head .p-t{font-family:var(--font-display);font-weight:600;font-size:14.5px}
+  .p-head svg{width:16px;height:16px;color:var(--brand-text)}
+  .p-head .sw{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--muted)}
+  .toggle{width:38px;height:22px;border-radius:999px;background:var(--surface-3);position:relative;cursor:pointer;transition:background .18s}
+  .toggle.on{background:var(--brand-primary)}
+  .toggle::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .18s;box-shadow:var(--shadow-sm)}
+  .toggle.on::after{transform:translateX(16px)}
+
+  .editor{padding:18px;display:flex;flex-direction:column;gap:16px}
+  .field .f-lab{font-size:11.5px;font-weight:600;color:var(--muted);margin-bottom:7px;display:block}
+  .seg-pills{display:flex;gap:8px;flex-wrap:wrap}
+  .seg-pill{border:1px solid var(--border);background:var(--surface);border-radius:9px;padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer}
+  .seg-pill.on{background:var(--brand-tint);border-color:var(--brand-primary);color:var(--brand-text)}
+  .wd-picker{display:flex;gap:6px}
+  .wd{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--surface);display:grid;place-items:center;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer}
+  .wd.on{background:var(--grad-brand);color:#fff;border-color:transparent;box-shadow:var(--shadow-brand)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .inp{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:9px 12px;font-size:13.5px;color:var(--text);font-family:var(--font-body)}
+  .inp:focus{outline:none;border-color:var(--brand-primary);box-shadow:0 0 0 3px var(--brand-tint)}
+
+  .preview{background:var(--surface-2);border-radius:12px;padding:14px 16px}
+  .preview .pv-lab{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--faint);margin-bottom:10px}
+  .pv-visits{display:flex;gap:10px;flex-wrap:wrap}
+  .pv-visit{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px}
+  .pv-visit .pv-dot{width:8px;height:8px;border-radius:50%;background:var(--brand-primary)}
+  .pv-visit .pv-d{font-family:var(--font-display);font-weight:600;font-size:13px;color:var(--text)}
+  .pv-visit .pv-w{font-size:11px;color:var(--faint)}
+
+  .empty-rec{padding:26px 18px;text-align:center}
+  .empty-rec .er-ic{width:44px;height:44px;border-radius:12px;background:var(--brand-tint);color:var(--brand-text);display:grid;place-items:center;margin:0 auto 12px}
+  .empty-rec .er-ic svg{width:22px;height:22px}
+  .empty-rec .er-t{font-family:var(--font-display);font-weight:600;font-size:15px;color:var(--text)}
+  .empty-rec .er-s{font-size:12.5px;color:var(--muted);margin:6px auto 14px;max-width:320px}
+
+  /* Job history */
+  .jobs{padding:6px 0}
+  .job{display:flex;align-items:center;gap:13px;padding:11px 18px;border-bottom:1px solid var(--divider)}
+  .job:last-child{border-bottom:none}
+  .job .j-dot{width:30px;height:30px;border-radius:9px;background:var(--positive-tint);color:var(--positive);display:grid;place-items:center;flex-shrink:0}
+  .job .j-dot svg{width:15px;height:15px}
+  .job .j-txt{flex:1;min-width:0}
+  .job .j-svc{font-size:13px;font-weight:600;color:var(--text)}
+  .job .j-date{font-size:11.5px;color:var(--faint);margin-top:1px}
+  .job .j-amt{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--ledger);font-variant-numeric:tabular-nums}
+  .pill-mini{font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--positive-tint);color:var(--positive)}
+  .pill-mini.unpaid{background:var(--warning-tint);color:var(--warning)}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script src="data.js"></script>
+<script>
+let seg = "all";
+let selName = "Aaron Delgado";
+// editor working state (mirrors the selected customer, editable in the mock)
+let edit = { cadence: "biweekly", weekday: 2, active: true };
+const FULLDAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const WD1 = ["S","M","T","W","T","F","S"];
+const TODAY = new Date(2026, 6, 3); // Thu Jul 3 2026 (mock "now")
+
+function selected() { return CUSTOMERS.find((c) => c.name === selName); }
+function listFor() {
+  return CUSTOMERS.filter((c) => seg === "all" ? true : seg === "recurring" ? c.type === "recurring" : c.type === "onetime");
+}
+function nextDates(weekday, weeks, count) {
+  const out = [];
+  const d = new Date(TODAY);
+  while (d.getDay() !== weekday) d.setDate(d.getDate() + 1);
+  for (let i = 0; i < count; i++) {
+    out.push(new Date(d));
+    d.setDate(d.getDate() + weeks * 7);
+  }
+  return out;
+}
+const FMT = (dt) => dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+function selectCustomer(name) {
+  selName = name;
+  const c = selected();
+  edit = c.type === "recurring"
+    ? { cadence: c.cadence, weekday: c.weekday, active: true }
+    : { cadence: "biweekly", weekday: 2, active: false };
+  render();
+}
+function setSeg(s) { seg = s; render(); }
+function setCadence(v) { edit.cadence = v; render(); }
+function setWeekday(w) { edit.weekday = w; render(); }
+function toggleActive() { edit.active = !edit.active; render(); }
+
+function render() {
+  const c = selected();
+  document.getElementById("app").innerHTML = `
+    ${railHTML()}
+    <div class="col"><div class="body"><div class="content">
+
+      <div class="page-header">
+        <div class="title-wrap">
+          <h1>Customers</h1>
+          <div class="sub">Pick a customer to see their job history and manage their recurring schedule.</div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost">${IC.plus} Add customer</button>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="master">
+          <div class="m-search"><div class="search" style="max-width:none">${IC.search}<input placeholder="Search customers" /></div></div>
+          <div class="m-chips">
+            ${["all","recurring","onetime"].map((s) => `<div class="m-chip ${seg===s?"on":""}" onclick="setSeg('${s}')">${s==="all"?"All":s==="recurring"?"Recurring":"One-time"}</div>`).join("")}
+          </div>
+          <div class="m-list">
+            ${listFor().map(masterRow).join("")}
+          </div>
+        </div>
+
+        <div class="detail">
+          ${detailHead(c)}
+          ${scheduleCard(c)}
+          ${jobsCard(c)}
+        </div>
+      </div>
+
+    </div></div></div>
+    ${chromeHTML("c-master-detail")}
+  `;
+}
+
+function masterRow(c) {
+  const on = c.name === selName;
+  return `<div class="m-row ${on?"on":""}" onclick="selectCustomer('${c.name.replace(/'/g,"\\'")}')">
+    ${avatar(c.name, 34)}
+    <div class="txt">
+      <div class="nm">${c.name}</div>
+      <div class="meta"><span class="m-dot ${c.type==="recurring"?"rec":"one"}"></span>${c.type==="recurring"?CADENCE[c.cadence].label:"One-time"}</div>
+    </div>
+    <div class="lv">${money(c.ltv)}</div>
+  </div>`;
+}
+
+function detailHead(c) {
+  return `<div class="d-head">
+    <div class="d-top">
+      ${avatar(c.name, 52)}
+      <div>
+        <div class="d-name">${c.name}</div>
+        <div class="d-sub">${c.biz ? c.biz + " · " : ""}<span>${IC.pin}</span> ${c.city}</div>
+      </div>
+      <div class="d-actions">
+        <button class="btn ghost sm">${IC.phone} Call</button>
+        <button class="btn ghost sm">${IC.msg} Text</button>
+      </div>
+    </div>
+    <div class="d-stats">
+      <div class="d-stat"><div class="s-lab">Lifetime value</div><div class="s-val money">${money(c.ltv)}</div></div>
+      <div class="d-stat"><div class="s-lab">Total jobs</div><div class="s-val">${c.jobs}</div></div>
+      <div class="d-stat"><div class="s-lab">Last job</div><div class="s-val" style="font-size:16px;color:var(--muted)">${c.last}</div></div>
+    </div>
+  </div>`;
+}
+
+function scheduleCard(c) {
+  const isRec = edit.active;
+  const visits = nextDates(edit.weekday, edit.cadence === "weekly" ? 1 : edit.cadence === "biweekly" ? 2 : 4, 3);
+  const body = isRec ? `
+    <div class="editor">
+      <div class="field">
+        <label class="f-lab">How often?</label>
+        <div class="seg-pills">
+          ${[["weekly","Weekly"],["biweekly","Every 2 weeks"],["every4","Every 4 weeks"]].map(([v,l]) => `<div class="seg-pill ${edit.cadence===v?"on":""}" onclick="setCadence('${v}')">${l}</div>`).join("")}
+        </div>
+      </div>
+      <div class="field">
+        <label class="f-lab">Which day?</label>
+        <div class="wd-picker">
+          ${WD1.map((d,i) => `<div class="wd ${edit.weekday===i?"on":""}" onclick="setWeekday(${i})">${d}</div>`).join("")}
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field"><label class="f-lab">Service</label><input class="inp" value="${c.service}" /></div>
+        <div class="field"><label class="f-lab">Price per visit</label><input class="inp" value="${money(c.price)}" /></div>
+      </div>
+      <div class="preview">
+        <div class="pv-lab">Next 3 visits · every ${edit.cadence==="weekly"?"":edit.cadence==="biweekly"?"other ":"4th "}${FULLDAY[edit.weekday]}</div>
+        <div class="pv-visits">
+          ${visits.map((dt) => `<div class="pv-visit"><span class="pv-dot"></span><div><div class="pv-d">${FMT(dt)}</div><div class="pv-w">${FULLDAY[dt.getDay()]}</div></div></div>`).join("")}
+        </div>
+      </div>
+      <div style="display:flex;gap:10px"><button class="btn primary">${IC.check} Save schedule</button><button class="btn ghost">Cancel</button></div>
+    </div>` : `
+    <div class="empty-rec">
+      <div class="er-ic">${IC.rotate}</div>
+      <div class="er-t">No recurring schedule</div>
+      <div class="er-s">${c.name.split(" ")[0]} is a one-time customer. Turn on a schedule to book their visits automatically and feed the Jobs calendar.</div>
+      <button class="btn primary" onclick="toggleActive()">${IC.rotate} Set up recurring</button>
+    </div>`;
+  return `<div class="panel">
+    <div class="p-head">${IC.rotate}<span class="p-t">Recurring schedule</span>
+      <span class="sw">${isRec?"Active":"Off"}<div class="toggle ${isRec?"on":""}" onclick="toggleActive()"></div></span>
+    </div>
+    ${body}
+  </div>`;
+}
+
+function jobsCard(c) {
+  const jobs = historyFor(c);
+  return `<div class="panel">
+    <div class="p-head">${IC.clock}<span class="p-t">Job history</span><span class="sw" style="font-weight:500;color:var(--faint)">${c.jobs} total</span></div>
+    <div class="jobs">
+      ${jobs.map((j) => `<div class="job">
+        <div class="j-dot">${IC.check}</div>
+        <div class="j-txt"><div class="j-svc">${j.service}</div><div class="j-date">${j.date}</div></div>
+        <span class="pill-mini ${j.paid?"":"unpaid"}">${j.paid?"Paid":"Unpaid"}</span>
+        <div class="j-amt">${money(j.amount)}</div>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+selectCustomer("Aaron Delgado");
+</script>
+</body>
+</html>

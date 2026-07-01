@@ -1,0 +1,191 @@
+/* ============================================================
+   Customers mockups — shared kit
+   Tokens + app shell copied from command-center/app/src/index.css
+   (kept in sync with mockups/page-shell + contacts-v1/kit.css)
+   ============================================================ */
+:root{
+  --brand-primary:#4f46e5; --brand-2:#7c73f0; --brand-text:#4f46e5;
+  --grad-brand:linear-gradient(135deg,#4f46e5 0%,#7c73f0 100%);
+  --brand-tint:color-mix(in srgb,#4f46e5 10%,transparent);
+  --brand-tint-strong:color-mix(in srgb,#4f46e5 18%,transparent);
+  --font-display:"Poppins","Inter",ui-sans-serif,system-ui,sans-serif;
+  --font-body:"Inter",ui-sans-serif,system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,monospace;
+  --bg:#f6f7fb; --surface:#ffffff; --surface-2:#f1f3f9; --surface-3:#e9ebf3; --rail:#fbfcfe;
+  --text:#14161f; --muted:#555a6b; --faint:#8a90a3;
+  --border:#e7e9f1; --divider:#f1f3f9;
+  --ledger:#9a6f1e; --ledger-tint:color-mix(in srgb,#9a6f1e 12%,transparent);
+  --positive:#16a34a; --warning:#d97706; --danger:#dc2626;
+  --positive-tint:#e6f6ec; --warning-tint:#fdf1e0; --danger-tint:#fdeaea;
+  --radius:10px; --radius-lg:14px; --radius-xl:20px;
+  --shadow-sm:0 1px 2px rgba(20,22,31,.04),0 1px 3px rgba(20,22,31,.05);
+  --shadow-md:0 6px 18px rgba(40,42,70,.07),0 2px 6px rgba(40,42,70,.05);
+  --shadow-lg:0 18px 40px rgba(40,42,70,.12),0 6px 14px rgba(40,42,70,.07);
+  --shadow-brand:0 8px 22px rgba(79,70,229,.28);
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+[data-theme="dark"]{
+  --bg:#0c0d14; --surface:#15161f; --surface-2:#1c1d28; --surface-3:#232536; --rail:#0a0b11;
+  --text:#f4f4fb; --muted:#a8adc0; --faint:#6b7088;
+  --border:#262837; --divider:#20222e; --brand-text:#a5a0f5;
+  --brand-tint:color-mix(in srgb,#4f46e5 20%,transparent);
+  --brand-tint-strong:color-mix(in srgb,#4f46e5 30%,transparent);
+  --ledger:#d7ab51; --ledger-tint:color-mix(in srgb,#d7ab51 16%,transparent);
+  --positive:#4ade80; --warning:#fbbf24; --danger:#f87171;
+  --positive-tint:color-mix(in srgb,#4ade80 15%,transparent);
+  --warning-tint:color-mix(in srgb,#fbbf24 15%,transparent);
+  --danger-tint:color-mix(in srgb,#f87171 15%,transparent);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3),0 1px 3px rgba(0,0,0,.34);
+  --shadow-md:0 6px 18px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.34);
+  --shadow-lg:0 18px 40px rgba(0,0,0,.5),0 6px 14px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--font-body); color:var(--text);
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(60rem 40rem at 12% -8%,rgba(124,115,240,.16),transparent 60%),
+    radial-gradient(50rem 38rem at 100% 0%,rgba(79,70,229,.12),transparent 55%);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+}
+.font-display{font-family:var(--font-display);letter-spacing:-.025em}
+.tnum{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.label-cap{text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:10.5px;color:var(--muted)}
+.glass{background:color-mix(in srgb,var(--surface) 62%,transparent);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4)}
+.grad-brand{background-image:var(--grad-brand)}
+/* Money. Ledger gold, money only — never decorative. */
+.money{font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--ledger);letter-spacing:-.01em}
+
+/* ---- App frame ---- */
+.app{display:flex;min-height:100dvh}
+
+/* Sidebar (representative of the real client rail; Customers active) */
+.rail{width:248px;flex-shrink:0;background:var(--rail);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;padding:18px 14px;gap:4px;position:sticky;top:0;height:100dvh;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px}
+.brand .mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;box-shadow:var(--shadow-brand)}
+.brand .name{font-family:var(--font-display);font-weight:700;font-size:15px}
+.nav-sec{font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--faint);padding:14px 8px 6px}
+.nav-i{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:9px;font-size:13.5px;color:var(--muted);cursor:pointer;font-weight:500}
+.nav-i:hover{background:var(--surface-2);color:var(--text)}
+.nav-i.on{background:var(--brand-tint);color:var(--brand-text);font-weight:600}
+.nav-i .dot{width:16px;height:16px;border-radius:5px;background:currentColor;opacity:.55;flex-shrink:0}
+.nav-i.on .dot{opacity:1}
+
+/* Page column */
+.col{flex:1;min-width:0;display:flex;flex-direction:column}
+.body{flex:1;overflow:auto}
+.content{margin-inline:auto;width:100%;padding:24px;max-width:none}
+
+/* PageHeader (the Paid Ads header component) */
+.page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+.page-header .title-wrap{min-width:0}
+.page-header h1{font-family:var(--font-display);font-size:22px;font-weight:600;line-height:1;letter-spacing:-.025em;color:var(--text)}
+.page-header .sub{margin-top:7px;font-size:14px;color:var(--muted)}
+.page-header .actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+
+/* Buttons */
+.btn{border:none;cursor:pointer;font-family:var(--font-body);font-weight:600;font-size:13px;border-radius:10px;padding:9px 15px;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.btn.primary{background:var(--grad-brand);color:#fff;box-shadow:var(--shadow-brand)}
+.btn.ghost{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.btn.ghost:hover{border-color:var(--faint)}
+.btn.sm{padding:7px 12px;font-size:12.5px}
+.btn svg{width:15px;height:15px}
+
+/* Card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
+
+/* Search */
+.search{position:relative;flex:1;max-width:320px}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--faint);pointer-events:none}
+.search input{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:10px;
+  padding:9px 12px 9px 34px;font-size:13.5px;font-family:var(--font-body);color:var(--text)}
+.search input::placeholder{color:var(--faint)}
+.search input:focus{outline:none;border-color:var(--brand-primary);box-shadow:0 0 0 3px var(--brand-tint)}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.toolbar .spacer{flex:1}
+
+/* Segment chips */
+.chips{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--surface);
+  border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
+.chip:hover{border-color:var(--faint);color:var(--text)}
+.chip.on{background:var(--brand-tint);border-color:transparent;color:var(--brand-text)}
+.chip .n{font-size:11px;font-weight:700;opacity:.7;font-variant-numeric:tabular-nums}
+.chip.on .n{opacity:1}
+
+/* Avatar */
+.av{width:38px;height:38px;border-radius:11px;flex-shrink:0;display:grid;place-items:center;
+  color:#fff;font-weight:700;font-size:14px;font-family:var(--font-display);letter-spacing:-.02em}
+
+/* Type badge — recurring vs one-time (the core Customers distinction) */
+.type{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+.type svg{width:12px;height:12px}
+.type-recurring{background:var(--brand-tint);color:var(--brand-text)}
+.type-onetime{background:var(--surface-2);color:var(--muted)}
+
+/* Cadence pill (weekly / biweekly / monthly) */
+.cadence{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted)}
+.cadence .rot{width:14px;height:14px;color:var(--brand-text)}
+.cadence.none{color:var(--faint)}
+
+/* Next-visit chip */
+.nextv{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:var(--surface-2);
+  padding:4px 10px;font-size:11.5px;font-weight:600;color:var(--text);white-space:nowrap}
+.nextv .cal{width:13px;height:13px;color:var(--brand-text)}
+.nextv.soon{background:var(--brand-tint);color:var(--brand-text)}
+.nextv.dash{color:var(--faint);background:transparent;padding-left:0}
+
+/* Tag pill */
+.tag{display:inline-flex;align-items:center;max-width:150px;border-radius:999px;background:var(--surface-2);
+  padding:3px 9px;font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Quick actions (hover-reveal) */
+.qa{display:flex;align-items:center;gap:6px}
+.qa a{width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--surface);
+  display:grid;place-items:center;color:var(--muted);text-decoration:none;transition:all .12s}
+.qa a:hover{border-color:var(--brand-primary);color:var(--brand-text);background:var(--brand-tint)}
+.qa a svg{width:15px;height:15px}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse}
+.tbl thead th{text-align:left;padding:11px 16px;border-bottom:1px solid var(--divider);
+  text-transform:uppercase;letter-spacing:.07em;font-size:10.5px;font-weight:700;color:var(--faint);white-space:nowrap}
+.tbl tbody td{padding:12px 16px;border-bottom:1px solid var(--divider);vertical-align:middle}
+.tbl tbody tr{cursor:pointer;transition:background .1s}
+.tbl tbody tr:hover{background:var(--surface-2)}
+.tbl tbody tr:last-child td{border-bottom:none}
+.nm{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text)}
+.sub-e{font-size:12.5px;color:var(--muted);margin-top:1px}
+.person{display:flex;align-items:center;gap:12px;min-width:0}
+.person .txt{min-width:0}
+.tbl tbody tr .qa{opacity:.35;transition:opacity .12s}
+.tbl tbody tr:hover .qa{opacity:1}
+.val-lg{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;color:var(--ledger);white-space:nowrap}
+.sub-jobs{font-size:11.5px;color:var(--faint);margin-top:1px}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;box-shadow:var(--shadow-sm)}
+.kpi .k-lab{font-size:11.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:7px}
+.kpi .k-lab svg{width:14px;height:14px;color:var(--brand-text)}
+.kpi .k-val{font-family:var(--font-display);font-weight:800;font-size:24px;letter-spacing:-.03em;margin-top:8px;color:var(--text);font-variant-numeric:tabular-nums}
+.kpi .k-val.money{color:var(--ledger);font-family:var(--font-mono);font-weight:600}
+.kpi .k-sub{font-size:11.5px;color:var(--faint);margin-top:3px}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}}
+
+/* Theme toggle (mockup only) */
+.themebtn{position:fixed;right:18px;bottom:18px;z-index:60;background:var(--surface);border:1px solid var(--border);
+  border-radius:999px;box-shadow:var(--shadow-md);padding:9px 14px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;font-family:var(--font-body)}
+
+/* Variant switcher */
+.vswitch{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:60;display:flex;gap:4px;
+  background:var(--surface);border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow-md);padding:5px}
+.vswitch a{padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:600;color:var(--muted);text-decoration:none}
+.vswitch a.on{background:var(--brand-tint);color:var(--brand-text)}
+.vswitch a:hover{color:var(--text)}

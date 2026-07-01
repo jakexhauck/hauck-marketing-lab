@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contacts — Variant A · Segmented Table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="kit.css" />
+</head>
+<body>
+<div class="app" id="app"></div>
+<script src="data.js"></script>
+<script>
+let segment = "all";
+const SEGMENTS = [
+  { id: "all",      label: "All",       test: () => true },
+  { id: "new",      label: "New leads", test: (c) => c.stage === "new" },
+  { id: "touch",    label: "In touch",  test: (c) => c.stage === "touch" },
+  { id: "customer", label: "Customers", test: (c) => c.stage === "customer" || c.stage === "repeat" },
+  { id: "repeat",   label: "Repeat",    test: (c) => c.stage === "repeat" },
+];
+const selected = new Set();
+
+function visible() { return CONTACTS.filter(SEGMENTS.find((s) => s.id === segment).test); }
+function segCount(seg) { return CONTACTS.filter(seg.test).length; }
+
+function render() {
+  const rows = visible();
+  document.getElementById("app").innerHTML = `
+    ${railHTML("contacts")}
+    <div class="col"><div class="body"><div class="content">
+
+      <div class="page-header">
+        <div class="title-wrap">
+          <h1>Contacts</h1>
+          <div class="sub">Everyone who has reached out or bought. Search, filter, and reach them in a tap.</div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost">${IC.download} Export</button>
+          <button class="btn primary">${IC.plus} Add contact</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="chips">
+          ${SEGMENTS.map((s) => `<button class="chip ${segment === s.id ? "on" : ""}" onclick="setSeg('${s.id}')">${s.label}<span class="n">${segCount(s)}</span></button>`).join("")}
+        </div>
+        <div class="spacer"></div>
+        <div class="search">${IC.search}<input placeholder="Search name, email, or phone" /></div>
+      </div>
+
+      <div class="card">
+        <table class="tbl">
+          <thead><tr>
+            <th style="width:34px"></th>
+            <th>Name</th>
+            <th>Source</th>
+            <th>Stage</th>
+            <th class="hide-lg">Tags</th>
+            <th>Phone</th>
+            <th>Last active</th>
+            <th style="text-align:right">Actions</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map((c, i) => rowHTML(c, i)).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      ${selected.size ? selbarHTML() : ""}
+
+    </div></div></div>
+    ${chromeHTML("a-segmented-table")}
+  `;
+}
+
+function rowHTML(c, i) {
+  const on = selected.has(i);
+  return `<tr onclick="location.href='#detail-${i}'">
+    <td onclick="event.stopPropagation();toggle(${i})"><span class="cbx ${on ? "on" : ""}"></span></td>
+    <td><div class="person">${avatar(c.name)}<div class="txt">
+      <div class="nm">${c.name}</div><div class="sub-e">${c.email}</div>
+    </div></div></td>
+    <td>${sourceBadge(c.src)}</td>
+    <td>${stagePill(c.stage)}</td>
+    <td class="hide-lg">${tagPills(c.tags)}</td>
+    <td><span class="ph">${c.phone}</span></td>
+    <td><span class="when">${c.when}</span></td>
+    <td style="text-align:right">${quickActions(c)}</td>
+  </tr>`;
+}
+
+function selbarHTML() {
+  return `<div class="selbar">
+    <b>${selected.size} selected</b>
+    <span class="sep"></span>
+    <button>${IC.tag} Tag</button>
+    <button>${IC.send} Message</button>
+    <button>${IC.download} Export</button>
+    <button class="x" onclick="clearSel()">${IC.x}</button>
+  </div>`;
+}
+
+function setSeg(id) { segment = id; selected.clear(); render(); }
+function toggle(i) { selected.has(i) ? selected.delete(i) : selected.add(i); render(); }
+function clearSel() { selected.clear(); render(); }
+render();
+</script>
+<style>
+  @media (max-width:1180px){ .hide-lg{display:none} }
+  .tbl thead th{position:sticky;top:0;background:var(--surface);z-index:1}
+</style>
+</body>
+</html>
