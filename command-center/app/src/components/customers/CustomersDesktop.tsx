@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Search, Phone, MessageSquare, MapPin } from "lucide-react";
-import Shell from "../Shell";
 import { PageHeader } from "../PageHeader";
 import { Panel, LoadingState, EmptyState } from "../ui";
 import Avatar from "../Avatar";
@@ -94,9 +93,11 @@ export default function CustomersDesktop({
   const selected: CustomerWithSchedule | null =
     customers.find((c) => c.id === activeId) ?? visible[0] ?? customers[0] ?? null;
 
+  // No <Shell> here: the route (Customers / CustomerDetail) provides the shell.
+  // This is a pure content component like ContactsDesktop, rendered inside the
+  // route's Shell > lg:flex region. Rendering Shell here would double the sidebar.
   return (
-    <Shell>
-      <div className={PAGE_CONTAINER}>
+    <div className={PAGE_CONTAINER}>
         <PageHeader
           title="Customers"
           description="Pick a customer to see their job history and manage their recurring schedule."
@@ -234,7 +235,6 @@ export default function CustomersDesktop({
           </div>
         )}
       </div>
-    </Shell>
   );
 }
 
