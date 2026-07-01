@@ -43,7 +43,7 @@ export default function Reactivation() {
         />
 
         {!demo && (
-          <NotConnectedNotice message="Once your customer list is linked through GoHighLevel, we'll quietly reach out to people who haven't booked in a while and show you who comes back here." />
+          <NotConnectedNotice message="Once your customer list is linked, we'll quietly reach out to people who haven't booked in a while and show you who comes back here." />
         )}
 
         {/* What it does, in one calm line (demo only). */}

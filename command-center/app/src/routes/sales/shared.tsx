@@ -6,7 +6,7 @@ import { Panel, Button } from "../../components/ui";
 // never see fabricated content. Pages render their designed, populated inbox
 // only in demo/preview mode (`?demo=1`); in a real session they show the empty
 // state plus <NotConnectedNotice/> until the website forms + phone are linked
-// through GoHighLevel.
+//.
 
 // The standing "nothing is connected yet" banner. Shown on the Estimate Forms
 // surface in a real session so the empty inbox is never mistaken for a bug.
@@ -17,7 +17,7 @@ export function NotConnectedNotice({ message }: { message?: string }) {
       <div className="flex-1 text-[13px] leading-snug text-text">
         <span className="font-semibold">Not connected yet.</span>{" "}
         {message ??
-          "Estimate requests from your website land here automatically once your forms and phone are connected through GoHighLevel."}
+          "Estimate requests from your website land here automatically once your forms and phone are connected."}
       </div>
       <Button variant="secondary" size="sm" disabled className="shrink-0">
         Connect (coming soon)

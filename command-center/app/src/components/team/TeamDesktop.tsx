@@ -1,8 +1,11 @@
-import { ShieldCheck, UserPlus, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Search, ShieldCheck, UserPlus, X } from "lucide-react";
 import { Button } from "../ui/Button";
+import { Segmented } from "../ui/Segmented";
 import DesktopPage from "../desktop/DesktopPage";
 import Avatar from "../Avatar";
 import EmptyState from "../EmptyState";
+import StatCard from "../StatCard";
 import {
   CAPABILITIES,
   type Capability,
@@ -36,6 +39,10 @@ const ROLE_LABEL: Record<StaffRole, string> = {
 const CAP_LABEL: Record<Capability, string> = Object.fromEntries(
   CAPABILITIES.map((c) => [c.key, c.label]),
 ) as Record<Capability, string>;
+
+// The roster's role/status filter. "all" keeps everyone (including disabled);
+// "disabled" isolates the switched-off logins.
+type RosterFilter = "all" | "manager" | "rep" | "disabled";
 
 // Human summary of the surfaces a member can reach, deduped by capability and
 // ordered to match the canonical CAPABILITIES list so it never shuffles.
@@ -76,9 +83,39 @@ export default function TeamDesktop({
   onToggleStatus: (m: StaffMember) => void;
   onManageRoles: () => void;
 }) {
+  // View-only concerns owned by the desktop directory itself; the route keeps
+  // the data and mutations, so a search or filter never touches the server.
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<RosterFilter>("all");
+
+  const counts = useMemo(() => {
+    let active = 0;
+    let manager = 0;
+    let rep = 0;
+    let disabled = 0;
+    for (const m of staff) {
+      if (m.status === "active") active += 1;
+      else disabled += 1;
+      if (m.role === "manager") manager += 1;
+      else if (m.role === "rep") rep += 1;
+    }
+    return { total: staff.length, active, manager, rep, disabled };
+  }, [staff]);
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return staff.filter((m) => {
+      if (filter === "disabled" && m.status === "active") return false;
+      if ((filter === "manager" || filter === "rep") && m.role !== filter)
+        return false;
+      if (q && !`${m.name} ${m.email}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [staff, filter, search]);
+
   const countLabel = loading
     ? "Loading..."
-    : `${staff.length} ${staff.length === 1 ? "member" : "members"}`;
+    : `${counts.total} ${counts.total === 1 ? "member" : "members"}`;
 
   // True when the form is open in add mode (lets the primary action toggle).
   const adding = showForm && !editing;
@@ -117,7 +154,7 @@ export default function TeamDesktop({
             aria-hidden
           />
         </div>
-      ) : staff.length === 0 ? (
+      ) : counts.total === 0 ? (
         <div className="rounded-[var(--radius-lg)] border border-border bg-surface py-6">
           <EmptyState
             title="No team members"
@@ -125,37 +162,85 @@ export default function TeamDesktop({
           />
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-divider text-left">
-                <th className="label-cap px-6 py-3 font-semibold">Member</th>
-                <th className="label-cap hidden px-6 py-3 font-semibold lg:table-cell">
-                  Role
-                </th>
-                <th className="label-cap hidden px-6 py-3 font-semibold xl:table-cell">
-                  Access
-                </th>
-                <th className="label-cap hidden px-6 py-3 font-semibold lg:table-cell">
-                  Login
-                </th>
-                <th className="label-cap px-6 py-3 text-right font-semibold">
-                  <span className="sr-only">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {staff.map((m) => (
-                <MemberRow
-                  key={m.id}
-                  member={m}
-                  onEdit={() => onEdit(m)}
-                  onToggleStatus={() => onToggleStatus(m)}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Summary tiles: how big is the team and how many logins are live. */}
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatCard label="Total members" value={counts.total} />
+            <StatCard label="Active logins" value={counts.active} />
+            <StatCard label="Managers" value={counts.manager} />
+            <StatCard label="Reps" value={counts.rep} />
+          </div>
+
+          {/* Role filter + search. */}
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <Segmented<RosterFilter>
+              value={filter}
+              onChange={setFilter}
+              options={[
+                { value: "all", label: "All", count: counts.total },
+                { value: "manager", label: "Managers", count: counts.manager },
+                { value: "rep", label: "Reps", count: counts.rep },
+                { value: "disabled", label: "Disabled", count: counts.disabled },
+              ]}
+            />
+            <div className="relative ml-auto w-full max-w-xs">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"
+              />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name or email"
+                aria-label="Search team"
+                className="w-full rounded-[var(--radius)] border border-border bg-surface py-2.5 pl-9 pr-3 text-[14px] text-text placeholder:text-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25"
+              />
+            </div>
+          </div>
+
+          {visible.length === 0 ? (
+            <div className="rounded-[var(--radius-lg)] border border-border bg-surface py-6">
+              <EmptyState
+                title="No matches"
+                message={
+                  search.trim()
+                    ? `No team members match "${search.trim()}".`
+                    : "No team members in this view."
+                }
+              />
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-divider text-left">
+                    <th className="label-cap px-6 py-3 font-semibold">Member</th>
+                    <th className="label-cap hidden px-6 py-3 font-semibold lg:table-cell">
+                      Role
+                    </th>
+                    <th className="label-cap hidden px-6 py-3 font-semibold xl:table-cell">
+                      Access
+                    </th>
+                    <th className="label-cap px-6 py-3 text-right font-semibold">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="fx-stagger">
+                  {visible.map((m) => (
+                    <MemberRow
+                      key={m.id}
+                      member={m}
+                      onEdit={() => onEdit(m)}
+                      onToggleStatus={() => onToggleStatus(m)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </DesktopPage>
   );
@@ -176,7 +261,7 @@ function MemberRow({
   const extraAccess = access.length - visibleAccess.length;
 
   return (
-    <tr className="border-b border-divider transition-colors last:border-0 hover:bg-surface-2">
+    <tr className="fx-item border-b border-divider transition-colors last:border-0 hover:bg-surface-2">
       {/* Member: avatar, name, email */}
       <td className="px-6 py-3.5">
         <div className="flex items-center gap-3">
@@ -230,21 +315,6 @@ function MemberRow({
           </div>
         ) : (
           <span className="text-[13px] text-faint">No access granted</span>
-        )}
-      </td>
-
-      {/* Login link state */}
-      <td className="hidden px-6 py-3.5 lg:table-cell">
-        {member.ghlUserId ? (
-          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-positive">
-            <span className="h-1.5 w-1.5 rounded-full bg-positive" aria-hidden />
-            Linked to GoHighLevel
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-faint">
-            <span className="h-1.5 w-1.5 rounded-full bg-faint" aria-hidden />
-            App login only
-          </span>
         )}
       </td>
 

@@ -121,7 +121,7 @@ export default function SocialPosts() {
         />
 
         {!demo && (
-          <NotConnectedNotice message="Your posts live here once you can publish. Connect your social accounts through GoHighLevel to get started." />
+          <NotConnectedNotice message="Your posts live here once you can publish. Connect your social accounts to get started." />
         )}
 
         <div className="mb-4">

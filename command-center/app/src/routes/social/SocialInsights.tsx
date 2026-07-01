@@ -41,7 +41,7 @@ export default function SocialInsights() {
         <PageHeader title="What's working" description="Last 30 days." />
 
         {!demo && (
-          <NotConnectedNotice message="There are no results to show yet. Connect your social accounts through GoHighLevel and your performance will appear here in plain English." />
+          <NotConnectedNotice message="There are no results to show yet. Connect your social accounts and your performance will appear here in plain English." />
         )}
 
         {demo && (

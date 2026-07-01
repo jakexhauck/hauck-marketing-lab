@@ -322,7 +322,7 @@ export default function LeadDetailDesktop() {
                     <MessageComposer leadId={lead.id} disabled={!hasPhone} />
                     {!hasPhone && (
                       <p className="mt-2 text-xs text-muted">
-                        No phone number on file. Add one in GHL to send SMS.
+                        No phone number on file. Add one to send SMS.
                       </p>
                     )}
                   </div>

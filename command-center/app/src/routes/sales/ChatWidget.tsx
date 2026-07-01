@@ -16,7 +16,7 @@ const CHAT_CONFIG: InboxConfig = {
   emptyBody:
     "When someone messages your website chat widget, they will show up here with their reply, ready to call.",
   notConnectedMessage:
-    "Conversations from your website chat widget land here automatically once your chat widget and phone are connected through GoHighLevel.",
+    "Conversations from your website chat widget land here automatically once your chat widget and phone are connected.",
   gatedNote: "This turns on once your chat widget and phone are connected.",
 };
 

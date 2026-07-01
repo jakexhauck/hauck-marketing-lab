@@ -99,7 +99,7 @@ export default function SocialOverview() {
           }
         />
 
-        {!demo && <NotConnectedNotice message="These numbers are all 0 because nothing is linked. To see real posts and results, we still need to connect your social accounts (Facebook, Instagram, Google) through GoHighLevel." />}
+        {!demo && <NotConnectedNotice message="These numbers are all 0 because nothing is linked. To see real posts and results, we still need to connect your social accounts (Facebook, Instagram, Google)." />}
 
         {/* KPI row */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

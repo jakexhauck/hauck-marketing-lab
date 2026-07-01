@@ -77,7 +77,7 @@ export default function SocialIdeas() {
         />
 
         {!demo && (
-          <NotConnectedNotice message="Your idea feed builds from your jobs and accounts. Connect them through GoHighLevel and ideas will appear here, ready to write in your voice." />
+          <NotConnectedNotice message="Your idea feed builds from your jobs and accounts. Connect them and ideas will appear here, ready to write in your voice." />
         )}
 
         {demo ? (

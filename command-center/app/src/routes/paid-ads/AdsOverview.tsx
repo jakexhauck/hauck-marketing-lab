@@ -77,7 +77,7 @@ export default function AdsOverview() {
         />
 
         {!demo && (
-          <NotConnectedNotice message="To see your real ad results, what you spent, the leads it brought in, and the jobs booked, we still need to connect your Meta ad account through GoHighLevel." />
+          <NotConnectedNotice message="To see your real ad results, what you spent, the leads it brought in, and the jobs booked, we still need to connect your Meta ad account." />
         )}
 
         {/* Stat tiles */}

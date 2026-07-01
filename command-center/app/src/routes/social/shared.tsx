@@ -37,7 +37,7 @@ export function NotConnectedNotice({ message }: { message?: string }) {
       <div className="flex-1 text-[13px] leading-snug text-text">
         <span className="font-semibold">Not connected yet.</span>{" "}
         {message ??
-          "To see real posts and results, we still need to connect your social accounts (Facebook, Instagram, Google) through GoHighLevel."}
+          "To see real posts and results, we still need to connect your social accounts (Facebook, Instagram, Google)."}
       </div>
       <Button variant="secondary" size="sm" disabled className="shrink-0">
         Connect accounts (coming soon)

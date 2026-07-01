@@ -70,7 +70,7 @@ export default function PaidAdsSales() {
             </p>
           </header>
           <div className="mb-5">
-            <NotConnectedNotice message="Leads from your paid ads land here automatically once your Meta ad account and phone are connected through GoHighLevel." />
+            <NotConnectedNotice message="Leads from your paid ads land here automatically once your Meta ad account and phone are connected." />
           </div>
           <div className="flex flex-1 flex-col items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-border bg-surface py-16 text-center">
             <div className="grid h-12 w-12 place-items-center rounded-full bg-surface-2 text-faint">

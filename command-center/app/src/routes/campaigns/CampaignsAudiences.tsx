@@ -48,7 +48,7 @@ export default function CampaignsAudiences() {
         />
 
         {!demo && (
-          <NotConnectedNotice message="Once your customer list is connected through GoHighLevel, we'll build smart lists like 'past customers' and 'due for a tune-up' here automatically." />
+          <NotConnectedNotice message="Once your customer list is connected, we'll build smart lists like 'past customers' and 'due for a tune-up' here automatically." />
         )}
 
         {demo ? (

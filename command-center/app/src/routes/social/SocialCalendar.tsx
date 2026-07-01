@@ -62,7 +62,7 @@ export default function SocialCalendar() {
         />
 
         {!demo && (
-          <NotConnectedNotice message="Your calendar fills in once posts can publish. Connect your social accounts through GoHighLevel to start scheduling." />
+          <NotConnectedNotice message="Your calendar fills in once posts can publish. Connect your social accounts to start scheduling." />
         )}
 
         {demo ? (

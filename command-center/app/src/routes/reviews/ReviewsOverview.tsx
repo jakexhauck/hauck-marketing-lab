@@ -89,7 +89,7 @@ export default function ReviewsOverview() {
         />
 
         {!demo && (
-          <NotConnectedNotice message="These numbers are all 0 because nothing is linked. To see your real rating and reviews, we still need to connect your Google Business Profile through GoHighLevel." />
+          <NotConnectedNotice message="These numbers are all 0 because nothing is linked. To see your real rating and reviews, we still need to connect your Google Business Profile." />
         )}
 
         {/* Hero: huge gradient average + stars on the left, stat chips on the right. */}

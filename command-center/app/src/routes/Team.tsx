@@ -207,14 +207,6 @@ export default function Team() {
                       <div className="mt-0.5 truncate text-[12.5px] text-[var(--text-muted)]">
                         {m.email}
                       </div>
-                      <div
-                        className="mt-1 text-[11.5px] font-semibold"
-                        style={{ color: m.ghlUserId ? "#15803d" : "var(--text-faint)" }}
-                      >
-                        {m.ghlUserId
-                          ? "Linked to GoHighLevel"
-                          : "App login only (not in GoHighLevel)"}
-                      </div>
                       {disabled && (
                         <div className="mt-1 text-[11.5px] font-semibold text-rose-500">
                           Login disabled
@@ -392,7 +384,7 @@ function EmployeeForm({
         });
         showToast("Employee updated");
       } else {
-        const res = await api<{ ok: boolean; ghlLinked: boolean }>("/api/staff", {
+        await api("/api/staff", {
           method: "POST",
           body: JSON.stringify({
             name: name.trim(),
@@ -405,7 +397,7 @@ function EmployeeForm({
             channelIds,
           }),
         });
-        showToast(res.ghlLinked ? "Employee added" : "Employee added (no GHL user)");
+        showToast("Employee added");
       }
       onSaved();
     } catch (err) {

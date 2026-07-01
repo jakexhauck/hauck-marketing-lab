@@ -116,7 +116,7 @@ export default function Jobs() {
         />
 
         {!demo && (
-          <NotConnectedNotice message="Booked and completed jobs land on this calendar automatically once your calendar and sales pipeline are connected through GoHighLevel." />
+          <NotConnectedNotice message="Booked and completed jobs land on this calendar automatically once your calendar and sales pipeline are connected." />
         )}
 
         <Panel className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">

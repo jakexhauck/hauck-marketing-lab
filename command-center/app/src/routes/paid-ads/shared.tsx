@@ -8,7 +8,7 @@ import { cn } from "../../lib/cn";
 // (connected) client must never see fabricated content. Pages render their
 // designed, populated layout only in demo/preview mode (`?demo=1`); a real
 // session shows the empty / zeroed state plus <NotConnectedNotice/> until the
-// Meta ad account is linked through GoHighLevel.
+// Meta ad account is linked.
 
 // Shared scroll container for a Paid Ads page. The one app-wide page container.
 export const PAID_ADS_CONTAINER = PAGE_CONTAINER;
@@ -101,7 +101,7 @@ export function NotConnectedNotice({ message }: { message?: string }) {
       <div className="flex-1 text-[13px] leading-snug text-text">
         <span className="font-semibold">Not connected yet.</span>{" "}
         {message ??
-          "To see your real ad results, we still need to connect your Meta ad account (Facebook and Instagram) through GoHighLevel."}
+          "To see your real ad results, we still need to connect your Meta ad account (Facebook and Instagram)."}
       </div>
       <Button variant="secondary" size="sm" disabled className="shrink-0">
         Connect ads (coming soon)

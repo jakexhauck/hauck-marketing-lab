@@ -331,7 +331,7 @@ export default function ReviewsAll() {
         />
 
         {!demo && (
-          <NotConnectedNotice message="There are no reviews to show yet. Once your Google Business Profile is connected through GoHighLevel, every review lands in this queue ready to reply." />
+          <NotConnectedNotice message="There are no reviews to show yet. Once your Google Business Profile is connected, every review lands in this queue ready to reply." />
         )}
 
         {demo ? (

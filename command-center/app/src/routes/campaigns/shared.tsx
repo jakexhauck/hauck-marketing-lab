@@ -8,7 +8,7 @@ import { PAGE_CONTAINER } from "../../lib/layout";
 // client must never see fabricated content. Pages render their designed,
 // populated layout only in demo/preview mode (`?demo=1`); a real session shows
 // the empty / zeroed state plus <NotConnectedNotice/> until the customer list
-// and a texting/email number are linked through GoHighLevel.
+// and a texting/email number are linked.
 
 // Shared scroll container for a Campaigns page. The one app-wide page container.
 export const CAMPAIGNS_CONTAINER = PAGE_CONTAINER;
@@ -66,7 +66,7 @@ export function NotConnectedNotice({ message }: { message?: string }) {
       <div className="flex-1 text-[13px] leading-snug text-text">
         <span className="font-semibold">Your messaging isn't connected yet.</span>{" "}
         {message ??
-          "Once we link your customer list and a texting/email number through GoHighLevel, your campaigns, audiences and results show up here. Sending stays switched off until then."}
+          "Once we link your customer list and a texting/email number, your campaigns, audiences and results show up here. Sending stays switched off until then."}
       </div>
       <Button variant="secondary" size="sm" disabled className="shrink-0">
         Connect messaging (coming soon)

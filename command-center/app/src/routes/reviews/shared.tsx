@@ -69,7 +69,7 @@ export function NotConnectedNotice({ message }: { message?: string }) {
       <div className="flex-1 text-[13px] leading-snug text-text">
         <span className="font-semibold">Not connected yet.</span>{" "}
         {message ??
-          "To see your real reviews and rating, we still need to connect your Google Business Profile through GoHighLevel."}
+          "To see your real reviews and rating, we still need to connect your Google Business Profile."}
       </div>
       <Button variant="secondary" size="sm" disabled className="shrink-0">
         Connect Google (coming soon)

@@ -92,7 +92,7 @@ export default function ReviewsInsights() {
         />
 
         {!demo && (
-          <NotConnectedNotice message="No data yet. Your review trends appear here once your Google Business Profile is connected through GoHighLevel and reviews start coming in." />
+          <NotConnectedNotice message="No data yet. Your review trends appear here once your Google Business Profile is connected and reviews start coming in." />
         )}
 
         {demo && (

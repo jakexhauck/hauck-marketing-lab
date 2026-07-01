@@ -248,7 +248,7 @@ export default function Home() {
         ) : !summary || !featured ? (
           <EmptyState
             title="No pipelines"
-            message="Pipelines configured in GHL will show up here."
+            message="Your pipelines will show up here once they're set up."
           />
         ) : (
           <>
