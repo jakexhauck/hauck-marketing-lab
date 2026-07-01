@@ -9,6 +9,7 @@ import type {
   ApiSummary,
   ApiNote,
   ApiTask,
+  ApiRecurrence,
   PipelineSummary,
 } from "../lib/api";
 import { buildDemoData, type DemoData } from "./data";
@@ -174,6 +175,22 @@ export function deleteTask(contactId: string, taskId: string): void {
   if (d.tasks[contactId]) {
     d.tasks[contactId] = d.tasks[contactId].filter((t) => t.id !== taskId);
   }
+}
+
+// Recurring schedule upsert/delete, mirroring the real /api/recurrence
+// Function (Task 4) so the demo tab persists schedule edits for the tab's
+// lifetime.
+export function upsertRecurrence(r: ApiRecurrence): ApiRecurrence {
+  const store = getStore();
+  const i = store.recurrences.findIndex((x) => x.contactId === r.contactId);
+  if (i >= 0) store.recurrences[i] = r;
+  else store.recurrences.push(r);
+  return r;
+}
+
+export function deleteRecurrence(contactId: string): void {
+  const store = getStore();
+  store.recurrences = store.recurrences.filter((x) => x.contactId !== contactId);
 }
 
 // New lead from the "Add lead" sheet: lands in the first stage of the first

@@ -20,7 +20,9 @@ import type {
   ApiCalendarEvent,
   ApiNote,
   ApiTask,
+  ApiRecurrence,
 } from "../lib/api";
+import { DEMO_RECURRENCE } from "../lib/customers";
 
 export interface DemoData {
   tenant: ApiTenant;
@@ -37,6 +39,7 @@ export interface DemoData {
   calendar: ApiCalendarEvent[];
   notes: Record<string, ApiNote[]>;
   tasks: Record<string, ApiTask[]>;
+  recurrences: ApiRecurrence[];
 }
 
 // Deterministic PRNG so the demo is stable across reloads.
@@ -405,6 +408,22 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     });
   });
 
+  // Recurring schedules for the demo's recurring customer subset, seeded from
+  // DEMO_RECURRENCE (source of truth also used by the Customers tab) so the
+  // demo store and the Customers screen agree on who is recurring.
+  const recurrences: ApiRecurrence[] = Object.entries(DEMO_RECURRENCE).map(
+    ([contactId, entry]) => ({
+      contactId,
+      cadenceWeeks: entry.rule.cadenceWeeks,
+      weekday: entry.rule.weekday,
+      anchorDate: entry.rule.anchorDate,
+      visitTime: null,
+      service: entry.service,
+      priceCents: entry.priceCents,
+      active: true,
+    }),
+  );
+
   return {
     tenant,
     pipelines,
@@ -420,5 +439,6 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     calendar,
     notes,
     tasks,
+    recurrences,
   };
 }

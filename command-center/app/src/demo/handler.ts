@@ -4,7 +4,7 @@
 // so the demo behaves like a live account. Unknown endpoints throw a 404 that
 // react-query isolates to the one screen that asked.
 
-import { ApiError } from "../lib/api";
+import { ApiError, type ApiRecurrence } from "../lib/api";
 import * as store from "./store";
 
 function parseBody(init: RequestInit): Record<string, unknown> {
@@ -255,6 +255,20 @@ export async function handleDemoRequest<T>(
   if (clean === "/api/chat/channels") return r({ channels: [] });
   if (clean === "/api/chat/presence/heartbeat") return r({ ok: true });
   if (seg[0] === "api" && seg[1] === "chat") return r({ ok: true });
+
+  // ----- Recurrence (Customers tab schedules) -----
+  if (clean === "/api/recurrence") {
+    if (method === "GET")
+      return r({ recurrences: d.recurrences.filter((x) => x.active) });
+    if (method === "PUT") {
+      const saved = store.upsertRecurrence(body as unknown as ApiRecurrence);
+      return r({ recurrence: saved });
+    }
+    if (method === "DELETE") {
+      store.deleteRecurrence(queryParam(path, "contactId") ?? "");
+      return r({ ok: true });
+    }
+  }
 
   throw new ApiError(404, `Demo: unhandled ${method} ${clean}`, null);
 }

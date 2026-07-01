@@ -73,3 +73,26 @@ describe("demo handler unknown routes", () => {
     );
   });
 });
+
+describe("demo handler routing (recurrence)", () => {
+  it("GET /api/recurrence returns the seeded recurring set", async () => {
+    const res = await handleDemoRequest<{ recurrences: { contactId: string }[] }>(
+      "/api/recurrence",
+    );
+    expect(res.recurrences.length).toBeGreaterThan(0);
+  });
+
+  it("PUT then GET /api/recurrence reflects the upsert", async () => {
+    await handleDemoRequest("/api/recurrence", {
+      method: "PUT",
+      body: JSON.stringify({
+        contactId: "cust-08", cadenceWeeks: 1, weekday: 3,
+        anchorDate: "2026-07-08", active: true,
+      }),
+    });
+    const res = await handleDemoRequest<{ recurrences: { contactId: string }[] }>(
+      "/api/recurrence",
+    );
+    expect(res.recurrences.some((r) => r.contactId === "cust-08")).toBe(true);
+  });
+});
