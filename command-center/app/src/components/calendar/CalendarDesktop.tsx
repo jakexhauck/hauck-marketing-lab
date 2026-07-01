@@ -1,201 +1,211 @@
-import { useMemo } from "react";
-import { CalendarClock, MapPin, User, Video } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
-import EmptyState from "../EmptyState";
-import { groupByDayKey } from "../../lib/dayGroups";
+import { Segmented } from "../ui";
 import { useAuth } from "../../context/AuthContext";
-import { useCalendarEventsQuery } from "../../hooks/useApi";
-import type { ApiCalendarEvent } from "../../lib/api";
+import { useCalendarItems } from "../../hooks/useCalendarItems";
+import { demoMode } from "../../demo/demoMode";
+import {
+  filterBySources,
+  CALENDAR_SOURCE_ORDER,
+  type CalendarSource,
+} from "../../lib/calendarModel";
+import { toIso, isoToLocalDate } from "../../lib/jobsPipeline";
+import { SourceLegend } from "./SourceLegend";
+import { MonthView } from "./MonthView";
+import { WeekView } from "./WeekView";
+import { AgendaView } from "./AgendaView";
 
-// The Atelier desktop Calendar: a calm agenda of upcoming appointments grouped
-// by day. The phone keeps its own (NavyHero + sheet) layout below lg; this file
-// renders only inside `hidden lg:flex` from the Calendar route.
+// The Atelier desktop Calendar: one unified schedule (appointments, jobs, social
+// posts, campaign sends) in three switchable views. The phone keeps its own
+// NavyHero list below lg; this file renders only inside `hidden lg:flex`.
 
-// Date/time formatters bound to the location timezone, falling back to the
-// device timezone when GHL did not report one.
-function makeFormatters(tz: string | null) {
-  const opts = (o: Intl.DateTimeFormatOptions) =>
-    tz ? { ...o, timeZone: tz } : o;
-  return {
-    time: new Intl.DateTimeFormat("en-US", opts({ hour: "numeric", minute: "2-digit" })),
-    dayHeader: new Intl.DateTimeFormat("en-US", opts({ weekday: "long", month: "short", day: "numeric" })),
-    dayKey: new Intl.DateTimeFormat("en-CA", opts({ year: "numeric", month: "2-digit", day: "2-digit" })),
-  };
-}
+type View = "month" | "week" | "agenda";
+const VIEW_KEY = "hml_cal_view";
 
-interface DayGroup {
-  key: string;
-  label: string;
-  events: ApiCalendarEvent[];
+function initialView(): View {
+  try {
+    const v = window.localStorage.getItem(VIEW_KEY);
+    if (v === "month" || v === "week" || v === "agenda") return v;
+  } catch {
+    /* ignore */
+  }
+  return "week";
 }
 
 export default function CalendarDesktop() {
   const { session } = useAuth();
-  const useReal = Boolean(session);
-  const query = useCalendarEventsQuery(useReal);
+  const demo = demoMode();
+  const data = useCalendarItems(Boolean(session) || demo);
 
-  const tz = query.data?.timezone ?? null;
-  const events = useMemo(() => query.data?.events ?? [], [query.data]);
-  const fmt = useMemo(() => makeFormatters(tz), [tz]);
+  const [view, setView] = useState<View>(initialView);
+  const setViewPersist = (v: View) => {
+    setView(v);
+    try {
+      window.localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* ignore */
+    }
+  };
 
-  const groups = useMemo<DayGroup[]>(() => {
-    const todayKey = fmt.dayKey.format(new Date());
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowKey = fmt.dayKey.format(tomorrow);
+  // Anchor: demo pins to July 2026 so the preview is populated; real uses today.
+  const todayIso = demo ? "2026-07-01" : toIso(new Date());
+  const [anchor, setAnchor] = useState<string>(todayIso);
+  const [selectedIso, setSelectedIso] = useState<string>(todayIso);
 
-    const byDay = groupByDayKey(events, (ev) => {
-      if (!ev.startTime) return null;
-      const d = new Date(ev.startTime);
-      return Number.isNaN(d.getTime()) ? null : fmt.dayKey.format(d);
+  const [active, setActive] = useState<Set<CalendarSource>>(
+    () => new Set(CALENDAR_SOURCE_ORDER),
+  );
+  const toggle = (s: CalendarSource) =>
+    setActive((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      return next;
     });
 
-    return [...byDay.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([key, evs]) => {
-        let label: string;
-        if (key === todayKey) label = "Today";
-        else if (key === tomorrowKey) label = "Tomorrow";
-        else label = fmt.dayHeader.format(new Date(evs[0].startTime as string));
-        return { key, label, events: evs };
-      });
-  }, [events, fmt]);
+  const counts = useMemo(() => {
+    const c = { appointment: 0, job: 0, social: 0, campaign: 0 } as Record<
+      CalendarSource,
+      number
+    >;
+    for (const i of data.items) c[i.source]++;
+    return c;
+  }, [data.items]);
 
-  const countLabel = query.isLoading
-    ? "Loading..."
-    : `${events.length} upcoming, next 30 days`;
+  const visible = useMemo(
+    () => filterBySources(data.items, active),
+    [data.items, active],
+  );
+
+  const anchorDate = isoToLocalDate(anchor);
+  const stepMonth = (delta: number) =>
+    setAnchor(
+      toIso(
+        new Date(anchorDate.getFullYear(), anchorDate.getMonth() + delta, 1),
+      ),
+    );
+  const stepWeek = (delta: number) =>
+    setAnchor(
+      toIso(
+        new Date(
+          anchorDate.getFullYear(),
+          anchorDate.getMonth(),
+          anchorDate.getDate() + delta * 7,
+        ),
+      ),
+    );
+  const step = (delta: number) =>
+    view === "month" ? stepMonth(delta) : stepWeek(delta);
+  const goToday = () => {
+    setAnchor(todayIso);
+    setSelectedIso(todayIso);
+  };
+
+  const rangeLabel =
+    view === "month"
+      ? anchorDate.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        })
+      : weekRangeLabel(anchor);
 
   return (
     <DesktopPage
       title="Calendar"
-      subtitle={countLabel}
+      subtitle="Everything on the books, one place"
+      flush
+      actions={
+        <Segmented<View>
+          options={[
+            { value: "month", label: "Month" },
+            { value: "week", label: "Week" },
+            { value: "agenda", label: "Agenda" },
+          ]}
+          value={view}
+          onChange={setViewPersist}
+        />
+      }
     >
-      {query.isError ? (
-        <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
-          Failed to load calendar.{" "}
-          {(query.error as Error | null)?.message ?? "Try again."}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 px-6 pb-6">
+        {/* Controls row */}
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={goToday}
+            className="rounded-[10px] border border-border bg-surface px-3 py-1.5 font-display text-[12px] font-semibold text-text hover:bg-surface-2"
+          >
+            Today
+          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => step(-1)}
+              aria-label="Previous"
+              className="grid h-8 w-8 place-items-center rounded-[9px] border border-border bg-surface text-muted hover:bg-surface-2"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="min-w-[150px] text-center font-display text-[15px] font-semibold text-text">
+              {rangeLabel}
+            </span>
+            <button
+              type="button"
+              onClick={() => step(1)}
+              aria-label="Next"
+              className="grid h-8 w-8 place-items-center rounded-[9px] border border-border bg-surface text-muted hover:bg-surface-2"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+          <div className="ml-auto">
+            <SourceLegend
+              active={active}
+              counts={counts}
+              connected={data.connected}
+              onToggle={toggle}
+            />
+          </div>
         </div>
-      ) : query.isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <div
-            className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-brand"
-            aria-hidden
-          />
-        </div>
-      ) : groups.length === 0 ? (
-        <div className="rounded-[var(--radius-lg)] border border-border bg-surface py-6">
-          <EmptyState
-            title="No appointments"
-            message="Booked appointments for the next 30 days will show up here."
-          />
-        </div>
-      ) : (
-        <div className="mx-auto flex max-w-3xl flex-col gap-8">
-          {groups.map((g) => (
-            <section key={g.key} className="flex flex-col gap-3">
-              <div className="flex items-baseline gap-3">
-                <h2 className="font-display text-[15px] font-semibold text-text">
-                  {g.label}
-                </h2>
-                <span className="font-data text-[12px] text-faint tabular-nums">
-                  {g.events.length}{" "}
-                  {g.events.length === 1 ? "appointment" : "appointments"}
-                </span>
-              </div>
 
-              <ul className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-                {g.events.map((ev, idx) => (
-                  <li
-                    key={ev.id}
-                    className={
-                      idx === g.events.length - 1
-                        ? ""
-                        : "border-b border-divider"
-                    }
-                  >
-                    <EventRow event={ev} fmt={fmt} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
+        {/* Body */}
+        {data.isError ? (
+          <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
+            Failed to load calendar. {data.error?.message ?? "Try again."}
+          </div>
+        ) : data.isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div
+              className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-brand"
+              aria-hidden
+            />
+          </div>
+        ) : view === "agenda" ? (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <AgendaView items={visible} todayIso={todayIso} />
+          </div>
+        ) : view === "week" ? (
+          <WeekView items={visible} anchorIso={anchor} todayIso={todayIso} />
+        ) : (
+          <MonthView
+            items={visible}
+            year={anchorDate.getFullYear()}
+            month={anchorDate.getMonth()}
+            todayIso={todayIso}
+            selectedIso={selectedIso}
+            onSelectDay={setSelectedIso}
+          />
+        )}
+      </div>
     </DesktopPage>
   );
 }
 
-function EventRow({
-  event,
-  fmt,
-}: {
-  event: ApiCalendarEvent;
-  fmt: ReturnType<typeof makeFormatters>;
-}) {
-  const start = event.startTime ? new Date(event.startTime) : null;
-  const end = event.endTime ? new Date(event.endTime) : null;
-  const startLabel = start ? fmt.time.format(start) : "--";
-  const endLabel = end ? fmt.time.format(end) : null;
-  const hasAddress = event.address.trim().length > 0;
-  const hasMeeting = event.meetingUrl.trim().length > 0;
-  const hasContact = event.contactName.trim().length > 0;
-
-  return (
-    <div className="flex items-start gap-5 px-6 py-4 transition-colors hover:bg-surface-2">
-      {/* Time column */}
-      <div className="w-20 shrink-0 pt-0.5">
-        <div className="font-data text-[14px] font-semibold text-text tabular-nums">
-          {startLabel}
-        </div>
-        {endLabel && (
-          <div className="font-data text-[12px] text-faint tabular-nums">
-            {endLabel}
-          </div>
-        )}
-      </div>
-
-      {/* Details */}
-      <div className="min-w-0 flex-1">
-        <div className="truncate font-display text-[15px] font-semibold text-text">
-          {event.title}
-        </div>
-
-        <div className="mt-1.5 flex flex-col gap-1.5 text-[13px] text-muted">
-          {hasContact && (
-            <div className="flex items-center gap-2">
-              <User size={14} className="shrink-0 text-faint" aria-hidden />
-              <span className="truncate">{event.contactName}</span>
-            </div>
-          )}
-          {hasAddress && (
-            <div className="flex items-start gap-2">
-              <MapPin
-                size={14}
-                className="mt-0.5 shrink-0 text-faint"
-                aria-hidden
-              />
-              <span className="break-words">{event.address}</span>
-            </div>
-          )}
-          {hasMeeting && (
-            <a
-              href={event.meetingUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 font-semibold text-brand-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-            >
-              <Video size={14} className="shrink-0" aria-hidden />
-              <span className="break-all">Join meeting</span>
-            </a>
-          )}
-          {!hasContact && !hasAddress && !hasMeeting && (
-            <div className="flex items-center gap-2 text-faint">
-              <CalendarClock size={14} className="shrink-0" aria-hidden />
-              <span>No additional details</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+function weekRangeLabel(anchorIso: string): string {
+  const d = isoToLocalDate(anchorIso);
+  const sun = new Date(d.getFullYear(), d.getMonth(), d.getDate() - d.getDay());
+  const sat = new Date(sun.getFullYear(), sun.getMonth(), sun.getDate() + 6);
+  const fmt = (x: Date) =>
+    x.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${fmt(sun)} - ${fmt(sat)}`;
 }
