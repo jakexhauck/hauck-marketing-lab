@@ -6,7 +6,6 @@ import {
   visibleNav,
   isNavSection,
   type NavItem,
-  type NavSection,
 } from "../lib/nav";
 import { useClient } from "../context/ClientContext";
 import { useAuth } from "../context/AuthContext";
@@ -27,7 +26,7 @@ function NavItemLink({ item, end }: { item: NavItem; end?: boolean }) {
           "group relative mb-0.5 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-[color,background,transform] duration-200",
           isActive
             ? "shadow-brand text-white"
-            : "text-[var(--text-muted)] hover:translate-x-0.5 hover:bg-white/60 hover:text-[var(--text)] dark:hover:bg-white/5",
+            : "text-[var(--text)] hover:translate-x-0.5 hover:bg-white/60 hover:text-[var(--text)] dark:hover:bg-white/5",
         ].join(" ")
       }
       style={({ isActive }) => (isActive ? { backgroundImage: "var(--grad-brand)" } : undefined)}
@@ -79,7 +78,7 @@ function NavItemGroup({ item }: { item: NavItem }) {
           "group relative flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-[color,background,transform] duration-200",
           within
             ? "bg-white/70 text-[var(--brand-text)] dark:bg-white/[0.06]"
-            : "text-[var(--text-muted)] hover:translate-x-0.5 hover:bg-white/60 hover:text-[var(--text)] dark:hover:bg-white/5",
+            : "text-[var(--text)] hover:translate-x-0.5 hover:bg-white/60 hover:text-[var(--text)] dark:hover:bg-white/5",
         ].join(" ")}
       >
         <Icon size={17} className="shrink-0 opacity-80" />
@@ -103,88 +102,22 @@ function NavItemGroup({ item }: { item: NavItem }) {
   );
 }
 
-// A top-level section button. It is not a page: clicking it opens the section
-// (revealing its pages in the lower zone) and jumps to the section's first real
-// page. The open section gets a soft "selected" treatment; the gradient pill is
-// reserved for the actual active page below.
-function SectionButton({
-  section,
-  open,
-  onClick,
-}: {
-  section: NavSection;
-  open: boolean;
-  onClick: () => void;
-}) {
-  const Icon = section.icon;
-  return (
-    <button
-      type="button"
-      data-tour={`nav-section-${section.id}`}
-      onClick={onClick}
-      aria-expanded={open}
-      className={[
-        "group relative mb-0.5 flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-[color,background,transform] duration-200",
-        open
-          ? "bg-white/70 text-[var(--brand-text)] dark:bg-white/[0.06]"
-          : "text-[var(--text-muted)] hover:translate-x-0.5 hover:bg-white/60 hover:text-[var(--text)] dark:hover:bg-white/5",
-      ].join(" ")}
-    >
-      <Icon size={17} className="shrink-0 opacity-80" />
-      {section.label}
-    </button>
-  );
-}
-
-// Is `path` inside this section (exact match or a child route of one of its
-// items)? Used to decide which section auto-opens for the current route.
-function sectionHasPath(section: NavSection, path: string): boolean {
-  return section.items.some((i) => path === i.to || path.startsWith(i.to + "/"));
-}
-
 // Desktop-only rail (lg+). The phone keeps the bottom tab bar; this is hidden
 // below lg via the `hidden lg:flex` wrapper. Same nav source of truth and the
 // same permission gate the bottom bar uses, so the two never drift.
 //
-// Two zones: the top holds Home plus one button per section; the lower zone
-// shows the open section's pages. Opening a section both reveals its pages and
-// navigates to its first real one, so a top button is never a dead end.
+// A single flat column: Home up top, then every section always expanded under
+// an uppercase text header. Items with sub-pages keep their own expand/collapse
+// chevron (NavItemGroup); everything else is a plain page row.
 export default function Sidebar() {
   const { client } = useClient();
   const { session, isOwner, mode, can } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
 
   const navEntries = visibleNav(NAV, { isOwner, can });
   const sections = navEntries.filter(isNavSection);
   const standalone = navEntries.filter(
     (e): e is NavItem => !isNavSection(e),
   );
-
-  // The section that owns the current route, if any (Home/Settings own none).
-  const routeSection = sections.find((s) => sectionHasPath(s, location.pathname));
-
-  // Which section's pages are shown. Defaults to the route's section, falling
-  // back to the first section so the lower zone is never empty.
-  const [openId, setOpenId] = useState<string | null>(
-    routeSection?.id ?? sections[0]?.id ?? null,
-  );
-
-  // Keep the open section in sync when navigation happens elsewhere (deep link,
-  // bottom bar, browser back), but leave it alone on routes that own no section.
-  useEffect(() => {
-    if (routeSection) setOpenId(routeSection.id);
-  }, [routeSection?.id]);
-
-  const openSection = sections.find((s) => s.id === openId) ?? null;
-
-  function open(section: NavSection) {
-    setOpenId(section.id);
-    // Land on the first real page; only fall back to a coming-soon stub if the
-    // whole section is still stubbed.
-    const target = section.items.find((i) => !i.comingSoon) ?? section.items[0];
-    if (target && location.pathname !== target.to) navigate(target.to);
-  }
 
   // No rail before sign-in: the login screen also renders inside Shell, and an
   // unauthenticated session would otherwise show a full (owner-default) nav.
@@ -212,38 +145,26 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Top zone: Home + one button per section */}
-      <nav className="px-3 py-1">
+      {/* Flat column: Home, then every section always expanded under its header */}
+      <nav className="flex-1 overflow-y-auto px-3 py-1">
         {standalone.map((item) => (
           <NavItemLink key={item.to} item={item} />
         ))}
         {sections.map((section) => (
-          <SectionButton
-            key={section.id}
-            section={section}
-            open={openId === section.id}
-            onClick={() => open(section)}
-          />
-        ))}
-      </nav>
-
-      {/* Lower zone: the open section's pages */}
-      <div className="mt-1 flex-1 overflow-y-auto border-t border-[var(--divider)] px-3 pt-3">
-        {openSection && (
-          <>
+          <div key={section.id} className="mt-4 first:mt-5">
             <div className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-faint)]">
-              {openSection.label}
+              {section.label}
             </div>
-            {openSection.items.map((item) =>
+            {section.items.map((item) =>
               item.children?.length ? (
                 <NavItemGroup key={item.to} item={item} />
               ) : (
                 <NavItemLink key={item.to} item={item} />
               ),
             )}
-          </>
-        )}
-      </div>
+          </div>
+        ))}
+      </nav>
 
       {/* Footer controls */}
       <div className="border-t border-[var(--divider)] px-3 py-3">
@@ -259,7 +180,7 @@ export default function Sidebar() {
               "mb-1 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-medium transition-[color,background,transform] duration-200",
               isActive
                 ? "shadow-brand text-white"
-                : "text-[var(--text-muted)] hover:translate-x-0.5 hover:bg-white/60 hover:text-[var(--text)] dark:hover:bg-white/5",
+                : "text-[var(--text)] hover:translate-x-0.5 hover:bg-white/60 hover:text-[var(--text)] dark:hover:bg-white/5",
             ].join(" ")
           }
           style={({ isActive }) =>

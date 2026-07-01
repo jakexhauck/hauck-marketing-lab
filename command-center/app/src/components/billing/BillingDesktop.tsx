@@ -1,14 +1,18 @@
 import { useMemo, useState } from "react";
-import { Receipt, Wallet } from "lucide-react";
+import { Receipt, Wallet, TrendingUp, Ticket } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
 import EmptyState from "../EmptyState";
 import { useAuth } from "../../context/AuthContext";
 import { useInvoicesQuery, useTransactionsQuery } from "../../hooks/useApi";
 import type { ApiInvoice, ApiTransaction } from "../../lib/api";
 
-// The Atelier desktop Billing ledger (lg+). The phone keeps its own NavyHero
+// The Atelier desktop Revenue ledger (lg+). The phone keeps its own NavyHero
 // layout; this renders only inside `hidden lg:flex` from the Billing route.
 // Gold is reserved strictly for money values, per the Ledger Rule.
+//
+// Layout = "Ledger Dashboard" (mockup A): a four-tile KPI band, a full-width
+// revenue trend, an Invoices table beside a Top Customers rail, and a full-width
+// Recent Payments table.
 
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -28,6 +32,51 @@ function fmtDate(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? "" : dateFmt.format(d);
 }
 
+// ---------------------------------------------------------------------------
+// PLACEHOLDER DATA — chosen path: "Build UI with placeholder data first".
+// The three additions (12-month trend, month-over-month, Top Customers) render
+// from stubs so the A layout can be approved in the real app. Swap these for
+// real aggregates (backend endpoints or client-side derivation) in a follow-up.
+// The two existing KPIs (Outstanding, Revenue this month) stay wired to live
+// data below and are NOT placeholders.
+// ---------------------------------------------------------------------------
+const PLACEHOLDER_TREND: { m: string; v: number }[] = [
+  { m: "Jul", v: 21000 }, { m: "Aug", v: 23500 }, { m: "Sep", v: 25200 },
+  { m: "Oct", v: 22800 }, { m: "Nov", v: 28900 }, { m: "Dec", v: 27600 },
+  { m: "Jan", v: 31200 }, { m: "Feb", v: 30400 }, { m: "Mar", v: 35800 },
+  { m: "Apr", v: 33900 }, { m: "May", v: 37500 }, { m: "Jun", v: 42780 },
+];
+const PLACEHOLDER_MOM_PCT = 14; // % change vs last month
+const PLACEHOLDER_LAST_MONTH = 37500;
+const PLACEHOLDER_YTD = 268900;
+const PLACEHOLDER_AVG_INVOICE = 1336;
+const PLACEHOLDER_CUSTOMERS: {
+  name: string;
+  jobs: number;
+  amount: number;
+  color: string;
+}[] = [
+  { name: "Ridgeway Rentals", jobs: 7, amount: 21400, color: "#4f46e5" },
+  { name: "The Portico Group", jobs: 4, amount: 16750, color: "#7c73f0" },
+  { name: "Cedar & Pine LLC", jobs: 5, amount: 13080, color: "#0ea5e9" },
+  { name: "Marcus Bell", jobs: 3, amount: 9460, color: "#f59e0b" },
+  { name: "Dana Whitfield", jobs: 2, amount: 6540, color: "#10b981" },
+];
+
+// Master switch for the not-yet-wired sections. Shipped OFF so the live client
+// only ever sees real figures (Outstanding, Revenue this month, Invoices,
+// Payments). Flip to true once the trend, MoM, Top Customers, Collected YTD and
+// Avg invoice are backed by real data — the layout is already built behind it.
+const SHOW_UNWIRED_SECTIONS = false;
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 // Status tone maps to a semantic pill (dot + label, never color alone).
 type Tone = "positive" | "danger" | "brand" | "neutral";
 
@@ -40,22 +89,10 @@ const STATUS_TONE: Record<string, { tone: Tone; label: string }> = {
 };
 
 const TONE_CLASS: Record<Tone, { wrap: string; dot: string }> = {
-  positive: {
-    wrap: "bg-positive-tint text-positive",
-    dot: "bg-positive",
-  },
-  danger: {
-    wrap: "bg-danger-tint text-danger",
-    dot: "bg-danger",
-  },
-  brand: {
-    wrap: "bg-brand-tint text-brand-text",
-    dot: "bg-brand",
-  },
-  neutral: {
-    wrap: "bg-surface-2 text-muted",
-    dot: "bg-faint",
-  },
+  positive: { wrap: "bg-positive-tint text-positive", dot: "bg-positive" },
+  danger: { wrap: "bg-danger-tint text-danger", dot: "bg-danger" },
+  brand: { wrap: "bg-brand-tint text-brand-text", dot: "bg-brand" },
+  neutral: { wrap: "bg-surface-2 text-muted", dot: "bg-faint" },
 };
 
 function StatusPill({ status }: { status: string }) {
@@ -84,18 +121,22 @@ const FILTERS = [
 
 const PAID_STATES = new Set(["succeeded", "paid", "completed", "success"]);
 
-// One ledger KPI tile. Money value uses gold tabular figures.
+// One ledger KPI tile. Money value uses gold tabular figures. An optional delta
+// renders as a positive/negative pill under the value.
 function MoneyKpi({
   label,
   value,
   sub,
   icon,
+  deltaPct,
 }: {
   label: string;
   value: string;
   sub: string;
   icon: React.ReactNode;
+  deltaPct?: number;
 }) {
+  const up = (deltaPct ?? 0) >= 0;
   return (
     <div
       className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]"
@@ -108,8 +149,141 @@ function MoneyKpi({
           {icon}
         </span>
       </div>
-      <div className="ledger text-[2rem] font-semibold leading-none">{value}</div>
-      <div className="text-[12.5px] font-medium text-muted">{sub}</div>
+      <div className="ledger text-[1.9rem] font-semibold leading-none">{value}</div>
+      <div className="flex items-center gap-2 text-[12.5px] font-medium text-muted">
+        {deltaPct !== undefined && (
+          <span
+            className={
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold " +
+              (up ? "bg-positive-tint text-positive" : "bg-danger-tint text-danger")
+            }
+          >
+            {up ? "▲" : "▼"} {Math.abs(deltaPct)}%
+          </span>
+        )}
+        <span className="truncate">{sub}</span>
+      </div>
+    </div>
+  );
+}
+
+// Full-width revenue trend as an SVG area + line. Points come from `data`, so
+// swapping the placeholder array for real monthly aggregates needs no layout
+// change. The brand stroke and soft area gradient match the mockup.
+function TrendChart({ data }: { data: { m: string; v: number }[] }) {
+  const W = 900;
+  const H = 220;
+  const padTop = 24;
+  const padBottom = 12;
+  const max = Math.max(...data.map((d) => d.v));
+  const min = Math.min(...data.map((d) => d.v));
+  const span = max - min || 1;
+  const x = (i: number) => (i / (data.length - 1)) * W;
+  const y = (v: number) =>
+    H - padBottom - ((v - min) / span) * (H - padTop - padBottom);
+  const line = data
+    .map((d, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(d.v).toFixed(1)}`)
+    .join(" ");
+  const area = `${line} L${W.toFixed(1)},${H} L0,${H} Z`;
+  const lastX = x(data.length - 1);
+  const lastY = y(data[data.length - 1].v);
+
+  return (
+    <div className="px-3 pb-4 pt-2">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        width="100%"
+        height={H}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Monthly revenue, last 12 months"
+      >
+        <defs>
+          <linearGradient id="revArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--brand)" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="var(--brand)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <g stroke="var(--divider)" strokeWidth="1">
+          <line x1="0" y1={H * 0.25} x2={W} y2={H * 0.25} />
+          <line x1="0" y1={H * 0.5} x2={W} y2={H * 0.5} />
+          <line x1="0" y1={H * 0.75} x2={W} y2={H * 0.75} />
+        </g>
+        <path d={area} fill="url(#revArea)" />
+        <path
+          d={line}
+          fill="none"
+          stroke="var(--brand)"
+          strokeWidth="2.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        <circle cx={lastX} cy={lastY} r="4.5" fill="var(--brand)" stroke="var(--surface)" strokeWidth="2" />
+      </svg>
+      <div className="flex justify-between px-1 pt-1.5 font-data text-[11px] tabular-nums text-faint">
+        {data.map((d) => (
+          <span key={d.m}>{d.m}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Top Customers rail: ranked list with an avatar, job count, revenue bar, and
+// gold amount. Bars are relative to the top earner.
+function TopCustomers({
+  rows,
+}: {
+  rows: { name: string; jobs: number; amount: number; color: string }[];
+}) {
+  const top = Math.max(...rows.map((r) => r.amount)) || 1;
+  return (
+    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+      <div className="flex items-baseline gap-2 px-5 pb-2 pt-[18px]">
+        <h2 className="font-display text-[15.5px] font-semibold text-text">
+          Top customers
+        </h2>
+        <span className="text-[12px] font-medium text-faint">this year</span>
+      </div>
+      <div>
+        {rows.map((r, i) => (
+          <div
+            key={r.name}
+            className={
+              "flex items-center gap-3 px-5 py-3 " +
+              (i === rows.length - 1 ? "" : "border-b border-divider")
+            }
+          >
+            <span
+              className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] text-[13px] font-semibold text-white"
+              style={{ background: r.color }}
+              aria-hidden
+            >
+              {initials(r.name)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13.5px] font-semibold text-text">
+                {r.name}
+              </div>
+              <div className="mt-0.5 text-[11.5px] text-faint">
+                {r.jobs} {r.jobs === 1 ? "job" : "jobs"}
+              </div>
+              <div className="mt-1.5 h-[5px] overflow-hidden rounded-full bg-surface-2">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.round((r.amount / top) * 100)}%`,
+                    background: "linear-gradient(90deg, var(--brand), var(--brand-2))",
+                  }}
+                />
+              </div>
+            </div>
+            <span className="ledger shrink-0 text-[14px] font-semibold tabular-nums">
+              {money.format(r.amount)}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -134,9 +308,7 @@ export default function BillingDesktop() {
 
   const visible = useMemo(
     () =>
-      filter === "all"
-        ? invoices
-        : invoices.filter((i) => i.status === filter),
+      filter === "all" ? invoices : invoices.filter((i) => i.status === filter),
     [invoices, filter],
   );
 
@@ -167,148 +339,222 @@ export default function BillingDesktop() {
     : `${invoices.length} ${invoices.length === 1 ? "invoice" : "invoices"}`;
 
   return (
-    <DesktopPage
-      title="Revenue"
-      subtitle={subtitle}
-    >
-      {/* Ledger summary band */}
-      <section className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+    <DesktopPage title="Revenue" subtitle={subtitle}>
+      {/* KPI band. Outstanding + Revenue this month are live. The MoM pill,
+          Collected YTD and Avg invoice are placeholders, gated OFF for launch
+          (see SHOW_UNWIRED_SECTIONS). */}
+      <section
+        className={
+          "grid grid-cols-1 gap-5 sm:grid-cols-2" +
+          (SHOW_UNWIRED_SECTIONS ? " xl:grid-cols-4" : "")
+        }
+      >
+        <MoneyKpi
+          label="Revenue this month"
+          value={money.format(paidThisMonth)}
+          sub={
+            SHOW_UNWIRED_SECTIONS
+              ? `vs ${money.format(PLACEHOLDER_LAST_MONTH)} last month`
+              : "Payments received this month"
+          }
+          deltaPct={SHOW_UNWIRED_SECTIONS ? PLACEHOLDER_MOM_PCT : undefined}
+          icon={<Wallet size={16} />}
+        />
         <MoneyKpi
           label="Outstanding"
           value={money.format(outstanding)}
           sub="Sent and overdue invoices"
           icon={<Receipt size={16} />}
         />
-        <MoneyKpi
-          label="Revenue this month"
-          value={money.format(paidThisMonth)}
-          sub="Payments received this month"
-          icon={<Wallet size={16} />}
-        />
-      </section>
-
-      {/* Invoices */}
-      <section className="mt-7">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-[16px] font-semibold text-text">
-            Invoices
-          </h2>
-          <div
-            role="tablist"
-            aria-label="Filter invoices by status"
-            className="inline-flex items-center gap-1 rounded-[var(--radius)] border border-border bg-surface-2 p-1"
-          >
-            {FILTERS.map((f) => {
-              const active = filter === f.key;
-              return (
-                <button
-                  key={f.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setFilter(f.key)}
-                  className={
-                    "rounded-[var(--radius-sm)] px-3 py-1.5 text-[12.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 " +
-                    (active
-                      ? "bg-surface text-text shadow-[var(--shadow-sm)]"
-                      : "text-muted hover:text-text")
-                  }
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {invoicesQuery.isError ? (
-          <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
-            Failed to load invoices.{" "}
-            {(invoicesQuery.error as Error | null)?.message ?? "Try again."}
-          </div>
-        ) : invoicesQuery.isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div
-              className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-brand"
-              aria-hidden
-            />
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="rounded-[var(--radius-lg)] border border-border bg-surface py-6">
-            <EmptyState
-              title="No invoices"
-              message={
-                filter === "all"
-                  ? "Invoices sent to this client's customers will show up here."
-                  : `No ${filter} invoices right now.`
-              }
-            />
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-divider text-left">
-                  <th className="label-cap px-6 py-3 font-semibold">Invoice</th>
-                  <th className="label-cap hidden px-6 py-3 font-semibold lg:table-cell">
-                    Contact
-                  </th>
-                  <th className="label-cap px-6 py-3 font-semibold">Status</th>
-                  <th className="label-cap hidden px-6 py-3 font-semibold lg:table-cell">
-                    Date
-                  </th>
-                  <th className="label-cap px-6 py-3 text-right font-semibold">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((inv) => {
-                  const isPaid = inv.status === "paid";
-                  const dateIso = isPaid ? inv.paidAt : inv.dueDate;
-                  const datePrefix = isPaid ? "Paid" : "Due";
-                  return (
-                    <tr
-                      key={inv.id}
-                      className="border-b border-divider transition-colors last:border-0 hover:bg-surface-2"
-                    >
-                      <td className="px-6 py-3.5">
-                        <div className="font-data text-[13px] text-text tabular-nums">
-                          {inv.number || "Invoice"}
-                        </div>
-                      </td>
-                      <td className="hidden px-6 py-3.5 lg:table-cell">
-                        <span className="truncate text-[14px] text-text">
-                          {inv.contactName || "--"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3.5">
-                        <StatusPill status={inv.status} />
-                      </td>
-                      <td className="hidden px-6 py-3.5 lg:table-cell">
-                        {dateIso ? (
-                          <span className="font-data text-[12.5px] text-muted tabular-nums">
-                            {datePrefix} {fmtDate(dateIso)}
-                          </span>
-                        ) : (
-                          <span className="text-[13px] text-faint">--</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-3.5 text-right">
-                        <span className="ledger text-[15px] font-semibold">
-                          {money.format(inv.total)}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        {SHOW_UNWIRED_SECTIONS && (
+          <MoneyKpi
+            label="Collected YTD"
+            value={money.format(PLACEHOLDER_YTD)}
+            sub="Payments received this year"
+            icon={<TrendingUp size={16} />}
+          />
+        )}
+        {SHOW_UNWIRED_SECTIONS && (
+          <MoneyKpi
+            label="Avg invoice"
+            value={money.format(PLACEHOLDER_AVG_INVOICE)}
+            sub="Across paid this month"
+            icon={<Ticket size={16} />}
+          />
         )}
       </section>
 
-      {/* Recent payments */}
+      {/* Revenue trend (full width) — gated until real monthly data is wired */}
+      {SHOW_UNWIRED_SECTIONS && (
+        <section className="mt-6">
+          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+            <div className="flex items-center justify-between px-5 pb-1 pt-[18px]">
+              <h2 className="font-display text-[15.5px] font-semibold text-text">
+                Revenue trend
+              </h2>
+              <div
+                role="tablist"
+                aria-label="Trend range"
+                className="inline-flex items-center gap-1 rounded-[var(--radius)] border border-border bg-surface-2 p-1"
+              >
+                {["6M", "12M", "YTD"].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    role="tab"
+                    aria-selected={r === "12M"}
+                    className={
+                      "rounded-[var(--radius-sm)] px-3 py-1 text-[12px] font-semibold transition-colors " +
+                      (r === "12M"
+                        ? "bg-surface text-text shadow-[var(--shadow-sm)]"
+                        : "text-muted hover:text-text")
+                    }
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <TrendChart data={PLACEHOLDER_TREND} />
+          </div>
+        </section>
+      )}
+
+      {/* Invoices (full width; a Top Customers rail joins it once wired) */}
+      <section
+        className={
+          "mt-6" +
+          (SHOW_UNWIRED_SECTIONS
+            ? " grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]"
+            : "")
+        }
+      >
+        {/* Invoices */}
+        <div>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-display text-[16px] font-semibold text-text">
+              Invoices
+            </h2>
+            <div
+              role="tablist"
+              aria-label="Filter invoices by status"
+              className="inline-flex items-center gap-1 rounded-[var(--radius)] border border-border bg-surface-2 p-1"
+            >
+              {FILTERS.map((f) => {
+                const active = filter === f.key;
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setFilter(f.key)}
+                    className={
+                      "rounded-[var(--radius-sm)] px-3 py-1.5 text-[12.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 " +
+                      (active
+                        ? "bg-surface text-text shadow-[var(--shadow-sm)]"
+                        : "text-muted hover:text-text")
+                    }
+                  >
+                    {f.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {invoicesQuery.isError ? (
+            <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
+              Failed to load invoices.{" "}
+              {(invoicesQuery.error as Error | null)?.message ?? "Try again."}
+            </div>
+          ) : invoicesQuery.isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div
+                className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-brand"
+                aria-hidden
+              />
+            </div>
+          ) : visible.length === 0 ? (
+            <div className="rounded-[var(--radius-lg)] border border-border bg-surface py-6">
+              <EmptyState
+                title="No invoices"
+                message={
+                  filter === "all"
+                    ? "Invoices sent to this client's customers will show up here."
+                    : `No ${filter} invoices right now.`
+                }
+              />
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-divider text-left">
+                    <th className="label-cap px-6 py-3 font-semibold">Invoice</th>
+                    <th className="label-cap hidden px-6 py-3 font-semibold lg:table-cell">
+                      Contact
+                    </th>
+                    <th className="label-cap px-6 py-3 font-semibold">Status</th>
+                    <th className="label-cap hidden px-6 py-3 font-semibold lg:table-cell">
+                      Date
+                    </th>
+                    <th className="label-cap px-6 py-3 text-right font-semibold">
+                      Total
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((inv) => {
+                    const isPaid = inv.status === "paid";
+                    const dateIso = isPaid ? inv.paidAt : inv.dueDate;
+                    const datePrefix = isPaid ? "Paid" : "Due";
+                    return (
+                      <tr
+                        key={inv.id}
+                        className="border-b border-divider transition-colors last:border-0 hover:bg-surface-2"
+                      >
+                        <td className="px-6 py-3.5">
+                          <div className="font-data text-[13px] text-text tabular-nums">
+                            {inv.number || "Invoice"}
+                          </div>
+                        </td>
+                        <td className="hidden px-6 py-3.5 lg:table-cell">
+                          <span className="truncate text-[14px] text-text">
+                            {inv.contactName || "--"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <StatusPill status={inv.status} />
+                        </td>
+                        <td className="hidden px-6 py-3.5 lg:table-cell">
+                          {dateIso ? (
+                            <span className="font-data text-[12.5px] text-muted tabular-nums">
+                              {datePrefix} {fmtDate(dateIso)}
+                            </span>
+                          ) : (
+                            <span className="text-[13px] text-faint">--</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-3.5 text-right">
+                          <span className="ledger text-[15px] font-semibold">
+                            {money.format(inv.total)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Top customers rail (placeholder data) — gated until wired */}
+        {SHOW_UNWIRED_SECTIONS && <TopCustomers rows={PLACEHOLDER_CUSTOMERS} />}
+      </section>
+
+      {/* Recent payments (full width) */}
       <section className="mt-7">
         <h2 className="mb-4 font-display text-[16px] font-semibold text-text">
           Recent payments
