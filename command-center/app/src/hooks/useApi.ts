@@ -689,7 +689,6 @@ export function useUpsertRecurrence() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["recurrence"] });
-      qc.invalidateQueries({ queryKey: ["jobs"] });
     },
   });
 }
@@ -704,7 +703,6 @@ export function useDeleteRecurrence() {
       ),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["recurrence"] });
-      qc.invalidateQueries({ queryKey: ["jobs"] });
     },
   });
 }

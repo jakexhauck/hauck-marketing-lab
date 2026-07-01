@@ -76,6 +76,7 @@ export const onRequestPut: PagesFunction<Env, string, ApiData> = async (ctx) => 
     return Response.json({ error: "invalid recurrence" }, { status: 400 });
   }
 
+  const pc = body?.priceCents == null ? null : Math.trunc(Number(body.priceCents));
   const row = {
     tenant_id: tenantId,
     contact_id: contactId,
@@ -84,8 +85,7 @@ export const onRequestPut: PagesFunction<Env, string, ApiData> = async (ctx) => 
     anchor_date: anchorDate,
     visit_time: body?.visitTime ?? null,
     service: body?.service ?? null,
-    price_cents:
-      body?.priceCents == null ? null : Math.trunc(Number(body.priceCents)),
+    price_cents: pc == null || !Number.isFinite(pc) ? null : pc,
     active: body?.active ?? true,
     updated_at: new Date().toISOString(),
   };

@@ -95,24 +95,42 @@ export default function RecurringScheduleEditor({
 
   function handleSave() {
     const rule: RecurrenceRule = { cadenceWeeks, weekday, anchorDate: todayIso };
-    upsert.mutate({
-      contactId: customer.id,
-      cadenceWeeks,
-      weekday,
-      anchorDate: nextVisit(rule, todayIso),
-      visitTime: null,
-      service: service.trim() || null,
-      priceCents: parsePriceCents(),
-      active: true,
-    });
-    setActive(true);
-    showToast("Schedule saved");
+    upsert.mutate(
+      {
+        contactId: customer.id,
+        cadenceWeeks,
+        weekday,
+        anchorDate: nextVisit(rule, todayIso),
+        visitTime: null,
+        service: service.trim() || null,
+        priceCents: parsePriceCents(),
+        active: true,
+      },
+      {
+        onSuccess: () => {
+          setActive(true);
+          showToast("Schedule saved");
+        },
+        onError: () => showToast("Could not save the schedule. Please try again."),
+      },
+    );
   }
 
   function handleCancel() {
-    remove.mutate({ contactId: customer.id });
-    setActive(false);
-    showToast("Recurring schedule turned off");
+    if (customer.segment !== "recurring") {
+      setActive(false);
+      return;
+    }
+    remove.mutate(
+      { contactId: customer.id },
+      {
+        onSuccess: () => {
+          setActive(false);
+          showToast("Recurring schedule turned off");
+        },
+        onError: () => showToast("Could not turn off the schedule. Please try again."),
+      },
+    );
   }
 
   return (
