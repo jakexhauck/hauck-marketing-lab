@@ -91,6 +91,19 @@ export function isNavSection(entry: NavEntry): entry is NavSection {
 export const NAV: NavEntry[] = [
   { to: "/home", label: "Home", icon: Home, capability: "overview", bottomNav: true },
   {
+    id: "company",
+    label: "Company",
+    icon: Building2,
+    items: [
+      { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
+      { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
+      { to: "/calendar", label: "Calendar", icon: CalendarDays, capability: "calendar" },
+      { to: "/billing", label: "Revenue", icon: Receipt, capability: "billing" },
+      { to: "/company/documents", label: "Assets", icon: FolderOpen },
+      { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
+    ],
+  },
+  {
     id: "marketing",
     label: "Marketing",
     icon: Megaphone,
@@ -196,19 +209,6 @@ export const NAV: NavEntry[] = [
       { to: "/sales/reactivation", label: "Reactivation", shortLabel: "Win-back", icon: RotateCcw },
       { to: "/sales/scripts", label: "Sales Scripts", shortLabel: "Scripts", icon: ScrollText, comingSoon: true },
       { to: "/operations/reports", label: "Reports & Analytics", shortLabel: "Reports", icon: BarChart3, comingSoon: true },
-    ],
-  },
-  {
-    id: "company",
-    label: "Company",
-    icon: Building2,
-    items: [
-      { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
-      { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
-      { to: "/calendar", label: "Calendar", icon: CalendarDays, capability: "calendar" },
-      { to: "/billing", label: "Revenue", icon: Receipt, capability: "billing" },
-      { to: "/company/documents", label: "Documents & Resources", shortLabel: "Docs", icon: FolderOpen, comingSoon: true },
-      { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
     ],
   },
   // The agency chat: a phone bottom-bar tab only. On desktop it lives in the
