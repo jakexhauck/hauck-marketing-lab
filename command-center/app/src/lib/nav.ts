@@ -174,7 +174,7 @@ export const NAV: NavEntry[] = [
     label: "Sales",
     icon: TrendingUp,
     items: [
-      { to: "/sales/overview", label: "Sales Overview", shortLabel: "Overview", icon: LayoutDashboard, comingSoon: true },
+      { to: "/sales/overview", label: "Sales Overview", shortLabel: "Overview", icon: LayoutDashboard },
       // The three lead channels (Paid Ads, Estimate Forms, Chat Widget) merged
       // into ONE "Leads" page with in-line source tabs. Paid Ads + Estimate Forms
       // show their own follow-up automation tracker; every source opens the

@@ -13,6 +13,7 @@ import EstimateForms from "./routes/sales/EstimateForms";
 import ChatWidget from "./routes/sales/ChatWidget";
 import SalesPaidAds from "./routes/sales/PaidAds";
 import LeadsHub from "./routes/sales/LeadsHub";
+import SalesOverview from "./routes/sales/SalesOverview";
 import Jobs from "./routes/sales/Jobs";
 import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
@@ -370,7 +371,7 @@ export default function App() {
               />
               {/* Skeleton surfaces: a home (route + sidebar row) exists ahead of
                   the feature; each renders the shared "coming soon" screen. */}
-              <Route path="/sales/overview" element={<ProtectedRoute><ComingSoon title="Sales Overview" blurb="A single view of your whole sales process, end to end. Coming soon." /></ProtectedRoute>} />
+              <Route path="/sales/overview" element={<ProtectedRoute><SalesOverview /></ProtectedRoute>} />
               <Route path="/sales/reactivation" element={<ProtectedRoute><Reactivation /></ProtectedRoute>} />
               <Route path="/sales/scripts" element={<ProtectedRoute><ComingSoon title="Sales Scripts" blurb="Your call and message scripts, ready to use. Coming soon." /></ProtectedRoute>} />
               <Route path="/operations/reports" element={<ProtectedRoute><ComingSoon title="Reports & Analytics" blurb="Performance across ads, leads, and revenue in one place. Coming soon." /></ProtectedRoute>} />
