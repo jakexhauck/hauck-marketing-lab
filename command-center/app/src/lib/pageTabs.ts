@@ -56,3 +56,16 @@ export const LEADS_TABS: PageTab[] = [
   // /sales/leads so the sidebar's single "Leads" row stays highlighted on both.
   { to: "/sales/leads/pipeline", label: "Pipeline" },
 ];
+
+// The bold section label <PageBar> shows to the left of the tabs. Matched to the
+// tab array by identity so a page only passes `tabs` and the label stays in sync
+// with the sidebar's section name. Keep these equal to the nav labels in nav.ts.
+export function sectionLabel(tabs: PageTab[]): string {
+  if (tabs === WEBSITE_TABS) return "Website";
+  if (tabs === SOCIAL_TABS) return "Social Media";
+  if (tabs === REVIEWS_TABS) return "Google Reviews";
+  if (tabs === PAID_ADS_TABS) return "Paid Ads";
+  if (tabs === CAMPAIGNS_TABS) return "Campaigns";
+  if (tabs === LEADS_TABS) return "Leads";
+  return "";
+}

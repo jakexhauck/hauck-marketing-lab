@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Plus, LayoutGrid } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
 import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
 import NewCampaignDialog from "../../components/campaigns/NewCampaignDialog";
-import { PageHeader } from "../../components/PageHeader";
+import PageBar from "../../components/PageBar";
 import { Panel, Button, EmptyState } from "../../components/ui";
 import { useToast } from "../../context/ToastContext";
 import { demoMode } from "../../demo/demoMode";
@@ -34,9 +33,8 @@ export default function CampaignsTemplates() {
         initialBody={prefill?.body}
       />
       <div className={CAMPAIGNS_CONTAINER}>
-        <PageTabs tabs={CAMPAIGNS_TABS} />
-        <PageHeader
-          title="Templates"
+        <PageBar
+          tabs={CAMPAIGNS_TABS}
           description="Reusable messages you can drop into any campaign."
           actions={
             <Button

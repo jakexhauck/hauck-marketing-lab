@@ -1,8 +1,7 @@
 import Shell from "../../components/Shell";
 import { Zap, BarChart3 } from "lucide-react";
-import PageTabs from "../../components/PageTabs";
 import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
-import { PageHeader } from "../../components/PageHeader";
+import PageBar from "../../components/PageBar";
 import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import {
@@ -32,8 +31,7 @@ export default function CampaignsInsights() {
   return (
     <Shell>
       <div className={CAMPAIGNS_CONTAINER}>
-        <PageTabs tabs={CAMPAIGNS_TABS} />
-        <PageHeader title="What's working" description="Which messages turned into real, booked work." />
+        <PageBar tabs={CAMPAIGNS_TABS} description="Which messages turned into real, booked work." />
 
         {!demo && (
           <NotConnectedNotice message="After your first few campaigns, we'll show what books the most jobs and the best time to send." />

@@ -1,8 +1,7 @@
 import { BarChart3, TrendingUp } from "lucide-react";
 import Shell from "../../components/Shell";
-import { PageHeader } from "../../components/PageHeader";
 import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
-import PageTabs from "../../components/PageTabs";
+import PageBar from "../../components/PageBar";
 import { REVIEWS_TABS } from "../../lib/pageTabs";
 import { demoMode } from "../../demo/demoMode";
 import { StarRating, NotConnectedNotice, REVIEWS_CONTAINER } from "./shared";
@@ -88,9 +87,8 @@ export default function ReviewsInsights() {
   return (
     <Shell>
       <div className={REVIEWS_CONTAINER}>
-        <PageTabs tabs={REVIEWS_TABS} />
-        <PageHeader
-          title="What's working"
+        <PageBar
+          tabs={REVIEWS_TABS}
           description="The few numbers behind your rating. No vanity metrics, just what to keep doing."
         />
 

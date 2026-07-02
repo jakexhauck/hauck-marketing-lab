@@ -10,9 +10,8 @@ import {
   BarChart3,
 } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
 import { PAID_ADS_TABS } from "../../lib/pageTabs";
-import { PageHeader } from "../../components/PageHeader";
+import PageBar from "../../components/PageBar";
 import { Panel, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import {
@@ -65,9 +64,8 @@ export default function AdsOverview() {
   return (
     <Shell>
       <div className={PAID_ADS_CONTAINER}>
-        <PageTabs tabs={PAID_ADS_TABS} />
-        <PageHeader
-          title="Paid Ads"
+        <PageBar
+          tabs={PAID_ADS_TABS}
           description="Your ad money at a glance. Here is what it brought in this month, in plain numbers."
           actions={
             demo ? (

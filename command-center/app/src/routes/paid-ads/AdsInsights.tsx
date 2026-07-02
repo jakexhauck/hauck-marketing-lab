@@ -1,7 +1,6 @@
 import { Star, TrendingUp, MapPin, Clock, BarChart3 } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
-import { PageHeader } from "../../components/PageHeader";
+import PageBar from "../../components/PageBar";
 import { Panel, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { PAID_ADS_CONTAINER, NotConnectedNotice } from "./shared";
@@ -42,9 +41,8 @@ export default function AdsInsights() {
   return (
     <Shell>
       <div className={PAID_ADS_CONTAINER}>
-        <PageTabs tabs={PAID_ADS_TABS} />
-        <PageHeader
-          title="What's working"
+        <PageBar
+          tabs={PAID_ADS_TABS}
           description="The simple story behind your ads this month. No jargon, just what is going well."
         />
 

@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Plus, Users, ArrowRight } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
 import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
 import NewCampaignDialog from "../../components/campaigns/NewCampaignDialog";
 import AudienceDetailDialog from "../../components/campaigns/AudienceDetailDialog";
-import { PageHeader } from "../../components/PageHeader";
+import PageBar from "../../components/PageBar";
 import { Panel, Button, EmptyState } from "../../components/ui";
 import { useToast } from "../../context/ToastContext";
 import { demoMode } from "../../demo/demoMode";
@@ -32,9 +31,8 @@ export default function CampaignsAudiences() {
         }}
       />
       <div className={CAMPAIGNS_CONTAINER}>
-        <PageTabs tabs={CAMPAIGNS_TABS} />
-        <PageHeader
-          title="Audiences"
+        <PageBar
+          tabs={CAMPAIGNS_TABS}
           description="The customer lists you can send to. We build these from your customer records."
           actions={
             <Button

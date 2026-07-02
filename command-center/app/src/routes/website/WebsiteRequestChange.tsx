@@ -1,9 +1,8 @@
 import { useRef, useState, type MouseEvent } from "react";
 import { Pencil, Send, Inbox } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
+import PageBar from "../../components/PageBar";
 import { WEBSITE_TABS } from "../../lib/pageTabs";
-import { PageHeader } from "../../components/PageHeader";
 import { Panel, Badge, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import {
@@ -110,11 +109,10 @@ export default function WebsiteRequestChange() {
   return (
     <Shell>
       <div className={WEBSITE_CONTAINER}>
-        <PageTabs tabs={WEBSITE_TABS} />
         <style>{WRC_CSS}</style>
 
-        <PageHeader
-          title="Request a change"
+        <PageBar
+          tabs={WEBSITE_TABS}
           description="Click anywhere on your site to point at exactly what you'd like changed. Drop a pin, leave a note, and we'll handle the rest."
         />
 

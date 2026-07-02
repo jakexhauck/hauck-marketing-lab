@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Sparkles, ArrowRight, Plus } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
+import PageBar from "../../components/PageBar";
 import { SOCIAL_TABS } from "../../lib/pageTabs";
-import { PageHeader } from "../../components/PageHeader";
 import { Panel, Badge, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { Platform, PlatformGlyph, NotConnectedNotice, SOCIAL_CONTAINER } from "./shared";
@@ -65,9 +64,8 @@ export default function SocialIdeas() {
         onClose={() => setComposeIdea(null)}
       />
       <div className={SOCIAL_CONTAINER}>
-        <PageTabs tabs={SOCIAL_TABS} />
-        <PageHeader
-          title="Ideas"
+        <PageBar
+          tabs={SOCIAL_TABS}
           count={demo ? `${IDEAS.length}` : undefined}
           description="Post ideas built from your jobs, your offers, and what's working this week."
           actions={

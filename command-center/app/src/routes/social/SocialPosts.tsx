@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { LayoutGrid, Plus, Trash2 } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
+import PageBar from "../../components/PageBar";
 import { SOCIAL_TABS } from "../../lib/pageTabs";
-import { PageHeader } from "../../components/PageHeader";
 import { Panel, Badge, Button, EmptyState, Segmented } from "../../components/ui";
 import type { Tone } from "../../lib/status";
 import { useToast } from "../../context/ToastContext";
@@ -110,9 +109,8 @@ export default function SocialPosts() {
         onClose={() => setComposerOpen(false)}
       />
       <div className={SOCIAL_CONTAINER}>
-        <PageTabs tabs={SOCIAL_TABS} />
-        <PageHeader
-          title="My Posts"
+        <PageBar
+          tabs={SOCIAL_TABS}
           description="Everything you've scheduled, drafted, and published."
           actions={
             <Button variant="primary" size="md" onClick={openNew}>

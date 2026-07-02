@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
 import { MessageSquare, Sparkles, Check, RefreshCw, Star } from "lucide-react";
 import Shell from "../../components/Shell";
-import { PageHeader } from "../../components/PageHeader";
 import { Panel, Badge, Button, EmptyState, Segmented, type SegmentOption } from "../../components/ui";
-import PageTabs from "../../components/PageTabs";
+import PageBar from "../../components/PageBar";
 import { REVIEWS_TABS } from "../../lib/pageTabs";
 import { demoMode } from "../../demo/demoMode";
 import { StarRating, NotConnectedNotice, REVIEWS_CONTAINER } from "./shared";
@@ -321,9 +320,8 @@ export default function ReviewsAll() {
   return (
     <Shell>
       <div className={REVIEWS_CONTAINER}>
-        <PageTabs tabs={REVIEWS_TABS} />
-        <PageHeader
-          title="All Reviews"
+        <PageBar
+          tabs={REVIEWS_TABS}
           count={demo ? `${reviews.length}` : undefined}
           description="Every Google review in one queue. Filter, then reply in your own words or send the suggested draft. Replying lifts your standing with customers and with Google."
           filters={

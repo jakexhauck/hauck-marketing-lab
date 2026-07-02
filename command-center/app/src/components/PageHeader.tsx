@@ -1,10 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../lib/cn";
-import { useAuth } from "../context/AuthContext";
-import GlobalSearch from "./desktop/GlobalSearch";
-import AvatarMenu from "./desktop/AvatarMenu";
-import ChatLauncher from "./comms/ChatLauncher";
-import NotificationBell from "./NotificationBell";
+import GlobalControls from "./desktop/GlobalControls";
 
 // The consistent header every desktop surface renders at the top of its scroll
 // area: title + count on the left; on the right, the page's own actions followed
@@ -26,7 +22,6 @@ export function PageHeader({
   filters?: ReactNode;
   className?: string;
 }) {
-  const { session } = useAuth();
   return (
     <div className={cn("mb-5", className)}>
       <div className="flex items-start justify-between gap-4">
@@ -41,13 +36,7 @@ export function PageHeader({
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
           {actions}
-          {/* Global controls: top-right of every page, desktop only. */}
-          <div className="hidden items-center gap-2.5 lg:flex">
-            <GlobalSearch />
-            <ChatLauncher />
-            <NotificationBell enabled={Boolean(session)} variant="surface" />
-            <AvatarMenu />
-          </div>
+          <GlobalControls />
         </div>
       </div>
       {filters && <div className="mt-4 flex flex-wrap items-center gap-2">{filters}</div>}

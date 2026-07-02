@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Plus, Send } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
 import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
 import NewCampaignDialog from "../../components/campaigns/NewCampaignDialog";
 import CampaignReportDialog from "../../components/campaigns/CampaignReportDialog";
-import { PageHeader } from "../../components/PageHeader";
+import PageBar from "../../components/PageBar";
 import { Panel, PanelHeader, Badge, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import {
@@ -42,9 +41,8 @@ export default function CampaignsList() {
       <NewCampaignDialog open={composer} onClose={() => setComposer(false)} />
       <CampaignReportDialog campaign={report} onClose={() => setReport(null)} />
       <div className={CAMPAIGNS_CONTAINER}>
-        <PageTabs tabs={CAMPAIGNS_TABS} />
-        <PageHeader
-          title="Campaigns"
+        <PageBar
+          tabs={CAMPAIGNS_TABS}
           description="Every text and email you've sent."
           actions={
             <Button variant="primary" size="md" onClick={() => setComposer(true)}>

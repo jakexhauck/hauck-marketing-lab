@@ -2,9 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Globe, Pencil, ChevronRight } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
+import PageBar from "../../components/PageBar";
 import { WEBSITE_TABS } from "../../lib/pageTabs";
-import { PageHeader } from "../../components/PageHeader";
 import { Panel, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import {
@@ -48,9 +47,8 @@ export default function WebsitePages() {
   return (
     <Shell>
       <div className={WEBSITE_CONTAINER}>
-        <PageTabs tabs={WEBSITE_TABS} />
-        <PageHeader
-          title="Pages"
+        <PageBar
+          tabs={WEBSITE_TABS}
           count={demo ? SITE_PAGES.length : undefined}
           description="Every page on your live website. Pick one to see it exactly as your customers do, then request a change if something needs updating."
         />

@@ -2,9 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Users, Mail, Clock, FileText, ExternalLink, SquarePen, Globe, BarChart3 } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
+import PageBar from "../../components/PageBar";
 import { WEBSITE_TABS } from "../../lib/pageTabs";
-import { PageHeader } from "../../components/PageHeader";
 import { Panel, PanelHeader, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { cn } from "../../lib/cn";
@@ -62,9 +61,8 @@ export default function WebsiteOverview() {
   return (
     <Shell>
       <div className={WEBSITE_CONTAINER}>
-        <PageTabs tabs={WEBSITE_TABS} />
-        <PageHeader
-          title="Website"
+        <PageBar
+          tabs={WEBSITE_TABS}
           description="Your storefront is open. This is your live website, the first thing most Rivertown customers see before they ever call."
           actions={
             <>

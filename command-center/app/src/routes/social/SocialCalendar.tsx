@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
+import PageBar from "../../components/PageBar";
 import { SOCIAL_TABS } from "../../lib/pageTabs";
-import { PageHeader } from "../../components/PageHeader";
 import { Panel, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { Platform, NotConnectedNotice, SOCIAL_CONTAINER, PLATFORM } from "./shared";
@@ -51,9 +50,8 @@ export default function SocialCalendar() {
         onClose={() => setComposerOpen(false)}
       />
       <div className={SOCIAL_CONTAINER}>
-        <PageTabs tabs={SOCIAL_TABS} />
-        <PageHeader
-          title="Calendar"
+        <PageBar
+          tabs={SOCIAL_TABS}
           description="Your whole month of posts at a glance."
           actions={
             <Button variant="primary" size="md" onClick={() => setPlanOpen(true)}>

@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { Star, Mail, Phone, Clock, CheckCircle2 } from "lucide-react";
 import Shell from "../../components/Shell";
-import { PageHeader } from "../../components/PageHeader";
 import {
   Panel,
   Badge,
@@ -10,7 +9,7 @@ import {
   LoadingState,
   ErrorState,
 } from "../../components/ui";
-import PageTabs from "../../components/PageTabs";
+import PageBar from "../../components/PageBar";
 import { REVIEWS_TABS } from "../../lib/pageTabs";
 import { useAuth } from "../../context/AuthContext";
 import { demoMode } from "../../demo/demoMode";
@@ -95,9 +94,8 @@ export default function ReviewsRequests() {
   return (
     <Shell>
       <div className="flex min-h-0 w-full flex-1 flex-col px-5 pb-12 pt-5 lg:px-6">
-        <PageTabs tabs={REVIEWS_TABS} />
-        <PageHeader
-          title="Ask for Reviews"
+        <PageBar
+          tabs={REVIEWS_TABS}
           count={contacts.length ? `${contacts.length}` : undefined}
           description="Finished jobs. Tap Start Campaign to ask that customer for a Google review."
         />

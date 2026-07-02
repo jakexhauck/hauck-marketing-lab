@@ -2,11 +2,10 @@ import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Send, Sparkles, BarChart3, Zap, ArrowRight } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
 import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
 import NewCampaignDialog from "../../components/campaigns/NewCampaignDialog";
 import CampaignReportDialog from "../../components/campaigns/CampaignReportDialog";
-import { PageHeader } from "../../components/PageHeader";
+import PageBar from "../../components/PageBar";
 import { Panel, PanelHeader, Badge, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import {
@@ -52,9 +51,8 @@ export default function CampaignsOverview() {
       <NewCampaignDialog open={composer} onClose={() => setComposer(false)} />
       <CampaignReportDialog campaign={report} onClose={() => setReport(null)} />
       <div className={CAMPAIGNS_CONTAINER}>
-        <PageTabs tabs={CAMPAIGNS_TABS} />
-        <PageHeader
-          title="Campaigns"
+        <PageBar
+          tabs={CAMPAIGNS_TABS}
           description="Send the right message to the right customers, at the right time."
           actions={
             <Button variant="primary" size="md" onClick={() => setComposer(true)}>

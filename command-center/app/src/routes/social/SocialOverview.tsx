@@ -2,9 +2,8 @@ import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Plus, CalendarDays, Sparkles, BarChart3, Zap, ArrowRight } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
+import PageBar from "../../components/PageBar";
 import { SOCIAL_TABS } from "../../lib/pageTabs";
-import { PageHeader } from "../../components/PageHeader";
 import { Panel, PanelHeader, Badge, Button, EmptyState } from "../../components/ui";
 import type { Tone } from "../../lib/status";
 import { demoMode } from "../../demo/demoMode";
@@ -79,9 +78,8 @@ export default function SocialOverview() {
       <SocialComposerDialog open={dialog === "composer"} onClose={() => setDialog(null)} />
       <PlanMonthDialog open={dialog === "plan"} onClose={() => setDialog(null)} />
       <div className={SOCIAL_CONTAINER}>
-        <PageTabs tabs={SOCIAL_TABS} />
-        <PageHeader
-          title="Social Media"
+        <PageBar
+          tabs={SOCIAL_TABS}
           description="Your social at a glance. Here's what's next and what's working."
           actions={
             <>

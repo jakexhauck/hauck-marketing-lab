@@ -1,8 +1,7 @@
 import { BarChart3, Zap } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
+import PageBar from "../../components/PageBar";
 import { SOCIAL_TABS } from "../../lib/pageTabs";
-import { PageHeader } from "../../components/PageHeader";
 import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { Platform, PlatformGlyph, NotConnectedNotice, SOCIAL_CONTAINER } from "./shared";
@@ -38,8 +37,7 @@ export default function SocialInsights() {
   return (
     <Shell>
       <div className={SOCIAL_CONTAINER}>
-        <PageTabs tabs={SOCIAL_TABS} />
-        <PageHeader title="What's working" description="Last 30 days." />
+        <PageBar tabs={SOCIAL_TABS} description="Last 30 days." />
 
         {!demo && (
           <NotConnectedNotice message="There are no results to show yet. Connect your social accounts and your performance will appear here in plain English." />
