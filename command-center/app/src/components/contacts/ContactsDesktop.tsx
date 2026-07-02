@@ -6,8 +6,15 @@ import EmptyState from "../EmptyState";
 import Avatar from "../Avatar";
 import { useAuth } from "../../context/AuthContext";
 import { useNow } from "../../context/NowContext";
-import { useContactsQuery } from "../../hooks/useApi";
+import { usePipelines } from "../../context/PipelinesContext";
+import { useContactsQuery, usePipelineLeadsQuery } from "../../hooks/useApi";
 import { classifyOrigin, ORIGIN_BY_KEY } from "../../lib/inboxFilters";
+import {
+  contactSegment,
+  SEGMENT_LABELS,
+  SEGMENT_ORDER,
+  type ContactSegment,
+} from "../../lib/contactSegments";
 import { formatPhone } from "../../lib/phone";
 import { timeAgo } from "../../lib/timeAgo";
 import type { ApiContact } from "../../lib/api";
@@ -30,19 +37,58 @@ export default function ContactsDesktop() {
     [query.data],
   );
 
+  // Saved segments ("Smart Lists") derived from pipeline opportunities: a contact
+  // is a customer if it has a won opportunity, new if it has an open one, past if
+  // it is a customer gone quiet. Read against the selected pipeline. A contact
+  // with no opportunity is only ever in "All" (we never fabricate membership).
+  const [segment, setSegment] = useState<ContactSegment>("all");
+  const { selectedId } = usePipelines();
+  const leadsQuery = usePipelineLeadsQuery(selectedId, useReal);
+  const membership = useMemo(() => {
+    const wonIds = new Set<string>();
+    const openIds = new Set<string>();
+    for (const l of leadsQuery.data?.leads ?? []) {
+      if (l.status === "won") wonIds.add(l.contactId);
+      else if (l.status === "open") openIds.add(l.contactId);
+    }
+    return { wonIds, openIds };
+  }, [leadsQuery.data]);
+
+  const bySegment = useMemo(() => {
+    const counts: Record<ContactSegment, number> = {
+      all: contacts.length,
+      new: 0,
+      customers: 0,
+      past: 0,
+    };
+    for (const c of contacts) {
+      const seg = contactSegment(c, membership, now);
+      if (seg) counts[seg] += 1;
+    }
+    return counts;
+  }, [contacts, membership, now]);
+
+  const segmented = useMemo(
+    () =>
+      segment === "all"
+        ? contacts
+        : contacts.filter((c) => contactSegment(c, membership, now) === segment),
+    [contacts, membership, now, segment],
+  );
+
   const trimmed = search.trim();
   const visible = useMemo(() => {
-    if (!trimmed) return contacts;
+    if (!trimmed) return segmented;
     const q = trimmed.toLowerCase();
     const qDigits = trimmed.replace(/\D+/g, "");
-    return contacts.filter((c) => {
+    return segmented.filter((c) => {
       if (c.name.toLowerCase().includes(q)) return true;
       if (c.email.toLowerCase().includes(q)) return true;
       if (qDigits.length > 0 && c.phone.replace(/\D+/g, "").includes(qDigits))
         return true;
       return false;
     });
-  }, [contacts, trimmed]);
+  }, [segmented, trimmed]);
 
   const countLabel = query.isLoading
     ? "Loading..."
@@ -50,6 +96,44 @@ export default function ContactsDesktop() {
 
   return (
     <DesktopPage title="Contacts" subtitle={countLabel}>
+      {/* Lifecycle segments (Smart Lists). Same underline treatment as the
+          in-page tab bars so the app reads as one system. */}
+      <nav
+        aria-label="Contact segments"
+        className="mb-5 flex gap-6 overflow-x-auto border-b border-[var(--border)]"
+        style={{ scrollbarWidth: "none" }}
+      >
+        {SEGMENT_ORDER.map((key) => {
+          const on = segment === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setSegment(key)}
+              aria-current={on ? "true" : undefined}
+              className={[
+                "relative shrink-0 whitespace-nowrap px-0.5 pb-3 pt-2 text-[13.5px] transition-colors",
+                on
+                  ? "font-semibold text-[var(--text)]"
+                  : "font-medium text-[var(--text-muted)] hover:text-[var(--text)]",
+              ].join(" ")}
+            >
+              {SEGMENT_LABELS[key]}
+              <span className="ml-1.5 text-[12px] tabular-nums text-[var(--text-faint)]">
+                {bySegment[key]}
+              </span>
+              {on && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 -bottom-px h-0.5 rounded-t-full"
+                  style={{ backgroundImage: "var(--grad-brand)" }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </nav>
+
       {/* Search */}
       <div className="relative mb-5 max-w-sm">
         <Search

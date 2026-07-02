@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Plus, Users, ArrowRight } from "lucide-react";
 import Shell from "../../components/Shell";
-import CampaignsMobileTabs from "../../components/campaigns/CampaignsMobileTabs";
+import PageTabs from "../../components/PageTabs";
+import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
 import NewCampaignDialog from "../../components/campaigns/NewCampaignDialog";
 import AudienceDetailDialog from "../../components/campaigns/AudienceDetailDialog";
 import { PageHeader } from "../../components/PageHeader";
@@ -31,7 +32,7 @@ export default function CampaignsAudiences() {
         }}
       />
       <div className={CAMPAIGNS_CONTAINER}>
-        <CampaignsMobileTabs />
+        <PageTabs tabs={CAMPAIGNS_TABS} />
         <PageHeader
           title="Audiences"
           description="The customer lists you can send to. We build these from your customer records."

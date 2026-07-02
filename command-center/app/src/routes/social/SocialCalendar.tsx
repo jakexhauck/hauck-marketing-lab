@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import Shell from "../../components/Shell";
-import SocialMobileTabs from "../../components/social/SocialMobileTabs";
+import PageTabs from "../../components/PageTabs";
+import { SOCIAL_TABS } from "../../lib/pageTabs";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
@@ -50,7 +51,7 @@ export default function SocialCalendar() {
         onClose={() => setComposerOpen(false)}
       />
       <div className={SOCIAL_CONTAINER}>
-        <SocialMobileTabs />
+        <PageTabs tabs={SOCIAL_TABS} />
         <PageHeader
           title="Calendar"
           description="Your whole month of posts at a glance."

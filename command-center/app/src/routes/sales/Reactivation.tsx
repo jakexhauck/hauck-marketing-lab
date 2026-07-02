@@ -1,6 +1,8 @@
 import { RotateCcw, Zap, Users, CalendarCheck } from "lucide-react";
 import Shell from "../../components/Shell";
+import PageTabs from "../../components/PageTabs";
 import { PageHeader } from "../../components/PageHeader";
+import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
 import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { PAGE_CONTAINER } from "../../lib/layout";
@@ -30,6 +32,7 @@ export default function Reactivation() {
   return (
     <Shell>
       <div className={REACTIVATION_CONTAINER}>
+        <PageTabs tabs={CAMPAIGNS_TABS} />
         <PageHeader
           title="Reactivation"
           description="Quietly win back customers who haven't booked in a while, on autopilot."

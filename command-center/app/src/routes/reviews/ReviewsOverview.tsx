@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Shell from "../../components/Shell";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, PanelHeader, Button, EmptyState } from "../../components/ui";
+import PageTabs from "../../components/PageTabs";
+import { REVIEWS_TABS } from "../../lib/pageTabs";
 import { demoMode } from "../../demo/demoMode";
 import { StarRating, NotConnectedNotice, REVIEWS_CONTAINER } from "./shared";
 
@@ -68,6 +70,7 @@ export default function ReviewsOverview() {
   return (
     <Shell>
       <div className={REVIEWS_CONTAINER}>
+        <PageTabs tabs={REVIEWS_TABS} />
         <PageHeader
           title="Google Reviews"
           description="Your reputation at a glance. Ask for new ones and reply to the rest."

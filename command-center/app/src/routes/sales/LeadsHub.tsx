@@ -18,6 +18,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Shell from "../../components/Shell";
+import PageTabs from "../../components/PageTabs";
+import { LEADS_TABS } from "../../lib/pageTabs";
 import Avatar from "../../components/Avatar";
 import { useToast } from "../../context/ToastContext";
 import { cn } from "../../lib/cn";
@@ -132,6 +134,7 @@ export default function LeadsHub() {
     return (
       <Shell>
         <div className="flex min-h-0 w-full flex-1 flex-col px-5 pb-12 pt-6 lg:px-6">
+          <PageTabs tabs={LEADS_TABS} />
           <header className="mb-5">
             <h1 className="font-display text-[22px] leading-none text-text">Leads</h1>
             <p className="mt-1.5 text-sm text-muted">
@@ -159,6 +162,11 @@ export default function LeadsHub() {
   // --- Populated (demo / preview) -------------------------------------------
   return (
     <Shell>
+      {/* Primary Leads nav: New Leads (this page) vs Pipeline (the board). Sits
+          above the measured pane so the pane self-sizes to the space left. */}
+      <div className="px-5 pt-4 lg:px-6">
+        <PageTabs tabs={LEADS_TABS} />
+      </div>
       <div
         ref={rootRef}
         className="flex min-h-0 flex-col"

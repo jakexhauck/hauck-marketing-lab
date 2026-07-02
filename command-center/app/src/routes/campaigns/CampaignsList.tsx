@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Plus, Send } from "lucide-react";
 import Shell from "../../components/Shell";
-import CampaignsMobileTabs from "../../components/campaigns/CampaignsMobileTabs";
+import PageTabs from "../../components/PageTabs";
+import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
 import NewCampaignDialog from "../../components/campaigns/NewCampaignDialog";
 import CampaignReportDialog from "../../components/campaigns/CampaignReportDialog";
 import { PageHeader } from "../../components/PageHeader";
@@ -41,7 +42,7 @@ export default function CampaignsList() {
       <NewCampaignDialog open={composer} onClose={() => setComposer(false)} />
       <CampaignReportDialog campaign={report} onClose={() => setReport(null)} />
       <div className={CAMPAIGNS_CONTAINER}>
-        <CampaignsMobileTabs />
+        <PageTabs tabs={CAMPAIGNS_TABS} />
         <PageHeader
           title="Campaigns"
           description="Every text and email you've sent."

@@ -1,5 +1,7 @@
 import { Search, Smartphone, BarChart3 } from "lucide-react";
 import Shell from "../../components/Shell";
+import PageTabs from "../../components/PageTabs";
+import { WEBSITE_TABS } from "../../lib/pageTabs";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
@@ -43,6 +45,7 @@ export default function WebsiteInsights() {
   return (
     <Shell>
       <div className={WEBSITE_CONTAINER}>
+        <PageTabs tabs={WEBSITE_TABS} />
         <PageHeader
           title="What's working"
           description="A plain-English read on how your website is performing this month, and where the work is actually coming from."

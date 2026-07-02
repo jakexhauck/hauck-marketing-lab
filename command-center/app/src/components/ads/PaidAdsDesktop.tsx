@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { FlaskConical } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
+import PageTabs from "../PageTabs";
+import { PAID_ADS_TABS } from "../../lib/pageTabs";
 import { Segmented, type SegmentOption } from "../ui";
 import { MetricBand, type MetricCell } from "./MetricBand";
 import { DeliveryTrend } from "./DeliveryTrend";
@@ -136,6 +138,7 @@ export default function PaidAdsDesktop() {
         </>
       }
     >
+      <PageTabs tabs={PAID_ADS_TABS} />
       {data.demo && (
         <div className="mb-6 flex items-center gap-2 rounded-[var(--radius-lg)] border border-warning/30 bg-warning-tint px-4 py-2.5 text-[13px] text-warning">
           <FlaskConical size={15} className="shrink-0" />

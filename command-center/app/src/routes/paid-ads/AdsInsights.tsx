@@ -1,9 +1,11 @@
 import { Star, TrendingUp, MapPin, Clock, BarChart3 } from "lucide-react";
 import Shell from "../../components/Shell";
+import PageTabs from "../../components/PageTabs";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { PAID_ADS_CONTAINER, NotConnectedNotice } from "./shared";
+import { PAID_ADS_TABS } from "../../lib/pageTabs";
 
 // "What's working": the simple story behind the ads, deliberately dimmed down for
 // clients. No CPM/CPC/CTR/funnel. Just a few plain-English cards with friendly
@@ -40,6 +42,7 @@ export default function AdsInsights() {
   return (
     <Shell>
       <div className={PAID_ADS_CONTAINER}>
+        <PageTabs tabs={PAID_ADS_TABS} />
         <PageHeader
           title="What's working"
           description="The simple story behind your ads this month. No jargon, just what is going well."

@@ -1,6 +1,7 @@
 import Shell from "../../components/Shell";
 import { Zap, BarChart3 } from "lucide-react";
-import CampaignsMobileTabs from "../../components/campaigns/CampaignsMobileTabs";
+import PageTabs from "../../components/PageTabs";
+import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
 import { PageHeader } from "../../components/PageHeader";
 import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
@@ -31,7 +32,7 @@ export default function CampaignsInsights() {
   return (
     <Shell>
       <div className={CAMPAIGNS_CONTAINER}>
-        <CampaignsMobileTabs />
+        <PageTabs tabs={CAMPAIGNS_TABS} />
         <PageHeader title="What's working" description="Which messages turned into real, booked work." />
 
         {!demo && (

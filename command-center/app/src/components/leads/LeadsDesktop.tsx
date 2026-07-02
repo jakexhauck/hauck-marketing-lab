@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Plus, Search } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
+import PageTabs from "../PageTabs";
+import { LEADS_TABS } from "../../lib/pageTabs";
 import { Button } from "../ui/Button";
 import Board from "../Board";
 import PipelineSwitcher from "../PipelineSwitcher";
@@ -118,6 +120,8 @@ export default function LeadsDesktop() {
         </>
       }
     >
+      {/* Primary Leads nav: New Leads vs Pipeline (this board). */}
+      <PageTabs tabs={LEADS_TABS} />
       {/* Search */}
       <div className="relative mb-5 max-w-sm">
         <Search

@@ -10,6 +10,8 @@ import {
   LoadingState,
   ErrorState,
 } from "../../components/ui";
+import PageTabs from "../../components/PageTabs";
+import { REVIEWS_TABS } from "../../lib/pageTabs";
 import { useAuth } from "../../context/AuthContext";
 import { demoMode } from "../../demo/demoMode";
 import { useReviewsQuery, useStartReviewCampaign } from "../../hooks/useApi";
@@ -93,6 +95,7 @@ export default function ReviewsRequests() {
   return (
     <Shell>
       <div className="flex min-h-0 w-full flex-1 flex-col px-5 pb-12 pt-5 lg:px-6">
+        <PageTabs tabs={REVIEWS_TABS} />
         <PageHeader
           title="Ask for Reviews"
           count={contacts.length ? `${contacts.length}` : undefined}
