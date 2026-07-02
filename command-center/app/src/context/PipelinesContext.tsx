@@ -23,6 +23,16 @@ interface PipelinesContextValue {
 
 const PipelinesContext = createContext<PipelinesContextValue | null>(null);
 
+// The pipeline switcher (Leads / Sales board) is only for the client's real
+// sales flows: Organic, Paid Ads, and Sales. The Database Reactivation and
+// Google Reviews pipelines are back-ends for their own Marketing surfaces
+// (Reactivation, Reviews), each of which resolves its pipeline BY NAME through
+// its own endpoint, so hiding them here is safe and does not touch those views.
+function isSalesPipeline(name: string): boolean {
+  const n = name.trim().toLowerCase();
+  return !(n.includes("reactivation") || n.includes("review"));
+}
+
 const STORAGE_KEY = "hml.selectedPipelineId";
 // Pre-rename key (carried a client name); migrated once below, then unused.
 const LEGACY_STORAGE_KEY = "willis.selectedPipelineId";
@@ -52,9 +62,10 @@ export function PipelinesProvider({ children }: { children: ReactNode }) {
   // view runs through the same real-stage model as a live session.
   const pipelines = useMemo<ApiPipelineSummary[]>(
     () =>
-      useReal
+      (useReal
         ? (query.data?.pipelines ?? [])
-        : getMockPipelinesForClient(client.id),
+        : getMockPipelinesForClient(client.id)
+      ).filter((p) => isSalesPipeline(p.name)),
     [useReal, query.data, client.id],
   );
 
