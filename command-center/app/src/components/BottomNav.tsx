@@ -8,10 +8,11 @@ import { haptic } from "../lib/haptics";
 // pass which one is active by key; we resolve that to a route via this map so
 // the bar shares the unified nav source of truth (and its permission gate)
 // with the desktop sidebar.
-export type NavKey = "home" | "leads" | "conversations" | "contacts" | "comms";
+export type NavKey = "home" | "apps" | "leads" | "conversations" | "contacts" | "comms";
 
 const ROUTE_BY_KEY: Record<NavKey, string> = {
   home: "/home",
+  apps: "/apps",
   leads: "/sales/leads",
   conversations: "/conversations",
   contacts: "/contacts",

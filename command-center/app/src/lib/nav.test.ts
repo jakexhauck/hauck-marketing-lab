@@ -27,10 +27,17 @@ describe("client nav structure", () => {
     expect(new Set(routes).size).toBe(routes.length);
   });
 
-  it("puts Leads on the phone bottom bar", () => {
+  it("has the Direction B bottom bar in order, with Leads off it", () => {
     const bottom = flattenNav(NAV)
       .filter((i) => i.bottomNav)
       .map((i) => i.to);
-    expect(bottom).toContain("/sales/leads");
+    expect(bottom).toEqual([
+      "/home",
+      "/conversations",
+      "/apps",
+      "/contacts",
+      "/comms",
+    ]);
+    expect(bottom).not.toContain("/sales/leads");
   });
 });

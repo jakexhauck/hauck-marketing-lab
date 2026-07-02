@@ -8,6 +8,7 @@ import { LeadsProvider } from "./context/LeadsContext";
 import { PipelinesProvider } from "./context/PipelinesContext";
 import Login from "./routes/Login";
 import Home from "./routes/Home";
+import AllFeatures from "./routes/AllFeatures";
 import Leads from "./routes/Leads";
 import LeadsHub from "./routes/sales/LeadsHub";
 import Jobs from "./routes/sales/Jobs";
@@ -182,6 +183,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Home />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/apps"
+                element={
+                  <ProtectedRoute>
+                    <AllFeatures />
                   </ProtectedRoute>
                 }
               />

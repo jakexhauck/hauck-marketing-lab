@@ -15,6 +15,7 @@ import {
   Contact,
   Send,
   Split,
+  LayoutGrid,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -78,7 +79,7 @@ export function isNavSection(entry: NavEntry): entry is NavSection {
 // tab. Every Marketing channel is a single flat row; its sub-pages live inside
 // the page as a <PageTabs> bar, not as sidebar children.
 export const NAV: NavEntry[] = [
-  { to: "/home", label: "Home", icon: Home, capability: "overview", bottomNav: true },
+  { to: "/home", label: "Home", shortLabel: "Today", icon: Home, capability: "overview", bottomNav: true },
   {
     id: "marketing",
     label: "Marketing",
@@ -97,9 +98,14 @@ export const NAV: NavEntry[] = [
     icon: Building2,
     items: [
       { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
+      // Phone-only "app grid" launcher. Sidebar-hidden (desktop has the full
+      // sidebar), and placed here so the bottom-bar flatten order centres it:
+      // Today, Inbox, All, Contacts, Chat.
+      { to: "/apps", label: "All features", shortLabel: "All", icon: LayoutGrid, bottomNav: true, sidebarHidden: true },
       // The one Leads surface. Its page hosts a New Leads / Pipeline tab bar, so
       // the old standalone "Sales Overview" is a tab here, not a sidebar row.
-      { to: "/sales/leads", label: "Leads", shortLabel: "Leads", icon: Split, bottomNav: true },
+      // On phone it lives in the All-features grid, not the bottom bar.
+      { to: "/sales/leads", label: "Leads", shortLabel: "Leads", icon: Split },
       { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
       { to: "/sales/jobs", label: "Jobs", shortLabel: "Jobs", icon: CalendarCheck },
       { to: "/calendar", label: "Calendar", icon: CalendarDays, capability: "calendar" },
