@@ -1,19 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarDays,
-  ChevronRight,
-  DollarSign,
-  Filter,
-  LogOut,
+  Briefcase,
+  MessageSquare,
   RefreshCw,
   Search,
-  Send,
-  Settings,
-  Share2,
-  TrendingUp,
-  Users,
+  Star,
+  UserPlus,
+  type LucideIcon,
 } from "lucide-react";
 import Shell from "../components/Shell";
 import HomeDesktop from "../components/home/HomeDesktop";
@@ -25,21 +19,14 @@ import NotificationPrompt from "../components/NotificationPrompt";
 import NotificationBell from "../components/NotificationBell";
 import { Skeleton } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
-import { usePipelines } from "../context/PipelinesContext";
 import { useNow } from "../context/NowContext";
 import PullToRefresh from "../components/PullToRefresh";
-import {
-  useActivityQuery,
-  useInvoicesQuery,
-  useSummaryQuery,
-  useTransactionsQuery,
-} from "../hooks/useApi";
+import { useActivityQuery, useSummaryQuery } from "../hooks/useApi";
+import { demoMode } from "../demo/demoMode";
 import { APP_BRAND } from "../lib/appBrand";
 import { activityLabel } from "../lib/activityLabels";
 import { freshnessLabel } from "../lib/freshness";
-import { formatMoney } from "../lib/formatMoney";
-import { outstandingTotal, revenueThisMonth } from "../lib/revenue";
-import type { ApiActivity, PipelineSummary } from "../lib/api";
+import type { ApiActivity } from "../lib/api";
 
 function activityTitle(a: ApiActivity): string {
   return a.payload?.summary ?? activityLabel(a.action);
@@ -60,15 +47,6 @@ function activityWhen(iso: string, now: number): string {
   });
 }
 
-const CARD_COLORS = [
-  "#1a4d8f",
-  "#0e7490",
-  "#7c3aed",
-  "#b45309",
-  "#15803d",
-  "#be123c",
-];
-
 function greeting(now: number): string {
   const h = new Date(now).getHours();
   if (h < 12) return "Good morning";
@@ -76,8 +54,21 @@ function greeting(now: number): string {
   return "Good evening";
 }
 
-function shortName(name: string): string {
-  return name.replace(/\s+Pipeline$/i, "").trim();
+// One tappable row in the "Today" priority feed: coloured left stripe, tinted
+// icon chip, title + one-line subtitle, and a big right-aligned count.
+interface PriorityCard {
+  key: string;
+  title: string;
+  subtitle: string;
+  count: number;
+  to: string;
+  Icon: LucideIcon;
+  // Tailwind classes carry the accent so both the light and dark themes stay
+  // in step. Brand rows lean on the app's --brand-* tokens; sample rows use
+  // amber/emerald.
+  stripe: string;
+  chip: string;
+  countColor: string;
 }
 
 // The Home screen shares these query keys with pull-to-refresh; tapping the
@@ -87,41 +78,16 @@ const REFRESH_KEYS: unknown[][] = [["summary"], ["activity"], ["notifications"]]
 export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { session, mode, signOut, isOwner, can } = useAuth();
-  const { setSelectedId } = usePipelines();
+  const { session, mode } = useAuth();
   const now = useNow();
   const useReal = Boolean(session);
   const query = useSummaryQuery(useReal);
   const activityQuery = useActivityQuery(useReal);
 
-  // Revenue glance: only fetched when this user may see billing, so staff
-  // without access never trigger a 403. Shares the Revenue screen's cache (same
-  // query keys), so the figures match exactly and there is no double fetch.
-  const canSeeRevenue = can("billing", "view");
-  const txQuery = useTransactionsQuery(useReal && canSeeRevenue);
-  const invoicesQuery = useInvoicesQuery("all", useReal && canSeeRevenue);
-  const revenueMonth = useMemo(
-    () => revenueThisMonth(txQuery.data?.transactions ?? [], now),
-    [txQuery.data, now],
-  );
-  const revenueOutstanding = useMemo(
-    () => outstandingTotal(invoicesQuery.data?.invoices ?? []),
-    [invoicesQuery.data],
-  );
-
-  // Sign out is destructive, so the row arms on first tap and only signs out on
-  // the second. The arm auto-disarms after a few seconds so a stray tap cannot
-  // leave it primed indefinitely.
-  const [confirmSignOut, setConfirmSignOut] = useState(false);
-  useEffect(() => {
-    if (!confirmSignOut) return;
-    const t = window.setTimeout(() => setConfirmSignOut(false), 3500);
-    return () => window.clearTimeout(t);
-  }, [confirmSignOut]);
-
   const summary = query.data;
   const activity = activityQuery.data?.activity ?? [];
   const isTest = mode === "test";
+  const isDemo = demoMode();
   const today = new Date(now).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
@@ -139,24 +105,71 @@ export default function Home() {
     );
   };
 
-  const openCard = (pipelineId: string) => {
-    setSelectedId(pipelineId);
-    navigate("/leads");
-  };
+  // Build the priority feed from the summary. Real rows appear when they have
+  // something to act on (or always, in the demo view). The Jobs and Reviews
+  // rows are sample-only: their feeds are not wired yet, so they only exist in
+  // demo and never mislead a real client into thinking they are live.
+  const cards: PriorityCard[] = [];
+  if (summary) {
+    if (summary.newToday > 0 || isDemo) {
+      cards.push({
+        key: "leads",
+        title: "New leads to reply",
+        subtitle: "Reply fast to lock them in",
+        count: summary.newToday,
+        to: "/sales/leads",
+        Icon: UserPlus,
+        stripe: "bg-[var(--brand-primary)]",
+        chip: "bg-[var(--brand-tint)] text-[var(--brand-text)]",
+        countColor: "text-[var(--brand-text)]",
+      });
+    }
+    if (summary.unreadConversations > 0 || isDemo) {
+      cards.push({
+        key: "messages",
+        title: "Messages waiting",
+        subtitle: "Customers waiting on a reply",
+        count: summary.unreadConversations,
+        to: "/conversations",
+        Icon: MessageSquare,
+        stripe: "bg-[var(--brand-primary)]",
+        chip: "bg-[var(--brand-tint)] text-[var(--brand-text)]",
+        countColor: "text-[var(--brand-text)]",
+      });
+    }
+    if (isDemo) {
+      cards.push({
+        key: "jobs",
+        title: "Jobs today",
+        subtitle: "9:00 AM, 1:30 PM",
+        count: 2,
+        to: "/sales/jobs",
+        Icon: Briefcase,
+        stripe: "bg-amber-500",
+        chip: "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
+        countColor: "text-amber-600 dark:text-amber-400",
+      });
+      cards.push({
+        key: "reviews",
+        title: "Reviews to answer",
+        subtitle: "Keep your rating up",
+        count: 3,
+        to: "/marketing/reviews",
+        Icon: Star,
+        stripe: "bg-emerald-500",
+        chip: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
+        countColor: "text-emerald-600 dark:text-emerald-400",
+      });
+    }
+  }
 
-  const colorOf = (id: string) => {
-    const idx = summary?.pipelines.findIndex((p) => p.id === id) ?? 0;
-    return CARD_COLORS[(idx < 0 ? 0 : idx) % CARD_COLORS.length];
-  };
-
-  // The featured pipeline is the busiest one by open leads; the rest fall into
-  // the list below it.
-  const { featured, rest } = useMemo(() => {
-    const ps = summary?.pipelines ?? [];
-    if (ps.length === 0) return { featured: null, rest: [] as PipelineSummary[] };
-    const sorted = [...ps].sort((a, b) => b.open - a.open);
-    return { featured: sorted[0], rest: sorted.slice(1) };
-  }, [summary]);
+  // Sample week-at-a-glance figures. No week-level hook exists yet, so this row
+  // only renders in the demo view.
+  const weekTiles = [
+    { key: "leads", label: "New leads", value: "18" },
+    { key: "jobs", label: "Jobs booked", value: "6" },
+    { key: "revenue", label: "Revenue", value: "$12k" },
+  ];
 
   return (
     <Shell>
@@ -221,253 +234,109 @@ export default function Home() {
           </div>
         ) : query.isLoading ? (
           // First load only (no cached summary yet). Skeletons mirror the real
-          // layout: featured card then the pipeline list rows. Background
+          // priority feed: a kicker then a few stacked cards. Background
           // refetches keep the live content and never fall back to this.
           <div aria-hidden="true">
-            <div className="px-[22px] pb-1 pt-5">
-              <Skeleton className="h-3 w-20" />
-            </div>
-            <Skeleton className="mx-[22px] h-[128px] w-[calc(100%-44px)] rounded-[18px]" />
             <div className="px-[22px] pb-2 pt-5">
-              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-16" />
             </div>
-            <div className="mx-[22px] divide-y divide-[var(--divider)] overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center gap-3.5 px-4 py-3.5">
+            <div className="mx-[22px] flex flex-col gap-2.5">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3.5 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-4"
+                >
                   <Skeleton className="h-[38px] w-[38px] rounded-xl" />
                   <div className="min-w-0 flex-1">
                     <Skeleton className="h-3.5 w-1/2" />
                     <Skeleton className="mt-2 h-3 w-1/3" />
                   </div>
-                  <Skeleton className="h-5 w-6" />
+                  <Skeleton className="h-7 w-8" />
                 </div>
               ))}
             </div>
           </div>
-        ) : !summary || !featured ? (
+        ) : !summary ? (
           <EmptyState
-            title="No pipelines"
-            message="Your pipelines will show up here once they're set up."
+            title="You're all caught up"
+            message="New leads and messages will show up here."
           />
         ) : (
           <>
-            {/* Revenue glance: a client's money this month, tappable through to
-                the full Revenue screen. Gated to users who may see billing. */}
-            {canSeeRevenue && (
-              <>
-                <div className="px-[22px] pb-2 pt-5">
-                  <span className="sec-kicker">Revenue</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => navigate("/billing")}
-                  className="mx-[22px] flex w-[calc(100%-44px)] items-center justify-between gap-3 rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-4 py-4 text-left transition-colors active:bg-[var(--surface-2)]"
-                >
-                  <div className="min-w-0">
-                    <div className="text-[12.5px] font-medium text-[var(--text-muted)]">
-                      This month
-                    </div>
-                    <div className="mt-0.5 font-display text-[26px] font-black leading-none text-[var(--text)]">
-                      {txQuery.isLoading ? "--" : formatMoney(revenueMonth)}
-                    </div>
-                    {revenueOutstanding > 0 && (
-                      <div className="mt-1.5 text-[12px] text-[var(--text-faint)]">
-                        {formatMoney(revenueOutstanding)} outstanding
-                      </div>
-                    )}
-                  </div>
-                  <span
-                    className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-xl text-white"
-                    style={{ backgroundColor: "#15803d" }}
-                  >
-                    <DollarSign size={20} strokeWidth={2.2} />
-                  </span>
-                </button>
-              </>
-            )}
-
-            {/* Featured: busiest pipeline */}
-            <div className="px-[22px] pb-1 pt-5">
-              <span className="sec-kicker">Most active</span>
+            {/* Today: the priority feed. */}
+            <div className="px-[22px] pb-2 pt-5">
+              <span className="sec-kicker">Today</span>
             </div>
-            <button
-              type="button"
-              onClick={() => openCard(featured.id)}
-              className="mx-[22px] block w-[calc(100%-44px)] rounded-[18px] border p-4 text-left transition-transform active:scale-[0.99]"
-              style={{
-                background: `${colorOf(featured.id)}12`,
-                borderColor: `${colorOf(featured.id)}30`,
-              }}
-            >
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wider text-white"
-                style={{ backgroundColor: colorOf(featured.id) }}
-              >
-                <TrendingUp size={12} strokeWidth={2.5} />
-                Most active
-              </span>
-              <div className="mt-3 flex items-end justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-display text-[19px] font-extrabold text-[var(--text)]">
-                    {shortName(featured.name)}
-                  </div>
-                  <div className="mt-0.5 text-[12.5px] font-medium text-[var(--text-muted)]">
-                    {featured.open} open of {featured.total} leads
-                  </div>
-                </div>
-                <div
-                  className="font-display text-[44px] font-black leading-none tracking-tight"
-                  style={{ color: colorOf(featured.id) }}
-                >
-                  {featured.open}
-                </div>
-              </div>
-            </button>
-
-            {/* The rest */}
-            <div className="flex items-baseline justify-between px-[22px] pb-2 pt-5">
-              <span className="sec-kicker">All pipelines</span>
-              <span className="text-xs font-semibold text-[var(--text-faint)]">
-                {summary.pipelines.length} active
-              </span>
-            </div>
-            <ul className="mx-[22px] overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
-              {rest.map((p, idx) => (
-                <li key={p.id}>
+            {cards.length === 0 ? (
+              <EmptyState
+                title="You're all caught up"
+                message="New leads and messages will show up here."
+              />
+            ) : (
+              <div className="mx-[22px] flex flex-col gap-2.5">
+                {cards.map((card) => (
                   <button
+                    key={card.key}
                     type="button"
-                    onClick={() => openCard(p.id)}
-                    className={
-                      "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
-                      (idx === rest.length - 1
-                        ? ""
-                        : " border-b border-[var(--divider)]")
-                    }
+                    onClick={() => navigate(card.to)}
+                    className="relative flex items-center gap-3.5 overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)] py-4 pl-5 pr-4 text-left transition-colors active:bg-[var(--surface-2)]"
                   >
                     <span
-                      className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl text-white"
-                      style={{ backgroundColor: colorOf(p.id) }}
+                      className={"absolute inset-y-0 left-0 w-[3px] " + card.stripe}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className={
+                        "flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl " +
+                        card.chip
+                      }
                     >
-                      <Filter size={18} strokeWidth={2} />
+                      <card.Icon size={18} strokeWidth={2} />
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-display text-[15px] font-bold text-[var(--text)]">
-                        {shortName(p.name)}
+                        {card.title}
                       </div>
-                      <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">
-                        {p.open} open {p.open === 1 ? "lead" : "leads"}
+                      <div className="mt-0.5 truncate text-[12px] text-[var(--text-muted)]">
+                        {card.subtitle}
                       </div>
                     </div>
-                    <div className="font-display text-[20px] font-extrabold tracking-tight text-[var(--text)]">
-                      {p.open}
-                    </div>
-                    <ChevronRight size={18} className="text-[var(--text-faint)]" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-
-            {/* Quick links to secondary sections that do not earn a nav slot. */}
-            <div className="px-[22px] pb-2 pt-6">
-              <span className="sec-kicker">More</span>
-            </div>
-            <ul className="mx-[22px] overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)]">
-              {[
-                { key: "social", label: "Social Media", sub: "Plan and schedule your posts", to: "/marketing/social", Icon: Share2, color: "#4f46e5" },
-                { key: "campaigns", label: "Campaigns", sub: "Text and email your customers", to: "/marketing/campaigns", Icon: Send, color: "#0ea5e9" },
-                // Calendar + Billing honour the same per-surface permissions as
-                // the sidebar/bottom nav; a staff member without view access must
-                // not be offered a link the backend will refuse.
-                ...(can("calendar", "view")
-                  ? [{ key: "calendar", label: "Calendar", sub: "Upcoming appointments", to: "/calendar", Icon: CalendarDays, color: "#7c3aed" }]
-                  : []),
-                // Team management is owner-only (staff cannot add staff).
-                ...(isOwner
-                  ? [{ key: "team", label: "Team", sub: "Add employees and set access", to: "/team", Icon: Users, color: "#1a4d8f" }]
-                  : []),
-                { key: "settings", label: "Settings", sub: "Account and preferences", to: "/settings", Icon: Settings, color: "#475569" },
-                { key: "signout", label: "Sign out", sub: "Log out of this device", to: "", Icon: LogOut, color: "#be123c" },
-              ].map(
-                (link, idx, arr) => {
-                  const isSignout = link.key === "signout";
-                  const confirming = isSignout && confirmSignOut;
-                  const label = confirming ? "Tap again to sign out" : link.label;
-                  const sub = confirming
-                    ? "This logs you out of this device"
-                    : link.sub;
-                  return (
-                  <li key={link.key}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isSignout) {
-                          // First tap arms the destructive action; only the
-                          // second tap actually signs out. signOut tears down
-                          // push + caches, then the route guard sends us to
-                          // /login; navigate just makes it immediate.
-                          if (!confirmSignOut) {
-                            setConfirmSignOut(true);
-                            return;
-                          }
-                          void signOut().then(() =>
-                            navigate("/login", { replace: true }),
-                          );
-                          return;
-                        }
-                        navigate(link.to);
-                      }}
+                    <div
                       className={
-                        "flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition-colors" +
-                        (confirming
-                          ? " bg-rose-50 active:bg-rose-100 dark:bg-rose-950/50 dark:active:bg-rose-950"
-                          : " active:bg-[var(--surface-2)]") +
-                        (idx === arr.length - 1
-                          ? ""
-                          : " border-b border-[var(--divider)]")
+                        "font-display text-[26px] font-black leading-none tracking-tight " +
+                        card.countColor
                       }
                     >
-                      <span
-                        className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl text-white"
-                        style={{ backgroundColor: link.color }}
-                      >
-                        <link.Icon size={18} strokeWidth={2} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div
-                          className={
-                            "truncate font-display text-[15px] font-bold" +
-                            (confirming
-                              ? " text-rose-700 dark:text-rose-300"
-                              : " text-[var(--text)]")
-                          }
-                        >
-                          {label}
-                        </div>
-                        <div
-                          className={
-                            "mt-0.5 text-[12px]" +
-                            (confirming
-                              ? " text-rose-600 dark:text-rose-400"
-                              : " text-[var(--text-muted)]")
-                          }
-                        >
-                          {sub}
-                        </div>
+                      {card.count}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* This week: sample-only glance, demo view only. */}
+            {isDemo && (
+              <>
+                <div className="px-[22px] pb-2 pt-6">
+                  <span className="sec-kicker">This week</span>
+                </div>
+                <div className="mx-[22px] grid grid-cols-3 gap-2.5">
+                  {weekTiles.map((tile) => (
+                    <div
+                      key={tile.key}
+                      className="rounded-[18px] border border-[var(--border)] bg-[var(--surface)] px-3 py-3.5 text-center"
+                    >
+                      <div className="font-display text-[22px] font-black leading-none text-[var(--text)]">
+                        {tile.value}
                       </div>
-                      <ChevronRight
-                        size={18}
-                        className={
-                          confirming
-                            ? "text-rose-400 dark:text-rose-500"
-                            : "text-[var(--text-faint)]"
-                        }
-                      />
-                    </button>
-                  </li>
-                  );
-                },
-              )}
-            </ul>
+                      <div className="mt-1.5 text-[11px] font-medium text-[var(--text-muted)]">
+                        {tile.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
             {/* Recent activity (webhook-sourced). Empty until events arrive. */}
             <div className="flex items-baseline justify-between px-[22px] pb-2 pt-6">
