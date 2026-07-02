@@ -44,6 +44,26 @@ body,
   height: 100%;
 }
 
+/* App-like feel on mobile: no rubber-band overscroll, no double-tap zoom.
+   Pinch-zoom is disabled via the viewport meta (respected in installed PWA /
+   standalone mode). */
+html,
+body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+/* iOS auto-zooms toward any focused field whose text is under 16px, then leaves
+   the view zoomed in. A 16px floor on form controls stops that focus-zoom even
+   in a raw Safari tab where user-scalable is ignored. Desktop is unaffected. */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 /* #root is a flex column so app-wide banners (preview / demo / offline) sit as a
    real top bar in normal flow and the app fills the space below them, instead of
    a fixed banner overhanging the first row of content. Inert when no banner shows
