@@ -1,3 +1,13 @@
+> ## Run this build (read first)
+>
+> You are a Claude instance executing this plan autonomously.
+>
+> 1. `git pull origin main`, then create a **git worktree** for this build (invoke the `using-git-worktrees` skill).
+> 2. Read this whole doc, especially the **Isolation contract** at the bottom.
+> 3. **This is a RESEARCH spike.** Run the probes (read-only, via the `ghl` CLI in `gohighlevel-cli/`), then write your findings and the chosen wiring option into THIS doc and STOP. Do not edit app code, and do not build unless the decision gate in this doc says the real data exists.
+> 4. If (and only if) the gate says build: you will touch `src/lib/leadsHub.ts` and the Leads components, which the action-wiring build also edits, so do the build phase AFTER action-wiring has merged to main. Any demo change goes in `src/demo/handlers/followups.ts`, never in `src/demo/handler.ts`. Never use em dashes anywhere.
+> 5. Report your findings, the recommended option, and whether it is worth building.
+
 # Follow-up automation: real-data research spike + plan
 
 Status: RESEARCH ONLY. No app code changes. Output of the spike decides which of two
@@ -67,7 +77,7 @@ Run in order. Stop early if a higher-priority probe already returns step history
 Public API base `https://services.leadconnectorhq.com`. The `ghl` CLI covers most of
 these; raw `curl` where the CLI has no subcommand.
 
-**P0 — What workflows even exist (baseline for `SEQ`).**
+**P0, What workflows even exist (baseline for `SEQ`).**
 - `ghl --json workflows list` (CLI wraps `GET /workflows/?locationId=...`).
 - Record: the nurture workflow name(s) for Paid Ads SMS and Estimate-Forms email+SMS,
   their ids, and each one's ordered steps/channels/delays. This is what `SEQ` must match.
@@ -75,7 +85,7 @@ these; raw `curl` where the CLI has no subcommand.
   public list has no steps, step definitions come from the internal API or by reading the
   builder in GHL by hand.
 
-**P1 — Does a contact expose its active workflows/campaigns? (field (a))**
+**P1, Does a contact expose its active workflows/campaigns? (field (a))**
 - `ghl --json contacts get --contact-id <id>` (`GET /contacts/{id}`). Inspect the payload
   for any `workflows`, `campaigns`, `activeWorkflows`, or enrolment array.
 - Also probe undocumented sub-resources by raw call:
@@ -85,25 +95,25 @@ these; raw `curl` where the CLI has no subcommand.
   workflow API the CLI exposes is list / enroll / remove only. There is no documented
   "read a contact's enrolments," so expect this to come back empty and force P3/P4.)
 
-**P2 — Step / status within a workflow (field (b)).**
+**P2, Step / status within a workflow (field (b)).**
 - Probe for any per-enrolment status: `GET /workflows/{workflowId}` (does it return the
   contact's position?), and any `.../executions`, `.../history`, `.../status` variants.
 - Record: is there ANY per-contact "current step" value in the public API. Expected: no.
 
-**P3 — Message thread as a reply + last-outbound proxy (field (c), and a `sent` proxy).**
+**P3, Message thread as a reply + last-outbound proxy (field (c), and a `sent` proxy).**
 - `ghl --json conversations messages ...` and the app's existing
   `GET /api/conversations/:contactId/messages`.
 - Count outbound automated messages (a `sent` proxy) and find the first inbound message
   timestamp (a `respondedAt` / "replied" proxy). Confirm whether messages flag automation
   vs human send (an `auto` marker) so we do not count a rep's manual text as a nurture step.
 
-**P4 — Pipeline stage as the outcome + reply signal (field (c) fallback).**
+**P4, Pipeline stage as the outcome + reply signal (field (c) fallback).**
 - `ghl --json opportunities get --opportunity-id <id>` and the live stage names from
   `wire-sales-endpoints.md` (Paid Ad's Pipeline stages: Lead In -> Lead Responded ->
   ... -> Estimate Scheduled). "Lead Responded" / "Estimate Scheduled" stages already
   encode replied / booked. Map stage -> `outcome`.
 
-**P5 — Internal / Firebase API (last resort for true step history).**
+**P5, Internal / Firebase API (last resort for true step history).**
 - Using the agency Firebase token (see `gohighlevel-cli/docs/get-firebase-token.md`),
   probe the internal endpoints the workflow BUILDER hits for any per-contact execution /
   enrolment history. The README states the internal API can do what the public one cannot
@@ -113,7 +123,7 @@ these; raw `curl` where the CLI has no subcommand.
 
 ## 4. Two wiring options
 
-### Option A — Full workflow step history (only if P1+P2, or P5, return real enrolment + step)
+### Option A, Full workflow step history (only if P1+P2, or P5, return real enrolment + step)
 - New server endpoint enriches each lead with `{ workflowId, currentStep, repliedStep }`
   from whichever probe succeeded, joined onto `GET /api/sales/leads`.
 - Map directly: `sent = currentStep`, `respondedAt = repliedStep`, `outcome` from
@@ -122,7 +132,7 @@ these; raw `curl` where the CLI has no subcommand.
 - Preferred: it is the only option that is literally correct per step. Depends entirely
   on the spike finding a step-history source.
 
-### Option B — Inferred from pipeline movement + last-inbound message (fallback, no step history)
+### Option B, Inferred from pipeline movement + last-inbound message (fallback, no step history)
 Use only P3 + P4, which we know exist. Derive `fu` heuristically server-side:
 - **`respondedAt` / replied:** first inbound message timestamp exists -> the lead replied.
   Map it to the nearest `SEQ` step by comparing the inbound time to each step's delay
@@ -155,12 +165,12 @@ In all three, P0 is mandatory first: `SEQ.ad` / `SEQ.form` must stop being place
 regardless of which option wins.
 
 ## 6. References
-- `command-center/app/src/lib/leadsHub.ts` — `FollowUp`, `SEQ`, `automationNote`, `mapApiSalesLead`.
-- `command-center/app/src/routes/sales/LeadsHub.tsx` — `FuDots`, `FuChip`, `FuTrack` renderers.
-- `command-center/app/functions/lib/ghl.ts` — `fetchAllOpportunities`, `shapeOpportunity`, `ApiLead`.
-- `command-center/app/docs/connections/leads.md` — the known gap + automations to honour.
-- `docs/build-plans/wire-sales-endpoints.md` — pipeline/stage names, the note that the tracker stays on demo.
-- `gohighlevel-cli/README.md` + `docs/get-firebase-token.md` — public vs internal API, workflow commands (list/enroll/remove only on public).
+- `command-center/app/src/lib/leadsHub.ts`, `FollowUp`, `SEQ`, `automationNote`, `mapApiSalesLead`.
+- `command-center/app/src/routes/sales/LeadsHub.tsx`, `FuDots`, `FuChip`, `FuTrack` renderers.
+- `command-center/app/functions/lib/ghl.ts`, `fetchAllOpportunities`, `shapeOpportunity`, `ApiLead`.
+- `command-center/app/docs/connections/leads.md`, the known gap + automations to honour.
+- `docs/build-plans/wire-sales-endpoints.md`, pipeline/stage names, the note that the tracker stays on demo.
+- `gohighlevel-cli/README.md` + `docs/get-firebase-token.md`, public vs internal API, workflow commands (list/enroll/remove only on public).
 
 ---
 

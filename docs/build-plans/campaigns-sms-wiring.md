@@ -1,4 +1,15 @@
-# Campaigns — wire the SMS side to real GoHighLevel
+> ## Run this build (read first)
+>
+> You are a Claude instance executing this plan autonomously, start to finish.
+>
+> 1. `git pull origin main`, then create a **git worktree** for this build (invoke the `using-git-worktrees` skill) so you never collide with the other parallel builds.
+> 2. Read this whole doc, especially the **Isolation contract** at the bottom. Only create or edit the files it says you own. Put demo cases in `src/demo/handlers/campaigns.ts` and match ONLY `/api/campaigns/audiences|send|stats` (never `/api/campaigns/reactivation`, already handled). Never edit `src/demo/handler.ts`.
+> 3. **Run spike S2 FIRST** (confirm the GHL SMS-blast / send mechanism works from a Pages Function). If SMS send is not doable server-side, STOP and report. Email is OUT of scope (waits on a sending domain).
+> 4. Build to the wiring contract: real session calls `api('/api/...')` to a Pages Function to GHL; demo session hits the handler. Resolve GHL pipelines/stages BY NAME. Send is a terminal action: gated and demo-aware. Never name GoHighLevel in client-facing UI. A real client never sees fabricated data. Never use em dashes anywhere.
+> 5. Verify from `command-center/app`: `npm run typecheck`, `npm test`, `npm run build`, and walk the surface at `?demo=1`. No "should work" without running it.
+> 6. Ship: stage ONLY your files, commit, rebase on main, `git push origin main`, watch the live bundle hash change (`curl -s https://hauck-dashboard.pages.dev/ | grep -oE 'index-[A-Za-z0-9_-]+\.js'`), then grep the new bundle for a string you shipped. Report what shipped, the spike result, and anything left.
+
+# Campaigns: wire the SMS side to real GoHighLevel
 
 Combined spec + plan. Wire the client Campaigns section so the SMS half runs on
 real customer data and can actually send. Email blasts are explicitly deferred
@@ -85,7 +96,7 @@ All under `src/routes/campaigns/` unless noted. Tabs come from
 | Audiences | `CampaignsAudiences.tsx` | Real segments + counts (grid), member sample in `AudienceDetailDialog`. This is the highest-value, most-certain piece. |
 | Templates | `CampaignsTemplates.tsx` | No backend change. Stays demo-only starter set; "New template" stays disabled. |
 | Reactivation | (already wired) | Out of scope, already live via `/api/campaigns/reactivation`. |
-| What's working | `CampaignsInsights.tsx` | SMS summary KPIs + top SMS campaigns from stats; email KPI stays "—" in a real session. |
+| What's working | `CampaignsInsights.tsx` | SMS summary KPIs + top SMS campaigns from stats; email KPI stays "-" in a real session. |
 | New campaign dialog | `components/campaigns/NewCampaignDialog.tsx` | Audience list from real segments; SMS Send wired + gated; email path untouched (disabled Send). |
 
 Shared consts + types live in `src/routes/campaigns/shared.tsx`
@@ -110,12 +121,12 @@ Returns the smart segments + counts + a small member sample.
 
 - Fetch `fetchAllContacts(ctx)` and `fetchAllOpportunities(ctx)`.
 - Derive segments in code (mirror `DEMO_AUDIENCES` ids/names):
-  - `all` — every contact with a phone on file (SMS needs a phone).
-  - `past` — no opportunity/job in last 12 months.
-  - `vip` — 3+ opportunities.
-  - `new` — first opportunity within 60 days.
-  - `fivestar` — SPIKE S3 (needs a review/rating signal; likely a tag).
-  - `noac` — SPIKE S3 (trade-specific; likely a tag or custom field).
+  - `all`, every contact with a phone on file (SMS needs a phone).
+  - `past`, no opportunity/job in last 12 months.
+  - `vip`, 3+ opportunities.
+  - `new`, first opportunity within 60 days.
+  - `fivestar`, SPIKE S3 (needs a review/rating signal; likely a tag).
+  - `noac`, SPIKE S3 (trade-specific; likely a tag or custom field).
 - Response: `{ audiences: { id, name, count, desc, sample: {name, sub,
   initials}[] }[], configError? }`. Reuse the demo `desc` copy.
 - SPIKE S1: confirm the exact segment field logic against real Willis data
@@ -124,7 +135,7 @@ Returns the smart segments + counts + a small member sample.
   tag mapping. Ship the certain four first; gate the tag-based two behind a
   found-or-omitted check (omit a segment rather than show a wrong count).
 
-### 3b. `POST /api/campaigns/send` — SPIKE S2, terminal + gated
+### 3b. `POST /api/campaigns/send`, SPIKE S2, terminal + gated
 
 Body: `{ audienceId: string, channel: "sms", body: string }`. (Email is
 rejected here in v1: return `{ error: "email_deferred" }` 400 if
@@ -152,13 +163,13 @@ Idempotency: generate a `campaignId` server-side and tag each contact
 (`campaign:<id>`) or record it so a double-submit does not double-text. SPIKE
 S2 covers whether we persist campaigns (Supabase) or rely on a GHL tag.
 
-### 3c. `GET /api/campaigns/stats` — SPIKE S5
+### 3c. `GET /api/campaigns/stats`, SPIKE S5
 
 Powers Overview KPIs, the list results, and What's-working. Returns SMS-only
 counts: `{ sentThisMonth, replies, jobsBooked, campaigns: {id, title, sentAt,
 sent, replies, result}[] }`.
 
-- `sent` / `replies`: SPIKE S5 — confirm the GHL source. Likely derive from
+- `sent` / `replies`: SPIKE S5, confirm the GHL source. Likely derive from
   `/conversations/search` outbound-SMS counts filtered by a campaign tag, or
   from the campaign/bulk-action report endpoint if Option B is chosen.
 - `jobsBooked`: reuse the opportunity/attribution join already used elsewhere
@@ -177,16 +188,16 @@ for SMS (A2P sender already registered in GHL). No `ANTHROPIC_API_KEY` needed
 
 ### Backend
 
-1. `functions/api/campaigns/audiences.ts` (new) — `onRequestGet`. Section 3a.
+1. `functions/api/campaigns/audiences.ts` (new), `onRequestGet`. Section 3a.
    Copy structure from `reactivation.ts`.
-2. `functions/api/campaigns/send.ts` (new) — `onRequestPost`. Section 3b,
+2. `functions/api/campaigns/send.ts` (new), `onRequestPost`. Section 3b,
    Option A. Reuse `sendChannelMessage`. Reject `channel === "email"`.
-3. `functions/api/campaigns/stats.ts` (new) — `onRequestGet`. Section 3c.
+3. `functions/api/campaigns/stats.ts` (new), `onRequestGet`. Section 3c.
    Ship with a graceful `configError` fallback.
 
 ### Frontend shared shapes
 
-4. `src/lib/campaigns.ts` (new) — export `ApiAudience`, `ApiCampaignStats`,
+4. `src/lib/campaigns.ts` (new), export `ApiAudience`, `ApiCampaignStats`,
    `SendCampaignInput`, and `DEMO_AUDIENCES_DATA` / `DEMO_CAMPAIGN_STATS`
    fixtures (mirror `src/lib/reactivation.ts`). Keep the demo values in sync
    with the existing `DEMO_AUDIENCES` / `DEMO_INSIGHTS` in `shared.tsx` (or
@@ -194,21 +205,21 @@ for SMS (A2P sender already registered in GHL). No `ANTHROPIC_API_KEY` needed
 
 ### Frontend hooks
 
-5. `src/hooks/useAudiences.ts` (new) — `useQuery(['campaigns','audiences'])`
+5. `src/hooks/useAudiences.ts` (new), `useQuery(['campaigns','audiences'])`
    -> `api('/api/campaigns/audiences')`. Mirror `useReactivation.ts`.
-6. `src/hooks/useCampaignStats.ts` (new) — `useQuery(['campaigns','stats'])`
+6. `src/hooks/useCampaignStats.ts` (new), `useQuery(['campaigns','stats'])`
    -> `api('/api/campaigns/stats')`.
-7. `src/hooks/useSendCampaign.ts` (new) — `useMutation` ->
+7. `src/hooks/useSendCampaign.ts` (new), `useMutation` ->
    `api('/api/campaigns/send', { method:'POST', body })`. On success invalidate
    `['campaigns','stats']`.
 
 ### Frontend surface switches (real -> hook, demo -> unchanged fixture)
 
-8. `CampaignsAudiences.tsx` — replace the `DEMO_AUDIENCES` map with
+8. `CampaignsAudiences.tsx`, replace the `DEMO_AUDIENCES` map with
    `useAudiences(!demo)`; in demo keep the current fixture render. Real session
    with `configError` / empty -> keep `NotConnectedNotice` + `EmptyState`.
    Feed the real audience into `AudienceDetailDialog` (member sample).
-9. `NewCampaignDialog.tsx` — audience step lists real segments (from
+9. `NewCampaignDialog.tsx`, audience step lists real segments (from
    `useAudiences`) in a real session, demo fixture in demo. Wire the final Send
    button:
    - Email channel: leave Send disabled exactly as now (deferred).
@@ -217,15 +228,15 @@ for SMS (A2P sender already registered in GHL). No `ANTHROPIC_API_KEY` needed
      the demo handler); real -> `useSendCampaign` mutate, then a success toast
      with the queued count and close. Keep the "Sending turns on once your
      account is connected" note only when the capability is absent.
-10. `CampaignsOverview.tsx` / `CampaignsList.tsx` / `CampaignsInsights.tsx` —
+10. `CampaignsOverview.tsx` / `CampaignsList.tsx` / `CampaignsInsights.tsx` -
     swap `SAMPLE_KPIS` / `DEMO_INSIGHTS` / `DEMO_CAMPAIGNS` for
     `useCampaignStats(!demo)` in a real session; demo keeps its fixtures. Only
-    populate SMS figures; email KPI stays "—"/empty in a real session. Preserve
+    populate SMS figures; email KPI stays "-"/empty in a real session. Preserve
     every existing empty state.
 
 ### Demo handler
 
-11. `src/demo/handler.ts` — add cases (place near the existing
+11. `src/demo/handler.ts`, add cases (place near the existing
     `/api/campaigns/reactivation` line):
     - `GET /api/campaigns/audiences` -> `return r(DEMO_AUDIENCES_DATA)`.
     - `GET /api/campaigns/stats` -> `return r(DEMO_CAMPAIGN_STATS)`.
@@ -277,7 +288,7 @@ for SMS (A2P sender already registered in GHL). No `ANTHROPIC_API_KEY` needed
   segment. The four count-derivable segments (all/past/vip/new) are safe;
   `fivestar` + `noac` need a tag/custom-field. Omit any segment we cannot
   compute rather than guess.
-- S2 (send mechanism — the critical one): confirm the GHL SMS-blast path before
+- S2 (send mechanism, the critical one): confirm the GHL SMS-blast path before
   building. Verify Option A (per-contact loop over
   `POST /conversations/messages` via `sendChannelMessage`) actually delivers to
   multiple contacts and respects rate limits, versus Option B (a GHL

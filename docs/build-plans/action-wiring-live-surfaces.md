@@ -1,3 +1,14 @@
+> ## Run this build (read first)
+>
+> You are a Claude instance executing this plan autonomously, start to finish.
+>
+> 1. `git pull origin main`, then create a **git worktree** for this build (invoke the `using-git-worktrees` skill) so you never collide with the other parallel builds.
+> 2. Read this whole doc, especially the **Isolation contract** at the bottom. Only create or edit the files it says you own. Put demo cases in `src/demo/handlers/<feature>.ts` (auto-registered; template in `src/demo/handlers/reactivation.ts`), never in `src/demo/handler.ts`.
+> 3. **Build Phase 1 first** (stage moves, log-outcome notes, sends): it has no external blocker. Phases 2-3 have spikes (appointment / invoice endpoints, "pause nurture"); run those spikes before building, and if a GHL endpoint does not exist, report and skip that one action rather than faking it.
+> 4. Build to the wiring contract: real session calls `api('/api/...')` to a Pages Function to GHL; demo session hits the handler. Resolve GHL pipelines/stages BY NAME (id fallback). Terminal actions stay gated and demo-aware. A real client never sees fabricated data. Never use em dashes anywhere.
+> 5. Verify from `command-center/app`: `npm run typecheck`, `npm test`, `npm run build`, and walk the surface at `?demo=1`. No "should work" without running it.
+> 6. Ship: stage ONLY your files, commit, rebase on main, `git push origin main` (your files are disjoint from the other builds so it merges clean), watch the live bundle hash change (`curl -s https://hauck-dashboard.pages.dev/ | grep -oE 'index-[A-Za-z0-9_-]+\.js'`), then grep the new bundle for a string you shipped. Report what shipped, any spike results, and anything left.
+
 # Wire the write actions on already-live surfaces
 
 Package: `command-center/app` (the one responsive app: desktop sidebar + phone

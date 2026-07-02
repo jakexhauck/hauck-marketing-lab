@@ -1,3 +1,14 @@
+> ## Run this build (read first)
+>
+> You are a Claude instance executing this plan autonomously, start to finish.
+>
+> 1. **DEPENDENCY CHECK FIRST:** this needs the Social AND Campaigns endpoints merged to main. Confirm `functions/api/social/*` and `functions/api/campaigns/*` exist on main. If they do not, STOP and report that you are blocked on those two builds. Do not proceed.
+> 2. `git pull origin main`, then create a **git worktree** for this build (invoke the `using-git-worktrees` skill).
+> 3. Read this whole doc, especially the **Isolation contract** at the bottom. Only edit the files it says you own. Put any new demo overlay in `src/lib/calendarDemo.ts` (which you own), never in `src/demo/handler.ts`.
+> 4. Build to the wiring contract: map the live Social + Campaigns feeds into `CalendarItem`s, merge them into the real branch of `useCalendarItems`, and flip the `connected` flags only when a feed returns rows. Keep the demo branch intact. Never use em dashes anywhere.
+> 5. Verify from `command-center/app`: `npm run typecheck`, `npm test` (add a `calendarModel.test.ts` case for the new mappers), `npm run build`, and walk the calendar at `?demo=1`.
+> 6. Ship: stage ONLY your files, commit, rebase on main, `git push origin main`, watch the live bundle hash change, then grep the new bundle for a string you shipped. Report what shipped and anything left.
+
 # Calendar: light up the Social + Campaign streams
 
 Spec + plan for wiring the unified Company calendar's `social` and `campaign` overlay streams to
@@ -27,10 +38,10 @@ rows.
 ## 2. Dependency: Social + Campaigns endpoints (blocking)
 
 This work maps feeds it does not create. It is **blocked** until those feeds land, planned separately:
-- **Social:** `docs/build-plans/social-wiring.md` — must expose scheduled social posts (a query hook,
+- **Social:** `docs/build-plans/social-wiring.md`, must expose scheduled social posts (a query hook,
   e.g. `useSocialPostsQuery`, over a `/api/social/posts` Pages Function) returning each post's
   scheduled time, title/caption, and channel(s).
-- **Campaigns:** `docs/build-plans/campaigns-sms-wiring.md` — must expose scheduled campaign sends (a
+- **Campaigns:** `docs/build-plans/campaigns-sms-wiring.md`, must expose scheduled campaign sends (a
   query hook, e.g. `useCampaignSendsQuery`, over `/api/campaigns/sends`) returning each send's time,
   name, channel (email/SMS), and audience size.
 
@@ -64,7 +75,7 @@ interface ApiCampaignSend {
 
 ## 3. File-by-file steps
 
-### A. `src/lib/calendarModel.ts` — two new mappers
+### A. `src/lib/calendarModel.ts`, two new mappers
 
 Add after `jobToItem`. Reuse the existing `localParts(iso, tz)` + `minutesToLabel` helpers already in
 this file (same pattern as `appointmentToItem`) so timezone handling stays consistent. Import the two
@@ -98,7 +109,7 @@ row types from `./api`.
 Keep both mappers pure (no React, no fetch) so they are unit-testable in isolation, matching
 `appointmentToItem` / `jobToItem`.
 
-### B. `src/hooks/useCalendarItems.ts` — merge + connected flags
+### B. `src/hooks/useCalendarItems.ts`, merge + connected flags
 
 1. Import the two new mappers and the two new query hooks:
    ```ts
@@ -125,7 +136,7 @@ Keep both mappers pure (no React, no fetch) so they are unit-testable in isolati
    Reuse the same `tz` already derived from `apptQuery.data?.timezone` so all streams share one
    timezone (feeds return UTC ISO; local placement is consistent).
 5. Merge into `items`: `[...appts, ...jobItems, ...socialItems, ...campaignItems]`.
-6. Connected flags — flip on only when rows land:
+6. Connected flags, flip on only when rows land:
    ```ts
    connected: {
      appointment: true,
@@ -140,7 +151,7 @@ Keep both mappers pure (no React, no fetch) so they are unit-testable in isolati
    not blank the whole calendar). Add `social.data`, `campaigns.data`, and any loading flags used to
    the `useMemo` dependency array.
 
-### C. `docs/connections/calendar.md` — status
+### C. `docs/connections/calendar.md`, status
 
 Flip **Social posts** and **Campaign sends** from ❌ to ✅ once wired; update the "Data source" lines
 to name the real endpoints/hooks and note that `connected.*` flips automatically on non-empty feed.
@@ -165,7 +176,7 @@ from the existing `--source-social` / `--source-campaign` tokens in `index.css` 
 
 ## 5. Verification
 
-1. **Unit — new `src/lib/calendarModel.test.ts`** (vitest; `npm run test`). No test file exists in the
+1. **Unit, new `src/lib/calendarModel.test.ts`** (vitest; `npm run test`). No test file exists in the
    app yet, so this is the first; keep it a plain mapper test (pure functions, no React):
    - `socialPostToItem`: given a row with `scheduledTime` + two channels + a `tz`, assert `id`,
      `source: "social"`, `date`, `startMinutes`, `timeLabel`, `title`, and the `" + "`-joined

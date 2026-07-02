@@ -1,3 +1,14 @@
+> ## Run this build (read first)
+>
+> You are a Claude instance executing this plan autonomously, start to finish.
+>
+> 1. `git pull origin main`, then create a **git worktree** for this build (invoke the `using-git-worktrees` skill) so you never collide with the other parallel builds.
+> 2. Read this whole doc, especially the **Isolation contract** at the bottom. Only create or edit the files it says you own. Put demo cases in `src/demo/handlers/social.ts` (auto-registered; template in `src/demo/handlers/reactivation.ts`), never in `src/demo/handler.ts`.
+> 3. **Run the Task-0 spike FIRST** (confirm the GHL Social Planner endpoints work with the tenant token, via the `ghl` CLI in `gohighlevel-cli/`). If they return nothing, STOP and report; do not build against an unproven API. The Insights tab has no known public analytics endpoint, so treat it as the riskiest and do it last.
+> 4. Build to the wiring contract: real session calls `api('/api/...')` to a Pages Function to GHL; demo session hits the handler. Resolve GHL pipelines/stages BY NAME. Terminal actions (schedule/publish) stay gated and demo-aware. A real client never sees fabricated posts. Never use em dashes anywhere.
+> 5. Verify from `command-center/app`: `npm run typecheck`, `npm test`, `npm run build`, and walk the surface at `?demo=1`. No "should work" without running it.
+> 6. Ship: stage ONLY your files, commit, rebase on main, `git push origin main`, watch the live bundle hash change (`curl -s https://hauck-dashboard.pages.dev/ | grep -oE 'index-[A-Za-z0-9_-]+\.js'`), then grep the new bundle for a string you shipped. Report what shipped, the spike result, and anything left.
+
 # Social wiring: client Social section to real GHL Social Planner
 
 Combined spec + plan. PLAN ONLY. No app code changes until this is approved and Task 0 passes.

@@ -1,3 +1,14 @@
+> ## Run this build (read first)
+>
+> You are a Claude instance executing this plan autonomously, start to finish.
+>
+> 1. `git pull origin main`, then create a **git worktree** for this build (invoke the `using-git-worktrees` skill) so you never collide with the other parallel builds.
+> 2. Read this whole doc, especially the **Isolation contract** at the bottom. Only create or edit the files it says you own. No demo-handler change is needed here (the demo already returns `demoAdsInsights()`).
+> 3. **Run the attribution spike FIRST** (confirm how Meta ad leads are identifiable in GHL: utm custom fields vs the Paid Ad's Pipeline vs a tag, via the `ghl` CLI). Build the revenue join only once you know the signal; otherwise report the finding. NOTE: this plan runs a PROD Supabase migration, so double-check the SQL and the target row before applying it.
+> 4. Build to the wiring contract: read `ctx.data.tenant` for the per-tenant account (already populated by `_middleware.ts`, do not edit it). Resolve GHL pipelines/stages BY NAME. A real client never sees fabricated numbers; unknowns stay zero. Never use em dashes anywhere.
+> 5. Verify from `command-center/app`: `npm run typecheck`, `npm test`, `npm run build`, and walk Paid Ads at `?demo=1`. Test the endpoint's Graph/GHL calls against the real account where you can. No "should work" without running it.
+> 6. Ship: stage ONLY your files, commit, rebase on main, `git push origin main`, watch the live bundle hash change (`curl -s https://hauck-dashboard.pages.dev/ | grep -oE 'index-[A-Za-z0-9_-]+\.js'`), then grep the new bundle for a string you shipped. Report what shipped, the spike result, and anything left.
+
 # Paid Ads: GHL revenue join, real thumbnails, per-tenant ad account
 
 Spec + plan for three follow-ups on the just-shipped Paid Ads Meta wiring
