@@ -8,24 +8,30 @@
 // value (read from .env.local) in a single PATCH, so nothing gets blanked, and
 // preserves the plain build vars (NODE_VERSION, etc.) as-is.
 //
-// Usage (from command-center/app):
-//   node scripts/cf-rebind.mjs --dry     # show exactly what would change, write nothing
-//   node scripts/cf-rebind.mjs           # apply, then redeploy to pick it up
+// Source of truth for the values: Doppler if available (preferred), else
+// .env.local. Pass --from-doppler to force Doppler.
 //
-// It only rebinds keys that ALREADY exist in production AND have a value in
-// .env.local. Secrets missing from .env.local are listed so you can add them
+// Usage (from command-center/app):
+//   node scripts/cf-rebind.mjs --dry            # preview, write nothing
+//   node scripts/cf-rebind.mjs                  # apply, then redeploy to pick it up
+//   node scripts/cf-rebind.mjs --from-doppler   # pull values from Doppler, not .env.local
+//
+// It only rebinds keys that ALREADY exist in production AND have a value in the
+// chosen source. Secrets missing from the source are listed so you can add them
 // and rerun. Values are never printed.
 
 import { readFileSync, existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const APP_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 const API = "https://api.cloudflare.com/client/v4";
 const DRY = process.argv.includes("--dry");
+const FROM_DOPPLER = process.argv.includes("--from-doppler");
 
-function loadEnv() {
-  const env = { ...process.env };
+function readDotEnv() {
+  const out = {};
   const file = join(APP_DIR, ".env.local");
   if (existsSync(file)) {
     for (const line of readFileSync(file, "utf8").split("\n")) {
@@ -33,10 +39,46 @@ function loadEnv() {
       if (!t || t.startsWith("#")) continue;
       const eq = t.indexOf("=");
       if (eq < 0) continue;
-      const k = t.slice(0, eq).trim();
-      if (env[k] === undefined) env[k] = t.slice(eq + 1).trim();
+      out[t.slice(0, eq).trim()] = t.slice(eq + 1).trim();
     }
   }
+  return out;
+}
+
+// Pull every secret value from Doppler as JSON. Needs the `doppler` CLI + either
+// an authenticated `doppler setup` in this dir or DOPPLER_TOKEN in the env.
+function readDoppler() {
+  const raw = execFileSync(
+    "doppler",
+    ["secrets", "download", "--no-file", "--format", "json"],
+    { cwd: APP_DIR, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  );
+  const parsed = JSON.parse(raw);
+  const out = {};
+  for (const [k, v] of Object.entries(parsed)) {
+    out[k] = typeof v === "object" && v ? v.computed ?? v.raw ?? "" : v;
+  }
+  return out;
+}
+
+function loadEnv() {
+  const env = { ...process.env };
+  let source = ".env.local";
+  let values = readDotEnv();
+  const dopplerReady =
+    FROM_DOPPLER || (values.SUPABASE_URL === undefined && !!env.DOPPLER_TOKEN);
+  if (dopplerReady) {
+    try {
+      values = readDoppler();
+      source = "Doppler";
+    } catch (e) {
+      if (FROM_DOPPLER) die(`Doppler read failed: ${e.message}`);
+    }
+  }
+  for (const [k, v] of Object.entries(values)) {
+    if (env[k] === undefined) env[k] = typeof v === "string" ? v.trim() : v;
+  }
+  env.__SOURCE__ = source;
   return env;
 }
 
@@ -114,17 +156,18 @@ async function main() {
   }
 
   console.log(`project: ${PROJECT}  (${(project.domains ?? []).join(", ")})`);
-  console.log(`\nwill SET ${setSecrets.length} secrets from .env.local:`);
+  console.log(`source:  ${env.__SOURCE__}`);
+  console.log(`\nwill SET ${setSecrets.length} secrets from ${env.__SOURCE__}:`);
   console.log("  " + (setSecrets.sort().join(", ") || "(none)"));
   console.log(`\nwill PRESERVE ${preservedPlain.length} plain vars:`);
   console.log("  " + (preservedPlain.sort().join(", ") || "(none)"));
   if (missingSecrets.length) {
     console.log(
-      `\n\x1b[33m⚠ ${missingSecrets.length} secrets are NOT in .env.local and will be left untouched (still blank if the outage wiped them):\x1b[0m`,
+      `\n\x1b[33m⚠ ${missingSecrets.length} secrets are NOT in ${env.__SOURCE__} and will be left untouched (still blank if the outage wiped them):\x1b[0m`,
     );
     console.log("  " + missingSecrets.sort().join(", "));
     console.log(
-      "  → add their real values to .env.local and rerun to restore them in the same safe PATCH.",
+      `  → add their real values to ${env.__SOURCE__} and rerun to restore them in the same safe PATCH.`,
     );
   }
 
