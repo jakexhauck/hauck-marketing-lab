@@ -54,29 +54,30 @@ Pipelines (real ids + key stages):
 | Team / Staff | LIVE | + silent GHL provisioning |
 | Internal team chat | LIVE | Supabase |
 | Assets | LIVE (read) | shipped 2026-07-02; shows files once the agency Drive is connected + a folder mapped (see Jake's steps) |
-| Revenue: 5 dashboard sections | SAMPLE | trend, MoM, Top Customers, YTD, Avg + a "Sample" banner (`SHOW_UNWIRED_SECTIONS`) |
-| Paid Ads: Overview / Insights / Creatives | EMPTY | leads are live; these three still need Meta wiring |
-| Reviews: Overview / Insights / All | EMPTY | review content + stars (GHL reputation / Google) |
-| Reactivation | EMPTY | real Database Reactivation pipeline exists, not read yet |
+| Revenue: 5 dashboard sections | LIVE | trend, MoM, Top Customers, YTD, Avg now derived from live invoices+transactions; banner dropped (shipped 2026-07-02 `88ae0a6`). Caveat: aggregates cap at ~1000 records/tenant |
+| Reactivation | LIVE (read) | `/api/campaigns/reactivation` reads the Database Reactivation pipeline (shipped 2026-07-02 `88ae0a6`). Send path still unwired |
+| Home: Today feed cards | LIVE | jobs + reviews cards wired to `/api/sales/jobs` + `/api/reviews` (shipped 2026-07-02 `88ae0a6`). Desktop Home is a stat-tile layout, has no jobs/reviews cards by design |
+| Calendar: jobs stream | LIVE | already wired via `jobToItem`; social/campaign overlays still demo |
+| Paid Ads: Overview / Insights / Creatives | BLOCKED (Meta) | needs a Meta System-User token as a CF secret (I can't write) + a `meta_ad_account_id` tenant field. Integration currently lives in the Tauri desktop app (Rust, hardcoded token) |
+| Reviews: Overview / Insights / All | BLOCKED (scope) | `/reputation/reviews` route exists but Willis's PIT token returns 401 "not authorized for this scope". Jake adds the reputation/reviews scope, then wireable |
 | Campaigns (all) | EMPTY | segments, list, send, stats |
 | Social (all) | EMPTY | needs accounts connected + Social Planner endpoints |
 | Website (Overview/Insights/Pages/Request) | EMPTY | GHL site/funnel data; confirm Willis uses this section |
-| Calendar: jobs / social / campaign streams | EMPTY | overlays beyond appointments |
-| Home: Today feed cards | PARTIAL | leads/messages real; jobs/reviews cards to confirm |
+| Calendar: social / campaign streams | EMPTY | overlays beyond appointments + jobs |
 | Follow-up tracker (on Leads/Forms) | DEMO | runs on the demo `fu` field; no clean GHL source yet |
 
 ---
 
 ## Remaining work, grouped
 
-### Tier 1 - I can wire now (data already exists in GHL/Meta)
+### Tier 1 - DONE (shipped 2026-07-02 `88ae0a6`)
 
-1. **Reactivation** - read the Database Reactivation pipeline into the Reactivation surface.
-2. **Reviews content** - Overview/Insights/All from the review source (GHL reputation / Google), on top of the live request action.
-3. **Paid Ads Overview / Insights / Creatives** - Meta insights (partly wired already) into the three non-leads tabs.
-4. **Revenue** - wire the 5 sample sections to real data, then set `SHOW_UNWIRED_SECTIONS = false` and drop the banner.
-5. **Home Today feed + Calendar streams** - point the jobs/reviews cards and the calendar jobs stream at the now-live endpoints.
-6. **Action wiring on live surfaces** (below).
+1. ~~**Reactivation**~~ - LIVE. `/api/campaigns/reactivation` over the Database Reactivation pipeline.
+2. **Reviews content** - BLOCKED on token scope (see below), not a code gap.
+3. **Paid Ads Overview / Insights / Creatives** - BLOCKED on a Meta CF secret + tenant field (see below).
+4. ~~**Revenue**~~ - LIVE. 5 sections derived from live invoices+transactions; banner dropped.
+5. ~~**Home Today feed + Calendar jobs stream**~~ - LIVE. jobs/reviews cards + calendar jobs stream all wired.
+6. **Action wiring on live surfaces** - still open (below).
 
 ### Tier 2 - needs something from Jake (external)
 
@@ -120,6 +121,19 @@ writes + conversation sends already exist and can be reused):
 2. Admin app -> Assets -> Connect Google Drive -> authorize the agency Google account.
 3. Admin app -> Assets -> map a Drive folder to the Willis tenant (Client Drives / client-folders).
 4. Open Willis client app -> Assets and confirm real files + download work.
+
+### Newly-identified unblocks (from the 2026-07-02 Tier-1 wiring)
+
+- **Reviews content** (to light up Reviews Overview/Insights/All): in GHL, add the
+  **reputation / reviews** scope to Willis's Private Integration Token (Settings ->
+  Private Integrations). Verified: `GET /reputation/reviews` returns 401
+  "not authorized for this scope" today; once scoped I wire the content.
+- **Paid Ads Meta tabs** (Overview/Insights/Creatives): (a) Jake sets a Meta
+  System-User token as a CF secret (`cf.mjs env:set META_SYSTEM_USER_TOKEN ...`,
+  I'll hand the exact line), and (b) we add a `meta_ad_account_id` column to the
+  tenants table (from `media-buying/data/clients.yaml`). Then a new
+  `/api/ads/insights` Pages Function ports the graph.facebook.com calls from the
+  Tauri app's `meta_ads.rs`.
 
 ### Deferred / when needed
 
