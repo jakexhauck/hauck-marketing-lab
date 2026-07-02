@@ -19,7 +19,7 @@
 // keep the exported shape intact: the UI reads only `InboxDataset`.
 // ===========================================================================
 
-import type { InboxDataset, InboxLead } from "./leadInbox";
+import { mapInboxRow, type ApiInboxRow, type InboxDataset, type InboxLead } from "./leadInbox";
 
 // --- Hand-authored demo inbox ------------------------------------------------
 // Window-cleaning estimate requests for Willis Windows (Metro Detroit). Covers
@@ -248,11 +248,15 @@ export const ESTIMATE_LEADS: InboxLead[] = [
   },
 ];
 
-// The dataset the page reads. In a real (non-demo) session there is no feed yet,
-// so `leads` is empty and the page shows its not-connected state.
-export function buildEstimateForms(demo: boolean): InboxDataset {
+// The dataset the page reads. Demo passes the hand-authored inbox through
+// unchanged; a real session maps the live Organic-pipeline submissions
+// (source = "Website Form") from GET /api/forms/submissions?source=website-form.
+export function buildEstimateForms(demo: boolean, raw?: unknown[]): InboxDataset {
+  const rows = raw ?? [];
   return {
-    leads: demo ? ESTIMATE_LEADS : [],
+    leads: demo
+      ? (rows as InboxLead[])
+      : (rows as ApiInboxRow[]).map(mapInboxRow),
     demo,
   };
 }

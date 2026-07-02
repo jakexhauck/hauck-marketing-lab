@@ -111,8 +111,8 @@ export default function ConversationInbox({
 
   const gated = () => showToast(config.gatedNote);
 
-  // --- Empty / not-connected (real session) ---------------------------------
-  if (!data.demo || leads.length === 0) {
+  // --- Empty / not-connected (no leads to show) -----------------------------
+  if (leads.length === 0) {
     return (
       <Shell>
         <div className="flex min-h-0 w-full flex-1 flex-col px-5 pb-12 pt-6 lg:px-6">

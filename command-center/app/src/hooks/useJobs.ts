@@ -1,14 +1,23 @@
-import { useMemo } from "react";
-import { demoMode } from "../demo/demoMode";
-import { DEMO_JOBS, type Job } from "../lib/jobsPipeline";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../lib/api";
+import { type Job } from "../lib/jobsPipeline";
+
+interface JobsResponse {
+  jobs: Job[];
+  // Present when the Sales pipeline / job stages could not be resolved for the
+  // tenant; the page just shows an empty calendar in that case.
+  configError?: string;
+}
 
 // The Jobs (Sales) surface reads its work through this hook so the page stays
-// source-agnostic. Today it returns a hand-authored demo schedule in demo/preview
-// mode and an empty set in a real session (no GoHighLevel feed yet). When the
-// live source lands, swap the body for a query against the Sales Pipeline at the
-// Job Booked + Job Completed stages (joined to each appointment for date/time +
-// value) and keep the return shape: nothing downstream changes.
+// source-agnostic. It fetches the Sales Pipeline jobs (Job Booked + Job
+// Completed, joined to each appointment for date/time) from /api/sales/jobs. In
+// a demo session api() short-circuits to the hand-authored DEMO_JOBS schedule,
+// so the return shape is identical either way and nothing downstream changes.
 export function useJobs(): Job[] {
-  const demo = demoMode();
-  return useMemo(() => (demo ? DEMO_JOBS : []), [demo]);
+  const { data } = useQuery({
+    queryKey: ["sales-jobs"],
+    queryFn: () => api<JobsResponse>("/api/sales/jobs"),
+  });
+  return data?.jobs ?? [];
 }

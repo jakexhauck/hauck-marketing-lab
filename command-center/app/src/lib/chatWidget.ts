@@ -19,7 +19,7 @@
 // shape intact: the UI reads only `InboxDataset`.
 // ===========================================================================
 
-import type { InboxDataset, InboxLead } from "./leadInbox";
+import { mapInboxRow, type ApiInboxRow, type InboxDataset, type InboxLead } from "./leadInbox";
 
 // --- Hand-authored demo inbox ------------------------------------------------
 // Website-chat leads for Willis Windows (Metro Detroit). The first-touch is the
@@ -214,11 +214,15 @@ export const CHAT_LEADS: InboxLead[] = [
   },
 ];
 
-// The dataset the page reads. In a real (non-demo) session there is no feed yet,
-// so `leads` is empty and the page shows its not-connected state.
-export function buildChatWidget(demo: boolean): InboxDataset {
+// The dataset the page reads. Demo passes the hand-authored inbox through
+// unchanged; a real session maps the live Organic-pipeline submissions
+// (source = "chat widget") from GET /api/forms/submissions?source=chat-widget.
+export function buildChatWidget(demo: boolean, raw?: unknown[]): InboxDataset {
+  const rows = raw ?? [];
   return {
-    leads: demo ? CHAT_LEADS : [],
+    leads: demo
+      ? (rows as InboxLead[])
+      : (rows as ApiInboxRow[]).map(mapInboxRow),
     demo,
   };
 }

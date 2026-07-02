@@ -1,15 +1,23 @@
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../lib/api";
 import { demoMode } from "../demo/demoMode";
-import { buildEstimateForms } from "../lib/estimateForms";
+import { buildEstimateForms, ESTIMATE_LEADS } from "../lib/estimateForms";
 import type { InboxDataset } from "../lib/leadInbox";
 
 // The Estimate Forms surface reads its data through this hook so the page stays
-// source-agnostic. Today it returns a hand-authored demo inbox in demo/preview
-// mode and an empty set in a real session (no GoHighLevel forms feed yet). When
-// the live source lands, swap the body for a query (e.g. `useQuery(["estimate-
-// forms"], () => api("/api/forms/submissions"))`) and keep the return shape:
-// nothing downstream changes.
+// source-agnostic. Demo/preview returns the hand-authored inbox instantly; a
+// real session fetches the live Organic-pipeline submissions (source =
+// "Website Form") from GET /api/forms/submissions?source=website-form.
 export function useEstimateForms(): InboxDataset {
   const demo = demoMode();
-  return useMemo(() => buildEstimateForms(demo), [demo]);
+  const { data } = useQuery({
+    queryKey: ["forms", "website-form"],
+    enabled: !demo,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<{ submissions: unknown[] }>("/api/forms/submissions?source=website-form"),
+  });
+  const raw = demo ? ESTIMATE_LEADS : data?.submissions;
+  return useMemo(() => buildEstimateForms(demo, raw), [demo, raw]);
 }

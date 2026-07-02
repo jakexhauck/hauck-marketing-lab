@@ -16,6 +16,8 @@
 // ===========================================================================
 
 import type { Tone } from "./status";
+import type { ApiLead } from "./api";
+import { timeAgo } from "./timeAgo";
 
 // GoHighLevel pipeline this surface reads (same template across all clients).
 export const PAID_ADS_PIPELINE_ID = "uz0fFxCgiwdXbg4Zmwkc";
@@ -444,13 +446,60 @@ export const DEMO_LEADS: AdLead[] = [
   },
 ];
 
-// The dataset the page reads. A real (connected) session has no live feed yet,
-// so `leads` is empty and the page shows its not-connected state.
-export function buildPaidAdsLeads(demo: boolean): PaidAdsDataset {
+// --- Live GHL mapping -------------------------------------------------------
+// A row from GET /api/ads/leads: an ApiLead plus the resolved GHL stage name.
+export type ApiAdLead = ApiLead & { stageName?: string };
+
+function normStage(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Reverse of STAGE_META: normalized GHL stage name -> StageKey, so a live
+// opportunity's stage name resolves to the same key the demo data uses.
+const NAME_TO_STAGE: Map<string, StageKey> = (() => {
+  const m = new Map<string, StageKey>();
+  for (const key of Object.keys(STAGE_META) as StageKey[]) {
+    m.set(normStage(STAGE_META[key].ghlName), key);
+  }
+  return m;
+})();
+
+function stageKeyFromName(name: string): StageKey {
+  return NAME_TO_STAGE.get(normStage(name)) ?? "lead_in";
+}
+
+// Map a live opportunity to an AdLead. Location/zip, the ad name/platform, and
+// the SMS thread are not on the opportunity feed, so they take neutral defaults;
+// the conversation loads on select. The stage (and thus the journey bar) is real.
+function mapApiAdLead(o: ApiAdLead): AdLead {
+  return {
+    id: o.id,
+    name: o.name,
+    phone: o.phone,
+    location: "",
+    zip: "",
+    stage: stageKeyFromName(o.stageName ?? ""),
+    platform: "fb",
+    adName: "Paid ad",
+    intent: "",
+    time: timeAgo(o.lastActivityAt),
+    sms: [],
+  };
+}
+
+// The dataset the page reads. Demo passes the hand-authored worklist through
+// unchanged; a real session maps the live Paid Ad's Pipeline opportunities from
+// GET /api/ads/leads.
+export function buildPaidAdsLeads(demo: boolean, raw?: unknown[]): PaidAdsDataset {
+  const rows = raw ?? [];
   return {
     pipelineName: "Paid Ad's Pipeline",
     pipelineId: PAID_ADS_PIPELINE_ID,
-    leads: demo ? DEMO_LEADS : [],
+    leads: demo ? (rows as AdLead[]) : (rows as ApiAdLead[]).map(mapApiAdLead),
     demo,
   };
 }

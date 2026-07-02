@@ -10,6 +10,7 @@
 // ===========================================================================
 
 import type { Tone } from "./status";
+import { timeAgo } from "./timeAgo";
 
 // Where a lead sits in the follow-up flow. Drives the left-rail filters and the
 // status pill on each thread.
@@ -66,6 +67,59 @@ export interface InboxDataset {
   // Newest first.
   leads: InboxLead[];
   demo: boolean;
+}
+
+// --- Live GHL mapping -------------------------------------------------------
+// A row from GET /api/forms/submissions: an ApiLead plus the resolved GHL stage
+// name. The threads (sms/emails) are NOT in this feed; they load separately from
+// the conversations endpoints, so a live row starts with empty threads.
+export interface ApiInboxRow {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  pipelineStageId: string;
+  stageName?: string;
+  lastActivityAt: string;
+}
+
+function normStage(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Real Organic-pipeline stage name -> inbox status. Default "new" for anything
+// unmapped so a brand-new stage never drops a lead off the board.
+const STAGE_TO_STATUS: Record<string, InboxStatus> = {
+  "lead in": "new",
+  "lead responded": "replied",
+  "no answer": "awaiting",
+  "not qualified": "notqualified",
+  "estimate scheduled": "scheduled",
+  "estimate completed/quote given": "replied",
+  "follow up - not ready": "awaiting",
+  "no show": "awaiting",
+};
+
+// Map a live submission row to an InboxLead. Location/zip and the threads are not
+// on the opportunity feed, so they start empty; the conversation loads on select.
+export function mapInboxRow(o: ApiInboxRow): InboxLead {
+  return {
+    id: o.id,
+    name: o.name,
+    email: o.email,
+    phone: o.phone,
+    location: "",
+    zip: "",
+    status: STAGE_TO_STATUS[normStage(o.stageName ?? "")] ?? "new",
+    preview: "",
+    time: timeAgo(o.lastActivityAt),
+    sms: [],
+    emails: [],
+  };
 }
 
 // Filter counts for the inbox tabs. Computed off whatever set is live.

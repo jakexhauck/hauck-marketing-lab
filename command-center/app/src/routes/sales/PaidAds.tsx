@@ -43,7 +43,7 @@ const stageToGroup = new Map<StageKey, string>();
 for (const g of FILTER_GROUPS) for (const s of g.stages) stageToGroup.set(s, g.key);
 
 export default function PaidAdsSales() {
-  const { demo, leads } = usePaidAdsLeads();
+  const { leads } = usePaidAdsLeads();
   const { showToast } = useToast();
   const gated = () => showToast(GATED_NOTE);
 
@@ -58,8 +58,8 @@ export default function PaidAdsSales() {
   );
   const selected = leads.find((l) => l.id === selectedId) ?? null;
 
-  // --- Empty / not-connected (real session) ---------------------------------
-  if (!demo || leads.length === 0) {
+  // --- Empty / not-connected (no leads to show) -----------------------------
+  if (leads.length === 0) {
     return (
       <Shell>
         <div className="flex min-h-0 w-full flex-1 flex-col px-5 pb-12 pt-6 lg:px-6">

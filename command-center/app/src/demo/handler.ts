@@ -5,6 +5,11 @@
 // react-query isolates to the one screen that asked.
 
 import { ApiError } from "../lib/api";
+import { DEMO_JOBS } from "../lib/jobsPipeline";
+import { DEMO_LEADS as PAID_ADS_DEMO } from "../lib/paidAdsPipeline";
+import { ESTIMATE_LEADS } from "../lib/estimateForms";
+import { CHAT_LEADS } from "../lib/chatWidget";
+import { DEMO_LEADS as HUB_DEMO } from "../lib/leadsHub";
 import * as store from "./store";
 
 function parseBody(init: RequestInit): Record<string, unknown> {
@@ -62,6 +67,25 @@ export async function handleDemoRequest<T>(
     return r({ events: d.calendar, timezone: "America/New_York" });
   if (clean === "/api/payments/transactions")
     return r({ transactions: d.transactions, total: d.transactions.length });
+  // Jobs (Sales) surface: the hand-authored booked + completed schedule, so the
+  // demo calendar reads full without touching a real Sales pipeline.
+  if (clean === "/api/sales/jobs") return r({ jobs: DEMO_JOBS });
+  // Lead feeds: the hand-authored worklists, returned unchanged so the demo view
+  // matches a live account without touching a real pipeline.
+  if (clean === "/api/ads/leads")
+    return r({ leads: PAID_ADS_DEMO, total: PAID_ADS_DEMO.length });
+  if (clean === "/api/forms/submissions") {
+    const source = queryParam(path, "source");
+    const submissions =
+      source === "chat-widget"
+        ? CHAT_LEADS
+        : source === "website-form"
+          ? ESTIMATE_LEADS
+          : [...ESTIMATE_LEADS, ...CHAT_LEADS];
+    return r({ submissions, total: submissions.length });
+  }
+  if (clean === "/api/sales/leads")
+    return r({ leads: HUB_DEMO, total: HUB_DEMO.length });
   if (clean === "/api/entitlements") return r({ capabilities: [] });
   if (clean === "/api/staff") return r({ staff: [] });
   if (clean === "/api/team") return r({ team: [] });

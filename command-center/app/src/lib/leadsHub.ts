@@ -13,6 +13,9 @@
 // confirmed against the live GHL workflows (see docs/connections/leads.md).
 // ===========================================================================
 
+import type { ApiLead } from "./api";
+import { timeAgo } from "./timeAgo";
+
 export type LeadSource = "ad" | "form" | "chat";
 export type LeadStatus = "new" | "working" | "booked" | "won" | "cold";
 export type FollowUpOutcome = "replied" | "awaiting" | "noresponse" | "booked" | "won";
@@ -186,7 +189,7 @@ export function nextSteps(source: LeadSource): NextStep[] {
 // One page across all three sources. Newest first. Paid-ad + form leads carry a
 // follow-up state; chat leads are a plain bucket for now.
 
-const DEMO_LEADS: HubLead[] = [
+export const DEMO_LEADS: HubLead[] = [
   {
     id: "l1", name: "Marcus Bell", source: "ad", status: "new",
     intent: "Exterior windows + screens, 18 windows",
@@ -338,10 +341,41 @@ const DEMO_LEADS: HubLead[] = [
   },
 ];
 
-// The dataset the page reads. A real (connected) session has no live feed yet,
-// so `leads` is empty and the page shows its not-connected state.
-export function buildLeadsHub(demo: boolean): LeadsHubDataset {
-  return { leads: demo ? DEMO_LEADS : [], demo };
+// --- Live GHL mapping -------------------------------------------------------
+// A row from GET /api/sales/leads: an ApiLead already tagged server-side with a
+// channel `source` and a friendly `status` derived from its real GHL stage.
+export type ApiSalesLead = ApiLead & { source: LeadSource; status: LeadStatus };
+
+// Map a live merged lead to a HubLead. The follow-up state (`fu`), the message
+// threads, and the location are not on this feed, so they take neutral defaults;
+// the conversation loads on select and the follow-up tracker stays demo-only.
+function mapApiSalesLead(o: ApiSalesLead): HubLead {
+  return {
+    id: o.id,
+    name: o.name,
+    source: o.source,
+    status: o.status,
+    intent: "",
+    preview: "",
+    when: timeAgo(o.lastActivityAt),
+    wait: "",
+    phone: o.phone,
+    location: "",
+    zip: "",
+    ad: SOURCE_META[o.source].label,
+    sms: [],
+  };
+}
+
+// The dataset the page reads. Demo passes the hand-authored worklist through
+// unchanged; a real session maps the live merged Paid + Organic leads from
+// GET /api/sales/leads.
+export function buildLeadsHub(demo: boolean, raw?: unknown[]): LeadsHubDataset {
+  const rows = raw ?? [];
+  return {
+    leads: demo ? (rows as HubLead[]) : (rows as ApiSalesLead[]).map(mapApiSalesLead),
+    demo,
+  };
 }
 
 export function newCount(leads: HubLead[], source?: LeadSource): number {

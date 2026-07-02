@@ -77,7 +77,7 @@ function channelIcon(ch: StepChannel) {
 }
 
 export default function LeadsHub() {
-  const { leads, demo } = useLeadsHub();
+  const { leads } = useLeadsHub();
   const { showToast } = useToast();
   const gated = () => showToast(GATED_NOTE);
 
@@ -129,8 +129,8 @@ export default function LeadsHub() {
     setMobileDetail(false);
   }
 
-  // --- Empty / not-connected (real session) ---------------------------------
-  if (!demo || leads.length === 0) {
+  // --- Empty / not-connected (no leads to show) -----------------------------
+  if (leads.length === 0) {
     return (
       <Shell>
         <div className="flex min-h-0 w-full flex-1 flex-col px-5 pb-12 pt-6 lg:px-6">

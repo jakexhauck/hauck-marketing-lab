@@ -4,6 +4,13 @@ import { liveTenantSlug, testTenantSlug } from "../lib/env";
 import { getServiceClient, resolveTenantId } from "../lib/supabase";
 import { sendPushForActivity } from "../lib/push";
 import { readToken, tokenMatches } from "../lib/webhookAuth";
+import { tenantHasGhlCreds } from "../lib/tenantResolve";
+import {
+  ghlJson,
+  fetchAllOpportunities,
+  type GhlContext,
+  type GhlOpportunity,
+} from "../lib/ghl";
 
 // Auth model: GHL cannot produce a signature we can verify here (marketplace
 // webhooks sign with an RSA key under x-wh-signature; workflow webhook actions
@@ -105,6 +112,11 @@ function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | null {
     case "InvoicePaid":
       return mk("invoice_paid", "Invoice paid", tenantId, e);
     case "InboundMessage":
+      // A lead replied. This is the "mark thread fresh" path: it writes a
+      // message_in activity row and (via shouldPush) fires a push, which is what
+      // wakes the client's inbox/leads views to refetch. A fuller in-app live
+      // refresh (updating an open tab without a push) would need a Supabase
+      // Realtime subscription on activity_log, which does not exist yet.
       return mk("message_in", "Inbound message", tenantId, e);
     case "OutboundMessage":
       return mk("message_out", "Outbound message", tenantId, e);
@@ -193,6 +205,260 @@ async function insertActivityOnce(
   return true;
 }
 
+// ---------------------------------------------------------------------------
+// Appointment confirmation -> advance the opportunity stage
+//
+// When GHL fires an appointment status change to "confirmed" (the intro-call
+// confirm flow), advance the matching opportunity from its "awaiting
+// confirmation" stage to the "confirmed" stage. This is a side effect on top of
+// the normal activity logging: it does not touch the activity feed.
+//
+// Everything is resolved BY NAME, never by hardcoded pipeline/stage ids, so it
+// works for any tenant (ids differ per sub-account). Reference stage names, from
+// the wired Willis location:
+//   source: Paid Ad's Pipeline "Intro Call Waiting Confirmation"
+//   target: Sales Pipeline "Intro Call Confirmed"
+// The source and target can live in different pipelines, so the move sets both
+// pipelineId and pipelineStageId. Only the stage named ...Confirmed contains the
+// token "confirmed" (the waiting / no-confirmation stages contain "confirmation",
+// not "confirmed"), so a contains match on "confirmed" is unambiguous.
+
+interface PipelinesResponse {
+  pipelines: {
+    id: string;
+    name: string;
+    stages: { id: string; name: string }[];
+  }[];
+}
+
+interface StageRef {
+  pipelineId: string;
+  pipelineName: string;
+  stageId: string;
+  stageName: string;
+}
+
+function norm(s: string): string {
+  return (s ?? "").trim().toLowerCase();
+}
+
+// Read the appointment status out of whatever shape GHL sends. Marketplace
+// events nest it under `appointment`; workflow webhook actions send whatever
+// custom field Jake maps. Tolerant of every plausible location; empty when none
+// is present. ASSUMPTION: the confirmed value is the string "confirmed".
+function appointmentStatus(e: GhlWebhookEvent): string {
+  const appt = (e.appointment ?? {}) as Record<string, unknown>;
+  const raw =
+    e.appointmentStatus ??
+    appt.appointmentStatus ??
+    appt.status ??
+    e.status ??
+    (e.calendar as Record<string, unknown> | undefined)?.status;
+  return typeof raw === "string" ? raw.trim().toLowerCase() : "";
+}
+
+function isAppointmentConfirmed(e: GhlWebhookEvent): boolean {
+  return appointmentStatus(e) === "confirmed";
+}
+
+// Pull a contact id out of the event, tolerating nested shapes.
+function eventContactId(e: GhlWebhookEvent): string {
+  const appt = (e.appointment ?? {}) as Record<string, unknown>;
+  const raw =
+    e.contactId ??
+    (e.contact as Record<string, unknown> | undefined)?.id ??
+    appt.contactId;
+  return typeof raw === "string" ? raw : "";
+}
+
+// Pull an opportunity id out of the event, tolerating nested shapes. Often
+// absent on appointment payloads (appointments link to contacts, not opps), in
+// which case we fall back to scanning the contact's opportunities.
+function eventOpportunityId(e: GhlWebhookEvent): string {
+  const raw =
+    e.opportunityId ??
+    (e.opportunity as Record<string, unknown> | undefined)?.id;
+  return typeof raw === "string" ? raw : "";
+}
+
+function findStages(
+  pipes: PipelinesResponse["pipelines"],
+  pred: (normName: string) => boolean,
+): StageRef[] {
+  const out: StageRef[] = [];
+  for (const p of pipes) {
+    for (const s of p.stages ?? []) {
+      if (pred(norm(s.name))) {
+        out.push({
+          pipelineId: p.id,
+          pipelineName: p.name,
+          stageId: s.id,
+          stageName: s.name,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+// Resolve the opportunity to advance: prefer the id on the event, else scan each
+// awaiting-confirmation pipeline for the contact's opportunity in that stage.
+async function resolveConfirmationOpportunity(
+  gctx: GhlContext,
+  opportunityId: string,
+  contactId: string,
+  sources: StageRef[],
+): Promise<GhlOpportunity | null> {
+  if (opportunityId) {
+    try {
+      const data = await ghlJson<{ opportunity?: GhlOpportunity }>(
+        gctx,
+        `/opportunities/${encodeURIComponent(opportunityId)}`,
+      );
+      if (data.opportunity?.id) return data.opportunity;
+    } catch (err) {
+      console.warn(
+        "[webhook] confirmation: opportunity fetch failed, scanning contact instead",
+        err,
+      );
+    }
+  }
+  if (!contactId) return null;
+
+  const sourceStageIds = new Set(sources.map((s) => s.stageId));
+  const scanned = new Set<string>();
+  for (const src of sources) {
+    if (scanned.has(src.pipelineId)) continue;
+    scanned.add(src.pipelineId);
+    const opps = await fetchAllOpportunities(gctx, {
+      pipelineId: src.pipelineId,
+    });
+    const match = opps.find(
+      (o) =>
+        (o.contactId === contactId || o.contact?.id === contactId) &&
+        sourceStageIds.has(o.pipelineStageId ?? ""),
+    );
+    if (match) return match;
+  }
+  return null;
+}
+
+async function confirmIntroCallStage(
+  gctx: GhlContext,
+  event: GhlWebhookEvent,
+): Promise<void> {
+  const contactId = eventContactId(event);
+  const opportunityId = eventOpportunityId(event);
+  if (!contactId && !opportunityId) {
+    console.warn(
+      "[webhook] confirmation: no contactId or opportunityId; skipping",
+    );
+    return;
+  }
+
+  const pipeData = await ghlJson<PipelinesResponse>(
+    gctx,
+    `/opportunities/pipelines?locationId=${encodeURIComponent(gctx.locationId)}`,
+  );
+  const pipes = pipeData.pipelines ?? [];
+
+  // Target = the confirmed stage. Exact name first, then any stage whose name
+  // contains "confirmed" (unambiguous, see the note above).
+  const target =
+    findStages(pipes, (n) => n === "intro call confirmed")[0] ??
+    findStages(pipes, (n) => n.includes("confirmed"))[0];
+  if (!target) {
+    console.warn("[webhook] confirmation: no 'confirmed' stage found; skipping");
+    return;
+  }
+
+  // Source = the awaiting-confirmation stage(s).
+  const sources = findStages(pipes, (n) => n.includes("waiting confirmation"));
+  if (sources.length === 0) {
+    console.warn(
+      "[webhook] confirmation: no 'waiting confirmation' stage found; skipping",
+    );
+    return;
+  }
+  const sourceStageIds = new Set(sources.map((s) => s.stageId));
+
+  const opp = await resolveConfirmationOpportunity(
+    gctx,
+    opportunityId,
+    contactId,
+    sources,
+  );
+  if (!opp?.id) {
+    console.warn("[webhook] confirmation: no matching opportunity found");
+    return;
+  }
+
+  // Idempotent and safe: only advance an opportunity that is actually sitting in
+  // an awaiting-confirmation stage. If it already moved (or the appointment is
+  // unrelated to the intro call), leave it alone.
+  if (!sourceStageIds.has(opp.pipelineStageId ?? "")) {
+    console.log(
+      "[webhook] confirmation: opportunity not awaiting confirmation; leaving as-is",
+    );
+    return;
+  }
+  if (opp.pipelineStageId === target.stageId) return;
+
+  const body: Record<string, unknown> = {
+    pipelineId: target.pipelineId,
+    pipelineStageId: target.stageId,
+  };
+  if (opp.name) body.name = opp.name;
+  if (opp.status) body.status = opp.status;
+
+  await ghlJson(gctx, `/opportunities/${encodeURIComponent(opp.id)}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+  console.log(
+    `[webhook] confirmation: moved opportunity ${opp.id} -> ${target.pipelineName}/${target.stageName}`,
+  );
+}
+
+// Build the GHL API context (token + location) for an event's location. Prefer
+// the tenant row's own creds (true multi-tenant), fall back to the env live/test
+// creds for the single-tenant / test-sub-account case. null when neither has
+// usable creds, in which case the confirmation flip is skipped.
+async function ghlContextForLocation(
+  client: SupabaseClient,
+  env: Env,
+  locationId: string,
+): Promise<GhlContext | null> {
+  const { data } = await client
+    .from("tenants")
+    .select("ghl_location_id, ghl_token")
+    .eq("ghl_location_id", locationId)
+    .maybeSingle();
+  const row = data as
+    | { ghl_location_id?: string; ghl_token?: string }
+    | null;
+  if (
+    row &&
+    tenantHasGhlCreds({
+      ghl_location_id: row.ghl_location_id ?? "",
+      ghl_token: row.ghl_token ?? "",
+    })
+  ) {
+    return { token: row.ghl_token as string, locationId };
+  }
+  if (env.GHL_LOCATION_ID && locationId === env.GHL_LOCATION_ID && env.GHL_TOKEN) {
+    return { token: env.GHL_TOKEN, locationId };
+  }
+  if (
+    env.TEST_GHL_LOCATION_ID &&
+    locationId === env.TEST_GHL_LOCATION_ID &&
+    env.TEST_GHL_TOKEN
+  ) {
+    return { token: env.TEST_GHL_TOKEN, locationId };
+  }
+  return null;
+}
+
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (!ctx.env.WEBHOOK_SECRET) {
     console.error("[webhook] WEBHOOK_SECRET not configured; rejecting");
@@ -237,6 +503,31 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       // from a workflow payload). Ack with 200 so GHL does not retry forever.
       console.warn("[webhook] unroutable locationId", event.locationId);
       return new Response("ignored", { status: 200 });
+    }
+
+    // Appointment confirmation side effect. A confirmation may arrive as an
+    // event type the activity mapper ignores, so run this BEFORE the
+    // unmapped-type early return below. Best-effort and off the response path:
+    // GHL gets its 200 immediately and the GHL round-trips (pipelines lookup +
+    // opportunity move) cannot delay the ack.
+    if (isAppointmentConfirmed(event) && event.locationId) {
+      const gctx = await ghlContextForLocation(
+        client,
+        ctx.env,
+        event.locationId,
+      );
+      if (gctx) {
+        ctx.waitUntil(
+          confirmIntroCallStage(gctx, event).catch((err) =>
+            console.error("[webhook] confirmation flip failed", err),
+          ),
+        );
+      } else {
+        console.warn(
+          "[webhook] confirmation: no GHL creds for location",
+          event.locationId,
+        );
+      }
     }
 
     const activity = toActivity(tenantId, event);
