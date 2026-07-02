@@ -3,7 +3,18 @@ import { Receipt, Wallet, TrendingUp, Ticket } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
 import EmptyState from "../EmptyState";
 import { useAuth } from "../../context/AuthContext";
+import { useNow } from "../../context/NowContext";
 import { useInvoicesQuery, useTransactionsQuery } from "../../hooks/useApi";
+import {
+  avgPaidInvoice,
+  collectedYtd,
+  lastMonthRevenue,
+  momChangePct,
+  outstandingTotal,
+  revenueThisMonth,
+  revenueTrend,
+  topCustomers,
+} from "../../lib/revenue";
 import type { ApiInvoice, ApiTransaction } from "../../lib/api";
 
 // The Atelier desktop Revenue ledger (lg+). The phone keeps its own NavyHero
@@ -32,43 +43,10 @@ function fmtDate(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? "" : dateFmt.format(d);
 }
 
-// ---------------------------------------------------------------------------
-// PLACEHOLDER DATA — chosen path: "Build UI with placeholder data first".
-// The three additions (12-month trend, month-over-month, Top Customers) render
-// from stubs so the A layout can be approved in the real app. Swap these for
-// real aggregates (backend endpoints or client-side derivation) in a follow-up.
-// The two existing KPIs (Outstanding, Revenue this month) stay wired to live
-// data below and are NOT placeholders.
-// ---------------------------------------------------------------------------
-const PLACEHOLDER_TREND: { m: string; v: number }[] = [
-  { m: "Jul", v: 21000 }, { m: "Aug", v: 23500 }, { m: "Sep", v: 25200 },
-  { m: "Oct", v: 22800 }, { m: "Nov", v: 28900 }, { m: "Dec", v: 27600 },
-  { m: "Jan", v: 31200 }, { m: "Feb", v: 30400 }, { m: "Mar", v: 35800 },
-  { m: "Apr", v: 33900 }, { m: "May", v: 37500 }, { m: "Jun", v: 42780 },
-];
-const PLACEHOLDER_MOM_PCT = 14; // % change vs last month
-const PLACEHOLDER_LAST_MONTH = 37500;
-const PLACEHOLDER_YTD = 268900;
-const PLACEHOLDER_AVG_INVOICE = 1336;
-const PLACEHOLDER_CUSTOMERS: {
-  name: string;
-  jobs: number;
-  amount: number;
-  color: string;
-}[] = [
-  { name: "Ridgeway Rentals", jobs: 7, amount: 21400, color: "#4f46e5" },
-  { name: "The Portico Group", jobs: 4, amount: 16750, color: "#7c73f0" },
-  { name: "Cedar & Pine LLC", jobs: 5, amount: 13080, color: "#0ea5e9" },
-  { name: "Marcus Bell", jobs: 3, amount: 9460, color: "#f59e0b" },
-  { name: "Dana Whitfield", jobs: 2, amount: 6540, color: "#10b981" },
-];
-
-// Master switch for the not-yet-wired sections (trend, MoM, Top Customers,
-// Collected YTD, Avg invoice). While ON, those render with SAMPLE data and the
-// page shows a "sample data" banner so the live client is never misled. Once
-// they are backed by real aggregates, drop the banner. The two live KPIs
-// (Outstanding, Revenue this month value) are always real regardless.
-const SHOW_UNWIRED_SECTIONS = true;
+// Avatar colors for the Top Customers rail, assigned by rank. The data itself
+// (name, jobs, amount) is derived from real settled payments; only the swatch
+// is cosmetic. Falls back to the last color for any overflow.
+const CUSTOMER_COLORS = ["#4f46e5", "#7c73f0", "#0ea5e9", "#f59e0b", "#10b981"];
 
 function initials(name: string): string {
   return name
@@ -119,8 +97,6 @@ const FILTERS = [
   { key: "paid", label: "Paid" },
   { key: "draft", label: "Draft" },
 ];
-
-const PAID_STATES = new Set(["succeeded", "paid", "completed", "success"]);
 
 // One ledger KPI tile. Money value uses gold tabular figures. An optional delta
 // renders as a positive/negative pill under the value.
@@ -237,7 +213,7 @@ function TopCustomers({
 }: {
   rows: { name: string; jobs: number; amount: number; color: string }[];
 }) {
-  const top = Math.max(...rows.map((r) => r.amount)) || 1;
+  const top = Math.max(1, ...rows.map((r) => r.amount));
   return (
     <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
       <div className="flex items-baseline gap-2 px-5 pb-2 pt-[18px]">
@@ -246,6 +222,11 @@ function TopCustomers({
         </h2>
         <span className="text-[12px] font-medium text-faint">this year</span>
       </div>
+      {rows.length === 0 ? (
+        <div className="px-5 pb-5 pt-1 text-[13px] text-faint">
+          Paid customers will rank here as payments come in.
+        </div>
+      ) : (
       <div>
         {rows.map((r, i) => (
           <div
@@ -285,6 +266,7 @@ function TopCustomers({
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }
@@ -292,8 +274,10 @@ function TopCustomers({
 export default function BillingDesktop() {
   const { session } = useAuth();
   const useReal = Boolean(session);
+  const now = useNow();
 
   const [filter, setFilter] = useState("all");
+  const [trendRange, setTrendRange] = useState<"6M" | "12M" | "YTD">("12M");
 
   const invoicesQuery = useInvoicesQuery("all", useReal);
   const txQuery = useTransactionsQuery(useReal);
@@ -313,27 +297,44 @@ export default function BillingDesktop() {
     [invoices, filter],
   );
 
-  // Real sums only, no fabricated trends.
-  const outstanding = useMemo(
-    () =>
-      invoices
-        .filter((i) => i.status === "sent" || i.status === "overdue")
-        .reduce((sum, i) => sum + i.total, 0),
-    [invoices],
+  // Every figure below is derived from the two live feeds (invoices +
+  // transactions). Real sums only: a client with no history sees honest zeros
+  // and empty states, never a fabricated trend.
+  const outstanding = useMemo(() => outstandingTotal(invoices), [invoices]);
+  const paidThisMonth = useMemo(
+    () => revenueThisMonth(transactions, now),
+    [transactions, now],
   );
-
-  const paidThisMonth = useMemo(() => {
-    const now = new Date();
-    const m = now.getMonth();
-    const y = now.getFullYear();
-    return transactions
-      .filter((t) => PAID_STATES.has(t.status) && t.createdAt)
-      .filter((t) => {
-        const d = new Date(t.createdAt as string);
-        return d.getMonth() === m && d.getFullYear() === y;
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-  }, [transactions]);
+  const lastMonth = useMemo(
+    () => lastMonthRevenue(transactions, now),
+    [transactions, now],
+  );
+  // No prior-month baseline => show no delta rather than a meaningless "0%".
+  const momPct = useMemo(
+    () => (lastMonth > 0 ? momChangePct(transactions, now) : undefined),
+    [transactions, now, lastMonth],
+  );
+  const ytd = useMemo(() => collectedYtd(transactions, now), [transactions, now]);
+  const avgInvoice = useMemo(() => avgPaidInvoice(invoices), [invoices]);
+  const trend = useMemo(
+    () => revenueTrend(transactions, now, 12),
+    [transactions, now],
+  );
+  const customerRows = useMemo(
+    () =>
+      topCustomers(transactions, 5).map((r, i) => ({
+        ...r,
+        color: CUSTOMER_COLORS[i] ?? CUSTOMER_COLORS[CUSTOMER_COLORS.length - 1],
+      })),
+    [transactions],
+  );
+  // The trend range toggle just slices the 12-month series: 6M = last six
+  // months, YTD = January through the current month.
+  const shownTrend = useMemo(() => {
+    if (trendRange === "6M") return trend.slice(-6);
+    if (trendRange === "YTD") return trend.slice(-(new Date(now).getMonth() + 1));
+    return trend;
+  }, [trend, trendRange, now]);
 
   const subtitle = invoicesQuery.isLoading
     ? "Loading..."
@@ -341,40 +342,18 @@ export default function BillingDesktop() {
 
   return (
     <DesktopPage title="Revenue" subtitle={subtitle}>
-      {/* Sample-data notice while the new sections are unwired. Remove with the
-          banner once trend / Top Customers / YTD are backed by real data. */}
-      {SHOW_UNWIRED_SECTIONS && (
-        <div className="mb-5 flex items-center gap-2.5 rounded-[var(--radius-lg)] border border-brand/25 bg-brand-tint px-4 py-2.5 text-[13px] font-medium text-brand-text">
-          <span
-            className="inline-flex items-center rounded-full bg-brand px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-white"
-            aria-hidden
-          >
-            Sample
-          </span>
-          The revenue trend, top customers, and year-to-date figures use sample
-          data while we connect your full history. Outstanding, revenue this
-          month, invoices, and payments are your real numbers.
-        </div>
-      )}
-
-      {/* KPI band. Outstanding + Revenue this month are live. The MoM pill,
-          Collected YTD and Avg invoice are placeholders, gated OFF for launch
-          (see SHOW_UNWIRED_SECTIONS). */}
-      <section
-        className={
-          "grid grid-cols-1 gap-5 sm:grid-cols-2" +
-          (SHOW_UNWIRED_SECTIONS ? " xl:grid-cols-4" : "")
-        }
-      >
+      {/* KPI band. All four derive from the two live feeds. The MoM pill is
+          hidden when there is no prior-month baseline to compare against. */}
+      <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <MoneyKpi
           label="Revenue this month"
           value={money.format(paidThisMonth)}
           sub={
-            SHOW_UNWIRED_SECTIONS
-              ? `vs ${money.format(PLACEHOLDER_LAST_MONTH)} last month`
+            momPct !== undefined
+              ? `vs ${money.format(lastMonth)} last month`
               : "Payments received this month"
           }
-          deltaPct={SHOW_UNWIRED_SECTIONS ? PLACEHOLDER_MOM_PCT : undefined}
+          deltaPct={momPct}
           icon={<Wallet size={16} />}
         />
         <MoneyKpi
@@ -383,69 +362,57 @@ export default function BillingDesktop() {
           sub="Sent and overdue invoices"
           icon={<Receipt size={16} />}
         />
-        {SHOW_UNWIRED_SECTIONS && (
-          <MoneyKpi
-            label="Collected YTD"
-            value={money.format(PLACEHOLDER_YTD)}
-            sub="Payments received this year"
-            icon={<TrendingUp size={16} />}
-          />
-        )}
-        {SHOW_UNWIRED_SECTIONS && (
-          <MoneyKpi
-            label="Avg invoice"
-            value={money.format(PLACEHOLDER_AVG_INVOICE)}
-            sub="Across paid this month"
-            icon={<Ticket size={16} />}
-          />
-        )}
+        <MoneyKpi
+          label="Collected YTD"
+          value={money.format(ytd)}
+          sub="Payments received this year"
+          icon={<TrendingUp size={16} />}
+        />
+        <MoneyKpi
+          label="Avg invoice"
+          value={money.format(avgInvoice)}
+          sub="Across paid invoices"
+          icon={<Ticket size={16} />}
+        />
       </section>
 
-      {/* Revenue trend (full width) — gated until real monthly data is wired */}
-      {SHOW_UNWIRED_SECTIONS && (
-        <section className="mt-6">
-          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-            <div className="flex items-center justify-between px-5 pb-1 pt-[18px]">
-              <h2 className="font-display text-[15.5px] font-semibold text-text">
-                Revenue trend
-              </h2>
-              <div
-                role="tablist"
-                aria-label="Trend range"
-                className="inline-flex items-center gap-1 rounded-[var(--radius)] border border-border bg-surface-2 p-1"
-              >
-                {["6M", "12M", "YTD"].map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    role="tab"
-                    aria-selected={r === "12M"}
-                    className={
-                      "rounded-[var(--radius-sm)] px-3 py-1 text-[12px] font-semibold transition-colors " +
-                      (r === "12M"
-                        ? "bg-surface text-text shadow-[var(--shadow-sm)]"
-                        : "text-muted hover:text-text")
-                    }
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
+      {/* Revenue trend (full width), derived from settled payments by month. */}
+      <section className="mt-6">
+        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+          <div className="flex items-center justify-between px-5 pb-1 pt-[18px]">
+            <h2 className="font-display text-[15.5px] font-semibold text-text">
+              Revenue trend
+            </h2>
+            <div
+              role="tablist"
+              aria-label="Trend range"
+              className="inline-flex items-center gap-1 rounded-[var(--radius)] border border-border bg-surface-2 p-1"
+            >
+              {(["6M", "12M", "YTD"] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  role="tab"
+                  aria-selected={r === trendRange}
+                  onClick={() => setTrendRange(r)}
+                  className={
+                    "rounded-[var(--radius-sm)] px-3 py-1 text-[12px] font-semibold transition-colors " +
+                    (r === trendRange
+                      ? "bg-surface text-text shadow-[var(--shadow-sm)]"
+                      : "text-muted hover:text-text")
+                  }
+                >
+                  {r}
+                </button>
+              ))}
             </div>
-            <TrendChart data={PLACEHOLDER_TREND} />
           </div>
-        </section>
-      )}
+          <TrendChart data={shownTrend} />
+        </div>
+      </section>
 
-      {/* Invoices (full width; a Top Customers rail joins it once wired) */}
-      <section
-        className={
-          "mt-6" +
-          (SHOW_UNWIRED_SECTIONS
-            ? " grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]"
-            : "")
-        }
-      >
+      {/* Invoices (full width) beside the Top Customers rail. */}
+      <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
         {/* Invoices */}
         <div>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -567,8 +534,8 @@ export default function BillingDesktop() {
           )}
         </div>
 
-        {/* Top customers rail (placeholder data) — gated until wired */}
-        {SHOW_UNWIRED_SECTIONS && <TopCustomers rows={PLACEHOLDER_CUSTOMERS} />}
+        {/* Top customers rail, derived from settled payments. */}
+        <TopCustomers rows={customerRows} />
       </section>
 
       {/* Recent payments (full width) */}

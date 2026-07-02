@@ -386,6 +386,45 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     }
   });
 
+  // A fuller settled-payment history so the derived revenue views (12-month
+  // trend, month-over-month, collected YTD, top customers) render richly in the
+  // demo. Real sessions derive the exact same views from live GHL transactions;
+  // this only shapes the ?demo=1 preview. A pool of repeat customers gives the
+  // Top Customers rail clear leaders; amounts are plausible roofing tickets.
+  const REPEAT_CUSTOMERS = Array.from(
+    { length: 14 },
+    () => `${pick(rng, FIRST)} ${pick(rng, LAST)}`,
+  );
+  const METHODS = ["card", "ACH", "card", "cash"];
+  let histNo = 100;
+  for (let monthsAgo = 11; monthsAgo >= 0; monthsAgo--) {
+    const perMonth = 4 + Math.floor(rng() * 3); // 4-6 payments a month
+    for (let k = 0; k < perMonth; k++) {
+      const ref = new Date(now);
+      const when = new Date(
+        ref.getFullYear(),
+        ref.getMonth() - monthsAgo,
+        1 + Math.floor(rng() * 26),
+        11,
+        0,
+        0,
+      );
+      if (when.getTime() > now) continue; // never a future-dated payment
+      transactions.push({
+        id: `demo-txn-h-${histNo++}`,
+        amount: Math.round((3000 + rng() * 15000) / 50) * 50,
+        status: "succeeded",
+        contactName: pick(rng, REPEAT_CUSTOMERS),
+        createdAt: when.toISOString(),
+        method: pick(rng, METHODS),
+      });
+    }
+  }
+  // Newest first, matching how GHL returns the transactions feed.
+  transactions.sort(
+    (a, b) => +new Date(b.createdAt ?? 0) - +new Date(a.createdAt ?? 0),
+  );
+
   // Upcoming appointments tied to active contacts.
   const calendar: ApiCalendarEvent[] = [];
   const apptContacts = contacts.slice(0, 5);

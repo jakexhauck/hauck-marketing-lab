@@ -21,11 +21,17 @@ import { Skeleton } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { useNow } from "../context/NowContext";
 import PullToRefresh from "../components/PullToRefresh";
-import { useActivityQuery, useSummaryQuery } from "../hooks/useApi";
+import {
+  useActivityQuery,
+  useReviewsQuery,
+  useSummaryQuery,
+} from "../hooks/useApi";
+import { useJobs } from "../hooks/useJobs";
 import { demoMode } from "../demo/demoMode";
 import { APP_BRAND } from "../lib/appBrand";
 import { activityLabel } from "../lib/activityLabels";
 import { freshnessLabel } from "../lib/freshness";
+import { DEMO_DEFAULT_DAY, jobsOnDay, toIso } from "../lib/jobsPipeline";
 import type { ApiActivity } from "../lib/api";
 
 function activityTitle(a: ApiActivity): string {
@@ -83,6 +89,8 @@ export default function Home() {
   const useReal = Boolean(session);
   const query = useSummaryQuery(useReal);
   const activityQuery = useActivityQuery(useReal);
+  const jobs = useJobs();
+  const reviewsQuery = useReviewsQuery(useReal);
 
   const summary = query.data;
   const activity = activityQuery.data?.activity ?? [];
@@ -105,10 +113,21 @@ export default function Home() {
     );
   };
 
-  // Build the priority feed from the summary. Real rows appear when they have
-  // something to act on (or always, in the demo view). The Jobs and Reviews
-  // rows are sample-only: their feeds are not wired yet, so they only exist in
-  // demo and never mislead a real client into thinking they are live.
+  // Today's booked/completed jobs, from the live Sales feed. In demo the feed
+  // is anchored to a fixed month, so anchor the "today" lookup to the demo's
+  // default day; a real session uses the actual date.
+  const jobsDayIso = isDemo ? DEMO_DEFAULT_DAY : toIso(new Date(now));
+  const todaysJobs = jobsOnDay(jobs, jobsDayIso);
+  const jobsSubtitle = todaysJobs.slice(0, 3).map((j) => j.time).join(", ");
+
+  // Finished jobs that have not yet been asked for a review (the actionable
+  // count), from the live reviews feed.
+  const reviewsToAsk =
+    reviewsQuery.data?.contacts.filter((c) => !c.started).length ?? 0;
+
+  // Build the priority feed. Every row appears only when it has something to act
+  // on (or always, in the demo view). All four are now backed by live feeds, so
+  // a real client only ever sees real counts.
   const cards: PriorityCard[] = [];
   if (summary) {
     if (summary.newToday > 0 || isDemo) {
@@ -137,24 +156,26 @@ export default function Home() {
         countColor: "text-[var(--brand-text)]",
       });
     }
-    if (isDemo) {
+    if (todaysJobs.length > 0) {
       cards.push({
         key: "jobs",
-        title: "Jobs today",
-        subtitle: "9:00 AM, 1:30 PM",
-        count: 2,
+        title: todaysJobs.length === 1 ? "Job today" : "Jobs today",
+        subtitle: jobsSubtitle || "On the schedule",
+        count: todaysJobs.length,
         to: "/sales/jobs",
         Icon: Briefcase,
         stripe: "bg-amber-500",
         chip: "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
         countColor: "text-amber-600 dark:text-amber-400",
       });
+    }
+    if (reviewsToAsk > 0) {
       cards.push({
         key: "reviews",
-        title: "Reviews to answer",
-        subtitle: "Keep your rating up",
-        count: 3,
-        to: "/marketing/reviews",
+        title: "Reviews to request",
+        subtitle: "Finished jobs ready for a review ask",
+        count: reviewsToAsk,
+        to: "/marketing/reviews/requests",
         Icon: Star,
         stripe: "bg-emerald-500",
         chip: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",

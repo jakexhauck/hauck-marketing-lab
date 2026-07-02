@@ -241,89 +241,10 @@ export const DEMO_IDEAS: DemoIdea[] = [
   { kind: "Review", ch: "sms", title: "Turn the Garcia 5★ into a thank-you text" },
 ];
 
-// ---------------------------------------------------------------------------
-// Reactivation. A standing, always-on campaign that wins back dormant past
-// customers with a short text + email sequence. The client-facing layer over
-// the real GHL "Database Reactivation" pipeline. Every stage of that pipeline is
-// represented one-to-one below (Lead Responded, No answer, Not Qualified), plus
-// the Won outcome (a job booked) which in GHL is the opportunity `status` field,
-// not a stage. Numbers are modest and plausible (no fabricated growth %) and the
-// breakdown sums to the reached total; replaced by live GHL counts later, the
-// shapes stay the same.
-// ---------------------------------------------------------------------------
-
-// Headline KPIs for the campaign so far. `brand` highlights the one that matters
-// most (jobs booked) in the same way the Overview / Insights rows do.
-export const REACT_KPIS: { label: string; value: string; brand?: boolean }[] = [
-  { label: "Dormant customers", value: "640" },
-  { label: "Reached out to", value: "412" },
-  { label: "Replied", value: "58" },
-  { label: "Jobs booked", value: "12", brand: true },
-];
-
-export const REACT_DORMANT_TOTAL = 640; // everyone the campaign targets
-export const REACT_REACHED = 412; // moved into the sequence so far (Lead Contacted)
-
-// Where the reached customers are right now. Each row maps one-to-one to a real
-// GHL stage/status; `bar` is a theme-aware fill (gradient flagged by `grad`) so
-// the four buckets stay visually distinct. Counts sum to REACT_REACHED so the
-// bars read as "of everyone we reached, here's where they landed."
-export interface ReactStage {
-  label: string;
-  hint: string; // plain-English meaning of the real stage/status
-  count: number;
-  bar: string; // CSS color or gradient token
-  grad?: boolean; // true => apply as backgroundImage (gradient)
-}
-export const REACT_STAGES: ReactStage[] = [
-  { label: "Replied", hint: "Texted or emailed us back (Lead Responded)", count: 58, bar: "var(--grad-brand)", grad: true },
-  { label: "Booked a job", hint: "Won back, now on the calendar", count: 12, bar: "var(--positive)" },
-  { label: "No answer", hint: "Reached, no reply yet", count: 286, bar: "var(--surface-3)" },
-  { label: "Not a fit", hint: "Not interested or asked us to stop", count: 56, bar: "var(--text-faint)" },
-];
-
-// The message sequence the dormant list moves through. Grounded in the existing
-// "We miss you" win-back template; spaced over a couple of weeks.
-export interface ReactMessage {
-  step: number;
-  ch: Channel;
-  when: string; // plain timing, e.g. "Day 1"
-  title: string;
-  body: string;
-  subject?: string;
-}
-export const REACT_SEQUENCE: ReactMessage[] = [
-  {
-    step: 1,
-    ch: "sms",
-    when: "Day 1",
-    title: "We miss you",
-    body: "Hi {{first}}, it's Willis Plumbing. It's been a while! Book any service this month and take $25 off. Reply BOOK and we'll text you times.",
-  },
-  {
-    step: 2,
-    ch: "email",
-    when: "Day 4",
-    title: "A little reminder (and $25 off)",
-    subject: "We'd love to look after your home again, {{first}}",
-    body: "It's been over a year since we last helped out. Here's $25 off any job this month, plus a quick checklist of what's worth checking before summer.",
-  },
-  {
-    step: 3,
-    ch: "sms",
-    when: "Day 10",
-    title: "Last chance this month",
-    body: "Hi {{first}}, your $25 off ends Friday. Want us to hold a spot? Reply YES and we'll find a time that works.",
-  },
-];
-
-// A few customers the campaign has brought back, for a calm "real people" proof
-// list. Reuses the audience-member shape/initials style.
-export const REACT_RECENT: { name: string; sub: string; initials: string }[] = [
-  { name: "The Hendersons", sub: "Drain cleaning · booked Jun 24", initials: "H" },
-  { name: "Carl D.", sub: "Water heater flush · booked Jun 19", initials: "C" },
-  { name: "The Okafors", sub: "AC tune-up · booked Jun 14", initials: "O" },
-];
+// Reactivation's live counts now come from the GHL Database Reactivation
+// pipeline via /api/campaigns/reactivation (shape + demo payload in
+// src/lib/reactivation.ts), so the old hand-authored REACT_* demo constants
+// were removed. DEMO_INSIGHTS below still backs the Campaigns Insights tab.
 
 export const DEMO_INSIGHTS = {
   summary: [
