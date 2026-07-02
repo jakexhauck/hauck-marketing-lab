@@ -4,7 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import App from "./App";
-import { queryClient, PERSIST_CACHE_KEY } from "./lib/queryClient";
+import { queryClient, PERSIST_CACHE_KEY, PERSIST_CACHE_BUSTER } from "./lib/queryClient";
 import { demoMode } from "./demo/demoMode";
 import "./index.css";
 
@@ -50,6 +50,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         persistOptions={{
           persister,
           maxAge: TWENTY_FOUR_HOURS,
+          // Discard any snapshot written under a different shape version, so a
+          // stale partial payload can never rehydrate and crash a render.
+          buster: PERSIST_CACHE_BUSTER,
           dehydrateOptions: {
             // Only persist successful read queries. Errored/pending queries are
             // not worth restoring, and mutations are excluded by default.

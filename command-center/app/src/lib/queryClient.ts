@@ -22,6 +22,13 @@ export const queryClient = new QueryClient({
 // localStorage key the persisted query cache lives under (see main.tsx).
 export const PERSIST_CACHE_KEY = "hml_query_cache";
 
+// Version stamp for the persisted cache. Bump this whenever a persisted query's
+// shape changes so every client discards its old snapshot on next load instead
+// of rehydrating a stale, partial payload. This is what recovered clients stuck
+// on a pre-fix `["ads","insights"] = { configured: false }` entry (no `totals`),
+// which rehydrated before any refetch and crashed the Paid Ads render.
+export const PERSIST_CACHE_BUSTER = "2026-07-02.ads-normalize";
+
 // Runtime cache names the service worker writes to (see sw.ts).
 const SW_RUNTIME_CACHES = ["api-get", "api-detail"];
 

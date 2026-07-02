@@ -12,7 +12,13 @@ export function useAdsInsights(enabled: boolean) {
     queryKey: ["ads", "insights"],
     enabled,
     staleTime: 5 * 60_000,
-    queryFn: async () =>
-      normalizeAdsInsights(await api<AdsInsightsResponse>("/api/ads/insights")),
+    queryFn: () => api<AdsInsightsResponse>("/api/ads/insights"),
+    // Normalize on READ, not just on fetch. `select` runs over whatever data the
+    // query returns, INCLUDING a rehydrated persisted-cache entry, so an old
+    // partial payload (e.g. a bare `{ configured: false }` with no `totals`)
+    // written by a previous bundle is coerced to the full shape before any
+    // component reads it. Normalizing only inside `queryFn` misses that path and
+    // let the Paid Ads tabs white-screen off the stale cache.
+    select: normalizeAdsInsights,
   });
 }
