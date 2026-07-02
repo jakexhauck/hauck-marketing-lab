@@ -29,7 +29,7 @@ export default function PageBar({
   const label = section ?? sectionLabel(tabs);
   return (
     <div className="mb-5 shrink-0">
-      <div className="flex items-end gap-x-7 border-b border-[var(--border)]">
+      <div className="flex items-end gap-x-5 border-b border-[var(--border)]">
         {/* Section name, pinned left */}
         <div className="flex shrink-0 items-baseline gap-2.5 pb-3.5">
           <h2 className="whitespace-nowrap font-display text-[20px] leading-none tracking-tight text-text">
@@ -43,7 +43,7 @@ export default function PageBar({
         {/* Tabs, filling the space between the label and the right-side controls */}
         <nav
           aria-label="Section pages"
-          className="flex min-w-0 flex-1 gap-6 overflow-x-auto"
+          className="flex min-w-0 flex-1 gap-5 overflow-x-auto"
           style={{ scrollbarWidth: "none" }}
         >
           <TabLinks tabs={tabs} />
@@ -54,7 +54,7 @@ export default function PageBar({
           <div className="flex shrink-0 items-center gap-2.5 pb-2.5">{actions}</div>
         )}
         <div className="shrink-0 pb-2.5">
-          <GlobalControls />
+          <GlobalControls compact />
         </div>
       </div>
 
