@@ -396,20 +396,25 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     () => `${pick(rng, FIRST)} ${pick(rng, LAST)}`,
   );
   const METHODS = ["card", "ACH", "card", "cash"];
+  const nowDate = new Date(now);
+  const currentDay = nowDate.getDate();
   let histNo = 100;
   for (let monthsAgo = 11; monthsAgo >= 0; monthsAgo--) {
     const perMonth = 4 + Math.floor(rng() * 3); // 4-6 payments a month
+    // Keep the current month's payments on or before today so "revenue this
+    // month" reads healthy in the demo even early in the month (otherwise it
+    // derives to $0 with a scary -100% MoM on, say, the 2nd).
+    const dayCeiling = monthsAgo === 0 ? Math.max(1, currentDay) : 26;
     for (let k = 0; k < perMonth; k++) {
-      const ref = new Date(now);
       const when = new Date(
-        ref.getFullYear(),
-        ref.getMonth() - monthsAgo,
-        1 + Math.floor(rng() * 26),
+        nowDate.getFullYear(),
+        nowDate.getMonth() - monthsAgo,
+        1 + Math.floor(rng() * dayCeiling),
         11,
         0,
         0,
       );
-      if (when.getTime() > now) continue; // never a future-dated payment
+      if (when.getTime() > now) continue; // safety: never a future-dated payment
       transactions.push({
         id: `demo-txn-h-${histNo++}`,
         amount: Math.round((3000 + rng() * 15000) / 50) * 50,
