@@ -5,7 +5,7 @@ import { Panel, PanelHeader, Button, EmptyState } from "../../components/ui";
 import PageBar from "../../components/PageBar";
 import { REVIEWS_TABS } from "../../lib/pageTabs";
 import { demoMode } from "../../demo/demoMode";
-import { StarRating, NotConnectedNotice, REVIEWS_CONTAINER } from "./shared";
+import { StarRating, ReviewsComingSoon, REVIEWS_CONTAINER } from "./shared";
 
 // The Google Reviews hub overview. Same golden rule as Social: a real (connected)
 // client must never see fabricated reviews. The designed, populated layout renders
@@ -89,10 +89,10 @@ export default function ReviewsOverview() {
           }
         />
 
-        {!demo && (
-          <NotConnectedNotice message="These numbers are all 0 because nothing is linked. To see your real rating and reviews, we still need to connect your Google Business Profile." />
-        )}
-
+        {!demo ? (
+          <ReviewsComingSoon />
+        ) : (
+          <>
         {/* Hero: huge gradient average + stars on the left, stat chips on the right. */}
         <Panel className="relative overflow-hidden rounded-[var(--radius-xl)] p-6 shadow-[var(--shadow-md)] sm:p-9">
           <div
@@ -264,6 +264,8 @@ export default function ReviewsOverview() {
             )}
           </Panel>
         </div>
+        </>
+        )}
       </div>
     </Shell>
   );

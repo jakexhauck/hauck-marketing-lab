@@ -11,6 +11,7 @@ import { ESTIMATE_LEADS } from "../lib/estimateForms";
 import { CHAT_LEADS } from "../lib/chatWidget";
 import { DEMO_LEADS as HUB_DEMO } from "../lib/leadsHub";
 import { DEMO_REACTIVATION } from "../lib/reactivation";
+import { demoAdsInsights } from "../lib/adsInsights";
 import * as store from "./store";
 
 function parseBody(init: RequestInit): Record<string, unknown> {
@@ -74,6 +75,8 @@ export async function handleDemoRequest<T>(
   // Reactivation: the Database Reactivation pipeline rolled up into the
   // surface's four buckets, returned unchanged so the demo reads full.
   if (clean === "/api/campaigns/reactivation") return r(DEMO_REACTIVATION);
+  // Paid Ads: Meta insights derived from the hand-authored demo ads.
+  if (clean === "/api/ads/insights") return r(demoAdsInsights());
   // Lead feeds: the hand-authored worklists, returned unchanged so the demo view
   // matches a live account without touching a real pipeline.
   if (clean === "/api/ads/leads")

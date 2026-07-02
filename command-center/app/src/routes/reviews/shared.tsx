@@ -1,4 +1,4 @@
-import { Star, Link2 } from "lucide-react";
+import { Star, Link2, Sparkles } from "lucide-react";
 import { Panel, Button } from "../../components/ui";
 import { PAGE_CONTAINER } from "../../lib/layout";
 
@@ -74,6 +74,33 @@ export function NotConnectedNotice({ message }: { message?: string }) {
       <Button variant="secondary" size="sm" disabled className="shrink-0">
         Connect Google (coming soon)
       </Button>
+    </Panel>
+  );
+}
+
+// The real-session state for the review-content surfaces (Overview / Insights /
+// All). The pages are fully built, but the live review data still needs the
+// Google Business Profile integration, so a real client sees a clean "coming
+// soon" rather than an empty scaffold. The request-a-review flow stays live on
+// its own tab. Demo/preview still shows the full designed layout.
+export function ReviewsComingSoon({ blurb }: { blurb?: string }) {
+  return (
+    <Panel className="flex flex-col items-center gap-3 px-6 py-16 text-center">
+      <span
+        className="flex h-14 w-14 items-center justify-center rounded-2xl text-brand-text"
+        style={{ background: "var(--brand-tint)" }}
+      >
+        <Sparkles size={26} />
+      </span>
+      <h2 className="font-display text-[19px] font-semibold text-text">Coming soon</h2>
+      <p className="max-w-sm text-[13.5px] leading-relaxed text-muted">
+        {blurb ??
+          "We're connecting your Google Business Profile so your reviews, rating and trends show up right here. It's on the way."}
+      </p>
+      <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[12px] font-semibold text-muted">
+        <Star size={13} style={{ color: "var(--star)", fill: "var(--star)" }} />
+        Your live reviews land here soon
+      </span>
     </Panel>
   );
 }

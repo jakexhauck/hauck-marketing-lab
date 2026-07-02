@@ -43,6 +43,13 @@ export interface Env {
   // IANA timezone for "today" computations (new-today counts, task due dates,
   // invoice overdue). Defaults to America/Chicago.
   TENANT_TIMEZONE?: string;
+  // Meta (Facebook/Instagram) Ads read access for the Paid Ads tabs. One agency
+  // System-User token spans every client ad account; META_AD_ACCOUNT_ID is the
+  // live client's account (act_...). Both absent => Paid Ads shows not-connected.
+  // Per-tenant account override (a tenants column) is a future step. See
+  // functions/api/ads/insights.ts.
+  META_SYSTEM_USER_TOKEN?: string;
+  META_AD_ACCOUNT_ID?: string;
   KV_CACHE?: KVNamespace;
 }
 

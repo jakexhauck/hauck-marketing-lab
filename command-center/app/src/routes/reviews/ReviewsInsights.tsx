@@ -4,7 +4,7 @@ import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
 import PageBar from "../../components/PageBar";
 import { REVIEWS_TABS } from "../../lib/pageTabs";
 import { demoMode } from "../../demo/demoMode";
-import { StarRating, NotConnectedNotice, REVIEWS_CONTAINER } from "./shared";
+import { StarRating, ReviewsComingSoon, REVIEWS_CONTAINER } from "./shared";
 
 // The Google Reviews "What's working" surface (Phase 2: no live insights backend
 // yet). Same golden rule as the rest of Reviews and Social: a real, connected
@@ -92,10 +92,10 @@ export default function ReviewsInsights() {
           description="The few numbers behind your rating. No vanity metrics, just what to keep doing."
         />
 
-        {!demo && (
-          <NotConnectedNotice message="No data yet. Your review trends appear here once your Google Business Profile is connected and reviews start coming in." />
-        )}
-
+        {!demo ? (
+          <ReviewsComingSoon />
+        ) : (
+          <>
         {demo && (
           <Panel className="mb-4 border-brand/30 bg-brand-tint p-5">
             <div className="label-cap text-brand-text">The short version</div>
@@ -279,6 +279,8 @@ export default function ReviewsInsights() {
               description="Your review trends appear here once your Google profile is connected and reviews come in: your rating over time, how many asks become reviews, and where they start."
             />
           </Panel>
+        )}
+        </>
         )}
       </div>
     </Shell>

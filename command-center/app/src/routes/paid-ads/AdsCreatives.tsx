@@ -2,22 +2,35 @@ import { Image as ImageIcon, Megaphone } from "lucide-react";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { Panel, EmptyState } from "../../components/ui";
-import { demoMode } from "../../demo/demoMode";
+import { useAuth } from "../../context/AuthContext";
+import { useAdsInsights } from "../../hooks/useAdsInsights";
+import { emptyAdsInsights } from "../../lib/adsInsights";
 import { formatCompact, formatNumber } from "../../lib/format";
 import { PAID_ADS_TABS } from "../../lib/pageTabs";
-import {
-  PAID_ADS_CONTAINER,
-  NotConnectedNotice,
-  PlatformGlyph,
-  DEMO_ADS,
-} from "./shared";
+import { PAID_ADS_CONTAINER, NotConnectedNotice, PlatformGlyph } from "./shared";
 
 // "Your Ads": the creatives gallery. Every ad shown the way people see it, with
-// the real ad copy and plain per-ad stats (leads, people reached). No jargon.
+// the real ad copy and plain per-ad stats (leads, people reached). Driven by
+// real Meta ads (/api/ads/insights); demo shows the sample gallery.
+
+// Deterministic gradient placeholder per ad (Meta ads carry a real thumbnail we
+// don't hotlink yet; a stable gradient keeps the card looking intentional).
+const THUMBS = [
+  "linear-gradient(135deg,#4f46e5,#7c73f0 60%,#db2777)",
+  "linear-gradient(135deg,#0ea5e9,#4f46e5)",
+  "linear-gradient(135deg,#0f172a,#334155 70%,#0ea5e9)",
+  "linear-gradient(135deg,#f59e0b,#db2777)",
+  "linear-gradient(135deg,#16a34a,#0ea5e9)",
+];
+function thumbFor(i: number): string {
+  return THUMBS[i % THUMBS.length];
+}
 
 export default function AdsCreatives() {
-  const demo = demoMode();
-  const ads = DEMO_ADS;
+  const { session } = useAuth();
+  const { data } = useAdsInsights(Boolean(session));
+  const insights = data ?? emptyAdsInsights(false);
+  const ads = insights.ads;
   const activeCount = ads.filter((a) => a.active).length;
   const pausedCount = ads.length - activeCount;
   const maxLeads = Math.max(...ads.map((a) => a.leads), 1);
@@ -30,7 +43,7 @@ export default function AdsCreatives() {
           tabs={PAID_ADS_TABS}
           description="Every ad we are running for you, exactly as people see it on Instagram and Facebook."
           actions={
-            demo ? (
+            ads.length > 0 ? (
               <span className="inline-flex items-center gap-2 rounded-full bg-positive-tint px-3 py-1.5 text-[12.5px] font-semibold text-positive">
                 <span className="h-1.5 w-1.5 rounded-full bg-positive" />
                 {activeCount} active, {pausedCount} paused
@@ -39,18 +52,18 @@ export default function AdsCreatives() {
           }
         />
 
-        {!demo && (
+        {!insights.configured && (
           <NotConnectedNotice message="Once your Meta ad account is connected, every ad we run for you shows up here with its copy and results." />
         )}
 
-        {demo ? (
+        {ads.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {ads.map((ad) => (
+            {ads.map((ad, i) => (
               <Panel key={ad.id} className="flex flex-col overflow-hidden p-0">
-                {/* Creative thumbnail (placeholder) */}
+                {/* Creative thumbnail (placeholder gradient) */}
                 <div
                   className="relative flex h-[148px] items-end p-3 text-white"
-                  style={{ backgroundImage: ad.thumb }}
+                  style={{ backgroundImage: thumbFor(i) }}
                 >
                   <span
                     className={`absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold ${
@@ -63,14 +76,14 @@ export default function AdsCreatives() {
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-black/30 px-2.5 py-1 text-[11.5px] font-semibold backdrop-blur-sm">
                     <ImageIcon size={13} />
-                    {ad.thumbLabel}
+                    Ad creative
                   </span>
                 </div>
 
                 {/* Body */}
                 <div className="flex flex-1 flex-col p-4">
                   <div className="font-display text-[15px] font-bold tracking-tight text-text">{ad.headline}</div>
-                  <p className="mt-1.5 text-[13px] leading-relaxed text-muted">"{ad.copy}"</p>
+                  {ad.copy && <p className="mt-1.5 text-[13px] leading-relaxed text-muted">"{ad.copy}"</p>}
 
                   <div className="mt-3 flex gap-2">
                     {ad.platforms.map((p) => (
@@ -105,8 +118,12 @@ export default function AdsCreatives() {
           <Panel className="px-4 py-12">
             <EmptyState
               icon={<Megaphone size={22} />}
-              title="No ads to show yet"
-              description="After your accounts are linked, every ad we run for you appears here with its copy and results."
+              title={insights.configured ? "No ads running yet" : "No ads to show yet"}
+              description={
+                insights.configured
+                  ? "Every ad we run for you appears here with its copy and results once campaigns start."
+                  : "After your accounts are linked, every ad we run for you appears here with its copy and results."
+              }
             />
           </Panel>
         )}

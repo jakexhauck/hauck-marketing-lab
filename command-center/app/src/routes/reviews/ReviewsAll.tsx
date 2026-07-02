@@ -5,7 +5,7 @@ import { Panel, Badge, Button, EmptyState, Segmented, type SegmentOption } from 
 import PageBar from "../../components/PageBar";
 import { REVIEWS_TABS } from "../../lib/pageTabs";
 import { demoMode } from "../../demo/demoMode";
-import { StarRating, NotConnectedNotice, REVIEWS_CONTAINER } from "./shared";
+import { StarRating, ReviewsComingSoon, REVIEWS_CONTAINER } from "./shared";
 
 // The "All Reviews" surface of Google Reviews: an inbox-style work queue. A
 // persistent segmented filter bar sits above a tight, scannable list of review
@@ -331,10 +331,6 @@ export default function ReviewsAll() {
           }
         />
 
-        {!demo && (
-          <NotConnectedNotice message="There are no reviews to show yet. Once your Google Business Profile is connected, every review lands in this queue ready to reply." />
-        )}
-
         {demo ? (
           <Panel className="overflow-hidden">
             {visible.length === 0 ? (
@@ -363,13 +359,7 @@ export default function ReviewsAll() {
             )}
           </Panel>
         ) : (
-          <Panel className="px-4 py-12">
-            <EmptyState
-              icon={<Star size={22} />}
-              title="No reviews yet"
-              description="Your Google reviews will show up here once your profile is connected. Then you can filter, reply, and keep your rating climbing."
-            />
-          </Panel>
+          <ReviewsComingSoon />
         )}
       </div>
     </Shell>
