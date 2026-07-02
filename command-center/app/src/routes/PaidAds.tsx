@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { FlaskConical } from "lucide-react";
 import Shell from "../components/Shell";
-import PageTabs from "../components/PageTabs";
 import { PageHeader } from "../components/PageHeader";
 import { Panel, PanelHeader, Segmented, type SegmentOption } from "../components/ui";
 import { MetricBand, type MetricCell } from "../components/ads/MetricBand";
@@ -28,7 +27,6 @@ import {
   formatNumber,
   formatPercent,
 } from "../lib/format";
-import { PAID_ADS_TABS } from "../lib/pageTabs";
 
 const RANGE_OPTIONS: SegmentOption<AdsRange>[] = [
   { value: "7d", label: "7d" },
@@ -93,7 +91,6 @@ export function PaidAds() {
       {/* Phone layout (below lg). The desktop client app renders
           PaidAdsDesktop instead; both share the same ads dataset. */}
       <div className="flex min-h-0 flex-1 flex-col px-5 pb-8 pt-5 lg:hidden">
-      <PageTabs tabs={PAID_ADS_TABS} />
       <PageHeader
         title="Paid Ads"
         count={`${data.campaigns.length} campaigns`}

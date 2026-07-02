@@ -42,6 +42,7 @@ import WebsiteOverview from "./routes/website/WebsiteOverview";
 import WebsitePages from "./routes/website/WebsitePages";
 import WebsiteRequestChange from "./routes/website/WebsiteRequestChange";
 import WebsiteInsights from "./routes/website/WebsiteInsights";
+import AdsOverview from "./routes/paid-ads/AdsOverview";
 import AdsCreatives from "./routes/paid-ads/AdsCreatives";
 import AdsInsights from "./routes/paid-ads/AdsInsights";
 import CampaignsOverview from "./routes/campaigns/CampaignsOverview";
@@ -224,8 +225,16 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* Legacy live-ads path; the Paid Ads channel overview now renders it. */}
-              <Route path="/paid-ads" element={<Navigate to="/marketing/paid-ads" replace />} />
+              {/* The raw live-ads dashboard (real Meta spend/CPL/ROAS). Not in the
+                  nav; reachable as a deep dive beneath the Paid Ads overview. */}
+              <Route
+                path="/paid-ads"
+                element={
+                  <ProtectedRoute>
+                    <PaidAds />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/activity"
                 element={
@@ -350,8 +359,9 @@ export default function App() {
               <Route path="/marketing/campaigns/reactivation" element={<ProtectedRoute><Reactivation /></ProtectedRoute>} />
               <Route path="/sales/scripts" element={<ProtectedRoute><ComingSoon title="Sales Scripts" blurb="Your call and message scripts, ready to use. Coming soon." /></ProtectedRoute>} />
               <Route path="/operations/reports" element={<ProtectedRoute><ComingSoon title="Reports & Analytics" blurb="Performance across ads, leads, and revenue in one place. Coming soon." /></ProtectedRoute>} />
-              {/* Overview = the live Meta insights page (real spend/CPL/ROAS), not the demo. */}
-              <Route path="/marketing/paid-ads" element={<ProtectedRoute><PaidAds /></ProtectedRoute>} />
+              {/* Overview = the designed "at a glance" cockpit (AdsOverview). The raw
+                  media-buyer dashboard stays reachable at /paid-ads for the deep dive. */}
+              <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsOverview /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/creatives" element={<ProtectedRoute><AdsCreatives /></ProtectedRoute>} />
               {/* A marketing channel never hosts a lead list; ad leads live in Leads, filtered. */}
               <Route path="/marketing/paid-ads/leads" element={<Navigate to="/sales/leads?source=ads" replace />} />

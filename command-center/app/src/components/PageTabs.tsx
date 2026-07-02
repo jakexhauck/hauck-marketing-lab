@@ -12,7 +12,10 @@ export default function PageTabs({ tabs }: { tabs: PageTab[] }) {
   return (
     <nav
       aria-label="Section pages"
-      className="mb-5 flex gap-6 overflow-x-auto border-b border-[var(--border)]"
+      // shrink-0: PAGE_CONTAINER is a flex column with flex-1, so on tall pages
+      // flex-shrink would otherwise squeeze this (it has overflow-x-auto) down to
+      // its border. Keep its natural height on every page.
+      className="mb-5 flex shrink-0 gap-6 overflow-x-auto border-b border-[var(--border)]"
       style={{ scrollbarWidth: "none" }}
     >
       {tabs.map((t) => (
