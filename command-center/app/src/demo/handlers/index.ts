@@ -31,5 +31,7 @@ const modules = import.meta.glob<{ route?: DemoRoute; routes?: DemoRoute[] }>(
 );
 
 export const demoRoutes: DemoRoute[] = Object.entries(modules)
-  .filter(([path]) => !path.endsWith("/index.ts"))
+  // Skip the registry itself and any test/story files that happen to sit here,
+  // so a *.test.ts never bundles vitest into the app.
+  .filter(([path]) => !/\/(index|.*\.(test|spec|stories))\.ts$/.test(path))
   .flatMap(([, mod]) => mod.routes ?? (mod.route ? [mod.route] : []));

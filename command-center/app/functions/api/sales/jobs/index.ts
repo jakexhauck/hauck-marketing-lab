@@ -1,10 +1,10 @@
-import type { Env, ApiData } from "../../lib/env";
+import type { Env, ApiData } from "../../../lib/env";
 import {
   ghlJson,
   fetchAllOpportunities,
   type GhlContext,
   type GhlOpportunity,
-} from "../../lib/ghl";
+} from "../../../lib/ghl";
 
 // GET /api/sales/jobs: opportunities in the Sales Pipeline at the two job
 // stages (Job Booked + Job Completed), each joined to its GHL appointment for
@@ -135,6 +135,12 @@ async function appointmentsByContact(
 // The Job shape the frontend reads (mirror of src/lib/jobsPipeline.ts `Job`).
 interface ApiJob {
   id: string;
+  // The opportunity's contact id, so job actions (Message, Ask for review) have
+  // a real target. Empty when the opportunity has no contact.
+  contactId: string;
+  // The joined GHL appointment id, so Reschedule can PUT the right event.
+  // Empty when no appointment is joined (date/time then came off the opportunity).
+  appointmentId: string;
   customer: string;
   service: string;
   city: string;
@@ -247,6 +253,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
     jobs.push({
       id: o.id,
+      contactId,
+      appointmentId: appt?.id ?? appt?._id ?? "",
       customer,
       service,
       city,

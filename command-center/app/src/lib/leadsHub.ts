@@ -42,6 +42,12 @@ export interface HubLead {
   name: string;
   source: LeadSource;
   status: LeadStatus;
+  // GHL write targets (present on live leads, omitted on demo rows): the
+  // contact for sending a reply, and the opportunity's pipeline + stage for a
+  // stage move / off-ramp. The composer and NextStep actions read these.
+  contactId?: string;
+  pipelineId?: string;
+  pipelineStageId?: string;
   // One-line "what they want".
   intent: string;
   // Last-message preview for the list row.
@@ -355,6 +361,9 @@ function mapApiSalesLead(o: ApiSalesLead): HubLead {
     name: o.name,
     source: o.source,
     status: o.status,
+    contactId: o.contactId,
+    pipelineId: o.pipelineId,
+    pipelineStageId: o.pipelineStageId,
     intent: "",
     preview: "",
     when: timeAgo(o.lastActivityAt),

@@ -34,6 +34,12 @@ export type DayKind = "booked" | "completed" | "unpaid";
 
 export interface Job {
   id: string;
+  // The opportunity's contact id (from the live feed), so Message + Ask for
+  // review have a real target. Optional: demo jobs omit it.
+  contactId?: string;
+  // The joined GHL appointment id (from the live feed), so Reschedule can target
+  // the right event once that action lands. Optional: demo jobs omit it.
+  appointmentId?: string;
   customer: string;
   service: string;
   city: string;

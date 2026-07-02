@@ -19,6 +19,7 @@ import {
   type AdminClient,
   type ApiReviewsResponse,
 } from "../lib/api";
+import { type Job } from "../lib/jobsPipeline";
 
 // Tenant display config (branding, labels, real spend). Changes rarely; a
 // long staleTime avoids refetching it on every screen.
@@ -650,6 +651,64 @@ export function useTransactionsQuery(enabled: boolean) {
     staleTime: 60_000,
     queryFn: () =>
       api<ApiTransactionsResponse>("/api/payments/transactions"),
+  });
+}
+
+// Jobs (Sales): mark a booked job completed. The server resolves the "Job
+// Completed" stage by name and moves the opportunity, so the client sends no
+// stage id. Optimistically flips the job to completed in the cache (a fresh
+// array, so the calendar dot + month summary both recompute at once), rolls back
+// on error, and refetches on settle.
+export function useCompleteJob() {
+  const qc = useQueryClient();
+  const key = ["sales-jobs"];
+  return useMutation({
+    mutationFn: (input: { jobId: string }) =>
+      api<{ ok: boolean; status?: string }>(
+        `/api/sales/jobs/${input.jobId}/complete`,
+        { method: "POST" },
+      ),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<{ jobs: Job[]; configError?: string }>(key);
+      if (previous) {
+        qc.setQueryData(key, {
+          ...previous,
+          jobs: previous.jobs.map((j) =>
+            j.id === input.jobId ? { ...j, status: "completed" as const } : j,
+          ),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(key, context.previous);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: key });
+    },
+  });
+}
+
+// Leads worklist stage write: the off-ramp ("Not a fit" -> status lost) and,
+// later, the manual Confirm (a named stage move resolved server-side). The
+// server owns stage-name resolution; the client passes a status and/or a stage
+// name. Invalidates the merged leads feed so the status pill settles.
+export function useMoveSalesLeadStage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      leadId: string;
+      status?: "open" | "won" | "lost" | "abandoned";
+      stageName?: string;
+    }) =>
+      api<{ ok: boolean }>(`/api/sales/leads/${input.leadId}/stage`, {
+        method: "POST",
+        body: JSON.stringify({ status: input.status, stageName: input.stageName }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales-leads"] });
+    },
   });
 }
 

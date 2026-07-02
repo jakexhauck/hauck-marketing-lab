@@ -6,6 +6,23 @@ Ships **demo-complete but not connected**: a real session renders the empty/not-
 
 Reads its data through `useLeadsHub()` → `buildLeadsHub()` in `src/lib/leadsHub.ts` (hand-authored demo worklist today; empty in a real session). Keep this return shape when wiring live and nothing downstream changes.
 
+## Wired 2026-07-02 (action-wiring plan, Phase 1)
+- ✅ **Send reply (composer)** → existing `POST /api/conversations/:contactId/send`, keyed by
+  the lead's `contactId` (now carried onto `HubLead` from the live feed). Optimistic local
+  echo shows the outbound bubble at once; demo rows have no `contactId`, so the send is a
+  local echo only.
+- ✅ **Not a fit (off-ramp)** → new `POST /api/sales/leads/:id/stage` with `{status:"lost"}`.
+  The endpoint keeps stage-name resolution server-side (it also accepts a `stageName` for a
+  future manual Confirm). `useMoveSalesLeadStage` + an in-component status override flip the
+  status pill immediately; demo mirrors it in `src/demo/handlers/actions.ts`.
+- ⛔ **Book intro call / Schedule callback / Book in-person visit** — still gated. Blocked on
+  the appointment-create + "pause nurture" spikes (need the `ghl` CLI against Willis; not
+  runnable from the build environment). `HubLead` now also carries `pipelineId` /
+  `pipelineStageId` so a named stage move has its targets once those land.
+- Note: **Confirm** and **Log call outcome** from the plan's action table are not distinct
+  buttons in the current NextStep UI (confirmation is automatic via the webhook), so they
+  were not surfaced; the `stage` endpoint is ready for a Confirm if one is added.
+
 ## Data source(s) — GoHighLevel
 - ❌ **Paid Ad's Pipeline** (`uz0fFxCgiwdXbg4Zmwkc`) — the Paid Ads tab leads + their stage. Map `pipelineStageId` → status. (See `paidAdsPipeline.ts` for the real stage map.)
 - ❌ **Organic Pipeline** (`source = "Website Form"` / `"chat widget"`) — the Estimate Forms + Chat Widget tab leads.

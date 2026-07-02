@@ -8,6 +8,19 @@ backend exists.
 
 Status key: ❌ not wired · ⚠️ partial · ✅ live
 
+## Wired 2026-07-02 (action-wiring plan, Phase 1)
+- ✅ **Mark completed** → `POST /api/sales/jobs/:id/complete` (new). Resolves the Sales
+  pipeline + "Job Completed" stage BY NAME server-side and PUTs the opportunity; the
+  client sends no stage id. Optimistic cache flip so the dot + month summary recompute
+  at once (`useCompleteJob`). Demo mirrors it in `src/demo/handlers/actions.ts`.
+- ✅ **Message** → opens an SMS composer keyed by the job's `contactId` (now on `ApiJob`),
+  sending through the existing `POST /api/conversations/:id/send`.
+- ✅ **Ask for review** → existing `POST /api/reviews` tag flow, keyed by `contactId`.
+- ⛔ **Reschedule / Record payment / Resend invoice** — still gated. Blocked on the
+  live GHL spikes (appointment reschedule + invoice send/record-payment endpoints), which
+  need the `ghl` CLI against Willis; not runnable from the build environment. `ApiJob` now
+  also carries `appointmentId` so Reschedule has its target once that spike lands.
+
 ## Data source(s)
 - ❌ **GHL Sales Pipeline opportunities** — the jobs. Read opportunities in pipeline
   `6o9Gx6e0TXRFJdln5d01` at stages `Job Booked` + `Job Completed`; map each to a `Job`

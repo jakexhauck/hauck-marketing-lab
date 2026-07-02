@@ -10,6 +10,8 @@ import {
   FileText,
   Star,
   MapPin,
+  Send,
+  X,
 } from "lucide-react";
 import Shell from "../../components/Shell";
 import { PageHeader } from "../../components/PageHeader";
@@ -19,6 +21,11 @@ import { cn } from "../../lib/cn";
 import { demoMode } from "../../demo/demoMode";
 import { PAGE_CONTAINER } from "../../lib/layout";
 import { useJobs } from "../../hooks/useJobs";
+import {
+  useCompleteJob,
+  useSendConversationMessage,
+  useStartReviewCampaign,
+} from "../../hooks/useApi";
 import {
   monthGrid,
   monthSummary,
@@ -60,7 +67,12 @@ export default function Jobs() {
   const demo = demoMode();
   const jobs = useJobs();
   const { showToast } = useToast();
+  const completeJob = useCompleteJob();
+  const startReview = useStartReviewCampaign();
   const today = toIso(new Date());
+
+  // The job whose Message composer is open (null = closed).
+  const [msgJob, setMsgJob] = useState<Job | null>(null);
 
   // Anchor the view to the demo month so the preview always reads full; a real
   // session opens on the current month (empty until connected).
@@ -90,13 +102,40 @@ export default function Jobs() {
     });
   }
 
-  // Terminal actions are not wired yet: explain that in the preview, never write.
-  function onAction(label: string) {
-    showToast(
-      demo
-        ? `Preview — "${label}" turns on once your calendar and pipeline are connected.`
-        : `"${label}" turns on once your calendar is connected.`,
-    );
+  // Route a job-card action. The wired writes (complete / message / review) hit
+  // real endpoints (demo mirrors them in the in-memory store); the calendar +
+  // invoice actions stay gated with a clear note until those feeds are wired.
+  function handleAct(job: Job, label: string) {
+    switch (label) {
+      case "Mark completed":
+        completeJob.mutate(
+          { jobId: job.id },
+          {
+            onSuccess: () => showToast(`Marked ${job.customer}'s job completed.`),
+            onError: () => showToast("Could not update the job. Please try again."),
+          },
+        );
+        return;
+      case "Message":
+        setMsgJob(job);
+        return;
+      case "Ask for review":
+        startReview.mutate(
+          { contactId: job.contactId ?? "" },
+          {
+            onSuccess: () => showToast(`Review request sent to ${job.customer}.`),
+            onError: () => showToast("Could not send the review request."),
+          },
+        );
+        return;
+      default:
+        // Reschedule / Payment / Record payment / Resend invoice: not wired yet.
+        showToast(
+          demo
+            ? `Preview — "${label}" turns on once your calendar and invoices are connected.`
+            : `"${label}" turns on once your calendar and invoices are connected.`,
+        );
+    }
   }
 
   return (
@@ -250,13 +289,114 @@ export default function Jobs() {
                   />
                 </div>
               ) : (
-                dayJobs.map((job) => <JobCard key={job.id} job={job} onAction={onAction} />)
+                dayJobs.map((job) => <JobCard key={job.id} job={job} onAct={handleAct} />)
               )}
             </div>
           </div>
         </Panel>
       </div>
+      {msgJob && (
+        <JobMessageModal
+          job={msgJob}
+          onClose={() => setMsgJob(null)}
+          onSent={() => showToast(`Message sent to ${msgJob.customer}.`)}
+        />
+      )}
     </Shell>
+  );
+}
+
+// Compact SMS composer for a job, keyed by the job's contact id. Sends through
+// the channel-aware conversations endpoint (SMS), the same primitive the Leads
+// composer uses. In a real session the job carries a contactId; the demo job
+// omits it, so the send is a local no-op that still confirms in the toast.
+function JobMessageModal({
+  job,
+  onClose,
+  onSent,
+}: {
+  job: Job;
+  onClose: () => void;
+  onSent: () => void;
+}) {
+  const send = useSendConversationMessage();
+  const [body, setBody] = useState("");
+  const canSend = body.trim().length > 0 && !send.isPending;
+
+  function submit() {
+    const text = body.trim();
+    if (!text) return;
+    const done = () => {
+      onSent();
+      onClose();
+    };
+    if (job.contactId) {
+      send.mutate(
+        { contactId: job.contactId, channel: "SMS", body: text },
+        { onSuccess: done, onError: done },
+      );
+    } else {
+      done();
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[70] grid place-items-center bg-[rgba(15,18,48,0.42)] p-5"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[440px] overflow-hidden rounded-[var(--radius-xl)] border border-border bg-surface shadow-[var(--shadow-lg)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3 px-[22px] pb-1.5 pt-5">
+          <div className="min-w-0 flex-1">
+            <div className="font-display text-[16.5px] font-semibold text-text">
+              Message {job.customer}
+            </div>
+            <div className="mt-0.5 text-[12.5px] text-muted">
+              Sends a text to {job.phone || "the contact on file"}.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-surface-2 text-muted"
+            aria-label="Close"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="px-[22px] pb-[22px] pt-3">
+          <textarea
+            autoFocus
+            rows={4}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder={`Text ${job.customer.split(" ")[0]}…`}
+            className="w-full resize-none rounded-[10px] border border-border bg-[var(--bg)] px-3 py-2.5 text-[13px] text-text outline-none placeholder:text-faint focus:border-brand focus:ring-2 focus:ring-brand/20"
+          />
+          <div className="mt-3 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-[10px] border border-border bg-surface px-3.5 py-2 font-display text-[13px] font-semibold text-text hover:border-brand/40"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={!canSend}
+              className="inline-flex items-center gap-2 rounded-[10px] px-3.5 py-2 font-display text-[13px] font-semibold text-white shadow-[var(--shadow-brand)] disabled:opacity-50"
+              style={{ backgroundImage: "var(--grad-brand)" }}
+            >
+              <Send size={15} /> {send.isPending ? "Sending…" : "Send"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -296,7 +436,7 @@ function jobActions(job: Job): { label: string; icon: typeof CheckCircle2; prima
   ];
 }
 
-function JobCard({ job, onAction }: { job: Job; onAction: (label: string) => void }) {
+function JobCard({ job, onAct }: { job: Job; onAct: (job: Job, label: string) => void }) {
   const kind = jobKind(job);
   const [h, ap] = job.time.split(" ");
   return (
@@ -342,7 +482,7 @@ function JobCard({ job, onAction }: { job: Job; onAction: (label: string) => voi
             <button
               key={a.label}
               type="button"
-              onClick={() => onAction(a.label)}
+              onClick={() => onAct(job, a.label)}
               className={cn(
                 "flex flex-1 items-center justify-center gap-1.5 rounded-[9px] border px-2 py-2 font-display text-[11.5px] font-semibold transition-colors",
                 a.primary

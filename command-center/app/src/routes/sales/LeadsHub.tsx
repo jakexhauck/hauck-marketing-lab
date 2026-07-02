@@ -25,6 +25,10 @@ import { useToast } from "../../context/ToastContext";
 import { cn } from "../../lib/cn";
 import { useLeadsHub } from "../../hooks/useLeadsHub";
 import {
+  useSendConversationMessage,
+  useMoveSalesLeadStage,
+} from "../../hooks/useApi";
+import {
   SOURCE_META,
   STATUS_META,
   FU_OUTCOME,
@@ -35,6 +39,7 @@ import {
   newCount,
   type HubLead,
   type LeadSource,
+  type LeadStatus,
   type LeadMessage,
   type StepChannel,
 } from "../../lib/leadsHub";
@@ -77,9 +82,61 @@ function channelIcon(ch: StepChannel) {
 }
 
 export default function LeadsHub() {
-  const { leads } = useLeadsHub();
+  const { leads: rawLeads } = useLeadsHub();
   const { showToast } = useToast();
   const gated = () => showToast(GATED_NOTE);
+  const sendMessage = useSendConversationMessage();
+  const moveStage = useMoveSalesLeadStage();
+
+  // Optimistic layers over the fetched worklist: a status override for the
+  // off-ramp (the demo feed never refetches, and a real refetch settles to the
+  // same value), and locally-appended outbound messages per lead+channel so a
+  // sent reply shows in the thread immediately.
+  const [statusOverride, setStatusOverride] = useState<Record<string, LeadStatus>>({});
+  const [sent, setSent] = useState<Record<string, LeadMessage[]>>({});
+
+  const leads = useMemo(
+    () =>
+      Object.keys(statusOverride).length
+        ? rawLeads.map((l) =>
+            statusOverride[l.id] ? { ...l, status: statusOverride[l.id] } : l,
+          )
+        : rawLeads,
+    [rawLeads, statusOverride],
+  );
+
+  // Send a reply: append locally at once, then fire the real send when the lead
+  // carries a contact id (demo rows have none, so it stays a local echo).
+  function handleSend(lead: HubLead, ch: "sms" | "email", text: string) {
+    const key = `${lead.id}:${ch}`;
+    const msg: LeadMessage = { dir: "out", from: "You", body: text, at: "now" };
+    setSent((m) => ({ ...m, [key]: [...(m[key] ?? []), msg] }));
+    if (lead.contactId) {
+      sendMessage.mutate({
+        contactId: lead.contactId,
+        channel: ch === "email" ? "Email" : "SMS",
+        body: text,
+      });
+    }
+  }
+
+  // Route a Next-step pick. Only the off-ramp ("Not a fit") is a wired write in
+  // this phase (status -> lost); the appointment + call-console steps stay gated
+  // until those feeds land.
+  function handleStep(lead: HubLead, key: string) {
+    if (key === "other") {
+      setStatusOverride((m) => ({ ...m, [lead.id]: "cold" }));
+      moveStage.mutate(
+        { leadId: lead.id, status: "lost" },
+        {
+          onSuccess: () => showToast(`${lead.name} moved out of the pipeline.`),
+          onError: () => showToast("Could not update the lead. Please try again."),
+        },
+      );
+      return;
+    }
+    gated();
+  }
 
   const [tab, setTab] = useState<LeadSource>("ad");
   const [selId, setSelId] = useState<Record<LeadSource, string | null>>({
@@ -257,12 +314,16 @@ export default function LeadsHub() {
           >
             {selected ? (
               <Detail
+                key={selected.id}
                 lead={selected}
                 channel={channel}
                 onChannel={setChannel}
                 onBack={() => setMobileDetail(false)}
                 onNextStep={() => setModalOpen(true)}
-                onGated={gated}
+                onSend={handleSend}
+                extraSms={sent[`${selected.id}:sms`] ?? []}
+                extraEmails={sent[`${selected.id}:email`] ?? []}
+                sending={sendMessage.isPending}
               />
             ) : (
               <EmptyDetail source={tab} />
@@ -272,7 +333,11 @@ export default function LeadsHub() {
       </div>
 
       {modalOpen && selected && (
-        <NextStepModal lead={selected} onClose={() => setModalOpen(false)} onPick={gated} />
+        <NextStepModal
+          lead={selected}
+          onClose={() => setModalOpen(false)}
+          onPick={(key) => handleStep(selected, key)}
+        />
       )}
     </Shell>
   );
@@ -475,18 +540,33 @@ function Detail({
   onChannel,
   onBack,
   onNextStep,
-  onGated,
+  onSend,
+  extraSms,
+  extraEmails,
+  sending,
 }: {
   lead: HubLead;
   channel: "sms" | "email";
   onChannel: (c: "sms" | "email") => void;
   onBack: () => void;
   onNextStep: () => void;
-  onGated: () => void;
+  onSend: (lead: HubLead, channel: "sms" | "email", text: string) => void;
+  extraSms: LeadMessage[];
+  extraEmails: LeadMessage[];
+  sending: boolean;
 }) {
   const first = lead.name.replace(/^The\s+/, "").split(" ")[0];
-  const emails = lead.emails ?? [];
-  const thread = channel === "sms" ? lead.sms : emails;
+  const emails = [...(lead.emails ?? []), ...extraEmails];
+  const sms = [...lead.sms, ...extraSms];
+  const thread = channel === "sms" ? sms : emails;
+  const [draft, setDraft] = useState("");
+
+  function submit() {
+    const text = draft.trim();
+    if (!text) return;
+    onSend(lead, channel, text);
+    setDraft("");
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -551,7 +631,7 @@ function Detail({
               <ChannelTab
                 icon={<MessageSquare size={14} />}
                 label="SMS"
-                count={lead.sms.length}
+                count={sms.length}
                 active={channel === "sms"}
                 onClick={() => onChannel("sms")}
               />
@@ -584,14 +664,23 @@ function Detail({
           {channel === "email" ? "Reply by Email" : lead.source === "chat" ? "Reply in chat" : "Reply by SMS"}
         </span>
         <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
           placeholder={`${channel === "email" ? "Email" : "Message"} ${first}…`}
           className="flex-1 rounded-[10px] border border-border bg-[var(--bg)] px-3 py-2.5 text-[13px] text-text outline-none placeholder:text-faint focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
         <button
           type="button"
-          onClick={onGated}
+          onClick={submit}
+          disabled={draft.trim().length === 0 || sending}
           aria-label="Send"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white disabled:opacity-50"
           style={{ backgroundImage: "var(--grad-brand)" }}
         >
           <Send size={16} />
@@ -675,7 +764,7 @@ function Bubble({ m }: { m: LeadMessage }) {
 
 // --- Next-step popup --------------------------------------------------------
 
-function NextStepModal({ lead, onClose, onPick }: { lead: HubLead; onClose: () => void; onPick: () => void }) {
+function NextStepModal({ lead, onClose, onPick }: { lead: HubLead; onClose: () => void; onPick: (key: string) => void }) {
   const stepIcon: Record<string, typeof Phone> = {
     call: Phone,
     book: CalendarClock,
@@ -718,7 +807,7 @@ function NextStepModal({ lead, onClose, onPick }: { lead: HubLead; onClose: () =
                 key={s.key}
                 type="button"
                 onClick={() => {
-                  onPick();
+                  onPick(s.key);
                   onClose();
                 }}
                 className={cn(
