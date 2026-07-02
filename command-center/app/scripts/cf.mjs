@@ -144,6 +144,24 @@ async function main() {
       const secret = rest.includes("--secret");
       if (!key || value === undefined) die("usage: env:set KEY value [--secret]");
       const vars = await getProductionEnv(acct);
+      // FOOTGUN: Cloudflare's GET never returns existing secret *values*, so
+      // re-PATCHing this whole map rewrites every OTHER secret_text var with an
+      // empty value and blanks them (the recurring "login unavailable" outage).
+      // Only safe when no other secrets exist. To restore/rotate a secret, use
+      // `node scripts/cf-rebind.mjs` instead, which sends all values at once.
+      const otherSecrets = Object.entries(vars).filter(
+        ([k, c]) => k !== key && c?.type === "secret_text",
+      );
+      if (secret === false && vars[key]?.type === "secret_text") {
+        die(`${key} is a secret; pass --secret (setting it plain would expose it)`);
+      }
+      if (otherSecrets.length) {
+        die(
+          `refusing: this would blank ${otherSecrets.length} other secret(s) ` +
+            `(${otherSecrets.map(([k]) => k).join(", ")}).\n` +
+            `  Use: node scripts/cf-rebind.mjs   (rebinds every secret from .env.local in one safe PATCH)`,
+        );
+      }
       vars[key] = { type: secret ? "secret_text" : "plain_text", value };
       await patchProductionEnv(acct, vars);
       ok(`set ${key} (${secret ? "secret" : "plain"}). Redeploy to apply.`);
