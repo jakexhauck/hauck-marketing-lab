@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Sidebar from "./Sidebar";
+import BottomNav from "./BottomNav";
 import { useAuth } from "../context/AuthContext";
 import { cn } from "../lib/cn";
 
@@ -20,17 +21,18 @@ export default function Shell({ children }: { children: ReactNode }) {
       {authed && <Sidebar />}
       <div
         className={cn(
-          "mx-auto flex min-h-dvh w-full max-w-md flex-col",
+          // Below lg, pad ~64px (the fixed bottom tab bar's height) plus the
+          // bottom safe-area inset so no page hides content behind the bar; the
+          // desktop layout has no bar, so it drops the pad entirely (lg:pb-0).
+          // Kept as one responsive class because an inline paddingBottom would
+          // override the utility.
+          "mx-auto flex min-h-dvh w-full max-w-md flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0",
           authed && "lg:mx-0 lg:max-w-none lg:min-w-0 lg:flex-1",
         )}
-        style={{
-          // Top safe-area is owned by each screen's top element (the navy hero
-          // bleeds under the status bar). Only the bottom inset lives here.
-          paddingBottom: "env(safe-area-inset-bottom)",
-        }}
       >
         {children}
       </div>
+      {authed && <BottomNav />}
     </div>
   );
 }

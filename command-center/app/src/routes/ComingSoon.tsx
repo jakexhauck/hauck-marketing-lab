@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Sparkles } from "lucide-react";
 import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
-import BottomNav from "../components/BottomNav";
 import DesktopPage from "../components/desktop/DesktopPage";
 import { HeroIconButton } from "../components/HeroUi";
 
@@ -47,8 +46,6 @@ export default function ComingSoon({
           </div>
         </DesktopPage>
       </div>
-
-      <BottomNav />
     </Shell>
   );
 }

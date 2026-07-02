@@ -5,7 +5,6 @@ import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
 import { HeroMark, HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
-import BottomNav from "../components/BottomNav";
 import SearchBar from "../components/SearchBar";
 import Avatar from "../components/Avatar";
 import SourceBadge from "../components/conversations/SourceBadge";
@@ -165,7 +164,6 @@ export default function Conversations() {
       <div className="hidden min-h-0 flex-1 lg:flex">
         <ConversationsDesktop />
       </div>
-      <BottomNav active="conversations" />
     </Shell>
   );
 }

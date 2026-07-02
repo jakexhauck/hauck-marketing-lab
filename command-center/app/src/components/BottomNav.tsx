@@ -1,34 +1,22 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { NAV, filterNav, flattenNav } from "../lib/nav";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "../hooks/useApi";
 import { haptic } from "../lib/haptics";
 
-// The four day-to-day surfaces map 1:1 to the bottom-bar tabs. Screens still
-// pass which one is active by key; we resolve that to a route via this map so
-// the bar shares the unified nav source of truth (and its permission gate)
-// with the desktop sidebar.
-export type NavKey = "home" | "apps" | "leads" | "conversations" | "contacts" | "comms";
-
-const ROUTE_BY_KEY: Record<NavKey, string> = {
-  home: "/home",
-  apps: "/apps",
-  leads: "/sales/leads",
-  conversations: "/conversations",
-  contacts: "/contacts",
-  comms: "/comms",
-};
-
-export default function BottomNav({ active }: { active?: NavKey }) {
+export default function BottomNav() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { isOwner, can, session } = useAuth();
   // Only the bottom-bar surfaces, then only the ones this user may see.
   const items = filterNav(
     flattenNav(NAV).filter((item) => item.bottomNav),
     { isOwner, can },
   );
-  // Coming-soon pages have no matching tab; passing no key highlights nothing.
-  const activeRoute = active ? ROUTE_BY_KEY[active] : undefined;
+  // Active tab derives from the URL: exact match or a nested route under it.
+  // Coming-soon pages sit under no tab, so nothing highlights there.
+  const isActiveRoute = (to: string) =>
+    pathname === to || pathname.startsWith(to + "/");
 
   // Reuse the Conversations route's cached ["conversations"] query (same key +
   // fetcher) so this badge shares its data and 30s refetch cycle rather than
@@ -49,7 +37,7 @@ export default function BottomNav({ active }: { active?: NavKey }) {
     >
       <div className="flex items-stretch pt-1.5">
         {items.map((item) => {
-          const isActive = item.to === activeRoute;
+          const isActive = isActiveRoute(item.to);
           const Icon = item.icon;
           // iOS Mail-style unread pill on the Chats tab only. Cap large counts
           // at "9+" so the pill stays round and legible in the small bar.
@@ -57,6 +45,9 @@ export default function BottomNav({ active }: { active?: NavKey }) {
             item.to === "/conversations" && unreadConversations > 0;
           const badgeText =
             unreadConversations > 9 ? "9+" : String(unreadConversations);
+          // The "All features" launcher renders as a raised gradient FAB that
+          // floats above the bar line, marking it as the primary phone action.
+          const isRaised = item.to === "/apps";
           return (
             <button
               key={item.to}
@@ -74,30 +65,42 @@ export default function BottomNav({ active }: { active?: NavKey }) {
                 color: isActive ? "var(--brand-text)" : "var(--text-faint)",
               }}
             >
-              <span
-                className="flex h-8 w-12 items-center justify-center rounded-full transition-colors"
-                style={
-                  isActive
-                    ? { backgroundImage: "var(--grad-brand)", color: "#fff", boxShadow: "var(--shadow-brand)" }
-                    : undefined
-                }
-              >
-                <span className="relative flex items-center justify-center">
-                  <Icon size={21} strokeWidth={isActive ? 2.4 : 2} />
-                  {showBadge && (
-                    <span
-                      aria-label={`${unreadConversations} unread conversations`}
-                      className="absolute -right-2.5 -top-2 flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white"
-                      style={{
-                        backgroundColor: "var(--brand-primary)",
-                        boxShadow: "0 0 0 2px var(--surface)",
-                      }}
-                    >
-                      {badgeText}
-                    </span>
-                  )}
+              {isRaised ? (
+                <span
+                  className="-mt-6 flex h-[46px] w-[46px] items-center justify-center rounded-2xl text-white transition-transform"
+                  style={{
+                    backgroundImage: "var(--grad-brand)",
+                    boxShadow: "var(--shadow-brand)",
+                  }}
+                >
+                  <Icon size={24} strokeWidth={2.2} />
                 </span>
-              </span>
+              ) : (
+                <span
+                  className="flex h-8 w-12 items-center justify-center rounded-full transition-colors"
+                  style={
+                    isActive
+                      ? { backgroundImage: "var(--grad-brand)", color: "#fff", boxShadow: "var(--shadow-brand)" }
+                      : undefined
+                  }
+                >
+                  <span className="relative flex items-center justify-center">
+                    <Icon size={21} strokeWidth={isActive ? 2.4 : 2} />
+                    {showBadge && (
+                      <span
+                        aria-label={`${unreadConversations} unread conversations`}
+                        className="absolute -right-2.5 -top-2 flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white"
+                        style={{
+                          backgroundColor: "var(--brand-primary)",
+                          boxShadow: "0 0 0 2px var(--surface)",
+                        }}
+                      >
+                        {badgeText}
+                      </span>
+                    )}
+                  </span>
+                </span>
+              )}
               <span className="text-[11px] font-semibold">
                 {item.shortLabel ?? item.label}
               </span>

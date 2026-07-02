@@ -5,7 +5,6 @@ import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
 import SplitHero, { HeroMark, HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
-import BottomNav from "../components/BottomNav";
 import Board from "../components/Board";
 import LeadsDesktop from "../components/leads/LeadsDesktop";
 import PipelineSwitcher from "../components/PipelineSwitcher";
@@ -354,8 +353,6 @@ export default function Leads() {
       <div className="hidden min-h-0 flex-1 lg:flex">
         <LeadsDesktop />
       </div>
-
-      <BottomNav active="leads" />
     </Shell>
   );
 }

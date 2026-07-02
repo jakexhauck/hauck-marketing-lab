@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, FlaskConical, Lock } from "lucide-react";
 import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
-import BottomNav from "../components/BottomNav";
 import { HeroIconButton } from "../components/HeroUi";
 import AutomationsDesktop from "../components/automations/AutomationsDesktop";
 import AutomationCard from "../components/automations/AutomationCard";
@@ -67,8 +66,6 @@ export default function Automations() {
       <div className="hidden min-h-dvh flex-1 lg:flex">
         <AutomationsDesktop />
       </div>
-
-      <BottomNav />
     </Shell>
   );
 }

@@ -20,7 +20,6 @@ import HomeDesktop from "../components/home/HomeDesktop";
 import NavyHero from "../components/NavyHero";
 import SplitHero, { HeroMark, HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
-import BottomNav from "../components/BottomNav";
 import EmptyState from "../components/EmptyState";
 import NotificationPrompt from "../components/NotificationPrompt";
 import NotificationBell from "../components/NotificationBell";
@@ -512,8 +511,6 @@ export default function Home() {
       <div className="hidden min-h-0 flex-1 lg:flex">
         <HomeDesktop />
       </div>
-
-      <BottomNav active="home" />
     </Shell>
   );
 }

@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { NAV, flattenNav, filterNav, type NavItem } from "../lib/nav";
 import { useAuth } from "../context/AuthContext";
 import Shell from "../components/Shell";
-import BottomNav from "../components/BottomNav";
 import { PAGE_CONTAINER } from "../lib/layout";
 
 // The phone "app grid": every live feature as a labelled tile, grouped the way a
@@ -109,7 +108,6 @@ export default function AllFeatures() {
           })}
         </div>
       </div>
-      <BottomNav active="apps" />
     </Shell>
   );
 }

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
-import BottomNav from "../components/BottomNav";
 import ChannelList from "../components/comms/ChannelList";
 import Roster from "../components/comms/Roster";
 import Conversation from "../components/comms/Conversation";
@@ -47,8 +46,6 @@ export default function Comms() {
           Chat with the agency from the message icon, top right.
         </p>
       </div>
-
-      <BottomNav active="comms" />
     </Shell>
   );
 }

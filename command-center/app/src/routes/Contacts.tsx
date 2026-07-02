@@ -6,7 +6,6 @@ import ContactsDesktop from "../components/contacts/ContactsDesktop";
 import NavyHero from "../components/NavyHero";
 import { HeroMark, HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
-import BottomNav from "../components/BottomNav";
 import SearchBar from "../components/SearchBar";
 import Avatar from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
@@ -132,8 +131,6 @@ export default function Contacts() {
       <div className="hidden min-h-0 flex-1 lg:flex">
         <ContactsDesktop />
       </div>
-
-      <BottomNav active="contacts" />
     </Shell>
   );
 }
