@@ -56,6 +56,26 @@ export function emptyAdsInsights(configured: boolean): AdsInsightsResponse {
   };
 }
 
+// Coerce whatever the endpoint returns into a complete response. The endpoint
+// sends a bare { configured: false } when Meta isn't wired; a plain `?? empty`
+// fallback doesn't catch that (it's a non-null object), so the tabs used to
+// destructure `totals`/`ads` off it and white-screen. This backfills any missing
+// field onto the empty shape so no partial/malformed payload can crash a tab.
+export function normalizeAdsInsights(raw: unknown): AdsInsightsResponse {
+  if (!raw || typeof raw !== "object") return emptyAdsInsights(false);
+  const r = raw as Partial<AdsInsightsResponse>;
+  const base = emptyAdsInsights(Boolean(r.configured));
+  return {
+    ...base,
+    ...r,
+    configured: Boolean(r.configured),
+    totals: { ...base.totals, ...(r.totals ?? {}) },
+    weekly: Array.isArray(r.weekly) ? r.weekly : base.weekly,
+    sources: { ...base.sources, ...(r.sources ?? {}) },
+    ads: Array.isArray(r.ads) ? r.ads : base.ads,
+  };
+}
+
 // Demo payload derived from the existing hand-authored ads so the wired tabs
 // show the same rich preview they always did in ?demo=1.
 export function demoAdsInsights(): AdsInsightsResponse {

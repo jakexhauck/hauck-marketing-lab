@@ -180,7 +180,18 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const token = ctx.env.META_SYSTEM_USER_TOKEN;
   let account = ctx.env.META_AD_ACCOUNT_ID;
   if (!token || !account) {
-    return Response.json({ configured: false } satisfies Partial<AdsInsightsResponse>);
+    // Full empty shape (not a bare { configured: false }) so the client always
+    // receives a complete payload and no Paid Ads tab can crash on a missing
+    // field before Meta is wired.
+    return Response.json({
+      configured: false,
+      currency: "USD",
+      totals: EMPTY_TOTALS,
+      lastMonthLeads: 0,
+      weekly: [],
+      sources: { fb: 0, ig: 0 },
+      ads: [],
+    } satisfies AdsInsightsResponse);
   }
   if (!account.startsWith("act_")) account = `act_${account}`;
 

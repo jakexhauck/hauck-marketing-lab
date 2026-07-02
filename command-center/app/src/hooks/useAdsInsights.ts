@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import type { AdsInsightsResponse } from "../lib/adsInsights";
+import { normalizeAdsInsights, type AdsInsightsResponse } from "../lib/adsInsights";
 
 // The Paid Ads tabs (Overview / Insights / Creatives) all read Meta insights
 // through this one hook: /api/ads/insights in a real session, the demo payload
@@ -12,6 +12,7 @@ export function useAdsInsights(enabled: boolean) {
     queryKey: ["ads", "insights"],
     enabled,
     staleTime: 5 * 60_000,
-    queryFn: () => api<AdsInsightsResponse>("/api/ads/insights"),
+    queryFn: async () =>
+      normalizeAdsInsights(await api<AdsInsightsResponse>("/api/ads/insights")),
   });
 }
