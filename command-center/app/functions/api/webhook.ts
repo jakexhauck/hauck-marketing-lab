@@ -3,6 +3,7 @@ import type { Env } from "../lib/env";
 import { liveTenantSlug, testTenantSlug } from "../lib/env";
 import { getServiceClient, resolveTenantId } from "../lib/supabase";
 import { sendPushForActivity } from "../lib/push";
+import { readToken, tokenMatches } from "../lib/webhookAuth";
 
 // Auth model: GHL cannot produce a signature we can verify here (marketplace
 // webhooks sign with an RSA key under x-wh-signature; workflow webhook actions
@@ -16,22 +17,6 @@ import { sendPushForActivity } from "../lib/push";
 // Workflow webhook actions must also include locationId in their custom
 // payload (plus type/contactId/opportunityId) or the event is ignored: tenant
 // routing is by event.locationId, never by a hardcoded tenant.
-
-async function sha256(value: string): Promise<Uint8Array> {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(value),
-  );
-  return new Uint8Array(digest);
-}
-
-// Compare digests, not raw strings, so neither length nor prefix leaks timing.
-async function tokenMatches(supplied: string, secret: string): Promise<boolean> {
-  const [a, b] = await Promise.all([sha256(supplied), sha256(secret)]);
-  let r = 0;
-  for (let i = 0; i < a.length; i++) r |= a[i] ^ b[i];
-  return r === 0;
-}
 
 interface GhlWebhookEvent {
   type?: string;
@@ -214,11 +199,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({ error: "webhook_not_configured" }, { status: 503 });
   }
 
-  const url = new URL(ctx.request.url);
-  const token =
-    url.searchParams.get("token") ||
-    ctx.request.headers.get("x-webhook-token") ||
-    "";
+  const token = readToken(ctx.request);
   if (!token || !(await tokenMatches(token, ctx.env.WEBHOOK_SECRET))) {
     console.warn("[webhook] rejected: bad or missing token");
     return Response.json({ error: "unauthorized" }, { status: 401 });

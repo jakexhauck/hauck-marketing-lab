@@ -19,6 +19,12 @@ export interface Env {
   // Browser-safe publishable key, returned by /api/chat/config for the Realtime socket.
   SUPABASE_ANON_KEY?: string;
   WEBHOOK_SECRET?: string;
+  // Resend API key (send-only restricted key) for internal-notification emails
+  // relayed from GHL workflows via /api/internal-notify. NOTIFY_FROM sets the
+  // locked From address (caller cannot override it); defaults to the agency
+  // alerts mailbox. See functions/api/internal-notify.ts.
+  RESEND_API_KEY?: string;
+  NOTIFY_FROM?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
   // The admin "Assets" hub (Google Drive file browser) connects ONE agency

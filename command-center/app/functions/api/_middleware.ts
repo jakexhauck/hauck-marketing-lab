@@ -38,6 +38,7 @@ const PUBLIC_PATHS = new Set([
   "/api/health",
   "/api/health/supabase",
   "/api/webhook",
+  "/api/internal-notify",
   "/api/auth/login",
   "/api/auth/staff-login",
   "/api/auth/admin-login",
