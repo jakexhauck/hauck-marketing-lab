@@ -135,3 +135,20 @@ Verify, and record the real shapes in section 3 of this doc:
 5. Analytics: determine whether ANY per-post reach/engagement endpoint exists. If not, mark Insights deferred here and drop the analytics-derived KPIs from Overview.
 
 Only after 1-4 pass (and 5 is answered either way) do we build. If scope is missing (step 1), stop and get the token widened first.
+
+---
+
+## Isolation contract (this runs in parallel with the other five plans)
+
+Run in its own Claude instance + git worktree. Merge one plan at a time.
+
+- **You own:** `functions/api/social/*`; `src/routes/social/*`;
+  `src/hooks/useSocial*.ts`; `src/lib/social*.ts`; your demo cases in
+  `src/demo/handlers/social.ts`.
+- **Demo:** add `src/demo/handlers/social.ts` (auto-registered; template in
+  `src/demo/handlers/reactivation.ts`); match only your own `/api/social/...`
+  paths. NEVER edit `src/demo/handler.ts` or `src/demo/data.ts`.
+- **GHL helpers:** keep social-planner helpers in `functions/api/social/`, not in
+  `functions/lib/ghl.ts`.
+- **Do not touch:** other route folders, `functions/api/ads|campaigns|sales/*`,
+  `src/App.tsx`, `src/lib/nav.ts` (the Social routes + nav already exist).

@@ -185,3 +185,18 @@ from the existing `--source-social` / `--source-campaign` tokens in `index.css` 
 5. **Build:** `npm run build` clean (type-checks the new mappers + hook wiring).
 
 Rule: no em dashes in any code, comment, test, or doc produced here.
+
+---
+
+## Isolation contract (this runs in parallel with the other five plans)
+
+Run in its own Claude instance + git worktree.
+
+- **You own:** `src/lib/calendarModel.ts`; `src/hooks/useCalendarItems.ts`;
+  `src/lib/calendarDemo.ts`.
+- **Dependency:** this needs the Social + Campaigns ENDPOINTS to exist (a data
+  dependency, not a file one). Run this LAST, after `social-wiring` and
+  `campaigns-sms-wiring` have merged.
+- **Do not touch:** the Social / Campaigns route folders or their endpoints;
+  `src/demo/handler.ts` (put any new demo overlay in `src/lib/calendarDemo.ts`,
+  which you own).

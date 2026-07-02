@@ -297,3 +297,20 @@ for SMS (A2P sender already registered in GHL). No `ANTHROPIC_API_KEY` needed
 
 Spike ordering: S2 gates the whole build. Do S1 + S2 first (both hit the test
 sub-account), then build audiences -> send -> stats in that order.
+
+---
+
+## Isolation contract (this runs in parallel with the other five plans)
+
+Run in its own Claude instance + git worktree. Merge one plan at a time.
+
+- **You own:** `functions/api/campaigns/*` (the `reactivation` endpoint already
+  exists, leave it); `src/routes/campaigns/*` including `shared.tsx`;
+  `src/hooks/useCampaigns*.ts`; `src/lib/campaigns*.ts`; your demo cases in
+  `src/demo/handlers/campaigns.ts`.
+- **Demo:** add `src/demo/handlers/campaigns.ts` and match ONLY
+  `/api/campaigns/audiences|send|stats` (never `/api/campaigns/reactivation`,
+  which is already handled). NEVER edit `src/demo/handler.ts` or `src/demo/data.ts`.
+- **Do not touch:** other route folders, `functions/api/ads|social|sales/*`,
+  `src/App.tsx`, `src/lib/nav.ts`.
+- Email is OUT of scope (waits on a sending domain); SMS only.

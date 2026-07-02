@@ -10,8 +10,8 @@ import { DEMO_LEADS as PAID_ADS_DEMO } from "../lib/paidAdsPipeline";
 import { ESTIMATE_LEADS } from "../lib/estimateForms";
 import { CHAT_LEADS } from "../lib/chatWidget";
 import { DEMO_LEADS as HUB_DEMO } from "../lib/leadsHub";
-import { DEMO_REACTIVATION } from "../lib/reactivation";
 import { demoAdsInsights } from "../lib/adsInsights";
+import { demoRoutes } from "./handlers";
 import * as store from "./store";
 
 function parseBody(init: RequestInit): Record<string, unknown> {
@@ -72,9 +72,6 @@ export async function handleDemoRequest<T>(
   // Jobs (Sales) surface: the hand-authored booked + completed schedule, so the
   // demo calendar reads full without touching a real Sales pipeline.
   if (clean === "/api/sales/jobs") return r({ jobs: DEMO_JOBS });
-  // Reactivation: the Database Reactivation pipeline rolled up into the
-  // surface's four buckets, returned unchanged so the demo reads full.
-  if (clean === "/api/campaigns/reactivation") return r(DEMO_REACTIVATION);
   // Paid Ads: Meta insights derived from the hand-authored demo ads.
   if (clean === "/api/ads/insights") return r(demoAdsInsights());
   // Lead feeds: the hand-authored worklists, returned unchanged so the demo view
@@ -286,6 +283,15 @@ export async function handleDemoRequest<T>(
   if (clean === "/api/chat/channels") return r({ channels: [] });
   if (clean === "/api/chat/presence/heartbeat") return r({ ok: true });
   if (seg[0] === "api" && seg[1] === "chat") return r({ ok: true });
+
+  // Feature demo routes, auto-registered from ./handlers/*.ts. Kept last so the
+  // inline cases above always win; a new feature file adds its endpoint here
+  // with no edit to this file. See ./handlers/index.ts.
+  for (const route of demoRoutes) {
+    if (route.match(clean, seg)) {
+      return r(route.respond({ clean, seg, body, method, store: d }));
+    }
+  }
 
   throw new ApiError(404, `Demo: unhandled ${method} ${clean}`, null);
 }

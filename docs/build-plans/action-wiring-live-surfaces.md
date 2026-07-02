@@ -228,3 +228,27 @@ Follow-up automation state (the `fu` tracker stays on demo data until the
 workflow-history spike lands), email sending domain, Social/Website surfaces,
 all AI. The appointment-confirmation webhook is already shipped but dormant;
 registering it is separate from the manual Confirm action here.
+
+---
+
+## Isolation contract (this runs in parallel with the other five plans)
+
+Run this build in its own Claude instance + its own git worktree ("create a git
+worktree for this build"). Stay inside the files below so parallel builds never
+clobber each other. Merge to main one plan at a time.
+
+- **You own:** new action endpoints under `functions/api/` (e.g.
+  `functions/api/jobs/[id]/*.ts`, `functions/api/leads/[id]/*.ts`); the Sales
+  route components you wire (`src/routes/sales/Jobs.tsx`, the Leads `LeadsHub` /
+  `Board`, the lead-detail view) and their hooks; your demo cases in
+  `src/demo/handlers/actions.ts`.
+- **Demo:** add `src/demo/handlers/actions.ts` (auto-registered; template in
+  `src/demo/handlers/reactivation.ts`). NEVER edit `src/demo/handler.ts` or
+  `src/demo/data.ts`.
+- **GHL helpers:** put opportunity/appointment/invoice write helpers in a feature
+  file (e.g. `functions/api/lib/writes.ts`), not in `functions/lib/ghl.ts`
+  (append-only there if a helper is truly generic; note it in the commit).
+- **Do not touch:** `src/routes/social/*`, `src/routes/campaigns/*`,
+  `functions/api/ads/*`, `src/lib/calendarModel.ts`, `src/App.tsx`, `src/lib/nav.ts`.
+- `src/lib/leadsHub.ts` is shared with the follow-up-automation plan, but that one
+  is read-only in its spike phase, so you have write priority.

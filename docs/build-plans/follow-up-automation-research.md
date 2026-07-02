@@ -161,3 +161,17 @@ regardless of which option wins.
 - `command-center/app/docs/connections/leads.md` — the known gap + automations to honour.
 - `docs/build-plans/wire-sales-endpoints.md` — pipeline/stage names, the note that the tracker stays on demo.
 - `gohighlevel-cli/README.md` + `docs/get-firebase-token.md` — public vs internal API, workflow commands (list/enroll/remove only on public).
+
+---
+
+## Isolation contract (this runs in parallel with the other five plans)
+
+Run in its own Claude instance + git worktree.
+
+- **Spike phase is READ-ONLY:** probe via the `ghl` CLI (gohighlevel-cli/) and
+  write findings + the chosen option into THIS md. No app-code edits.
+- **If you proceed to build:** you will touch `src/lib/leadsHub.ts` and the Leads
+  components, which the action-wiring plan also edits. Do the build phase AFTER
+  action-wiring has merged, or coordinate, to avoid a conflict.
+- Any demo change goes in `src/demo/handlers/followups.ts`, never in
+  `src/demo/handler.ts`.

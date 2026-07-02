@@ -273,3 +273,19 @@ Each ships on the Spine: build, verify with real GHL/Meta evidence (no "should
 work"), commit, push, watch the CF deploy, smoke-test the live authed endpoint,
 then `git rm` this plan and append any leftover Jake action items (e.g. seeding a
 new client's `meta_ad_account_id`) to the action-items README.
+
+---
+
+## Isolation contract (this runs in parallel with the other five plans)
+
+Run in its own Claude instance + git worktree. Merge one plan at a time.
+
+- **You own:** `functions/api/ads/insights.ts`; `functions/lib/env.ts` +
+  `functions/lib/tenantResolve.ts` (add the `meta_ad_account_id` column/field);
+  the new tenants migration; the Ads tabs only if you relabel a KPI.
+- Read `ctx.data.tenant` (already populated by `functions/api/_middleware.ts`) for
+  the per-tenant account. Do NOT edit `_middleware.ts`.
+- **No demo change needed:** the demo already returns `demoAdsInsights()`; leave
+  `src/demo/handler.ts` and `src/demo/handlers/*` alone.
+- **Do not touch:** other route/api folders. You are the ONLY plan that edits
+  `env.ts` / `tenantResolve.ts`, so no conflict there.
