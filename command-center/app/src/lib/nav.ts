@@ -3,28 +3,17 @@ import {
   Megaphone,
   MessageSquare,
   MessagesSquare,
-  Users,
   CalendarDays,
   CalendarCheck,
   Receipt,
   UserCog,
-  LayoutDashboard,
-  ScrollText,
-  BarChart3,
   Star,
   Globe,
   Share2,
-  Images,
-  UserPlus,
   FolderOpen,
-  TrendingUp,
   Building2,
   Contact,
-  Sparkles,
-  LayoutGrid,
-  MousePointerClick,
   Send,
-  RotateCcw,
   Split,
   type LucideIcon,
 } from "lucide-react";
@@ -54,25 +43,21 @@ export interface NavItem {
   // the phone bottom bar. Used by the agency chat, which on desktop lives in a
   // top-right icon instead of a sidebar row.
   sidebarHidden?: boolean;
-  // Sub-pages that live one level below this item in the desktop sidebar. When
-  // present, the item renders as an expandable row inside its section's lower
-  // zone: clicking it opens the group and lands on this item's own route (the
-  // overview), and the children appear indented beneath it. Used by Social
-  // Media, whose overview/ideas/calendar/posts/insights all live under
-  // /marketing/social. One level only — children never nest further.
+  // Sub-pages that live one level below this item in the desktop sidebar. In the
+  // simplified IA no sidebar item uses this anymore (channels expose their
+  // sub-pages via an in-page <PageTabs> bar instead), but the field stays so
+  // flat consumers keep working if a group is ever reintroduced.
   children?: NavItem[];
 }
 
 // A static (non-collapsible) section in the desktop sidebar that groups related
-// surfaces under an inline header (e.g. Sales). Sections are a sidebar-only
+// surfaces under an inline header (e.g. Marketing). Sections are a sidebar-only
 // concept: the phone bottom bar reads the flattened item list, so grouping
 // never changes the bottom bar.
 export interface NavSection {
   id: string;
   label: string;
-  // Shown on the section's top-level button in the desktop sidebar. Clicking the
-  // button reveals this section's items in the lower zone and jumps to its first
-  // real (non-coming-soon) page.
+  // Shown on the section's inline header in the desktop sidebar.
   icon: LucideIcon;
   items: NavItem[];
 }
@@ -87,109 +72,40 @@ export function isNavSection(entry: NavEntry): entry is NavSection {
 // (sections become inline-headed groups); the phone bottom bar reads the
 // flattened items. Both honour the same per-surface permissions the backend
 // enforces, so they can never drift.
+//
+// Two sections only: Marketing (the agency engine) and Company (the day-to-day
+// business), with Home standalone on top and the agency Chat as a phone-only
+// tab. Every Marketing channel is a single flat row; its sub-pages live inside
+// the page as a <PageTabs> bar, not as sidebar children.
 export const NAV: NavEntry[] = [
   { to: "/home", label: "Home", icon: Home, capability: "overview", bottomNav: true },
+  {
+    id: "marketing",
+    label: "Marketing",
+    icon: Megaphone,
+    items: [
+      { to: "/marketing/paid-ads", label: "Paid Ads", shortLabel: "Ads", icon: Megaphone },
+      { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
+      { to: "/marketing/campaigns", label: "Campaigns", icon: Send },
+      { to: "/marketing/website", label: "Website", icon: Globe },
+      { to: "/marketing/social", label: "Social Media", shortLabel: "Social", icon: Share2 },
+    ],
+  },
   {
     id: "company",
     label: "Company",
     icon: Building2,
     items: [
       { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
+      // The one Leads surface. Its page hosts a New Leads / Pipeline tab bar, so
+      // the old standalone "Sales Overview" is a tab here, not a sidebar row.
+      { to: "/sales/leads", label: "Leads", shortLabel: "Leads", icon: Split, bottomNav: true },
       { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
+      { to: "/sales/jobs", label: "Jobs", shortLabel: "Jobs", icon: CalendarCheck },
       { to: "/calendar", label: "Calendar", icon: CalendarDays, capability: "calendar" },
       { to: "/billing", label: "Revenue", icon: Receipt, capability: "billing" },
       { to: "/company/documents", label: "Assets", icon: FolderOpen },
       { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
-    ],
-  },
-  {
-    id: "marketing",
-    label: "Marketing",
-    icon: Megaphone,
-    items: [
-      {
-        to: "/marketing/paid-ads",
-        label: "Paid Ads",
-        shortLabel: "Ads",
-        icon: Megaphone,
-        children: [
-          { to: "/marketing/paid-ads", label: "Overview", icon: LayoutDashboard },
-          { to: "/marketing/paid-ads/creatives", label: "Your Ads", shortLabel: "Ads", icon: Images },
-          { to: "/marketing/paid-ads/leads", label: "Leads", icon: UserPlus },
-          { to: "/marketing/paid-ads/insights", label: "What's working", shortLabel: "Results", icon: BarChart3 },
-        ],
-      },
-      {
-        to: "/marketing/reviews",
-        label: "Google Reviews",
-        shortLabel: "Reviews",
-        icon: Star,
-        children: [
-          { to: "/marketing/reviews", label: "Overview", icon: LayoutDashboard },
-          { to: "/marketing/reviews/requests", label: "Ask for Reviews", shortLabel: "Ask", icon: Send },
-          { to: "/marketing/reviews/all", label: "All Reviews", shortLabel: "Reviews", icon: MessageSquare },
-          { to: "/marketing/reviews/insights", label: "What's working", shortLabel: "Insights", icon: BarChart3 },
-        ],
-      },
-      {
-        to: "/marketing/campaigns",
-        label: "Campaigns",
-        icon: Send,
-        children: [
-          { to: "/marketing/campaigns", label: "Overview", icon: LayoutDashboard },
-          { to: "/marketing/campaigns/all", label: "Campaigns", icon: Send },
-          { to: "/marketing/campaigns/audiences", label: "Audiences", shortLabel: "Lists", icon: Users },
-          { to: "/marketing/campaigns/templates", label: "Templates", icon: LayoutGrid },
-          { to: "/marketing/campaigns/insights", label: "What's working", shortLabel: "Insights", icon: BarChart3 },
-        ],
-      },
-      {
-        to: "/marketing/website",
-        label: "Website",
-        icon: Globe,
-        children: [
-          { to: "/marketing/website", label: "Overview", icon: LayoutDashboard },
-          { to: "/marketing/website/pages", label: "Pages", icon: LayoutGrid },
-          { to: "/marketing/website/request", label: "Request a Change", shortLabel: "Requests", icon: MousePointerClick },
-          { to: "/marketing/website/insights", label: "What's working", shortLabel: "Insights", icon: BarChart3 },
-        ],
-      },
-      {
-        to: "/marketing/social",
-        label: "Social Media",
-        shortLabel: "Social",
-        icon: Share2,
-        children: [
-          { to: "/marketing/social", label: "Overview", icon: LayoutDashboard },
-          { to: "/marketing/social/ideas", label: "Ideas", icon: Sparkles },
-          { to: "/marketing/social/calendar", label: "Calendar", icon: CalendarDays },
-          { to: "/marketing/social/posts", label: "My Posts", shortLabel: "Posts", icon: LayoutGrid },
-          { to: "/marketing/social/insights", label: "What's working", shortLabel: "Insights", icon: BarChart3 },
-        ],
-      },
-    ],
-  },
-  {
-    id: "sales",
-    label: "Sales",
-    icon: TrendingUp,
-    items: [
-      { to: "/sales/overview", label: "Sales Overview", shortLabel: "Overview", icon: LayoutDashboard },
-      // The three lead channels (Paid Ads, Estimate Forms, Chat Widget) merged
-      // into ONE "Leads" page with in-line source tabs. Paid Ads + Estimate Forms
-      // show their own follow-up automation tracker; every source opens the
-      // conversation inline. The old per-channel routes still resolve (deep links)
-      // but no longer appear in the sidebar. Open to everyone for now.
-      { to: "/sales/leads", label: "Leads", shortLabel: "Leads", icon: Split },
-      // The tail of the Sales spine: jobs at the Sales Pipeline's Job Booked +
-      // Job Completed stages, on a month calendar. Pick a day, work its jobs
-      // (mark completed, reschedule, take payment). Open to everyone for now.
-      { to: "/sales/jobs", label: "Jobs", shortLabel: "Jobs", icon: CalendarCheck },
-      // The always-on win-back campaign for dormant past customers. Its own
-      // category in Sales (was a Campaigns sub-page); can grow sub-pages later.
-      { to: "/sales/reactivation", label: "Reactivation", shortLabel: "Win-back", icon: RotateCcw },
-      { to: "/sales/scripts", label: "Sales Scripts", shortLabel: "Scripts", icon: ScrollText, comingSoon: true },
-      { to: "/operations/reports", label: "Reports & Analytics", shortLabel: "Reports", icon: BarChart3, comingSoon: true },
     ],
   },
   // The agency chat: a phone bottom-bar tab only. On desktop it lives in the

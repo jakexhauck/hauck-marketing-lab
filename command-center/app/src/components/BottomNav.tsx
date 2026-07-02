@@ -12,7 +12,7 @@ export type NavKey = "home" | "leads" | "conversations" | "contacts" | "comms";
 
 const ROUTE_BY_KEY: Record<NavKey, string> = {
   home: "/home",
-  leads: "/leads",
+  leads: "/sales/leads",
   conversations: "/conversations",
   contacts: "/contacts",
   comms: "/comms",
