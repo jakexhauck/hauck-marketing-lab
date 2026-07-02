@@ -28,12 +28,34 @@ Reusable helper: `functions/lib/ghl.ts` -> `fetchAllOpportunities(ctx, {pipeline
 
 ## Remaining work
 
+### Paid Ads (Meta) — WIRED, needs Jake to set two CF values to go live
+
+`functions/api/ads/insights.ts` is built and shipped; Overview / Insights /
+Creatives read real Meta data. It's env-configured, so it shows the not-connected
+state until Jake sets both (values: token is in `app/src-tauri/src/meta_oauth_secrets.rs`):
+
+- `node scripts/cf.mjs env:set META_SYSTEM_USER_TOKEN <token> --secret`
+- `node scripts/cf.mjs env:set META_AD_ACCOUNT_ID act_27110669075184924`
+
+Verified: the token reaches Willis's account (200) with $0 spend / 0 campaigns
+(ads not launched), so once set the tabs correctly show zeros and fill in when
+ads run. Follow-ups (not blockers): real revenue/ROAS/"new customers" need a GHL
+job join; real ad thumbnails; a per-tenant `meta_ad_account_id` column. See
+`command-center/app/docs/connections/paid-ads-meta.md`.
+
+### Reviews content — set to "Coming soon" (GHL is a dead end)
+
+Overview / Insights / All now show a clean "Coming soon" for real sessions; the
+request-a-review action stays live; demo keeps the built layout. GHL does NOT
+expose reviews to tokens (`/reputation/reviews` -> 401 even with a full-scope
+PIT). Real wiring later = Google Business Profile API directly (Willis's Google
+Business is connected, but that API is Google-access-gated + a separate build:
+Google `business.manage` scope + API enable + location lookup).
+
 ### Blocked on Jake (external), then I wire
 
 | Surface | Blocker | What I do once unblocked |
 |---|---|---|
-| **Reviews content** (Overview / Insights / All: stars, text, trends) | Willis's Private Integration Token lacks the reputation scope. Verified live: `GET /reputation/reviews` -> 401 "not authorized for this scope". | Build `/api/reviews/reputation` over GHL's reputation API + wire the three empty tabs. The request-a-review action is already live. |
-| **Paid Ads: Overview / Insights / Creatives** (Meta data) | Meta integration lives only in the Tauri desktop app (Rust, hardcoded token). No CF secret, no tenant field. | Add `META_SYSTEM_USER_TOKEN` (Jake sets the CF secret) + a `meta_ad_account_id` tenant column, then a new `/api/ads/insights` Pages Function porting the graph.facebook.com calls from `app/src-tauri/src/meta_ads.rs`. Leads tab is already live. |
 | **Assets** (already shipped, read-only) | Needs the agency Drive connected + a Willis folder mapped. | Nothing to build; just verify once connected (Jake steps below). |
 
 ### Wireable now (no external blocker)
@@ -71,14 +93,13 @@ Reusable helper: `functions/lib/ghl.ts` -> `fetchAllOpportunities(ctx, {pipeline
 
 ## What Jake needs to do (his side)
 
-1. **Reviews scope** — GHL -> Settings -> Private Integrations -> open Willis's
-   token -> add the **reputation / reviews** scope -> save. Then tell me; I wire
-   Reviews Overview / Insights / All.
-2. **Paid Ads Meta** — give the go-ahead; I hand you the exact
-   `node scripts/cf.mjs env:set META_SYSTEM_USER_TOKEN ...` line to run with `!`
-   (I'm blocked from writing CF secrets). I add the `meta_ad_account_id` tenant
-   field from `media-buying/data/clients.yaml` (Willis `act_27110669075184924`).
-3. **Assets** — to make files appear for Willis:
+1. **Paid Ads Meta — set two CF values** to switch the (already-shipped) tabs
+   from "not connected" to live. Run with `!` (I'm blocked from CF writes); the
+   token value is in `app/src-tauri/src/meta_oauth_secrets.rs`:
+   - `node scripts/cf.mjs env:set META_SYSTEM_USER_TOKEN <token> --secret`
+   - `node scripts/cf.mjs env:set META_AD_ACCOUNT_ID act_27110669075184924`
+   (Willis has $0 spend, so it'll show zeros until ads launch — that's correct.)
+2. **Assets** — to make files appear for Willis:
    1. Google Cloud Console -> Credentials -> open the OAuth client
       (`458743066228-...apps.googleusercontent.com`) -> confirm Authorized
       redirect URIs includes
@@ -86,9 +107,9 @@ Reusable helper: `functions/lib/ghl.ts` -> `fetchAllOpportunities(ctx, {pipeline
    2. Admin app -> Assets -> Connect Google Drive -> authorize the agency account.
    3. Admin app -> Assets -> map a Drive folder to the Willis tenant.
    4. Open Willis client app -> Assets and confirm real files + download work.
-4. **Social** (when ready) — connect Facebook / Instagram / Google Business for
+3. **Social** (when ready) — connect Facebook / Instagram / Google Business for
    Willis (through GHL or the self-serve flow once built).
-5. **Email domain** (only for email campaigns) — GHL -> Email Services ->
+4. **Email domain** (only for email campaigns) — GHL -> Email Services ->
    Dedicated Domain, add DNS at Namecheap, verify.
 
 ---
@@ -102,6 +123,8 @@ Reusable helper: `functions/lib/ghl.ts` -> `fetchAllOpportunities(ctx, {pipeline
   - **Revenue**: trend / collected YTD / top customers / avg invoice / MoM.
   - **Home**: the "Jobs today" and "Reviews to request" cards.
   - **Marketing -> Campaigns -> Reactivation**: real pipeline counts.
+  - **Paid Ads** (after the two CF values are set): Overview/Insights/Creatives
+    should show real zeros (Willis has no spend), not "not connected".
   - Every other LIVE surface (Inbox, Contacts, Leads, Jobs, Calendar, Revenue
     invoices/payments).
 - **Revenue data completeness** — the `ghl` CLI probe returned 0 invoices / 0
