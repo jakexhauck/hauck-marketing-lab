@@ -102,6 +102,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       wonLabel: tenant.won_label,
       valueLabel: tenant.value_label,
       ghlLocationId: tenant.ghl_location_id,
+      metaAdAccountId: tenant.meta_ad_account_id ?? null,
       subdomain: tenant.subdomain ?? null,
       ownerPasswordSet: Boolean(tenant.owner_password_hash),
       monthlySpend: tenant.monthly_spend ?? 0,
@@ -139,6 +140,9 @@ interface PatchBody {
   monthlySpend?: number;
   ghlLocationId?: string;
   ghlToken?: string;
+  // The client's Meta ad account (act_...). Empty string clears it (falls back
+  // to the env account / not-connected).
+  metaAdAccountId?: string;
   subdomain?: string;
   // New owner login password for this client. Hashed; never read back.
   ownerPassword?: string;
@@ -174,6 +178,11 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   if (typeof body.monthlySpend === "number") update.monthly_spend = body.monthlySpend;
   if (str(body.ghlLocationId)) update.ghl_location_id = str(body.ghlLocationId);
   if (str(body.ghlToken)) update.ghl_token = str(body.ghlToken);
+  // Present-but-empty clears the ad account (back to env fallback / not-connected).
+  if (body.metaAdAccountId !== undefined) {
+    const v = str(body.metaAdAccountId);
+    update.meta_ad_account_id = v ? v : null;
+  }
   if (str(body.subdomain)) update.subdomain = normalizeSubdomain(str(body.subdomain)!);
   if (str(body.ownerPassword)) {
     const pw = str(body.ownerPassword)!;

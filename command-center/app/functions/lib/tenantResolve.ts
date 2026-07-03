@@ -37,12 +37,13 @@ export interface TenantRow {
   value_label: string;
   ghl_location_id: string;
   ghl_token: string;
+  meta_ad_account_id: string | null;
   owner_password_hash: string | null;
   monthly_spend: number | null;
 }
 
 const TENANT_COLS =
-  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, ghl_token, owner_password_hash, monthly_spend";
+  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, ghl_token, meta_ad_account_id, owner_password_hash, monthly_spend";
 
 // Normalize an admin-entered subdomain label: lowercase, hyphen-separated, the
 // charset valid in a DNS label. Shared by the admin create/update endpoints.

@@ -4,9 +4,11 @@ import type { Env, ApiData } from "../../lib/env";
 // (Overview / Insights / Creatives). Ports the proven Graph API field lists and
 // conversion-action parsing from the desktop app's meta_ads.rs. Read-only.
 //
-// Config is env-based for now (single agency System-User token + the client's ad
-// account id). Per-tenant override via a `meta_ad_account_id` column is a future
-// step; until then META_AD_ACCOUNT_ID is the one live client's account.
+// One agency System-User token (META_SYSTEM_USER_TOKEN) spans every client's ad
+// account. The ACCOUNT is per-client: it comes from the tenant's
+// meta_ad_account_id (set in the admin client editor), with the
+// META_AD_ACCOUNT_ID env var as the single-tenant fallback. This is why one
+// client can never see another's ad numbers, even though the token is shared.
 //
 // Golden rule: a real client only ever sees their real numbers. When Meta is not
 // configured the endpoint returns { configured: false } and the tabs show their
@@ -176,9 +178,22 @@ function buildAds(
     .sort((a, b) => b.leads - a.leads);
 }
 
+// The ad account for this request: the client's own (from their tenant row)
+// wins; the global env var is only the single-tenant fallback. Exported for the
+// precedence test, which is the whole point of scoping ads per client.
+export function resolveAdAccount(
+  tenantAccount: string | undefined,
+  envAccount: string | undefined,
+): string | undefined {
+  const t = tenantAccount?.trim();
+  if (t) return t;
+  const e = envAccount?.trim();
+  return e || undefined;
+}
+
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const token = ctx.env.META_SYSTEM_USER_TOKEN;
-  let account = ctx.env.META_AD_ACCOUNT_ID;
+  let account = resolveAdAccount(ctx.data.tenant?.meta_ad_account_id, ctx.env.META_AD_ACCOUNT_ID);
   if (!token || !account) {
     // Full empty shape (not a bare { configured: false }) so the client always
     // receives a complete payload and no Paid Ads tab can crash on a missing

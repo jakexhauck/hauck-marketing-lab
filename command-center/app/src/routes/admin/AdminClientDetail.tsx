@@ -27,6 +27,7 @@ interface DetailClient {
   wonLabel: string;
   valueLabel: string;
   ghlLocationId: string;
+  metaAdAccountId: string | null;
   ownerPasswordSet: boolean;
   monthlySpend: number;
   createdAt: string;
@@ -133,6 +134,7 @@ export default function AdminClientDetail() {
       <div className="mt-4 space-y-4">
         <BrandingCard client={client} onSaved={load} />
         <GhlCard client={client} onSaved={load} />
+        <AdsCard client={client} onSaved={load} />
         <OwnerCard tenantId={id} ownerPasswordSet={client.ownerPasswordSet} />
         <EntitlementsCard tenantId={id} enabled={data.entitlements} onSaved={load} />
         <TeamCard tenantId={id} staff={data.staff} entitlements={data.entitlements} ghlConnected={!placeholderConn(client.ghlLocationId)} onSaved={load} />
@@ -339,6 +341,45 @@ function GhlCard({ client, onSaved }: { client: DetailClient; onSaved: () => Pro
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label><span className={labelCls}>GHL location id</span><input className={inputCls} value={locationId} onChange={(e) => setLocationId(e.target.value)} placeholder="OznT3..." /></label>
           <label><span className={labelCls}>GHL token (write-only)</span><input className={inputCls} type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="pit-..." autoComplete="off" /></label>
+        </div>
+        {err && <p className="mt-3 text-sm text-danger">{err}</p>}
+        <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
+      </form>
+    </Card>
+  );
+}
+
+// Per-client Meta ad account. The agency system-user token is shared across all
+// clients (a global env var); only the account id is per-client, which is what
+// keeps one client's Paid Ads from ever showing another's numbers.
+function AdsCard({ client, onSaved }: { client: DetailClient; onSaved: () => Promise<void> }) {
+  const [account, setAccount] = useState(client.metaAdAccountId ?? "");
+  const { saving, saved, err, run } = useSaver(onSaved);
+  const connected = Boolean((client.metaAdAccountId ?? "").trim());
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    // Always send the field so an emptied box clears it (back to not-connected).
+    void run(`/api/admin/clients/${client.id}`, { metaAdAccountId: account.trim() });
+  };
+  return (
+    <Card title="Paid Ads (Meta)">
+      <p className="mb-4 text-[13px] text-muted">
+        {connected
+          ? "Connected. This client's Paid Ads read only this ad account."
+          : "Not connected. Add this client's Meta ad account id so their Paid Ads show their own numbers."}{" "}
+        The agency access token is shared across all clients; only the account is per-client.
+      </p>
+      <form onSubmit={onSubmit}>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label>
+            <span className={labelCls}>Meta ad account id</span>
+            <input
+              className={inputCls}
+              value={account}
+              onChange={(e) => setAccount(e.target.value)}
+              placeholder="act_1234567890 or 1234567890"
+            />
+          </label>
         </div>
         {err && <p className="mt-3 text-sm text-danger">{err}</p>}
         <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
