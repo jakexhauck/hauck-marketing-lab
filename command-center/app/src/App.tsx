@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
 import { queryClient } from "./lib/queryClient";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ClientProvider } from "./context/ClientContext";
@@ -63,8 +63,11 @@ import AdminMessages from "./routes/admin/AdminMessages";
 import Plans from "./routes/admin/Plans";
 import AdminOnboarding from "./routes/admin/AdminOnboarding";
 import AdminOnboardingDetail from "./routes/admin/AdminOnboardingDetail";
-import AdminPillar from "./routes/admin/AdminPillar";
-import AdminLane from "./routes/admin/AdminLane";
+import AdminCommand from "./routes/admin/AdminCommand";
+import AdminDelivery from "./routes/admin/AdminDelivery";
+import DeliveryCockpit from "./routes/admin/DeliveryCockpit";
+import AdminPillarPage from "./routes/admin/AdminPillarPage";
+import AdminSettings from "./routes/admin/AdminSettings";
 import AdminAds from "./routes/admin/AdminAds";
 import AdminAdsClient from "./routes/admin/AdminAdsClient";
 import AdminInfrastructure from "./routes/admin/AdminInfrastructure";
@@ -86,7 +89,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const { status, currentUser, needsIdentity, setIdentity, isAdmin } = useAuth();
   if (status === "loading") return null;
   // A super-admin has no tenant and never belongs on a client surface.
-  if (isAdmin) return <Navigate to="/admin/pillar/operations" replace />;
+  if (isAdmin) return <Navigate to="/admin" replace />;
   if (!currentUser) return <Navigate to="/login" replace />;
   // One-time "who are you?" step after the shared-password login. Skipping
   // (or any failure) falls back to the hardcoded-owner default in AuthContext.
@@ -112,12 +115,20 @@ function AdminRoute({ children }: { children: ReactNode }) {
   return <AdminLayout>{children}</AdminLayout>;
 }
 
+// Old pillar sub-routes (lane workspaces and tab deep links) collapse to the
+// pillar page now that lanes and tabs are gone. Reads the :pillarId and sends
+// the request up one level.
+function PillarRedirect() {
+  const { pillarId } = useParams<{ pillarId: string }>();
+  return <Navigate to={`/admin/pillar/${pillarId ?? ""}`} replace />;
+}
+
 function RootRedirect() {
   const { status, mode, isAdmin } = useAuth();
   if (status === "loading") return null;
   // A super-admin always lands in the admin console, never a tenant surface.
   if (status === "authenticated" && isAdmin) {
-    return <Navigate to="/admin/pillar/operations" replace />;
+    return <Navigate to="/admin" replace />;
   }
   // Offline grace: nobody can sign in without a network, so any plausible
   // previous session (either mode) goes to the cached dashboard, not /login.
@@ -448,10 +459,19 @@ export default function App() {
               <Route path="/marketing/social/posts" element={<ProtectedRoute><SocialPosts /></ProtectedRoute>} />
               <Route path="/marketing/social/insights" element={<ProtectedRoute><SocialInsights /></ProtectedRoute>} />
               <Route path="/company/documents" element={<ProtectedRoute><ClientAssets /></ProtectedRoute>} />
-              <Route path="/admin" element={<Navigate to="/admin/pillar/operations" replace />} />
-              {/* Clients now live inside Operations (the command deck). The old
-                  standalone route redirects there; client detail pages stay. */}
-              <Route path="/admin/clients" element={<Navigate to="/admin/pillar/operations" replace />} />
+              {/* Command home: the whole-business Theory-of-Constraints view. */}
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminCommand />
+                  </AdminRoute>
+                }
+              />
+              {/* Clients now live inside Service Delivery. The old standalone
+                  list route redirects to Command; client detail pages stay
+                  (reused as the cockpit Config tab). */}
+              <Route path="/admin/clients" element={<Navigate to="/admin" replace />} />
               <Route
                 path="/admin/clients/:id"
                 element={
@@ -557,27 +577,47 @@ export default function App() {
                   </AdminRoute>
                 }
               />
+              {/* Service Delivery: the client roster and per-account cockpits. */}
+              <Route
+                path="/admin/delivery"
+                element={
+                  <AdminRoute>
+                    <AdminDelivery />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/delivery/:tenantId"
+                element={
+                  <AdminRoute>
+                    <DeliveryCockpit />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/settings"
+                element={
+                  <AdminRoute>
+                    <AdminSettings />
+                  </AdminRoute>
+                }
+              />
+              {/* Legacy 6-pillar ids fold into the new 4-pillar spine. Static
+                  segments out-rank the :pillarId route, so these win. */}
+              <Route path="/admin/pillar/outreach" element={<Navigate to="/admin/pillar/acquisition" replace />} />
+              <Route path="/admin/pillar/onboarding" element={<Navigate to="/admin/pillar/sales" replace />} />
+              <Route path="/admin/pillar/service" element={<Navigate to="/admin/delivery" replace />} />
+              <Route path="/admin/pillar/retention" element={<Navigate to="/admin/delivery" replace />} />
+              <Route path="/admin/pillar/delivery" element={<Navigate to="/admin/delivery" replace />} />
+              {/* Old lane/tab deep links drop back to the pillar page. */}
+              <Route path="/admin/pillar/:pillarId/lane/:laneId" element={<PillarRedirect />} />
+              <Route path="/admin/pillar/:pillarId/:tabId" element={<PillarRedirect />} />
+              {/* The pillar page itself (acquisition / sales / operations). */}
               <Route
                 path="/admin/pillar/:pillarId"
                 element={
                   <AdminRoute>
-                    <AdminPillar />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/pillar/:pillarId/lane/:laneId"
-                element={
-                  <AdminRoute>
-                    <AdminLane />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/pillar/:pillarId/:tabId"
-                element={
-                  <AdminRoute>
-                    <AdminPillar />
+                    <AdminPillarPage />
                   </AdminRoute>
                 }
               />
