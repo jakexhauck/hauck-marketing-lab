@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Check, UserPlus, DownloadCloud, Pencil, X, Eye } from "lucide-react";
 import { Button } from "../ui/Button";
 import { api } from "../../lib/api";
@@ -102,6 +103,7 @@ export default function ClientConfigPanel({
   const [data, setData] = useState<DetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const onClientChangeRef = useRef(onClientChange);
   useEffect(() => {
@@ -127,6 +129,22 @@ export default function ClientConfigPanel({
     void load();
   }, [load]);
 
+  // This panel does its own fetch/save against /api/admin/clients/:id* and
+  // only ever reloaded its own local copy, leaving the roster list and the
+  // cockpit header (which read via React Query) stale for up to their
+  // staleTime after a save. Every mutation below reloads the panel via
+  // load() AND invalidates both cached queries so the roster dot/name/spend
+  // and the cockpit header pick up the change immediately.
+  const invalidateClientCaches = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ["admin", "clients"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin", "clients", tenantId] });
+  }, [queryClient, tenantId]);
+
+  const refreshAfterSave = useCallback(async () => {
+    await load();
+    invalidateClientCaches();
+  }, [load, invalidateClientCaches]);
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-16 text-sm text-muted">
@@ -146,18 +164,18 @@ export default function ClientConfigPanel({
 
   return (
     <div className="space-y-4">
-      <BrandingCard client={client} onSaved={load} />
-      <HealthCard client={client} onSaved={load} />
-      <GhlCard client={client} onSaved={load} />
-      <OwnerCard tenantId={tenantId} ownerPasswordSet={client.ownerPasswordSet} />
-      <EntitlementsCard tenantId={tenantId} enabled={data.entitlements} onSaved={load} />
+      <BrandingCard client={client} onSaved={refreshAfterSave} />
+      <HealthCard client={client} onSaved={refreshAfterSave} />
+      <GhlCard client={client} onSaved={refreshAfterSave} />
+      <OwnerCard tenantId={tenantId} ownerPasswordSet={client.ownerPasswordSet} onSaved={refreshAfterSave} />
+      <EntitlementsCard tenantId={tenantId} enabled={data.entitlements} onSaved={refreshAfterSave} />
       <div id="cockpit-team">
         <TeamCard
           tenantId={tenantId}
           staff={data.staff}
           entitlements={data.entitlements}
           ghlConnected={!placeholderConn(client.ghlLocationId)}
-          onSaved={load}
+          onSaved={refreshAfterSave}
         />
       </div>
     </div>
@@ -370,9 +388,17 @@ function GhlCard({ client, onSaved }: { client: DetailClient; onSaved: () => Pro
   );
 }
 
-function OwnerCard({ tenantId, ownerPasswordSet }: { tenantId: string; ownerPasswordSet: boolean }) {
+function OwnerCard({
+  tenantId,
+  ownerPasswordSet,
+  onSaved,
+}: {
+  tenantId: string;
+  ownerPasswordSet: boolean;
+  onSaved: () => Promise<void>;
+}) {
   const [pw, setPw] = useState("");
-  const { saving, saved, err, run } = useSaver(async () => {});
+  const { saving, saved, err, run } = useSaver(onSaved);
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (pw.trim().length < 8) return;

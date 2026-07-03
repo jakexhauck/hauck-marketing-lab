@@ -120,6 +120,33 @@ export default function AdminPillarPage() {
               </Link>
             </div>
           </div>
+
+          <div className="pk-section">
+            <div className="pk-section-h">Admin tools</div>
+            <div className="pk-links">
+              <Link className="pk-link" to="/admin/onboarding">
+                Onboarding <ArrowRight />
+              </Link>
+              <Link className="pk-link" to="/admin/ads">
+                Paid Ads <ArrowRight />
+              </Link>
+              <Link className="pk-link" to="/admin/tasks">
+                Tasks <ArrowRight />
+              </Link>
+              <Link className="pk-link" to="/admin/build">
+                Build <ArrowRight />
+              </Link>
+              <Link className="pk-link" to="/admin/plans">
+                Plans <ArrowRight />
+              </Link>
+              <Link className="pk-link" to="/admin/messages">
+                Messages <ArrowRight />
+              </Link>
+              <Link className="pk-link" to="/admin/assets">
+                Assets <ArrowRight />
+              </Link>
+            </div>
+          </div>
         </>
       )}
     </div>

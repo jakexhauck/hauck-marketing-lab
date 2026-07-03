@@ -27,9 +27,11 @@ import { ApiError, type AdminClientDetail } from "../../lib/api";
 // instead of each fetching the client separately. The Config tab keeps its
 // own detail fetch inside ClientConfigPanel (it owns its own save flows).
 
+// Matches the roster dot colors in lib/deliveryRoster.ts / PillarKit.tsx
+// (.pk-roster-dot-*) so the same account reads the same color in both places.
 const HEALTH_COLOR: Record<AdminClientDetail["healthStatus"], string> = {
   healthy: "var(--positive)",
-  warn: "var(--brand)",
+  warn: "var(--warning)",
   paused: "var(--text-faint)",
 };
 
