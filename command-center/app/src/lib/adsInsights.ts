@@ -14,6 +14,9 @@ export interface AdItem {
   leads: number;
   reach: number;
   spend: number;
+  // Real Meta creative image URL; absent/"" => the card uses a gradient
+  // placeholder. Demo ads leave it unset.
+  thumbnailUrl?: string;
 }
 
 export interface AdsInsightsResponse {

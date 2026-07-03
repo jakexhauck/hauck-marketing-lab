@@ -90,8 +90,8 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "paid-ads",
     version: 1,
-    route: "/paid-ads",
-    target: { desktop: "[data-tour='nav-paid-ads']", mobile: null },
+    route: "/marketing/paid-ads",
+    target: { desktop: "[data-tour='nav-marketing/paid-ads']", mobile: null },
     title: "Paid Ads",
     body: "What your ads are spending and what they are bringing back. This is the scoreboard for the work we do together.",
     capability: "paid_ads",
