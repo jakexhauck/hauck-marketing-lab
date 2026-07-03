@@ -2,9 +2,10 @@
 // (/admin/delivery/:tenantId). Kept out of the component so the tab model and
 // the query-param resolution are testable without React or the router.
 //
-// Only "config" ships as a real, working tab this task; every other tab is an
-// honest placeholder that later phases fill (Overview/Paid Ads/Leads = Task
-// 3.3; Inbox/Calendar/Revenue/Team = Phase 5).
+// Overview and Config are real, working tabs (Task 3.2 shipped Config; Task
+// 3.3 shipped Overview from GET /api/admin/clients/:tenantId). Every other
+// tab stays an honest placeholder until its endpoint accepts an
+// admin-supplied tenantId (Phase 5): Ads/Leads/Inbox/Calendar/Revenue/Team.
 
 export type CockpitTab =
   | "overview"
@@ -24,7 +25,7 @@ export interface CockpitTabDef {
 }
 
 export const COCKPIT_TABS: CockpitTabDef[] = [
-  { id: "overview", label: "Overview", ready: false },
+  { id: "overview", label: "Overview", ready: true },
   { id: "ads", label: "Paid Ads", ready: false },
   { id: "leads", label: "Leads", ready: false },
   { id: "inbox", label: "Inbox", ready: false },
@@ -34,9 +35,8 @@ export const COCKPIT_TABS: CockpitTabDef[] = [
   { id: "config", label: "Config", ready: true },
 ];
 
-// Config is the only working tab for now, so it is the default landing tab.
-// Task 3.3 flips this to Overview once Overview is real.
-export const DEFAULT_COCKPIT_TAB: CockpitTab = "config";
+// Overview is real (Task 3.3), so it is the default landing tab.
+export const DEFAULT_COCKPIT_TAB: CockpitTab = "overview";
 
 const VALID = new Set<string>(COCKPIT_TABS.map((t) => t.id));
 

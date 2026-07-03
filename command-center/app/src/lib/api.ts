@@ -287,6 +287,64 @@ export interface AdminClient {
   healthNote: string | null;
 }
 
+// The single-client detail (GET /api/admin/clients/:tenantId): everything the
+// Service Delivery cockpit's header + Overview tab (Task 3.3) and the Config
+// tab render, shared so both read the same cached request instead of each
+// fetching their own copy.
+export interface AdminClientDetail {
+  id: string;
+  slug: string;
+  name: string;
+  niche: string;
+  brandColor: string;
+  brandInitials: string;
+  appName: string;
+  wonLabel: string;
+  valueLabel: string;
+  ghlLocationId: string;
+  subdomain: string | null;
+  ownerPasswordSet: boolean;
+  monthlySpend: number;
+  createdAt: string;
+  healthStatus: "healthy" | "warn" | "paused";
+  healthNote: string | null;
+}
+
+export interface AdminClientStaffMember {
+  id: string;
+  name: string;
+  email: string;
+  role: "owner" | "manager" | "rep";
+  status: string;
+  ghlUserId: string | null;
+  createdAt: string;
+  permissions: { capability: string; view: boolean; edit: boolean }[];
+}
+
+// A GHL-identified person on the account (tenant_users), informational only;
+// distinct from staff (the login accounts staff_accounts holds).
+export interface AdminClientTenantUser {
+  name: string;
+  email: string;
+  role: string;
+  ghlUserId: string | null;
+}
+
+export interface AdminClientActivityEntry {
+  id: number;
+  action: string;
+  summary: string | null;
+  createdAt: string;
+}
+
+export interface AdminClientDetailResponse {
+  client: AdminClientDetail;
+  entitlements: string[];
+  staff: AdminClientStaffMember[];
+  members: AdminClientTenantUser[];
+  activity: AdminClientActivityEntry[];
+}
+
 // An agency task in the admin "Tasks" tab, or a pillar task in a pillar
 // workspace's Tasks tab. tenantId null + pillarId null = agency-wide; tenantId
 // set = tied to that client (clientName is the joined label); pillarId set = a

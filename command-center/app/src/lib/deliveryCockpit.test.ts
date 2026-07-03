@@ -20,15 +20,15 @@ describe("resolveCockpitTab", () => {
     expect(resolveCockpitTab("nope")).toBe(DEFAULT_COCKPIT_TAB);
   });
 
-  it("defaults to config while it is the only working tab", () => {
-    expect(DEFAULT_COCKPIT_TAB).toBe("config");
+  it("defaults to overview now that it is real (Task 3.3)", () => {
+    expect(DEFAULT_COCKPIT_TAB).toBe("overview");
   });
 });
 
 describe("COCKPIT_TABS", () => {
-  it("marks only config ready for now", () => {
+  it("marks overview and config ready, everything else a placeholder", () => {
     const ready = COCKPIT_TABS.filter((t) => t.ready).map((t) => t.id);
-    expect(ready).toEqual(["config"]);
+    expect(ready).toEqual(["overview", "config"]);
   });
 
   it("has unique tab ids", () => {
@@ -39,7 +39,7 @@ describe("COCKPIT_TABS", () => {
 
 describe("cockpitPlaceholder", () => {
   it("phrases the coming-soon copy per tab", () => {
-    const overview = COCKPIT_TABS.find((t) => t.id === "overview")!;
-    expect(cockpitPlaceholder(overview)).toBe("Overview is coming in the next phase.");
+    const ads = COCKPIT_TABS.find((t) => t.id === "ads")!;
+    expect(cockpitPlaceholder(ads)).toBe("Paid Ads is coming in the next phase.");
   });
 });

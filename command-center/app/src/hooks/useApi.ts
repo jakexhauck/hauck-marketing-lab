@@ -19,6 +19,7 @@ import {
   type ApiCalendarEvent,
   type ApiTenant,
   type AdminClient,
+  type AdminClientDetailResponse,
   type ApiReviewsResponse,
 } from "../lib/api";
 import { type Job } from "../lib/jobsPipeline";
@@ -246,6 +247,19 @@ export function useAdminClientsQuery(enabled: boolean) {
     staleTime: 60_000,
     queryFn: () =>
       api<{ clients: AdminClient[]; total: number }>("/api/admin/clients"),
+  });
+}
+
+// One client's full admin detail (business info, entitlements, staff,
+// GHL-identified members, recent activity) for the Service Delivery cockpit.
+// Keyed by tenantId so the header and the Overview tab (Task 3.3) mounting
+// side by side share one cached request instead of fetching twice.
+export function useAdminClientDetailQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "clients", tenantId],
+    enabled: enabled && !!tenantId,
+    staleTime: 30_000,
+    queryFn: () => api<AdminClientDetailResponse>(`/api/admin/clients/${tenantId}`),
   });
 }
 
