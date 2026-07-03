@@ -92,6 +92,9 @@ interface AdItem {
   leads: number;
   reach: number;
   spend: number;
+  // The real creative image (Meta image_url / thumbnail_url / link picture), or
+  // "" when the ad has none (the client falls back to a gradient placeholder).
+  thumbnailUrl: string;
 }
 
 export interface AdsInsightsResponse {
@@ -169,22 +172,32 @@ function buildAds(
       "Ad";
     const copy =
       String(creative.body ?? "") || String(linkData.message ?? "") || "";
+    // Prefer the full creative image; fall back to the small thumbnail, then the
+    // link-ad picture. Video-only creatives leave this "" (gradient fallback).
+    const thumbnailUrl =
+      String(creative.image_url ?? "") ||
+      String(creative.thumbnail_url ?? "") ||
+      String(linkData.picture ?? "");
+    const status = String(m.effective_status ?? "");
     ads.push({
       id,
       headline,
       copy,
       platforms: ["fb", "ig"],
-      active: String(m.effective_status ?? "") === "ACTIVE",
+      active: status === "ACTIVE",
       leads: Math.round(actionsValue(ins, "actions")),
       reach: Math.round(num(ins.reach)),
       spend: round2(num(ins.spend)),
+      thumbnailUrl,
     });
   }
-  // Only surface ads that actually ran (have spend or leads) plus any active ad,
-  // newest-relevant first by leads.
-  return ads
-    .filter((a) => a.active || a.spend > 0 || a.leads > 0)
-    .sort((a, b) => b.leads - a.leads);
+  // Show every ad in the account, published or not (Jake's call): drafts and
+  // paused ads still belong in "Your Ads". The /ads edge already omits deleted
+  // ads, so no extra filtering. Active first, then most leads, so the running
+  // ads lead the gallery.
+  return ads.sort(
+    (a, b) => Number(b.active) - Number(a.active) || b.leads - a.leads,
+  );
 }
 
 // The ad account for this request: the client's own (from their tenant row)
@@ -261,7 +274,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       graphGet(token, `/${account}/insights`, { level: "account", date_preset: "last_month", fields: "actions" }),
       graphGet(token, `/${account}/insights`, { level: "account", date_preset: "this_month", time_increment: "1", fields: "actions,date_start" }),
       graphGet(token, `/${account}/insights`, { level: "ad", date_preset: "this_month", fields: "ad_id,ad_name,spend,reach,actions", limit: "200" }),
-      graphGet(token, `/${account}/ads`, { fields: "id,name,effective_status,creative{title,body,object_story_spec}", limit: "200" }),
+      graphGet(token, `/${account}/ads`, { fields: "id,name,effective_status,creative{title,body,object_story_spec,image_url,thumbnail_url}", limit: "200" }),
     ]);
 
     // Platform split (best-effort; a failure here must not sink the whole call).

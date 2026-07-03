@@ -60,10 +60,15 @@ export default function AdsCreatives() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {ads.map((ad, i) => (
               <Panel key={ad.id} className="flex flex-col overflow-hidden p-0">
-                {/* Creative thumbnail (placeholder gradient) */}
+                {/* Creative thumbnail: the real Meta image when we have one,
+                    else a deterministic gradient placeholder. */}
                 <div
-                  className="relative flex h-[148px] items-end p-3 text-white"
-                  style={{ backgroundImage: thumbFor(i) }}
+                  className="relative flex h-[148px] items-end bg-surface-2 p-3 text-white"
+                  style={{
+                    backgroundImage: ad.thumbnailUrl ? `url("${ad.thumbnailUrl}")` : thumbFor(i),
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
                 >
                   <span
                     className={`absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold ${
