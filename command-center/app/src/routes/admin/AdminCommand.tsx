@@ -13,13 +13,13 @@ import {
 import { useAdminOverviewQuery, useConstraintsQuery } from "../../hooks/useApi";
 import { formatMoney } from "../../lib/format";
 import type { PillarConstraint } from "../../lib/api";
+import { SeverityChip } from "../../components/admin/ConstraintPanel";
 import {
   FUNNEL_PILLARS,
   PILLAR_LABELS,
   findConstraintForPillar,
   findSystemConstraint,
   pillarRoute,
-  severityWord,
   sortBySeverity,
 } from "../../lib/adminCommand";
 
@@ -39,10 +39,6 @@ const PILLAR_ICONS: Record<PillarConstraint["pillar"], LucideIcon> = {
   delivery: HeartHandshake,
   operations: Wrench,
 };
-
-function SeverityChip({ severity }: { severity: PillarConstraint["severity"] }) {
-  return <span className={`pk-sev-chip pk-sev-chip-${severity}`}>{severityWord(severity)}</span>;
-}
 
 export default function AdminCommand() {
   const overviewQuery = useAdminOverviewQuery(true);
