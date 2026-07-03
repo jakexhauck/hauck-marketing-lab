@@ -9,7 +9,7 @@ surface, four tabs. Storefront direction: the client's live site is the hero.
 | --- | --- | --- |
 | Overview: site preview + "View live site" | `tenants.website_url` (per client) | REAL once URL set |
 | Overview: KPIs / top pages / sources | none yet | honest empty (GA4 pending) |
-| Pages tab | GHL funnels API | not wired (scope 401), honest empty |
+| Pages tab | GHL funnels API (`type=website`) | REAL |
 | Request a Change | Supabase `website_change_requests` | REAL |
 | What's working (Insights) | GA4 | honest empty (GA4 pending) |
 
@@ -38,10 +38,13 @@ numbers). Nothing fabricated ever shows to a real client.
   on the tenant (new `tenants.ga4_property_id`). Then build
   `functions/api/website/analytics.ts` (JWT -> access token -> `runReport`) with
   a ~15 min KV cache and wire the four surfaces.
-- **Pages list.** Needs the GHL funnels read scopes on the Willis integration
-  (`funnels/funnel.readonly`, `funnels/page.readonly`, `funnels/redirect.readonly`).
-  Probed 2026-07-03: `GET /funnels/funnel/list` returns 401 "not authorized for
-  this scope". Until then the Pages tab shows its empty state.
+- ~~Pages list~~ DONE 2026-07-03. `GET /api/website/pages` reads the client's
+  GHL Sites (`GET /funnels/funnel/list`), keeps only funnels with
+  `type === "website"`, and flattens their steps into pages (name + path,
+  ordered by sequence). The frontend joins each path onto `website_url` to
+  preview and open it. Note: `funnels/page/list` is unsupported by GHL's IAM
+  ("route not yet supported"), so pages come from the funnel object's `steps`,
+  not that route. The funnels read scope on the Willis token is now live.
 
 ## iframe caveat
 
