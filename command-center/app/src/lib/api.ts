@@ -390,3 +390,49 @@ export async function saveTourProgress(
     body: JSON.stringify({ personKey, version }),
   });
 }
+
+// Theory-of-Constraints admin command view (0022): one row per business
+// pillar (acquisition/sales/delivery/operations) describing its current
+// constraint, plus an ordered Identify/Exploit/Subordinate/Elevate/Repeat
+// attack-plan. Backed by GET/PUT /api/admin/constraints.
+export interface ConstraintStep {
+  step: string;
+  action: string;
+  owner: string | null;
+  status: "todo" | "doing" | "done";
+  sort: number;
+}
+
+export interface PillarConstraint {
+  pillar: "acquisition" | "sales" | "delivery" | "operations";
+  title: string;
+  severity: "high" | "med" | "low";
+  metric: string | null;
+  detail: string | null;
+  impact: string | null;
+  isSystem: boolean;
+  throughputVal: string | null;
+  throughputLabel: string | null;
+  updatedAt: string;
+  steps: ConstraintStep[];
+}
+
+export async function getConstraints(): Promise<PillarConstraint[]> {
+  const { constraints } = await api<{ constraints: PillarConstraint[] }>(
+    "/api/admin/constraints",
+  );
+  return constraints;
+}
+
+export async function saveConstraint(
+  payload: Omit<PillarConstraint, "updatedAt">,
+): Promise<PillarConstraint> {
+  const { constraint } = await api<{ constraint: PillarConstraint }>(
+    "/api/admin/constraints",
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    },
+  );
+  return constraint;
+}
