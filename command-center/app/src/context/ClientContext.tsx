@@ -40,6 +40,7 @@ const BRAND_FALLBACK_CLIENT: Client = {
   pipeline: { wonLabel: "Won", valueLabel: "Job Value" },
   tier: "core",
   monthlySpend: null,
+  websiteUrl: null,
 };
 
 function clientFromTenant(t: ApiTenant): Client {
@@ -59,6 +60,7 @@ function clientFromTenant(t: ApiTenant): Client {
     },
     tier: "core",
     monthlySpend: t.monthlySpend,
+    websiteUrl: t.websiteUrl ?? null,
   };
 }
 

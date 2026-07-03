@@ -6,6 +6,22 @@ import { hashPassword } from "../../../lib/password";
 import { normalizeSubdomain } from "../../../lib/tenantResolve";
 import type { StaffRole } from "../../../lib/staff";
 
+// Coerce an admin-entered site into a safe absolute http(s) URL, or null if it
+// cannot be one. A bare domain (rivertownplumbing.com) gets https://; anything
+// whose scheme is not http/https (javascript:, data:, ...) is rejected, since
+// the value is rendered in an iframe src and opened via window.open.
+function normalizeWebsiteUrl(input: string): string | null {
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(input) ? input : `https://${input}`;
+  try {
+    const u = new URL(withScheme);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    if (!u.hostname.includes(".")) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
 // GET /api/admin/clients/:tenantId  (admin-only)
 // The full picture of one client: business details, the people who own/work it
 // (staff accounts with their grants, plus any GHL-identified team members),
@@ -103,6 +119,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       valueLabel: tenant.value_label,
       ghlLocationId: tenant.ghl_location_id,
       metaAdAccountId: tenant.meta_ad_account_id ?? null,
+      googlePlaceId: tenant.google_place_id ?? null,
+      websiteUrl: tenant.website_url ?? null,
       subdomain: tenant.subdomain ?? null,
       ownerPasswordSet: Boolean(tenant.owner_password_hash),
       monthlySpend: tenant.monthly_spend ?? 0,
@@ -143,6 +161,12 @@ interface PatchBody {
   // The client's Meta ad account (act_...). Empty string clears it (falls back
   // to the env account / not-connected).
   metaAdAccountId?: string;
+  // The client's Google Places place_id. Empty string clears it (falls back to
+  // the GOOGLE_PLACE_ID env / not-connected).
+  googlePlaceId?: string;
+  // The client's live website URL (their single GHL Sites-tab site). Empty
+  // string clears it (Website page shows not-connected).
+  websiteUrl?: string;
   subdomain?: string;
   // New owner login password for this client. Hashed; never read back.
   ownerPassword?: string;
@@ -182,6 +206,25 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   if (body.metaAdAccountId !== undefined) {
     const v = str(body.metaAdAccountId);
     update.meta_ad_account_id = v ? v : null;
+  }
+  if (body.googlePlaceId !== undefined) {
+    const v = str(body.googlePlaceId);
+    update.google_place_id = v ? v : null;
+  }
+  // Present-but-empty clears the site. A non-empty value must be a real http(s)
+  // URL: it is rendered in an iframe src and opened via window.open, so reject
+  // anything else (javascript:, data:, garbage) rather than store it.
+  if (body.websiteUrl !== undefined) {
+    const v = str(body.websiteUrl);
+    if (!v) {
+      update.website_url = null;
+    } else {
+      const normalized = normalizeWebsiteUrl(v);
+      if (!normalized) {
+        return Response.json({ error: "invalid website url" }, { status: 400 });
+      }
+      update.website_url = normalized;
+    }
   }
   if (str(body.subdomain)) update.subdomain = normalizeSubdomain(str(body.subdomain)!);
   if (str(body.ownerPassword)) {

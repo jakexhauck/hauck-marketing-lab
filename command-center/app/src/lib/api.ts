@@ -94,6 +94,9 @@ export interface ApiTenant {
   wonLabel: string;
   valueLabel: string;
   monthlySpend: number | null;
+  // The client's live website, or null when none is set. Drives the Website
+  // page's real preview + "View live site" button.
+  websiteUrl: string | null;
 }
 
 export interface ApiPipelineSummary {

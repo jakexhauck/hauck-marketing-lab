@@ -89,6 +89,33 @@ export function BrowserFrame({
 }
 
 // ---------------------------------------------------------------------------
+// LiveSiteFrame: the client's REAL site inside a BrowserFrame body. Non-
+// interactive by default (pointer-events off) so it reads as a preview and, on
+// the Request-a-Change canvas, lets the click overlay capture pins over it. If
+// the site blocks embedding (X-Frame-Options / frame-ancestors) the iframe body
+// renders blank; every caller also surfaces an "Open live site" affordance, so
+// the page never depends on the embed succeeding.
+// ---------------------------------------------------------------------------
+export function LiveSiteFrame({
+  url,
+  device = "desktop",
+}: {
+  url: string;
+  device?: Device;
+}) {
+  return (
+    <iframe
+      src={url}
+      title="Your live website"
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      className="block w-full border-0 bg-white"
+      style={{ height: device === "mobile" ? 600 : 460, pointerEvents: "none" }}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
 // DeviceToggle: Desktop / Mobile control (reuses Segmented).
 // ---------------------------------------------------------------------------
 export function DeviceToggle({

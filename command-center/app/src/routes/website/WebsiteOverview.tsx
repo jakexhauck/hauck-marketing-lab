@@ -6,6 +6,7 @@ import PageBar from "../../components/PageBar";
 import { WEBSITE_TABS } from "../../lib/pageTabs";
 import { Panel, PanelHeader, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
+import { useClient } from "../../context/ClientContext";
 import { cn } from "../../lib/cn";
 import {
   WEBSITE_CONTAINER,
@@ -13,6 +14,7 @@ import {
   NotConnectedNotice,
   BrowserFrame,
   SiteMock,
+  LiveSiteFrame,
   DeviceToggle,
   SAMPLE_KPIS,
   EMPTY_KPIS,
@@ -52,11 +54,20 @@ function PreviewPlaceholder() {
 
 export default function WebsiteOverview() {
   const demo = demoMode();
+  const { client } = useClient();
+  const websiteUrl = client.websiteUrl;
   const navigate = useNavigate();
   const [device, setDevice] = useState<Device>("desktop");
   const mobile = device === "mobile";
 
   const kpis = demo ? SAMPLE_KPIS : EMPTY_KPIS;
+  // The site is "connected" in demo (SiteMock) or when the client has a real URL.
+  const connected = demo || Boolean(websiteUrl);
+  // Address-bar label: the demo's fixed domain, or the client's real domain.
+  const displayDomain = websiteUrl
+    ? websiteUrl.replace(/^https?:\/\//, "").replace(/\/+$/, "")
+    : WEBSITE_DOMAIN;
+  const liveHref = demo ? `https://${WEBSITE_DOMAIN}` : websiteUrl ?? "";
 
   return (
     <Shell>
@@ -77,8 +88,8 @@ export default function WebsiteOverview() {
               <Button
                 variant="primary"
                 size="md"
-                disabled={!demo}
-                onClick={() => window.open(`https://${WEBSITE_DOMAIN}`, "_blank", "noopener")}
+                disabled={!connected}
+                onClick={() => liveHref && window.open(liveHref, "_blank", "noopener")}
               >
                 <ExternalLink size={16} /> View live site
               </Button>
@@ -86,14 +97,23 @@ export default function WebsiteOverview() {
           }
         />
 
-        {!demo && (
+        {!demo && !websiteUrl && (
           <NotConnectedNotice message="Everything below reads 0 because your site is not linked yet. Once we connect it, this page fills in with your real visitors, pages, and leads." />
+        )}
+        {!demo && websiteUrl && (
+          <Panel className="mb-4 flex items-center gap-3 border-brand/30 bg-brand-tint p-4">
+            <BarChart3 size={18} className="shrink-0 text-brand-text" />
+            <div className="text-[13px] leading-snug text-text">
+              <span className="font-semibold">Your site is connected.</span> Visitor
+              numbers appear here once your website analytics are linked.
+            </div>
+          </Panel>
         )}
 
         {/* Storefront hero: the live site, front and centre */}
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="hidden text-[13px] text-muted sm:block">
-            {demo
+            {connected
               ? "A live look at your homepage, exactly as visitors see it."
               : "A preview of your homepage will appear here once your site is connected."}
           </p>
@@ -101,33 +121,37 @@ export default function WebsiteOverview() {
         </div>
 
         <div className={cn("relative mb-8", mobile && "mx-auto w-full max-w-[390px]")}>
-          {demo && (
-            <>
-              {/* Live badge: dark glass over the site, pulsing dot (motion-safe) */}
-              <span
-                className="pointer-events-none absolute left-4 top-4 z-10 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur"
-                style={{ background: "rgba(20,22,31,.82)" }}
-              >
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping" style={{ background: "#e5484d" }} />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: "#e5484d" }} />
-                </span>
-                Live
+          {/* Live badge: shown whenever a real (or demo) site is on screen. */}
+          {connected && (
+            <span
+              className="pointer-events-none absolute left-4 top-4 z-10 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur"
+              style={{ background: "rgba(20,22,31,.82)" }}
+            >
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping" style={{ background: "#e5484d" }} />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: "#e5484d" }} />
               </span>
+              Live
+            </span>
+          )}
 
-              {/* Floating glass stat chips (desktop preview only) */}
-              {!mobile && (
-                <>
-                  <HeroChip className="-top-4 right-5 hidden md:block" n={SAMPLE_VISITORS_THIS_MONTH.toLocaleString()} l="visitors this month" />
-                  <HeroChip className="top-1/2 -left-4 hidden -translate-y-1/2 lg:block" n={SAMPLE_KPIS[1].value} l="leads from the site" />
-                  <HeroChip className="-bottom-4 right-16 hidden md:block" n={String(SITE_PAGES.length)} l="pages live" />
-                </>
-              )}
+          {/* Floating glass stat chips carry fabricated numbers, so demo only. */}
+          {demo && !mobile && (
+            <>
+              <HeroChip className="-top-4 right-5 hidden md:block" n={SAMPLE_VISITORS_THIS_MONTH.toLocaleString()} l="visitors this month" />
+              <HeroChip className="top-1/2 -left-4 hidden -translate-y-1/2 lg:block" n={SAMPLE_KPIS[1].value} l="leads from the site" />
+              <HeroChip className="-bottom-4 right-16 hidden md:block" n={String(SITE_PAGES.length)} l="pages live" />
             </>
           )}
 
-          <BrowserFrame url={WEBSITE_DOMAIN} device={device}>
-            {demo ? <SiteMock page="home" device={device} /> : <PreviewPlaceholder />}
+          <BrowserFrame url={demo ? WEBSITE_DOMAIN : displayDomain} device={device}>
+            {demo ? (
+              <SiteMock page="home" device={device} />
+            ) : websiteUrl ? (
+              <LiveSiteFrame url={websiteUrl} device={device} />
+            ) : (
+              <PreviewPlaceholder />
+            )}
           </BrowserFrame>
         </div>
 
