@@ -106,6 +106,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       ownerPasswordSet: Boolean(tenant.owner_password_hash),
       monthlySpend: tenant.monthly_spend ?? 0,
       createdAt: tenant.created_at,
+      healthStatus: tenant.health_status ?? "healthy",
+      healthNote: tenant.health_note ?? null,
     },
     entitlements: enabled,
     staff: staff.map((s) => ({
@@ -142,7 +144,12 @@ interface PatchBody {
   subdomain?: string;
   // New owner login password for this client. Hashed; never read back.
   ownerPassword?: string;
+  // Manual per-account health flag surfaced in the Service Delivery roster.
+  healthStatus?: "healthy" | "warn" | "paused";
+  healthNote?: string;
 }
+
+const HEALTH_STATUSES = ["healthy", "warn", "paused"] as const;
 
 // PATCH /api/admin/clients/:tenantId  (admin-only)
 // Edit a client's display content / labels / branding / GHL connection. Only the
@@ -175,6 +182,16 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   if (str(body.ghlLocationId)) update.ghl_location_id = str(body.ghlLocationId);
   if (str(body.ghlToken)) update.ghl_token = str(body.ghlToken);
   if (str(body.subdomain)) update.subdomain = normalizeSubdomain(str(body.subdomain)!);
+  if (body.healthStatus !== undefined) {
+    if (!HEALTH_STATUSES.includes(body.healthStatus)) {
+      return Response.json({ error: "invalid health status" }, { status: 400 });
+    }
+    update.health_status = body.healthStatus;
+  }
+  // health_note is nullable and clearable: an empty string wipes the note.
+  if (typeof body.healthNote === "string") {
+    update.health_note = body.healthNote.trim() || null;
+  }
   if (str(body.ownerPassword)) {
     const pw = str(body.ownerPassword)!;
     if (pw.length < 8) {
