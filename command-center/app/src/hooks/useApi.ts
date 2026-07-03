@@ -3,6 +3,7 @@ import {
   api,
   getAdminOverview,
   getConstraints,
+  saveConstraint,
   type ApiLead,
   type ApiPipelineSummary,
   type ApiSummary,
@@ -21,6 +22,7 @@ import {
   type AdminClient,
   type AdminClientDetailResponse,
   type ApiReviewsResponse,
+  type PillarConstraint,
 } from "../lib/api";
 import { type Job } from "../lib/jobsPipeline";
 
@@ -281,6 +283,20 @@ export function useConstraintsQuery(enabled: boolean) {
     enabled,
     staleTime: 60_000,
     queryFn: getConstraints,
+  });
+}
+
+// Persists an edited constraint (Task 4.2's in-app editor) and invalidates
+// useConstraintsQuery's key on success, so Command, every pillar page, and
+// the delivery overview all re-render with the new copy the next time they
+// read the cache.
+export function useSaveConstraintMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: Omit<PillarConstraint, "updatedAt">) => saveConstraint(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "constraints"] });
+    },
   });
 }
 

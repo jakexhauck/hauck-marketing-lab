@@ -411,6 +411,57 @@ export function PillarStyle() {
       .pk-link:hover { border-color: var(--brand); color: var(--brand-text); }
       .pk-link svg { width: 14px; height: 14px; }
       .pk-empty { text-align: center; color: var(--text-muted); padding: 40px 0; font-size: 14px; }
+
+      /* ===== Constraint editor (Task 4.2): the ConstraintPanel edit form ===== */
+      .pk-constraint-card { position: relative; }
+      .pk-edit-btn { position: absolute; top: 18px; right: 20px; display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: border-color .14s, color .14s; }
+      .pk-edit-btn:hover { border-color: var(--brand); color: var(--brand-text); }
+      .pk-edit-btn svg { width: 12px; height: 12px; }
+
+      .pk-form { display: flex; flex-direction: column; }
+      .pk-field { margin-bottom: 14px; }
+      .pk-field label { display: block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+      .pk-field-row { display: flex; gap: 12px; flex-wrap: wrap; }
+      .pk-field-row .pk-field { flex: 1 1 160px; min-width: 160px; }
+      .pk-input, .pk-select, .pk-textarea {
+        width: 100%; padding: 8px 11px; border-radius: 9px; border: 1px solid var(--border);
+        background: var(--surface); color: var(--text); font: inherit; font-size: 13.5px;
+      }
+      .pk-input:focus, .pk-select:focus, .pk-textarea:focus { outline: 2px solid var(--brand); outline-offset: 1px; border-color: var(--brand); }
+      .pk-input:disabled, .pk-select:disabled, .pk-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+      .pk-textarea { resize: vertical; min-height: 64px; line-height: 1.55; }
+
+      .pk-checkbox-row { display: flex; align-items: flex-start; gap: 9px; font-size: 13.5px; color: var(--text); margin-bottom: 18px; cursor: pointer; }
+      .pk-checkbox-row input { margin-top: 2px; flex-shrink: 0; }
+      .pk-checkbox-hint { color: var(--text-faint); font-size: 12px; margin-top: 3px; font-weight: 400; }
+
+      .pk-step-edit-list { display: flex; flex-direction: column; margin-top: 8px; }
+      .pk-step-edit-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--divider); }
+      .pk-step-edit-row:last-child { border-bottom: none; }
+      .pk-step-reorder { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; padding-top: 1px; }
+      .pk-step-reorder button { width: 22px; height: 17px; border: 1px solid var(--border); background: var(--surface); border-radius: 4px; display: grid; place-items: center; cursor: pointer; color: var(--text-muted); padding: 0; }
+      .pk-step-reorder button:hover:not(:disabled) { border-color: var(--brand); color: var(--brand-text); }
+      .pk-step-reorder button:disabled { opacity: 0.32; cursor: not-allowed; }
+      .pk-step-reorder svg { width: 12px; height: 12px; }
+      .pk-step-fields { display: flex; gap: 8px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; }
+      .pk-step-fields .pk-select { flex: 1 1 128px; min-width: 118px; }
+      .pk-step-fields input.pk-input { flex: 2 1 160px; min-width: 120px; }
+      .pk-step-del { flex-shrink: 0; border: 1px solid var(--border); background: transparent; border-radius: 8px; width: 30px; height: 30px; display: grid; place-items: center; color: var(--text-muted); cursor: pointer; }
+      .pk-step-del:hover { color: var(--danger); border-color: var(--danger); }
+      .pk-step-del svg { width: 14px; height: 14px; }
+
+      .pk-add-step-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 7px 13px; border-radius: 999px; border: 1px dashed var(--border); background: transparent; color: var(--text-muted); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; align-self: flex-start; }
+      .pk-add-step-btn:hover { border-color: var(--brand); color: var(--brand-text); }
+      .pk-add-step-btn svg { width: 13px; height: 13px; }
+
+      .pk-form-error { color: var(--danger); font-size: 13px; margin-top: 14px; }
+
+      .pk-form-actions { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+      .pk-btn-save { padding: 9px 18px; border-radius: 999px; border: 0; background: var(--grad-brand); color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; box-shadow: var(--shadow-brand); }
+      .pk-btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+      .pk-btn-cancel { padding: 9px 16px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+      .pk-btn-cancel:hover:not(:disabled) { color: var(--text); border-color: var(--text-faint); }
+      .pk-btn-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
     `}</style>
   );
 }

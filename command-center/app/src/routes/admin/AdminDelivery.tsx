@@ -44,7 +44,7 @@ export default function AdminDelivery() {
           ) : !constraint ? (
             <div className="pk-empty">Delivery constraint not set up yet.</div>
           ) : (
-            <ConstraintPanel constraint={constraint} />
+            <ConstraintPanel constraint={constraint} editable />
           )}
         </div>
 

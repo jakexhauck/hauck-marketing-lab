@@ -90,7 +90,7 @@ export default function AdminPillarPage() {
         ) : !constraint ? (
           <div className="pk-empty">{info.label} constraint not set up yet.</div>
         ) : (
-          <ConstraintPanel constraint={constraint} />
+          <ConstraintPanel constraint={constraint} editable />
         )}
       </div>
 
