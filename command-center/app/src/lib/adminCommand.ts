@@ -1,11 +1,14 @@
-import type { PillarConstraint } from "./api";
+import type { ConstraintStep, PillarConstraint } from "./api";
 
-// Pure helpers for the Command home (Task 2). Kept out of the component so
-// the funnel ordering, severity vocabulary, and constraint lookups stay
-// independently testable without React or a network mock.
+// Pure helpers for the Command home (Task 2) and the pillar / delivery
+// attack-plan views built on top of the same constraint rows (Task 3+). Kept
+// out of the components so the funnel ordering, severity vocabulary, and
+// constraint lookups stay independently testable without React or a network
+// mock.
 
 type Pillar = PillarConstraint["pillar"];
 type Severity = PillarConstraint["severity"];
+type StepStatus = ConstraintStep["status"];
 
 // Acquisition -> Sales -> Service Delivery: the linear funnel, front to back.
 // Operations is the enabler underneath, never part of this sequence, so it is
@@ -56,4 +59,22 @@ export function findConstraintForPillar(
   pillar: Pillar,
 ): PillarConstraint | undefined {
   return constraints.find((c) => c.pillar === pillar);
+}
+
+const STEP_STATUS_WORD: Record<StepStatus, string> = {
+  todo: "To do",
+  doing: "In progress",
+  done: "Done",
+};
+
+// The attack-plan step status tag vocabulary (Identify/Exploit/Subordinate/
+// Elevate/Repeat steps carry one of these three states).
+export function stepStatusWord(status: StepStatus): string {
+  return STEP_STATUS_WORD[status];
+}
+
+// Attack-plan steps carry their own explicit sort; the API already returns
+// them in order, but the client sorts rather than trusting response order.
+export function sortSteps(steps: ConstraintStep[]): ConstraintStep[] {
+  return [...steps].sort((a, b) => a.sort - b.sort);
 }

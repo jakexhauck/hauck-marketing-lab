@@ -337,6 +337,66 @@ export function PillarStyle() {
       .pk-build { margin-top: 28px; border: 1px dashed var(--border); border-radius: var(--radius-lg); padding: 22px; text-align: center; color: var(--text-muted); font-size: 14px; background: var(--surface-2); }
       .pk-build b { color: var(--text); font-family: var(--font-display); font-weight: 600; }
 
+      /* ===== Service Delivery: roster rail + delivery overview (Task 3.1) ===== */
+
+      /* Two-pane shell: a persistent roster rail beside the page's own
+         .pk-root. The child combinator gives the override enough specificity
+         to beat the base .pk-root width/flex rules without !important. */
+      .pk-delivery-shell { display: flex; align-items: flex-start; min-height: 100%; }
+      .pk-delivery-shell > .pk-root { flex: 1 1 0%; width: auto; min-width: 0; }
+
+      .pk-roster { flex: 0 0 284px; width: 284px; position: sticky; top: 0; align-self: flex-start; height: 100dvh; display: flex; flex-direction: column; background: var(--surface); border-right: 1px solid var(--border); overflow: hidden; }
+      .pk-roster-head { padding: 18px 16px 10px; }
+      .pk-roster-head-row { display: flex; align-items: center; gap: 8px; }
+      .pk-roster-title { font-family: var(--font-display); font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+      .pk-roster-count { margin-left: auto; font-family: var(--font-mono); font-size: 12px; color: var(--text-faint); }
+      .pk-roster-search { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-faint); }
+      .pk-roster-search input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; color: var(--text); font: inherit; font-size: 13px; }
+      .pk-roster-search input::placeholder { color: var(--text-faint); }
+      .pk-roster-filters { display: flex; gap: 6px; padding: 10px 16px 12px; flex-wrap: wrap; }
+      .pk-roster-filter-btn { padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; color: var(--text-muted); border: 1px solid var(--border); background: transparent; cursor: pointer; transition: border-color .15s, color .15s, background .15s; }
+      .pk-roster-filter-btn:hover { border-color: var(--brand); color: var(--text); }
+      .pk-roster-filter-btn.on { background: var(--brand-tint); color: var(--brand-text); border-color: transparent; }
+      .pk-roster-list { flex: 1; overflow-y: auto; padding: 0 10px 14px; }
+      .pk-roster-row { display: flex; align-items: center; gap: 12px; padding: 11px 10px; border-radius: 12px; width: 100%; text-decoration: none; color: inherit; border: 1px solid transparent; margin-bottom: 2px; transition: background .13s; }
+      .pk-roster-row:hover { background: var(--surface-2); }
+      .pk-roster-row.active { background: var(--surface-2); border-color: var(--border); box-shadow: inset 3px 0 0 var(--rc, var(--brand)); }
+      .pk-roster-pinned { margin-bottom: 8px; }
+      .pk-roster-avatar { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 13px; color: #fff; }
+      .pk-roster-avatar-pinned { background: var(--positive-tint); color: var(--positive); }
+      .pk-roster-who { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+      .pk-roster-who b { font-family: var(--font-display); font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .pk-roster-who span { font-size: 11.5px; color: var(--text-muted); }
+      .pk-roster-side { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+      .pk-roster-spend { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); }
+      .pk-roster-dot { width: 8px; height: 8px; border-radius: 50%; }
+      .pk-roster-dot-healthy { background: var(--positive); }
+      .pk-roster-dot-warn { background: var(--warning); }
+      .pk-roster-dot-paused { background: var(--text-faint); }
+      .pk-roster-empty { padding: 24px 10px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+      /* Narrow viewports: stack the rail above the main pane instead of a
+         fixed-width sticky column eating the whole screen height. */
+      @media (max-width: 900px) {
+        .pk-delivery-shell { flex-direction: column; }
+        .pk-roster { position: static; height: auto; max-height: 50dvh; width: 100%; flex: none; border-right: 0; border-bottom: 1px solid var(--border); }
+      }
+
+      /* delivery-overview constraint card: title/metric/detail/impact plus the
+         Identify/Exploit/Subordinate/Elevate/Repeat attack-plan list. Reuses
+         .pk-card and .pk-steps; these add the extra text roles inside it. */
+      .pk-constraint-title { font-family: var(--font-display); font-size: 19px; font-weight: 700; letter-spacing: -0.01em; margin: 10px 0 6px; }
+      .pk-constraint-metric { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-muted); margin-bottom: 10px; }
+      .pk-constraint-detail { color: var(--text-muted); font-size: 14px; line-height: 1.65; margin: 0; }
+      .pk-constraint-impact { color: var(--text); font-size: 13.5px; font-weight: 500; margin: 10px 0 0; }
+      .pk-constraint-steps-h { font-family: var(--font-display); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin: 22px 0 4px; }
+      .pk-steps .pk-step-owner { color: var(--text-faint); font-weight: 400; font-size: 12.5px; }
+      .pk-steps .pk-step-action { color: var(--text-muted); font-size: 13px; margin-top: 3px; }
+      .pk-step-status { display: inline-block; margin-top: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
+      .pk-step-status-todo { color: var(--text-muted); background: var(--surface-2); }
+      .pk-step-status-doing { color: var(--brand-text); background: var(--brand-tint); }
+      .pk-step-status-done { color: var(--positive); background: var(--positive-tint); }
+
       /* generic prose + lists used by the lane workspace */
       .pk-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 20px 22px; }
       .pk-steps { counter-reset: step; list-style: none; padding: 0; margin: 0; }

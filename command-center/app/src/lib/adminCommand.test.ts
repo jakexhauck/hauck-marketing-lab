@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { PillarConstraint } from "./api";
+import type { ConstraintStep, PillarConstraint } from "./api";
 import {
   findConstraintForPillar,
   findSystemConstraint,
   pillarRoute,
   severityWord,
   sortBySeverity,
+  sortSteps,
+  stepStatusWord,
 } from "./adminCommand";
 
 function mk(overrides: Partial<PillarConstraint>): PillarConstraint {
@@ -92,5 +94,48 @@ describe("findConstraintForPillar", () => {
 
   it("returns undefined when the pillar has no row (empty DB)", () => {
     expect(findConstraintForPillar([], "sales")).toBeUndefined();
+  });
+});
+
+function mkStep(overrides: Partial<ConstraintStep>): ConstraintStep {
+  return {
+    step: "Identify",
+    action: "a",
+    owner: null,
+    status: "todo",
+    sort: 0,
+    ...overrides,
+  };
+}
+
+describe("stepStatusWord", () => {
+  it("maps every attack-plan step status to its tag label", () => {
+    expect(stepStatusWord("todo")).toBe("To do");
+    expect(stepStatusWord("doing")).toBe("In progress");
+    expect(stepStatusWord("done")).toBe("Done");
+  });
+});
+
+describe("sortSteps", () => {
+  it("orders steps by their sort field regardless of input order", () => {
+    const first = mkStep({ step: "Identify", sort: 0 });
+    const second = mkStep({ step: "Exploit", sort: 1 });
+    const third = mkStep({ step: "Subordinate", sort: 2 });
+    expect(sortSteps([third, first, second]).map((s) => s.step)).toEqual([
+      "Identify",
+      "Exploit",
+      "Subordinate",
+    ]);
+  });
+
+  it("does not mutate the input array", () => {
+    const input = [mkStep({ sort: 1 }), mkStep({ sort: 0 })];
+    const before = [...input];
+    sortSteps(input);
+    expect(input).toEqual(before);
+  });
+
+  it("returns an empty array when given no steps", () => {
+    expect(sortSteps([])).toEqual([]);
   });
 });

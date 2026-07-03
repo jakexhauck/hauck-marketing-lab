@@ -14,10 +14,14 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
 
+  // health_status / health_note are from migration 0022 (admin roster rail).
+  // Until that migration is applied to the live DB, this select 500s; the
+  // whole branch deploys after a human runs it, so that failure is expected
+  // in the interim rather than a bug in this endpoint.
   const { data: tenantRows, error } = await client
     .from("tenants")
     .select(
-      "id, slug, name, niche, brand_color, brand_initials, app_name, ghl_location_id, monthly_spend, created_at",
+      "id, slug, name, niche, brand_color, brand_initials, app_name, ghl_location_id, monthly_spend, created_at, health_status, health_note",
     )
     .order("created_at", { ascending: true });
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -33,6 +37,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     ghl_location_id: string;
     monthly_spend: number | null;
     created_at: string;
+    health_status: "healthy" | "warn" | "paused" | null;
+    health_note: string | null;
   }[];
 
   // Active-staff count per tenant in one pass (small scale; no group-by RPC).
@@ -57,6 +63,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     monthlySpend: t.monthly_spend ?? 0,
     memberCount: counts.get(t.id) ?? 0,
     createdAt: t.created_at,
+    healthStatus: t.health_status ?? "healthy",
+    healthNote: t.health_note ?? null,
   }));
 
   return Response.json({ clients, total: clients.length });

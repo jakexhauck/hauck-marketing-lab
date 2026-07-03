@@ -280,6 +280,11 @@ export interface AdminClient {
   monthlySpend: number;
   memberCount: number;
   createdAt: string;
+  // From migration 0022 (tenants.health_status / health_note): a manual
+  // per-subaccount health flag surfaced in the Service Delivery roster rail.
+  // 500s at the endpoint until that migration is applied to the live DB.
+  healthStatus: "healthy" | "warn" | "paused";
+  healthNote: string | null;
 }
 
 // An agency task in the admin "Tasks" tab, or a pillar task in a pillar
