@@ -2,8 +2,18 @@
 
 What the Social section needs to go from demo-complete to fully functional. Status: ❌ not wired · ⚠️ partial · ✅ live.
 
-## Data source — GoHighLevel Social Planner
-- ❌ **Connect accounts** (Facebook, Instagram, Google Business) — OAuth per platform via GHL; powers everything. The "Connect accounts" button.
+## Task 0 spike — PROVEN LIVE (2026-07-03)
+
+Probed the GHL Social Planner API with the live Willis tenant token (Doppler `GHL_TOKEN`, `pit-e920e3…`, carrying the `socialplanner/*` scopes). Results, for the handlers to build against:
+
+- `GET /social-media-posting/{locationId}/accounts` → **200**. Connected accounts are under `results.accounts` (NOT a top-level `accounts` array as first guessed); an empty list means nothing connected yet. Willis currently returns `{ results: { accounts: [], groups: [] } }`.
+- `GET /users/?locationId=` → **200** (needed to resolve the `userId` the OAuth start requires).
+- `GET /social-media-posting/oauth/{facebook|instagram|google}/start?locationId=&userId=` → **302** to the provider's own consent page (facebook.com/dialog/oauth for FB+IG, accounts.google.com for Google). White-label safe.
+- `POST /social-media-posting/{locationId}/posts/list` → authorized (returned 422 only because `limit`/`skip` must be passed as **number strings**, e.g. `"5"`, not numbers). Confirms the posts list is reachable for the social-wiring build.
+- Version header `2021-07-28` works for all of the above.
+
+## Connect accounts — SHIPPED (Connections hub)
+- ✅ **Connect accounts** (Facebook, Instagram, Google Business) — self-serve OAuth from the client app at `/company/connections`. New `functions/api/connections/oauth/[platform]/start.ts` proxies the GHL OAuth-start 302; `functions/api/connections/status.ts` reads live connection state; `src/routes/connections/ConnectionsHub.tsx` is the hub. The Social section's "Connect accounts" button now routes here. Calendar / email domain / A2P cards from the wider wizard plan are deferred.
 - ❌ **List scheduled / published posts** — powers My Posts (Scheduled/Posted), Calendar, Overview "Up next" / "Recently posted".
 - ❌ **Create / schedule / publish a post** — powers the composer's Schedule / Post now and "Add drafts".
 - ❌ **Post analytics** (reach, clicks, engagement) — powers What's working + Overview stats.

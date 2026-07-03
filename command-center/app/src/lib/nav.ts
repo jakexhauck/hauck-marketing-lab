@@ -16,6 +16,7 @@ import {
   Send,
   Split,
   LayoutGrid,
+  PlugZap,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -111,6 +112,7 @@ export const NAV: NavEntry[] = [
       { to: "/calendar", label: "Calendar", icon: CalendarDays, capability: "calendar" },
       { to: "/billing", label: "Revenue", icon: Receipt, capability: "billing" },
       { to: "/company/documents", label: "Assets", icon: FolderOpen },
+      { to: "/company/connections", label: "Connections", icon: PlugZap },
       { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
     ],
   },

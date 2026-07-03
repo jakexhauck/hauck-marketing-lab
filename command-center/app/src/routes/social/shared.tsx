@@ -1,4 +1,5 @@
 import { Link2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Panel, Button } from "../../components/ui";
 import { PAGE_CONTAINER } from "../../lib/layout";
 
@@ -31,6 +32,7 @@ export function PlatformGlyph({ p, size = 22 }: { p: Platform; size?: number }) 
 // The standing "nothing is linked yet" banner. Shown on every Social surface in a
 // real session so the empty state is never mistaken for a bug.
 export function NotConnectedNotice({ message }: { message?: string }) {
+  const navigate = useNavigate();
   return (
     <Panel className="mb-4 flex flex-col gap-3 border-brand/30 bg-brand-tint p-4 sm:flex-row sm:items-center">
       <Link2 size={20} className="shrink-0 text-brand-text" />
@@ -39,8 +41,13 @@ export function NotConnectedNotice({ message }: { message?: string }) {
         {message ??
           "To see real posts and results, we still need to connect your social accounts (Facebook, Instagram, Google)."}
       </div>
-      <Button variant="secondary" size="sm" disabled className="shrink-0">
-        Connect accounts (coming soon)
+      <Button
+        variant="secondary"
+        size="sm"
+        className="shrink-0"
+        onClick={() => navigate("/company/connections")}
+      >
+        Connect accounts
       </Button>
     </Panel>
   );
