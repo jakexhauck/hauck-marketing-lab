@@ -1,4 +1,6 @@
-import type { Env, ApiData } from "../../lib/env";
+import { tenantTimezone, type Env, type ApiData } from "../../lib/env";
+import type { GhlContext } from "../../lib/ghl";
+import { adRevenueThisMonth } from "../../lib/adsRevenue";
 
 // Real Meta (Facebook/Instagram) Ads insights for the client's Paid Ads tabs
 // (Overview / Insights / Creatives). Ports the proven Graph API field lists and
@@ -9,6 +11,13 @@ import type { Env, ApiData } from "../../lib/env";
 // meta_ad_account_id (set in the admin client editor), with the
 // META_AD_ACCOUNT_ID env var as the single-tenant fallback. This is why one
 // client can never see another's ad numbers, even though the token is shared.
+//
+// "New customers", "Revenue from ads" and "Your return" (ROAS) can't come from
+// Meta for a lead-gen business: only GHL knows which ad leads became paid jobs.
+// Those three come from a GHL join (functions/lib/adsRevenue.ts) over this
+// month's Job Completed opportunities tagged "facebook ads". Everything else is
+// Meta. Because the join is several GHL round-trips, the whole payload is cached
+// per account+location+month in KV for 15 minutes when a KV_CACHE binding exists.
 //
 // Golden rule: a real client only ever sees their real numbers. When Meta is not
 // configured the endpoint returns { configured: false } and the tabs show their
@@ -92,9 +101,9 @@ export interface AdsInsightsResponse {
     spend: number;
     leads: number;
     costPerLead: number;
-    // "New customers" and true ad revenue/ROAS need a GHL job join Meta can't
-    // provide for a lead-gen business; revenue/roas here are Meta's own
-    // conversion-value totals (0 without purchase tracking). See connections doc.
+    // From the GHL join, not Meta: this month's ad-won Job Completed opps
+    // (customers) and the sum of their opportunity value (revenue); roas =
+    // revenue / spend. See functions/lib/adsRevenue.ts + the connections doc.
     customers: number;
     revenue: number;
     roas: number;
@@ -210,16 +219,43 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   }
   if (!account.startsWith("act_")) account = `act_${account}`;
 
+  const zone = tenantTimezone(ctx.env);
+  // Cache the whole payload per account+location+month. The month key rolls the
+  // cache at each month boundary (spend + revenue are both this-month). Skipped
+  // gracefully when no KV binding is present.
+  const monthKey = new Date().toISOString().slice(0, 7);
+  const cacheKey = `ads:insights:v2:${account}:${ctx.data.tenant?.ghl_location_id ?? "-"}:${monthKey}`;
+  const kv = ctx.env.KV_CACHE;
+  if (kv) {
+    const cached = await kv.get(cacheKey);
+    if (cached) return new Response(cached, { headers: { "content-type": "application/json" } });
+  }
+
   try {
     const totalsResp = await graphGet(token, `/${account}/insights`, {
       level: "account",
       date_preset: "this_month",
-      fields: "spend,impressions,clicks,ctr,cpc,reach,actions,action_values",
+      fields: "spend,impressions,clicks,ctr,cpc,reach,actions",
     });
     const trow = (((totalsResp.data as unknown[]) ?? [])[0] ?? {}) as Record<string, unknown>;
     const spend = num(trow.spend);
     const leads = actionsValue(trow, "actions");
-    const revenue = actionsValue(trow, "action_values");
+
+    // The GHL join: this month's ad-won customers + revenue. A GHL failure must
+    // never sink the Meta numbers, so degrade to honest zeros on any error.
+    let customers = 0;
+    let revenue = 0;
+    const t = ctx.data.tenant;
+    if (t?.ghl_token && t?.ghl_location_id) {
+      try {
+        const gctx: GhlContext = { token: t.ghl_token, locationId: t.ghl_location_id };
+        const r = await adRevenueThisMonth(gctx, zone);
+        customers = r.customers;
+        revenue = r.revenue;
+      } catch {
+        // leave customers/revenue at 0
+      }
+    }
 
     const [lastResp, dailyResp, adInsResp, adMetaResp] = await Promise.all([
       graphGet(token, `/${account}/insights`, { level: "account", date_preset: "last_month", fields: "actions" }),
@@ -252,14 +288,15 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       "actions",
     );
 
-    return Response.json({
+    const payload: AdsInsightsResponse = {
       configured: true,
       currency: "USD",
       totals: {
         spend: round2(spend),
         leads: Math.round(leads),
         costPerLead: leads > 0 ? round2(spend / leads) : 0,
-        customers: 0,
+        // From the GHL join (this month's ad-won Job Completed opps), not Meta.
+        customers,
         revenue: round2(revenue),
         roas: spend > 0 ? round2(revenue / spend) : 0,
         impressions: Math.round(num(trow.impressions)),
@@ -275,7 +312,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         (adInsResp.data as Record<string, unknown>[]) ?? [],
         (adMetaResp.data as Record<string, unknown>[]) ?? [],
       ),
-    } satisfies AdsInsightsResponse);
+    };
+    const body = JSON.stringify(payload);
+    if (kv) await kv.put(cacheKey, body, { expirationTtl: 900 });
+    return new Response(body, { headers: { "content-type": "application/json" } });
   } catch (e) {
     // Configured but the Meta call failed (token/permission/transient). Degrade
     // to an honest empty payload with the reason, never a fabricated number.
