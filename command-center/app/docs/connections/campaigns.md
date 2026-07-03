@@ -1,5 +1,29 @@
 # Campaigns — connections backlog
 
+**Repurposed 2026-07-03 to a read-only "done-for-you" model.** Campaigns is no longer a tool the client operates. The agency runs every send; the client only views what we send and how it performs. All create/send affordances (the New campaign wizard, "Write it for me" AI, New list / New template buttons) and the Templates tab were removed. See `docs/build-plans/campaigns-read-only-repurpose.md`.
+
+Status: ❌ not wired · ⚠️ partial · ✅ live.
+
+## Phase A — SHIPPED (read-only repurpose + real Audiences)
+- ✅ **Read-only UI** — no client-side create/send anywhere; Templates tab cut; empty states reworded to done-for-you ("We run your campaigns for you").
+- ✅ **Audiences** — `GET /api/campaigns/audiences` (new) derives live segment counts from the client's own GHL contacts + opportunity history: All customers, New (added ≤60d), Repeat/VIP (3+ won jobs), Past (no activity in 12mo). By-tenant 15-min cache; `configError: "not_connected"` on an empty list. The two trade-specific demo segments (5-star jobs, "No A/C in 12mo") are demo-only (need review/service data we don't reliably have). Client shape in `src/lib/campaignsAudiences.ts`; hook `useCampaignsAudiences`.
+- ✅ **Reactivation** — already live (`/api/campaigns/reactivation`, by-name).
+
+## Phase B — TODO (agency campaign log → real Overview/List/Insights)
+Overview, Campaigns list, and What's working still read demo constants (populated only under `?demo=1`; honest empty in a real session). Turn real via an agency-owned Supabase log:
+- ❌ `client_campaigns` table (migration) — one row per send we run: channel, title/subject/body, audience label+size, status, scheduled/sent dates, result stats. RLS: client reads own tenant; agency (service role) writes.
+- ❌ `GET /api/campaigns` — tenant-scoped list shaped for the surfaces (KPIs, Up next = scheduled, Recently sent = sent).
+- ❌ Minimal admin form to log a send (we run the actual bulk send in the backend, then record it here). One form, not a CRUD suite.
+- ❌ Wire `CampaignsOverview` / `CampaignsList` / `CampaignsInsights` to `/api/campaigns`.
+
+## Out of scope (separate infrastructure track)
+- Actual bulk SMS/email sending — needs a registered A2P 10DLC number + a verified email sending domain. We send in the backend; this section never sends.
+- GHL live delivery/open/reply stats as a later enrichment layer, only if the API proves reachable.
+
+---
+
+## Original backlog (superseded by the read-only model above; kept for reference)
+
 What the Campaigns section (SMS + email the client sends to their own customers) needs to go from demo-complete to fully functional. Status: ❌ not wired · ⚠️ partial · ✅ live.
 
 ## Data source — GoHighLevel (contacts + conversations + bulk send)

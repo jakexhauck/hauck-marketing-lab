@@ -26,7 +26,7 @@ export default function CampaignsInsights() {
   const demo = demoMode();
   const summary = demo
     ? DEMO_INSIGHTS.summary
-    : DEMO_INSIGHTS.summary.map((k) => ({ ...k, value: "—", brand: false }));
+    : DEMO_INSIGHTS.summary.map((k) => ({ ...k, value: "0", brand: false }));
 
   return (
     <Shell>

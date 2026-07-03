@@ -1,5 +1,5 @@
-import { Link2, Mail, MessageSquare } from "lucide-react";
-import { Panel, Button } from "../../components/ui";
+import { Mail, MessageSquare, Sparkles } from "lucide-react";
+import { Panel } from "../../components/ui";
 import { type Tone } from "../../lib/status";
 import { PAGE_CONTAINER } from "../../lib/layout";
 
@@ -57,20 +57,18 @@ export function ChannelChip({ ch }: { ch: Channel }) {
   );
 }
 
-// The standing "nothing is linked yet" banner, shown on every Campaigns surface
-// in a real session so the empty state is never mistaken for a bug.
+// The standing "we run this for you" banner, shown on every Campaigns surface
+// in a real session so an empty state reads as done-for-you, not a bug. The
+// client never connects or sends anything themselves; we do it for them.
 export function NotConnectedNotice({ message }: { message?: string }) {
   return (
-    <Panel className="mb-4 flex flex-col gap-3 border-brand/30 bg-brand-tint p-4 sm:flex-row sm:items-center">
-      <Link2 size={20} className="shrink-0 text-brand-text" />
+    <Panel className="mb-4 flex items-start gap-3 border-brand/30 bg-brand-tint p-4">
+      <Sparkles size={20} className="mt-0.5 shrink-0 text-brand-text" />
       <div className="flex-1 text-[13px] leading-snug text-text">
-        <span className="font-semibold">Your messaging isn't connected yet.</span>{" "}
+        <span className="font-semibold">We run your campaigns for you.</span>{" "}
         {message ??
-          "Once we link your customer list and a texting/email number, your campaigns, audiences and results show up here. Sending stays switched off until then."}
+          "Your text and email campaigns, and how they perform, will appear here once we start sending for you."}
       </div>
-      <Button variant="secondary" size="sm" disabled className="shrink-0">
-        Connect messaging (coming soon)
-      </Button>
     </Panel>
   );
 }
@@ -187,22 +185,6 @@ export const DEMO_CAMPAIGNS: DemoCampaign[] = [
   },
 ];
 
-export interface DemoAudience {
-  id: string;
-  name: string;
-  count: string;
-  desc: string;
-}
-
-export const DEMO_AUDIENCES: DemoAudience[] = [
-  { id: "all", name: "All customers", count: "1,420", desc: "Everyone in your customer list with a phone or email on file." },
-  { id: "past", name: "Past customers", count: "640", desc: "No booked job in the last 12 months. Ripe for a win-back." },
-  { id: "vip", name: "Repeat / VIP", count: "212", desc: "Booked 3+ jobs. Your most loyal customers." },
-  { id: "new", name: "New customers", count: "96", desc: "First job booked in the last 60 days." },
-  { id: "fivestar", name: "Recent 5★ jobs", count: "28", desc: "Left a 5★ review or rated the job highly. Great for referrals." },
-  { id: "noac", name: "No A/C service in 12mo", count: "980", desc: "Due for a tune-up before the summer heat." },
-];
-
 export const DEMO_AUDIENCE_MEMBERS: { name: string; sub: string; initials: string }[] = [
   { name: "The Garcias", sub: "Water heater · Jun 2", initials: "G" },
   { name: "Mark T.", sub: "AC tune-up · May 28", initials: "M" },
@@ -210,35 +192,6 @@ export const DEMO_AUDIENCE_MEMBERS: { name: string; sub: string; initials: strin
   { name: "The Reyes", sub: "AC install · May 14", initials: "R" },
   { name: "Tom B.", sub: "Burst pipe · May 9", initials: "T" },
   { name: "The Hendersons", sub: "Last job Jun 2025", initials: "H" },
-];
-
-export interface DemoTemplate {
-  id: string;
-  ch: Channel;
-  category: string;
-  title: string;
-  body: string;
-}
-
-export const DEMO_TEMPLATES: DemoTemplate[] = [
-  { id: "t-tuneup", ch: "sms", category: "Reminder", title: "Seasonal tune-up reminder", body: "Hi {{first}}, it's Willis Plumbing. Beat the summer rush, book your AC tune-up and we'll keep it running cool all season. Reply YES and we'll text you times." },
-  { id: "t-special", ch: "email", category: "Promo", title: "Monthly special", body: "$25 off drain cleaning this month. A quick, clean fix before a small clog becomes a weekend emergency. Book online in under a minute." },
-  { id: "t-review", ch: "email", category: "Review", title: "5★ thank-you + review ask", body: "Thank you, {{first}}! We loved helping with your recent job. If we earned it, a quick Google review helps your neighbors find us. Here's the link." },
-  { id: "t-winback", ch: "sms", category: "Win-back", title: "We miss you", body: "Hi {{first}}, it's been a while! Your plumbing deserves a checkup. Book this month and take $25 off any service. Reply BOOK to grab a slot." },
-  { id: "t-refer", ch: "email", category: "Referral", title: "Refer a friend", body: "Give $25, get $25. Know a neighbor who needs a great plumber? Send them our way, you both save $25 on your next job." },
-  { id: "t-confirm", ch: "sms", category: "Confirmation", title: "Appointment reminder", body: "Reminder: your Willis Plumbing visit is tomorrow between {{window}}. Reply C to confirm or R to reschedule." },
-];
-
-export interface DemoIdea {
-  kind: string;
-  ch: Channel;
-  title: string;
-}
-
-export const DEMO_IDEAS: DemoIdea[] = [
-  { kind: "Seasonal", ch: "sms", title: "Text an AC tune-up reminder before the heat wave" },
-  { kind: "Win-back", ch: "email", title: "Email the 12 customers overdue for service" },
-  { kind: "Review", ch: "sms", title: "Turn the Garcia 5★ into a thank-you text" },
 ];
 
 // Reactivation's live counts now come from the GHL Database Reactivation

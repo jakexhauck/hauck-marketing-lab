@@ -50,7 +50,6 @@ import CampaignsOverview from "./routes/campaigns/CampaignsOverview";
 import CampaignsList from "./routes/campaigns/CampaignsList";
 import Reactivation from "./routes/sales/Reactivation";
 import CampaignsAudiences from "./routes/campaigns/CampaignsAudiences";
-import CampaignsTemplates from "./routes/campaigns/CampaignsTemplates";
 import CampaignsInsights from "./routes/campaigns/CampaignsInsights";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
@@ -436,7 +435,6 @@ export default function App() {
               <Route path="/marketing/campaigns" element={<ProtectedRoute><CampaignsOverview /></ProtectedRoute>} />
               <Route path="/marketing/campaigns/all" element={<ProtectedRoute><CampaignsList /></ProtectedRoute>} />
               <Route path="/marketing/campaigns/audiences" element={<ProtectedRoute><CampaignsAudiences /></ProtectedRoute>} />
-              <Route path="/marketing/campaigns/templates" element={<ProtectedRoute><CampaignsTemplates /></ProtectedRoute>} />
               <Route path="/marketing/campaigns/insights" element={<ProtectedRoute><CampaignsInsights /></ProtectedRoute>} />
               <Route path="/marketing/website" element={<ProtectedRoute><WebsiteOverview /></ProtectedRoute>} />
               <Route path="/marketing/website/pages" element={<ProtectedRoute><WebsitePages /></ProtectedRoute>} />
