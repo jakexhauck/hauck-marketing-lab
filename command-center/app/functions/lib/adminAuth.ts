@@ -43,6 +43,9 @@ export interface TenantRow {
   value_label: string;
   ghl_location_id: string;
   subdomain: string | null;
+  meta_ad_account_id: string | null;
+  google_place_id: string | null;
+  website_url: string | null;
   owner_password_hash: string | null;
   monthly_spend: number | null;
   created_at: string;
@@ -51,7 +54,7 @@ export interface TenantRow {
 }
 
 const TENANT_COLUMNS =
-  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, subdomain, owner_password_hash, monthly_spend, created_at, health_status, health_note";
+  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, subdomain, meta_ad_account_id, google_place_id, website_url, owner_password_hash, monthly_spend, created_at, health_status, health_note";
 
 export async function getTenantById(
   client: SupabaseClient,

@@ -5,24 +5,27 @@ import PageBar from "../../components/PageBar";
 import { WEBSITE_TABS } from "../../lib/pageTabs";
 import { Panel, Badge, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
+import { useClient } from "../../context/ClientContext";
+import { useWebsiteRequests } from "../../hooks/useWebsiteRequests";
 import {
   WEBSITE_CONTAINER,
   WEBSITE_DOMAIN,
   NotConnectedNotice,
   BrowserFrame,
   SiteMock,
+  LiveSiteFrame,
   DeviceToggle,
   requestStatusMeta,
-  SEED_REQUESTS,
 } from "./shared";
-import type { Device, ChangeRequest, SitePageKey } from "./shared";
+import type { Device, SitePageKey } from "./shared";
 
 // Website > Request a Change (the signature feature). The client clicks anywhere
 // on their live site to drop a numbered pin and leave a note; each note becomes a
-// request in the rail. Per the Social golden rule, the interactive canvas (built
-// on fabricated demo content) only renders in demo mode; a real session shows the
-// not-connected notice plus an empty state. Persistence here is client-side React
-// state only, seeded from SEED_REQUESTS until the real backend lands.
+// request in the rail. Demo shows the fabricated SiteMock as the canvas; a real
+// session with a connected site shows the client's actual site (LiveSiteFrame)
+// and persists pins through useWebsiteRequests -> /api/website/requests, the rows
+// Jake's future admin mirror reads. A real session with no site set yet shows the
+// not-connected notice plus an empty state.
 
 // This screen always previews the home page; the pin coordinates are stored as
 // percentages of the canvas (plus the device) so they land correctly at any size.
@@ -49,16 +52,22 @@ const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min)
 
 export default function WebsiteRequestChange() {
   const demo = demoMode();
+  const { client } = useClient();
+  const websiteUrl = client.websiteUrl;
+  const { requests, add, unavailable } = useWebsiteRequests();
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const [device, setDevice] = useState<Device>("desktop");
-  const [requests, setRequests] = useState<ChangeRequest[]>(demo ? SEED_REQUESTS : []);
   // The open composer's drop point (percentages of the canvas), or null.
   const [draft, setDraft] = useState<{ xPct: number; yPct: number } | null>(null);
   const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
   // The currently focused request: drives the pin pulse + rail selection. `n`
   // bumps on every focus so re-clicking the same pin restarts the animation.
   const [pulse, setPulse] = useState<{ id: string; n: number } | null>(null);
+
+  // Demo always has a canvas (SiteMock); a real session needs a connected site.
+  const canPin = demo || Boolean(websiteUrl);
 
   const openCount = requests.filter((r) => r.status === "open").length;
   // Pins keep their position in the full list as their number, so a pin and its
@@ -67,7 +76,7 @@ export default function WebsiteRequestChange() {
   const visiblePins = numbered.filter(({ r }) => r.page === PAGE && r.device === device);
   const nextNum = requests.length + 1;
 
-  function focus(r: ChangeRequest) {
+  function focus(r: { id: string; device: Device }) {
     if (r.device !== device) setDevice(r.device);
     setPulse((p) => ({ id: r.id, n: (p?.n ?? 0) + 1 }));
   }
@@ -81,24 +90,21 @@ export default function WebsiteRequestChange() {
     setNote("");
   }
 
-  function sendRequest() {
+  async function sendRequest() {
     const text = note.trim();
-    if (!text || !draft) return;
-    const id = `req-${Date.now()}`;
-    const created: ChangeRequest = {
-      id,
+    if (!text || !draft || saving) return;
+    setSaving(true);
+    const created = await add({
       page: PAGE,
       device,
       xPct: draft.xPct,
       yPct: draft.yPct,
       note: text,
-      status: "open",
-      ts: "Just now",
-    };
-    setRequests((prev) => [...prev, created]);
+    });
+    setSaving(false);
     setDraft(null);
     setNote("");
-    setPulse((p) => ({ id, n: (p?.n ?? 0) + 1 }));
+    if (created) setPulse((p) => ({ id: created.id, n: (p?.n ?? 0) + 1 }));
   }
 
   function cancelDraft() {
@@ -116,11 +122,11 @@ export default function WebsiteRequestChange() {
           description="Click anywhere on your site to point at exactly what you'd like changed. Drop a pin, leave a note, and we'll handle the rest."
         />
 
-        {!demo && (
+        {!demo && !websiteUrl && (
           <NotConnectedNotice message="Once your site is connected, you can click any spot on it to request a change, and your requests will live here." />
         )}
 
-        {demo ? (
+        {canPin ? (
           <>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <DeviceToggle value={device} onChange={setDevice} />
@@ -136,8 +142,12 @@ export default function WebsiteRequestChange() {
                 onClick={handleCanvasClick}
                 className="relative cursor-crosshair select-none"
               >
-                <BrowserFrame url={WEBSITE_DOMAIN} device={device}>
-                  <SiteMock page={PAGE} device={device} />
+                <BrowserFrame url={websiteUrl ?? WEBSITE_DOMAIN} device={device}>
+                  {demo ? (
+                    <SiteMock page={PAGE} device={device} />
+                  ) : (
+                    <LiveSiteFrame url={websiteUrl!} device={device} />
+                  )}
                 </BrowserFrame>
 
                 {/* Hint pill, hidden once a composer is open. */}
@@ -235,10 +245,10 @@ export default function WebsiteRequestChange() {
                         variant="primary"
                         size="sm"
                         className="flex-1"
-                        disabled={!note.trim()}
+                        disabled={!note.trim() || saving}
                         onClick={sendRequest}
                       >
-                        <Send size={14} /> Send request
+                        <Send size={14} /> {saving ? "Sending" : "Send request"}
                       </Button>
                     </div>
                   </div>
@@ -253,6 +263,11 @@ export default function WebsiteRequestChange() {
                     {requests.length} {requests.length === 1 ? "request" : "requests"}, {openCount}{" "}
                     open
                   </p>
+                  {unavailable && (
+                    <p className="mt-1 text-[11.5px] text-warning">
+                      We could not save your requests just now. Please try again in a moment.
+                    </p>
+                  )}
                 </div>
 
                 {requests.length > 0 ? (

@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Safety net for the "every secret lives in Doppler" rule.
+#
+# When any file that holds secrets is part of this commit, scan it against
+# Doppler and warn (never block) if a key on disk is not yet in Doppler. The
+# fix is a single command:  cd command-center/app && npm run secrets:sync
+#
+# Non-blocking on purpose: it also fires when you EDIT app code next to a
+# secret file, and it must not get in the way when doppler/node aren't set up
+# on this machine. Enable this hook once per clone:
+#   git config core.hooksPath .githooks
+
+# Files the scanner (command-center/app/scripts/secrets-to-doppler.mjs) knows about.
+SECRET_FILES=(
+  "command-center/app/.env.local"
+  "command-center/app/.dev.vars"
+  "app/src-tauri/src/google_oauth_secrets.rs"
+  "app/src-tauri/src/meta_oauth_secrets.rs"
+  "app/src-tauri/src/supabase_secrets.rs"
+  "gohighlevel-cli/.env"
+  "intranet/.dev.vars"
+)
+
+changed=$(git diff --cached --name-only)
+touched=0
+for f in "${SECRET_FILES[@]}"; do
+  if grep -qxF "$f" <<< "$changed"; then touched=1; break; fi
+done
+[ "$touched" -eq 0 ] && exit 0
+
+command -v doppler >/dev/null 2>&1 || exit 0
+command -v node >/dev/null 2>&1 || exit 0
+
+out=$(cd command-center/app && node scripts/secrets-to-doppler.mjs 2>/dev/null)
+if grep -q "MISSING:" <<< "$out"; then
+  echo ""
+  echo "⚠  Doppler is missing some secrets that are on disk:"
+  grep "MISSING:" <<< "$out" | sed 's/^/   /'
+  echo "   Run:  cd command-center/app && npm run secrets:sync"
+  echo "   (commit continues; this is a reminder, not a block)"
+  echo ""
+fi
+exit 0

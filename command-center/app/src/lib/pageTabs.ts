@@ -30,7 +30,6 @@ export const CAMPAIGNS_TABS: PageTab[] = [
   { to: "/marketing/campaigns", label: "Overview", end: true },
   { to: "/marketing/campaigns/all", label: "Campaigns" },
   { to: "/marketing/campaigns/audiences", label: "Audiences" },
-  { to: "/marketing/campaigns/templates", label: "Templates" },
   { to: "/marketing/campaigns/reactivation", label: "Reactivation" },
   { to: "/marketing/campaigns/insights", label: "What's working" },
 ];

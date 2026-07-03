@@ -1,58 +1,45 @@
 import { useState } from "react";
-import { Plus, Users, ArrowRight } from "lucide-react";
+import { Users, ArrowRight } from "lucide-react";
 import Shell from "../../components/Shell";
 import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
-import NewCampaignDialog from "../../components/campaigns/NewCampaignDialog";
 import AudienceDetailDialog from "../../components/campaigns/AudienceDetailDialog";
 import PageBar from "../../components/PageBar";
-import { Panel, Button, EmptyState } from "../../components/ui";
-import { useToast } from "../../context/ToastContext";
+import { Panel, EmptyState } from "../../components/ui";
+import { useAuth } from "../../context/AuthContext";
 import { demoMode } from "../../demo/demoMode";
-import { CAMPAIGNS_CONTAINER, NotConnectedNotice, DEMO_AUDIENCES, type DemoAudience } from "./shared";
+import { useCampaignsAudiences } from "../../hooks/useCampaignsAudiences";
+import { CAMPAIGNS_CONTAINER, NotConnectedNotice } from "./shared";
+import type { AudienceSegment } from "../../lib/campaignsAudiences";
 
-// The customer lists a client can send to. Built from their customer records
-// (smart segments). Demo shows the populated lists; a real session is empty +
-// not-connected until the customer list is linked.
+// Read-only view of the customer lists we can reach when we run a campaign for
+// the client. Counts come live from their own contacts (via useCampaignsAudiences);
+// a demo session shows the full preview set. A real session with no connected
+// list shows the honest done-for-you empty state. Nothing here is client-editable.
 export default function CampaignsAudiences() {
   const demo = demoMode();
-  const { showToast } = useToast();
-  const [detail, setDetail] = useState<DemoAudience | null>(null);
-  const [composer, setComposer] = useState(false);
+  const { session } = useAuth();
+  const { data } = useCampaignsAudiences(demo || Boolean(session));
+  const [detail, setDetail] = useState<AudienceSegment | null>(null);
+
+  const segments = data?.segments ?? [];
+  const connected = demo || (!!data && !data.configError && segments.length > 0);
 
   return (
     <Shell>
-      <NewCampaignDialog open={composer} onClose={() => setComposer(false)} />
-      <AudienceDetailDialog
-        audience={detail}
-        onClose={() => setDetail(null)}
-        onSend={() => {
-          setDetail(null);
-          setComposer(true);
-        }}
-      />
+      <AudienceDetailDialog audience={detail} onClose={() => setDetail(null)} />
       <div className={CAMPAIGNS_CONTAINER}>
         <PageBar
           tabs={CAMPAIGNS_TABS}
-          description="The customer lists you can send to. We build these from your customer records."
-          actions={
-            <Button
-              variant="secondary"
-              size="md"
-              disabled={!demo}
-              onClick={() => showToast("Custom audience builder turns on once your customer list is connected.")}
-            >
-              <Plus size={16} /> New list
-            </Button>
-          }
+          description="The customer lists we can reach for you. We build these from your customer records."
         />
 
-        {!demo && (
-          <NotConnectedNotice message="Once your customer list is connected, we'll build smart lists like 'past customers' and 'due for a tune-up' here automatically." />
+        {!connected && (
+          <NotConnectedNotice message="Once your customer list is linked, we'll build smart lists like 'past customers' and 'due for a tune-up' here automatically." />
         )}
 
-        {demo ? (
+        {connected ? (
           <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-            {DEMO_AUDIENCES.map((a) => (
+            {segments.map((a) => (
               <button
                 key={a.id}
                 type="button"
@@ -68,7 +55,7 @@ export default function CampaignsAudiences() {
                   </span>
                 </div>
                 <div className="mt-3 font-display text-[30px] font-extrabold leading-none tracking-tight text-text tnum">
-                  {a.count}
+                  {a.count.toLocaleString("en-US")}
                 </div>
                 <div className="mt-1.5 font-display text-[15px] font-semibold text-text">{a.name}</div>
                 <div className="mt-1.5 text-[13px] leading-snug text-muted">{a.desc}</div>

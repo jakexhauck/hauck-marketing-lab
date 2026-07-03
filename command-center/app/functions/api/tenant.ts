@@ -14,6 +14,7 @@ interface TenantRow {
   won_label: string;
   value_label: string;
   monthly_spend: number | string | null;
+  website_url: string | null;
 }
 
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -23,7 +24,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const { data, error } = await client
     .from("tenants")
     .select(
-      "name, niche, brand_color, brand_initials, app_name, won_label, value_label, monthly_spend",
+      "name, niche, brand_color, brand_initials, app_name, won_label, value_label, monthly_spend, website_url",
     )
     .eq("slug", ctx.data.tenant.slug)
     .maybeSingle();
@@ -44,6 +45,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       wonLabel: row.won_label,
       valueLabel: row.value_label,
       monthlySpend: Number.isFinite(spend) && spend > 0 ? spend : null,
+      // The client's live site, shown as a preview + open button on the Website
+      // page. Trimmed; empty string reads as "no site set" (not connected).
+      websiteUrl: (row.website_url ?? "").trim() || null,
     },
   });
 };

@@ -26,6 +26,9 @@ export interface Client {
   // Real ad spend from the tenant config, or null when none is configured.
   // Null means CPA/ROAS are simply not shown; the app never fabricates spend.
   monthlySpend: number | null;
+  // The client's live website, or null/undefined when none is set. Falsy => the
+  // Website page shows its not-connected state instead of a preview.
+  websiteUrl?: string | null;
 }
 
 // UTM attribution resolved from the GHL contact's custom fields. Present only

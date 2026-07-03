@@ -133,6 +133,7 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     wonLabel: "Sold",
     valueLabel: "Job Value",
     monthlySpend: 2400,
+    websiteUrl: "https://rivertownplumbing.com",
   };
 
   const pipelines: ApiPipelineSummary[] = [

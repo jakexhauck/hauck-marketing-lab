@@ -44,6 +44,9 @@ export interface DetailClient {
   wonLabel: string;
   valueLabel: string;
   ghlLocationId: string;
+  metaAdAccountId: string | null;
+  googlePlaceId: string | null;
+  websiteUrl: string | null;
   ownerPasswordSet: boolean;
   monthlySpend: number;
   createdAt: string;
@@ -167,6 +170,9 @@ export default function ClientConfigPanel({
       <BrandingCard client={client} onSaved={refreshAfterSave} />
       <HealthCard client={client} onSaved={refreshAfterSave} />
       <GhlCard client={client} onSaved={refreshAfterSave} />
+      <AdsCard client={client} onSaved={refreshAfterSave} />
+      <ReviewsCard client={client} onSaved={refreshAfterSave} />
+      <WebsiteCard client={client} onSaved={refreshAfterSave} />
       <OwnerCard tenantId={tenantId} ownerPasswordSet={client.ownerPasswordSet} onSaved={refreshAfterSave} />
       <EntitlementsCard tenantId={tenantId} enabled={data.entitlements} onSaved={refreshAfterSave} />
       <div id="cockpit-team">
@@ -380,6 +386,123 @@ function GhlCard({ client, onSaved }: { client: DetailClient; onSaved: () => Pro
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label><span className={labelCls}>GHL location id</span><input className={inputCls} value={locationId} onChange={(e) => setLocationId(e.target.value)} placeholder="OznT3..." /></label>
           <label><span className={labelCls}>GHL token (write-only)</span><input className={inputCls} type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="pit-..." autoComplete="off" /></label>
+        </div>
+        {err && <p className="mt-3 text-sm text-danger">{err}</p>}
+        <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
+      </form>
+    </Card>
+  );
+}
+
+// Per-client Meta ad account. The agency system-user token is shared across all
+// clients (a global env var); only the account id is per-client, which is what
+// keeps one client's Paid Ads from ever showing another's numbers.
+function AdsCard({ client, onSaved }: { client: DetailClient; onSaved: () => Promise<void> }) {
+  const [account, setAccount] = useState(client.metaAdAccountId ?? "");
+  const { saving, saved, err, run } = useSaver(onSaved);
+  const connected = Boolean((client.metaAdAccountId ?? "").trim());
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    // Always send the field so an emptied box clears it (back to not-connected).
+    void run(`/api/admin/clients/${client.id}`, { metaAdAccountId: account.trim() });
+  };
+  return (
+    <Card title="Paid Ads (Meta)">
+      <p className="mb-4 text-[13px] text-muted">
+        {connected
+          ? "Connected. This client's Paid Ads read only this ad account."
+          : "Not connected. Add this client's Meta ad account id so their Paid Ads show their own numbers."}{" "}
+        The agency access token is shared across all clients; only the account is per-client.
+      </p>
+      <form onSubmit={onSubmit}>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label>
+            <span className={labelCls}>Meta ad account id</span>
+            <input
+              className={inputCls}
+              value={account}
+              onChange={(e) => setAccount(e.target.value)}
+              placeholder="act_1234567890 or 1234567890"
+            />
+          </label>
+        </div>
+        {err && <p className="mt-3 text-sm text-danger">{err}</p>}
+        <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
+      </form>
+    </Card>
+  );
+}
+
+// Per-client Google Places place_id. The Places API key is a shared agency env
+// secret; only the place is per-client, which is what keeps one client's rating
+// hero from ever showing another's Google reviews.
+function ReviewsCard({ client, onSaved }: { client: DetailClient; onSaved: () => Promise<void> }) {
+  const [placeId, setPlaceId] = useState(client.googlePlaceId ?? "");
+  const { saving, saved, err, run } = useSaver(onSaved);
+  const connected = Boolean((client.googlePlaceId ?? "").trim());
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    // Always send the field so an emptied box clears it (back to not-connected).
+    void run(`/api/admin/clients/${client.id}`, { googlePlaceId: placeId.trim() });
+  };
+  return (
+    <Card title="Reviews (Google)">
+      <p className="mb-4 text-[13px] text-muted">
+        {connected
+          ? "Connected. This client's rating hero reads only this Google place."
+          : "Not connected. Add this client's Google place_id so their rating and recent reviews show on the Reviews page."}{" "}
+        The Places API key is shared across all clients; only the place is per-client.
+      </p>
+      <form onSubmit={onSubmit}>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label>
+            <span className={labelCls}>Google place_id</span>
+            <input
+              className={inputCls}
+              value={placeId}
+              onChange={(e) => setPlaceId(e.target.value)}
+              placeholder="ChIJ..."
+            />
+          </label>
+        </div>
+        {err && <p className="mt-3 text-sm text-danger">{err}</p>}
+        <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
+      </form>
+    </Card>
+  );
+}
+
+// Per-client live website. The single site under the client's GHL Sites tab.
+// Shown on the client's Website page as a real preview + "View live site", and
+// as the canvas the client drops change-request pins on.
+function WebsiteCard({ client, onSaved }: { client: DetailClient; onSaved: () => Promise<void> }) {
+  const [url, setUrl] = useState(client.websiteUrl ?? "");
+  const { saving, saved, err, run } = useSaver(onSaved);
+  const connected = Boolean((client.websiteUrl ?? "").trim());
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    // Always send the field so an emptied box clears it (back to not-connected).
+    void run(`/api/admin/clients/${client.id}`, { websiteUrl: url.trim() });
+  };
+  return (
+    <Card title="Website">
+      <p className="mb-4 text-[13px] text-muted">
+        {connected
+          ? "Connected. This client's Website page previews this site and requests changes on it."
+          : "Not connected. Add the client's live site URL so their Website page shows a real preview and change requests."}{" "}
+        Use the published address of their single site (bare domains get https:// added).
+      </p>
+      <form onSubmit={onSubmit}>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label>
+            <span className={labelCls}>Website URL</span>
+            <input
+              className={inputCls}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="rivertownplumbing.com"
+            />
+          </label>
         </div>
         {err && <p className="mt-3 text-sm text-danger">{err}</p>}
         <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>

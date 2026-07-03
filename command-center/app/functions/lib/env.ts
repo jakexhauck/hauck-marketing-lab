@@ -73,6 +73,10 @@ export function testTenantSlug(env: Env): string {
 export interface TenantContext {
   ghl_location_id: string;
   ghl_token: string;
+  // The client's Meta ad account (act_...), resolved from the tenant row with
+  // the META_AD_ACCOUNT_ID env var as the single-tenant fallback. Undefined =>
+  // Paid Ads shows not-connected. See functions/api/ads/insights.ts.
+  meta_ad_account_id?: string;
   // Supabase tenants.slug for this session, resolved from the session mode in
   // _middleware.ts. All Supabase-backed routes must scope by this, never by a
   // hardcoded slug, or test and live data bleed into each other.

@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Plus, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import Shell from "../../components/Shell";
 import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
-import NewCampaignDialog from "../../components/campaigns/NewCampaignDialog";
 import CampaignReportDialog from "../../components/campaigns/CampaignReportDialog";
 import PageBar from "../../components/PageBar";
-import { Panel, PanelHeader, Badge, Button, EmptyState } from "../../components/ui";
+import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import {
   CAMPAIGNS_CONTAINER,
@@ -31,24 +30,17 @@ const FILTERS: { key: "all" | CampaignStatus; label: string }[] = [
 export default function CampaignsList() {
   const demo = demoMode();
   const [filter, setFilter] = useState<"all" | CampaignStatus>("all");
-  const [composer, setComposer] = useState(false);
   const [report, setReport] = useState<DemoCampaign | null>(null);
 
   const rows = DEMO_CAMPAIGNS.filter((c) => filter === "all" || c.status === filter);
 
   return (
     <Shell>
-      <NewCampaignDialog open={composer} onClose={() => setComposer(false)} />
       <CampaignReportDialog campaign={report} onClose={() => setReport(null)} />
       <div className={CAMPAIGNS_CONTAINER}>
         <PageBar
           tabs={CAMPAIGNS_TABS}
-          description="Every text and email you've sent."
-          actions={
-            <Button variant="primary" size="md" onClick={() => setComposer(true)}>
-              <Plus size={16} /> New campaign
-            </Button>
-          }
+          description="Every text and email we've sent for you."
           filters={
             demo
               ? FILTERS.map((f) => (
