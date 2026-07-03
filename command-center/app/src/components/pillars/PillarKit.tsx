@@ -299,6 +299,40 @@ export function PillarStyle() {
       .pk-flow-arrow { display: grid; place-items: center; color: var(--text-faint); padding: 0 6px; }
       .pk-flow-arrow svg { width: 18px; height: 18px; }
 
+      /* flow-card contents (Command home): icon chip, throughput value, note.
+         .pk-lane already supplies the card shell (border/shadow/hover). */
+      .pk-lane-ic { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; display: grid; place-items: center; background: var(--grad-brand); color: #fff; }
+      .pk-lane-val { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-top: 11px; }
+      .pk-lane-note { color: var(--text-muted); font-size: 11.5px; line-height: 1.4; margin-top: 9px; }
+      .pk-lane-system { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+      .pk-lane-system .pk-lane-note { color: var(--danger); }
+
+      /* Operations foundation row: one full-width card beneath the flow. */
+      .pk-foundation { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+      .pk-foundation-ic { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; background: var(--grad-brand); color: #fff; }
+      .pk-foundation-body { flex: 1; min-width: 0; }
+
+      /* severity chip: the constraint-board vocabulary (BINDING/WATCH/SLACK) */
+      .pk-sev-chip { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; flex-shrink: 0; }
+      .pk-sev-chip-high { color: var(--danger); background: var(--danger-tint); }
+      .pk-sev-chip-med { color: var(--warning); background: var(--warning-tint); }
+      .pk-sev-chip-low { color: var(--positive); background: var(--positive-tint); }
+
+      /* system-constraint banner (Command home) */
+      .pk-banner { display: flex; align-items: center; gap: 16px; background: var(--danger-tint); border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border)); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 18px 22px; text-decoration: none; color: inherit; }
+      .pk-banner-empty { background: var(--surface); border-color: var(--border); }
+      .pk-banner-ic { width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+      .pk-banner-empty .pk-banner-ic { background: var(--surface-2); color: var(--text-faint); }
+      .pk-banner-kicker { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+      .pk-banner-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; margin-top: 3px; }
+      .pk-banner-impact { color: var(--text-muted); font-size: 13px; margin-top: 4px; line-height: 1.5; }
+      .pk-banner-cta { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; border-radius: 999px; background: var(--grad-brand); color: #fff; font-size: 13.5px; font-weight: 600; box-shadow: var(--shadow-brand); flex-shrink: 0; white-space: nowrap; }
+
+      /* pending KPI tile: a muted placeholder for a metric with no real source yet */
+      .pk-report-tile.pk-pending { background: var(--surface-2); box-shadow: none; }
+      .pk-report-tile.pk-pending .pk-report-val { color: var(--text-faint); font-size: 14px; font-weight: 600; }
+      .pk-report-tile.pk-pending .pk-report-label { color: var(--text-faint); }
+
       /* build space */
       .pk-build { margin-top: 28px; border: 1px dashed var(--border); border-radius: var(--radius-lg); padding: 22px; text-align: center; color: var(--text-muted); font-size: 14px; background: var(--surface-2); }
       .pk-build b { color: var(--text); font-family: var(--font-display); font-weight: 600; }

@@ -436,3 +436,16 @@ export async function saveConstraint(
   );
   return constraint;
 }
+
+// Command home's agency-wide KPI row. Only the two fields the backend can
+// compute truthfully today (see functions/api/admin/overview.ts); MRR and
+// weekly leads have no agency-wide source yet and are never faked here, so
+// the UI renders explicit "Not yet wired" tiles for those instead.
+export interface AdminOverview {
+  activeClients: number;
+  combinedSpend: number;
+}
+
+export async function getAdminOverview(): Promise<AdminOverview> {
+  return api<AdminOverview>("/api/admin/overview");
+}

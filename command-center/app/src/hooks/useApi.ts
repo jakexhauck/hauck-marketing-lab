@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   api,
+  getAdminOverview,
+  getConstraints,
   type ApiLead,
   type ApiPipelineSummary,
   type ApiSummary,
@@ -244,6 +246,27 @@ export function useAdminClientsQuery(enabled: boolean) {
     staleTime: 60_000,
     queryFn: () =>
       api<{ clients: AdminClient[]; total: number }>("/api/admin/clients"),
+  });
+}
+
+// Command home's agency KPI row (active clients, combined spend).
+export function useAdminOverviewQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["admin", "overview"],
+    enabled,
+    staleTime: 60_000,
+    queryFn: getAdminOverview,
+  });
+}
+
+// Theory-of-Constraints rows for the Command home + pillar pages. May resolve
+// to an empty array until the pillar_constraints migration is applied.
+export function useConstraintsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["admin", "constraints"],
+    enabled,
+    staleTime: 60_000,
+    queryFn: getConstraints,
   });
 }
 
