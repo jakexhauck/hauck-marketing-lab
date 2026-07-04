@@ -107,6 +107,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         ghl_location_id: ctx.env.TEST_GHL_LOCATION_ID,
         ghl_token: ctx.env.TEST_GHL_TOKEN,
         meta_ad_account_id: ctx.env.META_AD_ACCOUNT_ID,
+        google_place_id: ctx.env.GOOGLE_PLACE_ID,
         slug: testTenantSlug(ctx.env),
         mode: "test",
       };
@@ -147,6 +148,8 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         // Per-client ad account, env var as the single-tenant fallback. Unlike
         // GHL creds there is no placeholder scheme: a real act_ id or nothing.
         meta_ad_account_id: tenant?.meta_ad_account_id || ctx.env.META_AD_ACCOUNT_ID,
+        // Per-client Google place, env var as the single-tenant fallback.
+        google_place_id: tenant?.google_place_id || ctx.env.GOOGLE_PLACE_ID,
         slug: tenant?.slug ?? liveTenantSlug(ctx.env),
         mode: "live",
       };

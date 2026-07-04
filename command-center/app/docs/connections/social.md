@@ -2,6 +2,18 @@
 
 What the Social section needs to go from demo-complete to fully functional. Status: ❌ not wired · ⚠️ partial · ✅ live.
 
+## BLOCKER (2026-07-03) — Social Planner scope not on the Doppler token
+
+Probed the live GHL Social Planner API with the production `GHL_TOKEN` (Doppler `hauck-command-center`/`prd`, token `pit-7794b1…`, a Willis sub-account Private Integration Token):
+
+- `GET /social-media-posting/{locationId}/accounts` → **401** `{"message":"The token is not authorized for this scope."}`
+- `POST /social-media-posting/{locationId}/posts/list`, `GET .../tags`, `GET .../categories` → **401** (same)
+- Control: `GET /opportunities/search` on the same token → **200**. Token is valid; it just lacks the `socialplanner/*` grant.
+
+NOT a PIT limitation: GHL docs confirm a sub-account PIT with `socialplanner/post.write` + `socialplanner/account.readonly` (etc.) CAN call this API, and editing a PIT's scopes applies live without regenerating. So the fix is a scope/token reconciliation: the `socialplanner/*` scopes must be checked on the **exact** private integration whose token is in Doppler (the Willis sub-account one, `pit-7794b1…`), not the agency integration or a different sub-account's. After the scopes land, a client still has to OAuth-connect their FB/IG/Google accounts (self-serve Connections wizard, currently unbuilt) before real data appears. Until then demo-only + "Not connected yet" is the correct shipped state.
+
+Re-probe to confirm the fix: `GET /social-media-posting/{loc}/accounts` returns 200, not 401.
+
 ## Data source — GoHighLevel Social Planner
 - ❌ **Connect accounts** (Facebook, Instagram, Google Business) — OAuth per platform via GHL; powers everything. The "Connect accounts" button.
 - ❌ **List scheduled / published posts** — powers My Posts (Scheduled/Posted), Calendar, Overview "Up next" / "Recently posted".

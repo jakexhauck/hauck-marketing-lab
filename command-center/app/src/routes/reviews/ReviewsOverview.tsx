@@ -27,6 +27,8 @@ import { useAuth } from "../../context/AuthContext";
 import { demoMode } from "../../demo/demoMode";
 import { useReviewsFunnel } from "../../hooks/useReviewsFunnel";
 import type { ReviewFunnelData } from "../../lib/reviewsFunnel";
+import { useReviewsSummary } from "../../hooks/useReviewsSummary";
+import type { ReviewSummaryData } from "../../lib/reviewsSummary";
 import {
   StarRating,
   NotConnectedNotice,
@@ -266,14 +268,116 @@ function ReviewsFunnelView({
   );
 }
 
+// Real-session Google rating hero: the client's live Google average, star row,
+// and public review count, read from the Places API via useReviewsSummary. When
+// the place is not connected yet (no key / no place_id) it shows the faint
+// not-connected state rather than a fabricated rating, mirroring the demo hero's
+// design so only the data source differs.
+function RatingHero({
+  data,
+  onAsk,
+}: {
+  data: ReviewSummaryData | undefined;
+  onAsk: () => void;
+}) {
+  const connected = Boolean(
+    data && !data.configError && (data.total > 0 || data.average > 0),
+  );
+  const average = connected ? data!.average : 0;
+  const total = connected ? data!.total : 0;
+
+  return (
+    <Panel className="relative overflow-hidden rounded-[var(--radius-xl)] p-6 shadow-[var(--shadow-md)] sm:p-9">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "radial-gradient(34rem 20rem at 6% -30%, var(--brand-tint), transparent 60%), radial-gradient(28rem 18rem at 108% 130%, var(--brand-tint), transparent 60%)",
+        }}
+      />
+      <div className="relative">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="label-cap text-brand-text">Your reputation</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11.5px] font-semibold text-muted">
+            Google Business Profile
+          </span>
+        </div>
+
+        <div className="mt-3.5 flex items-start gap-4 sm:gap-5">
+          <div
+            className={`hero-num tnum text-[78px] leading-none sm:text-[104px] ${
+              connected ? "grad-text" : "text-faint"
+            }`}
+          >
+            {connected ? average.toFixed(1) : "0.0"}
+          </div>
+          <div className="pt-2 sm:pt-3">
+            <StarRating value={average} size={20} className="mb-2" />
+            <div className="text-[13px] font-medium text-faint">
+              Across{" "}
+              <b className="font-semibold text-text tnum">
+                {total.toLocaleString("en-US")}
+              </b>{" "}
+              reviews
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-4 max-w-[400px] text-[14.5px] leading-snug text-muted">
+          {connected
+            ? "Your live Google rating, updated automatically. Keep the asks going right after each job wraps and it holds."
+            : "Once your Google profile is linked, your real rating and review count show up here."}
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-2.5">
+          <Button variant="primary" size="md" onClick={onAsk}>
+            <Plus size={16} /> Ask for a review
+          </Button>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+// Real-session recent Google reviews (up to five), from the Places summary. Same
+// quote-card design as the demo block; renders nothing until reviews arrive so a
+// connected client never sees an empty scaffold.
+function RealRecentReviews({ data }: { data: ReviewSummaryData | undefined }) {
+  if (!data || data.configError || data.recent.length === 0) return null;
+  return (
+    <Panel className="mt-6 overflow-hidden">
+      <PanelHeader title="Recent reviews" />
+      <div className="p-3">
+        {data.recent.map((r) => (
+          <div key={r.id} className="border-b border-divider px-2 py-3 last:border-b-0">
+            <Quote size={16} className="mb-1.5 text-brand-text" />
+            {r.body && (
+              <p className="text-[13px] leading-relaxed text-text">{r.body}</p>
+            )}
+            <div className="mt-2.5 flex items-center gap-2">
+              <span className="text-[13px] font-semibold text-text">{r.author}</span>
+              <StarRating value={r.rating} size={12} />
+              {r.when && (
+                <span className="ml-auto text-[11.5px] text-faint">{r.when}</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
 export default function ReviewsOverview() {
   const demo = demoMode();
   const { session } = useAuth();
   const navigate = useNavigate();
   const stats = demo ? SAMPLE_STATS : EMPTY_STATS;
   // The funnel is the real-session deliverable; demo keeps its aspirational
-  // GBP-connected layout below. Query only runs for a real session.
+  // GBP-connected layout below. Queries only run for a real session.
   const funnel = useReviewsFunnel(!demo && Boolean(session));
+  // The rating hero + recent reviews read the live Google Places rating.
+  const summary = useReviewsSummary(!demo && Boolean(session));
 
   return (
     <Shell>
@@ -299,12 +403,18 @@ export default function ReviewsOverview() {
         />
 
         {!demo ? (
-          <ReviewsFunnelView
-            data={funnel.data}
-            isLoading={funnel.isLoading}
-            isError={funnel.isError}
-            onRetry={() => funnel.refetch()}
-          />
+          <>
+            <RatingHero data={summary.data} onAsk={() => navigate(ASK_REQUESTS)} />
+            <div className="mt-6">
+              <ReviewsFunnelView
+                data={funnel.data}
+                isLoading={funnel.isLoading}
+                isError={funnel.isError}
+                onRetry={() => funnel.refetch()}
+              />
+            </div>
+            <RealRecentReviews data={summary.data} />
+          </>
         ) : (
           <>
         {/* Hero: huge gradient average + stars on the left, stat chips on the right. */}

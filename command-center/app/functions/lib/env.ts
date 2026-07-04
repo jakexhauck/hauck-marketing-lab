@@ -50,6 +50,13 @@ export interface Env {
   // functions/api/ads/insights.ts.
   META_SYSTEM_USER_TOKEN?: string;
   META_AD_ACCOUNT_ID?: string;
+  // Google reviews rating hero (functions/api/reviews/summary.ts). The Places
+  // API key is one global agency secret spanning every client's place, like
+  // META_SYSTEM_USER_TOKEN. GOOGLE_PLACE_ID is the single-tenant fallback for the
+  // per-client tenants.google_place_id column. Both absent => the hero shows its
+  // not-connected state.
+  GOOGLE_PLACES_API_KEY?: string;
+  GOOGLE_PLACE_ID?: string;
   KV_CACHE?: KVNamespace;
 }
 
@@ -77,6 +84,10 @@ export interface TenantContext {
   // the META_AD_ACCOUNT_ID env var as the single-tenant fallback. Undefined =>
   // Paid Ads shows not-connected. See functions/api/ads/insights.ts.
   meta_ad_account_id?: string;
+  // The client's Google Places place_id, resolved from the tenant row with the
+  // GOOGLE_PLACE_ID env var as the single-tenant fallback. Undefined => the
+  // Reviews rating hero shows not-connected. See functions/api/reviews/summary.ts.
+  google_place_id?: string;
   // Supabase tenants.slug for this session, resolved from the session mode in
   // _middleware.ts. All Supabase-backed routes must scope by this, never by a
   // hardcoded slug, or test and live data bleed into each other.
