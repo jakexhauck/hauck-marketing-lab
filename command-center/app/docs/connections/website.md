@@ -37,7 +37,8 @@ numbers). Nothing fabricated ever shows to a real client.
   property, then store the SA JSON in Doppler (`GA4_SA_JSON`) and the property id
   on the tenant (new `tenants.ga4_property_id`). Then build
   `functions/api/website/analytics.ts` (JWT -> access token -> `runReport`) with
-  a ~15 min KV cache and wire the four surfaces.
+  a ~15 min KV cache and wire the four surfaces. Full plan:
+  `docs/build-plans/website-ga4-analytics.md`.
 - ~~Pages list~~ DONE 2026-07-03. `GET /api/website/pages` reads the client's
   GHL Sites (`GET /funnels/funnel/list`), keeps only funnels with
   `type === "website"`, and flattens their steps into pages (name + path,
@@ -57,4 +58,4 @@ funnel/site pages generally allow embedding.
 
 The change-request board Jake sees in admin is not built yet. It reads the same
 `website_change_requests` rows and will add a `PATCH` for status
-(open/in_progress/done). See `docs/build-plans/website-page-finish.md`.
+(open/in_progress/done).
