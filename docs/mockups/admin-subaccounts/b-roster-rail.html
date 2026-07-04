@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup B · Roster Rail (Master–Detail)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0d1a; --rail:#0d1122; --surface:#111527; --surface-2:#171c33; --surface-3:#1e2440;
+    --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.14);
+    --text:#eef1fb; --muted:#9aa3c2; --faint:#697193;
+    --brand:#6366f1; --brand-2:#818cf8; --grad:linear-gradient(135deg,#6366f1,#a855f7);
+    --pos:#34d399; --warn:#fbbf24; --danger:#fb7185;
+    --font:"Inter",system-ui,sans-serif; --display:"Poppins",var(--font); --mono:"JetBrains Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;height:100vh;overflow:hidden}
+  h1,h2,h3,h4{font-family:var(--display);margin:0;letter-spacing:-.01em}
+  button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  .app{display:grid;grid-template-columns:64px 320px 1fr;height:100vh}
+
+  /* agency spine */
+  .spine{background:var(--rail);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:8px}
+  .spine .logo{width:38px;height:38px;border-radius:11px;background:var(--grad);display:grid;place-items:center;font-family:var(--display);font-weight:700;color:#fff;font-size:17px;box-shadow:0 6px 18px rgba(99,102,241,.4);margin-bottom:8px}
+  .spine button{width:42px;height:42px;border-radius:11px;color:var(--faint);display:grid;place-items:center;transition:.15s;position:relative}
+  .spine button:hover{background:var(--surface-2);color:var(--text)}
+  .spine button.on{background:var(--surface-3);color:var(--brand-2)}
+  .spine .sp{flex:1}
+
+  /* ---------- Roster (master) ---------- */
+  .roster{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
+  .roster-head{padding:18px 18px 12px}
+  .roster-head h2{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .roster-head .count{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--faint);font-weight:400}
+  .search{display:flex;align-items:center;gap:9px;margin-top:12px;padding:9px 12px;border-radius:11px;background:var(--surface-2);border:1px solid var(--border)}
+  .search input{flex:1;background:none;border:0;outline:0;color:var(--text);font-size:13px}
+  .search input::placeholder{color:var(--faint)}
+  .filters{display:flex;gap:6px;padding:0 18px 12px;flex-wrap:wrap}
+  .filters button{padding:5px 11px;border-radius:20px;font-size:11.5px;font-weight:500;color:var(--muted);border:1px solid var(--border);transition:.15s}
+  .filters button:hover{border-color:var(--border-2)}
+  .filters button.on{background:var(--surface-3);color:var(--text);border-color:var(--border-2)}
+  .roster-list{flex:1;overflow:auto;padding:0 10px 14px}
+  .roster-list::-webkit-scrollbar{width:8px}.roster-list::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:8px}
+  .rcard{display:flex;align-items:center;gap:12px;padding:12px;border-radius:13px;width:100%;text-align:left;transition:.13s;border:1px solid transparent;margin-bottom:2px}
+  .rcard:hover{background:var(--surface-2)}
+  .rcard.active{background:var(--surface-2);border-color:var(--border-2);box-shadow:inset 3px 0 0 var(--acc,var(--brand))}
+  .rcard .av{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-weight:600;font-size:14px;color:#fff;flex:none}
+  .rcard .who{min-width:0;flex:1}
+  .rcard .who b{display:block;font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rcard .who span{font-size:11.5px;color:var(--muted)}
+  .rcard .side{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+  .rcard .side .n{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .dot.good{background:var(--pos);box-shadow:0 0 8px rgba(52,211,153,.7)}
+  .dot.warn{background:var(--warn);box-shadow:0 0 8px rgba(251,191,36,.6)}
+  .dot.paused{background:var(--faint)}
+  .rcard .badge{background:var(--danger);color:#fff;font-size:10px;font-weight:600;border-radius:9px;min-width:16px;height:16px;padding:0 4px;display:grid;place-items:center}
+
+  /* ---------- Detail (cockpit) ---------- */
+  .detail{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .detail-head{padding:20px 26px 0;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--acc-bg,rgba(99,102,241,.10)),transparent)}
+  .dh-top{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+  .dh-top .av{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:20px;color:#fff;flex:none;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  .dh-top h1{font-size:22px;font-weight:700}
+  .dh-top .sub{color:var(--muted);font-size:13px;margin-top:3px;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--surface-2)}
+  .chip.good{color:var(--pos);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.1)}
+  .chip.warn{color:var(--warn);border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.1)}
+  .chip.paused{color:var(--faint)}
+  .dh-actions{margin-left:auto;display:flex;gap:9px}
+  .btn{padding:10px 15px;border-radius:11px;font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px;transition:.15s}
+  .btn.primary{background:var(--grad);color:#fff;box-shadow:0 8px 22px rgba(99,102,241,.4)}
+  .btn.primary:hover{transform:translateY(-1px)}
+  .btn.ghost{border:1px solid var(--border-2);background:var(--surface-2)}
+  .btn.ghost:hover{border-color:var(--brand-2)}
+  .tabs{display:flex;gap:2px}
+  .tabs button{padding:12px 16px;font-size:13px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;transition:.15s;position:relative}
+  .tabs button:hover{color:var(--text)}
+  .tabs button.on{color:var(--text);border-bottom-color:var(--brand)}
+
+  .detail-body{flex:1;overflow:auto;padding:22px 26px 40px}
+  .detail-body::-webkit-scrollbar{width:10px}.detail-body::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:8px}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
+  .kpi .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .kpi .val{font-family:var(--display);font-weight:700;font-size:25px;margin-top:6px}
+  .kpi .delta{font-family:var(--mono);font-size:11px;margin-top:3px;color:var(--pos)}
+
+  .cols{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px}
+  .panel h3{font-size:14.5px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .panel .link{margin-left:auto;color:var(--brand-2);font-size:12px;font-weight:500}
+  .bars{display:flex;align-items:flex-end;gap:7px;height:130px}
+  .bars .b{flex:1;border-radius:6px 6px 3px 3px;background:linear-gradient(180deg,var(--brand-2),rgba(99,102,241,.22));transition:height .5s cubic-bezier(.2,.8,.2,1)}
+  .metrics{display:flex;gap:24px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+  .metrics .k{font-size:11px;color:var(--muted)}.metrics .v{font-family:var(--display);font-weight:600;font-size:18px;margin-top:2px}
+  .act{display:flex;gap:11px;padding:10px 0;border-bottom:1px solid var(--border)}.act:last-child{border:0}
+  .act .ic{width:30px;height:30px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;flex:none}
+  .act .tx{font-size:12.5px}.act .tm{color:var(--faint);font-size:11px;font-family:var(--mono);margin-top:2px}
+  .placeholder{display:grid;place-items:center;height:320px;color:var(--faint);text-align:center;gap:6px}
+  .placeholder svg{width:40px;height:40px;stroke-width:1.5;opacity:.5}
+  @media (max-width:1080px){.app{grid-template-columns:64px 280px 1fr}.cols{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+  <div class="app">
+    <!-- agency spine -->
+    <nav class="spine">
+      <div class="logo">H</div>
+      <button class="on" title="Subaccounts"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+      <button title="Pipelines"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg></button>
+      <button title="Team"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0"/><path d="M16 6a3 3 0 010 6"/></svg></button>
+      <button title="SOPs"><svg viewBox="0 0 24 24"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5"/></svg></button>
+      <div class="sp"></div>
+      <button title="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 00-1.7-1l-.4-2.5H9.6L9.2 5a7 7 0 00-1.7 1l-2.4-1-2 3.4 2 1.6a7 7 0 000 2l-2 1.6 2 3.4 2.4-1a7 7 0 001.7 1l.4 2.5h4.8l.4-2.5a7 7 0 001.7-1l2.4 1 2-3.4-2-1.6c.06-.3.1-.65.1-1z"/></svg></button>
+    </nav>
+
+    <!-- roster -->
+    <aside class="roster">
+      <div class="roster-head">
+        <h2>Subaccounts <span class="count" id="count"></span></h2>
+        <div class="search">
+          <svg viewBox="0 0 24 24" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="search" placeholder="Search clients…" />
+        </div>
+      </div>
+      <div class="filters" id="filters">
+        <button class="on" data-f="all">All</button>
+        <button data-f="warn">Needs attention</button>
+        <button data-f="good">Healthy</button>
+        <button data-f="paused">Paused</button>
+      </div>
+      <div class="roster-list" id="list"></div>
+    </aside>
+
+    <!-- detail -->
+    <section class="detail">
+      <div class="detail-head">
+        <div class="dh-top">
+          <div class="av" id="dAv"></div>
+          <div>
+            <h1 id="dName"></h1>
+            <div class="sub"><span id="dNiche"></span><span class="chip" id="dPlan"></span><span class="chip" id="dHealth"></span></div>
+          </div>
+          <div class="dh-actions">
+            <button class="btn ghost">View as owner</button>
+            <button class="btn primary"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>Enter live app</button>
+          </div>
+        </div>
+        <div class="tabs" id="tabs">
+          <button class="on" data-t="Overview">Overview</button>
+          <button data-t="Paid Ads">Paid Ads</button>
+          <button data-t="Leads">Leads</button>
+          <button data-t="Calendar">Calendar</button>
+          <button data-t="Revenue">Revenue</button>
+          <button data-t="Team">Team</button>
+          <button data-t="Config">Config</button>
+        </div>
+      </div>
+      <div class="detail-body" id="body"></div>
+    </section>
+  </div>
+
+<script src="shared-data.js"></script>
+<script>
+  const S=window.SUBACCOUNTS, money=window.money, $=s=>document.querySelector(s);
+  let current=S[0], tab='Overview', filter='all', query='';
+  const hL=h=>h==='good'?'Healthy':h==='warn'?'Needs attention':'Paused';
+  const hexA=(hex,a)=>{const n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
+
+  function renderList(){
+    let rows=S.filter(c=>(filter==='all'||c.health===filter)&&(c.name.toLowerCase().includes(query)||c.niche.toLowerCase().includes(query)));
+    $('#count').textContent=rows.length;
+    $('#list').innerHTML=rows.map(c=>`
+      <button class="rcard ${c.id===current.id?'active':''}" data-id="${c.id}" style="--acc:${c.color}">
+        <span class="av" style="background:${c.color}">${c.initials}</span>
+        <span class="who"><b>${c.name}</b><span>${c.niche}</span></span>
+        <span class="side">
+          <span style="display:flex;align-items:center;gap:6px">${c.alerts?`<span class="badge">${c.alerts}</span>`:''}<span class="dot ${c.health}"></span></span>
+          <span class="n">${c.health==='paused'?'—':money(c.spend)}</span>
+        </span>
+      </button>`).join('');
+    $('#list').querySelectorAll('.rcard').forEach(el=>el.onclick=()=>{current=S.find(x=>x.id===el.dataset.id);renderList();renderDetail();});
+  }
+
+  function renderDetail(){
+    const c=current;
+    document.documentElement.style.setProperty('--acc',c.color);
+    document.documentElement.style.setProperty('--acc-bg',hexA(c.color,.12));
+    $('#dAv').style.background=c.color;$('#dAv').textContent=c.initials;
+    $('#dName').textContent=c.name;$('#dNiche').textContent=c.niche;
+    const p=$('#dPlan');p.textContent=c.plan;const h=$('#dHealth');h.textContent=hL(c.health);h.className='chip '+c.health;
+    renderTab();
+  }
+
+  function renderTab(){
+    const c=current, b=$('#body');
+    if(tab!=='Overview'){
+      b.innerHTML=`<div class="placeholder"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg><div><b style="color:var(--muted)">${tab}</b> for ${c.name}</div><div style="font-size:12px">This tab would embed the ${tab.toLowerCase()} workspace, scoped to this subaccount.</div></div>`;
+      return;
+    }
+    const cpl=c.leads?'$'+Math.round(c.spend/c.leads):'—';
+    const max=Math.max(...c.trend,1);
+    b.innerHTML=`
+      <div class="kpis">
+        ${kpi('Ad spend (mo)',money(c.spend),'+8%')}
+        ${kpi('Leads (wk)',c.leads,'+12%')}
+        ${kpi('Appointments',c.appts,'+3')}
+        ${kpi('Revenue (mo)',money(c.revenue),'+15%')}
+      </div>
+      <div class="cols">
+        <div class="panel">
+          <h3><svg viewBox="0 0 24 24" style="color:var(--brand-2)"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Ad performance <a class="link">Open Paid Ads →</a></h3>
+          <div class="bars">${c.trend.map(v=>`<span class="b" style="height:${8+(v/max)*100}%"></span>`).join('')}</div>
+          <div class="metrics">
+            <div><div class="k">Spend</div><div class="v mono">${money(c.spend)}</div></div>
+            <div><div class="k">Cost / lead</div><div class="v mono">${cpl}</div></div>
+            <div><div class="k">Booked calls</div><div class="v mono">${c.appts}</div></div>
+            <div><div class="k">ROAS</div><div class="v mono" style="color:var(--pos)">4.1×</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3><svg viewBox="0 0 24 24" style="color:var(--brand-2)"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Recent activity</h3>
+          <div class="act"><span class="ic">📞</span><div><div class="tx">New lead — Dana R. (Facebook)</div><div class="tm">4 min ago</div></div></div>
+          <div class="act"><span class="ic">📅</span><div><div class="tx">Estimate booked — Thu 2:00pm</div><div class="tm">22 min ago</div></div></div>
+          <div class="act"><span class="ic">💬</span><div><div class="tx">${c.unread} unread in Inbox</div><div class="tm">31 min ago</div></div></div>
+          <div class="act"><span class="ic">✅</span><div><div class="tx">Job won — $6,400</div><div class="tm">1 hr ago</div></div></div>
+        </div>
+      </div>`;
+  }
+  const kpi=(l,v,d)=>`<div class="kpi"><div class="lbl">${l}</div><div class="val">${v}</div><div class="delta">▲ ${d}</div></div>`;
+
+  $('#search').oninput=e=>{query=e.target.value.toLowerCase();renderList();};
+  $('#filters').querySelectorAll('button').forEach(el=>el.onclick=()=>{$('#filters').querySelector('.on').classList.remove('on');el.classList.add('on');filter=el.dataset.f;renderList();});
+  $('#tabs').querySelectorAll('button').forEach(el=>el.onclick=()=>{$('#tabs').querySelector('.on').classList.remove('on');el.classList.add('on');tab=el.dataset.t;renderTab();});
+
+  renderList();renderDetail();
+</script>
+</body>
+</html>

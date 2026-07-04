@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Command · Admin (Roster Rail)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0d1a; --rail:#0d1122; --surface:#111527; --surface-2:#171c33; --surface-3:#1e2440;
+    --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.14);
+    --text:#eef1fb; --muted:#9aa3c2; --faint:#697193;
+    --brand:#6366f1; --brand-2:#818cf8; --grad:linear-gradient(135deg,#6366f1,#a855f7);
+    --pos:#34d399; --warn:#fbbf24; --danger:#fb7185; --info:#38bdf8;
+    --font:"Inter",system-ui,sans-serif; --display:"Poppins",var(--font); --mono:"JetBrains Mono",monospace;
+    --acc:#6366f1; --acc-bg:rgba(99,102,241,.12);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;height:100vh;overflow:hidden}
+  h1,h2,h3,h4{font-family:var(--display);margin:0;letter-spacing:-.01em}
+  button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+  a{color:inherit}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:8px}::-webkit-scrollbar-track{background:transparent}
+
+  .app{display:grid;grid-template-columns:66px 322px 1fr;height:100vh;transition:grid-template-columns .25s cubic-bezier(.2,.8,.2,1)}
+  .app.agency{grid-template-columns:66px 1fr}
+  .app.agency .roster{display:none}
+
+  /* ---------- agency spine ---------- */
+  .spine{background:var(--rail);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:4px}
+  .spine .logo{width:40px;height:40px;border-radius:12px;background:var(--grad);display:grid;place-items:center;font-family:var(--display);font-weight:700;color:#fff;font-size:18px;box-shadow:0 6px 18px rgba(99,102,241,.4);margin-bottom:10px}
+  .spine button{width:44px;height:44px;border-radius:12px;color:var(--faint);display:grid;place-items:center;transition:.15s;position:relative}
+  .spine button:hover{background:var(--surface-2);color:var(--text)}
+  .spine button.on{background:var(--surface-3);color:var(--brand-2)}
+  .spine button.on::before{content:"";position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:3px;height:22px;border-radius:3px;background:var(--grad)}
+  .spine button .tip{position:absolute;left:54px;top:50%;transform:translateY(-50%);white-space:nowrap;background:var(--surface-3);border:1px solid var(--border-2);padding:5px 10px;border-radius:8px;font-size:12px;opacity:0;pointer-events:none;transition:.15s;z-index:200;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+  .spine button:hover .tip{opacity:1;left:58px}
+  .spine .sp{flex:1}
+
+  /* ---------- roster (master) ---------- */
+  .roster{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
+  .roster-head{padding:18px 18px 10px}
+  .roster-head h2{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+  .roster-head .count{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--faint);font-weight:400}
+  .search{display:flex;align-items:center;gap:9px;margin-top:12px;padding:9px 12px;border-radius:11px;background:var(--surface-2);border:1px solid var(--border)}
+  .search input{flex:1;background:none;border:0;outline:0;color:var(--text);font-size:13px}
+  .search input::placeholder{color:var(--faint)}
+  .filters{display:flex;gap:6px;padding:0 18px 12px;flex-wrap:wrap}
+  .filters button{padding:5px 11px;border-radius:20px;font-size:11.5px;font-weight:500;color:var(--muted);border:1px solid var(--border);transition:.15s}
+  .filters button:hover{border-color:var(--border-2)}
+  .filters button.on{background:var(--surface-3);color:var(--text);border-color:var(--border-2)}
+  .roster-list{flex:1;overflow:auto;padding:0 10px 14px}
+  .rcard{display:flex;align-items:center;gap:12px;padding:12px;border-radius:13px;width:100%;text-align:left;transition:.13s;border:1px solid transparent;margin-bottom:2px}
+  .rcard:hover{background:var(--surface-2)}
+  .rcard.active{background:var(--surface-2);border-color:var(--border-2);box-shadow:inset 3px 0 0 var(--rc,var(--brand))}
+  .rcard .av{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-weight:600;font-size:14px;color:#fff;flex:none}
+  .rcard .who{min-width:0;flex:1}
+  .rcard .who b{display:block;font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rcard .who span{font-size:11.5px;color:var(--muted)}
+  .rcard .side{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+  .rcard .side .n{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .rcard .side .row{display:flex;align-items:center;gap:6px}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .dot.good{background:var(--pos);box-shadow:0 0 8px rgba(52,211,153,.7)}
+  .dot.warn{background:var(--warn);box-shadow:0 0 8px rgba(251,191,36,.6)}
+  .dot.paused{background:var(--faint)}
+  .badge{background:var(--danger);color:#fff;font-size:10px;font-weight:600;border-radius:9px;min-width:16px;height:16px;padding:0 4px;display:grid;place-items:center}
+  .roster-foot{padding:12px 14px;border-top:1px solid var(--border)}
+  .roster-foot button{width:100%;padding:10px;border-radius:11px;background:var(--surface-2);border:1px dashed var(--border-2);color:var(--muted);font-weight:500;font-size:12.5px;transition:.15s}
+  .roster-foot button:hover{color:var(--text);border-color:var(--brand-2)}
+
+  /* ---------- main ---------- */
+  .main{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .m-head{padding:20px 26px 0;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--acc-bg),transparent)}
+  .mh-top{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+  .mh-top .av{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:20px;color:#fff;flex:none;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  .mh-top h1{font-size:22px;font-weight:700}
+  .mh-top .sub{color:var(--muted);font-size:13px;margin-top:3px;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--surface-2)}
+  .chip.good{color:var(--pos);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.1)}
+  .chip.warn{color:var(--warn);border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.1)}
+  .chip.paused{color:var(--faint)}
+  .mh-actions{margin-left:auto;display:flex;gap:9px}
+  .btn{padding:10px 15px;border-radius:11px;font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px;transition:.15s;white-space:nowrap}
+  .btn.primary{background:var(--grad);color:#fff;box-shadow:0 8px 22px rgba(99,102,241,.4)}
+  .btn.primary:hover{transform:translateY(-1px)}
+  .btn.ghost{border:1px solid var(--border-2);background:var(--surface-2)}
+  .btn.ghost:hover{border-color:var(--brand-2)}
+  .btn.sm{padding:7px 12px;font-size:12px}
+  .tabs{display:flex;gap:2px;overflow-x:auto}
+  .tabs button{padding:12px 15px;font-size:13px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;transition:.15s;white-space:nowrap}
+  .tabs button:hover{color:var(--text)}
+  .tabs button.on{color:var(--text);border-bottom-color:var(--brand)}
+  .m-body{flex:1;overflow:auto;padding:22px 26px 44px}
+
+  /* generic building blocks */
+  .kpis{display:grid;gap:14px;margin-bottom:20px}
+  .kpis.c4{grid-template-columns:repeat(4,1fr)}.kpis.c5{grid-template-columns:repeat(5,1fr)}.kpis.c3{grid-template-columns:repeat(3,1fr)}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
+  .kpi .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .kpi .val{font-family:var(--display);font-weight:700;font-size:25px;margin-top:6px;letter-spacing:-.02em}
+  .kpi .delta{font-family:var(--mono);font-size:11px;margin-top:3px}
+  .kpi .delta.up{color:var(--pos)}.kpi .delta.down{color:var(--danger)}.kpi .delta.flat{color:var(--faint)}
+  .cols{display:grid;gap:16px}
+  .cols.a{grid-template-columns:1.6fr 1fr}.cols.b{grid-template-columns:1fr 1fr}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px}
+  .panel h3{font-size:14.5px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .panel h3 .link{margin-left:auto;color:var(--brand-2);font-size:12px;font-weight:500}
+  .sect-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600;margin:4px 0 12px}
+
+  .bars{display:flex;align-items:flex-end;gap:7px;height:130px}
+  .bars .b{flex:1;border-radius:6px 6px 3px 3px;background:linear-gradient(180deg,var(--brand-2),rgba(99,102,241,.2));transition:height .5s cubic-bezier(.2,.8,.2,1)}
+  .bars-x{display:flex;gap:7px;margin-top:8px}.bars-x span{flex:1;text-align:center;font-size:10px;color:var(--faint);font-family:var(--mono)}
+  .metrics{display:flex;gap:26px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+  .metrics .k{font-size:11px;color:var(--muted)}.metrics .v{font-family:var(--display);font-weight:600;font-size:18px;margin-top:2px}
+
+  .act{display:flex;gap:11px;padding:10px 0;border-bottom:1px solid var(--border)}.act:last-child{border:0}
+  .act .ic{width:32px;height:32px;border-radius:9px;background:var(--surface-2);display:grid;place-items:center;flex:none;font-size:14px}
+  .act .tx{font-size:12.5px}.act .tx b{font-weight:600}.act .tm{color:var(--faint);font-size:11px;font-family:var(--mono);margin-top:2px}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);font-weight:600;padding:0 12px 10px}
+  td{padding:12px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle}
+  tr.row:hover td{background:var(--surface-2)}
+  .tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:7px;font-size:11px;font-weight:600}
+  .tag.scale{color:var(--pos);background:rgba(52,211,153,.12)}
+  .tag.watch{color:var(--info);background:rgba(56,189,248,.12)}
+  .tag.kill{color:var(--danger);background:rgba(251,113,133,.12)}
+  .tag.refresh{color:var(--warn);background:rgba(251,191,36,.12)}
+  .tag.live{color:var(--pos);background:rgba(52,211,153,.1)}
+  .tag.paused{color:var(--faint);background:var(--surface-3)}
+  .spark{display:inline-flex;align-items:flex-end;gap:2px;height:26px;vertical-align:middle}
+  .spark .b{width:4px;border-radius:2px;background:var(--brand-2);opacity:.85}
+
+  /* kanban */
+  .kb{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .kcol{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;min-height:200px}
+  .kcol .kh{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12.5px;font-weight:600}
+  .kcol .kh .cnt{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-3);border-radius:20px;padding:1px 8px}
+  .lcard{background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:11px;margin-bottom:8px;cursor:grab;transition:.13s}
+  .lcard:hover{border-color:var(--border-2);transform:translateY(-1px)}
+  .lcard .ln{display:flex;align-items:center;gap:9px}
+  .lcard .lav{width:28px;height:28px;border-radius:8px;background:var(--surface-3);display:grid;place-items:center;font-size:11px;font-weight:600;flex:none}
+  .lcard .lm{font-size:11px;color:var(--muted);margin-top:7px;display:flex;justify-content:space-between}
+  .src{font-size:10.5px;padding:2px 7px;border-radius:6px;background:var(--surface-3);color:var(--muted);font-weight:500}
+
+  /* inbox */
+  .inbox{display:grid;grid-template-columns:320px 1fr;gap:0;border:1px solid var(--border);border-radius:16px;overflow:hidden;height:560px;background:var(--surface)}
+  .inbox-list{border-right:1px solid var(--border);overflow:auto}
+  .conv{display:flex;gap:11px;padding:13px 15px;border-bottom:1px solid var(--border);cursor:pointer;transition:.12s}
+  .conv:hover,.conv.on{background:var(--surface-2)}
+  .conv .cav{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:12px;font-weight:600;color:#fff;flex:none}
+  .conv .cbody{min-width:0;flex:1}
+  .conv .cbody .ct{display:flex;align-items:center;gap:6px}.conv .cbody b{font-size:13px;font-weight:600}
+  .conv .cbody .sn{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .wait{margin-left:auto;font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:20px}
+  .wait.hot{color:var(--danger);background:rgba(251,113,133,.12)}.wait.warm{color:var(--warn);background:rgba(251,191,36,.12)}.wait.cool{color:var(--faint);background:var(--surface-3)}
+  .chan{font-size:10px;padding:1px 6px;border-radius:5px;font-weight:600}
+  .thread{display:flex;flex-direction:column}
+  .thread .th-h{padding:15px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px}
+  .thread .th-b{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+  .msg{max-width:74%;padding:10px 13px;border-radius:13px;font-size:13px}
+  .msg.them{background:var(--surface-2);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px}
+  .msg.us{background:var(--grad);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .msg .mt{font-size:10px;opacity:.7;margin-top:4px;font-family:var(--mono)}
+  .th-compose{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center}
+  .th-compose input{flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:11px 14px;color:var(--text);outline:0}
+
+  /* calendar agenda */
+  .cal{display:flex;flex-direction:column;gap:14px}
+  .day{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .day .dh{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-weight:600;font-size:13px;background:var(--surface-2)}
+  .day .dh .dd{color:var(--faint);font-weight:500;font-family:var(--mono);font-size:12px}
+  .evt{display:flex;align-items:center;gap:13px;padding:12px 16px;border-bottom:1px solid var(--border)}.evt:last-child{border:0}
+  .evt .tm{font-family:var(--mono);font-size:12px;color:var(--muted);width:74px;flex:none}
+  .evt .bar{width:3px;height:34px;border-radius:3px;flex:none}
+  .evt .en{font-size:13px;font-weight:500}.evt .em{font-size:11.5px;color:var(--muted)}
+  .evt .who2{margin-left:auto;font-size:11.5px;color:var(--muted)}
+
+  /* revenue */
+  .cust{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}.cust:last-child{border:0}
+  .cust .cav{width:34px;height:34px;border-radius:9px;background:var(--surface-3);display:grid;place-items:center;font-size:12px;font-weight:600;flex:none}
+  .cust .cn{font-size:13px;font-weight:500}.cust .cs{font-size:11px;color:var(--faint)}
+  .cust .cv{margin-left:auto;font-family:var(--mono);font-weight:600}
+
+  /* team & config */
+  .staff{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--border)}.staff:last-child{border:0}
+  .staff .sav{width:38px;height:38px;border-radius:11px;background:var(--surface-3);display:grid;place-items:center;font-size:13px;font-weight:600;flex:none}
+  .staff .sn{font-size:13.5px;font-weight:600}.staff .sr{font-size:11.5px;color:var(--muted)}
+  .perms{display:flex;gap:5px;flex-wrap:wrap;margin-left:auto;max-width:340px;justify-content:flex-end}
+  .perm{font-size:10.5px;padding:2px 8px;border-radius:6px;background:var(--surface-3);color:var(--muted);font-weight:500}
+  .perm.on{background:rgba(99,102,241,.16);color:var(--brand-2)}
+  .cfg-row{display:flex;align-items:center;gap:14px;padding:15px 0;border-bottom:1px solid var(--border)}.cfg-row:last-child{border:0}
+  .cfg-row .cl{font-size:13px;font-weight:500}.cfg-row .cd{font-size:11.5px;color:var(--faint);margin-top:2px}
+  .cfg-row .cv{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .swatch{width:26px;height:26px;border-radius:8px;border:1px solid var(--border-2)}
+  .toggle{width:42px;height:24px;border-radius:20px;background:var(--surface-3);position:relative;transition:.18s;flex:none;cursor:pointer}
+  .toggle::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.18s}
+  .toggle.on{background:var(--brand)}.toggle.on::after{left:21px}
+  .field{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:9px 13px;font-size:13px;min-width:200px;color:var(--text)}
+
+  /* leaderboard / attention */
+  .lb{display:flex;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid var(--border)}.lb:last-child{border:0}
+  .lb .rank{font-family:var(--mono);font-size:13px;color:var(--faint);width:20px}
+  .lb .lav{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:12px;font-weight:600;color:#fff;flex:none}
+  .lb .ln{font-size:13px;font-weight:600}.lb .ls{font-size:11px;color:var(--muted)}
+  .lb .track{width:120px;height:7px;border-radius:6px;background:var(--surface-3);overflow:hidden;margin-left:auto}
+  .lb .fill{height:100%;background:var(--grad)}
+  .lb .lv{font-family:var(--mono);font-weight:600;width:74px;text-align:right}
+  .attn-card{display:flex;align-items:center;gap:13px;padding:14px;border-radius:13px;background:var(--surface);border:1px solid var(--border);margin-bottom:10px}
+  .attn-card.warn{border-color:rgba(251,191,36,.3);background:linear-gradient(160deg,rgba(251,191,36,.07),var(--surface))}
+  .attn-card .av{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-weight:600;color:#fff;flex:none}
+  .attn-card .why{font-size:12.5px;color:var(--warn);font-weight:500}
+
+  /* infra */
+  .nodes{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+  .node{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
+  .node .nh{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+  .node .nn{font-weight:600;font-size:13.5px}
+  .node .nm{font-size:11.5px;color:var(--muted);display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border)}
+
+  /* onboarding board reuse kanban */
+  .empty{display:grid;place-items:center;height:340px;color:var(--faint);text-align:center;gap:8px}
+  .empty svg{width:42px;height:42px;stroke-width:1.5;opacity:.5}
+
+  .grid-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+  .listcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;transition:.15s}
+  .listcard:hover{border-color:var(--border-2);transform:translateY(-2px)}
+  .listcard h4{font-size:14px;font-weight:600;margin-bottom:5px}
+  .listcard p{font-size:12px;color:var(--muted);margin:0}
+
+  /* ---------- pillars / constraints (Theory of Constraints) ---------- */
+  .banner{display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:16px;margin-bottom:22px;background:linear-gradient(135deg,rgba(251,113,133,.16),rgba(251,191,36,.09));border:1px solid rgba(251,113,133,.32)}
+  .banner .bic{width:46px;height:46px;border-radius:12px;background:rgba(251,113,133,.16);display:grid;place-items:center;font-size:22px;flex:none}
+  .banner .bl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--danger);font-weight:700}
+  .flow{display:flex;align-items:stretch;margin-bottom:14px}
+  .flow .stage{flex:1;display:flex}
+  .flow .arrow{display:grid;place-items:center;width:38px;color:var(--faint);flex:none}
+  .pillar{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 17px;width:100%;text-align:left;transition:.16s cubic-bezier(.2,.8,.2,1);cursor:pointer}
+  .pillar:hover{border-color:var(--border-2);transform:translateY(-2px)}
+  .pillar.constraint{border-color:rgba(251,113,133,.5);box-shadow:0 0 0 1px rgba(251,113,133,.28),0 14px 34px rgba(251,113,133,.14)}
+  .pillar .pi{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+  .picon{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;flex:none}
+  .picon svg{width:17px;height:17px}
+  .pillar .pn{font-weight:600;font-size:13.5px}
+  .pillar .pth{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:-.02em}
+  .pillar .pl{font-size:11.5px;color:var(--muted)}
+  .ctag{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.03em;padding:3px 8px;border-radius:6px;background:rgba(251,113,133,.16);color:var(--danger)}
+  .sect-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600;margin:22px 0 12px}
+  .sev{font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:2px 8px;border-radius:6px}
+  .sev.high{color:var(--danger);background:rgba(251,113,133,.15)}
+  .sev.med{color:var(--warn);background:rgba(251,191,36,.15)}
+  .sev.low{color:var(--pos);background:rgba(52,211,153,.13)}
+  .cbrow{display:flex;align-items:center;gap:14px;padding:13px 15px;border:1px solid var(--border);border-radius:13px;background:var(--surface);margin-bottom:10px;transition:.15s}
+  .cbrow:hover{border-color:var(--border-2)}
+  .cbrow.hot{border-color:rgba(251,113,133,.32);background:linear-gradient(120deg,rgba(251,113,133,.06),var(--surface))}
+  .funnel{display:flex;flex-direction:column;gap:9px}
+  .fstep{display:flex;align-items:center;gap:12px}
+  .fstep .fn{width:150px;font-size:12.5px;color:var(--muted);flex:none}
+  .fbar{height:32px;border-radius:8px;display:flex;align-items:center;padding:0 12px;color:#fff;font-weight:600;font-size:12px;font-family:var(--mono);min-width:54px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+  .attack{display:flex;flex-direction:column}
+  .astep{display:flex;gap:14px;padding:13px 0;border-bottom:1px solid var(--border)}.astep:last-child{border:0}
+  .astep .anum{width:30px;height:30px;border-radius:9px;background:var(--surface-3);display:grid;place-items:center;font-weight:700;font-size:12px;flex:none;color:var(--muted)}
+  .astep.done .anum{background:rgba(52,211,153,.16);color:var(--pos)}
+  .astep.doing .anum{background:rgba(99,102,241,.22);color:var(--brand-2)}
+  .astep .aname{font-weight:600;font-size:13px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- agency spine -->
+  <nav class="spine" id="spine">
+    <div class="logo">H</div>
+  </nav>
+  <!-- roster -->
+  <aside class="roster">
+    <div class="roster-head">
+      <h2>Service Delivery <span class="count" id="count"></span></h2>
+      <div class="search"><svg viewBox="0 0 24 24" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="search" placeholder="Search clients…"></div>
+    </div>
+    <div class="filters" id="filters">
+      <button class="on" data-f="all">All</button>
+      <button data-f="warn">Needs attention</button>
+      <button data-f="good">Healthy</button>
+      <button data-f="paused">Paused</button>
+    </div>
+    <div class="roster-list" id="list"></div>
+    <div class="roster-foot"><button>+ New subaccount</button></div>
+  </aside>
+  <!-- main -->
+  <section class="main" id="main"></section>
+</div>
+
+<script>
+/* ============================ DATA ============================ */
+const SUB=[
+  {id:'willis',name:'Willis Exteriors',niche:'Roofing & Exteriors',initials:'WE',color:'#6366f1',health:'good',spend:4200,leads:38,appts:12,revenue:86400,mrr:1500,unread:3,alerts:0,plan:'Growth',trend:[12,18,15,22,26,24,31,38],updated:'4m ago',owner:'Marcus Willis'},
+  {id:'coastal',name:'Coastal Dental',niche:'Dental',initials:'CD',color:'#06b6d4',health:'good',spend:5400,leads:44,appts:21,revenue:132000,mrr:2200,unread:0,alerts:0,plan:'Scale',trend:[20,24,28,26,33,38,41,44],updated:'11m ago',owner:'Dr. Elena Cho'},
+  {id:'summit',name:'Summit HVAC',niche:'Heating & Cooling',initials:'SH',color:'#14b8a6',health:'good',spend:3100,leads:27,appts:9,revenue:61200,mrr:1500,unread:1,alerts:0,plan:'Growth',trend:[10,14,12,18,20,19,24,27],updated:'2m ago',owner:'Ray Summit'},
+  {id:'bluepeak',name:'BluePeak Plumbing',niche:'Plumbing',initials:'BP',color:'#3b82f6',health:'warn',spend:2650,leads:14,appts:4,revenue:29800,mrr:900,unread:6,alerts:2,plan:'Starter',trend:[22,19,17,15,13,14,12,14],updated:'31m ago',owner:'Tom Rivera'},
+  {id:'greenleaf',name:'GreenLeaf Landscaping',niche:'Landscaping',initials:'GL',color:'#22c55e',health:'good',spend:2200,leads:19,appts:7,revenue:41000,mrr:1200,unread:1,alerts:0,plan:'Growth',trend:[8,11,13,12,16,15,18,19],updated:'1h ago',owner:'Sofia Green'},
+  {id:'ironclad',name:'Ironclad Fitness',niche:'Gym & Fitness',initials:'IF',color:'#f97316',health:'warn',spend:1800,leads:9,appts:3,revenue:18400,mrr:700,unread:2,alerts:1,plan:'Starter',trend:[16,14,12,10,11,9,10,9],updated:'48m ago',owner:'Derek Stone'},
+  {id:'apex',name:'Apex Auto Detailing',niche:'Auto Detailing',initials:'AA',color:'#ef4444',health:'good',spend:1500,leads:22,appts:11,revenue:23500,mrr:600,unread:4,alerts:0,plan:'Starter',trend:[6,9,12,14,17,19,20,22],updated:'15m ago',owner:'Luis Marin'},
+  {id:'nova',name:'Nova Med Spa',niche:'Med Spa',initials:'NM',color:'#ec4899',health:'paused',spend:0,leads:0,appts:0,revenue:0,mrr:0,unread:0,alerts:0,plan:'Paused',trend:[4,3,2,1,0,0,0,0],updated:'3d ago',owner:'Priya Nair'},
+];
+const money=n=>'$'+n.toLocaleString('en-US');
+const hexA=(hex,a)=>{const n=parseInt(hex.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
+const hL=h=>h==='good'?'Healthy':h==='warn'?'Needs attention':'Paused';
+const seed=id=>id.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+const pick=(arr,s)=>arr[s%arr.length];
+const FIRST=['Dana','Chris','Mia','Jordan','Sam','Alex','Taylor','Casey','Riley','Noah','Ava','Liam','Emma','Owen','Zoe','Grace'];
+const LAST=['R.','Patel','Nguyen','Brooks','Cole','Reyes','Kim','Walsh','Diaz','Foster','Hale','Ono','Bauer','Cruz'];
+
+/* generators (deterministic per client) */
+function campaigns(c){
+  const s=seed(c.id);const base=[['Lead Gen · Local',1.0,'scale'],['Retargeting · Website',0.35,'watch'],['Lookalike 1%',0.55,'scale'],['Broad · Interest',0.6,'kill'],['Video · Awareness',0.4,'refresh']];
+  return base.map((b,i)=>{const sp=Math.round(c.spend*b[1]/2.9);const ld=Math.max(1,Math.round(c.leads*b[1]/2.9));return{name:b[0],status:i===3?'paused':'live',signal:b[2],spend:sp,leads:ld,cpl:ld?'$'+Math.round(sp/ld):'—',roas:(2.4+((s+i)%22)/10).toFixed(1)+'×',trend:c.trend.map(v=>Math.max(2,Math.round(v*b[1]*(0.6+((s+i)%5)/10))))};});
+}
+const STAGES=[['New lead','#818cf8'],['Contacted','#38bdf8'],['Estimate sent','#fbbf24'],['Won','#34d399']];
+function leadsList(c){
+  const s=seed(c.id);const n=Math.max(6,Math.min(16,c.leads));const arr=[];const srcs=['Facebook','Google','Website','Referral'];
+  for(let i=0;i<n;i++){const nm=pick(FIRST,s+i)+' '+pick(LAST,s+i*3+1);arr.push({name:nm,init:nm.split(' ').map(x=>x[0]).join(''),src:pick(srcs,s+i),stage:Math.min(3,Math.floor(i/(n/4.2))),value:'$'+((2+(s+i)%9)*1000).toLocaleString(),ago:(1+(s+i)%59)+(i%2?'m':'h')});}
+  return arr;
+}
+const CHAN=[['SMS','#34d399'],['Email','#38bdf8'],['FB','#6366f1'],['Web','#a855f7']];
+function convos(c){
+  const s=seed(c.id);const n=6;const arr=[];const snips=['Yes, that time works for me.','Can you send the estimate?','What are your hours?','Thanks, talk soon','Interested in a quote','Do you service my area?'];
+  for(let i=0;i<n;i++){const nm=pick(FIRST,s+i*2)+' '+pick(LAST,s+i);const w=(s+i*7)%180;arr.push({name:nm,init:nm.split(' ').map(x=>x[0]).join(''),chan:pick(CHAN,s+i),snip:pick(snips,s+i),wait:w,unread:i<c.unread%4});}
+  return arr.sort((a,b)=>b.wait-a.wait);
+}
+function appts(c){
+  const s=seed(c.id);const days=['Today','Tomorrow','Wednesday','Thursday'];const dds=['Jul 2','Jul 3','Jul 4','Jul 5'];const kinds=[['Estimate','#818cf8'],['Consultation','#38bdf8'],['Service call','#34d399'],['Follow-up','#fbbf24']];
+  const out=[];for(let d=0;d<4;d++){const cnt=1+(s+d)%3;const evs=[];for(let i=0;i<cnt;i++){const nm=pick(FIRST,s+d+i)+' '+pick(LAST,s+d*2+i);const k=pick(kinds,s+d+i);const h24=8+((s+d+i)%9);const t=(h24>12?h24-12:h24)+':00 '+(h24>=12?'PM':'AM');evs.push({t,name:nm,kind:k[0],color:k[1],who:pick(['Marcus','Ray','Sofia','Team'],s+i)});}out.push({day:days[d],dd:dds[d],evs});}
+  return out;
+}
+function topCustomers(c){
+  const s=seed(c.id);const arr=[];for(let i=0;i<5;i++){const nm=pick(FIRST,s+i*5)+' '+pick(LAST,s+i*2);arr.push({name:nm,init:nm.split(' ').map(x=>x[0]).join(''),jobs:1+(s+i)%5,val:(3+(s+i)%12)*1000});}
+  return arr.sort((a,b)=>b.val-a.val);
+}
+function payments(c){
+  const s=seed(c.id);const arr=[];const methods=['Visa ••4242','MC ••8319','ACH','Amex ••1007'];for(let i=0;i<6;i++){const nm=pick(FIRST,s+i*3)+' '+pick(LAST,s+i);arr.push({name:nm,method:pick(methods,s+i),amt:(4+(s+i)%16)*250,when:(1+(s+i)%20)+'d ago',status:i%5===4?'Refunded':'Paid'});}
+  return arr;
+}
+function teamOf(c){
+  const s=seed(c.id);const roles=['Owner','Office Manager','Sales Rep','Technician','Front Desk'];const surf=['Leads','Inbox','Calendar','Revenue','Team'];const out=[];const n=3+s%3;
+  out.push({name:c.owner,init:c.owner.split(' ').map(x=>x[0]).join(''),role:'Owner',active:'now',perms:surf});
+  for(let i=1;i<n;i++){const nm=pick(FIRST,s+i*4)+' '+pick(LAST,s+i*2);const np=2+(s+i)%3;out.push({name:nm,init:nm.split(' ').map(x=>x[0]).join(''),role:pick(roles.slice(1),s+i),active:(1+(s+i)%12)+'h ago',perms:surf.slice(0,np)});}
+  return out;
+}
+
+/* ============================ STATE ============================ */
+const NAV=[
+  {id:'command',label:'Command',icon:'M3 12l9-9 9 9M5 10v10h14V10'},
+  {id:'acquisition',label:'Acquisition',icon:'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z'},
+  {id:'sales',label:'Sales',icon:'M3 3v18h18M7 14l3-4 3 3 4-6'},
+  {id:'delivery',label:'Service Delivery · Accounts',icon:'M14.7 6.3a4 4 0 00-5.6 5.6l-6.8 6.8 2 2 6.8-6.8a4 4 0 005.6-5.6l-2.7 2.7-2-2 2.7-2.7z'},
+  {id:'operations',label:'Operations',icon:'M12 15a3 3 0 100-6 3 3 0 000 6zM12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1'},
+];
+const PICON={
+  send:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>',
+  chart:'<path d="M3 3v18h18M7 14l3-4 3 3 4-6"/>',
+  wrench:'<path d="M14.7 6.3a4 4 0 00-5.6 5.6l-6.8 6.8 2 2 6.8-6.8a4 4 0 005.6-5.6l-2.7 2.7-2-2 2.7-2.7z"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>'
+};
+const picon=n=>`<svg viewBox="0 0 24 24">${PICON[n]}</svg>`;
+const arrow=()=>`<div class="arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>`;
+
+/* Theory-of-Constraints model: each pillar has throughput, its constraint, and an attack plan. */
+const PILLARS={
+  acquisition:{id:'acquisition',label:'Acquisition',color:'#38bdf8',icon:'send',sub:'Turning strangers into booked discovery calls',
+    throughput:{val:'14',label:'Qualified leads / mo'},
+    kpis:[['Prospects reached','1,240'],['Reply rate','9.2%'],['Discovery calls','9'],['Show rate','55%']],
+    funnel:[['Prospects reached',1240,100],['Replies',114,42],['Discovery booked',16,26],['Qualified',14,22]],
+    constraint:{sev:'low',title:'Producing more than we can absorb',metric:'14 / mo · ~4 needed',
+      detail:'Acquisition is not the bottleneck. It already feeds more qualified leads than delivery can take on. Per Theory of Constraints, subordinate it: do not scale outbound until delivery capacity is elevated, or leads just pile up in front of the constraint and go stale.',
+      impact:'Has slack. Not governing throughput.'},
+    attack:[['Subordinate','doing','Hold outbound at the rate delivery can absorb (~4 new clients / mo).','Jake'],['Exploit','todo','Lift discovery show-rate 55% → 75% with a reminder sequence.','Ava'],['Repeat','todo','Re-open the tap the moment delivery capacity is elevated.','Jake']]},
+  sales:{id:'sales',label:'Sales',color:'#6366f1',icon:'chart',sub:'Closing calls and moving signed clients to live',
+    throughput:{val:'3',label:'Clients closed / mo'},
+    kpis:[['Proposals sent','8'],['Signed','4'],['Close rate','40%'],['Avg contract','$1.5k/mo']],
+    funnel:[['Discovery calls',9,100],['Proposals',8,84],['Signed',4,46],['Live',3,34]],
+    constraint:{sev:'med',title:'Signed clients stall before they go live',metric:'~11 days signed → live',
+      detail:'Closing is healthy, but a signed client waits about eleven days to go live. The handoff into delivery is slow, so revenue is recognised late and early momentum is lost. This queue sits directly in front of the system constraint.',
+      impact:'Delays revenue; a symptom of the delivery bottleneck downstream.'},
+    attack:[['Exploit','doing','Standardise a 5-day onboarding sprint with a fixed checklist.','Nina'],['Subordinate','todo','Match signing pace to delivery availability, not to quota.','Jake'],['Elevate','todo','Templatise account setup so go-live needs less specialist time.','Leo']]},
+  delivery:{id:'delivery',label:'Service Delivery',color:'#34d399',icon:'wrench',sub:'Running live client accounts: ads, results, retention',
+    throughput:{val:'7 / 7',label:'Live accounts · at capacity'},
+    kpis:[['Live accounts','7'],['Practical ceiling','~5'],['At-risk','2'],['Avg result','4.1× ROAS']],
+    funnel:[['Live accounts',7,100],['On-track',5,72],['At-risk',2,30],['Free capacity',0,6]],
+    constraint:{sev:'high',title:'Delivery capacity is the system constraint',metric:'7 accounts · 1 media buyer',
+      detail:'One media buyer runs every live account, and the practical ceiling is around five. At seven, attention is spread thin: two accounts are drifting (CPL rising) and there is zero room to onboard the clients Sales has already signed. Until this is elevated, it caps the throughput of the entire business.',
+      impact:'Governs total revenue. New sales cannot convert; retention risk is rising.'},
+    attack:[['Identify','done','Delivery capacity confirmed as the binding constraint.','Jake'],['Exploit','doing','Automate ad-ops with the optimizer engine + creative templates to cut hours per account.','Leo'],['Subordinate','doing','Hold Acquisition and Sales to the pace delivery can absorb.','Jake'],['Elevate','todo','Add a 2nd media buyer (hire or contractor) to raise the ceiling to ~12.','Jake'],['Repeat','todo','Re-measure the constraint once the 2nd buyer has ramped.','Jake']]},
+  operations:{id:'operations',label:'Internal Operations',color:'#a855f7',icon:'gear',sub:'The team, systems, finance and SOPs that hold it together',
+    throughput:{val:'62%',label:'Ad-ops SOP coverage'},
+    kpis:[['Team','5 people'],['Utilisation','88%'],['MRR','$8.6k'],['System flags','2']],
+    funnel:[['Weekly maker-hours',200,100],['On delivery',150,75],['On sales / onboarding',30,16],['On docs / SOPs',20,10]],
+    constraint:{sev:'med',title:'Delivery can’t be delegated without SOPs',metric:'Ad-ops SOPs ~60% done',
+      detail:'The lever to elevate delivery is documented, repeatable ad-ops. Right now about 60% of that lives in one person’s head, so a second buyer can’t ramp quickly. Operations is the enabler for breaking the system constraint, so its priority is the delivery SOP set.',
+      impact:'Slows how fast delivery capacity can be elevated.'},
+    attack:[['Exploit','doing','Finish the ad-ops SOP set: setup, optimise, refresh, report.','Leo'],['Elevate','todo','Wire the optimizer engine so the SOP is partly automated.','Jake'],['Subordinate','todo','Protect maker-time; batch internal meetings into one block.','Team']]},
+};
+const state={section:'command',deliveryView:'overview',client:SUB[0],tab:'Overview',filter:'all',query:'',conv:0};
+const $=s=>document.querySelector(s);
+
+/* ============================ SPINE ============================ */
+function renderSpine(){
+  const sp=$('#spine');
+  const mk=(a)=>{const active=state.section===a.id;
+    const icon=a.icon==='RECT'?'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>':`<path d="${a.icon}"/>`;
+    return `<button class="${active?'on':''}" data-sec="${a.id}"><svg viewBox="0 0 24 24">${icon}</svg><span class="tip">${a.label}</span></button>`;};
+  sp.innerHTML='<div class="logo">H</div>'+NAV.map(mk).join('')+'<div class="sp"></div>'+
+    `<button data-sec="settings" class="${state.section==='settings'&&state.mode==='agency'?'on':''}"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-2.9 1.09V21a2 2 0 11-4 0v-.09A1.65 1.65 0 007 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 14H4.5a2 2 0 110-4h.09A1.65 1.65 0 006 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 0011 4.6V4.5a2 2 0 114 0v.09a1.65 1.65 0 002.51.9l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 11h.1a2 2 0 110 4h-.1z"/></svg><span class="tip">Settings</span></button>`+
+    `<button style="margin-top:4px"><div style="width:30px;height:30px;border-radius:9px;background:var(--surface-3);display:grid;place-items:center;font-weight:600;font-size:12px">JH</div></button>`;
+  sp.querySelectorAll('[data-sec]').forEach(b=>b.onclick=()=>{const s=b.dataset.sec;state.section=s;if(s==='delivery')state.deliveryView='overview';renderAll();});
+}
+
+/* ============================ ROSTER ============================ */
+function renderList(){
+  let rows=SUB.filter(c=>(state.filter==='all'||c.health===state.filter)&&(c.name.toLowerCase().includes(state.query)||c.niche.toLowerCase().includes(state.query)));
+  $('#count').textContent=rows.length;
+  const inClient=state.section==='delivery'&&state.deliveryView==='client';
+  const overviewRow=`<button class="rcard ${!inClient?'active':''}" data-overview="1" style="--rc:#34d399;margin-bottom:6px">
+    <span class="av" style="background:rgba(52,211,153,.16);color:#34d399">${picon('wrench')}</span>
+    <span class="who"><b>Delivery overview</b><span>Pillar health &amp; constraint</span></span>
+    <span class="side"><span class="dot high" style="width:8px;height:8px;border-radius:50%;background:var(--danger)"></span></span>
+  </button><div class="sect-title" style="margin:6px 4px 8px">All accounts</div>`;
+  $('#list').innerHTML=overviewRow+rows.map(c=>`
+    <button class="rcard ${inClient&&c.id===state.client.id?'active':''}" data-id="${c.id}" style="--rc:${c.color}">
+      <span class="av" style="background:${c.color}">${c.initials}</span>
+      <span class="who"><b>${c.name}</b><span>${c.niche}</span></span>
+      <span class="side"><span class="row">${c.alerts?`<span class="badge">${c.alerts}</span>`:''}<span class="dot ${c.health}"></span></span><span class="n">${c.health==='paused'?'—':money(c.spend)}</span></span>
+    </button>`).join('');
+  $('#list').querySelector('[data-overview]').onclick=()=>{state.section='delivery';state.deliveryView='overview';renderAll();};
+  $('#list').querySelectorAll('[data-id]').forEach(el=>el.onclick=()=>{state.client=SUB.find(x=>x.id===el.dataset.id);state.section='delivery';state.deliveryView='client';state.tab='Overview';renderAll();});
+}
+
+/* ============================ MAIN ROUTER ============================ */
+function renderMain(){
+  const app=$('#app');
+  const rosterOn=state.section==='delivery';
+  app.classList.toggle('agency',!rosterOn);
+  if(rosterOn){
+    if(state.deliveryView==='client')renderCockpit();
+    else $('#main').innerHTML=agPillar('delivery');
+  } else renderAgency();
+}
+
+/* ---------- subaccount cockpit ---------- */
+const TABS=['Overview','Paid Ads','Leads','Inbox','Calendar','Revenue','Team','Config'];
+function renderCockpit(){
+  const c=state.client;
+  document.documentElement.style.setProperty('--acc',c.color);
+  document.documentElement.style.setProperty('--acc-bg',hexA(c.color,.12));
+  $('#main').innerHTML=`
+    <div class="m-head">
+      <div style="display:flex;align-items:center;gap:8px;color:var(--faint);font-size:12px;margin-bottom:12px">
+        <button onclick="goSection('delivery')" style="color:var(--brand-2);font-weight:500">‹ Service Delivery</button><span>/</span><span style="color:var(--muted)">${c.name}</span>
+      </div>
+      <div class="mh-top">
+        <div class="av" style="background:${c.color}">${c.initials}</div>
+        <div><h1>${c.name}</h1><div class="sub"><span>${c.niche}</span><span class="chip">${c.plan}</span><span class="chip ${c.health}">${hL(c.health)}</span><span style="color:var(--faint)">Updated ${c.updated}</span></div></div>
+        <div class="mh-actions">
+          <button class="btn ghost">View as owner</button>
+          <button class="btn primary"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>Enter live app</button>
+        </div>
+      </div>
+      <div class="tabs" id="tabs">${TABS.map(t=>`<button class="${t===state.tab?'on':''}" data-t="${t}">${t}</button>`).join('')}</div>
+    </div>
+    <div class="m-body" id="body"></div>`;
+  $('#tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{state.tab=b.dataset.t;renderCockpit();});
+  renderTab();
+}
+function renderTab(){
+  const c=state.client,b=$('#body');
+  const fn={'Overview':tabOverview,'Paid Ads':tabAds,'Leads':tabLeads,'Inbox':tabInbox,'Calendar':tabCalendar,'Revenue':tabRevenue,'Team':tabTeam,'Config':tabConfig}[state.tab];
+  b.innerHTML=fn(c);
+  if(state.tab==='Inbox')wireInbox();
+}
+const kpi=(l,v,d,dir='up')=>`<div class="kpi"><div class="lbl">${l}</div><div class="val">${v}</div><div class="delta ${dir}">${dir==='up'?'▲':dir==='down'?'▼':'■'} ${d}</div></div>`;
+const barSet=t=>{const m=Math.max(...t,1);return t.map(v=>`<span class="b" style="height:${8+(v/m)*100}%"></span>`).join('');};
+const sparkSet=t=>{const m=Math.max(...t,1);return `<span class="spark">${t.map(v=>`<span class="b" style="height:${3+(v/m)*23}px"></span>`).join('')}</span>`;};
+
+function tabOverview(c){
+  const cpl=c.leads?'$'+Math.round(c.spend/c.leads):'—';
+  return `<div class="kpis c4">${kpi('Ad spend (mo)',money(c.spend),'+8%')}${kpi('Leads (wk)',c.leads,'+12%')}${kpi('Appointments',c.appts,'+3')}${kpi('Revenue (mo)',money(c.revenue),'+15%')}</div>
+  <div class="cols a">
+    <div class="panel">
+      <h3><svg viewBox="0 0 24 24" style="color:var(--brand-2)"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Ad performance<a class="link" onclick="go('Paid Ads')">Open Paid Ads →</a></h3>
+      <div class="bars">${barSet(c.trend)}</div>
+      <div class="bars-x">${['W1','W2','W3','W4','W5','W6','W7','W8'].map(w=>`<span>${w}</span>`).join('')}</div>
+      <div class="metrics"><div><div class="k">Spend</div><div class="v mono">${money(c.spend)}</div></div><div><div class="k">Cost / lead</div><div class="v mono">${cpl}</div></div><div><div class="k">Booked</div><div class="v mono">${c.appts}</div></div><div><div class="k">ROAS</div><div class="v mono" style="color:var(--pos)">4.1×</div></div></div>
+    </div>
+    <div class="panel">
+      <h3><svg viewBox="0 0 24 24" style="color:var(--brand-2)"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Recent activity</h3>
+      <div class="act"><span class="ic">📞</span><div><div class="tx"><b>New lead</b> — Dana R. (Facebook)</div><div class="tm">4 min ago</div></div></div>
+      <div class="act"><span class="ic">📅</span><div><div class="tx">Estimate booked — Thu 2:00pm</div><div class="tm">22 min ago</div></div></div>
+      <div class="act"><span class="ic">💬</span><div><div class="tx">${c.unread} unread in Inbox</div><div class="tm">31 min ago</div></div></div>
+      <div class="act"><span class="ic">✅</span><div><div class="tx">Job won — $6,400</div><div class="tm">1 hr ago</div></div></div>
+    </div>
+  </div>
+  <div class="cols a" style="margin-top:16px">
+    <div class="panel"><h3><svg viewBox="0 0 24 24" style="color:var(--brand-2)"><path d="M3 6h18M7 12h10M10 18h4"/></svg>Pipeline snapshot<a class="link" onclick="go('Leads')">Open Leads →</a></h3>
+      ${STAGES.map((s,i)=>{const w=[100,66,42,24][i];const ct=[c.leads,Math.round(c.leads*.66),Math.round(c.leads*.42),Math.round(c.leads*.24)][i];return `<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)"><span style="width:96px;font-size:13px">${s[0]}</span><span style="flex:1;height:7px;border-radius:6px;background:var(--surface-3);overflow:hidden"><span style="display:block;height:100%;width:${w}%;background:${s[1]}"></span></span><span class="mono" style="width:26px;text-align:right;color:var(--muted)">${ct}</span></div>`;}).join('')}
+    </div>
+    <div class="panel"><h3><svg viewBox="0 0 24 24" style="color:var(--brand-2)"><path d="M20 6L9 17l-5-5"/></svg>Account health</h3>
+      ${[['Ads delivering',c.health!=='paused'],['Lead follow-up automations on',true],['Calendar synced',true],['Reviews auto-request',c.health==='good'],['Payment collection active',c.revenue>0]].map(h=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span class="dot ${h[1]?'good':'warn'}"></span>${h[0]}<span style="margin-left:auto;color:${h[1]?'var(--pos)':'var(--warn)'};font-size:12px">${h[1]?'OK':'Check'}</span></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function tabAds(c){
+  const cs=campaigns(c);const sig={scale:0,watch:0,kill:0,refresh:0};cs.forEach(x=>sig[x.signal]++);
+  return `<div class="kpis c4">${kpi('Spend (mo)',money(c.spend),'+8%')}${kpi('Leads',c.leads,'+12%')}${kpi('Cost / lead',c.leads?'$'+Math.round(c.spend/c.leads):'—','-6%','up')}${kpi('ROAS','4.1×','+0.3','up')}</div>
+  <div class="panel" style="margin-bottom:16px"><h3>⚡ Optimizer signals</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <span class="tag scale">SCALE ${sig.scale}</span><span class="tag watch">WATCH ${sig.watch}</span><span class="tag refresh">REFRESH ${sig.refresh}</span><span class="tag kill">KILL ${sig.kill}</span>
+      <span style="margin-left:auto;color:var(--faint);font-size:12px;align-self:center">Target CPA $${Math.round(c.spend/Math.max(c.leads,1)*1.2)||60} · LTV ÷ 3.0×</span>
+    </div>
+  </div>
+  <div class="panel"><h3>Campaigns</h3>
+    <table><thead><tr><th>Campaign</th><th>Status</th><th>Spend</th><th>Leads</th><th>CPL</th><th>ROAS</th><th>Trend</th><th>Signal</th></tr></thead><tbody>
+    ${cs.map(x=>`<tr class="row"><td style="font-weight:500">${x.name}</td><td><span class="tag ${x.status}">${x.status==='live'?'● Live':'Paused'}</span></td><td class="mono">${money(x.spend)}</td><td class="mono">${x.leads}</td><td class="mono">${x.cpl}</td><td class="mono">${x.roas}</td><td>${sparkSet(x.trend)}</td><td><span class="tag ${x.signal}">${x.signal.toUpperCase()}</span></td></tr>`).join('')}
+    </tbody></table>
+  </div>`;
+}
+
+function tabLeads(c){
+  const ls=leadsList(c);
+  return `<div class="kpis c4">${kpi('Open leads',ls.length,'+5')}${kpi('This week',c.leads,'+12%')}${kpi('Booked',c.appts,'+3')}${kpi('Win rate','24%','+2%')}</div>
+  <div class="kb">
+    ${STAGES.map((s,si)=>{const items=ls.filter(l=>l.stage===si);return `<div class="kcol"><div class="kh"><span class="dot" style="background:${s[1]}"></span>${s[0]}<span class="cnt">${items.length}</span></div>
+      ${items.map(l=>`<div class="lcard"><div class="ln"><span class="lav">${l.init}</span><div><div style="font-size:13px;font-weight:500">${l.name}</div><span class="src">${l.src}</span></div></div><div class="lm"><span>${l.value}</span><span>${l.ago} ago</span></div></div>`).join('')||'<div style="color:var(--faint);font-size:12px;text-align:center;padding:20px 0">Empty</div>'}
+    </div>`;}).join('')}
+  </div>`;
+}
+
+function tabInbox(c){
+  const cv=convos(c);state._cv=cv;
+  const wc=w=>w<20?'hot':w<60?'warm':'cool';
+  return `<div class="inbox">
+    <div class="inbox-list" id="ilist">
+      ${cv.map((m,i)=>`<div class="conv ${i===state.conv?'on':''}" data-i="${i}"><span class="cav" style="background:${m.chan[1]}">${m.init}</span><div class="cbody"><div class="ct"><b>${m.name}</b><span class="wait ${wc(m.wait)}">${m.wait}m</span></div><div class="sn">${m.snip}</div></div></div>`).join('')}
+    </div>
+    <div class="thread" id="thread"></div>
+  </div>`;
+}
+function wireInbox(){
+  const draw=()=>{const m=state._cv[state.conv];
+    $('#thread').innerHTML=`<div class="th-h"><span class="cav" style="background:${m.chan[1]};width:34px;height:34px">${m.init}</span><div><div style="font-weight:600">${m.name}</div><div style="font-size:11.5px;color:var(--muted)"><span class="chan" style="background:${hexA(m.chan[1],.18)};color:${m.chan[1]}">${m.chan[0]}</span> · waiting ${m.wait}m</div></div><button class="btn ghost sm" style="margin-left:auto">Open contact</button></div>
+      <div class="th-b">
+        <div class="msg them">${m.snip}<div class="mt">${m.wait}m ago</div></div>
+        <div class="msg us">Thanks for reaching out! I can help with that. What day works best for you?<div class="mt">just now</div></div>
+        <div class="msg them">${['Tomorrow afternoon?','Any time Thursday','Whenever you have an opening'][state.conv%3]}<div class="mt">moments ago</div></div>
+      </div>
+      <div class="th-compose"><input placeholder="Type a reply…"><button class="btn ghost sm">SMS ▾</button><button class="btn primary sm">Send</button></div>`;
+  };
+  $('#ilist').querySelectorAll('.conv').forEach(el=>el.onclick=()=>{state.conv=+el.dataset.i;$('#ilist').querySelectorAll('.conv').forEach(x=>x.classList.remove('on'));el.classList.add('on');draw();});
+  draw();
+}
+
+function tabCalendar(c){
+  const days=appts(c);
+  return `<div style="display:flex;align-items:center;margin-bottom:16px;gap:10px"><h3 style="font-size:15px">This week</h3><div style="margin-left:auto;display:flex;gap:6px"><button class="btn ghost sm">Month</button><button class="btn ghost sm" style="border-color:var(--brand-2);color:#fff">Week</button><button class="btn ghost sm">Agenda</button></div></div>
+  <div class="cal">${days.map(d=>`<div class="day"><div class="dh">${d.day} <span class="dd">${d.dd}</span><span style="margin-left:auto;font-size:11px;color:var(--faint);font-family:var(--mono)">${d.evs.length} appt${d.evs.length>1?'s':''}</span></div>
+    ${d.evs.map(e=>`<div class="evt"><span class="tm">${e.t}</span><span class="bar" style="background:${e.color}"></span><div><div class="en">${e.kind} — ${e.name}</div><div class="em">Assigned to ${e.who}</div></div><span class="who2">Confirmed</span></div>`).join('')}
+  </div>`).join('')}</div>`;
+}
+
+function tabRevenue(c){
+  if(c.revenue===0)return emptyState('No revenue yet','This account is paused. Billing resumes when ads restart.');
+  const cust=topCustomers(c);const pays=payments(c);const mx=Math.max(...cust.map(x=>x.val));
+  const trend=[.6,.7,.65,.8,.85,.9,.95,1].map(x=>Math.round(c.revenue/8*x*.4));
+  return `<div class="kpis c4">${kpi('Revenue (mo)',money(c.revenue),'+15%')}${kpi('MRR',money(c.mrr),'+0')}${kpi('Collected',money(Math.round(c.revenue*.82)),'+11%')}${kpi('Outstanding',money(Math.round(c.revenue*.18)),'-4%','down')}</div>
+  <div class="cols a">
+    <div class="panel"><h3>Revenue trend · 8 weeks</h3><div class="bars">${barSet(trend)}</div><div class="bars-x">${['W1','W2','W3','W4','W5','W6','W7','W8'].map(w=>`<span>${w}</span>`).join('')}</div></div>
+    <div class="panel"><h3>Top customers</h3>${cust.map(x=>`<div class="cust"><span class="cav">${x.init}</span><div><div class="cn">${x.name}</div><div class="cs">${x.jobs} job${x.jobs>1?'s':''}</div></div><span class="cv">${money(x.val)}</span></div>`).join('')}</div>
+  </div>
+  <div class="panel" style="margin-top:16px"><h3>Recent payments</h3>
+    <table><thead><tr><th>Customer</th><th>Method</th><th>Amount</th><th>When</th><th>Status</th></tr></thead><tbody>
+    ${pays.map(p=>`<tr class="row"><td style="font-weight:500">${p.name}</td><td class="mono" style="color:var(--muted)">${p.method}</td><td class="mono">${money(p.amt)}</td><td style="color:var(--muted)">${p.when}</td><td><span class="tag ${p.status==='Paid'?'live':'paused'}">${p.status}</span></td></tr>`).join('')}
+    </tbody></table>
+  </div>`;
+}
+
+function tabTeam(c){
+  const team=teamOf(c);const surf=['Leads','Inbox','Calendar','Revenue','Team'];
+  return `<div style="display:flex;align-items:center;margin-bottom:16px"><h3 style="font-size:15px">${c.name} · team & owners</h3><button class="btn primary sm" style="margin-left:auto">+ Add member</button></div>
+  <div class="panel">${team.map(m=>`<div class="staff"><span class="sav">${m.init}</span><div><div class="sn">${m.name}</div><div class="sr">${m.role} · active ${m.active}</div></div><div class="perms">${surf.map(s=>`<span class="perm ${m.perms.includes(s)?'on':''}">${s}</span>`).join('')}</div><button class="btn ghost sm" style="margin-left:12px">View as</button></div>`).join('')}</div>
+  <p style="color:var(--faint);font-size:12px;margin-top:12px">Members auto-provision to the hidden backend on save. Toggle which surfaces each person can view or edit.</p>`;
+}
+
+function tabConfig(c){
+  const row=(l,d,cv)=>`<div class="cfg-row"><div><div class="cl">${l}</div><div class="cd">${d}</div></div><div class="cv">${cv}</div></div>`;
+  const tog=(on)=>`<span class="toggle ${on?'on':''}"></span>`;
+  return `<div class="cols b">
+    <div class="panel"><h3>Business & branding</h3>
+      ${row('Business name','Shown across the client app',`<input class="field" value="${c.name}">`)}
+      ${row('Niche','Category for templates',`<input class="field" value="${c.niche}">`)}
+      ${row('Brand color','App accent & theme',`<span class="swatch" style="background:${c.color}"></span><input class="field" style="min-width:110px" value="${c.color}">`)}
+      ${row('App name','White-label title','<input class="field" value="Command Center">')}
+      ${row('Plan','Billing tier',`<span class="chip">${c.plan}</span>`)}
+    </div>
+    <div class="panel"><h3>Connection & access</h3>
+      ${row('Backend connection','Hidden CRM / automation sub-account',`<span class="tag ${c.health!=='paused'?'live':'paused'}">${c.health!=='paused'?'● Connected':'Not connected'}</span>`)}
+      ${row('Owner login','Primary account holder',`<span style="color:var(--muted);font-size:12.5px">${c.owner.toLowerCase().replace(' ','.')}@email.com</span>`)}
+      ${row('Reset owner password','Send a reset link','<button class="btn ghost sm">Send reset</button>')}
+      ${row('Meta ad account','For live ads insights','<span class="tag live mono">act_10293…</span>')}
+    </div>
+  </div>
+  <div class="panel" style="margin-top:16px"><h3>Surfaces</h3><p style="color:var(--faint);font-size:12px;margin:-8px 0 14px">Turn client-app sections on or off for this subaccount.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 40px">
+    ${[['Paid Ads',true],['Leads',true],['Inbox',true],['Calendar',true],['Revenue',c.revenue>0],['Contacts',true],['Reviews',c.health==='good'],['Automations',true],['Team',true],['Site',false]].map(s=>`<div class="cfg-row" style="padding:12px 0"><div class="cl">${s[0]}</div><div class="cv">${tog(s[1])}</div></div>`).join('')}
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:18px"><button class="btn primary">Save changes</button><button class="btn ghost">Preview as owner</button><button class="btn ghost" style="color:var(--danger);border-color:rgba(251,113,133,.3)">Pause account</button></div>`;
+}
+function emptyState(t,d){return `<div class="empty"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg><div><b style="color:var(--muted)">${t}</b></div><div style="font-size:12px">${d}</div></div>`;}
+window.go=t=>{state.tab=t;renderCockpit();};
+
+/* ============================ AGENCY PAGES ============================ */
+function agHead(title,sub,actions=''){return `<div class="m-head" style="padding-bottom:18px"><div class="mh-top" style="margin-bottom:0"><div><h1>${title}</h1><div class="sub"><span>${sub}</span></div></div><div class="mh-actions">${actions}</div></div></div>`;}
+function renderAgency(){
+  const fn={command:agCommand,acquisition:()=>agPillar('acquisition'),sales:()=>agPillar('sales'),delivery:()=>agPillar('delivery'),operations:()=>agPillar('operations'),settings:agSettings}[state.section]||agCommand;
+  $('#main').innerHTML=fn();
+}
+function agCommand(){
+  const con=PILLARS.delivery;
+  const active=SUB.filter(c=>c.health!=='paused'),mrr=SUB.reduce((a,c)=>a+c.mrr,0),leads=SUB.reduce((a,c)=>a+c.leads,0),spend=SUB.reduce((a,c)=>a+c.spend,0);
+  const sevRank={high:0,med:1,low:2};const order=Object.values(PILLARS).sort((a,b)=>sevRank[a.constraint.sev]-sevRank[b.constraint.sev]);
+  const sevWord=s=>s==='high'?'BINDING':s==='med'?'WATCH':'SLACK';
+  return agHead('Command','Your whole business on one screen','<button class="btn ghost">This month ▾</button><button class="btn primary">+ New subaccount</button>')+
+  `<div class="m-body">
+    <div class="banner">
+      <div class="bic">⛓️</div>
+      <div style="flex:1"><div class="bl">System constraint right now</div><div style="font-weight:600;font-size:15.5px;margin-top:3px">Service Delivery · ${con.constraint.title.toLowerCase().replace('delivery capacity is the system constraint','delivery capacity')}</div><div style="font-size:12.5px;color:var(--muted);margin-top:3px">${con.constraint.impact}</div></div>
+      <button class="btn primary" onclick="goSection('delivery')">Attack it →</button>
+    </div>
+    <div class="kpis c4">
+      ${kpi('Active clients',active.length+' / '+SUB.length,'+1')}
+      ${kpi('Recurring (MRR)',money(mrr),'+9%')}
+      ${kpi('Leads this week',leads,'+14%')}
+      ${kpi('Combined spend',money(spend),'+8%')}
+    </div>
+    <div class="sect-title">The business as a flow — throughput is limited by the narrowest stage</div>
+    <div class="flow">
+      ${['acquisition','sales','delivery'].map((id,i)=>{const p=PILLARS[id];const isC=p.constraint.sev==='high';return (i?arrow():'')+`<div class="stage"><button class="pillar ${isC?'constraint':''}" onclick="goSection('${id}')">
+        <div class="pi"><span class="picon" style="background:${p.color}">${picon(p.icon)}</span><span class="pn">${p.label}</span>${isC?'<span class="ctag">◀ CONSTRAINT</span>':`<span class="sev ${p.constraint.sev}" style="margin-left:auto">${sevWord(p.constraint.sev)}</span>`}</div>
+        <div class="pth">${p.throughput.val}</div><div class="pl">${p.throughput.label}</div>
+        <div style="margin-top:11px;font-size:11.5px;color:${isC?'var(--danger)':'var(--muted)'};line-height:1.4">${p.constraint.title}</div>
+      </button></div>`;}).join('')}
+    </div>
+    <button class="pillar" style="display:flex;align-items:center;gap:14px;margin-bottom:4px" onclick="goSection('operations')">
+      <span class="picon" style="background:${PILLARS.operations.color};width:40px;height:40px">${picon('gear')}</span>
+      <div><div class="pn">Internal Operations — the foundation under all three</div><div class="pl">${PILLARS.operations.throughput.label}: ${PILLARS.operations.throughput.val} · the lever that elevates the constraint</div></div>
+      <span class="sev med" style="margin-left:auto">WATCH · ${PILLARS.operations.constraint.title}</span>
+    </button>
+    <div class="sect-title">Constraints — one per pillar, ranked by how badly it binds</div>
+    ${order.map(p=>`<div class="cbrow ${p.constraint.sev==='high'?'hot':''}"><span class="picon" style="background:${p.color};width:38px;height:38px">${picon(p.icon)}</span>
+      <div style="flex:1"><div style="display:flex;align-items:center;gap:9px"><b style="font-size:13.5px">${p.label}</b><span class="sev ${p.constraint.sev}">${sevWord(p.constraint.sev)}</span></div>
+        <div style="font-size:12.5px;margin-top:3px">${p.constraint.title} — <span style="color:var(--muted)">${p.constraint.impact}</span></div></div>
+      <span class="mono" style="font-size:11.5px;color:var(--muted);white-space:nowrap">${p.constraint.metric}</span>
+      <button class="btn ghost sm" onclick="goSection('${p.id}')">Attack →</button></div>`).join('')}
+  </div>`;
+}
+function agPillar(id){
+  const p=PILLARS[id],con=p.constraint;
+  document.documentElement.style.setProperty('--acc',p.color);
+  const atRisk=id==='delivery'?SUB.filter(c=>c.health==='warn'):[];
+  const sevLabel=con.sev==='high'?'BINDING CONSTRAINT':con.sev==='med'?'WATCH — SUBORDINATE TO CONSTRAINT':'HAS SLACK — SUBORDINATE';
+  const stateTag=s=>s==='done'?'<span class="tag live">Done</span>':s==='doing'?'<span class="tag watch">In progress</span>':'<span class="tag paused">To do</span>';
+  return agHead(p.label,p.sub,'<button class="btn ghost" onclick="goSection(\'command\')">← All pillars</button><button class="btn primary" onclick="goSection(\'command\')">Command</button>')+
+  `<div class="m-body">
+    <div class="kpis c4">${p.kpis.map(k=>`<div class="kpi"><div class="lbl">${k[0]}</div><div class="val">${k[1]}</div></div>`).join('')}</div>
+    <div class="cols a">
+      <div class="panel" style="${con.sev==='high'?'border-color:rgba(251,113,133,.4);box-shadow:0 0 0 1px rgba(251,113,133,.2)':''}">
+        <h3><span class="sev ${con.sev}">${sevLabel}</span></h3>
+        <div style="font-family:var(--display);font-weight:700;font-size:19px;margin:2px 0 8px;letter-spacing:-.01em">${con.title}</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.65">${con.detail}</div>
+        <div class="metrics"><div><div class="k">Constraint metric</div><div class="v mono">${con.metric}</div></div><div style="flex:1"><div class="k">Impact on throughput</div><div class="v" style="font-size:13.5px;font-weight:500;line-height:1.4">${con.impact}</div></div></div>
+      </div>
+      <div class="panel"><h3>Throughput funnel</h3><div class="funnel">${p.funnel.map(f=>`<div class="fstep"><span class="fn">${f[0]}</span><span class="fbar" style="width:${Math.max(f[2],12)}%;background:${p.color}">${f[1]}</span></div>`).join('')}</div>
+        <p style="color:var(--faint);font-size:11.5px;margin:14px 0 0">Each step is where volume drops. The widest drop is where to look.</p></div>
+    </div>
+    <div class="panel" style="margin-top:16px"><h3>⚔️ Attack plan<span style="margin-left:9px;font-size:11px;color:var(--faint);font-weight:400">Theory of Constraints — Identify → Exploit → Subordinate → Elevate → Repeat</span></h3>
+      <div class="attack">${p.attack.map((a,i)=>`<div class="astep ${a[1]}"><span class="anum">${i+1}</span><div style="flex:1"><div class="aname">${a[0]}<span style="color:var(--faint);font-weight:400;font-size:11px"> · owner ${a[3]}</span></div><div style="font-size:12.5px;color:var(--muted);margin-top:3px">${a[2]}</div></div><span style="align-self:center">${stateTag(a[1])}</span></div>`).join('')}</div>
+    </div>
+    ${atRisk.length?`<div class="panel" style="margin-top:16px"><h3>Accounts strained by this constraint<span style="margin-left:auto;font-size:11.5px;color:var(--faint);font-weight:400">pick any account in the roster ←</span></h3>${atRisk.map(c=>`<div class="attn-card warn"><span class="av" style="background:${c.color}">${c.initials}</span><div><div style="font-weight:600">${c.name}</div><div class="why">${c.id==='bluepeak'?'CPL rising, leads down 30% — needs creative refresh':'Spend up, bookings flat — needs optimisation pass'}</div></div><button class="btn ghost sm" style="margin-left:auto" onclick="openClient('${c.id}')">Open →</button></div>`).join('')}</div>`:''}
+    ${id==='operations'?`<div class="cols b" style="margin-top:16px">
+      <div class="panel"><h3>Team capacity</h3>
+        ${[['Jake Hauck','Founder / Operator','—'],['Leo Park','Media Buyer','7 / 5 accounts'],['Ava Mercer','Account Manager','3 clients'],['Nina Ross','Onboarding','2 in flight'],['Hermes','Ops Agent','automation']].map(t=>`<div class="staff"><span class="sav">${t[0].split(' ').map(x=>x[0]).join('')}</span><div><div class="sn">${t[0]}</div><div class="sr">${t[1]}</div></div><span class="perm ${t[2].includes('7 / 5')?'':'on'}" style="margin-left:auto;${t[2].includes('7 / 5')?'background:rgba(251,113,133,.15);color:var(--danger)':''}">${t[2]}</span></div>`).join('')}
+      </div>
+      <div class="panel"><h3>Systems<a class="link">Run checks</a></h3>
+        ${[['Client App · CF Pages','#34d399','Operational'],['Database · Supabase','#34d399','Healthy'],['CRM / Automations','#34d399','Connected'],['Meta Ads API','#fbbf24','Token expires 12d'],['Calendar sync','#fbbf24','Desktop-only']].map(n=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px"><span class="dot" style="background:${n[1]}"></span>${n[0]}<span style="margin-left:auto;color:${n[1]};font-size:11.5px">${n[2]}</span></div>`).join('')}
+      </div>
+    </div>`:''}
+  </div>`;
+}
+window.goSection=id=>{state.section=id;if(id==='delivery')state.deliveryView='overview';renderAll();};
+function agSettings(){
+  const row=(l,d,cv)=>`<div class="cfg-row"><div><div class="cl">${l}</div><div class="cd">${d}</div></div><div class="cv">${cv}</div></div>`;
+  return agHead('Settings','Agency profile and defaults')+
+  `<div class="m-body"><div class="cols b">
+    <div class="panel"><h3>Agency profile</h3>
+      ${row('Agency name','',`<input class="field" value="Hauck Marketing">`)}
+      ${row('Primary domain','White-label app URL','<input class="field" value="app.hauckmarketing.com">')}
+      ${row('Default brand color','New subaccount default','<span class="swatch" style="background:#6366f1"></span><input class="field" style="min-width:110px" value="#6366f1">')}
+      ${row('Support email','','<input class="field" value="contact@hauckmarketing.com">')}
+    </div>
+    <div class="panel"><h3>Integrations</h3>
+      ${row('CRM / automations','White-label backend','<span class="tag live">● Connected</span>')}
+      ${row('Meta Business','Ads insights','<span class="tag live">● Connected</span>')}
+      ${row('Google (Calendar/Drive)','OAuth','<span class="tag refresh">Re-auth in 12d</span>')}
+      ${row('Stripe','Billing','<span class="tag live">● Connected</span>')}
+    </div>
+  </div></div>`;
+}
+window.openClient=id=>{state.client=SUB.find(c=>c.id===id);state.section='delivery';state.deliveryView='client';state.tab='Overview';renderAll();};
+
+/* ============================ WIRE ============================ */
+$('#search').oninput=e=>{state.query=e.target.value.toLowerCase();renderList();};
+$('#filters').querySelectorAll('button').forEach(el=>el.onclick=()=>{$('#filters').querySelector('.on').classList.remove('on');el.classList.add('on');state.filter=el.dataset.f;renderList();});
+function renderAll(){renderSpine();renderList();renderMain();}
+renderAll();
+</script>
+</body>
+</html>

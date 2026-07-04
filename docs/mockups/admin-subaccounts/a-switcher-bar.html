@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup A · Switcher Bar + Cockpit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0d1a; --surface:#111527; --surface-2:#171c33; --surface-3:#1e2440;
+    --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.14);
+    --text:#eef1fb; --muted:#9aa3c2; --faint:#697193;
+    --brand:#6366f1; --brand-2:#818cf8; --grad:linear-gradient(135deg,#6366f1,#a855f7);
+    --pos:#34d399; --warn:#fbbf24; --danger:#fb7185;
+    --font:"Inter",system-ui,sans-serif; --display:"Poppins",var(--font); --mono:"JetBrains Mono",monospace;
+    --z-bar:50; --z-menu:80;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:
+      radial-gradient(1100px 500px at 80% -10%,rgba(99,102,241,.16),transparent 60%),
+      radial-gradient(900px 500px at 0% 0%,rgba(168,85,247,.10),transparent 55%),
+      var(--bg);
+    color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+  h1,h2,h3,h4{font-family:var(--display);margin:0;letter-spacing:-.01em}
+  button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  /* ---------- Top switcher bar ---------- */
+  .bar{position:sticky;top:0;z-index:var(--z-bar);display:flex;align-items:center;gap:16px;
+    padding:12px 22px;background:rgba(12,15,30,.72);backdrop-filter:blur(18px);
+    border-bottom:1px solid var(--border)}
+  .brandmark{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+  .brandmark .logo{width:30px;height:30px;border-radius:9px;background:var(--grad);display:grid;place-items:center;font-size:14px;color:#fff;box-shadow:0 6px 18px rgba(99,102,241,.4)}
+  .bar-div{width:1px;height:26px;background:var(--border)}
+
+  /* switcher pill */
+  .switcher{position:relative}
+  .switcher-btn{display:flex;align-items:center;gap:11px;padding:7px 12px;border-radius:12px;
+    background:var(--surface-2);border:1px solid var(--border);transition:border-color .15s,background .15s;min-width:260px}
+  .switcher-btn:hover{border-color:var(--border-2);background:var(--surface-3)}
+  .switcher-btn .av{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-weight:600;font-size:12px;color:#fff;flex:none}
+  .switcher-btn .who{display:flex;flex-direction:column;line-height:1.15;text-align:left}
+  .switcher-btn .who b{font-weight:600}
+  .switcher-btn .who span{font-size:11.5px;color:var(--muted)}
+  .switcher-btn .chev{margin-left:auto;color:var(--faint);transition:transform .2s}
+  .switcher.open .switcher-btn .chev{transform:rotate(180deg)}
+  .kbd{margin-left:8px;font-family:var(--mono);font-size:10.5px;color:var(--faint);border:1px solid var(--border);border-radius:5px;padding:2px 5px}
+
+  /* dropdown menu */
+  .menu{position:absolute;top:calc(100% + 8px);left:0;width:380px;background:var(--surface);border:1px solid var(--border-2);
+    border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.55);padding:8px;z-index:var(--z-menu);
+    opacity:0;transform:translateY(-6px) scale(.99);pointer-events:none;transition:opacity .16s ease,transform .16s cubic-bezier(.2,.8,.2,1)}
+  .switcher.open .menu{opacity:1;transform:none;pointer-events:auto}
+  .menu-search{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:4px}
+  .menu-search input{flex:1;background:none;border:0;outline:0;color:var(--text);font-size:13px}
+  .menu-search input::placeholder{color:var(--faint)}
+  .menu-scroll{max-height:340px;overflow:auto}
+  .menu-scroll::-webkit-scrollbar{width:8px}.menu-scroll::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:8px}
+  .opt{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;width:100%;text-align:left;transition:background .12s}
+  .opt:hover,.opt.active{background:var(--surface-2)}
+  .opt .av{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-weight:600;font-size:12px;color:#fff;flex:none}
+  .opt .who{display:flex;flex-direction:column;line-height:1.2}
+  .opt .who b{font-weight:600;font-size:13px}
+  .opt .who span{font-size:11.5px;color:var(--muted)}
+  .opt .meta{margin-left:auto;text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .dot.good{background:var(--pos);box-shadow:0 0 8px rgba(52,211,153,.7)}
+  .dot.warn{background:var(--warn);box-shadow:0 0 8px rgba(251,191,36,.6)}
+  .dot.paused{background:var(--faint)}
+  .menu-foot{display:flex;gap:8px;padding:8px 8px 4px;border-top:1px solid var(--border);margin-top:4px}
+  .menu-foot button{flex:1;padding:9px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);font-size:12.5px;font-weight:500;transition:.15s}
+  .menu-foot button:hover{border-color:var(--border-2)}
+
+  .bar-spacer{flex:1}
+  .bar-actions{display:flex;align-items:center;gap:8px}
+  .icon-btn{width:38px;height:38px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);display:grid;place-items:center;color:var(--muted);transition:.15s;position:relative}
+  .icon-btn:hover{color:var(--text);border-color:var(--border-2)}
+  .icon-btn .badge{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;font-weight:600;display:grid;place-items:center}
+  .enter-btn{display:flex;align-items:center;gap:8px;padding:9px 15px;border-radius:11px;background:var(--grad);color:#fff;font-weight:600;font-size:13px;box-shadow:0 8px 22px rgba(99,102,241,.4);transition:transform .15s,box-shadow .15s}
+  .enter-btn:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(99,102,241,.5)}
+
+  /* ---------- Cockpit ---------- */
+  .wrap{max-width:1280px;margin:0 auto;padding:26px 24px 60px}
+  .crumbs{display:flex;align-items:center;gap:8px;color:var(--faint);font-size:12.5px;margin-bottom:18px}
+  .crumbs b{color:var(--muted);font-weight:500}
+
+  /* identity hero */
+  .hero{position:relative;overflow:hidden;border-radius:22px;border:1px solid var(--border);
+    background:linear-gradient(160deg,var(--surface-2),var(--surface));padding:26px 28px;margin-bottom:22px}
+  .hero::before{content:"";position:absolute;inset:0;background:radial-gradient(600px 240px at 88% -40%,var(--accent,rgba(99,102,241,.28)),transparent 65%);pointer-events:none}
+  .hero-top{display:flex;align-items:center;gap:18px;position:relative;flex-wrap:wrap}
+  .hero .av{width:64px;height:64px;border-radius:16px;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:24px;color:#fff;flex:none;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .hero h1{font-size:26px;font-weight:700}
+  .hero .sub{color:var(--muted);font-size:13.5px;margin-top:3px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:500;border:1px solid var(--border);background:var(--surface-3)}
+  .chip.good{color:var(--pos);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.1)}
+  .chip.warn{color:var(--warn);border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.1)}
+  .chip.paused{color:var(--faint)}
+  .hero-actions{margin-left:auto;display:flex;gap:9px}
+  .ghost{padding:9px 14px;border-radius:10px;border:1px solid var(--border-2);background:var(--surface-3);font-weight:500;font-size:13px;transition:.15s}
+  .ghost:hover{border-color:var(--brand-2);color:#fff}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;position:relative;margin-top:22px}
+  .kpi{background:rgba(10,13,26,.5);border:1px solid var(--border);border-radius:14px;padding:15px 16px}
+  .kpi .lbl{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .kpi .val{font-family:var(--display);font-weight:700;font-size:26px;margin-top:6px;letter-spacing:-.02em}
+  .kpi .delta{font-family:var(--mono);font-size:11.5px;margin-top:4px}
+  .kpi .delta.up{color:var(--pos)} .kpi .delta.down{color:var(--danger)}
+
+  /* module grid */
+  .grid{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px 20px}
+  .panel h3{font-size:15px;font-weight:600;display:flex;align-items:center;gap:9px;margin-bottom:2px}
+  .panel .h-sub{color:var(--faint);font-size:12px;margin-bottom:14px}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .link{color:var(--brand-2);font-size:12.5px;font-weight:500}
+  .link:hover{text-decoration:underline}
+
+  /* ads bars */
+  .bars{display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:8px}
+  .bars .b{flex:1;border-radius:6px 6px 3px 3px;background:linear-gradient(180deg,var(--brand-2),rgba(99,102,241,.25));transition:height .5s cubic-bezier(.2,.8,.2,1)}
+  .bars-x{display:flex;gap:8px;margin-top:8px}
+  .bars-x span{flex:1;text-align:center;font-size:10.5px;color:var(--faint);font-family:var(--mono)}
+  .ads-row{display:flex;gap:20px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+  .ads-row div{display:flex;flex-direction:column}
+  .ads-row .k{font-size:11px;color:var(--muted)}
+  .ads-row .v{font-family:var(--display);font-weight:600;font-size:18px;margin-top:2px}
+
+  /* pipeline mini */
+  .stage{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .stage:last-child{border-bottom:0}
+  .stage .nm{font-size:13px}
+  .stage .track{flex:1;height:7px;border-radius:6px;background:var(--surface-3);overflow:hidden}
+  .stage .fill{height:100%;border-radius:6px;background:var(--grad)}
+  .stage .ct{font-family:var(--mono);font-size:12.5px;color:var(--muted);width:26px;text-align:right}
+
+  /* activity feed */
+  .feed{display:flex;flex-direction:column;gap:2px}
+  .act{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .act:last-child{border-bottom:0}
+  .act .ic{width:32px;height:32px;border-radius:9px;background:var(--surface-2);display:grid;place-items:center;flex:none;font-size:14px}
+  .act .tx{font-size:12.5px;line-height:1.4}
+  .act .tx b{font-weight:600}
+  .act .tm{color:var(--faint);font-size:11px;margin-top:2px;font-family:var(--mono)}
+
+  /* quick links */
+  .qk{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .qk a{display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border);font-size:12.5px;font-weight:500;transition:.15s}
+  .qk a:hover{border-color:var(--border-2);transform:translateY(-1px)}
+  .qk a .ic{width:30px;height:30px;border-radius:8px;background:var(--surface-3);display:grid;place-items:center;font-size:15px}
+
+  .note{max-width:1280px;margin:24px auto 0;padding:0 24px;color:var(--faint);font-size:12px;text-align:center}
+  @media (max-width:960px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.switcher-btn{min-width:190px}.wrap{padding:20px 14px 48px}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</head>
+<body>
+  <!-- ===== Switcher bar ===== -->
+  <header class="bar">
+    <div class="brandmark"><span class="logo">H</span>Hauck<span style="color:var(--faint);font-weight:500">Command</span></div>
+    <div class="bar-div"></div>
+
+    <div class="switcher" id="switcher">
+      <button class="switcher-btn" id="switcherBtn" aria-haspopup="listbox" aria-expanded="false">
+        <span class="av" id="pillAv"></span>
+        <span class="who"><b id="pillName"></b><span id="pillNiche"></span></span>
+        <span class="chev"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span>
+      </button>
+      <div class="menu" role="listbox" aria-label="Switch subaccount">
+        <div class="menu-search">
+          <svg viewBox="0 0 24 24" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="menuSearch" placeholder="Search subaccounts…" />
+          <span class="kbd">Ctrl K</span>
+        </div>
+        <div class="menu-scroll" id="menuList"></div>
+        <div class="menu-foot">
+          <button>+ New subaccount</button>
+          <button>Manage all</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bar-spacer"></div>
+    <div class="bar-actions">
+      <button class="icon-btn" title="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
+      <button class="icon-btn" title="Notifications"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg><span class="badge">5</span></button>
+      <button class="enter-btn"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>Enter live app</button>
+    </div>
+  </header>
+
+  <!-- ===== Cockpit ===== -->
+  <main class="wrap">
+    <div class="crumbs">Subaccounts <span>/</span> <b id="crumbName"></b> <span>/</span> Cockpit</div>
+
+    <section class="hero" id="hero">
+      <div class="hero-top">
+        <div class="av" id="heroAv"></div>
+        <div>
+          <h1 id="heroName"></h1>
+          <div class="sub">
+            <span id="heroNiche"></span>
+            <span class="chip" id="heroPlan"></span>
+            <span class="chip" id="heroHealth"></span>
+            <span style="color:var(--faint)">Updated <span id="heroUpd"></span></span>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <button class="ghost">View as owner</button>
+          <button class="ghost">Settings</button>
+        </div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+    </section>
+
+    <div class="grid">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h3><svg viewBox="0 0 24 24" style="color:var(--brand-2)"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Ad performance</h3><div class="h-sub">Leads generated, last 8 weeks</div></div>
+            <a class="link">Open Paid Ads →</a>
+          </div>
+          <div class="bars" id="bars"></div>
+          <div class="bars-x"><span>W1</span><span>W2</span><span>W3</span><span>W4</span><span>W5</span><span>W6</span><span>W7</span><span>W8</span></div>
+          <div class="ads-row">
+            <div><span class="k">Spend</span><span class="v mono" id="adSpend"></span></div>
+            <div><span class="k">Cost / lead</span><span class="v mono" id="adCpl"></span></div>
+            <div><span class="k">Booked calls</span><span class="v mono" id="adAppts"></span></div>
+            <div><span class="k">ROAS</span><span class="v mono" style="color:var(--pos)">4.1×</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><div><h3><svg viewBox="0 0 24 24" style="color:var(--brand-2)"><path d="M3 6h18M7 12h10M10 18h4"/></svg>Pipeline snapshot</h3></div><a class="link">Open Leads →</a></div>
+          <div class="stage"><span class="nm">New lead</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="ct" id="pl1">38</span></div>
+          <div class="stage"><span class="nm">Contacted</span><span class="track"><span class="fill" style="width:66%"></span></span><span class="ct">25</span></div>
+          <div class="stage"><span class="nm">Estimate sent</span><span class="track"><span class="fill" style="width:42%"></span></span><span class="ct">16</span></div>
+          <div class="stage"><span class="nm">Won</span><span class="track"><span class="fill" style="width:24%"></span></span><span class="ct">9</span></div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="panel">
+          <h3 style="margin-bottom:14px"><svg viewBox="0 0 24 24" style="color:var(--brand-2)"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Recent activity</h3>
+          <div class="feed">
+            <div class="act"><span class="ic">📞</span><div><div class="tx"><b>New lead</b> from Facebook — Dana R.</div><div class="tm">4 min ago</div></div></div>
+            <div class="act"><span class="ic">📅</span><div><div class="tx">Estimate booked for <b>Thu 2:00pm</b></div><div class="tm">22 min ago</div></div></div>
+            <div class="act"><span class="ic">💬</span><div><div class="tx">3 unread messages in Inbox</div><div class="tm">31 min ago</div></div></div>
+            <div class="act"><span class="ic">✅</span><div><div class="tx">Job marked <b>Won</b> — $6,400</div><div class="tm">1 hr ago</div></div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3 style="margin-bottom:14px"><svg viewBox="0 0 24 24" style="color:var(--brand-2)"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>Jump into</h3>
+          <div class="qk">
+            <a><span class="ic">🎯</span>Paid Ads</a>
+            <a><span class="ic">📥</span>Inbox</a>
+            <a><span class="ic">🗓️</span>Calendar</a>
+            <a><span class="ic">💰</span>Revenue</a>
+            <a><span class="ic">👥</span>Team</a>
+            <a><span class="ic">⚙️</span>Config</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <p class="note">Mockup A — “Switcher Bar + Cockpit”. Persistent top switcher, one scrolling agency-side cockpit per subaccount, “Enter live app” top-right. Demo data.</p>
+
+<script src="shared-data.js"></script>
+<script>
+  const S = window.SUBACCOUNTS, money = window.money;
+  let current = S[0], filtered = S.slice();
+  const $ = s => document.querySelector(s);
+
+  function healthLabel(h){return h==='good'?'Healthy':h==='warn'?'Needs attention':'Paused';}
+
+  function render(){
+    const c = current;
+    document.documentElement.style.setProperty('--accent', hexA(c.color,.30));
+    // pill
+    $('#pillAv').style.background=c.color; $('#pillAv').textContent=c.initials;
+    $('#pillName').textContent=c.name; $('#pillNiche').textContent=c.niche;
+    // hero
+    $('#crumbName').textContent=c.name;
+    $('#heroAv').style.background=c.color; $('#heroAv').textContent=c.initials;
+    $('#heroName').textContent=c.name; $('#heroNiche').textContent=c.niche;
+    $('#heroUpd').textContent=c.updated;
+    const plan=$('#heroPlan'); plan.textContent=c.plan; plan.className='chip';
+    const hh=$('#heroHealth'); hh.textContent=healthLabel(c.health); hh.className='chip '+c.health;
+    // kpis
+    const cpl = c.leads ? '$'+Math.round(c.spend/c.leads) : '—';
+    $('#kpis').innerHTML = kpi('Ad spend (mo)',money(c.spend),'up','+8%')+kpi('Leads (wk)',c.leads,'up','+12%')+kpi('Appointments',c.appts,c.appts?'up':'down',c.appts?'+3':'0')+kpi('Revenue (mo)',money(c.revenue),'up','+15%');
+    // ads bars
+    const max=Math.max(...c.trend,1);
+    $('#bars').innerHTML=c.trend.map(v=>`<span class="b" style="height:${8+ (v/max)*100}%"></span>`).join('');
+    $('#adSpend').textContent=money(c.spend); $('#adCpl').textContent=cpl; $('#adAppts').textContent=c.appts;
+    $('#pl1').textContent=c.leads;
+    renderMenu();
+  }
+  function kpi(l,v,dir,d){return `<div class="kpi"><div class="lbl">${l}</div><div class="val">${v}</div><div class="delta ${dir}">${dir==='up'?'▲':'▼'} ${d}</div></div>`;}
+  function hexA(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
+
+  function renderMenu(){
+    $('#menuList').innerHTML = filtered.map(c=>`
+      <button class="opt ${c.id===current.id?'active':''}" data-id="${c.id}">
+        <span class="av" style="background:${c.color}">${c.initials}</span>
+        <span class="who"><b>${c.name}</b><span>${c.niche} · ${c.plan}</span></span>
+        <span class="meta">${c.health==='paused'?'paused':money(c.spend)}<br><span style="color:var(--faint)">${c.leads} leads</span></span>
+        <span class="dot ${c.health}"></span>
+      </button>`).join('');
+    $('#menuList').querySelectorAll('.opt').forEach(el=>el.onclick=()=>{
+      current = S.find(x=>x.id===el.dataset.id); closeMenu(); render();
+    });
+  }
+
+  const sw=$('#switcher');
+  function openMenu(){sw.classList.add('open');$('#switcherBtn').setAttribute('aria-expanded','true');setTimeout(()=>$('#menuSearch').focus(),40);}
+  function closeMenu(){sw.classList.remove('open');$('#switcherBtn').setAttribute('aria-expanded','false');$('#menuSearch').value='';filtered=S.slice();}
+  $('#switcherBtn').onclick=(e)=>{e.stopPropagation();sw.classList.contains('open')?closeMenu():openMenu();};
+  document.addEventListener('click',e=>{if(!sw.contains(e.target))closeMenu();});
+  $('#menuSearch').oninput=e=>{const q=e.target.value.toLowerCase();filtered=S.filter(c=>c.name.toLowerCase().includes(q)||c.niche.toLowerCase().includes(q));renderMenu();};
+  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();sw.classList.contains('open')?closeMenu():openMenu();}if(e.key==='Escape')closeMenu();});
+
+  render();
+</script>
+</body>
+</html>

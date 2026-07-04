@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin Subaccounts · Mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0d1a;--surface:#111527;--surface-2:#171c33;--border:rgba(255,255,255,.08);--border-2:rgba(255,255,255,.14);--text:#eef1fb;--muted:#9aa3c2;--faint:#697193;--grad:linear-gradient(135deg,#6366f1,#a855f7);--brand-2:#818cf8}
+  *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(1000px 500px at 80% -10%,rgba(99,102,241,.16),transparent 60%),var(--bg);color:var(--text);font-family:"Inter",sans-serif;-webkit-font-smoothing:antialiased}
+  h1,h2{font-family:"Poppins",sans-serif;margin:0;letter-spacing:-.02em}
+  .wrap{max-width:1080px;margin:0 auto;padding:60px 28px}
+  .logo{width:44px;height:44px;border-radius:12px;background:var(--grad);display:grid;place-items:center;font-family:"Poppins";font-weight:700;color:#fff;font-size:20px;box-shadow:0 8px 22px rgba(99,102,241,.4)}
+  header{display:flex;align-items:center;gap:16px;margin-bottom:10px}
+  .sub{color:var(--muted);font-size:15px;max-width:640px;margin-bottom:40px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .card{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;transition:transform .18s cubic-bezier(.2,.8,.2,1),border-color .18s,box-shadow .18s}
+  .card:hover{transform:translateY(-4px);border-color:var(--border-2);box-shadow:0 18px 44px rgba(0,0,0,.45)}
+  .thumb{height:150px;background:var(--surface-2);position:relative;overflow:hidden;border-bottom:1px solid var(--border)}
+  .thumb .tag{position:absolute;top:12px;left:12px;font-family:"Poppins";font-weight:700;font-size:13px;padding:4px 10px;border-radius:8px;background:rgba(10,13,26,.7);border:1px solid var(--border-2)}
+  .body{padding:18px 20px}
+  .body h2{font-size:17px;font-weight:600;margin-bottom:6px}
+  .body p{color:var(--muted);font-size:13px;line-height:1.5;margin:0}
+  .body .go{margin-top:14px;color:var(--brand-2);font-size:12.5px;font-weight:600}
+  /* mini illustrations */
+  .ill{position:absolute;inset:0;padding:26px 14px 0}
+  .ba{height:14px;border-radius:5px;background:var(--grad);margin:0 auto 10px;width:60%}
+  .brow{display:flex;gap:6px;margin:0 14px 6px}.brow i{height:26px;border-radius:5px;background:#20264a;flex:1}
+  .bside{display:flex;gap:6px;height:88px;margin:0 14px}.bside .r{width:34%;background:#20264a;border-radius:6px}.bside .m{flex:1;background:#181d38;border-radius:6px}
+  .cgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:6px 14px 0}.cgrid i{height:40px;border-radius:6px;background:#20264a}
+  .foot{color:var(--faint);font-size:12.5px;margin-top:34px;text-align:center}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header><div class="logo">H</div><div><h1>Admin Subaccounts</h1></div></header>
+    <p class="sub">Three structural directions for a “go into any company’s subaccount” admin. Same demo data, same design kit, completely different navigation. Open each, then tell me which structure to build.</p>
+
+    <div class="grid">
+      <a class="card" href="a-switcher-bar.html">
+        <div class="thumb"><span class="tag">A</span><div class="ill"><div class="ba"></div><div class="brow"><i></i><i></i><i></i><i></i></div><div class="brow"><i></i><i></i></div></div></div>
+        <div class="body"><h2>Switcher Bar + Cockpit</h2><p>A persistent top switcher (Ctrl-K to jump). Pick a company and one scrolling agency-side cockpit fills the screen. Familiar, fast.</p><div class="go">Open A →</div></div>
+      </a>
+      <a class="card" href="b-roster-rail.html">
+        <div class="thumb"><span class="tag">B</span><div class="ill"><div class="bside"><div class="r"></div><div class="m"></div></div></div></div>
+        <div class="body"><h2>Roster Rail (master–detail)</h2><p>All companies listed in a left rail you scan and switch instantly. Right side is a deep tabbed workspace per client. The GoHighLevel feel.</p><div class="go">Open B →</div></div>
+      </a>
+      <a class="card" href="c-portfolio-board.html">
+        <div class="thumb"><span class="tag">C</span><div class="ill"><div class="cgrid"><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>
+        <div class="body"><h2>Portfolio Board → Drill-in</h2><p>Start on the whole portfolio: every company as a live mini-dashboard card. Click to drill into a full cockpit drawer. Best for “who needs me today.”</p><div class="go">Open C →</div></div>
+      </a>
+    </div>
+    <p class="foot">All three: “Enter live app” to operate the client’s real dashboard · demo data, not wired</p>
+  </div>
+</body>
+</html>

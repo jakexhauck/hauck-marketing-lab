@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup C · Portfolio Board → Drill-in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0d1a; --surface:#111527; --surface-2:#171c33; --surface-3:#1e2440;
+    --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.14);
+    --text:#eef1fb; --muted:#9aa3c2; --faint:#697193;
+    --brand:#6366f1; --brand-2:#818cf8; --grad:linear-gradient(135deg,#6366f1,#a855f7);
+    --pos:#34d399; --warn:#fbbf24; --danger:#fb7185;
+    --font:"Inter",system-ui,sans-serif; --display:"Poppins",var(--font); --mono:"JetBrains Mono",monospace;
+    --z-drawer:100;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:
+      radial-gradient(1000px 460px at 85% -12%,rgba(99,102,241,.14),transparent 60%),
+      radial-gradient(800px 460px at -5% 0%,rgba(168,85,247,.10),transparent 55%),var(--bg);
+    color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+  h1,h2,h3,h4{font-family:var(--display);margin:0;letter-spacing:-.01em}
+  button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  .top{display:flex;align-items:center;gap:14px;padding:16px 30px;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(12,15,30,.72);backdrop-filter:blur(16px);z-index:20}
+  .brandmark{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;letter-spacing:-.02em}
+  .brandmark .logo{width:32px;height:32px;border-radius:9px;background:var(--grad);display:grid;place-items:center;color:#fff;box-shadow:0 6px 18px rgba(99,102,241,.4)}
+  .top .sp{flex:1}
+  .top .search{display:flex;align-items:center;gap:9px;padding:9px 14px;border-radius:11px;background:var(--surface-2);border:1px solid var(--border);width:280px}
+  .top .search input{flex:1;background:none;border:0;outline:0;color:var(--text);font-size:13px}
+  .top .search input::placeholder{color:var(--faint)}
+  .top .avatar{width:38px;height:38px;border-radius:10px;background:var(--surface-3);border:1px solid var(--border);display:grid;place-items:center;font-weight:600}
+
+  .wrap{max-width:1360px;margin:0 auto;padding:28px 30px 70px}
+  .pagehead{display:flex;align-items:flex-end;gap:16px;margin-bottom:22px}
+  .pagehead h1{font-size:26px;font-weight:700}
+  .pagehead p{color:var(--muted);font-size:13.5px;margin:4px 0 0}
+
+  /* agency roll-up strip */
+  .rollup{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+  .roll{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:15px 17px}
+  .roll .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .roll .val{font-family:var(--display);font-weight:700;font-size:24px;margin-top:5px}
+  .roll .val small{font-size:13px;color:var(--faint);font-weight:500}
+  .roll.attn{border-color:rgba(251,191,36,.35);background:linear-gradient(160deg,rgba(251,191,36,.10),var(--surface))}
+  .roll.attn .val{color:var(--warn)}
+
+  .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+  .segs{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:4px}
+  .segs button{padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:500;color:var(--muted);transition:.13s}
+  .segs button:hover{color:var(--text)}
+  .segs button.on{background:var(--surface-3);color:var(--text)}
+  .toolbar .sp{flex:1}
+  .toolbar .add{display:flex;align-items:center;gap:8px;padding:9px 15px;border-radius:11px;background:var(--grad);color:#fff;font-weight:600;font-size:13px;box-shadow:0 8px 20px rgba(99,102,241,.35)}
+
+  /* board of cards */
+  .board{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+  .card{position:relative;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px;transition:transform .18s cubic-bezier(.2,.8,.2,1),border-color .18s,box-shadow .18s;overflow:hidden}
+  .card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--acc)}
+  .card:hover{transform:translateY(-3px);border-color:var(--border-2);box-shadow:0 16px 40px rgba(0,0,0,.4)}
+  .card-top{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .card .av{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-weight:700;font-size:15px;color:#fff;flex:none;font-family:var(--display)}
+  .card .who b{display:block;font-weight:600;font-size:15px}
+  .card .who span{font-size:11.5px;color:var(--muted)}
+  .card .status{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;padding:4px 9px;border-radius:20px;border:1px solid var(--border)}
+  .status.good{color:var(--pos);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.08)}
+  .status.warn{color:var(--warn);border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.08)}
+  .status.paused{color:var(--faint)}
+  .dot{width:7px;height:7px;border-radius:50%}
+  .dot.good{background:var(--pos)}.dot.warn{background:var(--warn)}.dot.paused{background:var(--faint)}
+
+  .card-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+  .card-stats .s .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .card-stats .s .v{font-family:var(--display);font-weight:600;font-size:18px;margin-top:2px}
+  .spark{display:flex;align-items:flex-end;gap:3px;height:38px;margin-bottom:14px}
+  .spark .b{flex:1;border-radius:3px;background:linear-gradient(180deg,var(--acc),transparent);opacity:.85}
+  .card-foot{display:flex;align-items:center;gap:8px;padding-top:14px;border-top:1px solid var(--border)}
+  .alert{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--warn);font-weight:500}
+  .card-foot .enter{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--brand-2)}
+  .card:hover .enter{color:#fff}
+
+  /* ---------- drill-in drawer ---------- */
+  .scrim{position:fixed;inset:0;background:rgba(4,6,14,.6);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:var(--z-drawer)}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:min(920px,94vw);background:var(--bg);border-left:1px solid var(--border-2);
+    box-shadow:-30px 0 80px rgba(0,0,0,.5);transform:translateX(100%);transition:transform .32s cubic-bezier(.2,.85,.2,1);z-index:calc(var(--z-drawer) + 1);display:flex;flex-direction:column}
+  .drawer.open{transform:none}
+  .drawer-head{padding:22px 26px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--acc-bg),transparent)}
+  .dh-row{display:flex;align-items:center;gap:15px}
+  .dh-row .av{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:19px;color:#fff;flex:none}
+  .dh-row h2{font-size:21px;font-weight:700}
+  .dh-row .sub{color:var(--muted);font-size:12.5px;margin-top:3px;display:flex;gap:8px;align-items:center}
+  .chip{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--surface-2)}
+  .dh-row .close{margin-left:auto;width:40px;height:40px;border-radius:11px;background:var(--surface-2);border:1px solid var(--border);display:grid;place-items:center;color:var(--muted);transition:.15s}
+  .dh-row .close:hover{color:var(--text);border-color:var(--border-2)}
+  .drawer-actions{display:flex;gap:9px;margin-top:16px}
+  .btn{padding:10px 15px;border-radius:11px;font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px;transition:.15s}
+  .btn.primary{background:var(--grad);color:#fff;box-shadow:0 8px 22px rgba(99,102,241,.4)}
+  .btn.primary:hover{transform:translateY(-1px)}
+  .btn.ghost{border:1px solid var(--border-2);background:var(--surface-2)}
+  .dtabs{display:flex;gap:2px;padding:0 26px;border-bottom:1px solid var(--border)}
+  .dtabs button{padding:13px 15px;font-size:13px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;transition:.15s}
+  .dtabs button.on{color:var(--text);border-bottom-color:var(--brand)}
+  .dtabs button:hover{color:var(--text)}
+  .drawer-body{flex:1;overflow:auto;padding:22px 26px 40px}
+  .drawer-body::-webkit-scrollbar{width:9px}.drawer-body::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:8px}
+  .dkpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}
+  .dkpi{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:14px 15px}
+  .dkpi .lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .dkpi .val{font-family:var(--display);font-weight:700;font-size:22px;margin-top:5px}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:17px 19px;margin-bottom:14px}
+  .panel h3{font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .bars{display:flex;align-items:flex-end;gap:7px;height:120px}
+  .bars .b{flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--brand-2),rgba(99,102,241,.2))}
+  .act{display:flex;gap:11px;padding:9px 0;border-bottom:1px solid var(--border)}.act:last-child{border:0}
+  .act .ic{width:30px;height:30px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;flex:none}
+  .act .tx{font-size:12.5px}.act .tm{color:var(--faint);font-size:11px;font-family:var(--mono);margin-top:2px}
+
+  .note{max-width:1360px;margin:6px auto 0;padding:0 30px;color:var(--faint);font-size:12px;text-align:center}
+  @media (max-width:640px){.rollup{grid-template-columns:1fr 1fr}.top .search{display:none}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+  <header class="top">
+    <div class="brandmark"><span class="logo">H</span>Hauck Command</div>
+    <div class="sp"></div>
+    <div class="search"><svg viewBox="0 0 24 24" style="color:var(--faint)"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="search" placeholder="Search subaccounts…"></div>
+    <div class="avatar">JH</div>
+  </header>
+
+  <main class="wrap">
+    <div class="pagehead">
+      <div><h1>Subaccounts</h1><p>Every company you run, live at a glance. Click any card to drill in.</p></div>
+    </div>
+
+    <div class="rollup" id="rollup"></div>
+
+    <div class="toolbar">
+      <div class="segs" id="segs">
+        <button class="on" data-f="all">All</button>
+        <button data-f="warn">Needs attention</button>
+        <button data-f="good">Healthy</button>
+        <button data-f="paused">Paused</button>
+      </div>
+      <div class="sp"></div>
+      <button class="add"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New subaccount</button>
+    </div>
+
+    <div class="board" id="board"></div>
+  </main>
+  <p class="note">Mockup C — “Portfolio Board → Drill-in”. Start on the whole portfolio (each card a live mini-dashboard); click to drill into a full cockpit, “Enter live app” inside. Demo data.</p>
+
+  <!-- drill-in drawer -->
+  <div class="scrim" id="scrim"></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div class="dh-row">
+        <div class="av" id="drAv"></div>
+        <div><h2 id="drName"></h2><div class="sub"><span id="drNiche"></span><span class="chip" id="drPlan"></span><span class="chip" id="drHealth"></span></div></div>
+        <button class="close" id="drClose"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="drawer-actions">
+        <button class="btn primary"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>Enter live app</button>
+        <button class="btn ghost">View as owner</button>
+        <button class="btn ghost">Settings</button>
+      </div>
+    </div>
+    <div class="dtabs" id="dtabs">
+      <button class="on" data-t="Overview">Overview</button>
+      <button data-t="Paid Ads">Paid Ads</button>
+      <button data-t="Leads">Leads</button>
+      <button data-t="Revenue">Revenue</button>
+      <button data-t="Config">Config</button>
+    </div>
+    <div class="drawer-body" id="drBody"></div>
+  </aside>
+
+<script src="shared-data.js"></script>
+<script>
+  const S=window.SUBACCOUNTS, money=window.money, $=s=>document.querySelector(s);
+  let filter='all', query='', drTab='Overview', drCurrent=null;
+  const hL=h=>h==='good'?'Healthy':h==='warn'?'Attention':'Paused';
+  const hexA=(hex,a)=>{const n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
+
+  // roll-up
+  const totalSpend=S.reduce((a,c)=>a+c.spend,0), totalLeads=S.reduce((a,c)=>a+c.leads,0);
+  const totalRev=S.reduce((a,c)=>a+c.revenue,0), attn=S.filter(c=>c.health==='warn').length;
+  const active=S.filter(c=>c.health!=='paused').length;
+  $('#rollup').innerHTML=`
+    ${roll('Active accounts',`${active}<small> / ${S.length}</small>`)}
+    ${roll('Combined spend (mo)',money(totalSpend))}
+    ${roll('Leads this week',totalLeads)}
+    ${roll('Combined revenue',money(totalRev))}
+    ${roll('Need attention',attn,true)}`;
+  function roll(l,v,a){return `<div class="roll ${a?'attn':''}"><div class="lbl">${l}</div><div class="val">${v}</div></div>`;}
+
+  function renderBoard(){
+    const rows=S.filter(c=>(filter==='all'||c.health===filter)&&(c.name.toLowerCase().includes(query)||c.niche.toLowerCase().includes(query)));
+    const max=v=>Math.max(...v,1);
+    $('#board').innerHTML=rows.map(c=>`
+      <button class="card" data-id="${c.id}" style="--acc:${c.color}">
+        <div class="card-top">
+          <span class="av" style="background:${c.color}">${c.initials}</span>
+          <span class="who"><b>${c.name}</b><span>${c.niche}</span></span>
+          <span class="status ${c.health}"><span class="dot ${c.health}"></span>${hL(c.health)}</span>
+        </div>
+        <div class="card-stats">
+          <div class="s"><div class="k">Spend</div><div class="v mono">${c.health==='paused'?'—':money(c.spend)}</div></div>
+          <div class="s"><div class="k">Leads/wk</div><div class="v mono">${c.leads}</div></div>
+          <div class="s"><div class="k">Appts</div><div class="v mono">${c.appts}</div></div>
+        </div>
+        <div class="spark">${c.trend.map(v=>`<span class="b" style="height:${10+(v/max(c.trend))*90}%"></span>`).join('')}</div>
+        <div class="card-foot">
+          ${c.alerts?`<span class="alert"><svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 9v4M12 17h.01M10.3 3.9L2 18a2 2 0 001.7 3h16.6a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>${c.alerts} alert${c.alerts>1?'s':''}</span>`:`<span style="font-size:11.5px;color:var(--faint)">Updated ${c.updated}</span>`}
+          <span class="enter">Open <svg viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M9 6l6 6-6 6"/></svg></span>
+        </div>
+      </button>`).join('');
+    $('#board').querySelectorAll('.card').forEach(el=>el.onclick=()=>openDrawer(el.dataset.id));
+  }
+
+  function openDrawer(id){
+    drCurrent=S.find(c=>c.id===id); drTab='Overview';
+    document.documentElement.style.setProperty('--acc',drCurrent.color);
+    document.documentElement.style.setProperty('--acc-bg',hexA(drCurrent.color,.14));
+    $('#drAv').style.background=drCurrent.color;$('#drAv').textContent=drCurrent.initials;
+    $('#drName').textContent=drCurrent.name;$('#drNiche').textContent=drCurrent.niche;
+    $('#drPlan').textContent=drCurrent.plan;const h=$('#drHealth');h.textContent=hL(drCurrent.health);
+    $('#dtabs').querySelector('.on').classList.remove('on');$('#dtabs').querySelector('[data-t="Overview"]').classList.add('on');
+    renderDrTab();
+    $('#scrim').classList.add('open');$('#drawer').classList.add('open');$('#drawer').setAttribute('aria-hidden','false');
+  }
+  function closeDrawer(){$('#scrim').classList.remove('open');$('#drawer').classList.remove('open');$('#drawer').setAttribute('aria-hidden','true');}
+
+  function renderDrTab(){
+    const c=drCurrent,b=$('#drBody');
+    if(drTab!=='Overview'){b.innerHTML=`<div style="display:grid;place-items:center;height:300px;color:var(--faint);text-align:center;gap:6px"><b style="color:var(--muted)">${drTab}</b><div style="font-size:12px">The ${drTab.toLowerCase()} workspace for ${c.name}, embedded here.</div></div>`;return;}
+    const cpl=c.leads?'$'+Math.round(c.spend/c.leads):'—',max=Math.max(...c.trend,1);
+    b.innerHTML=`
+      <div class="dkpis">
+        ${dk('Spend (mo)',money(c.spend))}${dk('Leads (wk)',c.leads)}${dk('Appointments',c.appts)}${dk('Revenue (mo)',money(c.revenue))}
+      </div>
+      <div class="panel">
+        <h3><svg viewBox="0 0 24 24" style="color:var(--brand-2)"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-6"/></svg>Ad performance · last 8 weeks</h3>
+        <div class="bars">${c.trend.map(v=>`<span class="b" style="height:${8+(v/max)*100}%"></span>`).join('')}</div>
+        <div style="display:flex;gap:24px;margin-top:15px;padding-top:13px;border-top:1px solid var(--border)">
+          <div><div style="font-size:11px;color:var(--muted)">Cost / lead</div><div class="mono" style="font-family:var(--display);font-weight:600;font-size:17px">${cpl}</div></div>
+          <div><div style="font-size:11px;color:var(--muted)">Booked calls</div><div class="mono" style="font-family:var(--display);font-weight:600;font-size:17px">${c.appts}</div></div>
+          <div><div style="font-size:11px;color:var(--muted)">ROAS</div><div class="mono" style="font-family:var(--display);font-weight:600;font-size:17px;color:var(--pos)">4.1×</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3><svg viewBox="0 0 24 24" style="color:var(--brand-2)"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Recent activity</h3>
+        <div class="act"><span class="ic">📞</span><div><div class="tx">New lead — Dana R. (Facebook)</div><div class="tm">4 min ago</div></div></div>
+        <div class="act"><span class="ic">📅</span><div><div class="tx">Estimate booked — Thu 2:00pm</div><div class="tm">22 min ago</div></div></div>
+        <div class="act"><span class="ic">💬</span><div><div class="tx">${c.unread} unread in Inbox</div><div class="tm">31 min ago</div></div></div>
+      </div>`;
+  }
+  const dk=(l,v)=>`<div class="dkpi"><div class="lbl">${l}</div><div class="val">${v}</div></div>`;
+
+  $('#segs').querySelectorAll('button').forEach(el=>el.onclick=()=>{$('#segs').querySelector('.on').classList.remove('on');el.classList.add('on');filter=el.dataset.f;renderBoard();});
+  $('#dtabs').querySelectorAll('button').forEach(el=>el.onclick=()=>{$('#dtabs').querySelector('.on').classList.remove('on');el.classList.add('on');drTab=el.dataset.t;renderDrTab();});
+  $('#search').oninput=e=>{query=e.target.value.toLowerCase();renderBoard();};
+  $('#drClose').onclick=closeDrawer;$('#scrim').onclick=closeDrawer;
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
+
+  renderBoard();
+</script>
+</body>
+</html>
