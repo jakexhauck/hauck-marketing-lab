@@ -1,10 +1,11 @@
-import { Search, Smartphone, BarChart3 } from "lucide-react";
+import { Search, Smartphone, BarChart3, FileText, MessagesSquare } from "lucide-react";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { WEBSITE_TABS } from "../../lib/pageTabs";
 import { Panel, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { useWebsiteAnalytics } from "../../hooks/useWebsiteAnalytics";
+import { useWebsiteEngagement } from "../../hooks/useWebsiteEngagement";
 import {
   WEBSITE_CONTAINER,
   NotConnectedNotice,
@@ -12,7 +13,10 @@ import {
   SAMPLE_TREND,
   SAMPLE_VISITORS_THIS_MONTH,
   SAMPLE_VISITORS_LAST_MONTH,
+  SAMPLE_ESTIMATE_FORM,
+  SAMPLE_CHAT_WIDGET,
   type TrafficSource,
+  type EngagementMetric,
 } from "./shared";
 
 // Website > What's working. A plain-English read on how the live site is doing:
@@ -43,6 +47,18 @@ export default function WebsiteInsights() {
   const a = analytics.data;
   const aConnected = analytics.connected && Boolean(a);
   const show = demo || aConnected;
+
+  // Engagement (estimate requests + website chats), sourced from the client's
+  // lead pipeline. Independent of GA4: shown whenever demo or the pipeline is
+  // wired, with honest zeros when a real client has had no leads this month.
+  const engagement = useWebsiteEngagement();
+  const engagementShow = demo || engagement.connected;
+  const estimateForm: EngagementMetric = demo
+    ? SAMPLE_ESTIMATE_FORM
+    : engagement.data?.estimateForm ?? { thisMonth: 0, lastMonth: 0, deltaPct: null };
+  const chatWidget: EngagementMetric = demo
+    ? SAMPLE_CHAT_WIDGET
+    : engagement.data?.chatWidget ?? { thisMonth: 0, lastMonth: 0, deltaPct: null };
 
   const visitors = demo ? SAMPLE_VISITORS_THIS_MONTH : aConnected ? a!.visitorsThisMonth : 0;
   const deltaPct = demo
@@ -117,6 +133,24 @@ export default function WebsiteInsights() {
             )}
           </div>
         </Panel>
+
+        {/* Engagement: what visitors did (estimate requests + website chats). */}
+        {engagementShow && (
+          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <EngagementCard
+              icon={FileText}
+              label="Estimate requests"
+              sub="from your website this month"
+              metric={estimateForm}
+            />
+            <EngagementCard
+              icon={MessagesSquare}
+              label="Website chats"
+              sub="conversations started this month"
+              metric={chatWidget}
+            />
+          </div>
+        )}
 
         {show ? (
           <>
@@ -205,5 +239,45 @@ export default function WebsiteInsights() {
         )}
       </div>
     </Shell>
+  );
+}
+
+// A single engagement stat (estimate requests / website chats): a big count with
+// a "vs last month" delta badge. A real client with no leads yet reads an honest
+// 0 with no badge; demo and connected sessions show the real trend.
+function EngagementCard({
+  icon: Icon,
+  label,
+  sub,
+  metric,
+}: {
+  icon: typeof FileText;
+  label: string;
+  sub: string;
+  metric: EngagementMetric;
+}) {
+  return (
+    <Panel className="p-5">
+      <div className="flex items-center gap-2 text-[13px] text-muted">
+        <Icon size={16} className="shrink-0 text-brand" />
+        <span>{label}</span>
+      </div>
+      <div className="mt-3 flex items-end gap-3">
+        <span className="font-display text-[40px] font-black leading-[0.9] tracking-[-0.03em] tnum text-text">
+          {metric.thisMonth.toLocaleString()}
+        </span>
+        {metric.deltaPct != null && (
+          <span
+            className={`mb-1.5 rounded-full px-2 py-0.5 text-[12px] font-bold tnum ${
+              metric.deltaPct >= 0 ? "bg-positive-tint text-positive" : "bg-danger-tint text-danger"
+            }`}
+          >
+            {metric.deltaPct >= 0 ? "+" : ""}
+            {metric.deltaPct}%
+          </span>
+        )}
+      </div>
+      <div className="mt-2 text-[13px] text-muted">{sub}</div>
+    </Panel>
   );
 }

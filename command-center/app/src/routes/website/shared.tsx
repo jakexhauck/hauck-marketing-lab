@@ -472,6 +472,18 @@ export const SAMPLE_TREND: number[] = [42, 48, 45, 53, 50, 58, 55, 62, 60, 68, 7
 export const SAMPLE_VISITORS_THIS_MONTH = 1240;
 export const SAMPLE_VISITORS_LAST_MONTH = 1148;
 
+// Website engagement (Insights): how many estimate requests and chat-widget
+// conversations the site produced. Real sessions read these from the client's
+// lead pipeline (functions/api/website/engagement); demo uses these fixtures.
+export interface EngagementMetric {
+  thisMonth: number;
+  lastMonth: number;
+  // Percent change vs last month; null when last month was zero.
+  deltaPct: number | null;
+}
+export const SAMPLE_ESTIMATE_FORM: EngagementMetric = { thisMonth: 14, lastMonth: 11, deltaPct: 27 };
+export const SAMPLE_CHAT_WIDGET: EngagementMetric = { thisMonth: 22, lastMonth: 19, deltaPct: 16 };
+
 // The client's site pages (Pages master-detail). `key` feeds SiteMock content.
 export type SitePageKey = "home" | "services" | "about" | "reviews" | "contact" | "book";
 
