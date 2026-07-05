@@ -46,4 +46,62 @@ const moveLeadStage: DemoRoute = {
   },
 };
 
-export const routes: DemoRoute[] = [completeJob, moveLeadStage];
+// GET /api/appointments/slots -> a few future days of fake open times, so the
+// booking picker is walkable in demo. Offset ISO strings (-04:00) so the picker's
+// wall-time labels read correctly regardless of the viewer's timezone.
+const appointmentSlots: DemoRoute = {
+  match: (clean) => clean === "/api/appointments/slots",
+  respond: () => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const base = new Date();
+    const days = [1, 2, 3].map((i) => {
+      const d = new Date(base.getTime() + i * 86_400_000);
+      const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const slots = [10, 12, 14, 16].map((h) => `${date}T${pad(h)}:00:00-04:00`);
+      return { date, slots };
+    });
+    return { ok: true, timezone: "America/New_York", days };
+  },
+};
+
+// POST /api/appointments -> pretend-book. The surface flips its own status
+// optimistically, so this only needs to succeed.
+const createAppointment: DemoRoute = {
+  match: (clean) => clean === "/api/appointments",
+  respond: ({ method }) =>
+    method === "POST" ? { ok: true, id: "demo-appt" } : { ok: false },
+};
+
+// PUT /api/appointments/:eventId -> pretend-reschedule.
+const rescheduleAppointment: DemoRoute = {
+  match: (_clean, seg) =>
+    seg[0] === "api" &&
+    seg[1] === "appointments" &&
+    seg.length === 3 &&
+    seg[2] !== "slots",
+  respond: ({ method }) => (method === "PUT" ? { ok: true } : { ok: false }),
+};
+
+// POST /api/sales/jobs/:id/payment -> flip a demo job to paid.
+const recordPayment: DemoRoute = {
+  match: (_clean, seg) =>
+    seg[0] === "api" &&
+    seg[1] === "sales" &&
+    seg[2] === "jobs" &&
+    seg[4] === "payment",
+  respond: ({ seg, method }) => {
+    if (method !== "POST") return { ok: false };
+    const job = DEMO_JOBS.find((j) => j.id === seg[3]);
+    if (job) job.paid = true;
+    return { ok: true, paid: true };
+  },
+};
+
+export const routes: DemoRoute[] = [
+  completeJob,
+  moveLeadStage,
+  appointmentSlots,
+  createAppointment,
+  rescheduleAppointment,
+  recordPayment,
+];

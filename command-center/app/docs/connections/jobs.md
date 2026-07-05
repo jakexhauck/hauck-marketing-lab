@@ -16,10 +16,32 @@ Status key: ❌ not wired · ⚠️ partial · ✅ live
 - ✅ **Message** → opens an SMS composer keyed by the job's `contactId` (now on `ApiJob`),
   sending through the existing `POST /api/conversations/:id/send`.
 - ✅ **Ask for review** → existing `POST /api/reviews` tag flow, keyed by `contactId`.
-- ⛔ **Reschedule / Record payment / Resend invoice** — still gated. Blocked on the
-  live GHL spikes (appointment reschedule + invoice send/record-payment endpoints), which
-  need the `ghl` CLI against Willis; not runnable from the build environment. `ApiJob` now
-  also carries `appointmentId` so Reschedule has its target once that spike lands.
+## Wired 2026-07-05 (action-wiring plan, Phases 2-3)
+- ✅ **Reschedule** → new `PUT /api/appointments/:eventId` (`functions/api/appointments/[eventId].ts`),
+  targeted by the job's `appointmentId`. Opens a date/time picker (`DateTimeModal`).
+  `useRescheduleAppointment`. Confirmed live shape against Willis.
+- ✅ **Record payment** → new `POST /api/sales/jobs/:id/payment`
+  (`functions/api/sales/jobs/[id]/payment.ts`). Willis has 0 GHL invoices, so this
+  records the payment as a durable contact NOTE and flips the job `paid` flag
+  (optimistic dot recolour, `useMarkJobPaid`), not a fake invoice.
+- ⛔ **Resend invoice** → intentionally not wired. GHL invoices are unused on Willis
+  (probe returned 0), so the button shows an honest "invoices are not set up, nothing to
+  resend" note. True invoice send stays behind a future config flag.
+
+### Spike results (2026-07-05, live Willis `ghl` CLI probe, all writes cleaned up)
+API version header `2021-04-15` for all `/calendars/*`.
+- Create: `POST /calendars/events/appointments` `{calendarId, locationId, contactId,
+  startTime, endTime, title?}` → 201 `{id, status:"booked", appointmentStatus:"confirmed"}`.
+  `selectedSlot` NOT required. Verified on the Home Estimate (event-type) calendar.
+- Reschedule: `PUT /calendars/events/appointments/{eventId}` `{startTime, endTime}` → 200.
+- Cancel: `DELETE /calendars/events/{eventId}` → 200.
+- Slots: `GET /calendars/{calendarId}/free-slots?startDate={ms}&endDate={ms}&timezone={tz}`
+  → 200 `{ "YYYY-MM-DD": { slots:[ISO] }, traceId }`. `startDate`/`endDate` MUST be epoch
+  millis; do NOT pass `calendarId` as a query param.
+- CAVEAT: create/free-slots only work on EVENT-type calendars. Round-robin calendars with
+  no team members 422 "The calendar doesn't have any team members associated" (passing
+  `assignedUserId` does not override). Home Estimate is an event calendar and works.
+- Invoices: `payments invoices` returned 0. Confirmed unused → mark-paid via note.
 
 ## Data source(s)
 - ❌ **GHL Sales Pipeline opportunities** — the jobs. Read opportunities in pipeline

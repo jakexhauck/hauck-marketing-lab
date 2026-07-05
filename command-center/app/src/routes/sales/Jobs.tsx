@@ -25,7 +25,10 @@ import {
   useCompleteJob,
   useSendConversationMessage,
   useStartReviewCampaign,
+  useRescheduleAppointment,
+  useMarkJobPaid,
 } from "../../hooks/useApi";
+import { DateTimeModal } from "../../components/DateTimeModal";
 import {
   monthGrid,
   monthSummary,
@@ -69,10 +72,14 @@ export default function Jobs() {
   const { showToast } = useToast();
   const completeJob = useCompleteJob();
   const startReview = useStartReviewCampaign();
+  const reschedule = useRescheduleAppointment();
+  const markPaid = useMarkJobPaid();
   const today = toIso(new Date());
 
   // The job whose Message composer is open (null = closed).
   const [msgJob, setMsgJob] = useState<Job | null>(null);
+  // The job whose Reschedule picker is open (null = closed).
+  const [reschedJob, setReschedJob] = useState<Job | null>(null);
 
   // Anchor the view to the demo month so the preview always reads full; a real
   // session opens on the current month (empty until connected).
@@ -128,12 +135,32 @@ export default function Jobs() {
           },
         );
         return;
+      case "Reschedule":
+        if (!demo && !job.appointmentId) {
+          showToast("This job has no scheduled appointment to move yet.");
+          return;
+        }
+        setReschedJob(job);
+        return;
+      case "Record payment":
+        markPaid.mutate(
+          { jobId: job.id, contactId: job.contactId ?? "", amount: job.amount },
+          {
+            onSuccess: () => showToast(`Marked ${job.customer}'s job paid.`),
+            onError: () => showToast("Could not record the payment. Please try again."),
+          },
+        );
+        return;
+      case "Resend invoice":
+        // Willis (and every probed tenant) does not use GHL invoices, so there
+        // is nothing to resend. Honest note instead of a fake send.
+        showToast("Invoices are not set up on this account, so there is nothing to resend.");
+        return;
       default:
-        // Reschedule / Payment / Record payment / Resend invoice: not wired yet.
         showToast(
           demo
-            ? `Preview — "${label}" turns on once your calendar and invoices are connected.`
-            : `"${label}" turns on once your calendar and invoices are connected.`,
+            ? `Preview — "${label}" is not available in the demo.`
+            : `"${label}" is not available yet.`,
         );
     }
   }
@@ -300,6 +327,34 @@ export default function Jobs() {
           job={msgJob}
           onClose={() => setMsgJob(null)}
           onSent={() => showToast(`Message sent to ${msgJob.customer}.`)}
+        />
+      )}
+      {reschedJob && (
+        <DateTimeModal
+          title={`Reschedule ${reschedJob.customer}`}
+          subtitle="Pick a new date and time for this job."
+          confirmLabel="Reschedule"
+          pending={reschedule.isPending}
+          onClose={() => setReschedJob(null)}
+          onConfirm={(iso) => {
+            const job = reschedJob;
+            // Demo jobs have no appointment id; the picker still confirms so the
+            // walkthrough reads, but there is nothing to write.
+            if (!job.appointmentId) {
+              showToast(`Rescheduled ${job.customer}.`);
+              setReschedJob(null);
+              return;
+            }
+            const endIso = new Date(new Date(iso).getTime() + 60 * 60_000).toISOString();
+            reschedule.mutate(
+              { eventId: job.appointmentId, startTime: iso, endTime: endIso },
+              {
+                onSuccess: () => showToast(`Rescheduled ${job.customer}.`),
+                onError: () => showToast("Could not reschedule. Please try again."),
+                onSettled: () => setReschedJob(null),
+              },
+            );
+          }}
         />
       )}
     </Shell>

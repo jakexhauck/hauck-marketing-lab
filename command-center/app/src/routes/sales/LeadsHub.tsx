@@ -24,10 +24,15 @@ import Avatar from "../../components/Avatar";
 import { useToast } from "../../context/ToastContext";
 import { cn } from "../../lib/cn";
 import { useLeadsHub } from "../../hooks/useLeadsHub";
+import { ApiError } from "../../lib/api";
 import {
   useSendConversationMessage,
   useMoveSalesLeadStage,
+  useCreateAppointment,
+  useCreateTask,
 } from "../../hooks/useApi";
+import { SlotPickerModal } from "../../components/SlotPickerModal";
+import { DateTimeModal } from "../../components/DateTimeModal";
 import {
   SOURCE_META,
   STATUS_META,
@@ -87,6 +92,14 @@ export default function LeadsHub() {
   const gated = () => showToast(GATED_NOTE);
   const sendMessage = useSendConversationMessage();
   const moveStage = useMoveSalesLeadStage();
+  const createAppt = useCreateAppointment();
+  const createTask = useCreateTask();
+
+  // Which booking flow is open. "intro" books the Intro Call calendar (Paid Ads
+  // leads), "visit" the Home Estimate calendar (Forms/Chat). "callback" is a
+  // plain task with a due time (no calendar availability to honour).
+  const [bookLead, setBookLead] = useState<{ lead: HubLead; kind: "intro" | "visit" } | null>(null);
+  const [callbackLead, setCallbackLead] = useState<HubLead | null>(null);
 
   // Optimistic layers over the fetched worklist: a status override for the
   // off-ramp (the demo feed never refetches, and a real refetch settles to the
@@ -120,10 +133,11 @@ export default function LeadsHub() {
     }
   }
 
-  // Route a Next-step pick. Only the off-ramp ("Not a fit") is a wired write in
-  // this phase (status -> lost); the appointment + call-console steps stay gated
-  // until those feeds land.
+  // Route a Next-step pick. Off-ramp ("Not a fit") is a status write; "book" /
+  // "visit" open the real-slot picker; "schedule" opens a callback time picker.
+  // "Call now" opens a call console that is not built yet, so it stays gated.
   function handleStep(lead: HubLead, key: string) {
+    setModalOpen(false);
     if (key === "other") {
       setStatusOverride((m) => ({ ...m, [lead.id]: "cold" }));
       moveStage.mutate(
@@ -135,7 +149,72 @@ export default function LeadsHub() {
       );
       return;
     }
+    if (key === "book") {
+      setBookLead({ lead, kind: "intro" });
+      return;
+    }
+    if (key === "visit") {
+      setBookLead({ lead, kind: "visit" });
+      return;
+    }
+    if (key === "schedule") {
+      setCallbackLead(lead);
+      return;
+    }
     gated();
+  }
+
+  // Confirm a booking: create the appointment (real leads only; demo rows have no
+  // contact id), then move the opportunity to the booked stage. Pausing the
+  // nurture is handled by the tenant's own published "Appointment Booked"
+  // workflow (confirmed in the spike), so there is no separate pause call.
+  function confirmBooking(
+    lead: HubLead,
+    kind: "intro" | "visit",
+    times: { startTime: string; endTime: string },
+  ) {
+    const cfg =
+      kind === "intro"
+        ? { calendarName: "Intro Call", stageName: "Intro Call Waiting Confirmation", title: `${lead.name} Intro Call` }
+        : { calendarName: "Home Estimate", stageName: "Estimate Scheduled", title: `${lead.name} Home Estimate` };
+
+    const settle = (msg: string) => {
+      setStatusOverride((m) => ({ ...m, [lead.id]: "booked" }));
+      showToast(msg);
+      setBookLead(null);
+    };
+
+    if (!lead.contactId) {
+      // Demo row: no real contact to book against; still confirm so the
+      // walkthrough reads and the status pill flips.
+      settle(`Booked ${lead.name}.`);
+      return;
+    }
+
+    createAppt.mutate(
+      {
+        contactId: lead.contactId,
+        calendarName: cfg.calendarName,
+        startTime: times.startTime,
+        endTime: times.endTime,
+        title: cfg.title,
+      },
+      {
+        onSuccess: () => {
+          moveStage.mutate({ leadId: lead.id, stageName: cfg.stageName });
+          settle(`Booked ${lead.name}.`);
+        },
+        onError: (err) => {
+          const code =
+            err instanceof ApiError ? (err.body as { error?: string } | null)?.error : null;
+          if (code === "needs_staff") {
+            showToast("That calendar needs a staff member assigned before it can take bookings.");
+          } else {
+            showToast("Could not book. Please try again.");
+          }
+        },
+      },
+    );
   }
 
   const [tab, setTab] = useState<LeadSource>("ad");
@@ -337,6 +416,52 @@ export default function LeadsHub() {
           lead={selected}
           onClose={() => setModalOpen(false)}
           onPick={(key) => handleStep(selected, key)}
+        />
+      )}
+
+      {bookLead && (
+        <SlotPickerModal
+          title={bookLead.kind === "intro" ? `Book intro call · ${bookLead.lead.name}` : `Book in-person visit · ${bookLead.lead.name}`}
+          subtitle={
+            bookLead.kind === "intro"
+              ? "Pick a time for the intro call. We book it and send the confirmation."
+              : "Pick a time for the on-site estimate."
+          }
+          calendarName={bookLead.kind === "intro" ? "Intro Call" : "Home Estimate"}
+          durationMinutes={bookLead.kind === "intro" ? 15 : 20}
+          confirmLabel={bookLead.kind === "intro" ? "Book call" : "Book visit"}
+          pending={createAppt.isPending}
+          onClose={() => setBookLead(null)}
+          onConfirm={(times) => confirmBooking(bookLead.lead, bookLead.kind, times)}
+        />
+      )}
+
+      {callbackLead && (
+        <DateTimeModal
+          title={`Schedule a callback · ${callbackLead.name}`}
+          subtitle="Pick when to call them back. We add it to your tasks."
+          confirmLabel="Schedule"
+          pending={createTask.isPending}
+          onClose={() => setCallbackLead(null)}
+          onConfirm={(iso) => {
+            const lead = callbackLead;
+            const done = () => {
+              setStatusOverride((m) => ({ ...m, [lead.id]: "working" }));
+              showToast(`Callback scheduled for ${lead.name}.`);
+              setCallbackLead(null);
+            };
+            if (!lead.contactId) {
+              done();
+              return;
+            }
+            createTask.mutate(
+              { contactId: lead.contactId, title: `Callback: ${lead.name}`, dueDate: iso },
+              {
+                onSuccess: done,
+                onError: () => showToast("Could not schedule the callback. Please try again."),
+              },
+            );
+          }}
         />
       )}
     </Shell>

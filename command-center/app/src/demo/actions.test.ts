@@ -11,13 +11,16 @@ import { DEMO_LEADS } from "../lib/leadsHub";
 // reflects a write), so snapshot and restore the touched rows around each test.
 
 describe("demo action routes", () => {
-  const jobSnapshot = DEMO_JOBS.map((j) => ({ id: j.id, status: j.status }));
+  const jobSnapshot = DEMO_JOBS.map((j) => ({ id: j.id, status: j.status, paid: j.paid }));
   const leadSnapshot = DEMO_LEADS.map((l) => ({ id: l.id, status: l.status }));
 
   afterEach(() => {
     for (const s of jobSnapshot) {
       const j = DEMO_JOBS.find((x) => x.id === s.id);
-      if (j) j.status = s.status;
+      if (j) {
+        j.status = s.status;
+        j.paid = s.paid;
+      }
     }
     for (const s of leadSnapshot) {
       const l = DEMO_LEADS.find((x) => x.id === s.id);
@@ -55,5 +58,65 @@ describe("demo action routes", () => {
       "/api/sales/leads",
     );
     expect(after.leads.find((l) => l.id === active.id)?.status).toBe("cold");
+  });
+
+  it("GET /api/appointments/slots returns future days with slots", async () => {
+    const res = await handleDemoRequest<{
+      ok: boolean;
+      days: { date: string; slots: string[] }[];
+    }>("/api/appointments/slots?calendarName=Home%20Estimate");
+    expect(res.ok).toBe(true);
+    expect(res.days.length).toBeGreaterThan(0);
+    expect(res.days[0].slots.length).toBeGreaterThan(0);
+    // Offset ISO so the picker's wall-time label is timezone-stable.
+    expect(res.days[0].slots[0]).toMatch(/T\d{2}:\d{2}:\d{2}-\d{2}:\d{2}$/);
+  });
+
+  it("POST /api/appointments succeeds with an id", async () => {
+    const res = await handleDemoRequest<{ ok: boolean; id: string }>(
+      "/api/appointments",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          contactId: "c1",
+          calendarName: "Home Estimate",
+          startTime: "2026-07-08T12:00:00-04:00",
+          endTime: "2026-07-08T12:20:00-04:00",
+        }),
+      },
+    );
+    expect(res.ok).toBe(true);
+    expect(res.id).toBeTruthy();
+  });
+
+  it("PUT /api/appointments/:eventId reschedules", async () => {
+    const res = await handleDemoRequest<{ ok: boolean }>(
+      "/api/appointments/evt-1",
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          startTime: "2026-07-09T14:00:00-04:00",
+          endTime: "2026-07-09T15:00:00-04:00",
+        }),
+      },
+    );
+    expect(res.ok).toBe(true);
+  });
+
+  it("POST /api/sales/jobs/:id/payment flips a job to paid", async () => {
+    const unpaid = DEMO_JOBS.find((j) => j.status === "completed" && !j.paid)
+      ?? DEMO_JOBS[0];
+
+    const res = await handleDemoRequest<{ ok: boolean; paid: boolean }>(
+      `/api/sales/jobs/${unpaid.id}/payment`,
+      { method: "POST", body: JSON.stringify({ contactId: "c1", amount: 500 }) },
+    );
+    expect(res.ok).toBe(true);
+    expect(res.paid).toBe(true);
+
+    const after = await handleDemoRequest<{ jobs: { id: string; paid: boolean }[] }>(
+      "/api/sales/jobs",
+    );
+    expect(after.jobs.find((j) => j.id === unpaid.id)?.paid).toBe(true);
   });
 });

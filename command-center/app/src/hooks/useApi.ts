@@ -765,6 +765,117 @@ export function useMoveSalesLeadStage() {
   });
 }
 
+// ===== Appointments (book / reschedule) =====
+
+export interface SlotDay {
+  date: string; // "YYYY-MM-DD"
+  slots: string[]; // ISO start times with offset, e.g. "2026-07-08T12:00:00-04:00"
+}
+export interface SlotsResponse {
+  ok: true;
+  timezone: string;
+  days: SlotDay[];
+}
+
+// Available booking slots for a named calendar. Only fetched while the picker is
+// open (enabled), and never retried on a 422 (calendar-not-found / needs-staff
+// are permanent for this call, not transient), so the modal can show an honest
+// message instead of spinning. The ApiError body carries { error } so the caller
+// can branch on "needs_staff" vs "calendar_not_found".
+export function useFreeSlots(calendarName: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["appointments", "slots", calendarName],
+    enabled: enabled && !!calendarName,
+    staleTime: 60_000,
+    retry: false,
+    queryFn: () =>
+      api<SlotsResponse>(
+        `/api/appointments/slots?calendarName=${encodeURIComponent(calendarName ?? "")}`,
+      ),
+  });
+}
+
+// Book an appointment on a named calendar. Invalidates the calendar + jobs +
+// leads feeds so a new booking shows on the next read. Non-retrying (POST).
+export function useCreateAppointment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      contactId: string;
+      calendarName: string;
+      startTime: string;
+      endTime: string;
+      title?: string;
+    }) =>
+      api<{ ok: boolean; id?: string }>(`/api/appointments`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["calendar", "events"] });
+      qc.invalidateQueries({ queryKey: ["sales-jobs"] });
+      qc.invalidateQueries({ queryKey: ["sales-leads"] });
+    },
+  });
+}
+
+// Reschedule an existing appointment (PUT, idempotent).
+export function useRescheduleAppointment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { eventId: string; startTime: string; endTime: string }) =>
+      api<{ ok: boolean }>(`/api/appointments/${input.eventId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          startTime: input.startTime,
+          endTime: input.endTime,
+        }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["calendar", "events"] });
+      qc.invalidateQueries({ queryKey: ["sales-jobs"] });
+    },
+  });
+}
+
+// Jobs: mark a completed job paid. Willis has no GHL invoices, so the server
+// records the payment as a contact note (honest, durable) and returns paid:true.
+// Optimistically flips the job's `paid` flag (fresh array so the dot recolours),
+// rolls back on error, refetches on settle.
+export function useMarkJobPaid() {
+  const qc = useQueryClient();
+  const key = ["sales-jobs"];
+  return useMutation({
+    mutationFn: (input: { jobId: string; contactId: string; amount?: number }) =>
+      api<{ ok: boolean; paid?: boolean }>(
+        `/api/sales/jobs/${input.jobId}/payment`,
+        {
+          method: "POST",
+          body: JSON.stringify({ contactId: input.contactId, amount: input.amount }),
+        },
+      ),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<{ jobs: Job[]; configError?: string }>(key);
+      if (previous) {
+        qc.setQueryData(key, {
+          ...previous,
+          jobs: previous.jobs.map((j) =>
+            j.id === input.jobId ? { ...j, paid: true } : j,
+          ),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(key, context.previous);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: key });
+    },
+  });
+}
+
 // Upcoming appointments (now to +30d by default), read-only through GHL.
 export function useCalendarEventsQuery(enabled: boolean) {
   return useQuery({
