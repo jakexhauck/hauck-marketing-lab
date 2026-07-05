@@ -100,7 +100,7 @@ export const FU_OUTCOME: Record<FollowUpOutcome, { label: string; color: string 
   replied: { label: "Replied", color: "var(--positive)" },
   awaiting: { label: "Awaiting reply", color: "var(--warning)" },
   noresponse: { label: "No response", color: "var(--faint)" },
-  booked: { label: "Call booked", color: "#0284c7" },
+  booked: { label: "Booked", color: "#0284c7" },
   won: { label: "Won", color: "var(--positive)" },
 };
 
@@ -146,9 +146,7 @@ export function automationNote(l: HubLead): string {
     case "awaiting":
       return "Auto follow-ups are sending on schedule. No reply yet.";
     case "booked":
-      return l.source === "ad"
-        ? "Intro call booked, so the follow-ups paused. The confirm text went out automatically."
-        : "Booked, so the follow-ups paused.";
+      return "Booked, so the follow-ups paused.";
     case "won":
       return "Won. The sequence is complete.";
     case "noresponse":
@@ -158,10 +156,9 @@ export function automationNote(l: HubLead): string {
   }
 }
 
-// Contextual next-step actions (shown in the Next-step popup). Cold ad leads are
-// worked to an intro call; warm form/chat leads are called + quoted. There is no
-// manual "Confirm call": confirmation is fully automatic (the confirm link logs
-// it and flips the calendar), so it lives in the tracker as a status.
+// Contextual next-step actions (shown in the Next-step popup). Ad leads are
+// called or booked for an on-site visit; warm form/chat leads are called +
+// quoted or booked for a visit.
 export interface NextStep {
   key: string;
   title: string;
@@ -174,12 +171,7 @@ export function nextSteps(source: LeadSource): NextStep[] {
   if (source === "ad") {
     return [
       { key: "call", title: "Call now", desc: "Ring them now. Opens the call console.", primary: true },
-      {
-        key: "book",
-        title: "Book intro call",
-        desc: "Pick a time to talk.",
-        auto: "Pauses the follow-ups and sends a confirm text. When they confirm, it logs itself and the calendar updates automatically.",
-      },
+      { key: "visit", title: "Book in-person visit", desc: "Schedule an on-site estimate." },
       { key: "other", title: "Not a fit", desc: "No answer, not qualified, or park for later." },
     ];
   }
@@ -285,7 +277,7 @@ export const DEMO_LEADS: HubLead[] = [
     fu: { sent: 2, respondedAt: 2, outcome: "booked" },
     sms: [
       { dir: "in", from: "Dana", at: "3h", body: "Interested in the spring special before it warms up." },
-      { dir: "out", from: "Willis Windows", at: "3h", body: "Great! Let's get you a quick intro call. Does Thursday 2pm work?" },
+      { dir: "out", from: "Willis Windows", at: "3h", body: "Great! Let's get you booked in. Does Thursday 2pm work?" },
       { dir: "in", from: "Dana", at: "2h", body: "Sounds good, I'll take the 2pm Thursday slot." },
     ],
   },

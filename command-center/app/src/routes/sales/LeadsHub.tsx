@@ -95,10 +95,10 @@ export default function LeadsHub() {
   const createAppt = useCreateAppointment();
   const createTask = useCreateTask();
 
-  // Which booking flow is open. "intro" books the Intro Call calendar (Paid Ads
-  // leads), "visit" the Home Estimate calendar (Forms/Chat). "callback" is a
-  // plain task with a due time (no calendar availability to honour).
-  const [bookLead, setBookLead] = useState<{ lead: HubLead; kind: "intro" | "visit" } | null>(null);
+  // Which booking flow is open. bookLead opens the in-person visit picker (the
+  // Home Estimate calendar). "callback" is a plain task with a due time (no
+  // calendar availability to honour).
+  const [bookLead, setBookLead] = useState<HubLead | null>(null);
   const [callbackLead, setCallbackLead] = useState<HubLead | null>(null);
 
   // Optimistic layers over the fetched worklist: a status override for the
@@ -149,12 +149,8 @@ export default function LeadsHub() {
       );
       return;
     }
-    if (key === "book") {
-      setBookLead({ lead, kind: "intro" });
-      return;
-    }
     if (key === "visit") {
-      setBookLead({ lead, kind: "visit" });
+      setBookLead(lead);
       return;
     }
     if (key === "schedule") {
@@ -170,13 +166,9 @@ export default function LeadsHub() {
   // workflow (confirmed in the spike), so there is no separate pause call.
   function confirmBooking(
     lead: HubLead,
-    kind: "intro" | "visit",
     times: { startTime: string; endTime: string },
   ) {
-    const cfg =
-      kind === "intro"
-        ? { calendarName: "Intro Call", stageName: "Intro Call Waiting Confirmation", title: `${lead.name} Intro Call` }
-        : { calendarName: "Home Estimate", stageName: "Estimate Scheduled", title: `${lead.name} Home Estimate` };
+    const cfg = { calendarName: "Home Estimate", stageName: "Estimate Scheduled", title: `${lead.name} Home Estimate` };
 
     const settle = (msg: string) => {
       setStatusOverride((m) => ({ ...m, [lead.id]: "booked" }));
@@ -421,18 +413,14 @@ export default function LeadsHub() {
 
       {bookLead && (
         <SlotPickerModal
-          title={bookLead.kind === "intro" ? `Book intro call · ${bookLead.lead.name}` : `Book in-person visit · ${bookLead.lead.name}`}
-          subtitle={
-            bookLead.kind === "intro"
-              ? "Pick a time for the intro call. We book it and send the confirmation."
-              : "Pick a time for the on-site estimate."
-          }
-          calendarName={bookLead.kind === "intro" ? "Intro Call" : "Home Estimate"}
-          durationMinutes={bookLead.kind === "intro" ? 15 : 20}
-          confirmLabel={bookLead.kind === "intro" ? "Book call" : "Book visit"}
+          title={`Book in-person visit · ${bookLead.name}`}
+          subtitle="Pick a time for the on-site estimate."
+          calendarName="Home Estimate"
+          durationMinutes={20}
+          confirmLabel="Book visit"
           pending={createAppt.isPending}
           onClose={() => setBookLead(null)}
-          onConfirm={(times) => confirmBooking(bookLead.lead, bookLead.kind, times)}
+          onConfirm={(times) => confirmBooking(bookLead, times)}
         />
       )}
 
@@ -892,7 +880,6 @@ function Bubble({ m }: { m: LeadMessage }) {
 function NextStepModal({ lead, onClose, onPick }: { lead: HubLead; onClose: () => void; onPick: (key: string) => void }) {
   const stepIcon: Record<string, typeof Phone> = {
     call: Phone,
-    book: CalendarClock,
     schedule: CalendarClock,
     visit: CalendarRange,
     other: MoreHorizontal,
@@ -911,7 +898,7 @@ function NextStepModal({ lead, onClose, onPick }: { lead: HubLead; onClose: () =
             <div className="font-display text-[16.5px] font-semibold text-text">Next step with {lead.name}</div>
             <div className="mt-0.5 text-[12.5px] text-muted">
               {lead.source === "ad"
-                ? "Cold lead from a paid ad. Get them on an intro call."
+                ? "Fresh lead from a paid ad. Reach out and get them booked."
                 : "Warm lead. Quotes happen on the phone."}
             </div>
           </div>
