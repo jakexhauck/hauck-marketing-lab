@@ -67,7 +67,6 @@ export default function AdsOverview() {
       <div className={PAID_ADS_CONTAINER}>
         <PageBar
           tabs={PAID_ADS_TABS}
-          description="Your ad money at a glance. Here is what it brought in this month, in plain numbers."
           actions={
             populated ? (
               <span className="inline-flex items-center gap-2 rounded-full bg-positive-tint px-3 py-1.5 text-[12.5px] font-semibold text-positive">
