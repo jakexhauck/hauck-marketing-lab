@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Send, BarChart3, ArrowRight } from "lucide-react";
 import Shell from "../../components/Shell";
-import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
+import { COMMERCIAL_OUTREACH_TABS } from "../../lib/pageTabs";
 import CampaignReportDialog from "../../components/campaigns/CampaignReportDialog";
 import PageBar from "../../components/PageBar";
 import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
@@ -49,7 +49,7 @@ export default function CampaignsOverview() {
       <CampaignReportDialog campaign={report} onClose={() => setReport(null)} />
       <div className={CAMPAIGNS_CONTAINER}>
         <PageBar
-          tabs={CAMPAIGNS_TABS}
+          tabs={COMMERCIAL_OUTREACH_TABS}
           description="The right message to the right customers, at the right time. We handle every send."
         />
 

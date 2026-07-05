@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Users, ArrowRight } from "lucide-react";
 import Shell from "../../components/Shell";
-import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
+import { COMMERCIAL_OUTREACH_TABS } from "../../lib/pageTabs";
 import AudienceDetailDialog from "../../components/campaigns/AudienceDetailDialog";
 import PageBar from "../../components/PageBar";
 import { Panel, EmptyState } from "../../components/ui";
@@ -29,7 +29,7 @@ export default function CampaignsAudiences() {
       <AudienceDetailDialog audience={detail} onClose={() => setDetail(null)} />
       <div className={CAMPAIGNS_CONTAINER}>
         <PageBar
-          tabs={CAMPAIGNS_TABS}
+          tabs={COMMERCIAL_OUTREACH_TABS}
           description="The customer lists we can reach for you. We build these from your customer records."
         />
 

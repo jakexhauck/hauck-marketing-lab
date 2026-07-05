@@ -33,7 +33,7 @@ describe("client nav structure", () => {
       .map((i) => i.to);
     expect(bottom).toEqual([
       "/home",
-      "/conversations",
+      "/conversations/sms",
       "/apps",
       "/contacts",
       "/comms",

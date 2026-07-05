@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Send } from "lucide-react";
 import Shell from "../../components/Shell";
-import { CAMPAIGNS_TABS } from "../../lib/pageTabs";
+import { COMMERCIAL_OUTREACH_TABS } from "../../lib/pageTabs";
 import CampaignReportDialog from "../../components/campaigns/CampaignReportDialog";
 import PageBar from "../../components/PageBar";
 import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
@@ -39,7 +39,7 @@ export default function CampaignsList() {
       <CampaignReportDialog campaign={report} onClose={() => setReport(null)} />
       <div className={CAMPAIGNS_CONTAINER}>
         <PageBar
-          tabs={CAMPAIGNS_TABS}
+          tabs={COMMERCIAL_OUTREACH_TABS}
           description="Every text and email we've sent for you."
           filters={
             demo

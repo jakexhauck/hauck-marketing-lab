@@ -18,6 +18,7 @@ import ReviewsOverview from "./routes/reviews/ReviewsOverview";
 import ReviewsRequests from "./routes/reviews/ReviewsRequests";
 import ReviewsAll from "./routes/reviews/ReviewsAll";
 import ReviewsInsights from "./routes/reviews/ReviewsInsights";
+import ReviewsPipeline from "./routes/reviews/ReviewsPipeline";
 import { Activity } from "./routes/Activity";
 import Contacts from "./routes/Contacts";
 import ContactDetail from "./routes/ContactDetail";
@@ -41,16 +42,23 @@ import SocialPosts from "./routes/social/SocialPosts";
 import SocialInsights from "./routes/social/SocialInsights";
 import WebsiteOverview from "./routes/website/WebsiteOverview";
 import WebsitePages from "./routes/website/WebsitePages";
-import WebsiteRequestChange from "./routes/website/WebsiteRequestChange";
 import WebsiteInsights from "./routes/website/WebsiteInsights";
 import AdsOverview from "./routes/paid-ads/AdsOverview";
 import AdsCreatives from "./routes/paid-ads/AdsCreatives";
 import AdsInsights from "./routes/paid-ads/AdsInsights";
-import CampaignsOverview from "./routes/campaigns/CampaignsOverview";
-import CampaignsList from "./routes/campaigns/CampaignsList";
+import AdsFunnel from "./routes/paid-ads/AdsFunnel";
+import AdsMedia from "./routes/paid-ads/AdsMedia";
 import Reactivation from "./routes/sales/Reactivation";
 import CampaignsAudiences from "./routes/campaigns/CampaignsAudiences";
-import CampaignsInsights from "./routes/campaigns/CampaignsInsights";
+import OutreachOverview from "./routes/outreach/OutreachOverview";
+import OutreachSchedule from "./routes/outreach/OutreachSchedule";
+import OutreachEmails from "./routes/outreach/OutreachEmails";
+import OutreachData from "./routes/outreach/OutreachData";
+import OutreachSms from "./routes/outreach/OutreachSms";
+import ReactivationPipeline from "./routes/reactivation/ReactivationPipeline";
+import ReactivationData from "./routes/reactivation/ReactivationData";
+import ReactivationMessages from "./routes/reactivation/ReactivationMessages";
+import GroupOutreachOverview from "./routes/groups/GroupOutreachOverview";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminTasks from "./routes/admin/AdminTasks";
@@ -332,8 +340,17 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/conversations" element={<Navigate to="/conversations/sms" replace />} />
               <Route
-                path="/conversations"
+                path="/conversations/sms"
+                element={
+                  <ProtectedRoute>
+                    <Conversations />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/conversations/email"
                 element={
                   <ProtectedRoute>
                     <Conversations />
@@ -427,9 +444,9 @@ export default function App() {
                   the feature; each renders the shared "coming soon" screen. */}
               {/* The read-only Sales Overview kanban is retired; Pipeline is a Leads tab now. */}
               <Route path="/sales/overview" element={<Navigate to="/sales/leads/pipeline" replace />} />
-              {/* Reactivation lives as a Campaigns tab; old sales path redirects in. */}
-              <Route path="/sales/reactivation" element={<Navigate to="/marketing/campaigns/reactivation" replace />} />
-              <Route path="/marketing/campaigns/reactivation" element={<ProtectedRoute><Reactivation /></ProtectedRoute>} />
+              {/* Reactivation is its own Marketing section now; old paths redirect in. */}
+              <Route path="/sales/reactivation" element={<Navigate to="/marketing/reactivation" replace />} />
+              <Route path="/marketing/campaigns/reactivation" element={<Navigate to="/marketing/reactivation" replace />} />
               <Route path="/sales/scripts" element={<ProtectedRoute><ComingSoon title="Sales Scripts" blurb="Your call and message scripts, ready to use. Coming soon." /></ProtectedRoute>} />
               <Route path="/operations/reports" element={<ProtectedRoute><ComingSoon title="Reports & Analytics" blurb="Performance across ads, leads, and revenue in one place. Coming soon." /></ProtectedRoute>} />
               {/* Overview = the designed "at a glance" cockpit (AdsOverview). The raw
@@ -438,18 +455,36 @@ export default function App() {
               <Route path="/marketing/paid-ads/creatives" element={<ProtectedRoute><AdsCreatives /></ProtectedRoute>} />
               {/* A marketing channel never hosts a lead list; ad leads live in Leads, filtered. */}
               <Route path="/marketing/paid-ads/leads" element={<Navigate to="/sales/leads?source=ads" replace />} />
-              <Route path="/marketing/paid-ads/insights" element={<ProtectedRoute><AdsInsights /></ProtectedRoute>} />
+              <Route path="/marketing/paid-ads/stats" element={<ProtectedRoute><AdsInsights /></ProtectedRoute>} />
+              <Route path="/marketing/paid-ads/funnel" element={<ProtectedRoute><AdsFunnel /></ProtectedRoute>} />
+              <Route path="/marketing/paid-ads/media" element={<ProtectedRoute><AdsMedia /></ProtectedRoute>} />
               <Route path="/marketing/reviews" element={<ProtectedRoute><ReviewsOverview /></ProtectedRoute>} />
+              <Route path="/marketing/reviews/pipeline" element={<ProtectedRoute><ReviewsPipeline /></ProtectedRoute>} />
               <Route path="/marketing/reviews/requests" element={<ProtectedRoute><ReviewsRequests /></ProtectedRoute>} />
               <Route path="/marketing/reviews/all" element={<ProtectedRoute><ReviewsAll /></ProtectedRoute>} />
-              <Route path="/marketing/reviews/insights" element={<ProtectedRoute><ReviewsInsights /></ProtectedRoute>} />
-              <Route path="/marketing/campaigns" element={<ProtectedRoute><CampaignsOverview /></ProtectedRoute>} />
-              <Route path="/marketing/campaigns/all" element={<ProtectedRoute><CampaignsList /></ProtectedRoute>} />
+              <Route path="/marketing/reviews/report" element={<ProtectedRoute><ReviewsInsights /></ProtectedRoute>} />
+              {/* Campaigns is retired; Overview/all/insights redirect into Commercial Outreach.
+                  Audiences stays parked but reachable. Reactivation moved to its own section. */}
+              <Route path="/marketing/campaigns" element={<Navigate to="/marketing/outreach" replace />} />
+              <Route path="/marketing/campaigns/all" element={<Navigate to="/marketing/outreach" replace />} />
               <Route path="/marketing/campaigns/audiences" element={<ProtectedRoute><CampaignsAudiences /></ProtectedRoute>} />
-              <Route path="/marketing/campaigns/insights" element={<ProtectedRoute><CampaignsInsights /></ProtectedRoute>} />
+              <Route path="/marketing/campaigns/insights" element={<Navigate to="/marketing/outreach" replace />} />
+              {/* Commercial Outreach */}
+              <Route path="/marketing/outreach" element={<ProtectedRoute><OutreachOverview /></ProtectedRoute>} />
+              <Route path="/marketing/outreach/schedule" element={<ProtectedRoute><OutreachSchedule /></ProtectedRoute>} />
+              <Route path="/marketing/outreach/emails" element={<ProtectedRoute><OutreachEmails /></ProtectedRoute>} />
+              <Route path="/marketing/outreach/data" element={<ProtectedRoute><OutreachData /></ProtectedRoute>} />
+              <Route path="/marketing/outreach/sms" element={<ProtectedRoute><OutreachSms /></ProtectedRoute>} />
+              {/* Reactivation */}
+              <Route path="/marketing/reactivation" element={<ProtectedRoute><Reactivation /></ProtectedRoute>} />
+              <Route path="/marketing/reactivation/pipeline" element={<ProtectedRoute><ReactivationPipeline /></ProtectedRoute>} />
+              <Route path="/marketing/reactivation/data" element={<ProtectedRoute><ReactivationData /></ProtectedRoute>} />
+              <Route path="/marketing/reactivation/messages" element={<ProtectedRoute><ReactivationMessages /></ProtectedRoute>} />
+              {/* Group Outreach */}
+              <Route path="/marketing/groups" element={<ProtectedRoute><GroupOutreachOverview /></ProtectedRoute>} />
               <Route path="/marketing/website" element={<ProtectedRoute><WebsiteOverview /></ProtectedRoute>} />
               <Route path="/marketing/website/pages" element={<ProtectedRoute><WebsitePages /></ProtectedRoute>} />
-              <Route path="/marketing/website/request" element={<ProtectedRoute><WebsiteRequestChange /></ProtectedRoute>} />
+              <Route path="/marketing/website/request" element={<Navigate to="/marketing/website/pages" replace />} />
               <Route path="/marketing/website/insights" element={<ProtectedRoute><WebsiteInsights /></ProtectedRoute>} />
               <Route path="/marketing/social" element={<ProtectedRoute><SocialOverview /></ProtectedRoute>} />
               <Route path="/marketing/social/ideas" element={<ProtectedRoute><SocialIdeas /></ProtectedRoute>} />

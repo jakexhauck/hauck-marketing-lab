@@ -13,32 +13,26 @@ export interface PageTab {
 export const PAID_ADS_TABS: PageTab[] = [
   // No "Leads" tab: a marketing channel must not host a lead list (that is the
   // Leads section's job). The Overview's lead count links into Leads; the
-  // ad-attribution analysis lives in "What's working".
+  // ad-attribution analysis lives in "Ad Stats".
   { to: "/marketing/paid-ads", label: "Overview", end: true },
   { to: "/marketing/paid-ads/creatives", label: "Your Ads" },
-  { to: "/marketing/paid-ads/insights", label: "What's working" },
+  { to: "/marketing/paid-ads/stats", label: "Ad Stats" },
+  { to: "/marketing/paid-ads/funnel", label: "Funnel" },
+  { to: "/marketing/paid-ads/media", label: "Media" },
 ];
 
 export const REVIEWS_TABS: PageTab[] = [
   { to: "/marketing/reviews", label: "Overview", end: true },
+  { to: "/marketing/reviews/pipeline", label: "Review Pipeline" },
   { to: "/marketing/reviews/requests", label: "Ask for Reviews" },
   { to: "/marketing/reviews/all", label: "All Reviews" },
-  { to: "/marketing/reviews/insights", label: "What's working" },
-];
-
-export const CAMPAIGNS_TABS: PageTab[] = [
-  { to: "/marketing/campaigns", label: "Overview", end: true },
-  { to: "/marketing/campaigns/all", label: "Campaigns" },
-  { to: "/marketing/campaigns/audiences", label: "Audiences" },
-  { to: "/marketing/campaigns/reactivation", label: "Reactivation" },
-  { to: "/marketing/campaigns/insights", label: "What's working" },
+  { to: "/marketing/reviews/report", label: "Reputation Report" },
 ];
 
 export const WEBSITE_TABS: PageTab[] = [
   { to: "/marketing/website", label: "Overview", end: true },
   { to: "/marketing/website/pages", label: "Pages" },
-  { to: "/marketing/website/request", label: "Request a Change" },
-  { to: "/marketing/website/insights", label: "What's working" },
+  { to: "/marketing/website/insights", label: "Insights" },
 ];
 
 export const SOCIAL_TABS: PageTab[] = [
@@ -46,7 +40,31 @@ export const SOCIAL_TABS: PageTab[] = [
   { to: "/marketing/social/ideas", label: "Ideas" },
   { to: "/marketing/social/calendar", label: "Calendar" },
   { to: "/marketing/social/posts", label: "My Posts" },
-  { to: "/marketing/social/insights", label: "What's working" },
+  { to: "/marketing/social/insights", label: "Insights" },
+];
+
+export const COMMERCIAL_OUTREACH_TABS: PageTab[] = [
+  { to: "/marketing/outreach", label: "Overview", end: true },
+  { to: "/marketing/outreach/schedule", label: "Schedule" },
+  { to: "/marketing/outreach/emails", label: "Emails Sent" },
+  { to: "/marketing/outreach/data", label: "Full Data" },
+  { to: "/marketing/outreach/sms", label: "SMS" },
+];
+
+export const REACTIVATION_TABS: PageTab[] = [
+  { to: "/marketing/reactivation", label: "Overview", end: true },
+  { to: "/marketing/reactivation/pipeline", label: "Pipeline" },
+  { to: "/marketing/reactivation/data", label: "Full Data" },
+  { to: "/marketing/reactivation/messages", label: "Messages" },
+];
+
+export const GROUP_OUTREACH_TABS: PageTab[] = [
+  { to: "/marketing/groups", label: "Overview", end: true },
+];
+
+export const INBOX_TABS: PageTab[] = [
+  { to: "/conversations/sms", label: "SMS" },
+  { to: "/conversations/email", label: "Email" },
 ];
 
 export const LEADS_TABS: PageTab[] = [
@@ -64,7 +82,10 @@ export function sectionLabel(tabs: PageTab[]): string {
   if (tabs === SOCIAL_TABS) return "Social Media";
   if (tabs === REVIEWS_TABS) return "Google Reviews";
   if (tabs === PAID_ADS_TABS) return "Paid Ads";
-  if (tabs === CAMPAIGNS_TABS) return "Campaigns";
+  if (tabs === COMMERCIAL_OUTREACH_TABS) return "Commercial Outreach";
+  if (tabs === REACTIVATION_TABS) return "Reactivation";
+  if (tabs === GROUP_OUTREACH_TABS) return "Group Outreach";
+  if (tabs === INBOX_TABS) return "Inbox";
   if (tabs === LEADS_TABS) return "Leads";
   return "";
 }

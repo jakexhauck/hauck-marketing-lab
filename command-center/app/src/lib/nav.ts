@@ -16,6 +16,8 @@ import {
   Send,
   Split,
   LayoutGrid,
+  RotateCcw,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -87,7 +89,9 @@ export const NAV: NavEntry[] = [
     items: [
       { to: "/marketing/paid-ads", label: "Paid Ads", shortLabel: "Ads", icon: Megaphone },
       { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
-      { to: "/marketing/campaigns", label: "Campaigns", icon: Send },
+      { to: "/marketing/outreach", label: "Commercial Outreach", shortLabel: "Outreach", icon: Send },
+      { to: "/marketing/reactivation", label: "Reactivation", icon: RotateCcw },
+      { to: "/marketing/groups", label: "Group Outreach", shortLabel: "Groups", icon: Users },
       { to: "/marketing/website", label: "Website", icon: Globe },
       { to: "/marketing/social", label: "Social Media", shortLabel: "Social", icon: Share2 },
     ],
@@ -97,7 +101,7 @@ export const NAV: NavEntry[] = [
     label: "Company",
     icon: Building2,
     items: [
-      { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
+      { to: "/conversations/sms", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
       // Phone-only "app grid" launcher. Sidebar-hidden (desktop has the full
       // sidebar), and placed here so the bottom-bar flatten order centres it:
       // Today, Inbox, All, Contacts, Chat.
