@@ -3,6 +3,7 @@ import type { GhlContext } from "../../../lib/ghl";
 import {
   fetchSocialAccounts,
   fetchSocialPosts,
+  fetchLocationUserId,
   createSocialPost,
   platformMap,
   normalizePlatform,
@@ -112,6 +113,13 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     return Response.json({ error: "no connected account for those platforms" }, { status: 409 });
   }
 
-  const post = await createSocialPost(gctx, { accountIds, summary, status, scheduleAt }, map);
+  // GHL requires the authoring userId on create (confirmed live: omitting it
+  // 422s "userId must be a string").
+  const userId = await fetchLocationUserId(gctx);
+  if (!userId) {
+    return Response.json({ error: "no authoring user for this location" }, { status: 409 });
+  }
+
+  const post = await createSocialPost(gctx, { accountIds, userId, summary, status, scheduleAt }, map);
   return Response.json({ post });
 };

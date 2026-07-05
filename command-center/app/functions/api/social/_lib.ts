@@ -235,8 +235,24 @@ export async function fetchSocialPosts(
   return out;
 }
 
+interface UsersResponse {
+  users?: { id?: string }[];
+}
+
+// GHL's create-post endpoint requires a non-empty userId (the authoring user),
+// which the tenant context does not carry. Resolve one from the location's
+// users. Any valid location user works for authorship; we take the first.
+export async function fetchLocationUserId(gctx: GhlContext): Promise<string | null> {
+  const data = await ghlJson<UsersResponse>(
+    gctx,
+    `/users/?locationId=${encodeURIComponent(gctx.locationId)}`,
+  );
+  return data.users?.find((u) => u.id)?.id ?? null;
+}
+
 export interface CreatePostInput {
   accountIds: string[];
+  userId: string;
   summary: string;
   status: "draft" | "scheduled";
   scheduleAt?: string | null; // ISO, required when status === "scheduled"
@@ -256,6 +272,7 @@ export async function createSocialPost(
 ): Promise<SocialPost | null> {
   const body: Record<string, unknown> = {
     accountIds: input.accountIds,
+    userId: input.userId,
     summary: input.summary,
     type: "post",
     status: input.status,
