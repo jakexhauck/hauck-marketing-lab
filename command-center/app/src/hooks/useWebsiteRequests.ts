@@ -4,7 +4,7 @@ import { api } from "../lib/api";
 import { demoMode } from "../demo/demoMode";
 import { timeAgo } from "../lib/timeAgo";
 import { SEED_REQUESTS } from "../routes/website/shared";
-import type { ChangeRequest, Device, SitePageKey } from "../routes/website/shared";
+import type { ChangeRequest, Device } from "../routes/website/shared";
 
 // Data layer for Website > Request a Change. Demo/preview keeps the hand-authored
 // pins in local state so the interaction still feels live without a backend; a
@@ -25,7 +25,7 @@ interface WebsiteRequestDTO {
 }
 
 export interface NewRequestInput {
-  page: SitePageKey;
+  page: string;
   device: Device;
   xPct: number;
   yPct: number;
@@ -44,7 +44,7 @@ export interface UseWebsiteRequests {
 function fromDto(d: WebsiteRequestDTO, now = Date.now()): ChangeRequest {
   return {
     id: d.id,
-    page: (d.page as SitePageKey) || "home",
+    page: d.page || "home",
     device: d.device,
     xPct: d.xPct,
     yPct: d.yPct,

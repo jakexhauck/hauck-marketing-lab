@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { Globe, Pencil, ChevronRight } from "lucide-react";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
@@ -8,24 +7,33 @@ import { Panel, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { useClient } from "../../context/ClientContext";
 import { useWebsitePages } from "../../hooks/useWebsitePages";
+import { useWebsiteRequests, type NewRequestInput } from "../../hooks/useWebsiteRequests";
 import { relativeTime } from "../../lib/format";
 import {
   WEBSITE_CONTAINER,
   NotConnectedNotice,
-  DevicePreview,
   SiteMock,
   LiveSiteFrame,
   DeviceToggle,
   SITE_PAGES,
 } from "./shared";
-import type { Device, SitePageKey } from "./shared";
+import type { ChangeRequest, Device, SitePageKey } from "./shared";
+import {
+  CHANGE_PIN_CSS,
+  ChangeCanvas,
+  RequestsRail,
+  type PinPulse,
+} from "./changeRequests";
 
-// Website > Pages (master-detail). The left rail lists every live page; the
-// right side shows the selected page in a large browser preview, exactly as a
-// customer sees it, with a shortcut to request a change. Demo renders the
-// hand-authored SITE_PAGES over SiteMock; a real session lists the client's
-// actual pages from their GHL site (useWebsitePages) and previews each by
-// joining its path onto the tenant's website_url.
+// Website > Pages (master-detail + in-place change requests). The left rail lists
+// every live page; the middle shows the selected page in a browser or phone
+// preview, exactly as a customer sees it; the right rail lists submitted change
+// requests. "Request a change to this page" turns the preview into a pin target
+// (ChangeCanvas) so clients point at exactly what to change on THAT page, in
+// place, instead of navigating away. Demo renders SITE_PAGES over SiteMock; a
+// real session lists the client's actual pages (useWebsitePages) and previews
+// each by joining its path onto the tenant's website_url. Pins persist through
+// useWebsiteRequests (GET/POST /api/website/requests).
 
 // Small "Live" pill (positive tone) with a soft pulsing dot, matching the
 // mockup's page rows.
@@ -82,18 +90,53 @@ function PageRow({
   );
 }
 
+// The toolbar above the preview: device toggle + the pin-mode toggle. Turning
+// pin mode on makes the preview a click target; the label flips to "Done".
+function PreviewToolbar({
+  device,
+  setDevice,
+  pinMode,
+  setPinMode,
+  canPin,
+}: {
+  device: Device;
+  setDevice: (d: Device) => void;
+  pinMode: boolean;
+  setPinMode: (v: boolean) => void;
+  canPin: boolean;
+}) {
+  return (
+    <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3">
+      <DeviceToggle value={device} onChange={setDevice} />
+      <Button
+        variant={pinMode ? "secondary" : "primary"}
+        size="sm"
+        disabled={!canPin}
+        onClick={() => setPinMode(!pinMode)}
+      >
+        <Pencil size={15} /> {pinMode ? "Done" : "Request a change to this page"}
+      </Button>
+    </div>
+  );
+}
+
 export default function WebsitePages() {
   const demo = demoMode();
   const { client } = useClient();
   const websiteUrl = client.websiteUrl;
-  const navigate = useNavigate();
   const [device, setDevice] = useState<Device>("desktop");
 
   // Demo selection (keys drive SiteMock) and real selection (page ids).
   const [selectedKey, setSelectedKey] = useState<SitePageKey>("home");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // In-place change requests: pin-drop mode + the focused pin, shared by the
+  // canvas (pins) and the rail (list highlight).
+  const [pinMode, setPinMode] = useState(false);
+  const [pulse, setPulse] = useState<PinPulse | null>(null);
+
   const { pages, site, unavailable } = useWebsitePages();
+  const { requests, add, unavailable: requestsUnavailable } = useWebsiteRequests();
 
   // Join a GHL page path onto the client's site origin for preview / open.
   const fullUrl = (path: string): string | null => {
@@ -115,13 +158,33 @@ export default function WebsitePages() {
     }
   };
 
+  // Resolve a request's page identifier to a human label for the rail card.
+  const pageLabel = (pageId: string): string => {
+    if (demo) return SITE_PAGES.find((p) => p.key === pageId)?.name ?? pageId;
+    return pages.find((p) => p.path === pageId)?.name ?? pageId;
+  };
+
+  // Focus a request from the rail: switch to its page + device so its pin shows,
+  // then pulse it. Kept here (not in the rail) because it owns page/device state.
+  const focusRequest = (r: ChangeRequest) => {
+    if (r.device !== device) setDevice(r.device);
+    if (demo) {
+      if (SITE_PAGES.some((p) => p.key === r.page)) setSelectedKey(r.page as SitePageKey);
+    } else {
+      const match = pages.find((p) => p.path === r.page);
+      if (match) setSelectedId(match.id);
+    }
+    setPulse((p) => ({ id: r.id, n: (p?.n ?? 0) + 1 }));
+  };
+
   return (
     <Shell>
       <div className={WEBSITE_CONTAINER}>
+        <style>{CHANGE_PIN_CSS}</style>
         <PageBar
           tabs={WEBSITE_TABS}
           count={demo ? SITE_PAGES.length : pages.length || undefined}
-          description="Every page on your live website. Pick one to see it exactly as your customers do, then request a change if something needs updating."
+          description="Every page on your live website. Pick one to see it exactly as your customers do, then point at anything you'd like changed and we'll handle the rest."
         />
 
         {demo ? (
@@ -130,7 +193,15 @@ export default function WebsitePages() {
             setDevice={setDevice}
             selectedKey={selectedKey}
             setSelectedKey={setSelectedKey}
-            navigate={navigate}
+            pinMode={pinMode}
+            setPinMode={setPinMode}
+            requests={requests}
+            add={add}
+            requestsUnavailable={requestsUnavailable}
+            pulse={pulse}
+            setPulse={setPulse}
+            focusRequest={focusRequest}
+            pageLabel={pageLabel}
           />
         ) : pages.length === 0 ? (
           <>
@@ -149,12 +220,13 @@ export default function WebsitePages() {
           (() => {
             const selected = pages.find((p) => p.id === selectedId) ?? pages[0];
             const preview = fullUrl(selected.path);
+            const canPin = Boolean(preview);
             return (
               <>
                 {!websiteUrl && (
-                  <NotConnectedNotice message="These are your live pages. Add your site address to preview them here." />
+                  <NotConnectedNotice message="These are your live pages. Add your site address to preview them and request changes here." />
                 )}
-                <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[300px_1fr]">
+                <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[230px_minmax(0,1fr)_320px]">
                   <div className="flex flex-col gap-1.5">
                     {pages.map((p) => (
                       <PageRow
@@ -168,18 +240,24 @@ export default function WebsitePages() {
                   </div>
 
                   <div>
-                    <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3">
-                      <DeviceToggle value={device} onChange={setDevice} />
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => navigate("/marketing/website/request")}
-                      >
-                        <Pencil size={15} /> Request a change to this page
-                      </Button>
-                    </div>
+                    <PreviewToolbar
+                      device={device}
+                      setDevice={setDevice}
+                      pinMode={pinMode}
+                      setPinMode={setPinMode}
+                      canPin={canPin}
+                    />
 
-                    <DevicePreview url={barLabel(selected.path)} device={device}>
+                    <ChangeCanvas
+                      pageId={selected.path}
+                      device={device}
+                      url={barLabel(selected.path)}
+                      active={pinMode && canPin}
+                      requests={requests}
+                      add={add}
+                      pulse={pulse}
+                      setPulse={setPulse}
+                    >
                       {preview ? (
                         <LiveSiteFrame url={preview} device={device} />
                       ) : (
@@ -190,7 +268,7 @@ export default function WebsitePages() {
                           </p>
                         </div>
                       )}
-                    </DevicePreview>
+                    </ChangeCanvas>
 
                     <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-muted">
                       {site?.updatedAt && (
@@ -207,6 +285,14 @@ export default function WebsitePages() {
                       </span>
                     </div>
                   </div>
+
+                  <RequestsRail
+                    requests={requests}
+                    pulse={pulse}
+                    onFocus={focusRequest}
+                    unavailable={requestsUnavailable}
+                    pageLabel={pageLabel}
+                  />
                 </div>
               </>
             );
@@ -217,24 +303,40 @@ export default function WebsitePages() {
   );
 }
 
-// The demo master-detail: the hand-authored SITE_PAGES over SiteMock. Unchanged
-// from the original page; split out so the real path stays readable.
+// The demo master-detail + pin board: the hand-authored SITE_PAGES over SiteMock,
+// with the same in-place change-request interaction as the real path.
 function DemoPages({
   device,
   setDevice,
   selectedKey,
   setSelectedKey,
-  navigate,
+  pinMode,
+  setPinMode,
+  requests,
+  add,
+  requestsUnavailable,
+  pulse,
+  setPulse,
+  focusRequest,
+  pageLabel,
 }: {
   device: Device;
   setDevice: (d: Device) => void;
   selectedKey: SitePageKey;
   setSelectedKey: (k: SitePageKey) => void;
-  navigate: (to: string) => void;
+  pinMode: boolean;
+  setPinMode: (v: boolean) => void;
+  requests: ChangeRequest[];
+  add: (input: NewRequestInput) => Promise<ChangeRequest | null>;
+  requestsUnavailable: boolean;
+  pulse: PinPulse | null;
+  setPulse: Dispatch<SetStateAction<PinPulse | null>>;
+  focusRequest: (r: ChangeRequest) => void;
+  pageLabel: (pageId: string) => string;
 }) {
   const selected = SITE_PAGES.find((p) => p.key === selectedKey) ?? SITE_PAGES[0];
   return (
-    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[300px_1fr]">
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[230px_minmax(0,1fr)_320px]">
       <div className="flex flex-col gap-1.5">
         {SITE_PAGES.map((p) => (
           <PageRow
@@ -248,16 +350,26 @@ function DemoPages({
       </div>
 
       <div>
-        <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3">
-          <DeviceToggle value={device} onChange={setDevice} />
-          <Button variant="primary" size="sm" onClick={() => navigate("/marketing/website/request")}>
-            <Pencil size={15} /> Request a change to this page
-          </Button>
-        </div>
+        <PreviewToolbar
+          device={device}
+          setDevice={setDevice}
+          pinMode={pinMode}
+          setPinMode={setPinMode}
+          canPin
+        />
 
-        <DevicePreview url={selected.path} device={device}>
+        <ChangeCanvas
+          pageId={selected.key}
+          device={device}
+          url={selected.path}
+          active={pinMode}
+          requests={requests}
+          add={add}
+          pulse={pulse}
+          setPulse={setPulse}
+        >
           <SiteMock page={selected.key} device={device} />
-        </DevicePreview>
+        </ChangeCanvas>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-muted">
           <span>
@@ -271,6 +383,14 @@ function DemoPages({
           </span>
         </div>
       </div>
+
+      <RequestsRail
+        requests={requests}
+        pulse={pulse}
+        onFocus={focusRequest}
+        unavailable={requestsUnavailable}
+        pageLabel={pageLabel}
+      />
     </div>
   );
 }

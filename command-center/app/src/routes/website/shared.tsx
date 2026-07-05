@@ -500,7 +500,9 @@ export type RequestStatus = "open" | "in_progress" | "done";
 
 export interface ChangeRequest {
   id: string;
-  page: SitePageKey;
+  // A page identifier: a SitePageKey in demo, or the live page's path/slug in a
+  // real session. Kept loose so pins persist against whichever page was open.
+  page: string;
   device: Device;
   xPct: number;
   yPct: number;
