@@ -31,9 +31,11 @@ export interface AdsInsightsResponse {
     roas: number;
     impressions: number;
     reach: number;
+    frequency: number;
     clicks: number;
     ctr: number;
     cpc: number;
+    cpm: number;
   };
   lastMonthLeads: number;
   weekly: { label: string; value: number }[];
@@ -53,7 +55,7 @@ export function emptyAdsInsights(configured: boolean): AdsInsightsResponse {
     currency: "USD",
     totals: {
       spend: 0, leads: 0, costPerLead: 0, customers: 0, revenue: 0, roas: 0,
-      impressions: 0, reach: 0, clicks: 0, ctr: 0, cpc: 0,
+      impressions: 0, reach: 0, frequency: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0,
     },
     lastMonthLeads: 0,
     weekly: [],
@@ -112,9 +114,11 @@ export function demoAdsInsights(): AdsInsightsResponse {
       roas: spend > 0 ? Math.round((14200 / spend) * 10) / 10 : 0,
       impressions: 48000,
       reach: ads.reduce((s, a) => s + a.reach, 0),
+      frequency: 1.8,
       clicks: 640,
       ctr: 1.3,
       cpc: 2.9,
+      cpm: 9.2,
     },
     lastMonthLeads: 27,
     weekly: DEMO_WEEKLY.map((w) => ({ label: w.label, value: w.value })),

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveAdAccount } from "./insights";
+import { resolveAdAccount, derivePhase } from "./insights";
 
 // The one piece of real logic in per-client Paid Ads: the client's own ad
 // account (from their tenant row) must win over the global env fallback, so no
@@ -24,5 +24,32 @@ describe("resolveAdAccount", () => {
 
   it("trims surrounding whitespace on the chosen value", () => {
     expect(resolveAdAccount(" act_111 ", "act_999")).toBe("act_111");
+  });
+});
+
+// The Overview phase badge only ever shows a real, derived state. A LEARNING ad
+// set wins (still optimizing); a finished one reads "scaling"; anything else is
+// null so the badge hides rather than fabricating a phase.
+describe("derivePhase", () => {
+  const active = (status: string) => ({
+    effective_status: "ACTIVE",
+    learning_stage_info: { status },
+  });
+
+  it("returns learning when any active ad set is still LEARNING", () => {
+    expect(derivePhase([active("SUCCESS"), active("LEARNING")])).toBe("learning");
+  });
+
+  it("returns scaling when learning has finished (SUCCESS / LEARNING_LIMITED)", () => {
+    expect(derivePhase([active("SUCCESS")])).toBe("scaling");
+    expect(derivePhase([active("LEARNING_LIMITED")])).toBe("scaling");
+  });
+
+  it("ignores paused ad sets and returns null when nothing is readable", () => {
+    expect(
+      derivePhase([{ effective_status: "PAUSED", learning_stage_info: { status: "LEARNING" } }]),
+    ).toBeNull();
+    expect(derivePhase([])).toBeNull();
+    expect(derivePhase([active("")])).toBeNull();
   });
 });

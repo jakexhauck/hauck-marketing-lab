@@ -112,9 +112,11 @@ export interface AdsInsightsResponse {
     roas: number;
     impressions: number;
     reach: number;
+    frequency: number;
     clicks: number;
     ctr: number;
     cpc: number;
+    cpm: number;
   };
   lastMonthLeads: number;
   weekly: { label: string; value: number }[];
@@ -128,7 +130,7 @@ export interface AdsInsightsResponse {
 
 const EMPTY_TOTALS = {
   spend: 0, leads: 0, costPerLead: 0, customers: 0, revenue: 0, roas: 0,
-  impressions: 0, reach: 0, clicks: 0, ctr: 0, cpc: 0,
+  impressions: 0, reach: 0, frequency: 0, clicks: 0, ctr: 0, cpc: 0, cpm: 0,
 };
 
 // Bucket daily insights rows into up-to-5 "Week N" leads totals for the month.
@@ -273,7 +275,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     const totalsResp = await graphGet(token, `/${account}/insights`, {
       level: "account",
       date_preset: "this_month",
-      fields: "spend,impressions,clicks,ctr,cpc,reach,actions",
+      fields: "spend,impressions,clicks,ctr,cpc,cpm,reach,frequency,actions",
     });
     const trow = (((totalsResp.data as unknown[]) ?? [])[0] ?? {}) as Record<string, unknown>;
     const spend = num(trow.spend);
@@ -351,9 +353,11 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         roas: spend > 0 ? round2(revenue / spend) : 0,
         impressions: Math.round(num(trow.impressions)),
         reach: Math.round(num(trow.reach)),
+        frequency: round2(num(trow.frequency)),
         clicks: Math.round(num(trow.clicks)),
         ctr: round2(num(trow.ctr)),
         cpc: round2(num(trow.cpc)),
+        cpm: round2(num(trow.cpm)),
       },
       lastMonthLeads: Math.round(lastMonthLeads),
       weekly: bucketWeekly((dailyResp.data as Record<string, unknown>[]) ?? []),
