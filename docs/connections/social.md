@@ -3,8 +3,8 @@
 Status 2026-07-05: READ + WRITE wiring SHIPPED and LIVE. Willis has Google
 Business ("Willis Windows LLC") + Facebook ("Willis Window Washing") linked in
 the Social Planner; the accounts endpoint returns both (`connected: true`).
-Instagram not yet connected. Zero posts so far. Write path (create/delete) not
-yet fired against the real account.
+Instagram not yet connected. Zero posts so far. Write path (create + delete)
+LIVE-VALIDATED against the real account (throwaway draft, no public exposure).
 
 ## What is wired
 
@@ -15,8 +15,12 @@ yet fired against the real account.
   Function; date params are NOT sent to GHL (unconfirmed, risked a 422).
 - `POST /api/social/posts` -> create a draft or scheduled post. Maps the selected
   fb/ig/gb platforms to the client's connected account ids. Terminal write, no
-  retry. Built to GHL's documented body shape; NOT yet fired live (no posts +
-  no test sub-account at build time).
+  retry. LIVE-VALIDATED 2026-07-05 (throwaway draft created + deleted against the
+  real Willis sub-account). GHL's create body needs
+  `{ accountIds, userId, summary, type: "post", status, scheduleDate? }` — the
+  **`userId` is required** (omitting it 422s "userId must be a string"). The
+  runtime resolves it via `GET /users/?locationId=` (first location user) since
+  the tenant context carries no user id.
 - `DELETE /api/social/posts/:id` -> remove a post (My Posts trash action).
 
 Endpoints: `https://services.leadconnectorhq.com/social-media-posting/{locationId}/...`
