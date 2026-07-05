@@ -5,17 +5,30 @@ import PageBar from "../../components/PageBar";
 import { SOCIAL_TABS } from "../../lib/pageTabs";
 import { Panel, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
-import { Platform, NotConnectedNotice, SOCIAL_CONTAINER, PLATFORM } from "./shared";
+import {
+  Platform,
+  NotConnectedNotice,
+  ConnectedEmptyNotice,
+  SOCIAL_CONTAINER,
+  PLATFORM,
+} from "./shared";
+import { useSocialAccounts, useSocialPosts } from "../../hooks/useSocial";
+import { buildMonthGrid } from "../../lib/social";
 import PlanMonthDialog from "../../components/social/PlanMonthDialog";
 import SocialComposerDialog from "../../components/social/SocialComposerDialog";
 
-// Month calendar. Populated demo month in preview; empty not-connected otherwise.
+// Month calendar. Populated demo month in preview; a real, navigable month grid
+// built from live GHL posts in a live session.
 
 const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MONTH_FULL = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 
 type Ev = { p: Platform; label: string };
-// June 2026 laid out Mon-first. `out` greys leading/trailing days from other months.
-const CELLS: { day: number; out?: boolean; today?: boolean; events?: Ev[] }[] = [
+// June 2026 laid out Mon-first (demo fixture). `out` greys neighbouring-month days.
+const DEMO_CELLS: { day: number; out?: boolean; today?: boolean; events?: Ev[] }[] = [
   { day: 1 }, { day: 2 }, { day: 3 }, { day: 4 }, { day: 5 }, { day: 6 }, { day: 7 },
   { day: 8 }, { day: 9 }, { day: 10 }, { day: 11 }, { day: 12 }, { day: 13 }, { day: 14 },
   { day: 15 }, { day: 16 }, { day: 17 }, { day: 18 }, { day: 19 }, { day: 20 }, { day: 21 },
@@ -35,11 +48,34 @@ export default function SocialCalendar() {
   const [planOpen, setPlanOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composeSource, setComposeSource] = useState<string | undefined>(undefined);
+  const [view, setView] = useState(() => {
+    const d = new Date();
+    return { y: d.getFullYear(), m: d.getMonth() };
+  });
 
+  const accountsQ = useSocialAccounts(!demo);
+  const postsQ = useSocialPosts({}, !demo);
+  const connected = accountsQ.data?.connected ?? false;
+  const realPosts = postsQ.data?.posts ?? [];
+
+  const cells = demo ? DEMO_CELLS : buildMonthGrid(view.y, view.m, realPosts, Date.now());
+  const monthLabel = demo ? "June 2026" : `${MONTH_FULL[view.m]} ${view.y}`;
+
+  function shiftMonth(delta: number) {
+    setView((v) => {
+      const m = v.m + delta;
+      const y = v.y + Math.floor(m / 12);
+      return { y, m: ((m % 12) + 12) % 12 };
+    });
+  }
   function openCompose(label?: string) {
     setComposeSource(label);
     setComposerOpen(true);
   }
+
+  // In a real session the grid renders once connected (even with no posts, so the
+  // client can see the month). Not connected keeps the honest empty state.
+  const showGrid = demo || connected;
 
   return (
     <Shell>
@@ -60,19 +96,34 @@ export default function SocialCalendar() {
           }
         />
 
-        {!demo && (
+        {!demo && !connected && (
           <NotConnectedNotice message="Your calendar fills in once posts can publish. Connect your social accounts to start scheduling." />
         )}
+        {!demo && connected && realPosts.length === 0 && (
+          <ConnectedEmptyNotice message="Your accounts are linked. Scheduled and published posts will land on this calendar." />
+        )}
 
-        {demo ? (
+        {showGrid ? (
           <Panel className="p-5">
             <div className="mb-4 flex items-center justify-between">
-              <div className="font-display text-[19px] text-text">June 2026</div>
+              <div className="font-display text-[19px] text-text">{monthLabel}</div>
               <div className="flex gap-1.5">
-                <Button variant="secondary" size="icon" aria-label="Previous month">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  aria-label="Previous month"
+                  onClick={() => !demo && shiftMonth(-1)}
+                  disabled={demo}
+                >
                   <ChevronLeft size={16} />
                 </Button>
-                <Button variant="secondary" size="icon" aria-label="Next month">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  aria-label="Next month"
+                  onClick={() => !demo && shiftMonth(1)}
+                  disabled={demo}
+                >
                   <ChevronRight size={16} />
                 </Button>
               </div>
@@ -87,7 +138,7 @@ export default function SocialCalendar() {
             </div>
 
             <div className="grid grid-cols-7 gap-2">
-              {CELLS.map((c, i) => (
+              {cells.map((c, i) => (
                 <div
                   key={i}
                   onClick={() => !c.out && openCompose()}

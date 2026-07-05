@@ -4,16 +4,19 @@ import { Button } from "../ui";
 import { useToast } from "../../context/ToastContext";
 import { demoMode } from "../../demo/demoMode";
 import { Platform, PLATFORM, PlatformGlyph } from "../../routes/social/shared";
+import { useSocialAccounts, useCreatePost } from "../../hooks/useSocial";
 import SocialDialog from "./SocialDialog";
 
 const TONES = ["Friendly", "Shorter", "More fun", "Salesy"];
+const ALL_PLATFORMS: Platform[] = ["ig", "fb", "gb"];
 
 const SAMPLE_CAPTION =
   "Another one done right. 👏 Swapped out an old, leaky water heater for the Thompsons this week, and they've already got hot water back the same day.\n\nIf your unit is making noise or running cold, don't wait for it to quit. We'll take a look and tell you straight.\n\n#WaterHeater #LocalPlumber";
 
 // The "New Post" composer. Interactive UI (caption, tone, platforms, live
-// preview); the AI rewrite and the publish/schedule actions are gated until the
-// backend is wired. Demo pre-fills the sample post; a real session starts empty.
+// preview). The AI rewrite stays gated; Save draft / Schedule create a real GHL
+// post in a live session (only when a connected platform is selected) and just
+// toast in demo. Media upload is still out of scope.
 export default function SocialComposerDialog({
   open,
   onClose,
@@ -25,6 +28,12 @@ export default function SocialComposerDialog({
 }) {
   const demo = demoMode();
   const { showToast } = useToast();
+  const accountsQ = useSocialAccounts(!demo);
+  const createPost = useCreatePost();
+
+  const connectedSet = new Set((accountsQ.data?.accounts ?? []).map((a) => a.platform));
+  // Demo shows all three; a live session shows only the client's connected ones.
+  const shownPlatforms = demo ? ALL_PLATFORMS : ALL_PLATFORMS.filter((p) => connectedSet.has(p));
 
   const [caption, setCaption] = useState(demo ? SAMPLE_CAPTION : "");
   const [tone, setTone] = useState("Friendly");
@@ -38,6 +47,63 @@ export default function SocialComposerDialog({
     setPlatforms((prev) => ({ ...prev, [p]: !prev[p] }));
   }
 
+  const selected = shownPlatforms.filter((p) => platforms[p]);
+  const hasCaption = caption.trim().length > 0;
+  const canDraft = demo || (hasCaption && selected.length > 0 && !createPost.isPending);
+  const canSchedule = demo || (hasCaption && selected.length > 0 && !!when && !createPost.isPending);
+
+  function toIso(local: string): string | undefined {
+    if (!local) return undefined;
+    const d = new Date(local);
+    return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+  }
+
+  function saveDraft() {
+    if (demo) {
+      showToast("Saved as a draft (demo)");
+      onClose();
+      return;
+    }
+    createPost.mutate(
+      { platforms: selected, summary: caption.trim(), status: "draft" },
+      {
+        onSuccess: () => {
+          showToast("Saved as a draft");
+          onClose();
+        },
+        onError: () => showToast("Could not save that draft"),
+      },
+    );
+  }
+
+  function schedule() {
+    if (demo) {
+      showToast("Scheduled (demo)");
+      onClose();
+      return;
+    }
+    const iso = toIso(when);
+    if (!iso) {
+      showToast("Pick a date and time to schedule");
+      return;
+    }
+    createPost.mutate(
+      { platforms: selected, summary: caption.trim(), status: "scheduled", scheduleAt: iso },
+      {
+        onSuccess: () => {
+          showToast("Scheduled");
+          onClose();
+        },
+        onError: () => showToast("Could not schedule that post"),
+      },
+    );
+  }
+
+  const footerHint =
+    !demo && !accountsQ.data?.connected
+      ? "Saving and publishing turn on once your accounts are connected"
+      : "We'll post to the accounts you select above";
+
   return (
     <SocialDialog
       open={open}
@@ -48,29 +114,13 @@ export default function SocialComposerDialog({
       footer={
         <>
           <span className="flex items-center gap-1.5 text-[11.5px] text-faint">
-            <Link2 size={13} /> Saving and publishing turn on once your accounts are connected
+            <Link2 size={13} /> {footerHint}
           </span>
           <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="md"
-              disabled={!demo}
-              onClick={() => {
-                showToast("Saved as a draft (demo)");
-                onClose();
-              }}
-            >
+            <Button variant="secondary" size="md" disabled={!canDraft} onClick={saveDraft}>
               Save draft
             </Button>
-            <Button
-              variant="primary"
-              size="md"
-              disabled={!demo}
-              onClick={() => {
-                showToast("Scheduled (demo)");
-                onClose();
-              }}
-            >
+            <Button variant="primary" size="md" disabled={!canSchedule} onClick={schedule}>
               <Send size={15} /> Schedule
             </Button>
           </div>
@@ -133,25 +183,31 @@ export default function SocialComposerDialog({
 
           <div className="mt-5">
             <span className="label-cap">Post to</span>
-            <div className="mt-2 flex flex-wrap gap-2.5">
-              {(["ig", "fb", "gb"] as Platform[]).map((p) => {
-                const on = platforms[p];
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => togglePlatform(p)}
-                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-[12.5px] font-medium transition-colors ${
-                      on ? "border-brand bg-brand-tint text-brand-text" : "border-border-strong text-muted"
-                    }`}
-                  >
-                    <PlatformGlyph p={p} size={20} />
-                    {PLATFORM[p].name}
-                    {on && <Check size={14} className="text-brand-text" />}
-                  </button>
-                );
-              })}
-            </div>
+            {shownPlatforms.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-2.5">
+                {shownPlatforms.map((p) => {
+                  const on = platforms[p];
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => togglePlatform(p)}
+                      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-[12.5px] font-medium transition-colors ${
+                        on ? "border-brand bg-brand-tint text-brand-text" : "border-border-strong text-muted"
+                      }`}
+                    >
+                      <PlatformGlyph p={p} size={20} />
+                      {PLATFORM[p].name}
+                      {on && <Check size={14} className="text-brand-text" />}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-2 text-[12.5px] text-faint">
+                Connect a social account to choose where this posts.
+              </p>
+            )}
           </div>
 
           <div className="mt-5 flex gap-2.5">
@@ -176,7 +232,7 @@ export default function SocialComposerDialog({
               className="mt-2 w-full rounded-xl border border-border-strong bg-surface px-3.5 py-2.5 text-[14px] text-text outline-none focus:border-brand"
             />
             <p className="mt-1.5 text-[11px] text-faint">
-              Leave blank to save as a draft.{!demo && " Scheduling turns on once your accounts are connected."}
+              Leave blank to save as a draft. Set a time to schedule.
             </p>
           </div>
         </div>
@@ -184,7 +240,7 @@ export default function SocialComposerDialog({
         {/* Live preview */}
         <div className="bg-surface-2 p-5">
           <div className="mb-3 flex gap-2">
-            {(["ig", "fb", "gb"] as Platform[]).map((p) => (
+            {ALL_PLATFORMS.map((p) => (
               <button
                 key={p}
                 type="button"
@@ -224,9 +280,7 @@ export default function SocialComposerDialog({
             </div>
           </div>
 
-          <p className="mt-3 text-[11px] text-faint">
-            Preview only. Connect your accounts to schedule and publish.
-          </p>
+          <p className="mt-3 text-[11px] text-faint">Preview only.</p>
         </div>
       </div>
     </SocialDialog>

@@ -11,6 +11,16 @@
 
 # Social wiring: client Social section to real GHL Social Planner
 
+> STATUS 2026-07-05: BUILT + SHIPPED (read + write wiring). Task 0 passed (scope
+> live, shapes confirmed, analytics absent). All five real surfaces wired;
+> Insights deferred; composer write path built but not fired (no test sub-account,
+> Jake verifies the first real post in-app). REMAINING JAKE DEPENDENCY: the
+> client's FB/IG/Google are connected under GHL Settings -> Integrations but NOT
+> inside the Social Planner, so the accounts endpoint returns zero and live
+> surfaces show the honest connected-but-empty state until they are linked in
+> Marketing -> Social Planner. See `docs/connections/social.md`. Sequenced in
+> `marketing-surfaces-master-plan.md`.
+
 Combined spec + plan. PLAN ONLY. No app code changes until this is approved and Task 0 passes.
 
 Scope: wire the client app's Social section (Overview, Ideas, Calendar, My Posts, What's working) to real GoHighLevel Social Planner data. Facebook, Instagram, and Google Business are already connected for the client, so accounts exist in the sub-account. Today every Social surface shows hand-authored demo content in preview and a zeroed "Not connected yet" state in a real session. This replaces the real-session empty states with real posts, accounts, and (where the API allows) analytics.
@@ -55,6 +65,33 @@ Shared: `src/routes/social/shared.tsx` (`NotConnectedNotice`, `PlatformGlyph`, `
 ## 3. GHL Social Planner endpoints (Pages Functions to build under functions/api/social/*)
 
 Base: `https://services.leadconnectorhq.com`, called via `ghlFetch` / `ghlJson` in `functions/lib/ghl.ts` (adds `Authorization: Bearer {ctx.data.tenant.ghl_token}` and `Version: 2021-07-28`). Location id = `ctx.data.tenant.ghl_location_id`.
+
+> TASK 0 RESULT (2026-07-05, probed live against Willis loc `OznT3yyuwK3dqVXDsCaD`
+> with the tenant PIT via the `ghl` CLI + direct fetch):
+>
+> - **Scope confirmed.** `socialplanner/*` grant is live. Endpoints return 200/201,
+>   no 401/403. The old blocker (see [[project_social_page_blocked]]) is gone.
+> - **Accounts** `GET /social-media-posting/{loc}/accounts` -> 200
+>   `{ success, statusCode, message, results: { accounts: [], groups: [] } }`.
+> - **Posts list** `POST /social-media-posting/{loc}/posts/list`, body
+>   `{ type, skip, limit }` where **skip/limit are STRINGS** and **no locationId in
+>   the body** (both trigger a 422) -> 201
+>   `{ success, results: { posts: [], count: 0 } }`. One endpoint; date-range params
+>   left UNSENT (unconfirmed, risked a 422) so the calendar filters client-side.
+> - **Analytics: NONE.** `/statistics` and `/analytics` both 404; `/posts/statistics`
+>   400. No per-post reach/engagement endpoint exists. Insights is DEFERRED and
+>   Overview drops the reach/calls KPIs. `/categories` and `/tags` exist (200) but
+>   are not analytics.
+> - **Create/delete: built to GHL's documented body shape, NOT fired.** Willis has no
+>   test sub-account wired to the CLI and Jake chose "build, don't fire" (write path
+>   verified in-app on the first real post once accounts connect).
+> - **Zero connected accounts / zero posts** in Willis right now. Accounts connected
+>   under GHL Settings -> Integrations are NOT the same as accounts linked inside the
+>   Social Planner; only Social-Planner-linked accounts surface on this endpoint.
+>   Live surfaces render the honest connected-but-empty / not-connected state until
+>   the accounts are linked in the Social Planner. Exact per-account and per-post
+>   FIELD NAMES could not be confirmed (no data to inspect), so the shapers below
+>   accept multiple candidate field names defensively.
 
 EVERY endpoint below is a SPIKE. The exact paths, request/response shapes, required OAuth scopes, and the Version header value must be confirmed against the live tenant token in Task 0 before any handler is written. GHL's Social Media Posting API family is the target; the shapes below are the best-known guesses and MUST NOT be trusted until probed.
 

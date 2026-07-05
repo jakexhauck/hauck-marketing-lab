@@ -7,12 +7,31 @@ import { SOCIAL_TABS } from "../../lib/pageTabs";
 import { Panel, PanelHeader, Badge, Button, EmptyState } from "../../components/ui";
 import type { Tone } from "../../lib/status";
 import { demoMode } from "../../demo/demoMode";
-import { Platform, PlatformGlyph, NotConnectedNotice, SOCIAL_CONTAINER } from "./shared";
+import {
+  Platform,
+  PlatformGlyph,
+  NotConnectedNotice,
+  ConnectedEmptyNotice,
+  statusBadge,
+  SOCIAL_CONTAINER,
+} from "./shared";
+import { useSocialAccounts, useSocialPosts } from "../../hooks/useSocial";
+import {
+  socialKpis,
+  upNextPosts,
+  recentPosts,
+  postTitle,
+  primaryPlatform,
+  platformNames,
+  formatDateTime,
+  formatDate,
+} from "../../lib/social";
 import SocialComposerDialog from "../../components/social/SocialComposerDialog";
 import PlanMonthDialog from "../../components/social/PlanMonthDialog";
 
 // The Social hub overview ("Glance"). Populated, designed layout in demo/preview;
-// zeroed + not-connected state for a real session (see ./shared).
+// real, honest data (or an empty state) in a live session (see ./shared). No
+// analytics endpoint exists, so the reach/calls KPIs show "-" in a real session.
 
 const SAMPLE_KPIS: { label: string; value: string; brand?: boolean }[] = [
   { label: "Posts this month", value: "9" },
@@ -20,8 +39,6 @@ const SAMPLE_KPIS: { label: string; value: string; brand?: boolean }[] = [
   { label: "People reached", value: "2,100" },
   { label: "Scheduled", value: "5" },
 ];
-
-const EMPTY_KPIS = SAMPLE_KPIS.map((k) => ({ ...k, value: "0", brand: false }));
 
 const UP_NEXT: {
   platform: Platform;
@@ -70,8 +87,29 @@ function SeeAll({ to, children }: { to: string; children: ReactNode }) {
 
 export default function SocialOverview() {
   const demo = demoMode();
-  const kpis = demo ? SAMPLE_KPIS : EMPTY_KPIS;
+  const accountsQ = useSocialAccounts(!demo);
+  const postsQ = useSocialPosts({}, !demo);
   const [dialog, setDialog] = useState<null | "composer" | "plan">(null);
+
+  const realPosts = postsQ.data?.posts ?? [];
+  const connected = accountsQ.data?.connected ?? false;
+
+  const kpis = demo
+    ? SAMPLE_KPIS
+    : (() => {
+        const k = socialKpis(realPosts, Date.now());
+        // Only the two computable KPIs carry real numbers; reach + calls need an
+        // analytics endpoint GHL does not expose, so they read "-".
+        return [
+          { label: "Posts this month", value: String(k.postsThisMonth) },
+          { label: "Calls & messages", value: "-", brand: true },
+          { label: "People reached", value: "-" },
+          { label: "Scheduled", value: String(k.scheduled) },
+        ];
+      })();
+
+  const upNext = demo ? [] : upNextPosts(realPosts, 4);
+  const recent = demo ? [] : recentPosts(realPosts, 4);
 
   return (
     <Shell>
@@ -98,7 +136,12 @@ export default function SocialOverview() {
           }
         />
 
-        {!demo && <NotConnectedNotice message="These numbers are all 0 because nothing is linked. To see real posts and results, we still need to connect your social accounts (Facebook, Instagram, Google)." />}
+        {!demo && !connected && (
+          <NotConnectedNotice message="These numbers are all 0 because nothing is linked. To see real posts and results, we still need to connect your social accounts (Facebook, Instagram, Google)." />
+        )}
+        {!demo && connected && realPosts.length === 0 && (
+          <ConnectedEmptyNotice message="Your accounts are linked. Schedule your first post and it will appear here." />
+        )}
 
         {/* KPI row */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -107,7 +150,7 @@ export default function SocialOverview() {
               <div className="text-[13px] text-muted">{k.label}</div>
               <div
                 className={`mt-2 font-data text-[28px] font-semibold tnum ${
-                  k.brand ? "text-brand-text" : demo ? "text-text" : "text-faint"
+                  k.brand ? "text-brand-text" : demo || k.value !== "0" ? "text-text" : "text-faint"
                 }`}
               >
                 {k.value}
@@ -121,7 +164,7 @@ export default function SocialOverview() {
             <Panel className="overflow-hidden">
               <PanelHeader
                 title="Up next"
-                action={demo ? <SeeAll to="/marketing/social/calendar">Calendar</SeeAll> : undefined}
+                action={demo || upNext.length ? <SeeAll to="/marketing/social/calendar">Calendar</SeeAll> : undefined}
               />
               {demo ? (
                 <ul>
@@ -139,6 +182,27 @@ export default function SocialOverview() {
                     </li>
                   ))}
                 </ul>
+              ) : upNext.length ? (
+                <ul>
+                  {upNext.map((p) => {
+                    const badge = statusBadge(p.status);
+                    return (
+                      <li
+                        key={p.id}
+                        className="flex items-center gap-3 border-b border-divider px-4 py-3 last:border-b-0"
+                      >
+                        <PlatformGlyph p={primaryPlatform(p)} />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-display text-[14px] text-text">{postTitle(p)}</div>
+                          <div className="mt-0.5 text-[12.5px] text-faint">
+                            {[formatDateTime(p.scheduleAt), platformNames(p.platforms)].filter(Boolean).join(" · ")}
+                          </div>
+                        </div>
+                        <Badge tone={badge.tone}>{badge.label}</Badge>
+                      </li>
+                    );
+                  })}
+                </ul>
               ) : (
                 <div className="px-4 py-10">
                   <EmptyState
@@ -151,10 +215,7 @@ export default function SocialOverview() {
             </Panel>
 
             <Panel className="overflow-hidden">
-              <PanelHeader
-                title="Recently posted"
-                action={demo ? <SeeAll to="/marketing/social/insights">What's working</SeeAll> : undefined}
-              />
+              <PanelHeader title="Recently posted" />
               {demo ? (
                 <ul>
                   {RECENT.map((p) => (
@@ -174,12 +235,29 @@ export default function SocialOverview() {
                     </li>
                   ))}
                 </ul>
+              ) : recent.length ? (
+                <ul>
+                  {recent.map((p) => (
+                    <li
+                      key={p.id}
+                      className="flex items-center gap-3 border-b border-divider px-4 py-3 last:border-b-0"
+                    >
+                      <PlatformGlyph p={primaryPlatform(p)} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-display text-[14px] text-text">{postTitle(p)}</div>
+                        <div className="mt-0.5 text-[12.5px] text-faint">
+                          {[formatDate(p.publishedAt), platformNames(p.platforms)].filter(Boolean).join(" · ")}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               ) : (
                 <div className="px-4 py-10">
                   <EmptyState
                     icon={<BarChart3 size={22} />}
                     title="No posts yet"
-                    description="After your accounts are linked, published posts and how they performed appear here."
+                    description="After your accounts are linked, published posts appear here."
                   />
                 </div>
               )}

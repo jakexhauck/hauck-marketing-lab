@@ -1,6 +1,8 @@
 import { Link2 } from "lucide-react";
 import { Panel, Button } from "../../components/ui";
 import { PAGE_CONTAINER } from "../../lib/layout";
+import type { Tone } from "../../lib/status";
+import type { SocialStatus } from "../../lib/social";
 
 // Shared bits for the Social surfaces. The golden rule: a real (connected) client
 // must never see fabricated content. Pages render their designed, populated layout
@@ -42,6 +44,28 @@ export function NotConnectedNotice({ message }: { message?: string }) {
       <Button variant="secondary" size="sm" disabled className="shrink-0">
         Connect accounts (coming soon)
       </Button>
+    </Panel>
+  );
+}
+
+// Real-post status -> badge tone + label. One vocabulary for Overview + My Posts.
+export function statusBadge(status: SocialStatus): { tone: Tone; label: string } {
+  if (status === "draft") return { tone: "warning", label: "Draft" };
+  if (status === "failed") return { tone: "danger", label: "Failed" };
+  if (status === "posted") return { tone: "positive", label: "Posted" };
+  return { tone: "brand", label: "Scheduled" };
+}
+
+// The softer banner for a client who IS connected but has no posts yet, so we
+// never tell a connected client "not connected". Used once accounts resolve.
+export function ConnectedEmptyNotice({ message }: { message?: string }) {
+  return (
+    <Panel className="mb-4 flex items-center gap-3 border-brand/30 bg-brand-tint p-4">
+      <Link2 size={20} className="shrink-0 text-brand-text" />
+      <div className="flex-1 text-[13px] leading-snug text-text">
+        <span className="font-semibold">You're connected.</span>{" "}
+        {message ?? "Once you schedule or publish a post, it shows up here."}
+      </div>
     </Panel>
   );
 }
