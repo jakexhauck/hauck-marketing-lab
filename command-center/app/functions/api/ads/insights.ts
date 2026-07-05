@@ -120,6 +120,9 @@ export interface AdsInsightsResponse {
   weekly: { label: string; value: number }[];
   sources: { fb: number; ig: number };
   ads: AdItem[];
+  // Plain campaign phase for the client badge, derived from Meta's ad-set
+  // learning status. null => unknown (badge hidden), never a fabricated value.
+  phase: "learning" | "scaling" | null;
   error?: string;
 }
 
@@ -213,6 +216,27 @@ export function resolveAdAccount(
   return e || undefined;
 }
 
+// Roll every active ad set's Meta learning status into one plain client phase.
+// LEARNING (Meta still optimizing) => "learning"; SUCCESS / LEARNING_LIMITED
+// (learning finished) => "scaling". Best-effort: any failure or an account with
+// no readable learning status degrades to null so the badge simply hides.
+export function derivePhase(
+  adsets: Record<string, unknown>[],
+): "learning" | "scaling" | null {
+  let anyLearning = false;
+  let anyScaling = false;
+  for (const row of adsets) {
+    if (String(row.effective_status ?? "") !== "ACTIVE") continue;
+    const info = (row.learning_stage_info ?? {}) as { status?: string };
+    const status = String(info.status ?? "");
+    if (status === "LEARNING") anyLearning = true;
+    else if (status === "SUCCESS" || status === "LEARNING_LIMITED") anyScaling = true;
+  }
+  if (anyLearning) return "learning";
+  if (anyScaling) return "scaling";
+  return null;
+}
+
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const token = ctx.env.META_SYSTEM_USER_TOKEN;
   let account = resolveAdAccount(ctx.data.tenant?.meta_ad_account_id, ctx.env.META_AD_ACCOUNT_ID);
@@ -228,6 +252,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       weekly: [],
       sources: { fb: 0, ig: 0 },
       ads: [],
+      phase: null,
     } satisfies AdsInsightsResponse);
   }
   if (!account.startsWith("act_")) account = `act_${account}`;
@@ -277,6 +302,18 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       graphGet(token, `/${account}/ads`, { fields: "id,name,effective_status,creative{title,body,object_story_spec,image_url,thumbnail_url}", limit: "200" }),
     ]);
 
+    // Campaign phase from ad-set learning status (best-effort; never sinks the call).
+    let phase: "learning" | "scaling" | null = null;
+    try {
+      const adsetResp = await graphGet(token, `/${account}/adsets`, {
+        fields: "effective_status,learning_stage_info",
+        limit: "200",
+      });
+      phase = derivePhase((adsetResp.data as Record<string, unknown>[]) ?? []);
+    } catch {
+      // leave phase null (badge hidden)
+    }
+
     // Platform split (best-effort; a failure here must not sink the whole call).
     let fb = 0;
     let ig = 0;
@@ -325,6 +362,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         (adInsResp.data as Record<string, unknown>[]) ?? [],
         (adMetaResp.data as Record<string, unknown>[]) ?? [],
       ),
+      phase,
     };
     const body = JSON.stringify(payload);
     if (kv) await kv.put(cacheKey, body, { expirationTtl: 900 });
@@ -340,6 +378,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       weekly: [],
       sources: { fb: 0, ig: 0 },
       ads: [],
+      phase: null,
       error: (e as Error).message,
     } satisfies AdsInsightsResponse);
   }

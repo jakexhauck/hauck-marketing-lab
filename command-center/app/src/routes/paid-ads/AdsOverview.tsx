@@ -8,6 +8,8 @@ import {
   Zap,
   Megaphone,
   BarChart3,
+  Sparkles,
+  Rocket,
 } from "lucide-react";
 import Shell from "../../components/Shell";
 import { PAID_ADS_TABS } from "../../lib/pageTabs";
@@ -62,17 +64,38 @@ export default function AdsOverview() {
   const maxLeads = Math.max(...insights.ads.map((a) => a.leads), 1);
   const maxWeek = Math.max(...insights.weekly.map((w) => w.value), 1);
 
+  // Campaign phase badge. Learning = we are still teaching the ads who to reach;
+  // Scaling = they have learned and we are pushing for more. Hidden when unknown
+  // so a real client never sees a fabricated state.
+  const phase = insights.phase;
+
   return (
     <Shell>
       <div className={PAID_ADS_CONTAINER}>
         <PageBar
           tabs={PAID_ADS_TABS}
           actions={
-            populated ? (
-              <span className="inline-flex items-center gap-2 rounded-full bg-positive-tint px-3 py-1.5 text-[12.5px] font-semibold text-positive">
-                <span className="h-1.5 w-1.5 rounded-full bg-positive" />
-                {activeAds.length} ads running now
-              </span>
+            phase || populated ? (
+              <div className="flex items-center gap-2.5">
+                {phase && (
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold ${
+                      phase === "learning"
+                        ? "bg-warning-tint text-warning"
+                        : "bg-brand-tint text-brand-text"
+                    }`}
+                  >
+                    {phase === "learning" ? <Sparkles size={14} /> : <Rocket size={14} />}
+                    {phase === "learning" ? "Phase: Learning" : "Phase: Scaling"}
+                  </span>
+                )}
+                {populated && (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-positive-tint px-3 py-1.5 text-[12.5px] font-semibold text-positive">
+                    <span className="h-1.5 w-1.5 rounded-full bg-positive" />
+                    {activeAds.length} ads running now
+                  </span>
+                )}
+              </div>
             ) : undefined
           }
         />

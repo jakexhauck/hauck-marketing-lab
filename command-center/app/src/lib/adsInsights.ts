@@ -39,6 +39,9 @@ export interface AdsInsightsResponse {
   weekly: { label: string; value: number }[];
   sources: { fb: number; ig: number };
   ads: AdItem[];
+  // Plain campaign phase for the Overview badge (from Meta ad-set learning
+  // status). null => unknown, badge hidden.
+  phase: "learning" | "scaling" | null;
   error?: string;
 }
 
@@ -56,6 +59,7 @@ export function emptyAdsInsights(configured: boolean): AdsInsightsResponse {
     weekly: [],
     sources: { fb: 0, ig: 0 },
     ads: [],
+    phase: null,
   };
 }
 
@@ -76,6 +80,7 @@ export function normalizeAdsInsights(raw: unknown): AdsInsightsResponse {
     weekly: Array.isArray(r.weekly) ? r.weekly : base.weekly,
     sources: { ...base.sources, ...(r.sources ?? {}) },
     ads: Array.isArray(r.ads) ? r.ads : base.ads,
+    phase: r.phase === "learning" || r.phase === "scaling" ? r.phase : null,
   };
 }
 
@@ -115,5 +120,6 @@ export function demoAdsInsights(): AdsInsightsResponse {
     weekly: DEMO_WEEKLY.map((w) => ({ label: w.label, value: w.value })),
     sources: { fb: leads - igLeads, ig: igLeads },
     ads,
+    phase: "scaling",
   };
 }
