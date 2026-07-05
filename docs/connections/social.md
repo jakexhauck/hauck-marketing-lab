@@ -1,7 +1,10 @@
 # Social (GHL Social Planner) connection
 
-Status 2026-07-05: READ + WRITE wiring SHIPPED. Live data lights up once the
-client's accounts are linked inside the GHL Social Planner (see "Gotcha" below).
+Status 2026-07-05: READ + WRITE wiring SHIPPED and LIVE. Willis has Google
+Business ("Willis Windows LLC") + Facebook ("Willis Window Washing") linked in
+the Social Planner; the accounts endpoint returns both (`connected: true`).
+Instagram not yet connected. Zero posts so far. Write path (create/delete) not
+yet fired against the real account.
 
 ## What is wired
 
@@ -44,10 +47,13 @@ Planner -> connect each account there.
 
 ## Deferred (not built)
 
-- **Insights / "What's working" analytics.** No public GHL analytics endpoint
-  exists (`/statistics`, `/analytics` both 404). The Insights tab keeps its
-  honest empty state and Overview drops the reach/calls KPIs (shown as "-").
-  Revisit if GHL ships a Social Planner statistics API.
+- **Insights / "What's working" analytics.** DEFERRED but likely REVIVABLE. The
+  `/statistics` and `/analytics` location paths 404, but the connected accounts
+  report `hasStatisticsPermissions: true` + a `buildingStatistics` flag, so GHL
+  does track per-account stats. Couldn't find the right endpoint with zero posts
+  to inspect. Revisit once Willis has real posts: probe per-account/per-post
+  statistics paths. Until then Insights keeps its honest empty state and Overview
+  shows "-" for reach/calls (no faked numbers).
 - **AI half** (captions, ideas, Plan my month, Rewrite): out of scope, still
   gated in the composer.
 - **Media/photo upload**: still a toast; the create body sends no media.
