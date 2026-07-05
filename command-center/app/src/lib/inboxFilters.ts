@@ -42,6 +42,13 @@ export const CHANNELS: ChannelMeta[] = [
   { key: "other", label: "Other", icon: "📥" },
 ];
 
+// The message-type casing GHL uses for a channel key. Threads and composers
+// compare against message `type` values ("SMS" / "Email"), so this seeds the
+// active channel from a page's channel key.
+export function channelKeyToType(key: ChannelKey): string {
+  return key === "email" ? "Email" : "SMS";
+}
+
 export const ORIGIN_BY_KEY = Object.fromEntries(
   ORIGINS.map((o) => [o.key, o]),
 ) as Record<OriginKey, OriginMeta>;

@@ -271,7 +271,7 @@ export default function ConversationsDesktop({
           </div>
         </section>
 
-        <InboxDetail conv={selected} />
+        <InboxDetail conv={selected} channel={channel} />
         </div>
       </div>
     </div>

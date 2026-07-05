@@ -13,17 +13,16 @@ const WARN_CHARS = 1400;
 const CHANNEL_LABEL: Record<string, string> = {
   SMS: "SMS",
   Email: "Email",
-  FB: "Facebook",
-  IG: "Instagram",
-  GMB: "Google",
-  WhatsApp: "WhatsApp",
-  Live_Chat: "Live Chat",
-  Custom: "Custom",
 };
 
 function label(channel: string): string {
   return CHANNEL_LABEL[channel] ?? channel;
 }
+
+// The inbox sends over SMS and email only. Chat-widget, Instagram, Messenger and
+// the rest are never offered as a reply channel: a chat-widget lead is answered
+// over SMS or email like any other conversation.
+const SUPPORTED_CHANNELS = ["SMS", "Email"];
 
 export interface SendChannelInput {
   channel: string;
@@ -49,13 +48,20 @@ export default function ChannelComposer({
   smsDisabled,
   onSend,
 }: Props) {
-  const channels =
-    availableChannels.length > 0 ? availableChannels : ["SMS", "Email"];
+  // Only SMS and email are offered, whatever the source channels report.
+  const supported = availableChannels.filter((c) =>
+    SUPPORTED_CHANNELS.includes(c),
+  );
+  const channels = supported.length > 0 ? supported : SUPPORTED_CHANNELS;
   // The active channel is shared with the thread (see ChannelFilterContext):
   // tapping a chip both retargets the send and filters the history shown above.
-  // `selected` is null until the user taps, so we fall back to the default.
+  // `selected` is null until the user taps, so we fall back to the default,
+  // coerced to a supported channel so a chat/IG default never leaks through.
   const { selected, select } = useChannelFilter();
-  const channel = selected ?? defaultChannel;
+  const safeDefault = channels.includes(defaultChannel)
+    ? defaultChannel
+    : channels[0];
+  const channel = selected ?? safeDefault;
   const [text, setText] = useState("");
   const [subject, setSubject] = useState("");
 

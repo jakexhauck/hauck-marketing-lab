@@ -12,8 +12,16 @@ interface ChannelFilterValue {
 
 const ChannelFilterContext = createContext<ChannelFilterValue | null>(null);
 
-export function ChannelFilterProvider({ children }: { children: ReactNode }) {
-  const [selected, setSelected] = useState<string | null>(null);
+export function ChannelFilterProvider({
+  children,
+  initial = null,
+}: {
+  children: ReactNode;
+  // Seeds the active channel (e.g. the page's channel) before the user taps a
+  // chip. Null keeps the old behaviour: fall back to the thread's own default.
+  initial?: string | null;
+}) {
+  const [selected, setSelected] = useState<string | null>(initial);
   return (
     <ChannelFilterContext.Provider value={{ selected, select: setSelected }}>
       {children}

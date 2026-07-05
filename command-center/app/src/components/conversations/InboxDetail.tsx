@@ -5,8 +5,10 @@ import SourceBadge from "./SourceBadge";
 import { ChannelFilterProvider } from "../../context/ChannelFilterContext";
 import {
   CHANNEL_BY_KEY,
+  channelKeyToType,
   convChannel,
   convOrigin,
+  type ChannelKey,
 } from "../../lib/inboxFilters";
 import type { ApiConversation } from "../../lib/api";
 
@@ -17,7 +19,13 @@ function firstTouchLabel(iso: string | undefined): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export default function InboxDetail({ conv }: { conv: ApiConversation | null }) {
+export default function InboxDetail({
+  conv,
+  channel,
+}: {
+  conv: ApiConversation | null;
+  channel: ChannelKey;
+}) {
   if (!conv) {
     return (
       <section className="flex flex-1 items-center justify-center bg-brand-bg">
@@ -56,7 +64,10 @@ export default function InboxDetail({ conv }: { conv: ApiConversation | null }) 
         </div>
       </div>
 
-      <ChannelFilterProvider key={conv.contactId}>
+      <ChannelFilterProvider
+        key={conv.contactId}
+        initial={channelKeyToType(channel)}
+      >
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-6 pb-3 pt-4">
           <ConversationThread contactId={conv.contactId} fill />
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
@@ -11,6 +11,14 @@ import { ChannelFilterProvider } from "../context/ChannelFilterContext";
 import ConversationDetailDesktop from "../components/conversations/ConversationDetailDesktop";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "../hooks/useApi";
+import { channelKeyToType } from "../lib/inboxFilters";
+
+// The page the conversation was opened from, carried as ?ch=sms|email. It seeds
+// the thread + composer default channel and points the back button at the right
+// inbox page. Defaults to SMS when absent (e.g. a direct link).
+function pageChannelParam(raw: string | null): "sms" | "email" {
+  return raw === "email" ? "email" : "sms";
+}
 
 // Keep the composer above the iOS keyboard: the visual viewport shrinks when
 // the keyboard opens, the layout viewport does not. The difference becomes
@@ -37,6 +45,8 @@ function useKeyboardInset(): number {
 export default function ConversationDetail() {
   const { contactId = "" } = useParams<{ contactId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const channel = pageChannelParam(searchParams.get("ch"));
   const { session } = useAuth();
   const useReal = Boolean(session);
   const listQuery = useConversationsQuery(useReal);
@@ -64,7 +74,10 @@ export default function ConversationDetail() {
       >
         <NavyHero rounded={false}>
           <div className="flex items-center gap-3">
-            <HeroIconButton label="Back" onClick={() => navigate("/conversations")}>
+            <HeroIconButton
+              label="Back"
+              onClick={() => navigate(`/conversations/${channel}`)}
+            >
               <ChevronLeft size={20} />
             </HeroIconButton>
             <Avatar name={name} size="sm" />
@@ -79,7 +92,10 @@ export default function ConversationDetail() {
           </div>
         </NavyHero>
 
-        <ChannelFilterProvider key={contactId}>
+        <ChannelFilterProvider
+          key={contactId}
+          initial={channelKeyToType(channel)}
+        >
           <main className="flex min-h-0 flex-1 flex-col gap-3 px-5 pb-4 pt-4">
             <ConversationThread contactId={contactId} fill />
             <div

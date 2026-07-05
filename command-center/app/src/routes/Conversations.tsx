@@ -115,7 +115,9 @@ export default function Conversations() {
                   <ConversationRow
                     conv={c}
                     isLast={idx === visible.length - 1}
-                    onTap={() => navigate(`/conversations/${c.contactId}`)}
+                    onTap={() =>
+                      navigate(`/conversations/${c.contactId}?ch=${channel}`)
+                    }
                   />
                 </li>
               ))}

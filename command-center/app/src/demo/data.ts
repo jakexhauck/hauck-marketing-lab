@@ -228,13 +228,18 @@ export function buildDemoData(now: number = Date.now()): DemoData {
 
     // A short two-sided thread for the more active leads; seeds conversations.
     if (i < 12) {
+      const convChannel = DEMO_CHANNELS[i % DEMO_CHANNELS.length];
+      // Message type matches the conversation channel so the SMS page opens SMS
+      // threads and the Email page opens email threads. "other" (filtered out of
+      // the inbox) keeps SMS-typed messages for the contact detail surfaces.
+      const msgType = convChannel === "email" ? "Email" : "SMS";
       const thread: ApiMessage[] = [];
       const inAt = lastActivityAt - rng() * 2 * DAY;
       thread.push({
         id: `${contactId}-m1`,
         body: INBOUND_SNIPPETS[i % INBOUND_SNIPPETS.length],
         direction: "inbound",
-        type: "SMS",
+        type: msgType,
         at: new Date(inAt).toISOString(),
       });
       if (sIdx >= 1 || st !== "open") {
@@ -242,7 +247,7 @@ export function buildDemoData(now: number = Date.now()): DemoData {
           id: `${contactId}-m2`,
           body: OUTBOUND_SNIPPETS[i % OUTBOUND_SNIPPETS.length],
           direction: "outbound",
-          type: "SMS",
+          type: msgType,
           at: new Date(inAt + 30 * 60_000).toISOString(),
         });
       }
@@ -258,7 +263,7 @@ export function buildDemoData(now: number = Date.now()): DemoData {
         lastMessageType: lastMsg.type,
         lastMessageAt: lastMsg.at,
         unreadCount: unread,
-        channel: DEMO_CHANNELS[i % DEMO_CHANNELS.length],
+        channel: convChannel,
         origin: DEMO_ORIGINS[i % DEMO_ORIGINS.length],
         source: DEMO_SOURCE_LABEL[DEMO_ORIGINS[i % DEMO_ORIGINS.length]],
         firstTouchAt: new Date(createdAt).toISOString(),

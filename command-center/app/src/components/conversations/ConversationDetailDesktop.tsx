@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
 import { Button } from "../ui/Button";
@@ -7,6 +7,7 @@ import Avatar from "../Avatar";
 import ConversationThread from "../ConversationThread";
 import MessageComposer from "../MessageComposer";
 import { ChannelFilterProvider } from "../../context/ChannelFilterContext";
+import { channelKeyToType } from "../../lib/inboxFilters";
 import { useAuth } from "../../context/AuthContext";
 import {
   useConversationMessagesQuery,
@@ -37,6 +38,8 @@ function channelLabel(channel: string): string {
 export default function ConversationDetailDesktop() {
   const { contactId = "" } = useParams<{ contactId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const channel = searchParams.get("ch") === "email" ? "email" : "sms";
   const { session } = useAuth();
   const useReal = Boolean(session);
 
@@ -75,7 +78,7 @@ export default function ConversationDetailDesktop() {
       actions={
         <Button
           variant="secondary"
-          onClick={() => navigate("/conversations")}
+          onClick={() => navigate(`/conversations/${channel}`)}
         >
           <ArrowLeft size={16} />
           Inbox
@@ -90,7 +93,10 @@ export default function ConversationDetailDesktop() {
         className="mx-auto flex w-full max-w-3xl flex-col"
         style={{ height: "calc(100dvh - 64px - 56px)" }}
       >
-        <ChannelFilterProvider key={contactId}>
+        <ChannelFilterProvider
+          key={contactId}
+          initial={channelKeyToType(channel)}
+        >
           <div className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-6 pb-4 pt-5">
               <ConversationThread contactId={contactId} fill />
