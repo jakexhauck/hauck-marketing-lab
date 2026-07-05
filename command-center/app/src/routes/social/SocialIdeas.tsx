@@ -8,7 +8,7 @@ import { SOCIAL_CONTAINER } from "./shared";
 import NewIdeaDialog from "../../components/social/NewIdeaDialog";
 
 // A place to jot down post ideas to write later. Ideas are added by hand via the
-// "New Post Idea" dialog; there is no generated feed. Until an idea store is
+// "New Post Idea" dialog; there is no automatic feed. Until an idea store is
 // wired, the tab shows an honest empty state (no templated or fabricated ideas).
 
 export default function SocialIdeas() {

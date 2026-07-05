@@ -58,7 +58,7 @@ const POSTS: Record<Status, DemoPost[]> = {
     {
       platform: "gb",
       title: "Drain mistake every homeowner makes",
-      meta: "Draft · in your voice",
+      meta: "Draft",
       badge: { tone: "warning", label: "Needs a photo" },
     },
   ],
@@ -86,7 +86,7 @@ const POSTS: Record<Status, DemoPost[]> = {
 
 const EMPTY_COPY: Record<Status, string> = {
   scheduled: "Posts you schedule will line up here, ready to publish.",
-  drafts: "Drafts you start (or generate from an idea) wait here until you post them.",
+  drafts: "Drafts you start wait here until you post them.",
   posted: "Published posts will appear here.",
 };
 

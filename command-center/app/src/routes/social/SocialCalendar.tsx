@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { SOCIAL_TABS } from "../../lib/pageTabs";
@@ -14,7 +14,6 @@ import {
 } from "./shared";
 import { useSocialAccounts, useSocialPosts } from "../../hooks/useSocial";
 import { buildMonthGrid } from "../../lib/social";
-import PlanMonthDialog from "../../components/social/PlanMonthDialog";
 import SocialComposerDialog from "../../components/social/SocialComposerDialog";
 
 // Month calendar. Populated demo month in preview; a real, navigable month grid
@@ -45,7 +44,6 @@ const DEMO_CELLS: { day: number; out?: boolean; today?: boolean; events?: Ev[] }
 
 export default function SocialCalendar() {
   const demo = demoMode();
-  const [planOpen, setPlanOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composeSource, setComposeSource] = useState<string | undefined>(undefined);
   const [view, setView] = useState(() => {
@@ -79,7 +77,6 @@ export default function SocialCalendar() {
 
   return (
     <Shell>
-      <PlanMonthDialog open={planOpen} onClose={() => setPlanOpen(false)} />
       <SocialComposerDialog
         open={composerOpen}
         sourceIdea={composeSource}
@@ -90,8 +87,8 @@ export default function SocialCalendar() {
           tabs={SOCIAL_TABS}
           description="Your whole month of posts at a glance."
           actions={
-            <Button variant="primary" size="md" onClick={() => setPlanOpen(true)}>
-              <CalendarDays size={16} /> Plan My Month
+            <Button variant="primary" size="md" onClick={() => openCompose()}>
+              <Plus size={16} /> New post
             </Button>
           }
         />

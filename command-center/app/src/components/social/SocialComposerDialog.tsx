@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, RefreshCw, Image as ImageIcon, Plus, Send, Link2, Check, Heart, MessageCircle } from "lucide-react";
+import { Pencil, Image as ImageIcon, Plus, Send, Link2, Check, Heart, MessageCircle } from "lucide-react";
 import { Button } from "../ui";
 import { useToast } from "../../context/ToastContext";
 import { demoMode } from "../../demo/demoMode";
@@ -7,16 +7,15 @@ import { Platform, PLATFORM, PlatformGlyph } from "../../routes/social/shared";
 import { useSocialAccounts, useCreatePost } from "../../hooks/useSocial";
 import SocialDialog from "./SocialDialog";
 
-const TONES = ["Friendly", "Shorter", "More fun", "Salesy"];
 const ALL_PLATFORMS: Platform[] = ["ig", "fb", "gb"];
 
 const SAMPLE_CAPTION =
   "Another one done right. 👏 Swapped out an old, leaky water heater for the Thompsons this week, and they've already got hot water back the same day.\n\nIf your unit is making noise or running cold, don't wait for it to quit. We'll take a look and tell you straight.\n\n#WaterHeater #LocalPlumber";
 
-// The "New Post" composer. Interactive UI (caption, tone, platforms, live
-// preview). The AI rewrite stays gated; Save draft / Schedule create a real GHL
-// post in a live session (only when a connected platform is selected) and just
-// toast in demo. Media upload is still out of scope.
+// The "New Post" composer. Interactive UI (caption, platforms, live preview).
+// Save draft / Schedule create a real post in a live session (only when a
+// connected platform is selected) and just toast in demo. Media upload is still
+// out of scope.
 export default function SocialComposerDialog({
   open,
   onClose,
@@ -36,7 +35,6 @@ export default function SocialComposerDialog({
   const shownPlatforms = demo ? ALL_PLATFORMS : ALL_PLATFORMS.filter((p) => connectedSet.has(p));
 
   const [caption, setCaption] = useState(demo ? SAMPLE_CAPTION : "");
-  const [tone, setTone] = useState("Friendly");
   const [platforms, setPlatforms] = useState<Record<Platform, boolean>>(
     demo ? { ig: true, fb: true, gb: false } : { ig: false, fb: false, gb: false },
   );
@@ -136,55 +134,24 @@ export default function SocialComposerDialog({
         {/* Editor */}
         <div className="p-5 lg:border-r lg:border-divider">
           {sourceIdea && (
-            <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-brand/30 bg-brand-tint px-3.5 py-2.5">
-              <Sparkles size={16} className="shrink-0 text-brand-text" />
+            <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-border bg-surface-2 px-3.5 py-2.5">
+              <Pencil size={16} className="shrink-0 text-muted" />
               <div>
-                <div className="label-cap text-brand-text">From your idea</div>
+                <div className="label-cap text-muted">Starting from</div>
                 <div className="text-[13px] font-semibold text-text">{sourceIdea}</div>
               </div>
             </div>
           )}
 
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2">
             <span className="label-cap">Caption</span>
-            {demo && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-positive-tint px-2 py-0.5 text-[11px] font-semibold text-positive">
-                <Check size={11} /> In your voice
-              </span>
-            )}
           </div>
           <textarea
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            placeholder="Write your post here. Once connected, we'll draft it in your voice for you."
+            placeholder="Write your post here."
             className="min-h-[150px] w-full resize-y rounded-xl border border-border-strong bg-surface p-3.5 text-[14px] leading-relaxed text-text outline-none placeholder:text-faint focus:border-brand"
           />
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {TONES.map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTone(t)}
-                className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-medium transition-colors ${
-                  tone === t
-                    ? "text-white shadow-brand"
-                    : "border border-border-strong text-muted hover:text-text"
-                }`}
-                style={tone === t ? { backgroundImage: "var(--grad-brand)" } : undefined}
-              >
-                {t}
-              </button>
-            ))}
-            <button
-              type="button"
-              disabled={!demo}
-              onClick={() => showToast("AI rewrite arrives with the next update")}
-              className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border-strong px-3.5 py-1.5 text-[12.5px] font-medium text-muted disabled:opacity-50"
-            >
-              <RefreshCw size={13} /> Rewrite
-            </button>
-          </div>
 
           <div className="mt-5">
             <span className="label-cap">Post to</span>
