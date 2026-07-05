@@ -1,24 +1,29 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Search } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Shell from "../components/Shell";
-import NavyHero from "../components/NavyHero";
-import { HeroMark, HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
+import PageBar from "../components/PageBar";
 import SearchBar from "../components/SearchBar";
 import Avatar from "../components/Avatar";
 import SourceBadge from "../components/conversations/SourceBadge";
-import { convOrigin, isInboxConversation } from "../lib/inboxFilters";
+import { convChannel, convOrigin, type ChannelKey } from "../lib/inboxFilters";
+import { INBOX_TABS } from "../lib/pageTabs";
+import { PAGE_CONTAINER } from "../lib/layout";
 import EmptyState from "../components/EmptyState";
 import PullToRefresh from "../components/PullToRefresh";
 import { useAuth } from "../context/AuthContext";
 import { useNow } from "../context/NowContext";
 import { useConversationsQuery } from "../hooks/useApi";
-import { APP_BRAND } from "../lib/appBrand";
 import { timeAgo } from "../lib/timeAgo";
 import type { ApiConversation } from "../lib/api";
 import { Skeleton } from "../components/ui";
 import ConversationsDesktop from "../components/conversations/ConversationsDesktop";
+
+// The Inbox is two channel pages sharing this component: /conversations/sms and
+// /conversations/email. The path picks which channel this render shows.
+export function pageChannelFromPath(pathname: string): ChannelKey {
+  return pathname.endsWith("/email") ? "email" : "sms";
+}
 
 // One day in ms. Below this we show a relative time ("3m ago"); above it the
 // relative figure stops being useful, so we fall back to an absolute short date
@@ -35,44 +40,25 @@ function messageTime(iso: string, now: number): string {
   });
 }
 
-// Map a raw GHL message type (e.g. "TYPE_SMS", "Facebook", "Instagram DM") to a
-// short, friendly channel label. Returns null for empty/unknown types so the row
-// omits the badge rather than inventing a channel.
-function channelLabel(raw: string | null | undefined): string | null {
-  const key = (raw ?? "")
-    .toLowerCase()
-    .replace(/^type[_-]?/, "")
-    .replace(/[^a-z]/g, "");
-  if (!key) return null;
-  if (key.includes("whatsapp")) return "WhatsApp";
-  if (key.includes("instagram") || key === "ig") return "IG";
-  if (key.includes("facebook") || key.includes("messenger") || key === "fb")
-    return "FB";
-  if (key.includes("email")) return "Email";
-  if (key.includes("sms") || key.includes("text")) return "SMS";
-  if (key.includes("call") || key.includes("phone") || key.includes("voice"))
-    return "Call";
-  return null;
-}
-
 export default function Conversations() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const channel = pageChannelFromPath(pathname);
   const { session, mode } = useAuth();
   const useReal = Boolean(session);
   const query = useConversationsQuery(useReal);
   const [search, setSearch] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
   const isTest = mode === "test";
+  const channelNoun = channel === "email" ? "emails" : "texts";
 
-  // The inbox is SMS + email only; IG/Messenger conversations are dropped.
+  // Scope the list to this page's channel: the SMS page shows SMS threads, the
+  // Email page shows email threads. IG/Messenger fold to "other" and drop out.
   const items: ApiConversation[] = useMemo(
-    () => (query.data?.conversations ?? []).filter(isInboxConversation),
-    [query.data],
-  );
-
-  const unreadTotal = useMemo(
-    () => items.reduce((n, c) => n + (c.unreadCount > 0 ? c.unreadCount : 0), 0),
-    [items],
+    () =>
+      (query.data?.conversations ?? []).filter(
+        (c) => convChannel(c) === channel,
+      ),
+    [query.data, channel],
   );
 
   const trimmed = search.trim();
@@ -89,81 +75,56 @@ export default function Conversations() {
   return (
     <Shell>
       <div className="flex min-h-0 flex-1 flex-col lg:hidden">
-      <PullToRefresh queryKeys={[["conversations"]]} />
-      {isTest && <TestBanner />}
+        <PullToRefresh queryKeys={[["conversations"]]} />
+        {isTest && <TestBanner />}
 
-      <NavyHero flushTop={isTest}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <HeroMark initials={APP_BRAND.initials} />
-            <div className="min-w-0">
-              <div className="truncate font-display text-[17px] font-bold text-white">
-                Chats
-              </div>
-              <div className="truncate text-[12px] text-white/60">
-                {query.isLoading
-                  ? "Loading..."
-                  : `${items.length} ${items.length === 1 ? "thread" : "threads"}, ${unreadTotal} unread`}
-              </div>
+        <div className={PAGE_CONTAINER}>
+          <PageBar tabs={INBOX_TABS} />
+
+          <div className="mb-4 shrink-0">
+            <SearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder={`Search ${channelNoun}`}
+            />
+          </div>
+
+          {query.isError ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
+              Failed to load conversations.{" "}
+              {(query.error as Error | null)?.message ?? "Try again."}
             </div>
-          </div>
-          <HeroIconButton
-            label="Search conversations"
-            onClick={() => setShowSearch((v) => !v)}
-            pressed={showSearch}
-          >
-            <Search size={18} />
-          </HeroIconButton>
-        </div>
-      </NavyHero>
-
-      {(showSearch || trimmed) && (
-        <div className="px-5 pt-4">
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Search conversations"
-          />
-        </div>
-      )}
-
-      <main className="mt-4 flex flex-1 flex-col px-5 pb-28">
-        {query.isError ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
-            Failed to load conversations.{" "}
-            {(query.error as Error | null)?.message ?? "Try again."}
-          </div>
-        ) : query.isLoading ? (
-          <ConversationsSkeleton />
-        ) : visible.length === 0 ? (
-          trimmed ? (
-            <EmptyState
-              title="No conversations"
-              message={`No conversations match "${trimmed}"`}
-            />
+          ) : query.isLoading ? (
+            <ConversationsSkeleton />
+          ) : visible.length === 0 ? (
+            trimmed ? (
+              <EmptyState
+                title="No conversations"
+                message={`No conversations match "${trimmed}"`}
+              />
+            ) : (
+              <EmptyState
+                title="No conversations"
+                message={`Your ${channelNoun} with leads will show up here.`}
+              />
+            )
           ) : (
-            <EmptyState
-              title="No conversations"
-              message="Messages with your leads will show up here."
-            />
-          )
-        ) : (
-          <ul className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-            {visible.map((c, idx) => (
-              <li key={c.id}>
-                <ConversationRow
-                  conv={c}
-                  isLast={idx === visible.length - 1}
-                  onTap={() => navigate(`/conversations/${c.contactId}`)}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </main>
+            <ul className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+              {visible.map((c, idx) => (
+                <li key={c.id}>
+                  <ConversationRow
+                    conv={c}
+                    isLast={idx === visible.length - 1}
+                    onTap={() => navigate(`/conversations/${c.contactId}`)}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
       <div className="hidden min-h-0 flex-1 lg:flex">
-        <ConversationsDesktop />
+        <ConversationsDesktop channel={channel} />
       </div>
     </Shell>
   );
@@ -178,7 +139,6 @@ interface ConversationRowProps {
 function ConversationRow({ conv, isLast, onTap }: ConversationRowProps) {
   const now = useNow();
   const hasUnread = conv.unreadCount > 0;
-  const channel = channelLabel(conv.lastMessageType);
   return (
     <button
       type="button"
@@ -201,11 +161,6 @@ function ConversationRow({ conv, isLast, onTap }: ConversationRowProps) {
         </div>
         <div className="mt-0.5 flex items-center gap-2">
           <SourceBadge origin={convOrigin(conv)} size="sm" />
-          {channel && (
-            <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-[var(--text-faint)]">
-              {channel}
-            </span>
-          )}
           <div
             className={
               "min-w-0 flex-1 truncate text-xs " +

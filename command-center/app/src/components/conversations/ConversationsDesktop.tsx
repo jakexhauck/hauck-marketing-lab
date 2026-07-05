@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import DesktopPage from "../desktop/DesktopPage";
 import Avatar from "../Avatar";
 import EmptyState from "../EmptyState";
+import PageBar from "../PageBar";
 import InboxDetail from "./InboxDetail";
 import SourceBadge from "./SourceBadge";
+import { INBOX_TABS } from "../../lib/pageTabs";
 import { useAuth } from "../../context/AuthContext";
 import { useNow } from "../../context/NowContext";
 import { useConversationsQuery } from "../../hooks/useApi";
@@ -14,7 +15,6 @@ import {
   convChannel,
   convOrigin,
   countByChannel,
-  isInboxConversation,
   type ChannelKey,
 } from "../../lib/inboxFilters";
 import type { ApiConversation } from "../../lib/api";
@@ -69,7 +69,11 @@ function searchFilter(
   );
 }
 
-export default function ConversationsDesktop() {
+export default function ConversationsDesktop({
+  channel,
+}: {
+  channel: ChannelKey;
+}) {
   const { session } = useAuth();
   const now = useNow();
   const useReal = Boolean(session);
@@ -79,10 +83,14 @@ export default function ConversationsDesktop() {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // The inbox is SMS + email only; IG/Messenger conversations are dropped.
+  // Scope to this page's channel: the SMS page shows SMS threads, the Email page
+  // shows email threads. IG/Messenger fold to "other" and drop out.
   const items: ApiConversation[] = useMemo(
-    () => (query.data?.conversations ?? []).filter(isInboxConversation),
-    [query.data],
+    () =>
+      (query.data?.conversations ?? []).filter(
+        (c) => convChannel(c) === channel,
+      ),
+    [query.data, channel],
   );
 
   const needsCount = useMemo(
@@ -132,17 +140,17 @@ export default function ConversationsDesktop() {
 
   const selected = visible.find((c) => c.contactId === selectedId) ?? null;
 
-  const subtitle = query.isLoading
-    ? "Loading..."
-    : `${items.length} ${items.length === 1 ? "conversation" : "conversations"} · ${needsCount} waiting on you`;
-
   const activeLabel = views.find((v) => v.key === view)?.label ?? "All";
   const sortNote = view === "needs" ? "longest wait first" : "most recent first";
 
   return (
-    <DesktopPage title="Inbox" subtitle={subtitle} flush>
-      {/* Smart views: one queue, sliced */}
-      <div className="flex items-center gap-2 overflow-x-auto px-6 pb-3 pt-1">
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="px-6 pt-5">
+          <PageBar tabs={INBOX_TABS} />
+        </div>
+        {/* Smart views: one queue, sliced */}
+        <div className="flex items-center gap-2 overflow-x-auto px-6 pb-3 pt-1">
         {views.map((v) => {
           const on = v.key === view;
           return (
@@ -264,8 +272,9 @@ export default function ConversationsDesktop() {
         </section>
 
         <InboxDetail conv={selected} />
+        </div>
       </div>
-    </DesktopPage>
+    </div>
   );
 }
 
