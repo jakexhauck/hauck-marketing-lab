@@ -10,8 +10,7 @@ import { Platform, PlatformGlyph, NotConnectedNotice, SOCIAL_CONTAINER } from ".
 
 const STATS: { label: string; value: string; brand?: boolean }[] = [
   { label: "Posts published", value: "9" },
-  { label: "Calls & messages", value: "14", brand: true },
-  { label: "People reached", value: "2,100" },
+  { label: "DMs", value: "14", brand: true },
   { label: "Your best time", value: "Sat 6PM" },
 ];
 const EMPTY_STATS = STATS.map((s) => ({ ...s, value: "0", brand: false }));
@@ -55,7 +54,7 @@ export default function SocialInsights() {
         )}
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {stats.map((s) => (
             <Panel key={s.label} className="p-4">
               <div className="text-[13px] text-muted">{s.label}</div>

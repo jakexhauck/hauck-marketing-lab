@@ -35,8 +35,7 @@ import PlanMonthDialog from "../../components/social/PlanMonthDialog";
 
 const SAMPLE_KPIS: { label: string; value: string; brand?: boolean }[] = [
   { label: "Posts this month", value: "9" },
-  { label: "Calls & messages", value: "14", brand: true },
-  { label: "People reached", value: "2,100" },
+  { label: "DMs", value: "14", brand: true },
   { label: "Scheduled", value: "5" },
 ];
 
@@ -98,12 +97,11 @@ export default function SocialOverview() {
     ? SAMPLE_KPIS
     : (() => {
         const k = socialKpis(realPosts, Date.now());
-        // Only the two computable KPIs carry real numbers; reach + calls need an
-        // analytics endpoint GHL does not expose, so they read "-".
+        // Only the two computable KPIs carry real numbers; DMs need an
+        // engagement source the posting backend does not expose, so it reads "-".
         return [
           { label: "Posts this month", value: String(k.postsThisMonth) },
-          { label: "Calls & messages", value: "-", brand: true },
-          { label: "People reached", value: "-" },
+          { label: "DMs", value: "-", brand: true },
           { label: "Scheduled", value: String(k.scheduled) },
         ];
       })();
@@ -143,7 +141,7 @@ export default function SocialOverview() {
         )}
 
         {/* KPI row */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {kpis.map((k) => (
             <Panel key={k.label} className="p-4">
               <div className="text-[13px] text-muted">{k.label}</div>
