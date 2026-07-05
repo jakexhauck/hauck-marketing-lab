@@ -10,25 +10,16 @@ import {
   NotConnectedNotice,
   ConnectedEmptyNotice,
   SOCIAL_CONTAINER,
+  ENGAGEMENT_SOURCE_READY,
 } from "./shared";
 import { useSocialAccounts, useSocialPosts } from "../../hooks/useSocial";
 
 // The Social "Insights" page (formerly "What's working"). Plain-English
 // performance: posts published, DMs, best time, and per-platform engagement.
-//
-// ENGAGEMENT DATA SOURCE FLAG
-// The posting backend exposes NO reach / likes / comments / DMs data. Real
-// per-post and per-platform engagement needs read access to Meta Graph
-// (Facebook + Instagram) and Google Business Profile, wired per tenant with the
-// account's own tokens (the app does not hold these yet). Until that source is
-// live, a real session shows only what we can honestly compute from posts
-// (posts published) plus a "connecting your accounts" note, and never fabricates
-// engagement. `?demo=1` still shows the full designed layout.
-//
-// TODO(engagement): build functions/api/social/engagement.ts against Meta Graph
-// + Google Business, add a useSocialEngagement hook, then flip this to true and
-// read the real numbers below. Jake must confirm the source per tenant.
-const ENGAGEMENT_SOURCE_READY = false;
+// Real engagement is gated on ENGAGEMENT_SOURCE_READY (see ./shared): until the
+// source is live, a real session shows only posts published plus a "connecting
+// your accounts" note and never fabricates numbers. `?demo=1` shows the full
+// designed layout.
 
 const STATS: { label: string; value: string; brand?: boolean }[] = [
   { label: "Posts published", value: "9" },

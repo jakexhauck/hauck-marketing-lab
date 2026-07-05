@@ -8,8 +8,8 @@ import SocialDialog from "./SocialDialog";
 
 const KINDS = ["Social proof", "Tip", "Review", "Offer", "Behind the scenes", "Seasonal"];
 
-// "New Post Idea" — jot down an idea by hand to write later. Saving is gated
-// until an idea store is wired (demo just confirms with a toast).
+// "New Post Idea" dialog: jot down an idea by hand to write later. Saving is
+// gated until an idea store is wired (demo just confirms with a toast).
 export default function NewIdeaDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const demo = demoMode();
   const { showToast } = useToast();

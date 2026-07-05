@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutGrid, Plus, Trash2 } from "lucide-react";
+import { LayoutGrid, Plus, Trash2, MessageCircle, ChevronDown } from "lucide-react";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { SOCIAL_TABS } from "../../lib/pageTabs";
@@ -25,25 +25,29 @@ import {
   formatDate,
 } from "../../lib/social";
 import SocialComposerDialog from "../../components/social/SocialComposerDialog";
+import PostEngagement, { type PostComment } from "../../components/social/PostEngagement";
 
 // The client's own pipeline of posts. Demo shows sample posts per status; a real
-// session reads live GHL posts, bucketed by status. Delete is a real (gated)
-// write in a live session; the demo keeps its in-memory filter + toast.
+// session reads live posts, bucketed by status. Delete is a real (gated) write in
+// a live session; the demo keeps its in-memory filter + toast. Posted items
+// expand to show likes/comments (see PostEngagement): demo shows sample
+// engagement, a real session shows an honest "connecting your accounts" note
+// until the engagement source is wired.
 
 type Status = "scheduled" | "drafts" | "posted";
+type Engagement = { likes: number; comments: PostComment[] };
 type DemoPost = {
   platform: Platform;
   title: string;
   meta: string;
   badge?: { tone: Tone; label: string };
-  metric?: { value: string; sub: string };
 };
 
 const POSTS: Record<Status, DemoPost[]> = {
   scheduled: [
     {
       platform: "ig",
-      title: "Same-day hot water — Thompson job",
+      title: "Same-day hot water, Thompson job",
       meta: "Sat 6:00 PM · Instagram + Facebook",
       badge: { tone: "brand", label: "Scheduled" },
     },
@@ -63,25 +67,29 @@ const POSTS: Record<Status, DemoPost[]> = {
     },
   ],
   posted: [
-    {
-      platform: "ig",
-      title: "5★ review from the Garcias",
-      meta: "Jun 14 · Instagram",
-      metric: { value: "4 calls", sub: "412 seen" },
-    },
-    {
-      platform: "fb",
-      title: "Burst pipe save, before/after",
-      meta: "Jun 9 · Facebook",
-      metric: { value: "3 calls", sub: "388 seen" },
-    },
-    {
-      platform: "ig",
-      title: "Water heater swap",
-      meta: "Jun 2 · Instagram",
-      metric: { value: "2 calls", sub: "301 seen" },
-    },
+    { platform: "ig", title: "5★ review from the Garcias", meta: "Jun 14 · Instagram" },
+    { platform: "fb", title: "Burst pipe save, before/after", meta: "Jun 9 · Facebook" },
+    { platform: "ig", title: "Water heater swap", meta: "Jun 2 · Instagram" },
   ],
+};
+
+// Sample likes/comments for the demo posted items, keyed by title.
+const DEMO_ENGAGEMENT: Record<string, Engagement> = {
+  "5★ review from the Garcias": {
+    likes: 96,
+    comments: [
+      { id: "c1", author: "Dana W.", text: "You guys were amazing, thank you!", when: "2d" },
+      { id: "c2", author: "Marco P.", text: "Do you cover the east side too?", when: "1d" },
+    ],
+  },
+  "Burst pipe save, before/after": {
+    likes: 74,
+    comments: [{ id: "c3", author: "Kim R.", text: "This is why we call you every time.", when: "5d" }],
+  },
+  "Water heater swap": {
+    likes: 61,
+    comments: [{ id: "c4", author: "Ted A.", text: "What brand did you install?", when: "1w" }],
+  },
 };
 
 const EMPTY_COPY: Record<Status, string> = {
@@ -91,14 +99,15 @@ const EMPTY_COPY: Record<Status, string> = {
 };
 
 // A uniform row the list renders, whether the source is a demo constant or a
-// real GHL post.
+// real post.
 interface Row {
   key: string;
   platform: Platform;
   title: string;
   meta: string;
   badge?: { tone: Tone; label: string };
-  metric?: { value: string; sub: string };
+  posted?: boolean;
+  engagement?: Engagement;
   onClick?: () => void;
   onDelete: () => void;
 }
@@ -110,6 +119,7 @@ export default function SocialPosts() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [composeSource, setComposeSource] = useState<string | undefined>(undefined);
   const [demoPosts, setDemoPosts] = useState<Record<Status, DemoPost[]>>(POSTS);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const accountsQ = useSocialAccounts(!demo);
   const postsQ = useSocialPosts({}, !demo);
@@ -140,6 +150,9 @@ export default function SocialPosts() {
       },
     );
   }
+  function toggleExpand(key: string) {
+    setExpandedKey((k) => (k === key ? null : key));
+  }
 
   const counts: Record<Status, number> = demo
     ? { scheduled: demoPosts.scheduled.length, drafts: demoPosts.drafts.length, posted: demoPosts.posted.length }
@@ -158,8 +171,9 @@ export default function SocialPosts() {
         title: p.title,
         meta: p.meta,
         badge: p.badge,
-        metric: p.metric,
-        onClick: () => editPost(p.title),
+        posted: tab === "posted",
+        engagement: tab === "posted" ? DEMO_ENGAGEMENT[p.title] : undefined,
+        onClick: tab === "posted" ? undefined : () => editPost(p.title),
         onDelete: () => removeDemoPost(tab, p.title),
       }))
     : (tab === "scheduled" ? buckets.scheduled : tab === "drafts" ? buckets.drafts : buckets.posted).map(
@@ -174,6 +188,9 @@ export default function SocialPosts() {
             .filter(Boolean)
             .join(" · "),
           badge: p.status === "posted" ? undefined : statusBadge(p.status),
+          posted: p.status === "posted",
+          // Real per-post engagement is not fetchable until the source is wired.
+          engagement: undefined,
           onDelete: () => removeRealPost(p.id),
         }),
       );
@@ -210,50 +227,69 @@ export default function SocialPosts() {
         {rows.length > 0 ? (
           <Panel className="overflow-hidden">
             <ul>
-              {rows.map((p) => (
-                <li
-                  key={p.key}
-                  className="group flex items-center gap-3 border-b border-divider px-4 py-3 last:border-b-0 transition-colors hover:bg-surface-2"
-                >
-                  {p.onClick ? (
-                    <button
-                      type="button"
-                      onClick={p.onClick}
-                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                    >
-                      <PlatformGlyph p={p.platform} />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-display text-[14px] text-text">{p.title}</div>
-                        <div className="mt-0.5 text-[12.5px] text-faint">{p.meta}</div>
-                      </div>
-                    </button>
-                  ) : (
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <PlatformGlyph p={p.platform} />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-display text-[14px] text-text">{p.title}</div>
-                        <div className="mt-0.5 text-[12.5px] text-faint">{p.meta}</div>
-                      </div>
+              {rows.map((p) => {
+                const open = expandedKey === p.key;
+                return (
+                  <li key={p.key} className="border-b border-divider last:border-b-0">
+                    <div className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2">
+                      {p.onClick ? (
+                        <button
+                          type="button"
+                          onClick={p.onClick}
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        >
+                          <PlatformGlyph p={p.platform} />
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-display text-[14px] text-text">{p.title}</div>
+                            <div className="mt-0.5 text-[12.5px] text-faint">{p.meta}</div>
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <PlatformGlyph p={p.platform} />
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-display text-[14px] text-text">{p.title}</div>
+                            <div className="mt-0.5 text-[12.5px] text-faint">{p.meta}</div>
+                          </div>
+                        </div>
+                      )}
+                      {p.badge && <Badge tone={p.badge.tone}>{p.badge.label}</Badge>}
+                      {p.posted && (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(p.key)}
+                          aria-expanded={open}
+                          aria-label={open ? "Hide comments" : "View comments"}
+                          className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                        >
+                          <MessageCircle size={14} />
+                          {p.engagement ? p.engagement.comments.length : null}
+                          <ChevronDown
+                            size={14}
+                            className={`transition-transform ${open ? "rotate-180" : ""}`}
+                          />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        aria-label={`Delete ${p.title}`}
+                        onClick={p.onDelete}
+                        disabled={!demo && deletePost.isPending}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-faint transition-colors hover:bg-danger-tint hover:text-danger disabled:opacity-40"
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </div>
-                  )}
-                  {p.badge && <Badge tone={p.badge.tone}>{p.badge.label}</Badge>}
-                  {p.metric && (
-                    <div className="shrink-0 text-right">
-                      <div className="font-data text-[13px] font-semibold text-positive">{p.metric.value}</div>
-                      <div className="text-[11px] text-faint">{p.metric.sub}</div>
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    aria-label={`Delete ${p.title}`}
-                    onClick={p.onDelete}
-                    disabled={!demo && deletePost.isPending}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-faint transition-colors hover:bg-danger-tint hover:text-danger disabled:opacity-40"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </li>
-              ))}
+                    {p.posted && open && (
+                      <PostEngagement
+                        demo={demo}
+                        likes={p.engagement?.likes}
+                        comments={p.engagement?.comments}
+                      />
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </Panel>
         ) : (
