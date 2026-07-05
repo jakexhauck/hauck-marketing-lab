@@ -57,6 +57,14 @@ export interface Env {
   // not-connected state.
   GOOGLE_PLACES_API_KEY?: string;
   GOOGLE_PLACE_ID?: string;
+  // Google Analytics 4 for the Website Overview + Insights tabs
+  // (functions/api/website/analytics.ts). GA4_SA_JSON is one global agency
+  // service-account key (the whole downloaded JSON, as a string) spanning every
+  // client's property, like META_SYSTEM_USER_TOKEN. GA4_PROPERTY_ID is the
+  // single-tenant fallback for the per-client tenants.ga4_property_id column.
+  // Key or property absent => the Website tabs show their not-connected state.
+  GA4_SA_JSON?: string;
+  GA4_PROPERTY_ID?: string;
   KV_CACHE?: KVNamespace;
 }
 
@@ -88,6 +96,10 @@ export interface TenantContext {
   // GOOGLE_PLACE_ID env var as the single-tenant fallback. Undefined => the
   // Reviews rating hero shows not-connected. See functions/api/reviews/summary.ts.
   google_place_id?: string;
+  // The client's GA4 property id, resolved from the tenant row with the
+  // GA4_PROPERTY_ID env var as the single-tenant fallback. Undefined => the
+  // Website analytics tabs show not-connected. See functions/api/website/analytics.ts.
+  ga4_property_id?: string;
   // Supabase tenants.slug for this session, resolved from the session mode in
   // _middleware.ts. All Supabase-backed routes must scope by this, never by a
   // hardcoded slug, or test and live data bleed into each other.

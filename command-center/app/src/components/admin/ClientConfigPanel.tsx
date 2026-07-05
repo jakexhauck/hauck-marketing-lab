@@ -46,6 +46,7 @@ export interface DetailClient {
   ghlLocationId: string;
   metaAdAccountId: string | null;
   googlePlaceId: string | null;
+  ga4PropertyId: string | null;
   websiteUrl: string | null;
   ownerPasswordSet: boolean;
   monthlySpend: number;
@@ -173,6 +174,7 @@ export default function ClientConfigPanel({
       <AdsCard client={client} onSaved={refreshAfterSave} />
       <ReviewsCard client={client} onSaved={refreshAfterSave} />
       <WebsiteCard client={client} onSaved={refreshAfterSave} />
+      <AnalyticsCard client={client} onSaved={refreshAfterSave} />
       <OwnerCard tenantId={tenantId} ownerPasswordSet={client.ownerPasswordSet} onSaved={refreshAfterSave} />
       <EntitlementsCard tenantId={tenantId} enabled={data.entitlements} onSaved={refreshAfterSave} />
       <div id="cockpit-team">
@@ -501,6 +503,46 @@ function WebsiteCard({ client, onSaved }: { client: DetailClient; onSaved: () =>
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="rivertownplumbing.com"
+            />
+          </label>
+        </div>
+        {err && <p className="mt-3 text-sm text-danger">{err}</p>}
+        <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
+      </form>
+    </Card>
+  );
+}
+
+// Per-client GA4 property id. The service-account key is a shared agency env
+// secret; only the property is per-client, which is what keeps one client's
+// visitor numbers off another's Website page.
+function AnalyticsCard({ client, onSaved }: { client: DetailClient; onSaved: () => Promise<void> }) {
+  const [propertyId, setPropertyId] = useState(client.ga4PropertyId ?? "");
+  const { saving, saved, err, run } = useSaver(onSaved);
+  const connected = Boolean((client.ga4PropertyId ?? "").trim());
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    // Always send the field so an emptied box clears it (back to not-connected).
+    void run(`/api/admin/clients/${client.id}`, { ga4PropertyId: propertyId.trim() });
+  };
+  return (
+    <Card title="Website analytics (Google Analytics)">
+      <p className="mb-4 text-[13px] text-muted">
+        {connected
+          ? "Connected. This client's Website Overview + Insights read real visitor numbers from this GA4 property."
+          : "Not connected. Add this client's GA4 property id so their Website tabs show real visitors, top pages, and traffic sources."}{" "}
+        The service-account key is shared across all clients; only the property is per-client.
+      </p>
+      <form onSubmit={onSubmit}>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label>
+            <span className={labelCls}>GA4 property id</span>
+            <input
+              className={inputCls}
+              value={propertyId}
+              onChange={(e) => setPropertyId(e.target.value)}
+              placeholder="544141225"
+              inputMode="numeric"
             />
           </label>
         </div>

@@ -120,6 +120,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       ghlLocationId: tenant.ghl_location_id,
       metaAdAccountId: tenant.meta_ad_account_id ?? null,
       googlePlaceId: tenant.google_place_id ?? null,
+      ga4PropertyId: tenant.ga4_property_id ?? null,
       websiteUrl: tenant.website_url ?? null,
       subdomain: tenant.subdomain ?? null,
       ownerPasswordSet: Boolean(tenant.owner_password_hash),
@@ -166,6 +167,9 @@ interface PatchBody {
   // The client's Google Places place_id. Empty string clears it (falls back to
   // the GOOGLE_PLACE_ID env / not-connected).
   googlePlaceId?: string;
+  // The client's GA4 property id (a plain number). Empty string clears it (falls
+  // back to the GA4_PROPERTY_ID env / not-connected).
+  ga4PropertyId?: string;
   // The client's live website URL (their single GHL Sites-tab site). Empty
   // string clears it (Website page shows not-connected).
   websiteUrl?: string;
@@ -217,6 +221,13 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   if (body.googlePlaceId !== undefined) {
     const v = str(body.googlePlaceId);
     update.google_place_id = v ? v : null;
+  }
+  if (body.ga4PropertyId !== undefined) {
+    const v = str(body.ga4PropertyId);
+    // Store digits only (the GA4 property id is a plain number; tolerate a
+    // pasted "properties/123" or stray spaces). Empty clears it.
+    const digits = v ? v.replace(/[^0-9]/g, "") : "";
+    update.ga4_property_id = digits ? digits : null;
   }
   // Present-but-empty clears the site. A non-empty value must be a real http(s)
   // URL: it is rendered in an iframe src and opened via window.open, so reject

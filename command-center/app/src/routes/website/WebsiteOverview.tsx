@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Mail, Clock, FileText, ExternalLink, SquarePen, Globe, BarChart3 } from "lucide-react";
+import { Users, Mail, Eye, Clock, FileText, ExternalLink, SquarePen, Globe, BarChart3 } from "lucide-react";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { WEBSITE_TABS } from "../../lib/pageTabs";
 import { Panel, PanelHeader, Button, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { useClient } from "../../context/ClientContext";
+import { useWebsiteAnalytics, formatDuration } from "../../hooks/useWebsiteAnalytics";
 import { cn } from "../../lib/cn";
 import {
   WEBSITE_CONTAINER,
@@ -22,6 +23,7 @@ import {
   SAMPLE_SOURCES,
   SAMPLE_VISITORS_THIS_MONTH,
   SITE_PAGES,
+  type WebsiteKpi,
   type Device,
 } from "./shared";
 
@@ -34,6 +36,8 @@ import {
 // KPI icons line up with the order of SAMPLE_KPIS in ./shared
 // (Visitors, Leads from your site, Avg time on site, Top page).
 const KPI_ICONS = [Users, Mail, Clock, FileText];
+// Real (GA4) KPI order: Visitors, Page views, Avg time on site, Top page.
+const REAL_KPI_ICONS = [Users, Eye, Clock, FileText];
 
 // Neutral placeholder shown inside the browser frame before the site is connected.
 function PreviewPlaceholder() {
@@ -60,7 +64,51 @@ export default function WebsiteOverview() {
   const [device, setDevice] = useState<Device>("desktop");
   const mobile = device === "mobile";
 
-  const kpis = demo ? SAMPLE_KPIS : EMPTY_KPIS;
+  // Real GA4 numbers (real sessions only; demo short-circuits the hook).
+  const analytics = useWebsiteAnalytics();
+  const a = analytics.data;
+  const aConnected = analytics.connected && Boolean(a);
+
+  // Real KPI tiles from GA4, in REAL_KPI_ICONS order.
+  const realKpis: WebsiteKpi[] = a
+    ? [
+        {
+          label: "Visitors",
+          value: a.visitorsThisMonth.toLocaleString(),
+          emptyValue: "0",
+          delta: a.deltaPct != null && a.deltaPct >= 0 ? `+${a.deltaPct}%` : undefined,
+          sub: "vs last month",
+        },
+        { label: "Page views", value: a.pageViews.toLocaleString(), emptyValue: "0", sub: "this month" },
+        {
+          label: "Avg time on site",
+          value: formatDuration(a.avgTimeOnSiteSec),
+          emptyValue: "0s",
+          sub: "per visit",
+        },
+        {
+          label: "Top page",
+          value: a.topPage?.label ?? "-",
+          emptyValue: "-",
+          brand: true,
+          sub: a.topPage ? `${a.topPage.views.toLocaleString()} views this month` : undefined,
+        },
+      ]
+    : [];
+
+  // What the KPI row + panels show: demo fixtures, real GA4 data, or zeroed.
+  const showData = demo || aConnected;
+  const kpis = demo ? SAMPLE_KPIS : aConnected ? realKpis : EMPTY_KPIS;
+  const kpiIcons = aConnected && !demo ? REAL_KPI_ICONS : KPI_ICONS;
+
+  // Top pages + traffic sources, unified across demo fixtures and real GA4 data.
+  const topPagesList = demo
+    ? SAMPLE_TOP_PAGES.map((p) => ({ name: p.name, views: p.views }))
+    : aConnected
+      ? (a?.topPages ?? []).map((p) => ({ name: p.label, views: p.views }))
+      : [];
+  const sourcesList = demo ? SAMPLE_SOURCES : aConnected ? a?.sources ?? [] : [];
+
   // The site is "connected" in demo (SiteMock) or when the client has a real URL.
   const connected = demo || Boolean(websiteUrl);
   // Address-bar label: the demo's fixed domain, or the client's real domain.
@@ -97,10 +145,10 @@ export default function WebsiteOverview() {
           }
         />
 
-        {!demo && !websiteUrl && (
+        {!demo && !aConnected && !websiteUrl && (
           <NotConnectedNotice message="Everything below reads 0 because your site is not linked yet. Once we connect it, this page fills in with your real visitors, pages, and leads." />
         )}
-        {!demo && websiteUrl && (
+        {!demo && !aConnected && websiteUrl && (
           <Panel className="mb-4 flex items-center gap-3 border-brand/30 bg-brand-tint p-4">
             <BarChart3 size={18} className="shrink-0 text-brand-text" />
             <div className="text-[13px] leading-snug text-text">
@@ -158,7 +206,7 @@ export default function WebsiteOverview() {
         {/* KPI row */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {kpis.map((k, i) => {
-            const Icon = KPI_ICONS[i];
+            const Icon = kpiIcons[i];
             return (
               <Panel key={k.label} className="p-4">
                 <div className="flex items-center gap-2 text-[12.5px] text-faint">
@@ -168,7 +216,7 @@ export default function WebsiteOverview() {
                 <div
                   className={cn(
                     "mt-2.5 font-data text-[26px] font-semibold leading-none tnum",
-                    k.brand ? "text-brand-text" : demo ? "text-text" : "text-faint",
+                    k.brand && showData ? "text-brand-text" : showData ? "text-text" : "text-faint",
                   )}
                 >
                   {k.value}
@@ -192,11 +240,11 @@ export default function WebsiteOverview() {
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Panel className="overflow-hidden">
             <PanelHeader title="Top pages" />
-            {demo ? (
+            {topPagesList.length > 0 ? (
               <ul className="px-4 py-1">
-                {SAMPLE_TOP_PAGES.map((p, i) => (
+                {topPagesList.map((p, i) => (
                   <li
-                    key={p.name}
+                    key={`${p.name}-${i}`}
                     className="flex items-center justify-between gap-3 border-b border-divider py-2.5 text-[13.5px] last:border-b-0"
                   >
                     <span className="flex min-w-0 items-center gap-2.5 font-medium text-text">
@@ -206,7 +254,7 @@ export default function WebsiteOverview() {
                       <span className="truncate">{p.name}</span>
                     </span>
                     <span className="shrink-0 font-data text-[12.5px] font-semibold tnum text-muted">
-                      {p.views} views
+                      {p.views.toLocaleString()} views
                     </span>
                   </li>
                 ))}
@@ -224,9 +272,9 @@ export default function WebsiteOverview() {
 
           <Panel className="overflow-hidden">
             <PanelHeader title="Where visitors come from" />
-            {demo ? (
+            {sourcesList.length > 0 ? (
               <div className="flex flex-col gap-3.5 p-4">
-                {SAMPLE_SOURCES.map((s) => (
+                {sourcesList.map((s) => (
                   <div key={s.label}>
                     <div className="mb-1.5 flex items-center justify-between text-[12.5px]">
                       <span className="text-text">{s.label}</span>
