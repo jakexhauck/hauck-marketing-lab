@@ -12,7 +12,7 @@ import { relativeTime } from "../../lib/format";
 import {
   WEBSITE_CONTAINER,
   NotConnectedNotice,
-  BrowserFrame,
+  DevicePreview,
   SiteMock,
   LiveSiteFrame,
   DeviceToggle,
@@ -179,7 +179,7 @@ export default function WebsitePages() {
                       </Button>
                     </div>
 
-                    <BrowserFrame url={barLabel(selected.path)} device={device}>
+                    <DevicePreview url={barLabel(selected.path)} device={device}>
                       {preview ? (
                         <LiveSiteFrame url={preview} device={device} />
                       ) : (
@@ -190,7 +190,7 @@ export default function WebsitePages() {
                           </p>
                         </div>
                       )}
-                    </BrowserFrame>
+                    </DevicePreview>
 
                     <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-muted">
                       {site?.updatedAt && (
@@ -255,9 +255,9 @@ function DemoPages({
           </Button>
         </div>
 
-        <BrowserFrame url={selected.path} device={device}>
+        <DevicePreview url={selected.path} device={device}>
           <SiteMock page={selected.key} device={device} />
-        </BrowserFrame>
+        </DevicePreview>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-muted">
           <span>

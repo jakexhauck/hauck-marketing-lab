@@ -6,12 +6,11 @@ import { WEBSITE_TABS } from "../../lib/pageTabs";
 import { Button } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
 import { useClient } from "../../context/ClientContext";
-import { cn } from "../../lib/cn";
 import {
   WEBSITE_CONTAINER,
   WEBSITE_DOMAIN,
   NotConnectedNotice,
-  BrowserFrame,
+  DevicePreview,
   SiteMock,
   LiveSiteFrame,
   DeviceToggle,
@@ -87,9 +86,10 @@ export default function WebsiteOverview() {
           <DeviceToggle value={device} onChange={setDevice} className="ml-auto" />
         </div>
 
-        <div className={cn("relative", mobile && "mx-auto w-full max-w-[390px]")}>
-          {/* Live badge: shown whenever a real (or demo) site is on screen. */}
-          {connected && (
+        <div className="relative">
+          {/* Live badge: shown on the desktop preview; the phone frame reads as a
+              live device on its own, so we skip the badge in mobile. */}
+          {connected && !mobile && (
             <span
               className="pointer-events-none absolute left-4 top-4 z-10 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur"
               style={{ background: "rgba(20,22,31,.82)" }}
@@ -102,7 +102,7 @@ export default function WebsiteOverview() {
             </span>
           )}
 
-          <BrowserFrame url={demo ? WEBSITE_DOMAIN : displayDomain} device={device}>
+          <DevicePreview url={demo ? WEBSITE_DOMAIN : displayDomain} device={device}>
             {demo ? (
               <SiteMock page="home" device={device} />
             ) : websiteUrl ? (
@@ -110,7 +110,7 @@ export default function WebsiteOverview() {
             ) : (
               <PreviewPlaceholder />
             )}
-          </BrowserFrame>
+          </DevicePreview>
         </div>
       </div>
     </Shell>

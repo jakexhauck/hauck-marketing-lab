@@ -89,6 +89,72 @@ export function BrowserFrame({
 }
 
 // ---------------------------------------------------------------------------
+// PhoneFrame: a realistic phone shell for the mobile preview. A graphite bezel
+// with a dynamic-island notch, side buttons, and a device shadow wraps the site
+// content in a fixed-height, scrollable screen. Purely presentational; the body
+// renders the same children as BrowserFrame (SiteMock or LiveSiteFrame). The
+// bezel is a fixed dark device colour in both themes, like a real phone, with a
+// light rim so it still reads on a light background.
+// ---------------------------------------------------------------------------
+export function PhoneFrame({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("mx-auto w-[300px] max-w-full", className)}>
+      <div
+        className="relative rounded-[46px] p-[11px] shadow-[0_34px_70px_-18px_rgba(15,17,25,0.6)] ring-1 ring-black/10 dark:ring-white/10"
+        style={{ background: "linear-gradient(150deg,#33363f 0%,#15161c 46%,#0b0c11 100%)" }}
+      >
+        {/* Metallic side buttons for device realism. */}
+        <span className="absolute -left-[3px] top-[112px] h-9 w-[3px] rounded-l-full bg-[#3a3d47]" />
+        <span className="absolute -left-[3px] top-[164px] h-14 w-[3px] rounded-l-full bg-[#3a3d47]" />
+        <span className="absolute -right-[3px] top-[140px] h-20 w-[3px] rounded-r-full bg-[#3a3d47]" />
+
+        {/* Screen: a fixed-height, scrollable window onto the site. Its height
+            matches LiveSiteFrame's mobile iframe so a real site fills it exactly. */}
+        <div className="relative overflow-hidden rounded-[36px] bg-white ring-1 ring-black/50">
+          {/* Dynamic-island notch. */}
+          <div className="pointer-events-none absolute left-1/2 top-[9px] z-20 flex h-[24px] w-[86px] -translate-x-1/2 items-center justify-end gap-2 rounded-full bg-black pr-3">
+            <span className="h-[7px] w-[7px] rounded-full bg-[#20222b] ring-1 ring-[#33363f]" />
+          </div>
+          <div className="h-[600px] w-full overflow-y-auto overscroll-contain bg-white">
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DevicePreview: picks the right shell for the current device. Desktop gets the
+// browser window (with an address bar); mobile gets the realistic PhoneFrame.
+// One wrapper so Overview and Pages stay DRY and behave identically.
+// ---------------------------------------------------------------------------
+export function DevicePreview({
+  url,
+  device,
+  children,
+  className,
+}: {
+  url: string;
+  device: Device;
+  children: ReactNode;
+  className?: string;
+}) {
+  if (device === "mobile") return <PhoneFrame className={className}>{children}</PhoneFrame>;
+  return (
+    <BrowserFrame url={url} device={device} className={className}>
+      {children}
+    </BrowserFrame>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // LiveSiteFrame: the client's REAL site inside a BrowserFrame body. Non-
 // interactive by default (pointer-events off) so it reads as a preview and, on
 // the Request-a-Change canvas, lets the click overlay capture pins over it. If
