@@ -1,6 +1,8 @@
-# Social Media — Implementation Plan
+# Social Media - Implementation Plan
 
 > **For agentic workers:** execute task-by-task. Read `00-README.md` for shared ground rules (app location, run/verify commands, no-em-dash + never-name-GHL rules, data contract). Self-contained otherwise.
+
+> **SCAFFOLD ALREADY DONE - do not touch shared files.** The nav, routes, and in-page tabs (`src/lib/nav.ts`, `src/lib/pageTabs.ts`, `src/App.tsx`, `src/lib/nav.test.ts`) already exist on your branch (`rev/social`). The "What's working" tab is already renamed to "Insights". Any step below that says add/rename a tab or route is ALREADY DONE: skip it. Replace the body of your section's components with the real UI, and only edit files inside your section.
 
 **Goal:** Strip all AI from the Social section, remove templated ideas, relabel/trim the KPIs, gate Instagram composing on a real IG connection, turn "What's working" into a data page, and (best-effort) show post comments/likes with the ability to reply.
 
@@ -8,7 +10,7 @@
 
 ## Current state (audited)
 - Routes: `src/App.tsx:454-458`, base `/marketing/social`.
-- Tabs: `src/lib/pageTabs.ts:44-50` — **Overview / Ideas / Calendar / My Posts / What's working**. Section label `pageTabs.ts:64`.
+- Tabs: `src/lib/pageTabs.ts:44-50` - **Overview / Ideas / Calendar / My Posts / What's working**. Section label `pageTabs.ts:64`.
 - Pages: `src/routes/social/SocialOverview.tsx` (desc :121; KPIs :36-41 = Posts this month / Calls & messages / People reached / Scheduled), `SocialIdeas.tsx` (desc :70; templated ideas :14-51), `SocialCalendar.tsx` (desc :91), `SocialPosts.tsx` (desc :191), `SocialInsights.tsx` (desc :40; stats :11-16). Shared: `shared.tsx`.
 - Dialogs: `src/components/social/SocialComposerDialog.tsx` (AI: "In your voice" badge, "Rewrite" button disabled + toast :174-181, tone chips; photo upload toast :219; preview tabs show all 3 platforms regardless of connection :243), `NewIdeaDialog.tsx`, `PlanMonthDialog.tsx`, `SocialDialog.tsx`.
 - Hooks: `src/hooks/useSocial.ts`. Backend: `functions/api/social/accounts.ts`, `posts/index.ts`, `posts/[postId].ts`, `_lib.ts`.
@@ -51,7 +53,7 @@ The composer already filters platform toggles by connected accounts (`SocialComp
 - [ ] `npm run typecheck` + walk `?demo=1`; confirm no AI affordance remains.
 - [ ] Commit: `feat(social): strip all AI features and language from Social`.
 
-### Task 6: Turn "What's working" into a data page (doc #6) — best-effort data
+### Task 6: Turn "What's working" into a data page (doc #6) - best-effort data
 **Files:** `src/lib/pageTabs.ts:44-50`, `src/lib/nav.test.ts`, `src/App.tsx`, `src/routes/social/SocialInsights.tsx`; possibly a new `functions/api/social/engagement.ts` + hook.
 - [ ] Rename the tab `What's working` → `Insights` (keep or set a sensible route).
 - [ ] Build the data-page UI: posts published, DMs, best time, and per-platform engagement where a real source exists.
@@ -60,7 +62,7 @@ The composer already filters platform toggles by connected accounts (`SocialComp
 - [ ] `npm run typecheck` + `npm test` + walk `?demo=1`; clearly report to Jake which numbers are real vs pending a source.
 - [ ] Commit: `feat(social): convert whats-working into Insights data page (best-effort engagement)`.
 
-### Task 7: Comments/likes on My Posts, with replies (doc #7) — best-effort
+### Task 7: Comments/likes on My Posts, with replies (doc #7) - best-effort
 **Files:** `src/routes/social/SocialPosts.tsx`, a new `src/components/social/PostEngagement.tsx`; possibly `functions/api/social/engagement.ts` (read) and a gated reply endpoint.
 - [ ] On a posted item, show its comments and like/engagement counts if fetchable from Meta Graph / Google for that post.
 - [ ] Provide a reply affordance on each comment. Since replying is a write to Meta/Google (not the posting backend), gate the send: only enabled when a confirmed write path + permission exists; otherwise show the comment read-only with a "replies coming soon" note. Do not fake sends.

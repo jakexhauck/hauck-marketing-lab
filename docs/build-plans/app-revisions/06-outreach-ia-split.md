@@ -1,18 +1,18 @@
-# Outreach IA Split (Commercial Outreach / Reactivation / Group Outreach) — Implementation Plan
+# Outreach IA Split (Commercial Outreach / Reactivation / Group Outreach) - Implementation Plan
 
-> **For agentic workers:** execute task-by-task. Read `00-README.md` for shared ground rules. **RUN THIS PLAN BEFORE `07-reactivation.md`** — plan 07 depends on the routes and nav this plan creates. This plan touches shared nav files (`nav.ts`, `pageTabs.ts`, `App.tsx`, `nav.test.ts`); do not run it in parallel with plan 07.
+> **THIS PLAN IS ABSORBED INTO THE SCAFFOLD. DO NOT RUN IT.** Every nav/route/tab change and every shell described below was already implemented by the scaffold commit on `main` (Commercial Outreach, Reactivation, and Group Outreach sections all exist, with placeholder "in the works" pages). This file is kept only as a record of what the scaffold did. The remaining Reactivation content work lives in `07-reactivation.md`.
 
 **Goal:** Split the current single "Campaigns" Marketing section into three top-level Marketing sections: **Commercial Outreach** (rename of Campaigns, shells only, "in the works", nothing configured), **Reactivation** (promote the existing real component to its own section), and **Group Outreach** (new, "in the works" shell).
 
 **Scope:** Nav + routes + shell pages only. Commercial Outreach and Group Outreach are NOT live services yet (Jake: "we aren't doing this as a service yet so don't configure anything on the page"), so their pages are coming-soon / "in the works" shells with no real wiring. Reactivation keeps its existing real data; its inner pages are built in plan 07.
 
-## OPEN QUESTION FOR JAKE (do not guess — confirm before Task 3)
+## OPEN QUESTION FOR JAKE (do not guess - confirm before Task 3)
 The current Campaigns section contains a **real, working "Audiences"** feature (`campaigns/CampaignsAudiences.tsx` → `GET /api/campaigns/audiences`) and demo customer-messaging views (Overview / Campaigns list / What's working). When Campaigns becomes B2B "Commercial Outreach", what happens to the customer-messaging concept and Audiences?
 - Default assumed here: keep the Audiences endpoint intact, but do NOT surface customer-messaging demo content under Commercial Outreach (it is B2B now). Park Audiences (route kept alive, not linked) until Jake says where it lives.
 - Confirm with Jake whether Audiences should live under Reactivation, stay hidden, or be removed.
 
 ## Current state (audited)
-- Nav: `src/lib/nav.ts` — Marketing section; the "Campaigns" row is at `nav.ts:90`.
+- Nav: `src/lib/nav.ts` - Marketing section; the "Campaigns" row is at `nav.ts:90`.
 - Tabs: `src/lib/pageTabs.ts:29-35` (`CAMPAIGNS_TABS` = Overview / Campaigns / Audiences / Reactivation / What's working); `sectionLabel()` :62-70.
 - Routes: `src/App.tsx:446-449` + `:432`; legacy redirect `/sales/reactivation` → `/marketing/campaigns/reactivation` at `:431`.
 - Components: `src/routes/campaigns/CampaignsOverview.tsx` (demo), `CampaignsList.tsx` (demo), `CampaignsAudiences.tsx` (**real**), `CampaignsInsights.tsx` (demo), `src/routes/sales/Reactivation.tsx` (**real**, `GET /api/campaigns/reactivation`), `src/routes/campaigns/shared.tsx` (demo data + `NotConnectedNotice`).

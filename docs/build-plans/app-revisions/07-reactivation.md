@@ -1,6 +1,8 @@
-# Reactivation Inner Pages — Implementation Plan
+# Reactivation Inner Pages - Implementation Plan
 
-> **For agentic workers:** execute task-by-task. Read `00-README.md` for shared ground rules. **DEPENDS ON `06-outreach-ia-split.md`** — that plan must be executed and merged first (it creates the Reactivation section, `REACTIVATION_TABS`, and the routes this plan fills). Do not run in parallel with plan 06.
+> **For agentic workers:** execute task-by-task. Read `00-README.md` for shared ground rules.
+>
+> **SCAFFOLD ALREADY DONE - do not touch shared files.** Plan 06 was absorbed into the scaffold, so the Reactivation section already exists on your branch (`rev/reactivation`): `REACTIVATION_TABS` (Overview / Pipeline / Full Data / Messages), the nav row, the routes, the existing real Reactivation component mounted as Overview, and placeholder components for Pipeline / Full Data / Messages. Do not edit `src/lib/nav.ts`, `pageTabs.ts`, `App.tsx`, or `nav.test.ts`. Replace the body of the reactivation placeholder components with the real UI; only edit files inside the Reactivation section.
 
 **Goal:** Fill out the Reactivation section: keep the current real page as the Overview, add a read-only Pipeline view, repurpose the detailed data into a Full Data page, and add a Messages page to view the SMS and email being sent to customers.
 
@@ -34,7 +36,7 @@
 - [ ] `npm run typecheck` + walk `?demo=1`.
 - [ ] Commit: `feat(reactivation): full data page`.
 
-### Task 4: Messages page (doc #4) — read-only
+### Task 4: Messages page (doc #4) - read-only
 View the SMS and email being sent to customers in the reactivation flow.
 **Files:** create `src/routes/reactivation/ReactivationMessages.tsx`; a read-only hook/endpoint that pulls the reactivation messages from GoHighLevel (reuse the conversation/message APIs, scoped to reactivation-origin contacts, `origin === 'react'` per `src/lib/inboxFilters.ts`).
 - [ ] List the SMS and email sent to reactivation customers (read-only). Customer language, never name GHL.

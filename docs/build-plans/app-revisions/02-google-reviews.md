@@ -1,6 +1,8 @@
-# Google Reviews — Implementation Plan
+# Google Reviews - Implementation Plan
 
 > **For agentic workers:** execute task-by-task. Read `00-README.md` for shared ground rules (app location, run/verify commands, no-em-dash + never-name-GHL rules, data contract). Self-contained otherwise.
+
+> **SCAFFOLD ALREADY DONE - do not touch shared files.** The nav, routes, and in-page tabs (`src/lib/nav.ts`, `src/lib/pageTabs.ts`, `src/App.tsx`, `src/lib/nav.test.ts`) plus placeholder components for this section already exist on your branch (`rev/reviews`). The "What's working" tab is already renamed to "Reputation Report" (route `/marketing/reviews/report`) and a "Review Pipeline" tab + placeholder already exist. Any step below that says add/rename a tab or route is ALREADY DONE: skip it. Replace the body of your section's components with the real UI, and only edit files inside your section.
 
 **Goal:** Fix the Overview formatting bug, give the review pipeline its own page (read-only), rename "What's working" to a more professional overview, remove the top-right action buttons and the tagline, and wire the correct data into Overview.
 
@@ -8,12 +10,12 @@
 
 ## Current state (audited)
 - Routes: `src/App.tsx:442-445`, base `/marketing/reviews`.
-- Tabs: `src/lib/pageTabs.ts:22-27` (`REVIEWS_TABS`) — **Overview / Ask for Reviews / All Reviews / What's working**. Section label at `pageTabs.ts:65`.
+- Tabs: `src/lib/pageTabs.ts:22-27` (`REVIEWS_TABS`) - **Overview / Ask for Reviews / All Reviews / What's working**. Section label at `pageTabs.ts:65`.
 - Pages: `src/routes/reviews/ReviewsOverview.tsx`, `ReviewsRequests.tsx`, `ReviewsAll.tsx`, `ReviewsInsights.tsx`, `shared.tsx` (`StarRating`, `NotConnectedNotice`, `ReviewsComingSoon`).
 - Overview description (to remove): `ReviewsOverview.tsx:387` "Your reputation at a glance. Ask for new ones and reply to the rest."
-- Top-right buttons (to remove): `ReviewsOverview.tsx:388-402` — "Reply to reviews" (→ `/marketing/reviews/all`) and "Ask for a review" (→ `/marketing/reviews/requests`).
+- Top-right buttons (to remove): `ReviewsOverview.tsx:388-402` - "Reply to reviews" (→ `/marketing/reviews/all`) and "Ask for a review" (→ `/marketing/reviews/requests`).
 - Rating hero + recent reviews: real via `useReviewsSummary` → `GET /api/reviews/summary` (Google Places; needs `GOOGLE_PLACES_API_KEY` + tenant `google_place_id`).
-- Review funnel (request → click → review): real, read-only, already on Overview — `ReviewsFunnelView`, `ReviewsOverview.tsx:97-269`, via `useReviewsFunnel` → `GET /api/reviews/funnel` (`functions/api/reviews/funnel.ts`, resolves the review pipeline by name).
+- Review funnel (request → click → review): real, read-only, already on Overview - `ReviewsFunnelView`, `ReviewsOverview.tsx:97-269`, via `useReviewsFunnel` → `GET /api/reviews/funnel` (`functions/api/reviews/funnel.ts`, resolves the review pipeline by name).
 - The 2x2 Overview stat chips (Total reviews / New this month / Requests sent / Reply rate) are DEMO-only hardcoded (`ReviewsOverview.tsx:47-90, 418-591`).
 - "What's working" = `ReviewsInsights.tsx`, demo-only; real session shows `ReviewsComingSoon`. Description `ReviewsInsights.tsx:92`.
 - "Ask for Reviews" (`ReviewsRequests.tsx`) already lists completed-job contacts with a Start Campaign button (real via `GET/POST /api/reviews`). The completed-job trigger is deferred to the automation phase; leave this tab as-is.
@@ -43,7 +45,7 @@ Move the existing read-only funnel off Overview into its own tab. Show a "not st
 - [ ] Create `ReviewsPipeline.tsx` that renders the funnel using the SAME `useReviewsFunnel` hook and the funnel view currently at `ReviewsOverview.tsx:97-269`. Extract `ReviewsFunnelView` into a shared component if it is not already exported, and reuse it (DRY, do not copy-paste the JSX).
 - [ ] Keep it strictly **read-only** (no drag, no stage-move controls).
 - [ ] When the funnel is empty / the review pipeline has not been run for this sub-account, show an honest "We haven't started collecting reviews for you yet" state (customer language, never name the pipeline/GHL).
-- [ ] Remove the funnel from Overview (or leave a compact summary link to the new page — confirm with Jake; default: remove it from Overview since it now has its own page).
+- [ ] Remove the funnel from Overview (or leave a compact summary link to the new page - confirm with Jake; default: remove it from Overview since it now has its own page).
 - [ ] Update `nav.test.ts`.
 - [ ] `npm run typecheck` + `npm test` + walk `?demo=1`.
 - [ ] Commit: `feat(reviews): dedicated read-only review pipeline page`.

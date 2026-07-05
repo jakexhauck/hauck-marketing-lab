@@ -1,14 +1,16 @@
-# Website — Implementation Plan
+# Website - Implementation Plan
 
 > **For agentic workers:** execute task-by-task. Read `00-README.md` for shared ground rules (app location, run/verify commands, no-em-dash + never-name-GHL rules, data contract). Self-contained otherwise.
+
+> **SCAFFOLD ALREADY DONE - do not touch shared files.** The nav, routes, and in-page tabs (`src/lib/nav.ts`, `src/lib/pageTabs.ts`, `src/App.tsx`, `src/lib/nav.test.ts`) already exist on your branch (`rev/website`). The "What's working" tab is already renamed to "Insights"; the "Request a Change" tab is already removed and `/marketing/website/request` already redirects to `/pages`. Any step below that says add/rename/remove a tab or route is ALREADY DONE: skip it. Your remaining work is component-level (fold the pin-drop into Pages, phone frame, clean Overview, Insights data). Only edit files inside your section.
 
 **Goal:** Make Overview a clean full-site preview with a realistic phone mockup and no data row; fold Request-a-Change into the Pages tab as an in-place per-page pin drop; turn "What's working" into a data page that adds chat-widget and estimate-form numbers (from GoHighLevel) to the GA4 data; remove the tagline and the top Overview "request a change" button.
 
 **Scope:** Pages-first. UI plus real data where the source exists (GA4 already wired; chat-widget + estimate-form counts come from GoHighLevel, read-only). No automations.
 
 ## Current state (audited)
-- Routes: `src/App.tsx:450-453` — `/marketing/website` → `WebsiteOverview`, `/pages` → `WebsitePages`, `/request` → `WebsiteRequestChange`, `/insights` → `WebsiteInsights`.
-- Tabs: `src/lib/pageTabs.ts:37-42` — **Overview / Pages / Request a Change / What's working**.
+- Routes: `src/App.tsx:450-453` - `/marketing/website` → `WebsiteOverview`, `/pages` → `WebsitePages`, `/request` → `WebsiteRequestChange`, `/insights` → `WebsiteInsights`.
+- Tabs: `src/lib/pageTabs.ts:37-42` - **Overview / Pages / Request a Change / What's working**.
 - Components under `src/routes/website/`: `WebsiteOverview.tsx`, `WebsitePages.tsx`, `WebsiteRequestChange.tsx`, `WebsiteInsights.tsx`, `shared.tsx` (`BrowserFrame`, `SiteMock`, `LiveSiteFrame`, `DeviceToggle`).
 - Overview: full live preview hero (real via `client.websiteUrl`); `DeviceToggle` at `WebsiteOverview.tsx:168` wraps mobile to `max-w-[390px]` (:171); KPI data row (4 tiles); demo-only hero chips (:187); description "Your storefront is open... Rivertown..." (:125, hardcoded city); two top buttons "Request a change" (:132) and "View live site" (:140). Data via `useWebsiteAnalytics` → `GET /api/website/analytics` (GA4).
 - Pages: `WebsitePages.tsx`; per-page preview with a "Request a change to this page" button that NAVIGATES to `/marketing/website/request` (:173-179); pages from `useWebsitePages` → `GET /api/website/pages`.
@@ -16,7 +18,7 @@
 - What's working: `WebsiteInsights.tsx`; real GA4; description at :68.
 
 ## Final tab set (target)
-`Overview` / `Pages` / `Insights` — Request-a-Change is folded into Pages; "What's working" becomes "Insights" (the data page).
+`Overview` / `Pages` / `Insights` - Request-a-Change is folded into Pages; "What's working" becomes "Insights" (the data page).
 
 ---
 

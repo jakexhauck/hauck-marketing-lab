@@ -1,23 +1,25 @@
-# Paid Ads — Implementation Plan
+# Paid Ads - Implementation Plan
 
 > **For agentic workers:** execute task-by-task. Read `00-README.md` in this folder for shared ground rules (app location, run/verify commands, no-em-dash + never-name-GHL rules, data contract). This plan is self-contained otherwise.
+
+> **SCAFFOLD ALREADY DONE - do not touch shared files.** The nav, routes, and in-page tabs (`src/lib/nav.ts`, `src/lib/pageTabs.ts`, `src/App.tsx`, `src/lib/nav.test.ts`) plus placeholder components for this section already exist on your branch (`rev/paid-ads`). Any step below that says add/rename a tab, add a route, or update `nav.test` is ALREADY DONE: skip it. Replace the body of your section's placeholder components with the real UI, and only edit files inside your section.
 
 **Goal:** Reshape the Paid Ads section so the client sees only live ads, an in-depth Meta-stats tab (replacing "What's working"), an ads-phase indicator, a funnel "coming soon" page, and (best-effort) a Meta media library and per-ad placement previews.
 
 **Scope:** Pages-first. UI plus read-only Meta data (Meta is already the source via `/api/ads/insights`). No automations, no write-back.
 
 ## Current state (audited)
-- Routes: `src/App.tsx:437-441` — `/marketing/paid-ads` → `AdsOverview`, `/creatives` → `AdsCreatives`, `/insights` → `AdsInsights`, `/leads` redirects to `/sales/leads?source=ads`.
+- Routes: `src/App.tsx:437-441` - `/marketing/paid-ads` → `AdsOverview`, `/creatives` → `AdsCreatives`, `/insights` → `AdsInsights`, `/leads` redirects to `/sales/leads?source=ads`.
 - Components: `src/routes/paid-ads/AdsOverview.tsx`, `AdsCreatives.tsx`, `AdsInsights.tsx`, `shared.tsx` (demo data, `NotConnectedNotice`, platform glyphs). `AdsLeads.tsx` is dead (route redirects away).
-- Tabs: `src/lib/pageTabs.ts:13-20` (`PAID_ADS_TABS`) — **Overview / Your Ads / What's working**.
+- Tabs: `src/lib/pageTabs.ts:13-20` (`PAID_ADS_TABS`) - **Overview / Your Ads / What's working**.
 - Data: one hook `useAdsInsights` → `GET /api/ads/insights` (`src/hooks/useAdsInsights.ts`). Handler: `functions/api/ads/insights.ts`. `configured:false` → not-connected notice; real+zero → honest zeros.
-- Overview KPI tiles already show all six requested metrics (`AdsOverview.tsx:43-50`): Spent on ads, New leads, Cost per lead, New customers, Revenue from ads, Your return (ROAS). **Item 3 in the doc is effectively done — just verify wiring.**
+- Overview KPI tiles already show all six requested metrics (`AdsOverview.tsx:43-50`): Spent on ads, New leads, Cost per lead, New customers, Revenue from ads, Your return (ROAS). **Item 3 in the doc is effectively done - just verify wiring.**
 - "Your Ads" (`AdsCreatives.tsx`) shows active AND paused ads (pill at line 49) and per-ad "leads from this ad" + "people reached" (lines 104-112). No click-through, no placement views.
 - Header descriptions: Overview `AdsOverview.tsx:70`, Your Ads `AdsCreatives.tsx:44`, Insights `AdsInsights.tsx:46`.
 - There is an ORPHANED demo dashboard at `/paid-ads` (`src/routes/PaidAds.tsx` + `src/components/ads/*`: `MetricBand`, `DeliveryTrend`, `AdFunnel`, `CampaignsTable`) and an unused `src/components/ads-tracker/*`. These are reference material for the in-depth tab and the funnel; do NOT wire them as-is (100% demo).
 
 ## Final tab set (target)
-`Overview` / `Your Ads` / `Ad Stats` / `Funnel` / `Media` — where `Ad Stats` replaces `What's working`, `Funnel` is a coming-soon page, and `Media` is the Meta media library page.
+`Overview` / `Your Ads` / `Ad Stats` / `Funnel` / `Media` - where `Ad Stats` replaces `What's working`, `Funnel` is a coming-soon page, and `Media` is the Meta media library page.
 
 ---
 
@@ -70,7 +72,7 @@ Every client starts on lead forms, so this ships as a coming-soon shell now.
 - [ ] `npm run typecheck` + `npm test` + walk `?demo=1`.
 - [ ] Commit: `feat(paid-ads): add funnel coming-soon page`.
 
-### Task 6: Meta media library page (doc #5) — best-effort
+### Task 6: Meta media library page (doc #5) - best-effort
 **Files:** `src/lib/pageTabs.ts` (add `Media` → `/media`), `src/lib/nav.test.ts`, `src/App.tsx`, create `src/routes/paid-ads/AdsMedia.tsx`; optional new handler `functions/api/ads/media.ts` + hook.
 - [ ] Add the `Media` tab + route.
 - [ ] Attempt a read-only Meta media fetch: the ad account's ad images/videos via the Graph API (`/{ad_account_id}/adimages`, `/advideos`) using the existing System User token (same token `insights.ts` uses). If reachable, render a simple grid gallery.
@@ -79,7 +81,7 @@ Every client starts on lead forms, so this ships as a coming-soon shell now.
 - [ ] `npm run typecheck` + `npm test` + walk `?demo=1`; note for Jake whether real media loaded in a Willis session.
 - [ ] Commit: `feat(paid-ads): add Meta media library page (best-effort)`.
 
-### Task 7: Click into an ad to see placement previews (doc #7) — best-effort
+### Task 7: Click into an ad to see placement previews (doc #7) - best-effort
 **Files:** `src/routes/paid-ads/AdsCreatives.tsx` (make cards open a detail view), create `src/components/ads/AdPreviewModal.tsx`; optional handler `functions/api/ads/preview.ts` + hook.
 - [ ] Make each live ad card clickable, opening a detail modal.
 - [ ] In the modal, show the ad across placements (feed / story / reel / Instagram) using Meta's ad preview API (`/{ad_id}/previews?ad_format=...` or `generatepreviews`) via the existing token. Render the returned preview iframes/images, one per format.
@@ -94,4 +96,4 @@ Every client starts on lead forms, so this ships as a coming-soon shell now.
 
 ## Out of scope / deferred
 - Any automation, lead write-back, or funnel wiring.
-- Deleting the orphaned `/paid-ads` dashboard + `components/ads/*` + `components/ads-tracker/*` — leave for a separate cleanup pass; only borrow layout ideas here.
+- Deleting the orphaned `/paid-ads` dashboard + `components/ads/*` + `components/ads-tracker/*` - leave for a separate cleanup pass; only borrow layout ideas here.

@@ -1,6 +1,8 @@
-# Leads Cleanup — Implementation Plan
+# Leads Cleanup - Implementation Plan
 
 > **For agentic workers:** execute task-by-task. Read `00-README.md` for shared ground rules. Self-contained otherwise.
+
+> **SCAFFOLD ALREADY DONE - do not touch shared files.** Nav/routes/tabs are locked on your branch (`rev/leads`). This plan is component-only anyway (intro-call removal). Do not edit `src/lib/nav.ts`, `pageTabs.ts`, `App.tsx`, or `nav.test.ts`.
 
 **Goal:** Remove all intro-call references from the client-facing Leads UI. That is the only Leads change in this phase.
 

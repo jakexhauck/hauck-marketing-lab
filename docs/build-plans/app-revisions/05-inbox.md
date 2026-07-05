@@ -1,13 +1,15 @@
-# Inbox — Implementation Plan
+# Inbox - Implementation Plan
 
 > **For agentic workers:** execute task-by-task. Read `00-README.md` for shared ground rules (app location, run/verify commands, no-em-dash + never-name-GHL rules, data contract). Self-contained otherwise.
+
+> **SCAFFOLD ALREADY DONE - do not touch shared files.** The nav, routes, and in-page tabs (`src/lib/nav.ts`, `src/lib/pageTabs.ts`, `src/App.tsx`, `src/lib/nav.test.ts`) already exist on your branch (`rev/inbox`): `INBOX_TABS` (SMS + Email) exists, the Inbox nav row points at `/conversations/sms`, and `/conversations/sms` + `/conversations/email` routes exist (both currently render `Conversations`), with `/conversations` redirecting to `/conversations/sms`. Any step below that says add a tab/route is ALREADY DONE: skip it. Your work is making `Conversations` channel-aware and the rest of the component-level restructure. Only edit files inside your section (and the `inboxFilters.ts` / `origin.ts` classifier).
 
 **Goal:** Split the single unified inbox into two pages, **SMS** and **Email**, each structured like the other section pages. Restrict the inbox to SMS + email only (drop Instagram DM and Messenger). Keep "chat widget" as a source category but not as its own conversation type. Surface the lead source explicitly on every conversation, and show a disclaimer when the same contact is reached over both SMS and email. Remove the header subtitles.
 
 **Scope:** Pages-first. UI restructure over existing real data (`/api/conversations`). No automations. Sending stays exactly as wired today, just channel-scoped per page.
 
 ## Current state (audited)
-- Routes: `src/App.tsx:336-350` — `/conversations` (list), `/conversations/:contactId` (detail).
+- Routes: `src/App.tsx:336-350` - `/conversations` (list), `/conversations/:contactId` (detail).
 - Mobile list: `src/routes/Conversations.tsx` (title "Chats" :100; subtitle :102-106; empty state :144-147; rows render `SourceBadge` + a channel badge :202-207; `channelLabel` :41-56).
 - Desktop list: `src/components/conversations/ConversationsDesktop.tsx` (title "Inbox" :144; smart-view pills :97-115 = Needs reply / All / one pill per channel with traffic; `CHANNELS` + accent colors :31-37; subtitle :136-138).
 - Detail: `src/routes/ConversationDetail.tsx` (subtitle "Conversation" :76); desktop `src/components/conversations/ConversationDetailDesktop.tsx`.
@@ -21,7 +23,7 @@ Inbox section with two pages: **SMS** and **Email**. Each page is a standard `Pa
 
 ---
 
-### Task 1: Restrict channels to SMS + email; drop IG and Messenger (doc #7) — testable
+### Task 1: Restrict channels to SMS + email; drop IG and Messenger (doc #7) - testable
 **Files:** `src/lib/inboxFilters.ts` (`CHANNELS` :37-43, `normalizeChannel`), `functions/lib/origin.ts` (mirror), and the matching test file (search `src/lib/*inbox*` / `*origin*` tests; if none, create `src/lib/inboxFilters.test.ts`).
 - [ ] Write/adjust tests first: `normalizeChannel` maps IG and Messenger inputs to a value the inbox does NOT surface (fold to `other` or exclude), and only `sms` + `email` are treated as first-class inbox channels.
 - [ ] Run the test, watch it fail.
