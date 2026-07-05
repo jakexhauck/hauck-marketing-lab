@@ -17,6 +17,8 @@ import PageBar from "../../components/PageBar";
 import { REVIEWS_TABS } from "../../lib/pageTabs";
 import { useAuth } from "../../context/AuthContext";
 import { demoMode } from "../../demo/demoMode";
+import { useReviewsFunnel } from "../../hooks/useReviewsFunnel";
+import type { ReviewFunnelData } from "../../lib/reviewsFunnel";
 import { useReviewsSummary } from "../../hooks/useReviewsSummary";
 import type { ReviewSummaryData } from "../../lib/reviewsSummary";
 import { StarRating, REVIEWS_CONTAINER } from "./shared";
@@ -175,14 +177,65 @@ function RealRecentReviews({ data }: { data: ReviewSummaryData | undefined }) {
   );
 }
 
+// Real-session stat chips. Each chip only renders when its source is connected,
+// so a real client sees real counts or honest zeros, never a fabricated number.
+// Total reviews reads the live Google total; the request / collected / rate chips
+// read the review campaign funnel. Chips with no real source (New this month,
+// reply rate) are simply omitted rather than faked.
+function RealStats({
+  summary,
+  funnel,
+}: {
+  summary: ReviewSummaryData | undefined;
+  funnel: ReviewFunnelData | undefined;
+}) {
+  const chips: { label: string; value: string; detail: string }[] = [];
+
+  if (summary && !summary.configError) {
+    chips.push({
+      label: "Total reviews",
+      value: summary.total.toLocaleString("en-US"),
+      detail: "All time on Google",
+    });
+  }
+
+  if (funnel && !funnel.configError) {
+    const rate = funnel.asked > 0 ? Math.round((funnel.positive / funnel.asked) * 100) : 0;
+    chips.push(
+      { label: "Requests sent", value: funnel.asked.toLocaleString("en-US"), detail: "Customers asked so far" },
+      { label: "Reviews collected", value: funnel.positive.toLocaleString("en-US"), detail: "Left a public review" },
+      { label: "Review rate", value: `${rate}%`, detail: "Of customers asked" },
+    );
+  }
+
+  if (chips.length === 0) return null;
+
+  return (
+    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {chips.map((s) => (
+        <div
+          key={s.label}
+          className="rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-[var(--shadow-sm)]"
+        >
+          <div className="label-cap">{s.label}</div>
+          <div className="stat-num mt-1.5 text-[30px] tnum text-text">{s.value}</div>
+          <div className="mt-1 text-[11.5px] font-medium text-faint">{s.detail}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ReviewsOverview() {
   const demo = demoMode();
   const { session } = useAuth();
   const navigate = useNavigate();
   const stats = demo ? SAMPLE_STATS : EMPTY_STATS;
-  // The rating hero + recent reviews read the live Google Places rating. The
-  // review journey now lives on its own read-only Review Pipeline page.
+  // The rating hero + recent reviews read the live Google Places rating; the
+  // stat chips also read the review campaign funnel. The full review journey
+  // now lives on its own read-only Review Pipeline page.
   const summary = useReviewsSummary(!demo && Boolean(session));
+  const funnel = useReviewsFunnel(!demo && Boolean(session));
 
   return (
     <Shell>
@@ -192,6 +245,7 @@ export default function ReviewsOverview() {
         {!demo ? (
           <>
             <RatingHero data={summary.data} onAsk={() => navigate(ASK_REQUESTS)} />
+            <RealStats summary={summary.data} funnel={funnel.data} />
             <RealRecentReviews data={summary.data} />
           </>
         ) : (
