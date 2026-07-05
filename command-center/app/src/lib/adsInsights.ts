@@ -47,7 +47,7 @@ export interface AdsInsightsResponse {
   error?: string;
 }
 
-// Empty (configured, but no spend) — the honest zero state a real client sees
+// Empty (configured, but no spend): the honest zero state a real client sees
 // before ads have run. `configured` is set by the caller/handler.
 export function emptyAdsInsights(configured: boolean): AdsInsightsResponse {
   return {
