@@ -1,6 +1,5 @@
 import {
   Plus,
-  Reply,
   Wrench,
   ArrowRight,
   MessageSquare,
@@ -382,25 +381,7 @@ export default function ReviewsOverview() {
   return (
     <Shell>
       <div className={REVIEWS_CONTAINER}>
-        <PageBar
-          tabs={REVIEWS_TABS}
-          description="Your reputation at a glance. Ask for new ones and reply to the rest."
-          actions={
-            <>
-              <Button
-                variant="secondary"
-                size="md"
-                className="hidden sm:inline-flex"
-                onClick={() => navigate(ALL_REVIEWS)}
-              >
-                <Reply size={16} /> Reply to reviews
-              </Button>
-              <Button variant="primary" size="md" onClick={() => navigate(ASK_REQUESTS)}>
-                <Plus size={16} /> Ask for a review
-              </Button>
-            </>
-          }
-        />
+        <PageBar tabs={REVIEWS_TABS} />
 
         {!demo ? (
           <>
