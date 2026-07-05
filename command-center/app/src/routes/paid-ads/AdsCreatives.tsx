@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { Image as ImageIcon, Megaphone } from "lucide-react";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { Panel, EmptyState } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useAdsInsights } from "../../hooks/useAdsInsights";
-import { emptyAdsInsights } from "../../lib/adsInsights";
+import { emptyAdsInsights, type AdItem } from "../../lib/adsInsights";
 import { PAID_ADS_TABS } from "../../lib/pageTabs";
 import { PAID_ADS_CONTAINER, NotConnectedNotice, PlatformGlyph } from "./shared";
+import AdPreviewModal from "../../components/ads/AdPreviewModal";
 
 // "Your Ads": the creatives gallery. Every live ad shown the way people see it,
 // with its real ad copy and platform badges. Only the ads running right now
@@ -33,6 +35,8 @@ export default function AdsCreatives() {
   // Only the ads running right now belong in "Your Ads"; paused/finished ones
   // are hidden so the client sees exactly what is live for them today.
   const ads = insights.ads.filter((a) => a.active);
+  // The ad opened in the placement-preview modal (null = closed).
+  const [preview, setPreview] = useState<AdItem | null>(null);
 
   return (
     <Shell>
@@ -57,7 +61,20 @@ export default function AdsCreatives() {
         {ads.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {ads.map((ad, i) => (
-              <Panel key={ad.id} className="flex flex-col overflow-hidden p-0">
+              <Panel
+                key={ad.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`See how "${ad.headline}" looks across placements`}
+                onClick={() => setPreview(ad)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setPreview(ad);
+                  }
+                }}
+                className="flex cursor-pointer flex-col overflow-hidden p-0 transition-colors hover:border-brand/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+              >
                 {/* Creative thumbnail: the real Meta image when we have one,
                     else a deterministic gradient placeholder. */}
                 <div
@@ -111,6 +128,8 @@ export default function AdsCreatives() {
             />
           </Panel>
         )}
+
+        <AdPreviewModal ad={preview} onClose={() => setPreview(null)} />
       </div>
     </Shell>
   );
