@@ -287,7 +287,7 @@ function RatingHero({
   const total = connected ? data!.total : 0;
 
   return (
-    <Panel className="relative overflow-hidden rounded-[var(--radius-xl)] p-6 shadow-[var(--shadow-md)] sm:p-9">
+    <Panel className="relative shrink-0 overflow-hidden rounded-[var(--radius-xl)] p-6 shadow-[var(--shadow-md)] sm:p-9">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -418,7 +418,7 @@ export default function ReviewsOverview() {
         ) : (
           <>
         {/* Hero: huge gradient average + stars on the left, stat chips on the right. */}
-        <Panel className="relative overflow-hidden rounded-[var(--radius-xl)] p-6 shadow-[var(--shadow-md)] sm:p-9">
+        <Panel className="relative shrink-0 overflow-hidden rounded-[var(--radius-xl)] p-6 shadow-[var(--shadow-md)] sm:p-9">
           <div
             className="pointer-events-none absolute inset-0"
             style={{
