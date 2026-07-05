@@ -118,7 +118,6 @@ export default function SocialOverview() {
       <div className={SOCIAL_CONTAINER}>
         <PageBar
           tabs={SOCIAL_TABS}
-          description="Your social at a glance. Here's what's next and what's working."
           actions={
             <>
               <Button
