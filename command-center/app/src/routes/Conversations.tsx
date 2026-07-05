@@ -8,7 +8,7 @@ import TestBanner from "../components/TestBanner";
 import SearchBar from "../components/SearchBar";
 import Avatar from "../components/Avatar";
 import SourceBadge from "../components/conversations/SourceBadge";
-import { convOrigin } from "../lib/inboxFilters";
+import { convOrigin, isInboxConversation } from "../lib/inboxFilters";
 import EmptyState from "../components/EmptyState";
 import PullToRefresh from "../components/PullToRefresh";
 import { useAuth } from "../context/AuthContext";
@@ -64,8 +64,9 @@ export default function Conversations() {
   const [showSearch, setShowSearch] = useState(false);
   const isTest = mode === "test";
 
+  // The inbox is SMS + email only; IG/Messenger conversations are dropped.
   const items: ApiConversation[] = useMemo(
-    () => query.data?.conversations ?? [],
+    () => (query.data?.conversations ?? []).filter(isInboxConversation),
     [query.data],
   );
 

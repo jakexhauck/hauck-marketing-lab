@@ -169,7 +169,7 @@ export interface ApiConversation {
   // Unified Inbox: medium of the last message + where the lead came from.
   // Optional so older payloads and demo data without them still type-check;
   // the UI derives channel from lastMessageType and defaults origin to "other".
-  channel?: "sms" | "email" | "ig" | "messenger" | "other";
+  channel?: "sms" | "email" | "other";
   origin?: "form" | "chat" | "paid" | "react" | "call" | "social" | "other";
   source?: string;
   firstTouchAt?: string;

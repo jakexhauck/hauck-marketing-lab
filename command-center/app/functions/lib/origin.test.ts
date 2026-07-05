@@ -33,11 +33,15 @@ describe("classifyOrigin", () => {
 });
 
 describe("normalizeChannel", () => {
-  it("normalizes GHL message types", () => {
+  it("keeps SMS and email as first-class inbox channels", () => {
     expect(normalizeChannel("TYPE_SMS")).toBe("sms");
     expect(normalizeChannel("Email")).toBe("email");
-    expect(normalizeChannel("Instagram")).toBe("ig");
-    expect(normalizeChannel("Facebook")).toBe("messenger");
+  });
+  it("folds Instagram, Messenger and everything else to other", () => {
+    // The inbox is SMS + email only, so IG/Messenger are not surfaced.
+    expect(normalizeChannel("Instagram")).toBe("other");
+    expect(normalizeChannel("Facebook")).toBe("other");
+    expect(normalizeChannel("Messenger")).toBe("other");
     expect(normalizeChannel("")).toBe("other");
     expect(normalizeChannel(null)).toBe("other");
   });

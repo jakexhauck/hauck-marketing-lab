@@ -14,6 +14,7 @@ import {
   convChannel,
   convOrigin,
   countByChannel,
+  isInboxConversation,
   type ChannelKey,
 } from "../../lib/inboxFilters";
 import type { ApiConversation } from "../../lib/api";
@@ -25,14 +26,11 @@ import type { ApiConversation } from "../../lib/api";
 // The phone keeps its own (NavyHero) list; this renders only inside
 // `hidden lg:flex` from the Conversations route.
 
-// Per-channel accent. Instagram/Messenger are platform brand colors (the
-// allowed non-token exception); SMS/email/other are functional accents, same
-// spirit as the source swatches in inboxFilters.
+// Per-channel accent. SMS/email/other are functional accents, same spirit as
+// the source swatches in inboxFilters.
 const CHANNEL_ACCENT: Record<ChannelKey, string> = {
-  ig: "#e1306c",
   sms: "#16a34a",
   email: "#2563eb",
-  messenger: "#7c3aed",
   other: "#94a3b8",
 };
 
@@ -81,8 +79,9 @@ export default function ConversationsDesktop() {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // The inbox is SMS + email only; IG/Messenger conversations are dropped.
   const items: ApiConversation[] = useMemo(
-    () => query.data?.conversations ?? [],
+    () => (query.data?.conversations ?? []).filter(isInboxConversation),
     [query.data],
   );
 

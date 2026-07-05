@@ -5,6 +5,8 @@ import {
   convOrigin,
   filterConversations,
   countByChannel,
+  isInboxConversation,
+  CHANNELS,
 } from "./inboxFilters";
 import type { ApiConversation } from "./api";
 
@@ -25,6 +27,34 @@ describe("channelFromType", () => {
   it("derives a channel when the field is missing", () => {
     expect(channelFromType("TYPE_SMS")).toBe("sms");
     expect(channelFromType("Email")).toBe("email");
+  });
+  it("folds Instagram and Messenger to other (the inbox is SMS + email only)", () => {
+    expect(channelFromType("Instagram")).toBe("other");
+    expect(channelFromType("TYPE_INSTAGRAM")).toBe("other");
+    expect(channelFromType("IG")).toBe("other");
+    expect(channelFromType("Messenger")).toBe("other");
+    expect(channelFromType("Facebook")).toBe("other");
+  });
+});
+
+describe("inbox channel set", () => {
+  it("surfaces only SMS and email as first-class channels", () => {
+    expect(CHANNELS.map((c) => c.key)).toEqual(["sms", "email", "other"]);
+  });
+});
+
+describe("isInboxConversation", () => {
+  it("keeps SMS and email conversations, drops everything else", () => {
+    expect(isInboxConversation(conv({ channel: "sms" }))).toBe(true);
+    expect(isInboxConversation(conv({ channel: "email" }))).toBe(true);
+    expect(isInboxConversation(conv({ channel: "other" }))).toBe(false);
+  });
+  it("drops IG/Messenger conversations that arrive without a server channel", () => {
+    expect(
+      isInboxConversation(
+        conv({ channel: undefined, lastMessageType: "TYPE_INSTAGRAM" }),
+      ),
+    ).toBe(false);
   });
 });
 

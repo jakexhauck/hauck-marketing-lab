@@ -144,9 +144,10 @@ export function buildDemoData(now: number = Date.now()): DemoData {
   const contacts: ApiContact[] = [];
   const messages: Record<string, ApiMessage[]> = {};
   const conversations: ApiConversation[] = [];
-  // Cycle channel + source across demo conversations so the Unified Inbox
-  // filter rails show real spread in demo / test mode.
-  const DEMO_CHANNELS = ["sms", "email", "ig", "messenger", "sms", "sms"] as const;
+  // Cycle channel + source across demo conversations so the SMS and Email inbox
+  // pages both show real spread in demo / test mode. The inbox is SMS + email
+  // only; one "other" entry seeds a conversation that must be filtered out.
+  const DEMO_CHANNELS = ["sms", "email", "other", "email", "sms", "sms"] as const;
   const DEMO_ORIGINS = [
     "form",
     "chat",

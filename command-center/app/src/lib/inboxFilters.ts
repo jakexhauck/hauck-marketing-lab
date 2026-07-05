@@ -10,7 +10,9 @@ export type OriginKey =
   | "call"
   | "social"
   | "other";
-export type ChannelKey = "sms" | "email" | "ig" | "messenger" | "other";
+// The inbox surfaces SMS and email only. Instagram, Messenger and anything else
+// fold to "other" and are not shown as inbox conversations.
+export type ChannelKey = "sms" | "email" | "other";
 
 export interface OriginMeta {
   key: OriginKey;
@@ -37,8 +39,6 @@ export const ORIGINS: OriginMeta[] = [
 export const CHANNELS: ChannelMeta[] = [
   { key: "sms", label: "SMS", icon: "💬" },
   { key: "email", label: "Email", icon: "✉" },
-  { key: "ig", label: "Instagram", icon: "📷" },
-  { key: "messenger", label: "Messenger", icon: "💬" },
   { key: "other", label: "Other", icon: "📥" },
 ];
 
@@ -81,11 +81,10 @@ export function channelFromType(raw: string | null | undefined): ChannelKey {
     .replace(/^type[_-]?/, "")
     .replace(/[^a-z]/g, "");
   if (!key) return "other";
-  if (key.includes("instagram") || key === "ig") return "ig";
-  if (key.includes("messenger") || key.includes("facebook") || key === "fb")
-    return "messenger";
   if (key.includes("email")) return "email";
   if (key.includes("sms") || key.includes("text")) return "sms";
+  // Instagram, Messenger, Facebook, WhatsApp, calls and anything else are not
+  // inbox channels: fold them to "other" so they never surface as SMS or email.
   return "other";
 }
 
@@ -95,6 +94,14 @@ export function convChannel(c: ApiConversation): ChannelKey {
 }
 export function convOrigin(c: ApiConversation): OriginKey {
   return c.origin ?? "other";
+}
+
+// True for the conversations the inbox shows: SMS and email only. IG/Messenger
+// (and anything that folds to "other") are dropped so the two channel pages
+// never list them.
+export function isInboxConversation(c: ApiConversation): boolean {
+  const ch = convChannel(c);
+  return ch === "sms" || ch === "email";
 }
 
 export interface InboxFilter {
@@ -127,8 +134,6 @@ export function countByChannel(
   const out: Record<ChannelKey, number> = {
     sms: 0,
     email: 0,
-    ig: 0,
-    messenger: 0,
     other: 0,
   };
   for (const c of items) out[convChannel(c)] += 1;
