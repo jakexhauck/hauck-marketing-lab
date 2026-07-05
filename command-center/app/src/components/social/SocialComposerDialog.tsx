@@ -47,6 +47,11 @@ export default function SocialComposerDialog({
     setPlatforms((prev) => ({ ...prev, [p]: !prev[p] }));
   }
 
+  // The preview tabs mirror the connected set (same rule as the "Post to"
+  // toggles): a real session never offers an Instagram preview when IG is not
+  // linked. Fall back to the first shown platform when the current tab is gone.
+  const activePreview = shownPlatforms.includes(previewTab) ? previewTab : shownPlatforms[0];
+
   const selected = shownPlatforms.filter((p) => platforms[p]);
   const hasCaption = caption.trim().length > 0;
   const canDraft = demo || (hasCaption && selected.length > 0 && !createPost.isPending);
@@ -239,20 +244,22 @@ export default function SocialComposerDialog({
 
         {/* Live preview */}
         <div className="bg-surface-2 p-5">
-          <div className="mb-3 flex gap-2">
-            {ALL_PLATFORMS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPreviewTab(p)}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2 text-[11px] font-semibold transition-colors ${
-                  previewTab === p ? "border-brand bg-brand-tint text-brand-text" : "border-border bg-surface text-muted"
-                }`}
-              >
-                <PlatformGlyph p={p} size={18} /> {PLATFORM[p].name}
-              </button>
-            ))}
-          </div>
+          {shownPlatforms.length > 0 && (
+            <div className="mb-3 flex gap-2">
+              {shownPlatforms.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPreviewTab(p)}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2 text-[11px] font-semibold transition-colors ${
+                    activePreview === p ? "border-brand bg-brand-tint text-brand-text" : "border-border bg-surface text-muted"
+                  }`}
+                >
+                  <PlatformGlyph p={p} size={18} /> {PLATFORM[p].name}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[var(--shadow-sm)]">
             <div className="flex items-center gap-2.5 p-3">
