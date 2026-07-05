@@ -6,7 +6,7 @@ export default function AdsFunnel() {
     <SectionComingSoon
       tabs={PAID_ADS_TABS}
       title="Funnel"
-      blurb="When we send traffic to a landing funnel, you'll see it here. Every client starts on lead forms, so this is in the works."
+      blurb="Right now your ads send people straight to a lead form, the fastest path to a call. When we start running traffic to a full landing funnel, its steps and drop-off will show up here."
     />
   );
 }
