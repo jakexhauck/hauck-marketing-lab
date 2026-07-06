@@ -52,10 +52,13 @@ export default function CallConsole({ call, onClose }: CallConsoleProps) {
   useEffect(() => {
     if (!unknown || notedRef.current) return;
     notedRef.current = true;
-    createNote.mutate({
-      contactId: call.contactId,
-      body: "New inbound caller, needs details",
-    });
+    createNote.mutate(
+      {
+        contactId: call.contactId,
+        body: "New inbound caller, needs details",
+      },
+      { onError: (e) => console.warn("[call] auto-note failed", e) },
+    );
     // Fires once per mount, keyed to the caller this console was opened for.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unknown, call.contactId]);
@@ -85,6 +88,7 @@ export default function CallConsole({ call, onClose }: CallConsoleProps) {
           }
           showToast("Contact details saved");
         },
+        onError: () => showToast("Could not save contact details, please try again"),
       },
     );
   }
@@ -120,7 +124,10 @@ export default function CallConsole({ call, onClose }: CallConsoleProps) {
       showToast(`Logged: ${def.label}`);
       onClose();
     };
-    const onErr = () => setActiveKey(null);
+    const onErr = () => {
+      setActiveKey(null);
+      showToast("Could not log that outcome, please try again");
+    };
 
     if (existingLead) {
       moveStage.mutate(
@@ -182,7 +189,10 @@ export default function CallConsole({ call, onClose }: CallConsoleProps) {
           setCallbackDraft("");
           route(def);
         },
-        onError: () => setActiveKey(null),
+        onError: () => {
+          setActiveKey(null);
+          showToast("Could not schedule the callback, please try again");
+        },
       },
     );
   }
@@ -204,7 +214,10 @@ export default function CallConsole({ call, onClose }: CallConsoleProps) {
           setVisitOutcome(null);
           route(def);
         },
-        onError: () => setActiveKey(null),
+        onError: () => {
+          setActiveKey(null);
+          showToast("Could not book the visit, please try again");
+        },
       },
     );
   }
