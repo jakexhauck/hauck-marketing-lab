@@ -382,3 +382,13 @@ export function buildLeadsHub(demo: boolean, raw?: unknown[]): LeadsHubDataset {
 export function newCount(leads: HubLead[], source?: LeadSource): number {
   return leads.filter((l) => isNew(l) && (!source || l.source === source)).length;
 }
+
+// Partition the merged hub feed by channel for the Leads sub-pages. Pure filters
+// that preserve input order (the feed is already newest-first).
+export function organicLeads(leads: HubLead[]): HubLead[] {
+  return leads.filter((l) => l.source === "form" || l.source === "chat");
+}
+
+export function paidAdsLeads(leads: HubLead[]): HubLead[] {
+  return leads.filter((l) => l.source === "ad");
+}
