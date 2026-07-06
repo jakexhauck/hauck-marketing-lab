@@ -152,7 +152,7 @@ export default function DeliveryCockpit() {
         </nav>
 
         {subs.length > 0 && (
-          <nav className="pk-subtabs" aria-label={`${activeService} sections`}>
+          <nav className="pk-subtabs" aria-label={`${SERVICE_TABS.find((t) => t.id === activeService)?.label ?? "Service"} sections`}>
             {subs.map((s) => (
               <button
                 key={s.id}

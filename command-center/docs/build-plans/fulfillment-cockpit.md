@@ -37,26 +37,26 @@
 ### Sub-tabs per service
 
 **Paid Ads**
-- **Campaigns** — read-only mirror of Meta's structure (campaign -> ad set -> ad). A pseudo Ads Manager. No pushing changes.
-- **Ad Library** — input creatives (image/video, headline, primary text, status draft/approved/live). A "Push to Meta" action uploads the creative into that client's Meta media library. Target build one if the upload is easy; otherwise it drops to a later phase.
-- **Funnel** — view the active lead-capture surface for the ads: the lead form by default, or the funnel when the client is on one.
-- **Data & Leads** — one stacked page: per-ad metrics, then totals, then the incoming leads.
+- **Campaigns**: read-only mirror of Meta's structure (campaign -> ad set -> ad). A pseudo Ads Manager. No pushing changes.
+- **Ad Library**: input creatives (image/video, headline, primary text, status draft/approved/live). A "Push to Meta" action uploads the creative into that client's Meta media library. Target build one if the upload is easy; otherwise it drops to a later phase.
+- **Funnel**: view the active lead-capture surface for the ads: the lead form by default, or the funnel when the client is on one.
+- **Data & Leads**: one stacked page: per-ad metrics, then totals, then the incoming leads.
 
 **Web Design**
-- **Site** — live preview + URL of their site.
-- **Pages** — their funnels / landing pages.
-- **Change Requests** — read-only view of what the client wants changed. Jake makes the edit himself in GHL.
-- **Analytics** — GA4 traffic (its own sub-tab, per Jake).
+- **Site**: live preview + URL of their site.
+- **Pages**: their funnels / landing pages.
+- **Change Requests**: read-only view of what the client wants changed. Jake makes the edit himself in GHL.
+- **Analytics**: GA4 traffic (its own sub-tab, per Jake).
 
 **Google Reviews**
-- **Funnel** — request -> click -> review pipeline.
-- **All Reviews** — every review + the live star rating.
-- **Requests** — read-only log of review requests sent and who converted.
-- **Reputation Report** — the shareable summary.
+- **Funnel**: request -> click -> review pipeline.
+- **All Reviews**: every review + the live star rating.
+- **Requests**: read-only log of review requests sent and who converted.
+- **Reputation Report**: the shareable summary.
 
 **Reactivation**
-- **Campaign** — the active reactivation blast: offer, message copy, audience size, send status.
-- **Results** — replies, leads booked, revenue recovered.
+- **Campaign**: the active reactivation blast: offer, message copy, audience size, send status.
+- **Results**: replies, leads booked, revenue recovered.
 
 ---
 
@@ -64,13 +64,13 @@
 
 **Phase 1 (this plan, in full detail):**
 
-- Modify `command-center/app/src/lib/deliveryCockpit.ts` — replace the flat `CockpitTab` model with the two-level service-tab + sub-tab model and its resolvers.
-- Create `command-center/app/src/lib/deliveryCockpit.test.ts` — Vitest coverage for the new model and resolvers.
-- Modify `command-center/app/src/routes/admin/DeliveryCockpit.tsx` — render the service-tab row, the sub-tab row, and route Overview/Config/placeholder content.
-- Modify `command-center/app/src/routes/admin/AdminDelivery.tsx` — rename landing kicker/title/tagline to Fulfillment.
-- Modify `command-center/app/src/components/admin/DeliveryRoster.tsx` — rename the rail title to Fulfillment.
-- Modify `command-center/app/src/routes/admin/AdminLayout.tsx:42` — rename the sidebar nav label to Fulfillment.
-- Modify `command-center/app/src/routes/admin/AdminPillarPage.tsx` — rename the two "Open Service Delivery" link labels and the capacity note.
+- Modify `command-center/app/src/lib/deliveryCockpit.ts`: replace the flat `CockpitTab` model with the two-level service-tab + sub-tab model and its resolvers.
+- Create `command-center/app/src/lib/deliveryCockpit.test.ts`: Vitest coverage for the new model and resolvers.
+- Modify `command-center/app/src/routes/admin/DeliveryCockpit.tsx`: render the service-tab row, the sub-tab row, and route Overview/Config/placeholder content.
+- Modify `command-center/app/src/routes/admin/AdminDelivery.tsx`: rename landing kicker/title/tagline to Fulfillment.
+- Modify `command-center/app/src/components/admin/DeliveryRoster.tsx`: rename the rail title to Fulfillment.
+- Modify `command-center/app/src/routes/admin/AdminLayout.tsx:42`: rename the sidebar nav label to Fulfillment.
+- Modify `command-center/app/src/routes/admin/AdminPillarPage.tsx`: rename the two "Open Service Delivery" link labels and the capacity note.
 
 **Phases 2 to 5 (scoped here, detailed in their own plans at build time):**
 
@@ -102,7 +102,7 @@ Deliverable: the area is renamed Fulfillment everywhere, and opening a client sh
   - `const SERVICE_TABS: ServiceTabDef[]`
   - `const DEFAULT_SERVICE_TAB: ServiceTab` (= `"overview"`)
   - `function resolveServiceTab(param: string | null | undefined): ServiceTab`
-  - `function resolveSubTab(tab: ServiceTab, param: string | null | undefined): string | null` — returns the first sub-tab id when the given one is invalid and the service has sub-tabs; `null` when the service has none.
+  - `function resolveSubTab(tab: ServiceTab, param: string | null | undefined): string | null`: returns the first sub-tab id when the given one is invalid and the service has sub-tabs; `null` when the service has none.
   - `function subTabsFor(tab: ServiceTab): SubTabDef[]`
   - `function placeholderCopy(label: string): string`
 
@@ -513,10 +513,10 @@ Check: the sidebar and rail say Fulfillment; the cockpit shows six service tabs;
 
 Scope. Fill the four Paid Ads sub-tabs, reading the client's real Meta ad account (id already on `tenants.meta_ad_account_id`, shared system-user token).
 
-- **Campaigns** — read-only tree of campaign -> ad set -> ad from the Graph API (`.../campaigns`, `adsets`, `ads` with `effective_status`, budgets, targeting summary). Optionally overlay the optimizer's recommended move per campaign (`lib/adsOptimizer.ts` already computes Kill/Watch/Scale/Refresh). No writes.
-- **Ad Library** — a store of creatives per client (new table, e.g. `client_ad_creatives`: tenant, media ref, headline, primary text, status draft/approved/live). "Push to Meta" uploads the asset to the client's ad account media library via `POST /act_<id>/adimages` (images) or `/advideos` (video). Build the push in Phase 2 if it proves easy against the real token; if it fights us, ship Ad Library as an internal tracker and move the push to Phase 2b. Log the decision honestly in the UI.
-- **Funnel** — view the active lead-capture surface: the GHL lead form by default, or the funnel when the client is on one. Read from the client's GHL sub-account (forms / funnels), same source the client Website page uses.
-- **Data & Leads** — one stacked page: per-ad insights (spend, impressions, CPL, leads), then totals, then the incoming leads (Meta insights + the existing `facebook ads`-tag GHL revenue join). Reuse the join already built for the client Paid Ads Overview.
+- **Campaigns**: read-only tree of campaign -> ad set -> ad from the Graph API (`.../campaigns`, `adsets`, `ads` with `effective_status`, budgets, targeting summary). Optionally overlay the optimizer's recommended move per campaign (`lib/adsOptimizer.ts` already computes Kill/Watch/Scale/Refresh). No writes.
+- **Ad Library**: a store of creatives per client (new table, e.g. `client_ad_creatives`: tenant, media ref, headline, primary text, status draft/approved/live). "Push to Meta" uploads the asset to the client's ad account media library via `POST /act_<id>/adimages` (images) or `/advideos` (video). Build the push in Phase 2 if it proves easy against the real token; if it fights us, ship Ad Library as an internal tracker and move the push to Phase 2b. Log the decision honestly in the UI.
+- **Funnel**: view the active lead-capture surface: the GHL lead form by default, or the funnel when the client is on one. Read from the client's GHL sub-account (forms / funnels), same source the client Website page uses.
+- **Data & Leads**: one stacked page: per-ad insights (spend, impressions, CPL, leads), then totals, then the incoming leads (Meta insights + the existing `facebook ads`-tag GHL revenue join). Reuse the join already built for the client Paid Ads Overview.
 
 Backend prerequisite: an admin endpoint that accepts a tenantId and returns that tenant's ad data (the client-facing ads endpoint is scoped to the logged-in tenant; admin needs an explicit-tenant variant). Retire or repoint `/admin/ads` (`AdminAds.tsx`, mock) to the cockpit.
 
@@ -524,22 +524,22 @@ Flip `paid-ads` and its sub-tabs to `ready: true` in `deliveryCockpit.ts` as eac
 
 ## Phase 3: Web Design (its own detailed plan)
 
-- **Site** — live preview (iframe or screenshot) + URL, reusing the client Website page's site source.
-- **Pages** — the client's funnels / landing pages (GHL funnels), the same read the client Website "Pages" tab uses.
-- **Change Requests** — read-only list of client-submitted change requests. Reuse the existing request-a-change store the client Website page writes to; admin view is read-only (Jake edits in GHL himself).
-- **Analytics** — GA4 traffic via the per-tenant `ga4_property_id` + `GA4_SA_JSON` secret already wired for the client Website page.
+- **Site**: live preview (iframe or screenshot) + URL, reusing the client Website page's site source.
+- **Pages**: the client's funnels / landing pages (GHL funnels), the same read the client Website "Pages" tab uses.
+- **Change Requests**: read-only list of client-submitted change requests. Reuse the existing request-a-change store the client Website page writes to; admin view is read-only (Jake edits in GHL himself).
+- **Analytics**: GA4 traffic via the per-tenant `ga4_property_id` + `GA4_SA_JSON` secret already wired for the client Website page.
 
 ## Phase 4: Google Reviews (its own detailed plan)
 
-- **Funnel** — request -> click -> review pipeline from the GHL review pipeline (same source as the client Reviews Overview).
-- **All Reviews** — every review + live star rating (Google Business Profile API v4; rating stays pending until GBP approval lands, per the Reviews Google integration track).
-- **Requests** — read-only log of review requests sent and conversions.
-- **Reputation Report** — the shareable summary, reusing the client Reputation Report content.
+- **Funnel**: request -> click -> review pipeline from the GHL review pipeline (same source as the client Reviews Overview).
+- **All Reviews**: every review + live star rating (Google Business Profile API v4; rating stays pending until GBP approval lands, per the Reviews Google integration track).
+- **Requests**: read-only log of review requests sent and conversions.
+- **Reputation Report**: the shareable summary, reusing the client Reputation Report content.
 
 ## Phase 5: Reactivation (its own detailed plan)
 
-- **Campaign** — read-only view of the active reactivation blast: offer, message copy, audience size, send status (source: the GHL reactivation campaign / bulk action for the tenant).
-- **Results** — replies, leads booked, revenue recovered, from the same campaign's stats + the GHL revenue join.
+- **Campaign**: read-only view of the active reactivation blast: offer, message copy, audience size, send status (source: the GHL reactivation campaign / bulk action for the tenant).
+- **Results**: replies, leads booked, revenue recovered, from the same campaign's stats + the GHL revenue join.
 
 ---
 
