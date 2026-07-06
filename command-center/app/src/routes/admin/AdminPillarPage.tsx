@@ -100,11 +100,11 @@ export default function AdminPillarPage() {
             <div className="pk-section-h">Team capacity</div>
             <div className="pk-needs">
               <span className="pk-needs-dot" aria-hidden />
-              No live capacity feed yet. Manage roster and workload in Service Delivery.
+              No live capacity feed yet. Manage roster and workload in Fulfillment.
             </div>
             <div className="pk-links" style={{ marginTop: 10 }}>
               <Link className="pk-link" to="/admin/delivery">
-                Open Service Delivery <ArrowRight />
+                Open Fulfillment <ArrowRight />
               </Link>
             </div>
           </div>

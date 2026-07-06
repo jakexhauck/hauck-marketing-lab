@@ -29,7 +29,7 @@ export default function DeliveryRoster({ selectedTenantId }: { selectedTenantId?
     <aside className="pk-roster">
       <div className="pk-roster-head">
         <div className="pk-roster-head-row">
-          <h2 className="pk-roster-title">Service Delivery</h2>
+          <h2 className="pk-roster-title">Fulfillment</h2>
           <span className="pk-roster-count">
             {clientsQuery.isLoading ? "..." : filtered.length}
           </span>

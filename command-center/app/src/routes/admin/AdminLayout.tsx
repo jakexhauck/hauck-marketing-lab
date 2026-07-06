@@ -39,7 +39,7 @@ const SPINE_NAV: SpineItem[] = [
   { to: "/admin", label: "Command", icon: LayoutDashboard, end: true },
   { to: "/admin/pillar/acquisition", label: "Acquisition", icon: Megaphone },
   { to: "/admin/pillar/sales", label: "Sales", icon: Handshake },
-  { to: "/admin/delivery", label: "Service Delivery", icon: HeartHandshake },
+  { to: "/admin/delivery", label: "Fulfillment", icon: HeartHandshake },
   { to: "/admin/pillar/operations", label: "Operations", icon: Wrench },
 ];
 

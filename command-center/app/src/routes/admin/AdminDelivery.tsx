@@ -29,8 +29,8 @@ export default function AdminDelivery() {
       <DeliveryRoster />
 
       <div className="pk-root">
-        <div className="pk-kicker">Service Delivery</div>
-        <h1 className="pk-title">Service Delivery</h1>
+        <div className="pk-kicker">Fulfillment</div>
+        <h1 className="pk-title">Fulfillment</h1>
         <p className="pk-tagline">
           The client roster, the delivery-pillar constraint, and the accounts it is straining.
         </p>
