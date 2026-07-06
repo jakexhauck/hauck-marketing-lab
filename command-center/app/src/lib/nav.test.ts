@@ -14,6 +14,20 @@ describe("client nav structure", () => {
     }
   });
 
+  it("shows exactly the four sold services in Marketing, back-burnered ones hidden", () => {
+    const marketing = NAV.filter(isNavSection).find((s) => s.id === "marketing")!;
+    expect(marketing.items.map((i) => i.to)).toEqual([
+      "/marketing/paid-ads",
+      "/marketing/website",
+      "/marketing/reviews",
+      "/marketing/reactivation",
+    ]);
+    const allRoutes = flattenNav(NAV).map((i) => i.to);
+    expect(allRoutes).not.toContain("/marketing/social");
+    expect(allRoutes).not.toContain("/marketing/outreach");
+    expect(allRoutes).not.toContain("/marketing/groups");
+  });
+
   it("folds the sales surfaces into Company", () => {
     const company = NAV.filter(isNavSection).find((s) => s.id === "company")!;
     const routes = company.items.map((i) => i.to);
