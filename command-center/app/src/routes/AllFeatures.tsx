@@ -16,9 +16,8 @@ const GROUPS: { label: string; routes: string[] }[] = [
     routes: [
       "/marketing/paid-ads",
       "/marketing/reviews",
-      "/marketing/campaigns",
       "/marketing/website",
-      "/marketing/social",
+      "/marketing/reactivation",
     ],
   },
   {
