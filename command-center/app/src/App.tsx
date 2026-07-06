@@ -10,7 +10,8 @@ import Login from "./routes/Login";
 import Home from "./routes/Home";
 import AllFeatures from "./routes/AllFeatures";
 import Leads from "./routes/Leads";
-import LeadsHub from "./routes/sales/LeadsHub";
+import LeadsOrganic from "./routes/sales/LeadsOrganic";
+import LeadsPaidAds from "./routes/sales/LeadsPaidAds";
 import Jobs from "./routes/sales/Jobs";
 import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
@@ -266,30 +267,40 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* The old standalone /leads board is now the Pipeline tab of the Leads hub. */}
-              <Route path="/leads" element={<Navigate to="/sales/leads/pipeline" replace />} />
+              {/* The old standalone /leads board now lands on the Pipeline tab. */}
+              <Route path="/leads" element={<Navigate to="/sales/leads" replace />} />
+              {/* Section root = Pipeline (the interactive board), the default tab. */}
               <Route
                 path="/sales/leads"
-                element={
-                  <ProtectedRoute>
-                    <LeadsHub />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Pipeline tab = the interactive board (drag, won/lost). Nested under
-                  /sales/leads so the single "Leads" sidebar row stays highlighted here. */}
-              <Route
-                path="/sales/leads/pipeline"
                 element={
                   <ProtectedRoute>
                     <Leads />
                   </ProtectedRoute>
                 }
               />
-              {/* The old per-channel sales lead pages merged into the Leads hub. */}
-              <Route path="/sales/forms" element={<Navigate to="/sales/leads" replace />} />
-              <Route path="/sales/chat" element={<Navigate to="/sales/leads" replace />} />
-              <Route path="/sales/paid-ads" element={<Navigate to="/sales/leads" replace />} />
+              {/* Organic = website estimate-form + chat leads (list only). */}
+              <Route
+                path="/sales/leads/organic"
+                element={
+                  <ProtectedRoute>
+                    <LeadsOrganic />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Paid Ads = ad leads (simple list). */}
+              <Route
+                path="/sales/leads/paid-ads"
+                element={
+                  <ProtectedRoute>
+                    <LeadsPaidAds />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Old paths fold into the new pages. */}
+              <Route path="/sales/leads/pipeline" element={<Navigate to="/sales/leads" replace />} />
+              <Route path="/sales/forms" element={<Navigate to="/sales/leads/organic" replace />} />
+              <Route path="/sales/chat" element={<Navigate to="/sales/leads/organic" replace />} />
+              <Route path="/sales/paid-ads" element={<Navigate to="/sales/leads/paid-ads" replace />} />
               <Route
                 path="/sales/jobs"
                 element={
@@ -437,7 +448,7 @@ export default function App() {
               {/* Skeleton surfaces: a home (route + sidebar row) exists ahead of
                   the feature; each renders the shared "coming soon" screen. */}
               {/* The read-only Sales Overview kanban is retired; Pipeline is a Leads tab now. */}
-              <Route path="/sales/overview" element={<Navigate to="/sales/leads/pipeline" replace />} />
+              <Route path="/sales/overview" element={<Navigate to="/sales/leads" replace />} />
               {/* Reactivation is its own Marketing section now; old paths redirect in. */}
               <Route path="/sales/reactivation" element={<Navigate to="/marketing/reactivation" replace />} />
               <Route path="/marketing/campaigns/reactivation" element={<Navigate to="/marketing/reactivation" replace />} />
@@ -448,7 +459,7 @@ export default function App() {
               <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsOverview /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/creatives" element={<ProtectedRoute><AdsCreatives /></ProtectedRoute>} />
               {/* A marketing channel never hosts a lead list; ad leads live in Leads, filtered. */}
-              <Route path="/marketing/paid-ads/leads" element={<Navigate to="/sales/leads?source=ads" replace />} />
+              <Route path="/marketing/paid-ads/leads" element={<Navigate to="/sales/leads/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/stats" element={<ProtectedRoute><AdsInsights /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/funnel" element={<ProtectedRoute><AdsFunnel /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/media" element={<ProtectedRoute><AdsMedia /></ProtectedRoute>} />

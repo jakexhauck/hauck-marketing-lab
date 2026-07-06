@@ -66,10 +66,12 @@ export const GROUP_OUTREACH_TABS: PageTab[] = [
 // it renders its PageBar with an explicit section label and no tabs.
 
 export const LEADS_TABS: PageTab[] = [
-  { to: "/sales/leads", label: "New Leads", end: true },
-  // Pipeline is the interactive board (drag stages, mark won/lost). Nested under
-  // /sales/leads so the sidebar's single "Leads" row stays highlighted on both.
-  { to: "/sales/leads/pipeline", label: "Pipeline" },
+  // Pipeline is the interactive board (drag stages, mark won/lost) and the section
+  // default. Organic = website form + chat leads. Paid Ads = ad leads. All three
+  // live under /sales/leads so the single "Leads" sidebar row stays highlighted.
+  { to: "/sales/leads", label: "Pipeline", end: true },
+  { to: "/sales/leads/organic", label: "Organic" },
+  { to: "/sales/leads/paid-ads", label: "Paid Ads" },
 ];
 
 // The bold section label <PageBar> shows to the left of the tabs. Matched to the
