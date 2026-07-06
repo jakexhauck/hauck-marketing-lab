@@ -335,7 +335,7 @@ function HealthCard({ client, onSaved }: { client: DetailClient; onSaved: () => 
   return (
     <Card title="Account health">
       <p className="mb-4 text-[13px] text-muted">
-        A manual flag that surfaces in the Service Delivery roster and the at-risk list. Use the note to record why an account needs attention or is paused.
+        A manual flag that surfaces in the Fulfillment roster and the at-risk list. Use the note to record why an account needs attention or is paused.
       </p>
       <form onSubmit={onSubmit}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

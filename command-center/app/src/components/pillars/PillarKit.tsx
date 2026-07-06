@@ -343,7 +343,7 @@ export function PillarStyle() {
       .pk-build { margin-top: 28px; border: 1px dashed var(--border); border-radius: var(--radius-lg); padding: 22px; text-align: center; color: var(--text-muted); font-size: 14px; background: var(--surface-2); }
       .pk-build b { color: var(--text); font-family: var(--font-display); font-weight: 600; }
 
-      /* ===== Service Delivery: roster rail + delivery overview (Task 3.1) ===== */
+      /* ===== Fulfillment: roster rail + delivery overview (Task 3.1) ===== */
 
       /* Two-pane shell: a persistent roster rail beside the page's own
          .pk-root. The child combinator gives the override enough specificity
