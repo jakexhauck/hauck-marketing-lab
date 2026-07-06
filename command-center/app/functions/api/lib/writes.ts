@@ -74,7 +74,7 @@ export async function resolveStageInPipeline(
 export async function putOpportunity(
   gctx: GhlContext,
   opportunityId: string,
-  fields: { pipelineStageId?: string; status?: string; monetaryValue?: number },
+  fields: { pipelineStageId?: string; pipelineId?: string; status?: string; monetaryValue?: number },
 ): Promise<{ ok: true } | { ok: false; status: number; body: string }> {
   const res = await ghlFetch(
     gctx,
