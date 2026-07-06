@@ -358,6 +358,27 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     });
   }
 
+  // Seed one unknown inbound caller so the Call Console banner is demoable.
+  // `now` defaults to Date.now() (buildDemoData's only caller passes no
+  // argument), so this created_at lands inside the banner's 5-minute
+  // freshness window on load.
+  activity.unshift({
+    id: actId++,
+    action: "call_inbound",
+    lead_id: null,
+    payload: {
+      summary: "Incoming call (248) 555-0199",
+      contact_id: "demo-inbound-1",
+      raw: {
+        contactId: "demo-inbound-1",
+        phone: "(248) 555-0199",
+        firstName: "",
+        lastName: "",
+      },
+    },
+    created_at: new Date(now).toISOString(),
+  });
+
   // Notifications reuse the activity shape; the three newest are unread.
   const notifications: ApiNotification[] = activity.slice(0, 8).map((a, i) => ({
     ...a,

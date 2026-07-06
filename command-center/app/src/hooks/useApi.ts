@@ -520,6 +520,30 @@ export function useSendLeadMessage() {
   });
 }
 
+// Update the caller's real details on a GHL contact (Call Console: capturing
+// name/email/ZIP for an unknown inbound caller). Only the provided fields are
+// sent, so a partial capture never blanks existing GHL data.
+export function useUpsertContact() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      contactId: string;
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      postalCode?: string;
+      source?: string;
+    }) =>
+      api<{ ok: true }>(`/api/contacts/${input.contactId}`, {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["contacts"] });
+    },
+  });
+}
+
 // Notes attached to a contact (newest-first), read/write through GHL.
 export function useNotesQuery(contactId: string | null, enabled: boolean) {
   return useQuery({
@@ -754,10 +778,46 @@ export function useMoveSalesLeadStage() {
       leadId: string;
       status?: "open" | "won" | "lost" | "abandoned";
       stageName?: string;
+      // Cross-pipeline move (e.g. the Call Console's "Booked the job" outcome,
+      // which lands in Sales Pipeline regardless of where the lead started).
+      pipelineName?: string;
+      // Captured price on a "Booked the job" outcome.
+      monetaryValue?: number;
     }) =>
       api<{ ok: boolean }>(`/api/sales/leads/${input.leadId}/stage`, {
         method: "POST",
-        body: JSON.stringify({ status: input.status, stageName: input.stageName }),
+        body: JSON.stringify({
+          status: input.status,
+          stageName: input.stageName,
+          pipelineName: input.pipelineName,
+          monetaryValue: input.monetaryValue,
+        }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales-leads"] });
+    },
+  });
+}
+
+// Create a brand-new opportunity for an existing contact: the path for an
+// unknown inbound caller (a bare GHL contact with no opportunity yet) once a
+// terminal call outcome needs a pipeline stage to land in. Pipeline + stage
+// resolve BY NAME server-side. Invalidates the same merged leads feed key
+// useLeadsHub reads so the new lead shows up on the next read.
+export function useCreateSalesLead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      contactId: string;
+      pipelineName: string;
+      stageName: string;
+      name: string;
+      monetaryValue?: number;
+      status?: "open" | "won" | "lost" | "abandoned";
+    }) =>
+      api<{ ok: true; id: string }>(`/api/sales/leads`, {
+        method: "POST",
+        body: JSON.stringify(input),
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sales-leads"] });

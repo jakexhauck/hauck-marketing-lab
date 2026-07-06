@@ -7,6 +7,8 @@ import {
   type GhlContext,
   type GhlOpportunity,
 } from "../../../lib/ghl";
+import { readJsonBody } from "../../../lib/body";
+import { resolveStageByName, createOpportunity } from "../../lib/writes";
 
 // GET /api/sales/leads: the merged "Leads" feed. Every opportunity in the Paid
 // Ad's Pipeline plus the Organic Pipeline, each tagged with a channel `source`
@@ -151,4 +153,49 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     total: leads.length,
     configError: !paid && !organic ? "pipeline_not_found" : undefined,
   });
+};
+
+interface CreateLeadBody {
+  contactId: string;
+  pipelineName: string;
+  stageName: string;
+  name: string;
+  monetaryValue?: number;
+  status?: "open" | "won" | "lost" | "abandoned";
+}
+
+// POST /api/sales/leads: create a new opportunity for an existing contact,
+// used when a terminal call outcome lands on an unknown inbound caller who has
+// no opportunity yet. Pipeline + stage resolve BY NAME per tenant, same as the
+// off-ramp write in [id]/stage.ts.
+export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
+  const t = ctx.data.tenant;
+  const gctx: GhlContext = { token: t.ghl_token, locationId: t.ghl_location_id };
+  const body = await readJsonBody<CreateLeadBody>(ctx.request);
+  if (!body?.contactId || !body.pipelineName || !body.stageName) {
+    return Response.json({ error: "missing_fields" }, { status: 400 });
+  }
+  const { pipelineId, stageId } = await resolveStageByName(
+    gctx,
+    body.pipelineName,
+    body.stageName,
+  );
+  if (!pipelineId || !stageId) {
+    return Response.json({ error: "stage_not_found" }, { status: 404 });
+  }
+  const result = await createOpportunity(gctx, {
+    pipelineId,
+    pipelineStageId: stageId,
+    contactId: body.contactId,
+    name: body.name || "Inbound call",
+    monetaryValue: body.monetaryValue,
+    status: body.status,
+  });
+  if (!result.ok) {
+    return Response.json(
+      { error: "ghl_error", status: result.status, body: result.body },
+      { status: 502 },
+    );
+  }
+  return Response.json({ ok: true, id: result.id });
 };

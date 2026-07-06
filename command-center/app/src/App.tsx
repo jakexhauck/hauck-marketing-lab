@@ -84,6 +84,7 @@ import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
 import PreviewBanner from "./components/PreviewBanner";
 import DemoBanner from "./components/DemoBanner";
+import IncomingCallBanner from "./components/call/IncomingCallBanner";
 import ScrollToTop from "./components/ScrollToTop";
 import MotionPresetSwitcher from "./components/dev/MotionPresetSwitcher";
 import { ToastProvider } from "./context/ToastContext";
@@ -245,6 +246,7 @@ export default function App() {
             <OfflineBanner />
             <PreviewBanner />
             <DemoBanner />
+            <IncomingCallBanner />
             <ScrollToTop />
             <TourOverlay />
             <div className="app-shell">
