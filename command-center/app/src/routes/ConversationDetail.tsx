@@ -7,11 +7,12 @@ import { HeroIconButton } from "../components/HeroUi";
 import Avatar from "../components/Avatar";
 import ConversationThread from "../components/ConversationThread";
 import MessageComposer from "../components/MessageComposer";
+import SourceBadge from "../components/conversations/SourceBadge";
 import { ChannelFilterProvider } from "../context/ChannelFilterContext";
 import ConversationDetailDesktop from "../components/conversations/ConversationDetailDesktop";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "../hooks/useApi";
-import { channelKeyToType } from "../lib/inboxFilters";
+import { channelKeyToType, convOrigin } from "../lib/inboxFilters";
 
 // The page the conversation was opened from, carried as ?ch=sms|email. It seeds
 // the thread + composer default channel and points the back button at the right
@@ -85,9 +86,11 @@ export default function ConversationDetail() {
               <div className="truncate font-display text-base font-bold text-white">
                 {name}
               </div>
-              <div className="truncate text-[12px] text-white/60">
-                Conversation
-              </div>
+              {conv && (
+                <div className="mt-1">
+                  <SourceBadge origin={convOrigin(conv)} size="sm" />
+                </div>
+              )}
             </div>
           </div>
         </NavyHero>

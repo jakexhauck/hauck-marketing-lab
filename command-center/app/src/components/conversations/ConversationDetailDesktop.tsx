@@ -6,8 +6,9 @@ import { Button } from "../ui/Button";
 import Avatar from "../Avatar";
 import ConversationThread from "../ConversationThread";
 import MessageComposer from "../MessageComposer";
+import SourceBadge from "./SourceBadge";
 import { ChannelFilterProvider } from "../../context/ChannelFilterContext";
-import { channelKeyToType } from "../../lib/inboxFilters";
+import { channelKeyToType, convOrigin } from "../../lib/inboxFilters";
 import { useAuth } from "../../context/AuthContext";
 import {
   useConversationMessagesQuery,
@@ -72,6 +73,7 @@ export default function ConversationDetailDesktop() {
         <span className="flex items-center gap-3">
           <Avatar name={name} size="sm" />
           <span className="truncate">{name}</span>
+          {conv && <SourceBadge origin={convOrigin(conv)} size="sm" />}
         </span>
       }
       subtitle={subtitle}

@@ -10,36 +10,28 @@ import { useNow } from "../../context/NowContext";
 import { useConversationsQuery } from "../../hooks/useApi";
 import { timeAgo } from "../../lib/timeAgo";
 import {
-  CHANNELS,
-  CHANNEL_BY_KEY,
+  ORIGINS,
+  ORIGIN_BY_KEY,
   convChannel,
   convOrigin,
-  countByChannel,
+  countByOrigin,
   type ChannelKey,
+  type OriginKey,
 } from "../../lib/inboxFilters";
 import type { ApiConversation } from "../../lib/api";
 
-// The Atelier desktop Unified Inbox (lg+): the "Priority Queue" layout. One
-// unified stream sliced by smart views (Needs reply / All / per channel),
+// The Atelier desktop inbox (lg+): the "Priority Queue" layout for one channel
+// page. One stream sliced by smart views (Needs reply / All / per lead source),
 // sorted so the person who has waited longest sits on top, next to the shared
-// InboxDetail (thread + composer). Replaces the old channel/source filter rail.
-// The phone keeps its own (NavyHero) list; this renders only inside
-// `hidden lg:flex` from the Conversations route.
+// InboxDetail (thread + composer). The phone keeps its own list; this renders
+// only inside `hidden lg:flex` from the Conversations route.
 
-// Per-channel accent. SMS/email/other are functional accents, same spirit as
-// the source swatches in inboxFilters.
-const CHANNEL_ACCENT: Record<ChannelKey, string> = {
-  sms: "#16a34a",
-  email: "#2563eb",
-  other: "#94a3b8",
-};
-
-type ViewKey = "needs" | "all" | ChannelKey;
+type ViewKey = "needs" | "all" | OriginKey;
 
 function applyView(items: ApiConversation[], view: ViewKey): ApiConversation[] {
   if (view === "needs") return items.filter((c) => c.unreadCount > 0);
   if (view === "all") return items;
-  return items.filter((c) => convChannel(c) === view);
+  return items.filter((c) => convOrigin(c) === view);
 }
 
 // Needs-reply is sorted longest-wait-first (oldest last message on top); the
@@ -97,29 +89,24 @@ export default function ConversationsDesktop({
     () => items.filter((c) => c.unreadCount > 0).length,
     [items],
   );
-  const channelCounts = useMemo(() => countByChannel(items), [items]);
+  const originCounts = useMemo(() => countByOrigin(items), [items]);
 
-  // The smart-view pills: always Needs reply + All, then each channel that has
-  // any conversations (drop empty "other").
+  // The smart-view pills: always Needs reply + All, then one pill per lead
+  // source present on this page (Paid Ad / Estimate Form / Chat Widget / ...),
+  // each dotted with its source color.
   const views = useMemo(() => {
     const base: { key: ViewKey; label: string; count: number; dot?: string }[] =
       [
         { key: "needs", label: "Needs reply", count: needsCount },
         { key: "all", label: "All", count: items.length },
       ];
-    for (const c of CHANNELS) {
-      const n = channelCounts[c.key];
+    for (const o of ORIGINS) {
+      const n = originCounts[o.key];
       if (n === 0) continue;
-      if (c.key === "other" && channelCounts.other === 0) continue;
-      base.push({
-        key: c.key,
-        label: c.label,
-        count: n,
-        dot: CHANNEL_ACCENT[c.key],
-      });
+      base.push({ key: o.key, label: o.label, count: n, dot: o.swatch });
     }
     return base;
-  }, [needsCount, items.length, channelCounts]);
+  }, [needsCount, items.length, originCounts]);
 
   const visible = useMemo(
     () => sortForView(searchFilter(applyView(items, view), search), view),
@@ -297,9 +284,8 @@ function QueueCard({
   active: boolean;
   onOpen: () => void;
 }) {
-  const channel = convChannel(conv);
-  const accent = CHANNEL_ACCENT[channel];
-  const channelMeta = CHANNEL_BY_KEY[channel];
+  const origin = convOrigin(conv);
+  const accent = ORIGIN_BY_KEY[origin].swatch;
   const hasUnread = conv.unreadCount > 0;
   return (
     <button
@@ -310,20 +296,14 @@ function QueueCard({
         (active ? "bg-brand-tint" : "hover:bg-surface-2")
       }
     >
+      {/* Left edge is colored by lead source, so the queue reads by origin. */}
       <span
         className="absolute left-0 top-0 h-full w-1"
         style={{ background: accent }}
         aria-hidden
       />
-      <div className="relative shrink-0">
+      <div className="shrink-0">
         <Avatar name={conv.name} size="md" />
-        <span
-          className="absolute -bottom-1 -right-1 grid h-[19px] w-[19px] place-items-center rounded-full border-[2.5px] border-surface text-[9px] text-white"
-          style={{ background: accent }}
-          aria-hidden
-        >
-          {channelMeta.icon}
-        </span>
       </div>
 
       <div className="min-w-0 flex-1">
@@ -362,22 +342,7 @@ function QueueCard({
         </div>
 
         <div className="mt-2 flex items-center gap-2">
-          <span
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted"
-            title={`${channelMeta.label} conversation`}
-          >
-            <span
-              className="h-2 w-2 rounded-full"
-              style={{ background: accent }}
-              aria-hidden
-            />
-            {channelMeta.label}
-          </span>
-          <span
-            className="h-[3px] w-[3px] rounded-full bg-border-strong"
-            aria-hidden
-          />
-          <SourceBadge origin={convOrigin(conv)} size="sm" />
+          <SourceBadge origin={origin} />
         </div>
       </div>
     </button>
