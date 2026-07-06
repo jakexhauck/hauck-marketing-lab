@@ -166,6 +166,19 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     call: "Inbound Call",
     other: "Website Form",
   };
+  // Stage name per conversation, cycled so the grouped-by-stage inbox shows a
+  // real spread across the funnel in demo / test mode. `undefined` lands the
+  // conversation in "New / Unsorted" (a lead with no opportunity yet).
+  const DEMO_INBOX_STAGES: (string | undefined)[] = [
+    "Lead In",
+    "Lead Responded",
+    "Estimate Scheduled",
+    "Estimate Completed",
+    "Job Booked",
+    "Job Completed",
+    "Follow Up - Not Ready",
+    undefined,
+  ];
   const notes: Record<string, ApiNote[]> = {};
   const tasks: Record<string, ApiTask[]> = {};
 
@@ -278,6 +291,8 @@ export function buildDemoData(now: number = Date.now()): DemoData {
         origin: DEMO_ORIGINS[i % DEMO_ORIGINS.length],
         source: DEMO_SOURCE_LABEL[DEMO_ORIGINS[i % DEMO_ORIGINS.length]],
         firstTouchAt: new Date(createdAt).toISOString(),
+        stageName: DEMO_INBOX_STAGES[i % DEMO_INBOX_STAGES.length],
+        pipelineName: PIPELINE_NAME,
       });
     }
 

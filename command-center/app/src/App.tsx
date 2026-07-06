@@ -340,23 +340,17 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/conversations" element={<Navigate to="/conversations/sms" replace />} />
               <Route
-                path="/conversations/sms"
+                path="/conversations"
                 element={
                   <ProtectedRoute>
                     <Conversations />
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/conversations/email"
-                element={
-                  <ProtectedRoute>
-                    <Conversations />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Old per-channel routes fold into the single unified inbox. */}
+              <Route path="/conversations/sms" element={<Navigate to="/conversations" replace />} />
+              <Route path="/conversations/email" element={<Navigate to="/conversations" replace />} />
               <Route
                 path="/conversations/:contactId"
                 element={

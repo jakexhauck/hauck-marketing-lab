@@ -1,82 +1,28 @@
-import { useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Shell from "../components/Shell";
 import PageBar from "../components/PageBar";
 import TestBanner from "../components/TestBanner";
 import SearchBar from "../components/SearchBar";
-import Avatar from "../components/Avatar";
-import SourceBadge from "../components/conversations/SourceBadge";
-import InboxFilterPills from "../components/conversations/InboxFilterPills";
-import {
-  applyInboxView,
-  convOrigin,
-  pageChannelFromPath,
-  pageChannelOf,
-  sendLabelForChannel,
-  sortForInboxView,
-  type InboxView,
-} from "../lib/inboxFilters";
+import StageGroupList from "../components/conversations/StageGroupList";
 import EmptyState from "../components/EmptyState";
 import PullToRefresh from "../components/PullToRefresh";
 import { useAuth } from "../context/AuthContext";
-import { useNow } from "../context/NowContext";
 import { useConversationsQuery } from "../hooks/useApi";
-import { INBOX_TABS } from "../lib/pageTabs";
 import { PAGE_CONTAINER } from "../lib/layout";
-import { timeAgo } from "../lib/timeAgo";
 import type { ApiConversation } from "../lib/api";
 import { Skeleton } from "../components/ui";
 import ConversationsDesktop from "../components/conversations/ConversationsDesktop";
 
-// One day in ms. Below this we show a relative time ("3m ago"); above it the
-// relative figure stops being useful, so we fall back to an absolute short date
-// ("Jun 22"), matching how the rest of the app formats older timestamps.
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function messageTime(iso: string, now: number): string {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return "";
-  if (now - then < DAY_MS) return timeAgo(iso, now);
-  return new Date(then).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
-
 export default function Conversations() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { session, mode } = useAuth();
   const useReal = Boolean(session);
   const query = useConversationsQuery(useReal);
   const [search, setSearch] = useState("");
-  const [view, setView] = useState<InboxView>("needs");
   const isTest = mode === "test";
 
-  const channel = pageChannelFromPath(location.pathname);
-
-  const all: ApiConversation[] = useMemo(
-    () => query.data?.conversations ?? [],
-    [query.data],
-  );
-
-  // Scope to this page's channel (SMS or Email) before anything else.
-  const items = useMemo(
-    () => all.filter((c) => pageChannelOf(c) === channel),
-    [all, channel],
-  );
-
-  const trimmed = search.trim();
-  const visible = useMemo(() => {
-    const byView = sortForInboxView(applyInboxView(items, view), view);
-    if (!trimmed) return byView;
-    const q = trimmed.toLowerCase();
-    return byView.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.preview.toLowerCase().includes(q),
-    );
-  }, [items, view, trimmed]);
+  const all: ApiConversation[] = query.data?.conversations ?? [];
 
   return (
     <Shell>
@@ -85,12 +31,7 @@ export default function Conversations() {
         {isTest && <TestBanner />}
 
         <div className={PAGE_CONTAINER}>
-          <PageBar
-            tabs={INBOX_TABS}
-            filters={
-              <InboxFilterPills items={items} active={view} onChange={setView} />
-            }
-          />
+          <PageBar tabs={[]} section="Inbox" />
 
           <div className="mb-3">
             <SearchBar
@@ -107,32 +48,20 @@ export default function Conversations() {
             </div>
           ) : query.isLoading ? (
             <ConversationsSkeleton />
-          ) : visible.length === 0 ? (
-            trimmed ? (
-              <EmptyState
-                title="No conversations"
-                message={`No conversations match "${trimmed}"`}
-              />
-            ) : (
-              <EmptyState
-                title="No conversations"
-                message={`Your ${sendLabelForChannel(channel)} conversations will show up here.`}
-              />
-            )
+          ) : all.length === 0 ? (
+            <EmptyState
+              title="No conversations"
+              message="New leads and replies will show up here."
+            />
           ) : (
-            <ul className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-              {visible.map((c, idx) => (
-                <li key={c.id}>
-                  <ConversationRow
-                    conv={c}
-                    isLast={idx === visible.length - 1}
-                    onTap={() =>
-                      navigate(`/conversations/${c.contactId}?ch=${channel}`)
-                    }
-                  />
-                </li>
-              ))}
-            </ul>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+              <StageGroupList
+                items={all}
+                selectedId={null}
+                onOpen={(contactId) => navigate(`/conversations/${contactId}`)}
+                search={search}
+              />
+            </div>
           )}
         </div>
       </div>
@@ -143,68 +72,8 @@ export default function Conversations() {
   );
 }
 
-interface ConversationRowProps {
-  conv: ApiConversation;
-  isLast: boolean;
-  onTap: () => void;
-}
-
-function ConversationRow({ conv, isLast, onTap }: ConversationRowProps) {
-  const now = useNow();
-  const hasUnread = conv.unreadCount > 0;
-  return (
-    <button
-      type="button"
-      onClick={onTap}
-      className={
-        "flex w-full items-center gap-3 bg-[var(--surface)] px-4 py-3.5 text-left transition-colors active:bg-[var(--surface-2)]" +
-        (isLast ? "" : " border-b border-[var(--divider)]")
-      }
-      style={{ minHeight: "68px" }}
-    >
-      <Avatar name={conv.name} size="md" />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1 truncate font-display text-[15px] font-bold text-[var(--text)]">
-            {conv.name}
-          </div>
-          <span className="tabular-figs shrink-0 text-[11px] font-semibold text-[var(--text-faint)]">
-            {messageTime(conv.lastMessageAt, now)}
-          </span>
-        </div>
-        <div className="mt-0.5 flex items-center gap-2">
-          <SourceBadge origin={convOrigin(conv)} size="sm" />
-          <div
-            className={
-              "min-w-0 flex-1 truncate text-xs " +
-              (hasUnread
-                ? "font-semibold text-[var(--text)]"
-                : "text-[var(--text-faint)]")
-            }
-          >
-            {conv.preview || (
-              <span className="italic text-[var(--text-faint)]">
-                No recent message
-              </span>
-            )}
-          </div>
-          {hasUnread && (
-            <span
-              className="ml-2 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white"
-              style={{ backgroundColor: "var(--brand-primary)" }}
-            >
-              {conv.unreadCount}
-            </span>
-          )}
-        </div>
-      </div>
-    </button>
-  );
-}
-
 // First-load placeholder that mirrors the conversation list shape (avatar plus
-// two text lines per row) so the layout does not jump when data arrives. Shown
-// only on the initial load, not on background refetches.
+// two text lines per row) so the layout does not jump when data arrives.
 function ConversationsSkeleton() {
   return (
     <ul

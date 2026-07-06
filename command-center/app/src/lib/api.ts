@@ -173,6 +173,12 @@ export interface ApiConversation {
   origin?: "form" | "chat" | "paid" | "react" | "call" | "other";
   source?: string;
   firstTouchAt?: string;
+  // Pipeline position, joined from the lead's GHL opportunity (optional: many
+  // conversations have no opportunity yet). stageName drives the inbox grouping.
+  pipelineId?: string;
+  pipelineStageId?: string;
+  pipelineName?: string;
+  stageName?: string;
 }
 
 export interface ApiNote {

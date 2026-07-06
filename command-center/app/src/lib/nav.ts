@@ -101,7 +101,7 @@ export const NAV: NavEntry[] = [
     label: "Company",
     icon: Building2,
     items: [
-      { to: "/conversations/sms", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
+      { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
       // Phone-only "app grid" launcher. Sidebar-hidden (desktop has the full
       // sidebar), and placed here so the bottom-bar flatten order centres it:
       // Today, Inbox, All, Contacts, Chat.

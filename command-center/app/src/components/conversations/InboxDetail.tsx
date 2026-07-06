@@ -1,33 +1,16 @@
 import Avatar from "../Avatar";
 import ConversationThread from "../ConversationThread";
-import MessageComposer from "../MessageComposer";
 import SourceBadge from "./SourceBadge";
-import BothChannelNote from "./BothChannelNote";
+import ThreadChannelTabs, { ActiveChannelComposer } from "./ThreadChannelTabs";
 import { ChannelFilterProvider } from "../../context/ChannelFilterContext";
-import {
-  convOrigin,
-  sendLabelForChannel,
-  type PageChannel,
-} from "../../lib/inboxFilters";
+import { convOrigin } from "../../lib/inboxFilters";
 import type { ApiConversation } from "../../lib/api";
 
-function firstTouchLabel(iso: string | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-// The right pane of the desktop inbox. `channel` is the page channel (SMS or
-// Email): the thread + composer are scoped to it, so the conversation reads and
-// sends over one medium only.
-export default function InboxDetail({
-  conv,
-  channel,
-}: {
-  conv: ApiConversation | null;
-  channel: PageChannel;
-}) {
+// The right pane of the desktop inbox. One contact, two threads: SMS and Email
+// sit on their own tabs (ThreadChannelTabs), each reading and sending over its
+// own medium. The lead is a single row in the list, so the two threads never
+// drift into two separate conversations with the same person.
+export default function InboxDetail({ conv }: { conv: ApiConversation | null }) {
   if (!conv) {
     return (
       <section className="flex flex-1 items-center justify-center bg-brand-bg">
@@ -38,10 +21,6 @@ export default function InboxDetail({
     );
   }
 
-  const origin = convOrigin(conv);
-  const touch = firstTouchLabel(conv.firstTouchAt);
-  const sendLabel = sendLabelForChannel(channel);
-
   return (
     <section className="flex min-w-0 flex-1 flex-col bg-brand-bg">
       <div className="border-b border-border bg-surface px-6 py-3.5">
@@ -51,28 +30,23 @@ export default function InboxDetail({
             <div className="truncate font-display text-[16px] font-semibold text-text">
               {conv.name}
             </div>
+            {conv.stageName && (
+              <div className="mt-0.5 truncate text-[11.5px] text-faint">
+                {conv.stageName}
+              </div>
+            )}
           </div>
-          <SourceBadge origin={origin} />
-        </div>
-        <div className="mt-2.5 flex flex-wrap items-center gap-2.5 rounded-[11px] border border-brand-primary/15 bg-brand-tint/50 px-3 py-2">
-          <span className="text-[11.5px] text-muted">
-            {sendLabel} conversation
-            {touch ? ` · First touch ${touch}` : ""}
-            {conv.source ? ` · ${conv.source}` : ""}
-          </span>
+          <SourceBadge origin={convOrigin(conv)} />
         </div>
       </div>
 
-      <ChannelFilterProvider
-        key={`${conv.contactId}:${channel}`}
-        initial={sendLabel}
-      >
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-6 pb-3 pt-4">
-          <BothChannelNote contactId={conv.contactId} channel={channel} />
+      <ChannelFilterProvider key={conv.contactId} initial={null}>
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-6 pb-3 pt-4">
+          <ThreadChannelTabs contactId={conv.contactId} />
           <ConversationThread contactId={conv.contactId} fill />
         </div>
         <div className="border-t border-border bg-surface px-6 py-3.5">
-          <MessageComposer contactId={conv.contactId} lockChannel={sendLabel} />
+          <ActiveChannelComposer contactId={conv.contactId} />
         </div>
       </ChannelFilterProvider>
     </section>

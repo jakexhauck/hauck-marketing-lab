@@ -1,5 +1,11 @@
 import type { Env, ApiData } from "../../lib/env";
-import { fetchAllConversations, fetchAllContacts } from "../../lib/ghl";
+import {
+  fetchAllConversations,
+  fetchAllContacts,
+  fetchAllOpportunities,
+  ghlJson,
+} from "../../lib/ghl";
+import { buildOpportunityIndex } from "../../lib/opportunityIndex";
 import { classifyOrigin, normalizeChannel } from "../../lib/origin";
 import type { OriginKey, ChannelKey } from "../../lib/origin";
 
@@ -15,6 +21,21 @@ export interface ApiConversation {
   origin: OriginKey;
   source: string;
   firstTouchAt: string;
+  // Pipeline position, joined from the lead's chosen GHL opportunity. Optional:
+  // many conversations have no opportunity, in which case these are omitted and
+  // the client buckets them under "New / Unsorted".
+  pipelineId?: string;
+  pipelineStageId?: string;
+  pipelineName?: string;
+  stageName?: string;
+}
+
+interface PipelinesResponse {
+  pipelines: {
+    id: string;
+    name: string;
+    stages: { id: string; name: string }[];
+  }[];
 }
 
 function isSystemActivity(t?: string | number): boolean {
@@ -27,13 +48,29 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const t = ctx.data.tenant;
   const gctx = { token: t.ghl_token, locationId: t.ghl_location_id };
 
-  // Conversations + the contact roster (for source/tags), fetched in parallel.
-  const [all, contacts] = await Promise.all([
+  // Conversations + contact roster (source/tags) + opportunities (pipeline
+  // stage) + pipelines (stage id -> name), fetched in parallel. The opportunity
+  // and pipeline fetches degrade to empty on failure so the inbox still loads
+  // (everything then buckets under "New / Unsorted").
+  const [all, contacts, opps, pipelinesData] = await Promise.all([
     fetchAllConversations(gctx),
     fetchAllContacts(gctx),
+    fetchAllOpportunities(gctx).catch(() => []),
+    ghlJson<PipelinesResponse>(
+      gctx,
+      `/opportunities/pipelines?locationId=${encodeURIComponent(t.ghl_location_id)}`,
+    ).catch(() => ({ pipelines: [] }) as PipelinesResponse),
   ]);
 
   const byContact = new Map(contacts.map((c) => [c.id, c]));
+
+  const oppIndex = buildOpportunityIndex(opps);
+  const stageById = new Map<string, { pipelineName: string; stageName: string }>();
+  for (const p of pipelinesData.pipelines ?? []) {
+    for (const st of p.stages ?? []) {
+      stageById.set(st.id, { pipelineName: p.name, stageName: st.name });
+    }
+  }
 
   const items = all
     .filter((c) => Boolean(c.contactId))
@@ -50,6 +87,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
             : NaN;
       const lastType =
         typeof c.lastMessageType === "string" ? c.lastMessageType : "";
+      const chosen = oppIndex.get(c.contactId as string);
+      const stage = chosen ? stageById.get(chosen.pipelineStageId) : undefined;
       return {
         id: c.id,
         contactId: c.contactId as string,
@@ -64,6 +103,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         origin: classifyOrigin(contact?.source, contact?.tags),
         source: contact?.source ?? "",
         firstTouchAt: contact?.dateAdded ?? "",
+        pipelineId: chosen?.pipelineId,
+        pipelineStageId: chosen?.pipelineStageId,
+        pipelineName: stage?.pipelineName,
+        stageName: stage?.stageName,
       } satisfies ApiConversation;
     });
 
