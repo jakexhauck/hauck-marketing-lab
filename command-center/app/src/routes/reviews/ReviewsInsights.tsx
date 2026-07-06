@@ -50,7 +50,6 @@ const GLANCE: { label: string; value: string; sub?: string; top?: boolean }[] = 
   { label: "Asks sent", value: "16", top: true },
   { label: "Reviews collected", value: "6", sub: "of 16" },
   { label: "Replies posted", value: "6", sub: "of 6" },
-  { label: "Shared to social", value: "3" },
   { label: "Median time to review", value: "1.4", sub: "days" },
 ];
 

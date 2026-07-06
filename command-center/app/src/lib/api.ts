@@ -170,7 +170,7 @@ export interface ApiConversation {
   // Optional so older payloads and demo data without them still type-check;
   // the UI derives channel from lastMessageType and defaults origin to "other".
   channel?: "sms" | "email" | "other";
-  origin?: "form" | "chat" | "paid" | "react" | "call" | "social" | "other";
+  origin?: "form" | "chat" | "paid" | "react" | "call" | "other";
   source?: string;
   firstTouchAt?: string;
 }

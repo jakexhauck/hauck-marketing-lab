@@ -8,7 +8,6 @@ export type OriginKey =
   | "paid"
   | "react"
   | "call"
-  | "social"
   | "other";
 // The inbox is SMS + Email only. Instagram / Messenger and anything else fold to
 // "other" so the inbox never surfaces them as channels. Mirror of the union in
@@ -33,7 +32,6 @@ export const ORIGINS: OriginMeta[] = [
   { key: "paid", label: "Paid Ad", icon: "📣", swatch: "#2563eb" },
   { key: "react", label: "Reactivation", icon: "🔄", swatch: "#d97706" },
   { key: "call", label: "Inbound Call", icon: "📞", swatch: "#16a34a" },
-  { key: "social", label: "Social DM", icon: "📷", swatch: "#db2777" },
   { key: "other", label: "Other", icon: "•", swatch: "#94a3b8" },
 ];
 
@@ -64,7 +62,6 @@ const ORIGIN_RULES: { key: OriginKey; test: RegExp }[] = [
     key: "paid",
     test: /paid|\bads?\b|facebook ad|instagram ad|google ad|adwords|ppc|utm|campaign/,
   },
-  { key: "social", test: /instagram|facebook|messenger|\big\b|\bfb\b|social/ },
 ];
 
 export function classifyOrigin(
@@ -202,7 +199,6 @@ export function countByOrigin(
     paid: 0,
     react: 0,
     call: 0,
-    social: 0,
     other: 0,
   };
   for (const c of items) out[convOrigin(c)] += 1;

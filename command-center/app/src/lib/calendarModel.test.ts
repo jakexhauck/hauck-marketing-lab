@@ -7,6 +7,7 @@ import {
   groupItemsByDay,
   minutesToLabel,
   packDayColumns,
+  CALENDAR_SOURCE_ORDER,
   type CalendarItem,
   type CalendarSource,
 } from "./calendarModel";
@@ -94,9 +95,9 @@ describe("filterBySources", () => {
     contactId: "",
   });
   it("keeps only items whose source is active", () => {
-    const items = [mk("appointment", "a"), mk("job", "b"), mk("social", "c")];
-    const out = filterBySources(items, new Set(["appointment", "social"]));
-    expect(out.map((i) => i.id)).toEqual(["a", "c"]);
+    const items = [mk("appointment", "a"), mk("job", "b")];
+    const out = filterBySources(items, new Set(["appointment"]));
+    expect(out.map((i) => i.id)).toEqual(["a"]);
   });
 });
 
@@ -202,6 +203,12 @@ describe("packDayColumns", () => {
     expect(cols).toBe(2);
     const c = placed.find((p) => p.item.id === "c")!;
     expect(c.col).toBe(0);
+  });
+});
+
+describe("CALENDAR_SOURCE_ORDER", () => {
+  it("covers only the two live streams", () => {
+    expect(CALENDAR_SOURCE_ORDER).toEqual(["appointment", "job"]);
   });
 });
 

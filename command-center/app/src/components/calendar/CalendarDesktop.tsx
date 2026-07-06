@@ -16,9 +16,9 @@ import { MonthView } from "./MonthView";
 import { WeekView } from "./WeekView";
 import { AgendaView } from "./AgendaView";
 
-// The Atelier desktop Calendar: one unified schedule (appointments, jobs, social
-// posts, campaign sends) in three switchable views. The phone keeps its own
-// NavyHero list below lg; this file renders only inside `hidden lg:flex`.
+// The Atelier desktop Calendar: one unified schedule (appointments, jobs) in
+// three switchable views. The phone keeps its own NavyHero list below lg;
+// this file renders only inside `hidden lg:flex`.
 
 type View = "month" | "week" | "agenda";
 const VIEW_KEY = "hml_cal_view";
@@ -65,10 +65,7 @@ export default function CalendarDesktop() {
     });
 
   const counts = useMemo(() => {
-    const c = { appointment: 0, job: 0, social: 0, campaign: 0 } as Record<
-      CalendarSource,
-      number
-    >;
+    const c = { appointment: 0, job: 0 } as Record<CalendarSource, number>;
     for (const i of data.items) c[i.source]++;
     return c;
   }, [data.items]);

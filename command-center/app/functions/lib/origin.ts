@@ -7,7 +7,6 @@ export type OriginKey =
   | "paid"
   | "react"
   | "call"
-  | "social"
   | "other";
 // The inbox is SMS + Email only. Instagram / Messenger and anything else fold to
 // "other" so the inbox never surfaces them as channels. Mirror of the union in
@@ -26,7 +25,6 @@ export const ORIGIN_RULES: { key: OriginKey; test: RegExp }[] = [
     key: "paid",
     test: /paid|\bads?\b|facebook ad|instagram ad|google ad|adwords|ppc|utm|campaign/,
   },
-  { key: "social", test: /instagram|facebook|messenger|\big\b|\bfb\b|social/ },
 ];
 
 export function classifyOrigin(

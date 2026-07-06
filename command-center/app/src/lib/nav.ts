@@ -9,15 +9,12 @@ import {
   UserCog,
   Star,
   Globe,
-  Share2,
   FolderOpen,
   Building2,
   Contact,
-  Send,
   Split,
   LayoutGrid,
   RotateCcw,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -82,18 +79,21 @@ export function isNavSection(entry: NavEntry): entry is NavSection {
 // the page as a <PageTabs> bar, not as sidebar children.
 export const NAV: NavEntry[] = [
   { to: "/home", label: "Home", shortLabel: "Today", icon: Home, capability: "overview", bottomNav: true },
+  // Marketing shows only the four services we sell. Three channels are
+  // back-burnered (hidden here, routes still registered in App.tsx): to
+  // re-enable one, add its row back:
+  //   { to: "/marketing/social", label: "Social Media", shortLabel: "Social", icon: Share2 },
+  //   { to: "/marketing/outreach", label: "Commercial Outreach", shortLabel: "Outreach", icon: Send },
+  //   { to: "/marketing/groups", label: "Group Outreach", shortLabel: "Groups", icon: Users },
   {
     id: "marketing",
     label: "Marketing",
     icon: Megaphone,
     items: [
       { to: "/marketing/paid-ads", label: "Paid Ads", shortLabel: "Ads", icon: Megaphone },
-      { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
-      { to: "/marketing/outreach", label: "Commercial Outreach", shortLabel: "Outreach", icon: Send },
-      { to: "/marketing/reactivation", label: "Reactivation", icon: RotateCcw },
-      { to: "/marketing/groups", label: "Group Outreach", shortLabel: "Groups", icon: Users },
       { to: "/marketing/website", label: "Website", icon: Globe },
-      { to: "/marketing/social", label: "Social Media", shortLabel: "Social", icon: Share2 },
+      { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
+      { to: "/marketing/reactivation", label: "Reactivation", icon: RotateCcw },
     ],
   },
   {
