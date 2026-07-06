@@ -1,15 +1,9 @@
 import {
   Plus,
-  Reply,
   Wrench,
   ArrowRight,
   MessageSquare,
   Quote,
-  Send,
-  MousePointerClick,
-  Star,
-  ShieldCheck,
-  Users,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Shell from "../../components/Shell";
@@ -18,8 +12,6 @@ import {
   PanelHeader,
   Button,
   EmptyState,
-  LoadingState,
-  ErrorState,
 } from "../../components/ui";
 import PageBar from "../../components/PageBar";
 import { REVIEWS_TABS } from "../../lib/pageTabs";
@@ -29,11 +21,7 @@ import { useReviewsFunnel } from "../../hooks/useReviewsFunnel";
 import type { ReviewFunnelData } from "../../lib/reviewsFunnel";
 import { useReviewsSummary } from "../../hooks/useReviewsSummary";
 import type { ReviewSummaryData } from "../../lib/reviewsSummary";
-import {
-  StarRating,
-  NotConnectedNotice,
-  REVIEWS_CONTAINER,
-} from "./shared";
+import { StarRating, REVIEWS_CONTAINER } from "./shared";
 
 // The Google Reviews hub overview. Same golden rule as Social: a real (connected)
 // client must never see fabricated reviews. The designed, populated layout renders
@@ -89,185 +77,6 @@ const RECENT_REVIEWS: { who: string; when: string; body: string }[] = [
   },
 ];
 
-// Real-session Google Reviews Overview: the request -> click -> review funnel,
-// driven by the live GHL review pipeline (functions/api/reviews/funnel.ts). The
-// per-review content (star-by-star list, replies, all-time average) still needs
-// the Google Business Profile connection, so this shows the funnel we can drive
-// today and points the rest at the Ask + coming-soon surfaces.
-function ReviewsFunnelView({
-  data,
-  isLoading,
-  isError,
-  onRetry,
-}: {
-  data: ReviewFunnelData | undefined;
-  isLoading: boolean;
-  isError: boolean;
-  onRetry: () => void;
-}) {
-  if (isLoading) {
-    return (
-      <Panel>
-        <LoadingState label="Loading your review funnel" />
-      </Panel>
-    );
-  }
-  if (isError) {
-    return (
-      <Panel className="px-4 py-8">
-        <ErrorState
-          title="Could not load reviews"
-          description="Try again."
-          onRetry={onRetry}
-        />
-      </Panel>
-    );
-  }
-
-  const populated = Boolean(data && data.asked > 0);
-
-  if (!populated) {
-    return (
-      <>
-        <NotConnectedNotice message="Once your review campaign starts asking customers, this fills with how many were asked, clicked, and left a review." />
-        <Panel className="px-4 py-12">
-          <EmptyState
-            icon={<Star size={22} />}
-            title="No review requests yet"
-            description="When a finished job triggers a review ask, you'll see the journey from asked to five stars right here."
-          />
-        </Panel>
-      </>
-    );
-  }
-
-  const d = data as ReviewFunnelData;
-  const conversion = d.asked > 0 ? Math.round((d.positive / d.asked) * 100) : 0;
-
-  const kpis = [
-    { label: "Asked for a review", value: d.asked, icon: <Send size={15} />, brand: false },
-    { label: "Clicked the link", value: d.clicked, icon: <MousePointerClick size={15} />, brand: false },
-    { label: "Left a review", value: d.positive, icon: <Star size={15} />, brand: true },
-    { label: "Caught privately", value: d.negative, icon: <ShieldCheck size={15} />, brand: false },
-  ];
-
-  // Funnel steps, each measured against everyone asked, intensifying toward the
-  // win (grey -> brand tint -> full brand gradient).
-  const steps = [
-    { key: "asked", label: "Asked for a review", hint: "Request sent after the job wrapped", value: d.asked, bar: "var(--surface-3)", grad: false },
-    { key: "clicked", label: "Clicked the link", hint: "Opened the review request", value: d.clicked, bar: "var(--brand-tint)", grad: false },
-    { key: "positive", label: "Left a public review", hint: "Five-star submission on Google", value: d.positive, bar: "var(--grad-brand)", grad: true },
-  ];
-
-  return (
-    <>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {kpis.map((k) => (
-          <Panel key={k.label} className="p-4">
-            <div className="flex items-center gap-1.5 text-[13px] text-muted">
-              <span className="text-faint">{k.icon}</span> {k.label}
-            </div>
-            <div
-              className={`mt-2 font-data text-[28px] font-semibold tnum ${
-                k.brand ? "text-brand-text" : "text-text"
-              }`}
-            >
-              {k.value.toLocaleString("en-US")}
-            </div>
-          </Panel>
-        ))}
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="flex flex-col gap-4 lg:col-span-2">
-          <Panel className="overflow-hidden">
-            <PanelHeader title="The review journey" />
-            <div className="flex flex-col gap-4 p-4">
-              {steps.map((s) => (
-                <div key={s.key}>
-                  <div className="flex items-baseline justify-between gap-3">
-                    <div className="font-display text-[14px] text-text">{s.label}</div>
-                    <div className="shrink-0 font-data text-[13px] font-semibold text-text">
-                      {s.value.toLocaleString("en-US")}
-                    </div>
-                  </div>
-                  <div className="mt-0.5 text-[12px] text-faint">{s.hint}</div>
-                  <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-surface-2">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.max((s.value / Math.max(d.asked, 1)) * 100, s.value > 0 ? 3 : 0)}%`,
-                        ...(s.grad ? { backgroundImage: s.bar } : { background: s.bar }),
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-[12px] text-faint">
-                <span className="flex items-center gap-1.5">
-                  <Users size={13} /> {d.asked.toLocaleString("en-US")} asked so far
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Star size={13} style={{ color: "var(--star)", fill: "var(--star)" }} /> {conversion}% left a public review
-                </span>
-                {d.negative > 0 && (
-                  <span className="flex items-center gap-1.5">
-                    <ShieldCheck size={13} /> {d.negative} routed to private feedback
-                  </span>
-                )}
-              </div>
-            </div>
-          </Panel>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <Panel className="overflow-hidden">
-            <PanelHeader title="Recently collected" />
-            {d.recent.length > 0 ? (
-              <ul>
-                {d.recent.map((r) => (
-                  <li
-                    key={r.name}
-                    className="flex items-center gap-3 border-b border-divider px-4 py-3 last:border-b-0"
-                  >
-                    <span
-                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-[14px] font-semibold"
-                      style={{ background: "var(--brand-tint)", color: "var(--brand-text)" }}
-                      aria-hidden
-                    >
-                      {r.initials}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-display text-[14px] text-text">{r.name}</div>
-                      <div className="mt-0.5 text-[12px] text-faint">{r.sub}</div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="px-4 py-10">
-                <EmptyState
-                  icon={<Star size={22} />}
-                  title="No reviews collected yet"
-                  description="Customers who leave a public review will appear here."
-                />
-              </div>
-            )}
-          </Panel>
-
-          <Panel className="flex items-start gap-3 border-brand/30 bg-brand-tint p-4">
-            <MessageSquare size={20} className="mt-0.5 shrink-0 text-brand-text" />
-            <div className="flex-1 text-[13px] leading-snug text-text">
-              Reading each review star-by-star and replying lands once your Google Business
-              Profile is connected. This funnel is live from your review campaign now.
-            </div>
-          </Panel>
-        </div>
-      </div>
-    </>
-  );
-}
-
 // Real-session Google rating hero: the client's live Google average, star row,
 // and public review count, read from the Places API via useReviewsSummary. When
 // the place is not connected yet (no key / no place_id) it shows the faint
@@ -287,7 +96,7 @@ function RatingHero({
   const total = connected ? data!.total : 0;
 
   return (
-    <Panel className="relative overflow-hidden rounded-[var(--radius-xl)] p-6 shadow-[var(--shadow-md)] sm:p-9">
+    <Panel className="relative shrink-0 overflow-hidden rounded-[var(--radius-xl)] p-6 shadow-[var(--shadow-md)] sm:p-9">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -368,57 +177,81 @@ function RealRecentReviews({ data }: { data: ReviewSummaryData | undefined }) {
   );
 }
 
+// Real-session stat chips. Each chip only renders when its source is connected,
+// so a real client sees real counts or honest zeros, never a fabricated number.
+// Total reviews reads the live Google total; the request / collected / rate chips
+// read the review campaign funnel. Chips with no real source (New this month,
+// reply rate) are simply omitted rather than faked.
+function RealStats({
+  summary,
+  funnel,
+}: {
+  summary: ReviewSummaryData | undefined;
+  funnel: ReviewFunnelData | undefined;
+}) {
+  const chips: { label: string; value: string; detail: string }[] = [];
+
+  if (summary && !summary.configError) {
+    chips.push({
+      label: "Total reviews",
+      value: summary.total.toLocaleString("en-US"),
+      detail: "All time on Google",
+    });
+  }
+
+  if (funnel && !funnel.configError) {
+    const rate = funnel.asked > 0 ? Math.round((funnel.positive / funnel.asked) * 100) : 0;
+    chips.push(
+      { label: "Requests sent", value: funnel.asked.toLocaleString("en-US"), detail: "Customers asked so far" },
+      { label: "Reviews collected", value: funnel.positive.toLocaleString("en-US"), detail: "Left a public review" },
+      { label: "Review rate", value: `${rate}%`, detail: "Of customers asked" },
+    );
+  }
+
+  if (chips.length === 0) return null;
+
+  return (
+    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {chips.map((s) => (
+        <div
+          key={s.label}
+          className="rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-[var(--shadow-sm)]"
+        >
+          <div className="label-cap">{s.label}</div>
+          <div className="stat-num mt-1.5 text-[30px] tnum text-text">{s.value}</div>
+          <div className="mt-1 text-[11.5px] font-medium text-faint">{s.detail}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ReviewsOverview() {
   const demo = demoMode();
   const { session } = useAuth();
   const navigate = useNavigate();
   const stats = demo ? SAMPLE_STATS : EMPTY_STATS;
-  // The funnel is the real-session deliverable; demo keeps its aspirational
-  // GBP-connected layout below. Queries only run for a real session.
-  const funnel = useReviewsFunnel(!demo && Boolean(session));
-  // The rating hero + recent reviews read the live Google Places rating.
+  // The rating hero + recent reviews read the live Google Places rating; the
+  // stat chips also read the review campaign funnel. The full review journey
+  // now lives on its own read-only Review Pipeline page.
   const summary = useReviewsSummary(!demo && Boolean(session));
+  const funnel = useReviewsFunnel(!demo && Boolean(session));
 
   return (
     <Shell>
       <div className={REVIEWS_CONTAINER}>
-        <PageBar
-          tabs={REVIEWS_TABS}
-          description="Your reputation at a glance. Ask for new ones and reply to the rest."
-          actions={
-            <>
-              <Button
-                variant="secondary"
-                size="md"
-                className="hidden sm:inline-flex"
-                onClick={() => navigate(ALL_REVIEWS)}
-              >
-                <Reply size={16} /> Reply to reviews
-              </Button>
-              <Button variant="primary" size="md" onClick={() => navigate(ASK_REQUESTS)}>
-                <Plus size={16} /> Ask for a review
-              </Button>
-            </>
-          }
-        />
+        <PageBar tabs={REVIEWS_TABS} />
 
         {!demo ? (
           <>
             <RatingHero data={summary.data} onAsk={() => navigate(ASK_REQUESTS)} />
-            <div className="mt-6">
-              <ReviewsFunnelView
-                data={funnel.data}
-                isLoading={funnel.isLoading}
-                isError={funnel.isError}
-                onRetry={() => funnel.refetch()}
-              />
-            </div>
+            <RealStats summary={summary.data} funnel={funnel.data} />
             <RealRecentReviews data={summary.data} />
           </>
         ) : (
           <>
         {/* Hero: huge gradient average + stars on the left, stat chips on the right. */}
-        <Panel className="relative overflow-hidden rounded-[var(--radius-xl)] p-6 shadow-[var(--shadow-md)] sm:p-9">
+        <Panel className="relative shrink-0 overflow-hidden rounded-[var(--radius-xl)] p-6 shadow-[var(--shadow-md)] sm:p-9">
           <div
             className="pointer-events-none absolute inset-0"
             style={{

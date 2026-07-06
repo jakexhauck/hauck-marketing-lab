@@ -6,13 +6,12 @@ import { REVIEWS_TABS } from "../../lib/pageTabs";
 import { demoMode } from "../../demo/demoMode";
 import { StarRating, ReviewsComingSoon, REVIEWS_CONTAINER } from "./shared";
 
-// The Google Reviews "What's working" surface (Phase 2: no live insights backend
-// yet). Same golden rule as the rest of Reviews and Social: a real, connected
-// client must never see fabricated numbers. The designed, populated layout
-// (rating trend, conversion stats, source bars) renders only in demo/preview
-// mode. In a real session everything is empty and a NotConnectedNotice plus an
-// EmptyState explain that trends appear once Google is connected and reviews
-// come in.
+// The Google Reviews "Reputation Report" surface (Phase 2: no live insights
+// backend yet). Same golden rule as the rest of Reviews and Social: a real,
+// connected client must never see fabricated numbers. The designed, populated
+// layout (rating trend, conversion stats, source bars) renders only in
+// demo/preview mode. In a real session it shows the ReviewsComingSoon state
+// until the Google Business Profile connection lights up real trend data.
 
 // --- Sample data (demo only) ---------------------------------------------
 
@@ -89,7 +88,7 @@ export default function ReviewsInsights() {
       <div className={REVIEWS_CONTAINER}>
         <PageBar
           tabs={REVIEWS_TABS}
-          description="The few numbers behind your rating. No vanity metrics, just what to keep doing."
+          description="Your reputation over time, in plain English: your rating, how reviews are coming in, and what's driving them."
         />
 
         {!demo ? (
