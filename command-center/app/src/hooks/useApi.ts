@@ -520,6 +520,30 @@ export function useSendLeadMessage() {
   });
 }
 
+// Update the caller's real details on a GHL contact (Call Console: capturing
+// name/email/ZIP for an unknown inbound caller). Only the provided fields are
+// sent, so a partial capture never blanks existing GHL data.
+export function useUpsertContact() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      contactId: string;
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      postalCode?: string;
+      source?: string;
+    }) =>
+      api<{ ok: true }>(`/api/contacts/${input.contactId}`, {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["contacts"] });
+    },
+  });
+}
+
 // Notes attached to a contact (newest-first), read/write through GHL.
 export function useNotesQuery(contactId: string | null, enabled: boolean) {
   return useQuery({
