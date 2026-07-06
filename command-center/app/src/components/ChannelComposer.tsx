@@ -10,15 +10,12 @@ import { useChannelFilter } from "../context/ChannelFilterContext";
 const MAX_CHARS = 5000;
 const WARN_CHARS = 1400;
 
+// The inbox is SMS + Email only. Any other channel string a contact might carry
+// falls through label()'s `?? channel` to render its raw name, but no FB/IG/etc
+// chip is ever offered because inbox pages lock the composer to one channel.
 const CHANNEL_LABEL: Record<string, string> = {
   SMS: "SMS",
   Email: "Email",
-  FB: "Facebook",
-  IG: "Instagram",
-  GMB: "Google",
-  WhatsApp: "WhatsApp",
-  Live_Chat: "Live Chat",
-  Custom: "Custom",
 };
 
 function label(channel: string): string {
