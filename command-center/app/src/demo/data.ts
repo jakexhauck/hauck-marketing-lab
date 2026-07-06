@@ -164,7 +164,7 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     paid: "Facebook Ads",
     react: "Reactivation Campaign",
     call: "Inbound Call",
-    other: "Instagram DM",
+    other: "Website Form",
   };
   const notes: Record<string, ApiNote[]> = {};
   const tasks: Record<string, ApiTask[]> = {};
