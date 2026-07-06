@@ -41,10 +41,10 @@ export default function AdminAds() {
       <PillarStyle />
 
       <Link className="pk-back" to="/admin/pillar/service/lanes">
-        <ArrowLeft /> Service Delivery
+        <ArrowLeft /> Fulfillment
       </Link>
 
-      <div className="pk-kicker">Service Delivery</div>
+      <div className="pk-kicker">Fulfillment</div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <span className="pk-title">Paid Ads</span>
       </div>

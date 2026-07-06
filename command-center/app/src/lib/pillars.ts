@@ -280,7 +280,7 @@ const service: Pillar = {
   id: "service",
   order: 4,
   num: "04",
-  label: "Service Delivery",
+  label: "Fulfillment",
   icon: "Wrench",
   tagline: "The product: the actual work.",
   goal: "Deploy lanes near-instant and error-free; manage lanes repeatable and good without Jake.",

@@ -15,7 +15,7 @@ describe("pillar config", () => {
   });
 
   it("looks up a pillar and a lane", () => {
-    expect(getPillar("service")?.label).toBe("Service Delivery");
+    expect(getPillar("service")?.label).toBe("Fulfillment");
     expect(getLane("service", "software")?.label.toLowerCase()).toContain("software");
     expect(getLane("service", "nope")).toBeUndefined();
   });

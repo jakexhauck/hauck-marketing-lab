@@ -18,7 +18,7 @@ export const FUNNEL_PILLARS = ["acquisition", "sales", "delivery"] as const;
 export const PILLAR_LABELS: Record<Pillar, string> = {
   acquisition: "Acquisition",
   sales: "Sales",
-  delivery: "Service Delivery",
+  delivery: "Fulfillment",
   operations: "Operations",
 };
 
