@@ -62,10 +62,8 @@ export const GROUP_OUTREACH_TABS: PageTab[] = [
   { to: "/marketing/groups", label: "Overview", end: true },
 ];
 
-export const INBOX_TABS: PageTab[] = [
-  { to: "/conversations/sms", label: "SMS" },
-  { to: "/conversations/email", label: "Email" },
-];
+// The Inbox is a single unified, grouped-by-stage view (no SMS/Email split), so
+// it renders its PageBar with an explicit section label and no tabs.
 
 export const LEADS_TABS: PageTab[] = [
   { to: "/sales/leads", label: "New Leads", end: true },
@@ -85,7 +83,6 @@ export function sectionLabel(tabs: PageTab[]): string {
   if (tabs === COMMERCIAL_OUTREACH_TABS) return "Commercial Outreach";
   if (tabs === REACTIVATION_TABS) return "Reactivation";
   if (tabs === GROUP_OUTREACH_TABS) return "Group Outreach";
-  if (tabs === INBOX_TABS) return "Inbox";
   if (tabs === LEADS_TABS) return "Leads";
   return "";
 }
