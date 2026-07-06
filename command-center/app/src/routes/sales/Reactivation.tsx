@@ -1,4 +1,5 @@
-import { RotateCcw, Zap, Users, CalendarCheck } from "lucide-react";
+import { RotateCcw, Zap, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { REACTIVATION_TABS } from "../../lib/pageTabs";
@@ -7,33 +8,21 @@ import { useAuth } from "../../context/AuthContext";
 import { demoMode } from "../../demo/demoMode";
 import { PAGE_CONTAINER } from "../../lib/layout";
 import { useReactivation } from "../../hooks/useReactivation";
+import { reactPopulated, reactRates } from "../../lib/reactivation";
 import { NotConnectedNotice } from "../campaigns/shared";
 
-// Reactivation: a standing Sales surface (its own category in the Sales group)
-// that layers over the always-on GHL "Database Reactivation" pipeline. It wins
-// back dormant past customers with a short text + email sequence. Same golden
-// rule as the rest of the client app: a real (connected) client sees the
-// zeroed/not-connected state until the pipeline has people in it; the designed,
-// populated layout renders from live counts (or in demo/preview via `?demo=1`).
+// Reactivation: a standing Marketing surface that layers over the always-on
+// "win back dormant customers" campaign (a short text + email sequence to past
+// customers who haven't booked in a while). This Overview is the at-a-glance
+// summary: the headline counts plus how the win-back is going. The read-only
+// stage breakdown lives on Pipeline, the detailed table on Full Data, and the
+// messages we send on Messages, so nothing dense repeats here. Same golden rule
+// as the rest of the client app: a real (connected) client sees the honest
+// not-connected state until the campaign has reached anyone; the designed
+// layout renders from live counts (or in demo/preview via `?demo=1`).
 
 // Page scroll container, matching the other client surfaces.
 const REACTIVATION_CONTAINER = PAGE_CONTAINER;
-
-// The four "where they are now" buckets and their theme-aware bar fills. Counts
-// come from the live feed; only the color is presentation.
-interface StageRow {
-  key: "replied" | "booked" | "noAnswer" | "notFit";
-  label: string;
-  hint: string;
-  bar: string;
-  grad?: boolean;
-}
-const STAGE_ROWS: StageRow[] = [
-  { key: "replied", label: "Replied", hint: "Texted or emailed us back", bar: "var(--grad-brand)", grad: true },
-  { key: "booked", label: "Estimate booked", hint: "Won back, an estimate is scheduled", bar: "var(--positive)" },
-  { key: "noAnswer", label: "No answer", hint: "Reached, no reply yet", bar: "var(--surface-3)" },
-  { key: "notFit", label: "Not a fit", hint: "Not qualified or asked us to stop", bar: "var(--text-faint)" },
-];
 
 export default function Reactivation() {
   const demo = demoMode();
@@ -42,14 +31,22 @@ export default function Reactivation() {
 
   // Populated when the campaign has actually reached anyone. Otherwise the
   // surface shows its honest not-connected / empty state (never zeros-as-data).
-  const populated = Boolean(data && data.reached > 0);
+  const populated = reactPopulated(data);
   const reached = data?.reached ?? 0;
+  const rates = reactRates(data);
 
   const kpis = [
     { label: "Reached out to", value: reached, brand: false },
     { label: "Replied", value: data?.replied ?? 0, brand: false },
     { label: "No answer yet", value: data?.noAnswer ?? 0, brand: false },
     { label: "Estimates booked", value: data?.booked ?? 0, brand: true },
+  ];
+
+  // The at-a-glance rates that make up the summary, derived from live counts.
+  const summaryStats = [
+    { label: "Reply rate", value: rates.replyRate, hint: "of everyone we reached texted or emailed us back" },
+    { label: "Estimates booked", value: rates.bookedRate, hint: "of everyone we reached scheduled an estimate" },
+    { label: "Still no answer", value: rates.noAnswerRate, hint: "reached, waiting on a reply" },
   ];
 
   return (
@@ -98,105 +95,52 @@ export default function Reactivation() {
           ))}
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="flex flex-col gap-4 lg:col-span-2">
-            {/* Where the reached customers are now: one row per bucket, measured
-                against the reached total. */}
-            <Panel className="overflow-hidden">
-              <PanelHeader title="Where they are now" />
-              {populated ? (
-                <div className="flex flex-col gap-4 p-4">
-                  {STAGE_ROWS.map((s) => {
-                    const count = data?.[s.key] ?? 0;
-                    return (
-                      <div key={s.key}>
-                        <div className="flex items-baseline justify-between gap-3">
-                          <div className="flex items-center gap-2 font-display text-[14px] text-text">
-                            <span
-                              className="h-2.5 w-2.5 shrink-0 rounded-full"
-                              style={s.grad ? { backgroundImage: s.bar } : { background: s.bar }}
-                              aria-hidden
-                            />
-                            {s.label}
-                          </div>
-                          <div className="shrink-0 font-data text-[13px] font-semibold text-text">{count}</div>
-                        </div>
-                        <div className="mt-1 pl-[18px] text-[12px] text-faint">{s.hint}</div>
-                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${Math.max((count / Math.max(reached, 1)) * 100, count > 0 ? 3 : 0)}%`,
-                              ...(s.grad ? { backgroundImage: s.bar } : { background: s.bar }),
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div className="flex items-center gap-1.5 pt-1 text-[12px] text-faint">
-                    <Users size={13} /> {reached.toLocaleString("en-US")} customers reached so far
-                  </div>
+        {/* At-a-glance summary. The dense stage breakdown lives on Pipeline and
+            Full Data, so the Overview stays a quick read and never repeats it. */}
+        <Panel className="mt-4 overflow-hidden">
+          <PanelHeader
+            title="How your win-back is going"
+            action={
+              populated ? (
+                <Link
+                  to="/marketing/reactivation/data"
+                  className="inline-flex items-center gap-1 text-[13px] font-medium text-brand-text hover:underline"
+                >
+                  Full data <ArrowRight size={14} />
+                </Link>
+              ) : undefined
+            }
+          />
+          {populated ? (
+            <div className="grid grid-cols-1 gap-px bg-divider sm:grid-cols-3">
+              {summaryStats.map((s) => (
+                <div key={s.label} className="bg-surface p-4">
+                  <div className="text-[13px] text-muted">{s.label}</div>
+                  <div className="mt-1 font-data text-[26px] font-semibold tnum text-text">{s.value}%</div>
+                  <div className="mt-1 text-[12px] leading-snug text-faint">{s.hint}</div>
                 </div>
-              ) : (
-                <div className="px-4 py-10">
-                  <EmptyState
-                    icon={<RotateCcw size={22} />}
-                    title="Nothing to show yet"
-                    description="Once we connect your list, you'll see how many dormant customers we've reached and won back."
-                  />
-                </div>
-              )}
-            </Panel>
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="px-4 py-10">
+              <EmptyState
+                icon={<RotateCcw size={22} />}
+                title="Nothing to show yet"
+                description="Once we connect your list, you'll see how many dormant customers we've reached and won back."
+              />
+            </div>
+          )}
+        </Panel>
 
-          {/* Recently won back + a small note */}
-          <div className="flex flex-col gap-4">
-            <Panel className="overflow-hidden">
-              <PanelHeader title="Recently won back" />
-              {populated && data && data.recent.length > 0 ? (
-                <ul>
-                  {data.recent.map((r) => (
-                    <li
-                      key={r.name}
-                      className="flex items-center gap-3 border-b border-divider px-4 py-3 last:border-b-0"
-                    >
-                      <span
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-[14px] font-semibold"
-                        style={{ background: "var(--brand-tint)", color: "var(--brand-text)" }}
-                        aria-hidden
-                      >
-                        {r.initials}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-display text-[14px] text-text">{r.name}</div>
-                        <div className="mt-0.5 text-[12px] text-faint">{r.sub}</div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="px-4 py-10">
-                  <EmptyState
-                    icon={<CalendarCheck size={22} />}
-                    title="No win-backs yet"
-                    description="Customers this campaign brings back will appear here."
-                  />
-                </div>
-              )}
-            </Panel>
-
-            {demo && (
-              <Panel className="flex items-start gap-3 border-brand/30 bg-brand-tint p-4">
-                <Zap size={20} className="mt-0.5 shrink-0 text-brand-text" />
-                <div className="flex-1 text-[13px] leading-snug text-text">
-                  This runs in the background every month, so dormant customers keep getting a gentle nudge without you
-                  thinking about it.
-                </div>
-              </Panel>
-            )}
-          </div>
-        </div>
+        {demo && (
+          <Panel className="mt-4 flex items-start gap-3 border-brand/30 bg-brand-tint p-4">
+            <Zap size={20} className="mt-0.5 shrink-0 text-brand-text" />
+            <div className="flex-1 text-[13px] leading-snug text-text">
+              This runs in the background every month, so dormant customers keep getting a gentle nudge without you
+              thinking about it. See the full stage breakdown on Pipeline, and the messages we send on Messages.
+            </div>
+          </Panel>
+        )}
       </div>
     </Shell>
   );

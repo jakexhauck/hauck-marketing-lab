@@ -16,6 +16,52 @@ export interface ReactivationData {
   configError?: string;
 }
 
+// The four "where they are now" buckets, in journey order (the win first), with
+// their theme-aware bar fills. Shared by the Overview summary, the read-only
+// Pipeline view, and the Full Data breakdown so all three stay in lockstep.
+// Counts come from the live feed; only the color is presentation.
+export type ReactBucketKey = "booked" | "replied" | "noAnswer" | "notFit";
+
+export interface ReactStageRow {
+  key: ReactBucketKey;
+  label: string;
+  hint: string;
+  bar: string;
+  grad?: boolean;
+}
+
+export const REACT_STAGE_ROWS: ReactStageRow[] = [
+  { key: "booked", label: "Estimate booked", hint: "Won back, an estimate is scheduled", bar: "var(--positive)" },
+  { key: "replied", label: "Replied", hint: "Texted or emailed us back", bar: "var(--grad-brand)", grad: true },
+  { key: "noAnswer", label: "No answer yet", hint: "Reached, no reply yet", bar: "var(--surface-3)" },
+  { key: "notFit", label: "Not a fit", hint: "Not qualified or asked us to stop", bar: "var(--text-faint)" },
+];
+
+// True once the campaign has actually reached anyone. Everywhere in the section
+// this gates the designed layout vs the honest not-connected / empty state
+// (never zeros-as-data).
+export function reactPopulated(data: ReactivationData | undefined): boolean {
+  return Boolean(data && data.reached > 0);
+}
+
+// Whole-number percentages of everyone reached, used by the Overview summary and
+// the Full Data page. Returns 0 across the board before anyone is reached.
+export interface ReactRates {
+  replyRate: number;
+  bookedRate: number;
+  noAnswerRate: number;
+}
+export function reactRates(data: ReactivationData | undefined): ReactRates {
+  const reached = data?.reached ?? 0;
+  if (reached <= 0) return { replyRate: 0, bookedRate: 0, noAnswerRate: 0 };
+  const pct = (n: number) => Math.round((n / reached) * 100);
+  return {
+    replyRate: pct(data?.replied ?? 0),
+    bookedRate: pct(data?.booked ?? 0),
+    noAnswerRate: pct(data?.noAnswer ?? 0),
+  };
+}
+
 // Willis-flavored preview. reached === replied + booked + noAnswer + notFit so
 // the "where they are now" bars read as a clean partition of everyone reached.
 export const DEMO_REACTIVATION: ReactivationData = {
