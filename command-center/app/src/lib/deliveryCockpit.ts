@@ -1,54 +1,113 @@
-// Pure config + helpers for the per-client Service Delivery cockpit
-// (/admin/delivery/:tenantId). Kept out of the component so the tab model and
-// the query-param resolution are testable without React or the router.
+// Pure config + helpers for the per-client Fulfillment cockpit
+// (/admin/delivery/:tenantId). Kept out of the component so the two-level tab
+// model (service tab + sub-tab) and the query-param resolution stay testable
+// without React or the router.
 //
-// Overview and Config are real, working tabs (Task 3.2 shipped Config; Task
-// 3.3 shipped Overview from GET /api/admin/clients/:tenantId). Every other
-// tab stays an honest placeholder until its endpoint accepts an
-// admin-supplied tenantId (Phase 5): Ads/Leads/Inbox/Calendar/Revenue/Team.
+// Overview and Config are real, working tabs. Every service tab (Paid Ads,
+// Web Design, Google Reviews, Reactivation) ships as an honest placeholder
+// shell in Phase 1 and is filled in its own later phase, once its endpoint
+// accepts an admin-supplied tenantId.
 
-export type CockpitTab =
+export type ServiceTab =
   | "overview"
-  | "ads"
-  | "leads"
-  | "inbox"
-  | "calendar"
-  | "revenue"
-  | "team"
+  | "paid-ads"
+  | "web-design"
+  | "google-reviews"
+  | "reactivation"
   | "config";
 
-export interface CockpitTabDef {
-  id: CockpitTab;
+export interface SubTabDef {
+  id: string;
   label: string;
-  // false = an honest "coming in the next phase" placeholder this task.
+  // false = an honest "coming in the next phase" placeholder.
   ready: boolean;
 }
 
-export const COCKPIT_TABS: CockpitTabDef[] = [
+export interface ServiceTabDef {
+  id: ServiceTab;
+  label: string;
+  ready: boolean;
+  // Omitted for tabs that have no second level (Overview, Config).
+  subTabs?: SubTabDef[];
+}
+
+// Phase 1 ships every sub-tab as ready:false. Later phases flip them on.
+export const SERVICE_TABS: ServiceTabDef[] = [
   { id: "overview", label: "Overview", ready: true },
-  { id: "ads", label: "Paid Ads", ready: false },
-  { id: "leads", label: "Leads", ready: false },
-  { id: "inbox", label: "Inbox", ready: false },
-  { id: "calendar", label: "Calendar", ready: false },
-  { id: "revenue", label: "Revenue", ready: false },
-  { id: "team", label: "Team", ready: false },
+  {
+    id: "paid-ads",
+    label: "Paid Ads",
+    ready: false,
+    subTabs: [
+      { id: "campaigns", label: "Campaigns", ready: false },
+      { id: "ad-library", label: "Ad Library", ready: false },
+      { id: "funnel", label: "Funnel", ready: false },
+      { id: "data-leads", label: "Data & Leads", ready: false },
+    ],
+  },
+  {
+    id: "web-design",
+    label: "Web Design",
+    ready: false,
+    subTabs: [
+      { id: "site", label: "Site", ready: false },
+      { id: "pages", label: "Pages", ready: false },
+      { id: "change-requests", label: "Change Requests", ready: false },
+      { id: "analytics", label: "Analytics", ready: false },
+    ],
+  },
+  {
+    id: "google-reviews",
+    label: "Google Reviews",
+    ready: false,
+    subTabs: [
+      { id: "funnel", label: "Funnel", ready: false },
+      { id: "all-reviews", label: "All Reviews", ready: false },
+      { id: "requests", label: "Requests", ready: false },
+      { id: "reputation-report", label: "Reputation Report", ready: false },
+    ],
+  },
+  {
+    id: "reactivation",
+    label: "Reactivation",
+    ready: false,
+    subTabs: [
+      { id: "campaign", label: "Campaign", ready: false },
+      { id: "results", label: "Results", ready: false },
+    ],
+  },
   { id: "config", label: "Config", ready: true },
 ];
 
-// Overview is real (Task 3.3), so it is the default landing tab.
-export const DEFAULT_COCKPIT_TAB: CockpitTab = "overview";
+// Overview is real, so it is the default landing tab.
+export const DEFAULT_SERVICE_TAB: ServiceTab = "overview";
 
-const VALID = new Set<string>(COCKPIT_TABS.map((t) => t.id));
+const VALID_SERVICE = new Set<string>(SERVICE_TABS.map((t) => t.id));
 
-// Resolve a raw ?tab= value to a known tab, falling back to the default. Keeps
-// deep links honest: an unknown or missing tab lands on Config, never a blank.
-export function resolveCockpitTab(param: string | null | undefined): CockpitTab {
-  if (param && VALID.has(param)) return param as CockpitTab;
-  return DEFAULT_COCKPIT_TAB;
+// Resolve a raw ?tab= value to a known service tab, else the default.
+export function resolveServiceTab(param: string | null | undefined): ServiceTab {
+  if (param && VALID_SERVICE.has(param)) return param as ServiceTab;
+  return DEFAULT_SERVICE_TAB;
 }
 
-// The "coming soon" copy for a not-yet-built tab, phrased per tab so the empty
-// state is honest about what will land there.
-export function cockpitPlaceholder(tab: CockpitTabDef): string {
-  return `${tab.label} is coming in the next phase.`;
+// The sub-tabs for a service tab, or [] when it has none.
+export function subTabsFor(tab: ServiceTab): SubTabDef[] {
+  return SERVICE_TABS.find((t) => t.id === tab)?.subTabs ?? [];
+}
+
+// Resolve a raw ?sub= value against the active service tab. Returns the first
+// sub-tab id when the given one is invalid, or null when the service has none.
+export function resolveSubTab(
+  tab: ServiceTab,
+  param: string | null | undefined,
+): string | null {
+  const subs = subTabsFor(tab);
+  if (subs.length === 0) return null;
+  if (param && subs.some((s) => s.id === param)) return param;
+  return subs[0].id;
+}
+
+// The "coming soon" copy for a not-yet-built surface.
+export function placeholderCopy(label: string): string {
+  return `${label} is coming in a later phase.`;
 }
