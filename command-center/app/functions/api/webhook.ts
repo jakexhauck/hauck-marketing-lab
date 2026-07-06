@@ -50,7 +50,8 @@ type ActivityKind =
   | "appointment_delete"
   | "invoice_create"
   | "invoice_sent"
-  | "invoice_paid";
+  | "invoice_paid"
+  | "call_inbound";
 
 interface Activity {
   tenant_id: string;
@@ -82,7 +83,7 @@ function mk(
   };
 }
 
-function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | null {
+export function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | null {
   switch (e.type) {
     case "OpportunityCreate":
       return mk("lead_created", "New lead", tenantId, e);
@@ -120,6 +121,18 @@ function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | null {
       return mk("message_in", "Inbound message", tenantId, e);
     case "OutboundMessage":
       return mk("message_out", "Outbound message", tenantId, e);
+    case "InboundCall":
+      // A call is hitting the business's GHL number right now. This is the
+      // "pop the Call Console" path: it writes a call_inbound activity row
+      // and (via shouldPush) fires a push so the client's phone wakes up.
+      return mk(
+        "call_inbound",
+        typeof e.phone === "string" && e.phone
+          ? `Incoming call ${e.phone}`
+          : "Incoming call",
+        tenantId,
+        e,
+      );
     default:
       return null; // ignore everything else
   }
@@ -127,11 +140,12 @@ function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | null {
 
 // Kinds that wake the client's phone. Wins and new appointments matter as
 // much as new leads; routine updates and outbound traffic do not.
-function shouldPush(activity: Activity): boolean {
+export function shouldPush(activity: Activity): boolean {
   if (activity.kind === "message_in" || activity.kind === "lead_created") {
     return true;
   }
   if (activity.kind === "appointment_create") return true;
+  if (activity.kind === "call_inbound") return true;
   return activity.kind === "status_changed" && activity.summary === "Lead won";
 }
 
