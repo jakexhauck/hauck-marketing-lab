@@ -6,6 +6,8 @@ import NavyHero from "../components/NavyHero";
 import SplitHero, { HeroMark, HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
 import Board from "../components/Board";
+import PageTabs from "../components/PageTabs";
+import { LEADS_TABS } from "../lib/pageTabs";
 import LeadsDesktop from "../components/leads/LeadsDesktop";
 import PipelineSwitcher from "../components/PipelineSwitcher";
 import SearchBar from "../components/SearchBar";
@@ -187,6 +189,9 @@ export default function Leads() {
       </NavyHero>
 
       <div className="flex-1 overflow-y-auto pb-28">
+        <div className="px-5 pt-3">
+          <PageTabs tabs={LEADS_TABS} />
+        </div>
         {/* List / Board view toggle */}
         <div className="flex justify-end px-5 pt-4">
           <div className="inline-flex overflow-hidden rounded-full border border-[var(--border)]">
