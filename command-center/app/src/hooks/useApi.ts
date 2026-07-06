@@ -778,10 +778,20 @@ export function useMoveSalesLeadStage() {
       leadId: string;
       status?: "open" | "won" | "lost" | "abandoned";
       stageName?: string;
+      // Cross-pipeline move (e.g. the Call Console's "Booked the job" outcome,
+      // which lands in Sales Pipeline regardless of where the lead started).
+      pipelineName?: string;
+      // Captured price on a "Booked the job" outcome.
+      monetaryValue?: number;
     }) =>
       api<{ ok: boolean }>(`/api/sales/leads/${input.leadId}/stage`, {
         method: "POST",
-        body: JSON.stringify({ status: input.status, stageName: input.stageName }),
+        body: JSON.stringify({
+          status: input.status,
+          stageName: input.stageName,
+          pipelineName: input.pipelineName,
+          monetaryValue: input.monetaryValue,
+        }),
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sales-leads"] });
