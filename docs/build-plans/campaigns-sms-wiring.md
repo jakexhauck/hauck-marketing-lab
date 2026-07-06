@@ -11,6 +11,32 @@
 
 # Campaigns: wire the SMS side to real GoHighLevel
 
+> STATUS 2026-07-05 (RESOLVED, Jake's call): Campaigns is a read-only
+> "done-for-you" client view. The live scope of this plan is DONE and the rest
+> is intentionally dropped, so nothing here is left to build:
+>
+> - **Audiences (SHIPPED, real):** `/api/campaigns/audiences` computes the four
+>   count-derivable segments (all / past / vip / new) live from GHL contacts +
+>   opportunities, honest not-connected fallback, 15-min cache, 5 unit tests.
+>   Wired via `useCampaignsAudiences` + `campaignsAudiences.ts`; demo handled in
+>   its own `src/demo/handlers/campaignsAudiences.ts` (handler.ts untouched).
+>   The trade-specific `fivestar`/`noac` segments (S1/S3) stay demo-only.
+> - **Send (DROPPED):** the client-facing Send composer (`NewCampaignDialog`) and
+>   `CampaignsTemplates` were removed when Campaigns went read-only. No
+>   `/api/campaigns/send`, no client Send button. The agency sends from GHL
+>   directly. An agency-side send tool can be revisited later if wanted (Phase B).
+> - **Stats (DEFERRED to honest-empty):** Overview / Campaigns list / What's-working
+>   keep their current honest-zero / empty states in a real session. No
+>   `/api/campaigns/stats` was built. There is no client send logging campaigns,
+>   so there is no campaign history to surface yet. Revisit alongside a Phase B
+>   agency campaign log.
+> - **Email (still deferred):** waits on a verified sending domain (on hold).
+>   Email UI stays present, Send stays disabled.
+>
+> Everything below is the original spec, kept for reference and because
+> `marketing-surfaces-master-plan.md` links here. Do not re-execute the Send /
+> Stats halves without a fresh go-ahead.
+
 Combined spec + plan. Wire the client Campaigns section so the SMS half runs on
 real customer data and can actually send. Email blasts are explicitly deferred
 (they wait on a verified sending domain, currently on hold). A2P / SMS is

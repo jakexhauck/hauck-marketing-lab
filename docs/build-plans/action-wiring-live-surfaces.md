@@ -11,6 +11,12 @@
 
 # Wire the write actions on already-live surfaces
 
+> STATUS 2026-07-05: **Phase 1 SHIPPED + live** (`7a27e34`). What remains is
+> Phases 2-3 (appointments, callbacks, invoices/payments, pause-nurture),
+> tracked in `action-wiring-remaining.md` and sequenced in
+> `marketing-surfaces-master-plan.md`. This doc is the full original spec, kept
+> for the Phase 2-3 detail.
+
 Package: `command-center/app` (the one responsive app: desktop sidebar + phone
 PWA, same routes/data). Follow-up to `wire-sales-endpoints.md`: the READ paths
 for Jobs, Leads, Paid-Ads leads, and Forms/Chat are live. This plan wires the

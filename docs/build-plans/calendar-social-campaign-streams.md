@@ -11,6 +11,10 @@
 
 # Calendar: light up the Social + Campaign streams
 
+> STATUS 2026-07-05: still blocked, by design, on the Social + Campaigns feeds.
+> Build this LAST, after those two merge. Sequenced in
+> `marketing-surfaces-master-plan.md`.
+
 Spec + plan for wiring the unified Company calendar's `social` and `campaign` overlay streams to
 real data. The calendar already merges live appointments and live jobs; social and campaign items
 are demo-only today. Client app: `command-center/app`.
