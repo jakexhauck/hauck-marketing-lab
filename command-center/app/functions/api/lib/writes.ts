@@ -87,3 +87,38 @@ export async function putOpportunity(
   }
   return { ok: true };
 }
+
+// POST a brand-new opportunity for a contact that has none yet: the unknown
+// inbound caller who becomes a bare GHL contact, then logs a terminal call
+// outcome that needs a pipeline stage to land in. Mirrors putOpportunity's
+// return shape so callers surface the same 502-with-reason on failure.
+export async function createOpportunity(
+  gctx: GhlContext,
+  input: {
+    pipelineId: string;
+    pipelineStageId: string;
+    contactId: string;
+    name: string;
+    monetaryValue?: number;
+  },
+): Promise<{ ok: true; id: string } | { ok: false; status: number; body: string }> {
+  const body: Record<string, unknown> = {
+    pipelineId: input.pipelineId,
+    locationId: gctx.locationId,
+    pipelineStageId: input.pipelineStageId,
+    contactId: input.contactId,
+    name: input.name,
+    status: "open",
+  };
+  if (typeof input.monetaryValue === "number") body.monetaryValue = input.monetaryValue;
+  const res = await ghlFetch(gctx, `/opportunities/`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    return { ok: false, status: res.status, body: (await res.text()).slice(0, 500) };
+  }
+  const data = (await res.json()) as { opportunity?: { id?: string }; id?: string };
+  const id = data.opportunity?.id ?? data.id ?? "";
+  return { ok: true, id };
+}

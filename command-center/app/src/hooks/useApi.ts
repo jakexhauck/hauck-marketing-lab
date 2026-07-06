@@ -789,6 +789,31 @@ export function useMoveSalesLeadStage() {
   });
 }
 
+// Create a brand-new opportunity for an existing contact: the path for an
+// unknown inbound caller (a bare GHL contact with no opportunity yet) once a
+// terminal call outcome needs a pipeline stage to land in. Pipeline + stage
+// resolve BY NAME server-side. Invalidates the same merged leads feed key
+// useLeadsHub reads so the new lead shows up on the next read.
+export function useCreateSalesLead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      contactId: string;
+      pipelineName: string;
+      stageName: string;
+      name: string;
+      monetaryValue?: number;
+    }) =>
+      api<{ ok: true; id: string }>(`/api/sales/leads`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales-leads"] });
+    },
+  });
+}
+
 // ===== Appointments (book / reschedule) =====
 
 export interface SlotDay {
