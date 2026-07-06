@@ -1,10 +1,10 @@
-# Call Console (inbound capture + outcome routing) — connections backlog
+# Call Console (inbound capture + outcome routing): connections backlog
 
 The Call Console pops when an inbound call hits the business number: a top banner
 surfaces the call, and a panel captures an unknown caller's real details and logs
 the outcome, routing the lead to the right pipeline stage in one tap. Route 1
 telephony (no softphone): the team answers on their phone, the app is the capture
-pad. See the full spec in `docs/build-plans/call-console-inbound-capture.md`.
+pad.
 
 Status: ⚠️ built, wiring pending Jake. Legend: ❌ not wired · ⚠️ partial · ✅ live.
 
@@ -34,17 +34,17 @@ The banner reads the freshest `call_inbound` row from `/api/notifications`
 
 ## Endpoints (built this branch)
 
-- ✅ `PUT /api/contacts/:contactId` — upsert the caller's captured details
+- ✅ `PUT /api/contacts/:contactId`: upsert the caller's captured details
   (firstName, lastName, email, postalCode, source). Writes only present fields, so
   a partial capture never blanks existing data. Hook: `useUpsertContact`.
-- ✅ `POST /api/sales/leads` — create an opportunity for an existing contact by
+- ✅ `POST /api/sales/leads`: create an opportunity for an existing contact by
   pipeline + stage name (the path for an unknown caller who has no opportunity yet).
   Hook: `useCreateSalesLead`.
-- ✅ `POST /api/sales/leads/:id/stage` — extended to accept `pipelineName`
+- ✅ `POST /api/sales/leads/:id/stage`: extended to accept `pipelineName`
   (cross-pipeline move, e.g. into the Sales Pipeline "Job Booked") and
   `monetaryValue`. Fails closed: a cross-pipeline move only writes when BOTH the
   pipeline and the stage resolve by name. Hook: `useMoveSalesLeadStage`.
-- ✅ `POST /api/contacts/:contactId/notes` (pre-existing) — the auto-note on ring
+- ✅ `POST /api/contacts/:contactId/notes` (pre-existing): the auto-note on ring
   ("New inbound caller, needs details") and the "what they want" note. Hook:
   `useCreateNote`.
 
