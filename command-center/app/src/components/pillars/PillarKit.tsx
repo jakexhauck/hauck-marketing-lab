@@ -218,6 +218,12 @@ export function PillarStyle() {
       .pk-tab.on { color: var(--brand-text); border-bottom-color: var(--brand); }
       .pk-tab .pk-tabcount { font-size: 11px; font-weight: 700; color: var(--text-muted); background: var(--surface-2); border-radius: 999px; padding: 1px 7px; }
 
+      /* sub-tab row: secondary to .pk-tabs, no shared bottom border, pill on .on */
+      .pk-subtabs { display: flex; gap: 4px; flex-wrap: wrap; margin: -12px 0 20px; }
+      .pk-subtab { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--text-faint); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; text-decoration: none; transition: color .14s, border-color .14s, background-color .14s; }
+      .pk-subtab:hover { color: var(--text-muted); }
+      .pk-subtab.on { color: var(--brand-text); background: var(--brand-tint); border-color: var(--border); }
+
       /* needs-setup note */
       .pk-needs { display: flex; align-items: center; gap: 9px; padding: 11px 14px; border: 1px dashed var(--border); border-radius: 12px; background: var(--surface-2); color: var(--text-muted); font-size: 13px; }
       .pk-needs-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; }

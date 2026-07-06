@@ -9,10 +9,12 @@ import { useAdminClientDetailQuery } from "../../hooks/useApi";
 import { healthLabel } from "../../lib/deliveryRoster";
 import { activeStaffCount } from "../../lib/cockpitOverview";
 import {
-  COCKPIT_TABS,
-  cockpitPlaceholder,
-  resolveCockpitTab,
-  type CockpitTab,
+  SERVICE_TABS,
+  subTabsFor,
+  resolveServiceTab,
+  resolveSubTab,
+  placeholderCopy,
+  type ServiceTab,
 } from "../../lib/deliveryCockpit";
 import { ApiError, type AdminClientDetail } from "../../lib/api";
 
@@ -38,15 +40,29 @@ const HEALTH_COLOR: Record<AdminClientDetail["healthStatus"], string> = {
 export default function DeliveryCockpit() {
   const { tenantId = "" } = useParams<{ tenantId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = resolveCockpitTab(searchParams.get("tab"));
+  const activeService = resolveServiceTab(searchParams.get("tab"));
+  const activeSub = resolveSubTab(activeService, searchParams.get("sub"));
+  const subs = subTabsFor(activeService);
 
   const detailQuery = useAdminClientDetailQuery(tenantId);
 
-  const setTab = (tab: CockpitTab) => {
+  const setService = (tab: ServiceTab) => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
         next.set("tab", tab);
+        next.delete("sub"); // let the new service pick its own first sub-tab
+        return next;
+      },
+      { replace: true },
+    );
+  };
+
+  const setSub = (sub: string) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("sub", sub);
         return next;
       },
       { replace: true },
@@ -110,66 +126,69 @@ export default function DeliveryCockpit() {
       <div className="pk-root">
         <Link to="/admin/delivery" className="pk-back">
           <ChevronLeft />
-          Service Delivery
+          Fulfillment
         </Link>
 
         <CockpitHeader
           client={client}
           memberCount={activeStaffCount(staff)}
-          onViewAsOwner={() => goToTeam(activeTab, setTab)}
+          onViewAsOwner={() => setService("config")}
           onEnterLiveApp={enterLiveApp}
           busy={previewBusy}
           err={previewErr}
         />
 
-        <nav className="pk-tabs" aria-label="Client cockpit sections">
-          {COCKPIT_TABS.map((t) => (
+        <nav className="pk-tabs" aria-label="Fulfillment services">
+          {SERVICE_TABS.map((t) => (
             <button
               key={t.id}
               type="button"
-              className={`pk-tab${activeTab === t.id ? " on" : ""}`}
-              onClick={() => setTab(t.id)}
+              className={`pk-tab${activeService === t.id ? " on" : ""}`}
+              onClick={() => setService(t.id)}
             >
               {t.label}
             </button>
           ))}
         </nav>
 
-        {activeTab === "config" ? (
-          <ClientConfigPanel tenantId={tenantId} />
-        ) : activeTab === "overview" ? (
-          <OverviewTab
-            tenantId={tenantId}
-            onGoToConfig={() => setTab("config")}
-            onEnterLiveApp={enterLiveApp}
-            previewBusy={previewBusy}
-            previewErr={previewErr}
-          />
-        ) : (
-          <div className="pk-empty">
-            {cockpitPlaceholder(COCKPIT_TABS.find((t) => t.id === activeTab)!)}
-          </div>
+        {subs.length > 0 && (
+          <nav className="pk-subtabs" aria-label={`${activeService} sections`}>
+            {subs.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`pk-subtab${activeSub === s.id ? " on" : ""}`}
+                onClick={() => setSub(s.id)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </nav>
         )}
+
+        <div className="pk-section">
+          {activeService === "overview" ? (
+            <OverviewTab
+              tenantId={tenantId}
+              onGoToConfig={() => setService("config")}
+              onEnterLiveApp={enterLiveApp}
+              previewBusy={previewBusy}
+              previewErr={previewErr}
+            />
+          ) : activeService === "config" ? (
+            <ClientConfigPanel tenantId={tenantId} />
+          ) : (
+            <div className="pk-empty">
+              {placeholderCopy(
+                subs.find((s) => s.id === activeSub)?.label ??
+                  SERVICE_TABS.find((t) => t.id === activeService)!.label,
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
-}
-
-// Switch to Config and scroll to the Team section (where per-staff "View as"
-// lives). Retries a few animation frames because the Config panel fetches its
-// detail async, so #cockpit-team is not in the DOM on the first frame.
-function goToTeam(activeTab: CockpitTab, setTab: (t: CockpitTab) => void) {
-  if (activeTab !== "config") setTab("config");
-  let tries = 0;
-  const tick = () => {
-    const el = document.getElementById("cockpit-team");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
-    if (tries++ < 60) requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
 }
 
 function CockpitHeader({
