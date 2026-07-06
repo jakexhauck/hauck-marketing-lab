@@ -15,6 +15,7 @@ import {
   convChannel,
   convOrigin,
   countByOrigin,
+  otherInboxChannel,
   type ChannelKey,
   type OriginKey,
 } from "../../lib/inboxFilters";
@@ -126,6 +127,16 @@ export default function ConversationsDesktop({
   }, [visible, selectedId]);
 
   const selected = visible.find((c) => c.contactId === selectedId) ?? null;
+
+  // Detect the other channel from the full (unfiltered) list, not the scoped
+  // `items`, since that only holds this channel's conversations.
+  const otherChannel = selected
+    ? otherInboxChannel(
+        query.data?.conversations ?? [],
+        selected.contactId,
+        channel,
+      )
+    : null;
 
   const activeLabel = views.find((v) => v.key === view)?.label ?? "All";
   const sortNote = view === "needs" ? "longest wait first" : "most recent first";
@@ -258,7 +269,11 @@ export default function ConversationsDesktop({
           </div>
         </section>
 
-        <InboxDetail conv={selected} channel={channel} />
+        <InboxDetail
+          conv={selected}
+          channel={channel}
+          otherChannel={otherChannel}
+        />
         </div>
       </div>
     </div>

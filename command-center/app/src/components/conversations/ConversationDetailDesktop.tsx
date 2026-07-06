@@ -7,8 +7,13 @@ import Avatar from "../Avatar";
 import ConversationThread from "../ConversationThread";
 import MessageComposer from "../MessageComposer";
 import SourceBadge from "./SourceBadge";
+import OtherChannelNote from "./OtherChannelNote";
 import { ChannelFilterProvider } from "../../context/ChannelFilterContext";
-import { channelKeyToType, convOrigin } from "../../lib/inboxFilters";
+import {
+  channelKeyToType,
+  convOrigin,
+  otherInboxChannel,
+} from "../../lib/inboxFilters";
 import { useAuth } from "../../context/AuthContext";
 import {
   useConversationMessagesQuery,
@@ -58,6 +63,11 @@ export default function ConversationDetailDesktop() {
   );
 
   const name = conv?.name ?? "Conversation";
+  const otherChannel = otherInboxChannel(
+    listQuery.data?.conversations ?? [],
+    contactId,
+    channel,
+  );
 
   const defaultChannel = messagesQuery.data?.defaultChannel;
   const hasUnread = (conv?.unreadCount ?? 0) > 0;
@@ -101,6 +111,9 @@ export default function ConversationDetailDesktop() {
         >
           <div className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-6 pb-4 pt-5">
+              {otherChannel && (
+                <OtherChannelNote contactId={contactId} other={otherChannel} />
+              )}
               <ConversationThread contactId={contactId} fill />
             </div>
             <div className="border-t border-border px-6 py-4">

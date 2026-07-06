@@ -2,6 +2,7 @@ import Avatar from "../Avatar";
 import ConversationThread from "../ConversationThread";
 import MessageComposer from "../MessageComposer";
 import SourceBadge from "./SourceBadge";
+import OtherChannelNote from "./OtherChannelNote";
 import { ChannelFilterProvider } from "../../context/ChannelFilterContext";
 import {
   CHANNEL_BY_KEY,
@@ -22,9 +23,13 @@ function firstTouchLabel(iso: string | undefined): string {
 export default function InboxDetail({
   conv,
   channel,
+  otherChannel,
 }: {
   conv: ApiConversation | null;
   channel: ChannelKey;
+  // The other channel this contact is also reached on, or null. When set, an
+  // inline note links to the same contact on that page.
+  otherChannel: ChannelKey | null;
 }) {
   if (!conv) {
     return (
@@ -62,6 +67,11 @@ export default function InboxDetail({
             {conv.source ? ` · ${conv.source}` : ""}
           </span>
         </div>
+        {otherChannel && (
+          <div className="mt-2.5">
+            <OtherChannelNote contactId={conv.contactId} other={otherChannel} />
+          </div>
+        )}
       </div>
 
       <ChannelFilterProvider

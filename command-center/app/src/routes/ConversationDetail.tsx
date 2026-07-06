@@ -8,11 +8,16 @@ import Avatar from "../components/Avatar";
 import ConversationThread from "../components/ConversationThread";
 import MessageComposer from "../components/MessageComposer";
 import SourceBadge from "../components/conversations/SourceBadge";
+import OtherChannelNote from "../components/conversations/OtherChannelNote";
 import { ChannelFilterProvider } from "../context/ChannelFilterContext";
 import ConversationDetailDesktop from "../components/conversations/ConversationDetailDesktop";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "../hooks/useApi";
-import { channelKeyToType, convOrigin } from "../lib/inboxFilters";
+import {
+  channelKeyToType,
+  convOrigin,
+  otherInboxChannel,
+} from "../lib/inboxFilters";
 
 // The page the conversation was opened from, carried as ?ch=sms|email. It seeds
 // the thread + composer default channel and points the back button at the right
@@ -61,6 +66,11 @@ export default function ConversationDetail() {
   );
 
   const name = conv?.name ?? "Conversation";
+  const otherChannel = otherInboxChannel(
+    listQuery.data?.conversations ?? [],
+    contactId,
+    channel,
+  );
 
   return (
     <Shell>
@@ -100,6 +110,9 @@ export default function ConversationDetail() {
           initial={channelKeyToType(channel)}
         >
           <main className="flex min-h-0 flex-1 flex-col gap-3 px-5 pb-4 pt-4">
+            {otherChannel && (
+              <OtherChannelNote contactId={contactId} other={otherChannel} />
+            )}
             <ConversationThread contactId={contactId} fill />
             <div
               className="border-t border-[var(--border)] pt-3"

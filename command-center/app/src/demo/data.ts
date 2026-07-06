@@ -296,6 +296,37 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     }
   }
 
+  // Seed one contact reached on BOTH SMS and email so the "also talking over the
+  // other channel" note is demoable. Take the first SMS conversation and add a
+  // matching email conversation (plus an email message) for the same contact.
+  const dualSms = conversations.find((c) => c.channel === "sms");
+  if (dualSms) {
+    const cid = dualSms.contactId;
+    const emailAt = new Date(now - 3 * 60 * 60_000).toISOString();
+    const emailBody =
+      "Following up by email as well, quote and photos attached.";
+    (messages[cid] ??= []).push({
+      id: `${cid}-email1`,
+      body: emailBody,
+      direction: "outbound",
+      type: "Email",
+      at: emailAt,
+    });
+    conversations.push({
+      id: `${dualSms.id}-email`,
+      contactId: cid,
+      name: dualSms.name,
+      preview: emailBody,
+      lastMessageType: "Email",
+      lastMessageAt: emailAt,
+      unreadCount: 0,
+      channel: "email",
+      origin: dualSms.origin,
+      source: dualSms.source,
+      firstTouchAt: dualSms.firstTouchAt,
+    });
+  }
+
   // Activity feed: newest-first, derived from the leads we just made.
   const activity: ApiActivity[] = [];
   let actId = 1000;

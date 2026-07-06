@@ -111,6 +111,22 @@ export function isInboxConversation(c: ApiConversation): boolean {
   return ch === "sms" || ch === "email";
 }
 
+// The other inbox channel a contact is also reached on, or null. Given the full
+// (unfiltered) conversations list, it returns "email" when viewing SMS (and the
+// contact also has an email conversation) or vice versa. Null when the contact
+// is only on the current channel, so the both-channel note is never fabricated.
+export function otherInboxChannel(
+  items: ApiConversation[],
+  contactId: string,
+  current: ChannelKey,
+): ChannelKey | null {
+  const other: ChannelKey = current === "email" ? "sms" : "email";
+  const present = items.some(
+    (c) => c.contactId === contactId && convChannel(c) === other,
+  );
+  return present ? other : null;
+}
+
 export interface InboxFilter {
   channel: ChannelKey | "all";
   source: OriginKey | "all";
