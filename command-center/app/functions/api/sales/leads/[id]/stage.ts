@@ -40,8 +40,12 @@ export const onRequestPost: PagesFunction<Env, "id", ApiData> = async (ctx) => {
   if (body.stageName && body.pipelineName) {
     // Cross-pipeline: resolve the stage inside the named target pipeline.
     const { pipelineId, stageId } = await resolveStageByName(gctx, body.pipelineName, body.stageName);
-    if (pipelineId) fields.pipelineId = pipelineId;
-    if (stageId) fields.pipelineStageId = stageId;
+    // Fail closed: only move pipelines when BOTH resolve, so we never write a
+    // stage id foreign to the target pipeline (orphaned stage).
+    if (pipelineId && stageId) {
+      fields.pipelineId = pipelineId;
+      fields.pipelineStageId = stageId;
+    }
   } else if (body.stageName) {
     // Same-pipeline: translate within the opportunity's own pipeline (unchanged).
     const data = await ghlJson<{ opportunity: GhlOpportunity }>(
