@@ -8,11 +8,7 @@ import {
   type CalendarItem,
   type CalendarSource,
 } from "../lib/calendarModel";
-import {
-  DEMO_APPOINTMENTS,
-  DEMO_SOCIAL,
-  DEMO_CAMPAIGNS,
-} from "../lib/calendarDemo";
+import { DEMO_APPOINTMENTS } from "../lib/calendarDemo";
 
 export interface CalendarData {
   items: CalendarItem[];
@@ -26,10 +22,9 @@ export interface CalendarData {
 }
 
 // The single source of truth for what shows on the Company calendar. In demo mode
-// it returns rich sample data for all four streams. In a real session it returns
-// only connected feeds: appointments (live via GHL) plus jobs when useJobs is
-// wired; social + campaigns stay empty until those backends exist, so a real
-// client never sees fabricated content.
+// it returns rich sample data for appointments and jobs. In a real session it
+// returns only connected feeds: appointments (live via GHL) plus jobs when
+// useJobs is wired.
 export function useCalendarItems(enabled: boolean): CalendarData {
   const demo = demoMode();
   const apptQuery = useCalendarEventsQuery(enabled && !demo);
@@ -39,17 +34,12 @@ export function useCalendarItems(enabled: boolean): CalendarData {
     if (demo) {
       const jobItems = jobs.map(jobToItem);
       return {
-        items: [
-          ...DEMO_APPOINTMENTS,
-          ...jobItems,
-          ...DEMO_SOCIAL,
-          ...DEMO_CAMPAIGNS,
-        ],
+        items: [...DEMO_APPOINTMENTS, ...jobItems],
         timezone: null,
         isLoading: false,
         isError: false,
         error: null,
-        connected: { appointment: true, job: true, social: true, campaign: true },
+        connected: { appointment: true, job: true },
       };
     }
 
@@ -66,12 +56,10 @@ export function useCalendarItems(enabled: boolean): CalendarData {
       isError: apptQuery.isError,
       error: (apptQuery.error as Error | null) ?? null,
       // Appointments are the only live stream today; jobs flips on when useJobs
-      // returns rows; social + campaigns are not wired yet.
+      // returns rows.
       connected: {
         appointment: true,
         job: jobItems.length > 0,
-        social: false,
-        campaign: false,
       },
     };
   }, [

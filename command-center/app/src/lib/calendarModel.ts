@@ -4,7 +4,7 @@ import { type Job, isoToLocalDate } from "./jobsPipeline";
 // One event on the unified company calendar, whatever stream it came from. Every
 // view (month/week/agenda) reads only this shape, so a new stream is just a new
 // mapper plus a source entry, never a change to the views.
-export type CalendarSource = "appointment" | "job" | "social" | "campaign";
+export type CalendarSource = "appointment" | "job";
 
 export interface CalendarItem {
   id: string; // "<source>:<rawId>", unique across streams
@@ -43,25 +43,11 @@ export const CALENDAR_SOURCE_META: Record<
     varName: "--source-job",
     tintVar: "--source-job-tint",
   },
-  social: {
-    label: "Post",
-    plural: "Social posts",
-    varName: "--source-social",
-    tintVar: "--source-social-tint",
-  },
-  campaign: {
-    label: "Campaign",
-    plural: "Campaigns",
-    varName: "--source-campaign",
-    tintVar: "--source-campaign-tint",
-  },
 };
 
 export const CALENDAR_SOURCE_ORDER: CalendarSource[] = [
   "appointment",
   "job",
-  "social",
-  "campaign",
 ];
 
 function pad2(n: number): string {
