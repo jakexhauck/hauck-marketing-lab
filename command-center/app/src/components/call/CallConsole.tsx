@@ -148,6 +148,7 @@ export default function CallConsole({ call, onClose }: CallConsoleProps) {
           stageName: def.status === "lost" ? "Not Qualified" : def.stageName,
           name: displayName,
           monetaryValue: opts.monetaryValue,
+          status: def.status,
         },
         { onSuccess: onDone, onError: onErr },
       );

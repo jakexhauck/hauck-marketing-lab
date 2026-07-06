@@ -40,12 +40,16 @@ export const onRequestPost: PagesFunction<Env, "id", ApiData> = async (ctx) => {
   if (body.stageName && body.pipelineName) {
     // Cross-pipeline: resolve the stage inside the named target pipeline.
     const { pipelineId, stageId } = await resolveStageByName(gctx, body.pipelineName, body.stageName);
-    // Fail closed: only move pipelines when BOTH resolve, so we never write a
-    // stage id foreign to the target pipeline (orphaned stage).
-    if (pipelineId && stageId) {
-      fields.pipelineId = pipelineId;
-      fields.pipelineStageId = stageId;
+    // Fail closed: only move pipelines when BOTH resolve. Returning here (not
+    // falling through to nothing_to_write) matters because monetaryValue may
+    // already be set in `fields`; without this early return an unresolved
+    // stage would still pass the nothing_to_write guard and write ONLY the
+    // price while the opportunity never moves, a false { ok: true }.
+    if (!pipelineId || !stageId) {
+      return Response.json({ error: "stage_not_found" }, { status: 404 });
     }
+    fields.pipelineId = pipelineId;
+    fields.pipelineStageId = stageId;
   } else if (body.stageName) {
     // Same-pipeline: translate within the opportunity's own pipeline (unchanged).
     const data = await ghlJson<{ opportunity: GhlOpportunity }>(

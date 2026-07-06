@@ -44,6 +44,7 @@ export default function IncomingCallBanner() {
 
       {open && (
         <CallConsole
+          key={call.key}
           call={call}
           onClose={() => {
             setOpen(false);

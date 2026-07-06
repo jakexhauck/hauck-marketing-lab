@@ -813,6 +813,7 @@ export function useCreateSalesLead() {
       stageName: string;
       name: string;
       monetaryValue?: number;
+      status?: "open" | "won" | "lost" | "abandoned";
     }) =>
       api<{ ok: true; id: string }>(`/api/sales/leads`, {
         method: "POST",

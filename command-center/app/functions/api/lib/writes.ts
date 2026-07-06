@@ -100,6 +100,7 @@ export async function createOpportunity(
     contactId: string;
     name: string;
     monetaryValue?: number;
+    status?: "open" | "won" | "lost" | "abandoned";
   },
 ): Promise<{ ok: true; id: string } | { ok: false; status: number; body: string }> {
   const body: Record<string, unknown> = {
@@ -108,7 +109,7 @@ export async function createOpportunity(
     pipelineStageId: input.pipelineStageId,
     contactId: input.contactId,
     name: input.name,
-    status: "open",
+    status: input.status ?? "open",
   };
   if (typeof input.monetaryValue === "number") body.monetaryValue = input.monetaryValue;
   const res = await ghlFetch(gctx, `/opportunities/`, {

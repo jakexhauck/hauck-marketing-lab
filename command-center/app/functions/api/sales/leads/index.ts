@@ -161,6 +161,7 @@ interface CreateLeadBody {
   stageName: string;
   name: string;
   monetaryValue?: number;
+  status?: "open" | "won" | "lost" | "abandoned";
 }
 
 // POST /api/sales/leads: create a new opportunity for an existing contact,
@@ -188,6 +189,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     contactId: body.contactId,
     name: body.name || "Inbound call",
     monetaryValue: body.monetaryValue,
+    status: body.status,
   });
   if (!result.ok) {
     return Response.json(
