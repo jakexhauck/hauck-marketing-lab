@@ -38,6 +38,10 @@ interface Props {
   error: Error | null;
   // SMS is unavailable when the contact has no phone; other channels still work.
   smsDisabled?: boolean;
+  // When set, the composer is locked to this one channel (the inbox page's
+  // channel): no channel chips render and every send goes over it, so an SMS
+  // page never sends over Email and no other medium leaks in.
+  lockChannel?: string;
   onSend: (input: SendChannelInput) => Promise<unknown>;
 }
 
@@ -47,15 +51,20 @@ export default function ChannelComposer({
   isPending,
   error,
   smsDisabled,
+  lockChannel,
   onSend,
 }: Props) {
-  const channels =
-    availableChannels.length > 0 ? availableChannels : ["SMS", "Email"];
+  const channels = lockChannel
+    ? [lockChannel]
+    : availableChannels.length > 0
+      ? availableChannels
+      : ["SMS", "Email"];
   // The active channel is shared with the thread (see ChannelFilterContext):
   // tapping a chip both retargets the send and filters the history shown above.
-  // `selected` is null until the user taps, so we fall back to the default.
+  // `selected` is null until the user taps, so we fall back to the default. A
+  // locked channel wins over both (single-channel inbox page).
   const { selected, select } = useChannelFilter();
-  const channel = selected ?? defaultChannel;
+  const channel = lockChannel ?? selected ?? defaultChannel;
   const [text, setText] = useState("");
   const [subject, setSubject] = useState("");
 
@@ -96,7 +105,7 @@ export default function ChannelComposer({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-2">
-      {channels.length > 1 && (
+      {!lockChannel && channels.length > 1 && (
         <div className="flex gap-1.5 overflow-x-auto pb-0.5">
           {channels.map((c) => (
             <button

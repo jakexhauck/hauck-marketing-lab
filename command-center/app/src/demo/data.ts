@@ -144,9 +144,10 @@ export function buildDemoData(now: number = Date.now()): DemoData {
   const contacts: ApiContact[] = [];
   const messages: Record<string, ApiMessage[]> = {};
   const conversations: ApiConversation[] = [];
-  // Cycle channel + source across demo conversations so the Unified Inbox
-  // filter rails show real spread in demo / test mode.
-  const DEMO_CHANNELS = ["sms", "email", "ig", "messenger", "sms", "sms"] as const;
+  // Cycle channel + source across demo conversations so both inbox pages (SMS
+  // and Email) show real spread in demo / test mode. The inbox is SMS + Email
+  // only, so we no longer seed Instagram / Messenger conversations.
+  const DEMO_CHANNELS = ["sms", "email", "sms", "email", "sms", "email"] as const;
   const DEMO_ORIGINS = [
     "form",
     "chat",
@@ -227,13 +228,29 @@ export function buildDemoData(now: number = Date.now()): DemoData {
 
     // A short two-sided thread for the more active leads; seeds conversations.
     if (i < 12) {
+      const channelKey = DEMO_CHANNELS[i % DEMO_CHANNELS.length];
+      // The message medium matches the conversation channel so the SMS page and
+      // the Email page each open threads with real content of their own type.
+      const msgType = channelKey === "email" ? "Email" : "SMS";
       const thread: ApiMessage[] = [];
       const inAt = lastActivityAt - rng() * 2 * DAY;
+      // One demo contact is reached over BOTH channels (an earlier SMS before the
+      // email thread) so the both-channel disclaimer has something honest to show.
+      const bothChannels = i === 1;
+      if (bothChannels) {
+        thread.push({
+          id: `${contactId}-m0`,
+          body: "Thanks, texting works too.",
+          direction: "inbound",
+          type: "SMS",
+          at: new Date(inAt - DAY).toISOString(),
+        });
+      }
       thread.push({
         id: `${contactId}-m1`,
         body: INBOUND_SNIPPETS[i % INBOUND_SNIPPETS.length],
         direction: "inbound",
-        type: "SMS",
+        type: msgType,
         at: new Date(inAt).toISOString(),
       });
       if (sIdx >= 1 || st !== "open") {
@@ -241,7 +258,7 @@ export function buildDemoData(now: number = Date.now()): DemoData {
           id: `${contactId}-m2`,
           body: OUTBOUND_SNIPPETS[i % OUTBOUND_SNIPPETS.length],
           direction: "outbound",
-          type: "SMS",
+          type: msgType,
           at: new Date(inAt + 30 * 60_000).toISOString(),
         });
       }
@@ -257,7 +274,7 @@ export function buildDemoData(now: number = Date.now()): DemoData {
         lastMessageType: lastMsg.type,
         lastMessageAt: lastMsg.at,
         unreadCount: unread,
-        channel: DEMO_CHANNELS[i % DEMO_CHANNELS.length],
+        channel: channelKey,
         origin: DEMO_ORIGINS[i % DEMO_ORIGINS.length],
         source: DEMO_SOURCE_LABEL[DEMO_ORIGINS[i % DEMO_ORIGINS.length]],
         firstTouchAt: new Date(createdAt).toISOString(),

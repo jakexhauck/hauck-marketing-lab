@@ -14,9 +14,17 @@ interface Props {
   contactId?: string;
   // True when the contact has no phone, so SMS is unavailable (other channels work).
   disabled?: boolean;
+  // Locks the composer to one channel (the inbox page's SMS or Email); hides the
+  // channel chips and sends over it only.
+  lockChannel?: string;
 }
 
-export default function MessageComposer({ leadId, contactId, disabled }: Props) {
+export default function MessageComposer({
+  leadId,
+  contactId,
+  disabled,
+  lockChannel,
+}: Props) {
   // Hooks run unconditionally; the enabled flags pick the active source.
   const leadMessages = useMessagesQuery(leadId ?? null, !!leadId);
   const contactMessages = useConversationMessagesQuery(
@@ -41,6 +49,7 @@ export default function MessageComposer({ leadId, contactId, disabled }: Props) 
       isPending={send.isPending}
       error={send.error as Error | null}
       smsDisabled={disabled}
+      lockChannel={lockChannel}
       onSend={onSend}
     />
   );

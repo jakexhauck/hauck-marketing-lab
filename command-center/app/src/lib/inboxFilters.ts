@@ -10,7 +10,10 @@ export type OriginKey =
   | "call"
   | "social"
   | "other";
-export type ChannelKey = "sms" | "email" | "ig" | "messenger" | "other";
+// The inbox is SMS + Email only. Instagram / Messenger and anything else fold to
+// "other" so the inbox never surfaces them as channels. Mirror of the union in
+// functions/lib/origin.ts; keep both in sync.
+export type ChannelKey = "sms" | "email" | "other";
 
 export interface OriginMeta {
   key: OriginKey;
@@ -34,12 +37,11 @@ export const ORIGINS: OriginMeta[] = [
   { key: "other", label: "Other", icon: "•", swatch: "#94a3b8" },
 ];
 
+// Only the two first-class inbox channels are presented. Everything else
+// (Instagram, Messenger, unknown) normalizes to "other" and is not shown.
 export const CHANNELS: ChannelMeta[] = [
   { key: "sms", label: "SMS", icon: "💬" },
   { key: "email", label: "Email", icon: "✉" },
-  { key: "ig", label: "Instagram", icon: "📷" },
-  { key: "messenger", label: "Messenger", icon: "💬" },
-  { key: "other", label: "Other", icon: "📥" },
 ];
 
 export const ORIGIN_BY_KEY = Object.fromEntries(
@@ -81,11 +83,10 @@ export function channelFromType(raw: string | null | undefined): ChannelKey {
     .replace(/^type[_-]?/, "")
     .replace(/[^a-z]/g, "");
   if (!key) return "other";
-  if (key.includes("instagram") || key === "ig") return "ig";
-  if (key.includes("messenger") || key.includes("facebook") || key === "fb")
-    return "messenger";
   if (key.includes("email")) return "email";
   if (key.includes("sms") || key.includes("text")) return "sms";
+  // Instagram, Messenger, Facebook and every other medium fold to "other": the
+  // inbox only surfaces SMS and Email.
   return "other";
 }
 
@@ -127,12 +128,69 @@ export function countByChannel(
   const out: Record<ChannelKey, number> = {
     sms: 0,
     email: 0,
-    ig: 0,
-    messenger: 0,
     other: 0,
   };
   for (const c of items) out[convChannel(c)] += 1;
   return out;
+}
+
+// ---- Per-page (SMS / Email) inbox helpers ----
+// The inbox splits into an SMS page and an Email page. These helpers derive the
+// active page channel from the route and slice the list to it.
+export type PageChannel = "sms" | "email";
+export const PAGE_CHANNELS: PageChannel[] = ["sms", "email"];
+
+// The composer channel label for a page channel (matches ChannelComposer's
+// vocabulary of "SMS" / "Email").
+export function sendLabelForChannel(ch: PageChannel): string {
+  return ch === "email" ? "Email" : "SMS";
+}
+export function otherPageChannel(ch: PageChannel): PageChannel {
+  return ch === "sms" ? "email" : "sms";
+}
+// The active page channel from a list route (/conversations/email vs /sms).
+export function pageChannelFromPath(pathname: string): PageChannel {
+  return pathname.endsWith("/email") ? "email" : "sms";
+}
+// The page channel from the detail route's ?ch= param (null if absent/invalid).
+export function pageChannelFromParam(
+  raw: string | null | undefined,
+): PageChannel | null {
+  return raw === "email" ? "email" : raw === "sms" ? "sms" : null;
+}
+// Narrow a conversation's channel to a page channel, or null if it lives on
+// neither page (e.g. an "other" medium that the inbox does not surface).
+export function pageChannelOf(c: ApiConversation): PageChannel | null {
+  const ch = convChannel(c);
+  return ch === "sms" || ch === "email" ? ch : null;
+}
+
+// The single-select filter for a channel page: needs-reply, all, or a lead
+// source. Replaces the old per-channel smart views (the page is already scoped
+// to one channel, so it slices by where the lead came from instead).
+export type InboxView = "needs" | "all" | OriginKey;
+
+export function applyInboxView(
+  items: ApiConversation[],
+  view: InboxView,
+): ApiConversation[] {
+  if (view === "needs") return items.filter((c) => c.unreadCount > 0);
+  if (view === "all") return items;
+  return items.filter((c) => convOrigin(c) === view);
+}
+
+// Needs-reply sorts longest-wait-first (oldest last message on top); the browse
+// views read newest-first like a normal inbox.
+export function sortForInboxView(
+  list: ApiConversation[],
+  view: InboxView,
+): ApiConversation[] {
+  const asc = view === "needs";
+  return [...list].sort((a, b) => {
+    const ta = new Date(a.lastMessageAt).getTime();
+    const tb = new Date(b.lastMessageAt).getTime();
+    return asc ? ta - tb : tb - ta;
+  });
 }
 
 export function countByOrigin(

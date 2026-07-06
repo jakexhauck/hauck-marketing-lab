@@ -9,7 +9,10 @@ export type OriginKey =
   | "call"
   | "social"
   | "other";
-export type ChannelKey = "sms" | "email" | "ig" | "messenger" | "other";
+// The inbox is SMS + Email only. Instagram / Messenger and anything else fold to
+// "other" so the inbox never surfaces them as channels. Mirror of the union in
+// src/lib/inboxFilters.ts; keep both in sync.
+export type ChannelKey = "sms" | "email" | "other";
 
 // Ordered: first match wins. The haystack is the contact source plus every
 // tag, lowercased and space-joined. react and call sit first because a
@@ -42,10 +45,9 @@ export function normalizeChannel(raw: string | null | undefined): ChannelKey {
     .replace(/^type[_-]?/, "")
     .replace(/[^a-z]/g, "");
   if (!key) return "other";
-  if (key.includes("instagram") || key === "ig") return "ig";
-  if (key.includes("messenger") || key.includes("facebook") || key === "fb")
-    return "messenger";
   if (key.includes("email")) return "email";
   if (key.includes("sms") || key.includes("text")) return "sms";
+  // Instagram, Messenger, Facebook and every other medium fold to "other": the
+  // inbox only surfaces SMS and Email.
   return "other";
 }

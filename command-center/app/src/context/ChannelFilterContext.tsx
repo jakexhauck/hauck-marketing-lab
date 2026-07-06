@@ -12,8 +12,17 @@ interface ChannelFilterValue {
 
 const ChannelFilterContext = createContext<ChannelFilterValue | null>(null);
 
-export function ChannelFilterProvider({ children }: { children: ReactNode }) {
-  const [selected, setSelected] = useState<string | null>(null);
+// `initial` seeds the active channel (the inbox pages pass their page channel so
+// the thread + composer default to SMS or Email accordingly). Remount the
+// provider (via `key`) to re-seed it when the page channel changes.
+export function ChannelFilterProvider({
+  children,
+  initial = null,
+}: {
+  children: ReactNode;
+  initial?: string | null;
+}) {
+  const [selected, setSelected] = useState<string | null>(initial);
   return (
     <ChannelFilterContext.Provider value={{ selected, select: setSelected }}>
       {children}

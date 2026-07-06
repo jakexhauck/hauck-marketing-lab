@@ -1,121 +1,73 @@
 import { useEffect, useMemo, useState } from "react";
-import DesktopPage from "../desktop/DesktopPage";
+import { useLocation } from "react-router-dom";
+import PageBar from "../PageBar";
 import Avatar from "../Avatar";
 import EmptyState from "../EmptyState";
 import InboxDetail from "./InboxDetail";
 import SourceBadge from "./SourceBadge";
+import InboxFilterPills from "./InboxFilterPills";
 import { useAuth } from "../../context/AuthContext";
 import { useNow } from "../../context/NowContext";
 import { useConversationsQuery } from "../../hooks/useApi";
+import { INBOX_TABS } from "../../lib/pageTabs";
 import { timeAgo } from "../../lib/timeAgo";
 import {
-  CHANNELS,
-  CHANNEL_BY_KEY,
-  convChannel,
+  applyInboxView,
   convOrigin,
-  countByChannel,
-  type ChannelKey,
+  pageChannelFromPath,
+  pageChannelOf,
+  sendLabelForChannel,
+  sortForInboxView,
+  type InboxView,
 } from "../../lib/inboxFilters";
 import type { ApiConversation } from "../../lib/api";
 
-// The Atelier desktop Unified Inbox (lg+): the "Priority Queue" layout. One
-// unified stream sliced by smart views (Needs reply / All / per channel),
-// sorted so the person who has waited longest sits on top, next to the shared
-// InboxDetail (thread + composer). Replaces the old channel/source filter rail.
-// The phone keeps its own (NavyHero) list; this renders only inside
-// `hidden lg:flex` from the Conversations route.
+// The Atelier desktop inbox (lg+). Each page (SMS or Email) is a standard PageBar
+// surface scoped to one channel: the priority queue on the left, sliced by lead
+// source, next to the shared InboxDetail (thread + composer). The phone keeps its
+// own list; this renders only inside `hidden lg:flex` from the Conversations
+// route.
 
-// Per-channel accent. Instagram/Messenger are platform brand colors (the
-// allowed non-token exception); SMS/email/other are functional accents, same
-// spirit as the source swatches in inboxFilters.
-const CHANNEL_ACCENT: Record<ChannelKey, string> = {
-  ig: "#e1306c",
-  sms: "#16a34a",
-  email: "#2563eb",
-  messenger: "#7c3aed",
-  other: "#94a3b8",
-};
-
-type ViewKey = "needs" | "all" | ChannelKey;
-
-function applyView(items: ApiConversation[], view: ViewKey): ApiConversation[] {
-  if (view === "needs") return items.filter((c) => c.unreadCount > 0);
-  if (view === "all") return items;
-  return items.filter((c) => convChannel(c) === view);
-}
-
-// Needs-reply is sorted longest-wait-first (oldest last message on top); the
-// browse views read newest-first like a normal inbox.
-function sortForView(
-  list: ApiConversation[],
-  view: ViewKey,
-): ApiConversation[] {
-  const asc = view === "needs";
-  return [...list].sort((a, b) => {
-    const ta = new Date(a.lastMessageAt).getTime();
-    const tb = new Date(b.lastMessageAt).getTime();
-    return asc ? ta - tb : tb - ta;
-  });
-}
-
-function searchFilter(
-  list: ApiConversation[],
-  q: string,
-): ApiConversation[] {
+function searchFilter(list: ApiConversation[], q: string): ApiConversation[] {
   const s = q.trim().toLowerCase();
   if (!s) return list;
   return list.filter(
     (c) =>
-      c.name.toLowerCase().includes(s) ||
-      c.preview.toLowerCase().includes(s),
+      c.name.toLowerCase().includes(s) || c.preview.toLowerCase().includes(s),
   );
 }
 
 export default function ConversationsDesktop() {
   const { session } = useAuth();
   const now = useNow();
+  const location = useLocation();
   const useReal = Boolean(session);
   const query = useConversationsQuery(useReal);
 
-  const [view, setView] = useState<ViewKey>("needs");
+  const channel = pageChannelFromPath(location.pathname);
+  const [view, setView] = useState<InboxView>("needs");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const items: ApiConversation[] = useMemo(
+  const all: ApiConversation[] = useMemo(
     () => query.data?.conversations ?? [],
     [query.data],
+  );
+
+  // Scope to this page's channel first; everything else works within it.
+  const items = useMemo(
+    () => all.filter((c) => pageChannelOf(c) === channel),
+    [all, channel],
   );
 
   const needsCount = useMemo(
     () => items.filter((c) => c.unreadCount > 0).length,
     [items],
   );
-  const channelCounts = useMemo(() => countByChannel(items), [items]);
-
-  // The smart-view pills: always Needs reply + All, then each channel that has
-  // any conversations (drop empty "other").
-  const views = useMemo(() => {
-    const base: { key: ViewKey; label: string; count: number; dot?: string }[] =
-      [
-        { key: "needs", label: "Needs reply", count: needsCount },
-        { key: "all", label: "All", count: items.length },
-      ];
-    for (const c of CHANNELS) {
-      const n = channelCounts[c.key];
-      if (n === 0) continue;
-      if (c.key === "other" && channelCounts.other === 0) continue;
-      base.push({
-        key: c.key,
-        label: c.label,
-        count: n,
-        dot: CHANNEL_ACCENT[c.key],
-      });
-    }
-    return base;
-  }, [needsCount, items.length, channelCounts]);
 
   const visible = useMemo(
-    () => sortForView(searchFilter(applyView(items, view), search), view),
+    () =>
+      sortForInboxView(searchFilter(applyInboxView(items, view), search), view),
     [items, view, search],
   );
 
@@ -133,50 +85,19 @@ export default function ConversationsDesktop() {
 
   const selected = visible.find((c) => c.contactId === selectedId) ?? null;
 
-  const subtitle = query.isLoading
-    ? "Loading..."
-    : `${items.length} ${items.length === 1 ? "conversation" : "conversations"} · ${needsCount} waiting on you`;
-
-  const activeLabel = views.find((v) => v.key === view)?.label ?? "All";
+  const activeLabel =
+    view === "needs" ? "Needs reply" : view === "all" ? "All" : "Filtered";
   const sortNote = view === "needs" ? "longest wait first" : "most recent first";
 
   return (
-    <DesktopPage title="Inbox" subtitle={subtitle} flush>
-      {/* Smart views: one queue, sliced */}
-      <div className="flex items-center gap-2 overflow-x-auto px-6 pb-3 pt-1">
-        {views.map((v) => {
-          const on = v.key === view;
-          return (
-            <button
-              key={v.key}
-              type="button"
-              onClick={() => setView(v.key)}
-              className={
-                "inline-flex h-9 shrink-0 items-center gap-2 rounded-[12px] border px-3.5 text-[13px] font-semibold transition-colors " +
-                (on
-                  ? "border-brand bg-brand text-brand-fg shadow-brand"
-                  : "border-border bg-surface text-muted hover:border-border-strong")
-              }
-            >
-              {v.dot && (
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ background: v.dot }}
-                  aria-hidden
-                />
-              )}
-              {v.label}
-              <span
-                className={
-                  "rounded-[9px] px-1.5 py-px font-data text-[11px] font-bold tabular-nums " +
-                  (on ? "bg-white/20 text-brand-fg" : "bg-surface-2 text-muted")
-                }
-              >
-                {v.count}
-              </span>
-            </button>
-          );
-        })}
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="px-6 pt-5">
+        <PageBar
+          tabs={INBOX_TABS}
+          filters={
+            <InboxFilterPills items={items} active={view} onChange={setView} />
+          }
+        />
       </div>
 
       <div className="flex min-h-0 flex-1 border-t border-border">
@@ -244,7 +165,7 @@ export default function ConversationsDesktop() {
                     ? `No conversations match "${search.trim()}"`
                     : view === "needs"
                       ? "Nothing is waiting on a reply right now."
-                      : "Nothing matches this view."
+                      : `No ${sendLabelForChannel(channel)} conversations yet.`
                 }
               />
             ) : (
@@ -264,9 +185,9 @@ export default function ConversationsDesktop() {
           </div>
         </section>
 
-        <InboxDetail conv={selected} />
+        <InboxDetail conv={selected} channel={channel} />
       </div>
-    </DesktopPage>
+    </div>
   );
 }
 
@@ -289,9 +210,6 @@ function QueueCard({
   active: boolean;
   onOpen: () => void;
 }) {
-  const channel = convChannel(conv);
-  const accent = CHANNEL_ACCENT[channel];
-  const channelMeta = CHANNEL_BY_KEY[channel];
   const hasUnread = conv.unreadCount > 0;
   return (
     <button
@@ -302,20 +220,8 @@ function QueueCard({
         (active ? "bg-brand-tint" : "hover:bg-surface-2")
       }
     >
-      <span
-        className="absolute left-0 top-0 h-full w-1"
-        style={{ background: accent }}
-        aria-hidden
-      />
       <div className="relative shrink-0">
         <Avatar name={conv.name} size="md" />
-        <span
-          className="absolute -bottom-1 -right-1 grid h-[19px] w-[19px] place-items-center rounded-full border-[2.5px] border-surface text-[9px] text-white"
-          style={{ background: accent }}
-          aria-hidden
-        >
-          {channelMeta.icon}
-        </span>
       </div>
 
       <div className="min-w-0 flex-1">
@@ -354,21 +260,6 @@ function QueueCard({
         </div>
 
         <div className="mt-2 flex items-center gap-2">
-          <span
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted"
-            title={`${channelMeta.label} conversation`}
-          >
-            <span
-              className="h-2 w-2 rounded-full"
-              style={{ background: accent }}
-              aria-hidden
-            />
-            {channelMeta.label}
-          </span>
-          <span
-            className="h-[3px] w-[3px] rounded-full bg-border-strong"
-            aria-hidden
-          />
           <SourceBadge origin={convOrigin(conv)} size="sm" />
         </div>
       </div>

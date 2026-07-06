@@ -5,6 +5,7 @@ import {
   convOrigin,
   filterConversations,
   countByChannel,
+  CHANNELS,
 } from "./inboxFilters";
 import type { ApiConversation } from "./api";
 
@@ -25,6 +26,17 @@ describe("channelFromType", () => {
   it("derives a channel when the field is missing", () => {
     expect(channelFromType("TYPE_SMS")).toBe("sms");
     expect(channelFromType("Email")).toBe("email");
+  });
+  it("folds Instagram and Messenger to other (dropped from the inbox)", () => {
+    expect(channelFromType("Instagram")).toBe("other");
+    expect(channelFromType("Facebook")).toBe("other");
+    expect(channelFromType("Messenger")).toBe("other");
+  });
+});
+
+describe("CHANNELS", () => {
+  it("presents only SMS and Email as first-class inbox channels", () => {
+    expect(CHANNELS.map((c) => c.key)).toEqual(["sms", "email"]);
   });
 });
 
