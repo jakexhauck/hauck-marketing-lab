@@ -11,6 +11,23 @@ import type { SocialStatus } from "../../lib/social";
 
 export type Platform = "ig" | "fb" | "gb";
 
+// ENGAGEMENT DATA SOURCE FLAGS (single source of truth for the Social surfaces).
+// The posting backend exposes NO reach / likes / comments / DMs data. Real
+// engagement needs read access to Meta Graph (Facebook + Instagram) and Google
+// Business Profile, wired per tenant with the account's own tokens (the app does
+// not hold these yet). Until then, a real session shows only what we can honestly
+// compute from posts plus a "connecting your accounts" note, and never fabricates
+// numbers. `?demo=1` still shows the full designed layout.
+//
+// - ENGAGEMENT_SOURCE_READY: read path (likes/comments/DMs) is live.
+// - REPLY_WRITE_READY: comment-reply write path + permission is confirmed.
+//
+// TODO(engagement): build functions/api/social/engagement.ts (read) + a gated
+// reply endpoint, add hooks, then flip these to true. Jake must confirm the
+// source and the reply permission per tenant before either flips.
+export const ENGAGEMENT_SOURCE_READY = false;
+export const REPLY_WRITE_READY = false;
+
 export const PLATFORM: Record<Platform, { bg: string; label: string; name: string }> = {
   ig: { bg: "linear-gradient(135deg,#feda75,#d62976,#962fbf)", label: "IG", name: "Instagram" },
   fb: { bg: "#1877f2", label: "f", name: "Facebook" },
