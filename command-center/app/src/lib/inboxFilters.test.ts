@@ -42,8 +42,8 @@ describe("CHANNELS", () => {
 
 describe("classifyOrigin", () => {
   it("classifies from the source string", () => {
-    expect(classifyOrigin("Facebook Ad", [])).toBe("paid"); // an ad beats bare social
-    expect(classifyOrigin("Instagram DM", [])).toBe("social");
+    expect(classifyOrigin("Facebook Ad", [])).toBe("paid"); // a facebook AD is paid, not social
+    expect(classifyOrigin("Instagram DM", [])).toBe("other"); // social source dropped, folds to other
     expect(classifyOrigin("Website Form", [])).toBe("form");
     expect(classifyOrigin("Inbound Call", [])).toBe("call");
     expect(classifyOrigin("Chat Widget", [])).toBe("chat");

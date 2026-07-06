@@ -21,9 +21,9 @@ describe("classifyOrigin", () => {
   it("maps inbound call sources to call", () => {
     expect(classifyOrigin("Inbound Call", [])).toBe("call");
   });
-  it("maps plain social sources to social, not paid", () => {
-    expect(classifyOrigin("Instagram", [])).toBe("social");
-    expect(classifyOrigin("Facebook", [])).toBe("social");
+  it("folds plain social sources to other, not paid (social lead-source dropped)", () => {
+    expect(classifyOrigin("Instagram", [])).toBe("other");
+    expect(classifyOrigin("Facebook", [])).toBe("other");
   });
   it("falls back to other for empty or unknown", () => {
     expect(classifyOrigin("", [])).toBe("other");
