@@ -88,8 +88,10 @@ export async function handleDemoRequest<T>(
           : [...ESTIMATE_LEADS, ...CHAT_LEADS];
     return r({ submissions, total: submissions.length });
   }
-  if (clean === "/api/sales/leads")
+  if (clean === "/api/sales/leads") {
+    if (method === "POST") return r({ ok: true, id: "demo-opp-1" });
     return r({ leads: HUB_DEMO, total: HUB_DEMO.length });
+  }
   if (clean === "/api/entitlements") return r({ capabilities: [] });
   if (clean === "/api/staff") return r({ staff: [] });
   if (clean === "/api/team") return r({ team: [] });
@@ -184,6 +186,11 @@ export async function handleDemoRequest<T>(
       );
       return r({ ok: true, messageId: "demo" });
     }
+  }
+
+  // Contact upsert (Call Console capture): no-op success in demo.
+  if (seg[0] === "api" && seg[1] === "contacts" && seg[2] && !seg[3] && method === "PUT") {
+    return r({ ok: true });
   }
 
   // ----- Contact notes -----
