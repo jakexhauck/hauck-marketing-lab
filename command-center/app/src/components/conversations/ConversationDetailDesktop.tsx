@@ -15,27 +15,7 @@ import {
   otherInboxChannel,
 } from "../../lib/inboxFilters";
 import { useAuth } from "../../context/AuthContext";
-import {
-  useConversationMessagesQuery,
-  useConversationsQuery,
-} from "../../hooks/useApi";
-
-// Human-friendly channel names, mirroring ChannelComposer's CHANNEL_LABEL so
-// the subtitle reads the same language as the composer's channel chips.
-const CHANNEL_LABEL: Record<string, string> = {
-  SMS: "SMS",
-  Email: "Email",
-  FB: "Facebook",
-  IG: "Instagram",
-  GMB: "Google",
-  WhatsApp: "WhatsApp",
-  Live_Chat: "Live Chat",
-  Custom: "Custom",
-};
-
-function channelLabel(channel: string): string {
-  return CHANNEL_LABEL[channel] ?? channel;
-}
+import { useConversationsQuery } from "../../hooks/useApi";
 
 // The Atelier desktop Conversation thread (lg+). The phone keeps its own
 // (NavyHero) full-height layout; this renders only inside `hidden lg:flex`
@@ -50,10 +30,6 @@ export default function ConversationDetailDesktop() {
   const useReal = Boolean(session);
 
   const listQuery = useConversationsQuery(useReal);
-  const messagesQuery = useConversationMessagesQuery(
-    contactId || null,
-    useReal && !!contactId,
-  );
 
   const conv = useMemo(
     () =>
@@ -69,14 +45,6 @@ export default function ConversationDetailDesktop() {
     channel,
   );
 
-  const defaultChannel = messagesQuery.data?.defaultChannel;
-  const hasUnread = (conv?.unreadCount ?? 0) > 0;
-  const subtitle = defaultChannel
-    ? `${channelLabel(defaultChannel)}${hasUnread ? " . Unread" : ""}`
-    : hasUnread
-      ? "Unread"
-      : "Conversation";
-
   return (
     <DesktopPage
       title={
@@ -86,7 +54,6 @@ export default function ConversationDetailDesktop() {
           {conv && <SourceBadge origin={convOrigin(conv)} size="sm" />}
         </span>
       }
-      subtitle={subtitle}
       actions={
         <Button
           variant="secondary"
