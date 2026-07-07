@@ -57,6 +57,8 @@ function stubFetch() {
               name: "Ad One",
               effective_status: "ACTIVE",
               creative: { title: "Headline", body: "Copy", image_url: "https://img.example/ad1.jpg" },
+              campaign: { name: "Summer Promo" },
+              adset: { name: "Lookalike 1%" },
             },
           ],
         });
@@ -171,6 +173,8 @@ describe("buildAdsInsights", () => {
       reach: 1000,
       spend: 50,
       thumbnailUrl: "https://img.example/ad1.jpg",
+      campaignName: "Summer Promo",
+      adsetName: "Lookalike 1%",
     });
   });
 
@@ -239,6 +243,33 @@ describe("buildAds", () => {
     ];
     const ads = buildAds(insights, meta);
     expect(ads.map((a) => a.id)).toEqual(["b", "a"]);
+  });
+
+  it("reads campaign/ad-set names off the nested Meta objects, defaulting to empty strings when absent", () => {
+    const insights = [
+      { ad_id: "a", spend: "10", reach: "100", actions: [] },
+      { ad_id: "b", spend: "20", reach: "200", actions: [] },
+    ];
+    const meta = [
+      {
+        id: "a",
+        name: "A",
+        effective_status: "ACTIVE",
+        creative: {},
+        campaign: { name: "Summer Promo" },
+        adset: { name: "Lookalike 1%" },
+      },
+      { id: "b", name: "B", effective_status: "PAUSED", creative: {} },
+    ];
+    const ads = buildAds(insights, meta);
+    expect(ads.find((a) => a.id === "a")).toMatchObject({
+      campaignName: "Summer Promo",
+      adsetName: "Lookalike 1%",
+    });
+    expect(ads.find((a) => a.id === "b")).toMatchObject({
+      campaignName: "",
+      adsetName: "",
+    });
   });
 });
 

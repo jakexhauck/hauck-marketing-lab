@@ -95,6 +95,11 @@ interface AdItem {
   // The real creative image (Meta image_url / thumbnail_url / link picture), or
   // "" when the ad has none (the client falls back to a gradient placeholder).
   thumbnailUrl: string;
+  // Campaign/ad-set names, added for the admin cockpit's Campaigns tree
+  // (functions/api/admin/.../ads/insights). "" when Meta omits the nested
+  // object. The client Paid Ads UI ignores these two fields.
+  campaignName: string;
+  adsetName: string;
 }
 
 export interface AdsInsightsResponse {
@@ -184,6 +189,8 @@ export function buildAds(
       String(creative.thumbnail_url ?? "") ||
       String(linkData.picture ?? "");
     const status = String(m.effective_status ?? "");
+    const campaign = (m.campaign ?? {}) as Record<string, unknown>;
+    const adset = (m.adset ?? {}) as Record<string, unknown>;
     ads.push({
       id,
       headline,
@@ -194,6 +201,8 @@ export function buildAds(
       reach: Math.round(num(ins.reach)),
       spend: round2(num(ins.spend)),
       thumbnailUrl,
+      campaignName: String(campaign.name ?? ""),
+      adsetName: String(adset.name ?? ""),
     });
   }
   // Show every ad in the account, published or not (Jake's call): drafts and
@@ -277,7 +286,7 @@ export async function buildAdsInsights(
       graphGet(token, `/${account}/insights`, { level: "account", date_preset: "last_month", fields: "actions" }),
       graphGet(token, `/${account}/insights`, { level: "account", date_preset: "this_month", time_increment: "1", fields: "actions,date_start" }),
       graphGet(token, `/${account}/insights`, { level: "ad", date_preset: "this_month", fields: "ad_id,ad_name,spend,reach,actions", limit: "200" }),
-      graphGet(token, `/${account}/ads`, { fields: "id,name,effective_status,creative{title,body,object_story_spec,image_url,thumbnail_url}", limit: "200" }),
+      graphGet(token, `/${account}/ads`, { fields: "id,name,effective_status,creative{title,body,object_story_spec,image_url,thumbnail_url},campaign{name},adset{name}", limit: "200" }),
     ]);
 
     // Campaign phase from ad-set learning status (best-effort; never sinks the call).

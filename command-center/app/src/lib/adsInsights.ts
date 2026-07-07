@@ -17,6 +17,10 @@ export interface AdItem {
   // Real Meta creative image URL; absent/"" => the card uses a gradient
   // placeholder. Demo ads leave it unset.
   thumbnailUrl?: string;
+  // Campaign/ad-set names, for the admin cockpit's Campaigns tree. Optional:
+  // demo ads and older cached payloads may not have them.
+  campaignName?: string;
+  adsetName?: string;
 }
 
 export interface AdsInsightsResponse {
