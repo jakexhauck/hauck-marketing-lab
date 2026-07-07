@@ -127,7 +127,7 @@ export default function AdminPillarPage() {
               <Link className="pk-link" to="/admin/onboarding">
                 Onboarding <ArrowRight />
               </Link>
-              <Link className="pk-link" to="/admin/ads">
+              <Link className="pk-link" to="/admin/delivery">
                 Paid Ads <ArrowRight />
               </Link>
               <Link className="pk-link" to="/admin/tasks">

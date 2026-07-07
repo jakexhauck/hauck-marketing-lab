@@ -76,8 +76,6 @@ import AdminDelivery from "./routes/admin/AdminDelivery";
 import DeliveryCockpit from "./routes/admin/DeliveryCockpit";
 import AdminPillarPage from "./routes/admin/AdminPillarPage";
 import AdminSettings from "./routes/admin/AdminSettings";
-import AdminAds from "./routes/admin/AdminAds";
-import AdminAdsClient from "./routes/admin/AdminAdsClient";
 import AdminInfrastructure from "./routes/admin/AdminInfrastructure";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
@@ -600,23 +598,10 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              {/* Service Delivery > Paid Ads: the per-client ad tracker. */}
-              <Route
-                path="/admin/ads"
-                element={
-                  <AdminRoute>
-                    <AdminAds />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/ads/:clientId"
-                element={
-                  <AdminRoute>
-                    <AdminAdsClient />
-                  </AdminRoute>
-                }
-              />
+              {/* Service Delivery > Paid Ads: the old standalone ad tracker
+                  is retired, replaced by the Fulfillment cockpit's Paid Ads tab. */}
+              <Route path="/admin/ads" element={<Navigate to="/admin/delivery" replace />} />
+              <Route path="/admin/ads/:clientId" element={<Navigate to="/admin/delivery" replace />} />
               {/* Service Delivery: the client roster and per-account cockpits. */}
               <Route
                 path="/admin/delivery"
