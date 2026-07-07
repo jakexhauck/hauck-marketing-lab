@@ -36,6 +36,17 @@ export interface WebsiteAnalytics {
   sources: AnalyticsSource[];
   // Up to 12 months of active users, oldest first (Insights trend bars).
   trend: number[];
+  // Split of this month's active users into first-time and returning.
+  newUsers: number;
+  returningUsers: number;
+  // Share of engaged sessions, 0..100 (GA4 engagementRate x 100).
+  engagementRate: number;
+  // Device mix, as % of active users. Phone / Desktop / Tablet, sorted desc.
+  devices: { label: string; pct: number }[];
+  // Top towns visitors come from this month (blank / "(not set)" dropped).
+  cities: { label: string; visitors: number }[];
+  // The busiest day of the week this month, e.g. "Saturday". Null when no data.
+  busiestDay: string | null;
 }
 
 const NOT_CONNECTED: WebsiteAnalytics = {
@@ -49,6 +60,12 @@ const NOT_CONNECTED: WebsiteAnalytics = {
   topPages: [],
   sources: [],
   trend: [],
+  newUsers: 0,
+  returningUsers: 0,
+  engagementRate: 0,
+  devices: [],
+  cities: [],
+  busiestDay: null,
 };
 
 const CACHE_TTL_S = 15 * 60;
@@ -82,6 +99,31 @@ function pageLabel(path: string): string {
   return seg.charAt(0).toUpperCase() + seg.slice(1).replace(/[-_]+/g, " ");
 }
 
+// GA4 dayOfWeek is 0..6 with 0 = Sunday. Map to a day name we display as-is.
+const DAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+// GA4 deviceCategory -> plain-English label a business owner reads.
+function deviceLabel(cat: string): string {
+  switch (cat) {
+    case "mobile":
+      return "Phone";
+    case "desktop":
+      return "Desktop";
+    case "tablet":
+      return "Tablet";
+    default:
+      return cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : "Other";
+  }
+}
+
 function num(v: string | undefined): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -102,7 +144,7 @@ function monthAnchors(now: Date) {
 }
 
 export function shapeAnalytics(reports: ReportResponse[], now: Date): WebsiteAnalytics {
-  const [trendR, kpiR, pagesR, srcR] = reports;
+  const [trendR, kpiR, pagesR, srcR, deviceR, cityR, dayR] = reports;
   const { thisYm, lastYm } = monthAnchors(now);
 
   // Trend + this/last month from the yearMonth report.
@@ -120,10 +162,15 @@ export function shapeAnalytics(reports: ReportResponse[], now: Date): WebsiteAna
       ? Math.round(((visitorsThisMonth - visitorsLastMonth) / visitorsLastMonth) * 100)
       : null;
 
-  // KPI report: averageSessionDuration, screenPageViews, activeUsers.
+  // KPI report: averageSessionDuration, screenPageViews, activeUsers, newUsers,
+  // engagementRate.
   const kpiRow = kpiR?.rows?.[0]?.metricValues ?? [];
   const avgTimeOnSiteSec = Math.round(num(kpiRow[0]?.value));
   const pageViews = Math.round(num(kpiRow[1]?.value));
+  const activeUsers = Math.round(num(kpiRow[2]?.value));
+  const newUsers = Math.round(num(kpiRow[3]?.value));
+  const returningUsers = Math.max(0, activeUsers - newUsers);
+  const engagementRate = Math.round(num(kpiRow[4]?.value) * 100);
 
   // Top pages.
   const topPages: AnalyticsTopPage[] = (pagesR?.rows ?? [])
@@ -151,6 +198,40 @@ export function shapeAnalytics(reports: ReportResponse[], now: Date): WebsiteAna
           .slice(0, 5)
       : [];
 
+  // Device mix: friendly labels, aggregated to % of active users, sorted desc.
+  const deviceRows = (deviceR?.rows ?? []).map((row) => ({
+    label: deviceLabel(row.dimensionValues?.[0]?.value ?? ""),
+    users: num(row.metricValues?.[0]?.value),
+  }));
+  const deviceTotal = deviceRows.reduce((sum, d) => sum + d.users, 0);
+  const devices =
+    deviceTotal > 0
+      ? deviceRows
+          .map((d) => ({ label: d.label, pct: Math.round((d.users / deviceTotal) * 100) }))
+          .sort((a, b) => b.pct - a.pct)
+      : [];
+
+  // Top towns, blank / "(not set)" dropped, top 5.
+  const cities = (cityR?.rows ?? [])
+    .map((row) => ({
+      label: row.dimensionValues?.[0]?.value ?? "",
+      visitors: num(row.metricValues?.[0]?.value),
+    }))
+    .filter((c) => c.label && c.label !== "(not set)")
+    .slice(0, 5);
+
+  // Busiest day of the week: the dayOfWeek bucket with the most active users.
+  let busiestDay: string | null = null;
+  let bestDayUsers = -1;
+  for (const row of dayR?.rows ?? []) {
+    const idx = Number(row.dimensionValues?.[0]?.value);
+    const users = num(row.metricValues?.[0]?.value);
+    if (Number.isInteger(idx) && idx >= 0 && idx <= 6 && users > bestDayUsers) {
+      bestDayUsers = users;
+      busiestDay = DAY_NAMES[idx];
+    }
+  }
+
   return {
     connected: true,
     visitorsThisMonth,
@@ -162,6 +243,12 @@ export function shapeAnalytics(reports: ReportResponse[], now: Date): WebsiteAna
     topPages,
     sources,
     trend,
+    newUsers,
+    returningUsers,
+    engagementRate,
+    devices,
+    cities,
+    busiestDay,
   };
 }
 
@@ -196,6 +283,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
           { name: "averageSessionDuration" },
           { name: "screenPageViews" },
           { name: "activeUsers" },
+          { name: "newUsers" },
+          { name: "engagementRate" },
         ],
       },
       // Top pages this month.
@@ -211,6 +300,26 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         dateRanges: [thisMonth],
         dimensions: [{ name: "sessionDefaultChannelGroup" }],
         metrics: [{ name: "sessions" }],
+      },
+      // Device mix this month.
+      {
+        dateRanges: [thisMonth],
+        dimensions: [{ name: "deviceCategory" }],
+        metrics: [{ name: "activeUsers" }],
+      },
+      // Top towns this month (limit high, then filter "(not set)" in shaping).
+      {
+        dateRanges: [thisMonth],
+        dimensions: [{ name: "city" }],
+        metrics: [{ name: "activeUsers" }],
+        orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+        limit: 8,
+      },
+      // Visits by day of week this month.
+      {
+        dateRanges: [thisMonth],
+        dimensions: [{ name: "dayOfWeek" }],
+        metrics: [{ name: "activeUsers" }],
       },
     ]);
   } catch {
