@@ -25,6 +25,7 @@ import {
   type PillarConstraint,
 } from "../lib/api";
 import { type Job } from "../lib/jobsPipeline";
+import { type WebsiteAnalytics } from "./useWebsiteAnalytics";
 
 // Tenant display config (branding, labels, real spend). Changes rarely; a
 // long staleTime avoids refetching it on every screen.
@@ -262,6 +263,20 @@ export function useAdminClientDetailQuery(tenantId: string, enabled = true) {
     enabled: enabled && !!tenantId,
     staleTime: 30_000,
     queryFn: () => api<AdminClientDetailResponse>(`/api/admin/clients/${tenantId}`),
+  });
+}
+
+// One client's real GA4 numbers for the Fulfillment cockpit's Web Design >
+// Analytics panel, from GET /api/admin/clients/:tenantId/website/analytics. The
+// same WebsiteAnalytics shape the client's own Insights reads; { connected:
+// false } when the client has no GA4 property wired.
+export function useAdminWebsiteAnalyticsQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "clients", tenantId, "website", "analytics"],
+    enabled: enabled && !!tenantId,
+    staleTime: 60_000,
+    queryFn: () =>
+      api<WebsiteAnalytics>(`/api/admin/clients/${tenantId}/website/analytics`),
   });
 }
 

@@ -1,4 +1,5 @@
 import SitePanel from "./SitePanel";
+import AnalyticsPanel from "./AnalyticsPanel";
 
 // Web Design service tab inside the Fulfillment cockpit
 // (/admin/delivery/:tenantId?tab=web-design). Routes the four sub-tabs (Site,
@@ -17,6 +18,8 @@ export default function WebDesignTab({
   switch (activeSub) {
     case "site":
       return <SitePanel tenantId={tenantId} />;
+    case "analytics":
+      return <AnalyticsPanel tenantId={tenantId} />;
     default:
       return (
         <div className="pk-empty">We are still building this view.</div>
