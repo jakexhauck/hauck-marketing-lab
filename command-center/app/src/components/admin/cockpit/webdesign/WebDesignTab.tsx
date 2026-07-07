@@ -1,4 +1,5 @@
 import SitePanel from "./SitePanel";
+import PagesPanel from "./PagesPanel";
 import AnalyticsPanel from "./AnalyticsPanel";
 
 // Web Design service tab inside the Fulfillment cockpit
@@ -18,6 +19,8 @@ export default function WebDesignTab({
   switch (activeSub) {
     case "site":
       return <SitePanel tenantId={tenantId} />;
+    case "pages":
+      return <PagesPanel tenantId={tenantId} />;
     case "analytics":
       return <AnalyticsPanel tenantId={tenantId} />;
     default:
