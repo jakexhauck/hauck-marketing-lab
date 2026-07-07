@@ -9,6 +9,7 @@ import {
   Tag,
 } from "lucide-react";
 import Shell from "../components/Shell";
+import ContactDetailDesktop from "../components/contacts/ContactDetailDesktop";
 import NavyHero from "../components/NavyHero";
 import { HeroIconButton } from "../components/HeroUi";
 import BackButton from "../components/BackButton";
@@ -81,7 +82,7 @@ export default function ContactDetail() {
   if (!contact && pending) {
     return (
       <Shell>
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col lg:hidden">
           <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
             <BackButton to="/contacts" label="Contacts" />
           </header>
@@ -97,6 +98,9 @@ export default function ContactDetail() {
             <Skeleton className="h-40 w-full rounded-2xl" />
           </div>
         </div>
+        <div className="hidden min-h-0 flex-1 lg:flex">
+          <ContactDetailDesktop />
+        </div>
       </Shell>
     );
   }
@@ -104,7 +108,7 @@ export default function ContactDetail() {
   if (!contact) {
     return (
       <Shell>
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col lg:hidden">
           <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
             <BackButton to="/contacts" label="Contacts" />
           </header>
@@ -117,6 +121,9 @@ export default function ContactDetail() {
             </p>
           </div>
         </div>
+        <div className="hidden min-h-0 flex-1 lg:flex">
+          <ContactDetailDesktop />
+        </div>
       </Shell>
     );
   }
@@ -128,7 +135,7 @@ export default function ContactDetail() {
 
   return (
     <Shell>
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
         <NavyHero>
           <div className="flex items-center justify-between">
             <HeroIconButton
@@ -318,6 +325,9 @@ export default function ContactDetail() {
             </section>
           )}
         </div>
+      </div>
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <ContactDetailDesktop />
       </div>
     </Shell>
   );
