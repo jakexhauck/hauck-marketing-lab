@@ -48,9 +48,9 @@ export const SERVICE_TABS: ServiceTabDef[] = [
   {
     id: "web-design",
     label: "Web Design",
-    ready: false,
+    ready: true,
     subTabs: [
-      { id: "site", label: "Site", ready: false },
+      { id: "site", label: "Site", ready: true },
       { id: "pages", label: "Pages", ready: false },
       { id: "change-requests", label: "Change Requests", ready: false },
       { id: "analytics", label: "Analytics", ready: false },
