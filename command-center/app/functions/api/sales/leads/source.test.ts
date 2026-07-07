@@ -20,4 +20,10 @@ describe("classifySource", () => {
     expect(classifySource(null)).toBe("form");
     expect(classifySource(undefined)).toBe("form");
   });
+
+  it("does not false-positive on ordinary words containing fb/ig", () => {
+    expect(classifySource("Signup Form")).toBe("form");
+    expect(classifySource("Digital Form")).toBe("form");
+    expect(classifySource("Original Inquiry")).toBe("form");
+  });
 });
