@@ -22,6 +22,12 @@ export interface WebsiteAnalytics {
   visitorsThisMonth: number;
   visitorsLastMonth: number;
   deltaPct: number | null;
+  newUsers: number;
+  returningUsers: number;
+  engagementRate: number;
+  devices: { label: string; pct: number }[];
+  cities: { label: string; visitors: number }[];
+  busiestDay: string | null;
   avgTimeOnSiteSec: number;
   pageViews: number;
   topPage: AnalyticsTopPage | null;

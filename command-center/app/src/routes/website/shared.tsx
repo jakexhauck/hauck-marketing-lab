@@ -484,6 +484,38 @@ export interface EngagementMetric {
 export const SAMPLE_ESTIMATE_FORM: EngagementMetric = { thisMonth: 14, lastMonth: 11, deltaPct: 27 };
 export const SAMPLE_CHAT_WIDGET: EngagementMetric = { thisMonth: 22, lastMonth: 19, deltaPct: 16 };
 
+// Device mix (Insights). Real sessions read WebsiteAnalytics.devices from GA4.
+export interface DeviceSplit {
+  label: string;
+  pct: number;
+}
+export const SAMPLE_DEVICES: DeviceSplit[] = [
+  { label: "Phone", pct: 63 },
+  { label: "Desktop", pct: 31 },
+  { label: "Tablet", pct: 6 },
+];
+
+// Top towns (Insights). Real sessions read WebsiteAnalytics.cities from GA4.
+export interface CityVisitors {
+  label: string;
+  visitors: number;
+}
+export const SAMPLE_CITIES: CityVisitors[] = [
+  { label: "Rivertown", visitors: 512 },
+  { label: "Millbrook", visitors: 208 },
+  { label: "Fairview", visitors: 156 },
+  { label: "Oakdale", visitors: 121 },
+  { label: "Lakeside", visitors: 88 },
+];
+
+// Scalar Insights fixtures (demo only). Real values come from WebsiteAnalytics.
+export const SAMPLE_BUSIEST_DAY = "Saturday";
+export const SAMPLE_ENGAGEMENT_RATE = 58;
+export const SAMPLE_NEW_USERS = 892;
+export const SAMPLE_RETURNING_USERS = 348;
+export const SAMPLE_AVG_TIME_SEC = 72;
+export const SAMPLE_PAGE_VIEWS = 3120;
+
 // The client's site pages (Pages master-detail). `key` feeds SiteMock content.
 export type SitePageKey = "home" | "services" | "about" | "reviews" | "contact" | "book";
 
