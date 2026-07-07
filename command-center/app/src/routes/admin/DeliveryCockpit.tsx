@@ -4,6 +4,7 @@ import { ChevronLeft, Eye, UserCog } from "lucide-react";
 import DeliveryRoster from "../../components/admin/DeliveryRoster";
 import ClientConfigPanel from "../../components/admin/ClientConfigPanel";
 import OverviewTab from "../../components/admin/cockpit/OverviewTab";
+import WebDesignTab from "../../components/admin/cockpit/webdesign/WebDesignTab";
 import { useAuth } from "../../context/AuthContext";
 import { useAdminClientDetailQuery } from "../../hooks/useApi";
 import { healthLabel } from "../../lib/deliveryRoster";
@@ -177,6 +178,8 @@ export default function DeliveryCockpit() {
             />
           ) : activeService === "config" ? (
             <ClientConfigPanel tenantId={tenantId} />
+          ) : activeService === "web-design" ? (
+            <WebDesignTab tenantId={tenantId} activeSub={activeSub ?? "site"} />
           ) : (
             <div className="pk-empty">
               {placeholderCopy(
