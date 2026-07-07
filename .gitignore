@@ -86,3 +86,4 @@ app/src-tauri/src/supabase_secrets.rs
 
 # local GitHub token, never commit
 scripts/.gh_token
+.worktrees/
