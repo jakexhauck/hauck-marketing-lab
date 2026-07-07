@@ -311,6 +311,10 @@ export interface AdminClientDetail {
   wonLabel: string;
   valueLabel: string;
   ghlLocationId: string;
+  metaAdAccountId: string | null;
+  googlePlaceId: string | null;
+  ga4PropertyId: string | null;
+  websiteUrl: string | null;
   subdomain: string | null;
   ownerPasswordSet: boolean;
   monthlySpend: number;
