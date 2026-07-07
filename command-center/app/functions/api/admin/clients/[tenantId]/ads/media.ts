@@ -19,10 +19,14 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const tenant = await loadTenantById(client, tenantId);
   if (!tenant) return Response.json({ error: "client not found" }, { status: 404 });
 
+  // No env-account fallback on the admin surface (multi-tenant): a tenant with
+  // no meta_ad_account_id must show its honest not-connected state, never the
+  // single-tenant META_AD_ACCOUNT_ID fallback account's media under the wrong
+  // client. See the sibling insights.ts for the full rationale.
   const result = await buildAdsMedia(
     ctx.env.META_SYSTEM_USER_TOKEN,
     tenant.meta_ad_account_id,
-    ctx.env.META_AD_ACCOUNT_ID,
+    undefined,
   );
   return Response.json(result);
 };

@@ -28,7 +28,13 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   if (!tenant) return Response.json({ error: "client not found" }, { status: 404 });
 
   const token = ctx.env.META_SYSTEM_USER_TOKEN;
-  let account = resolveAdAccount(tenant.meta_ad_account_id ?? undefined, ctx.env.META_AD_ACCOUNT_ID);
+  // No env-account fallback on the admin surface. The client endpoints use
+  // META_AD_ACCOUNT_ID as a single-tenant fallback, but the admin cockpit is
+  // multi-tenant: falling back here would render the fallback account's real
+  // spend/leads under any tenant that has no meta_ad_account_id, mislabeling one
+  // client's data as another and hiding the honest not-connected state. So a
+  // tenant with no account of its own is correctly treated as not connected.
+  let account = resolveAdAccount(tenant.meta_ad_account_id ?? undefined, undefined);
   if (!token || !account) {
     // Full empty shape (not a bare { configured: false }), matching the client
     // endpoint byte-for-byte, so no Paid Ads tab can crash on a missing field
