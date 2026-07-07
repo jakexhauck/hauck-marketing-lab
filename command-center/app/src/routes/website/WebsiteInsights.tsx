@@ -1,10 +1,24 @@
-import { Search, Smartphone, BarChart3, FileText, MessagesSquare } from "lucide-react";
+import {
+  Search,
+  Smartphone,
+  BarChart3,
+  FileText,
+  MessagesSquare,
+  Clock,
+  Eye,
+  UserPlus,
+  Repeat,
+  Target,
+  Monitor,
+  MapPin,
+  CalendarDays,
+} from "lucide-react";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { WEBSITE_TABS } from "../../lib/pageTabs";
 import { Panel, EmptyState } from "../../components/ui";
 import { demoMode } from "../../demo/demoMode";
-import { useWebsiteAnalytics } from "../../hooks/useWebsiteAnalytics";
+import { useWebsiteAnalytics, formatDuration } from "../../hooks/useWebsiteAnalytics";
 import { useWebsiteEngagement } from "../../hooks/useWebsiteEngagement";
 import {
   WEBSITE_CONTAINER,
@@ -15,8 +29,19 @@ import {
   SAMPLE_VISITORS_LAST_MONTH,
   SAMPLE_ESTIMATE_FORM,
   SAMPLE_CHAT_WIDGET,
+  SAMPLE_TOP_PAGES,
+  SAMPLE_DEVICES,
+  SAMPLE_CITIES,
+  SAMPLE_BUSIEST_DAY,
+  SAMPLE_ENGAGEMENT_RATE,
+  SAMPLE_NEW_USERS,
+  SAMPLE_RETURNING_USERS,
+  SAMPLE_AVG_TIME_SEC,
+  SAMPLE_PAGE_VIEWS,
   type TrafficSource,
   type EngagementMetric,
+  type DeviceSplit,
+  type CityVisitors,
 } from "./shared";
 
 // Website > What's working. A plain-English read on how the live site is doing:
@@ -71,7 +96,34 @@ export default function WebsiteInsights() {
   const lastMonth = demo ? SAMPLE_VISITORS_LAST_MONTH : aConnected ? a!.visitorsLastMonth : 0;
   const trend = demo ? SAMPLE_TREND : aConnected ? a!.trend : [];
   const sources: TrafficSource[] = demo ? SAMPLE_SOURCES : aConnected ? a!.sources : [];
-  const topPage = aConnected ? a?.topPage ?? null : null;
+
+  // New Insights values: demo shows fixtures, a connected session shows GA4, an
+  // unconnected real session shows zeros / empties (never fabricated).
+  const avgTimeSec = demo ? SAMPLE_AVG_TIME_SEC : aConnected ? a!.avgTimeOnSiteSec : 0;
+  const pageViews = demo ? SAMPLE_PAGE_VIEWS : aConnected ? a!.pageViews : 0;
+  const engagementRate = demo ? SAMPLE_ENGAGEMENT_RATE : aConnected ? a!.engagementRate : 0;
+  const newUsers = demo ? SAMPLE_NEW_USERS : aConnected ? a!.newUsers : 0;
+  const returningUsers = demo ? SAMPLE_RETURNING_USERS : aConnected ? a!.returningUsers : 0;
+  const devices: DeviceSplit[] = demo ? SAMPLE_DEVICES : aConnected ? a!.devices : [];
+  const cities: CityVisitors[] = demo ? SAMPLE_CITIES : aConnected ? a!.cities : [];
+  const busiestDay = demo ? SAMPLE_BUSIEST_DAY : aConnected ? a!.busiestDay : null;
+
+  // Most-visited pages: a normalized { label, views }[] for the list panel.
+  const topPagesList: { label: string; views: number }[] = demo
+    ? SAMPLE_TOP_PAGES.map((p) => ({ label: p.name, views: p.views }))
+    : aConnected
+      ? (a?.topPages ?? []).map((p) => ({ label: p.label, views: p.views }))
+      : [];
+
+  // Share of visitors who are first-time.
+  const totalUsers = newUsers + returningUsers;
+  const newPct = totalUsers > 0 ? Math.round((newUsers / totalUsers) * 100) : 0;
+
+  // Visitor-to-lead rate: needs both GA4 visitors and the lead pipeline. Null
+  // (card hidden) when either is missing or there are no visitors yet.
+  const leadsTotal = estimateForm.thisMonth + chatWidget.thisMonth;
+  const leadRate =
+    show && engagementShow && visitors > 0 ? (leadsTotal / visitors) * 100 : null;
 
   // Trend bars are heights relative to the tallest bucket, so any scale reads.
   const maxTrend = Math.max(1, ...trend);
@@ -134,6 +186,24 @@ export default function WebsiteInsights() {
           </div>
         </Panel>
 
+        {/* KPI strip: the plain-English numbers behind the headline. */}
+        {show && (
+          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <KpiCard icon={Clock} label="Avg time on site" value={formatDuration(avgTimeSec)} />
+            <KpiCard icon={Eye} label="Page views" value={pageViews.toLocaleString()} />
+            <KpiCard icon={Target} label="Engaged visitors" value={`${engagementRate}%`} />
+            <KpiCard icon={UserPlus} label="New visitors" value={`${newPct}%`} />
+            {leadRate != null && (
+              <KpiCard
+                icon={Repeat}
+                label="Visitors who reached out"
+                value={`${leadRate.toFixed(1)}%`}
+                brand
+              />
+            )}
+          </div>
+        )}
+
         {/* Engagement: what visitors did (estimate requests + website chats). */}
         {engagementShow && (
           <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -180,35 +250,97 @@ export default function WebsiteInsights() {
                 )}
               </Panel>
 
-              <Panel
-                className="border-transparent p-5 text-white shadow-brand"
-                style={{ background: "var(--grad-brand)" }}
-              >
-                <div className="label-cap text-white/80">Top performing page</div>
-                {demo ? (
-                  <>
-                    <h3 className="mb-1.5 mt-2 font-display text-[22px] font-bold tracking-[-0.02em] text-white">
-                      Services
-                    </h3>
-                    <p className="text-[13px] leading-relaxed text-white/90">
-                      Your Services page turns visitors into booked jobs better than any other page,
-                      about 4.2% of people who land there reach out. Keep sending traffic to it.
-                    </p>
-                  </>
+              <Panel className="p-5">
+                <h3 className="mb-4 font-display text-[15px] text-text">Most-visited pages</h3>
+                {topPagesList.length > 0 ? (
+                  <ul className="flex flex-col">
+                    {topPagesList.map((p, i) => (
+                      <li
+                        key={`${p.label}-${i}`}
+                        className="flex items-center justify-between border-b border-divider py-2.5 last:border-b-0"
+                      >
+                        <span className="flex items-center gap-2.5 text-[13.5px] text-text">
+                          <span className="font-data text-[12px] tnum text-faint">{i + 1}</span>
+                          {p.label}
+                        </span>
+                        <span className="font-data text-[13px] font-semibold tnum text-muted">
+                          {p.views.toLocaleString()} views
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
-                  <>
-                    <h3 className="mb-1.5 mt-2 font-display text-[22px] font-bold tracking-[-0.02em] text-white">
-                      {topPage?.label ?? "Not enough data yet"}
-                    </h3>
-                    <p className="text-[13px] leading-relaxed text-white/90">
-                      {topPage
-                        ? `Your most-visited page this month, with ${topPage.views.toLocaleString()} views. Keep sending traffic to it.`
-                        : "Once more visitors land on your site, your best page will show here."}
-                    </p>
-                  </>
+                  <p className="text-[13px] text-muted">No page views recorded yet this month.</p>
                 )}
               </Panel>
             </div>
+
+            {/* Devices + top towns. */}
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <Panel className="p-5">
+                <h3 className="mb-4 flex items-center gap-2 font-display text-[15px] text-text">
+                  <Monitor size={16} className="text-brand" />
+                  What people visit on
+                </h3>
+                {devices.length > 0 ? (
+                  <div className="flex flex-col gap-3.5">
+                    {devices.map((d) => (
+                      <div key={d.label}>
+                        <div className="mb-1.5 flex items-center justify-between text-[13px]">
+                          <span className="text-text">{d.label}</span>
+                          <span className="font-data font-semibold tnum text-muted">{d.pct}%</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-2)]">
+                          <div
+                            className="h-full rounded-full"
+                            style={{ width: `${d.pct}%`, background: "var(--grad-brand)" }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-muted">No device data yet this month.</p>
+                )}
+              </Panel>
+
+              <Panel className="p-5">
+                <h3 className="mb-4 flex items-center gap-2 font-display text-[15px] text-text">
+                  <MapPin size={16} className="text-brand" />
+                  Where your visitors are
+                </h3>
+                {cities.length > 0 ? (
+                  <ul className="flex flex-col">
+                    {cities.map((c, i) => (
+                      <li
+                        key={`${c.label}-${i}`}
+                        className="flex items-center justify-between border-b border-divider py-2.5 last:border-b-0"
+                      >
+                        <span className="text-[13.5px] text-text">{c.label}</span>
+                        <span className="font-data text-[13px] font-semibold tnum text-muted">
+                          {c.visitors.toLocaleString()}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[13px] text-muted">No location data yet this month.</p>
+                )}
+              </Panel>
+            </div>
+
+            {/* Busiest day callout. */}
+            {busiestDay && (
+              <Panel className="mt-4 flex items-center gap-3 p-5">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-brand-tint text-brand-text">
+                  <CalendarDays size={19} />
+                </div>
+                <div className="text-[14px] text-text">
+                  <span className="font-semibold">{busiestDay}</span> is your busiest day. It is a
+                  good day to post and to be ready for calls.
+                </div>
+              </Panel>
+            )}
 
             {/* Plain-English takeaways: demo only (narrated, not measured). */}
             {demo && (
@@ -278,6 +410,35 @@ function EngagementCard({
         )}
       </div>
       <div className="mt-2 text-[13px] text-muted">{sub}</div>
+    </Panel>
+  );
+}
+
+// A single KPI-strip stat: an icon, a big number, and a plain-English label.
+function KpiCard({
+  icon: Icon,
+  label,
+  value,
+  brand,
+}: {
+  icon: typeof Clock;
+  label: string;
+  value: string;
+  brand?: boolean;
+}) {
+  return (
+    <Panel className="p-4">
+      <div className="flex items-center gap-2 text-[12.5px] text-muted">
+        <Icon size={15} className={brand ? "shrink-0 text-brand" : "shrink-0 text-faint"} />
+        <span>{label}</span>
+      </div>
+      <div
+        className={`mt-2 font-display text-[24px] font-black leading-none tracking-tight tnum ${
+          brand ? "text-brand-text" : "text-text"
+        }`}
+      >
+        {value}
+      </div>
     </Panel>
   );
 }
