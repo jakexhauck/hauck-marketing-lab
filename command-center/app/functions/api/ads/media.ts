@@ -45,17 +45,46 @@ async function graphGet(
   return (await res.json()) as Record<string, unknown>;
 }
 
+// Follow Meta's cursor paging so an account with more than one page of media
+// (limit 200) returns its WHOLE library, not just the first page. Capped at
+// MAX_PAGES so a runaway account can't hang the request.
+const MAX_PAGES = 10;
+
+async function graphGetAll(
+  token: string,
+  path: string,
+  params: Record<string, string>,
+): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = [];
+  let next: string | null = null;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    let resp: Record<string, unknown>;
+    if (next) {
+      const res = await fetch(next);
+      if (!res.ok) break;
+      resp = (await res.json()) as Record<string, unknown>;
+    } else {
+      resp = await graphGet(token, path, params);
+    }
+    const data = (resp.data as Record<string, unknown>[]) ?? [];
+    rows.push(...data);
+    const paging = (resp.paging ?? {}) as { next?: string };
+    if (!paging.next) break;
+    next = paging.next;
+  }
+  return rows;
+}
+
 function str(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
 
 async function fetchImages(token: string, account: string): Promise<MediaItem[]> {
   try {
-    const resp = await graphGet(token, `/${account}/adimages`, {
+    const rows = await graphGetAll(token, `/${account}/adimages`, {
       fields: "hash,name,url,permalink_url",
       limit: "200",
     });
-    const rows = (resp.data as Record<string, unknown>[]) ?? [];
     return rows
       .map((row) => {
         const url = str(row.url) || str(row.permalink_url);
@@ -75,11 +104,10 @@ async function fetchImages(token: string, account: string): Promise<MediaItem[]>
 
 async function fetchVideos(token: string, account: string): Promise<MediaItem[]> {
   try {
-    const resp = await graphGet(token, `/${account}/advideos`, {
+    const rows = await graphGetAll(token, `/${account}/advideos`, {
       fields: "id,title,picture,permalink_url",
       limit: "200",
     });
-    const rows = (resp.data as Record<string, unknown>[]) ?? [];
     return rows.map((row) => {
       const thumb = str(row.picture);
       return {

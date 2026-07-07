@@ -103,15 +103,6 @@ export default function AdsOverview() {
         {!configured && (
           <NotConnectedNotice message="To see your real ad results, what you spent, the leads it brought in, and the jobs booked, we still need to connect your Meta ad account." />
         )}
-        {configured && !populated && (
-          <Panel className="mb-4 flex items-start gap-3 border-brand/30 bg-brand-tint p-4">
-            <BarChart3 size={20} className="mt-0.5 shrink-0 text-brand-text" />
-            <div className="flex-1 text-[13px] leading-snug text-text">
-              Your ad account is connected. Your spend, leads and results will show up here
-              the moment your campaigns start running.
-            </div>
-          </Panel>
-        )}
 
         {/* Stat tiles */}
         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
@@ -168,7 +159,7 @@ export default function AdsOverview() {
               </div>
             ) : (
               <div className="py-8">
-                <EmptyState icon={<BarChart3 size={22} />} title="No leads yet" description="Your weekly leads show up here once your ads are running." />
+                <EmptyState icon={<BarChart3 size={22} />} title="No leads yet" description="Your weekly leads land here as they come in." />
               </div>
             )}
           </Panel>
