@@ -9,7 +9,7 @@ import { PipelinesProvider } from "./context/PipelinesContext";
 import Login from "./routes/Login";
 import Home from "./routes/Home";
 import AllFeatures from "./routes/AllFeatures";
-import Leads from "./routes/Leads";
+import LeadsPipelinePage from "./routes/sales/LeadsPipelinePage";
 import LeadsOrganic from "./routes/sales/LeadsOrganic";
 import LeadsPaidAds from "./routes/sales/LeadsPaidAds";
 import Jobs from "./routes/sales/Jobs";
@@ -269,12 +269,21 @@ export default function App() {
               />
               {/* The old standalone /leads board now lands on the Pipeline tab. */}
               <Route path="/leads" element={<Navigate to="/sales/leads" replace />} />
-              {/* Section root = Pipeline (the interactive board), the default tab. */}
+              {/* Section root = Sales pipeline board (the default tab). */}
               <Route
                 path="/sales/leads"
                 element={
                   <ProtectedRoute>
-                    <Leads />
+                    <LeadsPipelinePage kind="sales" />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Trash = the dead-lead pipeline board. */}
+              <Route
+                path="/sales/leads/trash"
+                element={
+                  <ProtectedRoute>
+                    <LeadsPipelinePage kind="trash" />
                   </ProtectedRoute>
                 }
               />

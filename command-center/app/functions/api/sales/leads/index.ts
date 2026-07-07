@@ -5,29 +5,24 @@ import {
   shapeOpportunity,
   type ApiLead,
   type GhlContext,
-  type GhlOpportunity,
 } from "../../../lib/ghl";
 import { readJsonBody } from "../../../lib/body";
 import { resolveStageByName, createOpportunity } from "../../lib/writes";
+import { classifySource, type LeadSource } from "./source";
 
-// GET /api/sales/leads: the merged "Leads" feed. Every opportunity in the Paid
-// Ad's Pipeline plus the Organic Pipeline, each tagged with a channel `source`
-// ("ad" | "form" | "chat") and a friendly `status` derived from its real GHL
-// stage, newest activity first.
+// GET /api/sales/leads: the unified "Leads" feed. Every opportunity in the
+// consolidated Sales pipeline, each tagged with a channel `source`
+// ("ad" | "form" | "chat") via the Task 6 classifier and a friendly `status`
+// derived from its real GHL stage, newest activity first.
 //
-// Both pipelines are resolved BY NAME per tenant (ids differ per client), exact
-// match first then contains, mirroring functions/api/reviews. Hardcoded ids are
-// only last-resort fallbacks for the known Willis template.
+// The pipeline is resolved BY NAME per tenant (ids differ per client), exact
+// match first then contains, mirroring functions/api/reviews. A hardcoded id
+// is only a last-resort fallback for the known Willis template.
 
-const PAID_NAME = "paid ad's pipeline";
-const PAID_CONTAINS = "paid ad";
-const PAID_FALLBACK_ID = "uz0fFxCgiwdXbg4Zmwkc";
+const SALES_NAME = "sales";
+const SALES_CONTAINS = "sales";
+const SALES_FALLBACK_ID = "6o9Gx6e0TXRFJdln5d01";
 
-const ORGANIC_NAME = "organic pipeline";
-const ORGANIC_CONTAINS = "organic";
-const ORGANIC_FALLBACK_ID = "NSkPBlP8BcPTtyibNEIu";
-
-export type LeadSource = "ad" | "form" | "chat";
 export type LeadStatus = "new" | "working" | "booked" | "won" | "cold";
 
 interface PipelinesResponse {
@@ -60,8 +55,8 @@ function normStage(s: string): string {
     .trim();
 }
 
-// Real GHL stage name -> friendly status. Covers both the Paid Ad's and Organic
-// pipelines; shared names ("Lead In", "No Answer", ...) map consistently.
+// Real GHL stage name -> friendly status, covering every stage of the
+// consolidated Sales pipeline.
 const STAGE_STATUS: Record<string, LeadStatus> = {
   "lead in": "new",
   "lead in no appointment booked": "new",
@@ -76,16 +71,18 @@ const STAGE_STATUS: Record<string, LeadStatus> = {
   "estimate completed/quote given": "working",
   "follow up - not ready": "cold",
   "no show": "cold",
+  "missed call - contact": "new",
+  "intro call confirmed": "booked",
+  "job booked": "booked",
+  "job completed": "won",
+  "estimate completed": "working",
+  "follow up": "working",
+  "no-close": "cold",
+  "abandoned": "cold",
 };
 
 function statusForStage(stageName: string): LeadStatus {
   return STAGE_STATUS[normStage(stageName)] ?? "working";
-}
-
-// Organic leads split into "form" vs "chat" by their source string; a source
-// containing "chat" is the website chat widget, everything else is a form.
-function organicSource(o: GhlOpportunity): LeadSource {
-  return norm(o.source ?? "").includes("chat") ? "chat" : "form";
 }
 
 function resolve(
@@ -113,31 +110,16 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     `/opportunities/pipelines?locationId=${encodeURIComponent(t.ghl_location_id)}`,
   );
   const pipes = pipeData.pipelines ?? [];
-  const paid = resolve(pipes, PAID_NAME, PAID_CONTAINS, PAID_FALLBACK_ID);
-  const organic = resolve(pipes, ORGANIC_NAME, ORGANIC_CONTAINS, ORGANIC_FALLBACK_ID);
+  const sales = resolve(pipes, SALES_NAME, SALES_CONTAINS, SALES_FALLBACK_ID);
 
   const leads: ApiSalesLead[] = [];
-
-  if (paid) {
-    const opps = await fetchAllOpportunities(gctx, { pipelineId: paid.pipelineId });
+  if (sales) {
+    const opps = await fetchAllOpportunities(gctx, { pipelineId: sales.pipelineId });
     for (const o of opps) {
-      const stageName = paid.stageNames.get(o.pipelineStageId ?? "") ?? "";
+      const stageName = sales.stageNames.get(o.pipelineStageId ?? "") ?? "";
       leads.push({
         ...shapeOpportunity(o),
-        source: "ad",
-        status: statusForStage(stageName),
-        stageName,
-      });
-    }
-  }
-
-  if (organic) {
-    const opps = await fetchAllOpportunities(gctx, { pipelineId: organic.pipelineId });
-    for (const o of opps) {
-      const stageName = organic.stageNames.get(o.pipelineStageId ?? "") ?? "";
-      leads.push({
-        ...shapeOpportunity(o),
-        source: organicSource(o),
+        source: classifySource(o.source),
         status: statusForStage(stageName),
         stageName,
       });
@@ -151,7 +133,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   return Response.json({
     leads,
     total: leads.length,
-    configError: !paid && !organic ? "pipeline_not_found" : undefined,
+    configError: !sales ? "pipeline_not_found" : undefined,
   });
 };
 
