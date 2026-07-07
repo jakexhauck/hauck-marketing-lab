@@ -26,6 +26,7 @@ import {
 } from "../lib/api";
 import { type Job } from "../lib/jobsPipeline";
 import { type WebsiteAnalytics } from "./useWebsiteAnalytics";
+import { type WebsiteSite, type WebsitePageItem } from "./useWebsitePages";
 
 // Tenant display config (branding, labels, real spend). Changes rarely; a
 // long staleTime avoids refetching it on every screen.
@@ -277,6 +278,22 @@ export function useAdminWebsiteAnalyticsQuery(tenantId: string, enabled = true) 
     staleTime: 60_000,
     queryFn: () =>
       api<WebsiteAnalytics>(`/api/admin/clients/${tenantId}/website/analytics`),
+  });
+}
+
+// One client's live site pages (from their GHL Sites) for the Fulfillment
+// cockpit's Web Design > Pages panel, from GET
+// /api/admin/clients/:tenantId/website/pages. `unavailable` when GHL could not
+// be read; the panel joins each path onto the client's website_url to preview.
+export function useAdminWebsitePagesQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "clients", tenantId, "website", "pages"],
+    enabled: enabled && !!tenantId,
+    staleTime: 5 * 60_000,
+    queryFn: () =>
+      api<{ site: WebsiteSite | null; pages: WebsitePageItem[]; unavailable?: boolean }>(
+        `/api/admin/clients/${tenantId}/website/pages`,
+      ),
   });
 }
 
