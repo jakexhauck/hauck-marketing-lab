@@ -1,5 +1,10 @@
 import type { Env, ApiData } from "../../lib/env";
-import { parseServiceAccount, batchRunReports, type ReportResponse } from "../../lib/ga4";
+import {
+  parseServiceAccount,
+  batchRunReports,
+  type ReportResponse,
+  type ReportRequest,
+} from "../../lib/ga4";
 
 // Website > Overview + Insights real numbers, from the client's GA4 property via
 // the Data API. The service-account key (GA4_SA_JSON) is one shared agency
@@ -49,7 +54,10 @@ export interface WebsiteAnalytics {
   busiestDay: string | null;
 }
 
-const NOT_CONNECTED: WebsiteAnalytics = {
+// Exported so the admin-tenant endpoint
+// (functions/api/admin/clients/[tenantId]/website/analytics.ts) returns the
+// identical not-connected shape instead of duplicating it.
+export const NOT_CONNECTED_ANALYTICS: WebsiteAnalytics = {
   connected: false,
   visitorsThisMonth: 0,
   visitorsLastMonth: 0,
@@ -132,7 +140,7 @@ function num(v: string | undefined): number {
 // Compute YYYY-MM-01 for the current month and the YYYYMM keys for this/last
 // month, in UTC. GA4 dateRanges are evaluated in the property's timezone; the
 // day-level fuzz at month boundaries is immaterial to a monthly headline.
-function monthAnchors(now: Date) {
+export function monthAnchors(now: Date) {
   const y = now.getUTCFullYear();
   const m = now.getUTCMonth(); // 0-based
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -252,10 +260,73 @@ export function shapeAnalytics(reports: ReportResponse[], now: Date): WebsiteAna
   };
 }
 
+// The seven GA4 Data API reports the Website Overview + Insights read, in the
+// exact order shapeAnalytics destructures them (trend, KPIs, pages, sources,
+// devices, cities, day-of-week). Exported so the admin-tenant endpoint runs the
+// identical batch instead of duplicating the request array. `now` fixes the
+// month window; every report but the trend is scoped to the current month.
+export function ANALYTICS_REPORTS(now: Date): ReportRequest[] {
+  const { monthStart } = monthAnchors(now);
+  const thisMonth = { startDate: monthStart, endDate: "today" };
+  return [
+    // Trend + this/last month.
+    {
+      dateRanges: [{ startDate: "365daysAgo", endDate: "today" }],
+      dimensions: [{ name: "yearMonth" }],
+      metrics: [{ name: "activeUsers" }],
+    },
+    // KPIs this month.
+    {
+      dateRanges: [thisMonth],
+      metrics: [
+        { name: "averageSessionDuration" },
+        { name: "screenPageViews" },
+        { name: "activeUsers" },
+        { name: "newUsers" },
+        { name: "engagementRate" },
+      ],
+    },
+    // Top pages this month.
+    {
+      dateRanges: [thisMonth],
+      dimensions: [{ name: "pagePath" }],
+      metrics: [{ name: "screenPageViews" }],
+      orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+      limit: 5,
+    },
+    // Traffic sources this month.
+    {
+      dateRanges: [thisMonth],
+      dimensions: [{ name: "sessionDefaultChannelGroup" }],
+      metrics: [{ name: "sessions" }],
+    },
+    // Device mix this month.
+    {
+      dateRanges: [thisMonth],
+      dimensions: [{ name: "deviceCategory" }],
+      metrics: [{ name: "activeUsers" }],
+    },
+    // Top towns this month (limit high, then filter "(not set)" in shaping).
+    {
+      dateRanges: [thisMonth],
+      dimensions: [{ name: "city" }],
+      metrics: [{ name: "activeUsers" }],
+      orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+      limit: 8,
+    },
+    // Visits by day of week this month.
+    {
+      dateRanges: [thisMonth],
+      dimensions: [{ name: "dayOfWeek" }],
+      metrics: [{ name: "activeUsers" }],
+    },
+  ];
+}
+
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const propertyId = (ctx.data.tenant.ga4_property_id || ctx.env.GA4_PROPERTY_ID)?.trim();
   const sa = parseServiceAccount(ctx.env.GA4_SA_JSON);
-  if (!propertyId || !sa) return Response.json(NOT_CONNECTED);
+  if (!propertyId || !sa) return Response.json(NOT_CONNECTED_ANALYTICS);
 
   const now = new Date();
   const { monthStart } = monthAnchors(now);
@@ -266,65 +337,12 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     if (hit) return Response.json(hit as WebsiteAnalytics);
   }
 
-  const thisMonth = { startDate: monthStart, endDate: "today" };
   let reports: ReportResponse[];
   try {
-    reports = await batchRunReports(sa, propertyId, [
-      // Trend + this/last month.
-      {
-        dateRanges: [{ startDate: "365daysAgo", endDate: "today" }],
-        dimensions: [{ name: "yearMonth" }],
-        metrics: [{ name: "activeUsers" }],
-      },
-      // KPIs this month.
-      {
-        dateRanges: [thisMonth],
-        metrics: [
-          { name: "averageSessionDuration" },
-          { name: "screenPageViews" },
-          { name: "activeUsers" },
-          { name: "newUsers" },
-          { name: "engagementRate" },
-        ],
-      },
-      // Top pages this month.
-      {
-        dateRanges: [thisMonth],
-        dimensions: [{ name: "pagePath" }],
-        metrics: [{ name: "screenPageViews" }],
-        orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
-        limit: 5,
-      },
-      // Traffic sources this month.
-      {
-        dateRanges: [thisMonth],
-        dimensions: [{ name: "sessionDefaultChannelGroup" }],
-        metrics: [{ name: "sessions" }],
-      },
-      // Device mix this month.
-      {
-        dateRanges: [thisMonth],
-        dimensions: [{ name: "deviceCategory" }],
-        metrics: [{ name: "activeUsers" }],
-      },
-      // Top towns this month (limit high, then filter "(not set)" in shaping).
-      {
-        dateRanges: [thisMonth],
-        dimensions: [{ name: "city" }],
-        metrics: [{ name: "activeUsers" }],
-        orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
-        limit: 8,
-      },
-      // Visits by day of week this month.
-      {
-        dateRanges: [thisMonth],
-        dimensions: [{ name: "dayOfWeek" }],
-        metrics: [{ name: "activeUsers" }],
-      },
-    ]);
+    reports = await batchRunReports(sa, propertyId, ANALYTICS_REPORTS(now));
   } catch {
     // A GA4 outage / auth hiccup shows not-connected, never crashes the page.
-    return Response.json(NOT_CONNECTED);
+    return Response.json(NOT_CONNECTED_ANALYTICS);
   }
 
   const data = shapeAnalytics(reports, now);
