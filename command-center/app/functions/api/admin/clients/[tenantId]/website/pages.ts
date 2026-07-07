@@ -1,6 +1,6 @@
 import type { Env, ApiData } from "../../../../../lib/env";
 import { getServiceClient } from "../../../../../lib/supabase";
-import { loadTenantById } from "../../../../../lib/tenantResolve";
+import { loadTenantById, resolveGhlCreds } from "../../../../../lib/tenantResolve";
 import { ghlJson, type GhlContext } from "../../../../../lib/ghl";
 
 // Admin-tenant mirror of GET /api/website/pages for the Fulfillment cockpit
@@ -51,9 +51,16 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const tenant = await loadTenantById(client, tenantId);
   if (!tenant) return Response.json({ error: "client not found" }, { status: 404 });
 
+  // Resolve GHL creds the same way the live middleware does for the client path:
+  // the tenant's own creds once real, else the GHL_* env fallback. Reading
+  // tenant.ghl_token raw would send a placeholder ('env'/'pending') to GHL and
+  // 401 for any client not yet fully wired (the Pages "unavailable" bug).
+  const creds = resolveGhlCreds(tenant, ctx.env);
+  if (!creds) return Response.json({ site: null, pages: [], unavailable: true });
+
   const gctx: GhlContext = {
-    token: tenant.ghl_token,
-    locationId: tenant.ghl_location_id,
+    token: creds.token,
+    locationId: creds.locationId,
   };
 
   let data: FunnelListResponse;
