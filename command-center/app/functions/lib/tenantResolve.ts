@@ -147,3 +147,21 @@ export function tenantHasGhlCreds(t: Pick<TenantRow, "ghl_location_id" | "ghl_to
   };
   return !placeholder(t.ghl_location_id) && !placeholder(t.ghl_token);
 }
+
+// Resolve the GHL creds to call the API with for a tenant, mirroring the live
+// middleware (_middleware.ts): use the tenant's own creds once they are real,
+// else fall back to the GHL_* env vars (the single-tenant fallback that keeps a
+// half-set-up client working). Returns null when neither yields both a location
+// and a token. Admin-tenant endpoints MUST use this instead of reading
+// tenant.ghl_token directly, or a client whose row still holds placeholder creds
+// ('env'/'pending'/'') would send the placeholder to GHL and 401.
+export function resolveGhlCreds(
+  tenant: Pick<TenantRow, "ghl_location_id" | "ghl_token">,
+  env: Pick<Env, "GHL_LOCATION_ID" | "GHL_TOKEN">,
+): { locationId: string; token: string } | null {
+  const useTenant = tenantHasGhlCreds(tenant);
+  const locationId = useTenant ? tenant.ghl_location_id : env.GHL_LOCATION_ID;
+  const token = useTenant ? tenant.ghl_token : env.GHL_TOKEN;
+  if (!locationId || !token) return null;
+  return { locationId, token };
+}
