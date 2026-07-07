@@ -1,15 +1,15 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Megaphone, ChevronRight, Zap } from "lucide-react";
+import { Megaphone, ChevronRight } from "lucide-react";
 import Shell from "../../components/Shell";
-import PageTabs from "../../components/PageTabs";
+import PageBar from "../../components/PageBar";
 import Avatar from "../../components/Avatar";
+import EmptyState from "../../components/EmptyState";
 import { cn } from "../../lib/cn";
 import { PAGE_CONTAINER } from "../../lib/layout";
 import { LEADS_TABS } from "../../lib/pageTabs";
 import { useLeadsHub } from "../../hooks/useLeadsHub";
 import { paidAdsLeads, STATUS_META, type LeadStatus } from "../../lib/leadsHub";
-import { NotConnectedNotice } from "./shared";
 
 // Status pill colour. Booked uses a fixed sky so it reads apart from brand indigo.
 const STATUS_COLOR: Record<LeadStatus, string> = {
@@ -42,29 +42,14 @@ export default function LeadsPaidAds() {
   return (
     <Shell>
       <div className={PAGE_CONTAINER}>
-        <PageTabs tabs={LEADS_TABS} />
-        <header className="mb-4">
-          <h1 className="font-display text-[19px] font-semibold text-text">Paid Ads</h1>
-          <p className="mt-1 text-[13px] text-muted">
-            Every lead that came through your paid ads.
-          </p>
-        </header>
+        <PageBar
+          tabs={LEADS_TABS}
+          count={ads.length > 0 ? `${ads.length} ${ads.length === 1 ? "lead" : "leads"}` : undefined}
+          description="Every lead that came through your paid ads."
+        />
 
         {ads.length === 0 ? (
-          <>
-            <div className="mb-5">
-              <NotConnectedNotice message="Leads from your paid ads land here automatically once your ad accounts and phone are connected." />
-            </div>
-            <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface py-16 text-center">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-surface-2 text-faint">
-                <Zap size={22} />
-              </div>
-              <p className="mt-3 font-display text-[15px] text-text">No ad leads yet</p>
-              <p className="mt-1 max-w-xs text-[13px] text-muted">
-                When someone responds to one of your ads, they show up here ready to work.
-              </p>
-            </div>
-          </>
+          <EmptyState message="When someone responds to one of your ads, they show up here ready to work." />
         ) : (
           <>
             <div className="mb-2 flex items-baseline justify-between">
