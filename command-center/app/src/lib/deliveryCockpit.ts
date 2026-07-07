@@ -37,12 +37,12 @@ export const SERVICE_TABS: ServiceTabDef[] = [
   {
     id: "paid-ads",
     label: "Paid Ads",
-    ready: false,
+    ready: true,
     subTabs: [
       { id: "campaigns", label: "Campaigns", ready: false },
       { id: "ad-library", label: "Ad Library", ready: false },
       { id: "funnel", label: "Funnel", ready: false },
-      { id: "data-leads", label: "Data & Leads", ready: false },
+      { id: "data-leads", label: "Data & Leads", ready: true },
     ],
   },
   {

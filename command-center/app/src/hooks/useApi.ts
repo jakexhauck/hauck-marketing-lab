@@ -27,6 +27,8 @@ import {
 import { type Job } from "../lib/jobsPipeline";
 import { type WebsiteAnalytics } from "./useWebsiteAnalytics";
 import { type WebsiteSite, type WebsitePageItem } from "./useWebsitePages";
+import { normalizeAdsInsights, type AdsInsightsResponse } from "../lib/adsInsights";
+import { normalizeAdsMedia, type AdsMediaResponse } from "./useAdsMedia";
 
 // Tenant display config (branding, labels, real spend). Changes rarely; a
 // long staleTime avoids refetching it on every screen.
@@ -322,6 +324,60 @@ export function useAdminWebsiteRequestsQuery(tenantId: string, enabled = true) {
     queryFn: () =>
       api<{ requests: AdminWebsiteRequest[]; unavailable?: boolean }>(
         `/api/admin/clients/${tenantId}/website/requests`,
+      ),
+  });
+}
+
+// One client's real Meta insights for the Fulfillment cockpit's Paid Ads tab
+// (Campaigns hero + Data & Leads metrics), from GET
+// /api/admin/clients/:tenantId/ads/insights. Same shared adsCore.buildAdsInsights
+// as the client's own Overview, so `configured: false` means Meta genuinely
+// isn't wired for this tenant, not a fetch failure. `select` normalizes on read
+// (mirrors useAdsInsights) so a stale/partial cached payload can't crash a tab.
+export function useAdminAdsInsightsQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "clients", tenantId, "ads", "insights"],
+    enabled: enabled && !!tenantId,
+    staleTime: 60_000,
+    queryFn: () => api<AdsInsightsResponse>(`/api/admin/clients/${tenantId}/ads/insights`),
+    select: normalizeAdsInsights,
+  });
+}
+
+// One client's real Meta ad media library for the Fulfillment cockpit's Paid
+// Ads > Ad Library panel, from GET /api/admin/clients/:tenantId/ads/media.
+export function useAdminAdsMediaQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "clients", tenantId, "ads", "media"],
+    enabled: enabled && !!tenantId,
+    staleTime: 5 * 60_000,
+    queryFn: () => api<AdsMediaResponse>(`/api/admin/clients/${tenantId}/ads/media`),
+    select: normalizeAdsMedia,
+  });
+}
+
+// A row from GET /api/admin/clients/:tenantId/ads/leads (mirrors the client's
+// local ApiAdLeadRow in routes/paid-ads/AdsLeads.tsx: ApiLead plus the resolved
+// GHL stage name).
+export interface AdminAdLeadRow {
+  id: string;
+  name: string;
+  stageName?: string;
+  lastActivityAt: string;
+}
+
+// One client's real Paid Ad's Pipeline leads for the Fulfillment cockpit's Paid
+// Ads > Data & Leads panel, from GET /api/admin/clients/:tenantId/ads/leads.
+// `configError: "pipeline_not_found"` when this tenant has no Paid Ad's
+// Pipeline yet (honest empty, never a fabricated lead).
+export function useAdminAdsLeadsQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "clients", tenantId, "ads", "leads"],
+    enabled: enabled && !!tenantId,
+    staleTime: 60_000,
+    queryFn: () =>
+      api<{ leads: AdminAdLeadRow[]; total: number; configError?: "pipeline_not_found" }>(
+        `/api/admin/clients/${tenantId}/ads/leads`,
       ),
   });
 }

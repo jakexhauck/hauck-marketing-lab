@@ -4,6 +4,7 @@ import { ChevronLeft, Eye, UserCog } from "lucide-react";
 import DeliveryRoster from "../../components/admin/DeliveryRoster";
 import ClientConfigPanel from "../../components/admin/ClientConfigPanel";
 import OverviewTab from "../../components/admin/cockpit/OverviewTab";
+import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
 import WebDesignTab from "../../components/admin/cockpit/webdesign/WebDesignTab";
 import { useAuth } from "../../context/AuthContext";
 import { useAdminClientDetailQuery } from "../../hooks/useApi";
@@ -178,6 +179,8 @@ export default function DeliveryCockpit() {
             />
           ) : activeService === "config" ? (
             <ClientConfigPanel tenantId={tenantId} />
+          ) : activeService === "paid-ads" ? (
+            <PaidAdsTab tenantId={tenantId} activeSub={activeSub ?? "campaigns"} />
           ) : activeService === "web-design" ? (
             <WebDesignTab tenantId={tenantId} activeSub={activeSub ?? "site"} />
           ) : (
