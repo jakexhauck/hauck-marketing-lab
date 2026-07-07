@@ -69,9 +69,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       gctx,
       `/funnels/funnel/list?locationId=${encodeURIComponent(gctx.locationId)}&limit=100`,
     );
-  } catch {
+  } catch (e) {
     // Scope missing / GHL down: the panel shows its not-connected empty state.
-    return Response.json({ site: null, pages: [], unavailable: true });
+    console.error("[admin web-design pages] GHL funnels read failed:", e);
+    return Response.json({ site: null, pages: [], unavailable: true, _debug: String(e).slice(0, 400) });
   }
 
   const websites = (data.funnels ?? []).filter(
