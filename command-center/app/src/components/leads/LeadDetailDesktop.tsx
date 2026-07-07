@@ -10,13 +10,15 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/Button";
 import DesktopPage from "../desktop/DesktopPage";
-import OutcomeButton from "../OutcomeButton";
 import WonSheet from "../WonSheet";
 import MoveStageSheet from "../MoveStageSheet";
 import Avatar from "../Avatar";
-import ConversationThread from "../ConversationThread";
-import MessageComposer from "../MessageComposer";
-import { ChannelFilterProvider } from "../../context/ChannelFilterContext";
+import LeadActionRail from "./LeadActionRail";
+import LeadConversationPanel from "./LeadConversationPanel";
+import {
+  ChannelFilterProvider,
+  useChannelFilter,
+} from "../../context/ChannelFilterContext";
 import NoteList from "../NoteList";
 import TaskList from "../TaskList";
 import { useToast } from "../../context/ToastContext";
@@ -30,7 +32,7 @@ import { timeAgo } from "../../lib/timeAgo";
 import { formatMoney } from "../../lib/formatMoney";
 import { leadStageLabel } from "../../lib/stageColors";
 import { e164, formatPhone } from "../../lib/phone";
-import type { LeadActivity } from "../../types";
+import type { Lead, LeadActivity } from "../../types";
 
 // The Atelier desktop Lead detail (lg+). The phone keeps its own NavyHero
 // layout; this renders only inside `hidden lg:flex` from the LeadDetail route.
@@ -122,6 +124,38 @@ function RailPanel({
       </div>
       {children}
     </section>
+  );
+}
+
+// One-touch action rail, wired to the shared ChannelFilterContext (provided
+// by the parent) so Text/Email retarget the conversation panel beside it.
+// Mirrors the phone screen's PhoneActionRail in src/routes/LeadDetail.tsx.
+function DesktopActionRail({
+  lead,
+  wonLabel,
+  canMove,
+  onWon,
+  onMove,
+}: {
+  lead: Lead;
+  wonLabel: string;
+  canMove: boolean;
+  onWon: () => void;
+  onMove: () => void;
+}) {
+  const { select } = useChannelFilter();
+  return (
+    <LeadActionRail
+      phone={lead.phone}
+      email={lead.email}
+      canWon={lead.status !== "won"}
+      canMove={canMove}
+      wonLabel={wonLabel}
+      onText={() => select("SMS")}
+      onEmail={() => select("Email")}
+      onWon={onWon}
+      onMove={onMove}
+    />
   );
 }
 
@@ -280,6 +314,7 @@ export default function LeadDetailDesktop() {
           </span>
         }
         subtitle={subtitle}
+        flush
         actions={
           <>
             <Button variant="ghost" onClick={() => navigate("/leads")}>
@@ -305,218 +340,197 @@ export default function LeadDetailDesktop() {
           </>
         }
       >
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.5fr_1fr]">
-          {/* Left: conversation */}
-          <section className="flex min-h-[60vh] flex-col rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-            <div className="flex items-center gap-2 border-b border-divider px-6 py-4">
-              <MessageSquare size={15} className="text-muted" aria-hidden />
-              <h2 className="font-display text-[15px] font-semibold text-text">
-                Conversation
-              </h2>
-            </div>
-            <div className="flex flex-1 flex-col gap-4 p-6">
-              {session ? (
-                <ChannelFilterProvider key={lead.id}>
-                  <ConversationThread leadId={lead.id} fill />
-                  <div className="mt-auto">
-                    <MessageComposer leadId={lead.id} disabled={!hasPhone} />
-                    {!hasPhone && (
-                      <p className="mt-2 text-xs text-muted">
-                        No phone number on file. Add one to send SMS.
-                      </p>
-                    )}
-                  </div>
-                </ChannelFilterProvider>
-              ) : (
-                <p className="text-sm text-muted">
-                  Sign in to view the conversation history.
+        <ChannelFilterProvider key={lead.id}>
+          <div className="flex min-h-0 flex-1 gap-5 p-6">
+            {/* Left: contact card, action rail, details */}
+            <aside className="flex w-[340px] shrink-0 flex-col gap-4 overflow-y-auto">
+              {/* Stage + value + contact */}
+              <RailPanel title="Lead value">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-brand-tint px-3 py-1 text-[13px] font-semibold text-brand-text">
+                    {stageLabel}
+                  </span>
+                </div>
+
+                <div className="ledger mt-4 text-[2rem] leading-none">
+                  {lead.value !== null ? formatMoney(lead.value) : "$0"}
+                </div>
+                <p className="mt-1.5 text-[12.5px] text-muted">
+                  {client.pipeline.valueLabel}
                 </p>
-              )}
-            </div>
-          </section>
 
-          {/* Right: details rail */}
-          <div className="flex flex-col gap-6">
-            {/* Value (gold, money only) + contact */}
-            <RailPanel title="Lead value">
-              <div className="ledger text-[2rem] leading-none">
-                {lead.value !== null ? formatMoney(lead.value) : "$0"}
-              </div>
-              <p className="mt-1.5 text-[12.5px] text-muted">
-                {client.pipeline.valueLabel}
-              </p>
-
-              <dl className="mt-5 flex flex-col gap-3 border-t border-divider pt-4">
-                {hasPhone && (
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="label-cap">Phone</dt>
-                    <dd>
-                      <a
-                        href={`tel:${telDigits}`}
-                        className="font-data text-[13px] text-brand-text tabular-nums hover:underline"
-                      >
-                        {phoneDisplay}
-                      </a>
-                    </dd>
-                  </div>
-                )}
-                {lead.email && (
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="label-cap">Email</dt>
-                    <dd className="min-w-0">
-                      <a
-                        href={`mailto:${lead.email}`}
-                        className="block truncate text-[13px] font-medium text-brand-text hover:underline"
-                      >
-                        {lead.email}
-                      </a>
-                    </dd>
-                  </div>
-                )}
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="label-cap">Created</dt>
-                  <dd className="font-data text-[13px] text-text tabular-nums">
-                    {formatCreated(lead.createdAt)}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="label-cap">Last activity</dt>
-                  <dd className="font-data text-[13px] text-text tabular-nums">
-                    {timeAgo(lead.lastActivityAt, now)}
-                  </dd>
-                </div>
-              </dl>
-
-              {lead.tags && lead.tags.length > 0 && (
-                <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-divider pt-4">
-                  <Tag size={13} aria-hidden className="text-muted" />
-                  {lead.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-semibold text-muted"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </RailPanel>
-
-            {/* Stage + outcomes */}
-            <RailPanel title="Stage">
-              <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-2 rounded-full bg-brand-tint px-3 py-1 text-[13px] font-semibold text-brand-text">
-                  {stageLabel}
-                </span>
-              </div>
-              <div className="mt-4 flex flex-col gap-2">
-                {canMove && (
-                  <OutcomeButton
-                    variant="move"
-                    onClick={() => setMoveOpen(true)}
-                  >
-                    Move Stage
-                  </OutcomeButton>
-                )}
-                <OutcomeButton
-                  variant="won"
-                  disabled={lead.status === "won"}
-                  onClick={() => setWonOpen(true)}
-                >
-                  {`Mark ${wonLabel}`}
-                </OutcomeButton>
-                <OutcomeButton
-                  variant="lost"
-                  disabled={lead.status === "lost"}
-                  onClick={handleLost}
-                >
-                  Mark Lost
-                </OutcomeButton>
-              </div>
-            </RailPanel>
-
-            {lead.attribution &&
-              (lead.attribution.source ||
-                lead.attribution.campaign ||
-                lead.attribution.ad ||
-                lead.attribution.adset) && (
-                <RailPanel title="Attribution">
-                  <dl className="flex flex-col gap-2.5 text-sm">
-                    {(
-                      [
-                        ["Source", lead.attribution.source],
-                        ["Campaign", lead.attribution.campaign],
-                        ["Ad", lead.attribution.ad],
-                        ["Adset", lead.attribution.adset],
-                      ] as const
-                    )
-                      .filter(([, value]) => Boolean(value))
-                      .map(([label, value]) => (
-                        <div
-                          key={label}
-                          className="flex justify-between gap-3"
+                <dl className="mt-5 flex flex-col gap-3 border-t border-divider pt-4">
+                  {hasPhone && (
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="label-cap">Phone</dt>
+                      <dd>
+                        <a
+                          href={`tel:${telDigits}`}
+                          className="font-data text-[13px] text-brand-text tabular-nums hover:underline"
                         >
-                          <dt className="label-cap">{label}</dt>
-                          <dd className="break-words text-right text-[13px] font-medium text-text">
-                            {value}
-                          </dd>
-                        </div>
-                      ))}
-                  </dl>
+                          {phoneDisplay}
+                        </a>
+                      </dd>
+                    </div>
+                  )}
+                  {lead.email && (
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="label-cap">Email</dt>
+                      <dd className="min-w-0">
+                        <a
+                          href={`mailto:${lead.email}`}
+                          className="block truncate text-[13px] font-medium text-brand-text hover:underline"
+                        >
+                          {lead.email}
+                        </a>
+                      </dd>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="label-cap">Created</dt>
+                    <dd className="font-data text-[13px] text-text tabular-nums">
+                      {formatCreated(lead.createdAt)}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="label-cap">Last activity</dt>
+                    <dd className="font-data text-[13px] text-text tabular-nums">
+                      {timeAgo(lead.lastActivityAt, now)}
+                    </dd>
+                  </div>
+                </dl>
+
+                {lead.tags && lead.tags.length > 0 && (
+                  <div className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-divider pt-4">
+                    <Tag size={13} aria-hidden className="text-muted" />
+                    {lead.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center rounded-full bg-surface-2 px-2.5 py-0.5 text-[11px] font-semibold text-muted"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </RailPanel>
+
+              {/* One-touch actions, wired to the shared channel filter so
+                  Text/Email retarget the conversation panel on the right. */}
+              <DesktopActionRail
+                lead={lead}
+                wonLabel={wonLabel}
+                canMove={canMove}
+                onWon={() => setWonOpen(true)}
+                onMove={() => setMoveOpen(true)}
+              />
+
+              {lead.attribution &&
+                (lead.attribution.source ||
+                  lead.attribution.campaign ||
+                  lead.attribution.ad ||
+                  lead.attribution.adset) && (
+                  <RailPanel title="Attribution">
+                    <dl className="flex flex-col gap-2.5 text-sm">
+                      {(
+                        [
+                          ["Source", lead.attribution.source],
+                          ["Campaign", lead.attribution.campaign],
+                          ["Ad", lead.attribution.ad],
+                          ["Adset", lead.attribution.adset],
+                        ] as const
+                      )
+                        .filter(([, value]) => Boolean(value))
+                        .map(([label, value]) => (
+                          <div
+                            key={label}
+                            className="flex justify-between gap-3"
+                          >
+                            <dt className="label-cap">{label}</dt>
+                            <dd className="break-words text-right text-[13px] font-medium text-text">
+                              {value}
+                            </dd>
+                          </div>
+                        ))}
+                    </dl>
+                  </RailPanel>
+                )}
+
+              {/* Notes */}
+              <RailPanel title="Notes" icon={<MessageSquare size={14} />}>
+                {session && lead.contactId ? (
+                  <NoteList contactId={lead.contactId} onToast={showToast} />
+                ) : (
+                  <p className="text-sm text-muted">
+                    Sign in to add and view notes for this lead.
+                  </p>
+                )}
+              </RailPanel>
+
+              {/* Tasks */}
+              {session && lead.contactId && (
+                <RailPanel title="Tasks" icon={<Activity size={14} />}>
+                  <TaskList contactId={lead.contactId} onToast={showToast} />
                 </RailPanel>
               )}
 
-            {/* Notes */}
-            <RailPanel title="Notes" icon={<MessageSquare size={14} />}>
-              {session && lead.contactId ? (
-                <NoteList contactId={lead.contactId} onToast={showToast} />
-              ) : (
-                <p className="text-sm text-muted">
-                  Sign in to add and view notes for this lead.
-                </p>
-              )}
-            </RailPanel>
-
-            {/* Tasks */}
-            {session && lead.contactId && (
-              <RailPanel title="Tasks" icon={<Activity size={14} />}>
-                <TaskList contactId={lead.contactId} onToast={showToast} />
+              {/* Activity */}
+              <RailPanel title="Activity" icon={<Activity size={14} />}>
+                {activities.length === 0 ? (
+                  <p className="text-sm text-muted">No activity yet.</p>
+                ) : (
+                  <>
+                    <ul className="flex flex-col">
+                      {visibleActivities.map((entry, idx) => (
+                        <TimelineEntry
+                          key={entry.id}
+                          entry={entry}
+                          isLast={idx === visibleActivities.length - 1}
+                          wonLabel={wonLabel}
+                          now={now}
+                        />
+                      ))}
+                    </ul>
+                    {activities.length > 8 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllActivity((v) => !v)}
+                        className="text-[12px] font-semibold text-brand-text hover:underline"
+                      >
+                        {showAllActivity
+                          ? "Show recent"
+                          : `Show all (${activities.length})`}
+                      </button>
+                    )}
+                  </>
+                )}
               </RailPanel>
-            )}
+            </aside>
 
-            {/* Activity */}
-            <RailPanel title="Activity" icon={<Activity size={14} />}>
-              {activities.length === 0 ? (
-                <p className="text-sm text-muted">No activity yet.</p>
-              ) : (
-                <>
-                  <ul className="flex flex-col">
-                    {visibleActivities.map((entry, idx) => (
-                      <TimelineEntry
-                        key={entry.id}
-                        entry={entry}
-                        isLast={idx === visibleActivities.length - 1}
-                        wonLabel={wonLabel}
-                        now={now}
-                      />
-                    ))}
-                  </ul>
-                  {activities.length > 8 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAllActivity((v) => !v)}
-                      className="text-[12px] font-semibold text-brand-text hover:underline"
-                    >
-                      {showAllActivity
-                        ? "Show recent"
-                        : `Show all (${activities.length})`}
-                    </button>
-                  )}
-                </>
-              )}
-            </RailPanel>
+            {/* Right: conversation, filling the available height */}
+            <section className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-lg)] border border-border bg-surface">
+              <div className="flex items-center gap-2 border-b border-divider px-6 py-4">
+                <MessageSquare size={15} className="text-muted" aria-hidden />
+                <h2 className="font-display text-[15px] font-semibold text-text">
+                  Conversation
+                </h2>
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col p-6">
+                {session ? (
+                  <LeadConversationPanel
+                    leadId={lead.id}
+                    hasPhone={hasPhone}
+                    wrapProvider={false}
+                  />
+                ) : (
+                  <p className="text-sm text-muted">
+                    Sign in to view the conversation history.
+                  </p>
+                )}
+              </div>
+            </section>
           </div>
-        </div>
+        </ChannelFilterProvider>
       </DesktopPage>
 
       {moveOpen && leadPipeline && (
@@ -526,6 +540,15 @@ export default function LeadDetailDesktop() {
           stages={leadPipeline.stages}
           onClose={() => setMoveOpen(false)}
           onPickStage={handleMove}
+          onWon={
+            lead.status !== "won"
+              ? () => {
+                  setMoveOpen(false);
+                  setWonOpen(true);
+                }
+              : undefined
+          }
+          onLost={lead.status !== "lost" ? handleLost : undefined}
         />
       )}
 
