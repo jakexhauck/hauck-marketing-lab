@@ -382,6 +382,60 @@ export function useAdminAdsLeadsQuery(tenantId: string, enabled = true) {
   });
 }
 
+// One draft creative from the agency's internal Ad Library tracker (migration
+// 0027). This never touches Meta; it is the operator's own draft, tracked
+// per tenant. Pushing a creative live in the client's ad account is Phase 2b.
+export interface AdCreative {
+  id: string;
+  mediaRef: string | null;
+  headline: string;
+  primaryText: string;
+  status: "draft" | "approved" | "live";
+  createdBy: string | null;
+  createdAt: string;
+}
+
+// This client's Ad Library draft creatives, from GET
+// /api/admin/clients/:tenantId/ads/creatives. `unavailable: true` when the
+// 0027 migration has not been applied yet in this environment (honest empty,
+// never a fabricated row).
+export function useAdminAdsCreativesQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "clients", tenantId, "ads", "creatives"],
+    enabled: enabled && !!tenantId,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<{ creatives: AdCreative[]; unavailable?: boolean }>(
+        `/api/admin/clients/${tenantId}/ads/creatives`,
+      ),
+  });
+}
+
+export interface CreateAdCreativeInput {
+  mediaRef?: string;
+  headline: string;
+  primaryText: string;
+  status: "draft" | "approved" | "live";
+}
+
+// Logs a new draft creative for this tenant's Ad Library tracker, then
+// invalidates the creatives query so the new row shows up immediately.
+export function useCreateAdCreative(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateAdCreativeInput) =>
+      api<{ creative: AdCreative }>(`/api/admin/clients/${tenantId}/ads/creatives`, {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ["admin", "clients", tenantId, "ads", "creatives"],
+      });
+    },
+  });
+}
+
 // Command home's agency KPI row (active clients, combined spend).
 export function useAdminOverviewQuery(enabled: boolean) {
   return useQuery({
