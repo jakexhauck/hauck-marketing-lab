@@ -70,9 +70,12 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       `/funnels/funnel/list?locationId=${encodeURIComponent(gctx.locationId)}&limit=100`,
     );
   } catch (e) {
-    // Scope missing / GHL down: the panel shows its not-connected empty state.
+    // Funnels scope missing on the token, or GHL down: the panel shows its
+    // not-connected empty state. Logged (not swallowed) so the reason is
+    // recoverable from the deployment logs. A 401 "not authorized for this
+    // scope" here means the client's GHL token lacks the Funnels/Sites scope.
     console.error("[admin web-design pages] GHL funnels read failed:", e);
-    return Response.json({ site: null, pages: [], unavailable: true, _debug: String(e).slice(0, 400) });
+    return Response.json({ site: null, pages: [], unavailable: true });
   }
 
   const websites = (data.funnels ?? []).filter(
