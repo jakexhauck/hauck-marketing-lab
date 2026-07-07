@@ -297,6 +297,35 @@ export function useAdminWebsitePagesQuery(tenantId: string, enabled = true) {
   });
 }
 
+// One website change request as the admin endpoint returns it (the same wire
+// shape the client's own Request-a-Change reads).
+export interface AdminWebsiteRequest {
+  id: string;
+  page: string;
+  device: "desktop" | "mobile";
+  xPct: number;
+  yPct: number;
+  note: string;
+  status: "open" | "in_progress" | "done";
+  createdAt: string;
+}
+
+// One client's website change requests (read-only) for the Fulfillment cockpit's
+// Web Design > Change Requests panel, from GET
+// /api/admin/clients/:tenantId/website/requests. There is no admin write: Jake
+// makes the edit in GHL.
+export function useAdminWebsiteRequestsQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "clients", tenantId, "website", "requests"],
+    enabled: enabled && !!tenantId,
+    staleTime: 60_000,
+    queryFn: () =>
+      api<{ requests: AdminWebsiteRequest[]; unavailable?: boolean }>(
+        `/api/admin/clients/${tenantId}/website/requests`,
+      ),
+  });
+}
+
 // Command home's agency KPI row (active clients, combined spend).
 export function useAdminOverviewQuery(enabled: boolean) {
   return useQuery({
