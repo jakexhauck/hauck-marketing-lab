@@ -121,14 +121,20 @@ export function parseServiceAccount(raw: string | undefined): ServiceAccount | n
   }
 }
 
-// Run several GA4 reports in one HTTP call (batchRunReports, up to 5). Returns
-// the reports in request order.
-export async function batchRunReports(
-  sa: ServiceAccount,
+// Split an array into groups of at most `size`, preserving order. Used to keep
+// GA4 batchRunReports calls within the Data API's 5-reports-per-call cap.
+export function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+// Run one chunk of <=5 reports in a single :batchRunReports call.
+async function runReportChunk(
+  token: string,
   propertyId: string,
   requests: ReportRequest[],
 ): Promise<ReportResponse[]> {
-  const token = await mintToken(sa);
   const res = await fetch(`${DATA_API}/properties/${propertyId}:batchRunReports`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -140,4 +146,18 @@ export async function batchRunReports(
   }
   const json = (await res.json()) as { reports?: ReportResponse[] };
   return json.reports ?? [];
+}
+
+// Run several GA4 reports and return them in request order. The Data API caps
+// batchRunReports at 5 reports per call, so we chunk into groups of 5, run the
+// chunks in parallel, and concatenate the responses in order.
+export async function batchRunReports(
+  sa: ServiceAccount,
+  propertyId: string,
+  requests: ReportRequest[],
+): Promise<ReportResponse[]> {
+  const token = await mintToken(sa);
+  const groups = chunk(requests, 5);
+  const results = await Promise.all(groups.map((g) => runReportChunk(token, propertyId, g)));
+  return results.flat();
 }
