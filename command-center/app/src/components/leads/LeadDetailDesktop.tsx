@@ -2,10 +2,8 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Activity,
-  ArrowRight,
   ChevronLeft,
   MessageSquare,
-  Phone,
   Tag,
 } from "lucide-react";
 import { Button } from "../ui/Button";
@@ -263,21 +261,21 @@ export default function LeadDetailDesktop() {
     setWonOpen(false);
     markWon(lead.id, value);
     showToast(`Marked as ${wonLabel}, ${currencyFmt.format(value)}`);
-    navigate("/leads");
+    navigate("/sales/leads");
   };
 
   const handleLost = () => {
     setMoveOpen(false);
     markLost(lead.id);
     showToast("Marked as Lost");
-    navigate("/leads");
+    navigate("/sales/leads");
   };
 
   const handleMove = (stageId: string, stageName: string) => {
     setMoveOpen(false);
     moveStage(lead.id, stageId, stageName);
     showToast(`Moved to ${stageName}`);
-    navigate("/leads");
+    navigate("/sales/leads");
   };
 
   const telDigits = e164(lead.phone);
@@ -316,28 +314,10 @@ export default function LeadDetailDesktop() {
         subtitle={subtitle}
         flush
         actions={
-          <>
-            <Button variant="ghost" onClick={() => navigate("/leads")}>
-              <ChevronLeft size={16} />
-              Pipeline
-            </Button>
-            {hasPhone && (
-              <a
-                href={`tel:${telDigits}`}
-                aria-label={`Call ${lead.name}`}
-                className="inline-flex h-9.5 items-center gap-2 rounded-[var(--radius)] border border-border-strong bg-surface px-4 text-sm font-medium text-text transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-              >
-                <Phone size={16} aria-hidden />
-                Call
-              </a>
-            )}
-            {canMove && (
-              <Button variant="primary" onClick={() => setMoveOpen(true)}>
-                <ArrowRight size={16} />
-                Advance stage
-              </Button>
-            )}
-          </>
+          <Button variant="ghost" onClick={() => navigate("/leads")}>
+            <ChevronLeft size={16} />
+            Pipeline
+          </Button>
         }
       >
         <ChannelFilterProvider key={lead.id}>
