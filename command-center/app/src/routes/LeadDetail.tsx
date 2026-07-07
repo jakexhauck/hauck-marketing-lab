@@ -1,24 +1,15 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  Activity,
-  CheckSquare,
-  ChevronLeft,
-  Mail,
-  MessageSquare,
-  Phone,
-  Tag,
-} from "lucide-react";
+import { Activity, CheckSquare, Mail, MessageSquare, Phone, Tag } from "lucide-react";
 import Shell from "../components/Shell";
 import LeadDetailDesktop from "../components/leads/LeadDetailDesktop";
-import NavyHero from "../components/NavyHero";
-import { HeroIconButton } from "../components/HeroUi";
 import BackButton from "../components/BackButton";
-import OutcomeButton from "../components/OutcomeButton";
 import WonSheet from "../components/WonSheet";
 import MoveStageSheet from "../components/MoveStageSheet";
 import Avatar from "../components/Avatar";
 import BrandedButton from "../components/BrandedButton";
+import LeadActionRail from "../components/leads/LeadActionRail";
+import LeadConversationPanel from "../components/leads/LeadConversationPanel";
 import { useToast } from "../context/ToastContext";
 import { useNow } from "../context/NowContext";
 import { adaptApiLead, useLeads } from "../context/LeadsContext";
@@ -31,12 +22,10 @@ import { haptic } from "../lib/haptics";
 import { formatMoneyExact } from "../lib/formatMoney";
 import { leadStageLabel } from "../lib/stageColors";
 import { e164, formatPhone } from "../lib/phone";
-import ConversationThread from "../components/ConversationThread";
-import MessageComposer from "../components/MessageComposer";
-import { ChannelFilterProvider } from "../context/ChannelFilterContext";
+import { ChannelFilterProvider, useChannelFilter } from "../context/ChannelFilterContext";
 import NoteList from "../components/NoteList";
 import TaskList from "../components/TaskList";
-import type { LeadActivity } from "../types";
+import type { Lead, LeadActivity } from "../types";
 
 const currencyFmt = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -146,11 +135,9 @@ export default function LeadDetail() {
   const { client } = useClient();
   const { session } = useAuth();
   const { showToast } = useToast();
-  const now = useNow();
   const [wonOpen, setWonOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
-  const [showAllActivity, setShowAllActivity] = useState(false);
   const wonLabel = client.pipeline.wonLabel;
 
   const listLead = id ? getLead(id) : undefined;
@@ -197,7 +184,7 @@ export default function LeadDetail() {
       <Shell>
         <div className="flex min-h-0 flex-1 flex-col lg:hidden">
           <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-            <BackButton to="/leads" label="Leads" />
+            <BackButton to="/sales/leads" label="Leads" />
           </header>
           <div className="flex flex-1 items-center justify-center p-6">
             <div
@@ -218,7 +205,7 @@ export default function LeadDetail() {
       <Shell>
         <div className="flex min-h-0 flex-1 flex-col lg:hidden">
           <header className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-            <BackButton to="/leads" label="Leads" />
+            <BackButton to="/sales/leads" label="Leads" />
           </header>
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
             <h1 className="font-display text-xl font-bold text-[var(--text)]">
@@ -270,6 +257,150 @@ export default function LeadDetail() {
     showToast("Note added");
   };
 
+  const hasPhone =
+    e164(lead.phone).replace(/[^0-9]/g, "").length >= 10;
+
+  return (
+    <Shell>
+      {/* Phone layout (below lg): chat-first. The desktop client app renders
+          LeadDetailDesktop instead; both share the same query cache. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
+        {/* Compact header */}
+        <div className="flex items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+          <BackButton to="/sales/leads" label="Leads" />
+          <Avatar name={lead.name} size="sm" />
+          <div className="min-w-0 flex-1">
+            <div className="truncate font-display text-[15px] font-bold text-[var(--text)]">
+              {lead.name}
+            </div>
+            <div className="truncate text-[11.5px] text-[var(--text-muted)]">
+              {leadStageLabel(lead, wonLabel)}
+              {lead.pipelineName ? ` · ${lead.pipelineName}` : ""}
+            </div>
+          </div>
+        </div>
+
+        {/* One-touch actions + conversation share one channel filter, so
+            tapping Text/Email in the rail switches the composer below. */}
+        <ChannelFilterProvider key={lead.id}>
+          <div className="px-4 pt-3">
+            <PhoneActionRail
+              lead={lead}
+              wonLabel={wonLabel}
+              canMove={Boolean(leadPipeline && leadPipeline.stages.length > 0)}
+              onWon={() => setWonOpen(true)}
+              onMove={() => setMoveOpen(true)}
+            />
+          </div>
+
+          {/* Conversation fills the rest */}
+          {session ? (
+            <div className="flex min-h-0 flex-1 flex-col px-4 py-3">
+              <LeadConversationPanel
+                leadId={lead.id}
+                hasPhone={hasPhone}
+                wrapProvider={false}
+              />
+            </div>
+          ) : (
+            <div className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">
+              Sign in to message this lead.
+            </div>
+          )}
+        </ChannelFilterProvider>
+
+        {/* Details disclosure: contact info, attribution, notes, tasks, activity */}
+        <LeadDetailsDisclosure
+          lead={lead}
+          activities={activities}
+          session={session}
+          wonLabel={wonLabel}
+          noteDraft={noteDraft}
+          setNoteDraft={setNoteDraft}
+          onAddNote={handleAddNote}
+          showToast={showToast}
+        />
+      </div>
+
+      {/* Desktop client app (lg+): the Atelier lead detail. */}
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <LeadDetailDesktop />
+      </div>
+
+      {moveOpen && leadPipeline && (
+        <MoveStageSheet
+          leadName={lead.name}
+          currentStageId={lead.pipelineStageId}
+          stages={leadPipeline.stages}
+          onClose={() => setMoveOpen(false)}
+          onPickStage={handleMove}
+          onWon={lead.status !== "won" ? () => { setMoveOpen(false); setWonOpen(true); } : undefined}
+          onLost={lead.status !== "lost" ? handleLost : undefined}
+        />
+      )}
+
+      <WonSheet open={wonOpen} onCancel={() => setWonOpen(false)} onSave={handleWonSave} />
+    </Shell>
+  );
+}
+
+// One-touch action rail, wired to the shared ChannelFilterContext (provided
+// by the parent) so Text/Email retarget the conversation composer below.
+function PhoneActionRail({
+  lead,
+  wonLabel,
+  canMove,
+  onWon,
+  onMove,
+}: {
+  lead: Lead;
+  wonLabel: string;
+  canMove: boolean;
+  onWon: () => void;
+  onMove: () => void;
+}) {
+  const { select } = useChannelFilter();
+  return (
+    <LeadActionRail
+      phone={lead.phone}
+      email={lead.email}
+      canWon={lead.status !== "won"}
+      canMove={canMove}
+      wonLabel={wonLabel}
+      onText={() => select("SMS")}
+      onEmail={() => select("Email")}
+      onWon={onWon}
+      onMove={onMove}
+    />
+  );
+}
+
+interface LeadDetailsDisclosureProps {
+  lead: Lead;
+  activities: LeadActivity[];
+  session: { authenticated: true } | null;
+  wonLabel: string;
+  noteDraft: string;
+  setNoteDraft: (value: string) => void;
+  onAddNote: () => void;
+  showToast: (message: string) => void;
+}
+
+// The old Attribution / Notes / Tasks / Activity sections (plus the contact
+// card), tucked under a disclosure below the chat so the phone page stays
+// chat-first while every section keeps its real behavior.
+function LeadDetailsDisclosure({
+  lead,
+  activities,
+  session,
+  wonLabel,
+  noteDraft,
+  setNoteDraft,
+  onAddNote,
+  showToast,
+}: LeadDetailsDisclosureProps) {
+  const now = useNow();
+  const [showAllActivity, setShowAllActivity] = useState(false);
   const telDigits = e164(lead.phone);
   const phoneDisplay = formatPhone(lead.phone) || lead.phone;
   const hasPhone = telDigits.replace(/[^0-9]/g, "").length >= 10;
@@ -279,59 +410,11 @@ export default function LeadDetail() {
       : activities.slice(0, 8);
 
   return (
-    <Shell>
-      {/* Phone layout (below lg). The desktop client app renders
-          LeadDetailDesktop instead; both share the same query cache. */}
-      <div className="flex min-h-0 flex-1 flex-col lg:hidden">
-      <NavyHero>
-        <div className="flex items-center justify-between">
-          <HeroIconButton label="Back to leads" onClick={() => navigate("/leads")}>
-            <ChevronLeft size={20} />
-          </HeroIconButton>
-          {hasPhone && (
-            <a
-              href={`tel:${telDigits}`}
-              aria-label={`Call ${lead.name}`}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white transition-colors active:scale-[0.96]"
-              style={{ background: "rgba(255,255,255,0.14)" }}
-            >
-              <Phone size={18} />
-            </a>
-          )}
-        </div>
-
-        <div className="mt-4 flex items-center gap-4">
-          <Avatar name={lead.name} size="lg" />
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate font-display text-2xl font-bold tracking-tight text-white">
-              {lead.name}
-            </h1>
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <span
-                className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-bold text-white"
-                style={{ background: "rgba(255,255,255,0.16)" }}
-              >
-                {leadStageLabel(lead, wonLabel)}
-              </span>
-              {lead.pipelineName && (
-                <span className="text-xs text-white/60">
-                  {lead.pipelineName}
-                </span>
-              )}
-            </div>
-            {(lead.attribution?.ad || lead.attribution?.campaign) && (
-              <div className="mt-1.5 truncate text-xs text-white/60">
-                {[lead.attribution?.ad, lead.attribution?.campaign]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </div>
-            )}
-          </div>
-        </div>
-      </NavyHero>
-
-      <div className="flex flex-col gap-5 px-5 py-5">
-
+    <details className="border-t border-[var(--border)]">
+      <summary className="label-cap-strong cursor-pointer select-none px-4 py-3 text-[var(--text)]">
+        Lead details
+      </summary>
+      <div className="flex flex-col gap-5 px-4 pb-6 pt-1">
         <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
           {hasPhone && (
             <a
@@ -409,28 +492,6 @@ export default function LeadDetail() {
           </section>
         )}
 
-        {session && (
-          <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-            <div className="flex items-center gap-2">
-              <MessageSquare
-                size={14}
-                aria-hidden="true"
-                className="text-[var(--text-muted)]"
-              />
-              <h2 className="label-cap">Messages</h2>
-            </div>
-            <ChannelFilterProvider key={lead.id}>
-              <ConversationThread leadId={lead.id} />
-              <MessageComposer leadId={lead.id} disabled={!hasPhone} />
-            </ChannelFilterProvider>
-            {!hasPhone && (
-              <p className="text-xs text-[var(--text-muted)]">
-                No phone number on file. Add one to send SMS.
-              </p>
-            )}
-          </section>
-        )}
-
         <section className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
           <div className="flex items-center gap-2">
             <MessageSquare
@@ -452,7 +513,7 @@ export default function LeadDetail() {
               />
               <BrandedButton
                 variant="primary"
-                onClick={handleAddNote}
+                onClick={onAddNote}
                 disabled={noteDraft.trim().length === 0}
                 className="self-start"
               >
@@ -515,52 +576,7 @@ export default function LeadDetail() {
             </>
           )}
         </section>
-
-        <section className="flex flex-col gap-3">
-          <h2 className="label-cap-strong px-1">Mark outcome</h2>
-          <OutcomeButton
-            variant="won"
-            disabled={lead.status === "won"}
-            onClick={() => setWonOpen(true)}
-          >
-            {`Mark ${wonLabel}`}
-          </OutcomeButton>
-          <OutcomeButton
-            variant="lost"
-            disabled={lead.status === "lost"}
-            onClick={handleLost}
-          >
-            Mark Lost
-          </OutcomeButton>
-          {leadPipeline && leadPipeline.stages.length > 0 && (
-            <OutcomeButton
-              variant="move"
-              disabled={false}
-              onClick={() => setMoveOpen(true)}
-            >
-              Move Stage
-            </OutcomeButton>
-          )}
-        </section>
       </div>
-      </div>
-
-      {/* Desktop client app (lg+): the Atelier lead detail. */}
-      <div className="hidden min-h-0 flex-1 lg:flex">
-        <LeadDetailDesktop />
-      </div>
-
-      {moveOpen && leadPipeline && (
-        <MoveStageSheet
-          leadName={lead.name}
-          currentStageId={lead.pipelineStageId}
-          stages={leadPipeline.stages}
-          onClose={() => setMoveOpen(false)}
-          onPickStage={handleMove}
-        />
-      )}
-
-      <WonSheet open={wonOpen} onCancel={() => setWonOpen(false)} onSave={handleWonSave} />
-    </Shell>
+    </details>
   );
 }
