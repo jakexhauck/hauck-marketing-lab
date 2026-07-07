@@ -216,7 +216,7 @@ export default function LeadDetailDesktop() {
       <DesktopPage
         title="Lead"
         actions={
-          <Button variant="secondary" onClick={() => navigate("/leads")}>
+          <Button variant="secondary" onClick={() => navigate("/sales/leads")}>
             <ChevronLeft size={16} />
             Back to pipeline
           </Button>
@@ -237,7 +237,7 @@ export default function LeadDetailDesktop() {
       <DesktopPage
         title="Lead not found"
         actions={
-          <Button variant="secondary" onClick={() => navigate("/leads")}>
+          <Button variant="secondary" onClick={() => navigate("/sales/leads")}>
             <ChevronLeft size={16} />
             Back to pipeline
           </Button>
@@ -314,7 +314,7 @@ export default function LeadDetailDesktop() {
         subtitle={subtitle}
         flush
         actions={
-          <Button variant="ghost" onClick={() => navigate("/leads")}>
+          <Button variant="ghost" onClick={() => navigate("/sales/leads")}>
             <ChevronLeft size={16} />
             Pipeline
           </Button>
