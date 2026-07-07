@@ -1,8 +1,11 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { MessageSquare } from "lucide-react";
 import Avatar from "./Avatar";
 import WonSheet from "./WonSheet";
 import MoveStageSheet from "./MoveStageSheet";
+import LeadChatModal from "./LeadChatModal";
+import { useLeadUnread } from "../hooks/useLeadUnread";
 import { useToast } from "../context/ToastContext";
 import { useNow } from "../context/NowContext";
 import { useMoveLeadStage } from "../hooks/useApi";
@@ -29,6 +32,13 @@ export default function Board({ leads, stages, pipelineId }: Props) {
   const now = useNow();
   const [moving, setMoving] = useState<ApiLead | null>(null);
   const [wonFor, setWonFor] = useState<ApiLead | null>(null);
+  const { unreadFor, markSeen } = useLeadUnread();
+  const [chatFor, setChatFor] = useState<ApiLead | null>(null);
+
+  const openChat = (lead: ApiLead) => {
+    markSeen(lead.contactId);
+    setChatFor(lead);
+  };
 
   // The card mid-move shows a pending overlay until the mutation settles, so
   // an optimistic hop the server later rejects never looks final.
@@ -112,7 +122,12 @@ export default function Board({ leads, stages, pipelineId }: Props) {
                   items.map((lead) => (
                     <div
                       key={lead.id}
-                      className="fx-item fx-lift relative rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
+                      className={
+                        "fx-item fx-lift relative overflow-hidden rounded-xl border bg-[var(--surface)] p-3 " +
+                        (unreadFor(lead.contactId) > 0
+                          ? "border-[var(--brand-primary)]/50 before:absolute before:left-0 before:top-3 before:bottom-3 before:w-[3px] before:rounded-full before:bg-[var(--brand-primary)] before:content-['']"
+                          : "border-[var(--border)]")
+                      }
                     >
                       {pendingLeadId === lead.id && (
                         <div
@@ -143,13 +158,28 @@ export default function Board({ leads, stages, pipelineId }: Props) {
                           </div>
                         </div>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setMoving(lead)}
-                        className="mt-2 w-full rounded-lg bg-[var(--surface-2)] py-1.5 text-[12px] font-semibold text-[var(--text-muted)] transition-colors active:scale-[0.98]"
-                      >
-                        Move
-                      </button>
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setMoving(lead)}
+                          className="flex-1 rounded-lg bg-[var(--surface-2)] py-1.5 text-[12px] font-semibold text-[var(--text-muted)] transition-colors active:scale-[0.98]"
+                        >
+                          Move
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openChat(lead)}
+                          aria-label={`Chat with ${lead.name}`}
+                          className="relative grid w-9 shrink-0 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--brand-primary)] transition-colors active:scale-[0.98]"
+                        >
+                          <MessageSquare size={15} aria-hidden />
+                          {unreadFor(lead.contactId) > 0 && (
+                            <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-[16px] place-items-center rounded-full border-2 border-[var(--surface)] bg-[var(--brand-primary)] px-1 text-[9.5px] font-bold text-white">
+                              {unreadFor(lead.contactId)}
+                            </span>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -179,6 +209,15 @@ export default function Board({ leads, stages, pipelineId }: Props) {
         onCancel={() => setWonFor(null)}
         onSave={markWon}
       />
+
+      {chatFor && (
+        <LeadChatModal
+          leadId={chatFor.id}
+          leadName={chatFor.name}
+          hasPhone={chatFor.phone.replace(/[^0-9]/g, "").length >= 10}
+          onClose={() => setChatFor(null)}
+        />
+      )}
     </div>
   );
 }

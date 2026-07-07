@@ -1,8 +1,9 @@
 # Paid Ads (Meta insights) — connections
 
-The client Paid Ads tabs (Overview / Insights / Creatives) over the Meta
-Marketing API, plus a GHL join for the ad-revenue tiles. Read-only. The Leads
-tab is wired separately (GHL, see paid-ads-sales.md).
+The client Paid Ads tabs (Overview / Insights / Creatives / Media) over the Meta
+Marketing API, plus a GHL join for the ad-revenue tiles. Read-only. The Leads tab
+is wired separately (GHL, see paid-ads-sales.md). The Funnel tab stays "coming
+soon" by design: it is for real landing funnels, not lead forms (Jake, 2026-07-07).
 
 ## Data source
 
@@ -33,6 +34,11 @@ tab is wired separately (GHL, see paid-ads-sales.md).
 - ⚡ **Caching:** the whole payload is cached in `KV_CACHE` per
   account+location+month for 15 min (the join is several GHL round-trips).
   Skipped gracefully when no KV binding is present.
+- ✅ **Media library** (`functions/api/ads/media.ts`) — the ad account's full
+  image + video library via the `adimages` + `advideos` edges. Cursor-paged
+  (limit 200, up to 10 pages) so a large library returns in full, not just the
+  first page. Ad-account edges only, so the shared System-User token reads them
+  with no extra Page grant. Client tab: `AdsMedia.tsx` / `useAdsMedia.ts`.
 
 ## Config (env-based for now)
 
@@ -51,9 +57,13 @@ tab is wired separately (GHL, see paid-ads-sales.md).
 ## Behavior
 
 - Env unset -> `{ configured: false }` -> tabs show the not-connected notice.
-- Env set, no spend -> honest zeros + "connected, fills in when campaigns run".
+- Env set, no spend -> honest zeros + a clean, minimal empty state. The old
+  "your ad account is connected, results will show up here" filler was removed
+  (standing rule: a connected client never sees placeholder connection chatter,
+  just the real numbers or a short empty state).
 - Env set, live -> real numbers.
-- Demo (`?demo=1`) -> `demoAdsInsights()` from the hand-authored demo ads.
+- Demo (`?demo=1`) -> `demoAdsInsights()` for insights; `AdsMedia` renders its own
+  inline sample gallery so the layout reads without a live account.
 
 ## Known gaps (follow-ups)
 

@@ -122,7 +122,7 @@ export default function AdsCreatives() {
               title={insights.configured ? "No ads running yet" : "No ads to show yet"}
               description={
                 insights.configured
-                  ? "Every ad we run for you appears here with its copy and results once campaigns start."
+                  ? "Every ad we run for you appears here with its copy and results."
                   : "After your accounts are linked, every ad we run for you appears here with its copy and results."
               }
             />

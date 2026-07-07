@@ -95,7 +95,7 @@ export default function AdsInsights() {
                 title="No numbers yet"
                 description={
                   configured
-                    ? "Your ad stats appear here the moment your campaigns start running."
+                    ? "Your ad numbers fill in here as your campaigns run."
                     : "Your ad stats appear here after your account is connected."
                 }
               />

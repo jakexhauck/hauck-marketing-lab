@@ -85,7 +85,7 @@ export default function AdsMedia() {
               title="Nothing to show yet"
               description={
                 configured
-                  ? "The photos and videos from your ads appear here once they are added to your account."
+                  ? "Every photo and video in your ad account lands here."
                   : "Your ad photos and videos appear here after your account is connected."
               }
             />
