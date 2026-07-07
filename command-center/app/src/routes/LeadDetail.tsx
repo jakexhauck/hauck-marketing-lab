@@ -230,7 +230,7 @@ export default function LeadDetail() {
     haptic();
     markWon(lead.id, value);
     showToast(`Marked as ${wonLabel}, ${currencyFmt.format(value)}`);
-    navigate("/leads");
+    navigate("/sales/leads");
   };
 
   const handleLost = () => {
@@ -238,7 +238,7 @@ export default function LeadDetail() {
     haptic();
     markLost(lead.id);
     showToast("Marked as Lost");
-    navigate("/leads");
+    navigate("/sales/leads");
   };
 
   const handleMove = (stageId: string, stageName: string) => {
@@ -246,7 +246,7 @@ export default function LeadDetail() {
     haptic();
     moveStage(lead.id, stageId, stageName);
     showToast(`Moved to ${stageName}`);
-    navigate("/leads");
+    navigate("/sales/leads");
   };
 
   const handleAddNote = () => {
