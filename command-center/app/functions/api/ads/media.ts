@@ -1,5 +1,5 @@
 import { type Env, type ApiData } from "../../lib/env";
-import { resolveAdAccount } from "./insights";
+import { graphGetAll, resolveAdAccount } from "../../lib/metaGraph";
 
 // Read-only Meta media library for the Paid Ads "Media" tab: every ad image and
 // video in the client's ad account, straight from the Graph API. Same shared
@@ -10,8 +10,6 @@ import { resolveAdAccount } from "./insights";
 // token/permissions, the client simply shows an honest "nothing to show yet"
 // (never fabricated media). Images and videos are each fetched independently so
 // one failing edge does not blank the other.
-
-const GRAPH = "https://graph.facebook.com/v21.0";
 
 export interface MediaItem {
   id: string;
@@ -27,52 +25,6 @@ export interface AdsMediaResponse {
   configured: boolean;
   items: MediaItem[];
   error?: string;
-}
-
-async function graphGet(
-  token: string,
-  path: string,
-  params: Record<string, string>,
-): Promise<Record<string, unknown>> {
-  const url = new URL(GRAPH + path);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  url.searchParams.set("access_token", token);
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Meta ${res.status}: ${body.slice(0, 300)}`);
-  }
-  return (await res.json()) as Record<string, unknown>;
-}
-
-// Follow Meta's cursor paging so an account with more than one page of media
-// (limit 200) returns its WHOLE library, not just the first page. Capped at
-// MAX_PAGES so a runaway account can't hang the request.
-const MAX_PAGES = 10;
-
-async function graphGetAll(
-  token: string,
-  path: string,
-  params: Record<string, string>,
-): Promise<Record<string, unknown>[]> {
-  const rows: Record<string, unknown>[] = [];
-  let next: string | null = null;
-  for (let page = 0; page < MAX_PAGES; page++) {
-    let resp: Record<string, unknown>;
-    if (next) {
-      const res = await fetch(next);
-      if (!res.ok) break;
-      resp = (await res.json()) as Record<string, unknown>;
-    } else {
-      resp = await graphGet(token, path, params);
-    }
-    const data = (resp.data as Record<string, unknown>[]) ?? [];
-    rows.push(...data);
-    const paging = (resp.paging ?? {}) as { next?: string };
-    if (!paging.next) break;
-    next = paging.next;
-  }
-  return rows;
 }
 
 function str(v: unknown): string {

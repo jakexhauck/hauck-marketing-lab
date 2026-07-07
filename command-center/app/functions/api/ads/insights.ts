@@ -1,6 +1,12 @@
 import { tenantTimezone, type Env, type ApiData } from "../../lib/env";
 import type { GhlContext } from "../../lib/ghl";
 import { adRevenueThisMonth } from "../../lib/adsRevenue";
+import { graphGet, resolveAdAccount } from "../../lib/metaGraph";
+
+// Re-exported so existing importers (this file's own test, and formerly
+// media.ts) can keep reading resolveAdAccount from "./insights"; the real
+// implementation now lives in ../../lib/metaGraph, shared with media.ts.
+export { resolveAdAccount };
 
 // Real Meta (Facebook/Instagram) Ads insights for the client's Paid Ads tabs
 // (Overview / Insights / Creatives). Ports the proven Graph API field lists and
@@ -23,8 +29,6 @@ import { adRevenueThisMonth } from "../../lib/adsRevenue";
 // configured the endpoint returns { configured: false } and the tabs show their
 // not-connected state; when configured but the account has no spend (e.g. ads
 // not launched yet), every figure is an honest zero.
-
-const GRAPH = "https://graph.facebook.com/v21.0";
 
 // The conversion action types we count as a "lead"/result, matching meta_ads.rs.
 // A client on a non-standard action type simply reads zero results (never a
@@ -65,22 +69,6 @@ function actionsValue(row: Record<string, unknown>, key: string): number {
     if (CONVERSION_ACTIONS.has(t)) total += num((entry as { value?: unknown }).value);
   }
   return total;
-}
-
-async function graphGet(
-  token: string,
-  path: string,
-  params: Record<string, string>,
-): Promise<Record<string, unknown>> {
-  const url = new URL(GRAPH + path);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  url.searchParams.set("access_token", token);
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Meta ${res.status}: ${body.slice(0, 300)}`);
-  }
-  return (await res.json()) as Record<string, unknown>;
 }
 
 interface AdItem {
@@ -203,19 +191,6 @@ function buildAds(
   return ads.sort(
     (a, b) => Number(b.active) - Number(a.active) || b.leads - a.leads,
   );
-}
-
-// The ad account for this request: the client's own (from their tenant row)
-// wins; the global env var is only the single-tenant fallback. Exported for the
-// precedence test, which is the whole point of scoping ads per client.
-export function resolveAdAccount(
-  tenantAccount: string | undefined,
-  envAccount: string | undefined,
-): string | undefined {
-  const t = tenantAccount?.trim();
-  if (t) return t;
-  const e = envAccount?.trim();
-  return e || undefined;
 }
 
 // Roll every active ad set's Meta learning status into one plain client phase.
