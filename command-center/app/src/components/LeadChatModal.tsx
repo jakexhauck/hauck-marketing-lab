@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
 import Avatar from "./Avatar";
-import ConversationThread from "./ConversationThread";
-import MessageComposer from "./MessageComposer";
-import { ChannelFilterProvider } from "../context/ChannelFilterContext";
+import LeadConversationPanel from "./leads/LeadConversationPanel";
 
 // Centered popup to converse with a lead from any pipeline card. Reuses the
 // wired conversation stack: the thread and composer share one ChannelFilter, so
@@ -61,14 +59,9 @@ export default function LeadChatModal({
         </div>
 
         {/* Reused conversation stack: thread + channel-aware composer */}
-        <ChannelFilterProvider key={leadId}>
-          <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-            <ConversationThread leadId={leadId} fill />
-            <div className="mt-auto">
-              <MessageComposer leadId={leadId} disabled={!hasPhone} />
-            </div>
-          </div>
-        </ChannelFilterProvider>
+        <div className="flex min-h-0 flex-1 flex-col p-4">
+          <LeadConversationPanel leadId={leadId} hasPhone={hasPhone} />
+        </div>
       </div>
     </div>
   );
