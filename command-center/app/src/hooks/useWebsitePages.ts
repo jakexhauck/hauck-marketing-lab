@@ -3,9 +3,9 @@ import { api } from "../lib/api";
 import { demoMode } from "../demo/demoMode";
 
 // Website > Pages data. Demo renders the hand-authored SITE_PAGES (handled in
-// the component). A real session reads the client's live pages from their GHL
-// site via GET /api/website/pages; the component joins each path onto the
-// tenant's website_url to preview and open it.
+// the component). A real session reads the client's page list (the manual
+// per-client list the agency maintains) via GET /api/website/pages; the
+// component joins each path onto the tenant's website_url to preview and open it.
 
 export interface WebsitePageItem {
   id: string;
@@ -22,7 +22,8 @@ export interface UseWebsitePages {
   site: WebsiteSite | null;
   pages: WebsitePageItem[];
   loading: boolean;
-  // GHL could not be read (missing scope / error): show the not-connected state.
+  // Legacy flag from the old GHL-backed endpoint; the manual list never sets it
+  // (an empty list just shows the "your pages will live here" state).
   unavailable: boolean;
 }
 

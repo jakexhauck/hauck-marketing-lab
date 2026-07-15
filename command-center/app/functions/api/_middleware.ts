@@ -109,6 +109,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         meta_ad_account_id: ctx.env.META_AD_ACCOUNT_ID,
         google_place_id: ctx.env.GOOGLE_PLACE_ID,
         ga4_property_id: ctx.env.GA4_PROPERTY_ID,
+        website_pages: [],
         slug: testTenantSlug(ctx.env),
         mode: "test",
       };
@@ -153,6 +154,9 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         google_place_id: tenant?.google_place_id || ctx.env.GOOGLE_PLACE_ID,
         // Per-client GA4 property, env var as the single-tenant fallback.
         ga4_property_id: tenant?.ga4_property_id || ctx.env.GA4_PROPERTY_ID,
+        // Per-client Website > Pages list (0028). No env fallback: an unwired
+        // client simply has an empty list until the admin enters its pages.
+        website_pages: tenant?.website_pages ?? [],
         slug: tenant?.slug ?? liveTenantSlug(ctx.env),
         mode: "live",
       };

@@ -138,7 +138,7 @@ export default function WebsitePages() {
   const { pages, site, unavailable } = useWebsitePages();
   const { requests, add, unavailable: requestsUnavailable } = useWebsiteRequests();
 
-  // Join a GHL page path onto the client's site origin for preview / open.
+  // Join a page path onto the client's site origin for preview / open.
   const fullUrl = (path: string): string | null => {
     if (!websiteUrl) return null;
     try {

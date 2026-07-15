@@ -293,10 +293,10 @@ export function useAdminWebsiteAnalyticsQuery(tenantId: string, enabled = true) 
   });
 }
 
-// One client's live site pages (from their GHL Sites) for the Fulfillment
-// cockpit's Web Design > Pages panel, from GET
-// /api/admin/clients/:tenantId/website/pages. `unavailable` when GHL could not
-// be read; the panel joins each path onto the client's website_url to preview.
+// One client's Website > Pages list (the manual per-client list on the tenant
+// row) for the Fulfillment cockpit's Web Design > Pages panel, from GET
+// /api/admin/clients/:tenantId/website/pages. The panel joins each path onto the
+// client's website_url to preview, and edits the list via useSaveAdminWebsitePages.
 export function useAdminWebsitePagesQuery(tenantId: string, enabled = true) {
   return useQuery({
     queryKey: ["admin", "clients", tenantId, "website", "pages"],
@@ -306,6 +306,32 @@ export function useAdminWebsitePagesQuery(tenantId: string, enabled = true) {
       api<{ site: WebsiteSite | null; pages: WebsitePageItem[]; unavailable?: boolean }>(
         `/api/admin/clients/${tenantId}/website/pages`,
       ),
+  });
+}
+
+// A page as the admin editor edits it (no id: the server keys by path). Saving
+// replaces the whole list.
+export interface WebsitePageEdit {
+  name: string;
+  path: string;
+}
+
+// Saves the client's Website > Pages list (PUT). On success the admin panel and
+// the client's own Pages tab both reflect it: invalidate the admin pages query
+// here; the client tab refetches on its own staleTime / next mount.
+export function useSaveAdminWebsitePages(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (pages: WebsitePageEdit[]) =>
+      api<{ ok: true; pages: WebsitePageItem[] }>(
+        `/api/admin/clients/${tenantId}/website/pages`,
+        { method: "PUT", body: JSON.stringify({ pages }) },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ["admin", "clients", tenantId, "website", "pages"],
+      });
+    },
   });
 }
 

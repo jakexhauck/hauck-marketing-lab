@@ -1,3 +1,5 @@
+import type { WebsitePageRow } from "./websitePages";
+
 export interface Env {
   APP_PASSWORD: string;
   SESSION_SECRET?: string;
@@ -100,6 +102,10 @@ export interface TenantContext {
   // GA4_PROPERTY_ID env var as the single-tenant fallback. Undefined => the
   // Website analytics tabs show not-connected. See functions/api/website/analytics.ts.
   ga4_property_id?: string;
+  // The client's Website > Pages list, resolved from the tenant row (0028).
+  // Empty array => the Pages tab shows its "add your pages" state. See
+  // functions/api/website/pages.ts.
+  website_pages?: WebsitePageRow[];
   // Supabase tenants.slug for this session, resolved from the session mode in
   // _middleware.ts. All Supabase-backed routes must scope by this, never by a
   // hardcoded slug, or test and live data bleed into each other.
