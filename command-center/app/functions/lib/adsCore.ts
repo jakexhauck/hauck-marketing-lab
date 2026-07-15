@@ -92,9 +92,13 @@ interface AdItem {
   leads: number;
   reach: number;
   spend: number;
-  // The real creative image (Meta image_url / thumbnail_url / link picture), or
+  // The real creative image (Meta image_url / link picture / video poster), or
   // "" when the ad has none (the client falls back to a gradient placeholder).
   thumbnailUrl: string;
+  // "image" or "video". A video ad carries a playable videoId; an image ad
+  // leaves it "". The client uses these to badge and play video creatives.
+  mediaType: "image" | "video";
+  videoId: string;
   // Campaign/ad-set names, added for the admin cockpit's Campaigns tree
   // (functions/api/admin/.../ads/insights). "" when Meta omits the nested
   // object. The client Paid Ads UI ignores these two fields.
@@ -175,19 +179,31 @@ export function buildAds(
     const creative = (m.creative ?? {}) as Record<string, unknown>;
     const story = (creative.object_story_spec ?? {}) as Record<string, unknown>;
     const linkData = (story.link_data ?? {}) as Record<string, unknown>;
+    const videoData = (story.video_data ?? {}) as Record<string, unknown>;
+    const videoId = String(videoData.video_id ?? "");
+    const mediaType: "image" | "video" = videoId ? "video" : "image";
+    // Video ads keep their headline/copy under video_data, not link_data, so
+    // read both. Without this a video ad shows no copy and a name-only headline.
     const headline =
       String(creative.title ?? "") ||
+      String(videoData.title ?? "") ||
+      String(videoData.link_description ?? "") ||
       String(linkData.name ?? "") ||
       String(m.name ?? "") ||
       "Ad";
     const copy =
-      String(creative.body ?? "") || String(linkData.message ?? "") || "";
-    // Prefer the full creative image; fall back to the small thumbnail, then the
-    // link-ad picture. Video-only creatives leave this "" (gradient fallback).
+      String(creative.body ?? "") ||
+      String(videoData.message ?? "") ||
+      String(linkData.message ?? "") ||
+      "";
+    // Prefer a crisp full creative. A video ad's real poster is
+    // video_data.image_url; creative.thumbnail_url is a tiny blurry auto-thumb,
+    // so it is the LAST resort. An ad with none leaves this "" (gradient fallback).
     const thumbnailUrl =
       String(creative.image_url ?? "") ||
-      String(creative.thumbnail_url ?? "") ||
-      String(linkData.picture ?? "");
+      String(videoData.image_url ?? "") ||
+      String(linkData.picture ?? "") ||
+      String(creative.thumbnail_url ?? "");
     const status = String(m.effective_status ?? "");
     const campaign = (m.campaign ?? {}) as Record<string, unknown>;
     const adset = (m.adset ?? {}) as Record<string, unknown>;
@@ -201,6 +217,8 @@ export function buildAds(
       reach: Math.round(num(ins.reach)),
       spend: round2(num(ins.spend)),
       thumbnailUrl,
+      mediaType,
+      videoId,
       campaignName: String(campaign.name ?? ""),
       adsetName: String(adset.name ?? ""),
     });

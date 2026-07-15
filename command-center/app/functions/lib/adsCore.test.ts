@@ -245,6 +245,59 @@ describe("buildAds", () => {
     expect(ads.map((a) => a.id)).toEqual(["b", "a"]);
   });
 
+  it("marks an image creative image/videoId-empty and reads its full image_url", () => {
+    const meta = [
+      {
+        id: "img",
+        name: "Image Ad",
+        effective_status: "ACTIVE",
+        creative: {
+          title: "Same-day service",
+          body: "Book in 60 seconds.",
+          image_url: "https://img/full.jpg",
+          thumbnail_url: "https://img/tiny.jpg",
+          object_story_spec: { link_data: { picture: "https://img/link.jpg" } },
+        },
+      },
+    ];
+    const [ad] = buildAds([{ ad_id: "img", spend: "10", reach: "100", actions: [] }], meta);
+    expect(ad.mediaType).toBe("image");
+    expect(ad.videoId).toBe("");
+    expect(ad.thumbnailUrl).toBe("https://img/full.jpg");
+    expect(ad.headline).toBe("Same-day service");
+    expect(ad.copy).toBe("Book in 60 seconds.");
+  });
+
+  it("parses a video creative: crisp poster, real copy from video_data, and a playable videoId", () => {
+    const meta = [
+      {
+        id: "vid",
+        name: "Video 2 | $100 OFF",
+        effective_status: "ACTIVE",
+        creative: {
+          title: "",
+          body: "",
+          thumbnail_url: "https://img/blurry-tiny.jpg",
+          object_story_spec: {
+            video_data: {
+              video_id: "vid_999",
+              image_url: "https://img/crisp-poster.jpg",
+              title: "Watch how we clean",
+              message: "METRO DETROIT HOMEOWNERS, $100 off your first clean.",
+            },
+          },
+        },
+      },
+    ];
+    const [ad] = buildAds([{ ad_id: "vid", spend: "20", reach: "200", actions: [] }], meta);
+    expect(ad.mediaType).toBe("video");
+    expect(ad.videoId).toBe("vid_999");
+    // The crisp poster wins over the tiny blurry auto-thumbnail.
+    expect(ad.thumbnailUrl).toBe("https://img/crisp-poster.jpg");
+    expect(ad.copy).toBe("METRO DETROIT HOMEOWNERS, $100 off your first clean.");
+    expect(ad.headline).toBe("Watch how we clean");
+  });
+
   it("reads campaign/ad-set names off the nested Meta objects, defaulting to empty strings when absent", () => {
     const insights = [
       { ad_id: "a", spend: "10", reach: "100", actions: [] },
