@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import {
   api,
   getAdminOverview,
@@ -68,6 +73,11 @@ export function usePipelineLeadsQuery(
     queryKey: ["leads", "pipeline", pipelineId],
     enabled: enabled && !!pipelineId,
     staleTime: 15_000,
+    // Switching Leads tabs (Sales <-> Trash) changes pipelineId, and so the
+    // query key. Keep the previous board on screen while the new pipeline loads
+    // instead of collapsing to a spinner, so the layout never jumps on a tab
+    // switch.
+    placeholderData: keepPreviousData,
     queryFn: () =>
       api<{ leads: ApiLead[]; total: number }>(
         `/api/leads?pipelineId=${encodeURIComponent(pipelineId as string)}`,

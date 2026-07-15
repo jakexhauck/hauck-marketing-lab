@@ -17,8 +17,6 @@ import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
 import ReviewsOverview from "./routes/reviews/ReviewsOverview";
 import ReviewsRequests from "./routes/reviews/ReviewsRequests";
-import ReviewsAll from "./routes/reviews/ReviewsAll";
-import ReviewsInsights from "./routes/reviews/ReviewsInsights";
 import ReviewsPipeline from "./routes/reviews/ReviewsPipeline";
 import { Activity } from "./routes/Activity";
 import Contacts from "./routes/Contacts";
@@ -57,7 +55,6 @@ import OutreachData from "./routes/outreach/OutreachData";
 import OutreachSms from "./routes/outreach/OutreachSms";
 import ReactivationPipeline from "./routes/reactivation/ReactivationPipeline";
 import ReactivationData from "./routes/reactivation/ReactivationData";
-import ReactivationMessages from "./routes/reactivation/ReactivationMessages";
 import GroupOutreachOverview from "./routes/groups/GroupOutreachOverview";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
@@ -474,8 +471,9 @@ export default function App() {
               <Route path="/marketing/reviews" element={<ProtectedRoute><ReviewsOverview /></ProtectedRoute>} />
               <Route path="/marketing/reviews/pipeline" element={<ProtectedRoute><ReviewsPipeline /></ProtectedRoute>} />
               <Route path="/marketing/reviews/requests" element={<ProtectedRoute><ReviewsRequests /></ProtectedRoute>} />
-              <Route path="/marketing/reviews/all" element={<ProtectedRoute><ReviewsAll /></ProtectedRoute>} />
-              <Route path="/marketing/reviews/report" element={<ProtectedRoute><ReviewsInsights /></ProtectedRoute>} />
+              {/* All Reviews + Reputation Report tabs retired; old URLs fall back to Overview. */}
+              <Route path="/marketing/reviews/all" element={<Navigate to="/marketing/reviews" replace />} />
+              <Route path="/marketing/reviews/report" element={<Navigate to="/marketing/reviews" replace />} />
               {/* Campaigns is retired; Overview/all/insights redirect into Commercial Outreach.
                   Audiences stays parked but reachable. Reactivation moved to its own section. */}
               <Route path="/marketing/campaigns" element={<Navigate to="/marketing/outreach" replace />} />
@@ -492,7 +490,8 @@ export default function App() {
               <Route path="/marketing/reactivation" element={<ProtectedRoute><Reactivation /></ProtectedRoute>} />
               <Route path="/marketing/reactivation/pipeline" element={<ProtectedRoute><ReactivationPipeline /></ProtectedRoute>} />
               <Route path="/marketing/reactivation/data" element={<ProtectedRoute><ReactivationData /></ProtectedRoute>} />
-              <Route path="/marketing/reactivation/messages" element={<ProtectedRoute><ReactivationMessages /></ProtectedRoute>} />
+              {/* Messages tab retired; old URL falls back to the Reactivation overview. */}
+              <Route path="/marketing/reactivation/messages" element={<Navigate to="/marketing/reactivation" replace />} />
               {/* Group Outreach */}
               <Route path="/marketing/groups" element={<ProtectedRoute><GroupOutreachOverview /></ProtectedRoute>} />
               <Route path="/marketing/website" element={<ProtectedRoute><WebsiteOverview /></ProtectedRoute>} />

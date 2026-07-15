@@ -46,7 +46,6 @@ import {
   type Job,
   type DayKind,
 } from "../../lib/jobsPipeline";
-import { NotConnectedNotice } from "./shared";
 
 // The Jobs (Sales) surface: the tail of the Sales spine, laid out as a month
 // calendar (left) + the selected day's jobs (right). Pick a day, see and work
@@ -180,10 +179,6 @@ export default function Jobs() {
             ) : undefined
           }
         />
-
-        {!demo && (
-          <NotConnectedNotice message="Booked and completed jobs land on this calendar automatically once your calendar and sales pipeline are connected." />
-        )}
 
         <Panel className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
           {/* LEFT — month calendar + summary */}

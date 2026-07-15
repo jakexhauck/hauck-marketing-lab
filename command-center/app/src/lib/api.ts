@@ -102,7 +102,9 @@ export interface ApiTenant {
 export interface ApiPipelineSummary {
   id: string;
   name: string;
-  stages: { id: string; name: string }[];
+  // `color` is the per-stage hex from GHL (e.g. "#F97316") so stages can render
+  // in the same colour the client sees in GHL. Optional: older/demo data omits it.
+  stages: { id: string; name: string; color?: string }[];
 }
 
 export interface PipelineSummary {

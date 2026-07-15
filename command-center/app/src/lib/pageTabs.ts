@@ -25,8 +25,6 @@ export const REVIEWS_TABS: PageTab[] = [
   { to: "/marketing/reviews", label: "Overview", end: true },
   { to: "/marketing/reviews/pipeline", label: "Review Pipeline" },
   { to: "/marketing/reviews/requests", label: "Ask for Reviews" },
-  { to: "/marketing/reviews/all", label: "All Reviews" },
-  { to: "/marketing/reviews/report", label: "Reputation Report" },
 ];
 
 export const WEBSITE_TABS: PageTab[] = [
@@ -55,7 +53,6 @@ export const REACTIVATION_TABS: PageTab[] = [
   { to: "/marketing/reactivation", label: "Overview", end: true },
   { to: "/marketing/reactivation/pipeline", label: "Pipeline" },
   { to: "/marketing/reactivation/data", label: "Full Data" },
-  { to: "/marketing/reactivation/messages", label: "Messages" },
 ];
 
 export const GROUP_OUTREACH_TABS: PageTab[] = [

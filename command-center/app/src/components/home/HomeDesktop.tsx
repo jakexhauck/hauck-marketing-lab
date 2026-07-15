@@ -9,7 +9,6 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { Button } from "../ui/Button";
 import DesktopPage from "../desktop/DesktopPage";
 import ClientHero, { type ClientHeroKpi } from "./ClientHero";
 import EmptyState from "../EmptyState";
@@ -145,15 +144,7 @@ export default function HomeDesktop() {
   ];
 
   return (
-    <DesktopPage
-      title="Home"
-      actions={
-        <Button variant="primary" onClick={() => navigate("/leads")}>
-          <TrendingUp size={16} />
-          View pipeline
-        </Button>
-      }
-    >
+    <DesktopPage title="Home">
         {summaryQuery.isError ? (
           <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
             Failed to load your dashboard.{" "}
