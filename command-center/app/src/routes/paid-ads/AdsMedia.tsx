@@ -37,17 +37,15 @@ function MediaTile({ item, index }: { item: AdMediaItem; index: number }) {
   const bg = item.thumbnail
     ? { backgroundImage: `url("${item.thumbnail}")`, backgroundSize: "cover", backgroundPosition: "center" }
     : { backgroundImage: THUMBS[index % THUMBS.length] };
+  // Just the ad itself: image/video thumbnail with a type badge, no name caption.
   return (
-    <Panel className="flex flex-col overflow-hidden p-0">
+    <Panel className="overflow-hidden p-0">
       <div className="relative flex aspect-square items-end bg-surface-2 p-2.5 text-white" style={bg}>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-black/35 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm">
           {item.type === "video" ? <Play size={12} /> : <ImageIcon size={12} />}
           {item.type === "video" ? "Video" : "Photo"}
         </span>
       </div>
-      {item.name && (
-        <div className="truncate px-3 py-2.5 text-[12.5px] font-medium text-text">{item.name}</div>
-      )}
     </Panel>
   );
 }
