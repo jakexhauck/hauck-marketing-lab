@@ -1,14 +1,21 @@
-// Unified Inbox grouping. Every conversation is bucketed into one of nine
-// ordered groups derived from its GHL opportunity stage name. Name-based (not
-// stage-id based) so the mapping survives per-tenant pipeline id differences.
-// Anything unmapped, or a contact with no opportunity, falls to "new" so raw
-// inbounds and legacy stages surface at the top and are never hidden.
+// Unified Inbox grouping. Every conversation is bucketed into one ordered group
+// derived from its GHL opportunity stage NAME (never the stage id, which differs
+// per tenant). The groups mirror the live Willis "Sales" pipeline funnel, with
+// the off-spine pipelines (Reactivation, Trash, Google Reviews) folded into
+// "Follow Up / Nurture" and "Closed / Inactive". Anything unmapped, or a contact
+// with no opportunity, falls to "new" so raw inbounds surface at the top and are
+// never hidden.
+//
+// Stage names are matched by substring, so the emoji GHL appends to a stage name
+// ("New Lead 🔔", "Job Booked 💼") are harmless. Live stage list pulled from
+// `ghl opportunities pipelines` 2026-07-15 — re-check the live account before
+// changing these rules, the names drift as the pipeline is edited.
 import type { ApiConversation } from "./api";
 
 export type StageGroupKey =
   | "new"
-  | "lead_in"
-  | "lead_responded"
+  | "hot_lead"
+  | "phone_appt"
   | "estimate_scheduled"
   | "estimate_completed"
   | "job_booked"
@@ -21,19 +28,20 @@ export interface StageGroupMeta {
   label: string;
   defaultCollapsed: boolean;
   // Functional swatch color for the group dot (the one place non-token color is
-  // acceptable, mirroring SourceBadge's convention).
+  // acceptable, mirroring SourceBadge's convention). Kept close to the stage's
+  // own GHL colour where there is one.
   swatch: string;
 }
 
 export const STAGE_GROUPS: StageGroupMeta[] = [
   { key: "new", label: "New / Unsorted", defaultCollapsed: false, swatch: "#64748b" },
-  { key: "lead_in", label: "Lead In", defaultCollapsed: false, swatch: "#2563eb" },
-  { key: "lead_responded", label: "Lead Responded", defaultCollapsed: false, swatch: "#0891b2" },
-  { key: "estimate_scheduled", label: "Estimate Scheduled", defaultCollapsed: false, swatch: "#7c3aed" },
-  { key: "estimate_completed", label: "Estimate Completed", defaultCollapsed: false, swatch: "#c026d3" },
-  { key: "job_booked", label: "Job Booked", defaultCollapsed: false, swatch: "#0d9488" },
-  { key: "job_completed", label: "Job Completed", defaultCollapsed: false, swatch: "#16a34a" },
-  { key: "follow_up", label: "Follow Up", defaultCollapsed: true, swatch: "#d97706" },
+  { key: "hot_lead", label: "Hot Lead", defaultCollapsed: false, swatch: "#f97316" },
+  { key: "phone_appt", label: "Phone Appointment Booked", defaultCollapsed: false, swatch: "#3b82f6" },
+  { key: "estimate_scheduled", label: "Estimate Scheduled", defaultCollapsed: false, swatch: "#8b5cf6" },
+  { key: "estimate_completed", label: "Estimate Completed", defaultCollapsed: false, swatch: "#7c3aed" },
+  { key: "job_booked", label: "Job Booked", defaultCollapsed: false, swatch: "#ea580c" },
+  { key: "job_completed", label: "Job Completed", defaultCollapsed: false, swatch: "#059669" },
+  { key: "follow_up", label: "Follow Up / Nurture", defaultCollapsed: true, swatch: "#d97706" },
   { key: "closed", label: "Closed / Inactive", defaultCollapsed: true, swatch: "#94a3b8" },
 ];
 
@@ -41,21 +49,42 @@ export const STAGE_GROUP_BY_KEY = Object.fromEntries(
   STAGE_GROUPS.map((g) => [g.key, g]),
 ) as Record<StageGroupKey, StageGroupMeta>;
 
-// Ordered rules; first substring hit wins. "job completed" sits before
-// "job booked" so "Job Completed" does not match the bare "booked" rule.
+// Ordered rules; first substring hit wins. Order is load-bearing:
+//   * "closed" runs FIRST so Trash stages that also contain an active-sounding
+//     word ("Phone Appointment No-Show", "Lead In No Call Booked") close out
+//     instead of matching "phone appointment" / "booked" below.
+//   * "job completed" sits before "job booked", and both are matched on their
+//     full two-word name (never a bare "booked") so "Phone Appointment Booked"
+//     and "Lead In No Call Booked" do not fall into Job Booked.
 const RULES: { group: StageGroupKey; test: (s: string) => boolean }[] = [
-  { group: "lead_in", test: (s) => s.includes("lead in") },
-  { group: "lead_responded", test: (s) => s.includes("lead responded") || s.includes("responded") },
-  { group: "estimate_scheduled", test: (s) => s.includes("estimate scheduled") || s.includes("appointment scheduled") },
-  { group: "estimate_completed", test: (s) => s.includes("estimate completed") || s.includes("quote given") || s.includes("apt completed") },
-  { group: "job_completed", test: (s) => s.includes("job completed") },
-  { group: "job_booked", test: (s) => s.includes("job booked") || s.includes("booked") },
-  { group: "follow_up", test: (s) => s.includes("follow up") || s.includes("followup") || s.includes("not ready") },
   {
     group: "closed",
     test: (s) =>
-      ["no answer", "not qualified", "no show", "no-close", "no close", "abandoned"].some((k) =>
-        s.includes(k),
+      [
+        "no answer",
+        "not qualified",
+        "no show",
+        "no-show",
+        "no close",
+        "no-close",
+        "opted out",
+        "no call booked",
+        "abandoned",
+        "review",
+        "feedback",
+      ].some((k) => s.includes(k)),
+  },
+  { group: "job_completed", test: (s) => s.includes("job completed") },
+  { group: "job_booked", test: (s) => s.includes("job booked") },
+  { group: "phone_appt", test: (s) => s.includes("phone appointment") },
+  { group: "estimate_completed", test: (s) => s.includes("estimate completed") },
+  { group: "estimate_scheduled", test: (s) => s.includes("estimate scheduled") },
+  { group: "hot_lead", test: (s) => s.includes("hot lead") },
+  {
+    group: "follow_up",
+    test: (s) =>
+      ["follow up", "followup", "nurture", "lead contacted", "lead responded", "not ready"].some(
+        (k) => s.includes(k),
       ),
   },
 ];
