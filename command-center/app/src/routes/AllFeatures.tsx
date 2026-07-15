@@ -31,7 +31,6 @@ const GROUPS: { label: string; routes: string[] }[] = [
       "/contacts",
       "/calendar",
       "/billing",
-      "/company/documents",
       "/team",
     ],
   },

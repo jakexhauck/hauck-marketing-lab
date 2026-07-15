@@ -35,7 +35,6 @@ import Settings from "./routes/Settings";
 import Comms from "./routes/Comms";
 import Automations from "./routes/Automations";
 import ComingSoon from "./routes/ComingSoon";
-import ClientAssets from "./routes/Assets";
 import SocialOverview from "./routes/social/SocialOverview";
 import SocialIdeas from "./routes/social/SocialIdeas";
 import SocialCalendar from "./routes/social/SocialCalendar";
@@ -505,7 +504,6 @@ export default function App() {
               <Route path="/marketing/social/calendar" element={<ProtectedRoute><SocialCalendar /></ProtectedRoute>} />
               <Route path="/marketing/social/posts" element={<ProtectedRoute><SocialPosts /></ProtectedRoute>} />
               <Route path="/marketing/social/insights" element={<ProtectedRoute><SocialInsights /></ProtectedRoute>} />
-              <Route path="/company/documents" element={<ProtectedRoute><ClientAssets /></ProtectedRoute>} />
               {/* Command home: the whole-business Theory-of-Constraints view. */}
               <Route
                 path="/admin"
