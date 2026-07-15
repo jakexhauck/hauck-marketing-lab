@@ -2,20 +2,28 @@ import { useEffect, useMemo, useState } from "react";
 import PageBar from "../PageBar";
 import EmptyState from "../EmptyState";
 import InboxDetail from "./InboxDetail";
-import StageGroupList from "./StageGroupList";
+import InboxTabStrip from "./InboxTabStrip";
+import ConversationList from "./ConversationList";
 import { useAuth } from "../../context/AuthContext";
 import { useConversationsQuery } from "../../hooks/useApi";
+import {
+  DEFAULT_INBOX_TAB,
+  countByTab,
+  conversationsForTab,
+} from "../../lib/inboxTabs";
 import type { ApiConversation } from "../../lib/api";
 
-// The Atelier desktop inbox (lg+). One unified, grouped-by-stage queue on the
-// left (fixed column), the shared thread + composer on the right. Renders only
-// inside `hidden lg:flex` from the Conversations route.
+// The Atelier desktop inbox (lg+). A tab strip across the top (one tab per
+// pipeline stage plus Chat Widget / Estimate Form), the active tab's flat queue
+// on the left (fixed column), the shared thread + composer on the right.
+// Renders only inside `hidden lg:flex` from the Conversations route.
 export default function ConversationsDesktop() {
   const { session } = useAuth();
   const useReal = Boolean(session);
   const query = useConversationsQuery(useReal);
 
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState(DEFAULT_INBOX_TAB);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const all: ApiConversation[] = useMemo(
@@ -23,23 +31,25 @@ export default function ConversationsDesktop() {
     [query.data],
   );
 
-  // Default the selection to the most recently active conversation.
+  const counts = useMemo(() => countByTab(all), [all]);
+  const list = useMemo(
+    () => conversationsForTab(all, tab, search),
+    [all, tab, search],
+  );
+
+  // Keep a valid selection for the active tab: default to the top row, and if
+  // the current pick is not in this tab's queue (tab switch, search), reselect.
   useEffect(() => {
-    if (all.length === 0) {
+    if (list.length === 0) {
       setSelectedId(null);
       return;
     }
-    if (!selectedId || !all.some((c) => c.contactId === selectedId)) {
-      const newest = [...all].sort(
-        (a, b) =>
-          new Date(b.lastMessageAt).getTime() -
-          new Date(a.lastMessageAt).getTime(),
-      )[0];
-      setSelectedId(newest.contactId);
+    if (!selectedId || !list.some((c) => c.contactId === selectedId)) {
+      setSelectedId(list[0].contactId);
     }
-  }, [all, selectedId]);
+  }, [list, selectedId]);
 
-  const selected = all.find((c) => c.contactId === selectedId) ?? null;
+  const selected = list.find((c) => c.contactId === selectedId) ?? null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -47,10 +57,12 @@ export default function ConversationsDesktop() {
         <PageBar tabs={[]} section="Inbox" />
       </div>
 
-      <div className="flex min-h-0 flex-1 border-t border-border">
-        {/* Grouped queue */}
+      <InboxTabStrip counts={counts} active={tab} onSelect={setTab} />
+
+      <div className="flex min-h-0 flex-1">
+        {/* Active tab's queue */}
         <section className="flex w-[360px] shrink-0 flex-col border-r border-border bg-surface">
-          <div className="px-4 pb-1 pt-3">
+          <div className="px-4 pb-3 pt-3">
             <div className="relative">
               <svg
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"
@@ -93,11 +105,15 @@ export default function ConversationsDesktop() {
               message="New leads and replies will show up here."
             />
           ) : (
-            <StageGroupList
-              items={all}
+            <ConversationList
+              items={list}
               selectedId={selectedId}
               onOpen={setSelectedId}
-              search={search}
+              emptyLabel={
+                search.trim()
+                  ? "No conversations match."
+                  : "Nothing in this tab yet."
+              }
             />
           )}
         </section>

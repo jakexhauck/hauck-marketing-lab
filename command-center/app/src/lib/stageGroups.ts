@@ -98,7 +98,7 @@ export function mapStageNameToGroup(stageName: string | null | undefined): Stage
 
 // Unread rise to the top and sort longest-wait-first (oldest last message on
 // top); read rows read newest-first like a normal inbox.
-function sortForQueue(list: ApiConversation[]): ApiConversation[] {
+export function sortForQueue(list: ApiConversation[]): ApiConversation[] {
   return [...list].sort((a, b) => {
     const au = a.unreadCount > 0 ? 1 : 0;
     const bu = b.unreadCount > 0 ? 1 : 0;
