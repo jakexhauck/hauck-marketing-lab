@@ -126,7 +126,7 @@ export default function Sidebar() {
   const brand = client.brand;
 
   return (
-    <aside className="glass hidden h-dvh w-[244px] shrink-0 flex-col border-r border-white/50 dark:border-white/10 lg:sticky lg:top-0 lg:flex">
+    <aside className="glass hidden w-[244px] shrink-0 flex-col border-r border-white/50 dark:border-white/10 lg:flex lg:h-full">
       {/* Brand mark */}
       <div className="flex items-center gap-2.5 px-4 pb-4 pt-4">
         <span
