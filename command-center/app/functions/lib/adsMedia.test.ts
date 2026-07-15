@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { buildAdsMedia, fetchImages, fetchVideos, str } from "./adsMedia";
+import { buildAdsMedia, fetchImageCreatives, fetchVideos, str } from "./adsMedia";
 
-// Pins the exact shaping/fetch behavior extracted out of
-// functions/api/ads/media.ts into this pure core, so a future admin endpoint
-// can call the same logic for an admin-chosen tenant. Behavior-preserving:
-// locks the CURRENT output (url fallback, no-url drop, video shaping,
-// not-connected short-circuit, act_ normalization).
+// Pins the shaping/fetch behavior of the shared Paid Ads "Media" core, shared by
+// the client endpoint and the admin cockpit. Videos come from /advideos; images
+// come from the ad CREATIVES (never a raw /adimages dump), so Meta's
+// auto-generated video-thumbnail images never show up as untitled "photos".
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -24,33 +23,73 @@ describe("str", () => {
   });
 });
 
-describe("fetchImages", () => {
-  it("falls back to permalink_url when url is missing, and drops rows with neither", async () => {
+describe("fetchImageCreatives", () => {
+  it("keeps images from photo creatives (inline url or hash-resolved) and skips video creatives", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        jsonRes({
-          data: [
-            { hash: "h1", name: "Image One", url: "https://img.example/1.jpg" },
-            { hash: "h2", name: "Image Two", permalink_url: "https://fb.example/perma2" },
-            { hash: "h3", name: "No Url" },
-          ],
-        }),
-      ),
+      vi.fn().mockImplementation(async (input: string) => {
+        const url = new URL(input);
+        if (url.pathname.endsWith("/adcreatives")) {
+          return jsonRes({
+            data: [
+              // Photo ad with an inline image_url.
+              { id: "c1", name: "Photo Ad", image_hash: "h1", image_url: "https://img.example/1.jpg" },
+              // Photo ad that references its image only by hash -> resolved via /adimages.
+              { id: "c2", name: "Hash Only", image_hash: "h2" },
+              // Video ad: its image_hash is only the auto-thumbnail, so it is skipped.
+              { id: "c3", name: "Video Ad", video_id: "v9", image_hash: "hv" },
+            ],
+          });
+        }
+        // /adimages resolver map.
+        return jsonRes({ data: [{ hash: "h2", url: "https://img.example/2.jpg" }] });
+      }),
     );
 
-    const items = await fetchImages("tok", "act_1");
+    const items = await fetchImageCreatives("tok", "act_1");
 
     expect(items).toEqual([
-      { id: "h1", type: "image", url: "https://img.example/1.jpg", thumbnail: "https://img.example/1.jpg", name: "Image One" },
-      { id: "h2", type: "image", url: "https://fb.example/perma2", thumbnail: "https://fb.example/perma2", name: "Image Two" },
+      { id: "h1", type: "image", url: "https://img.example/1.jpg", thumbnail: "https://img.example/1.jpg", name: "Photo Ad" },
+      { id: "h2", type: "image", url: "https://img.example/2.jpg", thumbnail: "https://img.example/2.jpg", name: "Hash Only" },
     ]);
   });
 
-  it("returns an empty list (never throws) when the Graph call fails", async () => {
+  it("reads images nested in object_story_spec and asset_feed_spec, de-duped by hash", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (input: string) => {
+        const url = new URL(input);
+        if (url.pathname.endsWith("/adcreatives")) {
+          return jsonRes({
+            data: [
+              {
+                id: "c1",
+                name: "Link Ad",
+                object_story_spec: { link_data: { image_hash: "h1", picture: "https://img.example/link.jpg" } },
+              },
+              {
+                id: "c2",
+                name: "Feed Ad",
+                asset_feed_spec: { images: [{ hash: "h2", url: "https://img.example/feed.jpg" }] },
+              },
+              // Duplicate of h1 by a second creative: de-duped away.
+              { id: "c3", name: "Dupe", image_hash: "h1", image_url: "https://img.example/dupe.jpg" },
+            ],
+          });
+        }
+        return jsonRes({ data: [] });
+      }),
+    );
+
+    const items = await fetchImageCreatives("tok", "act_1");
+
+    expect(items.map((i) => i.id)).toEqual(["h1", "h2"]);
+  });
+
+  it("returns an empty list (never throws) when the creatives call fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500, text: async () => "boom" }));
 
-    expect(await fetchImages("tok", "act_1")).toEqual([]);
+    expect(await fetchImageCreatives("tok", "act_1")).toEqual([]);
   });
 });
 
@@ -108,7 +147,6 @@ describe("buildAdsMedia", () => {
     const fetchMock = vi.fn().mockImplementation(async (input: string) => {
       const url = new URL(input);
       expect(url.pathname.startsWith("/v21.0/act_555/")).toBe(true);
-      if (url.pathname.endsWith("/adimages")) return jsonRes({ data: [] });
       return jsonRes({ data: [] });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -116,33 +154,36 @@ describe("buildAdsMedia", () => {
     const result = await buildAdsMedia("tok", "555", undefined);
 
     expect(result.configured).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    // One /advideos call plus /adcreatives + /adimages for the image side.
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it("merges images and videos, images first", async () => {
+  it("merges videos and images, videos first", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockImplementation(async (input: string) => {
         const url = new URL(input);
-        if (url.pathname.endsWith("/adimages")) {
-          return jsonRes({ data: [{ hash: "h1", name: "Img", url: "https://img.example/1.jpg" }] });
+        if (url.pathname.endsWith("/advideos")) {
+          return jsonRes({ data: [{ id: "v1", title: "Vid", picture: "https://img.example/t.jpg" }] });
         }
-        return jsonRes({ data: [{ id: "v1", title: "Vid", picture: "https://img.example/t.jpg" }] });
+        if (url.pathname.endsWith("/adcreatives")) {
+          return jsonRes({ data: [{ id: "c1", name: "Img", image_hash: "h1", image_url: "https://img.example/1.jpg" }] });
+        }
+        return jsonRes({ data: [] }); // /adimages resolver
       }),
     );
 
     const result = await buildAdsMedia("tok", "act_1", undefined);
 
     expect(result.configured).toBe(true);
-    expect(result.items.map((i) => i.id)).toEqual(["h1", "v1"]);
+    expect(result.items.map((i) => i.id)).toEqual(["v1", "h1"]);
   });
 
   it("degrades to configured:true with an error message when the Meta calls reject", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
 
-    // fetchImages/fetchVideos themselves swallow failures into [], so this only
-    // exercises the outer try/catch if Promise.all itself throws; assert the
-    // honest-empty result either way (never a fabricated item).
+    // fetchVideos/fetchImageCreatives each swallow failures into [], so this
+    // asserts the honest-empty result either way (never a fabricated item).
     const result = await buildAdsMedia("tok", "act_1", undefined);
 
     expect(result.configured).toBe(true);
