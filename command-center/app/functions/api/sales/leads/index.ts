@@ -44,41 +44,33 @@ function norm(s: string): string {
   return s.trim().toLowerCase();
 }
 
-// Normalise a stage name for the status map: lower-case, collapse whitespace,
-// and tighten spacing around slashes so "Apt Completed / Quote Given" and
-// "Apt Completed/ Quote Given" both key the same.
+// Normalise a stage name for the status map: strip the emoji/symbols GHL
+// appends to stage names ("Job Booked 💼", "New Lead 🔔"), lower-case, collapse
+// whitespace, and tighten spacing around slashes. Without the emoji strip every
+// live Sales stage misses the map and silently defaults to "working".
 function normStage(s: string): string {
   return s
     .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s/-]+/gu, "")
     .replace(/\s*\/\s*/g, "/")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-// Real GHL stage name -> friendly status, covering every stage of the
-// consolidated Sales pipeline.
+// Real GHL stage name -> friendly status, covering every stage of the live
+// Willis "Sales" pipeline (pulled from `ghl opportunities pipelines`
+// 2026-07-15). Keys are the emoji-stripped, normalised stage names. Re-check the
+// live account before editing, the stage names drift as the pipeline is edited.
 const STAGE_STATUS: Record<string, LeadStatus> = {
-  "lead in": "new",
-  "lead in no appointment booked": "new",
-  "lead responded": "working",
-  "no answer": "working",
-  "not qualified": "cold",
-  "intro call waiting confirmation": "booked",
-  "intro call no confirmation": "cold",
+  "new lead": "new",
+  "hot lead": "working",
+  "phone appointment booked": "booked",
   "estimate scheduled": "booked",
-  "apt completed/quote given": "working",
-  "followup - not ready": "cold",
-  "estimate completed/quote given": "working",
-  "follow up - not ready": "cold",
-  "no show": "cold",
-  "missed call - contact": "new",
-  "intro call confirmed": "booked",
+  "estimate completed": "working",
   "job booked": "booked",
   "job completed": "won",
-  "estimate completed": "working",
   "follow up": "working",
-  "no-close": "cold",
-  "abandoned": "cold",
+  "long term nurture": "cold",
 };
 
 function statusForStage(stageName: string): LeadStatus {
