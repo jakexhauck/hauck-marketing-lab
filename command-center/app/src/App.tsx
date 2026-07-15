@@ -41,7 +41,6 @@ import WebsiteOverview from "./routes/website/WebsiteOverview";
 import WebsitePages from "./routes/website/WebsitePages";
 import WebsiteInsights from "./routes/website/WebsiteInsights";
 import AdsOverview from "./routes/paid-ads/AdsOverview";
-import AdsCreatives from "./routes/paid-ads/AdsCreatives";
 import AdsInsights from "./routes/paid-ads/AdsInsights";
 import AdsMedia from "./routes/paid-ads/AdsMedia";
 import Reactivation from "./routes/sales/Reactivation";
@@ -453,7 +452,8 @@ export default function App() {
               {/* Overview = the designed "at a glance" cockpit (AdsOverview). The raw
                   media-buyer dashboard stays reachable at /paid-ads for the deep dive. */}
               <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsOverview /></ProtectedRoute>} />
-              <Route path="/marketing/paid-ads/creatives" element={<ProtectedRoute><AdsCreatives /></ProtectedRoute>} />
+              {/* "Your Ads" merged into "Media" (one live-marked creative view); old URL redirects. */}
+              <Route path="/marketing/paid-ads/creatives" element={<Navigate to="/marketing/paid-ads/media" replace />} />
               {/* A marketing channel never hosts a lead list; ad leads live in Leads, filtered. */}
               <Route path="/marketing/paid-ads/leads" element={<Navigate to="/sales/leads" replace />} />
               <Route path="/marketing/paid-ads/stats" element={<ProtectedRoute><AdsInsights /></ProtectedRoute>} />

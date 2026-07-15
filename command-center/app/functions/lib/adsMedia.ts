@@ -24,6 +24,10 @@ export interface MediaItem {
   url: string;
   thumbnail: string;
   name: string;
+  // True when this exact asset backs an ad that is running right now. Resolved
+  // in buildAdsMedia against the ACTIVE ads' creative keys; fetchImageCreatives
+  // and fetchVideos default it to false for their standalone callers.
+  live: boolean;
 }
 
 export interface AdsMediaResponse {
@@ -46,6 +50,66 @@ interface StorySpec {
 interface AssetFeedSpec {
   videos?: Array<{ video_id?: string }>;
   images?: Array<{ hash?: string; url?: string }>;
+}
+
+// Every image hash a creative references, across the shapes Meta uses. Mirrors
+// the image-candidate paths in fetchImageCreatives so live-marking and the
+// media list agree on where a hash can hide.
+function creativeImageHashes(c: Record<string, unknown>): string[] {
+  const oss = (c.object_story_spec ?? {}) as StorySpec;
+  const afs = (c.asset_feed_spec ?? {}) as AssetFeedSpec;
+  return [
+    str(c.image_hash),
+    str(oss.link_data?.image_hash),
+    str(oss.photo_data?.image_hash),
+    str(oss.video_data?.image_hash),
+    ...(Array.isArray(afs.images) ? afs.images.map((im) => str(im?.hash)) : []),
+  ].filter(Boolean);
+}
+
+// The video id a creative plays, if it is a video creative (else "").
+function creativeVideoId(c: Record<string, unknown>): string {
+  const oss = (c.object_story_spec ?? {}) as StorySpec;
+  const afs = (c.asset_feed_spec ?? {}) as AssetFeedSpec;
+  return (
+    str(c.video_id) ||
+    str(oss.video_data?.video_id) ||
+    str(oss.link_data?.video_id) ||
+    (Array.isArray(afs.videos) ? str(afs.videos[0]?.video_id) : "")
+  );
+}
+
+// The video ids and image hashes backing ads that are running right now
+// (effective_status ACTIVE), so buildAdsMedia can mark each media item Live by
+// exact key. Best-effort: any failure yields empty sets and nothing is marked
+// live (we never fabricate "live").
+export interface LiveCreativeKeys {
+  videos: Set<string>;
+  hashes: Set<string>;
+}
+export async function fetchLiveCreativeKeys(
+  token: string,
+  account: string,
+): Promise<LiveCreativeKeys> {
+  const videos = new Set<string>();
+  const hashes = new Set<string>();
+  try {
+    const ads = await graphGetAll(token, `/${account}/ads`, {
+      fields:
+        "effective_status,creative{video_id,image_hash,object_story_spec,asset_feed_spec}",
+      limit: "200",
+    });
+    for (const ad of ads) {
+      if (str(ad.effective_status) !== "ACTIVE") continue;
+      const creative = (ad.creative ?? {}) as Record<string, unknown>;
+      const vid = creativeVideoId(creative);
+      if (vid) videos.add(vid);
+      for (const h of creativeImageHashes(creative)) hashes.add(h);
+    }
+  } catch {
+    /* best-effort; nothing is marked live if the ads edge is unreachable */
+  }
+  return { videos, hashes };
 }
 
 // The photos genuinely used in the client's ads. We read the account's ad
@@ -118,6 +182,7 @@ export async function fetchImageCreatives(
         url,
         thumbnail: url,
         name: str(c.name),
+        live: false, // buildAdsMedia resolves this against the ACTIVE ads
       });
     }
   }
@@ -138,6 +203,7 @@ export async function fetchVideos(token: string, account: string): Promise<Media
         url: str(row.permalink_url) || thumb,
         thumbnail: thumb,
         name: str(row.title),
+        live: false, // buildAdsMedia resolves this against the ACTIVE ads
       };
     });
   } catch {
@@ -162,13 +228,21 @@ export async function buildAdsMedia(
   if (!account.startsWith("act_")) account = `act_${account}`;
 
   try {
-    const [videos, images] = await Promise.all([
+    const [videos, images, live] = await Promise.all([
       fetchVideos(token, account),
       fetchImageCreatives(token, account),
+      fetchLiveCreativeKeys(token, account),
     ]);
+    const items = [...videos, ...images].map((it) => ({
+      ...it,
+      live: it.type === "video" ? live.videos.has(it.id) : live.hashes.has(it.id),
+    }));
+    // Lead with what is running today: live items first, original order kept
+    // within each group (videos before images).
+    items.sort((a, b) => Number(b.live) - Number(a.live));
     return {
       configured: true,
-      items: [...videos, ...images],
+      items,
     };
   } catch (e) {
     return {

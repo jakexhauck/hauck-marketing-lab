@@ -13,11 +13,11 @@ export interface PageTab {
 export const PAID_ADS_TABS: PageTab[] = [
   // No "Leads" tab: a marketing channel must not host a lead list (that is the
   // Leads section's job). The Overview's lead count links into Leads; the
-  // ad-attribution analysis lives in "Ad Stats".
+  // ad-attribution analysis lives in "Ad Stats". "Media" is the single creative
+  // view (the old "Your Ads" tab merged in): every ad photo/video, live-marked.
   { to: "/marketing/paid-ads", label: "Overview", end: true },
-  { to: "/marketing/paid-ads/creatives", label: "Your Ads" },
-  { to: "/marketing/paid-ads/stats", label: "Ad Stats" },
   { to: "/marketing/paid-ads/media", label: "Media" },
+  { to: "/marketing/paid-ads/stats", label: "Ad Stats" },
 ];
 
 export const REVIEWS_TABS: PageTab[] = [

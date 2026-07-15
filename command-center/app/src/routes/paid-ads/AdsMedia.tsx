@@ -9,9 +9,11 @@ import { PAID_ADS_TABS } from "../../lib/pageTabs";
 import { PAID_ADS_CONTAINER, NotConnectedNotice } from "./shared";
 
 // "Media": the client's ad photo and video library, straight from Meta
-// (/api/ads/media, read-only). A real account with no media, or one whose token
-// can't read the media edge yet, shows an honest empty state (never fabricated
-// media). The demo view renders a clearly-sampled gallery so the layout reads.
+// (/api/ads/media, read-only). Every asset shows here; the ones backing an ad
+// that is running right now carry a green Live pill (resolved server-side). A
+// real account with no media, or one whose token can't read the media edge yet,
+// shows an honest empty state (never fabricated media). The demo view renders a
+// clearly-sampled gallery so the layout reads.
 
 // Deterministic gradient placeholder for an item with no thumbnail, and for the
 // demo sample tiles.
@@ -25,22 +27,32 @@ const THUMBS = [
 ];
 
 const DEMO_ITEMS: AdMediaItem[] = [
-  { id: "m1", type: "image", url: "", thumbnail: "", name: "Water heater hero" },
-  { id: "m2", type: "video", url: "", thumbnail: "", name: "Tech intro reel" },
-  { id: "m3", type: "image", url: "", thumbnail: "", name: "AC tune-up offer" },
-  { id: "m4", type: "image", url: "", thumbnail: "", name: "5-star review card" },
-  { id: "m5", type: "video", url: "", thumbnail: "", name: "Before / after" },
-  { id: "m6", type: "image", url: "", thumbnail: "", name: "Team on the job" },
+  { id: "m1", type: "image", url: "", thumbnail: "", name: "Water heater hero", live: true },
+  { id: "m2", type: "video", url: "", thumbnail: "", name: "Tech intro reel", live: true },
+  { id: "m3", type: "image", url: "", thumbnail: "", name: "AC tune-up offer", live: false },
+  { id: "m4", type: "image", url: "", thumbnail: "", name: "5-star review card", live: false },
+  { id: "m5", type: "video", url: "", thumbnail: "", name: "Before / after", live: false },
+  { id: "m6", type: "image", url: "", thumbnail: "", name: "Team on the job", live: false },
 ];
 
 function MediaTile({ item, index }: { item: AdMediaItem; index: number }) {
   const bg = item.thumbnail
     ? { backgroundImage: `url("${item.thumbnail}")`, backgroundSize: "cover", backgroundPosition: "center" }
     : { backgroundImage: THUMBS[index % THUMBS.length] };
-  // Just the ad itself: image/video thumbnail with a type badge, no name caption.
+  // Just the ad itself: image/video thumbnail with a type badge, plus a Live
+  // pill when this asset backs an ad running right now. No name caption.
   return (
     <Panel className="overflow-hidden p-0">
       <div className="relative flex aspect-square items-end bg-surface-2 p-2.5 text-white" style={bg}>
+        {item.live && (
+          <span
+            className="absolute right-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold text-white"
+            style={{ backgroundColor: "#16a34a", boxShadow: "0 4px 10px rgba(22,163,74,.35)" }}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+            Live
+          </span>
+        )}
         <span className="inline-flex items-center gap-1.5 rounded-full bg-black/35 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm">
           {item.type === "video" ? <Play size={12} /> : <ImageIcon size={12} />}
           {item.type === "video" ? "Video" : "Photo"}
@@ -57,13 +69,22 @@ export default function AdsMedia() {
 
   const configured = isDemo ? true : Boolean(data?.configured);
   const items = isDemo ? DEMO_ITEMS : data?.items ?? [];
+  const liveCount = items.filter((it) => it.live).length;
 
   return (
     <Shell>
       <div className={PAID_ADS_CONTAINER}>
         <PageBar
           tabs={PAID_ADS_TABS}
-          description="Every photo and video in your ad account, in one place."
+          description="Every photo and video in your ad account. The ones running right now are marked Live."
+          actions={
+            liveCount > 0 ? (
+              <span className="inline-flex items-center gap-2 rounded-full bg-positive-tint px-3 py-1.5 text-[12.5px] font-semibold text-positive">
+                <span className="h-1.5 w-1.5 rounded-full bg-positive" />
+                {liveCount} running now
+              </span>
+            ) : undefined
+          }
         />
 
         {!configured && (

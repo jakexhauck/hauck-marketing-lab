@@ -49,8 +49,8 @@ describe("fetchImageCreatives", () => {
     const items = await fetchImageCreatives("tok", "act_1");
 
     expect(items).toEqual([
-      { id: "h1", type: "image", url: "https://img.example/1.jpg", thumbnail: "https://img.example/1.jpg", name: "Photo Ad" },
-      { id: "h2", type: "image", url: "https://img.example/2.jpg", thumbnail: "https://img.example/2.jpg", name: "Hash Only" },
+      { id: "h1", type: "image", url: "https://img.example/1.jpg", thumbnail: "https://img.example/1.jpg", name: "Photo Ad", live: false },
+      { id: "h2", type: "image", url: "https://img.example/2.jpg", thumbnail: "https://img.example/2.jpg", name: "Hash Only", live: false },
     ]);
   });
 
@@ -110,8 +110,8 @@ describe("fetchVideos", () => {
     const items = await fetchVideos("tok", "act_1");
 
     expect(items).toEqual([
-      { id: "v1", type: "video", url: "https://fb.example/v1", thumbnail: "https://img.example/thumb1.jpg", name: "Video One" },
-      { id: "v2", type: "video", url: "https://img.example/thumb2.jpg", thumbnail: "https://img.example/thumb2.jpg", name: "Video Two" },
+      { id: "v1", type: "video", url: "https://fb.example/v1", thumbnail: "https://img.example/thumb1.jpg", name: "Video One", live: false },
+      { id: "v2", type: "video", url: "https://img.example/thumb2.jpg", thumbnail: "https://img.example/thumb2.jpg", name: "Video Two", live: false },
     ]);
   });
 
@@ -154,8 +154,8 @@ describe("buildAdsMedia", () => {
     const result = await buildAdsMedia("tok", "555", undefined);
 
     expect(result.configured).toBe(true);
-    // One /advideos call plus /adcreatives + /adimages for the image side.
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    // /advideos + /adcreatives + /adimages (image side) + /ads (live-marking).
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
   it("merges videos and images, videos first", async () => {
@@ -177,6 +177,49 @@ describe("buildAdsMedia", () => {
 
     expect(result.configured).toBe(true);
     expect(result.items.map((i) => i.id)).toEqual(["v1", "h1"]);
+  });
+
+  it("marks assets that back an ACTIVE ad as live, sorts them first, leaves the rest not-live", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (input: string) => {
+        const url = new URL(input);
+        if (url.pathname.endsWith("/advideos")) {
+          return jsonRes({
+            data: [
+              { id: "vLive", title: "Running", picture: "https://img.example/live.jpg" },
+              { id: "vPaused", title: "Shelved", picture: "https://img.example/paused.jpg" },
+            ],
+          });
+        }
+        if (url.pathname.endsWith("/adcreatives")) {
+          return jsonRes({
+            data: [
+              { id: "c1", name: "Live Photo", image_hash: "hLive", image_url: "https://img.example/lp.jpg" },
+              { id: "c2", name: "Old Photo", image_hash: "hOld", image_url: "https://img.example/op.jpg" },
+            ],
+          });
+        }
+        if (url.pathname.endsWith("/ads")) {
+          // Only vLive and hLive are running; effective_status gates it.
+          return jsonRes({
+            data: [
+              { effective_status: "ACTIVE", creative: { video_id: "vLive" } },
+              { effective_status: "ACTIVE", creative: { image_hash: "hLive" } },
+              { effective_status: "PAUSED", creative: { video_id: "vPaused" } },
+            ],
+          });
+        }
+        return jsonRes({ data: [] }); // /adimages resolver
+      }),
+    );
+
+    const result = await buildAdsMedia("tok", "act_1", undefined);
+
+    const byId = Object.fromEntries(result.items.map((i) => [i.id, i.live]));
+    expect(byId).toEqual({ vLive: true, vPaused: false, hLive: true, hOld: false });
+    // Live items sort ahead of the rest.
+    expect(result.items.slice(0, 2).every((i) => i.live)).toBe(true);
   });
 
   it("degrades to configured:true with an error message when the Meta calls reject", async () => {
