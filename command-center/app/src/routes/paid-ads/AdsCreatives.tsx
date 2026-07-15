@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image as ImageIcon, Megaphone } from "lucide-react";
+import { Megaphone, Play } from "lucide-react";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { Panel, EmptyState } from "../../components/ui";
@@ -8,15 +8,15 @@ import { useAdsInsights } from "../../hooks/useAdsInsights";
 import { emptyAdsInsights, type AdItem } from "../../lib/adsInsights";
 import { PAID_ADS_TABS } from "../../lib/pageTabs";
 import { PAID_ADS_CONTAINER, NotConnectedNotice, PlatformGlyph } from "./shared";
-import AdPreviewModal from "../../components/ads/AdPreviewModal";
+import AdCreativeModal from "../../components/ads/AdCreativeModal";
 
-// "Your Ads": the creatives gallery. Every live ad shown the way people see it,
-// with its real ad copy and platform badges. Only the ads running right now
-// appear here (paused/finished ads are hidden). Driven by real Meta ads
-// (/api/ads/insights); demo shows the sample gallery.
+// "Your Ads": the creatives gallery. Every live ad shown as the real creative,
+// uncropped, exactly what people see on Instagram and Facebook. Video ads show a
+// crisp poster with a play badge and play in the lightbox on click. Driven by
+// real Meta ads (/api/ads/insights); demo shows the sample gallery.
 
-// Deterministic gradient placeholder per ad (Meta ads carry a real thumbnail we
-// don't hotlink yet; a stable gradient keeps the card looking intentional).
+// Deterministic gradient placeholder for the rare ad with no resolvable creative
+// (keeps the card intentional rather than blank).
 const THUMBS = [
   "linear-gradient(135deg,#4f46e5,#7c73f0 60%,#db2777)",
   "linear-gradient(135deg,#0ea5e9,#4f46e5)",
@@ -35,7 +35,7 @@ export default function AdsCreatives() {
   // Only the ads running right now belong in "Your Ads"; paused/finished ones
   // are hidden so the client sees exactly what is live for them today.
   const ads = insights.ads.filter((a) => a.active);
-  // The ad opened in the placement-preview modal (null = closed).
+  // The ad opened in the creative lightbox (null = closed).
   const [preview, setPreview] = useState<AdItem | null>(null);
 
   return (
@@ -55,65 +55,89 @@ export default function AdsCreatives() {
         />
 
         {!insights.configured && (
-          <NotConnectedNotice message="Once your Meta ad account is connected, every ad we run for you shows up here with its copy and results." />
+          <NotConnectedNotice message="Once your Meta ad account is connected, every ad we run for you shows up here exactly as people see it." />
         )}
 
         {ads.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {ads.map((ad, i) => (
-              <Panel
-                key={ad.id}
-                role="button"
-                tabIndex={0}
-                aria-label={`See how "${ad.headline}" looks across placements`}
-                onClick={() => setPreview(ad)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setPreview(ad);
-                  }
-                }}
-                className="flex cursor-pointer flex-col overflow-hidden p-0 transition-colors hover:border-brand/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
-              >
-                {/* Creative thumbnail: the real Meta image when we have one,
-                    else a deterministic gradient placeholder. */}
-                <div
-                  className="relative flex h-[148px] items-end bg-surface-2 p-3 text-white"
-                  style={{
-                    backgroundImage: ad.thumbnailUrl ? `url("${ad.thumbnailUrl}")` : thumbFor(i),
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {ads.map((ad, i) => {
+              const isVideo = ad.mediaType === "video";
+              return (
+                <Panel
+                  key={ad.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Open "${ad.headline}"`}
+                  onClick={() => setPreview(ad)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setPreview(ad);
+                    }
                   }}
+                  className="group flex cursor-pointer flex-col overflow-hidden p-0 transition-colors hover:border-brand/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
                 >
-                  <span
-                    className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold text-white"
-                    style={{ backgroundColor: "#16a34a", boxShadow: "0 4px 10px rgba(22,163,74,.35)" }}
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                    Live
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-black/30 px-2.5 py-1 text-[11.5px] font-semibold backdrop-blur-sm">
-                    <ImageIcon size={13} />
-                    Ad creative
-                  </span>
-                </div>
+                  {/* The whole creative, uncropped. A blurred cover of the same
+                      image fills the frame behind a contain-fit copy, so any
+                      aspect ratio (portrait video, square, landscape) reads
+                      cleanly with nothing sliced off. */}
+                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-slate-900">
+                    {ad.thumbnailUrl ? (
+                      <>
+                        <div
+                          aria-hidden
+                          className="absolute inset-0 scale-110 blur-xl"
+                          style={{
+                            backgroundImage: `url("${ad.thumbnailUrl}")`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-slate-950/30" />
+                        <img
+                          src={ad.thumbnailUrl}
+                          alt={ad.headline}
+                          loading="lazy"
+                          className="absolute inset-0 h-full w-full object-contain"
+                        />
+                      </>
+                    ) : (
+                      <div className="absolute inset-0" style={{ backgroundImage: thumbFor(i) }} />
+                    )}
 
-                {/* Body */}
-                <div className="flex flex-1 flex-col p-4">
-                  <div className="font-display text-[15px] font-bold tracking-tight text-text">{ad.headline}</div>
-                  {ad.copy && <p className="mt-1.5 text-[13px] leading-relaxed text-muted">"{ad.copy}"</p>}
+                    {/* Live tag */}
+                    <span
+                      className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold text-white"
+                      style={{ backgroundColor: "#16a34a", boxShadow: "0 4px 10px rgba(22,163,74,.35)" }}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                      Live
+                    </span>
 
-                  <div className="mt-3 flex gap-2">
-                    {ad.platforms.map((p) => (
-                      <span key={p} className="inline-flex items-center gap-1.5 rounded-lg bg-surface-2 px-2.5 py-1 text-[11.5px] font-semibold text-muted">
-                        <PlatformGlyph p={p} size={16} />
-                        {p === "ig" ? "Instagram" : "Facebook"}
+                    {/* Video play affordance */}
+                    {isVideo && (
+                      <span className="absolute inset-0 z-10 flex items-center justify-center">
+                        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-transform group-hover:scale-105">
+                          <Play size={24} className="ml-0.5 fill-current" />
+                        </span>
                       </span>
-                    ))}
+                    )}
                   </div>
-                </div>
-              </Panel>
-            ))}
+
+                  {/* Footer: headline + platforms. No wall of copy. */}
+                  <div className="flex items-center justify-between gap-3 p-3.5">
+                    <div className="min-w-0 font-display text-[14px] font-semibold tracking-tight text-text">
+                      <span className="line-clamp-1">{ad.headline}</span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {ad.platforms.map((p) => (
+                        <PlatformGlyph key={p} p={p} size={18} />
+                      ))}
+                    </div>
+                  </div>
+                </Panel>
+              );
+            })}
           </div>
         ) : (
           <Panel className="px-4 py-12">
@@ -122,14 +146,14 @@ export default function AdsCreatives() {
               title={insights.configured ? "No ads running yet" : "No ads to show yet"}
               description={
                 insights.configured
-                  ? "Every ad we run for you appears here with its copy and results."
-                  : "After your accounts are linked, every ad we run for you appears here with its copy and results."
+                  ? "Every ad we run for you appears here, exactly as people see it."
+                  : "After your accounts are linked, every ad we run for you appears here, exactly as people see it."
               }
             />
           </Panel>
         )}
 
-        <AdPreviewModal ad={preview} onClose={() => setPreview(null)} />
+        <AdCreativeModal ad={preview} onClose={() => setPreview(null)} />
       </div>
     </Shell>
   );
