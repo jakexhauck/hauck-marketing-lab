@@ -33,6 +33,20 @@ function isSalesPipeline(name: string): boolean {
   return !(n.includes("reactivation") || n.includes("review"));
 }
 
+// Stages we hide from the app's pipeline board and Move sheet even though GHL
+// might still return them (GHL stays the system of record; this is display-only
+// and defensive: "Follow Up" and "Estimate Completed" were removed from the live
+// Sales pipeline, and this keeps them out of the app if they ever reappear).
+// Matched by lower-cased substring so the emoji GHL appends is harmless. Kept
+// tight so "Estimate Completed" does not catch "Estimate Scheduled" and
+// "Follow Up" does not catch "Long Term Nurture".
+const HIDDEN_STAGE_MATCHERS = ["follow up", "estimate completed"];
+
+function isVisibleStage(name: string): boolean {
+  const n = name.trim().toLowerCase();
+  return !HIDDEN_STAGE_MATCHERS.some((m) => n.includes(m));
+}
+
 const STORAGE_KEY = "hml.selectedPipelineId";
 // Pre-rename key (carried a client name); migrated once below, then unused.
 const LEGACY_STORAGE_KEY = "willis.selectedPipelineId";
@@ -65,7 +79,9 @@ export function PipelinesProvider({ children }: { children: ReactNode }) {
       (useReal
         ? (query.data?.pipelines ?? [])
         : getMockPipelinesForClient(client.id)
-      ).filter((p) => isSalesPipeline(p.name)),
+      )
+        .filter((p) => isSalesPipeline(p.name))
+        .map((p) => ({ ...p, stages: p.stages.filter((s) => isVisibleStage(s.name)) })),
     [useReal, query.data, client.id],
   );
 
