@@ -17,7 +17,6 @@ export const PAID_ADS_TABS: PageTab[] = [
   { to: "/marketing/paid-ads", label: "Overview", end: true },
   { to: "/marketing/paid-ads/creatives", label: "Your Ads" },
   { to: "/marketing/paid-ads/stats", label: "Ad Stats" },
-  { to: "/marketing/paid-ads/funnel", label: "Funnel" },
   { to: "/marketing/paid-ads/media", label: "Media" },
 ];
 

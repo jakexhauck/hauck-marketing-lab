@@ -44,7 +44,6 @@ import WebsiteInsights from "./routes/website/WebsiteInsights";
 import AdsOverview from "./routes/paid-ads/AdsOverview";
 import AdsCreatives from "./routes/paid-ads/AdsCreatives";
 import AdsInsights from "./routes/paid-ads/AdsInsights";
-import AdsFunnel from "./routes/paid-ads/AdsFunnel";
 import AdsMedia from "./routes/paid-ads/AdsMedia";
 import Reactivation from "./routes/sales/Reactivation";
 import CampaignsAudiences from "./routes/campaigns/CampaignsAudiences";
@@ -466,7 +465,8 @@ export default function App() {
               {/* A marketing channel never hosts a lead list; ad leads live in Leads, filtered. */}
               <Route path="/marketing/paid-ads/leads" element={<Navigate to="/sales/leads/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/stats" element={<ProtectedRoute><AdsInsights /></ProtectedRoute>} />
-              <Route path="/marketing/paid-ads/funnel" element={<ProtectedRoute><AdsFunnel /></ProtectedRoute>} />
+              {/* Funnel tab retired; old URL redirects to the Paid Ads overview. */}
+              <Route path="/marketing/paid-ads/funnel" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/media" element={<ProtectedRoute><AdsMedia /></ProtectedRoute>} />
               <Route path="/marketing/reviews" element={<ProtectedRoute><ReviewsOverview /></ProtectedRoute>} />
               <Route path="/marketing/reviews/pipeline" element={<ProtectedRoute><ReviewsPipeline /></ProtectedRoute>} />
