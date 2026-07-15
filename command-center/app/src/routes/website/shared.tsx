@@ -157,18 +157,27 @@ export function DevicePreview({
 // ---------------------------------------------------------------------------
 // LiveSiteFrame: the client's REAL site inside a BrowserFrame body. Non-
 // interactive by default (pointer-events off) so it reads as a preview and, on
-// the Request-a-Change canvas, lets the click overlay capture pins over it. If
-// the site blocks embedding (X-Frame-Options / frame-ancestors) the iframe body
-// renders blank; every caller also surfaces an "Open live site" affordance, so
-// the page never depends on the embed succeeding.
+// the Request-a-Change canvas, lets the click overlay capture pins over it.
+// Pass `interactive` (Overview's storefront glance) to turn it into a full,
+// scrollable window: the user scrolls the whole site inside the frame and clicks
+// its own nav to move between pages. If the site blocks embedding (X-Frame-
+// Options / frame-ancestors) the iframe body renders blank; every caller also
+// surfaces an "Open live site" affordance, so the page never depends on the
+// embed succeeding.
 // ---------------------------------------------------------------------------
 export function LiveSiteFrame({
   url,
   device = "desktop",
+  interactive = false,
 }: {
   url: string;
   device?: Device;
+  interactive?: boolean;
 }) {
+  // Mobile always fills the phone screen (600px). Desktop is a short snapshot by
+  // default (460px); interactive mode grows it to a real viewport so more of the
+  // page shows before you scroll.
+  const height = device === "mobile" ? 600 : interactive ? "72vh" : 460;
   return (
     <iframe
       src={url}
@@ -176,7 +185,11 @@ export function LiveSiteFrame({
       loading="lazy"
       referrerPolicy="no-referrer"
       className="block w-full border-0 bg-white"
-      style={{ height: device === "mobile" ? 600 : 460, pointerEvents: "none" }}
+      style={{
+        height,
+        minHeight: interactive && device !== "mobile" ? 560 : undefined,
+        pointerEvents: interactive ? "auto" : "none",
+      }}
     />
   );
 }
