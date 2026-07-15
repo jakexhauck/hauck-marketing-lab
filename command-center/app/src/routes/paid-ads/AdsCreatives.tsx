@@ -11,9 +11,10 @@ import { PAID_ADS_CONTAINER, NotConnectedNotice, PlatformGlyph } from "./shared"
 import AdCreativeModal from "../../components/ads/AdCreativeModal";
 
 // "Your Ads": the creatives gallery. Every live ad shown as the real creative,
-// uncropped, exactly what people see on Instagram and Facebook. Video ads show a
-// crisp poster with a play badge and play in the lightbox on click. Driven by
-// real Meta ads (/api/ads/insights); demo shows the sample gallery.
+// uncropped, exactly what people see on Instagram and Facebook. No ad names or
+// internal labels: just the creative. Video ads show a crisp poster with a play
+// badge and play in the lightbox on click. Driven by real Meta ads
+// (/api/ads/insights); demo shows the sample gallery.
 
 // Deterministic gradient placeholder for the rare ad with no resolvable creative
 // (keeps the card intentional rather than blank).
@@ -67,7 +68,7 @@ export default function AdsCreatives() {
                   key={ad.id}
                   role="button"
                   tabIndex={0}
-                  aria-label={`Open "${ad.headline}"`}
+                  aria-label="Open ad creative"
                   onClick={() => setPreview(ad)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -75,66 +76,59 @@ export default function AdsCreatives() {
                       setPreview(ad);
                     }
                   }}
-                  className="group flex cursor-pointer flex-col overflow-hidden p-0 transition-colors hover:border-brand/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+                  className="group relative aspect-[4/5] cursor-pointer overflow-hidden bg-slate-900 p-0 transition-colors hover:border-brand/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
                 >
                   {/* The whole creative, uncropped. A blurred cover of the same
                       image fills the frame behind a contain-fit copy, so any
                       aspect ratio (portrait video, square, landscape) reads
-                      cleanly with nothing sliced off. */}
-                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-slate-900">
-                    {ad.thumbnailUrl ? (
-                      <>
-                        <div
-                          aria-hidden
-                          className="absolute inset-0 scale-110 blur-xl"
-                          style={{
-                            backgroundImage: `url("${ad.thumbnailUrl}")`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-slate-950/30" />
-                        <img
-                          src={ad.thumbnailUrl}
-                          alt={ad.headline}
-                          loading="lazy"
-                          className="absolute inset-0 h-full w-full object-contain"
-                        />
-                      </>
-                    ) : (
-                      <div className="absolute inset-0" style={{ backgroundImage: thumbFor(i) }} />
-                    )}
+                      cleanly with nothing sliced off. No names or labels. */}
+                  {ad.thumbnailUrl ? (
+                    <>
+                      <div
+                        aria-hidden
+                        className="absolute inset-0 scale-110 blur-xl"
+                        style={{
+                          backgroundImage: `url("${ad.thumbnailUrl}")`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-slate-950/30" />
+                      <img
+                        src={ad.thumbnailUrl}
+                        alt=""
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-contain"
+                      />
+                    </>
+                  ) : (
+                    <div className="absolute inset-0" style={{ backgroundImage: thumbFor(i) }} />
+                  )}
 
-                    {/* Live tag */}
-                    <span
-                      className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold text-white"
-                      style={{ backgroundColor: "#16a34a", boxShadow: "0 4px 10px rgba(22,163,74,.35)" }}
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                      Live
-                    </span>
+                  {/* Live tag */}
+                  <span
+                    className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold text-white"
+                    style={{ backgroundColor: "#16a34a", boxShadow: "0 4px 10px rgba(22,163,74,.35)" }}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                    Live
+                  </span>
 
-                    {/* Video play affordance */}
-                    {isVideo && (
-                      <span className="absolute inset-0 z-10 flex items-center justify-center">
-                        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-transform group-hover:scale-105">
-                          <Play size={24} className="ml-0.5 fill-current" />
-                        </span>
+                  {/* Platform icons, subtle overlay bottom-left. No text. */}
+                  <span className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-1.5">
+                    {ad.platforms.map((p) => (
+                      <PlatformGlyph key={p} p={p} size={18} />
+                    ))}
+                  </span>
+
+                  {/* Video play affordance */}
+                  {isVideo && (
+                    <span className="absolute inset-0 z-10 flex items-center justify-center">
+                      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-transform group-hover:scale-105">
+                        <Play size={24} className="ml-0.5 fill-current" />
                       </span>
-                    )}
-                  </div>
-
-                  {/* Footer: headline + platforms. No wall of copy. */}
-                  <div className="flex items-center justify-between gap-3 p-3.5">
-                    <div className="min-w-0 font-display text-[14px] font-semibold tracking-tight text-text">
-                      <span className="line-clamp-1">{ad.headline}</span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      {ad.platforms.map((p) => (
-                        <PlatformGlyph key={p} p={p} size={18} />
-                      ))}
-                    </div>
-                  </div>
+                    </span>
+                  )}
                 </Panel>
               );
             })}
