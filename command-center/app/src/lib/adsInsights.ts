@@ -17,6 +17,10 @@ export interface AdItem {
   // Real Meta creative image URL; absent/"" => the card uses a gradient
   // placeholder. Demo ads leave it unset.
   thumbnailUrl?: string;
+  // Mirrors the endpoint: "video" ads carry a videoId the lightbox can play.
+  // Optional so demo ads and older cached payloads stay valid.
+  mediaType?: "image" | "video";
+  videoId?: string;
   // Campaign/ad-set names, for the admin cockpit's Campaigns tree. Optional:
   // demo ads and older cached payloads may not have them.
   campaignName?: string;
@@ -102,6 +106,7 @@ export function demoAdsInsights(): AdsInsightsResponse {
     leads: a.leads,
     reach: a.reach,
     spend: Math.round(a.leads * 58), // ~$58 CPL, matches the demo cockpit
+    mediaType: "image" as const, // demo has no real video creatives
   }));
   const leads = ads.reduce((s, a) => s + a.leads, 0);
   const spend = ads.reduce((s, a) => s + a.spend, 0);
