@@ -11,7 +11,6 @@ import Home from "./routes/Home";
 import AllFeatures from "./routes/AllFeatures";
 import LeadsPipelinePage from "./routes/sales/LeadsPipelinePage";
 import LeadsOrganic from "./routes/sales/LeadsOrganic";
-import LeadsPaidAds from "./routes/sales/LeadsPaidAds";
 import Jobs from "./routes/sales/Jobs";
 import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
@@ -291,20 +290,13 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* Paid Ads = ad leads (simple list). */}
-              <Route
-                path="/sales/leads/paid-ads"
-                element={
-                  <ProtectedRoute>
-                    <LeadsPaidAds />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Old paths fold into the new pages. */}
+              {/* Old paths fold into the new pages. Paid Ads is no longer a Leads
+                  tab; its old routes redirect to the Sales board. */}
               <Route path="/sales/leads/pipeline" element={<Navigate to="/sales/leads" replace />} />
+              <Route path="/sales/leads/paid-ads" element={<Navigate to="/sales/leads" replace />} />
               <Route path="/sales/forms" element={<Navigate to="/sales/leads/organic" replace />} />
               <Route path="/sales/chat" element={<Navigate to="/sales/leads/organic" replace />} />
-              <Route path="/sales/paid-ads" element={<Navigate to="/sales/leads/paid-ads" replace />} />
+              <Route path="/sales/paid-ads" element={<Navigate to="/sales/leads" replace />} />
               <Route
                 path="/sales/jobs"
                 element={
@@ -463,7 +455,7 @@ export default function App() {
               <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsOverview /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/creatives" element={<ProtectedRoute><AdsCreatives /></ProtectedRoute>} />
               {/* A marketing channel never hosts a lead list; ad leads live in Leads, filtered. */}
-              <Route path="/marketing/paid-ads/leads" element={<Navigate to="/sales/leads/paid-ads" replace />} />
+              <Route path="/marketing/paid-ads/leads" element={<Navigate to="/sales/leads" replace />} />
               <Route path="/marketing/paid-ads/stats" element={<ProtectedRoute><AdsInsights /></ProtectedRoute>} />
               {/* Funnel tab retired; old URL redirects to the Paid Ads overview. */}
               <Route path="/marketing/paid-ads/funnel" element={<Navigate to="/marketing/paid-ads" replace />} />

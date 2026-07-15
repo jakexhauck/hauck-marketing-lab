@@ -63,13 +63,11 @@ export const GROUP_OUTREACH_TABS: PageTab[] = [
 
 export const LEADS_TABS: PageTab[] = [
   // Sales = the consolidated sales pipeline board (the section default). Trash =
-  // the dead-lead pipeline board. Organic = form + chat leads. Paid Ads = ad
-  // leads. All four live under /sales/leads so the single "Leads" sidebar row
-  // stays highlighted.
+  // the dead-lead pipeline board. Organic = form + chat leads. All three live
+  // under /sales/leads so the single "Leads" sidebar row stays highlighted.
   { to: "/sales/leads", label: "Sales", end: true },
   { to: "/sales/leads/trash", label: "Trash" },
   { to: "/sales/leads/organic", label: "Organic" },
-  { to: "/sales/leads/paid-ads", label: "Paid Ads" },
 ];
 
 // The bold section label <PageBar> shows to the left of the tabs. Matched to the
