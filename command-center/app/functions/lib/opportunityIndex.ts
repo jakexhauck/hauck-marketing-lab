@@ -16,6 +16,29 @@ function recency(o: GhlOpportunity): number {
   return Number.isNaN(t) ? 0 : t;
 }
 
+// Every opportunity a contact holds, not just the chosen one. A contact is
+// routinely in two pipelines at once: a past customer sits in Sales "Job
+// Completed" AND Google Reviews "Asked For Review" while the review request is
+// out. `buildOpportunityIndex` keeps only one of those, so a page that needs a
+// SPECIFIC pipeline (the Reviews inbox needs the Google Reviews position, not
+// whichever record GHL touched last) has to read this instead.
+export function buildPipelinePositions(
+  opps: GhlOpportunity[],
+): Map<string, ChosenOpp[]> {
+  const out = new Map<string, ChosenOpp[]>();
+  for (const o of opps) {
+    if (!o.contactId) continue;
+    const list = out.get(o.contactId) ?? [];
+    list.push({
+      pipelineId: o.pipelineId ?? "",
+      pipelineStageId: o.pipelineStageId ?? "",
+      status: o.status ?? "",
+    });
+    out.set(o.contactId, list);
+  }
+  return out;
+}
+
 export function buildOpportunityIndex(opps: GhlOpportunity[]): Map<string, ChosenOpp> {
   const best = new Map<string, GhlOpportunity>();
   for (const o of opps) {

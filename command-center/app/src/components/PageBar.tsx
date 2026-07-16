@@ -16,6 +16,8 @@ export default function PageBar({
   description,
   actions,
   filters,
+  children,
+  flush,
 }: {
   tabs: PageTab[];
   // Defaults to the label mapped from `tabs` (sidebar section name). Pass to
@@ -25,10 +27,18 @@ export default function PageBar({
   description?: ReactNode;
   actions?: ReactNode;
   filters?: ReactNode;
+  // In-row tabs that are NOT route links — the Inbox and Reviews Chats filter
+  // in place, so their stage tabs are buttons. Rendered in the same slot as
+  // `tabs`, after them, so the section name still pins left and the whole row
+  // keeps one divider.
+  children?: ReactNode;
+  // Drops the bottom margin, for pages whose content owns the space under the
+  // divider (the two-pane inboxes butt their panes straight against it).
+  flush?: boolean;
 }) {
   const label = section ?? sectionLabel(tabs);
   return (
-    <div className="mb-5 shrink-0">
+    <div className={(flush ? "" : "mb-5 ") + "shrink-0"}>
       <div className="flex items-end gap-x-5 border-b border-[var(--border)]">
         {/* Section name, pinned left */}
         <div className="flex shrink-0 items-baseline gap-2.5 pb-3.5">
@@ -47,6 +57,7 @@ export default function PageBar({
           style={{ scrollbarWidth: "none" }}
         >
           <TabLinks tabs={tabs} />
+          {children}
         </nav>
 
         {/* Page actions (all sizes) + global controls (desktop only), pinned right */}

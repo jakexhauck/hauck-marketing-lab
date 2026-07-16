@@ -181,6 +181,27 @@ export interface ApiConversation {
   pipelineStageId?: string;
   pipelineName?: string;
   stageName?: string;
+  // Every pipeline the contact sits in. A past customer is in Sales AND Google
+  // Reviews at once, so the fields above (one chosen opportunity) cannot answer
+  // "where is this contact in the Google Reviews pipeline?" — this can.
+  // Optional: absent from payloads cached by a bundle that predates it, so always
+  // read it through `convPipelines()` rather than touching it directly.
+  pipelines?: ConversationPipeline[];
+}
+
+export interface ConversationPipeline {
+  pipelineId: string;
+  pipelineStageId: string;
+  pipelineName: string;
+  stageName: string;
+  status: string;
+}
+
+// The one safe way to read `pipelines`. A payload persisted by an older bundle
+// has no such field, and a poisoned localStorage snapshot is what white-screened
+// Paid Ads before — so never touch `c.pipelines` directly.
+export function convPipelines(c: ApiConversation): ConversationPipeline[] {
+  return Array.isArray(c.pipelines) ? c.pipelines : [];
 }
 
 export interface ApiNote {

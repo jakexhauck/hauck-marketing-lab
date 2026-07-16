@@ -166,19 +166,36 @@ export function buildDemoData(now: number = Date.now()): DemoData {
     call: "Inbound Call",
     other: "Website Form",
   };
-  // Stage name per conversation, cycled so the grouped-by-stage inbox shows a
-  // real spread across the funnel in demo / test mode. `undefined` lands the
-  // conversation in "New / Unsorted" (a lead with no opportunity yet).
+  // Stage name per conversation, cycled so the Inbox tab strip shows a real
+  // spread across the funnel in demo / test mode. `undefined` lands the
+  // conversation in "New Leads" (a lead with no opportunity yet).
+  //
+  // These mirror the LIVE Willis Sales pipeline, emoji and all, so demo mode
+  // exercises the same substring mapping production does. Re-check the live
+  // account before editing (`ghl opportunities pipelines`) — the names drift.
   const DEMO_INBOX_STAGES: (string | undefined)[] = [
-    "Lead In",
-    "Lead Responded",
-    "Estimate Scheduled",
-    "Estimate Completed",
-    "Job Booked",
-    "Job Completed",
-    "Follow Up - Not Ready",
+    "New Lead 🔔",
+    "Hot Lead 🔥",
+    "Phone Appointment Booked  📞",
+    "Estimate Scheduled 📋",
+    "Job Booked 💼",
+    "Job Completed ✅",
+    "Long Term Nurture 🌱",
     undefined,
   ];
+  // The live Google Reviews pipeline. Only the first 12 leads get a conversation
+  // (see the `i < 12` guard below), so these are pinned to specific indices in
+  // that range — otherwise the Chats page would demo with a single chat and three
+  // empty tabs. Each of these contacts is ALSO forced to "Job Completed ✅" in
+  // Sales, which is the real shape: a review request only goes out once the job
+  // is done, so the contact sits in two pipelines at once. That overlap is
+  // exactly what the Chats page exists to slice.
+  const DEMO_REVIEW_STAGE_BY_INDEX: Record<number, string> = {
+    5: "Asked For Review",
+    6: "Review Link Clicked",
+    9: "Negative Feedback Received",
+    10: "Positive Review Submission",
+  };
   const notes: Record<string, ApiNote[]> = {};
   const tasks: Record<string, ApiTask[]> = {};
 
@@ -279,6 +296,37 @@ export function buildDemoData(now: number = Date.now()): DemoData {
 
       const lastMsg = thread[thread.length - 1];
       const unread = i < 3 ? 1 : 0;
+      const reviewStage = DEMO_REVIEW_STAGE_BY_INDEX[i];
+      // A contact with a review request out has finished their job, so force the
+      // Sales stage to match rather than leaving the cycle to contradict it.
+      const inboxStage = reviewStage
+        ? "Job Completed ✅"
+        : DEMO_INBOX_STAGES[i % DEMO_INBOX_STAGES.length];
+      // Every pipeline this contact sits in.
+      const convPipelines = [
+        ...(inboxStage
+          ? [
+              {
+                pipelineId: PIPELINE_ID,
+                pipelineStageId: `demo-stage-${i}`,
+                pipelineName: PIPELINE_NAME,
+                stageName: inboxStage,
+                status: "open",
+              },
+            ]
+          : []),
+        ...(reviewStage
+          ? [
+              {
+                pipelineId: "demo-pipeline-reviews",
+                pipelineStageId: `demo-review-stage-${i}`,
+                pipelineName: "Google Reviews",
+                stageName: reviewStage,
+                status: "open",
+              },
+            ]
+          : []),
+      ];
       conversations.push({
         id: `demo-conv-${i + 1}`,
         contactId,
@@ -291,8 +339,9 @@ export function buildDemoData(now: number = Date.now()): DemoData {
         origin: DEMO_ORIGINS[i % DEMO_ORIGINS.length],
         source: DEMO_SOURCE_LABEL[DEMO_ORIGINS[i % DEMO_ORIGINS.length]],
         firstTouchAt: new Date(createdAt).toISOString(),
-        stageName: DEMO_INBOX_STAGES[i % DEMO_INBOX_STAGES.length],
+        stageName: inboxStage,
         pipelineName: PIPELINE_NAME,
+        pipelines: convPipelines,
       });
     }
 

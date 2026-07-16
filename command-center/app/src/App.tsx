@@ -16,6 +16,7 @@ import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
 import ReviewsRequests from "./routes/reviews/ReviewsRequests";
 import ReviewsPipeline from "./routes/reviews/ReviewsPipeline";
+import ReviewsChats from "./routes/reviews/ReviewsChats";
 import { Activity } from "./routes/Activity";
 import Contacts from "./routes/Contacts";
 import ContactDetail from "./routes/ContactDetail";
@@ -463,6 +464,7 @@ export default function App() {
               <Route path="/marketing/reviews" element={<Navigate to="/marketing/reviews/pipeline" replace />} />
               <Route path="/marketing/reviews/pipeline" element={<ProtectedRoute><ReviewsPipeline /></ProtectedRoute>} />
               <Route path="/marketing/reviews/requests" element={<ProtectedRoute><ReviewsRequests /></ProtectedRoute>} />
+              <Route path="/marketing/reviews/chats" element={<ProtectedRoute><ReviewsChats /></ProtectedRoute>} />
               {/* All Reviews + Reputation Report tabs retired; old URLs fall back to the pipeline. */}
               <Route path="/marketing/reviews/all" element={<Navigate to="/marketing/reviews/pipeline" replace />} />
               <Route path="/marketing/reviews/report" element={<Navigate to="/marketing/reviews/pipeline" replace />} />

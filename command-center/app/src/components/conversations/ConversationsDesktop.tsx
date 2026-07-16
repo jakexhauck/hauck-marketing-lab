@@ -6,16 +6,12 @@ import InboxTabStrip from "./InboxTabStrip";
 import ConversationList from "./ConversationList";
 import { useAuth } from "../../context/AuthContext";
 import { useConversationsQuery } from "../../hooks/useApi";
-import {
-  DEFAULT_INBOX_TAB,
-  countByTab,
-  conversationsForTab,
-} from "../../lib/inboxTabs";
+import { DEFAULT_INBOX_TAB, conversationsForTab } from "../../lib/inboxTabs";
 import type { ApiConversation } from "../../lib/api";
 
-// The Atelier desktop inbox (lg+). A tab strip across the top (one tab per
-// pipeline stage plus Chat Widget / Estimate Form), the active tab's flat queue
-// on the left (fixed column), the shared thread + composer on the right.
+// The Atelier desktop inbox (lg+). The stage/source tabs sit on the same line as
+// the "Inbox" title (passed as PageBar children), the active tab's flat queue on
+// the left (fixed column), the shared thread + composer on the right.
 // Renders only inside `hidden lg:flex` from the Conversations route.
 export default function ConversationsDesktop() {
   const { session } = useAuth();
@@ -31,7 +27,6 @@ export default function ConversationsDesktop() {
     [query.data],
   );
 
-  const counts = useMemo(() => countByTab(all), [all]);
   const list = useMemo(
     () => conversationsForTab(all, tab, search),
     [all, tab, search],
@@ -54,11 +49,12 @@ export default function ConversationsDesktop() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="px-6 pt-5">
-        <PageBar tabs={[]} section="Inbox" />
+        <PageBar tabs={[]} section="Inbox" flush>
+          <InboxTabStrip active={tab} onSelect={setTab} />
+        </PageBar>
       </div>
 
-      <InboxTabStrip counts={counts} active={tab} onSelect={setTab} />
-
+      {/* No border-t: PageBar's own border-b is the single rule above the panes */}
       <div className="flex min-h-0 flex-1">
         {/* Active tab's queue */}
         <section className="flex w-[360px] shrink-0 flex-col border-r border-border bg-surface">

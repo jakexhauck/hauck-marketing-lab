@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   INBOX_TABS,
   DEFAULT_INBOX_TAB,
-  countByTab,
+  salesStageName,
   conversationsForTab,
 } from "./inboxTabs";
 import type { ApiConversation } from "./api";
@@ -22,16 +22,24 @@ const conv = (over: Partial<ApiConversation>): ApiConversation => ({
   ...over,
 });
 
+const pipe = (pipelineName: string, stageName: string) => ({
+  pipelineId: pipelineName,
+  pipelineStageId: stageName,
+  pipelineName,
+  stageName,
+  status: "open",
+});
+
 describe("INBOX_TABS", () => {
-  it("is the nine-tab strip in order: seven stages then two sources", () => {
+  it("is the ten-tab strip in order: eight Sales stages then two sources", () => {
     expect(INBOX_TABS.map((t) => t.label)).toEqual([
       "New Leads",
       "Hot Lead",
       "Phone Appt",
-      "Estimate Scheduled",
+      "Estimate",
       "Job Booked",
       "Job Completed",
-      "Closed",
+      "Nurture",
       "Chat Widget",
       "Estimate Form",
     ]);
@@ -40,29 +48,60 @@ describe("INBOX_TABS", () => {
     expect(DEFAULT_INBOX_TAB).toBe(INBOX_TABS[0].key);
     expect(INBOX_TABS[0].label).toBe("New Leads");
   });
+  it("has no Closed tab: Trash / Reactivation / Google Reviews are not Sales", () => {
+    expect(INBOX_TABS.map((t) => t.key)).not.toContain("stage:closed");
+  });
 });
 
-describe("countByTab", () => {
-  it("counts every conversation into its stage tab", () => {
-    const items = [
-      conv({ id: "a", stageName: "Hot Lead 🔥", origin: "chat" }),
-      conv({ id: "b", stageName: "Job Booked 💼", origin: "form" }),
-      conv({ id: "c", stageName: undefined, origin: "chat" }),
-    ];
-    const counts = countByTab(items);
-    expect(counts["stage:new"]).toBe(1); // c
-    expect(counts["stage:hot_lead"]).toBe(1); // a
-    expect(counts["stage:job_booked"]).toBe(1); // b
+describe("salesStageName", () => {
+  it("reads the Sales position, not whichever opportunity the backend chose", () => {
+    // A past customer with a review request out: the backend's single chosen
+    // opportunity is the Google Reviews one, but the Inbox is the Sales queue.
+    const c = conv({
+      stageName: "Asked For Review",
+      pipelineName: "Google Reviews",
+      pipelines: [
+        pipe("Google Reviews", "Asked For Review"),
+        pipe("Sales", "Job Completed ✅"),
+      ],
+    });
+    expect(salesStageName(c)).toBe("Job Completed ✅");
   });
-  it("counts source tabs across every stage (overlaps stage counts)", () => {
+  it("falls back to the chosen stage when the contact has no Sales opportunity", () => {
+    const c = conv({
+      stageName: "No Answer 🤷",
+      pipelines: [pipe("Trash", "No Answer 🤷")],
+    });
+    expect(salesStageName(c)).toBe("No Answer 🤷");
+  });
+  it("falls back for payloads cached before `pipelines` shipped", () => {
+    expect(salesStageName(conv({ stageName: "Hot Lead 🔥" }))).toBe("Hot Lead 🔥");
+  });
+});
+
+describe("two-pipeline contacts", () => {
+  it("keeps a review-requested customer in Job Completed, not out of the Inbox", () => {
     const items = [
-      conv({ id: "a", stageName: "Hot Lead 🔥", origin: "chat" }),
-      conv({ id: "c", stageName: undefined, origin: "chat" }),
-      conv({ id: "b", stageName: "Job Booked 💼", origin: "form" }),
+      conv({
+        id: "past-customer",
+        stageName: "Asked For Review",
+        pipelines: [
+          pipe("Google Reviews", "Asked For Review"),
+          pipe("Sales", "Job Completed ✅"),
+        ],
+      }),
     ];
-    const counts = countByTab(items);
-    expect(counts["source:chat"]).toBe(2); // a + c, different stages
-    expect(counts["source:form"]).toBe(1); // b
+    expect(
+      conversationsForTab(items, "stage:job_completed", "").map((c) => c.id),
+    ).toEqual(["past-customer"]);
+  });
+  it("surfaces the live Long Term Nurture stage, which used to have no tab", () => {
+    const items = [
+      conv({ id: "n", stageName: "Long Term Nurture 🌱" }),
+    ];
+    expect(
+      conversationsForTab(items, "stage:long_term_nurture", "").map((c) => c.id),
+    ).toEqual(["n"]);
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mapStageNameToGroup, groupConversations, STAGE_GROUPS } from "./stageGroups";
+import { mapStageNameToGroup, sortForQueue } from "./stageGroups";
 import type { ApiConversation } from "./api";
 
 const conv = (over: Partial<ApiConversation>): ApiConversation => ({
@@ -35,9 +35,11 @@ describe("mapStageNameToGroup — live Sales pipeline", () => {
     expect(mapStageNameToGroup("Job Booked 💼")).toBe("job_booked");
     expect(mapStageNameToGroup("Job Completed ✅")).toBe("job_completed");
   });
-  it("groups Follow Up + Long Term Nurture together", () => {
+  // Long Term Nurture is a LIVE Sales stage and now owns an Inbox tab, so it no
+  // longer folds into the tab-less follow_up bucket (which hid it entirely).
+  it("gives the live Long Term Nurture stage its own group, apart from Follow Up", () => {
     expect(mapStageNameToGroup("Follow Up")).toBe("follow_up");
-    expect(mapStageNameToGroup("Long Term Nurture 🌱")).toBe("follow_up");
+    expect(mapStageNameToGroup("Long Term Nurture 🌱")).toBe("long_term_nurture");
   });
 });
 
@@ -70,31 +72,27 @@ describe("mapStageNameToGroup — Google Reviews out of the active sales view", 
   });
 });
 
-describe("groupConversations", () => {
-  it("returns all groups in funnel order", () => {
-    const out = groupConversations([]);
-    expect(out.map((g) => g.meta.key)).toEqual(STAGE_GROUPS.map((g) => g.key));
-  });
-  it("buckets by resolved stageName and falls back to new", () => {
+describe("sortForQueue", () => {
+  it("rises unread to top longest-wait-first, and reads newest-first below", () => {
     const items = [
-      conv({ id: "a", stageName: "Hot Lead 🔥" }),
-      conv({ id: "b", stageName: "Job Booked 💼" }),
-      conv({ id: "c", stageName: undefined }),
+      conv({ id: "read-old", unreadCount: 0, lastMessageAt: "2026-07-06T07:00:00Z" }),
+      conv({ id: "read-new", unreadCount: 0, lastMessageAt: "2026-07-06T10:00:00Z" }),
+      conv({ id: "newer-unread", unreadCount: 1, lastMessageAt: "2026-07-06T09:00:00Z" }),
+      conv({ id: "older-unread", unreadCount: 2, lastMessageAt: "2026-07-06T08:00:00Z" }),
     ];
-    const byKey = Object.fromEntries(
-      groupConversations(items).map((g) => [g.meta.key, g.items.map((i) => i.id)]),
-    );
-    expect(byKey.hot_lead).toEqual(["a"]);
-    expect(byKey.job_booked).toEqual(["b"]);
-    expect(byKey.new).toEqual(["c"]);
+    expect(sortForQueue(items).map((i) => i.id)).toEqual([
+      "older-unread",
+      "newer-unread",
+      "read-new",
+      "read-old",
+    ]);
   });
-  it("rises unread to top, longest-wait-first", () => {
+  it("does not mutate its input", () => {
     const items = [
-      conv({ id: "read", stageName: "Hot Lead 🔥", unreadCount: 0, lastMessageAt: "2026-07-06T10:00:00Z" }),
-      conv({ id: "newer-unread", stageName: "Hot Lead 🔥", unreadCount: 1, lastMessageAt: "2026-07-06T09:00:00Z" }),
-      conv({ id: "older-unread", stageName: "Hot Lead 🔥", unreadCount: 2, lastMessageAt: "2026-07-06T08:00:00Z" }),
+      conv({ id: "a", unreadCount: 0, lastMessageAt: "2026-07-06T07:00:00Z" }),
+      conv({ id: "b", unreadCount: 1, lastMessageAt: "2026-07-06T10:00:00Z" }),
     ];
-    const hot = groupConversations(items).find((g) => g.meta.key === "hot_lead")!;
-    expect(hot.items.map((i) => i.id)).toEqual(["older-unread", "newer-unread", "read"]);
+    sortForQueue(items);
+    expect(items.map((i) => i.id)).toEqual(["a", "b"]);
   });
 });
