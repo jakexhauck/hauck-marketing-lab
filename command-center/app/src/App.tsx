@@ -21,6 +21,7 @@ import { Activity } from "./routes/Activity";
 import Contacts from "./routes/Contacts";
 import ContactDetail from "./routes/ContactDetail";
 import Customers from "./routes/Customers";
+import CloseOutJob from "./routes/sales/CloseOutJob";
 import Conversations from "./routes/Conversations";
 import ConversationDetail from "./routes/ConversationDetail";
 import LeadDetail from "./routes/LeadDetail";
@@ -336,6 +337,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Customers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sales/leads/close-out/:opportunityId"
+                element={
+                  <ProtectedRoute>
+                    <CloseOutJob />
                   </ProtectedRoute>
                 }
               />

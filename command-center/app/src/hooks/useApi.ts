@@ -30,6 +30,12 @@ import {
   type PillarConstraint,
 } from "../lib/api";
 import { type CustomersResponse } from "../lib/customers";
+import {
+  type CloseOutPrefill,
+  type CloseOutRequest,
+  type CloseOutSuccess,
+  type CloseOutCountResponse,
+} from "../lib/closeOut";
 import { type Job } from "../lib/jobsPipeline";
 import { type WebsiteAnalytics } from "./useWebsiteAnalytics";
 import { type WebsiteSite, type WebsitePageItem } from "./useWebsitePages";
@@ -104,6 +110,45 @@ export function useCustomersQuery(enabled: boolean) {
     enabled,
     staleTime: 30_000,
     queryFn: () => api<CustomersResponse>("/api/sales/customers"),
+  });
+}
+
+// Jobs sitting in Job Completed with no logged job: the red badge on the board,
+// the sidebar count and the Home banner all read this one query.
+export function useCloseOutCountQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["close-outs", "count"],
+    enabled,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    queryFn: () => api<CloseOutCountResponse>("/api/sales/close-outs/count"),
+  });
+}
+
+export function useCloseOutPrefillQuery(opportunityId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["close-outs", "prefill", opportunityId],
+    enabled: enabled && Boolean(opportunityId),
+    retry: false,
+    queryFn: () => api<CloseOutPrefill>(`/api/sales/close-outs/${opportunityId}`),
+  });
+}
+
+export function useCloseOutJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CloseOutRequest) =>
+      api<CloseOutSuccess>("/api/sales/close-outs", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      // The board loses a card, Customers gains one, and the nudges must stop.
+      void qc.invalidateQueries({ queryKey: ["customers"] });
+      void qc.invalidateQueries({ queryKey: ["close-outs"] });
+      void qc.invalidateQueries({ queryKey: ["leads"] });
+      void qc.invalidateQueries({ queryKey: ["summary"] });
+    },
   });
 }
 

@@ -91,7 +91,15 @@ const STAGES = [
   { id: "demo-stage-1", name: "Contacted" },
   { id: "demo-stage-2", name: "Estimate Sent" },
   { id: "demo-stage-3", name: "Job Scheduled" },
+  // Mirrors the live Sales pipeline's terminal stage, and is the close-out
+  // queue: a card here has had its work done but no job recorded against it yet,
+  // so it wears the red Needs close-out badge. Without this stage the demo count
+  // had to name arbitrary leads, and the badge landed on New Leads.
+  { id: "demo-stage-4", name: "Job Completed" },
 ];
+// The stage the close-out queue reads. Kept next to STAGES so the two cannot
+// drift apart.
+export const DEMO_COMPLETED_STAGE_ID = "demo-stage-4";
 const PIPELINE_ID = "demo-pipeline-1";
 const PIPELINE_NAME = "Roofing Sales Pipeline";
 
