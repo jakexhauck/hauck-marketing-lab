@@ -20,11 +20,6 @@ import { columnLabel, type ApiCustomer, type ApiCustomerColumn } from "../lib/cu
 //
 // Desktop is side-by-side columns; below lg the same columns become a tab strip,
 // because two columns cannot survive a phone.
-//
-// Rows open the existing contact Cockpit for now. The customer detail page
-// (/customers/:contactId — job history, edit/delete, next service) is phase 4 of
-// docs/build-plans/customers-page.md; pointing there before it exists would land
-// on the catch-all and bounce the user to Home.
 
 function centsToDollars(cents: number): number {
   return cents / 100;
@@ -365,7 +360,7 @@ export default function Customers() {
                     column={col}
                     customers={matches.get(col.id) ?? []}
                     filtering={Boolean(trimmed)}
-                    onOpen={(c) => navigate(`/contacts/${c.contactId}`)}
+                    onOpen={(c) => navigate(`/customers/${c.contactId}`)}
                   />
                 ))}
             </div>

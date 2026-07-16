@@ -9,13 +9,14 @@ import {
 } from "../lib/nav";
 import { useClient } from "../context/ClientContext";
 import { useAuth } from "../context/AuthContext";
+import { useCloseOutCountQuery } from "../hooks/useApi";
 
 // A single page row. Used for the standalone Home button and for the children of
 // the open section in the lower zone, so the active (gradient) and hover
 // treatments stay identical wherever a real page lives. `end` forces an exact
 // route match (used for a group's overview child, whose route is a prefix of its
 // siblings, so it does not stay active on the deeper pages).
-function NavItemLink({ item, end }: { item: NavItem; end?: boolean }) {
+function NavItemLink({ item, end, badge }: { item: NavItem; end?: boolean; badge?: number }) {
   return (
     <NavLink
       to={item.to}
@@ -33,6 +34,14 @@ function NavItemLink({ item, end }: { item: NavItem; end?: boolean }) {
     >
       <item.icon size={17} className="shrink-0 opacity-80" />
       {item.label}
+      {badge != null && badge > 0 && (
+        <span
+          className="ml-auto grid h-[18px] min-w-[18px] place-items-center rounded-full bg-[var(--danger)] px-1 text-[10px] font-bold text-white"
+          aria-label={`${badge} ${badge === 1 ? "job needs" : "jobs need"} closing out`}
+        >
+          {badge}
+        </span>
+      )}
     </NavLink>
   );
 }
@@ -112,6 +121,8 @@ function NavItemGroup({ item }: { item: NavItem }) {
 export default function Sidebar() {
   const { client } = useClient();
   const { session, isOwner, mode, can } = useAuth();
+  const closeOuts = useCloseOutCountQuery(Boolean(session));
+  const closeOutCount = closeOuts.data?.count ?? 0;
 
   const navEntries = visibleNav(NAV, { isOwner, can });
   const sections = navEntries.filter(isNavSection);
@@ -159,7 +170,13 @@ export default function Sidebar() {
               item.children?.length ? (
                 <NavItemGroup key={item.to} item={item} />
               ) : (
-                <NavItemLink key={item.to} item={item} />
+                <NavItemLink
+                  key={item.to}
+                  item={item}
+                  // Jobs finished but never recorded. On Leads because that is
+                  // where the close-out queue lives (Sales / Job Completed).
+                  badge={item.to === "/sales/leads" ? closeOutCount : undefined}
+                />
               ),
             )}
           </div>

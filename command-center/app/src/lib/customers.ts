@@ -38,6 +38,42 @@ export interface CustomersResponse {
   configError?: "pipeline_not_found";
 }
 
+export interface ApiCustomerJob {
+  id: string;
+  description: string;
+  valueCents: number;
+  completedOn: string;
+  addedManually: boolean;
+}
+
+export interface CustomerDetailResponse {
+  contactId: string;
+  opportunityId: string;
+  name: string;
+  phone: string;
+  email: string;
+  type: "one-time" | "recurring";
+  stageId: string;
+  stageName: string;
+  jobs: ApiCustomerJob[];
+  totalCents: number;
+  nextServiceAt: string | null;
+  serviceState: ServiceState | null;
+  appointmentMissing?: boolean;
+  jobsUnavailable?: boolean;
+}
+
+export interface CustomerJobInput {
+  description: string;
+  valueCents: number;
+  completedOn: string;
+}
+
+export interface ServicePlanInput {
+  mode: "book" | "unplanned" | "none";
+  at?: string;
+}
+
 // A column's client-facing label. GHL stage names carry emoji and the word
 // "Customer" ("Recurring Customer 🔁"), which is noise inside a page already
 // titled Customers and under a column already holding customers.

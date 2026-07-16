@@ -21,6 +21,7 @@ import { Activity } from "./routes/Activity";
 import Contacts from "./routes/Contacts";
 import ContactDetail from "./routes/ContactDetail";
 import Customers from "./routes/Customers";
+import CustomerDetail from "./routes/CustomerDetail";
 import CloseOutJob from "./routes/sales/CloseOutJob";
 import Conversations from "./routes/Conversations";
 import ConversationDetail from "./routes/ConversationDetail";
@@ -337,6 +338,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Customers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customers/:contactId"
+                element={
+                  <ProtectedRoute>
+                    <CustomerDetail />
                   </ProtectedRoute>
                 }
               />

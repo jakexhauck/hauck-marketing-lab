@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
 import ClientHero, { type ClientHeroKpi } from "./ClientHero";
+import CloseOutBanner from "./CloseOutBanner";
 import EmptyState from "../EmptyState";
 import { useAuth } from "../../context/AuthContext";
 import { usePipelines } from "../../context/PipelinesContext";
@@ -152,6 +153,8 @@ export default function HomeDesktop() {
           </div>
         ) : (
           <>
+            <CloseOutBanner />
+
             {/* Overview hero: greeting, date, and the four month-to-date KPIs,
                 glowing in the live client brand color. */}
             <ClientHero greeting={greeting(now)} subtitle={today} kpis={heroKpis} />

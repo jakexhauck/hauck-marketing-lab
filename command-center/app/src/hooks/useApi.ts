@@ -29,7 +29,12 @@ import {
   type ApiReviewsResponse,
   type PillarConstraint,
 } from "../lib/api";
-import { type CustomersResponse } from "../lib/customers";
+import {
+  type CustomersResponse,
+  type CustomerDetailResponse,
+  type CustomerJobInput,
+  type ServicePlanInput,
+} from "../lib/customers";
 import {
   type CloseOutPrefill,
   type CloseOutRequest,
@@ -132,6 +137,64 @@ export function useCloseOutPrefillQuery(opportunityId: string, enabled: boolean)
     retry: false,
     queryFn: () => api<CloseOutPrefill>(`/api/sales/close-outs/${opportunityId}`),
   });
+}
+
+export function useCustomerDetailQuery(contactId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["customers", contactId],
+    enabled: enabled && Boolean(contactId),
+    retry: false,
+    queryFn: () => api<CustomerDetailResponse>(`/api/customers/${contactId}`),
+  });
+}
+
+// Every customer-detail write invalidates the same two keys: the customer being
+// edited, and the Customers list whose tiles are derived from these rows.
+function useCustomerMutation<TArgs>(
+  contactId: string,
+  run: (args: TArgs) => Promise<unknown>,
+) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: run,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["customers"] });
+      void qc.invalidateQueries({ queryKey: ["customers", contactId] });
+      // Deleting a job clears its ledger entry, so a board card can become
+      // eligible for close-out again.
+      void qc.invalidateQueries({ queryKey: ["close-outs"] });
+    },
+  });
+}
+
+export function useAddCustomerJob(contactId: string) {
+  return useCustomerMutation(contactId, (body: CustomerJobInput) =>
+    api(`/api/customers/${contactId}/jobs`, { method: "POST", body: JSON.stringify(body) }),
+  );
+}
+
+export function useEditCustomerJob(contactId: string) {
+  return useCustomerMutation(contactId, ({ jobId, ...body }: CustomerJobInput & { jobId: string }) =>
+    api(`/api/customers/${contactId}/jobs/${jobId}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  );
+}
+
+export function useDeleteCustomerJob(contactId: string) {
+  return useCustomerMutation(contactId, (jobId: string) =>
+    api(`/api/customers/${contactId}/jobs/${jobId}`, { method: "DELETE" }),
+  );
+}
+
+export function useSetServicePlan(contactId: string) {
+  return useCustomerMutation(contactId, (body: ServicePlanInput) =>
+    api<{ ok: true; calendarError?: string }>(`/api/customers/${contactId}/plan`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  );
 }
 
 export function useCloseOutJob() {
