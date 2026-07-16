@@ -29,6 +29,7 @@ import {
   type ApiReviewsResponse,
   type PillarConstraint,
 } from "../lib/api";
+import { type CustomersResponse } from "../lib/customers";
 import { type Job } from "../lib/jobsPipeline";
 import { type WebsiteAnalytics } from "./useWebsiteAnalytics";
 import { type WebsiteSite, type WebsitePageItem } from "./useWebsitePages";
@@ -93,6 +94,16 @@ export function useSummaryQuery(enabled: boolean) {
     staleTime: 30_000,
     refetchInterval: 60_000,
     queryFn: () => api<ApiSummary>("/api/summary"),
+  });
+}
+
+// The Customers page: the GHL Customers pipeline joined to our job history.
+export function useCustomersQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["customers"],
+    enabled,
+    staleTime: 30_000,
+    queryFn: () => api<CustomersResponse>("/api/sales/customers"),
   });
 }
 

@@ -108,13 +108,14 @@ export const TOUR_STEPS: TourStep[] = [
     placement: "right",
   },
   {
-    id: "billing",
+    // Replaces the old Billing step: the Revenue row is gone, and its tour
+    // target was generated from that nav row, so the step had no anchor left.
+    id: "customers",
     version: 1,
-    route: "/billing",
-    target: { desktop: "[data-tour='nav-billing']", mobile: null },
-    title: "Billing",
-    body: "Your invoices and payment status. No surprises, no chasing paper.",
-    capability: "billing",
+    route: "/customers",
+    target: { desktop: "[data-tour='nav-customers']", mobile: null },
+    title: "Customers",
+    body: "Everyone who has paid you, what they spent, and when the recurring ones are next due.",
     placement: "right",
   },
   {

@@ -29,8 +29,8 @@ const GROUPS: { label: string; routes: string[] }[] = [
     routes: [
       "/conversations",
       "/contacts",
+      "/customers",
       "/calendar",
-      "/billing",
       "/team",
     ],
   },
