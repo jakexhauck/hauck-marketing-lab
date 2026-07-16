@@ -21,7 +21,6 @@ export const PAID_ADS_TABS: PageTab[] = [
 ];
 
 export const REVIEWS_TABS: PageTab[] = [
-  { to: "/marketing/reviews", label: "Overview", end: true },
   { to: "/marketing/reviews/pipeline", label: "Review Pipeline" },
   { to: "/marketing/reviews/requests", label: "Ask for Reviews" },
 ];

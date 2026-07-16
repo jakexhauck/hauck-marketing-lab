@@ -14,7 +14,6 @@ import LeadsOrganic from "./routes/sales/LeadsOrganic";
 import Jobs from "./routes/sales/Jobs";
 import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
-import ReviewsOverview from "./routes/reviews/ReviewsOverview";
 import ReviewsRequests from "./routes/reviews/ReviewsRequests";
 import ReviewsPipeline from "./routes/reviews/ReviewsPipeline";
 import { Activity } from "./routes/Activity";
@@ -460,12 +459,13 @@ export default function App() {
               {/* Funnel tab retired; old URL redirects to the Paid Ads overview. */}
               <Route path="/marketing/paid-ads/funnel" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/media" element={<ProtectedRoute><AdsMedia /></ProtectedRoute>} />
-              <Route path="/marketing/reviews" element={<ProtectedRoute><ReviewsOverview /></ProtectedRoute>} />
+              {/* Overview retired; Google Reviews opens on the Review Pipeline. */}
+              <Route path="/marketing/reviews" element={<Navigate to="/marketing/reviews/pipeline" replace />} />
               <Route path="/marketing/reviews/pipeline" element={<ProtectedRoute><ReviewsPipeline /></ProtectedRoute>} />
               <Route path="/marketing/reviews/requests" element={<ProtectedRoute><ReviewsRequests /></ProtectedRoute>} />
-              {/* All Reviews + Reputation Report tabs retired; old URLs fall back to Overview. */}
-              <Route path="/marketing/reviews/all" element={<Navigate to="/marketing/reviews" replace />} />
-              <Route path="/marketing/reviews/report" element={<Navigate to="/marketing/reviews" replace />} />
+              {/* All Reviews + Reputation Report tabs retired; old URLs fall back to the pipeline. */}
+              <Route path="/marketing/reviews/all" element={<Navigate to="/marketing/reviews/pipeline" replace />} />
+              <Route path="/marketing/reviews/report" element={<Navigate to="/marketing/reviews/pipeline" replace />} />
               {/* Campaigns is retired; Overview/all/insights redirect into Commercial Outreach.
                   Audiences stays parked but reachable. Reactivation moved to its own section. */}
               <Route path="/marketing/campaigns" element={<Navigate to="/marketing/outreach" replace />} />
