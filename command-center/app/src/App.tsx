@@ -57,21 +57,11 @@ import ReactivationData from "./routes/reactivation/ReactivationData";
 import GroupOutreachOverview from "./routes/groups/GroupOutreachOverview";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
-import AdminTasks from "./routes/admin/AdminTasks";
-import AdminBuild from "./routes/admin/AdminBuild";
-import AdminSops from "./routes/admin/AdminSops";
-import AdminSopDetail from "./routes/admin/AdminSopDetail";
-import Assets from "./routes/admin/Assets";
-import AdminMessages from "./routes/admin/AdminMessages";
-import Plans from "./routes/admin/Plans";
-import AdminOnboarding from "./routes/admin/AdminOnboarding";
-import AdminOnboardingDetail from "./routes/admin/AdminOnboardingDetail";
 import AdminCommand from "./routes/admin/AdminCommand";
 import AdminDelivery from "./routes/admin/AdminDelivery";
 import DeliveryCockpit from "./routes/admin/DeliveryCockpit";
-import AdminPillarPage from "./routes/admin/AdminPillarPage";
+import PillarPage from "./routes/admin/PillarPage";
 import AdminSettings from "./routes/admin/AdminSettings";
-import AdminInfrastructure from "./routes/admin/AdminInfrastructure";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -538,86 +528,10 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              <Route
-                path="/admin/onboarding"
-                element={
-                  <AdminRoute>
-                    <AdminOnboarding />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/onboarding/:id"
-                element={
-                  <AdminRoute>
-                    <AdminOnboardingDetail />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/tasks"
-                element={
-                  <AdminRoute>
-                    <AdminTasks />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/assets"
-                element={
-                  <AdminRoute>
-                    <Assets />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/build"
-                element={
-                  <AdminRoute>
-                    <AdminBuild />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/plans"
-                element={
-                  <AdminRoute>
-                    <Plans />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/sops"
-                element={
-                  <AdminRoute>
-                    <AdminSops />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/sops/:cat/:slug"
-                element={
-                  <AdminRoute>
-                    <AdminSopDetail />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/messages"
-                element={
-                  <AdminRoute>
-                    <AdminMessages />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/infrastructure"
-                element={
-                  <AdminRoute>
-                    <AdminInfrastructure />
-                  </AdminRoute>
-                }
-              />
+              {/* Retired admin surfaces (SOPs, Onboarding, Build, Plans, Assets,
+                  Messages, Infrastructure, standalone Tasks) are gone; their
+                  work now lives inside the pillar tab bars. Old URLs fall
+                  through to RootRedirect below. */}
               {/* Service Delivery > Paid Ads: the old standalone ad tracker
                   is retired, replaced by the Fulfillment cockpit's Paid Ads tab. */}
               <Route path="/admin/ads" element={<Navigate to="/admin/delivery" replace />} />
@@ -657,12 +571,13 @@ export default function App() {
               {/* Old lane/tab deep links drop back to the pillar page. */}
               <Route path="/admin/pillar/:pillarId/lane/:laneId" element={<PillarRedirect />} />
               <Route path="/admin/pillar/:pillarId/:tabId" element={<PillarRedirect />} />
-              {/* The pillar page itself (acquisition / sales / operations). */}
+              {/* The pillar page itself (acquisition / sales / operations):
+                  a Bento Bold header + per-pillar tab bar driven by ?tab=. */}
               <Route
                 path="/admin/pillar/:pillarId"
                 element={
                   <AdminRoute>
-                    <AdminPillarPage />
+                    <PillarPage />
                   </AdminRoute>
                 }
               />
