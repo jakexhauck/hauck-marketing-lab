@@ -210,12 +210,14 @@ body {
   --warning-tint: color-mix(in srgb, #d97706 14%, transparent);
   --danger: #dc2626;
   --danger-tint: color-mix(in srgb, #dc2626 12%, transparent);
+  --info: #0284c7;
+  --info-tint: color-mix(in srgb, #0284c7 12%, transparent);
 
-  /* Unified calendar source colors (appointment/job). Each stream on the
-     Company calendar reads its color from these so the legend, pills and
-     blocks stay in sync and theme-aware. */
-  --source-appointment: #4f46e5;
-  --source-appointment-tint: color-mix(in srgb, #4f46e5 10%, transparent);
+  /* Unified schedule source colors (estimate/job). Each stream on the Jobs
+     calendar reads its color from these so the legend, pills and blocks stay in
+     sync and theme-aware. */
+  --source-estimate: var(--info);
+  --source-estimate-tint: var(--info-tint);
   --source-job: #16a34a;
   --source-job-tint: color-mix(in srgb, #16a34a 12%, transparent);
 
@@ -257,10 +259,12 @@ body {
   --warning-tint: color-mix(in srgb, #fbbf24 16%, transparent);
   --danger: #f87171;
   --danger-tint: color-mix(in srgb, #f87171 16%, transparent);
+  --info: #38bdf8;
+  --info-tint: color-mix(in srgb, #38bdf8 18%, transparent);
 
-  /* Calendar source colors, tuned for dark: lighter foregrounds, stronger tints. */
-  --source-appointment: #a5b4fc;
-  --source-appointment-tint: color-mix(in srgb, #4f46e5 26%, transparent);
+  /* Schedule source colors, tuned for dark: lighter foregrounds, stronger tints. */
+  --source-estimate: var(--info);
+  --source-estimate-tint: var(--info-tint);
   --source-job: #4ade80;
   --source-job-tint: color-mix(in srgb, #4ade80 18%, transparent);
 
@@ -304,6 +308,8 @@ body {
   --color-warning-tint: var(--warning-tint);
   --color-danger: var(--danger);
   --color-danger-tint: var(--danger-tint);
+  --color-info: var(--info);
+  --color-info-tint: var(--info-tint);
 }
 
 @layer components {

@@ -3,7 +3,6 @@ import {
   Megaphone,
   MessageSquare,
   MessagesSquare,
-  CalendarDays,
   CalendarCheck,
   UserCog,
   Star,
@@ -116,7 +115,6 @@ export const NAV: NavEntry[] = [
       // detail the `billing` capability was drawn around.
       { to: "/customers", label: "Customers", icon: Users },
       { to: "/sales/jobs", label: "Jobs", shortLabel: "Jobs", icon: CalendarCheck },
-      { to: "/calendar", label: "Calendar", icon: CalendarDays, capability: "calendar" },
       // No Revenue row: customer revenue lives on /customers now, built from real
       // logged jobs instead of the invoices + payments feed (which returns
       // internal_error against live Willis). The /billing route stays registered

@@ -98,16 +98,6 @@ export const TOUR_STEPS: TourStep[] = [
     placement: "right",
   },
   {
-    id: "calendar",
-    version: 1,
-    route: "/calendar",
-    target: { desktop: "[data-tour='nav-calendar']", mobile: null },
-    title: "Calendar",
-    body: "Every booked appointment and intro call in one place, synced with your own calendar so nothing slips.",
-    capability: "calendar",
-    placement: "right",
-  },
-  {
     // Replaces the old Billing step: the Revenue row is gone, and its tour
     // target was generated from that nav row, so the step had no anchor left.
     id: "customers",

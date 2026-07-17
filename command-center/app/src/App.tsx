@@ -28,7 +28,6 @@ import ConversationDetail from "./routes/ConversationDetail";
 import LeadDetail from "./routes/LeadDetail";
 import Today from "./routes/Today";
 import Billing from "./routes/Billing";
-import Calendar from "./routes/Calendar";
 import Notifications from "./routes/Notifications";
 import Team from "./routes/Team";
 import Settings from "./routes/Settings";
@@ -408,14 +407,8 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/calendar"
-                element={
-                  <ProtectedRoute>
-                    <Calendar />
-                  </ProtectedRoute>
-                }
-              />
+              {/* The calendar now lives inside the Jobs tab as a set of views. */}
+              <Route path="/calendar" element={<Navigate to="/sales/jobs" replace />} />
               <Route
                 path="/notifications"
                 element={

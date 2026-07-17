@@ -3,7 +3,7 @@
 // "paid" invoice, a "won" lead, and a "showed" appointment all read as the same
 // kind of positive without each surface inventing its own colors.
 
-export type Tone = "neutral" | "brand" | "positive" | "warning" | "danger";
+export type Tone = "neutral" | "brand" | "positive" | "warning" | "danger" | "info";
 
 export interface StatusMeta {
   tone: Tone;
@@ -64,6 +64,7 @@ export const toneClasses: Record<Tone, string> = {
   positive: "bg-positive-tint text-positive",
   warning: "bg-warning-tint text-warning",
   danger: "bg-danger-tint text-danger",
+  info: "bg-info-tint text-info",
 };
 
 export const toneDot: Record<Tone, string> = {
@@ -72,4 +73,5 @@ export const toneDot: Record<Tone, string> = {
   positive: "bg-positive",
   warning: "bg-warning",
   danger: "bg-danger",
+  info: "bg-info",
 };

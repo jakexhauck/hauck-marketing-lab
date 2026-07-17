@@ -6,21 +6,24 @@ import {
   type GhlOpportunity,
 } from "../../../lib/ghl";
 
-// GET /api/sales/jobs: opportunities in the Sales Pipeline at the two job
-// stages (Job Booked + Job Completed), each joined to its GHL appointment for
-// the scheduled date/time. Shaped to the `Job` type the Jobs calendar reads
-// (src/lib/jobsPipeline.ts), so the frontend needs no shape changes.
+// GET /api/sales/jobs: opportunities in the Sales Pipeline at the estimate +
+// two job stages (Estimate Scheduled, Job Booked, Job Completed), each joined to
+// its GHL appointment for the scheduled date/time. Shaped to the `Job` type the
+// Jobs calendar reads (src/lib/jobsPipeline.ts), so the frontend needs no shape
+// changes.
 //
-// IDs differ per tenant, so the pipeline and both stages are resolved by name
-// (exact then contains) with the known Willis ids as a last-resort fallback.
-// This is a read-only surface: stage writes (complete/reschedule/payment) are
-// follow-up work.
+// IDs differ per tenant, so the pipeline and stages are resolved by name (exact
+// then contains) with the known Willis ids as a last-resort fallback. Live stage
+// names carry emoji suffixes ("Estimate Scheduled 📋"), so the contains match is
+// what actually resolves them. This is a read-only surface: stage writes
+// (complete/reschedule/payment) are follow-up work.
 
 // Fallback pipeline id (Willis Windows) if name resolution finds nothing. Every
 // client is provisioned from the same template, but the id is per-tenant, so
 // this is only a safety net behind the by-name lookup.
 const SALES_PIPELINE_NAME = "sales pipeline";
 const SALES_PIPELINE_FALLBACK_ID = "6o9Gx6e0TXRFJdln5d01";
+const ESTIMATE_SCHEDULED_NAME = "estimate scheduled";
 const JOB_BOOKED_NAME = "job booked";
 const JOB_COMPLETED_NAME = "job completed";
 
@@ -32,9 +35,10 @@ interface PipelinesResponse {
   }[];
 }
 
-// Job stage resolution result: the pipeline id plus the two stage ids we cover.
+// Job stage resolution result: the pipeline id plus the stage ids we cover.
 interface ResolvedStages {
   pipelineId: string;
+  estimateStageId: string | null;
   bookedStageId: string | null;
   completedStageId: string | null;
 }
@@ -65,15 +69,20 @@ function norm(s: string): string {
   return s.trim().toLowerCase();
 }
 
-// Resolve the Sales pipeline + Job Booked / Job Completed stages by name, exact
-// first then a looser contains, so small renames still resolve. Falls back to
-// the known Willis pipeline id if no pipeline matches by name at all.
+// Resolve the Sales pipeline + Estimate Scheduled / Job Booked / Job Completed
+// stages by name, exact first then a looser contains, so small renames and the
+// live emoji suffixes still resolve. Falls back to the known Willis pipeline id
+// if no pipeline matches by name at all.
 function resolveStages(pipes: PipelinesResponse["pipelines"]): ResolvedStages {
   const pipe =
     pipes.find((p) => norm(p.name) === SALES_PIPELINE_NAME) ??
     pipes.find((p) => norm(p.name).includes("sales"));
 
   const stages = pipe?.stages ?? [];
+  const estimate =
+    stages.find((s) => norm(s.name) === ESTIMATE_SCHEDULED_NAME) ??
+    stages.find((s) => norm(s.name).includes("estimate scheduled")) ??
+    stages.find((s) => norm(s.name).includes("estimate"));
   const booked =
     stages.find((s) => norm(s.name) === JOB_BOOKED_NAME) ??
     stages.find((s) => norm(s.name).includes("job booked"));
@@ -83,6 +92,7 @@ function resolveStages(pipes: PipelinesResponse["pipelines"]): ResolvedStages {
 
   return {
     pipelineId: pipe?.id ?? SALES_PIPELINE_FALLBACK_ID,
+    estimateStageId: estimate?.id ?? null,
     bookedStageId: booked?.id ?? null,
     completedStageId: completed?.id ?? null,
   };
@@ -150,7 +160,7 @@ interface ApiJob {
   time: string;
   startMinutes: number;
   amount: number;
-  status: "booked" | "completed";
+  status: "estimate" | "booked" | "completed";
   paid: boolean;
 }
 
@@ -208,7 +218,11 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     `/opportunities/pipelines?locationId=${encodeURIComponent(t.ghl_location_id)}`,
   );
   const resolved = resolveStages(pipeData.pipelines ?? []);
-  if (!resolved.bookedStageId && !resolved.completedStageId) {
+  if (
+    !resolved.estimateStageId &&
+    !resolved.bookedStageId &&
+    !resolved.completedStageId
+  ) {
     return Response.json({ jobs: [], configError: "stage_not_found" });
   }
 
@@ -222,12 +236,14 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const jobs: ApiJob[] = [];
   for (const o of opps) {
     const stageId = o.pipelineStageId ?? "";
-    const status: "booked" | "completed" | null =
-      stageId === resolved.bookedStageId
-        ? "booked"
-        : stageId === resolved.completedStageId
-          ? "completed"
-          : null;
+    const status: "estimate" | "booked" | "completed" | null =
+      stageId === resolved.estimateStageId
+        ? "estimate"
+        : stageId === resolved.bookedStageId
+          ? "booked"
+          : stageId === resolved.completedStageId
+            ? "completed"
+            : null;
     if (!status) continue;
 
     const contactId = o.contact?.id ?? o.contactId ?? "";

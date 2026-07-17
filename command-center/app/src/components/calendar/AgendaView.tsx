@@ -22,7 +22,7 @@ export function AgendaView({
       <div className="rounded-[var(--radius-lg)] border border-border bg-surface py-6">
         <EmptyState
           title="Nothing scheduled"
-          message="Appointments and jobs will show up here as they are booked."
+          message="Estimates and jobs will show up here as they are booked."
         />
       </div>
     );

@@ -24,13 +24,15 @@ export const SALES_PIPELINE_ID = "6o9Gx6e0TXRFJdln5d01";
 export const JOB_BOOKED_STAGE = "Job Booked";
 export const JOB_COMPLETED_STAGE = "Job Completed";
 
-// A job's lifecycle on this page. `booked` = scheduled, not yet done;
-// `completed` = work done (payment tracked separately via `paid`).
-export type JobStatus = "booked" | "completed";
+// A job's lifecycle on this page. `estimate` = a scheduled estimate visit, not
+// yet won; `booked` = scheduled work, not yet done; `completed` = work done
+// (payment tracked separately via `paid`).
+export type JobStatus = "estimate" | "booked" | "completed";
 
 // What a calendar day's dot means. A completed-but-unpaid job is called out in
-// amber so money owed never hides inside the green "done" pile.
-export type DayKind = "booked" | "completed" | "unpaid";
+// amber so money owed never hides inside the green "done" pile; an estimate is
+// its own sky tone so a prospective visit never reads as booked work.
+export type DayKind = "estimate" | "booked" | "completed" | "unpaid";
 
 export interface Job {
   id: string;
@@ -58,20 +60,24 @@ export interface Job {
   paid: boolean;
 }
 
-// The dot/badge kind for a job: unpaid completed work is its own call-out.
+// The dot/badge kind for a job: an estimate visit and unpaid completed work are
+// each their own call-out.
 export function jobKind(job: Job): DayKind {
+  if (job.status === "estimate") return "estimate";
   if (job.status === "booked") return "booked";
   return job.paid ? "completed" : "unpaid";
 }
 
 // Tone for each kind, reusing the app's semantic status tones.
 export const KIND_TONE: Record<DayKind, Tone> = {
+  estimate: "info",
   booked: "brand",
   completed: "positive",
   unpaid: "warning",
 };
 
 export const KIND_LABEL: Record<DayKind, string> = {
+  estimate: "Estimate",
   booked: "Booked",
   completed: "Paid",
   unpaid: "Unpaid",
@@ -164,13 +170,15 @@ export function jobsOnDay(jobs: Job[], iso: string): Job[] {
 export function dayKinds(jobs: Job[], iso: string): DayKind[] {
   const kinds = new Set<DayKind>();
   for (const j of jobs) if (j.date === iso) kinds.add(jobKind(j));
-  // Stable order: booked, completed, unpaid.
-  return (["booked", "completed", "unpaid"] as DayKind[]).filter((k) =>
-    kinds.has(k),
+  // Stable order: estimate, booked, completed, unpaid.
+  return (["estimate", "booked", "completed", "unpaid"] as DayKind[]).filter(
+    (k) => kinds.has(k),
   );
 }
 
 export interface MonthSummary {
+  estimates: number;
+  estimatesValue: number;
   booked: number;
   completed: number;
   unpaid: number;
@@ -184,14 +192,19 @@ export interface MonthSummary {
 export function monthSummary(jobs: Job[], year: number, month: number): MonthSummary {
   const prefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
   const inMonth = jobs.filter((j) => j.date.startsWith(prefix));
-  let booked = 0,
+  let estimates = 0,
+    estimatesValue = 0,
+    booked = 0,
     completed = 0,
     unpaid = 0,
     unpaidValue = 0,
     bookedValue = 0,
     collected = 0;
   for (const j of inMonth) {
-    if (j.status === "booked") {
+    if (j.status === "estimate") {
+      estimates++;
+      estimatesValue += j.amount;
+    } else if (j.status === "booked") {
       booked++;
       bookedValue += j.amount;
     } else {
@@ -203,7 +216,16 @@ export function monthSummary(jobs: Job[], year: number, month: number): MonthSum
       }
     }
   }
-  return { booked, completed, unpaid, unpaidValue, bookedValue, collected };
+  return {
+    estimates,
+    estimatesValue,
+    booked,
+    completed,
+    unpaid,
+    unpaidValue,
+    bookedValue,
+    collected,
+  };
 }
 
 // --------------------------------------------------------------------------
@@ -236,4 +258,8 @@ export const DEMO_JOBS: Job[] = [
   { id: "j13", customer: "Carl Jensen", service: "Exterior, single story", city: "Madison Heights", zip: "48071", phone: "(248) 555-0173", date: "2026-07-11", time: "1:00 PM", startMinutes: 780, amount: 290, status: "booked", paid: false },
   { id: "j14", customer: "Olivia Grant", service: "Full exterior + gutters", city: "Clawson", zip: "48017", phone: "(248) 555-0145", date: "2026-07-14", time: "11:00 AM", startMinutes: 660, amount: 410, status: "booked", paid: false },
   { id: "j15", customer: "Nina Patel", service: "2-story exterior + skylights", city: "Bloomfield", zip: "48302", phone: "(248) 555-0168", date: "2026-07-17", time: "9:30 AM", startMinutes: 570, amount: 540, status: "booked", paid: false },
+
+  // --- Scheduled estimates (prospective visits, not yet won) ---
+  { id: "e1", customer: "Bianca Reyes", service: "Estimate · full house exterior", city: "Troy", zip: "48084", phone: "(248) 555-0210", date: "2026-07-08", time: "10:00 AM", startMinutes: 600, amount: 480, status: "estimate", paid: false },
+  { id: "e2", customer: "Derek Vance", service: "Estimate · storefront, monthly", city: "Ferndale", zip: "48220", phone: "(248) 555-0222", date: "2026-07-15", time: "2:30 PM", startMinutes: 870, amount: 260, status: "estimate", paid: false },
 ];
