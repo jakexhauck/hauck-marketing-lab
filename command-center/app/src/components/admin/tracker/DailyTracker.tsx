@@ -31,6 +31,16 @@ export interface TrackerColumn {
   // input = numeric cell you type; text = free-text cell; computed = read-only
   // rate cell filled from computeRow().
   kind: TrackerColumnKind;
+  // Which band this column belongs to, in the "wide" variant only. Columns of a
+  // band must be contiguous: the grouped header row spans each run.
+  group?: string;
+}
+
+// A band of columns in the "wide" variant (Spend / Funnel / Qualify / Revenue).
+export interface TrackerGroup {
+  id: string;
+  label: string;
+  tone: StatTone;
 }
 
 // One day's editable data: field key -> raw string value (as typed).
@@ -66,6 +76,18 @@ export interface DailyTrackerProps {
   rollup: { average: RollupCells; total: RollupCells };
   onEdit: (iso: string, field: string, value: string) => void;
   onMonthChange: (cursor: MonthCursor) => void;
+
+  // "standard" (default) is the original single-band table. "wide" adds the
+  // grouped two-row header, the frozen Date column and a horizontal scroller,
+  // for surfaces with too many columns to fit (Ad Tracking's 26). Purely
+  // presentational: the edit contract is identical in both.
+  variant?: "standard" | "wide";
+  // The bands, in order, for the "wide" variant's grouped header row.
+  columnGroups?: TrackerGroup[];
+  // How wide the wide table wants to be before it starts scrolling.
+  minWidth?: number;
+  // Rendered between the month nav and the table (the rolling summary strip).
+  aboveTable?: ReactNode;
 }
 
 export default function DailyTracker({
@@ -80,11 +102,22 @@ export default function DailyTracker({
   rollup,
   onEdit,
   onMonthChange,
+  variant = "standard",
+  columnGroups,
+  minWidth,
+  aboveTable,
 }: DailyTrackerProps) {
   const days = buildMonthDays(cursor, today);
+  const wide = variant === "wide" && !!columnGroups?.length;
+
+  // Each band's run of columns, so the grouped header can span it. Built from
+  // the column order itself, so a band is whatever run of columns declares it.
+  const bands = wide ? buildBands(columns, columnGroups!) : [];
+  // The first column of each band takes the divider rule.
+  const bandStarts = new Set(bands.map((b) => b.firstIndex));
 
   return (
-    <div className="adt">
+    <div className={`adt${wide ? " adt-wide" : ""}`}>
       <TrackerStyle />
 
       <div className="adt-controls">
@@ -138,6 +171,8 @@ export default function DailyTracker({
         </div>
       )}
 
+      {aboveTable}
+
       <div className="adt-card">
         <div className="adt-head">
           <div>
@@ -155,14 +190,45 @@ export default function DailyTracker({
         </div>
 
         <div className="adt-scroll">
-          <table>
+          <table style={wide && minWidth ? { minWidth: `${minWidth}px` } : undefined}>
             <thead>
-              <tr>
-                <th>Date</th>
-                {columns.map((c) => (
-                  <th key={c.key}>{c.label}</th>
-                ))}
-              </tr>
+              {wide ? (
+                <>
+                  <tr>
+                    <th className="date" rowSpan={2}>
+                      Date
+                    </th>
+                    {bands.map((b) => (
+                      <th key={b.id} className={`gh ${b.tone}`} colSpan={b.span}>
+                        {b.label}
+                      </th>
+                    ))}
+                  </tr>
+                  <tr>
+                    {columns.map((c, i) => (
+                      <th
+                        key={c.key}
+                        className={[
+                          "crow",
+                          c.kind === "input" ? "inh" : "",
+                          bandStarts.has(i) ? "grp-start" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                      >
+                        {c.label}
+                      </th>
+                    ))}
+                  </tr>
+                </>
+              ) : (
+                <tr>
+                  <th>Date</th>
+                  {columns.map((c) => (
+                    <th key={c.key}>{c.label}</th>
+                  ))}
+                </tr>
+              )}
             </thead>
             <tbody>
               {days.map((d) => {
@@ -179,17 +245,21 @@ export default function DailyTracker({
                       </span>
                       {d.isToday && <span className="todaypill">TODAY</span>}
                     </td>
-                    {columns.map((c) => {
+                    {columns.map((c, i) => {
+                      const divider = bandStarts.has(i) ? "grp-start" : "";
                       if (c.kind === "computed") {
                         return (
-                          <td key={c.key} className="calc">
+                          <td key={c.key} className={`calc ${divider}`.trim()}>
                             {computed[c.key] ?? "-"}
                           </td>
                         );
                       }
                       const isText = c.kind === "text";
                       return (
-                        <td key={c.key} className={isText ? "txtcol" : undefined}>
+                        <td
+                          key={c.key}
+                          className={[isText ? "txtcol" : "", divider].filter(Boolean).join(" ") || undefined}
+                        >
                           <input
                             inputMode={isText ? undefined : "numeric"}
                             type="text"
@@ -207,15 +277,19 @@ export default function DailyTracker({
             </tbody>
             <tfoot>
               <tr className="avg">
-                <td>Average / day</td>
-                {columns.map((c) => (
-                  <td key={c.key}>{rollup.average[c.key] ?? ""}</td>
+                <td className={wide ? "date" : undefined}>Average / day</td>
+                {columns.map((c, i) => (
+                  <td key={c.key} className={bandStarts.has(i) ? "grp-start" : undefined}>
+                    {rollup.average[c.key] ?? ""}
+                  </td>
                 ))}
               </tr>
               <tr className="total">
-                <td>Total MTD</td>
-                {columns.map((c) => (
-                  <td key={c.key}>{rollup.total[c.key] ?? ""}</td>
+                <td className={wide ? "date" : undefined}>Total MTD</td>
+                {columns.map((c, i) => (
+                  <td key={c.key} className={bandStarts.has(i) ? "grp-start" : undefined}>
+                    {rollup.total[c.key] ?? ""}
+                  </td>
                 ))}
               </tr>
             </tfoot>
@@ -224,6 +298,34 @@ export default function DailyTracker({
       </div>
     </div>
   );
+}
+
+interface Band {
+  id: string;
+  label: string;
+  tone: StatTone;
+  span: number;
+  firstIndex: number;
+}
+
+// Collapse the column list into the runs each band occupies, so the grouped
+// header row can span them. Derived from the column order rather than declared
+// counts, so a band header can never drift out of sync with its columns. A
+// column whose group is unknown is skipped by the header but still renders.
+function buildBands(columns: TrackerColumn[], groups: TrackerGroup[]): Band[] {
+  const byId = new Map(groups.map((g) => [g.id, g]));
+  const bands: Band[] = [];
+  columns.forEach((c, i) => {
+    const group = c.group ? byId.get(c.group) : undefined;
+    if (!group) return;
+    const last = bands[bands.length - 1];
+    if (last && last.id === group.id) {
+      last.span++;
+      return;
+    }
+    bands.push({ id: group.id, label: group.label, tone: group.tone, span: 1, firstIndex: i });
+  });
+  return bands;
 }
 
 // Bento Bold styles, ported from command-center/docs/mockups/admin-redesign/
@@ -348,6 +450,62 @@ function TrackerStyle() {
       }
       .pk-kit .adt-card tfoot tr.total td { font-weight: 700; color: var(--text); }
       .pk-kit .adt-card tfoot tr.avg td { color: var(--text-muted); border-top: 0; }
+
+      /* ---- "wide" variant: grouped bands + frozen Date column ----
+         Ported from docs/mockups/admin-redesign/ad-tracking-A.html. The table
+         scrolls inside .adt-scroll; the page body never scrolls sideways. */
+      .pk-kit .adt-wide { --adt-grp-h: 30px; }
+      .pk-kit .adt-wide .adt-card table { border-collapse: separate; border-spacing: 0; }
+
+      /* Band header row */
+      .pk-kit .adt-wide .adt-card thead th.gh {
+        position: sticky; top: 0; z-index: 4; height: var(--adt-grp-h);
+        font-family: var(--font-display); font-weight: 600; font-size: 11px;
+        letter-spacing: .06em; text-transform: uppercase; text-align: left;
+        padding: 0 12px; border-bottom: 1px solid var(--border);
+      }
+      .pk-kit .adt-wide .adt-card thead th.gh.indigo { background: var(--adt-indigo-tint); color: var(--adt-indigo); }
+      .pk-kit .adt-wide .adt-card thead th.gh.sky { background: var(--adt-sky-tint); color: var(--adt-sky); }
+      .pk-kit .adt-wide .adt-card thead th.gh.amber { background: var(--adt-amber-tint); color: var(--adt-amber); }
+      .pk-kit .adt-wide .adt-card thead th.gh.green { background: var(--adt-green-tint); color: var(--adt-green); }
+
+      /* Column label row, offset below the band row */
+      .pk-kit .adt-wide .adt-card thead th.crow {
+        position: sticky; top: var(--adt-grp-h); z-index: 3; text-align: right;
+        font-size: 10.5px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
+        color: var(--text-faint); padding: 8px 12px; white-space: nowrap;
+        background: var(--adt-head-bg); border-bottom: 1px solid var(--border);
+      }
+      /* Typed columns read indigo, so "you type here" is obvious at a glance. */
+      .pk-kit .adt-wide .adt-card thead th.crow.inh { color: var(--adt-indigo); }
+
+      /* Frozen Date column. Higher z-index than the band row so it stays on top
+         at the corner where the two sticky axes cross. */
+      .pk-kit .adt-wide .adt-card thead th.date {
+        position: sticky; left: 0; top: 0; z-index: 6; text-align: left; vertical-align: bottom;
+        padding: 0 14px 8px; font-size: 10.5px; font-weight: 600; letter-spacing: .03em;
+        text-transform: uppercase; color: var(--text-faint);
+        background: var(--adt-head-bg);
+        border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+      }
+      .pk-kit .adt-wide .adt-card tbody td.date {
+        position: sticky; left: 0; z-index: 2; background: var(--surface);
+        border-right: 1px solid var(--border);
+      }
+      .pk-kit .adt-wide .adt-card tbody tr:hover td.date { background: var(--adt-hover); }
+      .pk-kit .adt-wide .adt-card tr.weekend td.date { background: var(--adt-zebra); }
+      .pk-kit .adt-wide .adt-card tr.today td.date { background: var(--adt-indigo-tint); }
+
+      .pk-kit .adt-wide .adt-card .grp-start { border-left: 1px solid var(--border); }
+      .pk-kit .adt-wide .adt-card tbody td { padding: 3px 8px; font-size: 13px; }
+      .pk-kit .adt-wide .adt-card td input { min-width: 50px; padding: 5px 6px; }
+
+      /* Sticky footer, with its own frozen Date cell */
+      .pk-kit .adt-wide .adt-card tfoot td { z-index: 3; }
+      .pk-kit .adt-wide .adt-card tfoot td.date {
+        position: sticky; left: 0; bottom: 0; z-index: 4;
+        background: var(--adt-head-bg); border-right: 1px solid var(--border);
+      }
 
       @media (max-width: 1120px) { .pk-kit .adt-stats { grid-template-columns: repeat(2, 1fr); } }
       @media (max-width: 720px) { .pk-kit .adt-stats { grid-template-columns: 1fr 1fr; gap: 10px; } .pk-kit .adt-monthnav { margin-left: 0; } }

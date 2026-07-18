@@ -382,6 +382,69 @@ export interface AdminClientDetailResponse {
   activity: AdminClientActivityEntry[];
 }
 
+// One client's commercial record (GET/PATCH /api/admin/clients/:tenantId/billing)
+// behind the Fulfillment cockpit's Billing tab: how the deal came in, cash
+// collected vs outstanding, billing/renewal dates, account standing. Phase 1 is
+// manual entry, so the four date fields are free text (typed exactly as the deal
+// notes read) and the cash fields are whole dollars.
+export interface AdminClientBilling {
+  source: string;
+  dateClosed: string;
+  service: string;
+  paymentArrangement: string;
+  upfrontCash: number;
+  remainingCash: number;
+  totalCashCollected: number;
+  billingDate: string;
+  renewalDate: string;
+  lastTouchpoint: string;
+  churnDate: string;
+  status: "active" | "churned";
+  notes: string;
+  // null until the record has been saved once (a client with no row yet).
+  updatedAt: string | null;
+}
+
+// The PATCH body: everything except the server-owned updatedAt.
+export type AdminClientBillingPatch = Omit<AdminClientBilling, "updatedAt">;
+
+export interface AdminClientBillingResponse {
+  billing: AdminClientBilling;
+}
+
+// One day of a client's paid-ad funnel tracker (GET/POST
+// /api/admin/clients/:tenantId/ad-tracking), behind Paid Ads > Ad Tracking.
+// These are the 13 TYPED inputs only: every ratio the tracker shows (CPM, CPC,
+// CTR, CPL, CPNL, LP Conv, Cost/Demo, Lead to Book, Qual %, Cost/Qual, CPA, Rev
+// ROAS, UF ROAS) is derived in src/lib/adTrackingMetrics.ts and never stored or
+// sent.
+export interface AdTrackingDay {
+  date: string; // YYYY-MM-DD, the persistence key (one row per client per day)
+  spend: number;
+  impressions: number;
+  clicks: number;
+  linkClicks: number;
+  newLeads: number;
+  demosBooked: number;
+  qualified: number;
+  disqualified: number;
+  noShow: number;
+  sales: number;
+  contractedRev: number;
+  ufCash: number;
+  newMrr: number;
+}
+
+// A month's logged days. Days with nothing typed are absent, not zero-filled:
+// the client generates the full grid from trackerMonth.ts.
+export interface AdTrackingMonthResponse {
+  month: string; // YYYY-MM
+  days: AdTrackingDay[];
+}
+
+// One edited day on its way back: the date plus whichever cells changed.
+export type AdTrackingInput = Partial<Omit<AdTrackingDay, "date">> & { date: string };
+
 // An agency task in the admin "Tasks" tab, or a pillar task in a pillar
 // workspace's Tasks tab. tenantId null + pillarId null = agency-wide; tenantId
 // set = tied to that client (clientName is the joined label); pillarId set = a

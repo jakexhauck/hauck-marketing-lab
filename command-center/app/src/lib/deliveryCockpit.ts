@@ -14,6 +14,7 @@ export type ServiceTab =
   | "web-design"
   | "google-reviews"
   | "reactivation"
+  | "billing"
   | "config";
 
 export interface SubTabDef {
@@ -41,7 +42,9 @@ export const SERVICE_TABS: ServiceTabDef[] = [
     subTabs: [
       { id: "campaigns", label: "Campaigns", ready: true },
       { id: "ad-library", label: "Ad Library", ready: true },
-      { id: "funnel", label: "Funnel", ready: true },
+      // Ad Tracking replaces the old Funnel placeholder: there is no funnel-step
+      // data to show, but the daily paid-ad tracker is real and manually kept.
+      { id: "ad-tracking", label: "Ad Tracking", ready: true },
       { id: "data-leads", label: "Data & Leads", ready: true },
     ],
   },
@@ -76,6 +79,9 @@ export const SERVICE_TABS: ServiceTabDef[] = [
       { id: "results", label: "Results", ready: false },
     ],
   },
+  // Billing is a per-client commercial record (manual entry, Phase 1), so it has
+  // no second level.
+  { id: "billing", label: "Billing", ready: true },
   { id: "config", label: "Config", ready: true },
 ];
 

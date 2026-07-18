@@ -8,19 +8,20 @@ import {
 } from "./deliveryCockpit";
 
 describe("fulfillment cockpit tab model", () => {
-  it("has the six service tabs in order", () => {
+  it("has the seven service tabs in order", () => {
     expect(SERVICE_TABS.map((t) => t.id)).toEqual([
       "overview",
       "paid-ads",
       "web-design",
       "google-reviews",
       "reactivation",
+      "billing",
       "config",
     ]);
   });
 
-  it("overview and config are ready and carry no sub-tabs", () => {
-    for (const id of ["overview", "config"] as const) {
+  it("overview, billing and config are ready and carry no sub-tabs", () => {
+    for (const id of ["overview", "billing", "config"] as const) {
       const t = SERVICE_TABS.find((x) => x.id === id)!;
       expect(t.ready).toBe(true);
       expect(t.subTabs).toBeUndefined();
@@ -31,7 +32,7 @@ describe("fulfillment cockpit tab model", () => {
     expect(subTabsFor("paid-ads").map((s) => s.id)).toEqual([
       "campaigns",
       "ad-library",
-      "funnel",
+      "ad-tracking",
       "data-leads",
     ]);
     expect(subTabsFor("web-design").map((s) => s.id)).toEqual([
@@ -51,6 +52,7 @@ describe("fulfillment cockpit tab model", () => {
       "results",
     ]);
     expect(subTabsFor("overview")).toEqual([]);
+    expect(subTabsFor("billing")).toEqual([]);
   });
 
   it("resolveServiceTab falls back to the default on junk", () => {
@@ -61,7 +63,9 @@ describe("fulfillment cockpit tab model", () => {
   });
 
   it("resolveSubTab returns the first sub-tab on junk, null when none", () => {
-    expect(resolveSubTab("paid-ads", "funnel")).toBe("funnel");
+    expect(resolveSubTab("paid-ads", "ad-tracking")).toBe("ad-tracking");
+    // The retired Funnel sub-tab falls back rather than rendering nothing.
+    expect(resolveSubTab("paid-ads", "funnel")).toBe("campaigns");
     expect(resolveSubTab("paid-ads", "nope")).toBe("campaigns");
     expect(resolveSubTab("paid-ads", null)).toBe("campaigns");
     expect(resolveSubTab("overview", "anything")).toBeNull();
