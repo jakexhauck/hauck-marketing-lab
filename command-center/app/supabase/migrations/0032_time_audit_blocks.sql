@@ -1,4 +1,4 @@
--- 0031: Time Audit blocks. Where Jake's hours actually go.
+-- 0032: Time Audit blocks. Where Jake's hours actually go.
 --
 -- The Operations "Time Audit" surface is a week grid: rows are 30-minute blocks
 -- from 6:00 AM to 10:00 PM (32 slots), columns are Mon through Sun. Clicking a
@@ -16,7 +16,7 @@
 -- Reached only through the service-role client behind the /api/admin/*
 -- middleware gate, so no RLS policy is required for it to work.
 --
--- Run AFTER 0001..0030. Idempotent: safe to re-run.
+-- Run AFTER 0001..0031. Idempotent: safe to re-run.
 
 create table if not exists public.time_audit_blocks (
   id          uuid primary key default gen_random_uuid(),

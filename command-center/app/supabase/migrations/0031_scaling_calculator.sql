@@ -1,4 +1,4 @@
--- 0030: scaling calculator inputs. Backs the Operations pillar's Calculator tab
+-- 0031: scaling calculator inputs. Backs the Operations pillar's Calculator tab
 -- (docs/build-plans/admin-redesign/08-scaling-calculator.md).
 --
 -- Agency-internal, so no tenant_id: this is Jake's own set of numbers. The
@@ -13,7 +13,7 @@
 -- No RLS: the API reads and writes with the service-role client behind the
 -- /api/admin/* middleware.
 --
--- Run AFTER 0001..0029. Idempotent: safe to re-run.
+-- Run AFTER 0001..0030. Idempotent: safe to re-run.
 
 create table if not exists public.scaling_calculator (
   id                int primary key default 1,

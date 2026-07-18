@@ -1,4 +1,4 @@
--- 0032: task status + updates. Backs the Operations pillar's Tasks tab, which
+-- 0033: task status + updates. Backs the Operations pillar's Tasks tab, which
 -- replaces the old standalone /admin/tasks page with an editable checklist.
 --
 -- Reuses admin_tasks (0012 + 0020). Two new columns:
@@ -11,7 +11,7 @@
 -- No new index: admin_tasks_listing_idx (completed, created_at desc) already
 -- orders the listing open-first.
 --
--- Run AFTER 0001..0031. Idempotent: safe to re-run.
+-- Run AFTER 0001..0032. Idempotent: safe to re-run.
 -- Reached only via the service-role client in Functions (RLS on, no policies).
 
 alter table public.admin_tasks
