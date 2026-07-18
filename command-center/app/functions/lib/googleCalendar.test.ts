@@ -6,6 +6,7 @@ import {
   disconnect,
   parseBusy,
   composioUserId,
+  mirrorAppointment,
 } from "./googleCalendar";
 
 // Mock the transport wholesale rather than spying: the domain layer imports
@@ -232,5 +233,94 @@ describe("disconnect", () => {
     vi.mocked(composio.listConnectedAccounts).mockResolvedValue([]);
     await disconnect(env, "tenant-1");
     expect(composio.deleteConnectedAccount).not.toHaveBeenCalled();
+  });
+});
+
+describe("mirrorAppointment", () => {
+  const appt = {
+    appointmentId: "appt-1",
+    title: "Tom Willis, full exterior",
+    startIso: "2026-07-20T09:00:00-04:00",
+    endIso: "2026-07-20T11:00:00-04:00",
+    location: "Rochester Hills, 48307",
+  };
+
+  it("does nothing when the client has not linked a calendar", async () => {
+    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([]);
+    expect(await mirrorAppointment(env, "live:willis", appt)).toEqual({ mirrored: false });
+    expect(composio.proxyCall).not.toHaveBeenCalled();
+  });
+
+  it("creates a new event stamped with the appointment id", async () => {
+    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([
+      { id: "ca_1", status: "ACTIVE" },
+    ]);
+    vi.mocked(composio.executeTool).mockResolvedValue({ items: [] } as never);
+    vi.mocked(composio.proxyCall).mockResolvedValue({} as never);
+
+    expect(await mirrorAppointment(env, "live:willis", appt)).toEqual({ mirrored: true });
+
+    const call = vi.mocked(composio.proxyCall).mock.calls[0][1];
+    expect(call.method).toBe("POST");
+    expect(call.endpoint).toBe("/calendars/primary/events");
+    expect((call.body as Record<string, unknown>).extendedProperties).toEqual({
+      private: { hmlAppointmentId: "appt-1" },
+    });
+  });
+
+  it("moves the existing event on reschedule instead of creating a duplicate", async () => {
+    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([
+      { id: "ca_1", status: "ACTIVE" },
+    ]);
+    vi.mocked(composio.executeTool).mockResolvedValue({
+      items: [{ id: "gcal-event-1" }],
+    } as never);
+    vi.mocked(composio.proxyCall).mockResolvedValue({} as never);
+
+    await mirrorAppointment(env, "live:willis", appt);
+
+    const call = vi.mocked(composio.proxyCall).mock.calls[0][1];
+    expect(call.method).toBe("PATCH");
+    expect(call.endpoint).toContain("gcal-event-1");
+  });
+
+  it("looks the event up by our private marker, not by title", async () => {
+    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([
+      { id: "ca_1", status: "ACTIVE" },
+    ]);
+    vi.mocked(composio.executeTool).mockResolvedValue({ items: [] } as never);
+    vi.mocked(composio.proxyCall).mockResolvedValue({} as never);
+
+    await mirrorAppointment(env, "live:willis", appt);
+
+    expect(composio.executeTool).toHaveBeenCalledWith(
+      env,
+      "GOOGLECALENDAR_EVENTS_LIST",
+      "live:willis",
+      expect.objectContaining({
+        privateExtendedProperty: "hmlAppointmentId=appt-1",
+      }),
+    );
+  });
+
+  it("still creates the event when the lookup fails", async () => {
+    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([
+      { id: "ca_1", status: "ACTIVE" },
+    ]);
+    vi.mocked(composio.executeTool).mockRejectedValue(new Error("throttled"));
+    vi.mocked(composio.proxyCall).mockResolvedValue({} as never);
+
+    expect(await mirrorAppointment(env, "live:willis", appt)).toEqual({ mirrored: true });
+    expect(vi.mocked(composio.proxyCall).mock.calls[0][1].method).toBe("POST");
+  });
+
+  it("reports failure rather than throwing when the write fails", async () => {
+    vi.mocked(composio.listConnectedAccounts).mockResolvedValue([
+      { id: "ca_1", status: "ACTIVE" },
+    ]);
+    vi.mocked(composio.executeTool).mockResolvedValue({ items: [] } as never);
+    vi.mocked(composio.proxyCall).mockRejectedValue(new Error("denied"));
+
+    expect(await mirrorAppointment(env, "live:willis", appt)).toEqual({ mirrored: false });
   });
 });

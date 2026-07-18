@@ -5,6 +5,7 @@ import {
   resolveCalendarByName,
   createAppointment,
 } from "../lib/appointments";
+import { mirrorAppointment, composioUserId } from "../../lib/googleCalendar";
 
 // POST /api/appointments: book an appointment on a named calendar. The client
 // sends a calendar NAME (e.g. "Home Estimate", "Intro Call") plus the chosen
@@ -63,6 +64,21 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       { status: 502 },
     );
   }
+
+  // Mirror into the client's own Google Calendar, if they have linked one.
+  // Best effort and deliberately after the booking has already succeeded: the
+  // appointment exists in the system of record either way, and most clients
+  // have nothing linked, so a failure here must never fail the booking.
+  ctx.waitUntil(
+    mirrorAppointment(ctx.env, composioUserId(t), {
+      appointmentId: result.id,
+      title: body.title || "Job",
+      startIso: body.startTime,
+      endIso: body.endTime,
+    }).catch((e) => {
+      console.error("google calendar mirror failed", e);
+    }),
+  );
 
   return Response.json({ ok: true, id: result.id });
 };
