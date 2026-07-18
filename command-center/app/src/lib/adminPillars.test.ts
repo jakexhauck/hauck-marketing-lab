@@ -33,7 +33,7 @@ describe("adminPillars config", () => {
     const ready = ADMIN_PILLARS.flatMap((p) =>
       p.tabs.filter((t) => t.ready).map((t) => t.id),
     );
-    expect(ready).toEqual(["sales-data"]);
+    expect(ready).toEqual(["sales-data", "calculator", "time-audit", "tasks"]);
   });
 
   it("carries the tabs the foundation plan specifies", () => {

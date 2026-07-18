@@ -9,6 +9,12 @@ import {
   getAdminOverview,
   getConstraints,
   saveConstraint,
+  getScalingCalculator,
+  saveScalingCalculator,
+  getTimeAuditWeek,
+  tagTimeAuditBlock,
+  type TimeAuditTagBody,
+  type TimeAuditWeekResponse,
   type ApiLead,
   type ApiPipelineSummary,
   type ApiSummary,
@@ -1331,6 +1337,81 @@ export function useSaveSalesDataDay() {
     onSettled: (_data, _err, _vars, context) => {
       if (context?.key) qc.invalidateQueries({ queryKey: context.key });
     },
+  });
+}
+
+// ===== Operations pillar: Scaling Calculator =====
+// Persistence is a convenience only. The compute is client-side and live, so a
+// failed load still renders the tiles from DEFAULT_INPUTS.
+export function useScalingCalculatorQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "tracker", "scaling-calculator"],
+    enabled,
+    staleTime: 60_000,
+    queryFn: getScalingCalculator,
+  });
+}
+
+export function useSaveScalingCalculatorMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: saveScalingCalculator,
+    onSuccess: () =>
+      qc.invalidateQueries({
+        queryKey: ["admin", "tracker", "scaling-calculator"],
+      }),
+  });
+}
+
+// ===== Operations pillar: Time Audit =====
+export function useAdminTimeAuditWeek(weekStart: string) {
+  return useQuery({
+    queryKey: ["admin", "tracker", "time-audit", weekStart],
+    enabled: !!weekStart,
+    queryFn: () => getTimeAuditWeek(weekStart),
+  });
+}
+
+// Optimistic so click-to-cycle feels instant: patch the cached week, roll back
+// on error, then reconcile against the server on settle.
+export function useAdminTimeAuditTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: tagTimeAuditBlock,
+    onMutate: async (body: TimeAuditTagBody) => {
+      const key = ["admin", "tracker", "time-audit", body.weekStart];
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<TimeAuditWeekResponse>(key);
+      qc.setQueryData<TimeAuditWeekResponse>(key, (old) => {
+        if (!old) return old;
+        const rest = old.blocks.filter(
+          (b) => !(b.dayOfWeek === body.dayOfWeek && b.slot === body.slot),
+        );
+        // taskType null means the cell was cycled back to empty, which deletes
+        // the row rather than storing a null tag.
+        if (body.taskType === null) return { ...old, blocks: rest };
+        return {
+          ...old,
+          blocks: [
+            ...rest,
+            {
+              dayOfWeek: body.dayOfWeek,
+              slot: body.slot,
+              leverage: body.leverage,
+              taskType: body.taskType,
+            },
+          ],
+        };
+      });
+      return { key, previous };
+    },
+    onError: (_err, _body, ctx) => {
+      if (ctx?.previous) qc.setQueryData(ctx.key, ctx.previous);
+    },
+    onSettled: (_data, _err, body) =>
+      qc.invalidateQueries({
+        queryKey: ["admin", "tracker", "time-audit", body.weekStart],
+      }),
   });
 }
 

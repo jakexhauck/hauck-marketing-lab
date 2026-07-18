@@ -568,6 +568,8 @@ export default function App() {
               <Route path="/admin/pillar/service" element={<Navigate to="/admin/delivery" replace />} />
               <Route path="/admin/pillar/retention" element={<Navigate to="/admin/delivery" replace />} />
               <Route path="/admin/pillar/delivery" element={<Navigate to="/admin/delivery" replace />} />
+              {/* The standalone Tasks page folded into the Operations pillar. */}
+              <Route path="/admin/tasks" element={<Navigate to="/admin/pillar/operations?tab=tasks" replace />} />
               {/* Old lane/tab deep links drop back to the pillar page. */}
               <Route path="/admin/pillar/:pillarId/lane/:laneId" element={<PillarRedirect />} />
               <Route path="/admin/pillar/:pillarId/:tabId" element={<PillarRedirect />} />

@@ -1,0 +1,126 @@
+// Data + mutations for the Operations pillar's Tasks tab: the standalone agency
+// checklist (pillar_id null), which is what GET /api/admin/tasks returns with no
+// ?pillarId. Plain api() + useState, matching the rest of the admin console; the
+// admin side does not use react-query.
+//
+// Every edit is optimistic with rollback: the row settles under the cursor and
+// only snaps back if the write actually failed. The completed/status coupling
+// comes from the shared pure helper in ../lib/taskStatus so the checkbox and the
+// pill agree client-side before the server re-derives the same pair.
+
+import { useCallback, useEffect, useState } from "react";
+import { api, type AdminTask } from "../lib/api";
+import { deriveCoupling, type TaskStatus } from "../lib/taskStatus";
+
+// The inline-editable free-text cells.
+export type TaskTextField = "title" | "note" | "updates";
+
+export interface UseAdminTaskList {
+  tasks: AdminTask[];
+  loading: boolean;
+  error: string | null;
+  adding: boolean;
+  // Appends a blank todo row and returns its id so the caller can focus it.
+  addTask: () => Promise<string | null>;
+  patchField: (task: AdminTask, field: TaskTextField, value: string) => Promise<void>;
+  setStatus: (task: AdminTask, status: TaskStatus) => Promise<void>;
+  toggleDone: (task: AdminTask) => Promise<void>;
+}
+
+export function useAdminTaskList(): UseAdminTaskList {
+  const [tasks, setTasks] = useState<AdminTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    void (async () => {
+      try {
+        const { tasks } = await api<{ tasks: AdminTask[] }>("/api/admin/tasks");
+        if (!cancelled) setTasks(tasks ?? []);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Could not load tasks");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const addTask = useCallback(async () => {
+    setAdding(true);
+    try {
+      // No title: the row is created blank and the UI focuses the Task cell.
+      const { task } = await api<{ task: AdminTask }>("/api/admin/tasks", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      setTasks((list) => [...list, task]);
+      return task.id;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add task");
+      return null;
+    } finally {
+      setAdding(false);
+    }
+  }, []);
+
+  // Writes one text cell. Called on blur, so a no-op blur costs no request.
+  const patchField = useCallback(async (task: AdminTask, field: TaskTextField, value: string) => {
+    const next = value.trim();
+    if (next === (task[field] ?? "")) return;
+    // A blank row's title stays blank until it is filled in; the endpoint
+    // rejects clearing a title, so there is nothing to send.
+    if (field === "title" && !next) return;
+
+    setTasks((list) => list.map((t) => (t.id === task.id ? { ...t, [field]: next || null } : t)));
+    try {
+      await api(`/api/admin/tasks/${task.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ [field]: next }),
+      });
+    } catch {
+      setTasks((list) =>
+        list.map((t) => (t.id === task.id ? { ...t, [field]: task[field] } : t)),
+      );
+    }
+  }, []);
+
+  // Shared writer for the two coupled controls (pill and checkbox).
+  const writeCoupling = useCallback(
+    async (task: AdminTask, incoming: { completed?: boolean; status?: TaskStatus }) => {
+      const coupled = deriveCoupling({ completed: task.completed, status: task.status }, incoming);
+      setTasks((list) => list.map((t) => (t.id === task.id ? { ...t, ...coupled } : t)));
+      try {
+        await api(`/api/admin/tasks/${task.id}`, {
+          method: "PATCH",
+          body: JSON.stringify(coupled),
+        });
+      } catch {
+        setTasks((list) =>
+          list.map((t) =>
+            t.id === task.id ? { ...t, completed: task.completed, status: task.status } : t,
+          ),
+        );
+      }
+    },
+    [],
+  );
+
+  const setStatus = useCallback(
+    (task: AdminTask, status: TaskStatus) => writeCoupling(task, { status }),
+    [writeCoupling],
+  );
+
+  const toggleDone = useCallback(
+    (task: AdminTask) => writeCoupling(task, { completed: !task.completed }),
+    [writeCoupling],
+  );
+
+  return { tasks, loading, error, adding, addTask, patchField, setStatus, toggleDone };
+}

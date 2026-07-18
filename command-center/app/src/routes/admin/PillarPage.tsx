@@ -6,6 +6,9 @@ import {
   type PillarTabDef,
 } from "../../lib/adminPillars";
 import SalesDataTracker from "../../components/admin/tracker/SalesDataTracker";
+import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
+import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
+import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
 
 // An admin pillar page (/admin/pillar/:pillarId): a Bento Bold header
 // (kicker + title + tagline) and a per-pillar tab bar. The active tab is driven
@@ -81,6 +84,12 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
   switch (tab.id) {
     case "sales-data":
       return <SalesDataTracker />;
+    case "calculator":
+      return <ScalingCalculatorTab />;
+    case "time-audit":
+      return <TimeAuditGrid />;
+    case "tasks":
+      return <OperationsTasksTab />;
     default:
       // A tab marked ready with no body wired is a bug, not a state to render
       // something plausible for.
