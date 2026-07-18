@@ -6,6 +6,9 @@ import {
   groupItemsByDay,
   minutesToLabel,
   packDayColumns,
+  busyToItem,
+  splitBusy,
+  CALENDAR_SOURCE_META,
   CALENDAR_SOURCE_ORDER,
   type CalendarItem,
   type CalendarSource,
@@ -26,6 +29,68 @@ const baseJob: Job = {
   status: "booked",
   paid: false,
 };
+
+describe("busy items", () => {
+  const iv = { start: "2026-07-20T09:00:00-04:00", end: "2026-07-20T10:30:00-04:00" };
+
+  it("maps a busy interval onto a calendar item", () => {
+    const item = busyToItem(iv, 0);
+    expect(item.source).toBe("busy");
+    expect(item.title).toBe("Busy");
+    expect(item.date).toBe("2026-07-20");
+    expect(item.startMinutes).toBe(540);
+    expect(item.endMinutes).toBe(630);
+    expect(item.id).toBe("busy:0");
+  });
+
+  it("never leaks event detail onto a busy item", () => {
+    const item = busyToItem(iv, 1);
+    expect(item.subtitle).toBe("");
+    expect(item.amount).toBeNull();
+    expect(item.location).toBe("");
+    expect(item.contactId).toBe("");
+    expect(item.meetingUrl).toBe("");
+  });
+
+  it("survives a malformed interval instead of throwing", () => {
+    const item = busyToItem({ start: "nonsense", end: "" }, 2);
+    expect(item.date).toBe("");
+    expect(item.startMinutes).toBeNull();
+  });
+
+  it("keeps busy items out of lane packing so jobs are not squashed", () => {
+    const job = jobToItem({ ...baseJob, date: "2026-07-20", startMinutes: 540 });
+    const busy = busyToItem(
+      { start: "2026-07-20T09:00:00-04:00", end: "2026-07-20T17:00:00-04:00" },
+      0,
+    );
+    const placed = packDayColumns([job, busy]);
+    expect(placed).toHaveLength(1);
+    expect(placed[0].item.source).not.toBe("busy");
+    // The regression this guards: a full personal calendar must not shrink the
+    // real jobs into slivers by stealing lanes.
+    expect(placed[0].cols).toBe(1);
+  });
+
+  it("splits busy from the rest", () => {
+    const out = splitBusy([jobToItem(baseJob), busyToItem(iv, 0)]);
+    expect(out.busy).toHaveLength(1);
+    expect(out.rest).toHaveLength(1);
+    expect(out.rest[0].source).not.toBe("busy");
+  });
+
+  it("is filterable like any other source, so the legend can hide it", () => {
+    const items = [jobToItem(baseJob), busyToItem(iv, 0)];
+    const shown = filterBySources(items, new Set<CalendarSource>(["job"]));
+    expect(shown).toHaveLength(1);
+    expect(shown[0].source).toBe("job");
+  });
+
+  it("is in the source order and has display metadata", () => {
+    expect(CALENDAR_SOURCE_ORDER).toContain("busy");
+    expect(CALENDAR_SOURCE_META.busy.label).toBe("Busy");
+  });
+});
 
 describe("job end times", () => {
   it("carries a job's real end time onto the calendar item", () => {
@@ -198,8 +263,15 @@ describe("packDayColumns", () => {
 });
 
 describe("CALENDAR_SOURCE_ORDER", () => {
-  it("covers only the two sales streams", () => {
-    expect(CALENDAR_SOURCE_ORDER).toEqual(["estimate", "job"]);
+  it("still carries exactly two sales streams, and they come first", () => {
+    // The surface is the client's sales work. Busy is background context from
+    // their own linked calendar, not a third stream of work, so it must never
+    // grow this list and must never outrank real jobs.
+    expect(CALENDAR_SOURCE_ORDER.filter((s) => s !== "busy")).toEqual(["estimate", "job"]);
+  });
+
+  it("puts busy last", () => {
+    expect(CALENDAR_SOURCE_ORDER).toEqual(["estimate", "job", "busy"]);
   });
 });
 

@@ -4,7 +4,7 @@ import { type Job, jobKind, isoToLocalDate } from "./jobsPipeline";
 // (month/week/agenda) reads only this shape, so a new stream is just a new
 // mapper plus a source entry, never a change to the views. This surface carries
 // the sales work only: scheduled estimates and booked/completed jobs.
-export type CalendarSource = "estimate" | "job";
+export type CalendarSource = "estimate" | "job" | "busy";
 
 export interface CalendarItem {
   id: string; // "<source>:<rawId>", unique across streams
@@ -43,11 +43,19 @@ export const CALENDAR_SOURCE_META: Record<
     varName: "--source-job",
     tintVar: "--source-job-tint",
   },
+  busy: {
+    label: "Busy",
+    plural: "Busy",
+    varName: "--source-busy",
+    tintVar: "--source-busy-tint",
+  },
 };
 
+// Busy sorts last: it is background context, not the client's own work.
 export const CALENDAR_SOURCE_ORDER: CalendarSource[] = [
   "estimate",
   "job",
+  "busy",
 ];
 
 function pad2(n: number): string {
@@ -80,6 +88,52 @@ export function jobToItem(j: Job): CalendarItem {
     location: `${j.city}, ${j.zip}`,
     meetingUrl: "",
     contactId: "",
+  };
+}
+
+// Wall-clock literal out of an ISO timestamp. The busy route asks Google for
+// intervals in the viewer's own zone, so the literal in the string IS the
+// intended local time; converting through Date would drift it. Mirrors
+// partsFromIso on the API side.
+function localPartsFromIso(iso: string): { date: string; minutes: number } | null {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(iso);
+  if (!m) return null;
+  return { date: m[1], minutes: Number(m[2]) * 60 + Number(m[3]) };
+}
+
+// A block of time the client's own Google Calendar reports as taken. Carries
+// no detail beyond the interval: the app never reads event titles, so there is
+// deliberately nothing else to map.
+export function busyToItem(b: { start: string; end: string }, index: number): CalendarItem {
+  const s = localPartsFromIso(b.start);
+  const e = localPartsFromIso(b.end);
+  return {
+    id: `busy:${index}`,
+    source: "busy",
+    title: "Busy",
+    subtitle: "",
+    date: s?.date ?? "",
+    startMinutes: s?.minutes ?? null,
+    endMinutes: e?.minutes ?? null,
+    timeLabel: s ? minutesToLabel(s.minutes) : "",
+    status: "busy",
+    amount: null,
+    location: "",
+    meetingUrl: "",
+    contactId: "",
+  };
+}
+
+// Busy blocks are a background layer, never a lane peer. Views split them out
+// before packing so a client with a full personal calendar does not push their
+// own jobs into slivers.
+export function splitBusy(items: CalendarItem[]): {
+  busy: CalendarItem[];
+  rest: CalendarItem[];
+} {
+  return {
+    busy: items.filter((i) => i.source === "busy"),
+    rest: items.filter((i) => i.source !== "busy"),
   };
 }
 
@@ -136,7 +190,8 @@ const DEFAULT_DURATION = 60;
 // Greedy interval partitioning, stable by start then end.
 export function packDayColumns(timed: CalendarItem[]): PlacedItem[] {
   const spans = timed
-    .filter((i) => i.startMinutes != null)
+    // Busy blocks render behind the day, so they never consume a lane.
+    .filter((i) => i.startMinutes != null && i.source !== "busy")
     .map((item) => {
       const start = item.startMinutes as number;
       return { item, start, end: item.endMinutes ?? start + DEFAULT_DURATION };

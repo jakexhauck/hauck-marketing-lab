@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   filterBySources,
@@ -25,10 +25,15 @@ export default function CalendarViews({
   items,
   connected,
   view,
+  onRangeChange,
 }: {
   items: CalendarItem[];
   connected: Record<CalendarSource, boolean>;
   view: CalendarView;
+  // Reports the dates currently on screen whenever the anchor or view moves.
+  // This component still never fetches: the host decides what, if anything, to
+  // load for the visible range.
+  onRangeChange?: (startIso: string, endIso: string) => void;
 }) {
   const demo = demoMode();
 
@@ -49,7 +54,12 @@ export default function CalendarViews({
     });
 
   const counts = useMemo(() => {
-    const c = { estimate: 0, job: 0 } as Record<CalendarSource, number>;
+    // Seed every source from the canonical order. Seeding a literal here means
+    // a newly added source increments undefined into NaN, and the `as` cast
+    // hides it from the compiler.
+    const c = Object.fromEntries(
+      CALENDAR_SOURCE_ORDER.map((s) => [s, 0]),
+    ) as Record<CalendarSource, number>;
     for (const i of items) c[i.source]++;
     return c;
   }, [items]);
@@ -82,6 +92,23 @@ export default function CalendarViews({
     setAnchor(todayIso);
     setSelectedIso(todayIso);
   };
+
+  // The dates on screen. Month and agenda pad by a week either side because the
+  // month grid spills into neighbouring months; week is exactly its own week.
+  const [rangeStart, rangeEnd] = useMemo<[string, string]>(() => {
+    const y = anchorDate.getFullYear();
+    const m = anchorDate.getMonth();
+    if (view === "week") {
+      const sun = new Date(y, m, anchorDate.getDate() - anchorDate.getDay());
+      const sat = new Date(sun.getFullYear(), sun.getMonth(), sun.getDate() + 6);
+      return [toIso(sun), toIso(sat)];
+    }
+    return [toIso(new Date(y, m, -7)), toIso(new Date(y, m + 1, 7))];
+  }, [anchor, view]);
+
+  useEffect(() => {
+    onRangeChange?.(rangeStart, rangeEnd);
+  }, [rangeStart, rangeEnd, onRangeChange]);
 
   const rangeLabel =
     view === "month"

@@ -4,6 +4,7 @@ import {
   CALENDAR_SOURCE_META,
   layoutWeek,
   packDayColumns,
+  splitBusy,
 } from "../../lib/calendarModel";
 import { toIso, isoToLocalDate } from "../../lib/jobsPipeline";
 
@@ -140,6 +141,29 @@ export function WeekView({
                   style={{ top: (min - DAY_START_MIN) * PPM }}
                 />
               ))}
+              {/* Busy time from the client's own linked calendar: a full-width
+                  band behind the day. Rendered before the blocks and excluded
+                  from lane packing, so a booked-up personal calendar shades the
+                  day without shrinking the real jobs. */}
+              {splitBusy(col.timed).busy.map((b) => {
+                const start = b.startMinutes ?? DAY_START_MIN;
+                const end = b.endMinutes ?? start + 60;
+                return (
+                  <div
+                    key={b.id}
+                    aria-label="Busy"
+                    title="Busy"
+                    className="pointer-events-none absolute inset-x-0"
+                    style={{
+                      top: (start - DAY_START_MIN) * PPM,
+                      height: Math.max(6, (end - start) * PPM),
+                      background: "var(--source-busy-tint)",
+                      borderTop: "1px solid var(--source-busy)",
+                      borderBottom: "1px solid var(--source-busy)",
+                    }}
+                  />
+                );
+              })}
               {packDayColumns(col.timed).map((p) => {
                 const top = (p.start - DAY_START_MIN) * PPM;
                 const height = Math.max(28, (p.end - p.start) * PPM);

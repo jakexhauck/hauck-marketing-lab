@@ -62,6 +62,30 @@ export function AgendaView({
 
 function AgendaCard({ item }: { item: CalendarItem }) {
   const meta = CALENDAR_SOURCE_META[item.source];
+
+  // Busy time from the client's own linked calendar. Quieter than a job card
+  // and carries only the interval: the app never reads what the event is, so
+  // there is deliberately nothing else to show.
+  if (item.source === "busy") {
+    return (
+      <div className="flex overflow-hidden rounded-[var(--radius-lg)] border border-dashed border-border bg-surface-2">
+        <span
+          className="w-1 shrink-0"
+          style={{ background: `var(${meta.varName})` }}
+          aria-hidden
+        />
+        <div className="flex min-w-0 flex-1 items-center gap-4 px-4 py-2.5">
+          <div className="w-16 shrink-0">
+            <div className="font-data text-[13px] font-semibold tabular-nums text-muted">
+              {item.timeLabel}
+            </div>
+          </div>
+          <div className="font-display text-[13px] font-semibold text-muted">Busy</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
       <span

@@ -1570,3 +1570,68 @@ export function useCalendarEventsQuery(enabled: boolean) {
       ),
   });
 }
+
+// --- Google Calendar link (client-owned) -----------------------------------
+// The client links their OWN Google Calendar from the Jobs page so the calendar
+// can grey out hours they are already busy. The agency never handles the token:
+// Composio brokers the grant, keyed by the tenant. Availability only, no event
+// detail is ever requested.
+
+// Not linked is a normal state, never an error, so callers read `connected`
+// rather than branching on failure.
+export function useGoogleCalendarConnection() {
+  return useQuery({
+    queryKey: ["connections", "google-calendar"],
+    staleTime: 30_000,
+    queryFn: () =>
+      api<{ connected: boolean; status: string }>("/api/connections/google-calendar"),
+  });
+}
+
+export function useStartGoogleCalendarConnect() {
+  return useMutation({
+    mutationFn: () =>
+      api<{ redirectUrl: string }>("/api/connections/google-calendar/start", {
+        method: "POST",
+      }),
+  });
+}
+
+export function useUnlinkGoogleCalendar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<{ ok: boolean }>("/api/connections/google-calendar", { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["connections", "google-calendar"] });
+      qc.invalidateQueries({ queryKey: ["calendar", "busy"] });
+    },
+  });
+}
+
+// Busy intervals for the dates currently on screen. The browser's own zone is
+// sent so Google returns wall-clock times matching what the viewer sees;
+// without it every block lands hours off.
+export function useCalendarBusy(startIso: string, endIso: string, enabled: boolean) {
+  const tz = calendarTimezone();
+  return useQuery({
+    queryKey: ["calendar", "busy", startIso, endIso, tz],
+    enabled: enabled && Boolean(startIso && endIso),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      api<{ connected: boolean; busy: { start: string; end: string }[] }>(
+        `/api/calendar/busy?start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(
+          endIso,
+        )}&tz=${encodeURIComponent(tz)}`,
+      ),
+  });
+}
+
+function calendarTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}

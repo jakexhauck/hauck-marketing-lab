@@ -1,7 +1,9 @@
+import { useMemo } from "react";
 import {
   type CalendarItem,
   CALENDAR_SOURCE_META,
   itemsOnDay,
+  splitBusy,
 } from "../../lib/calendarModel";
 import { monthGrid, formatLongDay } from "../../lib/jobsPipeline";
 
@@ -26,7 +28,11 @@ export function MonthView({
   onSelectDay: (iso: string) => void;
 }) {
   const weeks = monthGrid(year, month);
-  const selected = selectedIso ? itemsOnDay(items, selectedIso) : [];
+  // Month is an overview. Busy time from the client's own calendar would fill
+  // every cell with grey chips and drown the actual work, so it is dropped
+  // here; Week and Agenda are where time-of-day conflicts matter.
+  const workItems = useMemo(() => splitBusy(items).rest, [items]);
+  const selected = selectedIso ? itemsOnDay(workItems, selectedIso) : [];
 
   return (
     <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_300px]">
@@ -44,7 +50,7 @@ export function MonthView({
         </div>
         <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6">
           {weeks.flat().map((cell) => {
-            const dayItems = itemsOnDay(items, cell.iso);
+            const dayItems = itemsOnDay(workItems, cell.iso);
             const isToday = cell.iso === todayIso;
             const isSel = cell.iso === selectedIso;
             return (
