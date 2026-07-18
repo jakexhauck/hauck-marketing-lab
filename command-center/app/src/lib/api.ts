@@ -1,5 +1,6 @@
 import { demoMode } from "../demo/demoMode";
 import { handleDemoRequest } from "../demo/handler";
+import type { BusinessHealthInputs, PeriodType } from "./businessHealth";
 
 export class ApiError extends Error {
   status: number;
@@ -586,4 +587,35 @@ export async function saveSalesDataDay(
     { method: "PATCH", body: JSON.stringify({ day, ...patch }) },
   );
   return res.day;
+}
+
+// Business Health (0030): the agency's own numbers, one row per period key.
+// Agency-global, so nothing here is scoped to a tenant. The response carries
+// only the hand-entered inputs; CAC/ROAS/LTV and the end client count are
+// derived from them in src/lib/businessHealth.ts and never stored.
+export interface BusinessHealthResponse {
+  period: string;
+  periodType: PeriodType;
+  inputs: BusinessHealthInputs;
+  // null when the period has no saved row yet (an untouched, all-zero period).
+  updatedAt: string | null;
+}
+
+export async function getBusinessHealth(period: string): Promise<BusinessHealthResponse> {
+  return api<BusinessHealthResponse>(
+    `/api/admin/tracker/business-health?period=${encodeURIComponent(period)}`,
+  );
+}
+
+// Upserts the period row. Sends only the fields that changed, so a single-field
+// autosave stays a single-field write.
+export async function saveBusinessHealth(
+  period: string,
+  periodType: PeriodType,
+  inputs: Partial<BusinessHealthInputs>,
+): Promise<BusinessHealthResponse> {
+  return api<BusinessHealthResponse>("/api/admin/tracker/business-health", {
+    method: "PATCH",
+    body: JSON.stringify({ period, periodType, inputs }),
+  });
 }
