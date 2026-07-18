@@ -26,12 +26,14 @@ describe("adminPillars config", () => {
     }
   });
 
-  it("ships every tab as an honest placeholder in phase 1", () => {
-    for (const pillar of ADMIN_PILLARS) {
-      for (const tab of pillar.tabs) {
-        expect(tab.ready).toBe(false);
-      }
-    }
+  it("marks exactly the tabs whose surface is built as ready", () => {
+    // A tab flips to ready:true only when PillarPage has a real body for it, so
+    // this list is the record of what has actually shipped. Add to it when a
+    // surface lands, never to make a placeholder look finished.
+    const ready = ADMIN_PILLARS.flatMap((p) =>
+      p.tabs.filter((t) => t.ready).map((t) => t.id),
+    );
+    expect(ready).toEqual(["sales-data"]);
   });
 
   it("carries the tabs the foundation plan specifies", () => {

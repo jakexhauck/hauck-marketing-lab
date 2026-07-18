@@ -6,6 +6,7 @@ import {
   prevMonth,
   nextMonth,
   cursorForToday,
+  monthKey,
   toInt,
   pct,
   safeDivide,
@@ -67,6 +68,22 @@ describe("buildMonthDays", () => {
   it("never flags today when none is injected", () => {
     const days = buildMonthDays({ year: 2026, month: 6 }, null);
     expect(days.some((d) => d.isToday)).toBe(false);
+  });
+});
+
+describe("monthKey", () => {
+  it("zero-pads the month so the key matches the API's ?month=", () => {
+    expect(monthKey({ year: 2026, month: 6 })).toBe("2026-07");
+    expect(monthKey({ year: 2026, month: 0 })).toBe("2026-01");
+    expect(monthKey({ year: 2026, month: 11 })).toBe("2026-12");
+  });
+
+  it("agrees with the ISO day keys of the same month", () => {
+    const cursor = { year: 2026, month: 0 };
+    const key = monthKey(cursor);
+    for (const d of buildMonthDays(cursor)) {
+      expect(d.iso.startsWith(key)).toBe(true);
+    }
   });
 });
 

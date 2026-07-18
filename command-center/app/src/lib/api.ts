@@ -548,3 +548,42 @@ export interface AdminOverview {
 export async function getAdminOverview(): Promise<AdminOverview> {
   return api<AdminOverview>("/api/admin/overview");
 }
+
+// One logged day of the agency's own sales-call funnel (Sales pillar > Sales
+// Data, migration 0030). Raw counts only: every rate the page shows is derived
+// in src/lib/salesTracker.ts, so nothing computed crosses the wire. A null field
+// is a cell nobody has filled in, which is not the same as a zero.
+export interface SalesDataRow {
+  day: string; // "YYYY-MM-DD", the row's identity
+  callsOnCalendar: number | null;
+  rescheduledCancelled: number | null;
+  callsTaken: number | null;
+  qualified: number | null;
+  closed: number | null;
+  cashCollected: number | null;
+  notes: string | null;
+}
+
+// The subset of a day a single save carries. The endpoint upserts, so fields
+// left out keep whatever is stored: editing one cell never blanks the rest.
+export type SalesDataPatch = Partial<Omit<SalesDataRow, "day">>;
+
+// Only the days that have a row. The client generates the empty ones, so an
+// unlogged day stays visibly empty rather than arriving as a fabricated zero.
+export async function getSalesData(month: string): Promise<SalesDataRow[]> {
+  const { days } = await api<{ days: SalesDataRow[] }>(
+    `/api/admin/tracker/sales-data?month=${encodeURIComponent(month)}`,
+  );
+  return days;
+}
+
+export async function saveSalesDataDay(
+  day: string,
+  patch: SalesDataPatch,
+): Promise<SalesDataRow> {
+  const res = await api<{ ok: true; day: SalesDataRow }>(
+    "/api/admin/tracker/sales-data",
+    { method: "PATCH", body: JSON.stringify({ day, ...patch }) },
+  );
+  return res.day;
+}

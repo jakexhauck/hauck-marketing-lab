@@ -28,6 +28,10 @@ import {
   type AdminClientDetailResponse,
   type ApiReviewsResponse,
   type PillarConstraint,
+  getSalesData,
+  saveSalesDataDay,
+  type SalesDataRow,
+  type SalesDataPatch,
 } from "../lib/api";
 import {
   type CustomersResponse,
@@ -1258,6 +1262,74 @@ export function useMarkJobPaid() {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: key });
+    },
+  });
+}
+
+// The agency's own Sales Data tracker (Sales pillar). Keyed by month, so
+// stepping through the month nav caches each month independently instead of
+// refetching the same one on every step back.
+export function useSalesDataQuery(month: string) {
+  return useQuery({
+    queryKey: ["admin", "tracker", "sales-data", month],
+    enabled: !!month,
+    staleTime: 30_000,
+    // The month nav should not blank the table while the next month loads.
+    placeholderData: keepPreviousData,
+    queryFn: () => getSalesData(month),
+  });
+}
+
+export interface SaveSalesDataInput {
+  day: string; // "YYYY-MM-DD"
+  patch: SalesDataPatch;
+}
+
+// Saves one day, optimistically. Typing in a tracker cell has to feel like a
+// spreadsheet, so the cached month is patched immediately and rolled back if the
+// write fails; the refetch on settle is what reconciles with the server's own
+// coercion (a typed "9.7" comes back as 9).
+export function useSaveSalesDataDay() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ day, patch }: SaveSalesDataInput) => saveSalesDataDay(day, patch),
+    onMutate: async ({ day, patch }) => {
+      // The month a day belongs to is in the day itself, so the mutation needs
+      // no separate month argument to find the right cache entry.
+      const key = ["admin", "tracker", "sales-data", day.slice(0, 7)];
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<SalesDataRow[]>(key);
+      if (previous) {
+        const existing = previous.find((r) => r.day === day);
+        qc.setQueryData<SalesDataRow[]>(
+          key,
+          existing
+            ? previous.map((r) => (r.day === day ? { ...r, ...patch } : r))
+            : // First edit of an unlogged day: it has no row yet, so add one
+              // rather than drop the keystroke on the floor.
+              [
+                ...previous,
+                {
+                  day,
+                  callsOnCalendar: null,
+                  rescheduledCancelled: null,
+                  callsTaken: null,
+                  qualified: null,
+                  closed: null,
+                  cashCollected: null,
+                  notes: null,
+                  ...patch,
+                },
+              ].sort((a, b) => a.day.localeCompare(b.day)),
+        );
+      }
+      return { key, previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(context.key, context.previous);
+    },
+    onSettled: (_data, _err, _vars, context) => {
+      if (context?.key) qc.invalidateQueries({ queryKey: context.key });
     },
   });
 }

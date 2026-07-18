@@ -87,6 +87,13 @@ export function buildMonthDays(
   return days;
 }
 
+// The "YYYY-MM" key for a cursor: the query-cache key and the ?month= the
+// tracker endpoints take. Every tracker surface needs it, so it lives with the
+// month math rather than being re-derived per surface.
+export function monthKey(cursor: MonthCursor): string {
+  return `${cursor.year}-${pad2(cursor.month + 1)}`;
+}
+
 // Month nav. Wrap the year at the boundaries.
 export function prevMonth(cursor: MonthCursor): MonthCursor {
   return cursor.month === 0

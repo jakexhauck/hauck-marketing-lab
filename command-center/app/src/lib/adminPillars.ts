@@ -3,10 +3,10 @@
 // resolution stay testable without React or the router. Mirrors the shape of
 // deliveryCockpit.ts (the Fulfillment cockpit's tab config).
 //
-// Phase 1 ships every pillar tab as an honest placeholder (ready:false). Each
-// surface plan (Leads, Cold Call, SMS, Sales Data, Calculator, Time Audit,
-// Tasks) flips its own tab on when it builds the real body. Nothing here
-// fabricates data.
+// A tab ships as an honest placeholder (ready:false) until its surface plan
+// builds the real body, at which point that plan flips its own flag. Sales Data
+// is built; Leads, Cold Call, SMS, Calculator, Time Audit and Tasks are not yet.
+// Nothing here fabricates data.
 
 export type PillarId = "acquisition" | "sales" | "operations";
 
@@ -45,7 +45,7 @@ export const ADMIN_PILLARS: PillarDef[] = [
     kicker: "Pillar",
     label: "Sales",
     tagline: "Turning leads into booked, paying work.",
-    tabs: [{ id: "sales-data", label: "Sales Data", ready: false }],
+    tabs: [{ id: "sales-data", label: "Sales Data", ready: true }],
   },
   {
     id: "operations",
