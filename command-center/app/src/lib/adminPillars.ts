@@ -53,9 +53,9 @@ export const ADMIN_PILLARS: PillarDef[] = [
     label: "Operations",
     tagline: "The internal systems and team capacity that keep everything else running.",
     tabs: [
-      { id: "calculator", label: "Calculator", ready: false },
-      { id: "time-audit", label: "Time Audit", ready: false },
-      { id: "tasks", label: "Tasks", ready: false },
+      { id: "calculator", label: "Calculator", ready: true },
+      { id: "time-audit", label: "Time Audit", ready: true },
+      { id: "tasks", label: "Tasks", ready: true },
     ],
   },
 ];

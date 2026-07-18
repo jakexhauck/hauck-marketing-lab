@@ -395,6 +395,10 @@ export interface AdminTask {
   note: string | null;
   dueDate: string | null;
   completed: boolean;
+  // status and completed are kept coupled on every write, client and server,
+  // through deriveCoupling in src/lib/taskStatus.ts.
+  status: TaskStatus;
+  updates: string | null;
   createdAt: string;
 }
 
@@ -618,4 +622,72 @@ export async function saveBusinessHealth(
     method: "PATCH",
     body: JSON.stringify({ period, periodType, inputs }),
   });
+}
+
+// The task status union lives with the pure coupling helpers so the client
+// hook and the endpoints validate against one source.
+import type { TaskStatus } from "./taskStatus";
+
+export type { TaskStatus };
+
+// ===== Operations pillar: Scaling Calculator =====
+// The seven inputs persist agency-globally (a single row) so the calculator
+// remembers Jake's last numbers. The compute itself is client-side and never
+// waits on this; see src/lib/scalingCalculator.ts for the math.
+import type { ScalingInputs } from "./scalingCalculator";
+
+export type { ScalingInputs };
+
+export async function getScalingCalculator(): Promise<ScalingInputs> {
+  return api<ScalingInputs>("/api/admin/tracker/scaling-calculator");
+}
+
+export async function saveScalingCalculator(
+  body: ScalingInputs,
+): Promise<ScalingInputs> {
+  return api<ScalingInputs>("/api/admin/tracker/scaling-calculator", {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+// ===== Operations pillar: Time Audit =====
+// Domain types live in src/lib/timeAudit.ts (the pure lib owns the tier and
+// task configs), re-exported here so callers keep importing DTOs from api.ts.
+import type {
+  Leverage,
+  TaskType,
+  TimeAuditBlock,
+  TimeAuditWeekResponse,
+} from "./timeAudit";
+
+export type { Leverage, TaskType, TimeAuditBlock, TimeAuditWeekResponse };
+
+// Setting a block carries its tier; clearing it sends taskType null and the
+// endpoint deletes the row (untagged means no row, never a null tag).
+export type TimeAuditTagBody =
+  | {
+      weekStart: string;
+      dayOfWeek: number;
+      slot: number;
+      leverage: Leverage;
+      taskType: TaskType;
+    }
+  | { weekStart: string; dayOfWeek: number; slot: number; taskType: null };
+
+export async function getTimeAuditWeek(
+  weekStart: string,
+): Promise<TimeAuditWeekResponse> {
+  return api<TimeAuditWeekResponse>(
+    `/api/admin/tracker/time-audit?week=${encodeURIComponent(weekStart)}`,
+  );
+}
+
+export async function tagTimeAuditBlock(
+  body: TimeAuditTagBody,
+): Promise<TimeAuditBlock | { cleared: true }> {
+  return api<TimeAuditBlock | { cleared: true }>(
+    "/api/admin/tracker/time-audit",
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
 }
