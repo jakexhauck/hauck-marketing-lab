@@ -7,7 +7,9 @@ import {
 import {
   api,
   getAdminOverview,
+  getBusinessHealth,
   getConstraints,
+  saveBusinessHealth,
   saveConstraint,
   type ApiLead,
   type ApiPipelineSummary,
@@ -29,6 +31,7 @@ import {
   type ApiReviewsResponse,
   type PillarConstraint,
 } from "../lib/api";
+import type { BusinessHealthInputs, PeriodType } from "../lib/businessHealth";
 import {
   type CustomersResponse,
   type CustomerDetailResponse,
@@ -598,6 +601,36 @@ export function useAdminOverviewQuery(enabled: boolean) {
     enabled,
     staleTime: 60_000,
     queryFn: getAdminOverview,
+  });
+}
+
+// Business Health, one query per period key. Switching the period toggle
+// changes the key, so each period keeps its own cache entry and nothing bleeds
+// across periods.
+export function useBusinessHealthQuery(period: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["admin", "tracker", "business-health", period],
+    enabled: enabled && !!period,
+    staleTime: 60_000,
+    queryFn: () => getBusinessHealth(period),
+  });
+}
+
+// Autosave for a single period row. The response is the freshly-read row, so
+// seeding the cache with it (rather than invalidating) reconciles the local
+// inputs against what the server actually stored without a refetch round-trip
+// that would fight the field the user is still typing in.
+export function useSaveBusinessHealthMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: {
+      period: string;
+      periodType: PeriodType;
+      inputs: Partial<BusinessHealthInputs>;
+    }) => saveBusinessHealth(v.period, v.periodType, v.inputs),
+    onSuccess: (res) => {
+      qc.setQueryData(["admin", "tracker", "business-health", res.period], res);
+    },
   });
 }
 
