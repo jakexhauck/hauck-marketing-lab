@@ -37,6 +37,13 @@ export interface Env {
   GOOGLE_OAUTH_CLIENT_ID?: string;
   GOOGLE_OAUTH_CLIENT_SECRET?: string;
   GOOGLE_OAUTH_REDIRECT?: string;
+  // Composio brokers the per-CLIENT Google Calendar grant, which is a different
+  // shape from the agency-wide Drive connection above: each client links their
+  // own calendar and Composio holds that token, keyed by the tenant id passed
+  // as its user_id. So both values here are agency-wide (one project key, one
+  // shared auth config) and nothing per-tenant is stored on our side.
+  COMPOSIO_API_KEY?: string;
+  COMPOSIO_GCAL_AUTH_CONFIG_ID?: string;
   // Build Lab reads vault/Plans/Builds/*.md from the repo over the GitHub REST
   // API. GITHUB_TOKEN is a contents-read (the workflow token, contents+issues
   // read/write, also works). GITHUB_REPO defaults to jakexhauck/hauck-marketing-lab.
