@@ -139,9 +139,32 @@ curl -s -H "x-api-key: $COMPOSIO_API_KEY" \
 
 Expected: `["OAUTH2"]`.
 
-- [ ] **Step 3: Create a narrowed auth config**
+### Task 0 partial outcome (recorded 2026-07-18)
 
-Try the narrowest set that can still serve both flows: free/busy read plus own-event write.
+Steps 1 and 2 are **done**. Live response from `GET /api/v3/toolkits/googlecalendar`:
+
+```json
+"composio_managed_auth_schemes": ["OAUTH2"],
+"composio_managed_auth": [{
+  "mode": "OAUTH2",
+  "scopes": { "available": [
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/calendar.events"
+  ]}
+}]
+```
+
+**`calendar.freebusy` is NOT offered by Composio's managed client.** The only two scopes available are full calendar read/write and events read/write. Narrowing below that is impossible on managed auth, so Step 3's narrow attempt is settled: it cannot work.
+
+Consequence: the client's Google consent screen will read **"See, edit, share, and permanently delete all the calendars you can access."** The app still only ever draws a grey block, but the granted token is broader than the feature needs. Accepting this is a deliberate trade for skipping Google verification.
+
+The account also has **zero existing Google Calendar auth configs**, so nothing to reuse.
+
+The only route to a narrow scope is a bring-your-own Google OAuth client, which returns the build to Google sensitive-scope verification and its multi-week wait.
+
+- [ ] **Step 3: Create the auth config**
+
+Managed auth, default scopes (the narrow set is unavailable, see the outcome above).
 
 ```bash
 curl -s -X POST -H "x-api-key: $COMPOSIO_API_KEY" -H "Content-Type: application/json" \
