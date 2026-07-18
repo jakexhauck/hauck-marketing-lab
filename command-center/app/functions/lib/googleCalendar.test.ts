@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as composio from "./composio";
-import { getConnection, getBusy, disconnect, parseBusy } from "./googleCalendar";
+import {
+  getConnection,
+  getBusy,
+  disconnect,
+  parseBusy,
+  composioUserId,
+} from "./googleCalendar";
 
 // Mock the transport wholesale rather than spying: the domain layer imports
 // these bindings directly, so replacing the module is the reliable seam.
@@ -26,6 +32,18 @@ const WINDOW = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(composio.composioConfigured).mockReturnValue(true);
+});
+
+describe("composioUserId", () => {
+  it("keys the grant by tenant slug", () => {
+    expect(composioUserId({ slug: "willis-windows", mode: "live" })).toBe("live:willis-windows");
+  });
+
+  it("keeps test and live workspaces on separate grants", () => {
+    const live = composioUserId({ slug: "willis-windows", mode: "live" });
+    const test = composioUserId({ slug: "willis-windows", mode: "test" });
+    expect(live).not.toBe(test);
+  });
 });
 
 describe("getConnection", () => {

@@ -28,6 +28,16 @@ export interface GcalConnection {
 
 const FREE_SLOTS_TOOL = "GOOGLECALENDAR_FIND_FREE_SLOTS";
 
+// The key a client's Google grant is stored under in Composio.
+//
+// TenantContext deliberately carries no row id, only slug + mode, and mixing
+// the two modes is exactly the test/live bleed that env.ts warns about. So the
+// mode is part of the key: a client's test workspace must never resolve to the
+// calendar their live workspace linked, and vice versa.
+export function composioUserId(tenant: { slug: string; mode: string }): string {
+  return `${tenant.mode}:${tenant.slug}`;
+}
+
 // Composio's status enum has seven values; only ACTIVE can execute tools.
 const ACTIVE = "ACTIVE";
 
