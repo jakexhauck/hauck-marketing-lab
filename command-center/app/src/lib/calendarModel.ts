@@ -73,7 +73,7 @@ export function jobToItem(j: Job): CalendarItem {
     subtitle: j.service,
     date: j.date,
     startMinutes: j.startMinutes,
-    endMinutes: null,
+    endMinutes: j.endMinutes ?? null,
     timeLabel: j.time,
     status: j.status,
     amount: j.amount,

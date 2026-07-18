@@ -53,6 +53,10 @@ export interface Job {
   time: string;
   // Minutes past midnight, for stable same-day ordering.
   startMinutes: number;
+  // Minutes past midnight for the appointment end, when the upstream
+  // appointment carries one. Null or absent means unknown, and the calendar
+  // falls back to its default slot length. Optional so demo jobs need no end.
+  endMinutes?: number | null;
   // Job value in whole dollars.
   amount: number;
   status: JobStatus;

@@ -27,6 +27,23 @@ const baseJob: Job = {
   paid: false,
 };
 
+describe("job end times", () => {
+  it("carries a job's real end time onto the calendar item", () => {
+    const item = jobToItem({ ...baseJob, startMinutes: 540, endMinutes: 690 });
+    expect(item.endMinutes).toBe(690);
+  });
+
+  it("leaves endMinutes null when the job has no end time", () => {
+    expect(jobToItem(baseJob).endMinutes).toBeNull();
+  });
+
+  it("lets a real end time drive the packed span instead of the default hour", () => {
+    const long = jobToItem({ ...baseJob, startMinutes: 540, endMinutes: 720 });
+    const [placed] = packDayColumns([long]);
+    expect(placed.end).toBe(720);
+  });
+});
+
 describe("jobToItem", () => {
   it("maps a booked Job to a job item with amount and location", () => {
     const item = jobToItem(baseJob);
