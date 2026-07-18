@@ -50,7 +50,7 @@ These were verified against Composio's live OpenAPI spec (`https://backend.compo
 
 ### 1.5 Success criteria
 
-- A client with no connection sees a Connect card in Settings, clicks it, completes Google consent, and returns to Settings showing connected.
+- A client on the Jobs tab calendar sees a "Link Google Calendar" button, clicks it, completes Google consent, and returns to the Jobs tab showing linked.
 - The Jobs tab Week and Agenda views grey out the hours Google reports as busy, within one minute of a change in Google.
 - Turning the "Busy" source off in the calendar legend hides those blocks.
 - A client with no connection sees the calendar exactly as it looks today, with no error and no placeholder chatter.
@@ -92,6 +92,7 @@ These were verified against Composio's live OpenAPI spec (`https://backend.compo
 | `command-center/app/functions/api/connections/google-calendar/index.ts` | `GET` status, `DELETE` disconnect. |
 | `command-center/app/functions/api/connections/google-calendar/start.ts` | `POST` returns the Composio redirect URL. |
 | `command-center/app/functions/api/calendar/busy.ts` | `GET` busy intervals for a date window. |
+| `command-center/app/src/components/calendar/GoogleCalendarLink.tsx` | The Link Google Calendar button on the Jobs page. |
 
 **Modify:**
 
@@ -104,9 +105,6 @@ These were verified against Composio's live OpenAPI spec (`https://backend.compo
 | `command-center/app/src/lib/calendarModel.test.ts` | Cover the above. |
 | `command-center/app/src/index.css` | `--source-busy`, `--source-busy-tint`. |
 | `command-center/app/src/hooks/useApi.ts` | Connection + busy hooks. |
-| `command-center/app/src/components/settings/SettingsControls.tsx` | `GoogleCalendarControl`. |
-| `command-center/app/src/routes/Settings.tsx` | Render the control. |
-| `command-center/app/src/components/settings/SettingsDesktop.tsx` | Render the control. |
 | `command-center/app/src/components/calendar/WeekView.tsx` | Busy background band. |
 | `command-center/app/src/components/calendar/AgendaView.tsx` | Busy row, greyed. |
 | `command-center/app/src/routes/sales/Jobs.tsx` | Merge busy items into `calendarItems`. |
@@ -944,7 +942,7 @@ export const onRequestPost: PagesFunction = async (ctx) => {
     userId: tenantId,
     // Composio completes the token exchange itself, so this bounces the client
     // straight back to the page they started from.
-    callbackUrl: `${origin}/settings?calendar=connected`,
+    callbackUrl: `${origin}/sales/jobs?calendar=connected`,
   });
   return Response.json({ redirectUrl });
 };
@@ -1298,96 +1296,103 @@ git commit -m "feat(calendar): connection and busy hooks"
 
 ---
 
-## Task 7: Settings connection card
+## Task 7: Link to Google Calendar button on the Jobs page
+
+**Placement decision (owner, 2026-07-18):** the connect action lives on the **Jobs page**, not in Settings and not in a separate Connections hub. It sits where the problem is visible: the client is looking at their calendar, sees it does not know when they are busy, and links their account right there. The pre-existing `docs/build-plans/self-serve-connections-wizard.md` hub is explicitly out of scope for this build.
 
 **Files:**
-- Modify: `command-center/app/src/components/settings/SettingsControls.tsx`
-- Modify: `command-center/app/src/routes/Settings.tsx`
-- Modify: `command-center/app/src/components/settings/SettingsDesktop.tsx`
+- Create: `command-center/app/src/components/calendar/GoogleCalendarLink.tsx`
+- Modify: `command-center/app/src/routes/sales/Jobs.tsx`
 
 **Interfaces:**
 - Consumes from Task 6: all four hooks.
-- Produces: `GoogleCalendarControl` exported from `SettingsControls.tsx`.
+- Produces: `GoogleCalendarLink` default-exported from `components/calendar/GoogleCalendarLink.tsx`.
 
-**Design note:** Mockups are required before this task is considered visually final. Build the functional version here; the visual pass happens at the mockup gate before ship.
+**Design note:** Mockups are required before this is visually final. Build the functional version here; the visual pass happens at the mockup gate before ship.
 
-- [ ] **Step 1: Read the existing control pattern**
+**Behaviour:**
+- Only render when a calendar view is active (Month, Week, or Agenda), never on the Jobs list view.
+- Not connected: a button reading **"Link Google Calendar"**.
+- Connected: a quiet inline state reading **"Google Calendar linked"** with a small Unlink action. No card chrome, no celebratory copy, per the no-placeholder-chatter rule.
+- `status === "not_configured"`: render nothing at all.
 
-Open `SettingsControls.tsx` and read `ChannelsControl` (line 271). Copy its card chrome, heading style, spacing, and button classes exactly. Do not invent new styling.
+- [ ] **Step 1: Read the existing button styling**
 
-- [ ] **Step 2: Add the control**
+Open `command-center/app/src/routes/sales/Jobs.tsx` and read the segmented view switcher at lines 218-227. Match its button classes and sizing so the link control sits on the same visual line as the switcher rather than introducing a new style.
+
+- [ ] **Step 2: Create the component**
+
+Create `command-center/app/src/components/calendar/GoogleCalendarLink.tsx`:
 
 ```tsx
-// Lets a client connect their own Google Calendar so the Jobs calendar can grey
-// out hours they are already booked. The app reads availability only: it never
-// reads or displays what the events actually are.
-export function GoogleCalendarControl() {
+import {
+  useGoogleCalendarConnection,
+  useStartGoogleCalendarConnect,
+  useDisconnectGoogleCalendar,
+} from "../../hooks/useApi";
+
+// Lets a client link their own Google Calendar from the Jobs page, so the
+// calendar can grey out hours they are already busy. The app reads availability
+// only: it never reads or displays what those events actually are.
+export default function GoogleCalendarLink() {
   const conn = useGoogleCalendarConnection();
   const start = useStartGoogleCalendarConnect();
-  const disconnect = useDisconnectGoogleCalendar();
+  const unlink = useDisconnectGoogleCalendar();
 
-  const connected = conn.data?.connected ?? false;
-  const notConfigured = conn.data?.status === "not_configured";
+  // Composio not wired in this environment: show nothing rather than a dead
+  // button the client cannot act on.
+  if (conn.data?.status === "not_configured") return null;
+  if (conn.isLoading) return null;
 
-  if (notConfigured) return null;
-
-  const onConnect = async () => {
-    const { redirectUrl } = await start.mutateAsync();
-    window.location.href = redirectUrl;
+  const onLink = async () => {
+    try {
+      const { redirectUrl } = await start.mutateAsync();
+      window.location.href = redirectUrl;
+    } catch {
+      // Error surfaces through start.isError below.
+    }
   };
 
+  if (conn.data?.connected) {
+    return (
+      <span className="gcal-link gcal-link-on">
+        Google Calendar linked
+        <button
+          type="button"
+          className="gcal-unlink"
+          disabled={unlink.isPending}
+          onClick={() => unlink.mutate()}
+        >
+          {unlink.isPending ? "Unlinking..." : "Unlink"}
+        </button>
+      </span>
+    );
+  }
+
   return (
-    <div className="setting-card">
-      <div className="setting-card-head">
-        <h3>Google Calendar</h3>
-        <p>
-          {connected
-            ? "Your booked time is blocked out on the Jobs calendar."
-            : "Block out the times you are already busy on the Jobs calendar."}
-        </p>
-      </div>
-
-      {conn.isLoading ? (
-        <p className="muted">Checking...</p>
-      ) : connected ? (
-        <button
-          type="button"
-          className="btn-secondary"
-          disabled={disconnect.isPending}
-          onClick={() => disconnect.mutate()}
-        >
-          {disconnect.isPending ? "Disconnecting..." : "Disconnect"}
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="btn-primary"
-          disabled={start.isPending}
-          onClick={onConnect}
-        >
-          {start.isPending ? "Opening Google..." : "Connect Google Calendar"}
-        </button>
-      )}
-
+    <span className="gcal-link">
+      <button type="button" disabled={start.isPending} onClick={onLink}>
+        {start.isPending ? "Opening Google..." : "Link Google Calendar"}
+      </button>
       {start.isError ? (
-        <p className="error">Could not reach Google just now. Try again.</p>
+        <span className="gcal-link-error">Could not reach Google. Try again.</span>
       ) : null}
-    </div>
+    </span>
   );
 }
 ```
 
-Replace `setting-card`, `btn-primary`, `btn-secondary`, `muted`, and `error` with the actual class names `ChannelsControl` uses.
+Replace the placeholder class names with the real ones used by the view switcher read in Step 1. Do not introduce a new button style.
 
-- [ ] **Step 3: Render it**
+- [ ] **Step 3: Render it on the Jobs page**
 
-In `command-center/app/src/routes/Settings.tsx`, add `GoogleCalendarControl` to the import block at line 7-11, then render it directly after `<ThisDeviceControl />` (line 168):
+In `command-center/app/src/routes/sales/Jobs.tsx`, import the component, then render it beside the view switcher (lines 218-227) so it appears only on the calendar views:
 
 ```tsx
-          <GoogleCalendarControl />
+          {jobsView !== "jobs" ? <GoogleCalendarLink /> : null}
 ```
 
-Do the same in `SettingsDesktop.tsx`, matching how that file composes the other controls.
+Match the real state variable name for the active view if it differs from `jobsView`.
 
 - [ ] **Step 4: Typecheck, test, and eyeball**
 
@@ -1395,13 +1400,13 @@ Do the same in `SettingsDesktop.tsx`, matching how that file composes the other 
 cd command-center/app && npx tsc --noEmit && npm test -- --run && npm run dev
 ```
 
-Open `/settings`. Expected: the card renders, shows Connect, and the button is not dead. With no Composio env vars set locally the status is `not_configured` and the card correctly does not render at all. Set the two vars in `.dev.vars` to see it.
+Open the Jobs tab and switch to Week. Expected: the Link Google Calendar button sits beside the view switcher, and is absent on the Jobs list view. With no Composio env vars set locally the status is `not_configured` and the button correctly does not render at all. Set the two vars in `.dev.vars` to see it.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add command-center/app/src/components/settings command-center/app/src/routes/Settings.tsx
-git commit -m "feat(settings): Google Calendar connection card"
+git add command-center/app/src/components/calendar/GoogleCalendarLink.tsx command-center/app/src/routes/sales/Jobs.tsx
+git commit -m "feat(jobs): link Google Calendar from the Jobs page"
 ```
 
 ---
