@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Marketing — Cold SMS (B · Sub-nav)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #eef0f4; --card: #ffffff; --ink: #14161c; --muted: #6b7280; --faint: #9aa1ad;
+    --line: #eceef2; --line-2: #e3e6ec;
+    --indigo: #6366f1; --indigo-tint: #eef0ff;
+    --green: #10b981; --green-tint: #e7f7f0;
+    --sky: #0ea5e9; --sky-tint: #e6f5fd;
+    --amber: #f59e0b; --amber-tint: #fdf3e2; --rose: #ef4444;
+    --radius: 22px;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--ink); display: flex; height: 100dvh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums lining-nums; }
+  .disp { font-family: "Poppins", sans-serif; }
+
+  .spine { width: 74px; flex-shrink: 0; background: #0c1020; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 6px; }
+  .brand { width: 42px; height: 42px; border-radius: 13px; margin-bottom: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 19px; box-shadow: 0 8px 20px -6px rgba(99,102,241,.7); }
+  .snav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .sbtn { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #8891a8; cursor: pointer; border: 0; background: transparent; transition: .15s; position: relative; }
+  .sbtn:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .sbtn.on { color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 18px -6px rgba(99,102,241,.75); }
+  .sbtn svg { width: 21px; height: 21px; }
+  .savatar { width: 40px; height: 40px; border-radius: 50%; margin-top: 8px; background: linear-gradient(135deg, #10b981, #0ea5e9); display: grid; place-items: center; font-family: "Poppins"; font-weight: 600; font-size: 13px; color: #fff; }
+
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 26px 30px 0; overflow: hidden; }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--indigo); }
+  h1.title { font-family: "Poppins"; font-weight: 700; font-size: 34px; letter-spacing: -.02em; margin-top: 4px; }
+  .tagline { color: var(--muted); font-size: 14.5px; margin-top: 4px; }
+
+  .controls { display: flex; align-items: center; gap: 16px; margin-top: 18px; flex-wrap: wrap; }
+  .tabs { display: inline-flex; gap: 4px; background: #e5e8ef; padding: 5px; border-radius: 15px; }
+  .tab { border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); padding: 8px 16px; border-radius: 11px; transition: .15s; }
+  .tab:hover { color: var(--ink); }
+  .tab.on { background: #fff; color: var(--ink); box-shadow: 0 2px 8px -2px rgba(20,22,28,.14); }
+
+  .monthnav { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; background: #fff; border-radius: 14px; padding: 5px 6px; box-shadow: 0 2px 10px -4px rgba(20,22,28,.14); }
+  .mbtn { width: 34px; height: 34px; border-radius: 10px; border: 0; background: transparent; cursor: pointer; color: var(--muted); display: grid; place-items: center; transition: .15s; }
+  .mbtn:hover { background: var(--indigo-tint); color: var(--indigo); }
+  .mbtn svg { width: 18px; height: 18px; }
+  .mlabel { font-family: "Poppins"; font-weight: 600; font-size: 14.5px; min-width: 132px; text-align: center; }
+  .today-btn { border: 0; background: var(--indigo-tint); color: var(--indigo); font-weight: 600; font-size: 12.5px; font-family: inherit; padding: 8px 12px; border-radius: 10px; cursor: pointer; margin-left: 2px; }
+  .today-btn:hover { background: #e2e5ff; }
+
+  /* sub-nav (the B differentiator) */
+  .subnav { display: inline-flex; gap: 5px; background: transparent; margin-top: 16px; border-bottom: 1px solid var(--line-2); padding-bottom: 0; }
+  .subtab { border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--faint); padding: 9px 4px; margin-right: 22px; border-bottom: 2.5px solid transparent; transition: .15s; display: inline-flex; align-items: center; gap: 7px; }
+  .subtab svg { width: 16px; height: 16px; }
+  .subtab:hover { color: var(--ink); }
+  .subtab.on { color: var(--indigo); border-bottom-color: var(--indigo); }
+  .subtab .cnt { font-size: 11px; font-weight: 700; background: var(--indigo-tint); color: var(--indigo); padding: 1px 7px; border-radius: 999px; }
+
+  .views { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 14px; padding-bottom: 14px; }
+  .view { flex: 1; min-height: 0; display: none; flex-direction: column; }
+  .view.on { display: flex; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .stat { border-radius: var(--radius); padding: 16px 18px; }
+  .stat.indigo { background: var(--indigo-tint); } .stat.green { background: var(--green-tint); }
+  .stat.sky { background: var(--sky-tint); } .stat.amber { background: var(--amber-tint); }
+  .stat .ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: #fff; margin-bottom: 10px; }
+  .stat.indigo .ico { background: var(--indigo); } .stat.green .ico { background: var(--green); }
+  .stat.sky .ico { background: var(--sky); } .stat.amber .ico { background: var(--amber); }
+  .stat .ico svg { width: 18px; height: 18px; }
+  .stat .lbl { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  .stat .val { font-family: "Poppins"; font-weight: 700; font-size: 30px; letter-spacing: -.02em; margin-top: 2px; }
+  .stat .sub { font-size: 12px; color: var(--faint); margin-top: 2px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; margin-top: 9px; }
+  .chip.ok { background: rgba(16,185,129,.16); color: #0a7d58; } .chip.bad { background: rgba(239,68,68,.14); color: #c23434; }
+  .chip svg { width: 12px; height: 12px; }
+
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: 0 2px 16px -8px rgba(20,22,28,.18); display: flex; flex-direction: column; overflow: hidden; }
+  .tablecard { margin-top: 16px; flex: 1; min-height: 0; }
+  .fillcard { flex: 1; min-height: 0; }
+  .tc-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; gap: 12px; flex-wrap: wrap; }
+  .tc-title { font-family: "Poppins"; font-weight: 600; font-size: 16px; }
+  .tc-sub { font-size: 12px; color: var(--faint); }
+  .tc-legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--faint); align-items: center; }
+  .tc-legend b { display: inline-flex; align-items: center; gap: 5px; font-weight: 500; }
+  .dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+  .scroll { flex: 1; min-height: 0; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { position: sticky; top: 0; z-index: 2; background: #fafbfc; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); text-align: right; padding: 11px 14px; white-space: nowrap; border-bottom: 1px solid var(--line-2); }
+  thead th:first-child { text-align: left; }
+  tbody td { padding: 4px 8px; font-size: 13.5px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  tbody td.date { padding-left: 16px; }
+  tbody td:first-child { text-align: left; }
+  tbody tr:hover { background: #fbfbfd; }
+  td.date { font-weight: 600; }
+  td.date .dow { color: var(--faint); font-weight: 500; margin-right: 7px; font-variant-numeric: tabular-nums; }
+  td.calc { color: var(--muted); font-variant-numeric: tabular-nums; padding-right: 14px; }
+  tr.weekend td { background: #fcfcfd; } tr.weekend:hover td { background: #f6f7f9; }
+  tr.today td { background: var(--indigo-tint) !important; }
+  tr.today td.date { box-shadow: inset 3px 0 0 var(--indigo); }
+  .todaypill { font-size: 10px; font-weight: 700; color: #fff; background: var(--indigo); padding: 1px 7px; border-radius: 999px; margin-left: 8px; letter-spacing: .03em; }
+
+  td input { width: 100%; min-width: 54px; border: 0; background: transparent; font: inherit; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; padding: 5px 7px; border-radius: 8px; font-weight: 600; transition: background .12s, box-shadow .12s; }
+  td.txtcol input { text-align: left; font-weight: 400; color: var(--muted); min-width: 120px; }
+  td input::placeholder { color: #d5d9e1; font-weight: 400; }
+  td input:hover { background: #f1f2f6; }
+  td input:focus { outline: 0; background: #fff; box-shadow: 0 0 0 2px var(--indigo); position: relative; z-index: 1; }
+  tr.today td input:focus { background: #fff; }
+
+  tfoot td { padding: 12px 14px; font-size: 13.5px; text-align: right; font-variant-numeric: tabular-nums; border-top: 2px solid var(--line-2); background: #fafbfc; position: sticky; bottom: 0; }
+  tfoot td:first-child { text-align: left; font-family: "Poppins"; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; font-size: 11.5px; color: var(--muted); padding-left: 16px; }
+  tfoot tr.total td { font-weight: 700; color: var(--ink); }
+  tfoot tr.avg td { color: var(--muted); border-top: 0; }
+
+  .footnote { font-size: 11px; color: var(--faint); padding: 10px 2px 12px; }
+
+  @media (max-width: 1120px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 720px) { .main { padding: 18px 14px 0; } .stats { grid-template-columns: 1fr 1fr; gap: 10px; } .monthnav { margin-left: 0; } .subtab { margin-right: 14px; } }
+</style>
+</head>
+<body>
+  <aside class="spine">
+    <div class="brand">H</div>
+    <nav class="snav">
+      <button class="sbtn" title="Command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+      <button class="sbtn on" title="Acquisition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></button>
+      <button class="sbtn" title="Sales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17a4 4 0 0 1-8 0V7a4 4 0 0 1 8 0"/><path d="M13 7a4 4 0 0 1 8 0v10a4 4 0 0 1-8 0"/><path d="M11 7H3M21 17h-8"/></svg></button>
+      <button class="sbtn" title="Fulfillment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></button>
+      <button class="sbtn" title="Operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg></button>
+    </nav>
+    <button class="sbtn" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
+    <div class="savatar">JH</div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker">Acquisition</div>
+    <h1 class="title">Cold SMS</h1>
+    <p class="tagline">One page, three views. Daily log, monthly economics and the script test.</p>
+
+    <div class="controls">
+      <div class="tabs">
+        <button class="tab">Leads</button>
+        <button class="tab">Cold Call</button>
+        <button class="tab on">SMS</button>
+      </div>
+      <div class="monthnav">
+        <button class="mbtn" id="prev" title="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+        <span class="mlabel disp" id="mlabel">July 2026</span>
+        <button class="mbtn" id="next" title="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+        <button class="today-btn" id="todayBtn">Today</button>
+      </div>
+    </div>
+
+    <div class="subnav" id="subnav">
+      <button class="subtab on" data-view="daily">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Daily
+      </button>
+      <button class="subtab" data-view="monthly">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+        Monthly
+      </button>
+      <button class="subtab" data-view="script">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+        Script Test <span class="cnt">4</span>
+      </button>
+    </div>
+
+    <div class="views">
+      <!-- Daily view -->
+      <section class="view on" data-view="daily">
+        <div class="stats">
+          <div class="stat indigo">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+            <div class="lbl">SMS Sent</div>
+            <div class="val num" id="s-sent">0</div>
+            <div class="sub">month to date</div>
+            <span class="chip ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>min 400/day</span>
+          </div>
+          <div class="stat green">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg></div>
+            <div class="lbl">Reply %</div>
+            <div class="val num" id="s-reply">0%</div>
+            <div class="sub"><span id="s-reply-sub">0 of 0</span></div>
+            <span class="chip ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>std &gt;4%</span>
+          </div>
+          <div class="stat sky">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <div class="lbl">Meetings Booked</div>
+            <div class="val num" id="s-booked">0</div>
+            <div class="sub">month to date</div>
+          </div>
+          <div class="stat amber">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
+            <div class="lbl">Book&rarr;Sent %</div>
+            <div class="val num" id="s-book">0%</div>
+            <div class="sub">per message</div>
+            <span class="chip bad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>target 0.5-1%</span>
+          </div>
+        </div>
+
+        <div class="card tablecard">
+          <div class="tc-head">
+            <div>
+              <div class="tc-title">SMS Outreach Tracker</div>
+              <div class="tc-sub" id="tc-sub">Every day of the month, ready to log.</div>
+            </div>
+            <div class="tc-legend">
+              <b><span class="dot" style="background:var(--indigo)"></span>You type</b>
+              <b><span class="dot" style="background:#cfd4de"></span>Computed</b>
+            </div>
+          </div>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th><th>SMS Sent</th><th>Positive Replies</th><th>Reply %</th>
+                  <th>Meetings Booked</th><th>Reply&rarr;Book %</th><th>Book&rarr;Sent %</th><th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+              <tfoot id="tfoot"></tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Monthly view -->
+      <section class="view" data-view="monthly">
+        <div class="card fillcard">
+          <div class="tc-head">
+            <div>
+              <div class="tc-title">Monthly Economics</div>
+              <div class="tc-sub">One row per month. VA plus SMS spend against booked, showed and closed.</div>
+            </div>
+            <div class="tc-legend"><b><span class="dot" style="background:var(--indigo)"></span>You type</b><b><span class="dot" style="background:#cfd4de"></span>Computed</b></div>
+          </div>
+          <div class="scroll">
+            <table class="econ">
+              <thead>
+                <tr>
+                  <th>Month</th><th>Total SMS Sent</th><th>VA Cost</th><th>Calls Booked</th><th>Calls Showed</th>
+                  <th>Show Rate</th><th>SMS / Client</th><th>SMS Cost</th><th>Total Cost</th><th>Cost / Call</th>
+                  <th>Cost / Showed</th><th>New Clients</th><th>Cash Collected</th><th>CAC</th><th>ROI</th><th>LTV</th>
+                </tr>
+              </thead>
+              <tbody id="econbody"></tbody>
+              <tfoot id="econfoot"></tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Script Test view -->
+      <section class="view" data-view="script">
+        <div class="card fillcard">
+          <div class="tc-head">
+            <div>
+              <div class="tc-title">A/B Script Test</div>
+              <div class="tc-sub">Four opener variations, 500 sends each. Rates recompute as you edit.</div>
+            </div>
+            <div class="tc-legend"><b><span class="dot" style="background:var(--indigo)"></span>You type</b><b><span class="dot" style="background:#cfd4de"></span>Computed</b></div>
+          </div>
+          <div class="scroll">
+            <table class="ab">
+              <thead>
+                <tr>
+                  <th>Variation</th><th>Total Sent</th><th>Positive Replies</th><th>Positive Reply %</th>
+                  <th>Calls Booked</th><th>Booking %</th><th>Clients Closed</th>
+                </tr>
+              </thead>
+              <tbody id="abbody"></tbody>
+              <tfoot id="abfoot"></tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="footnote">Sample data for design review. Type in any cell and the rates, totals and stat tiles update live.</div>
+  </main>
+
+<script>
+  /* ---------- shared data ---------- */
+  const SEED = {
+    "2026-6-1":{sent:420,replies:24,booked:3,note:""},
+    "2026-6-2":{sent:385,replies:19,booked:2,note:""},
+    "2026-6-3":{sent:460,replies:31,booked:4,note:"new script"},
+    "2026-6-6":{sent:300,replies:14,booked:1,note:"short day"},
+    "2026-6-7":{sent:440,replies:26,booked:3,note:""},
+    "2026-6-8":{sent:410,replies:22,booked:2,note:""},
+    "2026-6-9":{sent:455,replies:29,booked:4,note:""},
+    "2026-6-10":{sent:398,replies:20,booked:2,note:""},
+    "2026-6-13":{sent:430,replies:25,booked:3,note:""},
+    "2026-6-14":{sent:470,replies:33,booked:5,note:"best day"},
+    "2026-6-15":{sent:350,replies:17,booked:1,note:"timing"},
+    "2026-6-16":{sent:425,replies:24,booked:3,note:""},
+    "2026-6-17":{sent:210,replies:12,booked:1,note:"half day"}
+  };
+
+  let econ = [
+    {label:"May 2026",  sent:"", va:"", booked:"", showed:"", smsCost:"", clients:"", cash:"", ltv:""},
+    {label:"June 2026", sent:"", va:"", booked:"", showed:"", smsCost:"", clients:"", cash:"", ltv:""},
+    {label:"July 2026", sent:9200, va:1200, booked:34, showed:22, smsCost:460, clients:5, cash:14500, ltv:4200}
+  ];
+
+  let ab = [
+    {v:"Variation A: Pain-led",     sent:500, replies:38, booked:9,  closed:2},
+    {v:"Variation B: Offer-led",    sent:500, replies:31, booked:7,  closed:2},
+    {v:"Variation C: Question-led", sent:500, replies:44, booked:11, closed:3},
+    {v:"Variation D: Social proof", sent:500, replies:27, booked:6,  closed:1}
+  ];
+
+  const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const TODAY = { y: 2026, m: 6, d: 17 };
+  let view = { y: TODAY.y, m: TODAY.m };
+  let state = {};
+
+  const pct = (n, d) => d > 0 ? (n / d * 100) : null;
+  const fp = (v) => v === null ? "—" : v.toFixed(1) + "%";
+  const money = (v) => (v === null || isNaN(v)) ? "—" : "$" + Math.round(v).toLocaleString();
+  const num = (v) => { const x = parseFloat(v); return isNaN(x) ? 0 : x; };
+  const esc = (s) => (s || "").replace(/"/g, "&quot;");
+
+  /* ---------- daily tracker ---------- */
+  function loadMonth() {
+    state = {};
+    const days = new Date(view.y, view.m + 1, 0).getDate();
+    for (let d = 1; d <= days; d++) {
+      const s = SEED[view.y + "-" + view.m + "-" + d];
+      state[d] = s ? {...s} : {sent:"",replies:"",booked:"",note:""};
+    }
+  }
+  function ni(day, field, val) {
+    return '<input inputmode="numeric" data-day="'+day+'" data-field="'+field+'" value="'+(val===""?"":val)+'" placeholder="·" />';
+  }
+  function ti(day, field, val) {
+    return '<input type="text" data-day="'+day+'" data-field="'+field+'" value="'+esc(val)+'" placeholder="—" />';
+  }
+  function render() {
+    document.getElementById("mlabel").textContent = MONTHS[view.m] + " " + view.y;
+    const tbody = document.getElementById("tbody");
+    tbody.innerHTML = "";
+    const days = new Date(view.y, view.m + 1, 0).getDate();
+    for (let d = 1; d <= days; d++) {
+      const dow = new Date(view.y, view.m, d).getDay();
+      const isToday = (view.y===TODAY.y && view.m===TODAY.m && d===TODAY.d);
+      const weekend = (dow===0 || dow===6);
+      const r = state[d];
+      const tr = document.createElement("tr");
+      tr.id = "row-" + d;
+      tr.className = [weekend?"weekend":"", isToday?"today":""].filter(Boolean).join(" ");
+      tr.innerHTML =
+        '<td class="date"><span class="dow num">'+DOW[dow]+' '+d+'</span>'+(isToday?'<span class="todaypill">TODAY</span>':'')+'</td>'+
+        '<td>'+ni(d,"sent",r.sent)+'</td>'+
+        '<td>'+ni(d,"replies",r.replies)+'</td>'+
+        '<td class="calc" data-calc="reply">—</td>'+
+        '<td>'+ni(d,"booked",r.booked)+'</td>'+
+        '<td class="calc" data-calc="r2b">—</td>'+
+        '<td class="calc" data-calc="b2s">—</td>'+
+        '<td class="txtcol">'+ti(d,"note",r.note)+'</td>';
+      tbody.appendChild(tr);
+      updateRowCalc(d);
+    }
+    updateRollups();
+  }
+  function updateRowCalc(day) {
+    const r = state[day];
+    const row = document.getElementById("row-" + day);
+    if (!row) return;
+    const sent = num(r.sent), replies = num(r.replies), booked = num(r.booked);
+    row.querySelector('[data-calc="reply"]').textContent = fp(pct(replies, sent));
+    row.querySelector('[data-calc="r2b"]').textContent = fp(pct(booked, replies));
+    row.querySelector('[data-calc="b2s"]').textContent = fp(pct(booked, sent));
+  }
+  function updateRollups() {
+    let tSent=0,tRep=0,tBook=0,filled=0;
+    for (const d in state) {
+      const r = state[d];
+      if (r.sent==="" && r.replies==="" && r.booked==="") continue;
+      tSent+=num(r.sent); tRep+=num(r.replies); tBook+=num(r.booked); filled++;
+    }
+    const avg = (t) => filled ? Math.round(t/filled) : 0;
+    document.getElementById("tfoot").innerHTML =
+      '<tr class="avg"><td>Average / day</td>'+
+        '<td class="num">'+avg(tSent)+'</td><td class="num">'+avg(tRep)+'</td>'+
+        '<td class="num">'+fp(pct(tRep,tSent))+'</td>'+
+        '<td class="num">'+(filled?(tBook/filled).toFixed(1):"0")+'</td>'+
+        '<td class="num">'+fp(pct(tBook,tRep))+'</td><td class="num">'+fp(pct(tBook,tSent))+'</td><td></td></tr>'+
+      '<tr class="total"><td>Total MTD</td>'+
+        '<td class="num">'+tSent.toLocaleString()+'</td><td class="num">'+tRep+'</td>'+
+        '<td class="num">'+fp(pct(tRep,tSent))+'</td><td class="num">'+tBook+'</td>'+
+        '<td class="num">'+fp(pct(tBook,tRep))+'</td><td class="num">'+fp(pct(tBook,tSent))+'</td><td></td></tr>';
+    document.getElementById("s-sent").textContent = tSent.toLocaleString();
+    document.getElementById("s-reply").textContent = fp(pct(tRep,tSent));
+    document.getElementById("s-reply-sub").textContent = tRep + " of " + tSent.toLocaleString();
+    document.getElementById("s-booked").textContent = tBook;
+    document.getElementById("s-book").textContent = fp(pct(tBook,tSent));
+    document.getElementById("tc-sub").textContent = filled ? filled + " days logged this month" : "No days logged yet. Type into any row to start.";
+  }
+  const tb = document.getElementById("tbody");
+  if (tb) tb.addEventListener("input", (e) => {
+    const el = e.target; if (!el.dataset || !el.dataset.day) return;
+    state[el.dataset.day][el.dataset.field] = el.value;
+    if (el.dataset.field === "note") { updateRollups(); return; }
+    updateRowCalc(el.dataset.day); updateRollups();
+  });
+
+  /* ---------- monthly economics ---------- */
+  function ei(i, field, val) {
+    const dollar = (field==="va"||field==="smsCost"||field==="cash"||field==="ltv");
+    return '<input inputmode="numeric" data-ei="'+i+'" data-field="'+field+'" value="'+(val===""?"":val)+'" placeholder="'+(dollar?"$":"·")+'" />';
+  }
+  function renderEcon() {
+    const body = document.getElementById("econbody");
+    if (!body) return;
+    body.innerHTML = "";
+    econ.forEach((r, i) => {
+      const tr = document.createElement("tr");
+      tr.id = "econ-" + i;
+      tr.innerHTML =
+        '<td class="date">'+r.label+'</td>'+
+        '<td>'+ei(i,"sent",r.sent)+'</td>'+
+        '<td>'+ei(i,"va",r.va)+'</td>'+
+        '<td>'+ei(i,"booked",r.booked)+'</td>'+
+        '<td>'+ei(i,"showed",r.showed)+'</td>'+
+        '<td class="calc" data-c="showrate">—</td>'+
+        '<td class="calc" data-c="smsper">—</td>'+
+        '<td>'+ei(i,"smsCost",r.smsCost)+'</td>'+
+        '<td class="calc" data-c="totcost">—</td>'+
+        '<td class="calc" data-c="costcall">—</td>'+
+        '<td class="calc" data-c="costshow">—</td>'+
+        '<td>'+ei(i,"clients",r.clients)+'</td>'+
+        '<td>'+ei(i,"cash",r.cash)+'</td>'+
+        '<td class="calc" data-c="cac">—</td>'+
+        '<td class="calc" data-c="roi">—</td>'+
+        '<td>'+ei(i,"ltv",r.ltv)+'</td>';
+      body.appendChild(tr);
+      econRow(i);
+    });
+    econFoot();
+  }
+  function econRow(i) {
+    const r = econ[i], row = document.getElementById("econ-" + i);
+    if (!row) return;
+    const sent=num(r.sent), va=num(r.va), booked=num(r.booked), showed=num(r.showed),
+          smsCost=num(r.smsCost), clients=num(r.clients), cash=num(r.cash);
+    const totCost = va + smsCost;
+    const set = (c, v) => row.querySelector('[data-c="'+c+'"]').textContent = v;
+    set("showrate", fp(pct(showed, booked)));
+    set("smsper", clients>0 ? Math.round(sent/clients).toLocaleString() : "—");
+    set("totcost", (va||smsCost) ? money(totCost) : "—");
+    set("costcall", booked>0 ? money(totCost/booked) : "—");
+    set("costshow", showed>0 ? money(totCost/showed) : "—");
+    set("cac", clients>0 ? money(totCost/clients) : "—");
+    set("roi", totCost>0 ? fp((cash-totCost)/totCost*100) : "—");
+  }
+  function econFoot() {
+    const foot = document.getElementById("econfoot");
+    if (!foot) return;
+    let sent=0,va=0,booked=0,showed=0,smsCost=0,clients=0,cash=0,ltvSum=0,ltvN=0;
+    econ.forEach(r => {
+      sent+=num(r.sent); va+=num(r.va); booked+=num(r.booked); showed+=num(r.showed);
+      smsCost+=num(r.smsCost); clients+=num(r.clients); cash+=num(r.cash);
+      if (num(r.ltv)>0){ ltvSum+=num(r.ltv); ltvN++; }
+    });
+    const totCost = va + smsCost;
+    foot.innerHTML =
+      '<tr class="total"><td>All months</td>'+
+      '<td class="num">'+sent.toLocaleString()+'</td>'+
+      '<td class="num">'+money(va)+'</td>'+
+      '<td class="num">'+booked+'</td>'+
+      '<td class="num">'+showed+'</td>'+
+      '<td class="num">'+fp(pct(showed,booked))+'</td>'+
+      '<td class="num">'+(clients>0?Math.round(sent/clients).toLocaleString():"—")+'</td>'+
+      '<td class="num">'+money(smsCost)+'</td>'+
+      '<td class="num">'+money(totCost)+'</td>'+
+      '<td class="num">'+(booked>0?money(totCost/booked):"—")+'</td>'+
+      '<td class="num">'+(showed>0?money(totCost/showed):"—")+'</td>'+
+      '<td class="num">'+clients+'</td>'+
+      '<td class="num">'+money(cash)+'</td>'+
+      '<td class="num">'+(clients>0?money(totCost/clients):"—")+'</td>'+
+      '<td class="num">'+(totCost>0?fp((cash-totCost)/totCost*100):"—")+'</td>'+
+      '<td class="num">'+(ltvN?money(ltvSum/ltvN):"—")+'</td></tr>';
+  }
+  const econEl = document.getElementById("econbody");
+  if (econEl) econEl.addEventListener("input", (e) => {
+    const el = e.target; if (!el.dataset || el.dataset.ei===undefined) return;
+    econ[el.dataset.ei][el.dataset.field] = el.value;
+    econRow(el.dataset.ei); econFoot();
+  });
+
+  /* ---------- A/B script test ---------- */
+  function ai(i, field, val) {
+    return '<input inputmode="numeric" data-ai="'+i+'" data-field="'+field+'" value="'+(val===""?"":val)+'" placeholder="·" />';
+  }
+  function renderAB() {
+    const body = document.getElementById("abbody");
+    if (!body) return;
+    body.innerHTML = "";
+    ab.forEach((r, i) => {
+      const tr = document.createElement("tr");
+      tr.id = "ab-" + i;
+      tr.innerHTML =
+        '<td class="date">'+r.v+'</td>'+
+        '<td>'+ai(i,"sent",r.sent)+'</td>'+
+        '<td>'+ai(i,"replies",r.replies)+'</td>'+
+        '<td class="calc" data-a="reply">—</td>'+
+        '<td>'+ai(i,"booked",r.booked)+'</td>'+
+        '<td class="calc" data-a="booking">—</td>'+
+        '<td>'+ai(i,"closed",r.closed)+'</td>';
+      body.appendChild(tr);
+      abRow(i);
+    });
+    abFoot();
+  }
+  function abRow(i) {
+    const r = ab[i], row = document.getElementById("ab-" + i);
+    if (!row) return;
+    const sent=num(r.sent), replies=num(r.replies), booked=num(r.booked);
+    row.querySelector('[data-a="reply"]').textContent = fp(pct(replies, sent));
+    row.querySelector('[data-a="booking"]').textContent = fp(pct(booked, sent));
+  }
+  function abFoot() {
+    const foot = document.getElementById("abfoot");
+    if (!foot) return;
+    let sent=0,replies=0,booked=0,closed=0;
+    ab.forEach(r => { sent+=num(r.sent); replies+=num(r.replies); booked+=num(r.booked); closed+=num(r.closed); });
+    foot.innerHTML =
+      '<tr class="total"><td>All variations</td>'+
+      '<td class="num">'+sent.toLocaleString()+'</td>'+
+      '<td class="num">'+replies+'</td>'+
+      '<td class="num">'+fp(pct(replies,sent))+'</td>'+
+      '<td class="num">'+booked+'</td>'+
+      '<td class="num">'+fp(pct(booked,sent))+'</td>'+
+      '<td class="num">'+closed+'</td></tr>';
+  }
+  const abEl = document.getElementById("abbody");
+  if (abEl) abEl.addEventListener("input", (e) => {
+    const el = e.target; if (!el.dataset || el.dataset.ai===undefined) return;
+    ab[el.dataset.ai][el.dataset.field] = el.value;
+    abRow(el.dataset.ai); abFoot();
+  });
+
+  /* ---------- month nav ---------- */
+  document.getElementById("prev").onclick = () => { view.m--; if(view.m<0){view.m=11;view.y--;} loadMonth(); render(); };
+  document.getElementById("next").onclick = () => { view.m++; if(view.m>11){view.m=0;view.y++;} loadMonth(); render(); };
+  document.getElementById("todayBtn").onclick = () => { view = {y:TODAY.y, m:TODAY.m}; loadMonth(); render(); };
+
+  /* ---------- sub-nav switching (B) ---------- */
+  const subnav = document.getElementById("subnav");
+  if (subnav) subnav.addEventListener("click", (e) => {
+    const b = e.target.closest(".subtab"); if (!b) return;
+    subnav.querySelectorAll(".subtab").forEach(x => x.classList.remove("on"));
+    b.classList.add("on");
+    document.querySelectorAll(".view").forEach(v => v.classList.toggle("on", v.dataset.view === b.dataset.view));
+  });
+
+  loadMonth(); render(); renderEcon(); renderAB();
+</script>
+</body>
+</html>

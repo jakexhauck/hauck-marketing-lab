@@ -9,6 +9,9 @@ import SalesDataTracker from "../../components/admin/tracker/SalesDataTracker";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
 import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
+import LeadsBoard from "../../components/admin/leads/LeadsBoard";
+import ColdCallSurface from "../../components/admin/acquisition/ColdCallSurface";
+import ColdSmsSurface from "../../components/admin/acquisition/ColdSmsSurface";
 
 // An admin pillar page (/admin/pillar/:pillarId): a Bento Bold header
 // (kicker + title + tagline) and a per-pillar tab bar. The active tab is driven
@@ -18,9 +21,9 @@ import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
 // classes.
 //
 // A tab body is an honest placeholder until its surface plan swaps in the real
-// one (Sales Data is built; Leads, Cold Call, SMS, Calculator, Time Audit and
-// Tasks are not yet). Service Delivery has its own cockpit; a direct hit on that
-// id redirects there and anything unknown drops back to Command.
+// one (Leads, Cold Call, SMS and Sales Data are built; Calculator, Time Audit
+// and Tasks are not yet). Service Delivery has its own cockpit; a direct hit on
+// that id redirects there and anything unknown drops back to Command.
 
 export default function PillarPage() {
   const { pillarId } = useParams<{ pillarId: string }>();
@@ -77,11 +80,20 @@ export default function PillarPage() {
 }
 
 // The real body for a built tab, an honest placeholder for one that is not.
-// Each surface plan adds its own case here as it lands.
+// Each surface plan adds its own case here as it lands. Every surface renders
+// only its own body: the kicker, title, tagline and pk-tabs strip above it
+// belong to PillarPage, and their CSS is scoped to the .pk-kit theme mounted
+// once by AdminLayout.
 function PillarTabBody({ tab }: { tab: PillarTabDef }) {
   if (!tab.ready) return <div className="pk-empty">{placeholderCopy(tab.label)}</div>;
 
   switch (tab.id) {
+    case "leads":
+      return <LeadsBoard />;
+    case "cold-call":
+      return <ColdCallSurface />;
+    case "sms":
+      return <ColdSmsSurface />;
     case "sales-data":
       return <SalesDataTracker />;
     case "calculator":

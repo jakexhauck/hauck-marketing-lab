@@ -691,3 +691,88 @@ export async function tagTimeAuditBlock(
     { method: "PATCH", body: JSON.stringify(body) },
   );
 }
+
+// ---------------------------------------------------------------------------
+// Acquisition pillar surfaces (Leads, Cold Call, Cold SMS).
+//
+// All three are agency-internal and agency-global: no tenant scoping, admin-only,
+// served from /api/admin/tracker/*. Phase 1 is manual entry with the app DB as
+// the source of truth, so every count is nullable: a blank cell round-trips as
+// null, never as a fabricated 0. Rates are computed client-side (src/lib/
+// adminLeads.ts, coldCall.ts, coldSms.ts) and never persisted.
+// ---------------------------------------------------------------------------
+
+// Leads (Acquisition > Leads): the hand-kept agency prospect book.
+// Mirrors the CHECK constraint in migration 0030; LEAD_STATUSES in
+// src/lib/adminLeads.ts is the ordered runtime copy.
+export type AdminLeadStatus =
+  | "New"
+  | "Contacted"
+  | "No Answer"
+  | "Booked"
+  | "Qualified"
+  | "Closed"
+  | "Dead";
+
+export interface AdminLead {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  timezone: string;
+  status: AdminLeadStatus;
+  firstContactDate: string | null; // "YYYY-MM-DD"
+  source: string;
+  appointmentDate: string | null;
+  noAnswer: number;
+  lastContact: string | null;
+  followUpDate: string | null;
+  email: string;
+  notes: string;
+  createdAt: string;
+}
+
+// Cold Call (Acquisition > Cold Call): one row per dialing day.
+export interface ColdCallRow {
+  id: string;
+  day: string; // "YYYY-MM-DD"
+  callsMade: number | null;
+  pickups: number | null;
+  passThrough: number | null;
+  meetingsBooked: number | null;
+  objections: string | null;
+  notes: string | null;
+}
+
+// Cold SMS (Acquisition > SMS): three sub-views, three row shapes.
+export interface ColdSmsDailyRow {
+  id: string;
+  day: string; // "YYYY-MM-DD"
+  smsSent: number | null;
+  positiveReplies: number | null;
+  meetingsBooked: number | null;
+  note: string | null;
+}
+
+export interface ColdSmsMonthlyRow {
+  id: string;
+  month: string; // "YYYY-MM-01" (first of month)
+  totalSmsSent: number | null;
+  vaCost: number | null;
+  callsBooked: number | null;
+  callsShowed: number | null;
+  smsCost: number | null;
+  newClients: number | null;
+  cashCollected: number | null;
+  ltv: number | null;
+}
+
+export interface ColdSmsScriptRow {
+  id: string;
+  name: string;
+  totalSent: number | null;
+  positiveReplies: number | null;
+  callsBooked: number | null;
+  clientsClosed: number | null;
+  sortOrder: number;
+}

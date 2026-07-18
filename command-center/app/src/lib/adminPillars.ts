@@ -35,9 +35,9 @@ export const ADMIN_PILLARS: PillarDef[] = [
     label: "Acquisition",
     tagline: "Getting new leads into the pipeline: the top of the value chain.",
     tabs: [
-      { id: "leads", label: "Leads", ready: false },
-      { id: "cold-call", label: "Cold Call", ready: false },
-      { id: "sms", label: "SMS", ready: false },
+      { id: "leads", label: "Leads", ready: true },
+      { id: "cold-call", label: "Cold Call", ready: true },
+      { id: "sms", label: "SMS", ready: true },
     ],
   },
   {
