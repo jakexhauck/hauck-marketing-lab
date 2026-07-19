@@ -1,6 +1,5 @@
 import { Eye, Settings } from "lucide-react";
 import { useAdminClientDetailQuery } from "../../../hooks/useApi";
-import { healthLabel } from "../../../lib/deliveryRoster";
 import { formatDateTime, formatMoney } from "../../../lib/format";
 import { timeAgo } from "../../../lib/timeAgo";
 import {
@@ -58,10 +57,6 @@ export default function OverviewTab({
         <div className="pk-report-tile">
           <div className="pk-report-val">{formatAccountAge(client.createdAt)}</div>
           <div className="pk-report-label">Account age</div>
-        </div>
-        <div className="pk-report-tile">
-          <div className="pk-report-val">{healthLabel(client.healthStatus)}</div>
-          <div className="pk-report-label">{client.healthNote || "Account health"}</div>
         </div>
       </div>
 
