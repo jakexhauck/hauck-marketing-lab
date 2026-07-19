@@ -1,5 +1,6 @@
 import { demoMode } from "../demo/demoMode";
 import { handleDemoRequest } from "../demo/handler";
+import { previewHeaders } from "./previewFrame";
 import type { BusinessHealthInputs, PeriodType } from "./businessHealth";
 
 export class ApiError extends Error {
@@ -26,6 +27,10 @@ export async function api<T>(
   if (init.body && !headers.has("content-type")) {
     headers.set("content-type", "application/json");
   }
+  // Inside the admin Software tab's preview frame this carries the read-only
+  // preview token, which the server reads ahead of the (admin) cookie the
+  // browser also attaches. A no-op in every normal tab.
+  for (const [k, v] of Object.entries(previewHeaders())) headers.set(k, v);
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,

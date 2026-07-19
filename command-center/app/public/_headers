@@ -1,0 +1,14 @@
+# Cloudflare Pages response headers.
+#
+# frame-ancestors 'self' allows exactly one thing: the app framing itself. That
+# is what the admin Fulfillment "Software" tab does when it previews a client's
+# pages inside the cockpit. Every other site is blocked from framing the app,
+# which closes off clickjacking.
+#
+# Deliberately frame-ancestors rather than X-Frame-Options: DENY/SAMEORIGIN
+# cannot express "self only" as reliably across browsers, and CSP supersedes it
+# where both are present.
+/*
+  Content-Security-Policy: frame-ancestors 'self'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

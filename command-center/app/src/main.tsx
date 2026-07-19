@@ -4,7 +4,12 @@ import { BrowserRouter } from "react-router-dom";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import App from "./App";
-import { queryClient, PERSIST_CACHE_KEY, PERSIST_CACHE_BUSTER } from "./lib/queryClient";
+import {
+  queryClient,
+  PERSIST_CACHE_KEY,
+  PERSIST_CACHE_BUSTER,
+  shouldPersistQuery,
+} from "./lib/queryClient";
 import { demoMode } from "./demo/demoMode";
 import "./index.css";
 
@@ -56,7 +61,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           dehydrateOptions: {
             // Only persist successful read queries. Errored/pending queries are
             // not worth restoring, and mutations are excluded by default.
-            shouldDehydrateQuery: (query) => query.state.status === "success",
+            // Credential-bearing queries are excluded too: see shouldPersistQuery.
+            shouldDehydrateQuery: (query) =>
+              shouldPersistQuery(query.queryKey, query.state.status),
           },
         }}
       >

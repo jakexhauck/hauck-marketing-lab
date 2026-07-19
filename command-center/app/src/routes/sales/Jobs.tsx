@@ -77,12 +77,24 @@ const KIND_DOT: Record<DayKind, string> = {
 type JobsView = "jobs" | CalendarView;
 const JOBS_VIEW_KEY = "hml_jobs_view";
 
+function isJobsView(v: string | null | undefined): v is JobsView {
+  return v === "jobs" || v === "month" || v === "week" || v === "agenda";
+}
+
+// ?view= wins, then the saved preference, then Jobs. The URL param exists so a
+// calendar view can be linked to directly (the admin Software tab lists all four
+// as separate surfaces); day-to-day use is unaffected, since no ordinary
+// navigation supplies one.
 function initialJobsView(): JobsView {
   try {
+    const fromUrl = new URLSearchParams(window.location.search).get("view");
+    if (isJobsView(fromUrl)) return fromUrl;
+  } catch {
+    /* ignore */
+  }
+  try {
     const v = window.localStorage.getItem(JOBS_VIEW_KEY);
-    if (v === "jobs" || v === "month" || v === "week" || v === "agenda") {
-      return v;
-    }
+    if (isJobsView(v)) return v;
   } catch {
     /* ignore */
   }

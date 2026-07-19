@@ -7,6 +7,7 @@ import OverviewTab from "../../components/admin/cockpit/OverviewTab";
 import BillingTab from "../../components/admin/cockpit/BillingTab";
 import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
 import WebDesignTab from "../../components/admin/cockpit/webdesign/WebDesignTab";
+import SoftwareTab from "../../components/admin/cockpit/software/SoftwareTab";
 import { useAuth } from "../../context/AuthContext";
 import { useAdminClientDetailQuery } from "../../hooks/useApi";
 import { activeStaffCount } from "../../lib/cockpitOverview";
@@ -169,6 +170,8 @@ export default function DeliveryCockpit() {
               previewBusy={previewBusy}
               previewErr={previewErr}
             />
+          ) : activeService === "software" ? (
+            <SoftwareTab tenantId={tenantId} />
           ) : activeService === "config" ? (
             <ClientConfigPanel tenantId={tenantId} />
           ) : activeService === "billing" ? (

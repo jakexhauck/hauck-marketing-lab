@@ -10,6 +10,7 @@
 
 export type ServiceTab =
   | "overview"
+  | "software"
   | "paid-ads"
   | "web-design"
   | "google-reviews"
@@ -35,6 +36,9 @@ export interface ServiceTabDef {
 // Phase 1 ships every sub-tab as ready:false. Later phases flip them on.
 export const SERVICE_TABS: ServiceTabDef[] = [
   { id: "overview", label: "Overview", ready: true },
+  // Software: a read-only inventory of every page of the client app, each one
+  // previewable live. No sub-tabs; the page list is its own navigation.
+  { id: "software", label: "Software", ready: true },
   {
     id: "paid-ads",
     label: "Paid Ads",

@@ -12,6 +12,7 @@ import type { Capability } from "../lib/capabilities";
 import { clearAllCaches } from "../lib/queryClient";
 import { clearAppBadge, disablePush } from "../lib/push";
 import { demoMode } from "../demo/demoMode";
+import { previewHeaders } from "../lib/previewFrame";
 
 // "authenticated-offline": the session probe failed at the network layer (not
 // a 401/403) while a previous session is plausible. The app stays usable on
@@ -170,7 +171,7 @@ async function fetchIdentity(id: string): Promise<IdentityResult> {
   try {
     const res = await fetch(
       `${API_BASE}/api/me/identity?id=${encodeURIComponent(id)}`,
-      { credentials: "include" },
+      { credentials: "include", headers: previewHeaders() },
     );
     if (!res.ok) return { user: null, transient: res.status >= 500 };
     const body = (await res.json().catch(() => null)) as
@@ -231,8 +232,12 @@ const EMPTY_PROBE = (offline: boolean): SessionProbe => ({
 
 async function checkSession(): Promise<SessionProbe> {
   try {
+    // previewHeaders() matters most here: inside the admin Software tab's frame
+    // this is what makes the app resolve as the previewed CLIENT rather than as
+    // the admin whose cookie the browser also attached.
     const res = await fetch(`${API_BASE}/api/auth/me`, {
       credentials: "include",
+      headers: previewHeaders(),
     });
     // A 5xx (or opaque) response says nothing about whether the session cookie
     // is valid; only a 401/403 does. Treat a server error as transient/offline
