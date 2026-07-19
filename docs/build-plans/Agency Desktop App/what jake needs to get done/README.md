@@ -64,3 +64,17 @@ Verified: 552 unit tests green, typecheck and build clean, migrations 0030 to 00
 - [ ] **Decide: empty month shows "-" or "0".** When no days are logged, the Cold Call footer and tiles currently show "-" rather than "0". I chose that because a hard 0 cannot be told apart from "made no calls", which reads as fabricated data. The approved mockup prints 0. Tell me which you want.
 - [ ] **Eyeball two bits of UI the plans never specified.** Monthly economics needed a way to create a month row, so it has a month picker plus an "Add month" button. Script Test has a name field plus "Add variation" and a per-row delete. Both were implied by the plans' verify steps but never designed, so they are my invention and worth a look.
 - [ ] **Migration numbering collision, needs your call.** Three parallel branches each numbered a migration 0030: `0030_business_health.sql`, `0030_leads.sql` (mine) and `0030_sales_data.sql`. All three are applied live and the database is correct (the ledger keys on filename, not number), but the repo convention that the 4-digit number orders migrations is broken. Mine took 0030 to 0032 on this branch. Whichever of business-health and sales-data merges after me needs renumbering to 0033+. Tell me if you want me to renumber instead.
+
+## Fulfillment: Software tab, every client-app page in one place (shipped + live 2026-07-19, `4391103`)
+
+Fulfillment now has a **Software** tab per client, between Overview and Paid Ads. Left rail lists every page of the client app (32 today: Home, all four Marketing channels with their tabs, all the Company pages with theirs, the four Jobs calendar views, and four record pages). Click one and it renders live on the right with that client's real data. Read-only, and the server enforces that: any write from inside the frame is refused. Desktop and phone widths both available.
+
+The page list is not hand-written. It derives from `nav.ts` and `pageTabs.ts`, the same files the app renders its own sidebar and tab bars from, so any page added later shows up here on its own. A test asserts every entry points at a route that actually exists.
+
+Verified: 840 tests green, typecheck clean, live bundle carries the code, the new endpoint 401s unauthenticated, CORS advertises the new header, and `frame-ancestors 'self'` is live. NOT verified: how any of it looks, because admin is login-gated and I cannot mint an admin session.
+
+- [ ] **Eyeball the tab.** `/admin` → Fulfillment → Willis → Software. Click down the whole list. Flag anything that renders wrong, loads slowly, or looks broken inside the frame.
+- [ ] **Check the phone toggle.** It constrains the frame to 420px so you get the real mobile layout, not a scaled-down desktop. Confirm that is what you see.
+- [ ] **Confirm the admin shell survives.** Click through ten pages and check the cockpit is still around the frame and you are still admin. That is the whole point of the design; if it ever bounces you to login, tell me immediately.
+- [ ] **Check the record pages.** "A single lead / contact / customer / conversation" pick Willis's most recent real record. If a row says "none" but you know Willis has that data, that lookup is wrong and I want to know.
+- [ ] **Decide whether you want this for other clients as they onboard.** It works per client automatically, no setup, but worth knowing you expect to use it that way.
