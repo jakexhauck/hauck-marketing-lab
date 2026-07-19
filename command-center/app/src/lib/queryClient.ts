@@ -27,7 +27,25 @@ export const PERSIST_CACHE_KEY = "hml_query_cache";
 // of rehydrating a stale, partial payload. This is what recovered clients stuck
 // on a pre-fix `["ads","insights"] = { configured: false }` entry (no `totals`),
 // which rehydrated before any refetch and crashed the Paid Ads render.
-export const PERSIST_CACHE_BUSTER = "2026-07-02.ads-normalize";
+export const PERSIST_CACHE_BUSTER = "2026-07-19.no-credential-persist";
+
+// Query keys whose DATA IS A CREDENTIAL and must never be written to disk.
+//
+// The persisted cache is plain localStorage, readable by any script on the
+// origin and surviving until it is busted. A query answer that is itself a
+// bearer credential (the Fulfillment Software tab's preview token) belongs in
+// memory only: persisting it would leave a live token on disk, refreshed every
+// 12 minutes, for anything with storage access to collect.
+const NEVER_PERSIST_KEYS = ["preview-token"];
+
+// The dehydration predicate used in main.tsx: successful reads only, minus
+// anything holding a credential.
+export function shouldPersistQuery(queryKey: readonly unknown[], status: string): boolean {
+  if (status !== "success") return false;
+  return !queryKey.some(
+    (part) => typeof part === "string" && NEVER_PERSIST_KEYS.includes(part),
+  );
+}
 
 // Runtime cache names the service worker writes to (see sw.ts).
 const SW_RUNTIME_CACHES = ["api-get", "api-detail"];

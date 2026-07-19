@@ -27,7 +27,10 @@ function corsHeaders(origin: string | null): HeadersInit {
   return {
     "access-control-allow-origin": origin,
     "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
-    "access-control-allow-headers": "content-type,x-identity",
+    // x-preview-token: the admin Software tab's frame authenticates with a
+    // short-lived preview token in this header rather than the shared cookie,
+    // so framing the client app never disturbs the admin's own session.
+    "access-control-allow-headers": "content-type,x-identity,x-preview-token",
     "access-control-allow-credentials": "true",
     "access-control-max-age": "86400",
     vary: "origin",

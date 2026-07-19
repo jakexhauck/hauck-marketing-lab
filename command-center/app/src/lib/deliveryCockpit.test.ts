@@ -8,9 +8,10 @@ import {
 } from "./deliveryCockpit";
 
 describe("fulfillment cockpit tab model", () => {
-  it("has the seven service tabs in order", () => {
+  it("has the eight service tabs in order", () => {
     expect(SERVICE_TABS.map((t) => t.id)).toEqual([
       "overview",
+      "software",
       "paid-ads",
       "web-design",
       "google-reviews",
@@ -20,8 +21,8 @@ describe("fulfillment cockpit tab model", () => {
     ]);
   });
 
-  it("overview, billing and config are ready and carry no sub-tabs", () => {
-    for (const id of ["overview", "billing", "config"] as const) {
+  it("overview, software, billing and config are ready and carry no sub-tabs", () => {
+    for (const id of ["overview", "software", "billing", "config"] as const) {
       const t = SERVICE_TABS.find((x) => x.id === id)!;
       expect(t.ready).toBe(true);
       expect(t.subTabs).toBeUndefined();

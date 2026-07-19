@@ -49,8 +49,17 @@ const LIST_GET =
 const DETAIL_GET =
   /\/api\/(notifications$|leads\/[^/]+(\/messages)?$|conversations\/[^/]+\/messages$|contacts\/[^/]+\/(notes|tasks)$|invoices\/[^/]+$)/;
 
+// Requests from the admin Software tab's preview frame carry a preview token,
+// and are deliberately NOT cached. Workbox keys its runtime caches by URL
+// alone, so a cached /api/leads from previewing client A would otherwise paint
+// inside client B's frame, and a previewed client's lists could equally leak
+// back into the admin's own tab. A preview is a transient look at one client:
+// always fresh, never written to a shared cache.
+const isPreviewRequest = (request: Request) => request.headers.has("x-preview-token");
+
 registerRoute(
-  ({ url, request }) => request.method === "GET" && LIST_GET.test(url.pathname),
+  ({ url, request }) =>
+    request.method === "GET" && !isPreviewRequest(request) && LIST_GET.test(url.pathname),
   new StaleWhileRevalidate({
     cacheName: "api-get",
     plugins: [new ExpirationPlugin({ maxEntries: 64, maxAgeSeconds: 60 * 60 * 24 })],
@@ -58,7 +67,8 @@ registerRoute(
 );
 
 registerRoute(
-  ({ url, request }) => request.method === "GET" && DETAIL_GET.test(url.pathname),
+  ({ url, request }) =>
+    request.method === "GET" && !isPreviewRequest(request) && DETAIL_GET.test(url.pathname),
   new NetworkFirst({
     cacheName: "api-detail",
     networkTimeoutSeconds: 3,
@@ -72,7 +82,9 @@ registerRoute(
 // on sign-out along with the rest of the runtime caches.
 registerRoute(
   ({ url, request }) =>
-    request.method === "GET" && url.pathname === "/api/auth/me",
+    request.method === "GET" &&
+    !isPreviewRequest(request) &&
+    url.pathname === "/api/auth/me",
   new NetworkFirst({
     cacheName: "api-detail",
     networkTimeoutSeconds: 3,

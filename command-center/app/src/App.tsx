@@ -66,6 +66,7 @@ import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
 import PreviewBanner from "./components/PreviewBanner";
+import { isPreviewFrame } from "./lib/previewFrame";
 import DemoBanner from "./components/DemoBanner";
 import IncomingCallBanner from "./components/call/IncomingCallBanner";
 import ScrollToTop from "./components/ScrollToTop";
@@ -227,7 +228,11 @@ export default function App() {
             <ServiceWorkerUpdater />
             {import.meta.env.DEV && <MotionPresetSwitcher />}
             <OfflineBanner />
-            <PreviewBanner />
+            {/* Inside the admin Software tab's preview frame the surrounding
+                cockpit already says whose app this is, and there is no session
+                to "exit" (the frame holds a token, not a cookie), so the banner
+                would be both redundant and a dead end. */}
+            {!isPreviewFrame() && <PreviewBanner />}
             <DemoBanner />
             <IncomingCallBanner />
             <ScrollToTop />

@@ -23,6 +23,19 @@ export interface SessionData {
   // session can be restored on exit) AND tenantId (whose view). The middleware
   // serves it as a read-only owner session for that tenant and rejects writes.
   preview?: boolean;
+  // True when this session arrived in the x-preview-token HEADER rather than the
+  // cookie, i.e. it is the admin Software tab's iframe.
+  //
+  // This matters because a header token is readable by JavaScript, whereas the
+  // preview COOKIE is HttpOnly and never enters the page. Anything that trades a
+  // session in for more authority must therefore refuse a header-borne one:
+  // /api/auth/exit-preview mints a fresh 30-day ADMIN cookie from the adminId
+  // embedded in a preview token, which would otherwise turn this read-only,
+  // 15-minute, single-tenant token into full cross-tenant admin access.
+  //
+  // Never signed into the token: it describes how the request arrived, so it is
+  // derived per request and cannot be spoofed by the token itself.
+  viaPreviewHeader?: boolean;
 }
 
 // Options carried into a tenant-scoped (non-admin) session.
@@ -160,6 +173,13 @@ export async function mintAdminSessionCookie(
 // session: a preview is a transient act, not a standing login.
 const PREVIEW_MAX_AGE_SECONDS = 60 * 60 * 2;
 
+// The Fulfillment "Software" tab frames the live client app inside an admin
+// page. That frame authenticates with this same preview token, but delivered in
+// a header instead of a cookie (see readPreviewHeader), so it never clobbers the
+// admin's own session. A header token rides in a URL fragment on the way to the
+// frame, so it gets a much shorter life than the 2h cookie preview.
+export const PREVIEW_TOKEN_MAX_AGE_SECONDS = 15 * 60;
+
 export async function mintPreviewSessionToken(
   env: Env,
   adminId: string,
@@ -168,10 +188,13 @@ export async function mintPreviewSessionToken(
   // that person's exact role + per-surface permissions (not the full owner view).
   // Absent means the owner's-eye view of the client.
   staffId?: string,
+  // Lifetime in seconds. Defaults to the 2h cookie preview, so existing callers
+  // are unchanged; the Software tab passes PREVIEW_TOKEN_MAX_AGE_SECONDS.
+  ttlSeconds: number = PREVIEW_MAX_AGE_SECONDS,
 ): Promise<string> {
   const secret = sessionSecret(env);
   if (!secret) throw new Error("SESSION_SECRET not configured");
-  const exp = Math.floor(Date.now() / 1000) + PREVIEW_MAX_AGE_SECONDS;
+  const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
   const inner = encodeInner({ e: exp, m: "live", t: tenantId, a: adminId, p: 1, s: staffId });
   const payload = b64urlEncode(new TextEncoder().encode(inner));
   const sig = await hmac(secret, payload);
@@ -211,13 +234,32 @@ function readBearer(req: Request): string | null {
   return m ? m[1] : null;
 }
 
+// Explicit transport for the admin Software tab's preview frame. The frame is
+// same-origin, so the browser attaches the admin's hml_session cookie to every
+// request whether we want it or not; this header must therefore be read BEFORE
+// the cookie, or the framed app would resolve as the admin against the wrong
+// tenant. A distinct header (rather than reordering cookie vs Bearer) keeps
+// every existing auth path behaving exactly as it does today.
+//
+// The value is an ordinary signed preview token: it is verified through the same
+// HMAC path as any other session, so this widens transport, not authority.
+function readPreviewHeader(req: Request): string | null {
+  const h = req.headers.get("x-preview-token");
+  if (!h) return null;
+  const raw = h.trim();
+  return raw.length > 0 ? raw : null;
+}
+
 export async function verifySession(
   req: Request,
   env: Env,
 ): Promise<SessionData | null> {
-  // Accept the session from the cookie (web) OR the Authorization header
-  // (desktop). Both carry the identical `<payload>.<sig>` token.
-  const raw = readCookie(req, COOKIE_NAME) ?? readBearer(req);
+  // Accept the session from the preview header (admin Software tab frame), the
+  // cookie (web) OR the Authorization header (desktop). All three carry the
+  // identical `<payload>.<sig>` token. The preview header is first because the
+  // frame is same-origin and cannot stop the browser sending the admin cookie.
+  const previewHeader = readPreviewHeader(req);
+  const raw = previewHeader ?? readCookie(req, COOKIE_NAME) ?? readBearer(req);
   if (!raw) return null;
   const dot = raw.indexOf(".");
   if (dot < 0) return null;
@@ -245,9 +287,14 @@ export async function verifySession(
         tenantId: String(fields.t),
         preview: true,
       };
+      if (previewHeader) data.viaPreviewHeader = true;
       if (fields.s) data.staffId = String(fields.s);
       return data;
     }
+    // Past this point the token is not a preview. The preview header must never
+    // be a second way to present an admin or client session, so anything else
+    // arriving that way is refused outright rather than honoured.
+    if (previewHeader) return null;
     // Admin session: carries an adminId, no tenant. mode is nominal (unused by
     // admin routes).
     if (fields.a) return { mode: "live", adminId: String(fields.a) };

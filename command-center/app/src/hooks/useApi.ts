@@ -1589,3 +1589,24 @@ function calendarTimezone(): string {
     return "UTC";
   }
 }
+
+// A short-lived read-only preview token for framing one client's live app inside
+// the admin Fulfillment "Software" tab. POSTs to a route that returns the token
+// in the body and sets NO cookie, so the admin's own session is untouched.
+//
+// Refetched at 80% of its life so a long browse never hits an expired frame.
+export function useClientPreviewToken(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "clients", tenantId, "preview-token"],
+    enabled: enabled && !!tenantId,
+    // The token is the cache entry; refresh it well before the server expires it.
+    staleTime: 12 * 60_000,
+    refetchInterval: 12 * 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: () =>
+      api<{ token: string; expiresInSeconds: number }>(
+        `/api/admin/clients/${tenantId}/preview-token`,
+        { method: "POST" },
+      ),
+  });
+}
