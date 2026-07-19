@@ -36,9 +36,9 @@ import {
   type AdminClientDetailResponse,
   type AdminClientBillingPatch,
   type AdminClientBillingResponse,
-  type AdTrackingDay,
-  type AdTrackingInput,
-  type AdTrackingMonthResponse,
+  type AdTrackerLevel,
+  type AdTrackerRange,
+  type AdTrackerResponse,
   type ApiReviewsResponse,
   type PillarConstraint,
   getSalesData,
@@ -454,71 +454,25 @@ export function useAdminClientBillingSave(tenantId: string) {
 // One month of a client's paid-ad funnel tracker for the Fulfillment cockpit's
 // Paid Ads > Ad Tracking sub-tab. Keyed by tenant AND month so switching months
 // swaps cache entries instead of refetching over the same key.
-export function useAdminAdTrackingQuery(tenantId: string, month: string) {
+// The rebuilt Ad Tracker. keepPreviousData so flipping range or pivot level
+// swaps the numbers without blanking the table first.
+export function useAdminAdTrackerQuery(
+  tenantId: string,
+  range: AdTrackerRange,
+  level: AdTrackerLevel,
+) {
   return useQuery({
-    queryKey: ["admin", "tracker", "ad-tracking", tenantId, month],
-    enabled: !!tenantId && !!month,
-    staleTime: 30_000,
+    queryKey: ["admin", "ad-tracker", tenantId, range, level],
+    enabled: !!tenantId,
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
     queryFn: () =>
-      api<AdTrackingMonthResponse>(
-        `/api/admin/clients/${tenantId}/ad-tracking?month=${month}`,
+      api<AdTrackerResponse>(
+        `/api/admin/clients/${tenantId}/ad-tracker?range=${range}&level=${level}`,
       ),
   });
 }
 
-// Saves one edited day (upsert by tenant + date). Optimistic: the typed value
-// stays on screen and the row's ratios, the footer and the summary chips all
-// recompute immediately, rolling back if the write fails. Without this the cell
-// would flicker back to its old value until the round trip landed.
-export function useAdminAdTrackingSaveMutation(tenantId: string, month: string) {
-  const qc = useQueryClient();
-  const key = ["admin", "tracker", "ad-tracking", tenantId, month];
-  return useMutation({
-    mutationFn: (day: AdTrackingInput) =>
-      api<{ day: AdTrackingDay | null }>(`/api/admin/clients/${tenantId}/ad-tracking`, {
-        method: "POST",
-        body: JSON.stringify(day),
-      }),
-    onMutate: async (day) => {
-      await qc.cancelQueries({ queryKey: key });
-      const previous = qc.getQueryData<AdTrackingMonthResponse>(key);
-      if (previous) {
-        const rest = previous.days.filter((d) => d.date !== day.date);
-        const existing = previous.days.find((d) => d.date === day.date);
-        const merged = { ...EMPTY_AD_TRACKING_DAY, ...existing, ...day } as AdTrackingDay;
-        qc.setQueryData<AdTrackingMonthResponse>(key, {
-          ...previous,
-          days: [...rest, merged].sort((a, b) => a.date.localeCompare(b.date)),
-        });
-      }
-      return { previous };
-    },
-    onError: (_err, _day, context) => {
-      if (context?.previous) qc.setQueryData(key, context.previous);
-    },
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: key });
-    },
-  });
-}
-
-// A day with nothing logged, so an optimistic merge for a brand new day still
-// produces a complete row.
-const EMPTY_AD_TRACKING_DAY: Omit<AdTrackingDay, "date"> = {
-  spend: 0,
-  impressions: 0,
-  clicks: 0,
-  linkClicks: 0,
-  newLeads: 0,
-  demosBooked: 0,
-  qualified: 0,
-  disqualified: 0,
-  noShow: 0,
-  sales: 0,
-  contractedRev: 0,
-  ufCash: 0,
-  newMrr: 0,
-};
 
 // One client's real GA4 numbers for the Fulfillment cockpit's Web Design >
 // Analytics panel, from GET /api/admin/clients/:tenantId/website/analytics. The

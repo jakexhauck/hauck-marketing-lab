@@ -10,6 +10,7 @@ import {
   breakdown,
   ratio,
   type TrackerLead,
+  assembleLeads,
   type TrackerSpendRow,
 } from "./adTrackerMetrics";
 
@@ -345,5 +346,113 @@ describe("breakdown", () => {
     // A 1647, C 1504, B 1357.
     const rows = breakdown(sheetFixture(), sheetSpend(), "adset");
     expect(rows.map((r) => r.id)).toEqual(["A", "C", "B"]);
+  });
+});
+
+describe("assembleLeads", () => {
+  const stages = new Map([
+    ["s-new", "New Lead 🔔"],
+    ["s-hot", "Hot Lead 🔥"],
+    ["s-booked", "Phone Appointment Booked  📞"],
+    ["s-cust", "One-Time Customer 1️⃣"],
+  ]);
+  const attr = new Map([
+    ["c1", { adId: "ad1", campaignId: "k1", campaignName: "K", adsetName: "S", adName: "A" }],
+    ["c2", null],
+  ]);
+
+  it("classifies an opportunity by its stage name and attaches its ad id", () => {
+    const [lead] = assembleLeads(
+      [{ id: "o1", contactId: "c1", pipelineStageId: "s-hot", createdAt: "2026-03-01T00:00:00Z" }],
+      stages,
+      attr,
+      new Map(),
+    );
+    expect(lead).toEqual({
+      contactId: "c1",
+      createdAt: "2026-03-01T00:00:00Z",
+      level: "pickup",
+      value: 0,
+      adId: "ad1",
+    });
+  });
+
+  it("dedupes a contact across pipelines, keeping the furthest level and earliest date", () => {
+    const out = assembleLeads(
+      [
+        { id: "o1", contactId: "c1", pipelineStageId: "s-new", createdAt: "2026-03-01T00:00:00Z" },
+        { id: "o2", contactId: "c1", pipelineStageId: "s-cust", createdAt: "2026-03-09T00:00:00Z" },
+      ],
+      stages,
+      attr,
+      new Map(),
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0].level).toBe("sale");
+    // The lead was acquired on the first date, not the date it converted.
+    expect(out[0].createdAt).toBe("2026-03-01T00:00:00Z");
+  });
+
+  it("promotes a lead to a sale when the contact has a closed-out job", () => {
+    const [lead] = assembleLeads(
+      [{ id: "o1", contactId: "c1", pipelineStageId: "s-hot", createdAt: "2026-03-01T00:00:00Z" }],
+      stages,
+      attr,
+      new Map([["c1", 6500]]),
+    );
+    expect(lead.level).toBe("sale");
+    expect(lead.value).toBe(6500);
+  });
+
+  it("sums several jobs for one contact", () => {
+    const [lead] = assembleLeads(
+      [{ id: "o1", contactId: "c1", pipelineStageId: "s-new", createdAt: "2026-03-01T00:00:00Z" }],
+      stages,
+      attr,
+      new Map([["c1", 6500 + 1200]]),
+    );
+    expect(lead.value).toBe(7700);
+  });
+
+  it("leaves a lead unattributed when the contact carries no ad", () => {
+    const [lead] = assembleLeads(
+      [{ id: "o1", contactId: "c2", pipelineStageId: "s-hot", createdAt: "2026-03-01T00:00:00Z" }],
+      stages,
+      attr,
+      new Map(),
+    );
+    expect(lead.adId).toBeNull();
+  });
+
+  it("treats an unknown stage id as a bare lead rather than dropping it", () => {
+    const [lead] = assembleLeads(
+      [{ id: "o1", contactId: "c1", pipelineStageId: "gone", createdAt: "2026-03-01T00:00:00Z" }],
+      stages,
+      attr,
+      new Map(),
+    );
+    expect(lead.level).toBe("lead");
+  });
+
+  it("skips an opportunity with no contact, which cannot be attributed or deduped", () => {
+    expect(
+      assembleLeads(
+        [{ id: "o1", contactId: "", pipelineStageId: "s-hot", createdAt: "2026-03-01T00:00:00Z" }],
+        stages,
+        attr,
+        new Map(),
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("counts a zero-value job as a sale, since $0 close-outs are allowed", () => {
+    const [lead] = assembleLeads(
+      [{ id: "o1", contactId: "c1", pipelineStageId: "s-new", createdAt: "2026-03-01T00:00:00Z" }],
+      stages,
+      attr,
+      new Map([["c1", 0]]),
+    );
+    expect(lead.level).toBe("sale");
+    expect(lead.value).toBe(0);
   });
 });

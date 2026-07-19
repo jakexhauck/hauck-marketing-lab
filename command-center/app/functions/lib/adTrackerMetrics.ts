@@ -46,7 +46,8 @@ const STAGE_LEVELS: Record<string, TrackerLevel> = {
   "no close": "booking",
   "phone appointment no-show": "booking",
   "opted out": "pickup",
-  // Customers. A sale is landing here, not Job Booked or Job Completed.
+  // Customers. A secondary sale signal only: the money comes from the job
+  // ledger (see assembleLeads), because this pipeline has never been used.
   "one-time customer": "sale",
   "recurring customer": "sale",
 };
@@ -95,12 +96,21 @@ export function furthestLevel(levels: TrackerLevel[]): TrackerLevel {
   return best;
 }
 
+// An opportunity, reduced to what the tracker needs from it.
+export interface TrackerOpportunity {
+  id: string;
+  contactId: string;
+  pipelineStageId: string;
+  createdAt: string;
+}
+
 // A lead as the tracker sees it, already joined and classified.
 export interface TrackerLead {
   contactId: string;
   createdAt: string;
   level: TrackerLevel;
-  // Deal value. Zero until GHL actually carries one; see spec §9 R3.
+  // Deal value in dollars, summed from customer_jobs.value_cents. Zero until
+  // the contact has a closed-out job.
   value: number;
   // Meta ad id from contact.attributions[], or null when unattributed.
   adId: string | null;
@@ -302,4 +312,61 @@ export function breakdown(
   }
 
   return [...rows.values()].sort((a, b) => b.spend - a.spend);
+}
+
+// Fold opportunities, contact attribution and the job ledger into one lead per
+// contact.
+//
+// One contact can hold several opportunities (a repeat customer keeps the Sales
+// card that produced them), so they collapse to a single lead carrying:
+//   - the FURTHEST level reached across all of them
+//   - the EARLIEST created date, because that is when the ad acquired them.
+//     Dating a lead by its conversion would push revenue into whichever range
+//     the close happened in and understate the ad that actually earned it.
+//
+// A closed-out job (customer_jobs.value_cents, keyed by ghl_contact_id) is what
+// makes a lead a Sale, not a Customers-pipeline card. See the build plan §4:
+// the pipeline has never been used, while the job ledger is the app's own data.
+// A zero-value job still counts, because a $0 close-out is explicitly allowed.
+export function assembleLeads(
+  opportunities: TrackerOpportunity[],
+  stageNames: Map<string, string>,
+  attributionByContact: Map<string, { adId: string } | null>,
+  jobValueByContact: Map<string, number>,
+): TrackerLead[] {
+  const byContact = new Map<string, TrackerLead>();
+
+  for (const opp of opportunities) {
+    const contactId = opp.contactId?.trim();
+    // No contact means no attribution and no way to dedupe. Nothing to track.
+    if (!contactId) continue;
+
+    const level = deriveLevel(stageNames.get(opp.pipelineStageId) ?? "");
+    const existing = byContact.get(contactId);
+
+    if (existing) {
+      existing.level = furthestLevel([existing.level, level]);
+      if (opp.createdAt && opp.createdAt < existing.createdAt) {
+        existing.createdAt = opp.createdAt;
+      }
+      continue;
+    }
+
+    byContact.set(contactId, {
+      contactId,
+      createdAt: opp.createdAt,
+      level,
+      value: 0,
+      adId: attributionByContact.get(contactId)?.adId ?? null,
+    });
+  }
+
+  for (const [contactId, value] of jobValueByContact) {
+    const lead = byContact.get(contactId);
+    if (!lead) continue;
+    lead.level = "sale";
+    lead.value = value;
+  }
+
+  return [...byContact.values()];
 }

@@ -412,38 +412,58 @@ export interface AdminClientBillingResponse {
   billing: AdminClientBilling;
 }
 
-// One day of a client's paid-ad funnel tracker (GET/POST
-// /api/admin/clients/:tenantId/ad-tracking), behind Paid Ads > Ad Tracking.
-// These are the 13 TYPED inputs only: every ratio the tracker shows (CPM, CPC,
-// CTR, CPL, CPNL, LP Conv, Cost/Demo, Lead to Book, Qual %, Cost/Qual, CPA, Rev
-// ROAS, UF ROAS) is derived in src/lib/adTrackingMetrics.ts and never stored or
-// sent.
-export interface AdTrackingDay {
-  date: string; // YYYY-MM-DD, the persistence key (one row per client per day)
-  spend: number;
-  impressions: number;
-  clicks: number;
-  linkClicks: number;
-  newLeads: number;
-  demosBooked: number;
-  qualified: number;
-  disqualified: number;
-  noShow: number;
+// --- Ad Tracker (the rebuild: derived from Meta + GHL, nothing typed) --------
+// Ratios arrive computed so the client cannot recompute one differently and
+// quietly disagree with the sheet this was ported from. null means the
+// denominator was zero; render it as "-", never as 0.
+
+export type AdTrackerRange = "all" | "7" | "30" | "90";
+export type AdTrackerLevel = "campaign" | "adset" | "ad";
+
+export interface AdTrackerKpis {
+  leads: number;
+  pickups: number;
+  bookings: number;
   sales: number;
-  contractedRev: number;
-  ufCash: number;
-  newMrr: number;
+  revenue: number;
+  spend: number;
+  pickupRate: number | null;
+  bookingRate: number | null;
+  salesPct: number | null;
+  closeRate: number | null;
+  roas: number | null;
 }
 
-// A month's logged days. Days with nothing typed are absent, not zero-filled:
-// the client generates the full grid from trackerMonth.ts.
-export interface AdTrackingMonthResponse {
-  month: string; // YYYY-MM
-  days: AdTrackingDay[];
+export interface AdTrackerBreakdownRow {
+  id: string;
+  name: string;
+  spend: number;
+  leads: number;
+  bookings: number;
+  sales: number;
+  revenue: number;
+  roas: number | null;
+  costPerLead: number | null;
+  costPerBooking: number | null;
 }
 
-// One edited day on its way back: the date plus whichever cells changed.
-export type AdTrackingInput = Partial<Omit<AdTrackingDay, "date">> & { date: string };
+export interface AdTrackerResponse {
+  range: AdTrackerRange;
+  level: AdTrackerLevel;
+  kpis: AdTrackerKpis;
+  breakdown: AdTrackerBreakdownRow[];
+  // Leads in range with no ad id. The breakdown is the attributed subset, so
+  // showing this is what stops the two looking like they disagree.
+  unattributed: number;
+  currency: string;
+  meta: {
+    pipelines: number;
+    opportunities: number;
+    spendDays: number;
+    // No snapshot has ever been taken, which looks identical to "no spend".
+    neverSynced: boolean;
+  };
+}
 
 // An agency task in the admin "Tasks" tab, or a pillar task in a pillar
 // workspace's Tasks tab. tenantId null + pillarId null = agency-wide; tenantId
