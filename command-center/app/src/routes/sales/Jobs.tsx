@@ -240,7 +240,7 @@ export default function Jobs() {
           description="Pick a day to see and work its jobs, or switch to a calendar view."
           actions={
             <div className="flex flex-wrap items-center gap-2">
-              {jobsView !== "jobs" ? <GoogleCalendarLink /> : null}
+              <GoogleCalendarLink />
               <Segmented<JobsView>
                 options={[
                   { value: "jobs", label: "Jobs" },

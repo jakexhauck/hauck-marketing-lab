@@ -9,13 +9,18 @@ integration (Meta, GA4, Places) uses one agency credential plus a per-client id.
 
 ## What the client sees
 
-On the Jobs tab, in any calendar view (Month, Week, Agenda), a **Link Google
-Calendar** button sits beside the view switcher. Clicking it sends them to
-Google's consent screen. When they come back, the button is replaced by "Google
-Calendar linked" and an Unlink action.
+On the Jobs tab, a **Link Google Calendar** button sits beside the view
+switcher, in every view including the default Jobs list. Clicking it sends them
+to Google's consent screen. When they come back, the button is replaced by
+"Google Calendar linked" and an Unlink action.
 
-The button does not appear on the Jobs list view, or when the broker is not
-configured in the environment.
+It was originally hidden on the Jobs list view, on the theory that the offer
+only makes sense while a calendar is on screen. That failed the first contact
+with a real user: the default view is Jobs, so the button was invisible until
+you already knew to go looking for it. Discoverability beats contextual purity
+for a one-time setup action.
+
+The button still hides when the broker is not configured in the environment.
 
 ## Architecture
 
