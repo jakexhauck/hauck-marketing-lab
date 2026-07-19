@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Automation Library · Hauck Marketing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --canvas: #eef1f6;
+    --dot: rgba(20, 24, 48, 0.10);
+    --chrome: #ffffff;
+    --chrome-2: #f7f8fb;
+    --card: #ffffff;
+    --card-border: #e4e7ef;
+    --ink: #1b2130;
+    --muted: #6b7387;
+    --faint: #99a0b2;
+    --line: #c3c9d8;
+    --brand: #4f46e5;
+    --brand-soft: #eef0fe;
+    --shadow: 0 1px 2px rgba(20,24,48,0.05), 0 4px 14px rgba(20,24,48,0.07);
+
+    --display: "Poppins", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --body: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+    --t-trigger: #3b82f6;
+    --t-filter: #64748b;
+    --t-estimate: #0ea5e9;
+    --t-booked: #6366f1;
+    --t-wait: #f59e0b;
+    --t-notify: #8b5cf6;
+    --t-completed: #16a34a;
+    --t-unpaid: #e0910a;
+    --t-lost: #f43f5e;
+    --t-followup: #64748b;
+    --t-go: #0d9488;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas: #0c101a; --dot: rgba(255,255,255,0.06); --chrome: #141926; --chrome-2: #10141f;
+      --card: #171d2b; --card-border: #29313f; --ink: #e9ecf4; --muted: #9aa2b4; --faint: #6a7285;
+      --line: #333c4e; --brand: #7c78f2; --brand-soft: #1f2340;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 18px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas: #0c101a; --dot: rgba(255,255,255,0.06); --chrome: #141926; --chrome-2: #10141f;
+    --card: #171d2b; --card-border: #29313f; --ink: #e9ecf4; --muted: #9aa2b4; --faint: #6a7285;
+    --line: #333c4e; --brand: #7c78f2; --brand-soft: #1f2340;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 6px 18px rgba(0,0,0,0.4);
+  }
+  :root[data-theme="light"] {
+    --canvas: #eef1f6; --dot: rgba(20,24,48,0.10); --chrome: #ffffff; --chrome-2: #f7f8fb;
+    --card: #ffffff; --card-border: #e4e7ef; --ink: #1b2130; --muted: #6b7387; --faint: #99a0b2;
+    --line: #c3c9d8; --brand: #4f46e5; --brand-soft: #eef0fe;
+    --shadow: 0 1px 2px rgba(20,24,48,0.05), 0 4px 14px rgba(20,24,48,0.07);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--body); -webkit-font-smoothing: antialiased; }
+
+  /* ---------- top chrome ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 30;
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 18px;
+    background: var(--chrome);
+    border-bottom: 1px solid var(--card-border);
+  }
+  .wf-name { display: flex; align-items: center; gap: 9px; }
+  .wf-name .bolt {
+    width: 26px; height: 26px; border-radius: 7px;
+    display: grid; place-items: center; color: #fff; font-size: 14px;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+  }
+  .wf-name b { font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+  .wf-name .crumb { color: var(--faint); font-size: 13px; }
+  .wf-name .crumb .cur { color: var(--ink); font-weight: 600; }
+  .status {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; font-weight: 600; color: var(--muted);
+    background: var(--chrome-2); border: 1px solid var(--card-border);
+    padding: 4px 10px; border-radius: 999px;
+  }
+  .status .dot { width: 7px; height: 7px; border-radius: 50%; background: #16a34a; }
+  .topbar .spacer { flex: 1; }
+  .readonly {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--display); font-weight: 600; font-size: 12px;
+    color: var(--muted); background: var(--chrome-2);
+    border: 1px solid var(--card-border); border-radius: 999px; padding: 5px 13px;
+  }
+
+  /* ---------- app shell ---------- */
+  .app { display: flex; align-items: flex-start; }
+  .sidebar {
+    position: sticky; top: 47px;
+    width: 246px; flex-shrink: 0;
+    height: calc(100vh - 47px); overflow-y: auto;
+    background: var(--chrome);
+    border-right: 1px solid var(--card-border);
+    padding: 16px 12px;
+  }
+  .side-head {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase;
+    color: var(--faint); padding: 4px 10px 10px;
+  }
+  .page-item {
+    width: 100%; display: flex; align-items: center; gap: 11px;
+    padding: 9px 10px; margin-bottom: 2px;
+    border: 1px solid transparent; border-radius: 9px;
+    background: transparent; cursor: pointer; text-align: left;
+    font-family: var(--display); font-weight: 500; font-size: 13.5px; color: var(--muted);
+  }
+  .page-item .p-ico {
+    width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+    display: grid; place-items: center; font-size: 14px;
+    background: var(--chrome-2); border: 1px solid var(--card-border);
+  }
+  .page-item .p-name { flex: 1; min-width: 0; }
+  .page-item .p-count {
+    font-family: var(--body); font-size: 11px; font-weight: 700;
+    color: var(--faint); background: var(--chrome-2);
+    border-radius: 999px; padding: 1px 8px; min-width: 22px; text-align: center;
+  }
+  .page-item:hover { color: var(--ink); background: var(--chrome-2); }
+  .page-item.is-active { color: var(--brand); background: var(--brand-soft); border-color: color-mix(in srgb, var(--brand) 28%, transparent); }
+  .page-item.is-active .p-count { background: var(--brand); color: #fff; }
+  .page-item.done .p-count { color: var(--t-completed); }
+  .page-item.is-active.done .p-count { color: #fff; }
+
+  .side-note {
+    margin-top: 14px; padding: 11px 12px;
+    font-size: 11.5px; line-height: 1.5; color: var(--faint);
+    background: var(--chrome-2); border: 1px dashed var(--card-border); border-radius: 9px;
+  }
+
+  .main { flex: 1; min-width: 0; }
+
+  /* ---------- per-page workflow switch ---------- */
+  .page { display: none; }
+  .page.is-active { display: block; }
+  .subbar {
+    position: sticky; top: 47px; z-index: 20;
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 18px;
+    background: var(--chrome-2);
+    border-bottom: 1px solid var(--card-border);
+    overflow-x: auto;
+  }
+  .subbar .lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); margin-right: 4px; white-space: nowrap; }
+  .wf-tab {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--display); font-weight: 500; font-size: 13px;
+    color: var(--muted); background: transparent;
+    border: 1px solid transparent; border-radius: 8px;
+    padding: 7px 12px; cursor: pointer; white-space: nowrap;
+  }
+  .wf-tab .n {
+    display: grid; place-items: center;
+    width: 20px; height: 20px; border-radius: 6px;
+    font-size: 11px; font-weight: 700;
+    background: var(--card-border); color: var(--muted);
+  }
+  .wf-tab:hover { color: var(--ink); background: var(--card); }
+  .wf-tab.is-active { color: var(--brand); background: var(--brand-soft); border-color: color-mix(in srgb, var(--brand) 30%, transparent); }
+  .wf-tab.is-active .n { background: var(--brand); color: #fff; }
+
+  /* ---------- canvas ---------- */
+  .canvas {
+    min-height: calc(100vh - 96px);
+    background-image: radial-gradient(var(--dot) 1.4px, transparent 1.4px);
+    background-size: 22px 22px;
+    padding: 40px 20px 90px;
+  }
+  .wf { display: none; flex-direction: column; align-items: center; }
+  .wf.is-active { display: flex; animation: fade 0.35s ease both; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .wf-title { text-align: center; margin: 0 0 24px; }
+  .wf-title h2 { font-family: var(--display); font-weight: 600; font-size: 20px; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .wf-title p { margin: 0; font-size: 13px; color: var(--muted); }
+
+  /* ---------- block ---------- */
+  .blk {
+    position: relative;
+    width: 340px; max-width: 90vw;
+    display: flex; align-items: flex-start; gap: 12px;
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 10px; padding: 13px 14px; box-shadow: var(--shadow); text-align: left;
+  }
+  .blk.trigger { border-color: color-mix(in srgb, var(--t-trigger) 45%, var(--card-border)); }
+  .blk .ico {
+    flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;
+    display: grid; place-items: center; color: #fff; font-size: 16px;
+  }
+  .blk .body { min-width: 0; flex: 1; }
+  .blk .tag { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; color: var(--faint); margin-bottom: 2px; }
+  .blk .title { font-family: var(--display); font-weight: 600; font-size: 14px; color: var(--ink); line-height: 1.3; }
+  .blk .sub { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+  .blk .src { display: inline-block; margin-top: 6px; font-size: 10.5px; font-weight: 600; color: var(--muted); background: var(--chrome-2); border: 1px solid var(--card-border); padding: 2px 8px; border-radius: 999px; }
+
+  .ff-wrap { margin-top: 9px; padding-top: 9px; border-top: 1px dashed var(--card-border); }
+  .ff-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-bottom: 6px; }
+  .ff-list { display: flex; flex-wrap: wrap; gap: 5px; }
+  .ff { font-size: 11.5px; color: var(--ink); background: var(--chrome-2); border: 1px solid var(--card-border); border-radius: 6px; padding: 3px 8px; }
+  .ff.opt { border-style: dashed; color: var(--muted); }
+
+  /* ---------- connector ---------- */
+  .conn { width: 2px; height: 30px; background: var(--line); position: relative; }
+  .conn.dot::after {
+    content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--card); border: 1.5px solid var(--line);
+  }
+  .conn.short { height: 20px; }
+
+  /* ---------- branch ---------- */
+  .branch { display: flex; flex-direction: column; align-items: center; width: 100%; }
+  .paths { position: relative; display: flex; justify-content: center; flex-wrap: wrap; gap: 26px; padding-top: 26px; }
+  .paths::before { content: ""; position: absolute; top: 0; height: 2px; background: var(--line); left: 15%; right: 15%; }
+  .path { position: relative; display: flex; flex-direction: column; align-items: center; }
+  .path::before { content: ""; position: absolute; top: -26px; left: 50%; transform: translateX(-1px); width: 2px; height: 26px; background: var(--line); }
+  .path-chip { font-family: var(--display); font-weight: 600; font-size: 11.5px; padding: 4px 11px; border-radius: 999px; margin-bottom: 4px; white-space: nowrap; border: 1px solid; }
+  .blk.narrow, .path .blk { width: 250px; }
+  .end { font-family: var(--display); font-weight: 600; font-size: 11.5px; color: var(--muted); background: var(--chrome-2); border: 1px solid var(--card-border); border-radius: 999px; padding: 5px 16px; }
+
+  .trig-row { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+  .trig-or { align-self: center; font-family: var(--display); font-weight: 700; font-size: 11px; color: var(--faint); background: var(--card); border: 1px solid var(--card-border); border-radius: 999px; padding: 4px 9px; }
+
+  .hint { margin: 30px auto 0; max-width: 620px; font-size: 12.5px; color: var(--faint); text-align: center; line-height: 1.6; }
+
+  /* ---------- empty page ---------- */
+  .empty { display: grid; place-items: center; padding: 80px 20px; }
+  .empty .card {
+    width: 420px; max-width: 90vw; text-align: center;
+    background: var(--card); border: 1px dashed var(--card-border); border-radius: 14px;
+    padding: 34px 28px; box-shadow: var(--shadow);
+  }
+  .empty .e-ico { font-size: 30px; margin-bottom: 12px; }
+  .empty h3 { font-family: var(--display); font-weight: 600; font-size: 17px; margin: 0 0 6px; }
+  .empty p { margin: 0 auto; font-size: 13px; color: var(--muted); max-width: 34ch; line-height: 1.55; }
+  .empty .stub { margin-top: 20px; display: flex; flex-direction: column; align-items: center; opacity: 0.5; }
+  .empty .stub .mini { width: 150px; height: 34px; border-radius: 8px; background: var(--chrome-2); border: 1px solid var(--card-border); }
+  .empty .stub .ln { width: 2px; height: 16px; background: var(--line); }
+
+  @media (max-width: 860px) {
+    .app { flex-direction: column; }
+    .sidebar {
+      position: sticky; top: 47px; z-index: 25;
+      width: 100%; height: auto; display: flex; gap: 6px;
+      overflow-x: auto; border-right: none; border-bottom: 1px solid var(--card-border); padding: 10px 12px;
+    }
+    .side-head, .side-note { display: none; }
+    .page-item { width: auto; flex-shrink: 0; margin-bottom: 0; }
+    .page-item .p-name { white-space: nowrap; }
+    .subbar { top: 108px; }
+    .readonly { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wf-name">
+    <span class="bolt">&#9889;</span>
+    <b>Automation Library</b>
+    <span class="crumb">&nbsp;/&nbsp;<span class="cur" id="crumb">Jobs</span></span>
+  </div>
+  <span class="status"><span class="dot"></span> Living doc</span>
+  <span class="spacer"></span>
+  <span class="readonly">&#128274; Read-only</span>
+</div>
+
+<div class="app">
+  <!-- ---------- SIDEBAR: PAGES ---------- -->
+  <aside class="sidebar">
+    <div class="side-head">App pages</div>
+    <button class="page-item" data-page="home"><span class="p-ico">&#127968;</span><span class="p-name">Home</span><span class="p-count">0</span></button>
+    <button class="page-item" data-page="leads"><span class="p-ico">&#127919;</span><span class="p-name">Leads</span><span class="p-count">0</span></button>
+    <button class="page-item done is-active" data-page="jobs"><span class="p-ico">&#128197;</span><span class="p-name">Jobs</span><span class="p-count">5</span></button>
+    <button class="page-item" data-page="customers"><span class="p-ico">&#128101;</span><span class="p-name">Customers</span><span class="p-count">0</span></button>
+    <button class="page-item" data-page="reviews"><span class="p-ico">&#11088;</span><span class="p-name">Reviews</span><span class="p-count">0</span></button>
+    <button class="page-item" data-page="reactivation"><span class="p-ico">&#128257;</span><span class="p-name">Reactivation</span><span class="p-count">0</span></button>
+    <button class="page-item" data-page="website"><span class="p-ico">&#127760;</span><span class="p-name">Website</span><span class="p-count">0</span></button>
+    <button class="page-item" data-page="social"><span class="p-ico">&#128227;</span><span class="p-name">Social</span><span class="p-count">0</span></button>
+    <button class="page-item" data-page="ads"><span class="p-ico">&#128200;</span><span class="p-name">Paid Ads</span><span class="p-count">0</span></button>
+    <button class="page-item" data-page="inbox"><span class="p-ico">&#128172;</span><span class="p-name">Inbox</span><span class="p-count">0</span></button>
+    <div class="side-note">Each page holds its own workflows in this same builder. Jobs is done. Name a page and its automations and it gets filled in here, same style.</div>
+  </aside>
+
+  <!-- ---------- MAIN ---------- -->
+  <main class="main">
+
+    <!-- ============ PAGE: JOBS ============ -->
+    <section class="page is-active" id="page-jobs" data-name="Jobs">
+      <div class="subbar" role="tablist" aria-label="Jobs workflows">
+        <span class="lbl">Workflows</span>
+        <button class="wf-tab is-active" data-wf="jobs-w0"><span class="n">0</span> Setup</button>
+        <button class="wf-tab" data-wf="jobs-w1"><span class="n">1</span> Estimate Booked</button>
+        <button class="wf-tab" data-wf="jobs-w2"><span class="n">2</span> Estimate Close-out</button>
+        <button class="wf-tab" data-wf="jobs-w3"><span class="n">3</span> Job Booked</button>
+        <button class="wf-tab" data-wf="jobs-w4"><span class="n">4</span> Job Close-out</button>
+      </div>
+      <div class="canvas">
+
+        <!-- W0 SETUP -->
+        <div class="wf is-active" id="jobs-w0">
+          <div class="wf-title"><h2>Setup: map the calendars</h2><p>Done once per client in your admin. This is what turns every workflow below on.</p></div>
+          <div class="blk trigger"><span class="ico" style="background:#4f46e5">&#9881;&#65039;</span><div class="body"><span class="tag">Admin action</span><div class="title">Open a client's admin page</div><div class="sub">Command Center &#8594; Clients &#8594; [client] &#8594; Calendars</div></div></div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-estimate)">&#128197;</span><div class="body"><span class="tag">Select</span><div class="title">Estimate calendar</div><div class="sub">Pick from the sub-account's live GoHighLevel calendars.</div><span class="src">GoHighLevel</span></div></div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-booked)">&#128197;</span><div class="body"><span class="tag">Select</span><div class="title">Job calendar</div><div class="sub">Pick from the sub-account's live GoHighLevel calendars.</div><span class="src">GoHighLevel</span></div></div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-completed)">&#10003;</span><div class="body"><span class="tag">Result</span><div class="title">Jobs tab turns on for this client</div><div class="sub">It now reads those two calendars. Nothing mapped = the client sees a "not connected yet" state.</div></div></div>
+          <div class="conn short"></div>
+          <span class="end">End</span>
+        </div>
+
+        <!-- W1 ESTIMATE BOOKED -->
+        <div class="wf" id="jobs-w1">
+          <div class="wf-title"><h2>Estimate Booked</h2><p>An estimate lands on the calendar and shows up in the Jobs tab.</p></div>
+          <div class="blk trigger"><span class="ico" style="background:var(--t-trigger)">&#9889;</span><div class="body"><span class="tag">Trigger</span><div class="title">Appointment Booked</div><div class="sub">In the client's <b>Estimate calendar</b>.</div><span class="src">GoHighLevel</span></div></div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-filter)">&#9781;</span><div class="body"><span class="tag">Filter</span><div class="title">Appointment is not cancelled</div><div class="sub">Cancelled appointments never enter the Jobs tab.</div></div></div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-estimate)">&#9680;</span><div class="body"><span class="tag">Action</span><div class="title">Show in Jobs tab as "Estimate"</div><div class="sub">On its date and time, with customer, service, address and quoted value.</div></div></div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-wait)">&#9201;</span><div class="body"><span class="tag">Wait</span><div class="title">Until the appointment's end time</div><div class="sub">e.g. a 12:00 visit booked for 1 hour waits until 1:00.</div></div></div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-go)">&#8594;</span><div class="body"><span class="tag">Go to workflow</span><div class="title">Estimate Close-out</div><div class="sub">Hands off to workflow 2.</div></div></div>
+        </div>
+
+        <!-- W2 ESTIMATE CLOSE-OUT -->
+        <div class="wf" id="jobs-w2">
+          <div class="wf-title"><h2>Estimate Close-out</h2><p>The estimate's time has passed. Ask what happened, then branch.</p></div>
+          <div class="blk trigger"><span class="ico" style="background:var(--t-trigger)">&#9889;</span><div class="body"><span class="tag">Trigger</span><div class="title">Estimate end time reached</div><div class="sub">The estimate flips to "needs review".</div></div></div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-notify)">&#128276;</span><div class="body"><span class="tag">Prompt</span><div class="title">"What happened?" &middot; estimate form</div><div class="sub">Team fills this in from the card.</div><div class="ff-wrap"><div class="ff-lbl">Form fields</div><div class="ff-list"><span class="ff">Outcome: Booked / Needs booking / Lost</span><span class="ff">Quoted amount $</span><span class="ff opt">&#8627; if booked &middot; Job date</span><span class="ff opt">&#8627; Start time</span><span class="ff opt">&#8627; Job length</span><span class="ff opt">&#8627; Service / description</span><span class="ff opt">&#8627; Agreed price $</span><span class="ff">Notes</span></div></div></div></div>
+          <div class="conn"></div>
+          <div class="blk narrow"><span class="ico" style="background:var(--t-filter)">&#8646;</span><div class="body"><span class="tag">If / Else</span><div class="title">Branch on the outcome</div></div></div>
+          <div class="branch"><div class="paths">
+            <div class="path"><span class="path-chip" style="color:var(--t-booked); border-color:var(--t-booked); background:color-mix(in srgb, var(--t-booked) 12%, transparent)">Job booked</span><div class="conn short"></div><div class="blk"><span class="ico" style="background:var(--t-booked)">&#65291;</span><div class="body"><span class="tag">Action</span><div class="title">Create Job (Booked)</div><div class="sub">Spawns a job on the calendar from the details above, then workflow 3.</div></div></div><div class="conn short"></div><span class="end">End</span></div>
+            <div class="path"><span class="path-chip" style="color:var(--t-followup); border-color:var(--t-followup); background:color-mix(in srgb, var(--t-followup) 12%, transparent)">Needs booking</span><div class="conn short"></div><div class="blk"><span class="ico" style="background:var(--t-followup)">&#8634;</span><div class="body"><span class="tag">Action</span><div class="title">Mark Follow-up</div><div class="sub">Kept visible so it isn't forgotten.</div></div></div><div class="conn short"></div><span class="end">End</span></div>
+            <div class="path"><span class="path-chip" style="color:var(--t-lost); border-color:var(--t-lost); background:color-mix(in srgb, var(--t-lost) 12%, transparent)">Lost</span><div class="conn short"></div><div class="blk"><span class="ico" style="background:var(--t-lost)">&#10005;</span><div class="body"><span class="tag">Action</span><div class="title">Mark Lost</div><div class="sub">Estimate closed out.</div></div></div><div class="conn short"></div><span class="end">End</span></div>
+          </div></div>
+        </div>
+
+        <!-- W3 JOB BOOKED -->
+        <div class="wf" id="jobs-w3">
+          <div class="wf-title"><h2>Job Booked</h2><p>Two ways a job starts. Both land in the Jobs tab as "Booked".</p></div>
+          <div class="trig-row">
+            <div class="blk trigger"><span class="ico" style="background:var(--t-trigger)">&#9889;</span><div class="body"><span class="tag">Trigger A</span><div class="title">Appointment Booked</div><div class="sub">In the client's <b>Job calendar</b>.</div><span class="src">GoHighLevel</span></div></div>
+            <span class="trig-or">OR</span>
+            <div class="blk trigger"><span class="ico" style="background:var(--t-booked)">&#65291;</span><div class="body"><span class="tag">Trigger B</span><div class="title">Job created from a won estimate</div><div class="sub">Spawned by the Estimate Close-out (workflow 2).</div></div></div>
+          </div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-filter)">&#9781;</span><div class="body"><span class="tag">Filter</span><div class="title">Appointment is not cancelled</div></div></div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-booked)">&#9679;</span><div class="body"><span class="tag">Action</span><div class="title">Show in Jobs tab as "Booked"</div><div class="sub">On its date, value added to the day's booked total.</div></div></div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-wait)">&#9201;</span><div class="body"><span class="tag">Wait</span><div class="title">Until the job's end time</div></div></div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-go)">&#8594;</span><div class="body"><span class="tag">Go to workflow</span><div class="title">Job Close-out</div><div class="sub">Hands off to workflow 4.</div></div></div>
+        </div>
+
+        <!-- W4 JOB CLOSE-OUT -->
+        <div class="wf" id="jobs-w4">
+          <div class="wf-title"><h2>Job Close-out</h2><p>The job's time has passed. Ask what happened, then branch.</p></div>
+          <div class="blk trigger"><span class="ico" style="background:var(--t-trigger)">&#9889;</span><div class="body"><span class="tag">Trigger</span><div class="title">Job end time reached</div><div class="sub">The job flips to "needs review".</div></div></div>
+          <div class="conn dot"></div>
+          <div class="blk"><span class="ico" style="background:var(--t-notify)">&#128276;</span><div class="body"><span class="tag">Prompt</span><div class="title">"What happened?" &middot; job form</div><div class="sub">Team fills this in from the card.</div><div class="ff-wrap"><div class="ff-lbl">Form fields</div><div class="ff-list"><span class="ff">Did it happen: Completed / No-show / Rescheduled</span><span class="ff">Amount collected $</span><span class="ff">Payment: Paid in full / Partial / Unpaid</span><span class="ff">Notes</span></div></div></div></div>
+          <div class="conn"></div>
+          <div class="blk narrow"><span class="ico" style="background:var(--t-filter)">&#8646;</span><div class="body"><span class="tag">If / Else</span><div class="title">Branch on the outcome</div></div></div>
+          <div class="branch"><div class="paths">
+            <div class="path"><span class="path-chip" style="color:var(--t-completed); border-color:var(--t-completed); background:color-mix(in srgb, var(--t-completed) 12%, transparent)">Completed &middot; Paid</span><div class="conn short"></div><div class="blk"><span class="ico" style="background:var(--t-completed)">&#10003;</span><div class="body"><span class="tag">Action</span><div class="title">Mark Completed</div><div class="sub">Amount added to <b>Collected this month</b>.</div></div></div><div class="conn short"></div><span class="end">End</span></div>
+            <div class="path"><span class="path-chip" style="color:var(--t-unpaid); border-color:var(--t-unpaid); background:color-mix(in srgb, var(--t-unpaid) 12%, transparent)">Completed &middot; Owed</span><div class="conn short"></div><div class="blk"><span class="ico" style="background:var(--t-unpaid)">$</span><div class="body"><span class="tag">Action</span><div class="title">Mark Completed &middot; owed</div><div class="sub">Balance added to <b>Unpaid</b>.</div></div></div><div class="conn short"></div><span class="end">End</span></div>
+            <div class="path"><span class="path-chip" style="color:var(--t-lost); border-color:var(--t-lost); background:color-mix(in srgb, var(--t-lost) 12%, transparent)">No-show</span><div class="conn short"></div><div class="blk"><span class="ico" style="background:var(--t-lost)">&#10005;</span><div class="body"><span class="tag">Action</span><div class="title">Mark No-show</div><div class="sub">No money recorded.</div></div></div><div class="conn short"></div><span class="end">End</span></div>
+            <div class="path"><span class="path-chip" style="color:var(--t-booked); border-color:var(--t-booked); background:color-mix(in srgb, var(--t-booked) 12%, transparent)">Rescheduled</span><div class="conn short"></div><div class="blk"><span class="ico" style="background:var(--t-booked)">&#8635;</span><div class="body"><span class="tag">Action</span><div class="title">Return to Booked</div><div class="sub">On the new date, re-enters workflow 3.</div></div></div><div class="conn short"></div><span class="end">End</span></div>
+          </div></div>
+        </div>
+
+        <p class="hint">Click a workflow along the top to switch canvases. Every "What happened?" block lists the exact form fields, so you can rebuild them as GoHighLevel forms one-to-one.</p>
+      </div>
+    </section>
+
+    <!-- ============ EMPTY PAGES ============ -->
+    <section class="page" id="page-home" data-name="Home"><div class="canvas"><div class="empty"><div class="card"><div class="e-ico">&#127968;</div><h3>Home has no workflows yet</h3><p>Name what should trigger and happen on the Home page and it gets built here, in this same style.</p><div class="stub"><div class="mini"></div><div class="ln"></div><div class="mini"></div></div></div></div></div></section>
+    <section class="page" id="page-leads" data-name="Leads"><div class="canvas"><div class="empty"><div class="card"><div class="e-ico">&#127919;</div><h3>Leads has no workflows yet</h3><p>New lead in, form vs chat vs ad, into pipeline. Give the triggers and they get mapped here.</p><div class="stub"><div class="mini"></div><div class="ln"></div><div class="mini"></div></div></div></div></div></section>
+    <section class="page" id="page-customers" data-name="Customers"><div class="canvas"><div class="empty"><div class="card"><div class="e-ico">&#128101;</div><h3>Customers has no workflows yet</h3><p>Job close-out, repeat work, customer record. Name the flow and it gets added here.</p><div class="stub"><div class="mini"></div><div class="ln"></div><div class="mini"></div></div></div></div></div></section>
+    <section class="page" id="page-reviews" data-name="Reviews"><div class="canvas"><div class="empty"><div class="card"><div class="e-ico">&#11088;</div><h3>Reviews has no workflows yet</h3><p>Review request sent, response, Google Business Profile. Give the triggers to map.</p><div class="stub"><div class="mini"></div><div class="ln"></div><div class="mini"></div></div></div></div></div></section>
+    <section class="page" id="page-reactivation" data-name="Reactivation"><div class="canvas"><div class="empty"><div class="card"><div class="e-ico">&#128257;</div><h3>Reactivation has no workflows yet</h3><p>Dormant customer back into the pipeline. Name the flow and it gets built here.</p><div class="stub"><div class="mini"></div><div class="ln"></div><div class="mini"></div></div></div></div></div></section>
+    <section class="page" id="page-website" data-name="Website"><div class="canvas"><div class="empty"><div class="card"><div class="e-ico">&#127760;</div><h3>Website has no workflows yet</h3><p>Site request, page change, analytics. Give the triggers and they get mapped here.</p><div class="stub"><div class="mini"></div><div class="ln"></div><div class="mini"></div></div></div></div></div></section>
+    <section class="page" id="page-social" data-name="Social"><div class="canvas"><div class="empty"><div class="card"><div class="e-ico">&#128227;</div><h3>Social has no workflows yet</h3><p>Post scheduled, published, engagement. Name the flow and it gets added here.</p><div class="stub"><div class="mini"></div><div class="ln"></div><div class="mini"></div></div></div></div></div></section>
+    <section class="page" id="page-ads" data-name="Paid Ads"><div class="canvas"><div class="empty"><div class="card"><div class="e-ico">&#128200;</div><h3>Paid Ads has no workflows yet</h3><p>Lead from an ad, spend, optimizer actions. Give the triggers to map here.</p><div class="stub"><div class="mini"></div><div class="ln"></div><div class="mini"></div></div></div></div></div></section>
+    <section class="page" id="page-inbox" data-name="Inbox"><div class="canvas"><div class="empty"><div class="card"><div class="e-ico">&#128172;</div><h3>Inbox has no workflows yet</h3><p>Message in, channel, stage grouping. Name the flow and it gets built here.</p><div class="stub"><div class="mini"></div><div class="ln"></div><div class="mini"></div></div></div></div></div></section>
+
+  </main>
+</div>
+
+<script>
+  (function () {
+    var crumb = document.getElementById("crumb");
+    // page switching (sidebar)
+    var pageBtns = document.querySelectorAll(".page-item");
+    var pages = document.querySelectorAll(".page");
+    pageBtns.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = "page-" + btn.getAttribute("data-page");
+        pageBtns.forEach(function (b) { b.classList.toggle("is-active", b === btn); });
+        pages.forEach(function (p) { p.classList.toggle("is-active", p.id === id); });
+        var active = document.getElementById(id);
+        if (active && crumb) crumb.textContent = active.getAttribute("data-name");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    });
+    // workflow switching (per page, scoped)
+    document.querySelectorAll(".page").forEach(function (page) {
+      var tabs = page.querySelectorAll(".wf-tab");
+      var flows = page.querySelectorAll(".wf");
+      tabs.forEach(function (tab) {
+        tab.addEventListener("click", function () {
+          var id = tab.getAttribute("data-wf");
+          tabs.forEach(function (t) { t.classList.toggle("is-active", t === tab); });
+          flows.forEach(function (f) { f.classList.toggle("is-active", f.id === id); });
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
