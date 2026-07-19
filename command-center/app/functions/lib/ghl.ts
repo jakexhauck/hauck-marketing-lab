@@ -1,3 +1,5 @@
+import type { GhlAttribution } from "./adAttribution";
+
 const BASE = "https://services.leadconnectorhq.com";
 const VERSION = "2021-07-28";
 
@@ -282,6 +284,10 @@ export interface GhlContactRecord {
   dateUpdated?: string;
   tags?: string[];
   source?: string;
+  // Touch history, including Meta ad ids on paid-social leads. Already on the
+  // wire from the bulk list; see adAttribution.ts for why this and not the
+  // utm_* custom fields.
+  attributions?: GhlAttribution[];
 }
 
 interface ContactsPage {
@@ -363,6 +369,15 @@ export interface LeadAttribution {
 
 // Map a contact's custom-field values onto the attribution block using the
 // location's field-key map. Field keys arrive as "contact.utm_source".
+//
+// WARNING: these fields are empty in practice. Measured 2026-07-19 across 100
+// live Willis contacts: utm_source / utm_campaign / utm_ad / utm_adset all 0
+// populated, as are utm_ad_id / utm_adset_id / utm_campaign_id. The fields
+// exist in the location schema and nothing writes to them, so this returns
+// null on real data. Kept because the lead detail route still calls it and it
+// is harmless. For attribution that actually works, use
+// firstTouchAttribution() in adAttribution.ts, which reads contact
+// .attributions[] off the bulk list.
 export function attributionFromCustomFields(
   customFields: { id?: string; value?: unknown }[] | undefined,
   keyMap: Map<string, string>,
