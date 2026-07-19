@@ -285,7 +285,7 @@ the system clock (pass `now` in).
   never `Infinity`.
 
 Tests must include a **fixture transcribed from the live sheet** (the three ad-set rows: spend
-£1,647 / £1,357 / £1,504, leads 32 / 24 / 24, bookings 13 / 8 / 11, sales 4 / 3 / 2) asserting our
+1647 / 1357 / 1504, leads 32 / 24 / 24, bookings 13 / 8 / 11, sales 4 / 3 / 2) asserting our
 numbers equal the sheet's to the penny. Plus: zero-spend ad, zero-lead ad, lead with no `utmAdId`,
 `Lost` counting as a booking, ratios-of-sums not averages-of-ratios.
 
@@ -377,8 +377,11 @@ Only after Task 6 is verified against live data:
   `contact.closed_revenue` (TEXT, needs parsing) only if it is not.
 - **R4: Migration numbering is a race.** Main stops at `0026`; the unmerged
   `worktree-admin-billing-adtracking` branch holds `0037`/`0038`. Pick the number at push time.
-- **R5: Currency.** The sheet is GBP; Willis is USD. Read currency from the Meta ad account
-  rather than hardcoding either.
+- **R5: Currency is USD.** DECIDED 2026-07-19. The sheet is GBP because it is the course
+  author's template; every Hauck client is USD. Confirmed live: the Willis ad account
+  (`act_27110669075184924`) reports `currency: USD`. Format as USD in the UI. The stored numbers
+  and every function in `adTrackerMetrics.ts` are unit-agnostic, so this is a display concern
+  only, confined to Task 6. Do not port the sheet's `£`.
 - **R6: Attribution windows.** Meta's default attribution differs from first-touch-by-contact.
   Our numbers will not tie exactly to Ads Manager. Expected, worth a footnote in the UI.
 
