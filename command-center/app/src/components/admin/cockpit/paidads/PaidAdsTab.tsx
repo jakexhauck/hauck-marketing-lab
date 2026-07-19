@@ -1,6 +1,6 @@
 import DataLeadsPanel from "./DataLeadsPanel";
 import CampaignsPanel from "./CampaignsPanel";
-import AdTrackingPanel from "./AdTrackingPanel";
+import AdTrackerPanel from "./AdTrackerPanel";
 import AdLibraryPanel from "./AdLibraryPanel";
 
 // Paid Ads service tab inside the Fulfillment cockpit
@@ -24,7 +24,7 @@ export default function PaidAdsTab({
     case "campaigns":
       return <CampaignsPanel tenantId={tenantId} />;
     case "ad-tracking":
-      return <AdTrackingPanel tenantId={tenantId} />;
+      return <AdTrackerPanel tenantId={tenantId} />;
     case "ad-library":
       return <AdLibraryPanel tenantId={tenantId} />;
     default:
