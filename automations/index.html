@@ -314,9 +314,9 @@
           <div class="wf-title"><h2>Setup: map the calendars</h2><p>Done once per client in your admin. This is what turns every workflow below on.</p></div>
           <div class="blk trigger"><span class="ico" style="background:#4f46e5">&#9881;&#65039;</span><div class="body"><span class="tag">Admin action</span><div class="title">Open a client's admin page</div><div class="sub">Command Center &#8594; Clients &#8594; [client] &#8594; Calendars</div></div></div>
           <div class="conn dot"></div>
-          <div class="blk"><span class="ico" style="background:var(--t-estimate)">&#128197;</span><div class="body"><span class="tag">Select</span><div class="title">Estimate calendar</div><div class="sub">Pick from the sub-account's live GoHighLevel calendars.</div><span class="src">GoHighLevel</span></div></div>
+          <div class="blk"><span class="ico" style="background:var(--t-estimate)">&#128197;</span><div class="body"><span class="tag">Select</span><div class="title">Estimate calendar</div><div class="sub">Pick from the client's live booking calendars.</div><span class="src">Booking system</span></div></div>
           <div class="conn dot"></div>
-          <div class="blk"><span class="ico" style="background:var(--t-booked)">&#128197;</span><div class="body"><span class="tag">Select</span><div class="title">Job calendar</div><div class="sub">Pick from the sub-account's live GoHighLevel calendars.</div><span class="src">GoHighLevel</span></div></div>
+          <div class="blk"><span class="ico" style="background:var(--t-booked)">&#128197;</span><div class="body"><span class="tag">Select</span><div class="title">Job calendar</div><div class="sub">Pick from the client's live booking calendars.</div><span class="src">Booking system</span></div></div>
           <div class="conn dot"></div>
           <div class="blk"><span class="ico" style="background:var(--t-completed)">&#10003;</span><div class="body"><span class="tag">Result</span><div class="title">Jobs tab turns on for this client</div><div class="sub">It now reads those two calendars. Nothing mapped = the client sees a "not connected yet" state.</div></div></div>
           <div class="conn short"></div>
@@ -326,7 +326,7 @@
         <!-- W1 ESTIMATE BOOKED -->
         <div class="wf" id="jobs-w1">
           <div class="wf-title"><h2>Estimate Booked</h2><p>An estimate lands on the calendar and shows up in the Jobs tab.</p></div>
-          <div class="blk trigger"><span class="ico" style="background:var(--t-trigger)">&#9889;</span><div class="body"><span class="tag">Trigger</span><div class="title">Appointment Booked</div><div class="sub">In the client's <b>Estimate calendar</b>.</div><span class="src">GoHighLevel</span></div></div>
+          <div class="blk trigger"><span class="ico" style="background:var(--t-trigger)">&#9889;</span><div class="body"><span class="tag">Trigger</span><div class="title">Appointment Booked</div><div class="sub">In the client's <b>Estimate calendar</b>.</div><span class="src">Booking system</span></div></div>
           <div class="conn dot"></div>
           <div class="blk"><span class="ico" style="background:var(--t-filter)">&#9781;</span><div class="body"><span class="tag">Filter</span><div class="title">Appointment is not cancelled</div><div class="sub">Cancelled appointments never enter the Jobs tab.</div></div></div>
           <div class="conn dot"></div>
@@ -356,7 +356,7 @@
         <div class="wf" id="jobs-w3">
           <div class="wf-title"><h2>Job Booked</h2><p>Two ways a job starts. Both land in the Jobs tab as "Booked".</p></div>
           <div class="trig-row">
-            <div class="blk trigger"><span class="ico" style="background:var(--t-trigger)">&#9889;</span><div class="body"><span class="tag">Trigger A</span><div class="title">Appointment Booked</div><div class="sub">In the client's <b>Job calendar</b>.</div><span class="src">GoHighLevel</span></div></div>
+            <div class="blk trigger"><span class="ico" style="background:var(--t-trigger)">&#9889;</span><div class="body"><span class="tag">Trigger A</span><div class="title">Appointment Booked</div><div class="sub">In the client's <b>Job calendar</b>.</div><span class="src">Booking system</span></div></div>
             <span class="trig-or">OR</span>
             <div class="blk trigger"><span class="ico" style="background:var(--t-booked)">&#65291;</span><div class="body"><span class="tag">Trigger B</span><div class="title">Job created from a won estimate</div><div class="sub">Spawned by the Estimate Close-out (workflow 2).</div></div></div>
           </div>
@@ -386,7 +386,7 @@
           </div></div>
         </div>
 
-        <p class="hint">Click a workflow along the top to switch canvases. Every "What happened?" block lists the exact form fields, so you can rebuild them as GoHighLevel forms one-to-one.</p>
+        <p class="hint">Click a workflow along the top to switch canvases. Every "What happened?" block lists the exact form fields, so you can rebuild them as intake forms one-to-one.</p>
       </div>
     </section>
 
