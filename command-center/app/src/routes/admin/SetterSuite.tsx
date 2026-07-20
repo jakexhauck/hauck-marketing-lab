@@ -7,6 +7,7 @@ import {
 import { useNow } from "../../context/NowContext";
 import SetterBoard from "../../components/admin/setter/SetterBoard";
 import SetterCockpit from "../../components/admin/setter/SetterCockpit";
+import SetterRateStrip from "../../components/admin/SetterRateStrip";
 import type { ApiSetterLead } from "../../lib/api";
 
 // /admin/setter: the Setter Suite. One client's leads worked across every one
@@ -93,6 +94,8 @@ export default function SetterSuite() {
         <div className="pk-empty">No clients yet.</div>
       ) : !activeTenantId || !activeClient ? null : (
         <>
+          <SetterRateStrip leads={leadsQuery.data?.leads ?? []} />
+
           <nav className="pk-tabs" aria-label="Pipelines">
             {pipelines.map((p) => (
               <button
