@@ -12,25 +12,54 @@ export type ContactRollUp = {
   lastOutcome: string | null;
 };
 
+// dialed_at comes from a Postgres timestamptz via Supabase. Unlike
+// adTrackerMetrics's inRange (which only ever needs the first ten characters
+// of a date, a bucket coarse enough that offset representation cannot flip
+// the answer), here we need true chronological order down to the instant, so
+// a string compare is not safe: "2026-07-20T23:00:00-04:00" (which is
+// 2026-07-21T03:00:00Z) sorts as a LESSER string than "2026-07-21T00:30:00Z"
+// even though it is the LATER instant. Comparing parsed epoch milliseconds
+// instead makes the offset irrelevant. An unparseable or empty timestamp
+// parses to NaN; it is kept (so attempts/outcome are never dropped) but is
+// never allowed to out-rank a real, parseable timestamp for first/last
+// ordering, since we have no way to know where in time it actually belongs.
+function epochOf(iso: string): number {
+  return Date.parse(iso);
+}
+
 export function rollUpByContact(dials: DialRow[]): Map<string, ContactRollUp> {
   const out = new Map<string, ContactRollUp>();
-  // Input sort order is not trusted, so the latest timestamp per contact is
-  // tracked alongside rather than assumed from array position.
-  const latestAt = new Map<string, string>();
+  // Input sort order is not trusted, so the earliest/latest timestamp per
+  // contact is tracked alongside (as epoch ms) rather than assumed from
+  // array position or derived by re-parsing the stored strings.
+  const firstAt = new Map<string, number>();
+  const latestAt = new Map<string, number>();
 
   for (const d of dials) {
     const cur = out.get(d.contact_id) ?? {
       attempts: 0, firstDialedAt: null, contacted: false, lastOutcome: null,
     };
     cur.attempts += 1;
-    if (cur.firstDialedAt === null || d.dialed_at < cur.firstDialedAt) {
+
+    const epoch = epochOf(d.dialed_at);
+    const firstEpoch = firstAt.get(d.contact_id);
+    if (
+      cur.firstDialedAt === null
+      || (!Number.isNaN(epoch) && (firstEpoch === undefined || Number.isNaN(firstEpoch) || epoch < firstEpoch))
+    ) {
       cur.firstDialedAt = d.dialed_at;
+      firstAt.set(d.contact_id, epoch);
     }
-    const seen = latestAt.get(d.contact_id);
-    if (seen === undefined || d.dialed_at >= seen) {
+
+    const seenEpoch = latestAt.get(d.contact_id);
+    if (
+      seenEpoch === undefined
+      || (!Number.isNaN(epoch) && (Number.isNaN(seenEpoch) || epoch >= seenEpoch))
+    ) {
       cur.lastOutcome = d.outcome;
-      latestAt.set(d.contact_id, d.dialed_at);
+      latestAt.set(d.contact_id, epoch);
     }
+
     if (d.spoke) cur.contacted = true;
     out.set(d.contact_id, cur);
   }
