@@ -1,8 +1,9 @@
-import { Mail, Phone, X } from "lucide-react";
+import { Mail, Phone, TriangleAlert, X } from "lucide-react";
 import Avatar from "../../Avatar";
 import DialLogger from "./DialLogger";
 import TagField from "./TagField";
 import SlotPicker from "./SlotPicker";
+import { Button } from "../../ui/Button";
 import { useSetterLeadDetailQuery } from "../../../hooks/useApi";
 import { useNow } from "../../../context/NowContext";
 import { e164, formatPhone } from "../../../lib/phone";
@@ -25,6 +26,25 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h3 className="label-cap mb-2.5 text-faint">{title}</h3>
       {children}
     </section>
+  );
+}
+
+// Shown in place of tags/history when the per-lead detail fetch itself
+// failed, so a request that never landed cannot be mistaken for a contact
+// with no tags or no calls. Mirrors ActivityDesktop's FeedError: a danger-
+// tinted panel naming what broke plus a Retry button, sized down for this
+// docked panel's narrower columns.
+function DetailLoadError({ what, onRetry }: { what: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius)] border border-danger/30 bg-danger-tint px-3 py-2.5">
+      <p className="flex items-start gap-1.5 text-[12.5px] text-danger">
+        <TriangleAlert size={14} className="mt-0.5 shrink-0" aria-hidden />
+        Could not load {what}.
+      </p>
+      <Button variant="secondary" size="sm" onClick={onRetry}>
+        Retry
+      </Button>
+    </div>
   );
 }
 
@@ -101,7 +121,11 @@ export default function SetterCockpit({ tenantId, pipelineId, pipelineName, lead
         </Section>
 
         <Section title="Tags">
-          <TagField tenantId={tenantId} contactId={lead.contactId} tags={tags} dials={dials} />
+          {detailQuery.isError ? (
+            <DetailLoadError what="tags" onRetry={() => detailQuery.refetch()} />
+          ) : (
+            <TagField tenantId={tenantId} contactId={lead.contactId} tags={tags} dials={dials} />
+          )}
         </Section>
 
         <Section title="Book an estimate">
@@ -111,6 +135,8 @@ export default function SetterCockpit({ tenantId, pipelineId, pipelineName, lead
         <Section title="Call history">
           {detailQuery.isLoading ? (
             <p className="text-[12.5px] text-muted">Loading history...</p>
+          ) : detailQuery.isError ? (
+            <DetailLoadError what="call history" onRetry={() => detailQuery.refetch()} />
           ) : dials.length === 0 ? (
             <p className="text-[12.5px] text-faint">No dials logged yet.</p>
           ) : (

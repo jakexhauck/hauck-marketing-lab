@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Loader2, Phone, PhoneOff } from "lucide-react";
 import { useLogSetterDial } from "../../../hooks/useApi";
 import { useToast } from "../../../context/ToastContext";
+import { Switch } from "../../ui/Switch";
 import {
   OUTCOMES,
   defaultSpokeForOutcome,
@@ -103,7 +104,7 @@ export default function DialLogger({ tenantId, pipelineId, pipelineName, lead }:
         })}
       </div>
 
-      <label className="flex items-center justify-between gap-3 rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2.5">
+      <div className="flex items-center justify-between gap-3 rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2.5">
         <span className="flex items-center gap-2 text-[13px] font-medium text-text">
           {spoke ? (
             <Phone size={14} className="text-positive" aria-hidden />
@@ -112,23 +113,8 @@ export default function DialLogger({ tenantId, pipelineId, pipelineName, lead }:
           )}
           Spoke with them
         </span>
-        <span
-          role="switch"
-          aria-checked={spoke}
-          onClick={() => setSpoke((s) => !s)}
-          className={
-            "relative h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors " +
-            (spoke ? "bg-positive" : "bg-surface-3")
-          }
-        >
-          <span
-            className={
-              "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-[var(--shadow-sm)] transition-all " +
-              (spoke ? "left-[18px]" : "left-0.5")
-            }
-          />
-        </span>
-      </label>
+        <Switch checked={spoke} onChange={setSpoke} label="Spoke with them" />
+      </div>
 
       {contradictory && (
         <p className="text-[12px] font-medium text-danger">
