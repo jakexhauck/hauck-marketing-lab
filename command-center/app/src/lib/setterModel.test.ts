@@ -1,16 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { needsDialing, isStaleUncontacted, cardRail, formatOutcome } from "./setterModel";
-
-describe("needsDialing", () => {
-  it("matches the live stage names case-insensitively", () => {
-    expect(needsDialing("Opted In (needs dialing)")).toBe(true);
-    expect(needsDialing("No Answer Day 4 (Needs Dialing)")).toBe(true);
-  });
-  it("does not match stages without the marker", () => {
-    expect(needsDialing("Long Term Nurture")).toBe(false);
-    expect(needsDialing("Estimate Booked")).toBe(false);
-  });
-});
+import { isStaleUncontacted, cardRail, formatOutcome, staleWaitingLabel } from "./setterModel";
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = new Date("2026-07-20T12:00:00Z").getTime();
@@ -99,6 +88,22 @@ describe("cardRail", () => {
         NOW,
       ),
     ).toBeNull();
+  });
+});
+
+describe("staleWaitingLabel", () => {
+  it("renders whole hours under a day", () => {
+    expect(staleWaitingLabel(new Date(NOW - 20 * 60 * 60 * 1000).toISOString(), NOW)).toBe(
+      "Waiting 20h",
+    );
+  });
+
+  it("renders whole days at a day or more", () => {
+    expect(staleWaitingLabel(new Date(NOW - 3 * DAY).toISOString(), NOW)).toBe("Waiting 3d");
+  });
+
+  it("falls back to a bare label on an unparseable date", () => {
+    expect(staleWaitingLabel("not-a-date", NOW)).toBe("Waiting");
   });
 });
 

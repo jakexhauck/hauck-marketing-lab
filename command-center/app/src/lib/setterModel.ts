@@ -3,11 +3,11 @@
 // plain function of the API response so it stays unit-testable without a
 // server or a browser.
 
-// A stage's live GHL name flags a setter needs to work it, matched purely by
-// text against the live stage name. No mapping table to keep in sync: if the
-// pipeline is renamed in the CRM the flag follows on the very next load.
-// Mirrors functions/api/admin/setter/pipelines.ts:shapeSetterPipeline exactly.
-export const needsDialing = (stageName: string): boolean => /needs dialing/i.test(stageName);
+// Whether a stage needs a setter to work it is computed server-side, once,
+// in functions/api/admin/setter/pipelines.ts (shapeSetterPipeline) against
+// the live stage name, and comes down on the wire as stage.needsDialing. It
+// is deliberately not recomputed here: a second regex against the same
+// stage name would just be a copy that can drift from the server's.
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -41,6 +41,19 @@ export function cardRail(lead: SetterRailLead, stageNeedsDialing: boolean, now: 
   if (lead.attempts === 0) return "danger";
   if (isStaleUncontacted(lead, stageNeedsDialing, now)) return "warning";
   return null;
+}
+
+// Text label for how long a stale (warning-rail) lead has been waiting,
+// e.g. "Waiting 26h" or "Waiting 3d". Same hour/day bucketing as timeAgo
+// (src/lib/timeAgo.ts) but phrased as a fact for the card's chip vocabulary
+// rather than a relative timestamp caption, since the rail's color alone
+// isn't a reliable signal (color-blind setters, an easy-to-miss inset rail).
+export function staleWaitingLabel(createdAt: string, now: number): string {
+  const then = new Date(createdAt).getTime();
+  if (Number.isNaN(then)) return "Waiting";
+  const hr = Math.floor(Math.max(0, now - then) / (60 * 60 * 1000));
+  if (hr < 24) return `Waiting ${hr}h`;
+  return `Waiting ${Math.floor(hr / 24)}d`;
 }
 
 // Dial outcomes come back from the API as the setter_dials enum (booked,

@@ -1,4 +1,4 @@
-import { cardRail, formatOutcome } from "../../../lib/setterModel";
+import { cardRail, formatOutcome, staleWaitingLabel } from "../../../lib/setterModel";
 import { timeAgo } from "../../../lib/timeAgo";
 import type { ApiSetterLead } from "../../../lib/api";
 
@@ -32,6 +32,7 @@ export default function SetterCard({ lead, stageNeedsDialing, now, selected, onS
       style={style}
       className={
         "relative w-full overflow-hidden rounded-xl border bg-surface p-3 text-left transition-colors " +
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 " +
         (selected ? "border-brand" : "border-border")
       }
     >
@@ -49,6 +50,11 @@ export default function SetterCard({ lead, stageNeedsDialing, now, selected, onS
         ) : (
           <span className="rounded-full bg-danger-tint px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-danger">
             Never dialed
+          </span>
+        )}
+        {rail === "warning" && (
+          <span className="rounded-full bg-warning-tint px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-warning">
+            {staleWaitingLabel(lead.createdAt, now)}
           </span>
         )}
         {lead.contacted && (
