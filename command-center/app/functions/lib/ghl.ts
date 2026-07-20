@@ -87,6 +87,10 @@ export interface GhlOpportunity {
     lastName?: string;
     email?: string;
     phone?: string;
+    // Present on some locations' opportunity search responses, absent on
+    // others; the Setter Suite board reads it for the lead card when GHL
+    // supplies it, and falls back to an empty string when it does not.
+    city?: string;
   };
   source?: string;
   // GHL user id this opportunity is assigned to (drives rep-only filtering).
@@ -129,7 +133,17 @@ interface OpportunitySearchResponse {
 // so counts cover all opportunities, not page 1.
 export async function fetchAllOpportunities(
   ctx: GhlContext,
-  opts: { pipelineId?: string | null; maxPages?: number } = {},
+  opts: {
+    pipelineId?: string | null;
+    maxPages?: number;
+    // Output parameter: when supplied, its `.value` is set to true if
+    // pagination stopped because the maxPages cap was hit rather than
+    // because a real last page was reached. Optional and additive so every
+    // existing caller (21 across the app) is unaffected; only a caller that
+    // needs to tell an honest "there may be more" apart from "this is
+    // everything" passes it. See the Setter Suite leads endpoint.
+    truncated?: { value: boolean };
+  } = {},
 ): Promise<GhlOpportunity[]> {
   const maxPages = opts.maxPages ?? 10;
   const base = `/opportunities/search?location_id=${encodeURIComponent(ctx.locationId)}&limit=100${
@@ -186,6 +200,7 @@ export async function fetchAllOpportunities(
     console.warn(
       `opportunity pagination hit maxPages cap for location ${ctx.locationId}`,
     );
+    if (opts.truncated) opts.truncated.value = true;
   }
 
   return all;
