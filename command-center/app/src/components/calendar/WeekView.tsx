@@ -148,20 +148,32 @@ export function WeekView({
               {splitBusy(col.timed).busy.map((b) => {
                 const start = b.startMinutes ?? DAY_START_MIN;
                 const end = b.endMinutes ?? start + 60;
+                const height = Math.max(6, (end - start) * PPM);
                 return (
                   <div
                     key={b.id}
                     aria-label="Busy"
-                    title="Busy"
-                    className="pointer-events-none absolute inset-x-0"
+                    className="pointer-events-none absolute inset-x-0 overflow-hidden"
                     style={{
                       top: (start - DAY_START_MIN) * PPM,
-                      height: Math.max(6, (end - start) * PPM),
+                      height,
                       background: "var(--source-busy-tint)",
                       borderTop: "1px solid var(--source-busy)",
                       borderBottom: "1px solid var(--source-busy)",
                     }}
-                  />
+                  >
+                    {/* An unlabelled grey band reads as a rendering fault. Only
+                        shown once the band is tall enough to hold the word
+                        without clipping into the borders. */}
+                    {height >= 20 ? (
+                      <span
+                        className="px-1.5 text-[10px] font-semibold uppercase tracking-wide"
+                        style={{ color: "var(--source-busy)" }}
+                      >
+                        Busy
+                      </span>
+                    ) : null}
+                  </div>
                 );
               })}
               {packDayColumns(col.timed).map((p) => {

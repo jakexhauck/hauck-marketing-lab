@@ -1,8 +1,12 @@
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useGoogleCalendarConnection,
   useStartGoogleCalendarConnect,
   useUnlinkGoogleCalendar,
 } from "../../hooks/useApi";
+import { useToast } from "../../context/ToastContext";
 
 // Lets a client link their OWN Google Calendar from the Jobs page, so the
 // calendar greys out hours they are already busy. It sits here rather than in
@@ -14,6 +18,27 @@ export default function GoogleCalendarLink() {
   const conn = useGoogleCalendarConnection();
   const start = useStartGoogleCalendarConnect();
   const unlink = useUnlinkGoogleCalendar();
+  const [params, setParams] = useSearchParams();
+  const qc = useQueryClient();
+  const { showToast } = useToast();
+
+  // Google hands the client back to /sales/jobs?calendar=connected. Without
+  // this the return is silent: the persisted query cache still holds the
+  // pre-consent "not linked" answer, so the page repaints looking exactly as it
+  // did before and a successful link reads as a failed one.
+  const returned = params.get("calendar") === "connected";
+  const greeted = useRef(false);
+  useEffect(() => {
+    if (!returned || greeted.current) return;
+    greeted.current = true;
+    qc.invalidateQueries({ queryKey: ["connections", "google-calendar"] });
+    qc.invalidateQueries({ queryKey: ["calendar", "busy"] });
+    showToast("Google Calendar linked. Your busy hours are now blocked off.");
+    // Drop the marker so a refresh or a back-navigation does not re-announce it.
+    const next = new URLSearchParams(params);
+    next.delete("calendar");
+    setParams(next, { replace: true });
+  }, [returned, params, setParams, qc, showToast]);
 
   // Nothing to offer while we do not know, and nothing to offer if the broker
   // is not wired in this environment. A dead button is worse than no button.

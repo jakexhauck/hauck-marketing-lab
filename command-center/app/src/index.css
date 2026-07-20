@@ -222,8 +222,11 @@ body {
   --source-estimate-tint: var(--info-tint);
   --source-job: #16a34a;
   --source-job-tint: color-mix(in srgb, #16a34a 12%, transparent);
-  --source-busy: #94a3b8;
-  --source-busy-tint: color-mix(in srgb, #94a3b8 14%, transparent);
+  /* Busy sat at 14% and read as an empty calendar on a white surface, so a
+     linked calendar looked broken. Dark enough to register as a deliberate
+     band, still quiet enough to sit behind the client's own work. */
+  --source-busy: #64748b;
+  --source-busy-tint: color-mix(in srgb, #64748b 24%, transparent);
 
   --shadow-sm: 0 1px 2px rgba(20, 22, 31, 0.04), 0 1px 3px rgba(20, 22, 31, 0.05);
   --shadow-md: 0 6px 18px rgba(40, 42, 70, 0.07), 0 2px 6px rgba(40, 42, 70, 0.05);
@@ -271,8 +274,8 @@ body {
   --source-estimate-tint: var(--info-tint);
   --source-job: #4ade80;
   --source-job-tint: color-mix(in srgb, #4ade80 18%, transparent);
-  --source-busy: #64748b;
-  --source-busy-tint: color-mix(in srgb, #94a3b8 16%, transparent);
+  --source-busy: #94a3b8;
+  --source-busy-tint: color-mix(in srgb, #94a3b8 26%, transparent);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.34);
   --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.34);
