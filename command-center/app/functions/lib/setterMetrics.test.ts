@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { rollUpByContact, computeRates } from "./setterMetrics";
+import { rollUpByContact, chunk } from "./setterMetrics";
 
 const dial = (contact: string, at: string, spoke: boolean, outcome: string) =>
   ({ contact_id: contact, dialed_at: at, spoke, outcome });
@@ -71,47 +71,33 @@ describe("rollUpByContact", () => {
   });
 });
 
-describe("computeRates", () => {
-  it("returns null rates rather than NaN when there are no leads", () => {
-    const r = computeRates([], new Map(), []);
-    expect(r.totalLeads).toBe(0);
-    expect(r.contactRate).toBeNull();
-    expect(r.bookingRate).toBeNull();
+describe("chunk", () => {
+  // functions/api/admin/setter/leads.ts batches the setter_dials .in() lookup
+  // through this, so a pipeline with a few hundred leads never serializes a
+  // single CRM-id list long enough for Supabase's edge to reject the URL.
+
+  it("returns an empty array for an empty list", () => {
+    expect(chunk([], 100)).toEqual([]);
   });
 
-  it("counts a lead as contacted only via its own roll-up", () => {
-    const leads = [{ contactId: "c1" }, { contactId: "c2" }];
-    const rollUps = rollUpByContact([dial("c1", "2026-07-20T09:00:00Z", true, "booked")]);
-    const r = computeRates(leads, rollUps, []);
-    expect(r.totalLeads).toBe(2);
-    expect(r.contactRate).toBeCloseTo(0.5);
+  it("returns one batch when the list is shorter than the batch size", () => {
+    expect(chunk(["a", "b"], 100)).toEqual([["a", "b"]]);
   });
 
-  it("never computes show or close rate", () => {
-    const r = computeRates([{ contactId: "c1" }], new Map(), [{ contactId: "c1" }]);
-    expect(r.showRate).toBeNull();
-    expect(r.closeRate).toBeNull();
+  it("returns exactly one batch when the list is exactly the batch size", () => {
+    const ids = Array.from({ length: 100 }, (_, i) => `id${i}`);
+    const batches = chunk(ids, 100);
+    expect(batches).toHaveLength(1);
+    expect(batches[0]).toHaveLength(100);
   });
 
-  it("pins bookingRate to a real fraction of leads booked", () => {
-    const leads = [{ contactId: "c1" }, { contactId: "c2" }, { contactId: "c3" }];
-    const r = computeRates(leads, new Map(), [{ contactId: "c2" }]);
-    expect(r.bookingRate).toBeCloseTo(1 / 3);
-  });
-
-  it("uses lead count as the bookingRate denominator, not appointment count", () => {
-    // Three appointments land, but only one lead. If the denominator were
-    // accidentally the appointment count, this would compute 1/3 instead of 1.
-    const leads = [{ contactId: "c1" }];
-    const appointments = [{ contactId: "c1" }, { contactId: "c2" }, { contactId: "c3" }];
-    const r = computeRates(leads, new Map(), appointments);
-    expect(r.bookingRate).toBe(1);
-  });
-
-  it("does not let an appointment for a non-lead contact inflate bookingRate", () => {
-    const leads = [{ contactId: "c1" }, { contactId: "c2" }];
-    const appointments = [{ contactId: "c2" }, { contactId: "not-a-lead" }];
-    const r = computeRates(leads, new Map(), appointments);
-    expect(r.bookingRate).toBeCloseTo(0.5);
+  it("splits into multiple batches, preserving order, when over the batch size", () => {
+    const ids = Array.from({ length: 250 }, (_, i) => `id${i}`);
+    const batches = chunk(ids, 100);
+    expect(batches).toHaveLength(3);
+    expect(batches[0]).toHaveLength(100);
+    expect(batches[1]).toHaveLength(100);
+    expect(batches[2]).toHaveLength(50);
+    expect(batches.flat()).toEqual(ids);
   });
 });

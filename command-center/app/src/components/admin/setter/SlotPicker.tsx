@@ -12,6 +12,10 @@ interface Props {
 }
 
 const DAYS_AHEAD = 14;
+// Typing "Estimate" one keystroke at a time must not fire eight live CRM
+// lookups (a calendars list plus a free-slots call, each), so the value that
+// actually drives the query only updates once typing has paused.
+const CALENDAR_NAME_DEBOUNCE_MS = 400;
 const fieldClass =
   "w-full rounded-[var(--radius)] border border-border bg-surface px-2.5 py-1.5 text-[12.5px] text-text outline-none placeholder:text-faint focus:border-brand/50";
 
@@ -22,18 +26,39 @@ const fieldClass =
 // generic on calendarName). A day selector narrows the live slot grid to
 // one day at a time so the docked panel stays compact.
 //
+// The name field starts empty and the live lookup is driven by a debounced
+// copy of it (CALENDAR_NAME_DEBOUNCE_MS below), not the raw keystroke value:
+// every keystroke would otherwise fire a calendars list plus a free-slots
+// call, both against the live client's API token, and flash a
+// "could not find a calendar" error for every incomplete prefix. Starting
+// empty also matters on its own: a hardcoded default here would be shaped
+// for one client (Willis's "Home Estimate") and error on first paint for
+// every other client on this cross-client screen.
+//
 // Booking is terminal: functions/api/admin/setter/book.ts deliberately does
 // not retry (a retry can double-book a real customer), and this component
 // honours that by disabling the Book button the instant the mutation is
 // in flight, with no retry wired anywhere in the call chain.
 export default function SlotPicker({ tenantId, contactId, leadName }: Props) {
   const { showToast } = useToast();
-  const [calendarName, setCalendarName] = useState("Home Estimate");
+  const [calendarName, setCalendarName] = useState("");
+  const [debouncedCalendarName, setDebouncedCalendarName] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
 
-  const slotsQuery = useSetterSlotsQuery(tenantId, calendarName, DAYS_AHEAD, true);
+  useEffect(() => {
+    const t = setTimeout(
+      () => setDebouncedCalendarName(calendarName.trim()),
+      CALENDAR_NAME_DEBOUNCE_MS,
+    );
+    return () => clearTimeout(t);
+  }, [calendarName]);
+
+  // useSetterSlotsQuery already gates on a non-empty calendar name
+  // (src/hooks/useApi.ts), so an untouched or cleared field fires no request
+  // at all rather than erroring on an empty lookup.
+  const slotsQuery = useSetterSlotsQuery(tenantId, debouncedCalendarName, DAYS_AHEAD, true);
   const bookMutation = useSetterBookMutation();
 
   const days = slotsQuery.data?.days ?? [];
@@ -69,7 +94,10 @@ export default function SlotPicker({ tenantId, contactId, leadName }: Props) {
     bookMutation.mutate(
       {
         tenantId,
-        calendarName,
+        // The debounced value, not the raw field: it is what the displayed
+        // slots were actually fetched for, so booking against it guarantees
+        // the calendar matches the slot the setter picked.
+        calendarName: debouncedCalendarName,
         contactId,
         startTime: picked,
         endTime,
@@ -122,40 +150,46 @@ export default function SlotPicker({ tenantId, contactId, leadName }: Props) {
         </label>
       </div>
 
-      {slotsQuery.isLoading && (
+      {!debouncedCalendarName && (
+        <p className="py-2 text-[12.5px] text-muted">
+          Enter a calendar name to see available times.
+        </p>
+      )}
+
+      {!!debouncedCalendarName && slotsQuery.isLoading && (
         <div className="flex items-center gap-2 py-4 text-[12.5px] text-muted">
           <Loader2 size={14} className="animate-spin" /> Loading available times...
         </div>
       )}
 
-      {!slotsQuery.isLoading && needsStaff && (
+      {!!debouncedCalendarName && !slotsQuery.isLoading && needsStaff && (
         <div className="flex items-start gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2.5 text-[12.5px] text-muted">
           <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
           <span>This calendar has no team members assigned, so it cannot return availability.</span>
         </div>
       )}
 
-      {!slotsQuery.isLoading && notFound && (
+      {!!debouncedCalendarName && !slotsQuery.isLoading && notFound && (
         <div className="flex items-start gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2.5 text-[12.5px] text-muted">
           <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
-          <span>Could not find a calendar named &quot;{calendarName}&quot;. Check the name and try again.</span>
+          <span>Could not find a calendar named &quot;{debouncedCalendarName}&quot;. Check the name and try again.</span>
         </div>
       )}
 
-      {!slotsQuery.isLoading && slotsQuery.isError && !needsStaff && !notFound && (
+      {!!debouncedCalendarName && !slotsQuery.isLoading && slotsQuery.isError && !needsStaff && !notFound && (
         <div className="flex items-start gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2.5 text-[12.5px] text-muted">
           <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
           <span>Could not load available times. Try again.</span>
         </div>
       )}
 
-      {!slotsQuery.isLoading && !slotsQuery.isError && days.length === 0 && (
+      {!!debouncedCalendarName && !slotsQuery.isLoading && !slotsQuery.isError && days.length === 0 && (
         <p className="py-2 text-[12.5px] text-muted">
           No open times on this calendar in the next {DAYS_AHEAD} days.
         </p>
       )}
 
-      {!slotsQuery.isLoading && !slotsQuery.isError && days.length > 0 && (
+      {!!debouncedCalendarName && !slotsQuery.isLoading && !slotsQuery.isError && days.length > 0 && (
         <>
           <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
             {days.map((d) => {

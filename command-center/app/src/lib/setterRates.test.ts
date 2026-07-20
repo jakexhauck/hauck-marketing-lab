@@ -89,4 +89,30 @@ describe("computeSetterRateStrip", () => {
     expect(tile(tiles, "contactRate")).toMatchObject({ pending: false, value: "0%" });
     expect(tile(tiles, "bookingRate")).toMatchObject({ pending: false, value: "0%" });
   });
+
+  it("marks all five tiles pending when the leads fetch failed, never a synthetic zero", () => {
+    // Same non-empty input as the "would produce a fake number" case above:
+    // if `failed` were ignored, this would render real-looking numbers
+    // straight through a failed fetch instead of "we don't know".
+    const leads = [lead(true, "booked"), lead(true, "booked")];
+    const tiles = computeSetterRateStrip(leads, true);
+    for (const key of ["totalLeads", "contactRate", "bookingRate", "showRate", "closeRate"]) {
+      const t = tile(tiles, key);
+      expect(t.pending).toBe(true);
+      expect(t.value).toBe("");
+    }
+  });
+
+  it("a failed fetch is never mistaken for the honest zero-leads case: the copy differs", () => {
+    const failed = tile(computeSetterRateStrip([], true), "totalLeads");
+    const empty = tile(computeSetterRateStrip([], false), "contactRate");
+    expect(failed.pendingReason).not.toBe(empty.pendingReason);
+    expect(failed.pendingReason).toMatch(/could not load/i);
+  });
+
+  it("an empty leads array without a failure is still the honest zero, not the failure copy", () => {
+    const tiles = computeSetterRateStrip([], false);
+    expect(tile(tiles, "totalLeads")).toMatchObject({ pending: false, value: "0" });
+    expect(tile(tiles, "contactRate").pendingReason).toBe("No leads yet");
+  });
 });

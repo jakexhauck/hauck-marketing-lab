@@ -66,32 +66,14 @@ export function rollUpByContact(dials: DialRow[]): Map<string, ContactRollUp> {
   return out;
 }
 
-export type Rates = {
-  totalLeads: number;
-  contactRate: number | null;
-  bookingRate: number | null;
-  showRate: null;
-  closeRate: null;
-};
-
-export function computeRates(
-  leads: { contactId: string }[],
-  rollUps: Map<string, ContactRollUp>,
-  appointments: { contactId: string }[],
-): Rates {
-  const total = leads.length;
-  if (total === 0) {
-    return { totalLeads: 0, contactRate: null, bookingRate: null, showRate: null, closeRate: null };
-  }
-  const contacted = leads.filter((l) => rollUps.get(l.contactId)?.contacted).length;
-  const booked = new Set(appointments.map((a) => a.contactId));
-  const bookedLeads = leads.filter((l) => booked.has(l.contactId)).length;
-  return {
-    totalLeads: total,
-    contactRate: contacted / total,
-    bookingRate: bookedLeads / total,
-    // Both require the Estimate and Job Close-out flows, which do not exist.
-    showRate: null,
-    closeRate: null,
-  };
+// Split an array into groups of at most `size`, preserving order. Used by
+// functions/api/admin/setter/leads.ts to keep the setter_dials .in() lookup
+// within a URL length Supabase's edge will accept: postgrest-js serializes
+// .in("contact_id", ids) straight into the query string, CRM ids are 24
+// characters each, and a pipeline holding a few hundred leads would
+// otherwise send one query string tens of kilobytes long.
+export function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
 }

@@ -94,7 +94,7 @@ export default function SetterSuite() {
         <div className="pk-empty">No clients yet.</div>
       ) : !activeTenantId || !activeClient ? null : (
         <>
-          <SetterRateStrip leads={leadsQuery.data?.leads ?? []} />
+          <SetterRateStrip leads={leadsQuery.data?.leads ?? []} failed={leadsQuery.isError} />
 
           <nav className="pk-tabs" aria-label="Pipelines">
             {pipelines.map((p) => (

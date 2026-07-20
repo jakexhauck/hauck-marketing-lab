@@ -8,9 +8,7 @@
 // Only the first three have data behind them. Show rate (showed / booked)
 // and Close rate (won / showed) need the Estimate and Job close-out flows,
 // which do not exist yet, so they are ALWAYS pending here, independent of
-// the input: mirrors functions/lib/setterMetrics.ts's Rates type, which
-// types showRate/closeRate as the literal `null` so fabricating them is a
-// type error there too.
+// the input.
 
 export interface SetterRateTile {
   key: "totalLeads" | "contactRate" | "bookingRate" | "showRate" | "closeRate";
@@ -43,7 +41,15 @@ function formatPercent(rate: number): string {
   return `${Math.round(rate * 100)}%`;
 }
 
-export function computeSetterRateStrip(leads: RateLead[]): SetterRateTile[] {
+// "Could not load leads" and "No leads yet" both render a pending tile, but
+// they are not the same claim: one says the board has zero real leads, the
+// other says we have no idea because the fetch itself failed. Conflating
+// them is exactly the synthetic-zero failure this file exists to prevent,
+// so a failed fetch gets its own copy on every tile, including the two
+// (Show/Close) that are pending for an unrelated reason.
+const FAILED_REASON = "Could not load leads";
+
+export function computeSetterRateStrip(leads: RateLead[], failed = false): SetterRateTile[] {
   const total = leads.length;
   const contacted = leads.filter((l) => l.contacted).length;
   // "booked" is the same dial outcome a setter logs the moment they lock in
@@ -51,17 +57,17 @@ export function computeSetterRateStrip(leads: RateLead[]): SetterRateTile[] {
   // on every board card as lastOutcome. No appointments fetch required.
   const booked = leads.filter((l) => l.lastOutcome === "booked").length;
 
-  const contactRate = safeRate(contacted, total);
-  const bookingRate = safeRate(booked, total);
+  const contactRate = failed ? null : safeRate(contacted, total);
+  const bookingRate = failed ? null : safeRate(booked, total);
 
   return [
     {
       key: "totalLeads",
       label: "Total leads in",
       formula: "count of leads",
-      pending: false,
-      value: String(total),
-      pendingReason: null,
+      pending: failed,
+      value: failed ? "" : String(total),
+      pendingReason: failed ? FAILED_REASON : null,
     },
     {
       key: "contactRate",
@@ -69,7 +75,7 @@ export function computeSetterRateStrip(leads: RateLead[]): SetterRateTile[] {
       formula: "contacted / leads",
       pending: contactRate === null,
       value: contactRate === null ? "" : formatPercent(contactRate),
-      pendingReason: contactRate === null ? "No leads yet" : null,
+      pendingReason: contactRate === null ? (failed ? FAILED_REASON : "No leads yet") : null,
     },
     {
       key: "bookingRate",
@@ -77,7 +83,7 @@ export function computeSetterRateStrip(leads: RateLead[]): SetterRateTile[] {
       formula: "booked / leads",
       pending: bookingRate === null,
       value: bookingRate === null ? "" : formatPercent(bookingRate),
-      pendingReason: bookingRate === null ? "No leads yet" : null,
+      pendingReason: bookingRate === null ? (failed ? FAILED_REASON : "No leads yet") : null,
     },
     {
       key: "showRate",
@@ -85,7 +91,7 @@ export function computeSetterRateStrip(leads: RateLead[]): SetterRateTile[] {
       formula: "showed / booked",
       pending: true,
       value: "",
-      pendingReason: "Needs close-out flow",
+      pendingReason: failed ? FAILED_REASON : "Needs close-out flow",
     },
     {
       key: "closeRate",
@@ -93,7 +99,7 @@ export function computeSetterRateStrip(leads: RateLead[]): SetterRateTile[] {
       formula: "won / showed",
       pending: true,
       value: "",
-      pendingReason: "Needs close-out flow",
+      pendingReason: failed ? FAILED_REASON : "Needs close-out flow",
     },
   ];
 }

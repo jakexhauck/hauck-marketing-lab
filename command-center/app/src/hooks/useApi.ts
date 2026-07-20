@@ -559,6 +559,14 @@ export interface SetterTagsInput {
 // (functions/api/admin/setter/tags.ts), and this does the same on the
 // client, so the cockpit only ever shows what the CRM actually holds, never
 // an optimistic guess, since these tags fire live automations.
+//
+// The endpoint applies removes then adds as two separate CRM calls, so a
+// request that dies partway through (remove succeeded, add threw) already
+// changed the CRM's real tag list before the caller ever sees an error. An
+// onSuccess-only cache write would leave the panel showing the pre-write
+// tags, including one that no longer exists, on that failure path. onSettled
+// re-reads the lead detail query unconditionally, so the panel always ends
+// up showing the CRM's true state, success or failure alike.
 export function useSetterTagsMutation() {
   const qc = useQueryClient();
   return useMutation({
@@ -573,6 +581,9 @@ export function useSetterTagsMutation() {
       if (previous) {
         qc.setQueryData(detailKey, { lead: { ...previous.lead, tags: data.tags } });
       }
+    },
+    onSettled: (_data, _err, input) => {
+      qc.invalidateQueries({ queryKey: ["admin", "setter", "lead", input.tenantId, input.contactId] });
     },
   });
 }

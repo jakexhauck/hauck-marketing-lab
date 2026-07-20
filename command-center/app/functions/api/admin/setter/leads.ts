@@ -6,7 +6,7 @@ import {
 } from "../../../lib/ghl";
 import { getGhlContextForTenant, TenantGhlError } from "../../../lib/tenantGhl";
 import { getServiceClient } from "../../../lib/supabase";
-import { rollUpByContact, type ContactRollUp, type DialRow } from "../../../lib/setterMetrics";
+import { rollUpByContact, chunk, type ContactRollUp, type DialRow } from "../../../lib/setterMetrics";
 
 // GET /api/admin/setter/leads?tenantId=&pipelineId= (admin-only, gated in
 // _middleware.ts). Every opportunity in ONE pipeline (the board shows one
@@ -107,13 +107,26 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     if (contactIds.length) {
       const client = getServiceClient(ctx.env);
       if (client) {
-        const { data: dials, error } = await client
-          .from("setter_dials")
-          .select("contact_id, dialed_at, spoke, outcome")
-          .eq("tenant_id", tenantId)
-          .in("contact_id", contactIds);
-        if (error) return Response.json({ error: "dials_lookup_failed" }, { status: 500 });
-        rollUps = rollUpByContact((dials ?? []) as DialRow[]);
+        // Batched: postgrest-js serializes .in() straight into the URL query
+        // string, and a pipeline holding a few hundred leads would otherwise
+        // build one contact_id=in.(...) list far past what Supabase's edge
+        // will accept, failing the whole board (see chunk's header comment
+        // in ../../../lib/setterMetrics.ts). Run the batches in parallel,
+        // then merge before rolling up.
+        const DIALS_BATCH_SIZE = 100;
+        const results = await Promise.all(
+          chunk(contactIds, DIALS_BATCH_SIZE).map((batch) =>
+            client
+              .from("setter_dials")
+              .select("contact_id, dialed_at, spoke, outcome")
+              .eq("tenant_id", tenantId)
+              .in("contact_id", batch),
+          ),
+        );
+        const firstError = results.find((r) => r.error)?.error;
+        if (firstError) return Response.json({ error: "dials_lookup_failed" }, { status: 500 });
+        const dials = results.flatMap((r) => (r.data ?? []) as DialRow[]);
+        rollUps = rollUpByContact(dials);
       }
     }
 
