@@ -221,3 +221,157 @@ of the six findings)
   `resolveGhlCreds` untouched and still unused by any setter endpoint.
 - `useSetterBookMutation`'s `retry: false` and its call sites' non-retry
   discipline untouched.
+
+## Fix pass 2 - loading state
+
+Re-review found Finding 2 was only half closed: the failed-fetch path was
+fixed, but `SetterRateStrip` never gated on `leadsQuery.isLoading`. During
+every initial page load, client switch, or pipeline switch, `leadsQuery.data`
+is `undefined`, `leads` falls back to `[]`, `failed` is `false`, and
+`computeSetterRateStrip([], false)` returned an honest-looking, non-pending
+"Total leads in: 0". That is the exact synthetic-zero problem the original
+blocker targeted, reached through the loading path instead of the error
+path.
+
+**Root cause:** `computeSetterRateStrip` took a `failed: boolean` second
+parameter. A boolean can only express two states; the function needed to
+distinguish three (loading, failed, ready-including-genuinely-empty), and the
+loading case had no representation at all.
+
+**Change:**
+- `src/lib/setterRates.ts`: replaced the `failed = false` boolean parameter
+  with a single explicit `status: SetterRateStripStatus = "ready"`, where
+  `SetterRateStripStatus = "loading" | "failed" | "ready"` (new exported
+  type). `totalLeads`, `contactRate`, and `bookingRate` are now driven off
+  `status`:
+  - `"loading"`: all three pending, `value: ""`, `pendingReason: "Loading leads..."` (new `LOADING_REASON` constant). This holds even if a non-empty
+    `leads` array is passed in (e.g. stale cached data mid-refetch): loading
+    never renders a number, full stop.
+  - `"failed"`: all three pending, `value: ""`, `pendingReason: "Could not load leads"` (unchanged `FAILED_REASON`).
+  - `"ready"`: unchanged prior behaviour. `totalLeads` is always a real
+    count, including a genuine `"0"`. `contactRate`/`bookingRate` are
+    pending with `"No leads yet"` only on a zero denominator.
+  - `showRate` and `closeRate` now use a single `CLOSE_OUT_REASON` constant
+    ("Needs close-out flow") unconditionally, in all three states. This is a
+    deliberate behaviour change from fix pass 1, where a failed fetch used
+    to overwrite their reason with `FAILED_REASON` too. Their data does not
+    exist regardless of what the leads query is doing, so their copy no
+    longer moves with fetch status.
+- `src/components/admin/SetterRateStrip.tsx`: `failed?: boolean` prop
+  replaced with `status?: SetterRateStripStatus` (default `"ready"`),
+  threaded straight through.
+- `src/routes/admin/SetterSuite.tsx`: the strip now reads
+  `status={leadsQuery.isLoading ? "loading" : leadsQuery.isError ? "failed" : "ready"}`
+  instead of `failed={leadsQuery.isError}`.
+
+**Tests (TDD: written first, run, seen failing, then implemented):**
+`src/lib/setterRates.test.ts` was rewritten to call with the new
+`"loading" | "failed" | "ready"` string status everywhere (all 8 pre-existing
+cases updated in place, still asserting the same behaviour they always did)
+plus 6 new cases:
+- show/close keep `"Needs close-out flow"` in the loading state
+- show/close keep `"Needs close-out flow"` in the failed state (proves the
+  pass-1 failure-copy override is gone)
+- `totalLeads`/`contactRate`/`bookingRate` never render a number while
+  loading, on an empty array
+- loading and failed produce distinct `pendingReason` copy from each other
+  on `totalLeads` (the "read differently to a user" requirement)
+- loading never renders a number even given a non-empty `leads` array
+  (stale-cache-mid-refetch guard)
+- default parameter (`status` omitted) behaves as `"ready"`
+
+Ran `npx vitest run src/lib/setterRates.test.ts` before implementing:
+14 of 16 tests failed (the 2 that passed were cases where old-boolean and
+new-string-status coincidentally computed the same thing). Confirmed genuine
+red, then implemented, then green.
+
+### Three-state behaviour: `computeSetterRateStrip(leads, status)`, `totalLeads` tile
+
+| Status | `pending` | `value` | `pendingReason` |
+|---|---|---|---|
+| `"loading"` | `true` | `""` | `"Loading leads..."` |
+| `"failed"` | `true` | `""` | `"Could not load leads"` |
+| `"ready"`, empty leads (genuine zero) | `false` | `"0"` | `null` |
+| `"ready"`, non-empty leads | `false` | count as string | `null` |
+
+No state other than genuine `"ready"` emptiness produces a non-pending
+value, and genuine emptiness always renders a real `"0"`, never pending.
+
+`showRate`/`closeRate` are `pending: true`, `value: ""`,
+`pendingReason: "Needs close-out flow"` in all three states, unconditionally.
+
+## Commands run (fix pass 2)
+
+```
+cd command-center/app
+npx vitest run src/lib/setterRates.test.ts   # TDD red (14/16 failing), then green (16/16)
+npm test
+npm run typecheck
+npm run build
+```
+
+## Final verification output (fix pass 2)
+
+### `npm test`
+
+```
+ Test Files  89 passed (89)
+      Tests  964 passed (964)
+   Duration  3.58s (transform 3.59s, setup 0ms, collect 10.72s, tests 997ms, environment 22ms, prepare 14.94s)
+```
+
+### `npm run typecheck`
+
+```
+> client-dashboard@0.1.0 typecheck
+> tsc --noEmit && tsc --noEmit -p functions/tsconfig.json
+```
+
+(no output, exit 0: clean)
+
+### `npm run build`
+
+```
+> client-dashboard@0.1.0 build
+> tsc && vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 2256 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/registerSW.js               0.13 kB
+dist/manifest.webmanifest        0.44 kB
+dist/index.html                  1.47 kB │ gzip:   0.64 kB
+dist/assets/index-BnF8-Bth.css  105.45 kB │ gzip:  18.41 kB
+dist/assets/index-CgisYI1W.js   1,514.87 kB │ gzip: 396.22 kB
+✓ built in 4.70s
+
+PWA v1.3.0
+Building src/sw.ts service worker ("es" format)...
+✓ 88 modules transformed.
+✓ built in 155ms
+
+PWA v1.3.0
+mode      injectManifest
+format:   es
+precache  19 entries (2664.06 KiB)
+files generated
+  dist/sw.js
+```
+
+(same pre-existing >500kB chunk-size warning as fix pass 1, unrelated to
+this change)
+
+## Constraints honoured (fix pass 2)
+
+- No em dashes anywhere in the diff (grepped every changed file, no matches).
+- No "GoHighLevel"/"GHL" added to any UI-facing copy; the new copy strings
+  are `"Loading leads..."`, `"Could not load leads"`,
+  `"Needs close-out flow"`, none of which name a CRM.
+- No raw hex colors added; `SetterRateStrip.tsx`'s markup and `pk-report`/
+  `pk-pending` classes are untouched, only the prop and the values flowing
+  through them changed.
+- Files touched: only `src/lib/setterRates.ts`, `src/lib/setterRates.test.ts`,
+  `src/components/admin/SetterRateStrip.tsx`, and
+  `src/routes/admin/SetterSuite.tsx`, as scoped.

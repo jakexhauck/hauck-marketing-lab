@@ -15,8 +15,9 @@ export interface SetterRateTile {
   label: string;
   formula: string;
   // true when there is no honest number to show: either the data source
-  // doesn't exist yet (show/close), or the denominator is zero (no leads
-  // loaded yet, so "contacted / leads" is 0/0, not 0).
+  // doesn't exist yet (show/close), the leads fetch hasn't resolved yet
+  // (loading), the leads fetch errored (failed), or the denominator is zero
+  // (no leads loaded yet, so "contacted / leads" is 0/0, not 0).
   pending: boolean;
   // Formatted display value, e.g. "42%" or "7". Empty when pending: a
   // pending tile never renders a number, not even "0%".
@@ -28,6 +29,14 @@ interface RateLead {
   contacted: boolean;
   lastOutcome: string | null;
 }
+
+// The three states the leads fetch that feeds this strip can be in. A single
+// explicit value instead of a `loading`/`failed` boolean pair: booleans can
+// contradict each other (both true, both false with data absent) and every
+// prior bug in this file came from conflating two of these three. "ready"
+// means the fetch resolved successfully, independent of whether it resolved
+// to zero leads.
+export type SetterRateStripStatus = "loading" | "failed" | "ready";
 
 // A 0-denominator fraction is undefined, not zero: returning null here (never
 // NaN, never Infinity, never a fabricated 0) is what lets the caller render
@@ -41,15 +50,21 @@ function formatPercent(rate: number): string {
   return `${Math.round(rate * 100)}%`;
 }
 
-// "Could not load leads" and "No leads yet" both render a pending tile, but
-// they are not the same claim: one says the board has zero real leads, the
-// other says we have no idea because the fetch itself failed. Conflating
-// them is exactly the synthetic-zero failure this file exists to prevent,
-// so a failed fetch gets its own copy on every tile, including the two
-// (Show/Close) that are pending for an unrelated reason.
+// "Could not load leads", "Loading leads..." and "No leads yet" all render a
+// pending tile, but they are three different claims: the fetch errored, the
+// fetch is still in flight, or the fetch succeeded and there truly are zero
+// leads. Conflating any two of them is the synthetic-zero failure this file
+// exists to prevent. Loading and failed get their own copy on every
+// leads-derived tile; Show/Close are pending for an unrelated reason (no
+// close-out flow exists yet) and never borrow this copy, in any state.
 const FAILED_REASON = "Could not load leads";
+const LOADING_REASON = "Loading leads...";
+const CLOSE_OUT_REASON = "Needs close-out flow";
 
-export function computeSetterRateStrip(leads: RateLead[], failed = false): SetterRateTile[] {
+export function computeSetterRateStrip(
+  leads: RateLead[],
+  status: SetterRateStripStatus = "ready",
+): SetterRateTile[] {
   const total = leads.length;
   const contacted = leads.filter((l) => l.contacted).length;
   // "booked" is the same dial outcome a setter logs the moment they lock in
@@ -57,17 +72,23 @@ export function computeSetterRateStrip(leads: RateLead[], failed = false): Sette
   // on every board card as lastOutcome. No appointments fetch required.
   const booked = leads.filter((l) => l.lastOutcome === "booked").length;
 
-  const contactRate = failed ? null : safeRate(contacted, total);
-  const bookingRate = failed ? null : safeRate(booked, total);
+  // Only a "ready" fetch has an honest denominator to divide by. While
+  // loading or failed, `leads` cannot be trusted (it is `[]` by convention,
+  // but even a non-empty array must not turn into a number here), so both
+  // rates go straight to null regardless of what was passed in.
+  const contactRate = status === "ready" ? safeRate(contacted, total) : null;
+  const bookingRate = status === "ready" ? safeRate(booked, total) : null;
+
+  const statusReason = status === "loading" ? LOADING_REASON : status === "failed" ? FAILED_REASON : null;
 
   return [
     {
       key: "totalLeads",
       label: "Total leads in",
       formula: "count of leads",
-      pending: failed,
-      value: failed ? "" : String(total),
-      pendingReason: failed ? FAILED_REASON : null,
+      pending: status !== "ready",
+      value: status === "ready" ? String(total) : "",
+      pendingReason: statusReason,
     },
     {
       key: "contactRate",
@@ -75,7 +96,7 @@ export function computeSetterRateStrip(leads: RateLead[], failed = false): Sette
       formula: "contacted / leads",
       pending: contactRate === null,
       value: contactRate === null ? "" : formatPercent(contactRate),
-      pendingReason: contactRate === null ? (failed ? FAILED_REASON : "No leads yet") : null,
+      pendingReason: contactRate === null ? (statusReason ?? "No leads yet") : null,
     },
     {
       key: "bookingRate",
@@ -83,7 +104,7 @@ export function computeSetterRateStrip(leads: RateLead[], failed = false): Sette
       formula: "booked / leads",
       pending: bookingRate === null,
       value: bookingRate === null ? "" : formatPercent(bookingRate),
-      pendingReason: bookingRate === null ? (failed ? FAILED_REASON : "No leads yet") : null,
+      pendingReason: bookingRate === null ? (statusReason ?? "No leads yet") : null,
     },
     {
       key: "showRate",
@@ -91,7 +112,7 @@ export function computeSetterRateStrip(leads: RateLead[], failed = false): Sette
       formula: "showed / booked",
       pending: true,
       value: "",
-      pendingReason: failed ? FAILED_REASON : "Needs close-out flow",
+      pendingReason: CLOSE_OUT_REASON,
     },
     {
       key: "closeRate",
@@ -99,7 +120,7 @@ export function computeSetterRateStrip(leads: RateLead[], failed = false): Sette
       formula: "won / showed",
       pending: true,
       value: "",
-      pendingReason: failed ? FAILED_REASON : "Needs close-out flow",
+      pendingReason: CLOSE_OUT_REASON,
     },
   ];
 }

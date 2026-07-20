@@ -1,12 +1,14 @@
-import { computeSetterRateStrip } from "../../lib/setterRates";
+import { computeSetterRateStrip, type SetterRateStripStatus } from "../../lib/setterRates";
 import type { ApiSetterLead } from "../../lib/api";
 
 interface Props {
   leads: ApiSetterLead[];
-  // True while the leads fetch that would populate `leads` has failed: every
-  // tile goes pending with failure copy instead of computing off an empty
-  // array, so a dead request never reads as an honest "zero leads in".
-  failed?: boolean;
+  // Where the leads fetch that would populate `leads` currently stands.
+  // "loading" and "failed" both go pending instead of computing off an
+  // empty array, so neither an in-flight request nor a dead one ever reads
+  // as an honest "zero leads in". Defaults to "ready" so existing callers
+  // (and tests) that only pass `leads` keep working.
+  status?: SetterRateStripStatus;
 }
 
 // The Setter Suite's headline rate strip (Task 9): five tiles, in the exact
@@ -24,10 +26,10 @@ interface Props {
 //
 // All the math is pure and unit-tested in src/lib/setterRates.ts; this
 // component only renders what that function returns.
-export default function SetterRateStrip({ leads, failed = false }: Props) {
+export default function SetterRateStrip({ leads, status = "ready" }: Props) {
   const tiles = computeSetterRateStrip(
     leads.map((l) => ({ contacted: l.contacted, lastOutcome: l.lastOutcome })),
-    failed,
+    status,
   );
 
   return (
