@@ -46,8 +46,18 @@ import {
   type SalesDataRow,
   type SalesDataPatch,
   type ApiSetterPipeline,
+  type ApiSetterLead,
   type ApiSetterLeadsResponse,
+  type ApiSetterLeadDetail,
+  type ApiSetterDial,
 } from "../lib/api";
+import {
+  buildOptimisticDial,
+  prependOptimisticDial,
+  bumpLeadForDial,
+  OPTIMISTIC_DIAL_PREFIX,
+  type OptimisticDialInput,
+} from "../lib/setterCockpit";
 import type { BusinessHealthInputs, PeriodType } from "../lib/businessHealth";
 import {
   type CustomersResponse,
@@ -432,6 +442,203 @@ export function useSetterLeadsQuery(tenantId: string, pipelineId: string, enable
       api<ApiSetterLeadsResponse>(
         `/api/admin/setter/leads?tenantId=${encodeURIComponent(tenantId)}&pipelineId=${encodeURIComponent(pipelineId)}`,
       ),
+  });
+}
+
+// Setter Suite cockpit: one contact's live name/phone/email/tags plus its
+// full dial history, newest first. Powers the panel docked beside the
+// board (src/components/admin/setter/SetterCockpit.tsx).
+export function useSetterLeadDetailQuery(
+  tenantId: string,
+  contactId: string | null,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["admin", "setter", "lead", tenantId, contactId],
+    enabled: enabled && !!tenantId && !!contactId,
+    staleTime: 10_000,
+    queryFn: () =>
+      api<{ lead: ApiSetterLeadDetail }>(
+        `/api/admin/setter/lead/${encodeURIComponent(contactId ?? "")}?tenantId=${encodeURIComponent(tenantId)}`,
+      ),
+  });
+}
+
+export interface LogSetterDialInput extends OptimisticDialInput {
+  tenantId: string;
+  // Client-side only, never sent to the API: locates the board's cached
+  // leads list (["admin","setter","leads",tenantId,pipelineId]) so the
+  // matching card can be bumped optimistically. leadId is the opportunity
+  // id, ApiSetterLead.id, used to find the right card in that list.
+  pipelineId: string;
+  leadId: string;
+}
+
+// Logs one dial (POST /api/admin/setter/dials). Optimistic on both caches it
+// feeds: the lead detail's timeline (a dial appears immediately, newest
+// first, src/lib/setterCockpit.ts:prependOptimisticDial) and the board's
+// card (attempts/contacted/lastOutcome bump the same way the server's own
+// functions/lib/setterMetrics.ts:rollUpByContact would once the real row
+// lands, via bumpLeadForDial). Rolled back to the exact previous snapshot on
+// failure, never a partial patch, so a failed write can never leave a
+// phantom dial or an inflated attempt count on screen: the attempt count is
+// the setter's real contact-rate metric.
+export function useLogSetterDial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: LogSetterDialInput) =>
+      api<{ dial: ApiSetterDial }>("/api/admin/setter/dials", {
+        method: "POST",
+        body: JSON.stringify({
+          tenantId: input.tenantId,
+          contactId: input.contactId,
+          opportunityId: input.opportunityId ?? null,
+          pipelineName: input.pipelineName ?? null,
+          stageName: input.stageName ?? null,
+          spoke: input.spoke,
+          outcome: input.outcome,
+          note: input.note ?? null,
+          tagsApplied: input.tagsApplied ?? [],
+        }),
+      }),
+    onMutate: async (input) => {
+      const detailKey = ["admin", "setter", "lead", input.tenantId, input.contactId] as const;
+      const listKey = ["admin", "setter", "leads", input.tenantId, input.pipelineId] as const;
+      await Promise.all([
+        qc.cancelQueries({ queryKey: detailKey }),
+        qc.cancelQueries({ queryKey: listKey }),
+      ]);
+
+      const previousDetail = qc.getQueryData<{ lead: ApiSetterLeadDetail }>(detailKey);
+      const previousList = qc.getQueryData<ApiSetterLeadsResponse>(listKey);
+
+      const tempId = `${OPTIMISTIC_DIAL_PREFIX}${Date.now()}`;
+      const nowIso = new Date().toISOString();
+      const optimisticDial = buildOptimisticDial(input, nowIso, tempId);
+
+      if (previousDetail) {
+        qc.setQueryData(detailKey, {
+          lead: {
+            ...previousDetail.lead,
+            dials: prependOptimisticDial(previousDetail.lead.dials, optimisticDial),
+          },
+        });
+      }
+      if (previousList) {
+        qc.setQueryData(listKey, {
+          ...previousList,
+          leads: previousList.leads.map((l: ApiSetterLead) =>
+            l.id === input.leadId ? bumpLeadForDial(l, optimisticDial) : l,
+          ),
+        });
+      }
+
+      return { previousDetail, previousList, detailKey, listKey };
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previousDetail) qc.setQueryData(context.detailKey, context.previousDetail);
+      if (context?.previousList) qc.setQueryData(context.listKey, context.previousList);
+    },
+    onSettled: (_data, _err, input) => {
+      qc.invalidateQueries({ queryKey: ["admin", "setter", "lead", input.tenantId, input.contactId] });
+      qc.invalidateQueries({ queryKey: ["admin", "setter", "leads", input.tenantId, input.pipelineId] });
+    },
+  });
+}
+
+export interface SetterTagsInput {
+  tenantId: string;
+  contactId: string;
+  add?: string[];
+  remove?: string[];
+}
+
+// Adds/removes tags on the live CRM contact (POST /api/admin/setter/tags),
+// then writes the RESPONSE's tag list into the lead detail cache: the API
+// re-reads the contact after writing rather than echoing the request
+// (functions/api/admin/setter/tags.ts), and this does the same on the
+// client, so the cockpit only ever shows what the CRM actually holds, never
+// an optimistic guess, since these tags fire live automations.
+export function useSetterTagsMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SetterTagsInput) =>
+      api<{ tags: string[] }>("/api/admin/setter/tags", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (data, input) => {
+      const detailKey = ["admin", "setter", "lead", input.tenantId, input.contactId];
+      const previous = qc.getQueryData<{ lead: ApiSetterLeadDetail }>(detailKey);
+      if (previous) {
+        qc.setQueryData(detailKey, { lead: { ...previous.lead, tags: data.tags } });
+      }
+    },
+  });
+}
+
+export interface SetterSlotDay {
+  date: string; // "YYYY-MM-DD"
+  slots: string[]; // ISO start times with offset
+}
+export interface SetterSlotsResponse {
+  ok: true;
+  timezone: string;
+  days: SetterSlotDay[];
+}
+
+// Live free-slot lookup for the cockpit's booking section (GET
+// /api/admin/setter/slots). Only fetched while a calendar name is entered,
+// and never retried: a 422 (calendar_not_found / needs_staff) is permanent
+// for this call, not transient, so the panel can show an honest message
+// instead of spinning.
+export function useSetterSlotsQuery(
+  tenantId: string,
+  calendarName: string,
+  days: number,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: ["admin", "setter", "slots", tenantId, calendarName, days],
+    enabled: enabled && !!tenantId && !!calendarName.trim(),
+    staleTime: 30_000,
+    retry: false,
+    queryFn: () =>
+      api<SetterSlotsResponse>(
+        `/api/admin/setter/slots?tenantId=${encodeURIComponent(tenantId)}&calendarName=${encodeURIComponent(calendarName)}&days=${days}`,
+      ),
+  });
+}
+
+export interface SetterBookInput {
+  tenantId: string;
+  calendarName: string;
+  contactId: string;
+  startTime: string;
+  endTime: string;
+  title?: string;
+}
+
+// Books a real appointment (POST /api/admin/setter/book). Deliberately
+// never retried: a retried POST here can double-book a real customer into a
+// real calendar (see functions/api/admin/setter/book.ts's header comment).
+// The default mutation retry is already 0 (src/lib/queryClient.ts), but this
+// stays explicit since it is a hard requirement, not an incidental default.
+// The caller (SlotPicker) must also disable its Book button while
+// isPending, so a double-click cannot fire the mutate function twice.
+export function useSetterBookMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: SetterBookInput) =>
+      api<{ ok: boolean; id?: string }>("/api/admin/setter/book", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (_data, input) => {
+      qc.invalidateQueries({ queryKey: ["admin", "setter", "leads", input.tenantId] });
+      qc.invalidateQueries({ queryKey: ["calendar", "events"] });
+    },
   });
 }
 

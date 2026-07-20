@@ -909,3 +909,34 @@ export interface ApiSetterLeadsResponse {
   // The board must show this honestly rather than silently drop leads.
   truncated: boolean;
 }
+
+// One row of setter_dials, camelCased exactly as
+// functions/api/admin/setter/dials.ts:shapeDialRow returns it. Shared by the
+// lead detail endpoint (dials, newest first) and the dial-logging response.
+export interface ApiSetterDial {
+  id: string;
+  contactId: string;
+  opportunityId: string | null;
+  pipelineName: string | null;
+  stageName: string | null;
+  dialedAt: string;
+  spoke: boolean;
+  outcome: string;
+  note: string | null;
+  tagsApplied: string[];
+  createdBy: string | null;
+  createdAt: string;
+}
+
+// The cockpit's single-lead panel. Mirrors
+// functions/api/admin/setter/lead/[contactId].ts's ApiSetterLeadDetail
+// exactly: unlike ApiSetterLead (the board card), this DOES carry tags,
+// fetched from one contact so it costs nothing extra.
+export interface ApiSetterLeadDetail {
+  contactId: string;
+  name: string;
+  phone: string;
+  email: string;
+  tags: string[];
+  dials: ApiSetterDial[];
+}

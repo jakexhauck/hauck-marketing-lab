@@ -6,17 +6,14 @@ import {
 } from "../../hooks/useApi";
 import { useNow } from "../../context/NowContext";
 import SetterBoard from "../../components/admin/setter/SetterBoard";
+import SetterCockpit from "../../components/admin/setter/SetterCockpit";
 import type { ApiSetterLead } from "../../lib/api";
 
 // /admin/setter: the Setter Suite. One client's leads worked across every one
 // of that client's pipelines, unfiltered (unlike the client-facing app, which
 // hides retired/system pipelines and stages). Pipeline tabs across the top,
-// the real stage columns underneath.
-//
-// Selecting a card only tracks which lead is active and fires onSelectLead;
-// the docked cockpit that reads that selection (dial logging, tags, booking)
-// is a separate later build. Nothing here renders a side panel yet, but the
-// selection state and the callback are the seam it plugs into.
+// the real stage columns underneath, and a docked cockpit (dial logging,
+// tags, booking) on the right whenever a card is selected.
 export default function SetterSuite() {
   const clientsQuery = useAdminClientsQuery(true);
   const clients = clientsQuery.data?.clients ?? [];
@@ -55,6 +52,8 @@ export default function SetterSuite() {
   const selectLead = (lead: ApiSetterLead) => {
     setSelectedLead((prev) => (prev?.id === lead.id ? null : lead));
   };
+
+  const closeCockpit = () => setSelectedLead(null);
 
   return (
     <div className="pk-root">
@@ -118,14 +117,28 @@ export default function SetterSuite() {
           ) : leadsQuery.isError ? (
             <div className="pk-empty">Could not load leads for {activePipeline.name}.</div>
           ) : (
-            <SetterBoard
-              pipeline={activePipeline}
-              leads={leadsQuery.data?.leads ?? []}
-              truncated={leadsQuery.data?.truncated ?? false}
-              now={now}
-              selectedLeadId={selectedLead?.id ?? null}
-              onSelectLead={selectLead}
-            />
+            <div className="flex items-start gap-4">
+              <div className="min-w-0 flex-1">
+                <SetterBoard
+                  pipeline={activePipeline}
+                  leads={leadsQuery.data?.leads ?? []}
+                  truncated={leadsQuery.data?.truncated ?? false}
+                  now={now}
+                  selectedLeadId={selectedLead?.id ?? null}
+                  onSelectLead={selectLead}
+                />
+              </div>
+              {selectedLead && activeTenantId && (
+                <SetterCockpit
+                  key={selectedLead.id}
+                  tenantId={activeTenantId}
+                  pipelineId={activePipelineId ?? ""}
+                  pipelineName={activePipeline.name}
+                  lead={selectedLead}
+                  onClose={closeCockpit}
+                />
+              )}
+            </div>
           )}
         </>
       )}
