@@ -60,6 +60,7 @@ import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminCommand from "./routes/admin/AdminCommand";
 import AdminDelivery from "./routes/admin/AdminDelivery";
 import DeliveryCockpit from "./routes/admin/DeliveryCockpit";
+import SetterSuite from "./routes/admin/SetterSuite";
 import PillarPage from "./routes/admin/PillarPage";
 import AdminSettings from "./routes/admin/AdminSettings";
 import Shell from "./components/Shell";
@@ -555,6 +556,16 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <DeliveryCockpit />
+                  </AdminRoute>
+                }
+              />
+              {/* Sales: the Setter Suite, one client's leads worked across
+                  every one of that client's pipelines. */}
+              <Route
+                path="/admin/setter"
+                element={
+                  <AdminRoute>
+                    <SetterSuite />
                   </AdminRoute>
                 }
               />

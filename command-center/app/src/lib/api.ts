@@ -864,3 +864,48 @@ export interface ColdSmsScriptRow {
   clientsClosed: number | null;
   sortOrder: number;
 }
+
+// Setter Suite (Sales / admin-only). Mirrors the shapes returned by
+// functions/api/admin/setter/pipelines.ts and functions/api/admin/setter/leads.ts
+// exactly; see those files for the shaping logic.
+export interface ApiSetterStage {
+  id: string;
+  name: string;
+  // Live GHL hex, e.g. "#F97316". Rendered as an 8px dot only, per Board.tsx's
+  // convention: never a background, border, or text color.
+  color?: string;
+  // True when the live stage name matches /needs dialing/i. No mapping table.
+  needsDialing: boolean;
+}
+
+export interface ApiSetterPipeline {
+  id: string;
+  name: string;
+  stages: ApiSetterStage[];
+}
+
+// Deliberately has no `tags` field: the list endpoint cannot supply it
+// without an N+1 contact fetch per card across the whole board (see
+// functions/api/admin/setter/leads.ts). Tags belong to the per-lead detail
+// endpoint (a later task), which fetches one contact at a time.
+export interface ApiSetterLead {
+  id: string;
+  contactId: string;
+  name: string;
+  phone: string;
+  city: string;
+  stageName: string;
+  createdAt: string;
+  attempts: number;
+  firstDialedAt: string | null;
+  contacted: boolean;
+  lastOutcome: string | null;
+}
+
+export interface ApiSetterLeadsResponse {
+  leads: ApiSetterLead[];
+  // The leads endpoint caps at 1000 opportunities per pipeline
+  // (functions/lib/ghl.ts fetchAllOpportunities, maxPages: 10 at 100/page).
+  // The board must show this honestly rather than silently drop leads.
+  truncated: boolean;
+}

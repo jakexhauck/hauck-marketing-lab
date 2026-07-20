@@ -38,7 +38,10 @@ interface SpineItem {
 const SPINE_NAV: SpineItem[] = [
   { to: "/admin", label: "Command", icon: LayoutDashboard, end: true },
   { to: "/admin/pillar/acquisition", label: "Acquisition", icon: Megaphone },
-  { to: "/admin/pillar/sales", label: "Sales", icon: Handshake },
+  // Sales points at the Setter Suite (the cross-pipeline lead-working board),
+  // not the old Sales Data pillar tab. That tab still exists at
+  // /admin/pillar/sales for anyone who links to it directly.
+  { to: "/admin/setter", label: "Sales", icon: Handshake },
   { to: "/admin/delivery", label: "Fulfillment", icon: HeartHandshake },
   { to: "/admin/pillar/operations", label: "Operations", icon: Wrench },
 ];

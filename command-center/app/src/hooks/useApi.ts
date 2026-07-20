@@ -45,6 +45,8 @@ import {
   saveSalesDataDay,
   type SalesDataRow,
   type SalesDataPatch,
+  type ApiSetterPipeline,
+  type ApiSetterLeadsResponse,
 } from "../lib/api";
 import type { BusinessHealthInputs, PeriodType } from "../lib/businessHealth";
 import {
@@ -400,6 +402,36 @@ export function useAdminClientsQuery(enabled: boolean) {
     staleTime: 60_000,
     queryFn: () =>
       api<{ clients: AdminClient[]; total: number }>("/api/admin/clients"),
+  });
+}
+
+// Setter Suite: every pipeline and stage for the selected client, resolved
+// live and unfiltered (unlike the client-facing PipelinesContext, nothing is
+// hidden here). Feeds the pipeline tab strip on /admin/setter.
+export function useSetterPipelinesQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "setter", "pipelines", tenantId],
+    enabled: enabled && !!tenantId,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<{ pipelines: ApiSetterPipeline[] }>(
+        `/api/admin/setter/pipelines?tenantId=${encodeURIComponent(tenantId)}`,
+      ),
+  });
+}
+
+// Setter Suite: every open lead in one pipeline, merged with its dial
+// history. Re-fetched per pipeline tab rather than once for all 8, so
+// switching tabs never fires 8 requests up front.
+export function useSetterLeadsQuery(tenantId: string, pipelineId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "setter", "leads", tenantId, pipelineId],
+    enabled: enabled && !!tenantId && !!pipelineId,
+    staleTime: 15_000,
+    queryFn: () =>
+      api<ApiSetterLeadsResponse>(
+        `/api/admin/setter/leads?tenantId=${encodeURIComponent(tenantId)}&pipelineId=${encodeURIComponent(pipelineId)}`,
+      ),
   });
 }
 
