@@ -37,6 +37,11 @@ export interface Env {
   GOOGLE_OAUTH_CLIENT_ID?: string;
   GOOGLE_OAUTH_CLIENT_SECRET?: string;
   GOOGLE_OAUTH_REDIRECT?: string;
+  // The Drive folder the admin SOP Hub reads, on that same agency account
+  // ("SOPs Templates"). Its subfolders are the categories and its Docs are the
+  // SOP pages. Unset => the hub renders a setup state rather than guessing at a
+  // folder, since reading the wrong one would surface the wrong documents.
+  SOP_DRIVE_FOLDER_ID?: string;
   // Composio brokers the per-CLIENT Google Calendar grant, which is a different
   // shape from the agency-wide Drive connection above: each client links their
   // own calendar and Composio holds that token, keyed by the tenant id passed

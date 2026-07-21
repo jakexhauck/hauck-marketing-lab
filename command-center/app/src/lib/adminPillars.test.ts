@@ -41,6 +41,7 @@ describe("adminPillars config", () => {
       "calculator",
       "time-audit",
       "tasks",
+      "sops",
     ]);
   });
 
@@ -55,6 +56,7 @@ describe("adminPillars config", () => {
       "calculator",
       "time-audit",
       "tasks",
+      "sops",
     ]);
   });
 });

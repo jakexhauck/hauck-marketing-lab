@@ -9,6 +9,7 @@ import SalesDataTracker from "../../components/admin/tracker/SalesDataTracker";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
 import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
+import SopsTab from "../../components/admin/operations/SopsTab";
 import LeadsBoard from "../../components/admin/leads/LeadsBoard";
 import ColdCallSurface from "../../components/admin/acquisition/ColdCallSurface";
 import ColdSmsSurface from "../../components/admin/acquisition/ColdSmsSurface";
@@ -102,6 +103,8 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
       return <TimeAuditGrid />;
     case "tasks":
       return <OperationsTasksTab />;
+    case "sops":
+      return <SopsTab />;
     default:
       // A tab marked ready with no body wired is a bug, not a state to render
       // something plausible for.

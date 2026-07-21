@@ -56,6 +56,7 @@ export const ADMIN_PILLARS: PillarDef[] = [
       { id: "calculator", label: "Calculator", ready: true },
       { id: "time-audit", label: "Time Audit", ready: true },
       { id: "tasks", label: "Tasks", ready: true },
+      { id: "sops", label: "SOPs", ready: true },
     ],
   },
 ];
