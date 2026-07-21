@@ -51,6 +51,9 @@ import {
   type ApiSetterLeadDetail,
   type ApiSetterDial,
   type ApiSetterCalendar,
+  type ApiSetterEvent,
+  type ApiSetterBusy,
+  type ApiSetterContact,
   type ApiSetterInboxResponse,
   type ApiSetterThreadResponse,
   type ApiAuditResponse,
@@ -672,6 +675,86 @@ export function useSetterBookMutation() {
       qc.invalidateQueries({ queryKey: ["admin", "setter", "leads", input.tenantId] });
       qc.invalidateQueries({ queryKey: ["calendar", "events"] });
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Setter Suite calendar
+//
+// TWO OF THESE THREE USE A DELIBERATE KEY STEM. Booked events and contact
+// search carry customer names, phones and emails, so they key off
+// "setter-events" and "setter-contacts", which src/lib/queryClient.ts refuses
+// to persist. Matching there is EXACT per key element, so the plain "setter"
+// stem the rest of the Suite uses would have written a client's customers to
+// a setter's localStorage. Busy keeps the ordinary stem: it is bare start/end
+// intervals with no titles or attendees, nothing that identifies anyone.
+// Renaming either stem silently re-enables that persistence.
+// ---------------------------------------------------------------------------
+
+// Booked appointments across every active calendar for the selected client
+// (GET /api/admin/setter/events). The range is a week of the grid, capped
+// server-side at 62 days, so a setter paging through weeks cannot fan out
+// hundreds of CRM calls per calendar.
+export function useSetterEventsQuery(
+  tenantId: string,
+  startIso: string,
+  endIso: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["admin", "setter-events", tenantId, startIso, endIso],
+    enabled: enabled && !!tenantId && !!startIso && !!endIso,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<{ events: ApiSetterEvent[] }>(
+        `/api/admin/setter/events?tenantId=${encodeURIComponent(tenantId)}&start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`,
+      ),
+  });
+}
+
+// The client's Google Calendar busy hours for the same range (GET
+// /api/admin/setter/busy). Cached longer than the events above because the
+// route is brokered through Composio, whose managed auth shares a rate limit
+// across all of its customers. Never retried: the endpoint answers a missing
+// or expired calendar link with `connected: false`, not an error, so anything
+// that does reach here as a failure is real and will not heal on a repeat.
+export function useSetterBusyQuery(
+  tenantId: string,
+  startIso: string,
+  endIso: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["admin", "setter", "busy", tenantId, startIso, endIso],
+    enabled: enabled && !!tenantId && !!startIso && !!endIso,
+    staleTime: 60_000,
+    retry: false,
+    queryFn: () =>
+      api<ApiSetterBusy>(
+        `/api/admin/setter/busy?tenantId=${encodeURIComponent(tenantId)}&start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`,
+      ),
+  });
+}
+
+// Existing-contact search for the booking panel (GET
+// /api/admin/setter/contacts). The two-character floor matches the endpoint's
+// own MIN_QUERY, so a shorter term stays disabled here rather than spending a
+// round trip to be told 400. Never retried: this fires per keystroke and a
+// retry queue behind a typing setter is worse than one honest failure.
+export function useSetterContactSearchQuery(
+  tenantId: string,
+  q: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["admin", "setter-contacts", tenantId, q],
+    enabled: enabled && !!tenantId && q.trim().length >= 2,
+    staleTime: 30_000,
+    retry: false,
+    queryFn: () =>
+      api<{ contacts: ApiSetterContact[] }>(
+        `/api/admin/setter/contacts?tenantId=${encodeURIComponent(tenantId)}&q=${encodeURIComponent(q.trim())}`,
+      ),
   });
 }
 

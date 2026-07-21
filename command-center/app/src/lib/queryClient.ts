@@ -45,6 +45,15 @@ export const PERSIST_CACHE_BUSTER = "2026-07-21.no-inbox-or-audit-persist";
 //                  a client's customer correspondence sitting on disk on any
 //                  machine a setter signs in on, for the life of the cache.
 //
+//   setter-events  Booked appointments on the Setter Suite Calendar tab. Every
+//                  event carries the customer's name, so a week of the grid is
+//                  a list of a client's customers by any other name.
+//
+//   setter-contacts  The Calendar tab's booking search, which returns customer
+//                  names, phone numbers and email addresses straight from the
+//                  client's CRM. Worse on disk than the events above, since a
+//                  setter working a shift accumulates every term they typed.
+//
 //   audit          The admin audit log. Its rows carry the setter.send payload,
 //                  which embeds the FULL OUTBOUND MESSAGE BODY, and unlike the
 //                  inbox it is not scoped to one client: a single page of it
@@ -56,7 +65,13 @@ export const PERSIST_CACHE_BUSTER = "2026-07-21.no-inbox-or-audit-persist";
 // but a future ["admin","audit-export",...] would NOT be; it would need its own
 // entry here. Naming a new key with one of these as a prefix does not inherit
 // the protection.
-const NEVER_PERSIST_KEYS = ["preview-token", "setter-inbox", "audit"];
+const NEVER_PERSIST_KEYS = [
+  "preview-token",
+  "setter-inbox",
+  "setter-events",
+  "setter-contacts",
+  "audit",
+];
 
 // The dehydration predicate used in main.tsx: successful reads only, minus
 // anything holding a credential or customer correspondence.

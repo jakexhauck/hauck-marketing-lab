@@ -950,6 +950,44 @@ export interface ApiSetterCalendar {
   isActive: boolean;
 }
 
+// One booked appointment across all of a client's active calendars, from
+// functions/api/admin/setter/events.ts. Times are nullable because GHL will
+// return an event carrying neither; the Calendar tab has to survive that
+// rather than drop the booking. `contactName` is whatever GHL already had on
+// the event: that route deliberately does not pull a contact-name map to fill
+// the blanks (the client-app route does, at up to 1000 contacts a request),
+// so an empty string is a normal answer here.
+export interface ApiSetterEvent {
+  id: string;
+  title: string;
+  startTime: string | null;
+  endTime: string | null;
+  status: string;
+  contactId: string;
+  contactName: string;
+}
+
+// A client's Google Calendar busy hours, from
+// functions/api/admin/setter/busy.ts. Availability only: no titles, no
+// attendees. `connected` is what separates "linked, nothing busy" from "never
+// linked", which is a normal state and not an error, so that route never
+// fails and both cases arrive as a 200 with an empty `busy`.
+export interface ApiSetterBusy {
+  connected: boolean;
+  busy: { start: string; end: string }[];
+}
+
+// One search hit from functions/api/admin/setter/contacts.ts, already shaped
+// down to what the booking panel renders. `name` is never empty: the route
+// falls back to the phone number and then to "Unknown contact", so a setter
+// searching by number still recognizes the row they get back.
+export interface ApiSetterContact {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+}
+
 // One row of the inbox thread list (functions/api/admin/setter/inbox/index.ts).
 // Deliberately thin: the list cannot afford a per-thread fetch, so a row
 // carries only what it renders and the full thread loads on selection.
