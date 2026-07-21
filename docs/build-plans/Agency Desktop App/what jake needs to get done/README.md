@@ -183,3 +183,17 @@ Verified: 1285 tests green on the merged tree, typecheck and build clean. NOT ve
 - [ ] **Click a second lead's number and confirm it reuses the same tab** rather than opening a new one. Deliberate, so a dialing session does not bury you in tabs.
 - [ ] **Make sure setters are logged into the CRM in their work browser once.** If they are not, that new tab lands on a login screen instead of the contact. There is no way for the app to fix this, it is a one-time setup step per setter.
 - [ ] **Decide whether you want outcomes to log themselves.** Right now a setter picks an outcome in the CRM at the end of a call, then types the same thing again into our Log This Call panel. The CRM can webhook that outcome to us so the second step disappears. It needs a live call captured first to learn the payload shape, so say the word and it becomes its own small build.
+
+## Internal notifications hidden from every inbox (shipped 2026-07-21)
+
+Your workflows send internal alerts ("New Facebook Lead", the review-redirect notices) to your own phone and email and to my number. The booking system logs each of those against a contact, so they were showing up in the client Inbox as if they were leads. A live look at Willis found three of them sitting there: your mobile, your email, and my contact.
+
+They are now hidden everywhere in the app: the Inbox, every thread, the unread badge, the reactivation list, the sales lead list and its counts, and the internal Setter tools. Hidden means hidden. There is no toggle and no admin view of them, by your call. If you ever need to confirm an alert fired, it is still in the booking system, which stays the source of truth.
+
+How it decides: anything the booking system itself tags as a notification is caught automatically. Staff numbers (yours, mine) are caught by a short per-client list I have seeded for Willis with your mobile, your email, and my number.
+
+Verified against 100 live Willis conversations: exactly those three hidden, 97 kept, and every real lead's follow-up history left intact.
+
+- [ ] **Open the Inbox and confirm you no longer see yourself, your email, or my number in the list.** Those three were there before. If any of them is still showing, tell me which one.
+- [ ] **Tell me if any OTHER phone or email of yours or your team's gets these alerts.** I could only see what fired in the last few days, so I may have missed a person. Any I do not know about will keep showing until you tell me.
+- [ ] **Confirm (313) 405-3227 is a number of yours and not a real customer.** The booking system labelled it an internal notification recipient, so it should be safe to hide, but you would know a real customer's number on sight.
