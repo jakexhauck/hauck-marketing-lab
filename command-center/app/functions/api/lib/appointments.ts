@@ -177,6 +177,77 @@ export async function createAppointment(
   return { ok: true, id: data.id ?? data.appointment?.id ?? "" };
 }
 
+// Booked events, as opposed to free slots. Lifted from the client-app route
+// functions/api/calendar/events.ts so admin routes can list a client's
+// appointments without a client-app session. Two things differ from that
+// route on purpose: the events endpoint tolerates the default 2021-07-28
+// version so this uses ghlJson rather than the private calFetch, and there
+// is deliberately no contact-name map. events.ts pulls up to 1000 contacts
+// per request to fill names in; that cost is not acceptable on a route a
+// setter hits every time they change week, so an unnamed contact comes back
+// with an empty contactName and the caller decides what to show.
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  startTime: string | null;
+  endTime: string | null;
+  status: string;
+  contactId: string;
+  contactName: string;
+}
+
+interface RawEvent {
+  id?: string;
+  _id?: string;
+  title?: string;
+  startTime?: string;
+  endTime?: string;
+  appointmentStatus?: string;
+  status?: string;
+  contactId?: string;
+  contactName?: string;
+}
+
+// [startMs, endMs] are epoch milliseconds, not ISO: the GHL events route
+// rejects ISO on startTime/endTime. Callers holding ISO strings parse first.
+export async function listCalendarEvents(
+  gctx: GhlContext,
+  startMs: number,
+  endMs: number,
+): Promise<CalendarEvent[]> {
+  const calendars = await listCalendars(gctx);
+  if (calendars.length === 0) return [];
+
+  const byId = new Map<string, CalendarEvent>();
+  for (const cal of calendars) {
+    const data = await ghlJson<{ events?: RawEvent[] }>(
+      gctx,
+      `/calendars/events?locationId=${encodeURIComponent(gctx.locationId)}` +
+        `&calendarId=${encodeURIComponent(cal.id)}` +
+        `&startTime=${startMs}&endTime=${endMs}`,
+    );
+    for (const ev of data.events ?? []) {
+      // The same appointment can surface on more than one calendar, so first
+      // sighting wins and later duplicates are ignored.
+      const id = ev.id ?? ev._id ?? "";
+      if (!id || byId.has(id)) continue;
+      byId.set(id, {
+        id,
+        title: ev.title ?? "Appointment",
+        startTime: ev.startTime ?? null,
+        endTime: ev.endTime ?? null,
+        status: (ev.appointmentStatus ?? ev.status ?? "booked").toLowerCase(),
+        contactId: ev.contactId ?? "",
+        contactName: ev.contactName ?? "",
+      });
+    }
+  }
+
+  return [...byId.values()].sort((a, b) =>
+    (a.startTime ?? "").localeCompare(b.startTime ?? ""),
+  );
+}
+
 // Reschedule an existing appointment. Confirmed shape (Willis live test):
 // PUT /calendars/events/appointments/{eventId} { startTime, endTime } -> 200.
 export async function rescheduleAppointment(
