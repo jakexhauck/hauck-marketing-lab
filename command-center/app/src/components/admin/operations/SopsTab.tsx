@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ChevronDown, ExternalLink, FileText, ArrowLeft, Paperclip, Search } from "lucide-react";
 import { useSopHub } from "../../../hooks/useSopHub";
 import { buildGroups, flagKey, selectedCount } from "../../../lib/sopTriage";
@@ -24,6 +25,10 @@ export default function SopsTab() {
   const [selectedOnly, setSelectedOnly] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [reading, setReading] = useState<{ cat: SopCategory; sop: SopEntry } | null>(null);
+  // The Google OAuth callback lands back here, so a failed consent reports the
+  // reason rather than showing a bare "not connected" the admin has to guess at.
+  const [searchParams] = useSearchParams();
+  const connectError = searchParams.get("connect_error");
 
   const groups = useMemo(
     () => buildGroups(categories, query, considered, selectedOnly),
@@ -54,6 +59,16 @@ export default function SopsTab() {
   return (
     <div className="sop">
       <SopsStyle />
+
+      {connectError && (
+        <div className="sop-setup sop-failed">
+          <h3>Connecting Google failed</h3>
+          <p>
+            Google returned <code>{connectError}</code>. Start the connect again, and make sure you pick the
+            account that owns the SOPs folder.
+          </p>
+        </div>
+      )}
 
       {status !== "ok" ? (
         <div className="sop-setup">
@@ -280,6 +295,7 @@ function SopsStyle() {
   background: var(--surface); border: 1px solid var(--sop-line); border-radius: 14px;
 }
 .pk-kit .sop-setup { text-align: left; padding: 22px 24px; }
+.pk-kit .sop-failed { margin-bottom: 12px; border-color: color-mix(in srgb, #e5484d 45%, var(--border)); }
 .pk-kit .sop-setup h3 {
   margin: 0 0 6px; font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--text);
 }
