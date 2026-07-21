@@ -114,12 +114,69 @@ describe("getGhlContextForTenant", () => {
   it("returns the tenant's own real credentials", async () => {
     vi.mocked(getServiceClient).mockReturnValue(
       stubClient({
+        data: { ghl_location_id: REAL_LOCATION, ghl_token: REAL_TOKEN, slug: "willis-windows" },
+        error: null,
+      }),
+    );
+    const ctx = await getGhlContextForTenant(envWithSentinels(), "tenant-1");
+    expect(ctx).toEqual({
+      locationId: REAL_LOCATION,
+      token: REAL_TOKEN,
+      slug: "willis-windows",
+      mode: "live",
+    });
+  });
+
+  it("derives mode test for the seeded test-account tenant", async () => {
+    vi.mocked(getServiceClient).mockReturnValue(
+      stubClient({
+        data: { ghl_location_id: REAL_LOCATION, ghl_token: REAL_TOKEN, slug: "test-account" },
+        error: null,
+      }),
+    );
+    const ctx = await getGhlContextForTenant(envWithSentinels(), "t-test");
+    expect(ctx.slug).toBe("test-account");
+    expect(ctx.mode).toBe("test");
+  });
+
+  it("derives mode live for any other tenant", async () => {
+    vi.mocked(getServiceClient).mockReturnValue(
+      stubClient({
+        data: { ghl_location_id: REAL_LOCATION, ghl_token: REAL_TOKEN, slug: "willis-windows" },
+        error: null,
+      }),
+    );
+    const ctx = await getGhlContextForTenant(envWithSentinels(), "t-willis");
+    expect(ctx.slug).toBe("willis-windows");
+    expect(ctx.mode).toBe("live");
+  });
+
+  it("honours TEST_TENANT_SLUG when the env overrides the default", async () => {
+    // testTenantSlug(env) is env.TEST_TENANT_SLUG || "test-account", so the
+    // derivation has to read the env, not hardcode the default slug.
+    vi.mocked(getServiceClient).mockReturnValue(
+      stubClient({
+        data: { ghl_location_id: REAL_LOCATION, ghl_token: REAL_TOKEN, slug: "sandbox-two" },
+        error: null,
+      }),
+    );
+    const env = { ...envWithSentinels(), TEST_TENANT_SLUG: "sandbox-two" } as unknown as Env;
+    const ctx = await getGhlContextForTenant(env, "t-sandbox");
+    expect(ctx.mode).toBe("test");
+  });
+
+  it("treats a missing slug as an empty string rather than undefined", async () => {
+    // slug is NOT NULL in migration 0001, but a row read through a stubbed or
+    // partially selected client should still produce a usable string.
+    vi.mocked(getServiceClient).mockReturnValue(
+      stubClient({
         data: { ghl_location_id: REAL_LOCATION, ghl_token: REAL_TOKEN },
         error: null,
       }),
     );
     const ctx = await getGhlContextForTenant(envWithSentinels(), "tenant-1");
-    expect(ctx).toEqual({ locationId: REAL_LOCATION, token: REAL_TOKEN });
+    expect(ctx.slug).toBe("");
+    expect(ctx.mode).toBe("live");
   });
 
   it("never reads env.GHL_LOCATION_ID or env.GHL_TOKEN, even as an env-var fallback", async () => {

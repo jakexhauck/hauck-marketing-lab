@@ -1,6 +1,21 @@
 import type { Env } from "./env";
+import { testTenantSlug } from "./env";
 import { getServiceClient } from "./supabase";
 import type { GhlContext } from "./ghl";
+
+// mode is NOT a tenants column. It is a property of the client-app session
+// (functions/api/_middleware.ts:117 and :164). A Composio Google Calendar
+// grant is stored under `${mode}:${slug}`, so to read a client's busy hours
+// from an admin route we have to reconstruct the mode the client's own
+// session would have had. Test-mode sessions use env creds and
+// testTenantSlug(env); every other tenant row is served by a live session.
+//
+// This extends the base GhlContext in ./ghl rather than replacing it, so
+// every existing ghlFetch/ghlJson caller keeps working untouched.
+export interface TenantGhlContext extends GhlContext {
+  slug: string;
+  mode: "live" | "test";
+}
 
 const PLACEHOLDERS = new Set(["", "pending", "env"]);
 
@@ -30,7 +45,10 @@ export class TenantGhlError extends Error {
 // So this throws instead of falling back. Do not change this to match
 // resolveGhlCreds; the two helpers serve different trust boundaries on
 // purpose.
-export async function getGhlContextForTenant(env: Env, tenantId: string): Promise<GhlContext> {
+export async function getGhlContextForTenant(
+  env: Env,
+  tenantId: string,
+): Promise<TenantGhlContext> {
   const client = getServiceClient(env);
   // getServiceClient returns null when Supabase env vars are unset. Every
   // current caller already checks this itself before reaching here, but
@@ -39,7 +57,7 @@ export async function getGhlContextForTenant(env: Env, tenantId: string): Promis
   if (!client) throw new TenantGhlError(503, "supabase_not_configured", "Client data is not available right now.");
   const { data, error } = await client
     .from("tenants")
-    .select("ghl_location_id, ghl_token")
+    .select("ghl_location_id, ghl_token, slug")
     .eq("id", tenantId)
     .maybeSingle();
 
@@ -48,5 +66,11 @@ export async function getGhlContextForTenant(env: Env, tenantId: string): Promis
   if (isPlaceholder(data.ghl_location_id) || isPlaceholder(data.ghl_token)) {
     throw new TenantGhlError(400, "ghl_not_connected", "Connect this client to the booking system first.");
   }
-  return { token: data.ghl_token, locationId: data.ghl_location_id };
+  const slug = data.slug ?? "";
+  return {
+    token: data.ghl_token,
+    locationId: data.ghl_location_id,
+    slug,
+    mode: slug === testTenantSlug(env) ? "test" : "live",
+  };
 }
