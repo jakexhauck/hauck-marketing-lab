@@ -66,6 +66,9 @@ export default function SetterSuite() {
 
   const pipelinesQuery = useSetterPipelinesQuery(activeTenantId ?? "", boardEnabled);
   const pipelines = pipelinesQuery.data?.pipelines ?? [];
+  // The client's CRM location, used by the cockpit to link a lead to its
+  // contact record so the setter dials from the client's business number.
+  const locationId = pipelinesQuery.data?.locationId ?? "";
 
   const [pipelineId, setPipelineId] = useState<string | null>(null);
   const activePipelineId = pipelineId ?? pipelines[0]?.id ?? null;
@@ -221,6 +224,7 @@ export default function SetterSuite() {
                       tenantId={activeTenantId}
                       pipelineId={activePipelineId ?? ""}
                       pipelineName={activePipeline.name}
+                      locationId={locationId}
                       lead={selectedLead}
                       onClose={closeCockpit}
                     />

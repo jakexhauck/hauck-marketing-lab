@@ -884,6 +884,16 @@ export interface ApiSetterPipeline {
   stages: ApiSetterStage[];
 }
 
+// locationId is the client's own CRM location, resolved server-side per tenant.
+// The cockpit needs it to link a lead to its CRM contact record, which is how a
+// setter dials from the client's business number (lib/setterModel.ts:
+// ghlContactUrl). It rides this response because the GHL context is already
+// resolved on that route, once per client selection.
+export interface ApiSetterPipelinesResponse {
+  pipelines: ApiSetterPipeline[];
+  locationId: string;
+}
+
 // Deliberately has no `tags` field: the list endpoint cannot supply it
 // without an N+1 contact fetch per card across the whole board (see
 // functions/api/admin/setter/leads.ts). Tags belong to the per-lead detail

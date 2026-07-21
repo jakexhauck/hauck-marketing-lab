@@ -6,9 +6,9 @@ import SlotPicker from "./SlotPicker";
 import { Button } from "../../ui/Button";
 import { useSetterLeadDetailQuery } from "../../../hooks/useApi";
 import { useNow } from "../../../context/NowContext";
-import { e164, formatPhone } from "../../../lib/phone";
+import { formatPhone } from "../../../lib/phone";
 import { timeAgo } from "../../../lib/timeAgo";
-import { formatOutcome } from "../../../lib/setterModel";
+import { formatOutcome, ghlContactUrl } from "../../../lib/setterModel";
 import { isOptimisticDial } from "../../../lib/setterCockpit";
 import type { ApiSetterLead } from "../../../lib/api";
 
@@ -16,6 +16,10 @@ interface Props {
   tenantId: string;
   pipelineId: string;
   pipelineName: string;
+  // The client's own CRM location, from the pipelines response. Optional
+  // because it is empty while that query is still in flight or if it failed;
+  // the header degrades to plain text rather than a dead link.
+  locationId?: string;
   lead: ApiSetterLead;
   onClose: () => void;
 }
@@ -55,7 +59,14 @@ function DetailLoadError({ what, onRetry }: { what: string; onRetry: () => void 
 // never the board list, see functions/api/admin/setter/lead/[contactId].ts),
 // falling back to the board card's own fields while that request is in
 // flight or if it errors, so switching leads never shows a blank panel.
-export default function SetterCockpit({ tenantId, pipelineId, pipelineName, lead, onClose }: Props) {
+export default function SetterCockpit({
+  tenantId,
+  pipelineId,
+  pipelineName,
+  locationId,
+  lead,
+  onClose,
+}: Props) {
   const now = useNow();
   const detailQuery = useSetterLeadDetailQuery(tenantId, lead.contactId, true);
   const detail = detailQuery.data?.lead;
@@ -66,28 +77,49 @@ export default function SetterCockpit({ tenantId, pipelineId, pipelineName, lead
   const tags = detail?.tags ?? [];
   const dials = detail?.dials ?? [];
 
-  const telDigits = e164(phone);
-  const hasPhone = telDigits.replace(/[^0-9]/g, "").length >= 10;
+  const hasPhone = phone.replace(/[^0-9]/g, "").length >= 10;
+  // Null whenever we cannot build a working link (no location resolved yet, no
+  // contact id). One check, so the header never has to re-test the inputs.
+  const crmUrl = ghlContactUrl(locationId ?? "", lead.contactId);
 
   return (
     <aside
       className="flex w-full shrink-0 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)] lg:w-[380px] lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)]"
       aria-label="Lead cockpit"
     >
-      {/* Header: identity + click-to-call, stays put while the body scrolls. */}
+      {/* Header: identity + call, stays put while the body scrolls.
+
+          The phone number opens the lead's CRM contact record in a new tab
+          rather than being a tel: link, because the setter must dial from the
+          client's business number and a tel: link dials from their own
+          handset, showing the lead a personal mobile. The CRM's softphone
+          owns the business number, the recording, and the call log.
+
+          It lands on the contact record, not the dialer: the CRM exposes no
+          way to open the dialer pre-filled, so the setter clicks the phone
+          icon there. A named target means a whole dialing session reuses one
+          tab instead of leaving forty behind. */}
       <div className="flex items-start gap-3 border-b border-divider px-4 pb-3.5 pt-4">
         <Avatar name={name} size="sm" />
         <div className="min-w-0 flex-1">
           <div className="truncate font-display text-[15px] font-semibold text-text">{name}</div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted">
-            {hasPhone ? (
+            {hasPhone && crmUrl ? (
               <a
-                href={`tel:${telDigits}`}
+                href={crmUrl}
+                target="ghl-contact"
+                rel="noopener noreferrer"
+                title="Open in the CRM to call from the client's number"
                 className="inline-flex items-center gap-1 font-data text-brand-text hover:underline"
               >
                 <Phone size={11} aria-hidden />
                 {formatPhone(phone) || phone}
               </a>
+            ) : hasPhone ? (
+              <span className="inline-flex items-center gap-1 font-data text-muted">
+                <Phone size={11} aria-hidden />
+                {formatPhone(phone) || phone}
+              </span>
             ) : (
               <span className="text-faint">No phone on file</span>
             )}

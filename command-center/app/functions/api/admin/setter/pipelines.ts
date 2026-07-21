@@ -69,7 +69,13 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       `/opportunities/pipelines?locationId=${encodeURIComponent(gctx.locationId)}`,
     );
     const pipelines = (data.pipelines ?? []).map(shapeSetterPipeline);
-    return Response.json({ pipelines });
+    // locationId rides along so the cockpit can build a link to a lead's CRM
+    // contact record, which is how a setter dials from the client's business
+    // number instead of their own handset (src/lib/setterModel.ts:ghlContactUrl).
+    // It goes here rather than on a new endpoint because the tenant's GHL
+    // context is already resolved above, once per client selection. Not a
+    // secret: it is visible in every CRM URL, and this route is admin-gated.
+    return Response.json({ pipelines, locationId: gctx.locationId });
   } catch (e) {
     if (!(e instanceof TenantGhlError)) throw e;
     return Response.json({ error: e.code }, { status: e.status });

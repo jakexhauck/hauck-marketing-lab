@@ -56,6 +56,25 @@ export function staleWaitingLabel(createdAt: string, now: number): string {
   return `Waiting ${Math.floor(hr / 24)}d`;
 }
 
+// Link to a lead's contact record in the CRM, which is how a setter places a
+// call: the CRM's own softphone owns the client's business number, so the lead
+// sees that instead of the setter's personal handset (which is what a plain
+// tel: link on this number used to give them).
+//
+// It lands on the contact record, not the dialer, because no query parameter
+// exists to open the dialer pre-filled. The setter clicks the phone icon there.
+//
+// Returns null when either id is missing so the cockpit has one thing to branch
+// on: a half-built URL would drop the setter on a CRM 404 mid-dial. The vendor
+// domain is hardcoded deliberately (internal admin surface, staff-only); if a
+// white-label domain is ever adopted, this line is the only edit.
+export function ghlContactUrl(locationId: string, contactId: string): string | null {
+  const loc = locationId.trim();
+  const contact = contactId.trim();
+  if (!loc || !contact) return null;
+  return `https://app.gohighlevel.com/v2/location/${encodeURIComponent(loc)}/contacts/detail/${encodeURIComponent(contact)}`;
+}
+
 // Dial outcomes come back from the API as the setter_dials enum (booked,
 // not_interested, no_answer, reschedule, bad_lead). This is display
 // formatting of an internal enum, not a stage name, so title-casing it is

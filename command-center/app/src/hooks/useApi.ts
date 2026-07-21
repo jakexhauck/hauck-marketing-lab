@@ -45,7 +45,7 @@ import {
   saveSalesDataDay,
   type SalesDataRow,
   type SalesDataPatch,
-  type ApiSetterPipeline,
+  type ApiSetterPipelinesResponse,
   type ApiSetterLead,
   type ApiSetterLeadsResponse,
   type ApiSetterLeadDetail,
@@ -431,7 +431,7 @@ export function useSetterPipelinesQuery(tenantId: string, enabled = true) {
     enabled: enabled && !!tenantId,
     staleTime: 30_000,
     queryFn: () =>
-      api<{ pipelines: ApiSetterPipeline[] }>(
+      api<ApiSetterPipelinesResponse>(
         `/api/admin/setter/pipelines?tenantId=${encodeURIComponent(tenantId)}`,
       ),
   });

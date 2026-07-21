@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { isStaleUncontacted, cardRail, formatOutcome, staleWaitingLabel } from "./setterModel";
+import {
+  isStaleUncontacted,
+  cardRail,
+  formatOutcome,
+  staleWaitingLabel,
+  ghlContactUrl,
+} from "./setterModel";
 
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = new Date("2026-07-20T12:00:00Z").getTime();
@@ -113,5 +119,35 @@ describe("formatOutcome", () => {
     expect(formatOutcome("not_interested")).toBe("Not Interested");
     expect(formatOutcome("booked")).toBe("Booked");
     expect(formatOutcome("bad_lead")).toBe("Bad Lead");
+  });
+});
+
+describe("ghlContactUrl", () => {
+  it("builds the contact detail URL from a location and contact id", () => {
+    expect(ghlContactUrl("loc_abc123", "cont_xyz789")).toBe(
+      "https://app.gohighlevel.com/v2/location/loc_abc123/contacts/detail/cont_xyz789",
+    );
+  });
+
+  // Returning null rather than a half-built URL is the whole point: it is the
+  // single signal the cockpit branches on to render plain text instead of a
+  // link that would land the setter on a CRM 404 mid-dial.
+  it("returns null when the location id is missing", () => {
+    expect(ghlContactUrl("", "cont_xyz789")).toBeNull();
+  });
+
+  it("returns null when the contact id is missing", () => {
+    expect(ghlContactUrl("loc_abc123", "")).toBeNull();
+  });
+
+  it("returns null on whitespace-only input", () => {
+    expect(ghlContactUrl("   ", "cont_xyz789")).toBeNull();
+    expect(ghlContactUrl("loc_abc123", "  ")).toBeNull();
+  });
+
+  it("encodes both segments so a stray id character cannot break the path", () => {
+    expect(ghlContactUrl("loc/../evil", "cont?x=1")).toBe(
+      "https://app.gohighlevel.com/v2/location/loc%2F..%2Fevil/contacts/detail/cont%3Fx%3D1",
+    );
   });
 });
