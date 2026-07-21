@@ -83,14 +83,16 @@ Verified: 840 tests green, typecheck clean, live bundle carries the code, the ne
 
 `/admin/setter` is live. It is the surface your setters work leads from, pointed at the **test account** (`r0WfsA12qpBv7M185V3v`), not Willis. Board across all 8 pipelines using the real GHL stage names verbatim, one client at a time with a switcher, and a docked cockpit on the right for the selected lead. From the cockpit you log a dial (attempts, spoke yes/no, outcome, note), add or remove tags, and book a real slot that writes back to GHL. Stage movement stays owned by GHL automations firing off the tags, exactly as you asked. The client app is untouched and still read-only.
 
-The five roll-ups from your spreadsheet sit in a strip across the top: total leads in, contact rate, booking rate, show rate, close rate. Every one of your 13 columns is either pulled from GHL or captured by the dial logger. It ships **empty**, per your call, so you can iterate the UI before pointing it at Willis.
+Every one of your 13 spreadsheet columns is either pulled from GHL or captured by the dial logger. It ships **empty**, per your call, so you can iterate the UI before pointing it at Willis.
+
+**The rate strip was removed on 2026-07-21** at your request. Total leads in, contact rate, booking rate, show rate and close rate no longer appear anywhere in the app. The underlying dial data is untouched and still recorded per dial in `setter_dials`, so those five numbers can be rebuilt from it whenever you want them back. Nothing was lost, only the display.
 
 Verified: 964 tests green, typecheck and build clean, migration `0040_setter_dials` applied live. Tag add and remove and a full book/confirm/cancel cycle were all proven against the real test account and cleaned up. NOT verified: anything through a real signed admin session, because minting one is blocked in my environment, so no endpoint has run through your own middleware and session gate.
 
 - [ ] **Click through `/admin/setter` in your own browser.** This is the one real gap. Confirm the board loads, the client switcher works, and the cockpit opens on a lead. If any endpoint 401s or 500s, that is the session gate and I want to know immediately.
 - [ ] **Put a few fake leads into the test account** so you can see the board with something in it, then log a dial and confirm it persists across a reload.
 - [ ] **Decide on the per-tenant timezone column.** Booking slots currently resolve from one global timezone. Harmless today (Willis and the test account are both Detroit) but wrong the day you onboard outside Michigan. Note your GHL has Willis set to `America/Cancun`, so reading the timezone from GHL would make it worse, not better. Needs a migration when you want it.
-- [ ] **Tell me what to change in the UI.** You said you wanted to iterate before pointing it at Willis. Known rough edges I would fix first: the tag picker only offers tags this contact has already had rather than the client's full 49-tag list, and the rate strip counts only the active pipeline rather than the whole client.
+- [ ] **Tell me what to change in the UI.** You said you wanted to iterate before pointing it at Willis. Known rough edge I would fix first: the tag picker only offers tags this contact has already had, rather than the client's full 49-tag list.
 - [ ] **Before Willis goes on it: Willis still runs the OLD 6-pipeline structure.** The Suite is built for the new 8. That is either a GHL migration on Willis or a per-client mapping layer in the app. Your call which.
 
 ## SOP Hub, backed by Google Drive (shipped 2026-07-21, `main` `f43bb39`)

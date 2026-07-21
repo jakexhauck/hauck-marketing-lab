@@ -9,7 +9,6 @@ import { useNow } from "../../context/NowContext";
 import SetterBoard from "../../components/admin/setter/SetterBoard";
 import SetterCockpit from "../../components/admin/setter/SetterCockpit";
 import SetterInbox from "../../components/admin/setter/SetterInbox";
-import SetterRateStrip from "../../components/admin/SetterRateStrip";
 import type { ApiSetterLead } from "../../lib/api";
 
 // Board = the pipelines and the cockpit. Inbox = the client's whole
@@ -165,13 +164,6 @@ export default function SetterSuite() {
             />
           ) : (
             <>
-              <SetterRateStrip
-                leads={leadsQuery.data?.leads ?? []}
-                status={
-                  leadsQuery.isLoading ? "loading" : leadsQuery.isError ? "failed" : "ready"
-                }
-              />
-
               <nav className="pk-subtabs" aria-label="Pipelines">
                 {pipelines.map((p) => (
                   <button
