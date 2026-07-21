@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronDown, Plus } from "lucide-react";
+import { Check, ChevronDown, Plus, X } from "lucide-react";
 import { useAdminTaskList, type TaskTextField } from "../../hooks/useAdminTaskList";
 import { taskCounts, type TaskStatus } from "../../lib/taskStatus";
 import type { AdminTask } from "../../lib/api";
@@ -22,7 +22,7 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 };
 
 export default function OperationsTasksTab() {
-  const { tasks, loading, error, adding, addTask, patchField, setStatus, toggleDone } =
+  const { tasks, loading, error, adding, addTask, patchField, setStatus, toggleDone, deleteTask } =
     useAdminTaskList();
   // Uncommitted keystrokes per row, keyed by task id then field. Cleared on
   // blur once the write is away, so the row falls back to the stored value.
@@ -51,6 +51,12 @@ export default function OperationsTasksTab() {
   const onAdd = async () => {
     const id = await addTask();
     if (id) setFocusId(id);
+  };
+
+  const onDelete = (task: AdminTask) => {
+    const label = task.title?.trim() || "this task";
+    if (!window.confirm(`Remove ${label}?`)) return;
+    void deleteTask(task);
   };
 
   return (
@@ -104,6 +110,7 @@ export default function OperationsTasksTab() {
                   <th>Notes / Files</th>
                   <th>Status</th>
                   <th>Updates</th>
+                  <th className="otk-delhead" aria-label="Remove" />
                 </tr>
               </thead>
               <tbody>
@@ -173,6 +180,17 @@ export default function OperationsTasksTab() {
                         onChange={(e) => onCellChange(task, "updates", e.target.value)}
                         onBlur={(e) => onCellBlur(task, "updates", e.target.value)}
                       />
+                    </td>
+                    <td className="otk-delcol">
+                      <button
+                        type="button"
+                        className="otk-del"
+                        aria-label={`Remove ${task.title?.trim() || "untitled task"}`}
+                        title="Remove task"
+                        onClick={() => onDelete(task)}
+                      >
+                        <X size={15} strokeWidth={2.4} />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -288,6 +306,18 @@ function OperationsTasksStyle() {
 
       .pk-kit .otk-card tr.otk-rowdone { opacity: .72; }
       .pk-kit .otk-card tr.otk-rowdone td .otk-txt { color: var(--text-faint); text-decoration: line-through; }
+
+      /* Remove column: an always-visible X on the right of each row. Deletes the
+         task (behind a confirm) via useAdminTaskList. */
+      .pk-kit .otk-card th.otk-delhead { width: 44px; }
+      .pk-kit .otk-card td.otk-delcol { width: 44px; text-align: center; }
+      .pk-kit .otk-del {
+        display: grid; place-items: center; width: 28px; height: 28px; margin: 0 auto;
+        border: 0; border-radius: 8px; background: transparent; color: var(--text-faint);
+        cursor: pointer; transition: color .14s, background .14s;
+      }
+      .pk-kit .otk-del:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+      .pk-kit .otk-del:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--danger); }
 
       @media (max-width: 720px) { .pk-kit .otk-add { margin-left: 0; } }
     `}</style>

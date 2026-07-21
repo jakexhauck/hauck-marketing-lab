@@ -25,6 +25,9 @@ export interface UseAdminTaskList {
   patchField: (task: AdminTask, field: TaskTextField, value: string) => Promise<void>;
   setStatus: (task: AdminTask, status: TaskStatus) => Promise<void>;
   toggleDone: (task: AdminTask) => Promise<void>;
+  // Removes a task. Optimistic: the row disappears at once and is put back if
+  // the delete fails.
+  deleteTask: (task: AdminTask) => Promise<void>;
 }
 
 export function useAdminTaskList(): UseAdminTaskList {
@@ -122,5 +125,25 @@ export function useAdminTaskList(): UseAdminTaskList {
     [writeCoupling],
   );
 
-  return { tasks, loading, error, adding, addTask, patchField, setStatus, toggleDone };
+  const deleteTask = useCallback(async (task: AdminTask) => {
+    // Optimistic: drop the row immediately, put it back (in place) on failure.
+    let index = 0;
+    setTasks((list) => {
+      index = list.findIndex((t) => t.id === task.id);
+      return list.filter((t) => t.id !== task.id);
+    });
+    try {
+      await api(`/api/admin/tasks/${task.id}`, { method: "DELETE" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove that task.");
+      setTasks((list) => {
+        if (list.some((t) => t.id === task.id)) return list;
+        const next = [...list];
+        next.splice(index < 0 ? next.length : index, 0, task);
+        return next;
+      });
+    }
+  }, []);
+
+  return { tasks, loading, error, adding, addTask, patchField, setStatus, toggleDone, deleteTask };
 }
