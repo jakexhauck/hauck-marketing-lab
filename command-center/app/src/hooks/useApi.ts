@@ -595,6 +595,26 @@ export function useSetterTagsMutation() {
   });
 }
 
+export interface SetterTaskInput {
+  tenantId: string;
+  contactId: string;
+  title: string;
+  dueDate?: string;
+}
+
+// Creates a follow-up task on the live CRM contact in the client's own
+// sub-account (POST /api/admin/setter/task). Used by the Follow Up cockpit
+// action, which applies its tag and then prompts for the task.
+export function useCreateSetterTask() {
+  return useMutation({
+    mutationFn: (input: SetterTaskInput) =>
+      api<{ task: ApiTask | null }>("/api/admin/setter/task", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+  });
+}
+
 export interface SetterSlotDay {
   date: string; // "YYYY-MM-DD"
   slots: string[]; // ISO start times with offset
