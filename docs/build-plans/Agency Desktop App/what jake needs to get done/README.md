@@ -166,7 +166,7 @@ The lead's phone number in the Setter Suite cockpit used to be a normal phone li
 
 It is two clicks, not one: our phone number, then the phone icon on the CRM page. That is not laziness, the CRM has no way to open its dialer already pointed at a number. Every richer option was researched and is impossible on the CRM's phone system: there is no API that places a call, there is no mobile deep-link scheme, and an embedded page cannot drive the dialer. A one-tap call needs a dialer we own, which you have ruled out.
 
-Verified: 1196 tests green, typecheck and build clean. NOT verified: anything in a browser, because admin is login-gated and I cannot mint a session.
+Verified: 1285 tests green on the merged tree, typecheck and build clean. NOT verified: anything in a browser, because admin is login-gated and I cannot mint a session.
 
 - [ ] **Click a lead in the Setter Suite and click its phone number.** Confirm a new tab opens on that lead's contact record in the CRM. This is the whole feature and I could not test it.
 - [ ] **Place one real call from that CRM page and confirm the client's business number shows on the receiving phone.** Call your own mobile. This is the entire point of the change, and it is the one thing that proves it worked.
