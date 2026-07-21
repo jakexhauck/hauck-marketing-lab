@@ -160,3 +160,16 @@ NOT verified: **anything in a browser.** You chose to skip component tests on th
 - [ ] **Note that busy hours only appear for clients who linked their own Google Calendar.** Willis has. The test account has not, so expect the line saying so rather than grey bands. A setter cannot link a calendar on a client's behalf today.
 - [ ] **Decide whether setters should be able to link a client's calendar.** Right now only the client can, because the connect flow redirects into the client app. Say the word if you want an admin-side version.
 - [ ] **Contact search is unproven against a real location.** It sends `query=` to the booking system's contacts endpoint, which nothing in the app had used before. If a search comes back empty for a contact you know exists, that parameter is the first suspect. Tell me and I will switch it.
+## Setter Suite: calling the lead from the client's number (shipped 2026-07-21)
+
+The lead's phone number in the Setter Suite cockpit used to be a normal phone link, so tapping it dialed from the setter's own handset and the lead saw a personal mobile number. It now opens that lead's contact record in the CRM in a new tab, where the built-in softphone dials from the client's business line and records the call automatically.
+
+It is two clicks, not one: our phone number, then the phone icon on the CRM page. That is not laziness, the CRM has no way to open its dialer already pointed at a number. Every richer option was researched and is impossible on the CRM's phone system: there is no API that places a call, there is no mobile deep-link scheme, and an embedded page cannot drive the dialer. A one-tap call needs a dialer we own, which you have ruled out.
+
+Verified: 1196 tests green, typecheck and build clean. NOT verified: anything in a browser, because admin is login-gated and I cannot mint a session.
+
+- [ ] **Click a lead in the Setter Suite and click its phone number.** Confirm a new tab opens on that lead's contact record in the CRM. This is the whole feature and I could not test it.
+- [ ] **Place one real call from that CRM page and confirm the client's business number shows on the receiving phone.** Call your own mobile. This is the entire point of the change, and it is the one thing that proves it worked.
+- [ ] **Click a second lead's number and confirm it reuses the same tab** rather than opening a new one. Deliberate, so a dialing session does not bury you in tabs.
+- [ ] **Make sure setters are logged into the CRM in their work browser once.** If they are not, that new tab lands on a login screen instead of the contact. There is no way for the app to fix this, it is a one-time setup step per setter.
+- [ ] **Decide whether you want outcomes to log themselves.** Right now a setter picks an outcome in the CRM at the end of a call, then types the same thing again into our Log This Call panel. The CRM can webhook that outcome to us so the second step disappears. It needs a live call captured first to learn the payload shape, so say the word and it becomes its own small build.
