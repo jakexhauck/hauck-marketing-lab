@@ -310,6 +310,24 @@ interface ContactsPage {
   meta?: { total?: number; nextPageUrl?: string };
 }
 
+// Single contact by id. Returns null when GHL has no such contact, so callers
+// can decide whether that is a 404 or simply an unjoinable row.
+export async function fetchContact(
+  ctx: GhlContext,
+  contactId: string,
+): Promise<GhlContactRecord | null> {
+  if (!contactId) return null;
+  try {
+    const data = await ghlJson<{ contact?: GhlContactRecord }>(
+      ctx,
+      `/contacts/${encodeURIComponent(contactId)}`,
+    );
+    return data.contact ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Paginated fetch of every contact for a location (id, source, tags, dates).
 // Shared by the Contacts surface and the Unified Inbox source join.
 export async function fetchAllContacts(

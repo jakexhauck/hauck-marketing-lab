@@ -15,6 +15,9 @@ import type { GhlContext } from "./ghl";
 export interface TenantGhlContext extends GhlContext {
   slug: string;
   mode: "live" | "test";
+  // Internal notification recipients for this client (0043). Carried here so
+  // the admin setter tools hide the same sinks the client app hides.
+  internal_recipients?: string;
 }
 
 const PLACEHOLDERS = new Set(["", "pending", "env"]);
@@ -57,7 +60,7 @@ export async function getGhlContextForTenant(
   if (!client) throw new TenantGhlError(503, "supabase_not_configured", "Client data is not available right now.");
   const { data, error } = await client
     .from("tenants")
-    .select("ghl_location_id, ghl_token, slug")
+    .select("ghl_location_id, ghl_token, slug, internal_recipients")
     .eq("id", tenantId)
     .maybeSingle();
 
@@ -72,5 +75,6 @@ export async function getGhlContextForTenant(
     locationId: data.ghl_location_id,
     slug,
     mode: slug === testTenantSlug(env) ? "test" : "live",
+    internal_recipients: data.internal_recipients ?? undefined,
   };
 }

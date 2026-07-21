@@ -45,10 +45,13 @@ export interface TenantRow {
   monthly_spend: number | null;
   // Manual per-client Website > Pages list (0028). jsonb; comes back parsed.
   website_pages: WebsitePageRow[] | null;
+  // Phones/emails that receive internal GHL notifications (0043). Their
+  // conversations are hidden from every surface. See functions/lib/internalRecipients.ts.
+  internal_recipients: string | null;
 }
 
 const TENANT_COLS =
-  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, ghl_token, meta_ad_account_id, google_place_id, ga4_property_id, owner_password_hash, monthly_spend, website_pages";
+  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, ghl_token, meta_ad_account_id, google_place_id, ga4_property_id, owner_password_hash, monthly_spend, website_pages, internal_recipients";
 
 // Normalize an admin-entered subdomain label: lowercase, hyphen-separated, the
 // charset valid in a DNS label. Shared by the admin create/update endpoints.

@@ -2,10 +2,12 @@ import type { Env, ApiData } from "../../../lib/env";
 import {
   ghlJson,
   fetchAllOpportunities,
+  fetchAllContacts,
   shapeOpportunity,
   type ApiLead,
   type GhlContext,
 } from "../../../lib/ghl";
+import { makeInternalConversationFilter } from "../../../lib/internalRecipients";
 import { readJsonBody } from "../../../lib/body";
 import { resolveStageByName, createOpportunity } from "../../lib/writes";
 import { classifySource, type LeadSource } from "./source";
@@ -106,11 +108,22 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   const leads: ApiSalesLead[] = [];
   if (sales) {
-    const opps = await fetchAllOpportunities(gctx, { pipelineId: sales.pipelineId });
+    // Roster fetched alongside so internal notification recipients never appear
+    // as leads or inflate the count. Degrades to an empty roster on failure.
+    const [opps, contacts] = await Promise.all([
+      fetchAllOpportunities(gctx, { pipelineId: sales.pipelineId }),
+      fetchAllContacts(gctx).catch(() => []),
+    ]);
+    const isInternalLead = makeInternalConversationFilter(
+      contacts,
+      t.internal_recipients,
+    );
     for (const o of opps) {
+      const shaped = shapeOpportunity(o);
+      if (isInternalLead(shaped)) continue;
       const stageName = sales.stageNames.get(o.pipelineStageId ?? "") ?? "";
       leads.push({
-        ...shapeOpportunity(o),
+        ...shaped,
         source: classifySource(o.source),
         status: statusForStage(stageName),
         stageName,

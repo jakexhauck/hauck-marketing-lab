@@ -1,7 +1,11 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { readJsonBody } from "../../../lib/body";
 import { ghlJson } from "../../../lib/ghl";
-import { sendChannelMessage, type SendInput } from "../../../lib/messaging";
+import {
+  sendChannelMessage,
+  isInternalContact,
+  type SendInput,
+} from "../../../lib/messaging";
 
 // Channel-aware send for the leads path: resolves the opportunity's contact,
 // then delegates to the same shared sender as the conversations route.
@@ -22,11 +26,13 @@ export const onRequestPost: PagesFunction<Env, "id", ApiData> = async (ctx) => {
     return Response.json({ error: "no_contact" }, { status: 400 });
   }
 
-  const result = await sendChannelMessage(
-    { token: t.ghl_token, locationId: t.ghl_location_id },
-    contactId,
-    input,
-  );
+  const gctx = { token: t.ghl_token, locationId: t.ghl_location_id };
+
+  if (await isInternalContact(gctx, contactId, t.internal_recipients)) {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  const result = await sendChannelMessage(gctx, contactId, input);
 
   if ("error" in result) {
     return Response.json(

@@ -1,5 +1,9 @@
 import type { Env, ApiData } from "../../../lib/env";
-import { channelMeta, fetchContactThread } from "../../../lib/messaging";
+import {
+  channelMeta,
+  fetchContactThread,
+  isInternalContact,
+} from "../../../lib/messaging";
 
 export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (
   ctx,
@@ -10,10 +14,15 @@ export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (
     return Response.json({ error: "missing_contact_id" }, { status: 400 });
   }
 
-  const thread = await fetchContactThread(
-    { token: t.ghl_token, locationId: t.ghl_location_id },
-    contactId,
-  );
+  const gctx = { token: t.ghl_token, locationId: t.ghl_location_id };
+
+  // 404 rather than an empty thread: a notification sink must not look like a
+  // real contact who happens to have no history.
+  if (await isInternalContact(gctx, contactId, t.internal_recipients)) {
+    return Response.json({ error: "not_found" }, { status: 404 });
+  }
+
+  const thread = await fetchContactThread(gctx, contactId);
 
   return Response.json({
     conversationId: thread.conversationId,

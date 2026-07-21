@@ -1,6 +1,12 @@
 import { tenantTimezone, type Env, type ApiData } from "../lib/env";
-import { fetchAllConversations, fetchAllOpportunities, ghlJson } from "../lib/ghl";
+import {
+  fetchAllConversations,
+  fetchAllContacts,
+  fetchAllOpportunities,
+  ghlJson,
+} from "../lib/ghl";
 import { startOfTodayMs } from "../lib/tz";
+import { makeInternalConversationFilter } from "../lib/internalRecipients";
 
 interface PipelinesResponse {
   pipelines: { id: string; name: string }[];
@@ -59,10 +65,20 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   let unreadConversations = 0;
   try {
     // Paginated across every conversation (shared helper), so the unread badge
-    // is not capped at the first 100 conversations.
-    const convs = await fetchAllConversations(gctx);
+    // is not capped at the first 100 conversations. The contact roster comes
+    // along only to identify internal notification sinks: their unread counts
+    // must not inflate the client's badge. It degrades to an empty roster on
+    // failure, which leaves the configured-recipient signal still working.
+    const [convs, contacts] = await Promise.all([
+      fetchAllConversations(gctx),
+      fetchAllContacts(gctx).catch(() => []),
+    ]);
+    const isInternalConversation = makeInternalConversationFilter(
+      contacts,
+      t.internal_recipients,
+    );
     unreadConversations = convs.reduce(
-      (sum, c) => sum + (c.unreadCount ?? 0),
+      (sum, c) => (isInternalConversation(c) ? sum : sum + (c.unreadCount ?? 0)),
       0,
     );
   } catch {

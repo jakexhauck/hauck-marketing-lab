@@ -1,6 +1,10 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { ghlJson } from "../../../lib/ghl";
-import { channelMeta, fetchContactThread } from "../../../lib/messaging";
+import {
+  channelMeta,
+  fetchContactThread,
+  isInternalContact,
+} from "../../../lib/messaging";
 
 export const onRequestGet: PagesFunction<Env, "id", ApiData> = async (ctx) => {
   const t = ctx.data.tenant;
@@ -15,10 +19,13 @@ export const onRequestGet: PagesFunction<Env, "id", ApiData> = async (ctx) => {
   const contactId = opp.opportunity.contact?.id ?? opp.opportunity.contactId;
   if (!contactId) return Response.json({ messages: [] });
 
-  const thread = await fetchContactThread(
-    { token: t.ghl_token, locationId: t.ghl_location_id },
-    contactId,
-  );
+  const gctx = { token: t.ghl_token, locationId: t.ghl_location_id };
+
+  if (await isInternalContact(gctx, contactId, t.internal_recipients)) {
+    return Response.json({ error: "not_found" }, { status: 404 });
+  }
+
+  const thread = await fetchContactThread(gctx, contactId);
 
   return Response.json({
     conversationId: thread.conversationId,

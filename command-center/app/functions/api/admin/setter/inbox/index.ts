@@ -1,5 +1,10 @@
 import type { Env, ApiData } from "../../../../lib/env";
-import { fetchAllConversations, type GhlConversation } from "../../../../lib/ghl";
+import {
+  fetchAllConversations,
+  fetchAllContacts,
+  type GhlConversation,
+} from "../../../../lib/ghl";
+import { makeInternalConversationFilter } from "../../../../lib/internalRecipients";
 import { normalizeMessageType } from "../../../../lib/messaging";
 import { getGhlContextForTenant, TenantGhlError } from "../../../../lib/tenantGhl";
 
@@ -178,9 +183,21 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   try {
     const pages = pagesNeeded(offset, limit, Boolean(q));
-    const convs = await fetchAllConversations(gctx, { maxPages: pages });
+    // The contact roster comes along only to identify internal notification
+    // sinks. Jake's call 2026-07-21: they are hidden everywhere, including the
+    // agency's own setter tools, not just the client app. Degrades to an empty
+    // roster on failure, leaving the configured-recipient signal working.
+    const [convs, contacts] = await Promise.all([
+      fetchAllConversations(gctx, { maxPages: pages }),
+      fetchAllContacts(gctx).catch(() => []),
+    ]);
+    const isInternalConversation = makeInternalConversationFilter(
+      contacts,
+      gctx.internal_recipients,
+    );
+    const visible = convs.filter((c) => !isInternalConversation(c));
     return Response.json(
-      pageThreads(convs, {
+      pageThreads(visible, {
         q,
         limit,
         offset,

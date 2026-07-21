@@ -79,6 +79,10 @@ export interface Env {
   // Key or property absent => the Website tabs show their not-connected state.
   GA4_SA_JSON?: string;
   GA4_PROPERTY_ID?: string;
+  // Single-tenant fallback for the per-client tenants.internal_recipients
+  // column (0043). Comma or newline separated phones/emails that receive
+  // internal GHL notifications; their conversations are hidden everywhere.
+  INTERNAL_RECIPIENTS?: string;
   KV_CACHE?: KVNamespace;
 }
 
@@ -118,6 +122,13 @@ export interface TenantContext {
   // Empty array => the Pages tab shows its "add your pages" state. See
   // functions/api/website/pages.ts.
   website_pages?: WebsitePageRow[];
+  // Phones/emails that receive internal GHL notifications, resolved from the
+  // tenant row with the INTERNAL_RECIPIENTS env var as the single-tenant
+  // fallback. Comma or newline separated. Conversations, threads, and lead rows
+  // belonging to these people are hidden from every surface in the app.
+  // Undefined => only the source='NOTIFICATION' signal applies, which still
+  // catches the sinks GHL auto-creates. See functions/lib/internalRecipients.ts.
+  internal_recipients?: string;
   // Supabase tenants.slug for this session, resolved from the session mode in
   // _middleware.ts. All Supabase-backed routes must scope by this, never by a
   // hardcoded slug, or test and live data bleed into each other.

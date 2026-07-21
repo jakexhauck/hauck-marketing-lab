@@ -11,6 +11,7 @@ import {
 } from "../../lib/opportunityIndex";
 import { classifyOrigin, normalizeChannel } from "../../lib/origin";
 import type { OriginKey, ChannelKey } from "../../lib/origin";
+import { makeInternalConversationFilter } from "../../lib/internalRecipients";
 
 export interface ConversationPipeline {
   pipelineId: string;
@@ -89,8 +90,15 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     }
   }
 
+  // Internal notification sinks are hidden from the client entirely.
+  const isInternalConversation = makeInternalConversationFilter(
+    contacts,
+    t.internal_recipients,
+  );
+
   const items = all
     .filter((c) => Boolean(c.contactId))
+    .filter((c) => !isInternalConversation(c))
     .map((c) => {
       const contact = byContact.get(c.contactId as string);
       const name = c.fullName || c.contactName || c.email || c.phone || "Unknown";

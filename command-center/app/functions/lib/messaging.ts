@@ -1,4 +1,24 @@
-import { ghlJson, type GhlContext } from "./ghl";
+import { ghlJson, fetchContact, type GhlContext } from "./ghl";
+import {
+  parseInternalRecipients,
+  isInternalRecipient,
+} from "./internalRecipients";
+
+// Guard for every per-contact thread endpoint. Resolves the contact and applies
+// the internal-recipient predicate, so a notification sink is never readable or
+// repliable even when its contact id is known.
+//
+// Fails open on a GHL lookup failure: fetchContact returns null, the predicate
+// says false, and a real lead's thread still loads. Hiding a real conversation
+// because GHL blipped would be the worse failure.
+export async function isInternalContact(
+  ctx: GhlContext,
+  contactId: string,
+  internalRecipients: string | undefined,
+): Promise<boolean> {
+  const contact = await fetchContact(ctx, contactId);
+  return isInternalRecipient(contact, parseInternalRecipients(internalRecipients));
+}
 
 // Channels GHL routes through /conversations/messages. SMS and the social/DM
 // channels send a plain `message`; Email sends `subject` + `html`.

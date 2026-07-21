@@ -7,6 +7,10 @@ import {
   type ThreadMessage,
 } from "../../../../lib/messaging";
 import { getGhlContextForTenant, TenantGhlError } from "../../../../lib/tenantGhl";
+import {
+  isInternalRecipient,
+  parseInternalRecipients,
+} from "../../../../lib/internalRecipients";
 import { getServiceClient } from "../../../../lib/supabase";
 import { logAdminAction } from "../../../../lib/adminAuth";
 
@@ -107,6 +111,16 @@ export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (ctx
     if (!res.ok) return Response.json({ error: "ghl_unavailable" }, { status: 502 });
     const data = (await res.json()) as GhlContactResponse;
     const c = data.contact ?? {};
+
+    // The contact is already in hand, so the sink check costs nothing here.
+    // Reported as not-found, matching the 404 above: an internal recipient is
+    // not a contact this tool works, in either the client app or the setter.
+    if (
+      isInternalRecipient(c, parseInternalRecipients(gctx.internal_recipients))
+    ) {
+      return Response.json({ error: "contact_not_found" }, { status: 404 });
+    }
+
     const name =
       c.contactName ||
       [c.firstName, c.lastName].filter(Boolean).join(" ").trim() ||
