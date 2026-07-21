@@ -4,10 +4,11 @@ import { Button } from "../../ui/Button";
 import { useCreateSetterTask } from "../../../hooks/useApi";
 import { useToast } from "../../../context/ToastContext";
 
-// Quick follow-up task prompt shown after the Follow Up cockpit action applies
-// its tag. Title is required (prefilled with the lead's name); the due date is
-// picked from three quick options, resolved to end-of-day local time. Writes to
-// the client's own CRM through the tenant-scoped setter task endpoint.
+// Follow-up task prompt shown after the Follow Up cockpit action applies its
+// tag. Title is required (prefilled with the lead's name); the setter picks the
+// exact follow-up date and time (quick presets fill the date; the time input
+// sets the hour). Writes to the client's own CRM through the tenant-scoped
+// setter task endpoint.
 
 interface Props {
   tenantId: string;
@@ -16,35 +17,37 @@ interface Props {
   onClose: () => void;
 }
 
-type Due = "today" | "tomorrow" | "week";
-
-const DUE_LABELS: Record<Due, string> = {
-  today: "Today",
-  tomorrow: "Tomorrow",
-  week: "Next week",
-};
-
-// End of the chosen day in the setter's local time, as an ISO string.
-function dueDateFor(due: Due): string {
+// A local date "YYYY-MM-DD" this many days from today (native date-input value).
+function localDateStr(offsetDays: number): string {
   const d = new Date();
-  const add = due === "today" ? 0 : due === "tomorrow" ? 1 : 7;
-  d.setDate(d.getDate() + add);
-  d.setHours(23, 59, 0, 0);
-  return d.toISOString();
+  d.setDate(d.getDate() + offsetDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
+
+const PRESETS: { label: string; offset: number }[] = [
+  { label: "Today", offset: 0 },
+  { label: "Tomorrow", offset: 1 },
+  { label: "Next week", offset: 7 },
+];
 
 export default function SetterTaskModal({ tenantId, contactId, leadName, onClose }: Props) {
   const { showToast } = useToast();
   const createTask = useCreateSetterTask();
   const [title, setTitle] = useState(`Follow up with ${leadName}`);
-  const [due, setDue] = useState<Due>("tomorrow");
+  const [date, setDate] = useState(() => localDateStr(1)); // tomorrow
+  const [time, setTime] = useState("09:00");
 
-  const canSave = title.trim().length > 0 && !createTask.isPending;
+  const canSave = title.trim().length > 0 && Boolean(date) && Boolean(time) && !createTask.isPending;
 
   const save = () => {
     if (!canSave) return;
+    // Combine the local date + time into an absolute instant for the CRM.
+    const dueDate = new Date(`${date}T${time}`).toISOString();
     createTask.mutate(
-      { tenantId, contactId, title: title.trim(), dueDate: dueDateFor(due) },
+      { tenantId, contactId, title: title.trim(), dueDate },
       {
         onSuccess: () => {
           showToast("Follow-up task added");
@@ -54,6 +57,9 @@ export default function SetterTaskModal({ tenantId, contactId, leadName, onClose
       },
     );
   };
+
+  const fieldCls =
+    "w-full rounded-[var(--radius)] border border-border bg-surface px-3 py-2 text-[14px] text-text outline-none placeholder:text-faint focus:border-brand/50";
 
   return (
     <div
@@ -70,7 +76,7 @@ export default function SetterTaskModal({ tenantId, contactId, leadName, onClose
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-[16px] font-semibold text-text">Add a follow-up task</h2>
-            <p className="mt-0.5 text-[12.5px] text-muted">Tagged for follow up. Set a reminder to circle back.</p>
+            <p className="mt-0.5 text-[12.5px] text-muted">Tagged for follow up. Set when to circle back.</p>
           </div>
           <button
             type="button"
@@ -92,29 +98,49 @@ export default function SetterTaskModal({ tenantId, contactId, leadName, onClose
               onKeyDown={(e) => {
                 if (e.key === "Enter") save();
               }}
-              className="w-full rounded-[var(--radius)] border border-border bg-surface px-3 py-2 text-[14px] text-text outline-none placeholder:text-faint focus:border-brand/50"
+              className={fieldCls}
             />
           </label>
 
           <div className="flex flex-col gap-1.5">
-            <span className="label-cap text-faint">Due</span>
+            <span className="label-cap text-faint">When to follow up</span>
             <div className="flex gap-2">
-              {(Object.keys(DUE_LABELS) as Due[]).map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDue(d)}
-                  aria-pressed={due === d}
-                  className={
-                    "flex-1 rounded-[var(--radius)] border px-3 py-2 text-[13px] font-medium transition-colors " +
-                    (due === d
-                      ? "border-brand bg-brand-tint text-brand-text"
-                      : "border-border bg-surface text-muted hover:bg-surface-2")
-                  }
-                >
-                  {DUE_LABELS[d]}
-                </button>
-              ))}
+              {PRESETS.map((p) => {
+                const on = date === localDateStr(p.offset);
+                return (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => setDate(localDateStr(p.offset))}
+                    aria-pressed={on}
+                    className={
+                      "flex-1 rounded-[var(--radius)] border px-3 py-1.5 text-[12.5px] font-medium transition-colors " +
+                      (on
+                        ? "border-brand bg-brand-tint text-brand-text"
+                        : "border-border bg-surface text-muted hover:bg-surface-2")
+                    }
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-1 flex gap-2">
+              <input
+                type="date"
+                value={date}
+                min={localDateStr(0)}
+                onChange={(e) => setDate(e.target.value)}
+                aria-label="Follow-up date"
+                className={fieldCls + " flex-[1.4]"}
+              />
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                aria-label="Follow-up time"
+                className={fieldCls + " flex-1"}
+              />
             </div>
           </div>
         </div>

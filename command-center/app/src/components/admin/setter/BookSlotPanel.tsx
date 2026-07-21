@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { CalendarClock, Loader2, Search, TriangleAlert, X } from "lucide-react";
+import BookedConfirmation from "./BookedConfirmation";
 import {
   useSetterCalendarsQuery,
   useSetterSlotsQuery,
@@ -22,6 +23,11 @@ interface Props {
   slot: SetterSlot | null;
   onClose: () => void;
   onBooked: () => void;
+  // When the panel is opened from the cockpit's Book appointment button, the
+  // contact and calendar (appointment type) are already chosen; seed them so
+  // the setter only has to pick a time. Absent for a manual grid-click open.
+  initialContact?: ApiSetterContact | null;
+  initialCalendarId?: string;
 }
 
 const DAYS_AHEAD = 14;
@@ -63,13 +69,23 @@ function errorCodeOf(err: unknown): string | null {
 // Booking is terminal. functions/api/admin/setter/book.ts does not retry,
 // because a retry double-books a real customer, so Confirm is disabled the
 // instant the mutation is in flight.
-export function BookSlotPanel({ tenantId, slot, onClose, onBooked }: Props) {
+export function BookSlotPanel({
+  tenantId,
+  slot,
+  onClose,
+  onBooked,
+  initialContact,
+  initialCalendarId,
+}: Props) {
   const [calendarId, setCalendarId] = useState("");
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [contact, setContact] = useState<ApiSetterContact | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  // Set to the booked start time to raise the post-booking confirmation, but
+  // only for a home-estimate booking (see confirm()); other types close plain.
+  const [bookedIso, setBookedIso] = useState<string | null>(null);
 
   const open = slot !== null;
   const timed = hasPickedTime(slot);
@@ -94,13 +110,19 @@ export function BookSlotPanel({ tenantId, slot, onClose, onBooked }: Props) {
   }, [soleCalendarId]);
 
   // Reset per opening. Not per render: the panel stays mounted across a
-  // close/reopen in SetterCalendar.
+  // close/reopen in SetterCalendar. When opened from the cockpit, seed the
+  // contact and calendar so only the time is left to pick; a manual grid open
+  // passes neither and starts blank (and keeps the sole-calendar auto-select
+  // below, since calendarId is only overwritten when a seed is supplied).
   useEffect(() => {
-    setContact(null);
+    setContact(initialContact ?? null);
+    if (initialCalendarId) setCalendarId(initialCalendarId);
     setSearch("");
     setDebounced("");
     setPicked(null);
     setSelectedDate(null);
+    setBookedIso(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slotKey]);
 
   // Debounced so a typing setter does not fire a live CRM contact search per
@@ -186,15 +208,21 @@ export function BookSlotPanel({ tenantId, slot, onClose, onBooked }: Props) {
       endTime = computeSlotEnd(picked, DEFAULT_DURATION);
     }
 
+    // The groupchat reminder is only for home estimates. Detect that off the
+    // chosen calendar's name (the appointment type); every other type just
+    // closes the panel normally on success.
+    const isHomeEstimate = /estimate/i.test(chosenCalendar?.name ?? "");
+
     bookMutation.mutate(
       { tenantId, calendarId, contactId: contact.id, startTime, endTime, title: `Estimate for ${contact.name}` },
-      { onSuccess: () => onBooked() },
+      { onSuccess: () => (isHomeEstimate ? setBookedIso(startTime) : onBooked()) },
     );
   };
 
   if (!slot) return null;
 
   return (
+    <>
     <aside
       role="dialog"
       aria-label="Book this slot"
@@ -462,6 +490,17 @@ export function BookSlotPanel({ tenantId, slot, onClose, onBooked }: Props) {
         </button>
       </div>
     </aside>
+
+    {bookedIso && (
+      <BookedConfirmation
+        whenIso={bookedIso}
+        onExit={() => {
+          setBookedIso(null);
+          onBooked();
+        }}
+      />
+    )}
+    </>
   );
 }
 
