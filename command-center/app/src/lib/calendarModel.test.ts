@@ -7,13 +7,14 @@ import {
   minutesToLabel,
   packDayColumns,
   busyToItem,
+  appointmentToItem,
   splitBusy,
   CALENDAR_SOURCE_META,
   CALENDAR_SOURCE_ORDER,
   type CalendarItem,
   type CalendarSource,
 } from "./calendarModel";
-import type { Job } from "./jobsPipeline";
+import { toIso, type Job } from "./jobsPipeline";
 
 const baseJob: Job = {
   id: "j6",
@@ -264,14 +265,115 @@ describe("packDayColumns", () => {
 
 describe("CALENDAR_SOURCE_ORDER", () => {
   it("still carries exactly two sales streams, and they come first", () => {
-    // The surface is the client's sales work. Busy is background context from
-    // their own linked calendar, not a third stream of work, so it must never
-    // grow this list and must never outrank real jobs.
-    expect(CALENDAR_SOURCE_ORDER.filter((s) => s !== "busy")).toEqual(["estimate", "job"]);
+    // The surface is the client's sales work. Neither busy nor appointment is
+    // a stream of that work: busy is background context from the client's own
+    // linked calendar, and appointment belongs to the Setter Suite. Neither
+    // may outrank a real estimate or job.
+    expect(
+      CALENDAR_SOURCE_ORDER.filter((s) => s !== "busy" && s !== "appointment"),
+    ).toEqual(["estimate", "job"]);
   });
 
   it("puts busy last", () => {
-    expect(CALENDAR_SOURCE_ORDER).toEqual(["estimate", "job", "busy"]);
+    expect(CALENDAR_SOURCE_ORDER).toEqual([
+      "estimate",
+      "job",
+      "appointment",
+      "busy",
+    ]);
+  });
+
+  it("orders appointment ahead of busy so blocks sit above bands", () => {
+    expect(CALENDAR_SOURCE_ORDER.indexOf("appointment")).toBeLessThan(
+      CALENDAR_SOURCE_ORDER.indexOf("busy"),
+    );
+  });
+});
+
+describe("appointmentToItem", () => {
+  it("maps a booked GHL appointment onto a timed calendar item", () => {
+    const item = appointmentToItem({
+      id: "e1",
+      title: "Estimate",
+      startTime: "2026-07-24T13:00:00.000Z",
+      endTime: "2026-07-24T14:00:00.000Z",
+      status: "confirmed",
+      contactId: "k1",
+      contactName: "Tom Beckett",
+    });
+    expect(item.id).toBe("appointment:e1");
+    expect(item.source).toBe("appointment");
+    // The contact is the useful headline for a setter, not the calendar name.
+    expect(item.title).toBe("Tom Beckett");
+    expect(item.subtitle).toBe("Estimate");
+    expect(item.contactId).toBe("k1");
+    expect(item.status).toBe("confirmed");
+    expect(item.endMinutes! - item.startMinutes!).toBe(60);
+  });
+
+  it("falls back to the event title when the contact has no name", () => {
+    const item = appointmentToItem({
+      id: "e2",
+      title: "Phone consultation",
+      startTime: "2026-07-24T09:00:00.000Z",
+      endTime: "2026-07-24T09:30:00.000Z",
+      status: "booked",
+      contactId: "",
+      contactName: "",
+    });
+    expect(item.title).toBe("Phone consultation");
+    expect(item.subtitle).toBe("");
+  });
+
+  it("survives an appointment with no times rather than throwing", () => {
+    const item = appointmentToItem({
+      id: "e3",
+      title: "Broken",
+      startTime: null,
+      endTime: null,
+      status: "booked",
+      contactId: "",
+      contactName: "",
+    });
+    expect(item.startMinutes).toBeNull();
+    expect(item.endMinutes).toBeNull();
+    expect(item.date).toBe("");
+  });
+
+  it("dates the item by local wall clock, matching the minutes it reports", () => {
+    // Regression guard: the date and the minutes must come off the same local
+    // Date, or an evening UTC timestamp lands on the wrong day column.
+    const iso = "2026-07-24T13:00:00.000Z";
+    const item = appointmentToItem({
+      id: "e4",
+      title: "Estimate",
+      startTime: iso,
+      endTime: null,
+      status: "booked",
+      contactId: "",
+      contactName: "",
+    });
+    expect(item.date).toBe(toIso(new Date(iso)));
+    expect(item.timeLabel).toBe(minutesToLabel(item.startMinutes!));
+  });
+
+  it("is filterable and has display metadata like any other source", () => {
+    expect(CALENDAR_SOURCE_META.appointment.label).toBe("Appointment");
+    const items = [
+      jobToItem(baseJob),
+      appointmentToItem({
+        id: "e5",
+        title: "Estimate",
+        startTime: "2026-07-24T13:00:00.000Z",
+        endTime: null,
+        status: "booked",
+        contactId: "",
+        contactName: "",
+      }),
+    ];
+    const shown = filterBySources(items, new Set<CalendarSource>(["appointment"]));
+    expect(shown).toHaveLength(1);
+    expect(shown[0].source).toBe("appointment");
   });
 });
 

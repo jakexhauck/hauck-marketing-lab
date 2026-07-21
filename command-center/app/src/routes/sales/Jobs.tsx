@@ -161,6 +161,9 @@ export default function Jobs() {
     () => ({
       estimate: calendarItems.some((i) => i.source === "estimate"),
       job: calendarItems.some((i) => i.source === "job"),
+      // The client Jobs tab shows pipeline work, never raw GHL appointments.
+      // That stream belongs to the Setter Suite calendar.
+      appointment: false,
       busy: busyQuery.data?.connected ?? false,
     }),
     [calendarItems, busyQuery.data],

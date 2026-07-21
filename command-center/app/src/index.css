@@ -227,6 +227,11 @@ body {
      band, still quiet enough to sit behind the client's own work. */
   --source-busy: #64748b;
   --source-busy-tint: color-mix(in srgb, #64748b 24%, transparent);
+  /* Booked appointments on the Setter Suite calendar. Brand indigo: unlike
+     busy, which is time taken, an appointment is the thing the setter is
+     working towards, so it earns the accent. */
+  --source-appointment: var(--brand);
+  --source-appointment-tint: color-mix(in srgb, var(--brand) 18%, transparent);
 
   --shadow-sm: 0 1px 2px rgba(20, 22, 31, 0.04), 0 1px 3px rgba(20, 22, 31, 0.05);
   --shadow-md: 0 6px 18px rgba(40, 42, 70, 0.07), 0 2px 6px rgba(40, 42, 70, 0.05);
@@ -276,6 +281,10 @@ body {
   --source-job-tint: color-mix(in srgb, #4ade80 18%, transparent);
   --source-busy: #94a3b8;
   --source-busy-tint: color-mix(in srgb, #94a3b8 26%, transparent);
+  /* Booked appointments, tuned for dark: the accent lifts off the darker
+     surface and the tint carries further, same as the other sources here. */
+  --source-appointment: var(--brand-text);
+  --source-appointment-tint: color-mix(in srgb, var(--brand) 26%, transparent);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.34);
   --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.34);

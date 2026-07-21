@@ -1,10 +1,10 @@
-import { type Job, jobKind, isoToLocalDate } from "./jobsPipeline";
+import { type Job, jobKind, isoToLocalDate, toIso } from "./jobsPipeline";
 
 // One event on the Jobs calendar, whatever stream it came from. Every view
 // (month/week/agenda) reads only this shape, so a new stream is just a new
 // mapper plus a source entry, never a change to the views. This surface carries
 // the sales work only: scheduled estimates and booked/completed jobs.
-export type CalendarSource = "estimate" | "job" | "busy";
+export type CalendarSource = "estimate" | "job" | "busy" | "appointment";
 
 export interface CalendarItem {
   id: string; // "<source>:<rawId>", unique across streams
@@ -43,6 +43,12 @@ export const CALENDAR_SOURCE_META: Record<
     varName: "--source-job",
     tintVar: "--source-job-tint",
   },
+  appointment: {
+    label: "Appointment",
+    plural: "Appointments",
+    varName: "--source-appointment",
+    tintVar: "--source-appointment-tint",
+  },
   busy: {
     label: "Busy",
     plural: "Busy",
@@ -52,9 +58,11 @@ export const CALENDAR_SOURCE_META: Record<
 };
 
 // Busy sorts last: it is background context, not the client's own work.
+// Appointment sits just ahead of it so booked blocks render above busy bands.
 export const CALENDAR_SOURCE_ORDER: CalendarSource[] = [
   "estimate",
   "job",
+  "appointment",
   "busy",
 ];
 
@@ -121,6 +129,52 @@ export function busyToItem(b: { start: string; end: string }, index: number): Ca
     location: "",
     meetingUrl: "",
     contactId: "",
+  };
+}
+
+// A booked GHL appointment. Written for the Setter Suite Calendar tab, where
+// the person matters more than the calendar the booking landed on, so the
+// contact name is the headline and the event title drops to the subtitle.
+//
+// Unlike busy, these timestamps are real instants with an offset, not wall
+// clock literals, so they go through Date and are read in the viewer's own
+// zone. toIso (from jobsPipeline) is the same local-date derivation the rest
+// of this surface uses, so the day column and the minutes agree.
+export interface ApiSetterEventLike {
+  id: string;
+  title: string;
+  startTime: string | null;
+  endTime: string | null;
+  status: string;
+  contactId: string;
+  contactName: string;
+}
+
+export function appointmentToItem(e: ApiSetterEventLike): CalendarItem {
+  const start = e.startTime ? new Date(e.startTime) : null;
+  const end = e.endTime ? new Date(e.endTime) : null;
+  const validStart = start !== null && !Number.isNaN(start.getTime());
+  const validEnd = end !== null && !Number.isNaN(end.getTime());
+
+  const startMinutes = validStart ? start.getHours() * 60 + start.getMinutes() : null;
+  const endMinutes = validEnd ? end.getHours() * 60 + end.getMinutes() : null;
+
+  const named = (e.contactName ?? "").trim();
+
+  return {
+    id: `appointment:${e.id}`,
+    source: "appointment",
+    title: named || e.title,
+    subtitle: named ? e.title : "",
+    date: validStart ? toIso(start) : "",
+    startMinutes,
+    endMinutes,
+    timeLabel: startMinutes === null ? "" : minutesToLabel(startMinutes),
+    status: e.status,
+    amount: null,
+    location: "",
+    meetingUrl: "",
+    contactId: e.contactId,
   };
 }
 
