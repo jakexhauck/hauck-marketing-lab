@@ -967,6 +967,19 @@ export interface ApiSetterEvent {
   contactName: string;
 }
 
+// The events response, which is deliberately more than a bare list. One of the
+// client's calendars failing no longer rejects the whole request, so the grid
+// can render partially. `incomplete` is how a caller learns that happened, and
+// it MUST be surfaced: this tab writes, and a setter reading a partial grid as
+// complete can book a customer on top of an appointment they were never shown.
+// `failedCalendars` is a count rather than ids, because a raw GHL calendar id
+// means nothing to a setter.
+export interface ApiSetterEventsResponse {
+  events: ApiSetterEvent[];
+  incomplete: boolean;
+  failedCalendars: number;
+}
+
 // A client's Google Calendar busy hours, from
 // functions/api/admin/setter/busy.ts. Availability only: no titles, no
 // attendees. `connected` is what separates "linked, nothing busy" from "never

@@ -51,7 +51,7 @@ import {
   type ApiSetterLeadDetail,
   type ApiSetterDial,
   type ApiSetterCalendar,
-  type ApiSetterEvent,
+  type ApiSetterEventsResponse,
   type ApiSetterBusy,
   type ApiSetterContact,
   type ApiSetterInboxResponse,
@@ -706,7 +706,7 @@ export function useSetterEventsQuery(
     enabled: enabled && !!tenantId && !!startIso && !!endIso,
     staleTime: 30_000,
     queryFn: () =>
-      api<{ events: ApiSetterEvent[] }>(
+      api<ApiSetterEventsResponse>(
         `/api/admin/setter/events?tenantId=${encodeURIComponent(tenantId)}&start=${encodeURIComponent(startIso)}&end=${encodeURIComponent(endIso)}`,
       ),
   });

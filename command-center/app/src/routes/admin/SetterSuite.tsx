@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutGrid, MessagesSquare } from "lucide-react";
+import { CalendarDays, LayoutGrid, MessagesSquare } from "lucide-react";
 import {
   useAdminClientsQuery,
   useSetterPipelinesQuery,
@@ -9,15 +9,17 @@ import { useNow } from "../../context/NowContext";
 import SetterBoard from "../../components/admin/setter/SetterBoard";
 import SetterCockpit from "../../components/admin/setter/SetterCockpit";
 import SetterInbox from "../../components/admin/setter/SetterInbox";
+import SetterCalendar from "../../components/admin/setter/SetterCalendar";
 import type { ApiSetterLead } from "../../lib/api";
 
 // Board = the pipelines and the cockpit. Inbox = the client's whole
-// conversation list, readable and replyable.
-type SetterView = "board" | "inbox";
+// conversation list, readable and replyable. Calendar = what is already booked,
+// plus the client's Google busy hours, with booking straight off the grid.
+type SetterView = "board" | "inbox" | "calendar";
 const SETTER_VIEW_KEY = "hml_setter_view";
 
 function isSetterView(v: string | null | undefined): v is SetterView {
-  return v === "board" || v === "inbox";
+  return v === "board" || v === "inbox" || v === "calendar";
 }
 
 function initialSetterView(): SetterView {
@@ -150,10 +152,28 @@ export default function SetterSuite() {
               <MessagesSquare size={15} aria-hidden />
               Inbox
             </button>
+            <button
+              type="button"
+              className={`pk-tab${view === "calendar" ? " on" : ""}`}
+              onClick={() => selectView("calendar")}
+              aria-current={view === "calendar" ? "page" : undefined}
+            >
+              <CalendarDays size={15} aria-hidden />
+              Calendar
+            </button>
           </nav>
 
           {view === "inbox" ? (
             <SetterInbox
+              key={activeTenantId}
+              tenantId={activeTenantId}
+              clientName={activeClient.name}
+            />
+          ) : view === "calendar" ? (
+            // Keyed on the tenant so switching client resets the view state and
+            // any half-open booking panel, rather than carrying one client's
+            // slot selection onto another client's calendar.
+            <SetterCalendar
               key={activeTenantId}
               tenantId={activeTenantId}
               clientName={activeClient.name}
