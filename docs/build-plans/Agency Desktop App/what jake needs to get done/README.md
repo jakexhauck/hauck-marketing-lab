@@ -92,3 +92,42 @@ Verified: 964 tests green, typecheck and build clean, migration `0040_setter_dia
 - [ ] **Decide on the per-tenant timezone column.** Booking slots currently resolve from one global timezone. Harmless today (Willis and the test account are both Detroit) but wrong the day you onboard outside Michigan. Note your GHL has Willis set to `America/Cancun`, so reading the timezone from GHL would make it worse, not better. Needs a migration when you want it.
 - [ ] **Tell me what to change in the UI.** You said you wanted to iterate before pointing it at Willis. Known rough edges I would fix first: the tag picker only offers tags this contact has already had rather than the client's full 49-tag list, and the rate strip counts only the active pipeline rather than the whole client.
 - [ ] **Before Willis goes on it: Willis still runs the OLD 6-pipeline structure.** The Suite is built for the new 8. That is either a GHL migration on Willis or a per-client mapping layer in the app. Your call which.
+
+## SOP Hub, backed by Google Drive (shipped 2026-07-21, `main` `f43bb39`)
+
+Your SOPs now come live from Drive. `/admin/pillar/operations?tab=sops`. Each
+subfolder of `SOPs Templates` is a category, each Google Doc is an SOP page, the
+`3. ` number prefix sets the order, and a `1. X.mp4` next to a `1.1 X.gdoc`
+attaches that video to that SOP. Sheets, PDFs and images show as attachments
+linking out to Drive.
+
+Writing an SOP is now writing a Google Doc. No deploy, no editor to learn,
+nothing to copy into the app. Edit a Doc and the hub picks it up on next open.
+
+Deleted the 125 Local Ads School entries in `sopData.ts`. Every one had the same
+placeholder body ("Step-by-step SOP to be written from the video"), none had
+written steps, and nothing imported the file. Their Loom links went with them.
+
+Verified: 1017 tests green (40 new on the two risky pure modules, plus 11 pinned
+to your real filenames), typecheck and build clean, migration `0041_sop_doc_cache`
+applied live, all three endpoints 401 on prod, SOP code confirmed in the served
+bundle. NOT verified: the actual Drive read, because nothing is connected yet.
+
+- [ ] **Connect Google Drive. This is the blocker and nothing works without it.**
+      Signed in as admin, open `https://app.hauckmarketing.com/api/admin/assets/oauth/start`
+      directly in the address bar. There is no button: the old `/admin/assets`
+      page was removed when the admin became pillar tabs. Consent lands you back
+      on the SOPs tab.
+- [ ] **Consent as `contact.jakehauck@gmail.com`.** That account owns the SOPs
+      folder. Picking `jdhauckmonetization@gmail.com` gives a 403 and an empty
+      hub. The tab will tell you if you pick wrong.
+- [ ] **Then eyeball one SOP end to end.** Open `7. Facebook Pixel SOP` and check
+      it reads like a document: headings, bold, lists, working links. Google's
+      HTML export is messy and the sanitizer is the piece most likely to need a
+      second pass on a Doc I have not seen. If it looks flat or broken, tell me
+      which Doc.
+- [ ] **Decide on `EXAMPLE CLIENT FOLDER`.** Excluded by name as empty
+      scaffolding. Say if you want it visible.
+- [ ] **Optional: fix the "Fullfillment" spelling in Drive.** The app reads folder
+      names verbatim, so the typo shows in the UI. Renaming the folder fixes it
+      with no code change.
