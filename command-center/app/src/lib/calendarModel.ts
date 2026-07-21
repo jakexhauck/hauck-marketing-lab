@@ -236,8 +236,10 @@ export interface PlacedItem {
   cols: number;
 }
 
-// Default slot length (minutes) for an item with no explicit end.
-const DEFAULT_DURATION = 60;
+// Default slot length (minutes) for an item with no explicit end. Exported so
+// the Setter Suite booking panel books the same length the grid draws for an
+// open-ended item, rather than carrying a second literal that can drift.
+export const DEFAULT_DURATION = 60;
 
 // Pack a day's timed items into lanes: items whose [start,end) overlap share a
 // cluster and each gets its own lane; the cluster's width is its max concurrency.
