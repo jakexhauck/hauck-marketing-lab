@@ -118,7 +118,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const themeLabel = isLight ? "Switch to dark mode" : "Switch to light mode";
 
   return (
-    <div className="pk-kit flex min-h-dvh bg-bg text-text">
+    // Desktop (lg+): lock the frame to the available height (h-full resolves
+    // against .app-shell, so it already excludes any app-wide banner) and clip
+    // it. The rail and the content column each fill that fixed height; the
+    // content column owns the scroll. That keeps the rail perfectly still on
+    // every page, rather than relying on a sticky rail whose sticky travel
+    // collapses to zero once its flex parent is shrunk to one viewport. This
+    // mirrors Shell.tsx exactly. Below lg the phone keeps its document scroll.
+    <div className="pk-kit flex min-h-dvh bg-bg text-text lg:h-full lg:min-h-0 lg:overflow-hidden">
       {/* PillarStyle carries the Modern Motion theme + the shared pk-* styles,
           mounted once for the whole admin. The spine styles live in the block
           below, also scoped to .pk-kit. */}
@@ -189,7 +196,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* On lg this column fills the locked frame and is the single scroll
+          container. Admin pages remount per route, so it starts at the top on
+          navigation without needing ScrollToTop. */}
+      <div className="flex min-w-0 flex-1 flex-col lg:h-full lg:min-h-0 lg:overflow-y-auto">
         {/* Phone top bar (below lg): brand, theme + sign out, then scrollable nav. */}
         <header className="sticky top-0 z-20 border-b border-border bg-surface/85 backdrop-blur-xl lg:hidden">
           <div className="flex items-center gap-3 px-4 py-3">
@@ -264,7 +274,7 @@ function AdminSpineStyle() {
   return (
     <style>{`
       .pk-kit .adm-rail {
-        position: sticky; top: 0; height: 100dvh; width: 244px; flex-shrink: 0;
+        height: 100%; width: 244px; flex-shrink: 0;
         flex-direction: column; padding: 0 0 0 0;
         background: rgba(255,255,255,0.60);
         backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
