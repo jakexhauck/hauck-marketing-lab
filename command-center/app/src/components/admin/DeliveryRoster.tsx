@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useAdminClientsQuery } from "../../hooks/useApi";
 import { formatMoney } from "../../lib/format";
 import { filterRoster } from "../../lib/deliveryRoster";
@@ -34,6 +34,17 @@ export default function DeliveryRoster({ selectedTenantId }: { selectedTenantId?
             aria-label="Search clients"
           />
         </label>
+
+        {/* The only way into the onboarding wizard. The admin spine is
+            deliberately five pillar icons, so a new client starts from the
+            roster, which is where you already are when you think about one. */}
+        <Link
+          to="/admin/clients/new"
+          className="mt-2.5 flex items-center justify-center gap-1.5 rounded-[var(--radius)] border border-dashed border-[var(--border-strong)] px-3 py-2 text-[13px] font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--brand)] hover:bg-[var(--surface-2)] hover:text-[var(--brand-text)]"
+        >
+          <Plus size={14} aria-hidden />
+          New client
+        </Link>
       </div>
 
       <div className="pk-roster-list">

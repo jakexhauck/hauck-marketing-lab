@@ -57,6 +57,7 @@ import ReactivationData from "./routes/reactivation/ReactivationData";
 import GroupOutreachOverview from "./routes/groups/GroupOutreachOverview";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
+import AdminClientNew from "./routes/admin/AdminClientNew";
 import AdminCommand from "./routes/admin/AdminCommand";
 import AdminDelivery from "./routes/admin/AdminDelivery";
 import DeliveryCockpit from "./routes/admin/DeliveryCockpit";
@@ -526,6 +527,16 @@ export default function App() {
                   list route redirects to Command; client detail pages stay
                   (reused as the cockpit Config tab). */}
               <Route path="/admin/clients" element={<Navigate to="/admin" replace />} />
+              {/* Declared above /admin/clients/:id or React Router hands "new"
+                  to the detail page as a tenant id. */}
+              <Route
+                path="/admin/clients/new"
+                element={
+                  <AdminRoute>
+                    <AdminClientNew />
+                  </AdminRoute>
+                }
+              />
               <Route
                 path="/admin/clients/:id"
                 element={
