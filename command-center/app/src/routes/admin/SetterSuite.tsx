@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarDays, LayoutGrid, MessagesSquare } from "lucide-react";
+import { CalendarDays, LayoutGrid, MessagesSquare, Phone } from "lucide-react";
 import {
   useAdminClientsQuery,
   useSetterPipelinesQuery,
@@ -10,20 +10,23 @@ import SetterBoard from "../../components/admin/setter/SetterBoard";
 import SetterCockpit from "../../components/admin/setter/SetterCockpit";
 import SetterInbox from "../../components/admin/setter/SetterInbox";
 import SetterCalendar from "../../components/admin/setter/SetterCalendar";
+import DialingHub from "../../components/admin/setter/DialingHub";
 import type { ApiSetterLead } from "../../lib/api";
 
 // Pipeline = the pipelines and the cockpit. Inbox = the client's whole
 // conversation list, readable and replyable. Calendar = what is already booked,
 // plus the client's Google busy hours, with booking straight off the grid.
+// Dialing Hub = that client's editable dialing reference (script, booking
+// links, CRM tags, SOP), which used to be a Google Sheet kept open alongside.
 //
 // The Pipeline tab's stored value is still "board". Renaming it would reject
 // every setter's persisted hml_setter_view and silently reset their tab, which
 // is not worth it for a label change.
-type SetterView = "board" | "inbox" | "calendar";
+type SetterView = "board" | "inbox" | "calendar" | "dialhub";
 const SETTER_VIEW_KEY = "hml_setter_view";
 
 function isSetterView(v: string | null | undefined): v is SetterView {
-  return v === "board" || v === "inbox" || v === "calendar";
+  return v === "board" || v === "inbox" || v === "calendar" || v === "dialhub";
 }
 
 function initialSetterView(): SetterView {
@@ -169,6 +172,15 @@ export default function SetterSuite() {
               <CalendarDays size={15} aria-hidden />
               Calendar
             </button>
+            <button
+              type="button"
+              className={`pk-tab${view === "dialhub" ? " on" : ""}`}
+              onClick={() => selectView("dialhub")}
+              aria-current={view === "dialhub" ? "page" : undefined}
+            >
+              <Phone size={15} aria-hidden />
+              Dialing Hub
+            </button>
           </nav>
 
           {view === "inbox" ? (
@@ -182,6 +194,15 @@ export default function SetterSuite() {
             // any half-open booking panel, rather than carrying one client's
             // slot selection onto another client's calendar.
             <SetterCalendar
+              key={activeTenantId}
+              tenantId={activeTenantId}
+              clientName={activeClient.name}
+            />
+          ) : view === "dialhub" ? (
+            // Keyed on the tenant for the same reason, and for one more: an
+            // unsaved edit is flushed on unmount, so remounting per client is
+            // what guarantees one client's typing never lands on another.
+            <DialingHub
               key={activeTenantId}
               tenantId={activeTenantId}
               clientName={activeClient.name}

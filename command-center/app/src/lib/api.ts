@@ -712,6 +712,37 @@ export async function saveBusinessHealth(
   });
 }
 
+// The Setter Suite Dialing Hub: one editable reference document per client.
+// The shape lives with the pure edit operations in ./dialHubModel so the
+// editor and the wire agree on one definition.
+import type { DialHub as ApiDialHubShape } from "./dialHubModel";
+
+export type ApiDialHub = ApiDialHubShape;
+
+export interface DialHubResponse {
+  hub: ApiDialHub;
+  updatedAt: string | null;
+}
+
+export async function getSetterDialHub(tenantId: string): Promise<DialHubResponse> {
+  return api<DialHubResponse>(
+    `/api/admin/setter/dial-hub?tenantId=${encodeURIComponent(tenantId)}`,
+  );
+}
+
+// Writes the WHOLE document, not a field patch: the admin edits the structure
+// itself (adds rows, deletes sections), so there is no stable field set to
+// diff against.
+export async function saveSetterDialHub(
+  tenantId: string,
+  hub: ApiDialHub,
+): Promise<DialHubResponse> {
+  return api<DialHubResponse>("/api/admin/setter/dial-hub", {
+    method: "PATCH",
+    body: JSON.stringify({ tenantId, hub }),
+  });
+}
+
 // The task status union lives with the pure coupling helpers so the client
 // hook and the endpoints validate against one source.
 import type { TaskStatus } from "./taskStatus";

@@ -17,7 +17,7 @@ vi.mock("../../../lib/tenantGhl", async () => {
   return { ...actual, getGhlContextForTenant: vi.fn() };
 });
 
-const GCTX = { token: "tok_tenant_own", locationId: "loc_tenant_own" };
+const GCTX = { token: "tok_tenant_own", locationId: "loc_tenant_own", slug: "test-client", mode: "live" as const };
 
 function req(query: string): Parameters<typeof onRequestGet>[0] {
   return {

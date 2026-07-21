@@ -12,7 +12,7 @@ vi.mock("../../../lib/tenantGhl", async () => {
   return { ...actual, getGhlContextForTenant: vi.fn() };
 });
 
-const GCTX = { token: "tok_tenant_own", locationId: "loc_tenant_own" };
+const GCTX = { token: "tok_tenant_own", locationId: "loc_tenant_own", slug: "test-client", mode: "live" as const };
 
 function req(query: string): Parameters<typeof onRequestGet>[0] {
   return {
@@ -95,6 +95,8 @@ describe("GET /api/admin/setter/pipelines", () => {
     vi.mocked(getGhlContextForTenant).mockResolvedValue({
       token: "tok_other",
       locationId: "loc_second_client",
+      slug: "second-client",
+      mode: "live",
     });
     vi.mocked(ghlJson).mockResolvedValue({ pipelines: [] });
     const res = await onRequestGet(req("?tenantId=t2"));

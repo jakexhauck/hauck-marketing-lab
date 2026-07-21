@@ -16,7 +16,7 @@ vi.mock("../../../lib/tenantGhl", async () => {
   return { ...actual, getGhlContextForTenant: vi.fn() };
 });
 
-const GCTX = { token: "tok_tenant_own", locationId: "loc_tenant_own" };
+const GCTX = { token: "tok_tenant_own", locationId: "loc_tenant_own", slug: "test-client", mode: "live" as const };
 const RANGE = "&start=2026-07-20T00:00:00Z&end=2026-07-27T00:00:00Z";
 
 const EV = {

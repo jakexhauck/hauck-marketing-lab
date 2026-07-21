@@ -2,6 +2,16 @@
 
 Action items that require Jake (config, credentials, dashboard clicks) and cannot be self-served by the builder.
 
+## Setter Suite: Dialing Hub tab (shipped + live 2026-07-21)
+
+`/admin/setter` has a fourth tab, **Dialing Hub**: the dialing reference sheet, per client, editable in place with autosave. Sections, row labels and row values are all editable, rows and sections can be added or deleted. A value that is an http/https URL gets an open button, anything else gets a copy button. A client that has never been edited opens on the seed template transcribed from your sheet.
+
+- [ ] **Eyeball it and fill in the links.** Admin is login-gated and I cannot mint a session, so this tab has never been rendered by anyone. Open `/admin/setter`, pick Willis, click **Dialing Hub**. The six link rows (script, three calendars, confirming-appointments form, company info sheet, full dialing SOP) all ship EMPTY on purpose, since they are per client and a wrong link is worse than a missing one. Paste the real ones in.
+- [ ] **Check the six tag values are still current.** They ship pre-filled from your sheet: `services-unqualified`, `mentorship-follow-up`, and `no answer day 1` through `day 4`. If any of those tags have been renamed in the CRM, fix them here, because a setter will be copying them straight across.
+- [ ] **Confirm the sheet can be retired.** Once the links are in and the tags check out, the Google Sheet is redundant. Worth saying so to the setters explicitly, or they will keep using the stale copy.
+
+Not built, on purpose: drag-to-reorder rows, and filling the hub during new-client onboarding (you parked that one, it is blocked behind onboarding having no persistence for its answers at all).
+
 ## Client Modern Motion rebrand (shipped + live 2026-06-26)
 
 - [ ] **Set Willis's tenant brand color to indigo.** The Modern Motion rebrand is live, but the in-app brand HUE is read at runtime from Willis's Supabase tenant row (`brandColor`), not from CSS. The login screen and all structure (glass, gradient, motion, mono, dark mode) are already indigo, but once Willis's team signs in, the solid brand accent will be whatever their tenant row says. If it is not indigo, the solid brand and the fixed indigo-to-violet gradient can mismatch.

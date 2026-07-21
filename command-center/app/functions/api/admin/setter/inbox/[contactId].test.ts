@@ -31,7 +31,7 @@ import { getServiceClient } from "../../../../lib/supabase";
 import { logAdminAction } from "../../../../lib/adminAuth";
 import { onRequestGet, onRequestPost, shapeMessages } from "./[contactId]";
 
-const GCTX = { token: "tok_tenant_real", locationId: "loc_tenant_real" };
+const GCTX = { token: "tok_tenant_real", locationId: "loc_tenant_real", slug: "test-client", mode: "live" as const };
 const FAKE_CLIENT = { from: vi.fn() } as unknown as ReturnType<typeof getServiceClient>;
 
 function contactResponse(status: number, body: unknown = {}): Response {

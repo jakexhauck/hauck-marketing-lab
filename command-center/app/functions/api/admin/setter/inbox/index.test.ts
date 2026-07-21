@@ -31,7 +31,7 @@ import {
   MAX_LIMIT,
 } from "./index";
 
-const GCTX = { token: "tok_tenant_real", locationId: "loc_tenant_real" };
+const GCTX = { token: "tok_tenant_real", locationId: "loc_tenant_real", slug: "test-client", mode: "live" as const };
 
 function conv(over: Partial<GhlConversation> = {}): GhlConversation {
   return {

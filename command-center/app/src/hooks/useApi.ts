@@ -14,6 +14,9 @@ import {
   getScalingCalculator,
   saveScalingCalculator,
   getTimeAuditWeek,
+  getSetterDialHub,
+  saveSetterDialHub,
+  type ApiDialHub,
   tagTimeAuditBlock,
   type TimeAuditTagBody,
   type TimeAuditWeekResponse,
@@ -619,6 +622,40 @@ export function useSetterCalendarsQuery(tenantId: string, enabled = true) {
       api<{ calendars: ApiSetterCalendar[] }>(
         `/api/admin/setter/calendars?tenantId=${encodeURIComponent(tenantId)}`,
       ),
+  });
+}
+
+// The selected client's Dialing Hub document (GET
+// /api/admin/setter/dial-hub). Never 404s: a client that has never been
+// edited comes back as the seed template, so the tab has no "not set up yet"
+// state to render.
+export function useSetterDialHubQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "setter", "dial-hub", tenantId],
+    enabled: enabled && !!tenantId,
+    staleTime: 60_000,
+    queryFn: () => getSetterDialHub(tenantId),
+  });
+}
+
+// Autosave for one client's hub. The response seeds the cache directly instead
+// of invalidating it: an invalidation refetches, and the refetch would land
+// under the field the admin is still typing in and snap it back.
+//
+// SCOPED, and it has to be. Every PATCH writes the WHOLE document, so two in
+// flight at once is last-response-wins on the server. Tabbing between fields
+// fires a save per blur, milliseconds apart: unscoped, React Query runs them in
+// parallel, an earlier PATCH carrying the older document can commit second, and
+// the newer field is silently dropped while the indicator still reads "Saved".
+// A shared scope id serializes them into a queue instead.
+export function useSaveSetterDialHubMutation(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    scope: { id: `setter-dial-hub-${tenantId}` },
+    mutationFn: (v: { tenantId: string; hub: ApiDialHub }) => saveSetterDialHub(v.tenantId, v.hub),
+    onSuccess: (res, v) => {
+      qc.setQueryData(["admin", "setter", "dial-hub", v.tenantId], res);
+    },
   });
 }
 
