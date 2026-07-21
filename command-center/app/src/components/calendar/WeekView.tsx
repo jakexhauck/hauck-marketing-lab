@@ -3,6 +3,7 @@ import {
   type CalendarItem,
   CALENDAR_SOURCE_META,
   layoutWeek,
+  minutesToLabel,
   packDayColumns,
   splitBusy,
 } from "../../lib/calendarModel";
@@ -20,6 +21,18 @@ const HOURS = Array.from(
 );
 const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const GRID_COLS = "52px repeat(7, 1fr)";
+
+// Bookable granularity for the optional empty-slot layer. Thirty minutes
+// matches the shortest appointment GHL calendars are configured for.
+const SLOT_MIN = 30;
+// 07:00 to 19:00 in 30-minute steps is 24 slots per day column.
+export const SLOT_COUNT = (DAY_END_MIN - DAY_START_MIN) / SLOT_MIN;
+
+// Minutes past midnight at which slot `index` starts. Slot 0 is 07:00, slot 1
+// is 07:30, and so on up to slot 23 at 18:30.
+export function slotStartMinutes(index: number): number {
+  return DAY_START_MIN + index * SLOT_MIN;
+}
 
 function weekIsos(anchorIso: string): string[] {
   const d = isoToLocalDate(anchorIso);
@@ -42,10 +55,15 @@ export function WeekView({
   items,
   anchorIso,
   todayIso,
+  onSlotClick,
 }: {
   items: CalendarItem[];
   anchorIso: string;
   todayIso: string;
+  // Setter Suite only. When absent, no slot layer renders at all and this
+  // component behaves exactly as it does on the client Jobs tab, which is
+  // read-only and must stay that way.
+  onSlotClick?: (iso: string, startMinutes: number) => void;
 }) {
   const isos = useMemo(() => weekIsos(anchorIso), [anchorIso]);
   const cols = useMemo(() => layoutWeek(items, isos), [items, isos]);
@@ -141,6 +159,34 @@ export function WeekView({
                   style={{ top: (min - DAY_START_MIN) * PPM }}
                 />
               ))}
+              {/* Optional empty-slot layer. Sits after the hour lines but
+                  before the busy bands and item blocks on purpose, so a real
+                  appointment is never covered by an invisible button. The busy
+                  bands are pointer-events-none, so they do not swallow a click
+                  on a free stretch behind them; item blocks are not, so they
+                  correctly win over the slot underneath. */}
+              {onSlotClick
+                ? Array.from({ length: SLOT_COUNT }, (_, i) => {
+                    const min = slotStartMinutes(i);
+                    return (
+                      <button
+                        key={min}
+                        type="button"
+                        onClick={() => onSlotClick(col.iso, min)}
+                        aria-label={`Book ${WD[isoToLocalDate(col.iso).getDay()]} ${minutesToLabel(min)}`}
+                        className="group absolute inset-x-0 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+                        style={{
+                          top: (min - DAY_START_MIN) * PPM,
+                          height: SLOT_MIN * PPM,
+                        }}
+                      >
+                        <span className="pointer-events-none rounded border border-dashed border-[var(--brand)] bg-surface px-2 text-[10px] font-semibold text-[var(--brand)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                          + Book
+                        </span>
+                      </button>
+                    );
+                  })
+                : null}
               {/* Busy time from the client's own linked calendar: a full-width
                   band behind the day. Rendered before the blocks and excluded
                   from lane packing, so a booked-up personal calendar shades the

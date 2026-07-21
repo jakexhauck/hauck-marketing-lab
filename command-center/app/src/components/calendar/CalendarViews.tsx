@@ -26,6 +26,7 @@ export default function CalendarViews({
   connected,
   view,
   onRangeChange,
+  onSlotClick,
 }: {
   items: CalendarItem[];
   connected: Record<CalendarSource, boolean>;
@@ -34,6 +35,9 @@ export default function CalendarViews({
   // This component still never fetches: the host decides what, if anything, to
   // load for the visible range.
   onRangeChange?: (startIso: string, endIso: string) => void;
+  // Setter Suite only. Passed straight to WeekView; when absent the week grid
+  // renders no slot layer and stays read-only, as the client Jobs tab needs.
+  onSlotClick?: (iso: string, startMinutes: number) => void;
 }) {
   const demo = demoMode();
 
@@ -166,7 +170,12 @@ export default function CalendarViews({
           <AgendaView items={visible} todayIso={todayIso} />
         </div>
       ) : view === "week" ? (
-        <WeekView items={visible} anchorIso={anchor} todayIso={todayIso} />
+        <WeekView
+          items={visible}
+          anchorIso={anchor}
+          todayIso={todayIso}
+          onSlotClick={onSlotClick}
+        />
       ) : (
         <MonthView
           items={visible}
