@@ -12,9 +12,13 @@ import SetterInbox from "../../components/admin/setter/SetterInbox";
 import SetterCalendar from "../../components/admin/setter/SetterCalendar";
 import type { ApiSetterLead } from "../../lib/api";
 
-// Board = the pipelines and the cockpit. Inbox = the client's whole
+// Pipeline = the pipelines and the cockpit. Inbox = the client's whole
 // conversation list, readable and replyable. Calendar = what is already booked,
 // plus the client's Google busy hours, with booking straight off the grid.
+//
+// The Pipeline tab's stored value is still "board". Renaming it would reject
+// every setter's persisted hml_setter_view and silently reset their tab, which
+// is not worth it for a label change.
 type SetterView = "board" | "inbox" | "calendar";
 const SETTER_VIEW_KEY = "hml_setter_view";
 
@@ -38,9 +42,9 @@ function initialSetterView(): SetterView {
 // the real stage columns underneath, and a docked cockpit (dial logging,
 // tags, booking) on the right whenever a card is selected.
 //
-// The client picker sits ABOVE the Board/Inbox switcher on purpose: one client
-// selection drives both tabs, so the inbox can never be showing one client
-// while the board shows another. Switching client keeps whichever tab is open.
+// The client picker sits ABOVE the tab switcher on purpose: one client
+// selection drives all three tabs, so the inbox can never be showing one client
+// while the pipeline shows another. Switching client keeps the open tab.
 export default function SetterSuite() {
   const clientsQuery = useAdminClientsQuery(true);
   const clients = clientsQuery.data?.clients ?? [];
@@ -59,9 +63,9 @@ export default function SetterSuite() {
     }
   };
 
-  // Board data is only fetched while the Board tab is open. These are live CRM
-  // calls per client; a setter reading the inbox has no use for them and should
-  // not be paying for them.
+  // Pipeline data is only fetched while the Pipeline tab is open. These are live
+  // CRM calls per client; a setter reading the inbox or the calendar has no use
+  // for them and should not be paying for them.
   const boardEnabled = view === "board" && !!activeTenantId;
 
   const pipelinesQuery = useSetterPipelinesQuery(activeTenantId ?? "", boardEnabled);
@@ -134,8 +138,9 @@ export default function SetterSuite() {
         <div className="pk-empty">No clients yet.</div>
       ) : !activeTenantId || !activeClient ? null : (
         <>
-          {/* Board / Inbox. Sits BELOW the client picker, so one client drives
-              both and switching client never changes which tab you are on. */}
+          {/* Pipeline / Inbox / Calendar. Sits BELOW the client picker, so one
+              client drives all three and switching client never changes which
+              tab you are on. */}
           <nav className="pk-tabs" aria-label="Setter view">
             <button
               type="button"
@@ -144,7 +149,7 @@ export default function SetterSuite() {
               aria-current={view === "board" ? "page" : undefined}
             >
               <LayoutGrid size={15} aria-hidden />
-              Board
+              Pipeline
             </button>
             <button
               type="button"
