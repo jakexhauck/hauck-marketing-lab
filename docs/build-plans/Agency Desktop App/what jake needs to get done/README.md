@@ -145,3 +145,18 @@ Verified: 1107 tests green, typecheck and build clean. Three independent reviewe
 - [ ] **Read the notice at the top of `/admin/audit`.** It says the log names an ACCOUNT, not a person. Because there are no per-setter logins yet, a message sent by a hired setter will show your name. Decide whether you want per-setter accounts before you actually hire, because the log cannot be corrected after the fact.
 - [ ] **Know the inbox limits.** It reads the 1000 most recent conversations. Beyond that the list and the search both say so plainly rather than pretending to be complete, but a very old conversation will only be findable by search, and past 1000 not at all. Tell me if you hit that ceiling in real use and I will add a proper server-side search.
 - [ ] **Decide about the other six channels.** The composer offers SMS and email only. The booking system also supports Facebook, Instagram, Google, WhatsApp and live chat, but those only deliver if the customer already has an open conversation on that network, so sending blind would silently fail. Say the word if you want them.
+
+## Setter Suite: the Calendar tab (shipped 2026-07-21)
+
+The Setter Suite now has a third tab: **Calendar**. It shows the selected client's booked appointments as blocks and their Google Calendar busy hours as grey bands, on a week grid. A setter books by clicking any empty stretch, or with the Book button, then searching an existing contact by name or phone.
+
+Verified: 1276 tests green, typecheck and build clean, all three new endpoints return 401 unauthenticated both locally and live. Live bundle `index-0uzXMu5X.js` carries the new copy.
+
+NOT verified: **anything in a browser.** You chose to skip component tests on this build, and admin is login-gated so I cannot mint a session. That means the booking path has never been executed by anyone, by a test or a human.
+
+- [ ] **Do the first booking yourself, on the test account, before any setter touches this.** Open `/admin/setter`, pick Calendar, click an empty slot, search a contact, confirm. Then check it landed in the booking system at the right time. This is the highest-risk item on the list: it is a write path to a real calendar that has never been run.
+- [ ] **Check the time is right, not just that it booked.** The slot maths converts a local wall-clock time to UTC. If the appointment lands an hour out, tell me immediately and say whether the client was on daylight saving that week.
+- [ ] **Watch for a yellow warning line above the grid.** It appears if one of the client's calendars failed to load, and it means the grid is missing appointments. Do not offer a time while that line is showing. If you see it, tell me which client.
+- [ ] **Note that busy hours only appear for clients who linked their own Google Calendar.** Willis has. The test account has not, so expect the line saying so rather than grey bands. A setter cannot link a calendar on a client's behalf today.
+- [ ] **Decide whether setters should be able to link a client's calendar.** Right now only the client can, because the connect flow redirects into the client app. Say the word if you want an admin-side version.
+- [ ] **Contact search is unproven against a real location.** It sends `query=` to the booking system's contacts endpoint, which nothing in the app had used before. If a search comes back empty for a contact you know exists, that parameter is the first suspect. Tell me and I will switch it.
