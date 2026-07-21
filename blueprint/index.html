@@ -344,7 +344,7 @@ const NODES = [
   { id:'hub', kind:'hub', ic:'🛰️', label:'Command Center', tag:'one app, three faces',
     lead:'One responsive app on Cloudflare. Same data, three faces: Admin (you), Desktop and Mobile. Every request passes one auth gate, then fans out to the API functions.',
     processes:[
-      {g:'Surfaces', items:['Admin Console','Desktop Dashboard','Mobile / PWA']},
+      {g:'Surfaces', items:['Admin Console','Setter Suite (our dialers work leads)','Desktop Dashboard','Mobile / PWA']},
       {g:'Auth gate', items:['Session cookie','Tenant scope','Permissions','Read-only preview']},
       {g:'API functions', items:['Auth','CRM','Admin','Push','Notifications','Webhook']},
     ], gaps:['sessions'], secrets:['SESSION_SECRET'], note:'Open the Processes tab for the full breakdown of every function.' },
@@ -364,11 +364,11 @@ const NODES = [
     processes:[
       {g:'Pipeline / deals', items:['List opportunities','Create lead','Lead detail','Move stage','Won / lost','Set value','Note on win']},
       {g:'Conversations', items:['List threads','Read thread','Send: SMS·Email·FB·IG·GMB·WhatsApp·LiveChat','SMS shortcut']},
-      {g:'Contacts', items:['List','Enrich: phone·email·tags·fields']},
+      {g:'Contacts', items:['List','Enrich: phone·email·tags·fields','Add / remove tags (Setter Suite; tags drive the automations)']},
       {g:'Tasks', items:['List','Create (due today)','Complete']},
       {g:'Notes', items:['List','Create']},
       {g:'Pipelines', items:['Stages + positions (cache 5m)']},
-      {g:'Calendar', items:['Discover calendars','Events by range (cache 5m)']},
+      {g:'Calendar', items:['Discover calendars','Events by range (cache 5m)','Free slots + book appointment (Setter Suite)']},
       {g:'Billing', items:['Invoices: list + detail','Payment transactions']},
       {g:'Team', items:['List GHL users','Provision user on staff add','Sync team → staff (manual)']},
       {g:'Attribution', items:['Custom-field map (cache 1h)','UTM extraction']},
