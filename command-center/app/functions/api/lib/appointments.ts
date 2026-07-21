@@ -208,24 +208,48 @@ interface RawEvent {
   contactName?: string;
 }
 
+// The events plus the calendars that could not be read. The second half is not
+// optional bookkeeping: the Setter Suite Calendar tab is a WRITE surface, and a
+// grid missing one calendar's appointments but presented as complete is how a
+// setter offers a slot that is already taken. functions/api/calendar/events.ts
+// swallows the same failure silently, which is fine there because that route is
+// read-only; here the caller has to be able to tell the setter.
+export interface CalendarEventsResult {
+  events: CalendarEvent[];
+  failedCalendarIds: string[];
+}
+
 // [startMs, endMs] are epoch milliseconds, not ISO: the GHL events route
 // rejects ISO on startTime/endTime. Callers holding ISO strings parse first.
+//
+// One calendar 4xxing does not reject the whole promise (that blanked the tab
+// on a 502); its id is collected into failedCalendarIds instead. The calendar
+// LIST failing still throws: there is nothing to be partial about, and the
+// caller cannot tell a client with no calendars from a CRM outage.
 export async function listCalendarEvents(
   gctx: GhlContext,
   startMs: number,
   endMs: number,
-): Promise<CalendarEvent[]> {
+): Promise<CalendarEventsResult> {
   const calendars = await listCalendars(gctx);
-  if (calendars.length === 0) return [];
+  if (calendars.length === 0) return { events: [], failedCalendarIds: [] };
 
   const byId = new Map<string, CalendarEvent>();
+  const failedCalendarIds: string[] = [];
   for (const cal of calendars) {
-    const data = await ghlJson<{ events?: RawEvent[] }>(
-      gctx,
-      `/calendars/events?locationId=${encodeURIComponent(gctx.locationId)}` +
-        `&calendarId=${encodeURIComponent(cal.id)}` +
-        `&startTime=${startMs}&endTime=${endMs}`,
-    );
+    let data: { events?: RawEvent[] };
+    try {
+      data = await ghlJson<{ events?: RawEvent[] }>(
+        gctx,
+        `/calendars/events?locationId=${encodeURIComponent(gctx.locationId)}` +
+          `&calendarId=${encodeURIComponent(cal.id)}` +
+          `&startTime=${startMs}&endTime=${endMs}`,
+      );
+    } catch (e) {
+      console.warn(`[appointments.listCalendarEvents] calendar ${cal.id}`, e);
+      failedCalendarIds.push(cal.id);
+      continue;
+    }
     for (const ev of data.events ?? []) {
       // The same appointment can surface on more than one calendar, so first
       // sighting wins and later duplicates are ignored.
@@ -243,9 +267,10 @@ export async function listCalendarEvents(
     }
   }
 
-  return [...byId.values()].sort((a, b) =>
+  const events = [...byId.values()].sort((a, b) =>
     (a.startTime ?? "").localeCompare(b.startTime ?? ""),
   );
+  return { events, failedCalendarIds };
 }
 
 // Reschedule an existing appointment. Confirmed shape (Willis live test):

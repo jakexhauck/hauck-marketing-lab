@@ -20,13 +20,21 @@ import { listCalendarEvents } from "../../lib/appointments";
 // week. An unnamed contact comes back with an empty contactName and the UI
 // falls back to the event title.
 //
-// Response is { events } and nothing else. The client route also returns a
-// timezone, taken from the first calendar that declares one, because it
-// renders times for someone sitting in that timezone. Nothing downstream here
-// consumes it: appointmentToItem maps startTime through the browser's own
-// clock, and the booking panel takes its timezone from ./slots, which uses the
-// env-level tenantTimezone. Returning a second, differently-sourced timezone
-// that no caller reads would just be a field to get out of sync.
+// Response is { events, incomplete, failedCalendars }. The last two exist
+// because this tab BOOKS: if one calendar 4xxs, listCalendarEvents carries on
+// so the tab is not blanked, and a grid quietly missing that calendar's
+// appointments is exactly how a setter offers a slot a customer already has.
+// `incomplete` is the boolean the warning banner renders off; `failedCalendars`
+// is a COUNT, not the ids, because a raw GHL calendar id means nothing to a
+// setter and there is no reason to put internal ids on the wire.
+//
+// The client route also returns a timezone, taken from the first calendar that
+// declares one, because it renders times for someone sitting in that timezone.
+// Nothing downstream here consumes it: appointmentToItem maps startTime through
+// the browser's own clock, and the booking panel takes its timezone from
+// ./slots, which uses the env-level tenantTimezone. Returning a second,
+// differently-sourced timezone that no caller reads would just be a field to
+// get out of sync.
 
 // A setter changing week must not be able to fan out an unbounded number of
 // GHL calls per active calendar, so the window is capped. Two months sits
@@ -79,15 +87,22 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   try {
     const gctx = await getGhlContextForTenant(ctx.env, tenantId);
-    const events = await listCalendarEvents(gctx, startMs, endMs);
-    return Response.json({ events });
+    const { events, failedCalendarIds } = await listCalendarEvents(gctx, startMs, endMs);
+    // A partial read stays a 200 with whatever did load: 502ing here would
+    // blank the tab, which is the failure this shape exists to avoid. The
+    // honesty lives in the flag, not the status code.
+    return Response.json({
+      events,
+      incomplete: failedCalendarIds.length > 0,
+      failedCalendars: failedCalendarIds.length,
+    });
   } catch (e) {
     if (e instanceof TenantGhlError) {
       return Response.json({ error: e.code }, { status: e.status });
     }
-    // ghlJson throws a plain Error carrying the status and body text, so the
-    // CRM failure is surfaced as a 502 rather than a 500 the setter cannot
-    // act on.
+    // Only a TOTAL failure reaches here now (the calendar list itself). ghlJson
+    // throws a plain Error carrying the status and body text, so the CRM
+    // failure is surfaced as a 502 rather than a 500 the setter cannot act on.
     const body = e instanceof Error ? e.message : String(e);
     return Response.json({ error: "ghl_error", body }, { status: 502 });
   }

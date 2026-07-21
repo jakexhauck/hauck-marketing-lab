@@ -58,7 +58,7 @@ describe("listCalendarEvents", () => {
       events: (id) => (id === "c1" ? { events: [E1] } : { events: [E1, E2] }),
     });
 
-    const events = await listCalendarEvents(
+    const { events, failedCalendarIds } = await listCalendarEvents(
       GCTX,
       Date.parse("2026-07-20T00:00:00Z"),
       Date.parse("2026-07-27T00:00:00Z"),
@@ -66,12 +66,13 @@ describe("listCalendarEvents", () => {
 
     expect(events.map((e) => e.id)).toEqual(["e2", "e1"]);
     expect(events[1].contactName).toBe("Tom Beckett");
+    expect(failedCalendarIds).toEqual([]);
   });
 
-  it("returns an empty array when the client has no active calendars", async () => {
+  it("returns an empty result when the client has no active calendars", async () => {
     routeGhl({ calendars: { calendars: [] } });
-    const events = await listCalendarEvents(GCTX, 0, 1);
-    expect(events).toEqual([]);
+    const result = await listCalendarEvents(GCTX, 0, 1);
+    expect(result).toEqual({ events: [], failedCalendarIds: [] });
     // The calendar list is the only call: no window is ever queried.
     expect(vi.mocked(ghlJson)).toHaveBeenCalledTimes(1);
   });
@@ -86,7 +87,7 @@ describe("listCalendarEvents", () => {
       },
       events: (id) => (id === "c1" ? { events: [E1] } : { events: [E2] }),
     });
-    const events = await listCalendarEvents(GCTX, 0, 1);
+    const { events } = await listCalendarEvents(GCTX, 0, 1);
     expect(events.map((e) => e.id)).toEqual(["e1"]);
   });
 
@@ -107,7 +108,9 @@ describe("listCalendarEvents", () => {
       calendars: { calendars: [{ id: "c1" }] },
       events: () => ({ events: [{ _id: "e9", startTime: "2026-07-24T10:00:00Z" }] }),
     });
-    const [ev] = await listCalendarEvents(GCTX, 0, 1);
+    const {
+      events: [ev],
+    } = await listCalendarEvents(GCTX, 0, 1);
     expect(ev).toEqual({
       id: "e9",
       title: "Appointment",
@@ -126,7 +129,9 @@ describe("listCalendarEvents", () => {
         events: [{ id: "e1", appointmentStatus: "Confirmed", status: "booked" }],
       }),
     });
-    const [ev] = await listCalendarEvents(GCTX, 0, 1);
+    const {
+      events: [ev],
+    } = await listCalendarEvents(GCTX, 0, 1);
     expect(ev.status).toBe("confirmed");
   });
 
@@ -135,7 +140,7 @@ describe("listCalendarEvents", () => {
       calendars: { calendars: [{ id: "c1" }] },
       events: () => ({ events: [{ title: "Ghost" }, E1] }),
     });
-    const events = await listCalendarEvents(GCTX, 0, 1);
+    const { events } = await listCalendarEvents(GCTX, 0, 1);
     expect(events.map((e) => e.id)).toEqual(["e1"]);
   });
 
@@ -154,6 +159,127 @@ describe("listCalendarEvents", () => {
 
   it("tolerates a response with no events key at all", async () => {
     routeGhl({ calendars: { calendars: [{ id: "c1" }] }, events: () => ({}) });
-    await expect(listCalendarEvents(GCTX, 0, 1)).resolves.toEqual([]);
+    await expect(listCalendarEvents(GCTX, 0, 1)).resolves.toEqual({
+      events: [],
+      failedCalendarIds: [],
+    });
+  });
+});
+
+// One calendar 4xxing used to reject the whole promise, so the setter's
+// Calendar tab went blank on a 502. Carrying on is only half the fix: this
+// surface BOOKS, so a partial grid silently presented as complete is how a
+// setter double-books a customer on top of a real appointment. The failed ids
+// come back with the events so the caller can say so.
+describe("listCalendarEvents partial failure", () => {
+  // Same router as above, but a handler may throw the way ghlJson does on a
+  // non-2xx: a plain Error carrying the status and body.
+  function routeGhlThrowing(handlers: {
+    calendars: unknown;
+    events: (calendarId: string) => unknown;
+  }) {
+    vi.mocked(ghlJson).mockImplementation(async (_ctx, path: string) => {
+      if (path.startsWith("/calendars/events")) {
+        const id = new URLSearchParams(path.split("?")[1] ?? "").get("calendarId") ?? "";
+        return handlers.events(id) as never;
+      }
+      return handlers.calendars as never;
+    });
+  }
+
+  it("keeps the events of the calendars that did answer when one 4xxs", async () => {
+    routeGhlThrowing({
+      calendars: {
+        calendars: [
+          { id: "cBad", isActive: true },
+          { id: "cGood", isActive: true },
+        ],
+      },
+      events: (id) => {
+        if (id === "cBad") throw new Error("GHL 422 /calendars/events");
+        return { events: [E1, E2] };
+      },
+    });
+
+    const { events } = await listCalendarEvents(GCTX, 0, 1);
+    expect(events.map((e) => e.id)).toEqual(["e2", "e1"]);
+  });
+
+  it("reports the calendar it could not read, so the caller can flag the grid", async () => {
+    routeGhlThrowing({
+      calendars: {
+        calendars: [
+          { id: "cBad", isActive: true },
+          { id: "cGood", isActive: true },
+        ],
+      },
+      events: (id) => {
+        if (id === "cBad") throw new Error("GHL 422 /calendars/events");
+        return { events: [E1] };
+      },
+    });
+
+    const { failedCalendarIds } = await listCalendarEvents(GCTX, 0, 1);
+    expect(failedCalendarIds).toEqual(["cBad"]);
+  });
+
+  it("reports every failed calendar, not just the first", async () => {
+    routeGhlThrowing({
+      calendars: {
+        calendars: [
+          { id: "cBad1", isActive: true },
+          { id: "cGood", isActive: true },
+          { id: "cBad2", isActive: true },
+        ],
+      },
+      events: (id) => {
+        if (id.startsWith("cBad")) throw new Error("GHL 404 /calendars/events");
+        return { events: [E1] };
+      },
+    });
+
+    const { events, failedCalendarIds } = await listCalendarEvents(GCTX, 0, 1);
+    expect(failedCalendarIds).toEqual(["cBad1", "cBad2"]);
+    expect(events.map((e) => e.id)).toEqual(["e1"]);
+  });
+
+  it("warns with the failed calendar id, matching how the client route logs", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    routeGhlThrowing({
+      calendars: { calendars: [{ id: "cBad", isActive: true }] },
+      events: () => {
+        throw new Error("GHL 422 /calendars/events");
+      },
+    });
+
+    await listCalendarEvents(GCTX, 0, 1);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain("cBad");
+    warn.mockRestore();
+  });
+
+  // Every calendar failing is NOT "this client has no bookings". The caller has
+  // to be able to tell those apart, or an empty grid reads as a free week.
+  it("still reports the failures when no calendar answered at all", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    routeGhlThrowing({
+      calendars: { calendars: [{ id: "cBad", isActive: true }] },
+      events: () => {
+        throw new Error("GHL 500 /calendars/events");
+      },
+    });
+
+    const { events, failedCalendarIds } = await listCalendarEvents(GCTX, 0, 1);
+    expect(events).toEqual([]);
+    expect(failedCalendarIds).toEqual(["cBad"]);
+    vi.mocked(console.warn).mockRestore?.();
+  });
+
+  // The calendar LIST failing is different: there is nothing to be partial
+  // about, and the caller cannot distinguish a client with no calendars from a
+  // CRM outage. That still throws, so the route can 502.
+  it("rethrows when the calendar list itself fails", async () => {
+    vi.mocked(ghlJson).mockRejectedValue(new Error("GHL 401 /calendars/"));
+    await expect(listCalendarEvents(GCTX, 0, 1)).rejects.toThrow("GHL 401");
   });
 });
