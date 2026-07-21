@@ -3,6 +3,7 @@ import Avatar from "../../Avatar";
 import DialLogger from "./DialLogger";
 import TagField from "./TagField";
 import SlotPicker from "./SlotPicker";
+import StageActions from "./StageActions";
 import { Button } from "../../ui/Button";
 import { useSetterLeadDetailQuery } from "../../../hooks/useApi";
 import { useNow } from "../../../context/NowContext";
@@ -10,6 +11,7 @@ import { formatPhone } from "../../../lib/phone";
 import { timeAgo } from "../../../lib/timeAgo";
 import { formatOutcome, ghlContactUrl } from "../../../lib/setterModel";
 import { isOptimisticDial } from "../../../lib/setterCockpit";
+import { stageActionsFor } from "../../../lib/setterStageActions";
 import type { ApiSetterLead } from "../../../lib/api";
 
 interface Props {
@@ -82,6 +84,10 @@ export default function SetterCockpit({
   // contact id). One check, so the header never has to re-test the inputs.
   const crmUrl = ghlContactUrl(locationId ?? "", lead.contactId);
 
+  // A stage with its own dialing panel renders that instead of the default
+  // cockpit sections. Null for every stage we have not built out yet.
+  const stageConfig = stageActionsFor(lead.stageName);
+
   return (
     <aside
       className="flex w-full shrink-0 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)] lg:w-[380px] lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)]"
@@ -146,8 +152,22 @@ export default function SetterCockpit({
       </div>
 
       {/* Body: everything below scrolls on its own, the board above/behind
-          it keeps whatever scroll position it was at. */}
+          it keeps whatever scroll position it was at.
+
+          A stage configured in setterStageActions.ts renders its own
+          purpose-built dialing panel and nothing else. Every other stage keeps
+          the original cockpit (log call, tags, book, history) until we build
+          out that stage. */}
       <div className="min-h-0 flex-1 overflow-y-auto">
+        {stageConfig ? (
+          <StageActions
+            tenantId={tenantId}
+            contactId={lead.contactId}
+            leadName={name}
+            config={stageConfig}
+          />
+        ) : (
+          <>
         <Section title="Log this call">
           <DialLogger tenantId={tenantId} pipelineId={pipelineId} pipelineName={pipelineName} lead={lead} />
         </Section>
@@ -226,6 +246,8 @@ export default function SetterCockpit({
             </ul>
           )}
         </Section>
+          </>
+        )}
       </div>
     </aside>
   );
