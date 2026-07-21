@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { CalendarClock, Loader2, TriangleAlert } from "lucide-react";
-import { useSetterSlotsQuery, useSetterBookMutation } from "../../../hooks/useApi";
+import {
+  useSetterCalendarsQuery,
+  useSetterSlotsQuery,
+  useSetterBookMutation,
+} from "../../../hooks/useApi";
 import { useToast } from "../../../context/ToastContext";
 import { ApiError } from "../../../lib/api";
 import { formatSlotDay, formatSlotTime, computeSlotEnd } from "../../../lib/setterCockpit";
@@ -12,28 +16,29 @@ interface Props {
 }
 
 const DAYS_AHEAD = 14;
-// Typing "Estimate" one keystroke at a time must not fire eight live CRM
-// lookups (a calendars list plus a free-slots call, each), so the value that
-// actually drives the query only updates once typing has paused.
-const CALENDAR_NAME_DEBOUNCE_MS = 400;
 const fieldClass =
   "w-full rounded-[var(--radius)] border border-border bg-surface px-2.5 py-1.5 text-[12.5px] text-text outline-none placeholder:text-faint focus:border-brand/50";
+const noticeClass =
+  "flex items-start gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2.5 text-[12.5px] text-muted";
 
-// Live slot lookup + booking, scoped to a calendar chosen by name (the
-// Setter Suite works every pipeline for a client, so there is no single
-// fixed calendar to hardcode the way the client-facing "Home Estimate"
-// visit flow does; see functions/api/admin/setter/slots.ts + book.ts, both
-// generic on calendarName). A day selector narrows the live slot grid to
-// one day at a time so the docked panel stays compact.
+// Live slot lookup + booking, scoped to a calendar chosen from the client's
+// real calendar list (GET /api/admin/setter/calendars). The Setter Suite
+// works every pipeline for every client, so there is no single fixed
+// calendar to hardcode the way the client-facing "Home Estimate" visit flow
+// does; both functions/api/admin/setter/slots.ts and book.ts are generic on
+// calendarId. A day selector narrows the live slot grid to one day at a time
+// so the docked panel stays compact.
 //
-// The name field starts empty and the live lookup is driven by a debounced
-// copy of it (CALENDAR_NAME_DEBOUNCE_MS below), not the raw keystroke value:
-// every keystroke would otherwise fire a calendars list plus a free-slots
-// call, both against the live client's API token, and flash a
-// "could not find a calendar" error for every incomplete prefix. Starting
-// empty also matters on its own: a hardcoded default here would be shaped
-// for one client (Willis's "Home Estimate") and error on first paint for
-// every other client on this cross-client screen.
+// This used to be a free-text calendar NAME field behind a 400ms debounce,
+// because every keystroke fired a calendars list plus a free-slots call
+// against the live client's API token. A dropdown has no keystrokes: slots
+// are fetched once per chosen calendar id and never on render, so the
+// debounce is gone rather than left orphaned.
+//
+// The default is deliberate. One calendar means there is nothing to choose,
+// so it is pre-selected; two or more means no default at all, because a
+// wrong guess here books a real customer onto the wrong client calendar and
+// nobody would see it happen.
 //
 // Booking is terminal: functions/api/admin/setter/book.ts deliberately does
 // not retry (a retry can double-book a real customer), and this component
@@ -41,31 +46,33 @@ const fieldClass =
 // in flight, with no retry wired anywhere in the call chain.
 export default function SlotPicker({ tenantId, contactId, leadName }: Props) {
   const { showToast } = useToast();
-  const [calendarName, setCalendarName] = useState("");
-  const [debouncedCalendarName, setDebouncedCalendarName] = useState("");
+  const [calendarId, setCalendarId] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
 
-  useEffect(() => {
-    const t = setTimeout(
-      () => setDebouncedCalendarName(calendarName.trim()),
-      CALENDAR_NAME_DEBOUNCE_MS,
-    );
-    return () => clearTimeout(t);
-  }, [calendarName]);
+  const calendarsQuery = useSetterCalendarsQuery(tenantId, true);
+  const calendars = calendarsQuery.data?.calendars ?? [];
 
-  // useSetterSlotsQuery already gates on a non-empty calendar name
-  // (src/hooks/useApi.ts), so an untouched or cleared field fires no request
-  // at all rather than erroring on an empty lookup.
-  const slotsQuery = useSetterSlotsQuery(tenantId, debouncedCalendarName, DAYS_AHEAD, true);
+  // Exactly one calendar means the choice is not a choice, so make it for
+  // them. Anything else stays unselected on purpose.
+  const soleCalendarId = calendars.length === 1 ? calendars[0].id : null;
+  useEffect(() => {
+    if (soleCalendarId) setCalendarId((cur) => cur || soleCalendarId);
+  }, [soleCalendarId]);
+
+  // useSetterSlotsQuery gates on a non-empty calendar id (src/hooks/useApi.ts),
+  // so an unchosen calendar fires no request at all. The query key carries
+  // the id, so changing the dropdown is what refetches, and only that.
+  const slotsQuery = useSetterSlotsQuery(tenantId, calendarId, DAYS_AHEAD, true);
   const bookMutation = useSetterBookMutation();
 
   const days = slotsQuery.data?.days ?? [];
+  const chosenCalendar = calendars.find((c) => c.id === calendarId) ?? null;
 
-  // Keep the selected day valid as the live data changes (a fresh calendar
-  // name, or a day that has since emptied out): fall back to the first day
-  // with slots rather than showing an empty grid for a day the API no
+  // Keep the selected day valid as the live data changes (a different
+  // calendar, or a day that has since emptied out): fall back to the first
+  // day with slots rather than showing an empty grid for a day the API no
   // longer lists.
   useEffect(() => {
     if (days.length === 0) {
@@ -89,15 +96,14 @@ export default function SlotPicker({ tenantId, contactId, leadName }: Props) {
   const notFound = errorCode === "calendar_not_found";
 
   const book = () => {
-    if (!picked || bookMutation.isPending) return;
+    if (!picked || !calendarId || bookMutation.isPending) return;
     const endTime = computeSlotEnd(picked, durationMinutes);
     bookMutation.mutate(
       {
         tenantId,
-        // The debounced value, not the raw field: it is what the displayed
-        // slots were actually fetched for, so booking against it guarantees
-        // the calendar matches the slot the setter picked.
-        calendarName: debouncedCalendarName,
+        // The same id the displayed slots were fetched for, so booking
+        // cannot land on a different calendar than the one the setter saw.
+        calendarId,
         contactId,
         startTime: picked,
         endTime,
@@ -115,6 +121,8 @@ export default function SlotPicker({ tenantId, contactId, leadName }: Props) {
               : null;
           if (code === "needs_staff") {
             showToast("This calendar has no team members assigned, so it cannot be booked.");
+          } else if (code === "calendar_not_found") {
+            showToast("That calendar no longer exists in the booking system.");
           } else {
             showToast("Could not book that time, please try again");
           }
@@ -123,19 +131,53 @@ export default function SlotPicker({ tenantId, contactId, leadName }: Props) {
     );
   };
 
+  // A failed calendars fetch and a client with no calendars look identical
+  // in an empty dropdown, and they are not the same thing: one is our
+  // problem to retry, the other is the client's setup. So neither renders a
+  // select at all.
+  const calendarsLoading = calendarsQuery.isLoading;
+  const calendarsFailed = calendarsQuery.isError;
+  const calendarsEmpty = !calendarsLoading && !calendarsFailed && calendars.length === 0;
+  const canPickCalendar = !calendarsLoading && !calendarsFailed && calendars.length > 0;
+
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-2">
         <label className="text-[11px] font-semibold uppercase tracking-wide text-faint">
           Calendar
-          <input
-            value={calendarName}
-            onChange={(e) => {
-              setCalendarName(e.target.value);
-              setPicked(null);
-            }}
-            className={`${fieldClass} mt-1 normal-case`}
-          />
+          {calendarsLoading && (
+            <span className="mt-1 flex items-center gap-1.5 text-[12.5px] font-normal normal-case text-muted">
+              <Loader2 size={13} className="animate-spin" /> Loading calendars...
+            </span>
+          )}
+          {calendarsFailed && (
+            <span className="mt-1 block text-[12.5px] font-normal normal-case text-muted">
+              Could not load calendars.
+            </span>
+          )}
+          {calendarsEmpty && (
+            <span className="mt-1 block text-[12.5px] font-normal normal-case text-muted">
+              No calendars.
+            </span>
+          )}
+          {canPickCalendar && (
+            <select
+              value={calendarId}
+              onChange={(e) => {
+                setCalendarId(e.target.value);
+                setPicked(null);
+              }}
+              aria-label="Calendar"
+              className={`${fieldClass} mt-1 normal-case`}
+            >
+              {!soleCalendarId && <option value="">Choose a calendar</option>}
+              {calendars.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
         </label>
         <label className="text-[11px] font-semibold uppercase tracking-wide text-faint">
           Duration (min)
@@ -150,46 +192,68 @@ export default function SlotPicker({ tenantId, contactId, leadName }: Props) {
         </label>
       </div>
 
-      {!debouncedCalendarName && (
-        <p className="py-2 text-[12.5px] text-muted">
-          Enter a calendar name to see available times.
-        </p>
+      {calendarsFailed && (
+        <div className={noticeClass}>
+          <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
+          <span>
+            Could not load this client&apos;s calendars, so booking is unavailable right now. This
+            is a connection problem, not an empty calendar list. Try again.
+          </span>
+        </div>
       )}
 
-      {!!debouncedCalendarName && slotsQuery.isLoading && (
+      {calendarsEmpty && (
+        <div className={noticeClass}>
+          <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
+          <span>
+            This client has no active calendars in the booking system, so there is nothing to book
+            into.
+          </span>
+        </div>
+      )}
+
+      {canPickCalendar && !calendarId && (
+        <p className="py-2 text-[12.5px] text-muted">Choose a calendar to see available times.</p>
+      )}
+
+      {!!calendarId && slotsQuery.isLoading && (
         <div className="flex items-center gap-2 py-4 text-[12.5px] text-muted">
           <Loader2 size={14} className="animate-spin" /> Loading available times...
         </div>
       )}
 
-      {!!debouncedCalendarName && !slotsQuery.isLoading && needsStaff && (
-        <div className="flex items-start gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2.5 text-[12.5px] text-muted">
+      {!!calendarId && !slotsQuery.isLoading && needsStaff && (
+        <div className={noticeClass}>
           <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
           <span>This calendar has no team members assigned, so it cannot return availability.</span>
         </div>
       )}
 
-      {!!debouncedCalendarName && !slotsQuery.isLoading && notFound && (
-        <div className="flex items-start gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2.5 text-[12.5px] text-muted">
+      {!!calendarId && !slotsQuery.isLoading && notFound && (
+        <div className={noticeClass}>
           <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
-          <span>Could not find a calendar named &quot;{debouncedCalendarName}&quot;. Check the name and try again.</span>
+          <span>
+            The booking system no longer has
+            {chosenCalendar ? ` "${chosenCalendar.name}"` : " that calendar"}. It may have been
+            removed since this list loaded.
+          </span>
         </div>
       )}
 
-      {!!debouncedCalendarName && !slotsQuery.isLoading && slotsQuery.isError && !needsStaff && !notFound && (
-        <div className="flex items-start gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2.5 text-[12.5px] text-muted">
+      {!!calendarId && !slotsQuery.isLoading && slotsQuery.isError && !needsStaff && !notFound && (
+        <div className={noticeClass}>
           <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warning" aria-hidden />
           <span>Could not load available times. Try again.</span>
         </div>
       )}
 
-      {!!debouncedCalendarName && !slotsQuery.isLoading && !slotsQuery.isError && days.length === 0 && (
+      {!!calendarId && !slotsQuery.isLoading && !slotsQuery.isError && days.length === 0 && (
         <p className="py-2 text-[12.5px] text-muted">
           No open times on this calendar in the next {DAYS_AHEAD} days.
         </p>
       )}
 
-      {!!debouncedCalendarName && !slotsQuery.isLoading && !slotsQuery.isError && days.length > 0 && (
+      {!!calendarId && !slotsQuery.isLoading && !slotsQuery.isError && days.length > 0 && (
         <>
           <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
             {days.map((d) => {

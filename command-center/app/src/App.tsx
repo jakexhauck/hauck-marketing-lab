@@ -64,6 +64,7 @@ import DeliveryCockpit from "./routes/admin/DeliveryCockpit";
 import SetterSuite from "./routes/admin/SetterSuite";
 import PillarPage from "./routes/admin/PillarPage";
 import AdminSettings from "./routes/admin/AdminSettings";
+import AdminAudit from "./routes/admin/AdminAudit";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -585,6 +586,16 @@ export default function App() {
                 element={
                   <AdminRoute>
                     <AdminSettings />
+                  </AdminRoute>
+                }
+              />
+              {/* The admin audit log. Reached from Settings, not the sidebar:
+                  occasional-use, and the sidebar zones are settled. */}
+              <Route
+                path="/admin/audit"
+                element={
+                  <AdminRoute>
+                    <AdminAudit />
                   </AdminRoute>
                 }
               />

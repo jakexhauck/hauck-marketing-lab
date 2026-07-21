@@ -27,19 +27,39 @@ export const PERSIST_CACHE_KEY = "hml_query_cache";
 // of rehydrating a stale, partial payload. This is what recovered clients stuck
 // on a pre-fix `["ads","insights"] = { configured: false }` entry (no `totals`),
 // which rehydrated before any refetch and crashed the Paid Ads render.
-export const PERSIST_CACHE_BUSTER = "2026-07-19.no-credential-persist";
+export const PERSIST_CACHE_BUSTER = "2026-07-21.no-inbox-or-audit-persist";
 
-// Query keys whose DATA IS A CREDENTIAL and must never be written to disk.
+// Query keys whose DATA MUST NEVER BE WRITTEN TO DISK.
 //
 // The persisted cache is plain localStorage, readable by any script on the
-// origin and surviving until it is busted. A query answer that is itself a
-// bearer credential (the Fulfillment Software tab's preview token) belongs in
-// memory only: persisting it would leave a live token on disk, refreshed every
-// 12 minutes, for anything with storage access to collect.
-const NEVER_PERSIST_KEYS = ["preview-token"];
+// origin and surviving until it is busted. Two kinds of answer belong in
+// memory only:
+//
+//   preview-token  A query answer that is itself a bearer credential (the
+//                  Fulfillment Software tab's preview token). Persisting it
+//                  would leave a live token on disk, refreshed every 12
+//                  minutes, for anything with storage access to collect.
+//
+//   setter-inbox   The Setter Suite reads a client's WHOLE customer inbox,
+//                  thread list and message bodies. Persisting it would leave
+//                  a client's customer correspondence sitting on disk on any
+//                  machine a setter signs in on, for the life of the cache.
+//
+//   audit          The admin audit log. Its rows carry the setter.send payload,
+//                  which embeds the FULL OUTBOUND MESSAGE BODY, and unlike the
+//                  inbox it is not scoped to one client: a single page of it
+//                  spans every tenant. Excluding the inbox while persisting
+//                  this would have leaked strictly more than it protected.
+//
+// MATCHING IS EXACT, PER KEY ELEMENT, not a substring of the whole key. A key
+// element must EQUAL one of these strings. So ["admin","audit",...] is blocked
+// but a future ["admin","audit-export",...] would NOT be; it would need its own
+// entry here. Naming a new key with one of these as a prefix does not inherit
+// the protection.
+const NEVER_PERSIST_KEYS = ["preview-token", "setter-inbox", "audit"];
 
 // The dehydration predicate used in main.tsx: successful reads only, minus
-// anything holding a credential.
+// anything holding a credential or customer correspondence.
 export function shouldPersistQuery(queryKey: readonly unknown[], status: string): boolean {
   if (status !== "success") return false;
   return !queryKey.some(

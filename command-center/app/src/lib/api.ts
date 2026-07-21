@@ -189,7 +189,7 @@ export interface ApiConversation {
   stageName?: string;
   // Every pipeline the contact sits in. A past customer is in Sales AND Google
   // Reviews at once, so the fields above (one chosen opportunity) cannot answer
-  // "where is this contact in the Google Reviews pipeline?" — this can.
+  // "where is this contact in the Google Reviews pipeline?" (this can).
   // Optional: absent from payloads cached by a bundle that predates it, so always
   // read it through `convPipelines()` rather than touching it directly.
   pipelines?: ConversationPipeline[];
@@ -205,7 +205,7 @@ export interface ConversationPipeline {
 
 // The one safe way to read `pipelines`. A payload persisted by an older bundle
 // has no such field, and a poisoned localStorage snapshot is what white-screened
-// Paid Ads before — so never touch `c.pipelines` directly.
+// Paid Ads before, so never touch `c.pipelines` directly.
 export function convPipelines(c: ApiConversation): ConversationPipeline[] {
   return Array.isArray(c.pipelines) ? c.pipelines : [];
 }
@@ -939,4 +939,77 @@ export interface ApiSetterLeadDetail {
   email: string;
   tags: string[];
   dials: ApiSetterDial[];
+}
+
+// One bookable calendar, from functions/api/admin/setter/calendars.ts. The
+// booking flow picks from this list by id; it used to resolve a calendar by
+// NAME, which was a lossy round trip once a real list was available.
+export interface ApiSetterCalendar {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+// One row of the inbox thread list (functions/api/admin/setter/inbox/index.ts).
+// Deliberately thin: the list cannot afford a per-thread fetch, so a row
+// carries only what it renders and the full thread loads on selection.
+export interface ApiSetterThread {
+  contactId: string;
+  name: string;
+  preview: string;
+  lastMessageAt: string;
+  lastMessageType: string;
+  unreadCount: number;
+}
+
+export interface ApiSetterInboxResponse {
+  threads: ApiSetterThread[];
+  // Non-null when more threads exist beyond the current window. The client
+  // grows its window rather than consuming this as an offset (see
+  // useSetterInboxQuery for why an offset silently skips rows).
+  nextCursor: string | null;
+  // TRUE when the upstream read hit its page cap, so this is as far as we
+  // looked rather than the whole inbox. The UI must not render a capped read
+  // as a complete one: "no matches in the part we searched" and "no matches"
+  // are different answers, and only one of them is safe to act on.
+  truncated: boolean;
+}
+
+// One message in a thread (functions/api/admin/setter/inbox/[contactId].ts).
+export interface ApiSetterMessage {
+  id: string;
+  direction: string;
+  channel: string;
+  body: string;
+  sentAt: string;
+}
+
+export interface ApiSetterThreadResponse {
+  contactId: string;
+  name: string;
+  messages: ApiSetterMessage[];
+}
+
+// One row of admin_audit_log (functions/api/admin/audit.ts). adminName is the
+// signed-in ADMIN ACCOUNT, not a person: there are no per-setter accounts, so
+// every setter's action attributes to whoever's account was used. The viewer
+// must say so rather than implying per-person attribution.
+export interface ApiAuditEntry {
+  id: string;
+  createdAt: string;
+  adminId: string | null;
+  adminName: string | null;
+  adminEmail: string | null;
+  action: string;
+  tenantId: string | null;
+  tenantName: string | null;
+  payload: unknown;
+}
+
+export interface ApiAuditResponse {
+  entries: ApiAuditEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LayoutGrid, MessagesSquare } from "lucide-react";
 import {
   useAdminClientsQuery,
   useSetterPipelinesQuery,
@@ -7,14 +8,38 @@ import {
 import { useNow } from "../../context/NowContext";
 import SetterBoard from "../../components/admin/setter/SetterBoard";
 import SetterCockpit from "../../components/admin/setter/SetterCockpit";
+import SetterInbox from "../../components/admin/setter/SetterInbox";
 import SetterRateStrip from "../../components/admin/SetterRateStrip";
 import type { ApiSetterLead } from "../../lib/api";
+
+// Board = the pipelines and the cockpit. Inbox = the client's whole
+// conversation list, readable and replyable.
+type SetterView = "board" | "inbox";
+const SETTER_VIEW_KEY = "hml_setter_view";
+
+function isSetterView(v: string | null | undefined): v is SetterView {
+  return v === "board" || v === "inbox";
+}
+
+function initialSetterView(): SetterView {
+  try {
+    const v = window.localStorage.getItem(SETTER_VIEW_KEY);
+    if (isSetterView(v)) return v;
+  } catch {
+    /* ignore */
+  }
+  return "board";
+}
 
 // /admin/setter: the Setter Suite. One client's leads worked across every one
 // of that client's pipelines, unfiltered (unlike the client-facing app, which
 // hides retired/system pipelines and stages). Pipeline tabs across the top,
 // the real stage columns underneath, and a docked cockpit (dial logging,
 // tags, booking) on the right whenever a card is selected.
+//
+// The client picker sits ABOVE the Board/Inbox switcher on purpose: one client
+// selection drives both tabs, so the inbox can never be showing one client
+// while the board shows another. Switching client keeps whichever tab is open.
 export default function SetterSuite() {
   const clientsQuery = useAdminClientsQuery(true);
   const clients = clientsQuery.data?.clients ?? [];
@@ -23,7 +48,22 @@ export default function SetterSuite() {
   const activeTenantId = tenantId ?? clients[0]?.id ?? null;
   const activeClient = clients.find((c) => c.id === activeTenantId) ?? null;
 
-  const pipelinesQuery = useSetterPipelinesQuery(activeTenantId ?? "", !!activeTenantId);
+  const [view, setView] = useState<SetterView>(initialSetterView);
+  const selectView = (v: SetterView) => {
+    setView(v);
+    try {
+      window.localStorage.setItem(SETTER_VIEW_KEY, v);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // Board data is only fetched while the Board tab is open. These are live CRM
+  // calls per client; a setter reading the inbox has no use for them and should
+  // not be paying for them.
+  const boardEnabled = view === "board" && !!activeTenantId;
+
+  const pipelinesQuery = useSetterPipelinesQuery(activeTenantId ?? "", boardEnabled);
   const pipelines = pipelinesQuery.data?.pipelines ?? [];
 
   const [pipelineId, setPipelineId] = useState<string | null>(null);
@@ -33,7 +73,7 @@ export default function SetterSuite() {
   const leadsQuery = useSetterLeadsQuery(
     activeTenantId ?? "",
     activePipelineId ?? "",
-    !!activeTenantId && !!activePipelineId,
+    boardEnabled && !!activePipelineId,
   );
 
   const [selectedLead, setSelectedLead] = useState<ApiSetterLead | null>(null);
@@ -94,57 +134,92 @@ export default function SetterSuite() {
         <div className="pk-empty">No clients yet.</div>
       ) : !activeTenantId || !activeClient ? null : (
         <>
-          <SetterRateStrip
-            leads={leadsQuery.data?.leads ?? []}
-            status={leadsQuery.isLoading ? "loading" : leadsQuery.isError ? "failed" : "ready"}
-          />
-
-          <nav className="pk-tabs" aria-label="Pipelines">
-            {pipelines.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className={`pk-tab${p.id === activePipelineId ? " on" : ""}`}
-                onClick={() => selectPipeline(p.id)}
-              >
-                {p.name}
-              </button>
-            ))}
+          {/* Board / Inbox. Sits BELOW the client picker, so one client drives
+              both and switching client never changes which tab you are on. */}
+          <nav className="pk-tabs" aria-label="Setter view">
+            <button
+              type="button"
+              className={`pk-tab${view === "board" ? " on" : ""}`}
+              onClick={() => selectView("board")}
+              aria-current={view === "board" ? "page" : undefined}
+            >
+              <LayoutGrid size={15} aria-hidden />
+              Board
+            </button>
+            <button
+              type="button"
+              className={`pk-tab${view === "inbox" ? " on" : ""}`}
+              onClick={() => selectView("inbox")}
+              aria-current={view === "inbox" ? "page" : undefined}
+            >
+              <MessagesSquare size={15} aria-hidden />
+              Inbox
+            </button>
           </nav>
 
-          {pipelinesQuery.isLoading ? (
-            <div className="pk-empty">Loading pipelines...</div>
-          ) : pipelinesQuery.isError ? (
-            <div className="pk-empty">Could not load pipelines for {activeClient.name}.</div>
-          ) : !activePipeline ? (
-            <div className="pk-empty">No pipelines found for {activeClient.name}.</div>
-          ) : leadsQuery.isLoading ? (
-            <div className="pk-empty">Loading leads...</div>
-          ) : leadsQuery.isError ? (
-            <div className="pk-empty">Could not load leads for {activePipeline.name}.</div>
+          {view === "inbox" ? (
+            <SetterInbox
+              key={activeTenantId}
+              tenantId={activeTenantId}
+              clientName={activeClient.name}
+            />
           ) : (
-            <div className="flex items-start gap-4">
-              <div className="min-w-0 flex-1">
-                <SetterBoard
-                  pipeline={activePipeline}
-                  leads={leadsQuery.data?.leads ?? []}
-                  truncated={leadsQuery.data?.truncated ?? false}
-                  now={now}
-                  selectedLeadId={selectedLead?.id ?? null}
-                  onSelectLead={selectLead}
-                />
-              </div>
-              {selectedLead && activeTenantId && (
-                <SetterCockpit
-                  key={selectedLead.id}
-                  tenantId={activeTenantId}
-                  pipelineId={activePipelineId ?? ""}
-                  pipelineName={activePipeline.name}
-                  lead={selectedLead}
-                  onClose={closeCockpit}
-                />
+            <>
+              <SetterRateStrip
+                leads={leadsQuery.data?.leads ?? []}
+                status={
+                  leadsQuery.isLoading ? "loading" : leadsQuery.isError ? "failed" : "ready"
+                }
+              />
+
+              <nav className="pk-subtabs" aria-label="Pipelines">
+                {pipelines.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`pk-subtab${p.id === activePipelineId ? " on" : ""}`}
+                    onClick={() => selectPipeline(p.id)}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </nav>
+
+              {pipelinesQuery.isLoading ? (
+                <div className="pk-empty">Loading pipelines...</div>
+              ) : pipelinesQuery.isError ? (
+                <div className="pk-empty">Could not load pipelines for {activeClient.name}.</div>
+              ) : !activePipeline ? (
+                <div className="pk-empty">No pipelines found for {activeClient.name}.</div>
+              ) : leadsQuery.isLoading ? (
+                <div className="pk-empty">Loading leads...</div>
+              ) : leadsQuery.isError ? (
+                <div className="pk-empty">Could not load leads for {activePipeline.name}.</div>
+              ) : (
+                <div className="flex items-start gap-4">
+                  <div className="min-w-0 flex-1">
+                    <SetterBoard
+                      pipeline={activePipeline}
+                      leads={leadsQuery.data?.leads ?? []}
+                      truncated={leadsQuery.data?.truncated ?? false}
+                      now={now}
+                      selectedLeadId={selectedLead?.id ?? null}
+                      onSelectLead={selectLead}
+                    />
+                  </div>
+                  {selectedLead && activeTenantId && (
+                    <SetterCockpit
+                      key={selectedLead.id}
+                      tenantId={activeTenantId}
+                      pipelineId={activePipelineId ?? ""}
+                      pipelineName={activePipeline.name}
+                      lead={selectedLead}
+                      onClose={closeCockpit}
+                    />
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
         </>
       )}

@@ -3,15 +3,20 @@ import { readJsonBody } from "../../../lib/body";
 import { getGhlContextForTenant, TenantGhlError } from "../../../lib/tenantGhl";
 import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
-import { resolveCalendarByName, createAppointment } from "../../lib/appointments";
+import { createAppointment, isCalendarNotFound } from "../../lib/appointments";
 
 // POST /api/admin/setter/book (admin-only, gated in _middleware.ts). Books a
-// real appointment on a named calendar the moment a setter gets someone on
-// the phone and locks in a time. Calendar resolved BY NAME (never a
-// hardcoded id, which differs per client) via the same
-// resolveCalendarByName used by the client-facing booking endpoint
-// (functions/api/appointments/index.ts), and the write goes through the
-// same createAppointment in ../../lib/appointments unchanged.
+// real appointment the moment a setter gets someone on the phone and locks in
+// a time. The write goes through createAppointment in ../../lib/appointments
+// unchanged.
+//
+// Takes a calendarId, not a name. It used to resolve a typed name through
+// resolveCalendarByName; the picker now selects from the real list served by
+// ./calendars, so that lookup was a lossy round trip. On a booking write in
+// particular, name matching was the wrong tool: resolveCalendarByName falls
+// back to a substring match, so a near-miss could quietly book a real
+// customer onto a different calendar than the setter believed. Ids still
+// never get hardcoded: they come from that endpoint, per tenant.
 //
 // Terminal write: createAppointment deliberately does not retry on failure,
 // because a retried POST can double-book a real customer into a real
@@ -25,7 +30,7 @@ import { resolveCalendarByName, createAppointment } from "../../lib/appointments
 
 export interface BookBody {
   tenantId?: string;
-  calendarName?: string;
+  calendarId?: string;
   contactId?: string;
   startTime?: string;
   endTime?: string;
@@ -43,8 +48,8 @@ export function validateBookBody(body: BookBody): ValidationResult {
   if (!body.tenantId || !body.tenantId.trim()) {
     return { ok: false, code: "missing_tenant_id", error: "tenantId is required" };
   }
-  if (!body.calendarName || !body.calendarName.trim()) {
-    return { ok: false, code: "missing_calendar_name", error: "calendarName is required" };
+  if (!body.calendarId || !body.calendarId.trim()) {
+    return { ok: false, code: "missing_calendar_id", error: "calendarId is required" };
   }
   if (!body.contactId || !body.contactId.trim()) {
     return { ok: false, code: "missing_contact_id", error: "contactId is required" };
@@ -63,19 +68,11 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   if (!validation.ok) return Response.json({ error: validation.code }, { status: 400 });
 
   const tenantId = body.tenantId!.trim();
-  const calendarName = body.calendarName!.trim();
+  const calendarId = body.calendarId!.trim();
   const contactId = body.contactId!.trim();
 
   try {
     const gctx = await getGhlContextForTenant(ctx.env, tenantId);
-
-    const calendarId = await resolveCalendarByName(gctx, calendarName);
-    if (!calendarId) {
-      return Response.json(
-        { error: "calendar_not_found", calendar: calendarName },
-        { status: 422 },
-      );
-    }
 
     // Single attempt, no retry: see the file header. A second call here on a
     // timeout or transient error could create two appointments for the same
@@ -92,6 +89,15 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       if (result.needsStaff) {
         return Response.json({ error: "needs_staff" }, { status: 422 });
       }
+      // The id came from ./calendars, so a rejection here means it went stale
+      // (deleted or deactivated mid-call). Kept as its own response so the
+      // setter is told to reselect a calendar rather than shown a CRM error.
+      if (isCalendarNotFound(result.status, result.body)) {
+        return Response.json(
+          { error: "calendar_not_found", calendar: calendarId },
+          { status: 422 },
+        );
+      }
       return Response.json(
         { error: "ghl_error", status: result.status, body: result.body },
         { status: 502 },
@@ -102,7 +108,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     if (client) {
       await logAdminAction(client, ctx.data.admin!.id, "setter.book", tenantId, {
         contactId,
-        calendarName,
+        calendarId,
         appointmentId: result.id,
         startTime: body.startTime,
         endTime: body.endTime,

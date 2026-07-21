@@ -50,6 +50,10 @@ import {
   type ApiSetterLeadsResponse,
   type ApiSetterLeadDetail,
   type ApiSetterDial,
+  type ApiSetterCalendar,
+  type ApiSetterInboxResponse,
+  type ApiSetterThreadResponse,
+  type ApiAuditResponse,
 } from "../lib/api";
 import {
   buildOptimisticDial,
@@ -598,32 +602,50 @@ export interface SetterSlotsResponse {
   days: SetterSlotDay[];
 }
 
+// Every bookable calendar for the selected client (GET
+// /api/admin/setter/calendars). Feeds the booking panel's calendar picker.
+// Cached hard: calendars are effectively static within a session, so
+// refetching them on every cockpit open would burn a live CRM call for a
+// list that will not have changed.
+export function useSetterCalendarsQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "setter", "calendars", tenantId],
+    enabled: enabled && !!tenantId,
+    staleTime: 5 * 60_000,
+    queryFn: () =>
+      api<{ calendars: ApiSetterCalendar[] }>(
+        `/api/admin/setter/calendars?tenantId=${encodeURIComponent(tenantId)}`,
+      ),
+  });
+}
+
 // Live free-slot lookup for the cockpit's booking section (GET
-// /api/admin/setter/slots). Only fetched while a calendar name is entered,
-// and never retried: a 422 (calendar_not_found / needs_staff) is permanent
-// for this call, not transient, so the panel can show an honest message
-// instead of spinning.
+// /api/admin/setter/slots). Takes a calendar ID picked from the list above,
+// NOT a name: the endpoint stopped resolving names once a real list existed,
+// and a name lookup in the middle was a lossy round trip. Never retried: a
+// 422 (calendar_not_found / needs_staff) is permanent for this call, not
+// transient, so the panel can show an honest message instead of spinning.
 export function useSetterSlotsQuery(
   tenantId: string,
-  calendarName: string,
+  calendarId: string,
   days: number,
   enabled: boolean,
 ) {
   return useQuery({
-    queryKey: ["admin", "setter", "slots", tenantId, calendarName, days],
-    enabled: enabled && !!tenantId && !!calendarName.trim(),
+    queryKey: ["admin", "setter", "slots", tenantId, calendarId, days],
+    enabled: enabled && !!tenantId && !!calendarId.trim(),
     staleTime: 30_000,
     retry: false,
     queryFn: () =>
       api<SetterSlotsResponse>(
-        `/api/admin/setter/slots?tenantId=${encodeURIComponent(tenantId)}&calendarName=${encodeURIComponent(calendarName)}&days=${days}`,
+        `/api/admin/setter/slots?tenantId=${encodeURIComponent(tenantId)}&calendarId=${encodeURIComponent(calendarId)}&days=${days}`,
       ),
   });
 }
 
 export interface SetterBookInput {
   tenantId: string;
-  calendarName: string;
+  calendarId: string;
   contactId: string;
   startTime: string;
   endTime: string;
@@ -649,6 +671,124 @@ export function useSetterBookMutation() {
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: ["admin", "setter", "leads", input.tenantId] });
       qc.invalidateQueries({ queryKey: ["calendar", "events"] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Setter Suite inbox
+//
+// KEY STEM IS DELIBERATE. These use "setter-inbox", not the "setter" stem the
+// rest of the Suite uses, because src/lib/queryClient.ts refuses to persist any
+// query whose key CONTAINS the string "setter-inbox". These answers are a
+// client's customer correspondence and must never reach localStorage, where
+// they would sit on a setter's disk until the cache buster moved. Renaming
+// this stem silently re-enables that persistence.
+// ---------------------------------------------------------------------------
+
+// The client's inbox, as a GROWING WINDOW from the top rather than a walked
+// offset. `limit` is the whole window: "load more" asks for a bigger one and
+// replaces the list, it does not append a page.
+//
+// This is deliberate and it is a correctness requirement, not a style choice.
+// The underlying list re-sorts by recency on every request, so an offset does
+// not address a stable row. Page 1 returns rows 0 to 49; a thread then gets a
+// new inbound message and jumps to index 0; every row shifts down one; the
+// request for offset 50 now starts one row later and the row that crossed the
+// boundary is never returned at all. It is silently missing until a reload, and
+// it is precisely the thread with fresh customer activity. Re-reading from the
+// top makes that impossible.
+//
+// `q` filters server-side, so a setter searches the whole inbox rather than
+// only the window they happen to be holding.
+export function useSetterInboxQuery(
+  tenantId: string,
+  q: string,
+  limit: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["admin", "setter-inbox", "threads", tenantId, q, limit],
+    enabled: enabled && !!tenantId,
+    staleTime: 15_000,
+    queryFn: () => {
+      const p = new URLSearchParams({ tenantId, limit: String(limit) });
+      if (q.trim()) p.set("q", q.trim());
+      return api<ApiSetterInboxResponse>(`/api/admin/setter/inbox?${p.toString()}`);
+    },
+  });
+}
+
+// One contact's full thread, newest last.
+export function useSetterThreadQuery(
+  tenantId: string,
+  contactId: string | null,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["admin", "setter-inbox", "thread", tenantId, contactId],
+    enabled: enabled && !!tenantId && !!contactId,
+    staleTime: 10_000,
+    queryFn: () =>
+      api<ApiSetterThreadResponse>(
+        `/api/admin/setter/inbox/${encodeURIComponent(contactId ?? "")}?tenantId=${encodeURIComponent(tenantId)}`,
+      ),
+  });
+}
+
+export interface SetterSendInput {
+  tenantId: string;
+  contactId: string;
+  channel: string;
+  body: string;
+  subject?: string;
+}
+
+// Sends a REAL message to a REAL customer under the client's name. There is no
+// undo and no approval step. Never retried: a retried POST here sends the
+// message twice, and a duplicate text from a business reads as a malfunction.
+// The composer must also disable its send control while isPending.
+//
+// Invalidates on settle rather than on success: a send that reports failure may
+// still have gone out (the failure can be in our response path, not GHL's
+// delivery), so the thread must be refetched either way or the setter is shown
+// a thread that disagrees with what the customer received.
+export function useSetterSendMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: SetterSendInput) =>
+      // `audited` false means the message WENT OUT but no audit row landed. The
+      // caller must surface that rather than showing a plain success.
+      api<{ sent: boolean; messageId?: string; audited: boolean }>(
+        `/api/admin/setter/inbox/${encodeURIComponent(input.contactId)}`,
+        { method: "POST", body: JSON.stringify(input) },
+      ),
+    onSettled: (_d, _e, input) => {
+      qc.invalidateQueries({
+        queryKey: ["admin", "setter-inbox", "thread", input.tenantId, input.contactId],
+      });
+      qc.invalidateQueries({ queryKey: ["admin", "setter-inbox", "threads", input.tenantId] });
+    },
+  });
+}
+
+// The admin audit log (GET /api/admin/audit), newest first. Filterable by
+// tenant and action so "setter.send" can be isolated.
+export function useAdminAuditQuery(
+  opts: { limit?: number; offset?: number; tenantId?: string; action?: string },
+  enabled = true,
+) {
+  const { limit = 50, offset = 0, tenantId, action } = opts;
+  return useQuery({
+    queryKey: ["admin", "audit", limit, offset, tenantId ?? null, action ?? null],
+    enabled,
+    staleTime: 15_000,
+    queryFn: () => {
+      const p = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+      if (tenantId) p.set("tenantId", tenantId);
+      if (action) p.set("action", action);
+      return api<ApiAuditResponse>(`/api/admin/audit?${p.toString()}`);
     },
   });
 }

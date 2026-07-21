@@ -131,3 +131,15 @@ bundle. NOT verified: the actual Drive read, because nothing is connected yet.
 - [ ] **Optional: fix the "Fullfillment" spelling in Drive.** The app reads folder
       names verbatim, so the typo shows in the UI. Renaming the folder fixes it
       with no code change.
+## Setter Suite: the client inbox and all-calendars booking (shipped 2026-07-21)
+
+The Setter Suite now has a **Board / Inbox** switcher. Inbox is the client's whole conversation list, and setters can reply as the client over SMS or email. Booking gained a real calendar picker, so it is no longer pinned to one calendar resolved by name; the free-text calendar box is gone. There is also a new **audit log** at `/admin/audit`, reachable from Settings, listing every cross-tenant admin action with a filter for sends.
+
+Verified: 1107 tests green, typecheck and build clean. Three independent reviewers went over the diff. NOT verified: anything in a browser, because admin is login-gated and I cannot mint a session.
+
+- [ ] **Send one real test message to yourself** from the Inbox, on the test account, and confirm it arrives. This is the single most important check on the list: it is the only path in the app that contacts a real person, and it has never been run end to end.
+- [ ] **Then open `/admin/audit` and confirm that send is listed.** If the message arrived but no row appears, tell me immediately: that means the accountability record is broken, and it is the one thing this build is supposed to guarantee.
+- [ ] **Book something through the new calendar picker** and confirm it lands on the right calendar in the booking system. The old free-text name field is gone, so this path changed.
+- [ ] **Read the notice at the top of `/admin/audit`.** It says the log names an ACCOUNT, not a person. Because there are no per-setter logins yet, a message sent by a hired setter will show your name. Decide whether you want per-setter accounts before you actually hire, because the log cannot be corrected after the fact.
+- [ ] **Know the inbox limits.** It reads the 1000 most recent conversations. Beyond that the list and the search both say so plainly rather than pretending to be complete, but a very old conversation will only be findable by search, and past 1000 not at all. Tell me if you hit that ceiling in real use and I will add a proper server-side search.
+- [ ] **Decide about the other six channels.** The composer offers SMS and email only. The booking system also supports Facebook, Instagram, Google, WhatsApp and live chat, but those only deliver if the customer already has an open conversation on that network, so sending blind would silently fail. Say the word if you want them.

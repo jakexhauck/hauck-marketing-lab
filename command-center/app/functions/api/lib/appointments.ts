@@ -39,7 +39,7 @@ function norm(s: string): string {
   return s.trim().toLowerCase();
 }
 
-interface Calendar {
+export interface Calendar {
   id: string;
   name?: string;
   isActive?: boolean;
@@ -48,18 +48,38 @@ interface CalendarsResp {
   calendars?: Calendar[];
 }
 
-// Resolve a booking calendar id by name (exact then contains), so a small GHL
-// rename still lands and the client never hardcodes an id. Uses ghlJson (the
-// calendar LIST tolerates the default version). Returns null if nothing matches.
-export async function resolveCalendarByName(
-  gctx: GhlContext,
-  name: string,
-): Promise<string | null> {
+// The location's ACTIVE calendars. Uses ghlJson (the calendar LIST tolerates
+// the default version, unlike free-slots/create which need calFetch's
+// 2021-04-15). isActive is optional on the wire, so absent counts as active:
+// that is the historical behaviour resolveCalendarByName has always had and
+// callers depend on it.
+export async function listCalendars(gctx: GhlContext): Promise<Calendar[]> {
   const data = await ghlJson<CalendarsResp>(
     gctx,
     `/calendars/?locationId=${encodeURIComponent(gctx.locationId)}`,
   );
-  const cals = (data.calendars ?? []).filter((c) => c.isActive !== false);
+  return (data.calendars ?? []).filter((c) => c.isActive !== false);
+}
+
+// GHL does not use a stable error code for "that calendar id is not real": a
+// bad id comes back as a 404, or as a 4xx whose body names the calendar. Both
+// callers (admin slots + book) need the same judgement, so it lives here with
+// the rest of the calendar-API quirks rather than being duplicated per route.
+export function isCalendarNotFound(status?: number, body?: string): boolean {
+  if (status === 404) return true;
+  return /calendar (was )?not found|invalid calendar|calendar (id )?(is )?invalid/i.test(
+    body ?? "",
+  );
+}
+
+// Resolve a booking calendar id by name (exact then contains), so a small GHL
+// rename still lands and the client never hardcodes an id. Returns null if
+// nothing matches.
+export async function resolveCalendarByName(
+  gctx: GhlContext,
+  name: string,
+): Promise<string | null> {
+  const cals = await listCalendars(gctx);
   const want = norm(name);
   const cal =
     cals.find((c) => norm(c.name ?? "") === want) ??
