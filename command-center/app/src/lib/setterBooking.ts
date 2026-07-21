@@ -14,6 +14,16 @@
 //      that they clicked the cell they meant to.
 
 import { DEFAULT_DURATION } from "./calendarModel";
+import type { ApiSetterContact } from "./api";
+
+// A "book this contact" hand-off from the cockpit to the Calendar tab: the
+// setter picks the appointment type (a calendar) in the cockpit and clicks
+// Book, and the Calendar tab opens its booking panel pre-filled with this
+// contact and calendar, ready for a slot to be picked.
+export interface BookingIntent {
+  contact: ApiSetterContact;
+  calendarId: string;
+}
 
 // The grid reports a clicked cell as a local calendar date plus minutes from
 // midnight. startMinutes of -1 is the toolbar Book button: no time was picked

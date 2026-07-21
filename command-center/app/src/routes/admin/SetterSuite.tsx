@@ -12,6 +12,7 @@ import SetterInbox from "../../components/admin/setter/SetterInbox";
 import SetterCalendar from "../../components/admin/setter/SetterCalendar";
 import DialingHub from "../../components/admin/setter/DialingHub";
 import type { ApiSetterLead } from "../../lib/api";
+import type { BookingIntent } from "../../lib/setterBooking";
 
 // Pipeline = the pipelines and the cockpit. Inbox = the client's whole
 // conversation list, readable and replyable. Calendar = what is already booked,
@@ -88,7 +89,15 @@ export default function SetterSuite() {
   );
 
   const [selectedLead, setSelectedLead] = useState<ApiSetterLead | null>(null);
+  // A pending "book this contact" hand-off from the cockpit; consumed once by
+  // the Calendar tab (see SetterCalendar), then cleared.
+  const [bookingIntent, setBookingIntent] = useState<BookingIntent | null>(null);
   const now = useNow();
+
+  const bookAppointment = (intent: BookingIntent) => {
+    setBookingIntent(intent);
+    selectView("calendar");
+  };
 
   const selectClient = (id: string) => {
     setTenantId(id);
@@ -197,6 +206,8 @@ export default function SetterSuite() {
               key={activeTenantId}
               tenantId={activeTenantId}
               clientName={activeClient.name}
+              bookingIntent={bookingIntent}
+              onBookingHandled={() => setBookingIntent(null)}
             />
           ) : view === "dialhub" ? (
             // Keyed on the tenant for the same reason, and for one more: an
@@ -253,6 +264,7 @@ export default function SetterSuite() {
                       locationId={locationId}
                       lead={selectedLead}
                       onClose={closeCockpit}
+                      onBookAppointment={bookAppointment}
                     />
                   )}
                 </div>

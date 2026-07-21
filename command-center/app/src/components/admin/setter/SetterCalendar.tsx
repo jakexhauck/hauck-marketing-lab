@@ -1,18 +1,23 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CalendarPlus, TriangleAlert } from "lucide-react";
 import { Segmented } from "../../ui";
 import CalendarViews, { type CalendarView } from "../../calendar/CalendarViews";
 import BookSlotPanel from "./BookSlotPanel";
 import { useSetterEventsQuery, useSetterBusyQuery } from "../../../hooks/useApi";
-import type { ApiSetterEventsResponse } from "../../../lib/api";
+import type { ApiSetterContact, ApiSetterEventsResponse } from "../../../lib/api";
 import { appointmentToItem, busyToItem, type CalendarSource } from "../../../lib/calendarModel";
 import { toIso } from "../../../lib/jobsPipeline";
-import { NO_TIME_PICKED, type SetterSlot } from "../../../lib/setterBooking";
+import { NO_TIME_PICKED, type BookingIntent, type SetterSlot } from "../../../lib/setterBooking";
 
 interface Props {
   tenantId: string;
   clientName: string;
+  // A one-shot hand-off from the cockpit's Book appointment button: open the
+  // booking panel already pointed at this contact and appointment type. The
+  // parent clears it via onBookingHandled once consumed.
+  bookingIntent?: BookingIntent | null;
+  onBookingHandled?: () => void;
 }
 
 const VIEW_OPTIONS: { value: CalendarView; label: string }[] = [
@@ -42,7 +47,7 @@ function failedCalendarCount(data: ApiSetterEventsResponse | undefined): number 
 // of them, so this toolbar carries only what it can actually control (the view
 // and the Book button) and lets the controls row underneath do the rest. A
 // second set of arrows here would be dead chrome.
-export function SetterCalendar({ tenantId, clientName }: Props) {
+export function SetterCalendar({ tenantId, clientName, bookingIntent, onBookingHandled }: Props) {
   const queryClient = useQueryClient();
 
   // Week is the default because it is the only view with a slot layer, so it is
@@ -50,6 +55,22 @@ export function SetterCalendar({ tenantId, clientName }: Props) {
   const [view, setView] = useState<CalendarView>("week");
   const [range, setRange] = useState<{ start: string; end: string }>({ start: "", end: "" });
   const [slot, setSlot] = useState<SetterSlot | null>(null);
+  // The contact + calendar seeded when the panel is opened from the cockpit.
+  // Cleared on a manual Book so a grid-click open never inherits them.
+  const [seedContact, setSeedContact] = useState<ApiSetterContact | null>(null);
+  const [seedCalendarId, setSeedCalendarId] = useState("");
+
+  // Consume the cockpit hand-off once, on mount (the tab mounts fresh each time
+  // it is opened). Open the slot list with no time picked, seeded with the
+  // contact and appointment type, then tell the parent to drop the intent.
+  useEffect(() => {
+    if (!bookingIntent) return;
+    setSeedContact(bookingIntent.contact);
+    setSeedCalendarId(bookingIntent.calendarId);
+    setSlot({ iso: toIso(new Date()), startMinutes: NO_TIME_PICKED });
+    onBookingHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Stable identity, or the child's reporting effect re-fires on every render
   // and loops. Same-value writes are also short-circuited so a re-report of the
@@ -86,7 +107,20 @@ export function SetterCalendar({ tenantId, clientName }: Props) {
   // Opening with no time picked. Prefer today when today is on screen, so the
   // panel's slot list starts where the setter is looking; otherwise the first
   // day of the visible range.
+  // Clear any cockpit-seeded contact/type, so a manual Book (toolbar or grid
+  // click) never inherits the last hand-off.
+  const clearSeed = () => {
+    setSeedContact(null);
+    setSeedCalendarId("");
+  };
+
+  const closePanel = () => {
+    setSlot(null);
+    clearSeed();
+  };
+
   const openBook = () => {
+    clearSeed();
     const today = toIso(new Date());
     const onScreen = !!range.start && !!range.end && today >= range.start && today <= range.end;
     setSlot({
@@ -101,7 +135,7 @@ export function SetterCalendar({ tenantId, clientName }: Props) {
     // tenant so every cached week for this client refetches, not only the one
     // currently on screen.
     queryClient.invalidateQueries({ queryKey: ["admin", "setter-events", tenantId] });
-    setSlot(null);
+    closePanel();
   };
 
   return (
@@ -150,14 +184,19 @@ export function SetterCalendar({ tenantId, clientName }: Props) {
         connected={connected}
         view={view}
         onRangeChange={onRangeChange}
-        onSlotClick={(iso, startMinutes) => setSlot({ iso, startMinutes })}
+        onSlotClick={(iso, startMinutes) => {
+          clearSeed();
+          setSlot({ iso, startMinutes });
+        }}
       />
 
       <BookSlotPanel
         tenantId={tenantId}
         slot={slot}
-        onClose={() => setSlot(null)}
+        onClose={closePanel}
         onBooked={onBooked}
+        initialContact={seedContact}
+        initialCalendarId={seedCalendarId}
       />
     </div>
   );

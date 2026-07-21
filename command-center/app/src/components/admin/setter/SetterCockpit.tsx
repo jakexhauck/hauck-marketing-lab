@@ -12,6 +12,7 @@ import { timeAgo } from "../../../lib/timeAgo";
 import { formatOutcome, ghlContactUrl } from "../../../lib/setterModel";
 import { isOptimisticDial } from "../../../lib/setterCockpit";
 import { stageActionsFor } from "../../../lib/setterStageActions";
+import type { BookingIntent } from "../../../lib/setterBooking";
 import type { ApiSetterLead } from "../../../lib/api";
 
 interface Props {
@@ -24,6 +25,9 @@ interface Props {
   locationId?: string;
   lead: ApiSetterLead;
   onClose: () => void;
+  // Hands a "book this contact" intent up to the Setter Suite, which switches
+  // to the Calendar tab with the booking panel pre-filled.
+  onBookAppointment?: (intent: BookingIntent) => void;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -68,6 +72,7 @@ export default function SetterCockpit({
   locationId,
   lead,
   onClose,
+  onBookAppointment,
 }: Props) {
   const now = useNow();
   const detailQuery = useSetterLeadDetailQuery(tenantId, lead.contactId, true);
@@ -164,7 +169,10 @@ export default function SetterCockpit({
             tenantId={tenantId}
             contactId={lead.contactId}
             leadName={name}
+            phone={phone}
+            email={email}
             config={stageConfig}
+            onBookAppointment={onBookAppointment}
           />
         ) : (
           <>
