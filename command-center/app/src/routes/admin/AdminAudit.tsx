@@ -72,12 +72,7 @@ export default function AdminAudit() {
 
   return (
     <div className="pk-root">
-      <div className="pk-kicker">Settings / Audit log</div>
       <h1 className="pk-title">Admin Audit Log</h1>
-      <p className="pk-tagline">
-        Every write an admin account has made, newest first. This is the only record that a
-        customer was messaged.
-      </p>
 
       <Link to="/admin/settings" className="pk-link mb-4 font-[inherit]">
         <ArrowLeft size={14} aria-hidden />

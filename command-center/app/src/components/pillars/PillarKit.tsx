@@ -128,7 +128,7 @@ export function PillarStyle() {
       }
 
       /* Structural labels in mono; data/figures in mono tabular. */
-      .pk-kit .pk-kicker, .pk-kit .pk-section-h, .pk-kit .pk-list-sec-h { font-family: var(--font-mono); }
+      .pk-kit .pk-section-h, .pk-kit .pk-list-sec-h { font-family: var(--font-mono); }
       .pk-kit .pk-score-val, .pk-kit .pk-report-val, .pk-kit .pk-li-val, .pk-kit .pk-tabcount {
         font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
       }
@@ -190,7 +190,6 @@ export function PillarStyle() {
       .pk-back:hover { color: var(--brand-text); }
       .pk-back svg { width: 15px; height: 15px; }
 
-      .pk-kicker { color: var(--text-muted); font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
       .pk-num { color: var(--brand-text); }
 
       /* header card */
@@ -199,7 +198,6 @@ export function PillarStyle() {
       .pk-head-ic svg { width: 26px; height: 26px; }
       .pk-head-body { flex: 1; min-width: 0; }
       .pk-title { font-family: var(--font-display); font-size: 26px; font-weight: 600; letter-spacing: -0.03em; margin-top: 2px; }
-      .pk-tagline { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
       .pk-goal { color: var(--text); font-size: 14.5px; line-height: 1.6; margin-top: 12px; max-width: 720px; }
       .pk-head-side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
 

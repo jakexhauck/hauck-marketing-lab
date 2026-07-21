@@ -7,9 +7,7 @@ import { ScrollText } from "lucide-react";
 export default function AdminSettings() {
   return (
     <div className="pk-root">
-      <div className="pk-kicker">Settings</div>
       <h1 className="pk-title">Agency Settings</h1>
-      <p className="pk-tagline">Agency profile and defaults.</p>
 
       <div className="pk-links mb-4">
         <Link to="/admin/audit" className="pk-link">

@@ -99,11 +99,7 @@ export default function SetterSuite() {
     <div className="pk-root">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="pk-kicker">Sales / Setter Suite</div>
           <h1 className="pk-title">Setter Suite</h1>
-          <p className="pk-tagline">
-            Work one client&apos;s leads across every pipeline, live from the booking system.
-          </p>
         </div>
 
         {clients.length > 0 && (

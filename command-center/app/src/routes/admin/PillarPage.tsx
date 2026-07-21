@@ -56,9 +56,7 @@ export default function PillarPage() {
 
   return (
     <div className="pk-root">
-      <div className="pk-kicker">{pillar.kicker}</div>
       <h1 className="pk-title">{pillar.label}</h1>
-      <p className="pk-tagline">{pillar.tagline}</p>
 
       <nav className="pk-tabs" aria-label={`${pillar.label} sections`}>
         {pillar.tabs.map((t) => (

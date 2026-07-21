@@ -19,10 +19,7 @@ export interface PillarTabDef {
 
 export interface PillarDef {
   id: PillarId;
-  // Bento Bold header: a small kicker over the title, plus a one-line tagline.
-  kicker: string;
   label: string;
-  tagline: string;
   tabs: PillarTabDef[];
 }
 
@@ -31,9 +28,7 @@ export interface PillarDef {
 export const ADMIN_PILLARS: PillarDef[] = [
   {
     id: "acquisition",
-    kicker: "Pillar",
     label: "Acquisition",
-    tagline: "Getting new leads into the pipeline: the top of the value chain.",
     tabs: [
       { id: "leads", label: "Leads", ready: true },
       { id: "cold-call", label: "Cold Call", ready: true },
@@ -42,16 +37,12 @@ export const ADMIN_PILLARS: PillarDef[] = [
   },
   {
     id: "sales",
-    kicker: "Pillar",
     label: "Sales",
-    tagline: "Turning leads into booked, paying work.",
     tabs: [{ id: "sales-data", label: "Sales Data", ready: true }],
   },
   {
     id: "operations",
-    kicker: "Pillar",
     label: "Operations",
-    tagline: "The internal systems and team capacity that keep everything else running.",
     tabs: [
       { id: "calculator", label: "Calculator", ready: true },
       { id: "time-audit", label: "Time Audit", ready: true },

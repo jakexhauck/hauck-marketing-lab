@@ -360,9 +360,7 @@ export default function AdminCommand() {
     <div className="pk-root">
       <BusinessHealthStyle />
 
-      <div className="pk-kicker">Command</div>
       <h1 className="pk-title">Business Health</h1>
-      <p className="pk-tagline">Your whole-agency numbers at a glance.</p>
 
       <div className="bh-controls">
         <div className="bh-tabs" role="tablist" aria-label="Period">
