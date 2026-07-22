@@ -68,11 +68,16 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     return Response.json({ error: "no known tasks in ids" }, { status: 400 });
   }
 
-  // One round trip: upsert on the primary key touches only sort_order on rows
-  // that all exist (renumber filtered to known ids), so no insert path fires.
-  const { error: writeError } = await client
-    .from("admin_tasks")
-    .upsert(updates, { onConflict: "id" });
+  // Plain per-row updates, in parallel. NOT an upsert: Postgres checks NOT NULL
+  // on the proposed insert tuple BEFORE conflict resolution, so a partial
+  // {id, sort_order} upsert dies on the title column even when every row
+  // already exists. A few dozen parallel updates is nothing at this scale.
+  const results = await Promise.all(
+    updates.map((u) =>
+      client.from("admin_tasks").update({ sort_order: u.sort_order }).eq("id", u.id),
+    ),
+  );
+  const writeError = results.find((r) => r.error)?.error;
   if (writeError) return Response.json({ error: writeError.message }, { status: 500 });
 
   await logAdminAction(client, ctx.data.admin!.id, "task.reorder", null, {
