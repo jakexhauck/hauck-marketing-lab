@@ -5,7 +5,14 @@ import { getServiceClient } from "../../../../lib/supabase";
 // Google redirects here after the agency account consents. Verify the CSRF
 // state cookie, exchange the code for tokens (incl. the long-lived refresh
 // token), look up which account connected, and persist it in drive_connection.
-// On success bounce back to /admin/assets.
+// On success bounce back to the SOPs tab.
+//
+// This used to land on /admin/assets, which no longer exists as a route: the
+// admin was restructured into pillar tabs and the Assets page went with it. So
+// a successful consent dropped the admin on a dead URL and looked like a
+// failure. The SOP Hub is the surface that needs this connection, and it shows
+// the result immediately, so it is the honest place to return to.
+const LANDING = "/admin/pillar/operations?tab=sops";
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const url = new URL(ctx.request.url);
   const code = url.searchParams.get("code");
@@ -73,14 +80,14 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   return new Response(null, {
     status: 302,
     headers: {
-      location: `${url.origin}/admin/assets?connected=1`,
+      location: `${url.origin}${LANDING}&connected=1`,
       "set-cookie": "assets_oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/api/admin/assets/oauth; Max-Age=0",
     },
   });
 };
 
 function assetsRedirect(origin: string, reason: string): Response {
-  return Response.redirect(`${origin}/admin/assets?connect_error=${encodeURIComponent(reason)}`, 302);
+  return Response.redirect(`${origin}${LANDING}&connect_error=${encodeURIComponent(reason)}`, 302);
 }
 
 function readCookie(req: Request, name: string): string | null {

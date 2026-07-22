@@ -213,13 +213,25 @@ body {
   --info: #0284c7;
   --info-tint: color-mix(in srgb, #0284c7 12%, transparent);
 
-  /* Unified schedule source colors (estimate/job). Each stream on the Jobs
+  /* Unified schedule source colors (estimate/job/busy). Each stream on the Jobs
      calendar reads its color from these so the legend, pills and blocks stay in
-     sync and theme-aware. */
+     sync and theme-aware. Busy is deliberately neutral grey: it is time taken
+     on the client's own linked calendar, not work, and must never compete with
+     a real job for attention. */
   --source-estimate: var(--info);
   --source-estimate-tint: var(--info-tint);
   --source-job: #16a34a;
   --source-job-tint: color-mix(in srgb, #16a34a 12%, transparent);
+  /* Busy sat at 14% and read as an empty calendar on a white surface, so a
+     linked calendar looked broken. Dark enough to register as a deliberate
+     band, still quiet enough to sit behind the client's own work. */
+  --source-busy: #64748b;
+  --source-busy-tint: color-mix(in srgb, #64748b 24%, transparent);
+  /* Booked appointments on the Setter Suite calendar. Brand indigo: unlike
+     busy, which is time taken, an appointment is the thing the setter is
+     working towards, so it earns the accent. */
+  --source-appointment: var(--brand);
+  --source-appointment-tint: color-mix(in srgb, var(--brand) 18%, transparent);
 
   --shadow-sm: 0 1px 2px rgba(20, 22, 31, 0.04), 0 1px 3px rgba(20, 22, 31, 0.05);
   --shadow-md: 0 6px 18px rgba(40, 42, 70, 0.07), 0 2px 6px rgba(40, 42, 70, 0.05);
@@ -267,6 +279,12 @@ body {
   --source-estimate-tint: var(--info-tint);
   --source-job: #4ade80;
   --source-job-tint: color-mix(in srgb, #4ade80 18%, transparent);
+  --source-busy: #94a3b8;
+  --source-busy-tint: color-mix(in srgb, #94a3b8 26%, transparent);
+  /* Booked appointments, tuned for dark: the accent lifts off the darker
+     surface and the tint carries further, same as the other sources here. */
+  --source-appointment: var(--brand-text);
+  --source-appointment-tint: color-mix(in srgb, var(--brand) 26%, transparent);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.34);
   --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.34);
@@ -659,4 +677,75 @@ body {
     animation: none;
   }
   /* Spinner keeps turning: it is a loading indicator, not decoration. */
+}
+
+/* --- Setter Suite dialing script (Settings editor + cockpit overlay) ---
+   One typography block shared by the contenteditable editor and the
+   rendered overlay, so what the admin formats is exactly what the setter
+   reads. Tailwind's preflight flattens headings/lists, hence the manual
+   scale here. */
+.script-doc {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text);
+}
+.script-doc h1 {
+  font-family: var(--font-display, inherit);
+  font-size: 21px;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.1em 0 0.4em;
+}
+.script-doc h2 {
+  font-family: var(--font-display, inherit);
+  font-size: 16.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1em 0 0.35em;
+}
+.script-doc h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0.9em 0 0.3em;
+}
+.script-doc h1:first-child,
+.script-doc h2:first-child,
+.script-doc h3:first-child,
+.script-doc p:first-child {
+  margin-top: 0;
+}
+.script-doc p,
+.script-doc div {
+  margin: 0 0 0.55em;
+}
+.script-doc ul,
+.script-doc ol {
+  margin: 0 0 0.7em;
+  padding-left: 1.5em;
+}
+.script-doc ul {
+  list-style: disc;
+}
+.script-doc ol {
+  list-style: decimal;
+}
+.script-doc li {
+  margin: 0.15em 0;
+}
+.script-doc a {
+  color: var(--brand-text, var(--brand));
+  text-decoration: underline;
+}
+.script-doc blockquote {
+  border-left: 3px solid var(--border);
+  margin: 0 0 0.7em;
+  padding: 0.1em 0 0.1em 0.9em;
+  color: var(--text-muted);
+}
+
+/* Placeholder for the empty contenteditable editor. */
+.script-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-faint);
+  pointer-events: none;
 }

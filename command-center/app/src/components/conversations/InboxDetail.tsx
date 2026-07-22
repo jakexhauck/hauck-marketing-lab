@@ -10,7 +10,18 @@ import type { ApiConversation } from "../../lib/api";
 // sit on their own tabs (ThreadChannelTabs), each reading and sending over its
 // own medium. The lead is a single row in the list, so the two threads never
 // drift into two separate conversations with the same person.
-export default function InboxDetail({ conv }: { conv: ApiConversation | null }) {
+//
+// `stageLabel` overrides the stage shown under the name. `conv.stageName` is
+// whichever single opportunity the backend chose, so on a page scoped to ONE
+// pipeline (Reviews Chats) it would show the contact's Sales stage instead of
+// the stage that page is about. Defaults to conv.stageName for the Inbox.
+export default function InboxDetail({
+  conv,
+  stageLabel,
+}: {
+  conv: ApiConversation | null;
+  stageLabel?: string;
+}) {
   if (!conv) {
     return (
       <section className="flex flex-1 items-center justify-center bg-brand-bg">
@@ -30,9 +41,9 @@ export default function InboxDetail({ conv }: { conv: ApiConversation | null }) 
             <div className="truncate font-display text-[16px] font-semibold text-text">
               {conv.name}
             </div>
-            {conv.stageName && (
+            {(stageLabel ?? conv.stageName) && (
               <div className="mt-0.5 truncate text-[11.5px] text-faint">
-                {conv.stageName}
+                {stageLabel ?? conv.stageName}
               </div>
             )}
           </div>

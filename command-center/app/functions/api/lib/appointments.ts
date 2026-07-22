@@ -39,7 +39,7 @@ function norm(s: string): string {
   return s.trim().toLowerCase();
 }
 
-interface Calendar {
+export interface Calendar {
   id: string;
   name?: string;
   isActive?: boolean;
@@ -48,18 +48,38 @@ interface CalendarsResp {
   calendars?: Calendar[];
 }
 
-// Resolve a booking calendar id by name (exact then contains), so a small GHL
-// rename still lands and the client never hardcodes an id. Uses ghlJson (the
-// calendar LIST tolerates the default version). Returns null if nothing matches.
-export async function resolveCalendarByName(
-  gctx: GhlContext,
-  name: string,
-): Promise<string | null> {
+// The location's ACTIVE calendars. Uses ghlJson (the calendar LIST tolerates
+// the default version, unlike free-slots/create which need calFetch's
+// 2021-04-15). isActive is optional on the wire, so absent counts as active:
+// that is the historical behaviour resolveCalendarByName has always had and
+// callers depend on it.
+export async function listCalendars(gctx: GhlContext): Promise<Calendar[]> {
   const data = await ghlJson<CalendarsResp>(
     gctx,
     `/calendars/?locationId=${encodeURIComponent(gctx.locationId)}`,
   );
-  const cals = (data.calendars ?? []).filter((c) => c.isActive !== false);
+  return (data.calendars ?? []).filter((c) => c.isActive !== false);
+}
+
+// GHL does not use a stable error code for "that calendar id is not real": a
+// bad id comes back as a 404, or as a 4xx whose body names the calendar. Both
+// callers (admin slots + book) need the same judgement, so it lives here with
+// the rest of the calendar-API quirks rather than being duplicated per route.
+export function isCalendarNotFound(status?: number, body?: string): boolean {
+  if (status === 404) return true;
+  return /calendar (was )?not found|invalid calendar|calendar (id )?(is )?invalid/i.test(
+    body ?? "",
+  );
+}
+
+// Resolve a booking calendar id by name (exact then contains), so a small GHL
+// rename still lands and the client never hardcodes an id. Returns null if
+// nothing matches.
+export async function resolveCalendarByName(
+  gctx: GhlContext,
+  name: string,
+): Promise<string | null> {
+  const cals = await listCalendars(gctx);
   const want = norm(name);
   const cal =
     cals.find((c) => norm(c.name ?? "") === want) ??
@@ -155,6 +175,120 @@ export async function createAppointment(
   }
   const data = (await res.json()) as { id?: string; appointment?: { id?: string } };
   return { ok: true, id: data.id ?? data.appointment?.id ?? "" };
+}
+
+// Cancel an appointment. GHL cancels by setting appointmentStatus, not by
+// DELETE (same pattern as functions/api/customers/[contactId]/plan.ts). The
+// booking stays on the calendar as a cancelled record, which is also what
+// keeps it out of listCalendarEvents consumers that filter dead statuses.
+export async function cancelAppointment(
+  gctx: GhlContext,
+  eventId: string,
+): Promise<{ ok: boolean; status: number; body?: string }> {
+  const res = await calFetch(gctx, `/calendars/events/appointments/${encodeURIComponent(eventId)}`, {
+    method: "PUT",
+    body: JSON.stringify({ appointmentStatus: "cancelled" }),
+  });
+  if (!res.ok) {
+    return { ok: false, status: res.status, body: (await res.text()).slice(0, 300) };
+  }
+  return { ok: true, status: res.status };
+}
+
+// Booked events, as opposed to free slots. Lifted from the client-app route
+// functions/api/calendar/events.ts so admin routes can list a client's
+// appointments without a client-app session. Two things differ from that
+// route on purpose: the events endpoint tolerates the default 2021-07-28
+// version so this uses ghlJson rather than the private calFetch, and there
+// is deliberately no contact-name map. events.ts pulls up to 1000 contacts
+// per request to fill names in; that cost is not acceptable on a route a
+// setter hits every time they change week, so an unnamed contact comes back
+// with an empty contactName and the caller decides what to show.
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  startTime: string | null;
+  endTime: string | null;
+  status: string;
+  contactId: string;
+  contactName: string;
+}
+
+interface RawEvent {
+  id?: string;
+  _id?: string;
+  title?: string;
+  startTime?: string;
+  endTime?: string;
+  appointmentStatus?: string;
+  status?: string;
+  contactId?: string;
+  contactName?: string;
+}
+
+// The events plus the calendars that could not be read. The second half is not
+// optional bookkeeping: the Setter Suite Calendar tab is a WRITE surface, and a
+// grid missing one calendar's appointments but presented as complete is how a
+// setter offers a slot that is already taken. functions/api/calendar/events.ts
+// swallows the same failure silently, which is fine there because that route is
+// read-only; here the caller has to be able to tell the setter.
+export interface CalendarEventsResult {
+  events: CalendarEvent[];
+  failedCalendarIds: string[];
+}
+
+// [startMs, endMs] are epoch milliseconds, not ISO: the GHL events route
+// rejects ISO on startTime/endTime. Callers holding ISO strings parse first.
+//
+// One calendar 4xxing does not reject the whole promise (that blanked the tab
+// on a 502); its id is collected into failedCalendarIds instead. The calendar
+// LIST failing still throws: there is nothing to be partial about, and the
+// caller cannot tell a client with no calendars from a CRM outage.
+export async function listCalendarEvents(
+  gctx: GhlContext,
+  startMs: number,
+  endMs: number,
+): Promise<CalendarEventsResult> {
+  const calendars = await listCalendars(gctx);
+  if (calendars.length === 0) return { events: [], failedCalendarIds: [] };
+
+  const byId = new Map<string, CalendarEvent>();
+  const failedCalendarIds: string[] = [];
+  for (const cal of calendars) {
+    let data: { events?: RawEvent[] };
+    try {
+      data = await ghlJson<{ events?: RawEvent[] }>(
+        gctx,
+        `/calendars/events?locationId=${encodeURIComponent(gctx.locationId)}` +
+          `&calendarId=${encodeURIComponent(cal.id)}` +
+          `&startTime=${startMs}&endTime=${endMs}`,
+      );
+    } catch (e) {
+      console.warn(`[appointments.listCalendarEvents] calendar ${cal.id}`, e);
+      failedCalendarIds.push(cal.id);
+      continue;
+    }
+    for (const ev of data.events ?? []) {
+      // The same appointment can surface on more than one calendar, so first
+      // sighting wins and later duplicates are ignored.
+      const id = ev.id ?? ev._id ?? "";
+      if (!id || byId.has(id)) continue;
+      byId.set(id, {
+        id,
+        title: ev.title ?? "Appointment",
+        startTime: ev.startTime ?? null,
+        endTime: ev.endTime ?? null,
+        status: (ev.appointmentStatus ?? ev.status ?? "booked").toLowerCase(),
+        contactId: ev.contactId ?? "",
+        contactName: ev.contactName ?? "",
+      });
+    }
+  }
+
+  const events = [...byId.values()].sort((a, b) =>
+    (a.startTime ?? "").localeCompare(b.startTime ?? ""),
+  );
+  return { events, failedCalendarIds };
 }
 
 // Reschedule an existing appointment. Confirmed shape (Willis live test):

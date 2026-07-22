@@ -29,7 +29,7 @@ const GROUPS: { label: string; routes: string[] }[] = [
     routes: [
       "/conversations",
       "/contacts",
-      "/billing",
+      "/customers",
       "/team",
     ],
   },

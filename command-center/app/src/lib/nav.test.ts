@@ -32,8 +32,14 @@ describe("client nav structure", () => {
     const company = NAV.filter(isNavSection).find((s) => s.id === "company")!;
     const routes = company.items.map((i) => i.to);
     expect(routes).toEqual(
-      expect.arrayContaining(["/sales/leads", "/sales/jobs", "/billing"]),
+      expect.arrayContaining(["/sales/leads", "/sales/jobs", "/customers"]),
     );
+  });
+
+  it("does not link Revenue: customer revenue lives on the Customers page", () => {
+    // The /billing route stays registered so an existing bookmark does not 404,
+    // but no surface may point at it any more. See lib/nav.ts.
+    expect(flattenNav(NAV).map((i) => i.to)).not.toContain("/billing");
   });
 
   it("has no duplicate leaf routes", () => {

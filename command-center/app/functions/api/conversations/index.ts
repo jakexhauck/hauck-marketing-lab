@@ -5,9 +5,21 @@ import {
   fetchAllOpportunities,
   ghlJson,
 } from "../../lib/ghl";
-import { buildOpportunityIndex } from "../../lib/opportunityIndex";
+import {
+  buildOpportunityIndex,
+  buildPipelinePositions,
+} from "../../lib/opportunityIndex";
 import { classifyOrigin, normalizeChannel } from "../../lib/origin";
 import type { OriginKey, ChannelKey } from "../../lib/origin";
+import { makeInternalConversationFilter } from "../../lib/internalRecipients";
+
+export interface ConversationPipeline {
+  pipelineId: string;
+  pipelineStageId: string;
+  pipelineName: string;
+  stageName: string;
+  status: string;
+}
 
 export interface ApiConversation {
   id: string;
@@ -28,6 +40,11 @@ export interface ApiConversation {
   pipelineStageId?: string;
   pipelineName?: string;
   stageName?: string;
+  // EVERY pipeline the contact sits in, not just the chosen one above. A past
+  // customer holds a Sales position and a Google Reviews position at the same
+  // time, so a page that needs one specific pipeline reads this. Empty when the
+  // contact has no opportunity at all.
+  pipelines: ConversationPipeline[];
 }
 
 interface PipelinesResponse {
@@ -65,6 +82,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const byContact = new Map(contacts.map((c) => [c.id, c]));
 
   const oppIndex = buildOpportunityIndex(opps);
+  const positionIndex = buildPipelinePositions(opps);
   const stageById = new Map<string, { pipelineName: string; stageName: string }>();
   for (const p of pipelinesData.pipelines ?? []) {
     for (const st of p.stages ?? []) {
@@ -72,8 +90,15 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     }
   }
 
+  // Internal notification sinks are hidden from the client entirely.
+  const isInternalConversation = makeInternalConversationFilter(
+    contacts,
+    t.internal_recipients,
+  );
+
   const items = all
     .filter((c) => Boolean(c.contactId))
+    .filter((c) => !isInternalConversation(c))
     .map((c) => {
       const contact = byContact.get(c.contactId as string);
       const name = c.fullName || c.contactName || c.email || c.phone || "Unknown";
@@ -89,6 +114,23 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         typeof c.lastMessageType === "string" ? c.lastMessageType : "";
       const chosen = oppIndex.get(c.contactId as string);
       const stage = chosen ? stageById.get(chosen.pipelineStageId) : undefined;
+      // Drop positions whose stage id is not in any pipeline we can read (a
+      // deleted stage, or a pipelines fetch that degraded to empty) rather than
+      // emitting a nameless entry the client cannot match on.
+      const pipelines = (positionIndex.get(c.contactId as string) ?? [])
+        .map((p) => {
+          const st = stageById.get(p.pipelineStageId);
+          return st
+            ? {
+                pipelineId: p.pipelineId,
+                pipelineStageId: p.pipelineStageId,
+                pipelineName: st.pipelineName,
+                stageName: st.stageName,
+                status: p.status,
+              }
+            : null;
+        })
+        .filter((p): p is ConversationPipeline => p !== null);
       return {
         id: c.id,
         contactId: c.contactId as string,
@@ -107,6 +149,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
         pipelineStageId: chosen?.pipelineStageId,
         pipelineName: stage?.pipelineName,
         stageName: stage?.stageName,
+        pipelines,
       } satisfies ApiConversation;
     });
 

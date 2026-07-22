@@ -69,23 +69,54 @@ export async function getTenantById(
   return (data as TenantRow | null) ?? null;
 }
 
-// Append a row to admin_audit_log. Best-effort: an audit write must never break
-// the action it records, but it should be present for every state change.
+// Append a row to admin_audit_log. Still best-effort in the sense that it never
+// throws and never breaks the action it records, but it no longer fails SILENTLY:
+// it returns whether the row landed, and reports why when it did not.
+//
+// Two ways this used to disappear, both real:
+//
+//  1. supabase-js `.insert()` does NOT throw on a database error. It RESOLVES
+//     with `{ error }`. The old `try/catch` therefore caught almost nothing, and
+//     every rejected insert was swallowed with no trace at all.
+//  2. Nothing was logged and nothing was returned, so a caller could report a
+//     successful, irreversible action that has no audit row.
+//
+// That matters most for `setter.send`, where this log is the ONLY record that a
+// message went out to a client's customer under that client's name. A concrete
+// exploit of the old behaviour: Postgres jsonb rejects a NUL byte inside a
+// string, so a setter wanting an untracked message needed only to include one.
+// The message went out, the insert failed, the failure vanished, and the
+// operator was shown a success.
+//
+// Callers performing an irreversible action SHOULD surface a false return rather
+// than discard it, so the operator learns the action was not recorded.
 export async function logAdminAction(
   client: SupabaseClient,
   adminId: string,
   action: string,
   targetTenantId: string | null,
   payload?: unknown,
-): Promise<void> {
+): Promise<boolean> {
   try {
-    await client.from("admin_audit_log").insert({
+    const { error } = await client.from("admin_audit_log").insert({
       admin_id: adminId,
       action,
       target_tenant_id: targetTenantId,
       payload: payload ?? null,
     });
-  } catch {
-    // best effort
+    if (error) {
+      console.error(
+        `[audit] FAILED to record "${action}" for tenant ${targetTenantId ?? "none"}: ${error.message}`,
+      );
+      return false;
+    }
+    return true;
+  } catch (e) {
+    // A transport-level throw (network, aborted worker). Same contract: report
+    // it, never rethrow into the caller's success path.
+    console.error(
+      `[audit] FAILED to record "${action}" for tenant ${targetTenantId ?? "none"}: ${String(e)}`,
+    );
+    return false;
   }
 }

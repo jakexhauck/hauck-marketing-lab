@@ -332,7 +332,7 @@ const service: Pillar = {
     { id: "sales-infra", emoji: "🏗️", label: "Sales Infrastructure", what: "The GHL snapshot: funnels, pipelines, automations, calendars, CRM.", status: "building", motion: "deploy" },
     { id: "tracking", emoji: "📡", label: "Tracking + Attribution", what: "Pixels, conversion API, call tracking. Feeds the software's reporting.", status: "building", motion: "deploy" },
     { id: "ai-agents", emoji: "🤖", label: "AI Agents", what: "Build-once agents dropped into a client, then maintained.", status: "planned", motion: "deploy", needsSetup: "Offer not built yet." },
-    { id: "paid-ads", emoji: "🎯", to: "/admin/ads", label: "Paid Ads Management", what: "Launch, monitor, kill / scale / refresh. The core ongoing work.", status: "live", motion: "manage", links: [{ label: "Clients", to: "/admin/clients" }], scoreboard: [{ label: "Ad spend managed", metricKey: "adSpend" }] },
+    { id: "paid-ads", emoji: "🎯", to: "/admin/delivery", label: "Paid Ads Management", what: "Launch, monitor, kill / scale / refresh. The core ongoing work.", status: "live", motion: "manage", links: [{ label: "Clients", to: "/admin/clients" }], scoreboard: [{ label: "Ad spend managed", metricKey: "adSpend" }] },
     { id: "seo", emoji: "🔎", label: "SEO", what: "Ongoing search optimization as a service.", status: "planned", motion: "manage", needsSetup: "Offer not built yet." },
     { id: "commercial-leadgen", emoji: "🏭", label: "Commercial Lead-Gen (for clients)", what: "Cold email to win commercial jobs for construction + service clients.", status: "planned", motion: "manage", needsSetup: "Possible future offer." },
   ],

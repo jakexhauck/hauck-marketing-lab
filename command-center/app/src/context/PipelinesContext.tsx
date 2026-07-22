@@ -34,7 +34,9 @@ function isSalesPipeline(name: string): boolean {
 }
 
 // Stages we hide from the app's pipeline board and Move sheet even though GHL
-// still returns them (GHL stays the system of record; this is display-only).
+// might still return them (GHL stays the system of record; this is display-only
+// and defensive: "Follow Up" and "Estimate Completed" were removed from the live
+// Sales pipeline, and this keeps them out of the app if they ever reappear).
 // Matched by lower-cased substring so the emoji GHL appends is harmless. Kept
 // tight so "Estimate Completed" does not catch "Estimate Scheduled" and
 // "Follow Up" does not catch "Long Term Nurture".

@@ -9,17 +9,20 @@ import { PipelinesProvider } from "./context/PipelinesContext";
 import Login from "./routes/Login";
 import Home from "./routes/Home";
 import AllFeatures from "./routes/AllFeatures";
-import Leads from "./routes/Leads";
+import LeadsPipelinePage from "./routes/sales/LeadsPipelinePage";
 import LeadsOrganic from "./routes/sales/LeadsOrganic";
 import Jobs from "./routes/sales/Jobs";
-import JobConsole from "./routes/sales/JobConsole";
 import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
 import ReviewsRequests from "./routes/reviews/ReviewsRequests";
 import ReviewsPipeline from "./routes/reviews/ReviewsPipeline";
+import ReviewsChats from "./routes/reviews/ReviewsChats";
 import { Activity } from "./routes/Activity";
 import Contacts from "./routes/Contacts";
 import ContactDetail from "./routes/ContactDetail";
+import Customers from "./routes/Customers";
+import CustomerDetail from "./routes/CustomerDetail";
+import CloseOutJob from "./routes/sales/CloseOutJob";
 import Conversations from "./routes/Conversations";
 import ConversationDetail from "./routes/ConversationDetail";
 import LeadDetail from "./routes/LeadDetail";
@@ -40,7 +43,6 @@ import WebsiteOverview from "./routes/website/WebsiteOverview";
 import WebsitePages from "./routes/website/WebsitePages";
 import WebsiteInsights from "./routes/website/WebsiteInsights";
 import AdsOverview from "./routes/paid-ads/AdsOverview";
-import AdsCreatives from "./routes/paid-ads/AdsCreatives";
 import AdsInsights from "./routes/paid-ads/AdsInsights";
 import AdsMedia from "./routes/paid-ads/AdsMedia";
 import Reactivation from "./routes/sales/Reactivation";
@@ -55,27 +57,19 @@ import ReactivationData from "./routes/reactivation/ReactivationData";
 import GroupOutreachOverview from "./routes/groups/GroupOutreachOverview";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
-import AdminTasks from "./routes/admin/AdminTasks";
-import AdminBuild from "./routes/admin/AdminBuild";
-import AdminSops from "./routes/admin/AdminSops";
-import AdminSopDetail from "./routes/admin/AdminSopDetail";
-import Assets from "./routes/admin/Assets";
-import AdminMessages from "./routes/admin/AdminMessages";
-import Plans from "./routes/admin/Plans";
-import AdminOnboarding from "./routes/admin/AdminOnboarding";
-import AdminOnboardingDetail from "./routes/admin/AdminOnboardingDetail";
+import AdminClientNew from "./routes/admin/AdminClientNew";
 import AdminCommand from "./routes/admin/AdminCommand";
 import AdminDelivery from "./routes/admin/AdminDelivery";
 import DeliveryCockpit from "./routes/admin/DeliveryCockpit";
-import AdminPillarPage from "./routes/admin/AdminPillarPage";
+import SetterSuite from "./routes/admin/SetterSuite";
+import PillarPage from "./routes/admin/PillarPage";
 import AdminSettings from "./routes/admin/AdminSettings";
-import AdminAds from "./routes/admin/AdminAds";
-import AdminAdsClient from "./routes/admin/AdminAdsClient";
-import AdminInfrastructure from "./routes/admin/AdminInfrastructure";
+import AdminAudit from "./routes/admin/AdminAudit";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
 import PreviewBanner from "./components/PreviewBanner";
+import { isPreviewFrame } from "./lib/previewFrame";
 import DemoBanner from "./components/DemoBanner";
 import IncomingCallBanner from "./components/call/IncomingCallBanner";
 import ScrollToTop from "./components/ScrollToTop";
@@ -237,7 +231,11 @@ export default function App() {
             <ServiceWorkerUpdater />
             {import.meta.env.DEV && <MotionPresetSwitcher />}
             <OfflineBanner />
-            <PreviewBanner />
+            {/* Inside the admin Software tab's preview frame the surrounding
+                cockpit already says whose app this is, and there is no session
+                to "exit" (the frame holds a token, not a cookie), so the banner
+                would be both redundant and a dead end. */}
+            {!isPreviewFrame() && <PreviewBanner />}
             <DemoBanner />
             <IncomingCallBanner />
             <ScrollToTop />
@@ -264,21 +262,21 @@ export default function App() {
               />
               {/* The old standalone /leads board now lands on the Pipeline tab. */}
               <Route path="/leads" element={<Navigate to="/sales/leads" replace />} />
-              {/* Section root = Pipeline (the interactive board), the default tab. */}
+              {/* Section root = Sales pipeline board (the default tab). */}
               <Route
                 path="/sales/leads"
                 element={
                   <ProtectedRoute>
-                    <Leads />
+                    <LeadsPipelinePage kind="sales" />
                   </ProtectedRoute>
                 }
               />
-              {/* Console = work an active lead: move stage, log amount + outcome. */}
+              {/* Trash = the dead-lead pipeline board. */}
               <Route
-                path="/sales/leads/console"
+                path="/sales/leads/trash"
                 element={
                   <ProtectedRoute>
-                    <JobConsole />
+                    <LeadsPipelinePage kind="trash" />
                   </ProtectedRoute>
                 }
               />
@@ -292,7 +290,7 @@ export default function App() {
                 }
               />
               {/* Old paths fold into the new pages. Paid Ads is no longer a Leads
-                  tab; its old routes redirect to the Pipeline board. */}
+                  tab; its old routes redirect to the Sales board. */}
               <Route path="/sales/leads/pipeline" element={<Navigate to="/sales/leads" replace />} />
               <Route path="/sales/leads/paid-ads" element={<Navigate to="/sales/leads" replace />} />
               <Route path="/sales/forms" element={<Navigate to="/sales/leads/organic" replace />} />
@@ -329,6 +327,30 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <Activity />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customers"
+                element={
+                  <ProtectedRoute>
+                    <Customers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customers/:contactId"
+                element={
+                  <ProtectedRoute>
+                    <CustomerDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sales/leads/close-out/:opportunityId"
+                element={
+                  <ProtectedRoute>
+                    <CloseOutJob />
                   </ProtectedRoute>
                 }
               />
@@ -448,8 +470,9 @@ export default function App() {
               {/* Overview = the designed "at a glance" cockpit (AdsOverview). The raw
                   media-buyer dashboard stays reachable at /paid-ads for the deep dive. */}
               <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsOverview /></ProtectedRoute>} />
-              <Route path="/marketing/paid-ads/creatives" element={<ProtectedRoute><AdsCreatives /></ProtectedRoute>} />
-              {/* A marketing channel never hosts a lead list; ad leads live in the Leads pipeline. */}
+              {/* "Your Ads" merged into "Media" (one live-marked creative view); old URL redirects. */}
+              <Route path="/marketing/paid-ads/creatives" element={<Navigate to="/marketing/paid-ads/media" replace />} />
+              {/* A marketing channel never hosts a lead list; ad leads live in Leads, filtered. */}
               <Route path="/marketing/paid-ads/leads" element={<Navigate to="/sales/leads" replace />} />
               <Route path="/marketing/paid-ads/stats" element={<ProtectedRoute><AdsInsights /></ProtectedRoute>} />
               {/* Funnel tab retired; old URL redirects to the Paid Ads overview. */}
@@ -459,6 +482,7 @@ export default function App() {
               <Route path="/marketing/reviews" element={<Navigate to="/marketing/reviews/pipeline" replace />} />
               <Route path="/marketing/reviews/pipeline" element={<ProtectedRoute><ReviewsPipeline /></ProtectedRoute>} />
               <Route path="/marketing/reviews/requests" element={<ProtectedRoute><ReviewsRequests /></ProtectedRoute>} />
+              <Route path="/marketing/reviews/chats" element={<ProtectedRoute><ReviewsChats /></ProtectedRoute>} />
               {/* All Reviews + Reputation Report tabs retired; old URLs fall back to the pipeline. */}
               <Route path="/marketing/reviews/all" element={<Navigate to="/marketing/reviews/pipeline" replace />} />
               <Route path="/marketing/reviews/report" element={<Navigate to="/marketing/reviews/pipeline" replace />} />
@@ -504,6 +528,16 @@ export default function App() {
                   list route redirects to Command; client detail pages stay
                   (reused as the cockpit Config tab). */}
               <Route path="/admin/clients" element={<Navigate to="/admin" replace />} />
+              {/* Declared above /admin/clients/:id or React Router hands "new"
+                  to the detail page as a tenant id. */}
+              <Route
+                path="/admin/clients/new"
+                element={
+                  <AdminRoute>
+                    <AdminClientNew />
+                  </AdminRoute>
+                }
+              />
               <Route
                 path="/admin/clients/:id"
                 element={
@@ -512,103 +546,14 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              <Route
-                path="/admin/onboarding"
-                element={
-                  <AdminRoute>
-                    <AdminOnboarding />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/onboarding/:id"
-                element={
-                  <AdminRoute>
-                    <AdminOnboardingDetail />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/tasks"
-                element={
-                  <AdminRoute>
-                    <AdminTasks />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/assets"
-                element={
-                  <AdminRoute>
-                    <Assets />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/build"
-                element={
-                  <AdminRoute>
-                    <AdminBuild />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/plans"
-                element={
-                  <AdminRoute>
-                    <Plans />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/sops"
-                element={
-                  <AdminRoute>
-                    <AdminSops />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/sops/:cat/:slug"
-                element={
-                  <AdminRoute>
-                    <AdminSopDetail />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/messages"
-                element={
-                  <AdminRoute>
-                    <AdminMessages />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/infrastructure"
-                element={
-                  <AdminRoute>
-                    <AdminInfrastructure />
-                  </AdminRoute>
-                }
-              />
-              {/* Service Delivery > Paid Ads: the per-client ad tracker. */}
-              <Route
-                path="/admin/ads"
-                element={
-                  <AdminRoute>
-                    <AdminAds />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/ads/:clientId"
-                element={
-                  <AdminRoute>
-                    <AdminAdsClient />
-                  </AdminRoute>
-                }
-              />
+              {/* Retired admin surfaces (SOPs, Onboarding, Build, Plans, Assets,
+                  Messages, Infrastructure, standalone Tasks) are gone; their
+                  work now lives inside the pillar tab bars. Old URLs fall
+                  through to RootRedirect below. */}
+              {/* Service Delivery > Paid Ads: the old standalone ad tracker
+                  is retired, replaced by the Fulfillment cockpit's Paid Ads tab. */}
+              <Route path="/admin/ads" element={<Navigate to="/admin/delivery" replace />} />
+              <Route path="/admin/ads/:clientId" element={<Navigate to="/admin/delivery" replace />} />
               {/* Service Delivery: the client roster and per-account cockpits. */}
               <Route
                 path="/admin/delivery"
@@ -626,11 +571,31 @@ export default function App() {
                   </AdminRoute>
                 }
               />
+              {/* Sales: the Setter Suite, one client's leads worked across
+                  every one of that client's pipelines. */}
+              <Route
+                path="/admin/setter"
+                element={
+                  <AdminRoute>
+                    <SetterSuite />
+                  </AdminRoute>
+                }
+              />
               <Route
                 path="/admin/settings"
                 element={
                   <AdminRoute>
                     <AdminSettings />
+                  </AdminRoute>
+                }
+              />
+              {/* The admin audit log. Reached from Settings, not the sidebar:
+                  occasional-use, and the sidebar zones are settled. */}
+              <Route
+                path="/admin/audit"
+                element={
+                  <AdminRoute>
+                    <AdminAudit />
                   </AdminRoute>
                 }
               />
@@ -641,15 +606,18 @@ export default function App() {
               <Route path="/admin/pillar/service" element={<Navigate to="/admin/delivery" replace />} />
               <Route path="/admin/pillar/retention" element={<Navigate to="/admin/delivery" replace />} />
               <Route path="/admin/pillar/delivery" element={<Navigate to="/admin/delivery" replace />} />
+              {/* The standalone Tasks page folded into the Operations pillar. */}
+              <Route path="/admin/tasks" element={<Navigate to="/admin/pillar/operations?tab=tasks" replace />} />
               {/* Old lane/tab deep links drop back to the pillar page. */}
               <Route path="/admin/pillar/:pillarId/lane/:laneId" element={<PillarRedirect />} />
               <Route path="/admin/pillar/:pillarId/:tabId" element={<PillarRedirect />} />
-              {/* The pillar page itself (acquisition / sales / operations). */}
+              {/* The pillar page itself (acquisition / sales / operations):
+                  a Bento Bold header + per-pillar tab bar driven by ?tab=. */}
               <Route
                 path="/admin/pillar/:pillarId"
                 element={
                   <AdminRoute>
-                    <AdminPillarPage />
+                    <PillarPage />
                   </AdminRoute>
                 }
               />

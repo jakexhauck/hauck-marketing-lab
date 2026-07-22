@@ -1,5 +1,7 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
+import { logAdminAction } from "../../../lib/adminAuth";
+import { deriveCoupling, isValidStatus, type TaskStatus } from "../../../lib/taskStatus";
 
 // Shape returned to the admin console. tenantId null means an agency-wide task;
 // the matching tenant name is joined in so the UI can label the category chip
@@ -12,11 +14,14 @@ interface TaskRow {
   note: string | null;
   due_date: string | null;
   completed: boolean;
+  status: TaskStatus;
+  updates: string | null;
   created_at: string;
   tenants: { name: string } | null;
 }
 
-const SELECT = "id, tenant_id, pillar_id, title, note, due_date, completed, created_at, tenants(name)";
+const SELECT =
+  "id, tenant_id, pillar_id, title, note, due_date, completed, status, updates, created_at, tenants(name)";
 
 function toTask(row: TaskRow) {
   return {
@@ -28,6 +33,9 @@ function toTask(row: TaskRow) {
     note: row.note,
     dueDate: row.due_date,
     completed: row.completed,
+    // Rows written before 0032 land as 'todo' via the column default.
+    status: isValidStatus(row.status) ? row.status : "todo",
+    updates: row.updates,
     createdAt: row.created_at,
   };
 }
@@ -67,9 +75,13 @@ interface CreateBody {
   note?: string | null;
   // ISO date (YYYY-MM-DD) or omit for no due date.
   dueDate?: string | null;
+  // The Operations checklist pill. Omit for 'todo'.
+  status?: string;
+  // The checklist's free-text "Updates" cell.
+  updates?: string | null;
 }
 
-// POST /api/admin/tasks  (admin-only) — add a task.
+// POST /api/admin/tasks  (admin-only): add a task.
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
@@ -81,11 +93,26 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     return Response.json({ error: "invalid body" }, { status: 400 });
   }
 
+  // The Operations checklist adds a blank row and focuses it, so a create with
+  // no title key at all is valid. Callers that DO send a title still have to
+  // send a non-empty one, which keeps the old behaviour intact.
   const title = (body.title ?? "").trim();
-  if (!title) return Response.json({ error: "title is required" }, { status: 400 });
+  if ("title" in body && !title) {
+    return Response.json({ error: "title is required" }, { status: 400 });
+  }
+
+  if (body.status !== undefined && !isValidStatus(body.status)) {
+    return Response.json({ error: "invalid status" }, { status: 400 });
+  }
 
   const pillarId = body.pillarId ? body.pillarId : null;
   const note = body.note && body.note.trim() ? body.note.trim() : null;
+  // A new row starts unchecked at 'todo'; creating one straight at 'done'
+  // checks it off, via the same coupling the PATCH route uses.
+  const coupled = deriveCoupling(
+    { completed: false, status: "todo" },
+    { status: body.status as TaskStatus | undefined },
+  );
 
   const insert = {
     title,
@@ -94,6 +121,9 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     // A pillar task is never also a client task.
     tenant_id: pillarId ? null : body.tenantId ? body.tenantId : null,
     due_date: body.dueDate ? body.dueDate : null,
+    completed: coupled.completed,
+    status: coupled.status,
+    updates: body.updates && body.updates.trim() ? body.updates.trim() : null,
     created_by: ctx.data.admin!.id,
   };
 
@@ -106,5 +136,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     return Response.json({ error: error?.message ?? "could not create task" }, { status: 500 });
   }
 
-  return Response.json({ task: toTask(data as unknown as TaskRow) }, { status: 201 });
+  const task = toTask(data as unknown as TaskRow);
+  await logAdminAction(client, ctx.data.admin!.id, "task.create", task.tenantId, {
+    taskId: task.id,
+  });
+
+  return Response.json({ task }, { status: 201 });
 };

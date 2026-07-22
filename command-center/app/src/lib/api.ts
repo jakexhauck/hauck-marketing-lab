@@ -1,5 +1,7 @@
 import { demoMode } from "../demo/demoMode";
 import { handleDemoRequest } from "../demo/handler";
+import { previewHeaders } from "./previewFrame";
+import type { BusinessHealthInputs, PeriodType } from "./businessHealth";
 
 export class ApiError extends Error {
   status: number;
@@ -25,6 +27,10 @@ export async function api<T>(
   if (init.body && !headers.has("content-type")) {
     headers.set("content-type", "application/json");
   }
+  // Inside the admin Software tab's preview frame this carries the read-only
+  // preview token, which the server reads ahead of the (admin) cookie the
+  // browser also attaches. A no-op in every normal tab.
+  for (const [k, v] of Object.entries(previewHeaders())) headers.set(k, v);
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -181,6 +187,27 @@ export interface ApiConversation {
   pipelineStageId?: string;
   pipelineName?: string;
   stageName?: string;
+  // Every pipeline the contact sits in. A past customer is in Sales AND Google
+  // Reviews at once, so the fields above (one chosen opportunity) cannot answer
+  // "where is this contact in the Google Reviews pipeline?" (this can).
+  // Optional: absent from payloads cached by a bundle that predates it, so always
+  // read it through `convPipelines()` rather than touching it directly.
+  pipelines?: ConversationPipeline[];
+}
+
+export interface ConversationPipeline {
+  pipelineId: string;
+  pipelineStageId: string;
+  pipelineName: string;
+  stageName: string;
+  status: string;
+}
+
+// The one safe way to read `pipelines`. A payload persisted by an older bundle
+// has no such field, and a poisoned localStorage snapshot is what white-screened
+// Paid Ads before, so never touch `c.pipelines` directly.
+export function convPipelines(c: ApiConversation): ConversationPipeline[] {
+  return Array.isArray(c.pipelines) ? c.pipelines : [];
 }
 
 export interface ApiNote {
@@ -360,6 +387,89 @@ export interface AdminClientDetailResponse {
   activity: AdminClientActivityEntry[];
 }
 
+// One client's commercial record (GET/PATCH /api/admin/clients/:tenantId/billing)
+// behind the Fulfillment cockpit's Billing tab: how the deal came in, cash
+// collected vs outstanding, billing/renewal dates, account standing. Phase 1 is
+// manual entry, so the four date fields are free text (typed exactly as the deal
+// notes read) and the cash fields are whole dollars.
+export interface AdminClientBilling {
+  source: string;
+  dateClosed: string;
+  service: string;
+  paymentArrangement: string;
+  upfrontCash: number;
+  remainingCash: number;
+  totalCashCollected: number;
+  billingDate: string;
+  renewalDate: string;
+  lastTouchpoint: string;
+  churnDate: string;
+  status: "active" | "churned";
+  notes: string;
+  // null until the record has been saved once (a client with no row yet).
+  updatedAt: string | null;
+}
+
+// The PATCH body: everything except the server-owned updatedAt.
+export type AdminClientBillingPatch = Omit<AdminClientBilling, "updatedAt">;
+
+export interface AdminClientBillingResponse {
+  billing: AdminClientBilling;
+}
+
+// --- Ad Tracker (the rebuild: derived from Meta + GHL, nothing typed) --------
+// Ratios arrive computed so the client cannot recompute one differently and
+// quietly disagree with the sheet this was ported from. null means the
+// denominator was zero; render it as "-", never as 0.
+
+export type AdTrackerRange = "all" | "7" | "30" | "90";
+export type AdTrackerLevel = "campaign" | "adset" | "ad";
+
+export interface AdTrackerKpis {
+  leads: number;
+  pickups: number;
+  bookings: number;
+  sales: number;
+  revenue: number;
+  spend: number;
+  pickupRate: number | null;
+  bookingRate: number | null;
+  salesPct: number | null;
+  closeRate: number | null;
+  roas: number | null;
+}
+
+export interface AdTrackerBreakdownRow {
+  id: string;
+  name: string;
+  spend: number;
+  leads: number;
+  bookings: number;
+  sales: number;
+  revenue: number;
+  roas: number | null;
+  costPerLead: number | null;
+  costPerBooking: number | null;
+}
+
+export interface AdTrackerResponse {
+  range: AdTrackerRange;
+  level: AdTrackerLevel;
+  kpis: AdTrackerKpis;
+  breakdown: AdTrackerBreakdownRow[];
+  // Leads in range with no ad id. The breakdown is the attributed subset, so
+  // showing this is what stops the two looking like they disagree.
+  unattributed: number;
+  currency: string;
+  meta: {
+    pipelines: number;
+    opportunities: number;
+    spendDays: number;
+    // No snapshot has ever been taken, which looks identical to "no spend".
+    neverSynced: boolean;
+  };
+}
+
 // An agency task in the admin "Tasks" tab, or a pillar task in a pillar
 // workspace's Tasks tab. tenantId null + pillarId null = agency-wide; tenantId
 // set = tied to that client (clientName is the joined label); pillarId set = a
@@ -373,6 +483,10 @@ export interface AdminTask {
   note: string | null;
   dueDate: string | null;
   completed: boolean;
+  // status and completed are kept coupled on every write, client and server,
+  // through deriveCoupling in src/lib/taskStatus.ts.
+  status: TaskStatus;
+  updates: string | null;
   createdAt: string;
 }
 
@@ -526,4 +640,498 @@ export interface AdminOverview {
 
 export async function getAdminOverview(): Promise<AdminOverview> {
   return api<AdminOverview>("/api/admin/overview");
+}
+
+// One logged day of the agency's own sales-call funnel (Sales pillar > Sales
+// Data, migration 0030). Raw counts only: every rate the page shows is derived
+// in src/lib/salesTracker.ts, so nothing computed crosses the wire. A null field
+// is a cell nobody has filled in, which is not the same as a zero.
+export interface SalesDataRow {
+  day: string; // "YYYY-MM-DD", the row's identity
+  callsOnCalendar: number | null;
+  rescheduledCancelled: number | null;
+  callsTaken: number | null;
+  qualified: number | null;
+  closed: number | null;
+  cashCollected: number | null;
+  notes: string | null;
+}
+
+// The subset of a day a single save carries. The endpoint upserts, so fields
+// left out keep whatever is stored: editing one cell never blanks the rest.
+export type SalesDataPatch = Partial<Omit<SalesDataRow, "day">>;
+
+// Only the days that have a row. The client generates the empty ones, so an
+// unlogged day stays visibly empty rather than arriving as a fabricated zero.
+export async function getSalesData(month: string): Promise<SalesDataRow[]> {
+  const { days } = await api<{ days: SalesDataRow[] }>(
+    `/api/admin/tracker/sales-data?month=${encodeURIComponent(month)}`,
+  );
+  return days;
+}
+
+export async function saveSalesDataDay(
+  day: string,
+  patch: SalesDataPatch,
+): Promise<SalesDataRow> {
+  const res = await api<{ ok: true; day: SalesDataRow }>(
+    "/api/admin/tracker/sales-data",
+    { method: "PATCH", body: JSON.stringify({ day, ...patch }) },
+  );
+  return res.day;
+}
+
+// Business Health (0030): the agency's own numbers, one row per period key.
+// Agency-global, so nothing here is scoped to a tenant. The response carries
+// only the hand-entered inputs; CAC/ROAS/LTV and the end client count are
+// derived from them in src/lib/businessHealth.ts and never stored.
+export interface BusinessHealthResponse {
+  period: string;
+  periodType: PeriodType;
+  inputs: BusinessHealthInputs;
+  // null when the period has no saved row yet (an untouched, all-zero period).
+  updatedAt: string | null;
+}
+
+export async function getBusinessHealth(period: string): Promise<BusinessHealthResponse> {
+  return api<BusinessHealthResponse>(
+    `/api/admin/tracker/business-health?period=${encodeURIComponent(period)}`,
+  );
+}
+
+// Upserts the period row. Sends only the fields that changed, so a single-field
+// autosave stays a single-field write.
+export async function saveBusinessHealth(
+  period: string,
+  periodType: PeriodType,
+  inputs: Partial<BusinessHealthInputs>,
+): Promise<BusinessHealthResponse> {
+  return api<BusinessHealthResponse>("/api/admin/tracker/business-health", {
+    method: "PATCH",
+    body: JSON.stringify({ period, periodType, inputs }),
+  });
+}
+
+// The Setter Suite dialing script: one formatted document per client,
+// authored in the Settings tab and rendered by the cockpit's script overlay.
+// The html is sanitized server-side on every write
+// (functions/lib/setterScript.ts), which is what makes it safe to render.
+export interface SetterScriptResponse {
+  html: string;
+  updatedAt: string | null;
+}
+
+export async function getSetterScript(tenantId: string): Promise<SetterScriptResponse> {
+  return api<SetterScriptResponse>(
+    `/api/admin/setter/script?tenantId=${encodeURIComponent(tenantId)}`,
+  );
+}
+
+export async function saveSetterScript(
+  tenantId: string,
+  html: string,
+): Promise<SetterScriptResponse> {
+  return api<SetterScriptResponse>("/api/admin/setter/script", {
+    method: "PATCH",
+    body: JSON.stringify({ tenantId, html }),
+  });
+}
+
+// The task status union lives with the pure coupling helpers so the client
+// hook and the endpoints validate against one source.
+import type { TaskStatus } from "./taskStatus";
+
+export type { TaskStatus };
+
+// ===== Operations pillar: Scaling Calculator =====
+// The seven inputs persist agency-globally (a single row) so the calculator
+// remembers Jake's last numbers. The compute itself is client-side and never
+// waits on this; see src/lib/scalingCalculator.ts for the math.
+import type { ScalingInputs } from "./scalingCalculator";
+
+export type { ScalingInputs };
+
+export async function getScalingCalculator(): Promise<ScalingInputs> {
+  return api<ScalingInputs>("/api/admin/tracker/scaling-calculator");
+}
+
+export async function saveScalingCalculator(
+  body: ScalingInputs,
+): Promise<ScalingInputs> {
+  return api<ScalingInputs>("/api/admin/tracker/scaling-calculator", {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+// ===== Operations pillar: Time Audit =====
+// Domain types live in src/lib/timeAudit.ts (the pure lib owns the tier and
+// task configs), re-exported here so callers keep importing DTOs from api.ts.
+import type {
+  Leverage,
+  TaskType,
+  TimeAuditBlock,
+  TimeAuditWeekResponse,
+} from "./timeAudit";
+
+export type { Leverage, TaskType, TimeAuditBlock, TimeAuditWeekResponse };
+
+// Setting a block carries its tier; clearing it sends taskType null and the
+// endpoint deletes the row (untagged means no row, never a null tag).
+export type TimeAuditTagBody =
+  | {
+      weekStart: string;
+      dayOfWeek: number;
+      slot: number;
+      leverage: Leverage;
+      taskType: TaskType;
+    }
+  | { weekStart: string; dayOfWeek: number; slot: number; taskType: null };
+
+export async function getTimeAuditWeek(
+  weekStart: string,
+): Promise<TimeAuditWeekResponse> {
+  return api<TimeAuditWeekResponse>(
+    `/api/admin/tracker/time-audit?week=${encodeURIComponent(weekStart)}`,
+  );
+}
+
+export async function tagTimeAuditBlock(
+  body: TimeAuditTagBody,
+): Promise<TimeAuditBlock | { cleared: true }> {
+  return api<TimeAuditBlock | { cleared: true }>(
+    "/api/admin/tracker/time-audit",
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Acquisition pillar surfaces (Leads, Cold Call, Cold SMS).
+//
+// All three are agency-internal and agency-global: no tenant scoping, admin-only,
+// served from /api/admin/tracker/*. Phase 1 is manual entry with the app DB as
+// the source of truth, so every count is nullable: a blank cell round-trips as
+// null, never as a fabricated 0. Rates are computed client-side (src/lib/
+// adminLeads.ts, coldCall.ts, coldSms.ts) and never persisted.
+// ---------------------------------------------------------------------------
+
+// Leads (Acquisition > Leads): the hand-kept agency prospect book.
+// Mirrors the CHECK constraint in migration 0030; LEAD_STATUSES in
+// src/lib/adminLeads.ts is the ordered runtime copy.
+export type AdminLeadStatus =
+  | "New"
+  | "Contacted"
+  | "No Answer"
+  | "Booked"
+  | "Qualified"
+  | "Closed"
+  | "Dead";
+
+export interface AdminLead {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  timezone: string;
+  status: AdminLeadStatus;
+  firstContactDate: string | null; // "YYYY-MM-DD"
+  source: string;
+  appointmentDate: string | null;
+  noAnswer: number;
+  lastContact: string | null;
+  followUpDate: string | null;
+  email: string;
+  notes: string;
+  createdAt: string;
+}
+
+// Cold Call (Acquisition > Cold Call): one row per dialing day.
+export interface ColdCallRow {
+  id: string;
+  day: string; // "YYYY-MM-DD"
+  callsMade: number | null;
+  pickups: number | null;
+  passThrough: number | null;
+  meetingsBooked: number | null;
+  objections: string | null;
+  notes: string | null;
+}
+
+// Cold SMS (Acquisition > SMS): three sub-views, three row shapes.
+export interface ColdSmsDailyRow {
+  id: string;
+  day: string; // "YYYY-MM-DD"
+  smsSent: number | null;
+  positiveReplies: number | null;
+  meetingsBooked: number | null;
+  note: string | null;
+}
+
+export interface ColdSmsMonthlyRow {
+  id: string;
+  month: string; // "YYYY-MM-01" (first of month)
+  totalSmsSent: number | null;
+  vaCost: number | null;
+  callsBooked: number | null;
+  callsShowed: number | null;
+  smsCost: number | null;
+  newClients: number | null;
+  cashCollected: number | null;
+  ltv: number | null;
+}
+
+export interface ColdSmsScriptRow {
+  id: string;
+  name: string;
+  totalSent: number | null;
+  positiveReplies: number | null;
+  callsBooked: number | null;
+  clientsClosed: number | null;
+  sortOrder: number;
+}
+
+// Setter Suite (Sales / admin-only). Mirrors the shapes returned by
+// functions/api/admin/setter/pipelines.ts and functions/api/admin/setter/leads.ts
+// exactly; see those files for the shaping logic.
+export interface ApiSetterStage {
+  id: string;
+  name: string;
+  // Live GHL hex, e.g. "#F97316". Rendered as an 8px dot only, per Board.tsx's
+  // convention: never a background, border, or text color.
+  color?: string;
+  // True when the live stage name matches /needs dialing/i. No mapping table.
+  needsDialing: boolean;
+}
+
+export interface ApiSetterPipeline {
+  id: string;
+  name: string;
+  stages: ApiSetterStage[];
+}
+
+// locationId is the client's own CRM location, resolved server-side per tenant.
+// The cockpit needs it to link a lead to its CRM contact record, which is how a
+// setter dials from the client's business number (lib/setterModel.ts:
+// ghlContactUrl). It rides this response because the GHL context is already
+// resolved on that route, once per client selection.
+export interface ApiSetterPipelinesResponse {
+  pipelines: ApiSetterPipeline[];
+  locationId: string;
+}
+
+// Deliberately has no `tags` field: the list endpoint cannot supply it
+// without an N+1 contact fetch per card across the whole board (see
+// functions/api/admin/setter/leads.ts). Tags belong to the per-lead detail
+// endpoint (a later task), which fetches one contact at a time.
+export interface ApiSetterLead {
+  id: string;
+  contactId: string;
+  name: string;
+  phone: string;
+  city: string;
+  stageName: string;
+  createdAt: string;
+  // When this opportunity last moved (status change, else any update); the
+  // Results tab's "recently won" sort/window key. Null when GHL sends neither.
+  updatedAt: string | null;
+  attempts: number;
+  firstDialedAt: string | null;
+  contacted: boolean;
+  lastOutcome: string | null;
+}
+
+export interface ApiSetterLeadsResponse {
+  leads: ApiSetterLead[];
+  // The leads endpoint caps at 1000 opportunities per pipeline
+  // (functions/lib/ghl.ts fetchAllOpportunities, maxPages: 10 at 100/page).
+  // The board must show this honestly rather than silently drop leads.
+  truncated: boolean;
+}
+
+// One row of setter_dials, camelCased exactly as
+// functions/api/admin/setter/dials.ts:shapeDialRow returns it. Shared by the
+// lead detail endpoint (dials, newest first) and the dial-logging response.
+export interface ApiSetterDial {
+  id: string;
+  contactId: string;
+  opportunityId: string | null;
+  pipelineName: string | null;
+  stageName: string | null;
+  dialedAt: string;
+  spoke: boolean;
+  outcome: string;
+  note: string | null;
+  tagsApplied: string[];
+  createdBy: string | null;
+  createdAt: string;
+}
+
+// The cockpit's single-lead panel. Mirrors
+// functions/api/admin/setter/lead/[contactId].ts's ApiSetterLeadDetail
+// exactly: unlike ApiSetterLead (the board card), this DOES carry tags,
+// fetched from one contact so it costs nothing extra.
+export interface ApiSetterLeadDetail {
+  contactId: string;
+  name: string;
+  phone: string;
+  email: string;
+  tags: string[];
+  dials: ApiSetterDial[];
+}
+
+// One bookable calendar, from functions/api/admin/setter/calendars.ts. The
+// booking flow picks from this list by id; it used to resolve a calendar by
+// NAME, which was a lossy round trip once a real list was available.
+export interface ApiSetterCalendar {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+// One booked appointment across all of a client's active calendars, from
+// functions/api/admin/setter/events.ts. Times are nullable because GHL will
+// return an event carrying neither; the Calendar tab has to survive that
+// rather than drop the booking. `contactName` is whatever GHL already had on
+// the event: that route deliberately does not pull a contact-name map to fill
+// the blanks (the client-app route does, at up to 1000 contacts a request),
+// so an empty string is a normal answer here.
+export interface ApiSetterEvent {
+  id: string;
+  title: string;
+  startTime: string | null;
+  endTime: string | null;
+  status: string;
+  contactId: string;
+  contactName: string;
+}
+
+// The events response, which is deliberately more than a bare list. One of the
+// client's calendars failing no longer rejects the whole request, so the grid
+// can render partially. `incomplete` is how a caller learns that happened, and
+// it MUST be surfaced: this tab writes, and a setter reading a partial grid as
+// complete can book a customer on top of an appointment they were never shown.
+// `failedCalendars` is a count rather than ids, because a raw GHL calendar id
+// means nothing to a setter.
+export interface ApiSetterEventsResponse {
+  events: ApiSetterEvent[];
+  incomplete: boolean;
+  failedCalendars: number;
+}
+
+// One pending scheduled callback (functions/api/admin/setter/callbacks).
+// Mirror of a dated CRM follow-up task; the board rail renders these.
+export interface ApiSetterCallback {
+  id: string;
+  contactId: string;
+  contactName: string;
+  title: string;
+  dueAt: string;
+  ghlTaskId: string | null;
+}
+
+export interface ApiSetterCallbacksResponse {
+  callbacks: ApiSetterCallback[];
+}
+
+// One scoreboard window's numbers (functions/lib/setterScoreboard.ts).
+// bookRate is null (not 0) when nobody was reached: "reaching people and
+// booking none" and "reaching nobody" are different failures.
+export interface ApiScoreboardMetrics {
+  dials: number;
+  reached: number;
+  booked: number;
+  bookRate: number | null;
+}
+
+// GET /api/admin/setter/scoreboard: both windows in one response. Speed to
+// lead is deliberately absent (computed client-side from board leads; see
+// medianSpeedToLeadMs in setterModel.ts).
+export interface ApiSetterScoreboard {
+  today: ApiScoreboardMetrics;
+  week: ApiScoreboardMetrics;
+}
+
+// A client's Google Calendar busy hours, from
+// functions/api/admin/setter/busy.ts. Availability only: no titles, no
+// attendees. `connected` is what separates "linked, nothing busy" from "never
+// linked", which is a normal state and not an error, so that route never
+// fails and both cases arrive as a 200 with an empty `busy`.
+export interface ApiSetterBusy {
+  connected: boolean;
+  busy: { start: string; end: string }[];
+}
+
+// One search hit from functions/api/admin/setter/contacts.ts, already shaped
+// down to what the booking panel renders. `name` is never empty: the route
+// falls back to the phone number and then to "Unknown contact", so a setter
+// searching by number still recognizes the row they get back.
+export interface ApiSetterContact {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+}
+
+// One row of the inbox thread list (functions/api/admin/setter/inbox/index.ts).
+// Deliberately thin: the list cannot afford a per-thread fetch, so a row
+// carries only what it renders and the full thread loads on selection.
+export interface ApiSetterThread {
+  contactId: string;
+  name: string;
+  preview: string;
+  lastMessageAt: string;
+  lastMessageType: string;
+  unreadCount: number;
+}
+
+export interface ApiSetterInboxResponse {
+  threads: ApiSetterThread[];
+  // Non-null when more threads exist beyond the current window. The client
+  // grows its window rather than consuming this as an offset (see
+  // useSetterInboxQuery for why an offset silently skips rows).
+  nextCursor: string | null;
+  // TRUE when the upstream read hit its page cap, so this is as far as we
+  // looked rather than the whole inbox. The UI must not render a capped read
+  // as a complete one: "no matches in the part we searched" and "no matches"
+  // are different answers, and only one of them is safe to act on.
+  truncated: boolean;
+}
+
+// One message in a thread (functions/api/admin/setter/inbox/[contactId].ts).
+export interface ApiSetterMessage {
+  id: string;
+  direction: string;
+  channel: string;
+  body: string;
+  sentAt: string;
+}
+
+export interface ApiSetterThreadResponse {
+  contactId: string;
+  name: string;
+  messages: ApiSetterMessage[];
+}
+
+// One row of admin_audit_log (functions/api/admin/audit.ts). adminName is the
+// signed-in ADMIN ACCOUNT, not a person: there are no per-setter accounts, so
+// every setter's action attributes to whoever's account was used. The viewer
+// must say so rather than implying per-person attribution.
+export interface ApiAuditEntry {
+  id: string;
+  createdAt: string;
+  adminId: string | null;
+  adminName: string | null;
+  adminEmail: string | null;
+  action: string;
+  tenantId: string | null;
+  tenantName: string | null;
+  payload: unknown;
+}
+
+export interface ApiAuditResponse {
+  entries: ApiAuditEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 }

@@ -3,7 +3,9 @@ import {
   type CalendarItem,
   CALENDAR_SOURCE_META,
   layoutWeek,
+  minutesToLabel,
   packDayColumns,
+  splitBusy,
 } from "../../lib/calendarModel";
 import { toIso, isoToLocalDate } from "../../lib/jobsPipeline";
 
@@ -12,13 +14,27 @@ import { toIso, isoToLocalDate } from "../../lib/jobsPipeline";
 
 const DAY_START_MIN = 7 * 60;
 const DAY_END_MIN = 19 * 60;
-const PPM = 52 / 60; // 52px per hour
+// Default vertical scale; hosts can pass a smaller hourPx to compress the
+// whole day onto one screen (the Setter Suite does).
+const DEFAULT_HOUR_PX = 52;
 const HOURS = Array.from(
   { length: (DAY_END_MIN - DAY_START_MIN) / 60 + 1 },
   (_, i) => DAY_START_MIN + i * 60,
 );
 const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const GRID_COLS = "52px repeat(7, 1fr)";
+
+// Bookable granularity for the optional empty-slot layer. Thirty minutes
+// matches the shortest appointment GHL calendars are configured for.
+const SLOT_MIN = 30;
+// 07:00 to 19:00 in 30-minute steps is 24 slots per day column.
+export const SLOT_COUNT = (DAY_END_MIN - DAY_START_MIN) / SLOT_MIN;
+
+// Minutes past midnight at which slot `index` starts. Slot 0 is 07:00, slot 1
+// is 07:30, and so on up to slot 23 at 18:30.
+export function slotStartMinutes(index: number): number {
+  return DAY_START_MIN + index * SLOT_MIN;
+}
 
 function weekIsos(anchorIso: string): string[] {
   const d = isoToLocalDate(anchorIso);
@@ -41,13 +57,24 @@ export function WeekView({
   items,
   anchorIso,
   todayIso,
+  onSlotClick,
+  hourPx = DEFAULT_HOUR_PX,
 }: {
   items: CalendarItem[];
   anchorIso: string;
   todayIso: string;
+  // Setter Suite only. When absent, no slot layer renders at all and this
+  // component behaves exactly as it does on the client Jobs tab, which is
+  // read-only and must stay that way.
+  onSlotClick?: (iso: string, startMinutes: number) => void;
+  // Pixels per hour on the time axis. The default matches the client Jobs
+  // tab's historical scale; smaller fits the whole 07:00-19:00 day on one
+  // screen without scrolling.
+  hourPx?: number;
 }) {
   const isos = useMemo(() => weekIsos(anchorIso), [anchorIso]);
   const cols = useMemo(() => layoutWeek(items, isos), [items, isos]);
+  const ppm = hourPx / 60;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
@@ -106,7 +133,7 @@ export function WeekView({
           className="grid"
           style={{
             gridTemplateColumns: GRID_COLS,
-            height: (DAY_END_MIN - DAY_START_MIN) * PPM,
+            height: (DAY_END_MIN - DAY_START_MIN) * ppm,
           }}
         >
           <div className="relative">
@@ -114,7 +141,7 @@ export function WeekView({
               <div
                 key={min}
                 className="absolute right-1.5 -translate-y-1/2 text-[10px] font-semibold text-faint"
-                style={{ top: (min - DAY_START_MIN) * PPM }}
+                style={{ top: (min - DAY_START_MIN) * ppm }}
               >
                 {hourLabel(min)}
               </div>
@@ -137,12 +164,75 @@ export function WeekView({
                 <div
                   key={min}
                   className="absolute inset-x-0 border-t border-divider/60"
-                  style={{ top: (min - DAY_START_MIN) * PPM }}
+                  style={{ top: (min - DAY_START_MIN) * ppm }}
                 />
               ))}
+              {/* Optional empty-slot layer. Sits after the hour lines but
+                  before the busy bands and item blocks on purpose, so a real
+                  appointment is never covered by an invisible button. The busy
+                  bands are pointer-events-none, so they do not swallow a click
+                  on a free stretch behind them; item blocks are not, so they
+                  correctly win over the slot underneath. */}
+              {onSlotClick
+                ? Array.from({ length: SLOT_COUNT }, (_, i) => {
+                    const min = slotStartMinutes(i);
+                    return (
+                      <button
+                        key={min}
+                        type="button"
+                        onClick={() => onSlotClick(col.iso, min)}
+                        aria-label={`Book ${WD[isoToLocalDate(col.iso).getDay()]} ${minutesToLabel(min)}`}
+                        className="group absolute inset-x-0 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+                        style={{
+                          top: (min - DAY_START_MIN) * ppm,
+                          height: SLOT_MIN * ppm,
+                        }}
+                      >
+                        <span className="pointer-events-none rounded border border-dashed border-[var(--brand)] bg-surface px-2 text-[10px] font-semibold text-[var(--brand)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                          + Book
+                        </span>
+                      </button>
+                    );
+                  })
+                : null}
+              {/* Busy time from the client's own linked calendar: a full-width
+                  band behind the day. Rendered before the blocks and excluded
+                  from lane packing, so a booked-up personal calendar shades the
+                  day without shrinking the real jobs. */}
+              {splitBusy(col.timed).busy.map((b) => {
+                const start = b.startMinutes ?? DAY_START_MIN;
+                const end = b.endMinutes ?? start + 60;
+                const height = Math.max(6, (end - start) * ppm);
+                return (
+                  <div
+                    key={b.id}
+                    aria-label="Busy"
+                    className="pointer-events-none absolute inset-x-0 overflow-hidden"
+                    style={{
+                      top: (start - DAY_START_MIN) * ppm,
+                      height,
+                      background: "var(--source-busy-tint)",
+                      borderTop: "1px solid var(--source-busy)",
+                      borderBottom: "1px solid var(--source-busy)",
+                    }}
+                  >
+                    {/* An unlabelled grey band reads as a rendering fault. Only
+                        shown once the band is tall enough to hold the word
+                        without clipping into the borders. */}
+                    {height >= 20 ? (
+                      <span
+                        className="px-1.5 text-[10px] font-semibold uppercase tracking-wide"
+                        style={{ color: "var(--source-busy)" }}
+                      >
+                        Busy
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })}
               {packDayColumns(col.timed).map((p) => {
-                const top = (p.start - DAY_START_MIN) * PPM;
-                const height = Math.max(28, (p.end - p.start) * PPM);
+                const top = (p.start - DAY_START_MIN) * ppm;
+                const height = Math.max(28, (p.end - p.start) * ppm);
                 // Split the column into lanes so overlapping items sit side by
                 // side. Each lane is (100/cols)% wide with a small gutter.
                 const widthPct = 100 / p.cols;

@@ -1,5 +1,6 @@
 import type { Env, ApiData } from "../../lib/env";
 import { fetchAllConversations, fetchAllContacts } from "../../lib/ghl";
+import { makeInternalConversationFilter } from "../../lib/internalRecipients";
 import { classifyOrigin, normalizeChannel } from "../../lib/origin";
 
 // GET /api/reactivation/messages: the recent SMS + email exchanged with
@@ -42,10 +43,15 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   ]);
 
   const byContact = new Map(contacts.map((c) => [c.id, c]));
+  const isInternalConversation = makeInternalConversationFilter(
+    contacts,
+    t.internal_recipients,
+  );
 
   const messages: ReactivationMessage[] = [];
   for (const c of all) {
     if (!c.contactId) continue;
+    if (isInternalConversation(c)) continue;
     const contact = byContact.get(c.contactId);
     // Only reactivation-origin customers.
     if (classifyOrigin(contact?.source, contact?.tags) !== "react") continue;

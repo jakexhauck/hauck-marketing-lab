@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Shell from "../components/Shell";
 import PageBar from "../components/PageBar";
 import TestBanner from "../components/TestBanner";
 import SearchBar from "../components/SearchBar";
-import StageGroupList from "../components/conversations/StageGroupList";
+import InboxTabStrip from "../components/conversations/InboxTabStrip";
+import TabStripRow from "../components/conversations/TabStripRow";
+import ConversationList from "../components/conversations/ConversationList";
 import EmptyState from "../components/EmptyState";
 import PullToRefresh from "../components/PullToRefresh";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "../hooks/useApi";
 import { PAGE_CONTAINER } from "../lib/layout";
+import { DEFAULT_INBOX_TAB, conversationsForTab } from "../lib/inboxTabs";
 import type { ApiConversation } from "../lib/api";
 import { Skeleton } from "../components/ui";
 import ConversationsDesktop from "../components/conversations/ConversationsDesktop";
@@ -20,9 +23,14 @@ export default function Conversations() {
   const useReal = Boolean(session);
   const query = useConversationsQuery(useReal);
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState(DEFAULT_INBOX_TAB);
   const isTest = mode === "test";
 
   const all: ApiConversation[] = query.data?.conversations ?? [];
+  const list = useMemo(
+    () => conversationsForTab(all, tab, search),
+    [all, tab, search],
+  );
 
   return (
     <Shell>
@@ -32,6 +40,10 @@ export default function Conversations() {
 
         <div className={PAGE_CONTAINER}>
           <PageBar tabs={[]} section="Inbox" />
+
+          <TabStripRow>
+            <InboxTabStrip active={tab} onSelect={setTab} />
+          </TabStripRow>
 
           <div className="mb-3">
             <SearchBar
@@ -55,11 +67,15 @@ export default function Conversations() {
             />
           ) : (
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-              <StageGroupList
-                items={all}
+              <ConversationList
+                items={list}
                 selectedId={null}
                 onOpen={(contactId) => navigate(`/conversations/${contactId}`)}
-                search={search}
+                emptyLabel={
+                  search.trim()
+                    ? "No conversations match."
+                    : "Nothing in this tab yet."
+                }
               />
             </div>
           )}

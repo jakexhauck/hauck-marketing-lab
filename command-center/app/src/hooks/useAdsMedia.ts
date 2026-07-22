@@ -9,6 +9,8 @@ export interface AdMediaItem {
   url: string;
   thumbnail: string;
   name: string;
+  // True when this asset backs an ad running right now (resolved server-side).
+  live: boolean;
 }
 
 export interface AdsMediaResponse {
@@ -22,9 +24,11 @@ export interface AdsMediaResponse {
 export function normalizeAdsMedia(raw: unknown): AdsMediaResponse {
   if (!raw || typeof raw !== "object") return { configured: false, items: [] };
   const r = raw as Partial<AdsMediaResponse>;
+  const items = Array.isArray(r.items) ? r.items : [];
   return {
     configured: Boolean(r.configured),
-    items: Array.isArray(r.items) ? r.items : [],
+    // Coerce live so an older payload without the field never renders undefined.
+    items: items.map((it) => ({ ...it, live: Boolean(it?.live) })),
     error: r.error,
   };
 }

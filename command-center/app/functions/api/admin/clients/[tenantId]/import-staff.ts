@@ -3,6 +3,8 @@ import { getServiceClient } from "../../../../lib/supabase";
 import { logAdminAction } from "../../../../lib/adminAuth";
 import { hashPassword } from "../../../../lib/password";
 import { listGhlLocationUsers } from "../../../../lib/staff";
+import { getGhlContextForTenant, TenantGhlError } from "../../../../lib/tenantGhl";
+import type { GhlContext } from "../../../../lib/ghl";
 
 // POST /api/admin/clients/:tenantId/import-staff  (admin-only)
 // Pre-populate a client's team from the users GoHighLevel already has on their
@@ -16,30 +18,22 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
   const tenantId = ctx.params.tenantId as string;
 
-  // ghl_token is intentionally excluded from getTenantById, so read the creds
-  // we need directly here (service client, never exposed to the browser).
-  const { data: tenant } = await client
-    .from("tenants")
-    .select("id, ghl_location_id, ghl_token")
-    .eq("id", tenantId)
-    .maybeSingle();
-  if (!tenant) return Response.json({ error: "client not found" }, { status: 404 });
-
-  const t = tenant as { id: string; ghl_location_id: string; ghl_token: string };
-  const placeholder = (v: string) => {
-    const s = (v ?? "").trim().toLowerCase();
-    return s === "" || s === "pending" || s === "env";
-  };
-  if (placeholder(t.ghl_location_id) || placeholder(t.ghl_token)) {
-    return Response.json(
-      { error: "connect this client to GoHighLevel first" },
-      { status: 400 },
-    );
+  let gctx: GhlContext;
+  try {
+    gctx = await getGhlContextForTenant(ctx.env, tenantId);
+  } catch (e) {
+    if (!(e instanceof TenantGhlError)) throw e;
+    // tenant_not_found keeps this route's existing "client not found" wording,
+    // which matches every other admin/clients/:tenantId endpoint. The other
+    // codes (ghl_not_connected, tenant_lookup_failed, supabase_not_configured)
+    // surface the helper's own status and message.
+    const error = e.code === "tenant_not_found" ? "client not found" : e.message;
+    return Response.json({ error }, { status: e.status });
   }
 
   const users = await listGhlLocationUsers({
-    token: t.ghl_token,
-    locationId: t.ghl_location_id,
+    token: gctx.token,
+    locationId: gctx.locationId,
   });
   if (users.length === 0) {
     return Response.json({ imported: 0, skipped: 0, total: 0 });

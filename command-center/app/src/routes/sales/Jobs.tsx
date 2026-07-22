@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   CalendarCheck,
   ChevronLeft,
@@ -21,10 +21,12 @@ import { cn } from "../../lib/cn";
 import { demoMode } from "../../demo/demoMode";
 import { PAGE_CONTAINER } from "../../lib/layout";
 import { useJobs } from "../../hooks/useJobs";
+import { useCalendarBusy } from "../../hooks/useApi";
+import GoogleCalendarLink from "../../components/calendar/GoogleCalendarLink";
 import CalendarViews, {
   type CalendarView,
 } from "../../components/calendar/CalendarViews";
-import { jobToItem, type CalendarSource } from "../../lib/calendarModel";
+import { jobToItem, busyToItem, type CalendarSource } from "../../lib/calendarModel";
 import {
   useCompleteJob,
   useSendConversationMessage,
@@ -75,12 +77,24 @@ const KIND_DOT: Record<DayKind, string> = {
 type JobsView = "jobs" | CalendarView;
 const JOBS_VIEW_KEY = "hml_jobs_view";
 
+function isJobsView(v: string | null | undefined): v is JobsView {
+  return v === "jobs" || v === "month" || v === "week" || v === "agenda";
+}
+
+// ?view= wins, then the saved preference, then Jobs. The URL param exists so a
+// calendar view can be linked to directly (the admin Software tab lists all four
+// as separate surfaces); day-to-day use is unaffected, since no ordinary
+// navigation supplies one.
 function initialJobsView(): JobsView {
   try {
+    const fromUrl = new URLSearchParams(window.location.search).get("view");
+    if (isJobsView(fromUrl)) return fromUrl;
+  } catch {
+    /* ignore */
+  }
+  try {
     const v = window.localStorage.getItem(JOBS_VIEW_KEY);
-    if (v === "jobs" || v === "month" || v === "week" || v === "agenda") {
-      return v;
-    }
+    if (isJobsView(v)) return v;
   } catch {
     /* ignore */
   }
@@ -119,15 +133,40 @@ export default function Jobs() {
     }
   };
 
+  // The dates the calendar is showing, reported up by CalendarViews so the busy
+  // fetch follows the client as they navigate. useCallback keeps the identity
+  // stable, or the child's reporting effect would loop.
+  const [calRange, setCalRange] = useState<{ start: string; end: string }>({
+    start: "",
+    end: "",
+  });
+  const onCalendarRangeChange = useCallback((start: string, end: string) => {
+    setCalRange((prev) => (prev.start === start && prev.end === end ? prev : { start, end }));
+  }, []);
+
+  // Hours the client's own linked Google Calendar reports as taken. Skipped in
+  // demo mode, which has no real connection to read.
+  const busyQuery = useCalendarBusy(calRange.start, calRange.end, !demo);
+
   // The same jobs, shaped for the calendar views. Estimates map to their own
-  // source so they colour distinctly from booked/completed work.
-  const calendarItems = useMemo(() => jobs.map(jobToItem), [jobs]);
+  // source so they colour distinctly from booked/completed work. Busy blocks
+  // join as a third source and render behind the day.
+  const calendarItems = useMemo(() => {
+    const jobItems = jobs.map(jobToItem);
+    const busyItems = (busyQuery.data?.busy ?? []).map(busyToItem);
+    return [...jobItems, ...busyItems];
+  }, [jobs, busyQuery.data]);
+
   const calendarConnected = useMemo<Record<CalendarSource, boolean>>(
     () => ({
       estimate: calendarItems.some((i) => i.source === "estimate"),
       job: calendarItems.some((i) => i.source === "job"),
+      // The client Jobs tab shows pipeline work, never raw GHL appointments.
+      // That stream belongs to the Setter Suite calendar.
+      appointment: false,
+      busy: busyQuery.data?.connected ?? false,
     }),
-    [calendarItems],
+    [calendarItems, busyQuery.data],
   );
 
   const grid = useMemo(() => monthGrid(view.year, view.month), [view]);
@@ -215,16 +254,19 @@ export default function Jobs() {
           title="Jobs"
           description="Pick a day to see and work its jobs, or switch to a calendar view."
           actions={
-            <Segmented<JobsView>
-              options={[
-                { value: "jobs", label: "Jobs" },
-                { value: "month", label: "Month" },
-                { value: "week", label: "Week" },
-                { value: "agenda", label: "Agenda" },
-              ]}
-              value={jobsView}
-              onChange={setJobsViewPersist}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <GoogleCalendarLink />
+              <Segmented<JobsView>
+                options={[
+                  { value: "jobs", label: "Jobs" },
+                  { value: "month", label: "Month" },
+                  { value: "week", label: "Week" },
+                  { value: "agenda", label: "Agenda" },
+                ]}
+                value={jobsView}
+                onChange={setJobsViewPersist}
+              />
+            </div>
           }
         />
 
@@ -234,6 +276,7 @@ export default function Jobs() {
               items={calendarItems}
               connected={calendarConnected}
               view={jobsView}
+              onRangeChange={onCalendarRangeChange}
             />
           </div>
         ) : (

@@ -2,32 +2,29 @@ import type { Env, ApiData } from "../../../lib/env";
 import {
   ghlJson,
   fetchAllOpportunities,
+  fetchAllContacts,
   shapeOpportunity,
   type ApiLead,
   type GhlContext,
-  type GhlOpportunity,
 } from "../../../lib/ghl";
+import { makeInternalConversationFilter } from "../../../lib/internalRecipients";
 import { readJsonBody } from "../../../lib/body";
 import { resolveStageByName, createOpportunity } from "../../lib/writes";
+import { classifySource, type LeadSource } from "./source";
 
-// GET /api/sales/leads: the merged "Leads" feed. Every opportunity in the Paid
-// Ad's Pipeline plus the Organic Pipeline, each tagged with a channel `source`
-// ("ad" | "form" | "chat") and a friendly `status` derived from its real GHL
-// stage, newest activity first.
+// GET /api/sales/leads: the unified "Leads" feed. Every opportunity in the
+// consolidated Sales pipeline, each tagged with a channel `source`
+// ("ad" | "form" | "chat") via the Task 6 classifier and a friendly `status`
+// derived from its real GHL stage, newest activity first.
 //
-// Both pipelines are resolved BY NAME per tenant (ids differ per client), exact
-// match first then contains, mirroring functions/api/reviews. Hardcoded ids are
-// only last-resort fallbacks for the known Willis template.
+// The pipeline is resolved BY NAME per tenant (ids differ per client), exact
+// match first then contains, mirroring functions/api/reviews. A hardcoded id
+// is only a last-resort fallback for the known Willis template.
 
-const PAID_NAME = "paid ad's pipeline";
-const PAID_CONTAINS = "paid ad";
-const PAID_FALLBACK_ID = "uz0fFxCgiwdXbg4Zmwkc";
+const SALES_NAME = "sales";
+const SALES_CONTAINS = "sales";
+const SALES_FALLBACK_ID = "6o9Gx6e0TXRFJdln5d01";
 
-const ORGANIC_NAME = "organic pipeline";
-const ORGANIC_CONTAINS = "organic";
-const ORGANIC_FALLBACK_ID = "NSkPBlP8BcPTtyibNEIu";
-
-export type LeadSource = "ad" | "form" | "chat";
 export type LeadStatus = "new" | "working" | "booked" | "won" | "cold";
 
 interface PipelinesResponse {
@@ -43,55 +40,43 @@ export interface ApiSalesLead extends ApiLead {
   source: LeadSource;
   status: LeadStatus;
   stageName: string;
-  // The raw GHL opportunity status ("open" | "won" | "lost" | "abandoned").
-  // The friendly `status` above is derived from the stage NAME and shadows the
-  // real one, so the Job Console (which needs to know a lead actually closed)
-  // reads `outcome` instead. Kept separate so existing status-pill surfaces are
-  // untouched.
-  outcome: string;
 }
 
 function norm(s: string): string {
   return s.trim().toLowerCase();
 }
 
-// Normalise a stage name for the status map: lower-case, collapse whitespace,
-// and tighten spacing around slashes so "Apt Completed / Quote Given" and
-// "Apt Completed/ Quote Given" both key the same.
+// Normalise a stage name for the status map: strip the emoji/symbols GHL
+// appends to stage names ("Job Booked 💼", "New Lead 🔔"), lower-case, collapse
+// whitespace, and tighten spacing around slashes. Without the emoji strip every
+// live Sales stage misses the map and silently defaults to "working".
 function normStage(s: string): string {
   return s
     .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s/-]+/gu, "")
     .replace(/\s*\/\s*/g, "/")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-// Real GHL stage name -> friendly status. Covers both the Paid Ad's and Organic
-// pipelines; shared names ("Lead In", "No Answer", ...) map consistently.
+// Real GHL stage name -> friendly status, covering every stage of the live
+// Willis "Sales" pipeline (pulled from `ghl opportunities pipelines`
+// 2026-07-15). Keys are the emoji-stripped, normalised stage names. Re-check the
+// live account before editing, the stage names drift as the pipeline is edited.
 const STAGE_STATUS: Record<string, LeadStatus> = {
-  "lead in": "new",
-  "lead in no appointment booked": "new",
-  "lead responded": "working",
-  "no answer": "working",
-  "not qualified": "cold",
-  "intro call waiting confirmation": "booked",
-  "intro call no confirmation": "cold",
+  "new lead": "new",
+  "hot lead": "working",
+  "phone appointment booked": "booked",
   "estimate scheduled": "booked",
-  "apt completed/quote given": "working",
-  "followup - not ready": "cold",
-  "estimate completed/quote given": "working",
-  "follow up - not ready": "cold",
-  "no show": "cold",
+  "estimate completed": "working",
+  "job booked": "booked",
+  "job completed": "won",
+  "follow up": "working",
+  "long term nurture": "cold",
 };
 
 function statusForStage(stageName: string): LeadStatus {
   return STAGE_STATUS[normStage(stageName)] ?? "working";
-}
-
-// Organic leads split into "form" vs "chat" by their source string; a source
-// containing "chat" is the website chat widget, everything else is a form.
-function organicSource(o: GhlOpportunity): LeadSource {
-  return norm(o.source ?? "").includes("chat") ? "chat" : "form";
 }
 
 function resolve(
@@ -119,37 +104,29 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     `/opportunities/pipelines?locationId=${encodeURIComponent(t.ghl_location_id)}`,
   );
   const pipes = pipeData.pipelines ?? [];
-  const paid = resolve(pipes, PAID_NAME, PAID_CONTAINS, PAID_FALLBACK_ID);
-  const organic = resolve(pipes, ORGANIC_NAME, ORGANIC_CONTAINS, ORGANIC_FALLBACK_ID);
+  const sales = resolve(pipes, SALES_NAME, SALES_CONTAINS, SALES_FALLBACK_ID);
 
   const leads: ApiSalesLead[] = [];
-
-  if (paid) {
-    const opps = await fetchAllOpportunities(gctx, { pipelineId: paid.pipelineId });
+  if (sales) {
+    // Roster fetched alongside so internal notification recipients never appear
+    // as leads or inflate the count. Degrades to an empty roster on failure.
+    const [opps, contacts] = await Promise.all([
+      fetchAllOpportunities(gctx, { pipelineId: sales.pipelineId }),
+      fetchAllContacts(gctx).catch(() => []),
+    ]);
+    const isInternalLead = makeInternalConversationFilter(
+      contacts,
+      t.internal_recipients,
+    );
     for (const o of opps) {
-      const stageName = paid.stageNames.get(o.pipelineStageId ?? "") ?? "";
       const shaped = shapeOpportunity(o);
+      if (isInternalLead(shaped)) continue;
+      const stageName = sales.stageNames.get(o.pipelineStageId ?? "") ?? "";
       leads.push({
         ...shaped,
-        source: "ad",
+        source: classifySource(o.source),
         status: statusForStage(stageName),
         stageName,
-        outcome: shaped.status,
-      });
-    }
-  }
-
-  if (organic) {
-    const opps = await fetchAllOpportunities(gctx, { pipelineId: organic.pipelineId });
-    for (const o of opps) {
-      const stageName = organic.stageNames.get(o.pipelineStageId ?? "") ?? "";
-      const shaped = shapeOpportunity(o);
-      leads.push({
-        ...shaped,
-        source: organicSource(o),
-        status: statusForStage(stageName),
-        stageName,
-        outcome: shaped.status,
       });
     }
   }
@@ -161,7 +138,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   return Response.json({
     leads,
     total: leads.length,
-    configError: !paid && !organic ? "pipeline_not_found" : undefined,
+    configError: !sales ? "pipeline_not_found" : undefined,
   });
 };
 

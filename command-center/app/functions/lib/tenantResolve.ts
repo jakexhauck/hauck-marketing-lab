@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Env } from "./env";
 import { liveTenantSlug } from "./env";
+import type { WebsitePageRow } from "./websitePages";
 
 // Per-client resolution by request host (0009). One deployment serves many
 // clients: williswindows.dashmarketing.com routes to the willis-windows tenant,
@@ -42,10 +43,15 @@ export interface TenantRow {
   ga4_property_id: string | null;
   owner_password_hash: string | null;
   monthly_spend: number | null;
+  // Manual per-client Website > Pages list (0028). jsonb; comes back parsed.
+  website_pages: WebsitePageRow[] | null;
+  // Phones/emails that receive internal GHL notifications (0043). Their
+  // conversations are hidden from every surface. See functions/lib/internalRecipients.ts.
+  internal_recipients: string | null;
 }
 
 const TENANT_COLS =
-  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, ghl_token, meta_ad_account_id, google_place_id, ga4_property_id, owner_password_hash, monthly_spend";
+  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, ghl_token, meta_ad_account_id, google_place_id, ga4_property_id, owner_password_hash, monthly_spend, website_pages, internal_recipients";
 
 // Normalize an admin-entered subdomain label: lowercase, hyphen-separated, the
 // charset valid in a DNS label. Shared by the admin create/update endpoints.

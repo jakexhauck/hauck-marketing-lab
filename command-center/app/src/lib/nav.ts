@@ -4,7 +4,6 @@ import {
   MessageSquare,
   MessagesSquare,
   CalendarCheck,
-  Receipt,
   UserCog,
   Star,
   Globe,
@@ -13,6 +12,7 @@ import {
   Split,
   LayoutGrid,
   RotateCcw,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -109,8 +109,16 @@ export const NAV: NavEntry[] = [
       // On phone it lives in the All-features grid, not the bottom bar.
       { to: "/sales/leads", label: "Leads", shortLabel: "Leads", icon: Split },
       { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
+      // Past customers: the GHL Customers pipeline joined to the job history we
+      // own. Ungated like its Leads and Jobs neighbours — the revenue it shows is
+      // job values the team already sees on the board, not the invoice-level
+      // detail the `billing` capability was drawn around.
+      { to: "/customers", label: "Customers", icon: Users },
       { to: "/sales/jobs", label: "Jobs", shortLabel: "Jobs", icon: CalendarCheck },
-      { to: "/billing", label: "Revenue", icon: Receipt, capability: "billing" },
+      // No Revenue row: customer revenue lives on /customers now, built from real
+      // logged jobs instead of the invoices + payments feed (which returns
+      // internal_error against live Willis). The /billing route stays registered
+      // so an existing bookmark does not 404, but nothing links to it.
       { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
     ],
   },

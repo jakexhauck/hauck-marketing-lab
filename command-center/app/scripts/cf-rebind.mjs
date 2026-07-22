@@ -15,10 +15,16 @@
 //   node scripts/cf-rebind.mjs --dry            # preview, write nothing
 //   node scripts/cf-rebind.mjs                  # apply, then redeploy to pick it up
 //   node scripts/cf-rebind.mjs --from-doppler   # pull values from Doppler, not .env.local
+//   node scripts/cf-rebind.mjs --add A,B        # also bind NEW secrets not yet in production
 //
 // It only rebinds keys that ALREADY exist in production AND have a value in the
 // chosen source. Secrets missing from the source are listed so you can add them
 // and rerun. Values are never printed.
+//
+// --add exists because there is otherwise no safe way to introduce a brand new
+// secret: `cf.mjs env:set` blanks every other secret on the way through, and
+// this script alone only ever touches keys production already knows about. The
+// added keys ride along in the same single PATCH, so nothing else is disturbed.
 
 import { readFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -29,6 +35,15 @@ const APP_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 const API = "https://api.cloudflare.com/client/v4";
 const DRY = process.argv.includes("--dry");
 const FROM_DOPPLER = process.argv.includes("--from-doppler");
+// --add KEY,KEY (or --add=KEY,KEY): secrets to create that production lacks.
+const ADD = (() => {
+  const i = process.argv.findIndex((a) => a === "--add" || a.startsWith("--add="));
+  if (i < 0) return [];
+  const raw = process.argv[i].startsWith("--add=")
+    ? process.argv[i].slice("--add=".length)
+    : process.argv[i + 1];
+  return (raw ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+})();
 
 function readDotEnv() {
   const out = {};
@@ -45,12 +60,27 @@ function readDotEnv() {
   return out;
 }
 
+// Doppler scopes its project/config to an absolute path, so a git worktree at a
+// different path inherits nothing and the download fails with "You must specify
+// a project". doppler.yaml is committed, so read the scope from there and pass
+// it explicitly. Keeps this script runnable from any worktree.
+function dopplerScope() {
+  try {
+    const yaml = readFileSync(join(APP_DIR, "doppler.yaml"), "utf8");
+    const project = yaml.match(/^\s*project:\s*(\S+)/m)?.[1];
+    const config = yaml.match(/^\s*config:\s*(\S+)/m)?.[1];
+    return project && config ? ["--project", project, "--config", config] : [];
+  } catch {
+    return [];
+  }
+}
+
 // Pull every secret value from Doppler as JSON. Needs the `doppler` CLI + either
 // an authenticated `doppler setup` in this dir or DOPPLER_TOKEN in the env.
 function readDoppler() {
   const raw = execFileSync(
     "doppler",
-    ["secrets", "download", "--no-file", "--format", "json"],
+    ["secrets", "download", "--no-file", "--format", "json", ...dopplerScope()],
     { cwd: APP_DIR, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
   );
   const parsed = JSON.parse(raw);
@@ -155,10 +185,26 @@ async function main() {
     }
   }
 
+  // New secrets production has never seen. Refuse rather than bind a blank:
+  // a silently empty secret reads as "configured" and fails at the call site.
+  const addedSecrets = [];
+  for (const key of ADD) {
+    if (key in current) continue; // already handled by the rebind loop above
+    if (env[key] === undefined || env[key] === "") {
+      die(`--add ${key}: no value in ${env.__SOURCE__}. Add it there and rerun.`);
+    }
+    payload[key] = { type: "secret_text", value: env[key] };
+    addedSecrets.push(key);
+  }
+
   console.log(`project: ${PROJECT}  (${(project.domains ?? []).join(", ")})`);
   console.log(`source:  ${env.__SOURCE__}`);
   console.log(`\nwill SET ${setSecrets.length} secrets from ${env.__SOURCE__}:`);
   console.log("  " + (setSecrets.sort().join(", ") || "(none)"));
+  if (addedSecrets.length) {
+    console.log(`\nwill ADD ${addedSecrets.length} new secrets:`);
+    console.log("  " + addedSecrets.sort().join(", "));
+  }
   console.log(`\nwill PRESERVE ${preservedPlain.length} plain vars:`);
   console.log("  " + (preservedPlain.sort().join(", ") || "(none)"));
   if (missingSecrets.length) {
@@ -180,7 +226,8 @@ async function main() {
     method: "PATCH",
     body: JSON.stringify({ deployment_configs: { production: { env_vars: payload } } }),
   });
-  console.log(`\n\x1b[32m✓ rebound ${setSecrets.length} secrets. Redeploy to apply.\x1b[0m`);
+  const added = addedSecrets.length ? `, added ${addedSecrets.length}` : "";
+  console.log(`\n\x1b[32m✓ rebound ${setSecrets.length} secrets${added}. Redeploy to apply.\x1b[0m`);
 }
 
 main().catch((e) => die(e.message));

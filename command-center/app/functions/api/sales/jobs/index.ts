@@ -57,6 +57,7 @@ interface GhlEvent {
   _id?: string;
   title?: string;
   startTime?: string;
+  endTime?: string;
   contactId?: string;
   address?: string;
   meetingLocation?: string;
@@ -159,6 +160,9 @@ interface ApiJob {
   date: string;
   time: string;
   startMinutes: number;
+  // Minutes past midnight for the appointment end, or null when the upstream
+  // appointment carries no end time. The calendar falls back to a default slot.
+  endMinutes: number | null;
   amount: number;
   status: "estimate" | "booked" | "completed";
   paid: boolean;
@@ -185,6 +189,16 @@ function partsFromIso(
     time: `${h12}:${mm} ${ampm}`,
     startMinutes,
   };
+}
+
+// Minutes past local midnight for an appointment end. Same wall-clock-literal
+// parsing as partsFromIso: the offset in the string is the location's own, so
+// converting through Date would drift the time.
+function endMinutesFromIso(iso: string | undefined): number | null {
+  if (!iso) return null;
+  const m = /^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2})/.exec(iso);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
 }
 
 // Best-effort split of a GHL appointment address into city + zip. Addresses are
@@ -279,6 +293,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       date: parts.date,
       time: parts.time,
       startMinutes: parts.startMinutes,
+      // Only a joined appointment carries an end. Opportunity-timestamp
+      // fallbacks have no duration, so they stay null and render as a default
+      // slot rather than inventing a length.
+      endMinutes: appt?.startTime ? endMinutesFromIso(appt.endTime) : null,
       amount: typeof o.monetaryValue === "number" ? Math.round(o.monetaryValue) : 0,
       status,
       // Payment state has no clean GHL source yet (invoices/payments join is

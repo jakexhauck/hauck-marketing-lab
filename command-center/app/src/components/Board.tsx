@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, AlertTriangle } from "lucide-react";
 import Avatar from "./Avatar";
 import BoardScrollbar from "./BoardScrollbar";
 import WonSheet from "./WonSheet";
@@ -9,7 +9,8 @@ import LeadChatModal from "./LeadChatModal";
 import { useLeadUnread } from "../hooks/useLeadUnread";
 import { useToast } from "../context/ToastContext";
 import { useNow } from "../context/NowContext";
-import { useMoveLeadStage } from "../hooks/useApi";
+import { useMoveLeadStage, useCloseOutCountQuery } from "../hooks/useApi";
+import { useAuth } from "../context/AuthContext";
 import { formatMoney, formatMoneyExact } from "../lib/formatMoney";
 import { timeAgo } from "../lib/timeAgo";
 import { haptic } from "../lib/haptics";
@@ -44,6 +45,19 @@ export default function Board({ leads, stages, pipelineId }: Props) {
     markSeen(lead.contactId);
     setChatFor(lead);
   };
+
+  // Jobs finished but never recorded. The server decides which ones (a card in
+  // Job Completed whose id is absent from the job ledger — see
+  // functions/api/sales/close-outs/count.ts); the board just marks them, so this
+  // stays correct for the repeat-customer card that is parked in the stage
+  // forever and must NOT wear a badge.
+  const { session } = useAuth();
+  const closeOuts = useCloseOutCountQuery(Boolean(session));
+  const pendingCloseOuts = useMemo(
+    () => new Set(closeOuts.data?.opportunityIds ?? []),
+    [closeOuts.data],
+  );
+  const needsCloseOut = (leadId: string) => pendingCloseOuts.has(leadId);
 
   // The card mid-move shows a pending overlay until the mutation settles, so
   // an optimistic hop the server later rejects never looks final.
@@ -175,6 +189,16 @@ export default function Board({ leads, stages, pipelineId }: Props) {
                           </div>
                         </div>
                       </button>
+                      {needsCloseOut(lead.id) && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/sales/leads/close-out/${lead.id}`)}
+                          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--danger)]/35 bg-[var(--danger-tint)] py-1.5 text-[12px] font-semibold text-[var(--danger)] transition-colors hover:bg-[var(--danger)]/10 active:scale-[0.98]"
+                        >
+                          <AlertTriangle size={12} aria-hidden />
+                          Needs close-out
+                        </button>
+                      )}
                       <div className="mt-2 flex gap-2">
                         <button
                           type="button"

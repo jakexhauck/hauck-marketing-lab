@@ -1,3 +1,5 @@
+import type { WebsitePageRow } from "./websitePages";
+
 export interface Env {
   APP_PASSWORD: string;
   SESSION_SECRET?: string;
@@ -35,6 +37,18 @@ export interface Env {
   GOOGLE_OAUTH_CLIENT_ID?: string;
   GOOGLE_OAUTH_CLIENT_SECRET?: string;
   GOOGLE_OAUTH_REDIRECT?: string;
+  // The Drive folder the admin SOP Hub reads, on that same agency account
+  // ("SOPs Templates"). Its subfolders are the categories and its Docs are the
+  // SOP pages. Unset => the hub renders a setup state rather than guessing at a
+  // folder, since reading the wrong one would surface the wrong documents.
+  SOP_DRIVE_FOLDER_ID?: string;
+  // Composio brokers the per-CLIENT Google Calendar grant, which is a different
+  // shape from the agency-wide Drive connection above: each client links their
+  // own calendar and Composio holds that token, keyed by the tenant id passed
+  // as its user_id. So both values here are agency-wide (one project key, one
+  // shared auth config) and nothing per-tenant is stored on our side.
+  COMPOSIO_API_KEY?: string;
+  COMPOSIO_GCAL_AUTH_CONFIG_ID?: string;
   // Build Lab reads vault/Plans/Builds/*.md from the repo over the GitHub REST
   // API. GITHUB_TOKEN is a contents-read (the workflow token, contents+issues
   // read/write, also works). GITHUB_REPO defaults to jakexhauck/hauck-marketing-lab.
@@ -65,6 +79,10 @@ export interface Env {
   // Key or property absent => the Website tabs show their not-connected state.
   GA4_SA_JSON?: string;
   GA4_PROPERTY_ID?: string;
+  // Single-tenant fallback for the per-client tenants.internal_recipients
+  // column (0043). Comma or newline separated phones/emails that receive
+  // internal GHL notifications; their conversations are hidden everywhere.
+  INTERNAL_RECIPIENTS?: string;
   KV_CACHE?: KVNamespace;
 }
 
@@ -100,6 +118,17 @@ export interface TenantContext {
   // GA4_PROPERTY_ID env var as the single-tenant fallback. Undefined => the
   // Website analytics tabs show not-connected. See functions/api/website/analytics.ts.
   ga4_property_id?: string;
+  // The client's Website > Pages list, resolved from the tenant row (0028).
+  // Empty array => the Pages tab shows its "add your pages" state. See
+  // functions/api/website/pages.ts.
+  website_pages?: WebsitePageRow[];
+  // Phones/emails that receive internal GHL notifications, resolved from the
+  // tenant row with the INTERNAL_RECIPIENTS env var as the single-tenant
+  // fallback. Comma or newline separated. Conversations, threads, and lead rows
+  // belonging to these people are hidden from every surface in the app.
+  // Undefined => only the source='NOTIFICATION' signal applies, which still
+  // catches the sinks GHL auto-creates. See functions/lib/internalRecipients.ts.
+  internal_recipients?: string;
   // Supabase tenants.slug for this session, resolved from the session mode in
   // _middleware.ts. All Supabase-backed routes must scope by this, never by a
   // hardcoded slug, or test and live data bleed into each other.

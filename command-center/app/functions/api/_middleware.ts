@@ -27,7 +27,10 @@ function corsHeaders(origin: string | null): HeadersInit {
   return {
     "access-control-allow-origin": origin,
     "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
-    "access-control-allow-headers": "content-type,x-identity",
+    // x-preview-token: the admin Software tab's frame authenticates with a
+    // short-lived preview token in this header rather than the shared cookie,
+    // so framing the client app never disturbs the admin's own session.
+    "access-control-allow-headers": "content-type,x-identity,x-preview-token",
     "access-control-allow-credentials": "true",
     "access-control-max-age": "86400",
     vary: "origin",
@@ -109,6 +112,10 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         meta_ad_account_id: ctx.env.META_AD_ACCOUNT_ID,
         google_place_id: ctx.env.GOOGLE_PLACE_ID,
         ga4_property_id: ctx.env.GA4_PROPERTY_ID,
+        website_pages: [],
+        // No tenant row in test mode, so only the env fallback applies. The
+        // source='NOTIFICATION' signal still protects the test account.
+        internal_recipients: ctx.env.INTERNAL_RECIPIENTS,
         slug: testTenantSlug(ctx.env),
         mode: "test",
       };
@@ -153,6 +160,14 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         google_place_id: tenant?.google_place_id || ctx.env.GOOGLE_PLACE_ID,
         // Per-client GA4 property, env var as the single-tenant fallback.
         ga4_property_id: tenant?.ga4_property_id || ctx.env.GA4_PROPERTY_ID,
+        // Per-client Website > Pages list (0028). No env fallback: an unwired
+        // client simply has an empty list until the admin enters its pages.
+        website_pages: tenant?.website_pages ?? [],
+        // Per-client internal notification recipients (0043), env var as the
+        // single-tenant fallback. Undefined leaves the source='NOTIFICATION'
+        // signal as the only guard, which still hides GHL's auto-created sinks.
+        internal_recipients:
+          tenant?.internal_recipients || ctx.env.INTERNAL_RECIPIENTS,
         slug: tenant?.slug ?? liveTenantSlug(ctx.env),
         mode: "live",
       };

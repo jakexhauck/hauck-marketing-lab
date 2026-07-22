@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../../../../lib/env";
 import { getServiceClient } from "../../../../lib/supabase";
-import { ghlFetch } from "../../../../lib/ghl";
+import { ghlFetch, type GhlContext } from "../../../../lib/ghl";
+import { getGhlContextForTenant, TenantGhlError } from "../../../../lib/tenantGhl";
 import { summarizeReadiness, type GhlCustomValue } from "../../../../../src/lib/onboarding";
 
 // GET /api/admin/onboarding/:tenantId/readiness -> live auto-checks
@@ -9,21 +10,20 @@ export const onRequestGet: PagesFunction<Env, "tenantId", ApiData> = async (ctx)
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
   const tenantId = ctx.params.tenantId as string;
 
-  const { data: tenant } = await client
-    .from("tenants")
-    .select("ghl_location_id, ghl_token")
-    .eq("id", tenantId)
-    .maybeSingle();
-  const locationId = (tenant?.ghl_location_id as string) ?? "";
-  const token = (tenant?.ghl_token as string) ?? "";
-  if (!locationId || !token || locationId === "pending" || token === "pending") {
+  let gctx: GhlContext;
+  try {
+    gctx = await getGhlContextForTenant(ctx.env, tenantId);
+  } catch (e) {
+    if (!(e instanceof TenantGhlError)) throw e;
+    // Not found, not connected, or the lookup itself failed: this screen's
+    // job is a checklist, not an error page, so any of those states surfaces
+    // as the same "not wired up yet" item rather than an HTTP error.
     return Response.json({ checks: [{ key: "token", ok: false, detail: "No token/location set yet" }] });
   }
-  const gctx = { token, locationId };
 
   let tokenValid = false;
   let customValues: GhlCustomValue[] = [];
-  const cvRes = await ghlFetch(gctx, `/locations/${encodeURIComponent(locationId)}/customValues`);
+  const cvRes = await ghlFetch(gctx, `/locations/${encodeURIComponent(gctx.locationId)}/customValues`);
   if (cvRes.ok) {
     tokenValid = true;
     const data = (await cvRes.json()) as { customValues?: GhlCustomValue[] };
@@ -31,7 +31,7 @@ export const onRequestGet: PagesFunction<Env, "tenantId", ApiData> = async (ctx)
   }
 
   let calendarIds: string[] = [];
-  const calRes = await ghlFetch(gctx, `/calendars/?locationId=${encodeURIComponent(locationId)}`, {
+  const calRes = await ghlFetch(gctx, `/calendars/?locationId=${encodeURIComponent(gctx.locationId)}`, {
     headers: { Version: "2021-04-15" },
   });
   if (calRes.ok) {

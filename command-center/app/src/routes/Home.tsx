@@ -16,6 +16,7 @@ import SplitHero, { HeroMark, HeroIconButton } from "../components/HeroUi";
 import TestBanner from "../components/TestBanner";
 import EmptyState from "../components/EmptyState";
 import NotificationPrompt from "../components/NotificationPrompt";
+import CloseOutBanner from "../components/home/CloseOutBanner";
 import NotificationBell from "../components/NotificationBell";
 import { Skeleton } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
@@ -248,6 +249,7 @@ export default function Home() {
 
       <div className="flex-1 overflow-y-auto pb-28">
         <NotificationPrompt />
+        <CloseOutBanner className="mx-[22px] mt-5" />
         {query.isError ? (
           <div className="mx-[22px] mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
             Failed to load summary.{" "}

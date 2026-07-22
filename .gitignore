@@ -87,3 +87,7 @@ app/src-tauri/src/supabase_secrets.rs
 # local GitHub token, never commit
 scripts/.gh_token
 .worktrees/
+
+# Subagent build scaffolding: briefs, per-task reports and review packages.
+# Working notes for one build, not project history.
+.superpowers/

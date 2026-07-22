@@ -1,47 +1,18 @@
 import type { Env, ApiData } from "../../../../../lib/env";
 import { getServiceClient } from "../../../../../lib/supabase";
-import { loadTenantById, resolveGhlCreds } from "../../../../../lib/tenantResolve";
-import { ghlJson, type GhlContext } from "../../../../../lib/ghl";
+import { loadTenantById } from "../../../../../lib/tenantResolve";
+import { logAdminAction } from "../../../../../lib/adminAuth";
+import { sanitizeWebsitePages, toPageItems } from "../../../../../lib/websitePages";
 
-// Admin-tenant mirror of GET /api/website/pages for the Fulfillment cockpit
-// (Web Design > Pages). Lists one client's live pages from their GoHighLevel
-// Sites: a GHL "site" is a funnel with type === "website"; its steps are the
-// pages, each with a path. We flatten those; the panel joins each path onto the
-// client's website_url to preview and open it. Auth is enforced upstream
-// (admin session only); do not re-check here.
+// Admin-tenant mirror of /api/website/pages for the Fulfillment cockpit
+// (Web Design > Pages). Reads and writes the client's manual page list on the
+// tenant row (tenants.website_pages, 0028) instead of GoHighLevel. Auth is
+// enforced upstream (admin session only); do not re-check here.
 //
-// GET /api/admin/clients/:tenantId/website/pages
-//   -> { site: { name, updatedAt } | null, pages: [...], unavailable?: true }
-//
-// A missing funnels scope (or any GHL error) returns an empty, unavailable
-// result so the Pages panel shows its not-connected state instead of erroring.
-
-interface FunnelStep {
-  id?: string;
-  name?: string;
-  url?: string;
-  sequence?: number;
-}
-
-interface Funnel {
-  _id?: string;
-  name?: string;
-  type?: string;
-  deleted?: boolean;
-  dateUpdated?: string;
-  steps?: FunnelStep[];
-}
-
-interface FunnelListResponse {
-  funnels?: Funnel[];
-}
-
-interface WebsitePage {
-  id: string;
-  name: string;
-  path: string;
-  sequence: number;
-}
+// GET  /api/admin/clients/:tenantId/website/pages
+//   -> { site: null, pages: [...], unavailable: false }
+// PUT  /api/admin/clients/:tenantId/website/pages   body { pages: [{name,path}] }
+//   -> { ok: true, pages: [...] }   (the sanitized, saved list)
 
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
@@ -51,63 +22,42 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const tenant = await loadTenantById(client, tenantId);
   if (!tenant) return Response.json({ error: "client not found" }, { status: 404 });
 
-  // Resolve GHL creds the same way the live middleware does for the client path:
-  // the tenant's own creds once real, else the GHL_* env fallback. Reading
-  // tenant.ghl_token raw would send a placeholder ('env'/'pending') to GHL and
-  // 401 for any client not yet fully wired (the Pages "unavailable" bug).
-  const creds = resolveGhlCreds(tenant, ctx.env);
-  if (!creds) return Response.json({ site: null, pages: [], unavailable: true });
+  const pages = toPageItems(sanitizeWebsitePages(tenant.website_pages));
+  return Response.json({ site: null, pages, unavailable: false });
+};
 
-  const gctx: GhlContext = {
-    token: creds.token,
-    locationId: creds.locationId,
-  };
+interface PutBody {
+  pages?: unknown;
+}
 
-  let data: FunnelListResponse;
+export const onRequestPut: PagesFunction<Env, string, ApiData> = async (ctx) => {
+  const client = getServiceClient(ctx.env);
+  if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
+
+  const tenantId = ctx.params.tenantId as string;
+  const tenant = await loadTenantById(client, tenantId);
+  if (!tenant) return Response.json({ error: "client not found" }, { status: 404 });
+
+  let body: PutBody = {};
   try {
-    data = await ghlJson<FunnelListResponse>(
-      gctx,
-      `/funnels/funnel/list?locationId=${encodeURIComponent(gctx.locationId)}&limit=100`,
-    );
-  } catch (e) {
-    // Funnels scope missing on the token, or GHL down: the panel shows its
-    // not-connected empty state. Logged (not swallowed) so the reason is
-    // recoverable from the deployment logs. A 401 "not authorized for this
-    // scope" here means the client's GHL token lacks the Funnels/Sites scope.
-    console.error("[admin web-design pages] GHL funnels read failed:", e);
-    return Response.json({ site: null, pages: [], unavailable: true });
+    body = (await ctx.request.json()) as PutBody;
+  } catch {
+    return Response.json({ error: "invalid body" }, { status: 400 });
   }
 
-  const websites = (data.funnels ?? []).filter(
-    (f) => f.type === "website" && !f.deleted,
-  );
+  // sanitizeWebsitePages tolerates any shape: trims, forces leading slashes,
+  // drops blank rows, caps the list. The stored value is always clean.
+  const rows = sanitizeWebsitePages(body.pages);
 
-  const pages: WebsitePage[] = [];
-  let siteName: string | null = null;
-  let updatedAt: string | null = null;
+  const { error } = await client
+    .from("tenants")
+    .update({ website_pages: rows })
+    .eq("id", tenantId);
+  if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  for (const f of websites) {
-    if (siteName === null) {
-      siteName = f.name ?? null;
-      updatedAt = f.dateUpdated ?? null;
-    }
-    for (const s of f.steps ?? []) {
-      const name = (s.name ?? "").trim();
-      const path = (s.url ?? "").trim();
-      if (!name || !path) continue;
-      pages.push({
-        id: s.id ?? `${f._id ?? "site"}:${s.sequence ?? pages.length}`,
-        name,
-        path: path.startsWith("/") ? path : `/${path}`,
-        sequence: typeof s.sequence === "number" ? s.sequence : pages.length + 1,
-      });
-    }
-  }
-
-  pages.sort((a, b) => a.sequence - b.sequence);
-
-  return Response.json({
-    site: siteName ? { name: siteName, updatedAt } : null,
-    pages,
+  await logAdminAction(client, ctx.data.admin!.id, "client.website_pages.update", tenantId, {
+    count: rows.length,
   });
+
+  return Response.json({ ok: true, pages: toPageItems(rows) });
 };

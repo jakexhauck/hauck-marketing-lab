@@ -10,10 +10,12 @@
 
 export type ServiceTab =
   | "overview"
+  | "software"
   | "paid-ads"
   | "web-design"
   | "google-reviews"
   | "reactivation"
+  | "billing"
   | "config";
 
 export interface SubTabDef {
@@ -34,15 +36,20 @@ export interface ServiceTabDef {
 // Phase 1 ships every sub-tab as ready:false. Later phases flip them on.
 export const SERVICE_TABS: ServiceTabDef[] = [
   { id: "overview", label: "Overview", ready: true },
+  // Software: a read-only inventory of every page of the client app, each one
+  // previewable live. No sub-tabs; the page list is its own navigation.
+  { id: "software", label: "Software", ready: true },
   {
     id: "paid-ads",
     label: "Paid Ads",
-    ready: false,
+    ready: true,
     subTabs: [
-      { id: "campaigns", label: "Campaigns", ready: false },
-      { id: "ad-library", label: "Ad Library", ready: false },
-      { id: "funnel", label: "Funnel", ready: false },
-      { id: "data-leads", label: "Data & Leads", ready: false },
+      { id: "campaigns", label: "Campaigns", ready: true },
+      { id: "ad-library", label: "Ad Library", ready: true },
+      // Ad Tracking replaces the old Funnel placeholder: there is no funnel-step
+      // data to show, but the daily paid-ad tracker is real and manually kept.
+      { id: "ad-tracking", label: "Ad Tracking", ready: true },
+      { id: "data-leads", label: "Data & Leads", ready: true },
     ],
   },
   {
@@ -76,6 +83,9 @@ export const SERVICE_TABS: ServiceTabDef[] = [
       { id: "results", label: "Results", ready: false },
     ],
   },
+  // Billing is a per-client commercial record (manual entry, Phase 1), so it has
+  // no second level.
+  { id: "billing", label: "Billing", ready: true },
   { id: "config", label: "Config", ready: true },
 ];
 

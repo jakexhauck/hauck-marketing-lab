@@ -111,7 +111,29 @@ pipelines`. Re-pull before implementing; stage names drift.
 | Customers · One-Time Customer 1️⃣ | ✓ | ✓ | ✓ |
 | Customers · Recurring Customer 🔁 | ✓ | ✓ | ✓ |
 
-**A Sale is landing in the Customers pipeline**, either stage. Not Job Booked, not Job Completed.
+**REVISED 2026-07-19. A Sale is a closed-out job, not a Customers-pipeline card.**
+
+The original rule (landing in Customers) was measured against live data and found unusable: the
+Customers pipeline has never held a single opportunity, and `opportunity.monetaryValue` is 0 of
+101 populated. Revenue would have read zero permanently.
+
+The app already records what we need. `customer_jobs.value_cents` (migration 0029) holds a dollar
+value per completed job, entered by the team at close-out and keyed by `ghl_contact_id`. That is
+the revenue source, and having such a row is what makes a lead a Sale.
+
+Why this is better than the pipeline rule:
+
+- it is the app's own data, not contingent on anyone's GHL stage discipline
+- `ghl_contact_id` carries `attributions[]`, so the proven ad-id join still holds
+- jobs can be added by hand from the Customers page (`source_opportunity_id` is nullable), so
+  revenue does not wait on cards moving
+
+`customer_jobs` is also empty today, but for a reason that is not a design flaw: the close-out
+queue triggers on an opportunity reaching "Job Completed" and nothing ever has. One close-out,
+or one hand-added job, lights up Revenue and ROAS with no code change.
+
+The Customers-pipeline stages below still map to `sale` as a secondary signal, so a card moved
+there is not ignored. The job ledger is what carries the money.
 
 Consequences, accepted:
 
@@ -285,7 +307,7 @@ the system clock (pass `now` in).
   never `Infinity`.
 
 Tests must include a **fixture transcribed from the live sheet** (the three ad-set rows: spend
-£1,647 / £1,357 / £1,504, leads 32 / 24 / 24, bookings 13 / 8 / 11, sales 4 / 3 / 2) asserting our
+1647 / 1357 / 1504, leads 32 / 24 / 24, bookings 13 / 8 / 11, sales 4 / 3 / 2) asserting our
 numbers equal the sheet's to the penny. Plus: zero-spend ad, zero-lead ad, lead with no `utmAdId`,
 `Lost` counting as a booking, ratios-of-sums not averages-of-ratios.
 
@@ -377,8 +399,11 @@ Only after Task 6 is verified against live data:
   `contact.closed_revenue` (TEXT, needs parsing) only if it is not.
 - **R4: Migration numbering is a race.** Main stops at `0026`; the unmerged
   `worktree-admin-billing-adtracking` branch holds `0037`/`0038`. Pick the number at push time.
-- **R5: Currency.** The sheet is GBP; Willis is USD. Read currency from the Meta ad account
-  rather than hardcoding either.
+- **R5: Currency is USD.** DECIDED 2026-07-19. The sheet is GBP because it is the course
+  author's template; every Hauck client is USD. Confirmed live: the Willis ad account
+  (`act_27110669075184924`) reports `currency: USD`. Format as USD in the UI. The stored numbers
+  and every function in `adTrackerMetrics.ts` are unit-agnostic, so this is a display concern
+  only, confined to Task 6. Do not port the sheet's `£`.
 - **R6: Attribution windows.** Meta's default attribution differs from first-touch-by-contact.
   Our numbers will not tie exactly to Ads Manager. Expected, worth a footnote in the UI.
 

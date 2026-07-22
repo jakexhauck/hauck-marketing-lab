@@ -198,6 +198,22 @@ export async function downloadFile(token: string, fileId: string, mimeType: stri
   return resp;
 }
 
+/**
+ * A Google Doc exported as HTML, for rendering in-app.
+ *
+ * Deliberately separate from downloadFile: the Assets hub downloads Docs as PDF
+ * via GOOGLE_EXPORT_MIME, and the SOP Hub needs the same file as markup. Pointing
+ * that shared map at text/html would silently turn every Assets Doc download into
+ * an HTML file. The caller must sanitize; see sopHtml.ts.
+ */
+export async function exportDocHtml(token: string, fileId: string): Promise<string> {
+  if (!isValidFileId(fileId)) throw new Error(`invalid file id: ${fileId}`);
+  const url = `${DRIVE_FILES}/${fileId}/export?mimeType=${encodeURIComponent("text/html")}`;
+  const resp = await fetch(url, { headers: { authorization: `Bearer ${token}` } });
+  if (!resp.ok) throw driveError("export doc", resp.status, await resp.text());
+  return resp.text();
+}
+
 export const GOOGLE_EXPORT_MIME: Record<string, string> = {
   "application/vnd.google-apps.document": "application/pdf",
   "application/vnd.google-apps.spreadsheet": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

@@ -1,10 +1,10 @@
-import { type Job, jobKind, isoToLocalDate } from "./jobsPipeline";
+import { type Job, jobKind, isoToLocalDate, toIso } from "./jobsPipeline";
 
 // One event on the Jobs calendar, whatever stream it came from. Every view
 // (month/week/agenda) reads only this shape, so a new stream is just a new
 // mapper plus a source entry, never a change to the views. This surface carries
 // the sales work only: scheduled estimates and booked/completed jobs.
-export type CalendarSource = "estimate" | "job";
+export type CalendarSource = "estimate" | "job" | "busy" | "appointment";
 
 export interface CalendarItem {
   id: string; // "<source>:<rawId>", unique across streams
@@ -43,11 +43,27 @@ export const CALENDAR_SOURCE_META: Record<
     varName: "--source-job",
     tintVar: "--source-job-tint",
   },
+  appointment: {
+    label: "Appointment",
+    plural: "Appointments",
+    varName: "--source-appointment",
+    tintVar: "--source-appointment-tint",
+  },
+  busy: {
+    label: "Busy",
+    plural: "Busy",
+    varName: "--source-busy",
+    tintVar: "--source-busy-tint",
+  },
 };
 
+// Busy sorts last: it is background context, not the client's own work.
+// Appointment sits just ahead of it so booked blocks render above busy bands.
 export const CALENDAR_SOURCE_ORDER: CalendarSource[] = [
   "estimate",
   "job",
+  "appointment",
+  "busy",
 ];
 
 function pad2(n: number): string {
@@ -73,13 +89,105 @@ export function jobToItem(j: Job): CalendarItem {
     subtitle: j.service,
     date: j.date,
     startMinutes: j.startMinutes,
-    endMinutes: null,
+    endMinutes: j.endMinutes ?? null,
     timeLabel: j.time,
     status: j.status,
     amount: j.amount,
     location: `${j.city}, ${j.zip}`,
     meetingUrl: "",
     contactId: "",
+  };
+}
+
+// Wall-clock literal out of an ISO timestamp. The busy route asks Google for
+// intervals in the viewer's own zone, so the literal in the string IS the
+// intended local time; converting through Date would drift it. Mirrors
+// partsFromIso on the API side.
+function localPartsFromIso(iso: string): { date: string; minutes: number } | null {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(iso);
+  if (!m) return null;
+  return { date: m[1], minutes: Number(m[2]) * 60 + Number(m[3]) };
+}
+
+// A block of time the client's own Google Calendar reports as taken. Carries
+// no detail beyond the interval: the app never reads event titles, so there is
+// deliberately nothing else to map.
+export function busyToItem(b: { start: string; end: string }, index: number): CalendarItem {
+  const s = localPartsFromIso(b.start);
+  const e = localPartsFromIso(b.end);
+  return {
+    id: `busy:${index}`,
+    source: "busy",
+    title: "Busy",
+    subtitle: "",
+    date: s?.date ?? "",
+    startMinutes: s?.minutes ?? null,
+    endMinutes: e?.minutes ?? null,
+    timeLabel: s ? minutesToLabel(s.minutes) : "",
+    status: "busy",
+    amount: null,
+    location: "",
+    meetingUrl: "",
+    contactId: "",
+  };
+}
+
+// A booked GHL appointment. Written for the Setter Suite Calendar tab, where
+// the person matters more than the calendar the booking landed on, so the
+// contact name is the headline and the event title drops to the subtitle.
+//
+// Unlike busy, these timestamps are real instants with an offset, not wall
+// clock literals, so they go through Date and are read in the viewer's own
+// zone. toIso (from jobsPipeline) is the same local-date derivation the rest
+// of this surface uses, so the day column and the minutes agree.
+export interface ApiSetterEventLike {
+  id: string;
+  title: string;
+  startTime: string | null;
+  endTime: string | null;
+  status: string;
+  contactId: string;
+  contactName: string;
+}
+
+export function appointmentToItem(e: ApiSetterEventLike): CalendarItem {
+  const start = e.startTime ? new Date(e.startTime) : null;
+  const end = e.endTime ? new Date(e.endTime) : null;
+  const validStart = start !== null && !Number.isNaN(start.getTime());
+  const validEnd = end !== null && !Number.isNaN(end.getTime());
+
+  const startMinutes = validStart ? start.getHours() * 60 + start.getMinutes() : null;
+  const endMinutes = validEnd ? end.getHours() * 60 + end.getMinutes() : null;
+
+  const named = (e.contactName ?? "").trim();
+
+  return {
+    id: `appointment:${e.id}`,
+    source: "appointment",
+    title: named || e.title,
+    subtitle: named ? e.title : "",
+    date: validStart ? toIso(start) : "",
+    startMinutes,
+    endMinutes,
+    timeLabel: startMinutes === null ? "" : minutesToLabel(startMinutes),
+    status: e.status,
+    amount: null,
+    location: "",
+    meetingUrl: "",
+    contactId: e.contactId,
+  };
+}
+
+// Busy blocks are a background layer, never a lane peer. Views split them out
+// before packing so a client with a full personal calendar does not push their
+// own jobs into slivers.
+export function splitBusy(items: CalendarItem[]): {
+  busy: CalendarItem[];
+  rest: CalendarItem[];
+} {
+  return {
+    busy: items.filter((i) => i.source === "busy"),
+    rest: items.filter((i) => i.source !== "busy"),
   };
 }
 
@@ -128,15 +236,18 @@ export interface PlacedItem {
   cols: number;
 }
 
-// Default slot length (minutes) for an item with no explicit end.
-const DEFAULT_DURATION = 60;
+// Default slot length (minutes) for an item with no explicit end. Exported so
+// the Setter Suite booking panel books the same length the grid draws for an
+// open-ended item, rather than carrying a second literal that can drift.
+export const DEFAULT_DURATION = 60;
 
 // Pack a day's timed items into lanes: items whose [start,end) overlap share a
 // cluster and each gets its own lane; the cluster's width is its max concurrency.
 // Greedy interval partitioning, stable by start then end.
 export function packDayColumns(timed: CalendarItem[]): PlacedItem[] {
   const spans = timed
-    .filter((i) => i.startMinutes != null)
+    // Busy blocks render behind the day, so they never consume a lane.
+    .filter((i) => i.startMinutes != null && i.source !== "busy")
     .map((item) => {
       const start = item.startMinutes as number;
       return { item, start, end: item.endMinutes ?? start + DEFAULT_DURATION };
