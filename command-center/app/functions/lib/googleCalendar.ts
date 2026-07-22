@@ -13,12 +13,18 @@ import {
 // resulting token keyed by the tenant id it was linked under. That is what
 // gives per-client isolation without a credentials table on our side.
 //
-// The app reads availability only. It never fetches event titles, attendees or
-// descriptions, and the UI only ever draws an anonymous "Busy" block.
+// The CLIENT-facing routes read availability only (anonymous "Busy" blocks).
+// The admin Setter Suite route reads event titles too (getBusyEvents below),
+// a deliberate distinction: the setter working the client's calendar needs to
+// know WHAT is blocking a slot; the client's own customers never do.
 
 export interface BusyInterval {
   start: string;
   end: string;
+}
+
+export interface BusyEvent extends BusyInterval {
+  title: string;
 }
 
 export interface GcalConnection {
@@ -115,6 +121,62 @@ export async function getBusy(
     // Composio shares a rate-limit quota across all its customers on managed
     // auth, so a throttled read is a real possibility. Degrade to no busy time
     // rather than failing the calendar.
+    return [];
+  }
+}
+
+// Exported for tests. Tolerant of the same response-shape drift as parseBusy:
+// Composio sometimes wraps the payload in response_data. Only timed events
+// count (all-day events have `date`, not `dateTime`; the interval grid cannot
+// place them, and the freebusy fallback still covers the hours they block).
+// Cancelled and "transparent" (marked-free) events are skipped, matching what
+// freebusy would report.
+export function parseBusyEvents(raw: unknown): BusyEvent[] {
+  const root = raw as { response_data?: unknown; items?: unknown } | null;
+  const wrapper = (root?.response_data ?? root) as { items?: unknown } | null;
+  const items = wrapper?.items;
+  if (!Array.isArray(items)) return [];
+
+  const out: BusyEvent[] = [];
+  for (const item of items) {
+    const ev = item as {
+      status?: string;
+      transparency?: string;
+      summary?: string;
+      start?: { dateTime?: string };
+      end?: { dateTime?: string };
+    } | null;
+    if (!ev || ev.status === "cancelled" || ev.transparency === "transparent") continue;
+    const start = ev.start?.dateTime;
+    const end = ev.end?.dateTime;
+    if (typeof start !== "string" || typeof end !== "string") continue;
+    out.push({ start, end, title: typeof ev.summary === "string" ? ev.summary.trim() : "" });
+  }
+  return out;
+}
+
+// Busy time WITH titles, for the admin Setter Suite calendar. Same never-throw
+// contract as getBusy: an empty array is the only failure mode, and the caller
+// falls back to the anonymous freebusy read so the grid never quietly loses
+// its blocked hours.
+export async function getBusyEvents(
+  env: Env,
+  tenantUserId: string,
+  opts: { timeMin: string; timeMax: string },
+): Promise<BusyEvent[]> {
+  const conn = await getConnection(env, tenantUserId);
+  if (!conn.connected) return [];
+  try {
+    const raw = await executeTool(env, "GOOGLECALENDAR_EVENTS_LIST", tenantUserId, {
+      calendarId: "primary",
+      timeMin: opts.timeMin,
+      timeMax: opts.timeMax,
+      singleEvents: true,
+      orderBy: "startTime",
+      maxResults: 250,
+    });
+    return parseBusyEvents(raw);
+  } catch {
     return [];
   }
 }

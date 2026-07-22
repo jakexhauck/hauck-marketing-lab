@@ -1058,7 +1058,9 @@ export interface ApiSetterScoreboard {
 // fails and both cases arrive as a 200 with an empty `busy`.
 export interface ApiSetterBusy {
   connected: boolean;
-  busy: { start: string; end: string }[];
+  // title is present when the titled events read succeeded; absent/empty on
+  // the anonymous freebusy fallback, where the UI shows "Busy".
+  busy: { start: string; end: string; title?: string }[];
 }
 
 // One search hit from functions/api/admin/setter/contacts.ts, already shaped

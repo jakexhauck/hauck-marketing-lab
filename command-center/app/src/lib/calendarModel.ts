@@ -109,16 +109,20 @@ function localPartsFromIso(iso: string): { date: string; minutes: number } | nul
   return { date: m[1], minutes: Number(m[2]) * 60 + Number(m[3]) };
 }
 
-// A block of time the client's own Google Calendar reports as taken. Carries
-// no detail beyond the interval: the app never reads event titles, so there is
-// deliberately nothing else to map.
-export function busyToItem(b: { start: string; end: string }, index: number): CalendarItem {
+// A block of time the client's own Google Calendar reports as taken. The
+// admin setter route supplies the event's title; the anonymous freebusy
+// fallback (and the client-facing route) do not, and those blocks render as
+// plain "Busy".
+export function busyToItem(
+  b: { start: string; end: string; title?: string },
+  index: number,
+): CalendarItem {
   const s = localPartsFromIso(b.start);
   const e = localPartsFromIso(b.end);
   return {
     id: `busy:${index}`,
     source: "busy",
-    title: "Busy",
+    title: b.title?.trim() || "Busy",
     subtitle: "",
     date: s?.date ?? "",
     startMinutes: s?.minutes ?? null,
