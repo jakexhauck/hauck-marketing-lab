@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Marketing · Scaling Calculator (B)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #eef0f4; --card: #ffffff; --ink: #14161c; --muted: #6b7280; --faint: #9aa1ad;
+    --line: #eceef2; --line-2: #e3e6ec;
+    --indigo: #6366f1; --indigo-tint: #eef0ff;
+    --green: #10b981; --green-tint: #e7f7f0;
+    --sky: #0ea5e9; --sky-tint: #e6f5fd;
+    --amber: #f59e0b; --amber-tint: #fdf3e2; --rose: #ef4444;
+    --radius: 22px;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--ink); display: flex; height: 100dvh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums lining-nums; }
+  .disp { font-family: "Poppins", sans-serif; }
+
+  /* Spine */
+  .spine { width: 74px; flex-shrink: 0; background: #0c1020; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 6px; }
+  .brand { width: 42px; height: 42px; border-radius: 13px; margin-bottom: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 19px; box-shadow: 0 8px 20px -6px rgba(99,102,241,.7); }
+  .snav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .sbtn { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #8891a8; cursor: pointer; border: 0; background: transparent; transition: .15s; position: relative; }
+  .sbtn:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .sbtn.on { color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 18px -6px rgba(99,102,241,.75); }
+  .sbtn svg { width: 21px; height: 21px; }
+  .savatar { width: 40px; height: 40px; border-radius: 50%; margin-top: 8px; background: linear-gradient(135deg, #10b981, #0ea5e9); display: grid; place-items: center; font-family: "Poppins"; font-weight: 600; font-size: 13px; color: #fff; }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 26px 30px 0; overflow: hidden; }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--indigo); }
+  h1.title { font-family: "Poppins"; font-weight: 700; font-size: 34px; letter-spacing: -.02em; margin-top: 4px; }
+  .tagline { color: var(--muted); font-size: 14.5px; margin-top: 4px; }
+
+  .controls { display: flex; align-items: center; gap: 16px; margin-top: 18px; flex-wrap: wrap; }
+  .tabs { display: inline-flex; gap: 4px; background: #e5e8ef; padding: 5px; border-radius: 15px; }
+  .tab { border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); padding: 8px 16px; border-radius: 11px; transition: .15s; }
+  .tab:hover { color: var(--ink); }
+  .tab.on { background: #fff; color: var(--ink); box-shadow: 0 2px 8px -2px rgba(20,22,28,.14); }
+
+  .stage { flex: 1; min-height: 0; overflow: auto; padding-bottom: 14px; margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* Inputs strip */
+  .inputbar { background: var(--card); border-radius: var(--radius); box-shadow: 0 2px 16px -8px rgba(20,22,28,.18); padding: 16px 18px; }
+  .ib-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .ib-head .ico { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+  .ib-head .ico svg { width: 16px; height: 16px; }
+  .ib-head .t { font-family: "Poppins"; font-weight: 600; font-size: 15px; }
+  .ib-note { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: #8a5a08; background: var(--amber-tint); padding: 6px 11px; border-radius: 999px; font-weight: 500; }
+  .ib-note svg { width: 13px; height: 13px; color: var(--amber); }
+  .ib-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+  .cell { display: flex; flex-direction: column; gap: 5px; }
+  .cell .flab { font-size: 11.5px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fwrap { display: inline-flex; align-items: center; background: #f5f6f9; border: 1px solid var(--line-2); border-radius: 11px; padding: 0 10px; transition: box-shadow .12s, background .12s, border-color .12s; }
+  .fwrap:focus-within { background: #fff; border-color: transparent; box-shadow: 0 0 0 2px var(--indigo); }
+  .fwrap i { font-style: normal; color: var(--faint); font-size: 13px; font-weight: 500; }
+  .fwrap input { border: 0; background: transparent; font: inherit; font-weight: 600; color: var(--ink); text-align: right; width: 100%; min-width: 0; padding: 9px 3px; font-variant-numeric: tabular-nums; }
+  .fwrap input:focus { outline: 0; }
+
+  /* Funnel */
+  .funnel { display: flex; flex-direction: column; gap: 10px; }
+  .band { border-radius: var(--radius); display: flex; align-items: center; gap: 18px; padding: 18px 24px; position: relative; margin: 0 auto; width: 100%; box-shadow: 0 2px 16px -10px rgba(20,22,28,.2); }
+  .band .idx { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 15px; color: #fff; flex-shrink: 0; }
+  .band .body { flex: 1; min-width: 0; }
+  .band .lbl { font-family: "Poppins"; font-weight: 600; font-size: 16px; }
+  .band .form { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .band .val { font-family: "Poppins"; font-weight: 700; font-size: 40px; letter-spacing: -.02em; line-height: 1; flex-shrink: 0; text-align: right; }
+  .band .unit { font-size: 12.5px; color: var(--faint); font-weight: 500; display: block; margin-top: 4px; text-align: right; }
+
+  .band.b1 { background: #fff; }              .band.b1 .idx { background: #6b7280; }  .band.b1 .val { color: var(--ink); }
+  .band.b2 { background: var(--indigo-tint); } .band.b2 .idx { background: var(--indigo); } .band.b2 .val { color: #4247c9; }
+  .band.b3 { background: var(--sky-tint); }    .band.b3 .idx { background: var(--sky); }    .band.b3 .val { color: #0b83bb; }
+  .band.b4 { background: var(--amber-tint); }  .band.b4 .idx { background: var(--amber); }  .band.b4 .val { color: #b9770a; }
+  .band.b5 { background: var(--green-tint); }  .band.b5 .idx { background: var(--green); }  .band.b5 .val { color: #0a8f66; }
+
+  /* progressive narrowing to read as a funnel */
+  .band.b1 { max-width: 100%; }
+  .band.b2 { max-width: 94%; }
+  .band.b3 { max-width: 86%; }
+  .band.b4 { max-width: 78%; }
+
+  .connector { width: 2px; height: 12px; background: var(--line-2); margin: -6px auto; }
+
+  /* Hero band */
+  .band.hero { max-width: 70%; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; padding: 26px 30px; box-shadow: 0 18px 40px -18px rgba(99,102,241,.85); overflow: hidden; }
+  .band.hero::after { content: ""; position: absolute; right: -50px; bottom: -60px; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,.1); }
+  .band.hero .idx { background: rgba(255,255,255,.2); }
+  .band.hero .lbl { font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.82); }
+  .band.hero .form { color: rgba(255,255,255,.8); }
+  .band.hero .val { font-size: 78px; color: #fff; }
+  .band.hero .unit { color: rgba(255,255,255,.8); }
+
+  .footnote { font-size: 11px; color: var(--faint); padding: 6px 2px 6px; text-align: center; }
+
+  @media (max-width: 1000px) { .ib-grid { grid-template-columns: repeat(4, 1fr); } }
+  @media (max-width: 760px) {
+    .main { padding: 18px 14px 0; }
+    .ib-grid { grid-template-columns: repeat(2, 1fr); }
+    .band, .band.b2, .band.b3, .band.b4, .band.hero { max-width: 100%; }
+    .band .val { font-size: 32px; } .band.hero .val { font-size: 60px; }
+    .ib-note { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+  <aside class="spine">
+    <div class="brand">H</div>
+    <nav class="snav">
+      <button class="sbtn" title="Command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+      <button class="sbtn" title="Acquisition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></button>
+      <button class="sbtn" title="Sales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17a4 4 0 0 1-8 0V7a4 4 0 0 1 8 0"/><path d="M13 7a4 4 0 0 1 8 0v10a4 4 0 0 1-8 0"/><path d="M11 7H3M21 17h-8"/></svg></button>
+      <button class="sbtn" title="Fulfillment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></button>
+      <button class="sbtn on" title="Operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg></button>
+    </nav>
+    <button class="sbtn" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
+    <div class="savatar">JH</div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker">Operations</div>
+    <h1 class="title">Scaling Calculator</h1>
+    <p class="tagline">Follow the funnel top to bottom. Cash goal in, daily activity out.</p>
+
+    <div class="controls">
+      <div class="tabs">
+        <button class="tab on">Calculator</button>
+        <button class="tab">Time Audit</button>
+        <button class="tab">Tasks</button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <!-- Inputs -->
+      <section class="inputbar">
+        <div class="ib-head">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7h6M9 11h6M9 15h4"/><rect x="4" y="3" width="16" height="18" rx="2"/></svg></div>
+          <div class="t">Your Numbers</div>
+          <span class="ib-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>Heavily underestimate your KPIs so it becomes impossible not to hit target.</span>
+        </div>
+        <div class="ib-grid">
+          <div class="cell"><span class="flab">Current Revenue</span><span class="fwrap"><i>$</i><input id="in-rev" class="num" inputmode="decimal" value="0" /></span></div>
+          <div class="cell"><span class="flab">Monthly Cash Goal</span><span class="fwrap"><i>$</i><input id="in-goal" class="num" inputmode="decimal" value="10000" /></span></div>
+          <div class="cell"><span class="flab">Offer Price</span><span class="fwrap"><i>$</i><input id="in-price" class="num" inputmode="decimal" value="1000" /></span></div>
+          <div class="cell"><span class="flab">Avg Cash / Close</span><span class="fwrap"><i>$</i><input id="in-avg" class="num" inputmode="decimal" value="1000" /></span></div>
+          <div class="cell"><span class="flab">Closing %</span><span class="fwrap"><input id="in-close" class="num" inputmode="decimal" value="20" /><i>%</i></span></div>
+          <div class="cell"><span class="flab">Show Rate %</span><span class="fwrap"><input id="in-show" class="num" inputmode="decimal" value="60" /><i>%</i></span></div>
+          <div class="cell"><span class="flab">Booking Rate %</span><span class="fwrap"><input id="in-book" class="num" inputmode="decimal" value="2" /><i>%</i></span></div>
+        </div>
+      </section>
+
+      <!-- Funnel -->
+      <div class="funnel">
+        <div class="band b1">
+          <div class="idx">01</div>
+          <div class="body"><div class="lbl">Monthly Cash Goal</div><div class="form">Goal minus revenue already booked</div></div>
+          <div><div class="val num" id="out-gap">$10,000</div><span class="unit">to earn this month</span></div>
+        </div>
+        <div class="connector"></div>
+        <div class="band b2">
+          <div class="idx">02</div>
+          <div class="body"><div class="lbl">New Clients Needed</div><div class="form">Goal &divide; avg cash per close</div></div>
+          <div><div class="val num" id="out-clients">10</div><span class="unit">closes required</span></div>
+        </div>
+        <div class="connector"></div>
+        <div class="band b3">
+          <div class="idx">03</div>
+          <div class="body"><div class="lbl">Calls / Shows Needed</div><div class="form">Clients &divide; closing %</div></div>
+          <div><div class="val num" id="out-shows">50</div><span class="unit">shows to run</span></div>
+        </div>
+        <div class="connector"></div>
+        <div class="band b4">
+          <div class="idx">04</div>
+          <div class="body"><div class="lbl">Total Calls Needed</div><div class="form">Shows &divide; show rate %</div></div>
+          <div><div class="val num" id="out-calls">83</div><span class="unit">booked calls</span></div>
+        </div>
+        <div class="connector"></div>
+        <div class="band b5">
+          <div class="idx">05</div>
+          <div class="body"><div class="lbl">Total Monthly Input</div><div class="form">Calls &divide; booking rate %</div></div>
+          <div><div class="val num" id="out-monthly">4,167</div><span class="unit">outreach touches / mo</span></div>
+        </div>
+        <div class="connector"></div>
+        <div class="band hero">
+          <div class="idx">06</div>
+          <div class="body"><div class="lbl">Total Daily Input Needed</div><div class="form">Monthly input &divide; 30 days</div></div>
+          <div><div class="val num" id="out-daily">139</div><span class="unit">every single day</span></div>
+        </div>
+      </div>
+
+      <div class="footnote">Sample data for design review.</div>
+    </div>
+  </main>
+
+<script>
+  function num(id){ const v = parseFloat(String(document.getElementById(id).value).replace(/,/g,'')); return isNaN(v) ? 0 : v; }
+  function fmt(v){ return Math.round(v).toLocaleString('en-US'); }
+  function money(v){ return '$' + Math.round(v).toLocaleString('en-US'); }
+  function compute(){
+    const rev = num('in-rev'), goal = num('in-goal'), avg = num('in-avg');
+    const close = num('in-close')/100, show = num('in-show')/100, book = num('in-book')/100;
+    const gap = Math.max(goal - rev, 0);
+    const clients = avg > 0 ? gap / avg : 0;
+    const shows   = close > 0 ? clients / close : 0;
+    const calls   = show > 0 ? shows / show : 0;
+    const monthly = book > 0 ? calls / book : 0;
+    const daily   = monthly / 30;
+    document.getElementById('out-gap').textContent     = money(gap);
+    document.getElementById('out-clients').textContent = fmt(clients);
+    document.getElementById('out-shows').textContent   = fmt(shows);
+    document.getElementById('out-calls').textContent   = fmt(calls);
+    document.getElementById('out-monthly').textContent = fmt(monthly);
+    document.getElementById('out-daily').textContent   = fmt(daily);
+  }
+  document.querySelectorAll('input').forEach(el => el.addEventListener('input', compute));
+  compute();
+</script>
+</body>
+</html>

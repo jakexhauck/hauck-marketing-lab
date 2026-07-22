@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft, Eye, UserCog } from "lucide-react";
 import DeliveryRoster from "../../components/admin/DeliveryRoster";
@@ -7,7 +7,6 @@ import OverviewTab from "../../components/admin/cockpit/OverviewTab";
 import WebDesignTab from "../../components/admin/cockpit/webdesign/WebDesignTab";
 import { useAuth } from "../../context/AuthContext";
 import { useAdminClientDetailQuery } from "../../hooks/useApi";
-import { healthLabel } from "../../lib/deliveryRoster";
 import { activeStaffCount } from "../../lib/cockpitOverview";
 import {
   SERVICE_TABS,
@@ -29,14 +28,6 @@ import { ApiError, type AdminClientDetail } from "../../lib/api";
 // Overview tab reads - so the header and Overview share one cached request
 // instead of each fetching the client separately. The Config tab keeps its
 // own detail fetch inside ClientConfigPanel (it owns its own save flows).
-
-// Matches the roster dot colors in lib/deliveryRoster.ts / PillarKit.tsx
-// (.pk-roster-dot-*) so the same account reads the same color in both places.
-const HEALTH_COLOR: Record<AdminClientDetail["healthStatus"], string> = {
-  healthy: "var(--positive)",
-  warn: "var(--warning)",
-  paused: "var(--text-faint)",
-};
 
 export default function DeliveryCockpit() {
   const { tenantId = "" } = useParams<{ tenantId: string }>();
@@ -225,17 +216,6 @@ function CockpitHeader({
             {client.niche && (
               <span className="text-[13px] text-muted">{client.niche}</span>
             )}
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-0.5 text-[12px] font-semibold text-text"
-              title="Account health"
-            >
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ background: HEALTH_COLOR[client.healthStatus] } as CSSProperties}
-                aria-hidden
-              />
-              {healthLabel(client.healthStatus)}
-            </span>
             <span className="inline-flex items-center rounded-full border border-border bg-surface px-2.5 py-0.5 text-[12px] font-semibold text-muted">
               {memberCount} {memberCount === 1 ? "member" : "members"}
             </span>

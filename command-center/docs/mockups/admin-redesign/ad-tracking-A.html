@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Willis Windows — Ad Tracking (A · Table-first)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #eef0f4; --card: #ffffff; --ink: #14161c; --muted: #6b7280; --faint: #9aa1ad;
+    --line: #eceef2; --line-2: #e3e6ec;
+    --indigo: #6366f1; --indigo-tint: #eef0ff;
+    --green: #10b981; --green-tint: #e7f7f0;
+    --sky: #0ea5e9; --sky-tint: #e6f5fd;
+    --amber: #f59e0b; --amber-tint: #fdf3e2; --rose: #ef4444;
+    --radius: 22px; --grp-h: 30px;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--ink); display: flex; height: 100dvh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums lining-nums; }
+  .disp { font-family: "Poppins", sans-serif; }
+
+  /* Spine */
+  .spine { width: 74px; flex-shrink: 0; background: #0c1020; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 6px; }
+  .brand { width: 42px; height: 42px; border-radius: 13px; margin-bottom: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 19px; box-shadow: 0 8px 20px -6px rgba(99,102,241,.7); }
+  .snav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .sbtn { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #8891a8; cursor: pointer; border: 0; background: transparent; transition: .15s; }
+  .sbtn:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .sbtn.on { color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 18px -6px rgba(99,102,241,.75); }
+  .sbtn svg { width: 21px; height: 21px; }
+  .savatar { width: 40px; height: 40px; border-radius: 50%; margin-top: 8px; background: linear-gradient(135deg, #10b981, #0ea5e9); display: grid; place-items: center; font-family: "Poppins"; font-weight: 600; font-size: 13px; color: #fff; }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 22px 30px 0; overflow: hidden; }
+
+  /* Cockpit header */
+  .cockpit { display: flex; align-items: center; gap: 14px; }
+  .brandsq { width: 46px; height: 46px; border-radius: 14px; background: linear-gradient(135deg, #0ea5e9, #2563eb); color: #fff; display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 16px; letter-spacing: .02em; box-shadow: 0 8px 18px -8px rgba(37,99,235,.6); }
+  .cname { font-family: "Poppins"; font-weight: 700; font-size: 24px; letter-spacing: -.02em; line-height: 1.1; }
+  .cmeta { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .health { margin-left: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #0a7d58; background: var(--green-tint); padding: 5px 11px; border-radius: 999px; }
+  .health .hd { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgba(16,185,129,.18); }
+  .cockpit-right { margin-left: auto; font-size: 12px; color: var(--faint); text-align: right; }
+
+  /* Cockpit tab bar */
+  .ctabs { display: flex; gap: 2px; margin-top: 16px; border-bottom: 1px solid var(--line-2); }
+  .ctab { border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); padding: 9px 14px 12px; position: relative; white-space: nowrap; }
+  .ctab:hover { color: var(--ink); }
+  .ctab.on { color: var(--ink); }
+  .ctab.on::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2.5px; border-radius: 3px; background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+
+  /* Sub-tabs (pill group) */
+  .subtabs { display: inline-flex; gap: 4px; background: #e5e8ef; padding: 5px; border-radius: 14px; margin-top: 14px; align-self: flex-start; }
+  .subtab { border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--muted); padding: 7px 14px; border-radius: 10px; transition: .15s; }
+  .subtab:hover { color: var(--ink); }
+  .subtab.on { background: #fff; color: var(--ink); box-shadow: 0 2px 8px -2px rgba(20,22,28,.14); }
+
+  /* Summary strip (A) */
+  .stripwrap { display: flex; align-items: center; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
+  .winsel { display: inline-flex; gap: 3px; background: #e5e8ef; padding: 4px; border-radius: 12px; }
+  .winbtn { border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--muted); padding: 6px 13px; border-radius: 9px; transition: .15s; }
+  .winbtn.on { background: #fff; color: var(--ink); box-shadow: 0 2px 8px -2px rgba(20,22,28,.14); }
+  .strip { flex: 1; min-width: 0; display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; }
+  .schip { flex-shrink: 0; display: flex; flex-direction: column; gap: 1px; padding: 9px 15px; border-radius: 14px; background: #fff; box-shadow: 0 2px 12px -8px rgba(20,22,28,.2); border-left: 3px solid var(--line-2); }
+  .schip.indigo { border-left-color: var(--indigo); } .schip.sky { border-left-color: var(--sky); }
+  .schip.amber { border-left-color: var(--amber); } .schip.green { border-left-color: var(--green); }
+  .schip .k { font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
+  .schip .v { font-family: "Poppins"; font-weight: 700; font-size: 19px; letter-spacing: -.02em; }
+
+  /* Table card */
+  .tablecard { background: var(--card); border-radius: var(--radius); margin-top: 14px; margin-bottom: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; box-shadow: 0 2px 16px -8px rgba(20,22,28,.18); overflow: hidden; }
+  .tc-head { display: flex; align-items: center; justify-content: space-between; padding: 15px 20px 11px; gap: 12px; flex-wrap: wrap; }
+  .tc-title { font-family: "Poppins"; font-weight: 600; font-size: 16px; }
+  .tc-sub { font-size: 12px; color: var(--faint); margin-top: 1px; }
+  .tc-legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--faint); align-items: center; }
+  .tc-legend b { display: inline-flex; align-items: center; gap: 5px; font-weight: 500; }
+  .dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+  .scroll { flex: 1; min-height: 0; overflow: auto; }
+  table { border-collapse: separate; border-spacing: 0; min-width: 1720px; width: 100%; }
+
+  /* group header row */
+  thead th { background: #fafbfc; white-space: nowrap; }
+  th.gh { position: sticky; top: 0; z-index: 4; height: var(--grp-h); font-family: "Poppins"; font-weight: 600; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; text-align: left; padding: 0 12px; border-bottom: 1px solid var(--line-2); }
+  th.gh-spend { background: var(--indigo-tint); color: var(--indigo); }
+  th.gh-funnel { background: var(--sky-tint); color: #0284c7; }
+  th.gh-qualify { background: var(--amber-tint); color: #b7791f; }
+  th.gh-revenue { background: var(--green-tint); color: #0a7d58; }
+  th.crow { position: sticky; top: var(--grp-h); z-index: 3; font-family: "Inter"; font-size: 10.5px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--faint); text-align: right; padding: 8px 12px; border-bottom: 1px solid var(--line-2); }
+  th.crow.inh { color: var(--indigo); }
+
+  /* sticky date column */
+  th.date { position: sticky; left: 0; top: 0; z-index: 6; text-align: left; vertical-align: bottom; padding: 0 14px 8px; font-family: "Inter"; font-size: 10.5px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--faint); border-bottom: 1px solid var(--line-2); border-right: 1px solid var(--line-2); }
+  td.date { position: sticky; left: 0; z-index: 2; background: #fff; border-right: 1px solid var(--line-2); }
+
+  tbody td { padding: 3px 8px; font-size: 13px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  tbody td:first-child { text-align: left; padding-left: 14px; font-weight: 600; }
+  tbody tr:hover td { background: #fbfbfd; }
+  tbody tr:hover td.date { background: #fbfbfd; }
+  td.date .dow { color: var(--faint); font-weight: 500; margin-right: 8px; font-variant-numeric: tabular-nums; }
+  td.calc { color: var(--muted); font-variant-numeric: tabular-nums; padding-right: 12px; }
+  .grp-start { border-left: 1px solid var(--line-2); }
+  tr.weekend td { background: #fcfcfd; } tr.weekend:hover td { background: #f6f7f9; }
+  tr.today td { background: var(--indigo-tint) !important; }
+  tr.today td.date { box-shadow: inset 3px 0 0 var(--indigo); }
+  .todaypill { font-size: 9.5px; font-weight: 700; color: #fff; background: var(--indigo); padding: 1px 6px; border-radius: 999px; margin-left: 7px; letter-spacing: .03em; }
+
+  td input { width: 100%; min-width: 50px; border: 0; background: transparent; font: inherit; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; padding: 5px 6px; border-radius: 8px; font-weight: 600; transition: background .12s, box-shadow .12s; }
+  td input::placeholder { color: #d5d9e1; font-weight: 400; }
+  td input:hover { background: #f1f2f6; }
+  td input:focus { outline: 0; background: #fff; box-shadow: 0 0 0 2px var(--indigo); position: relative; z-index: 1; }
+  tr.today td input:focus { background: #fff; }
+
+  tfoot td { padding: 10px 12px; font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; border-top: 2px solid var(--line-2); background: #fafbfc; position: sticky; bottom: 0; z-index: 3; }
+  tfoot td.date { text-align: left; font-family: "Poppins"; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; font-size: 11px; color: var(--muted); padding-left: 14px; z-index: 4; background: #fafbfc; }
+  tfoot tr.total td { font-weight: 700; color: var(--ink); }
+  tfoot tr.avg td { color: var(--muted); border-top: 0; }
+  tfoot tr.avg td.date { border-top: 0; }
+
+  .footnote { font-size: 11px; color: var(--faint); padding: 8px 2px 12px; flex-shrink: 0; }
+
+  @media (max-width: 900px) { .main { padding: 16px 14px 0; } .cockpit-right { display: none; } }
+</style>
+</head>
+<body>
+  <aside class="spine">
+    <div class="brand">H</div>
+    <nav class="snav">
+      <button class="sbtn" title="Command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+      <button class="sbtn" title="Acquisition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></button>
+      <button class="sbtn" title="Sales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17a4 4 0 0 1-8 0V7a4 4 0 0 1 8 0"/><path d="M13 7a4 4 0 0 1 8 0v10a4 4 0 0 1-8 0"/><path d="M11 7H3M21 17h-8"/></svg></button>
+      <button class="sbtn on" title="Fulfillment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></button>
+      <button class="sbtn" title="Operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg></button>
+    </nav>
+    <button class="sbtn" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
+    <div class="savatar">JH</div>
+  </aside>
+
+  <main class="main">
+    <!-- Cockpit header -->
+    <div class="cockpit">
+      <div class="brandsq">WW</div>
+      <div>
+        <div class="cname">Willis Windows</div>
+        <div class="cmeta">Fulfillment cockpit · window cleaning · Meta paid ads</div>
+      </div>
+      <span class="health"><span class="hd"></span>Healthy</span>
+      <div class="cockpit-right">Client since Mar 2026<br/>Manager: JH</div>
+    </div>
+
+    <!-- Cockpit tabs -->
+    <div class="ctabs">
+      <button class="ctab">Overview</button>
+      <button class="ctab on">Paid Ads</button>
+      <button class="ctab">Web Design</button>
+      <button class="ctab">Google Reviews</button>
+      <button class="ctab">Reactivation</button>
+      <button class="ctab">Billing</button>
+      <button class="ctab">Config</button>
+    </div>
+
+    <!-- Paid Ads sub-tabs -->
+    <div class="subtabs">
+      <button class="subtab">Campaigns</button>
+      <button class="subtab">Ad Library</button>
+      <button class="subtab on">Ad Tracking</button>
+      <button class="subtab">Data &amp; Leads</button>
+    </div>
+
+    <!-- Summary strip: window selector + inline rollup -->
+    <div class="stripwrap">
+      <div class="winsel" id="winsel">
+        <button class="winbtn" data-win="4">4-day</button>
+        <button class="winbtn" data-win="7">7-day</button>
+        <button class="winbtn" data-win="30">30-day</button>
+        <button class="winbtn on" data-win="mtd">MTD</button>
+      </div>
+      <div class="strip" id="strip"></div>
+    </div>
+
+    <div class="tablecard">
+      <div class="tc-head">
+        <div>
+          <div class="tc-title">Daily Paid-Ad Funnel</div>
+          <div class="tc-sub" id="tc-sub">Spend to revenue, one row per day. Type raw counts, ratios compute live.</div>
+        </div>
+        <div class="tc-legend">
+          <b><span class="dot" style="background:var(--indigo)"></span>You type</b>
+          <b><span class="dot" style="background:#cfd4de"></span>Computed</b>
+        </div>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+          <tfoot id="tfoot"></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="footnote">Sample data for design review. Type in any input cell and CPM, CPC, ROAS, the totals and the summary windows recompute live.</div>
+  </main>
+
+<script>
+/* ---------- shared engine ---------- */
+const GROUPS = {
+  spend:   { label: "Spend",   },
+  funnel:  { label: "Funnel",  },
+  qualify: { label: "Qualify", },
+  revenue: { label: "Revenue", },
+};
+const COLS = [
+  { g:"spend", key:"spend", lbl:"Spend", in:true, f:"$" },
+  { g:"spend", key:"impr", lbl:"Impr.", in:true, f:"#" },
+  { g:"spend", key:"cpm", lbl:"CPM", f:"$$" },
+  { g:"spend", key:"clicks", lbl:"Clicks", in:true, f:"#" },
+  { g:"spend", key:"cpc", lbl:"CPC", f:"$$" },
+  { g:"spend", key:"ctr", lbl:"CTR", f:"%" },
+  { g:"spend", key:"link", lbl:"Link Clk", in:true, f:"#" },
+  { g:"spend", key:"cpl", lbl:"CPL", f:"$$" },
+  { g:"spend", key:"cpnl", lbl:"CPNL", f:"$$" },
+  { g:"funnel", key:"leads", lbl:"New Leads", in:true, f:"#" },
+  { g:"funnel", key:"lpconv", lbl:"LP Conv", f:"%" },
+  { g:"funnel", key:"demos", lbl:"Demos", in:true, f:"#" },
+  { g:"funnel", key:"costdemo", lbl:"Cost/Demo", f:"$" },
+  { g:"funnel", key:"leadbook", lbl:"Lead&rarr;Book", f:"%" },
+  { g:"qualify", key:"qual", lbl:"Qualified", in:true, f:"#" },
+  { g:"qualify", key:"disq", lbl:"Disqual.", in:true, f:"#" },
+  { g:"qualify", key:"noshow", lbl:"No-Show", in:true, f:"#" },
+  { g:"qualify", key:"qualpct", lbl:"Qual %", f:"%" },
+  { g:"qualify", key:"costqual", lbl:"Cost/Qual", f:"$" },
+  { g:"revenue", key:"sales", lbl:"Sales", in:true, f:"#" },
+  { g:"revenue", key:"contracted", lbl:"Contract Rev", in:true, f:"$" },
+  { g:"revenue", key:"uf", lbl:"UF Cash", in:true, f:"$" },
+  { g:"revenue", key:"mrr", lbl:"New MRR", in:true, f:"$" },
+  { g:"revenue", key:"cpa", lbl:"CPA", f:"$" },
+  { g:"revenue", key:"revroas", lbl:"Rev ROAS", f:"x" },
+  { g:"revenue", key:"ufroas", lbl:"UF ROAS", f:"x" },
+];
+const INPUT_KEYS = COLS.filter(c => c.in).map(c => c.key);
+
+const TODAY = { y:2026, m:6, d:17 };
+// seed: day-of-month -> raw inputs (July 2026)
+const SEED = {
+  6:  { spend:100, impr:9200, clicks:158, link:121, leads:7, demos:3, qual:2, disq:1, noshow:0, sales:1, contracted:1200, uf:600, mrr:0 },
+  7:  { spend:100, impr:8600, clicks:142, link:108, leads:6, demos:2, qual:1, disq:1, noshow:0, sales:0, contracted:0, uf:0, mrr:0 },
+  8:  { spend:120, impr:10800, clicks:181, link:139, leads:9, demos:4, qual:3, disq:1, noshow:0, sales:2, contracted:2400, uf:1000, mrr:120 },
+  9:  { spend:100, impr:9000, clicks:150, link:116, leads:6, demos:2, qual:1, disq:0, noshow:1, sales:1, contracted:950, uf:500, mrr:0 },
+  10: { spend:100, impr:9600, clicks:165, link:128, leads:8, demos:3, qual:2, disq:1, noshow:0, sales:1, contracted:1350, uf:650, mrr:0 },
+  11: { spend:90, impr:7800, clicks:128, link:96, leads:5, demos:1, qual:1, disq:0, noshow:0, sales:0, contracted:0, uf:0, mrr:0 },
+  12: { spend:80, impr:6900, clicks:110, link:82, leads:4, demos:2, qual:1, disq:1, noshow:0, sales:1, contracted:1100, uf:550, mrr:0 },
+  13: { spend:100, impr:9100, clicks:149, link:118, leads:7, demos:3, qual:2, disq:1, noshow:0, sales:1, contracted:1500, uf:750, mrr:60 },
+  14: { spend:110, impr:9900, clicks:172, link:133, leads:8, demos:4, qual:3, disq:1, noshow:0, sales:2, contracted:2100, uf:1100, mrr:0 },
+  15: { spend:100, impr:9300, clicks:156, link:122, leads:7, demos:2, qual:2, disq:0, noshow:0, sales:1, contracted:1250, uf:600, mrr:0 },
+  16: { spend:100, impr:8800, clicks:147, link:114, leads:6, demos:3, qual:2, disq:1, noshow:0, sales:1, contracted:1000, uf:500, mrr:0 },
+  17: { spend:100, impr:9400, clicks:160, link:125, leads:8, demos:3, qual:2, disq:0, noshow:1, sales:1, contracted:1400, uf:700, mrr:90 },
+};
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONTH_DAYS = 17; // render July 1..17 (month-to-date window)
+
+let state = {}; // day -> {inputs...}
+function emptyRow(){ const o={}; INPUT_KEYS.forEach(k=>o[k]=""); return o; }
+function loadState(){
+  state = {};
+  for (let d=1; d<=MONTH_DAYS; d++) state[d] = SEED[d] ? {...SEED[d]} : emptyRow();
+}
+const nz = v => { const x = parseFloat(v); return isNaN(x) ? 0 : x; };
+
+function compute(a){ // a = summed/raw inputs
+  const spend=nz(a.spend), impr=nz(a.impr), clicks=nz(a.clicks), link=nz(a.link),
+        leads=nz(a.leads), demos=nz(a.demos), qual=nz(a.qual), sales=nz(a.sales),
+        contracted=nz(a.contracted), uf=nz(a.uf);
+  return {
+    cpm: impr>0 ? spend/impr*1000 : null,
+    cpc: clicks>0 ? spend/clicks : null,
+    ctr: impr>0 ? clicks/impr*100 : null,
+    cpl: link>0 ? spend/link : null,
+    cpnl: leads>0 ? spend/leads : null,
+    lpconv: link>0 ? leads/link*100 : null,
+    costdemo: demos>0 ? spend/demos : null,
+    leadbook: leads>0 ? demos/leads*100 : null,
+    qualpct: demos>0 ? qual/demos*100 : null,
+    costqual: qual>0 ? spend/qual : null,
+    cpa: sales>0 ? spend/sales : null,
+    revroas: spend>0 ? contracted/spend : null,
+    ufroas: spend>0 ? uf/spend : null,
+  };
+}
+function fmt(f, v){
+  if (v===null || v===undefined || v==="") return "—";
+  const num = typeof v==="number" ? v : parseFloat(v);
+  if (isNaN(num)) return "—";
+  if (f==="$") return "$"+Math.round(num).toLocaleString();
+  if (f==="$$") return "$"+num.toFixed(2);
+  if (f==="#") return Math.round(num).toLocaleString();
+  if (f==="%") return num.toFixed(1)+"%";
+  if (f==="x") return num.toFixed(2)+"x";
+  return String(num);
+}
+function sumInputs(days){
+  const a = {}; INPUT_KEYS.forEach(k=>a[k]=0);
+  let filled = 0;
+  days.forEach(d=>{
+    const r = state[d]; if (!r) return;
+    const any = INPUT_KEYS.some(k => r[k] !== "" && r[k] !== undefined);
+    if (!any) return; filled++;
+    INPUT_KEYS.forEach(k => a[k] += nz(r[k]));
+  });
+  return { a, filled };
+}
+function windowDays(win){
+  if (win==="mtd") return Array.from({length:TODAY.d}, (_,i)=>i+1);
+  const n = parseInt(win,10);
+  const start = Math.max(1, TODAY.d - n + 1);
+  const out = []; for (let d=start; d<=TODAY.d; d++) out.push(d); return out;
+}
+
+/* ---------- table build ---------- */
+function buildHead(){
+  let g1 = '<tr><th class="date" rowspan="2">Date</th>';
+  let i=0;
+  while (i<COLS.length){
+    const g=COLS[i].g; let j=i; while (j<COLS.length && COLS[j].g===g) j++;
+    g1 += '<th class="gh gh-'+g+'" colspan="'+(j-i)+'">'+GROUPS[g].label+'</th>';
+    i=j;
+  }
+  g1 += '</tr>';
+  let g2 = '<tr>', prev=null;
+  COLS.forEach(c=>{ const start=c.g!==prev; prev=c.g;
+    g2 += '<th class="crow '+(c.in?'inh ':'')+(start?'grp-start':'')+'">'+c.lbl+'</th>'; });
+  g2 += '</tr>';
+  document.getElementById("thead").innerHTML = g1+g2;
+}
+function rowHTML(d){
+  const dow = new Date(TODAY.y, TODAY.m, d).getDay();
+  const isToday = d===TODAY.d, weekend = (dow===0||dow===6);
+  const r = state[d]; let prev=null;
+  let h = '<tr id="row-'+d+'" class="'+[weekend?"weekend":"",isToday?"today":""].filter(Boolean).join(" ")+'">';
+  h += '<td class="date"><span class="dow num">'+DOW[dow]+' '+d+'</span>'+(isToday?'<span class="todaypill">TODAY</span>':'')+'</td>';
+  COLS.forEach(c=>{ const start=c.g!==prev; prev=c.g; const cls=start?"grp-start":"";
+    if (c.in){
+      h += '<td class="'+cls+'"><input inputmode="decimal" data-day="'+d+'" data-key="'+c.key+'" value="'+(r[c.key]===""?"":r[c.key])+'" placeholder="·"></td>';
+    } else {
+      h += '<td class="calc '+cls+'" data-day="'+d+'" data-calc="'+c.key+'">—</td>';
+    }
+  });
+  h += '</tr>'; return h;
+}
+function updateRowCalc(d){
+  const r = state[d], row = document.getElementById("row-"+d); if (!row) return;
+  const m = compute(r);
+  COLS.forEach(c=>{ if (c.in) return;
+    const cell = row.querySelector('[data-calc="'+c.key+'"]');
+    if (cell) cell.innerHTML = fmt(c.f, m[c.key]);
+  });
+}
+function buildFooter(){
+  const { a, filled } = sumInputs(Array.from({length:MONTH_DAYS},(_,i)=>i+1));
+  const m = compute(a);
+  const avg = {}; INPUT_KEYS.forEach(k => avg[k] = filled ? a[k]/filled : 0);
+  const mAvg = compute(avg);
+  let avgRow = '<tr class="avg"><td class="date">Avg / day</td>';
+  let totRow = '<tr class="total"><td class="date">Total MTD</td>';
+  COLS.forEach(c=>{
+    if (c.in){
+      avgRow += '<td class="num">'+fmt(c.f, avg[c.key])+'</td>';
+      totRow += '<td class="num">'+fmt(c.f, a[c.key])+'</td>';
+    } else {
+      avgRow += '<td class="num">'+fmt(c.f, mAvg[c.key])+'</td>';
+      totRow += '<td class="num">'+fmt(c.f, m[c.key])+'</td>';
+    }
+  });
+  avgRow += '</tr>'; totRow += '</tr>';
+  document.getElementById("tfoot").innerHTML = avgRow+totRow;
+  const sub = document.getElementById("tc-sub");
+  if (sub) sub.textContent = filled+" days logged this month to date.";
+}
+
+/* ---------- summary strip (A) ---------- */
+let curWin = "mtd";
+const STRIP = [
+  { key:"spend", lbl:"Spend", cls:"indigo", f:"$", get:(a,m)=>a.spend },
+  { key:"leads", lbl:"Leads", cls:"sky", f:"#", get:(a,m)=>a.leads },
+  { key:"cpnl", lbl:"Cost / Lead", cls:"sky", f:"$$", get:(a,m)=>m.cpnl },
+  { key:"demos", lbl:"Demos", cls:"amber", f:"#", get:(a,m)=>a.demos },
+  { key:"qual", lbl:"Qualified", cls:"amber", f:"#", get:(a,m)=>a.qual },
+  { key:"sales", lbl:"Sales", cls:"green", f:"#", get:(a,m)=>a.sales },
+  { key:"cpa", lbl:"CPA", cls:"green", f:"$", get:(a,m)=>m.cpa },
+  { key:"revroas", lbl:"Rev ROAS", cls:"green", f:"x", get:(a,m)=>m.revroas },
+];
+function renderStrip(){
+  const { a } = sumInputs(windowDays(curWin));
+  const m = compute(a);
+  document.getElementById("strip").innerHTML = STRIP.map(s =>
+    '<div class="schip '+s.cls+'"><span class="k">'+s.lbl+'</span><span class="v num">'+fmt(s.f, s.get(a,m))+'</span></div>'
+  ).join("");
+}
+
+/* ---------- wire up ---------- */
+function renderAll(){
+  buildHead();
+  document.getElementById("tbody").innerHTML =
+    Array.from({length:MONTH_DAYS},(_,i)=>rowHTML(i+1)).join("");
+  for (let d=1; d<=MONTH_DAYS; d++) updateRowCalc(d);
+  buildFooter();
+  renderStrip();
+}
+document.getElementById("tbody").addEventListener("input", e=>{
+  const el = e.target; if (!el.dataset || !el.dataset.day) return;
+  state[el.dataset.day][el.dataset.key] = el.value;
+  updateRowCalc(el.dataset.day);
+  buildFooter();
+  renderStrip();
+});
+document.getElementById("winsel").addEventListener("click", e=>{
+  const b = e.target.closest(".winbtn"); if (!b) return;
+  document.querySelectorAll("#winsel .winbtn").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); curWin = b.dataset.win; renderStrip();
+});
+
+loadState();
+renderAll();
+</script>
+</body>
+</html>

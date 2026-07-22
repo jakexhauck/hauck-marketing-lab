@@ -1,10 +1,10 @@
-import type { ApiCalendarEvent } from "./api";
-import { type Job, isoToLocalDate } from "./jobsPipeline";
+import { type Job, jobKind, isoToLocalDate } from "./jobsPipeline";
 
-// One event on the unified company calendar, whatever stream it came from. Every
-// view (month/week/agenda) reads only this shape, so a new stream is just a new
-// mapper plus a source entry, never a change to the views.
-export type CalendarSource = "appointment" | "job";
+// One event on the Jobs calendar, whatever stream it came from. Every view
+// (month/week/agenda) reads only this shape, so a new stream is just a new
+// mapper plus a source entry, never a change to the views. This surface carries
+// the sales work only: scheduled estimates and booked/completed jobs.
+export type CalendarSource = "estimate" | "job";
 
 export interface CalendarItem {
   id: string; // "<source>:<rawId>", unique across streams
@@ -31,11 +31,11 @@ export const CALENDAR_SOURCE_META: Record<
   CalendarSource,
   { label: string; plural: string; varName: string; tintVar: string }
 > = {
-  appointment: {
-    label: "Appointment",
-    plural: "Appointments",
-    varName: "--source-appointment",
-    tintVar: "--source-appointment-tint",
+  estimate: {
+    label: "Estimate",
+    plural: "Estimates",
+    varName: "--source-estimate",
+    tintVar: "--source-estimate-tint",
   },
   job: {
     label: "Job",
@@ -46,41 +46,12 @@ export const CALENDAR_SOURCE_META: Record<
 };
 
 export const CALENDAR_SOURCE_ORDER: CalendarSource[] = [
-  "appointment",
+  "estimate",
   "job",
 ];
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
-}
-
-// Local date + minutes-past-midnight for an ISO instant, honoring a timezone.
-// Uses Intl parts so the wall-clock date/time matches the location, not the
-// device. Returns empty/null when the input has no start.
-function localParts(
-  iso: string | null,
-  tz: string | null,
-): { date: string; minutes: number | null } {
-  if (!iso) return { date: "", minutes: null };
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return { date: "", minutes: null };
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    ...(tz ? { timeZone: tz } : {}),
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  const parts = Object.fromEntries(
-    fmt.formatToParts(d).map((p) => [p.type, p.value]),
-  );
-  const hour = parts.hour === "24" ? 0 : Number(parts.hour);
-  return {
-    date: `${parts.year}-${parts.month}-${parts.day}`,
-    minutes: hour * 60 + Number(parts.minute),
-  };
 }
 
 export function minutesToLabel(min: number): string {
@@ -91,33 +62,13 @@ export function minutesToLabel(min: number): string {
   return `${h12}:${pad2(m)} ${ampm}`;
 }
 
-export function appointmentToItem(
-  e: ApiCalendarEvent,
-  tz: string | null,
-): CalendarItem {
-  const start = localParts(e.startTime, tz);
-  const end = localParts(e.endTime, tz);
-  return {
-    id: `appointment:${e.id}`,
-    source: "appointment",
-    title: e.title,
-    subtitle: e.contactName,
-    date: start.date,
-    startMinutes: start.minutes,
-    endMinutes: end.minutes,
-    timeLabel: start.minutes == null ? "" : minutesToLabel(start.minutes),
-    status: e.status,
-    amount: null,
-    location: e.address,
-    meetingUrl: e.meetingUrl,
-    contactId: e.contactId,
-  };
-}
-
 export function jobToItem(j: Job): CalendarItem {
+  // An estimate visit rides its own source so it colors distinctly from booked
+  // and completed work; everything else is a "job".
+  const source: CalendarSource = jobKind(j) === "estimate" ? "estimate" : "job";
   return {
     id: `job:${j.id}`,
-    source: "job",
+    source,
     title: j.customer,
     subtitle: j.service,
     date: j.date,

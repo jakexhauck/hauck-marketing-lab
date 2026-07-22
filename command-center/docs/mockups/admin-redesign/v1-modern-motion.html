@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Marketing — Cold Calling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #1e1b2e;
+    --ink-2: #4b4763;
+    --muted: #7c7a90;
+    --faint: #9d9bb0;
+    --line: rgba(30, 27, 46, 0.08);
+    --line-2: rgba(30, 27, 46, 0.05);
+    --panel: rgba(255, 255, 255, 0.72);
+    --panel-solid: #ffffff;
+    --accent-a: #6366f1;
+    --accent-b: #8b5cf6;
+    --grad: linear-gradient(120deg, #6366f1 0%, #8b5cf6 100%);
+    --good-bg: rgba(16, 185, 129, 0.12);
+    --good-fg: #047857;
+    --good-dot: #10b981;
+    --warn-bg: rgba(245, 158, 11, 0.14);
+    --warn-fg: #b45309;
+    --warn-dot: #f59e0b;
+    --shadow-lg: 0 24px 60px -24px rgba(76, 60, 140, 0.35), 0 6px 20px -8px rgba(76, 60, 140, 0.18);
+    --shadow-sm: 0 2px 10px -4px rgba(76, 60, 140, 0.22);
+    --radius: 14px;
+    --num: "Inter", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1100px 520px at 12% -6%, rgba(99, 102, 241, 0.14), transparent 60%),
+      radial-gradient(980px 560px at 108% 4%, rgba(139, 92, 246, 0.13), transparent 58%),
+      radial-gradient(900px 700px at 60% 120%, rgba(99, 102, 241, 0.07), transparent 60%),
+      #f5f4fb;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .tnum { font-family: var(--num); font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1, "lnum" 1; }
+
+  /* ===== Layout shell ===== */
+  .app {
+    display: grid;
+    grid-template-columns: 68px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ===== Left icon spine ===== */
+  .spine {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 0 14px;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border-right: 1px solid var(--line);
+    z-index: 30;
+  }
+  .brand {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: var(--grad);
+    color: #fff;
+    display: grid; place-items: center;
+    font-family: "Poppins", sans-serif;
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+    box-shadow: 0 10px 22px -8px rgba(99, 102, 241, 0.7);
+    margin-bottom: 12px;
+  }
+  .nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .navbtn {
+    position: relative;
+    width: 44px; height: 44px;
+    border: 0; background: transparent;
+    border-radius: 12px;
+    color: var(--muted);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: background .18s ease, color .18s ease, transform .18s ease;
+  }
+  .navbtn svg { width: 21px; height: 21px; }
+  .navbtn:hover { background: rgba(99, 102, 241, 0.1); color: var(--accent-a); }
+  .navbtn.active { color: var(--accent-a); background: rgba(99, 102, 241, 0.12); }
+  .navbtn.active::before {
+    content: "";
+    position: absolute;
+    left: -12px; top: 50%;
+    transform: translateY(-50%);
+    width: 4px; height: 22px;
+    border-radius: 0 4px 4px 0;
+    background: var(--grad);
+    box-shadow: 0 0 12px rgba(124, 92, 246, 0.6);
+  }
+  /* tooltip label on hover */
+  .navbtn .tip {
+    position: absolute;
+    left: 54px; top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+    background: var(--ink);
+    color: #fff;
+    font-size: 12px; font-weight: 500;
+    padding: 5px 9px;
+    border-radius: 8px;
+    white-space: nowrap;
+    opacity: 0; pointer-events: none;
+    transition: opacity .16s ease, transform .16s ease;
+    box-shadow: var(--shadow-sm);
+    z-index: 40;
+  }
+  .navbtn:hover .tip { opacity: 1; transform: translateY(-50%) translateX(0); }
+  .spine-foot { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    color: #fff;
+    display: grid; place-items: center;
+    font-weight: 600; font-size: 12.5px;
+    letter-spacing: 0.02em;
+    box-shadow: 0 6px 16px -6px rgba(99, 102, 241, 0.7);
+  }
+
+  /* ===== Main column ===== */
+  .main {
+    min-width: 0;
+    padding: 30px clamp(20px, 3.4vw, 44px) 46px;
+  }
+  .work {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 264px;
+    gap: 26px;
+    align-items: start;
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  /* ===== Header ===== */
+  .kicker {
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  h1.title {
+    font-family: "Poppins", sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    font-size: clamp(28px, 3.4vw, 38px);
+    margin: 7px 0 8px;
+    color: var(--ink);
+  }
+  .tagline { color: var(--muted); font-size: 14.5px; margin: 0; max-width: 60ch; }
+
+  /* ===== Tab bar ===== */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin: 24px 0 22px;
+    padding: 5px;
+    background: var(--panel);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm);
+    width: fit-content;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    border: 0; background: transparent;
+    font-family: "Inter", sans-serif;
+    font-size: 13.5px; font-weight: 500;
+    color: var(--ink-2);
+    padding: 9px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .18s ease, color .18s ease;
+  }
+  .tab:hover { background: rgba(99, 102, 241, 0.08); color: var(--accent-a); }
+  .tab.active {
+    color: #fff;
+    background: var(--grad);
+    font-weight: 600;
+    box-shadow: 0 8px 18px -8px rgba(99, 102, 241, 0.75);
+  }
+
+  /* ===== Stat cards ===== */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .stat {
+    background: var(--panel);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 17px;
+    box-shadow: var(--shadow-sm);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .stat:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+  .stat .label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.01em; }
+  .stat .value {
+    font-family: var(--num);
+    font-variant-numeric: tabular-nums lining-nums;
+    font-size: 30px; font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 6px 0 3px;
+    color: var(--ink);
+  }
+  .stat .sub { font-size: 12px; color: var(--faint); }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 12px;
+    font-size: 11.5px; font-weight: 600;
+    padding: 4px 9px;
+    border-radius: 999px;
+  }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .chip.met { background: var(--good-bg); color: var(--good-fg); }
+  .chip.met .dot { background: var(--good-dot); }
+  .chip.below { background: var(--warn-bg); color: var(--warn-fg); }
+  .chip.below .dot { background: var(--warn-dot); }
+  .chip.none { background: rgba(30,27,46,0.05); color: var(--faint); }
+  .chip.none .dot { background: var(--faint); }
+
+  /* ===== Table panel ===== */
+  .panel {
+    background: var(--panel);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--line);
+    gap: 12px;
+  }
+  .panel-head h2 {
+    font-family: "Poppins", sans-serif;
+    font-weight: 600; font-size: 15px;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .panel-head .hint { font-size: 12px; color: var(--faint); }
+  .legend { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); font-weight: 500; }
+  .legend .sw { width: 11px; height: 11px; border-radius: 3px; }
+  .sw.input { background: #fff; border: 1px solid var(--line); }
+  .sw.calc { background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99,102,241,0.25); }
+
+  .table-scroll { overflow-x: auto; }
+  table.dt {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+    font-size: 13px;
+  }
+  table.dt thead th {
+    position: sticky; top: 0;
+    text-align: right;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 11px 14px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  table.dt th.l, table.dt td.l { text-align: left; }
+  table.dt th.calc { color: var(--accent-a); }
+  table.dt tbody td {
+    padding: 11px 14px;
+    text-align: right;
+    border-bottom: 1px solid var(--line-2);
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  table.dt tbody td.l { text-align: left; }
+  table.dt td.num {
+    font-family: var(--num);
+    font-variant-numeric: tabular-nums lining-nums;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+  table.dt td.calc {
+    background: rgba(99, 102, 241, 0.045);
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  table.dt tbody tr { transition: background .14s ease; }
+  table.dt tbody tr:hover td { background: rgba(99, 102, 241, 0.06); }
+  table.dt tbody tr:hover td.calc { background: rgba(99, 102, 241, 0.1); }
+  .date { font-weight: 600; }
+  td.notes-cell { color: var(--ink-2); }
+  .tag {
+    display: inline-block;
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 6px;
+    background: rgba(16,185,129,0.12); color: var(--good-fg);
+  }
+  .tag.warn { background: var(--warn-bg); color: var(--warn-fg); }
+  .empty { color: var(--faint); }
+
+  /* add-row */
+  tr.addrow td { padding: 0; border-bottom: 1px solid var(--line-2); }
+  .add-affordance {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 14px;
+    color: var(--muted);
+    font-size: 12.5px; font-weight: 500;
+    cursor: pointer;
+    transition: background .16s ease, color .16s ease;
+  }
+  .add-affordance:hover { background: rgba(99,102,241,0.06); color: var(--accent-a); }
+  .add-affordance svg { width: 15px; height: 15px; }
+
+  /* footer rows */
+  tr.foot td {
+    padding: 11px 14px;
+    text-align: right;
+    font-family: var(--num);
+    font-variant-numeric: tabular-nums lining-nums;
+    background: rgba(99, 102, 241, 0.06);
+    border-top: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  tr.foot td.l {
+    text-align: left;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-a);
+  }
+  tr.foot.avg td { color: var(--ink-2); font-weight: 500; }
+  tr.foot.total td { color: var(--ink); font-weight: 700; background: rgba(99, 102, 241, 0.1); }
+
+  /* ===== KPI rail ===== */
+  .rail { position: sticky; top: 24px; }
+  .rail h3 {
+    font-family: "Poppins", sans-serif;
+    font-weight: 600; font-size: 12px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 12px 2px;
+  }
+  .tiles { display: flex; flex-direction: column; gap: 12px; }
+  .tile {
+    background: var(--panel);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-sm);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .tile .t-label { font-size: 11.5px; font-weight: 600; color: var(--muted); letter-spacing: 0.03em; text-transform: uppercase; }
+  .tile .t-value {
+    font-family: var(--num);
+    font-variant-numeric: tabular-nums lining-nums;
+    font-size: 24px; font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 4px 0 4px;
+    color: var(--ink);
+  }
+  .tile .t-note { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 500; color: var(--faint); }
+  .t-note.good { color: var(--good-fg); }
+  .t-note.warn { color: var(--warn-fg); }
+  .t-note .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .t-note.good .dot { background: var(--good-dot); }
+  .t-note.warn .dot { background: var(--warn-dot); }
+  .featured { position: relative; overflow: hidden; }
+  .featured::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(120deg, rgba(99,102,241,0.08), rgba(139,92,246,0.04));
+    pointer-events: none;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 1080px) {
+    .work { grid-template-columns: 1fr; }
+    .rail { position: static; }
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+  }
+  @media (max-width: 720px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .app { grid-template-columns: 58px 1fr; }
+    .main { padding: 22px 16px 40px; }
+  }
+  @media (max-width: 460px) {
+    .stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== Left icon spine ===== -->
+  <aside class="spine">
+    <div class="brand">H</div>
+    <nav class="nav">
+      <button class="navbtn" aria-label="Command">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span class="tip">Command</span>
+      </button>
+      <button class="navbtn active" aria-label="Acquisition" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M14 8a4 4 0 0 1 0 8"/><path d="M17 5a8 8 0 0 1 0 14"/></svg>
+        <span class="tip">Acquisition</span>
+      </button>
+      <button class="navbtn" aria-label="Sales">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 0 0 1.4 0l3.6-3.6a2 2 0 0 0 0-2.8l-4.2-4.2"/><path d="m6 12-3-3 4-4 3 3"/><path d="m14 8-2 2"/><path d="m9 13 3 3"/><path d="M4 20 2 22"/></svg>
+        <span class="tip">Sales</span>
+      </button>
+      <button class="navbtn" aria-label="Fulfillment">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5 5 0 0 0-7 0l-.8.8-.8-.8a5 5 0 0 0-7 7l7.4 7.4a.6.6 0 0 0 .85 0l7.35-7.4a5 5 0 0 0 0-7Z"/></svg>
+        <span class="tip">Fulfillment</span>
+      </button>
+      <button class="navbtn" aria-label="Operations">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.9 6.9a2.12 2.12 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg>
+        <span class="tip">Operations</span>
+      </button>
+    </nav>
+    <div class="spine-foot">
+      <button class="navbtn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        <span class="tip">Settings</span>
+      </button>
+      <div class="avatar" title="JH">JH</div>
+    </div>
+  </aside>
+
+  <!-- ===== Main column ===== -->
+  <main class="main">
+    <div class="work">
+      <!-- LEFT: header + tabs + stats + table -->
+      <section>
+        <header>
+          <div class="kicker">Acquisition</div>
+          <h1 class="title">Cold Calling</h1>
+          <p class="tagline">Daily dialing funnel. Log the raw counts, the rates compute themselves.</p>
+        </header>
+
+        <!-- Tab bar -->
+        <nav class="tabs" role="tablist" aria-label="Acquisition channels">
+          <button class="tab" role="tab">Leads</button>
+          <button class="tab active" role="tab" aria-selected="true">Cold Call</button>
+          <button class="tab" role="tab">Cold Email</button>
+          <button class="tab" role="tab">Cold DM</button>
+          <button class="tab" role="tab">SMS</button>
+        </nav>
+
+        <!-- Stat cards -->
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Calls Made</div>
+            <div class="value">131</div>
+            <div class="sub">today</div>
+            <span class="chip met"><span class="dot"></span>min 100/day</span>
+          </div>
+          <div class="stat">
+            <div class="label">Pickup %</div>
+            <div class="value">16.0<span style="font-size:18px;color:var(--faint)">%</span></div>
+            <div class="sub">21 of 131</div>
+            <span class="chip met"><span class="dot"></span>std &gt;15%</span>
+          </div>
+          <div class="stat">
+            <div class="label">Meetings Booked</div>
+            <div class="value">1</div>
+            <div class="sub">today</div>
+            <span class="chip none"><span class="dot"></span>daily goal</span>
+          </div>
+          <div class="stat">
+            <div class="label">Booking %</div>
+            <div class="value">0.76<span style="font-size:18px;color:var(--faint)">%</span></div>
+            <div class="sub">per dial</div>
+            <span class="chip below"><span class="dot"></span>target 1-3%</span>
+          </div>
+        </div>
+
+        <!-- Data table -->
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Cold Call tracker</h2>
+              <div class="hint">Sample data for design comp. Not live figures.</div>
+            </div>
+            <div class="legend">
+              <span><span class="sw input"></span>Logged</span>
+              <span><span class="sw calc"></span>Computed</span>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="dt">
+              <thead>
+                <tr>
+                  <th class="l">Date</th>
+                  <th>Calls Made</th>
+                  <th>Pickups</th>
+                  <th class="calc">Pickup %</th>
+                  <th>Pass-Through</th>
+                  <th class="calc">Pickup&rarr;PT %</th>
+                  <th>Meetings Booked</th>
+                  <th class="calc">Pitch&rarr;Book %</th>
+                  <th class="l">Objections</th>
+                  <th class="l">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="l date">Mon 2/12</td>
+                  <td class="num">131</td>
+                  <td class="num">21</td>
+                  <td class="num calc">16.0%</td>
+                  <td class="num">19</td>
+                  <td class="num calc">90.5%</td>
+                  <td class="num">1</td>
+                  <td class="num calc">5.3%</td>
+                  <td class="l notes-cell">price x3</td>
+                  <td class="l empty">&mdash;</td>
+                </tr>
+                <tr>
+                  <td class="l date">Tue 2/13</td>
+                  <td class="num">118</td>
+                  <td class="num">17</td>
+                  <td class="num calc">14.4%</td>
+                  <td class="num">14</td>
+                  <td class="num calc">82.4%</td>
+                  <td class="num">0</td>
+                  <td class="num calc">0.0%</td>
+                  <td class="l notes-cell">not now</td>
+                  <td class="l empty">&mdash;</td>
+                </tr>
+                <tr>
+                  <td class="l date">Wed 2/14</td>
+                  <td class="num">142</td>
+                  <td class="num">25</td>
+                  <td class="num calc">17.6%</td>
+                  <td class="num">22</td>
+                  <td class="num calc">88.0%</td>
+                  <td class="num">2</td>
+                  <td class="num calc">9.1%</td>
+                  <td class="l notes-cell">using X</td>
+                  <td class="l"><span class="tag">strong day</span></td>
+                </tr>
+                <tr>
+                  <td class="l date">Thu 2/15</td>
+                  <td class="num">96</td>
+                  <td class="num">12</td>
+                  <td class="num calc">12.5%</td>
+                  <td class="num">9</td>
+                  <td class="num calc">75.0%</td>
+                  <td class="num">0</td>
+                  <td class="num calc">0.0%</td>
+                  <td class="l notes-cell">gatekeeper</td>
+                  <td class="l"><span class="tag warn">short day</span></td>
+                </tr>
+                <tr>
+                  <td class="l date">Fri 2/16</td>
+                  <td class="num">134</td>
+                  <td class="num">23</td>
+                  <td class="num calc">17.2%</td>
+                  <td class="num">20</td>
+                  <td class="num calc">87.0%</td>
+                  <td class="num">1</td>
+                  <td class="num calc">5.0%</td>
+                  <td class="l notes-cell">budget</td>
+                  <td class="l empty">&mdash;</td>
+                </tr>
+                <tr class="addrow">
+                  <td class="l" colspan="10">
+                    <div class="add-affordance">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                      Add a day
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="foot avg">
+                  <td class="l">Average</td>
+                  <td>124</td>
+                  <td>20</td>
+                  <td>15.5%</td>
+                  <td>17</td>
+                  <td>84.6%</td>
+                  <td>0.8</td>
+                  <td>3.9%</td>
+                  <td class="l"></td>
+                  <td class="l"></td>
+                </tr>
+                <tr class="foot total">
+                  <td class="l">Total</td>
+                  <td>621</td>
+                  <td>98</td>
+                  <td>15.8%</td>
+                  <td>84</td>
+                  <td>85.7%</td>
+                  <td>4</td>
+                  <td></td>
+                  <td class="l"></td>
+                  <td class="l"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: KPI rail -->
+      <aside class="rail">
+        <h3>This month</h3>
+        <div class="tiles">
+          <div class="tile">
+            <div class="t-label">CAC</div>
+            <div class="t-value">$850</div>
+            <div class="t-note">cost to acquire</div>
+          </div>
+          <div class="tile featured">
+            <div class="t-label">LTV : CAC</div>
+            <div class="t-value">4.9x</div>
+            <div class="t-note good"><span class="dot"></span>healthy &gt;3</div>
+          </div>
+          <div class="tile featured">
+            <div class="t-label">ROAS</div>
+            <div class="t-value">3.8x</div>
+            <div class="t-note good"><span class="dot"></span>good &gt;3</div>
+          </div>
+          <div class="tile">
+            <div class="t-label">Churn</div>
+            <div class="t-value">12%</div>
+            <div class="t-note warn"><span class="dot"></span>watch</div>
+          </div>
+          <div class="tile">
+            <div class="t-label">New MRR</div>
+            <div class="t-value">$6,000</div>
+            <div class="t-note">monthly recurring</div>
+          </div>
+          <div class="tile">
+            <div class="t-label">Clients</div>
+            <div class="t-value">6</div>
+            <div class="t-note good"><span class="dot"></span>+3 this month</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+</body>
+</html>

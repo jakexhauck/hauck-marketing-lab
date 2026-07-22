@@ -80,7 +80,7 @@ export default function WebsiteOverview() {
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="hidden text-[13px] text-muted sm:block">
             {connected
-              ? "A live look at your homepage, exactly as visitors see it."
+              ? "Your live site, exactly as visitors see it. Scroll through it and click any page."
               : "A preview of your homepage will appear here once your site is connected."}
           </p>
           <DeviceToggle value={device} onChange={setDevice} className="ml-auto" />
@@ -106,7 +106,7 @@ export default function WebsiteOverview() {
             {demo ? (
               <SiteMock page="home" device={device} />
             ) : websiteUrl ? (
-              <LiveSiteFrame url={websiteUrl} device={device} />
+              <LiveSiteFrame url={websiteUrl} device={device} interactive />
             ) : (
               <PreviewPlaceholder />
             )}

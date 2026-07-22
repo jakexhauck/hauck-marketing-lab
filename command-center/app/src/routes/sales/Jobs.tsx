@@ -15,12 +15,16 @@ import {
 } from "lucide-react";
 import Shell from "../../components/Shell";
 import { PageHeader } from "../../components/PageHeader";
-import { Panel, Badge, EmptyState } from "../../components/ui";
+import { Panel, Badge, EmptyState, Segmented } from "../../components/ui";
 import { useToast } from "../../context/ToastContext";
 import { cn } from "../../lib/cn";
 import { demoMode } from "../../demo/demoMode";
 import { PAGE_CONTAINER } from "../../lib/layout";
 import { useJobs } from "../../hooks/useJobs";
+import CalendarViews, {
+  type CalendarView,
+} from "../../components/calendar/CalendarViews";
+import { jobToItem, type CalendarSource } from "../../lib/calendarModel";
 import {
   useCompleteJob,
   useSendConversationMessage,
@@ -46,7 +50,6 @@ import {
   type Job,
   type DayKind,
 } from "../../lib/jobsPipeline";
-import { NotConnectedNotice } from "./shared";
 
 // The Jobs (Sales) surface: the tail of the Sales spine, laid out as a month
 // calendar (left) + the selected day's jobs (right). Pick a day, see and work
@@ -59,12 +62,30 @@ const JOBS_CONTAINER = PAGE_CONTAINER;
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
-// The semantic dot colour for each kind (booked / completed / unpaid).
+// The semantic dot colour for each kind (estimate / booked / completed / unpaid).
 const KIND_DOT: Record<DayKind, string> = {
+  estimate: "bg-info",
   booked: "bg-brand",
   completed: "bg-positive",
   unpaid: "bg-warning",
 };
+
+// The Jobs tab hosts four views: its own day-panel ("jobs", default) plus the
+// Month / Week / Agenda calendar folded in from the old standalone Calendar.
+type JobsView = "jobs" | CalendarView;
+const JOBS_VIEW_KEY = "hml_jobs_view";
+
+function initialJobsView(): JobsView {
+  try {
+    const v = window.localStorage.getItem(JOBS_VIEW_KEY);
+    if (v === "jobs" || v === "month" || v === "week" || v === "agenda") {
+      return v;
+    }
+  } catch {
+    /* ignore */
+  }
+  return "jobs";
+}
 
 export default function Jobs() {
   const demo = demoMode();
@@ -86,6 +107,28 @@ export default function Jobs() {
   const initial = demo ? DEMO_MONTH : { year: new Date().getFullYear(), month: new Date().getMonth() };
   const [view, setView] = useState(initial);
   const [selected, setSelected] = useState(demo ? DEMO_DEFAULT_DAY : today);
+
+  // Which view is showing: the Jobs day-panel or one of the calendar views.
+  const [jobsView, setJobsView] = useState<JobsView>(initialJobsView);
+  const setJobsViewPersist = (v: JobsView) => {
+    setJobsView(v);
+    try {
+      window.localStorage.setItem(JOBS_VIEW_KEY, v);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // The same jobs, shaped for the calendar views. Estimates map to their own
+  // source so they colour distinctly from booked/completed work.
+  const calendarItems = useMemo(() => jobs.map(jobToItem), [jobs]);
+  const calendarConnected = useMemo<Record<CalendarSource, boolean>>(
+    () => ({
+      estimate: calendarItems.some((i) => i.source === "estimate"),
+      job: calendarItems.some((i) => i.source === "job"),
+    }),
+    [calendarItems],
+  );
 
   const grid = useMemo(() => monthGrid(view.year, view.month), [view]);
   const summary = useMemo(
@@ -170,21 +213,30 @@ export default function Jobs() {
       <div className={JOBS_CONTAINER}>
         <PageHeader
           title="Jobs"
-          description="Pick a day to see and work its jobs, booked through completed."
+          description="Pick a day to see and work its jobs, or switch to a calendar view."
           actions={
-            demo ? (
-              <Badge tone="positive">
-                <span className="h-1.5 w-1.5 rounded-full bg-positive" aria-hidden />{" "}
-                {summary.booked} booked this month
-              </Badge>
-            ) : undefined
+            <Segmented<JobsView>
+              options={[
+                { value: "jobs", label: "Jobs" },
+                { value: "month", label: "Month" },
+                { value: "week", label: "Week" },
+                { value: "agenda", label: "Agenda" },
+              ]}
+              value={jobsView}
+              onChange={setJobsViewPersist}
+            />
           }
         />
 
-        {!demo && (
-          <NotConnectedNotice message="Booked and completed jobs land on this calendar automatically once your calendar and sales pipeline are connected." />
-        )}
-
+        {jobsView !== "jobs" ? (
+          <div className="mt-4 flex min-h-0 flex-1 flex-col">
+            <CalendarViews
+              items={calendarItems}
+              connected={calendarConnected}
+              view={jobsView}
+            />
+          </div>
+        ) : (
         <Panel className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
           {/* LEFT — month calendar + summary */}
           <div className="flex flex-col border-divider lg:w-[320px] lg:border-r">
@@ -260,6 +312,7 @@ export default function Jobs() {
 
             {/* Month summary */}
             <div className="mt-auto border-t border-divider px-4 py-3.5">
+              <SummaryRow dot="bg-info" label="Estimates" value={String(summary.estimates)} />
               <SummaryRow dot="bg-brand" label="Booked" value={String(summary.booked)} />
               <SummaryRow dot="bg-positive" label="Completed" value={String(summary.completed)} />
               <SummaryRow
@@ -321,6 +374,7 @@ export default function Jobs() {
             </div>
           </div>
         </Panel>
+        )}
       </div>
       {msgJob && (
         <JobMessageModal
@@ -470,6 +524,12 @@ function SummaryRow({ dot, label, value }: { dot: string; label: string; value: 
 // Action buttons per job state: booked work gets the full set; a finished job
 // drops to payment/follow-up; a paid job to follow-up only.
 function jobActions(job: Job): { label: string; icon: typeof CheckCircle2; primary?: boolean }[] {
+  if (job.status === "estimate") {
+    return [
+      { label: "Reschedule", icon: CalendarClock, primary: true },
+      { label: "Message", icon: MessageSquare },
+    ];
+  }
   if (job.status === "booked") {
     return [
       { label: "Mark completed", icon: CheckCircle2, primary: true },

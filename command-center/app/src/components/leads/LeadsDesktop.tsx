@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Plus, Search } from "lucide-react";
-import DesktopPage from "../desktop/DesktopPage";
 import PageTabs from "../PageTabs";
 import { LEADS_TABS } from "../../lib/pageTabs";
+import { PAGE_CONTAINER } from "../../lib/layout";
 import { Button } from "../ui/Button";
 import Board from "../Board";
 import PipelineSwitcher from "../PipelineSwitcher";
@@ -102,11 +102,17 @@ export default function LeadsDesktop() {
     : `${headerStats.open} open · ${formatMoney(headerStats.openValue)} in flight`;
 
   return (
-    <DesktopPage
-      title="Pipeline"
-      subtitle={subtitle}
-      actions={
-        <>
+    <div className={PAGE_CONTAINER}>
+      {/* Shared Leads frame: the tab bar sits at the very top on every sub-tab
+          (Pipeline, Console, Organic, Paid Ads) so switching between them never
+          shifts the header. The per-tab title + actions live just under it. */}
+      <PageTabs tabs={LEADS_TABS} />
+      <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-display text-[19px] font-semibold text-text">Pipeline</h1>
+          <p className="mt-1 text-[13px] text-muted">{subtitle}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2.5">
           <PipelineSwitcher
             pipelines={pipelines}
             selectedId={selectedId}
@@ -117,11 +123,8 @@ export default function LeadsDesktop() {
             <Plus size={16} />
             New lead
           </Button>
-        </>
-      }
-    >
-      {/* Primary Leads nav: New Leads vs Pipeline (this board). */}
-      <PageTabs tabs={LEADS_TABS} />
+        </div>
+      </header>
       {/* Search */}
       <div className="relative mb-5 max-w-sm">
         <Search
@@ -183,6 +186,6 @@ export default function LeadsDesktop() {
         onClose={() => setShowNewLead(false)}
         leadsKey={["leads", "pipeline", selectedId]}
       />
-    </DesktopPage>
+    </div>
   );
 }

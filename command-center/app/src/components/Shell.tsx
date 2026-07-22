@@ -17,7 +17,19 @@ export default function Shell({ children }: { children: ReactNode }) {
   const authed = Boolean(session);
 
   return (
-    <div className={cn("min-h-dvh bg-[var(--bg)]", authed && "lg:flex")}>
+    <div
+      className={cn(
+        "min-h-dvh bg-[var(--bg)]",
+        // Desktop (lg+): lock the frame to the available height (h-full resolves
+        // against .app-shell, so it already excludes any app-wide banner) and
+        // clip it. The sidebar and content column each fill this fixed height;
+        // the content column owns the scroll. That keeps the rail perfectly
+        // still on every page instead of relying on a sticky rail whose sticky
+        // travel collapses to zero once its flex parent is shrunk to one
+        // viewport. Below lg the phone layout keeps its normal document scroll.
+        authed && "lg:flex lg:h-full lg:min-h-0 lg:overflow-hidden",
+      )}
+    >
       {authed && <Sidebar />}
       <div
         className={cn(
@@ -27,7 +39,11 @@ export default function Shell({ children }: { children: ReactNode }) {
           // Kept as one responsive class because an inline paddingBottom would
           // override the utility.
           "mx-auto flex min-h-dvh w-full max-w-md flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0",
-          authed && "lg:mx-0 lg:max-w-none lg:min-w-0 lg:flex-1",
+          // Desktop: fill the locked frame height and become the single scroll
+          // container (lg:overflow-y-auto). Every page remounts per route, so
+          // this scroller starts at the top on navigation without ScrollToTop.
+          authed &&
+            "lg:mx-0 lg:h-full lg:min-h-0 lg:max-w-none lg:min-w-0 lg:flex-1 lg:overflow-y-auto",
         )}
       >
         {children}

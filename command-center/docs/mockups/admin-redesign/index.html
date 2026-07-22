@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Admin Redesign — 5 Directions</title>
+<style>
+  :root { --bg:#0b0d12; --panel:#151922; --line:#262c38; --text:#e8ebf2; --muted:#9aa4b6; --accent:#6f8bff; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); display:flex; flex-direction:column; height:100dvh;
+  }
+  header {
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:12px 18px; border-bottom:1px solid var(--line); background:var(--panel);
+  }
+  .brand { display:flex; align-items:center; gap:10px; margin-right:6px; }
+  .brand .mark {
+    width:30px; height:30px; border-radius:8px; display:grid; place-items:center;
+    background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; font-weight:700; font-size:15px;
+  }
+  .brand b { font-size:14px; letter-spacing:-0.01em; }
+  .brand span { font-size:12px; color:var(--muted); }
+  nav { display:flex; gap:6px; flex-wrap:wrap; }
+  button.tab {
+    appearance:none; border:1px solid var(--line); background:transparent; color:var(--muted);
+    padding:7px 13px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer;
+    transition:.15s; font-family:inherit; white-space:nowrap;
+  }
+  button.tab:hover { color:var(--text); border-color:#3a4252; }
+  button.tab.on { color:#fff; border-color:transparent; background:linear-gradient(135deg,#6366f1,#8b5cf6); }
+  .hint { margin-left:auto; font-size:12px; color:var(--muted); }
+  .frame-wrap { flex:1; min-height:0; position:relative; background:#fff; }
+  iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .sub { font-size:11px; color:var(--muted); display:block; font-weight:500; margin-top:1px; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="mark">H</div>
+      <div>
+        <b>Hauck Admin Redesign</b>
+        <span> — 5 directions</span>
+      </div>
+    </div>
+    <nav id="nav">
+      <button class="tab on" data-src="v1-modern-motion.html">1 · Modern Motion<span class="sub">glass · indigo/violet</span></button>
+      <button class="tab" data-src="v2-command-deck.html">2 · Command Deck<span class="sub">dark · brand green</span></button>
+      <button class="tab" data-src="v3-data-terminal.html">3 · Data Terminal<span class="sub">dense · mono</span></button>
+      <button class="tab" data-src="v4-linear-minimal.html">4 · Linear Minimal<span class="sub">quiet · hairline</span></button>
+      <button class="tab" data-src="cold-calling.html">5 · Bento Bold ★<span class="sub">CHOSEN · editable</span></button>
+    </nav>
+    <span class="hint">Same screen, 5 looks. Click to compare.</span>
+  </header>
+  <div class="frame-wrap">
+    <iframe id="frame" src="v1-modern-motion.html" title="Mockup preview"></iframe>
+  </div>
+<script>
+  const nav = document.getElementById('nav');
+  const frame = document.getElementById('frame');
+  nav.addEventListener('click', (e) => {
+    const btn = e.target.closest('button.tab');
+    if (!btn) return;
+    nav.querySelectorAll('button.tab').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    frame.src = btn.dataset.src;
+  });
+</script>
+</body>
+</html>

@@ -48,6 +48,16 @@ export interface HubLead {
   contactId?: string;
   pipelineId?: string;
   pipelineStageId?: string;
+  // The lead's current stage name (live feed only). The Job Console reads this
+  // to highlight the current step on the stage rail.
+  stageName?: string;
+  // The opportunity's monetary value, if set. The Job Console prefills the job
+  // amount field from it.
+  value?: number | null;
+  // Raw GHL opportunity status ("open" | "won" | "lost" | "abandoned"). The Job
+  // Console uses it to keep closed leads out of the active queue and badge a
+  // worked lead as Won/Lost. Absent on demo rows (treated as open).
+  outcome?: string;
   // One-line "what they want".
   intent: string;
   // Last-message preview for the list row.
@@ -342,7 +352,12 @@ export const DEMO_LEADS: HubLead[] = [
 // --- Live GHL mapping -------------------------------------------------------
 // A row from GET /api/sales/leads: an ApiLead already tagged server-side with a
 // channel `source` and a friendly `status` derived from its real GHL stage.
-export type ApiSalesLead = ApiLead & { source: LeadSource; status: LeadStatus };
+export type ApiSalesLead = ApiLead & {
+  source: LeadSource;
+  status: LeadStatus;
+  stageName: string;
+  outcome: string;
+};
 
 // Map a live merged lead to a HubLead. The follow-up state (`fu`), the message
 // threads, and the location are not on this feed, so they take neutral defaults;
@@ -356,6 +371,9 @@ function mapApiSalesLead(o: ApiSalesLead): HubLead {
     contactId: o.contactId,
     pipelineId: o.pipelineId,
     pipelineStageId: o.pipelineStageId,
+    stageName: o.stageName,
+    value: o.value,
+    outcome: o.outcome,
     intent: "",
     preview: "",
     when: timeAgo(o.lastActivityAt),

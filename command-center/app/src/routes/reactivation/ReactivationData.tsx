@@ -1,4 +1,4 @@
-import { RotateCcw, Users, CalendarCheck } from "lucide-react";
+import { Users, CalendarCheck } from "lucide-react";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { REACTIVATION_TABS } from "../../lib/pageTabs";
@@ -6,8 +6,7 @@ import { Panel, PanelHeader, EmptyState } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { PAGE_CONTAINER } from "../../lib/layout";
 import { useReactivation } from "../../hooks/useReactivation";
-import { REACT_STAGE_ROWS, reactPopulated, reactRates } from "../../lib/reactivation";
-import { NotConnectedNotice } from "../campaigns/shared";
+import { REACT_STAGE_ROWS, reactRates } from "../../lib/reactivation";
 
 // Reactivation > Full Data: the detailed breakdown of the win-back campaign,
 // moved off the Overview so the summary stays light. Everyone reached, the full
@@ -18,7 +17,6 @@ export default function ReactivationData() {
   const { session } = useAuth();
   const { data } = useReactivation(Boolean(session));
 
-  const populated = reactPopulated(data);
   const reached = data?.reached ?? 0;
   const rates = reactRates(data);
 
@@ -45,21 +43,9 @@ export default function ReactivationData() {
           description="The full breakdown of your win-back campaign."
         />
 
-        {!populated ? (
-          <>
-            <NotConnectedNotice message="Once your customer list is linked, the full breakdown of who we reached and who came back will appear here." />
-            <Panel className="overflow-hidden">
-              <div className="px-4 py-10">
-                <EmptyState
-                  icon={<RotateCcw size={22} />}
-                  title="No data yet"
-                  description="When the win-back campaign starts reaching your dormant customers, the detailed breakdown will show here."
-                />
-              </div>
-            </Panel>
-          </>
-        ) : (
-          <>
+        {/* Renders as zeros before the campaign starts and fills in as
+            customers move through. */}
+        <>
             {/* By the numbers: the raw counts spelled out. */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               {metrics.map((m) => (
@@ -164,8 +150,7 @@ export default function ReactivationData() {
                 </Panel>
               </div>
             </div>
-          </>
-        )}
+        </>
       </div>
     </Shell>
   );

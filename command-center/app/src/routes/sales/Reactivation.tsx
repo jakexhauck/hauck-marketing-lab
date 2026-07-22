@@ -1,15 +1,13 @@
-import { RotateCcw, Zap, ArrowRight } from "lucide-react";
+import { RotateCcw, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { REACTIVATION_TABS } from "../../lib/pageTabs";
 import { Panel, PanelHeader, Badge, EmptyState } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
-import { demoMode } from "../../demo/demoMode";
 import { PAGE_CONTAINER } from "../../lib/layout";
 import { useReactivation } from "../../hooks/useReactivation";
 import { reactPopulated, reactRates } from "../../lib/reactivation";
-import { NotConnectedNotice } from "../campaigns/shared";
 
 // Reactivation: a standing Marketing surface that layers over the always-on
 // "win back dormant customers" campaign (a short text + email sequence to past
@@ -25,7 +23,6 @@ import { NotConnectedNotice } from "../campaigns/shared";
 const REACTIVATION_CONTAINER = PAGE_CONTAINER;
 
 export default function Reactivation() {
-  const demo = demoMode();
   const { session } = useAuth();
   const { data } = useReactivation(Boolean(session));
 
@@ -63,21 +60,6 @@ export default function Reactivation() {
             ) : undefined
           }
         />
-
-        {!populated && (
-          <NotConnectedNotice message="Once your customer list is linked, we'll quietly reach out to people who haven't booked in a while and show you who comes back here." />
-        )}
-
-        {/* What it does, in one calm line (demo only, descriptive copy). */}
-        {demo && (
-          <Panel className="mb-4 flex items-start gap-3 border-brand/30 bg-brand-tint p-4">
-            <RotateCcw size={20} className="mt-0.5 shrink-0 text-brand-text" />
-            <div className="flex-1 text-[13px] leading-snug text-text">
-              We automatically reach out to your past customers who haven't booked in over a
-              year, with a short text and email. You don't have to lift a finger, the booked jobs just show up.
-            </div>
-          </Panel>
-        )}
 
         {/* KPI row */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -132,15 +114,6 @@ export default function Reactivation() {
           )}
         </Panel>
 
-        {demo && (
-          <Panel className="mt-4 flex items-start gap-3 border-brand/30 bg-brand-tint p-4">
-            <Zap size={20} className="mt-0.5 shrink-0 text-brand-text" />
-            <div className="flex-1 text-[13px] leading-snug text-text">
-              This runs in the background every month, so dormant customers keep getting a gentle nudge without you
-              thinking about it. See the full stage breakdown on Pipeline, and the messages we send on Messages.
-            </div>
-          </Panel>
-        )}
       </div>
     </Shell>
   );

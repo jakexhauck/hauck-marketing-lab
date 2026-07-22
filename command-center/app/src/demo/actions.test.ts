@@ -12,7 +12,13 @@ import { DEMO_LEADS } from "../lib/leadsHub";
 
 describe("demo action routes", () => {
   const jobSnapshot = DEMO_JOBS.map((j) => ({ id: j.id, status: j.status, paid: j.paid }));
-  const leadSnapshot = DEMO_LEADS.map((l) => ({ id: l.id, status: l.status }));
+  const leadSnapshot = DEMO_LEADS.map((l) => ({
+    id: l.id,
+    status: l.status,
+    value: l.value,
+    stageName: l.stageName,
+    outcome: l.outcome,
+  }));
 
   afterEach(() => {
     for (const s of jobSnapshot) {
@@ -24,7 +30,12 @@ describe("demo action routes", () => {
     }
     for (const s of leadSnapshot) {
       const l = DEMO_LEADS.find((x) => x.id === s.id);
-      if (l) l.status = s.status;
+      if (l) {
+        l.status = s.status;
+        l.value = s.value;
+        l.stageName = s.stageName;
+        l.outcome = s.outcome;
+      }
     }
   });
 
@@ -58,6 +69,38 @@ describe("demo action routes", () => {
       "/api/sales/leads",
     );
     expect(after.leads.find((l) => l.id === active.id)?.status).toBe("cold");
+  });
+
+  it("POST /api/sales/leads/:id/stage with status won records the amount + outcome", async () => {
+    const active = DEMO_LEADS.find((l) => l.status !== "cold" && l.status !== "won")!;
+
+    const res = await handleDemoRequest<{ ok: boolean }>(
+      `/api/sales/leads/${active.id}/stage`,
+      { method: "POST", body: JSON.stringify({ status: "won", monetaryValue: 750 }) },
+    );
+    expect(res.ok).toBe(true);
+
+    const after = await handleDemoRequest<{
+      leads: { id: string; outcome?: string; value?: number | null }[];
+    }>("/api/sales/leads");
+    const row = after.leads.find((l) => l.id === active.id);
+    expect(row?.outcome).toBe("won");
+    expect(row?.value).toBe(750);
+  });
+
+  it("POST /api/sales/leads/:id/stage with a stageName moves the lead", async () => {
+    const active = DEMO_LEADS.find((l) => l.status !== "cold")!;
+
+    const res = await handleDemoRequest<{ ok: boolean }>(
+      `/api/sales/leads/${active.id}/stage`,
+      { method: "POST", body: JSON.stringify({ stageName: "Contacted" }) },
+    );
+    expect(res.ok).toBe(true);
+
+    const after = await handleDemoRequest<{
+      leads: { id: string; stageName?: string }[];
+    }>("/api/sales/leads");
+    expect(after.leads.find((l) => l.id === active.id)?.stageName).toBe("Contacted");
   });
 
   it("GET /api/appointments/slots returns future days with slots", async () => {

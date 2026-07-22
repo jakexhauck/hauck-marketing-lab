@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Marketing — Tasks (Counters)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #eef0f4; --card: #ffffff; --ink: #14161c; --muted: #6b7280; --faint: #9aa1ad;
+    --line: #eceef2; --line-2: #e3e6ec;
+    --indigo: #6366f1; --indigo-tint: #eef0ff;
+    --green: #10b981; --green-tint: #e7f7f0;
+    --sky: #0ea5e9; --sky-tint: #e6f5fd;
+    --amber: #f59e0b; --amber-tint: #fdf3e2; --rose: #ef4444;
+    --radius: 22px;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--ink); display: flex; height: 100dvh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums lining-nums; }
+  .disp { font-family: "Poppins", sans-serif; }
+
+  .spine { width: 74px; flex-shrink: 0; background: #0c1020; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 6px; }
+  .brand { width: 42px; height: 42px; border-radius: 13px; margin-bottom: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 19px; box-shadow: 0 8px 20px -6px rgba(99,102,241,.7); }
+  .snav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .sbtn { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #8891a8; cursor: pointer; border: 0; background: transparent; transition: .15s; position: relative; }
+  .sbtn:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .sbtn.on { color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 18px -6px rgba(99,102,241,.75); }
+  .sbtn svg { width: 21px; height: 21px; }
+  .savatar { width: 40px; height: 40px; border-radius: 50%; margin-top: 8px; background: linear-gradient(135deg, #10b981, #0ea5e9); display: grid; place-items: center; font-family: "Poppins"; font-weight: 600; font-size: 13px; color: #fff; }
+
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 26px 30px 0; overflow: hidden; }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--indigo); }
+  h1.title { font-family: "Poppins"; font-weight: 700; font-size: 34px; letter-spacing: -.02em; margin-top: 4px; }
+  .tagline { color: var(--muted); font-size: 14.5px; margin-top: 4px; }
+
+  .controls { display: flex; align-items: center; gap: 16px; margin-top: 18px; flex-wrap: wrap; }
+  .tabs { display: inline-flex; gap: 4px; background: #e5e8ef; padding: 5px; border-radius: 15px; }
+  .tab { border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); padding: 8px 16px; border-radius: 11px; transition: .15s; }
+  .tab:hover { color: var(--ink); }
+  .tab.on { background: #fff; color: var(--ink); box-shadow: 0 2px 8px -2px rgba(20,22,28,.14); }
+
+  .add-btn { margin-left: auto; border: 0; background: var(--indigo); color: #fff; font-family: inherit; font-weight: 600; font-size: 13px; padding: 10px 16px; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; box-shadow: 0 8px 18px -8px rgba(99,102,241,.8); transition: .15s; }
+  .add-btn:hover { background: #5457e6; }
+  .add-btn svg { width: 16px; height: 16px; }
+
+  /* counter strip */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 18px; }
+  .stat { border-radius: var(--radius); padding: 16px 18px; }
+  .stat.amber { background: var(--amber-tint); } .stat.sky { background: var(--sky-tint); }
+  .stat.green { background: var(--green-tint); } .stat.indigo { background: var(--indigo-tint); }
+  .stat .ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: #fff; margin-bottom: 10px; }
+  .stat.amber .ico { background: var(--amber); } .stat.sky .ico { background: var(--sky); }
+  .stat.green .ico { background: var(--green); } .stat.indigo .ico { background: var(--indigo); }
+  .stat .ico svg { width: 18px; height: 18px; }
+  .stat .lbl { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  .stat .val { font-family: "Poppins"; font-weight: 700; font-size: 30px; letter-spacing: -.02em; margin-top: 2px; }
+  .stat .sub { font-size: 12px; color: var(--faint); margin-top: 2px; }
+
+  .tablecard { background: var(--card); border-radius: var(--radius); margin-top: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column; box-shadow: 0 2px 16px -8px rgba(20,22,28,.18); overflow: hidden; }
+  .tc-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; }
+  .tc-title { font-family: "Poppins"; font-weight: 600; font-size: 16px; }
+  .tc-sub { font-size: 12px; color: var(--faint); }
+  .tc-legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--faint); align-items: center; }
+  .tc-legend b { display: inline-flex; align-items: center; gap: 5px; font-weight: 500; }
+  .dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+  .scroll { flex: 1; min-height: 0; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { position: sticky; top: 0; z-index: 2; background: #fafbfc; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); text-align: left; padding: 11px 14px; white-space: nowrap; border-bottom: 1px solid var(--line-2); }
+  tbody td { padding: 8px 14px; font-size: 13.5px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tbody tr:hover { background: #fbfbfd; }
+
+  .chk { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--line-2); background: #fff; cursor: pointer; display: grid; place-items: center; transition: .14s; flex-shrink: 0; }
+  .chk svg { width: 13px; height: 13px; color: #fff; opacity: 0; transform: scale(.6); transition: .14s; }
+  .chk.on { background: var(--green); border-color: var(--green); }
+  .chk.on svg { opacity: 1; transform: scale(1); }
+  td.donecol { width: 46px; }
+
+  td input.txt { width: 100%; border: 0; background: transparent; font: inherit; color: var(--ink); padding: 6px 8px; border-radius: 8px; transition: background .12s, box-shadow .12s; }
+  td.taskcol input.txt { font-weight: 600; min-width: 160px; }
+  td.notescol input.txt { color: var(--muted); font-weight: 400; min-width: 150px; }
+  td.updcol input.txt { color: var(--muted); font-weight: 400; min-width: 130px; }
+  td input.txt::placeholder { color: #d5d9e1; font-weight: 400; }
+  td input.txt:hover { background: #f1f2f6; }
+  td input.txt:focus { outline: 0; background: #fff; box-shadow: 0 0 0 2px var(--indigo); }
+
+  .statuscol { width: 130px; }
+  .pill { position: relative; display: inline-flex; }
+  select.status { appearance: none; -webkit-appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 600; font-size: 12.5px; padding: 6px 30px 6px 13px; border-radius: 999px; transition: .14s; }
+  select.status:focus { outline: 0; box-shadow: 0 0 0 2px var(--indigo); }
+  select.status.todo { background: var(--amber-tint); color: #b57608; }
+  select.status.doing { background: var(--sky-tint); color: #0a7bb3; }
+  select.status.done { background: var(--green-tint); color: #0a7d58; }
+  .pill svg.caret { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; pointer-events: none; opacity: .55; }
+
+  tr.rowdone td input.txt { color: var(--faint); text-decoration: line-through; }
+  tr.rowdone td.taskcol input.txt { color: var(--faint); }
+  tr.rowdone { opacity: .72; }
+
+  .fileicon { color: var(--sky); width: 14px; height: 14px; vertical-align: -2px; margin-right: 5px; opacity: .8; }
+  .notewrap { display: flex; align-items: center; }
+
+  .footnote { font-size: 11px; color: var(--faint); padding: 8px 2px 14px; }
+
+  @media (max-width: 1120px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 720px) { .main { padding: 18px 14px 0; } .stats { grid-template-columns: 1fr 1fr; gap: 10px; } .add-btn { margin-left: 0; } }
+</style>
+</head>
+<body>
+  <aside class="spine">
+    <div class="brand">H</div>
+    <nav class="snav">
+      <button class="sbtn" title="Command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+      <button class="sbtn" title="Acquisition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></button>
+      <button class="sbtn" title="Sales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17a4 4 0 0 1-8 0V7a4 4 0 0 1 8 0"/><path d="M13 7a4 4 0 0 1 8 0v10a4 4 0 0 1-8 0"/><path d="M11 7H3M21 17h-8"/></svg></button>
+      <button class="sbtn" title="Fulfillment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></button>
+      <button class="sbtn on" title="Operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg></button>
+    </nav>
+    <button class="sbtn" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
+    <div class="savatar">JH</div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker">Operations</div>
+    <h1 class="title">Tasks</h1>
+    <p class="tagline">Your working checklist.</p>
+
+    <div class="controls">
+      <div class="tabs">
+        <button class="tab">Calculator</button>
+        <button class="tab">Time Audit</button>
+        <button class="tab on">Tasks</button>
+      </div>
+      <button class="add-btn" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Add task</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat amber">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5"/></svg></div>
+        <div class="lbl">To do</div>
+        <div class="val num" id="c-todo">0</div>
+        <div class="sub">not started</div>
+      </div>
+      <div class="stat sky">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/></svg></div>
+        <div class="lbl">Doing</div>
+        <div class="val num" id="c-doing">0</div>
+        <div class="sub">in progress</div>
+      </div>
+      <div class="stat green">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <div class="lbl">Done</div>
+        <div class="val num" id="c-done">0</div>
+        <div class="sub">completed today</div>
+      </div>
+      <div class="stat indigo">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-2-2-4 4"/></svg></div>
+        <div class="lbl">Progress</div>
+        <div class="val num" id="c-pct">0%</div>
+        <div class="sub"><span id="c-frac">0 of 0</span> complete</div>
+      </div>
+    </div>
+
+    <div class="tablecard">
+      <div class="tc-head">
+        <div>
+          <div class="tc-title">Today's Checklist</div>
+          <div class="tc-sub" id="tc-sub">0 open, 0 done</div>
+        </div>
+        <div class="tc-legend">
+          <b><span class="dot" style="background:var(--amber)"></span>To do</b>
+          <b><span class="dot" style="background:var(--sky)"></span>Doing</b>
+          <b><span class="dot" style="background:var(--green)"></span>Done</b>
+        </div>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Done</th>
+              <th>Task</th>
+              <th>Notes / Files</th>
+              <th>Status</th>
+              <th>Updates</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="footnote">Editable demo. Check a task off, change a status pill, or add a row. The counters update live. Sample data for design review.</div>
+  </main>
+
+<script>
+  const SEED = [
+    { done:false, task:"Make 100 cold calls",        note:"Dialer list ready",          file:false, status:"doing", upd:"62 done by noon" },
+    { done:false, task:"40 min sales training",       note:"Objection handling module",  file:false, status:"todo",  upd:"" },
+    { done:true,  task:"Scrape 50 leads",             note:"leads-batch-07.csv",         file:true,  status:"done",  upd:"54 pulled" },
+    { done:false, task:"Send 25 follow-up SMS",       note:"GHL templates",              file:false, status:"doing", upd:"11 replies" },
+    { done:false, task:"Review Willis ad creatives",  note:"3 videos to approve",        file:false, status:"todo",  upd:"" },
+    { done:true,  task:"Post 2 client reels",         note:"reels-queue.mov",            file:true,  status:"done",  upd:"scheduled 9am" },
+    { done:false, task:"Update Sales pipeline stages",note:"Board cleanup",              file:false, status:"todo",  upd:"" },
+    { done:true,  task:"Log yesterday's numbers",     note:"cold-call tracker",          file:false, status:"done",  upd:"synced" }
+  ];
+
+  const STATUS = { todo:"To do", doing:"Doing", done:"Done" };
+  const FILE_SVG = '<svg class="fileicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
+  const CHK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  const CARET = '<svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+
+  let rows = SEED.map(r => ({...r}));
+  const tbody = document.getElementById("tbody");
+  const esc = (s) => (s||"").replace(/"/g,"&quot;");
+
+  function statusSelect(i, val) {
+    let opts = "";
+    for (const k in STATUS) opts += '<option value="'+k+'"'+(k===val?" selected":"")+'>'+STATUS[k]+'</option>';
+    return '<span class="pill"><select class="status '+val+'" data-i="'+i+'" data-f="status">'+opts+'</select>'+CARET+'</span>';
+  }
+
+  function render() {
+    tbody.innerHTML = "";
+    rows.forEach((r, i) => {
+      const tr = document.createElement("tr");
+      tr.className = r.done ? "rowdone" : "";
+      tr.innerHTML =
+        '<td class="donecol"><div class="chk'+(r.done?" on":"")+'" data-i="'+i+'" role="checkbox" tabindex="0" aria-checked="'+r.done+'">'+CHK_SVG+'</div></td>'+
+        '<td class="taskcol"><input class="txt" data-i="'+i+'" data-f="task" value="'+esc(r.task)+'" placeholder="New task" /></td>'+
+        '<td class="notescol"><div class="notewrap">'+(r.file?FILE_SVG:"")+'<input class="txt" data-i="'+i+'" data-f="note" value="'+esc(r.note)+'" placeholder="Notes or file" /></div></td>'+
+        '<td class="statuscol">'+statusSelect(i, r.status)+'</td>'+
+        '<td class="updcol"><input class="txt" data-i="'+i+'" data-f="upd" value="'+esc(r.upd)+'" placeholder="—" /></td>';
+      tbody.appendChild(tr);
+    });
+    updateCounts();
+  }
+
+  function updateCounts() {
+    const todo = rows.filter(r => r.status === "todo").length;
+    const doing = rows.filter(r => r.status === "doing").length;
+    const done = rows.filter(r => r.status === "done").length;
+    const total = rows.length;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    document.getElementById("c-todo").textContent = todo;
+    document.getElementById("c-doing").textContent = doing;
+    document.getElementById("c-done").textContent = done;
+    document.getElementById("c-pct").textContent = pct + "%";
+    document.getElementById("c-frac").textContent = done + " of " + total;
+    document.getElementById("tc-sub").textContent = (total - done) + " open, " + done + " done";
+  }
+
+  function setDone(i, val) {
+    rows[i].done = val;
+    if (val) rows[i].status = "done";
+    else if (rows[i].status === "done") rows[i].status = "doing";
+    render();
+  }
+
+  tbody.addEventListener("click", (e) => {
+    const chk = e.target.closest(".chk");
+    if (chk) setDone(+chk.dataset.i, !rows[+chk.dataset.i].done);
+  });
+  tbody.addEventListener("keydown", (e) => {
+    const chk = e.target.closest(".chk");
+    if (chk && (e.key === " " || e.key === "Enter")) { e.preventDefault(); setDone(+chk.dataset.i, !rows[+chk.dataset.i].done); }
+  });
+  tbody.addEventListener("input", (e) => {
+    const el = e.target;
+    if (!el.dataset || el.dataset.i === undefined) return;
+    rows[+el.dataset.i][el.dataset.f] = el.value;
+  });
+  tbody.addEventListener("change", (e) => {
+    const el = e.target;
+    if (el.classList && el.classList.contains("status")) {
+      const i = +el.dataset.i;
+      rows[i].status = el.value;
+      rows[i].done = (el.value === "done");
+      render();
+    }
+  });
+
+  document.getElementById("addBtn").onclick = () => {
+    rows.push({ done:false, task:"", note:"", file:false, status:"todo", upd:"" });
+    render();
+    const inputs = tbody.querySelectorAll('input[data-f="task"]');
+    inputs[inputs.length - 1].focus();
+  };
+
+  render();
+</script>
+</body>
+</html>

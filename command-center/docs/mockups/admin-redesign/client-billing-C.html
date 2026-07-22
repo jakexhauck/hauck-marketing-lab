@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Marketing · Client Billing · C</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #eef0f4; --card: #ffffff; --ink: #14161c; --muted: #6b7280; --faint: #9aa1ad;
+    --line: #eceef2; --line-2: #e3e6ec;
+    --indigo: #6366f1; --indigo-tint: #eef0ff;
+    --green: #10b981; --green-tint: #e7f7f0;
+    --sky: #0ea5e9; --sky-tint: #e6f5fd;
+    --amber: #f59e0b; --amber-tint: #fdf3e2; --rose: #ef4444; --rose-tint: #fdeaea;
+    --radius: 22px;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--ink); display: flex; height: 100dvh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums lining-nums; }
+  .disp { font-family: "Poppins", sans-serif; }
+
+  /* Spine */
+  .spine { width: 74px; flex-shrink: 0; background: #0c1020; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 6px; }
+  .brand { width: 42px; height: 42px; border-radius: 13px; margin-bottom: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 19px; box-shadow: 0 8px 20px -6px rgba(99,102,241,.7); }
+  .snav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .sbtn { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #8891a8; cursor: pointer; border: 0; background: transparent; transition: .15s; }
+  .sbtn:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .sbtn.on { color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 18px -6px rgba(99,102,241,.75); }
+  .sbtn svg { width: 21px; height: 21px; }
+  .savatar { width: 40px; height: 40px; border-radius: 50%; margin-top: 8px; background: linear-gradient(135deg, #10b981, #0ea5e9); display: grid; place-items: center; font-family: "Poppins"; font-weight: 600; font-size: 13px; color: #fff; }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 26px 30px 0; overflow: hidden; }
+
+  /* Cockpit header */
+  .cockpit { display: flex; align-items: center; gap: 14px; }
+  .csquare { width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #0ea5e9, #6366f1); display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 20px; color: #fff; box-shadow: 0 8px 20px -8px rgba(14,165,233,.6); flex-shrink: 0; }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--indigo); }
+  h1.title { font-family: "Poppins"; font-weight: 700; font-size: 30px; letter-spacing: -.02em; margin-top: 1px; }
+  .health { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 999px; background: var(--green-tint); color: #0a7d58; }
+  .health .hd { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgba(16,185,129,.2); }
+  .cockpit-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+  /* Cockpit tab bar */
+  .ctabs { display: inline-flex; gap: 4px; background: #e5e8ef; padding: 5px; border-radius: 15px; margin-top: 18px; overflow-x: auto; max-width: 100%; }
+  .ctab { border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); padding: 8px 15px; border-radius: 11px; transition: .15s; white-space: nowrap; }
+  .ctab:hover { color: var(--ink); }
+  .ctab.on { background: #fff; color: var(--ink); box-shadow: 0 2px 8px -2px rgba(20,22,28,.14); }
+
+  /* Scroll region */
+  .body-scroll { flex: 1; min-height: 0; overflow: auto; margin-top: 16px; padding-bottom: 18px; }
+
+  /* Money tile strip */
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .tile { border-radius: var(--radius); padding: 18px 20px; }
+  .tile.green { background: var(--green-tint); } .tile.amber { background: var(--amber-tint); }
+  .tile.indigo { background: var(--indigo-tint); } .tile.sky { background: var(--sky-tint); }
+  .tile .ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: #fff; margin-bottom: 10px; }
+  .tile.green .ico { background: var(--green); } .tile.amber .ico { background: var(--amber); }
+  .tile.indigo .ico { background: var(--indigo); } .tile.sky .ico { background: var(--sky); }
+  .tile .ico svg { width: 18px; height: 18px; }
+  .tile .lbl { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  .tile .val { font-family: "Poppins"; font-weight: 700; font-size: 30px; letter-spacing: -.02em; margin-top: 2px; }
+  .tile .sub { font-size: 12px; color: var(--faint); margin-top: 3px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; margin-top: 10px; }
+  .chip.ok { background: rgba(16,185,129,.16); color: #0a7d58; }
+  .chip.warn { background: rgba(245,158,11,.2); color: #9a6a12; }
+  .chip svg { width: 12px; height: 12px; }
+
+  /* Detail panel */
+  .panel { background: var(--card); border-radius: var(--radius); box-shadow: 0 2px 16px -8px rgba(20,22,28,.18); margin-top: 16px; overflow: hidden; }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 24px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .panel-title { font-family: "Poppins"; font-weight: 600; font-size: 17px; }
+  .panel-sub { font-size: 12.5px; color: var(--faint); margin-top: 2px; }
+  .panel-body { padding: 22px 24px 26px; }
+
+  .section-label { font-family: "Poppins"; font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); margin: 4px 0 14px; }
+  .section-label:not(:first-child) { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px 20px; }
+  .grid3 .span2 { grid-column: span 2; }
+  .grid3 .span3 { grid-column: 1 / -1; }
+
+  /* Field */
+  .field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+  .field > label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+  .field input, .field select, .field textarea {
+    width: 100%; border: 1px solid var(--line-2); background: #fff; font: inherit; font-size: 14px; font-weight: 500;
+    color: var(--ink); padding: 10px 12px; border-radius: 12px; transition: border-color .12s, box-shadow .12s, background .12s;
+  }
+  .field textarea { resize: vertical; min-height: 80px; line-height: 1.5; font-weight: 400; }
+  .field input:hover, .field select:hover, .field textarea:hover { border-color: #d3d8e2; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: 0; border-color: transparent; box-shadow: 0 0 0 2px var(--indigo); }
+  .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px; cursor: pointer; }
+
+  .money { position: relative; }
+  .money::before { content: "$"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--faint); font-weight: 600; font-size: 13.5px; pointer-events: none; }
+  .money input { padding-left: 24px; font-variant-numeric: tabular-nums lining-nums; font-weight: 600; }
+
+  .field.near input { background: var(--amber-tint); border-color: #f4d59a; }
+  .field.near input:focus { border-color: transparent; box-shadow: 0 0 0 2px var(--amber); }
+  .datehint { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; letter-spacing: .03em; color: #9a6a12; background: rgba(245,158,11,.18); padding: 2px 7px; border-radius: 999px; margin-left: 7px; vertical-align: middle; }
+  .field .lblrow { display: flex; align-items: center; }
+
+  /* Status pill select */
+  .pillselect { position: relative; display: inline-flex; align-self: flex-start; }
+  .pillselect select { appearance: none; border: 0; cursor: pointer; font: inherit; font-weight: 700; font-size: 14px; letter-spacing: .02em; padding: 11px 38px 11px 32px; border-radius: 12px; transition: .12s; }
+  .pillselect::after { content: ""; position: absolute; right: 14px; top: 50%; width: 9px; height: 9px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-70%) rotate(45deg); opacity: .55; pointer-events: none; }
+  .pillselect .pdot { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 9px; height: 9px; border-radius: 50%; pointer-events: none; }
+  .pillselect.active select { background: var(--green-tint); color: #0a7d58; }
+  .pillselect.active .pdot { background: var(--green); box-shadow: 0 0 0 3px rgba(16,185,129,.2); }
+  .pillselect.active { color: #0a7d58; }
+  .pillselect.churned select { background: var(--rose-tint); color: #c23434; }
+  .pillselect.churned .pdot { background: var(--rose); box-shadow: 0 0 0 3px rgba(239,68,68,.18); }
+  .pillselect.churned { color: #c23434; }
+  .pillselect select:focus { outline: 0; box-shadow: 0 0 0 2px currentColor; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer; font: inherit; font-weight: 600; font-size: 13.5px; padding: 10px 16px; border-radius: 12px; transition: .15s; }
+  .btn svg { width: 16px; height: 16px; }
+  .btn.primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; box-shadow: 0 8px 18px -8px rgba(99,102,241,.7); }
+  .btn.primary:hover { filter: brightness(1.05); }
+  .btn.ghost { background: var(--indigo-tint); color: var(--indigo); }
+  .btn.ghost:hover { background: #e2e5ff; }
+  .btn.soft { background: #f1f2f6; color: var(--ink); }
+  .btn.soft:hover { background: #e9ebf1; }
+
+  .footnote { font-size: 11px; color: var(--faint); padding: 12px 2px 16px; }
+
+  @media (max-width: 1120px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 860px) { .main { padding: 18px 14px 0; } h1.title { font-size: 25px; } .cockpit-right { display: none; } .grid3 { grid-template-columns: 1fr; } .grid3 .span2, .grid3 .span3 { grid-column: auto; } }
+  @media (max-width: 560px) { .tiles { grid-template-columns: 1fr 1fr; gap: 10px; } }
+</style>
+</head>
+<body>
+  <aside class="spine">
+    <div class="brand">H</div>
+    <nav class="snav">
+      <button class="sbtn" title="Command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+      <button class="sbtn" title="Acquisition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></button>
+      <button class="sbtn" title="Sales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17a4 4 0 0 1-8 0V7a4 4 0 0 1 8 0"/><path d="M13 7a4 4 0 0 1 8 0v10a4 4 0 0 1-8 0"/><path d="M11 7H3M21 17h-8"/></svg></button>
+      <button class="sbtn on" title="Fulfillment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></button>
+      <button class="sbtn" title="Operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg></button>
+    </nav>
+    <button class="sbtn" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
+    <div class="savatar">JH</div>
+  </aside>
+
+  <main class="main">
+    <div class="cockpit">
+      <div class="csquare">WW</div>
+      <div>
+        <div class="kicker">Fulfillment</div>
+        <h1 class="title">Willis Windows</h1>
+      </div>
+      <div class="cockpit-right">
+        <span class="health"><span class="hd"></span>Healthy account</span>
+      </div>
+    </div>
+
+    <div class="ctabs">
+      <button class="ctab">Overview</button>
+      <button class="ctab">Paid Ads</button>
+      <button class="ctab">Web Design</button>
+      <button class="ctab">Google Reviews</button>
+      <button class="ctab">Reactivation</button>
+      <button class="ctab on">Billing</button>
+      <button class="ctab">Config</button>
+    </div>
+
+    <div class="body-scroll">
+
+      <!-- Summary tiles -->
+      <div class="tiles">
+        <div class="tile green">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <div class="lbl">Total Collected</div>
+          <div class="val num">$2,000</div>
+          <div class="sub">of $3,000 deal value</div>
+          <span class="chip ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>67% collected</span>
+        </div>
+        <div class="tile amber">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <div class="lbl">Remaining</div>
+          <div class="val num">$1,000</div>
+          <div class="sub">net-30 balance</div>
+          <span class="chip warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4M12 16h.01"/><circle cx="12" cy="12" r="10"/></svg>due Jul 22</span>
+        </div>
+        <div class="tile indigo">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg></div>
+          <div class="lbl">MRR</div>
+          <div class="val num">$500</div>
+          <div class="sub">$3,000 over 6 months</div>
+        </div>
+        <div class="tile sky">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+          <div class="lbl">Renews</div>
+          <div class="val num">Dec 12</div>
+          <div class="sub">148 days out</div>
+        </div>
+      </div>
+
+      <!-- Detail panel -->
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Deal &amp; Money Detail</div>
+            <div class="panel-sub">Editable record behind the numbers above.</div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div class="pillselect active" id="statusPill">
+              <span class="pdot"></span>
+              <select id="statusSel" aria-label="Status">
+                <option value="active" selected>Active</option>
+                <option value="churned">Churned</option>
+              </select>
+            </div>
+            <a class="btn ghost" href="#" title="Open Ad Tracking for Willis Windows">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>
+              Open Ad Tracking
+            </a>
+            <button class="btn primary" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              Save
+            </button>
+          </div>
+        </div>
+        <div class="panel-body">
+
+          <div class="section-label">Deal</div>
+          <div class="grid3">
+            <div class="field">
+              <label for="f-source">Source</label>
+              <select id="f-source">
+                <option selected>Cold Call</option>
+                <option>Referral</option>
+                <option>Inbound Form</option>
+                <option>Facebook Ad</option>
+                <option>SMS</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-closed">Date Closed</label>
+              <input id="f-closed" type="text" value="Jun 12, 2026" />
+            </div>
+            <div class="field">
+              <label for="f-service">Service</label>
+              <input id="f-service" type="text" value="Facebook ads + AI caller" />
+            </div>
+            <div class="field span3">
+              <label for="f-arr">Payment Arrangement</label>
+              <input id="f-arr" type="text" value="3k for 6 months, 2k upfront + 1k after 30 days" />
+            </div>
+          </div>
+
+          <div class="section-label">Cash</div>
+          <div class="grid3">
+            <div class="field">
+              <label for="f-upfront">Upfront Cash</label>
+              <div class="money"><input id="f-upfront" class="num" type="text" inputmode="numeric" value="2,000" /></div>
+            </div>
+            <div class="field">
+              <label for="f-remain">Remaining to Collect</label>
+              <div class="money"><input id="f-remain" class="num" type="text" inputmode="numeric" value="1,000" /></div>
+            </div>
+            <div class="field">
+              <label for="f-total">Total Cash Collected</label>
+              <div class="money"><input id="f-total" class="num" type="text" inputmode="numeric" value="2,000" /></div>
+            </div>
+          </div>
+
+          <div class="section-label">Dates &amp; Renewal</div>
+          <div class="grid3">
+            <div class="field near">
+              <div class="lblrow"><label for="f-billing">Billing Date</label><span class="datehint">IN 5 DAYS</span></div>
+              <input id="f-billing" type="text" value="Jul 22, 2026" />
+            </div>
+            <div class="field">
+              <label for="f-renewal">Renewal Date</label>
+              <input id="f-renewal" type="text" value="Dec 12, 2026" />
+            </div>
+            <div class="field">
+              <label for="f-touch">Last Touchpoint</label>
+              <input id="f-touch" type="text" value="Jul 14, 2026" />
+            </div>
+            <div class="field">
+              <label for="f-churn">Churn Date</label>
+              <input id="f-churn" type="text" value="" placeholder="—" />
+            </div>
+          </div>
+
+          <div class="section-label">Notes</div>
+          <div class="grid3">
+            <div class="field span3">
+              <label for="f-notes">Notes</label>
+              <textarea id="f-notes">Renewal call scheduled for early Dec. Owner wants a second AI caller line before winter. Collected upfront on close; net-30 balance of $1,000 invoiced.</textarea>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="footnote">Sample data for design review.</div>
+    </div>
+  </main>
+
+<script>
+  const sel = document.getElementById('statusSel');
+  const pill = document.getElementById('statusPill');
+  sel.addEventListener('change', () => {
+    pill.classList.toggle('active', sel.value === 'active');
+    pill.classList.toggle('churned', sel.value === 'churned');
+  });
+  function fmt(el) {
+    const raw = el.value.replace(/[^0-9.]/g, '');
+    if (raw === '') return;
+    const num = Math.round(parseFloat(raw));
+    if (isNaN(num)) return;
+    el.value = num.toLocaleString('en-US');
+  }
+  document.querySelectorAll('.money input').forEach(el => {
+    el.addEventListener('blur', () => fmt(el));
+  });
+</script>
+</body>
+</html>

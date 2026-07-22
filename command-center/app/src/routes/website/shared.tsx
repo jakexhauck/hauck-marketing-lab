@@ -21,6 +21,15 @@ export const WEBSITE_DOMAIN = "rivertownplumbing.com";
 // reads the same in light and dark, like a real browser.
 const CHROME = "#14161f";
 
+// PhoneFrame's inner screen geometry (its outer shell is 300px with an 11px
+// bezel, so the screen is 278x600). LiveSiteFrame reads these to emulate a phone:
+// it renders the live site at a real iPhone logical width so the site's mobile
+// breakpoints fire, then scales that viewport down to fit the screen. Keep these
+// in sync with PhoneFrame below.
+const PHONE_SCREEN_W = 278;
+const PHONE_SCREEN_H = 600;
+const MOBILE_VIEWPORT_W = 390;
+
 export type Device = "desktop" | "mobile";
 
 // ---------------------------------------------------------------------------
@@ -157,26 +166,66 @@ export function DevicePreview({
 // ---------------------------------------------------------------------------
 // LiveSiteFrame: the client's REAL site inside a BrowserFrame body. Non-
 // interactive by default (pointer-events off) so it reads as a preview and, on
-// the Request-a-Change canvas, lets the click overlay capture pins over it. If
-// the site blocks embedding (X-Frame-Options / frame-ancestors) the iframe body
-// renders blank; every caller also surfaces an "Open live site" affordance, so
-// the page never depends on the embed succeeding.
+// the Request-a-Change canvas, lets the click overlay capture pins over it.
+// Pass `interactive` (Overview's storefront glance) to turn it into a full,
+// scrollable window: the user scrolls the whole site inside the frame and clicks
+// its own nav to move between pages. If the site blocks embedding (X-Frame-
+// Options / frame-ancestors) the iframe body renders blank; every caller also
+// surfaces an "Open live site" affordance, so the page never depends on the
+// embed succeeding.
 // ---------------------------------------------------------------------------
 export function LiveSiteFrame({
   url,
   device = "desktop",
+  interactive = false,
 }: {
   url: string;
   device?: Device;
+  interactive?: boolean;
 }) {
+  const iframeProps = {
+    src: url,
+    title: "Your live website",
+    loading: "lazy" as const,
+    referrerPolicy: "no-referrer" as const,
+  };
+
+  // Mobile: emulate a real phone. A physically-narrow iframe makes the site lay
+  // out at ~278px, so it renders zoomed-in and mis-proportioned (not the real
+  // mobile view). Instead we render it at a true iPhone logical width (390px) so
+  // its mobile breakpoints fire correctly, then scale that viewport down to fit
+  // the 278x600 phone screen. The result is an accurate phone rendering.
+  if (device === "mobile") {
+    const scale = PHONE_SCREEN_W / MOBILE_VIEWPORT_W;
+    const frameH = Math.round(PHONE_SCREEN_H / scale);
+    return (
+      <div style={{ width: PHONE_SCREEN_W, height: PHONE_SCREEN_H, overflow: "hidden" }}>
+        <iframe
+          {...iframeProps}
+          className="border-0 bg-white"
+          style={{
+            width: MOBILE_VIEWPORT_W,
+            height: frameH,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            pointerEvents: interactive ? "auto" : "none",
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Desktop: a short snapshot by default (460px); interactive mode grows it to a
+  // real viewport so more of the page shows before you scroll.
   return (
     <iframe
-      src={url}
-      title="Your live website"
-      loading="lazy"
-      referrerPolicy="no-referrer"
+      {...iframeProps}
       className="block w-full border-0 bg-white"
-      style={{ height: device === "mobile" ? 600 : 460, pointerEvents: "none" }}
+      style={{
+        height: interactive ? "72vh" : 460,
+        minHeight: interactive ? 560 : undefined,
+        pointerEvents: interactive ? "auto" : "none",
+      }}
     />
   );
 }

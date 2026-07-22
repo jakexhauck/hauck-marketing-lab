@@ -1,8 +1,13 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Plus, Trash2, Loader2, ListChecks } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { Plus, X, Loader2, ListChecks } from "lucide-react";
 import DesktopPage from "../../components/desktop/DesktopPage";
 import { Button } from "../../components/ui/Button";
 import { api, type AdminClient, type AdminTask } from "../../lib/api";
+import { useToast } from "../../context/ToastContext";
+import { createUndoQueue } from "../../lib/undoQueue";
+
+const UNDO_TOAST_MS = 6000;
+const UNDO_WINDOW_MS = 6500;
 
 const inputCls =
   "w-full rounded-[var(--radius)] border border-border bg-surface px-3 py-2.5 text-[14px] text-text placeholder:text-faint transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25";
@@ -22,6 +27,7 @@ function dueLabel(due: string): { text: string; overdue: boolean } {
 }
 
 export default function AdminTasks() {
+  const { showToast } = useToast();
   const [tasks, setTasks] = useState<AdminTask[]>([]);
   const [clients, setClients] = useState<AdminClient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,14 +106,51 @@ export default function AdminTasks() {
     }
   };
 
-  const onDelete = async (task: AdminTask) => {
-    const prev = tasks;
+  // Delete is deferred behind an undo window rather than fired immediately, so
+  // a mis-click on an always-visible trash button is recoverable.
+  const restore = (task: AdminTask, index: number) => {
+    setTasks((list) => {
+      if (list.some((t) => t.id === task.id)) return list;
+      const next = [...list];
+      next.splice(Math.min(index, next.length), 0, task);
+      return next;
+    });
+  };
+
+  const queue = useMemo(
+    () =>
+      createUndoQueue<{ task: AdminTask; index: number }>({
+        delayMs: UNDO_WINDOW_MS,
+        commit: ({ task }) => api(`/api/admin/tasks/${task.id}`, { method: "DELETE" }).then(() => {}),
+        onCommitError: ({ task, index }) => {
+          restore(task, index);
+          setLoadError("Could not delete that task. It has been put back.");
+        },
+      }),
+    [],
+  );
+
+  // Leaving the page must not quietly drop a delete the user asked for.
+  const queueRef = useRef(queue);
+  queueRef.current = queue;
+  useEffect(() => () => queueRef.current.flushAll(), []);
+
+  const onDelete = (task: AdminTask) => {
+    const index = Math.max(
+      0,
+      tasks.findIndex((t) => t.id === task.id),
+    );
     setTasks((list) => list.filter((t) => t.id !== task.id));
-    try {
-      await api(`/api/admin/tasks/${task.id}`, { method: "DELETE" });
-    } catch {
-      setTasks(prev);
-    }
+    queue.schedule(task.id, { task, index });
+    showToast("Task deleted", {
+      durationMs: UNDO_TOAST_MS,
+      action: {
+        label: "Undo",
+        onAction: () => {
+          if (queue.undo(task.id)) restore(task, index);
+        },
+      },
+    });
   };
 
   const visible = useMemo(() => {
@@ -247,11 +290,12 @@ export default function AdminTasks() {
                   </div>
                 </div>
                 <button
-                  onClick={() => void onDelete(task)}
-                  aria-label="Delete task"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius)] text-faint opacity-0 transition-opacity hover:bg-danger-tint hover:text-danger group-hover:opacity-100"
+                  onClick={() => onDelete(task)}
+                  aria-label="Remove task"
+                  title="Remove task"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius)] text-muted transition-colors hover:bg-danger-tint hover:text-danger"
                 >
-                  <Trash2 size={15} />
+                  <X size={16} />
                 </button>
               </div>
             );

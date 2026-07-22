@@ -169,7 +169,6 @@ export default function ClientConfigPanel({
   return (
     <div className="space-y-4">
       <BrandingCard client={client} onSaved={refreshAfterSave} />
-      <HealthCard client={client} onSaved={refreshAfterSave} />
       <GhlCard client={client} onSaved={refreshAfterSave} />
       <AdsCard client={client} onSaved={refreshAfterSave} />
       <ReviewsCard client={client} onSaved={refreshAfterSave} />
@@ -310,52 +309,6 @@ function BrandingCard({ client, onSaved }: { client: DetailClient; onSaved: () =
           <label><span className={labelCls}>Monthly spend</span><input className={inputCls} value={f.monthlySpend} onChange={set("monthlySpend")} inputMode="decimal" /></label>
           <label><span className={labelCls}>Won label</span><input className={inputCls} value={f.wonLabel} onChange={set("wonLabel")} /></label>
           <label><span className={labelCls}>Value label</span><input className={inputCls} value={f.valueLabel} onChange={set("valueLabel")} /></label>
-        </div>
-        {err && <p className="mt-3 text-sm text-danger">{err}</p>}
-        <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>
-      </form>
-    </Card>
-  );
-}
-
-const HEALTH_OPTIONS: { value: HealthStatus; label: string }[] = [
-  { value: "healthy", label: "Healthy" },
-  { value: "warn", label: "Needs attention" },
-  { value: "paused", label: "Paused" },
-];
-
-function HealthCard({ client, onSaved }: { client: DetailClient; onSaved: () => Promise<void> }) {
-  const [status, setStatus] = useState<HealthStatus>(client.healthStatus);
-  const [note, setNote] = useState(client.healthNote ?? "");
-  const { saving, saved, err, run } = useSaver(onSaved);
-  const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    void run(`/api/admin/clients/${client.id}`, { healthStatus: status, healthNote: note });
-  };
-  return (
-    <Card title="Account health">
-      <p className="mb-4 text-[13px] text-muted">
-        A manual flag that surfaces in the Fulfillment roster and the at-risk list. Use the note to record why an account needs attention or is paused.
-      </p>
-      <form onSubmit={onSubmit}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <label>
-            <span className={labelCls}>Status</span>
-            <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value as HealthStatus)}>
-              {HEALTH_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="sm:col-span-2">
-            <span className={labelCls}>Note (optional)</span>
-            <input
-              className={inputCls}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="e.g. CPL rising, needs a creative refresh"
-            />
-          </label>
         </div>
         {err && <p className="mt-3 text-sm text-danger">{err}</p>}
         <div className="mt-5"><SaveButton saving={saving} saved={saved} /></div>

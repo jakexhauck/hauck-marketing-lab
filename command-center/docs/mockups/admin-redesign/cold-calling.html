@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Marketing — Cold Calling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #eef0f4; --card: #ffffff; --ink: #14161c; --muted: #6b7280; --faint: #9aa1ad;
+    --line: #eceef2; --line-2: #e3e6ec;
+    --indigo: #6366f1; --indigo-tint: #eef0ff;
+    --green: #10b981; --green-tint: #e7f7f0;
+    --sky: #0ea5e9; --sky-tint: #e6f5fd;
+    --amber: #f59e0b; --amber-tint: #fdf3e2; --rose: #ef4444;
+    --radius: 22px;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--ink); display: flex; height: 100dvh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums lining-nums; }
+  .disp { font-family: "Poppins", sans-serif; }
+
+  /* Spine */
+  .spine { width: 74px; flex-shrink: 0; background: #0c1020; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 6px; }
+  .brand { width: 42px; height: 42px; border-radius: 13px; margin-bottom: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 19px; box-shadow: 0 8px 20px -6px rgba(99,102,241,.7); }
+  .snav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .sbtn { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #8891a8; cursor: pointer; border: 0; background: transparent; transition: .15s; position: relative; }
+  .sbtn:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .sbtn.on { color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 18px -6px rgba(99,102,241,.75); }
+  .sbtn svg { width: 21px; height: 21px; }
+  .savatar { width: 40px; height: 40px; border-radius: 50%; margin-top: 8px; background: linear-gradient(135deg, #10b981, #0ea5e9); display: grid; place-items: center; font-family: "Poppins"; font-weight: 600; font-size: 13px; color: #fff; }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 26px 30px 0; overflow: hidden; }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--indigo); }
+  h1.title { font-family: "Poppins"; font-weight: 700; font-size: 34px; letter-spacing: -.02em; margin-top: 4px; }
+  .tagline { color: var(--muted); font-size: 14.5px; margin-top: 4px; }
+
+  .controls { display: flex; align-items: center; gap: 16px; margin-top: 18px; flex-wrap: wrap; }
+  .tabs { display: inline-flex; gap: 4px; background: #e5e8ef; padding: 5px; border-radius: 15px; }
+  .tab { border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); padding: 8px 16px; border-radius: 11px; transition: .15s; }
+  .tab:hover { color: var(--ink); }
+  .tab.on { background: #fff; color: var(--ink); box-shadow: 0 2px 8px -2px rgba(20,22,28,.14); }
+
+  .monthnav { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; background: #fff; border-radius: 14px; padding: 5px 6px; box-shadow: 0 2px 10px -4px rgba(20,22,28,.14); }
+  .mbtn { width: 34px; height: 34px; border-radius: 10px; border: 0; background: transparent; cursor: pointer; color: var(--muted); display: grid; place-items: center; transition: .15s; }
+  .mbtn:hover { background: var(--indigo-tint); color: var(--indigo); }
+  .mbtn svg { width: 18px; height: 18px; }
+  .mlabel { font-family: "Poppins"; font-weight: 600; font-size: 14.5px; min-width: 132px; text-align: center; }
+  .today-btn { border: 0; background: var(--indigo-tint); color: var(--indigo); font-weight: 600; font-size: 12.5px; font-family: inherit; padding: 8px 12px; border-radius: 10px; cursor: pointer; margin-left: 2px; }
+  .today-btn:hover { background: #e2e5ff; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 18px; }
+  .stat { border-radius: var(--radius); padding: 16px 18px; }
+  .stat.indigo { background: var(--indigo-tint); } .stat.green { background: var(--green-tint); }
+  .stat.sky { background: var(--sky-tint); } .stat.amber { background: var(--amber-tint); }
+  .stat .ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: #fff; margin-bottom: 10px; }
+  .stat.indigo .ico { background: var(--indigo); } .stat.green .ico { background: var(--green); }
+  .stat.sky .ico { background: var(--sky); } .stat.amber .ico { background: var(--amber); }
+  .stat .ico svg { width: 18px; height: 18px; }
+  .stat .lbl { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  .stat .val { font-family: "Poppins"; font-weight: 700; font-size: 30px; letter-spacing: -.02em; margin-top: 2px; }
+  .stat .sub { font-size: 12px; color: var(--faint); margin-top: 2px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; margin-top: 9px; }
+  .chip.ok { background: rgba(16,185,129,.16); color: #0a7d58; } .chip.bad { background: rgba(239,68,68,.14); color: #c23434; }
+  .chip svg { width: 12px; height: 12px; }
+
+  .tablecard { background: var(--card); border-radius: var(--radius); margin-top: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column; box-shadow: 0 2px 16px -8px rgba(20,22,28,.18); overflow: hidden; }
+  .tc-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; }
+  .tc-title { font-family: "Poppins"; font-weight: 600; font-size: 16px; }
+  .tc-sub { font-size: 12px; color: var(--faint); }
+  .tc-legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--faint); align-items: center; }
+  .tc-legend b { display: inline-flex; align-items: center; gap: 5px; font-weight: 500; }
+  .dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+  .scroll { flex: 1; min-height: 0; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { position: sticky; top: 0; z-index: 2; background: #fafbfc; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); text-align: right; padding: 11px 14px; white-space: nowrap; border-bottom: 1px solid var(--line-2); }
+  thead th:first-child { text-align: left; }
+  tbody td { padding: 4px 8px; font-size: 13.5px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  tbody td.date { padding-left: 16px; }
+  tbody td:first-child { text-align: left; }
+  tbody tr:hover { background: #fbfbfd; }
+  td.date { font-weight: 600; }
+  td.date .dow { color: var(--faint); font-weight: 500; margin-right: 7px; font-variant-numeric: tabular-nums; }
+  td.calc { color: var(--muted); font-variant-numeric: tabular-nums; padding-right: 14px; }
+  tr.weekend td { background: #fcfcfd; } tr.weekend:hover td { background: #f6f7f9; }
+  tr.today td { background: var(--indigo-tint) !important; }
+  tr.today td.date { box-shadow: inset 3px 0 0 var(--indigo); }
+  .todaypill { font-size: 10px; font-weight: 700; color: #fff; background: var(--indigo); padding: 1px 7px; border-radius: 999px; margin-left: 8px; letter-spacing: .03em; }
+
+  /* editable inputs */
+  td input { width: 100%; min-width: 54px; border: 0; background: transparent; font: inherit; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; padding: 5px 7px; border-radius: 8px; font-weight: 600; transition: background .12s, box-shadow .12s; }
+  td.txtcol input { text-align: left; font-weight: 400; color: var(--muted); min-width: 90px; }
+  td input::placeholder { color: #d5d9e1; font-weight: 400; }
+  td input:hover { background: #f1f2f6; }
+  td input:focus { outline: 0; background: #fff; box-shadow: 0 0 0 2px var(--indigo); position: relative; z-index: 1; }
+  tr.today td input:focus { background: #fff; }
+
+  tfoot td { padding: 12px 14px; font-size: 13.5px; text-align: right; font-variant-numeric: tabular-nums; border-top: 2px solid var(--line-2); background: #fafbfc; position: sticky; bottom: 0; }
+  tfoot td:first-child { text-align: left; font-family: "Poppins"; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; font-size: 11.5px; color: var(--muted); padding-left: 16px; }
+  tfoot tr.total td { font-weight: 700; color: var(--ink); }
+  tfoot tr.avg td { color: var(--muted); border-top: 0; }
+
+  .footnote { font-size: 11px; color: var(--faint); padding: 8px 2px 14px; }
+
+  @media (max-width: 1120px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 720px) { .main { padding: 18px 14px 0; } .stats { grid-template-columns: 1fr 1fr; gap: 10px; } .monthnav { margin-left: 0; } }
+</style>
+</head>
+<body>
+  <aside class="spine">
+    <div class="brand">H</div>
+    <nav class="snav">
+      <button class="sbtn" title="Command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+      <button class="sbtn on" title="Acquisition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></button>
+      <button class="sbtn" title="Sales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17a4 4 0 0 1-8 0V7a4 4 0 0 1 8 0"/><path d="M13 7a4 4 0 0 1 8 0v10a4 4 0 0 1-8 0"/><path d="M11 7H3M21 17h-8"/></svg></button>
+      <button class="sbtn" title="Fulfillment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></button>
+      <button class="sbtn" title="Operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg></button>
+    </nav>
+    <button class="sbtn" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
+    <div class="savatar">JH</div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker">Acquisition</div>
+    <h1 class="title">Cold Calling</h1>
+    <p class="tagline">Daily dialing funnel. Type the raw counts, the rates compute themselves.</p>
+
+    <div class="controls">
+      <div class="tabs">
+        <button class="tab">Leads</button>
+        <button class="tab on">Cold Call</button>
+        <button class="tab">SMS</button>
+      </div>
+      <div class="monthnav">
+        <button class="mbtn" id="prev" title="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+        <span class="mlabel disp" id="mlabel">July 2026</span>
+        <button class="mbtn" id="next" title="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+        <button class="today-btn" id="todayBtn">Today</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat indigo">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.7 2.34a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.74a2 2 0 0 1 2.11-.45c.74.34 1.53.57 2.34.7A2 2 0 0 1 22 16.92z"/></svg></div>
+        <div class="lbl">Calls Made</div>
+        <div class="val num" id="s-calls">0</div>
+        <div class="sub">month to date</div>
+        <span class="chip ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>min 100/day</span>
+      </div>
+      <div class="stat green">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg></div>
+        <div class="lbl">Pickup %</div>
+        <div class="val num" id="s-pickup">0%</div>
+        <div class="sub"><span id="s-pickup-sub">0 of 0</span></div>
+        <span class="chip ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>std &gt;15%</span>
+      </div>
+      <div class="stat sky">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+        <div class="lbl">Meetings Booked</div>
+        <div class="val num" id="s-booked">0</div>
+        <div class="sub">month to date</div>
+      </div>
+      <div class="stat amber">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+        <div class="lbl">Booking %</div>
+        <div class="val num" id="s-book">0%</div>
+        <div class="sub">per dial</div>
+        <span class="chip bad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>target 1-3%</span>
+      </div>
+    </div>
+
+    <div class="tablecard">
+      <div class="tc-head">
+        <div>
+          <div class="tc-title">Cold Call Tracker</div>
+          <div class="tc-sub" id="tc-sub">Every day of the month, ready to log.</div>
+        </div>
+        <div class="tc-legend">
+          <b><span class="dot" style="background:var(--indigo)"></span>You type</b>
+          <b><span class="dot" style="background:#cfd4de"></span>Computed</b>
+        </div>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Calls Made</th>
+              <th>Pickups</th>
+              <th>Pickup %</th>
+              <th>Pass-Through</th>
+              <th>Pickup&rarr;PT %</th>
+              <th>Meetings Booked</th>
+              <th>Pitch&rarr;Book %</th>
+              <th>Objections</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+          <tfoot id="tfoot"></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="footnote">Editable demo. Type in any cell and the rates, totals and stat tiles update live. Sample data pre-filled for review.</div>
+  </main>
+
+<script>
+  // Pre-filled sample rows, keyed "YYYY-M-D" (M is 0-based). Only July 2026
+  // carries samples, so other months show the empty auto-generated template.
+  const SEED = {
+    "2026-6-1":{calls:131,pickups:21,pt:19,booked:1,obj:"price x3",note:""},
+    "2026-6-2":{calls:118,pickups:17,pt:14,booked:0,obj:"not now",note:""},
+    "2026-6-3":{calls:142,pickups:25,pt:22,booked:2,obj:"using X",note:"strong day"},
+    "2026-6-6":{calls:96,pickups:12,pt:9,booked:0,obj:"gatekeeper",note:"short day"},
+    "2026-6-7":{calls:134,pickups:23,pt:20,booked:1,obj:"budget",note:""},
+    "2026-6-8":{calls:128,pickups:20,pt:18,booked:1,obj:"",note:""},
+    "2026-6-9":{calls:140,pickups:24,pt:21,booked:2,obj:"spouse",note:""},
+    "2026-6-10":{calls:122,pickups:19,pt:16,booked:1,obj:"",note:""},
+    "2026-6-13":{calls:138,pickups:22,pt:19,booked:1,obj:"",note:""},
+    "2026-6-14":{calls:145,pickups:26,pt:23,booked:2,obj:"",note:"best day"},
+    "2026-6-15":{calls:110,pickups:16,pt:13,booked:0,obj:"timing",note:""},
+    "2026-6-16":{calls:133,pickups:22,pt:19,booked:1,obj:"",note:""},
+    "2026-6-17":{calls:84,pickups:14,pt:12,booked:1,obj:"",note:"half day"}
+  };
+
+  const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const TODAY = { y: 2026, m: 6, d: 17 }; // deterministic "today" for the mockup
+  let view = { y: TODAY.y, m: TODAY.m };
+  let state = {}; // day -> {calls,pickups,pt,booked,obj,note} for the viewed month
+
+  const pct = (n, d) => d > 0 ? (n / d * 100) : null;
+  const fp = (v) => v === null ? "—" : v.toFixed(1) + "%";
+  const n = (v) => { const x = parseInt(v, 10); return isNaN(x) ? 0 : x; };
+
+  function loadMonth() {
+    state = {};
+    const days = new Date(view.y, view.m + 1, 0).getDate();
+    for (let d = 1; d <= days; d++) {
+      const s = SEED[view.y + "-" + view.m + "-" + d];
+      state[d] = s ? {...s} : {calls:"",pickups:"",pt:"",booked:"",obj:"",note:""};
+    }
+  }
+
+  function numInput(day, field, val) {
+    return '<input inputmode="numeric" data-day="'+day+'" data-field="'+field+'" value="'+(val===""?"":val)+'" placeholder="·" />';
+  }
+  function txtInput(day, field, val) {
+    return '<input type="text" data-day="'+day+'" data-field="'+field+'" value="'+(val||"").replace(/"/g,'&quot;')+'" placeholder="—" />';
+  }
+
+  function render() {
+    document.getElementById("mlabel").textContent = MONTHS[view.m] + " " + view.y;
+    const tbody = document.getElementById("tbody");
+    tbody.innerHTML = "";
+    const days = new Date(view.y, view.m + 1, 0).getDate();
+
+    for (let d = 1; d <= days; d++) {
+      const dow = new Date(view.y, view.m, d).getDay();
+      const isToday = (view.y===TODAY.y && view.m===TODAY.m && d===TODAY.d);
+      const weekend = (dow===0 || dow===6);
+      const r = state[d];
+      const tr = document.createElement("tr");
+      tr.id = "row-" + d;
+      tr.className = [weekend?"weekend":"", isToday?"today":""].filter(Boolean).join(" ");
+      tr.innerHTML =
+        '<td class="date"><span class="dow num">'+DOW[dow]+' '+d+'</span>'+(isToday?'<span class="todaypill">TODAY</span>':'')+'</td>'+
+        '<td>'+numInput(d,"calls",r.calls)+'</td>'+
+        '<td>'+numInput(d,"pickups",r.pickups)+'</td>'+
+        '<td class="calc" data-calc="pickup">—</td>'+
+        '<td>'+numInput(d,"pt",r.pt)+'</td>'+
+        '<td class="calc" data-calc="ptp">—</td>'+
+        '<td>'+numInput(d,"booked",r.booked)+'</td>'+
+        '<td class="calc" data-calc="book">—</td>'+
+        '<td class="txtcol">'+txtInput(d,"obj",r.obj)+'</td>'+
+        '<td class="txtcol">'+txtInput(d,"note",r.note)+'</td>';
+      tbody.appendChild(tr);
+      updateRowCalc(d);
+    }
+    updateRollups();
+  }
+
+  function updateRowCalc(day) {
+    const r = state[day];
+    const row = document.getElementById("row-" + day);
+    if (!row) return;
+    const calls = n(r.calls), pickups = n(r.pickups), ptv = n(r.pt), booked = n(r.booked);
+    row.querySelector('[data-calc="pickup"]').textContent = fp(pct(pickups, calls));
+    row.querySelector('[data-calc="ptp"]').textContent = fp(pct(ptv, pickups));
+    row.querySelector('[data-calc="book"]').textContent = fp(pct(booked, ptv));
+  }
+
+  function updateRollups() {
+    let tCalls=0,tPick=0,tPT=0,tBook=0,filled=0;
+    for (const d in state) {
+      const r = state[d];
+      if (r.calls==="" && r.pickups==="" && r.pt==="" && r.booked==="") continue;
+      tCalls+=n(r.calls); tPick+=n(r.pickups); tPT+=n(r.pt); tBook+=n(r.booked); filled++;
+    }
+    const avg = (t) => filled ? Math.round(t/filled) : 0;
+    document.getElementById("tfoot").innerHTML =
+      '<tr class="avg"><td>Average / day</td>'+
+        '<td class="num">'+avg(tCalls)+'</td><td class="num">'+avg(tPick)+'</td>'+
+        '<td class="num">'+fp(pct(tPick,tCalls))+'</td><td class="num">'+avg(tPT)+'</td>'+
+        '<td class="num">'+fp(pct(tPT,tPick))+'</td><td class="num">'+(filled?(tBook/filled).toFixed(1):"0")+'</td>'+
+        '<td class="num">'+fp(pct(tBook,tPT))+'</td><td></td><td></td></tr>'+
+      '<tr class="total"><td>Total MTD</td>'+
+        '<td class="num">'+tCalls+'</td><td class="num">'+tPick+'</td>'+
+        '<td class="num">'+fp(pct(tPick,tCalls))+'</td><td class="num">'+tPT+'</td>'+
+        '<td class="num">'+fp(pct(tPT,tPick))+'</td><td class="num">'+tBook+'</td>'+
+        '<td class="num">'+fp(pct(tBook,tPT))+'</td><td></td><td></td></tr>';
+
+    document.getElementById("s-calls").textContent = tCalls.toLocaleString();
+    document.getElementById("s-pickup").textContent = fp(pct(tPick,tCalls));
+    document.getElementById("s-pickup-sub").textContent = tPick + " of " + tCalls;
+    document.getElementById("s-booked").textContent = tBook;
+    document.getElementById("s-book").textContent = fp(pct(tBook,tCalls));
+    document.getElementById("tc-sub").textContent = filled ? filled + " days logged this month" : "No days logged yet. Type into any row to start.";
+  }
+
+  // Live editing: update state, recompute the row + rollups without re-rendering (keeps focus).
+  document.getElementById("tbody").addEventListener("input", (e) => {
+    const el = e.target;
+    if (!el.dataset || !el.dataset.day) return;
+    const day = el.dataset.day, field = el.dataset.field;
+    state[day][field] = el.value;
+    if (field === "obj" || field === "note") { updateRollups(); return; }
+    updateRowCalc(day);
+    updateRollups();
+  });
+
+  document.getElementById("prev").onclick = () => { view.m--; if(view.m<0){view.m=11;view.y--;} loadMonth(); render(); };
+  document.getElementById("next").onclick = () => { view.m++; if(view.m>11){view.m=0;view.y++;} loadMonth(); render(); };
+  document.getElementById("todayBtn").onclick = () => { view = {y:TODAY.y, m:TODAY.m}; loadMonth(); render(); };
+
+  loadMonth();
+  render();
+</script>
+</body>
+</html>

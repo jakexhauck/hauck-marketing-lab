@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Marketing — Time Audit (C)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #eef0f4; --card: #ffffff; --ink: #14161c; --muted: #6b7280; --faint: #9aa1ad;
+    --line: #eceef2; --line-2: #e3e6ec;
+    --indigo: #6366f1; --indigo-tint: #eef0ff;
+    --green: #10b981; --green-tint: #e7f7f0;
+    --sky: #0ea5e9; --sky-tint: #e6f5fd;
+    --amber: #f59e0b; --amber-tint: #fdf3e2; --rose: #ef4444; --rose-tint: #fdecec;
+    --radius: 22px;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--ink); display: flex; height: 100dvh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums lining-nums; }
+  .disp { font-family: "Poppins", sans-serif; }
+
+  .spine { width: 74px; flex-shrink: 0; background: #0c1020; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 6px; }
+  .brand { width: 42px; height: 42px; border-radius: 13px; margin-bottom: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 19px; box-shadow: 0 8px 20px -6px rgba(99,102,241,.7); }
+  .snav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .sbtn { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #8891a8; cursor: pointer; border: 0; background: transparent; transition: .15s; }
+  .sbtn:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .sbtn.on { color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 18px -6px rgba(99,102,241,.75); }
+  .sbtn svg { width: 21px; height: 21px; }
+  .savatar { width: 40px; height: 40px; border-radius: 50%; margin-top: 8px; background: linear-gradient(135deg, #10b981, #0ea5e9); display: grid; place-items: center; font-family: "Poppins"; font-weight: 600; font-size: 13px; color: #fff; }
+
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 26px 30px 0; overflow: hidden; }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--indigo); }
+  h1.title { font-family: "Poppins"; font-weight: 700; font-size: 34px; letter-spacing: -.02em; margin-top: 4px; }
+  .tagline { color: var(--muted); font-size: 14.5px; margin-top: 4px; }
+
+  .controls { display: flex; align-items: center; gap: 16px; margin-top: 18px; flex-wrap: wrap; }
+  .tabs { display: inline-flex; gap: 4px; background: #e5e8ef; padding: 5px; border-radius: 15px; }
+  .tab { border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); padding: 8px 16px; border-radius: 11px; transition: .15s; }
+  .tab:hover { color: var(--ink); }
+  .tab.on { background: #fff; color: var(--ink); box-shadow: 0 2px 8px -2px rgba(20,22,28,.14); }
+  .weekpill { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; background: #fff; border-radius: 14px; padding: 8px 14px; box-shadow: 0 2px 10px -4px rgba(20,22,28,.14); font-family: "Poppins"; font-weight: 600; font-size: 14px; }
+  .weekpill span { color: var(--faint); font-weight: 500; font-size: 12px; }
+
+  .gridcard { background: var(--card); border-radius: var(--radius); margin-top: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column; box-shadow: 0 2px 16px -8px rgba(20,22,28,.18); overflow: hidden; }
+  .gc-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 11px; gap: 12px; flex-wrap: wrap; }
+  .gc-title { font-family: "Poppins"; font-weight: 600; font-size: 16px; }
+  .gc-sub { font-size: 12px; color: var(--faint); margin-top: 1px; }
+  .inline-legend { display: flex; flex-wrap: wrap; gap: 9px 12px; align-items: center; }
+  .inline-legend b { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+  .inline-legend .d { width: 9px; height: 9px; border-radius: 3px; }
+  .inline-legend .sep { width: 1px; height: 14px; background: var(--line-2); }
+  .inline-legend .ramp { display: inline-flex; align-items: center; gap: 6px; }
+  .inline-legend .ramp i { width: 15px; height: 11px; border-radius: 3px; }
+
+  .scroll { flex: 1; min-height: 0; overflow: auto; }
+
+  /* ---- wide: grid ---- */
+  table.grid { width: 100%; min-width: 700px; border-collapse: collapse; }
+  table.grid thead th { position: sticky; top: 0; z-index: 3; background: #fafbfc; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); text-align: center; padding: 10px 8px; white-space: nowrap; border-bottom: 1px solid var(--line-2); }
+  table.grid thead th:first-child { text-align: right; left: 0; z-index: 4; }
+  table.grid thead th b { display: block; font-family: "Poppins"; font-weight: 600; font-size: 13px; color: var(--ink); text-transform: none; letter-spacing: 0; }
+  .timecol { position: sticky; left: 0; z-index: 2; background: var(--card); text-align: right; padding: 0 12px 0 16px; font-size: 11px; color: var(--faint); white-space: nowrap; width: 78px; border-right: 1px solid var(--line-2); font-variant-numeric: tabular-nums; }
+  tr.hour .timecol { color: var(--muted); font-weight: 600; }
+  tr:not(.hour) .timecol { color: #c2c8d2; }
+  td.cell { height: 27px; padding: 2px 4px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); text-align: left; cursor: pointer; transition: filter .12s; }
+  td.cell:hover { filter: brightness(.97); }
+  tr.hour td.cell { border-top: 1px solid var(--line-2); }
+  td.cell.empty { color: #d7dbe2; text-align: center; font-size: 12px; }
+  td.cell .tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  td.cell .tdot { width: 6px; height: 6px; border-radius: 2px; flex-shrink: 0; }
+  tfoot td { position: sticky; bottom: 0; background: #fafbfc; border-top: 2px solid var(--line-2); padding: 11px 8px; text-align: center; font-family: "Poppins"; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+  tfoot td.timecol { text-align: right; font-family: "Poppins"; font-weight: 600; text-transform: uppercase; font-size: 10.5px; letter-spacing: .04em; color: var(--muted); background: #fafbfc; }
+  tfoot td.hi { color: #0a7d58; } tfoot td.lo { color: var(--faint); }
+
+  /* ---- narrow: per-day list ---- */
+  .listview { display: none; padding: 6px 16px 16px; }
+  .daycard { border: 1px solid var(--line-2); border-radius: 16px; margin-bottom: 12px; overflow: hidden; }
+  .daycard .dhead { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; background: #fafbfc; border-bottom: 1px solid var(--line); }
+  .daycard .dhead .dname { font-family: "Poppins"; font-weight: 600; font-size: 15px; }
+  .daycard .dhead .ddate { font-size: 11.5px; color: var(--faint); font-weight: 500; }
+  .daycard .dhead .dval { font-family: "Poppins"; font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+  .daycard .dhead .dval.hi { color: #0a7d58; } .daycard .dhead .dval.lo { color: var(--faint); }
+  .session { display: flex; align-items: center; gap: 12px; padding: 10px 15px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .session:last-child { border-bottom: 0; }
+  .session:hover { background: #fbfbfd; }
+  .session .stime { font-size: 12px; color: var(--muted); width: 118px; flex-shrink: 0; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .session .stag { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; flex: 1; min-width: 0; }
+  .session .stag .tdot { width: 8px; height: 8px; border-radius: 3px; flex-shrink: 0; }
+  .levpill { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .session .sval { font-size: 12.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; width: 52px; text-align: right; flex-shrink: 0; }
+  .emptyday { padding: 14px 15px; font-size: 12.5px; color: var(--faint); }
+
+  .footnote { font-size: 11px; color: var(--faint); padding: 8px 2px 14px; }
+
+  @media (max-width: 900px) {
+    .main { padding: 20px 14px 0; }
+    .gridview { display: none; }
+    .listview { display: block; }
+    .weekpill { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+  <aside class="spine">
+    <div class="brand">H</div>
+    <nav class="snav">
+      <button class="sbtn" title="Command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+      <button class="sbtn" title="Acquisition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></button>
+      <button class="sbtn" title="Sales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17a4 4 0 0 1-8 0V7a4 4 0 0 1 8 0"/><path d="M13 7a4 4 0 0 1 8 0v10a4 4 0 0 1-8 0"/><path d="M11 7H3M21 17h-8"/></svg></button>
+      <button class="sbtn" title="Fulfillment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></button>
+      <button class="sbtn on" title="Operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg></button>
+    </nav>
+    <button class="sbtn" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
+    <div class="savatar">JH</div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker">Operations</div>
+    <h1 class="title">Time Audit</h1>
+    <p class="tagline">Where your hours actually go. Tag each block, see the leverage.</p>
+
+    <div class="controls">
+      <div class="tabs">
+        <button class="tab">Calculator</button>
+        <button class="tab on">Time Audit</button>
+        <button class="tab">Tasks</button>
+      </div>
+      <div class="weekpill disp">This week <span>Jul 13 &ndash; 19</span></div>
+    </div>
+
+    <div class="gridcard">
+      <div class="gc-head">
+        <div>
+          <div class="gc-title">Weekly Time Grid</div>
+          <div class="gc-sub">Grid on wide screens, per-day list on narrow. Tap a block to cycle its tag.</div>
+        </div>
+        <div class="inline-legend">
+          <span class="ramp" title="Low to High leverage">
+            <span style="font-size:11px;color:var(--faint);font-weight:600">Low</span>
+            <i style="background:#ef4444"></i><i style="background:#f59e0b"></i><i style="background:#0ea5e9"></i><i style="background:#6366f1"></i><i style="background:#10b981"></i>
+            <span style="font-size:11px;color:var(--faint);font-weight:600">High</span>
+          </span>
+          <span class="sep"></span>
+          <span id="taskLegend" style="display:contents"></span>
+        </div>
+      </div>
+      <div class="scroll">
+        <div class="gridview">
+          <table class="grid">
+            <thead id="thead"></thead>
+            <tbody id="tbody"></tbody>
+            <tfoot id="tfoot"></tfoot>
+          </table>
+        </div>
+        <div class="listview" id="listview"></div>
+      </div>
+    </div>
+    <div class="footnote">Sample data for design review.</div>
+  </main>
+
+<script>
+  const LEV = [
+    { n:1, label:"Low",      tint:"#fdecec", solid:"#ef4444", rate:0 },
+    { n:2, label:"Low/Mid",  tint:"#fdf3e2", solid:"#f59e0b", rate:20 },
+    { n:3, label:"Mid",      tint:"#e6f5fd", solid:"#0ea5e9", rate:60 },
+    { n:4, label:"Mid/High", tint:"#eef0ff", solid:"#6366f1", rate:160 },
+    { n:5, label:"High",     tint:"#e7f7f0", solid:"#10b981", rate:450 }
+  ];
+  const TASKS = [
+    { key:"sales",    label:"Sales calls",   color:"#10b981", lev:5 },
+    { key:"roleplay", label:"Roleplays",     color:"#0ea5e9", lev:4 },
+    { key:"outreach", label:"Outreach",      color:"#6366f1", lev:3 },
+    { key:"scrape",   label:"Scraping leads",color:"#f59e0b", lev:2 },
+    { key:"admin",    label:"Admin",         color:"#8b93a3", lev:2 },
+    { key:"scroll",   label:"Scrolling",     color:"#ef4444", lev:1 }
+  ];
+  const TASK = Object.fromEntries(TASKS.map(t => [t.key, t]));
+  const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const DAYSFULL = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const DATES = [13,14,15,16,17,18,19];
+  const BLOCKS = 32;
+
+  function timeLabel(b){
+    const mins = 6*60 + b*30, h = Math.floor(mins/60), m = mins%60;
+    let hh = h % 12; if (hh === 0) hh = 12;
+    const ap = h >= 12 ? "PM" : "AM";
+    return { text: hh + ":" + (m === 0 ? "00" : "30"), ap, hour: m === 0, full: hh + ":" + (m === 0 ? "00" : "30") + " " + ap };
+  }
+  const rateOf = key => key ? LEV[TASK[key].lev - 1].rate : 0;
+
+  const state = {};
+  function span(d, from, to, key){ for (let b = from; b < to; b++) state[d + "-" + b] = key; }
+  span(0,2,4,"admin"); span(0,4,6,"scrape"); span(0,6,10,"outreach"); span(0,10,12,"sales");
+  span(0,13,16,"sales"); span(0,16,17,"scroll"); span(0,17,18,"roleplay"); span(0,18,22,"sales");
+  span(0,22,24,"outreach"); span(0,24,25,"scroll");
+  span(1,2,3,"admin"); span(1,3,6,"scrape"); span(1,6,8,"outreach"); span(1,8,9,"roleplay");
+  span(1,9,12,"sales"); span(1,13,17,"sales"); span(1,17,18,"scroll"); span(1,18,20,"outreach");
+  span(1,20,22,"sales"); span(1,22,23,"admin");
+  span(2,1,3,"scroll"); span(2,3,5,"admin"); span(2,5,7,"scrape"); span(2,7,11,"outreach");
+  span(2,11,12,"sales"); span(2,13,15,"roleplay"); span(2,15,19,"sales"); span(2,19,20,"scroll");
+  span(2,20,22,"outreach");
+  span(3,2,4,"admin"); span(3,4,6,"scrape"); span(3,6,9,"sales"); span(3,9,10,"scroll");
+  span(3,10,12,"outreach"); span(3,13,17,"sales"); span(3,17,18,"roleplay"); span(3,18,21,"outreach");
+  span(4,2,4,"scrape"); span(4,4,7,"outreach"); span(4,7,8,"roleplay"); span(4,8,11,"sales");
+  span(4,12,13,"scroll"); span(4,13,16,"sales"); span(4,16,18,"admin"); span(4,18,20,"scroll");
+  span(5,4,6,"admin"); span(5,6,9,"scrape"); span(5,9,10,"scroll"); span(5,10,12,"outreach");
+  span(6,6,8,"admin"); span(6,8,10,"scroll"); span(6,16,18,"roleplay");
+
+  function money(v){ return "$" + v.toLocaleString(); }
+  function dayTotal(d){ let s = 0; for (let b = 0; b < BLOCKS; b++) s += rateOf(state[d + "-" + b]); return s; }
+
+  function buildHead(){
+    let h = "<tr><th class='timecol'>Time</th>";
+    for (let d = 0; d < 7; d++) h += "<th><b>" + DAYS[d] + "</b>Jul " + DATES[d] + "</th>";
+    document.getElementById("thead").innerHTML = h + "</tr>";
+  }
+  function cellHTML(d, b){
+    const key = state[d + "-" + b];
+    if (!key) return "<td class='cell empty' data-d='"+d+"' data-b='"+b+"'>&mdash;</td>";
+    const t = TASK[key], lev = LEV[t.lev - 1];
+    return "<td class='cell' data-d='"+d+"' data-b='"+b+"' style='background:"+lev.tint+";box-shadow:inset 3px 0 0 "+lev.solid+"'>"
+      + "<span class='tag' style='color:"+t.color+"'><span class='tdot' style='background:"+t.color+"'></span>"+t.label+"</span></td>";
+  }
+  function buildBody(){
+    let html = "";
+    for (let b = 0; b < BLOCKS; b++){
+      const tl = timeLabel(b);
+      html += "<tr class='" + (tl.hour ? "hour" : "") + "'><td class='timecol'>" + tl.text + (tl.hour ? " <span style='opacity:.6'>"+tl.ap+"</span>" : "") + "</td>";
+      for (let d = 0; d < 7; d++) html += cellHTML(d, b);
+      html += "</tr>";
+    }
+    document.getElementById("tbody").innerHTML = html;
+  }
+  function buildFoot(){
+    let html = "<tr><td class='timecol'>Total $ / day</td>";
+    for (let d = 0; d < 7; d++){
+      const v = dayTotal(d);
+      html += "<td class='" + (v >= 800 ? "hi" : v === 0 ? "lo" : "") + "'>" + money(v) + "</td>";
+    }
+    document.getElementById("tfoot").innerHTML = html + "</tr>";
+  }
+
+  // merge contiguous same-task blocks into sessions for the list view
+  function sessions(d){
+    const out = []; let cur = null;
+    for (let b = 0; b < BLOCKS; b++){
+      const key = state[d + "-" + b] || null;
+      if (cur && cur.key === key){ cur.end = b + 1; }
+      else { if (cur && cur.key) out.push(cur); cur = { key, start: b, end: b + 1 }; }
+    }
+    if (cur && cur.key) out.push(cur);
+    return out;
+  }
+  function rangeText(s){
+    const a = timeLabel(s.start).full;
+    const endMins = 6*60 + s.end*30, eh = Math.floor(endMins/60), em = endMins%60;
+    let ehh = eh % 12; if (ehh === 0) ehh = 12;
+    const b = ehh + ":" + (em === 0 ? "00" : "30") + " " + (eh >= 12 ? "PM" : "AM");
+    return a + " &ndash; " + b;
+  }
+  function buildList(){
+    let html = "";
+    for (let d = 0; d < 7; d++){
+      const v = dayTotal(d), ss = sessions(d);
+      html += "<div class='daycard'><div class='dhead'><div><div class='dname'>"+DAYSFULL[d]+"</div><div class='ddate'>July "+DATES[d]+"</div></div>"
+        + "<div class='dval "+(v>=800?"hi":v===0?"lo":"")+" num'>"+money(v)+"</div></div>";
+      if (!ss.length){ html += "<div class='emptyday'>No blocks tagged yet.</div>"; }
+      else ss.forEach(s => {
+        const t = TASK[s.key], lev = LEV[t.lev - 1], hrs = (s.end - s.start) * 0.5;
+        const val = (s.end - s.start) * lev.rate;
+        html += "<div class='session' data-d='"+d+"' data-start='"+s.start+"' data-end='"+s.end+"'>"
+          + "<span class='stime'>"+rangeText(s)+"</span>"
+          + "<span class='stag' style='color:"+t.color+"'><span class='tdot' style='background:"+t.color+"'></span>"+t.label
+          + " <span style='color:var(--faint);font-weight:500'>&middot; "+hrs+"h</span></span>"
+          + "<span class='levpill' style='background:"+lev.tint+";color:"+lev.solid+"'>"+lev.label+"</span>"
+          + "<span class='sval num'>"+money(val)+"</span></div>";
+      });
+      html += "</div>";
+    }
+    document.getElementById("listview").innerHTML = html;
+  }
+  function buildTaskLegend(){
+    document.getElementById("taskLegend").innerHTML =
+      TASKS.map(t => "<b><span class='d' style='background:"+t.color+"'></span>"+t.label+"</b>").join("");
+  }
+  function renderAll(){ buildBody(); buildFoot(); buildList(); }
+
+  const ORDER = [null, ...TASKS.map(t => t.key)];
+  function nextKey(cur){ const i = ORDER.indexOf(cur || null); return ORDER[(i + 1) % ORDER.length]; }
+
+  // grid: cycle single block
+  document.getElementById("tbody").addEventListener("click", e => {
+    const td = e.target.closest("td.cell"); if (!td) return;
+    const d = +td.dataset.d, b = +td.dataset.b;
+    const nk = nextKey(state[d + "-" + b] || null);
+    if (nk) state[d + "-" + b] = nk; else delete state[d + "-" + b];
+    renderAll();
+  });
+  // list: cycle a whole session (all its blocks)
+  document.getElementById("listview").addEventListener("click", e => {
+    const row = e.target.closest(".session"); if (!row) return;
+    const d = +row.dataset.d, start = +row.dataset.start, end = +row.dataset.end;
+    const nk = nextKey(state[d + "-" + start] || null);
+    for (let b = start; b < end; b++){ if (nk) state[d + "-" + b] = nk; else delete state[d + "-" + b]; }
+    renderAll();
+  });
+
+  buildHead(); buildTaskLegend(); renderAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Admin Redesign — All Mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#0b0d12; --panel:#141922; --line:#242c38; --text:#e8ebf2; --muted:#95a0b4; --faint:#6a7486; --indigo:#6366f1; --violet:#8b5cf6; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; }
+  body { font-family:"Inter",system-ui,sans-serif; background:var(--bg); color:var(--text); display:flex; height:100dvh; overflow:hidden; }
+  aside { width:266px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; overflow-y:auto; }
+  .brand { display:flex; align-items:center; gap:11px; padding:16px 18px; border-bottom:1px solid var(--line); }
+  .brand .mark { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; background:linear-gradient(135deg,var(--indigo),var(--violet)); font-family:"Poppins"; font-weight:700; font-size:16px; }
+  .brand b { font-family:"Poppins"; font-size:14px; }
+  .brand span { display:block; font-size:11.5px; color:var(--muted); font-weight:500; margin-top:1px; }
+  .grp { padding:14px 14px 4px; font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--faint); font-weight:600; }
+  .item { display:block; width:calc(100% - 16px); margin:2px 8px; text-align:left; border:0; background:transparent; color:var(--muted); padding:9px 12px; border-radius:9px; font:inherit; font-size:13.5px; font-weight:500; cursor:pointer; transition:.14s; }
+  .item:hover { background:rgba(255,255,255,.05); color:var(--text); }
+  .item.on { background:linear-gradient(135deg,var(--indigo),var(--violet)); color:#fff; font-weight:600; }
+  .item .st { font-size:11px; color:var(--faint); font-weight:500; }
+  .item.on .st { color:rgba(255,255,255,.8); }
+  .item .pick { float:right; font-size:10.5px; color:#6fe0a6; font-weight:600; }
+  .foot { margin-top:auto; padding:14px 16px; font-size:11px; color:var(--faint); border-top:1px solid var(--line); line-height:1.5; }
+  main { flex:1; min-width:0; position:relative; background:#fff; }
+  iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+</style>
+</head>
+<body>
+  <aside>
+    <div class="brand">
+      <div class="mark">H</div>
+      <div><b>Admin Redesign</b><span>Bento Bold · pick a layout per surface</span></div>
+    </div>
+
+    <div class="grp">Command</div>
+    <button class="item" data-src="business-health-index.html">Business Health<span class="st">A hero · B zoned · C verdict</span></button>
+
+    <div class="grp">Acquisition</div>
+    <button class="item on" data-src="cold-calling.html">Cold Call<span class="pick">CHOSEN</span><span class="st">Bento Bold · editable</span></button>
+    <button class="item" data-src="leads-index.html">Leads<span class="st">A table · B filters · C due-today</span></button>
+    <button class="item" data-src="cold-sms-index.html">Cold SMS<span class="st">A stacked · B sub-nav · C split</span></button>
+
+    <div class="grp">Sales</div>
+    <button class="item" data-src="cold-calling.html">Sales Data<span class="st">reuses the Cold Call template</span></button>
+
+    <div class="grp">Fulfillment (in cockpit)</div>
+    <button class="item" data-src="client-billing-index.html">Client Billing<span class="st">A panel · B cards · C tiles</span></button>
+    <button class="item" data-src="ad-tracking-index.html">Ad Tracking<span class="st">A wide · B stages · C windows</span></button>
+
+    <div class="grp">Operations</div>
+    <button class="item" data-src="scaling-calculator-index.html">Scaling Calculator<span class="st">A split · B funnel · C compact</span></button>
+    <button class="item" data-src="time-audit-index.html">Time Audit<span class="st">A grid · B summary · C list</span></button>
+    <button class="item" data-src="task-list-index.html">Tasks<span class="st">A table · B counters · C kanban</span></button>
+
+    <div class="foot">Each surface opens its own A/B/C gallery. Sales Data reuses the approved Cold Call layout. Tell Claude your pick per surface.</div>
+  </aside>
+  <main><iframe id="frame" src="cold-calling.html" title="Mockup preview"></iframe></main>
+<script>
+  const aside = document.querySelector('aside');
+  const frame = document.getElementById('frame');
+  aside.addEventListener('click', (e) => {
+    const btn = e.target.closest('button.item');
+    if (!btn) return;
+    aside.querySelectorAll('button.item').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    frame.src = btn.dataset.src;
+  });
+</script>
+</body>
+</html>

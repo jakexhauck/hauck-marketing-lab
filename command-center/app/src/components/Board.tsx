@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
 import Avatar from "./Avatar";
+import BoardScrollbar from "./BoardScrollbar";
 import WonSheet from "./WonSheet";
 import MoveStageSheet from "./MoveStageSheet";
 import LeadChatModal from "./LeadChatModal";
@@ -17,6 +18,8 @@ import type { ApiLead } from "../lib/api";
 interface Stage {
   id: string;
   name: string;
+  // Per-stage hex from GHL (e.g. "#F97316"). Optional: demo/older data omits it.
+  color?: string;
 }
 
 interface Props {
@@ -34,6 +37,8 @@ export default function Board({ leads, stages, pipelineId }: Props) {
   const [wonFor, setWonFor] = useState<ApiLead | null>(null);
   const { unreadFor, markSeen } = useLeadUnread();
   const [chatFor, setChatFor] = useState<ApiLead | null>(null);
+  // The horizontally-scrolling stage strip, panned by the drag-slider below it.
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const openChat = (lead: ApiLead) => {
     markSeen(lead.contactId);
@@ -94,7 +99,10 @@ export default function Board({ leads, stages, pipelineId }: Props) {
 
   return (
     <div className="pt-2">
-      <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2">
+      <div
+        ref={scrollRef}
+        className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2"
+      >
         {stages.map((stage) => {
           const items = byStage.get(stage.id) ?? [];
           const sum = items.reduce((acc, l) => acc + (l.value ?? 0), 0);
@@ -103,9 +111,18 @@ export default function Board({ leads, stages, pipelineId }: Props) {
               key={stage.id}
               className="flex w-[78vw] max-w-[300px] shrink-0 snap-start flex-col gap-2 lg:w-[300px] lg:max-w-none"
             >
-              <header className="flex items-baseline justify-between px-1">
-                <span className="truncate font-display text-[14px] font-bold text-[var(--text)]">
-                  {stage.name}
+              <header className="flex items-baseline justify-between gap-2 px-1">
+                <span className="flex min-w-0 items-center gap-1.5">
+                  {stage.color && (
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: stage.color }}
+                      aria-hidden
+                    />
+                  )}
+                  <span className="truncate font-display text-[14px] font-bold text-[var(--text)]">
+                    {stage.name}
+                  </span>
                 </span>
                 <span className="shrink-0 text-[12px] font-semibold text-[var(--text-muted)]">
                   {items.length}
@@ -188,6 +205,8 @@ export default function Board({ leads, stages, pipelineId }: Props) {
           );
         })}
       </div>
+
+      <BoardScrollbar scrollRef={scrollRef} />
 
       {moving && (
         <MoveStageSheet

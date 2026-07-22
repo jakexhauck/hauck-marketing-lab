@@ -11,14 +11,11 @@ import Home from "./routes/Home";
 import AllFeatures from "./routes/AllFeatures";
 import Leads from "./routes/Leads";
 import LeadsOrganic from "./routes/sales/LeadsOrganic";
-import LeadsPaidAds from "./routes/sales/LeadsPaidAds";
 import Jobs from "./routes/sales/Jobs";
+import JobConsole from "./routes/sales/JobConsole";
 import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
-import ReviewsOverview from "./routes/reviews/ReviewsOverview";
 import ReviewsRequests from "./routes/reviews/ReviewsRequests";
-import ReviewsAll from "./routes/reviews/ReviewsAll";
-import ReviewsInsights from "./routes/reviews/ReviewsInsights";
 import ReviewsPipeline from "./routes/reviews/ReviewsPipeline";
 import { Activity } from "./routes/Activity";
 import Contacts from "./routes/Contacts";
@@ -28,14 +25,12 @@ import ConversationDetail from "./routes/ConversationDetail";
 import LeadDetail from "./routes/LeadDetail";
 import Today from "./routes/Today";
 import Billing from "./routes/Billing";
-import Calendar from "./routes/Calendar";
 import Notifications from "./routes/Notifications";
 import Team from "./routes/Team";
 import Settings from "./routes/Settings";
 import Comms from "./routes/Comms";
 import Automations from "./routes/Automations";
 import ComingSoon from "./routes/ComingSoon";
-import ClientAssets from "./routes/Assets";
 import SocialOverview from "./routes/social/SocialOverview";
 import SocialIdeas from "./routes/social/SocialIdeas";
 import SocialCalendar from "./routes/social/SocialCalendar";
@@ -47,7 +42,6 @@ import WebsiteInsights from "./routes/website/WebsiteInsights";
 import AdsOverview from "./routes/paid-ads/AdsOverview";
 import AdsCreatives from "./routes/paid-ads/AdsCreatives";
 import AdsInsights from "./routes/paid-ads/AdsInsights";
-import AdsFunnel from "./routes/paid-ads/AdsFunnel";
 import AdsMedia from "./routes/paid-ads/AdsMedia";
 import Reactivation from "./routes/sales/Reactivation";
 import CampaignsAudiences from "./routes/campaigns/CampaignsAudiences";
@@ -58,7 +52,6 @@ import OutreachData from "./routes/outreach/OutreachData";
 import OutreachSms from "./routes/outreach/OutreachSms";
 import ReactivationPipeline from "./routes/reactivation/ReactivationPipeline";
 import ReactivationData from "./routes/reactivation/ReactivationData";
-import ReactivationMessages from "./routes/reactivation/ReactivationMessages";
 import GroupOutreachOverview from "./routes/groups/GroupOutreachOverview";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
@@ -280,6 +273,15 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              {/* Console = work an active lead: move stage, log amount + outcome. */}
+              <Route
+                path="/sales/leads/console"
+                element={
+                  <ProtectedRoute>
+                    <JobConsole />
+                  </ProtectedRoute>
+                }
+              />
               {/* Organic = website estimate-form + chat leads (list only). */}
               <Route
                 path="/sales/leads/organic"
@@ -289,20 +291,13 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              {/* Paid Ads = ad leads (simple list). */}
-              <Route
-                path="/sales/leads/paid-ads"
-                element={
-                  <ProtectedRoute>
-                    <LeadsPaidAds />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Old paths fold into the new pages. */}
+              {/* Old paths fold into the new pages. Paid Ads is no longer a Leads
+                  tab; its old routes redirect to the Pipeline board. */}
               <Route path="/sales/leads/pipeline" element={<Navigate to="/sales/leads" replace />} />
+              <Route path="/sales/leads/paid-ads" element={<Navigate to="/sales/leads" replace />} />
               <Route path="/sales/forms" element={<Navigate to="/sales/leads/organic" replace />} />
               <Route path="/sales/chat" element={<Navigate to="/sales/leads/organic" replace />} />
-              <Route path="/sales/paid-ads" element={<Navigate to="/sales/leads/paid-ads" replace />} />
+              <Route path="/sales/paid-ads" element={<Navigate to="/sales/leads" replace />} />
               <Route
                 path="/sales/jobs"
                 element={
@@ -388,14 +383,8 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/calendar"
-                element={
-                  <ProtectedRoute>
-                    <Calendar />
-                  </ProtectedRoute>
-                }
-              />
+              {/* The calendar now lives inside the Jobs tab as a set of views. */}
+              <Route path="/calendar" element={<Navigate to="/sales/jobs" replace />} />
               <Route
                 path="/notifications"
                 element={
@@ -460,16 +449,19 @@ export default function App() {
                   media-buyer dashboard stays reachable at /paid-ads for the deep dive. */}
               <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsOverview /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/creatives" element={<ProtectedRoute><AdsCreatives /></ProtectedRoute>} />
-              {/* A marketing channel never hosts a lead list; ad leads live in Leads, filtered. */}
-              <Route path="/marketing/paid-ads/leads" element={<Navigate to="/sales/leads/paid-ads" replace />} />
+              {/* A marketing channel never hosts a lead list; ad leads live in the Leads pipeline. */}
+              <Route path="/marketing/paid-ads/leads" element={<Navigate to="/sales/leads" replace />} />
               <Route path="/marketing/paid-ads/stats" element={<ProtectedRoute><AdsInsights /></ProtectedRoute>} />
-              <Route path="/marketing/paid-ads/funnel" element={<ProtectedRoute><AdsFunnel /></ProtectedRoute>} />
+              {/* Funnel tab retired; old URL redirects to the Paid Ads overview. */}
+              <Route path="/marketing/paid-ads/funnel" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/media" element={<ProtectedRoute><AdsMedia /></ProtectedRoute>} />
-              <Route path="/marketing/reviews" element={<ProtectedRoute><ReviewsOverview /></ProtectedRoute>} />
+              {/* Overview retired; Google Reviews opens on the Review Pipeline. */}
+              <Route path="/marketing/reviews" element={<Navigate to="/marketing/reviews/pipeline" replace />} />
               <Route path="/marketing/reviews/pipeline" element={<ProtectedRoute><ReviewsPipeline /></ProtectedRoute>} />
               <Route path="/marketing/reviews/requests" element={<ProtectedRoute><ReviewsRequests /></ProtectedRoute>} />
-              <Route path="/marketing/reviews/all" element={<ProtectedRoute><ReviewsAll /></ProtectedRoute>} />
-              <Route path="/marketing/reviews/report" element={<ProtectedRoute><ReviewsInsights /></ProtectedRoute>} />
+              {/* All Reviews + Reputation Report tabs retired; old URLs fall back to the pipeline. */}
+              <Route path="/marketing/reviews/all" element={<Navigate to="/marketing/reviews/pipeline" replace />} />
+              <Route path="/marketing/reviews/report" element={<Navigate to="/marketing/reviews/pipeline" replace />} />
               {/* Campaigns is retired; Overview/all/insights redirect into Commercial Outreach.
                   Audiences stays parked but reachable. Reactivation moved to its own section. */}
               <Route path="/marketing/campaigns" element={<Navigate to="/marketing/outreach" replace />} />
@@ -486,7 +478,8 @@ export default function App() {
               <Route path="/marketing/reactivation" element={<ProtectedRoute><Reactivation /></ProtectedRoute>} />
               <Route path="/marketing/reactivation/pipeline" element={<ProtectedRoute><ReactivationPipeline /></ProtectedRoute>} />
               <Route path="/marketing/reactivation/data" element={<ProtectedRoute><ReactivationData /></ProtectedRoute>} />
-              <Route path="/marketing/reactivation/messages" element={<ProtectedRoute><ReactivationMessages /></ProtectedRoute>} />
+              {/* Messages tab retired; old URL falls back to the Reactivation overview. */}
+              <Route path="/marketing/reactivation/messages" element={<Navigate to="/marketing/reactivation" replace />} />
               {/* Group Outreach */}
               <Route path="/marketing/groups" element={<ProtectedRoute><GroupOutreachOverview /></ProtectedRoute>} />
               <Route path="/marketing/website" element={<ProtectedRoute><WebsiteOverview /></ProtectedRoute>} />
@@ -498,7 +491,6 @@ export default function App() {
               <Route path="/marketing/social/calendar" element={<ProtectedRoute><SocialCalendar /></ProtectedRoute>} />
               <Route path="/marketing/social/posts" element={<ProtectedRoute><SocialPosts /></ProtectedRoute>} />
               <Route path="/marketing/social/insights" element={<ProtectedRoute><SocialInsights /></ProtectedRoute>} />
-              <Route path="/company/documents" element={<ProtectedRoute><ClientAssets /></ProtectedRoute>} />
               {/* Command home: the whole-business Theory-of-Constraints view. */}
               <Route
                 path="/admin"

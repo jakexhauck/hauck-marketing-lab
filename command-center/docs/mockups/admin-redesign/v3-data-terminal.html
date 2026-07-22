@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hauck Terminal — Cold Calling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0D0F12;
+    --panel:#14171C;
+    --panel-2:#181B21;
+    --line:rgba(255,255,255,.07);
+    --line-strong:rgba(255,255,255,.13);
+    --txt:#D7DBE0;
+    --txt-dim:#8A9099;
+    --txt-faint:#5A616B;
+    --accent:#2BE5B0;
+    --accent-dim:rgba(43,229,176,.14);
+    --green:#3ddc84;
+    --red:#ff5c5c;
+    --amber:#f5b544;
+    --green-bg:rgba(61,220,132,.12);
+    --red-bg:rgba(255,92,92,.12);
+    --amber-bg:rgba(245,181,68,.12);
+    --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--txt);
+    font-family:var(--mono);
+    font-size:13px;
+    line-height:1.4;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  .num{font-variant-numeric:tabular-nums lining-nums;font-feature-settings:"tnum" 1,"lnum" 1}
+  .up{color:var(--txt-faint)}
+
+  /* ===== APP GRID ===== */
+  .app{
+    display:grid;
+    grid-template-columns:64px 1fr;
+    min-height:100vh;
+  }
+
+  /* ===== SPINE ===== */
+  .spine{
+    background:#0A0C0F;
+    border-right:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:12px 0;
+    position:sticky;
+    top:0;
+    height:100vh;
+  }
+  .brand{
+    width:38px;height:38px;
+    display:grid;place-items:center;
+    background:var(--accent);
+    color:#04120D;
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:20px;
+    border-radius:9px;
+    margin-bottom:18px;
+    letter-spacing:-.02em;
+  }
+  .nav{display:flex;flex-direction:column;gap:4px;width:100%;align-items:center;flex:1}
+  .navbtn{
+    position:relative;
+    width:44px;height:44px;
+    display:grid;place-items:center;
+    color:var(--txt-faint);
+    border-radius:9px;
+    cursor:pointer;
+    transition:.14s;
+  }
+  .navbtn svg{width:19px;height:19px;stroke-width:1.7}
+  .navbtn:hover{color:var(--txt);background:var(--panel)}
+  .navbtn.active{color:var(--accent);background:var(--accent-dim)}
+  .navbtn.active::before{
+    content:"";position:absolute;left:-12px;top:50%;transform:translateY(-50%);
+    width:3px;height:22px;background:var(--accent);border-radius:0 3px 3px 0;
+  }
+  .navbtn .tip{
+    position:absolute;left:52px;top:50%;transform:translateY(-50%);
+    background:#000;border:1px solid var(--line-strong);
+    color:var(--txt);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    padding:4px 8px;border-radius:5px;white-space:nowrap;
+    opacity:0;pointer-events:none;transition:.12s;z-index:20;
+  }
+  .navbtn:hover .tip{opacity:1}
+  .spine-foot{display:flex;flex-direction:column;gap:10px;align-items:center}
+  .avatar{
+    width:32px;height:32px;border-radius:50%;
+    background:linear-gradient(135deg,#2b3038,#171a1f);
+    border:1px solid var(--line-strong);
+    display:grid;place-items:center;
+    font-size:11px;font-weight:600;color:var(--txt);letter-spacing:.03em;
+  }
+
+  /* ===== MAIN ===== */
+  .main{display:flex;flex-direction:column;min-width:0}
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:8px 20px;border-bottom:1px solid var(--line);
+    background:var(--bg);
+  }
+  .ticker{
+    display:flex;gap:22px;align-items:center;font-size:10.5px;letter-spacing:.06em;
+    color:var(--txt-dim);overflow:hidden;white-space:nowrap;
+  }
+  .ticker b{color:var(--txt)}
+  .ticker .g{color:var(--green)}
+  .ticker .r{color:var(--red)}
+  .clock{font-size:10.5px;letter-spacing:.08em;color:var(--txt-faint);white-space:nowrap}
+  .clock .dot{color:var(--green)}
+
+  .content{
+    display:grid;
+    grid-template-columns:1fr 244px;
+    gap:0;
+    align-items:start;
+    min-width:0;
+  }
+  .col-main{padding:18px 20px 40px;min-width:0}
+
+  /* ===== HEADER ===== */
+  .kicker{
+    font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--accent);font-weight:600;margin-bottom:6px;
+  }
+  .title{font-family:var(--sans);font-size:27px;font-weight:600;letter-spacing:-.02em;color:#fff;line-height:1.05}
+  .tagline{font-family:var(--sans);color:var(--txt-dim);font-size:13px;margin-top:5px}
+
+  /* ===== TABS ===== */
+  .tabs{
+    display:flex;gap:2px;margin-top:16px;
+    border-bottom:1px solid var(--line);
+    overflow-x:auto;scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{
+    padding:8px 14px;
+    font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:500;
+    color:var(--txt-faint);cursor:pointer;white-space:nowrap;
+    border-bottom:2px solid transparent;margin-bottom:-1px;transition:.14s;
+  }
+  .tab:hover{color:var(--txt-dim)}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+  /* ===== STAT CARDS ===== */
+  .stats{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+    margin-top:18px;background:var(--line);
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;
+  }
+  .stat{background:var(--panel);padding:12px 14px}
+  .stat .lbl{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt-faint)}
+  .stat .val{font-size:28px;font-weight:600;color:#fff;margin-top:6px;letter-spacing:-.01em;line-height:1}
+  .stat .sub{font-size:10px;color:var(--txt-dim);margin-top:6px;letter-spacing:.03em}
+  .bench{
+    display:inline-flex;align-items:center;gap:4px;margin-top:8px;
+    font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+    padding:2px 6px;border-radius:4px;
+  }
+  .bench.met{color:var(--green);background:var(--green-bg)}
+  .bench.below{color:var(--red);background:var(--red-bg)}
+  .bench .d{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+  /* ===== TABLE ===== */
+  .panel{
+    margin-top:18px;border:1px solid var(--line);border-radius:8px;
+    background:var(--panel);overflow:hidden;
+  }
+  .panel-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:9px 14px;border-bottom:1px solid var(--line);
+  }
+  .panel-head .h{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt-dim);font-weight:600}
+  .panel-head .meta{font-size:10px;letter-spacing:.06em;color:var(--txt-faint)}
+  .tbl-scroll{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;min-width:820px;font-size:12px}
+  thead th{
+    font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;
+    color:var(--txt-faint);text-align:right;padding:8px 12px;
+    border-bottom:1px solid var(--line-strong);white-space:nowrap;
+    background:var(--panel-2);position:sticky;top:0;
+  }
+  thead th:first-child{text-align:left}
+  thead th.notes{text-align:left}
+  /* computed column headers get a tint */
+  thead th.calc{color:var(--txt-dim)}
+  tbody td{
+    padding:7px 12px;text-align:right;border-bottom:1px solid var(--line);
+    white-space:nowrap;color:var(--txt);
+    font-variant-numeric:tabular-nums lining-nums;
+  }
+  tbody td:first-child{text-align:left;color:var(--txt-dim);letter-spacing:.02em}
+  td.notes{text-align:left;color:var(--txt-dim);font-family:var(--sans);font-size:11.5px}
+  td.calc{color:var(--txt-dim);background:rgba(255,255,255,.012)}
+  tbody tr:hover td{background:rgba(43,229,176,.045)}
+  tbody tr:hover td.calc{background:rgba(43,229,176,.06)}
+  .obj{color:var(--amber);font-family:var(--sans);font-size:11.5px}
+  .empty{color:var(--txt-faint)}
+  /* perf tint on computed % */
+  .pct-good{color:var(--green)}
+  .pct-warn{color:var(--amber)}
+  .pct-bad{color:var(--red)}
+
+  .addrow td{padding:0;border-bottom:1px solid var(--line)}
+  .addrow button{
+    width:100%;text-align:left;padding:8px 12px;
+    background:transparent;border:0;color:var(--txt-faint);
+    font-family:var(--mono);font-size:11px;letter-spacing:.04em;cursor:pointer;
+    display:flex;align-items:center;gap:7px;transition:.14s;
+  }
+  .addrow button:hover{color:var(--accent);background:rgba(43,229,176,.05)}
+  .addrow svg{width:13px;height:13px}
+
+  tfoot td{
+    padding:8px 12px;text-align:right;
+    font-variant-numeric:tabular-nums lining-nums;
+    border-top:1px solid var(--line-strong);
+  }
+  tfoot tr.avg td{background:var(--panel-2);color:var(--txt-dim)}
+  tfoot tr.total td{background:#10130f;color:#fff;font-weight:600}
+  tfoot td:first-child{
+    text-align:left;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  }
+  tfoot tr.avg td:first-child{color:var(--txt-faint)}
+  tfoot tr.total td:first-child{color:var(--accent)}
+
+  /* ===== KPI RAIL ===== */
+  .rail{
+    border-left:1px solid var(--line);
+    padding:18px 16px 40px;
+    position:sticky;top:0;
+    align-self:stretch;
+    background:var(--panel-2);
+    min-height:100vh;
+  }
+  .rail-head{
+    display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
+  }
+  .rail-head .h{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--txt-dim);font-weight:600}
+  .rail-head .tag{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);
+    padding:2px 6px;border:1px solid var(--accent-dim);border-radius:4px}
+  .tile{
+    padding:12px 0;border-bottom:1px solid var(--line);
+  }
+  .tile:last-child{border-bottom:0}
+  .tile .lbl{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt-faint)}
+  .tile .row{display:flex;align-items:baseline;justify-content:space-between;margin-top:5px}
+  .tile .val{font-size:26px;font-weight:600;color:#fff;letter-spacing:-.01em;line-height:1;
+    font-variant-numeric:tabular-nums lining-nums}
+  .tile .note{font-size:10px;letter-spacing:.04em;color:var(--txt-dim);margin-top:5px}
+  .flag{font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:4px}
+  .flag.good{color:var(--green);background:var(--green-bg)}
+  .flag.warn{color:var(--amber);background:var(--amber-bg)}
+  .flag.up{color:var(--green)}
+
+  /* ===== RESPONSIVE ===== */
+  @media(max-width:1080px){
+    .content{grid-template-columns:1fr}
+    .rail{
+      border-left:0;border-top:1px solid var(--line);
+      position:static;min-height:0;
+      display:grid;grid-template-columns:repeat(3,1fr);gap:0 20px;
+      padding:18px 20px 40px;
+    }
+    .rail-head{grid-column:1/-1}
+    .tile{border-bottom:1px solid var(--line)}
+  }
+  @media(max-width:720px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .rail{grid-template-columns:repeat(2,1fr)}
+    .ticker{display:none}
+    .title{font-size:23px}
+  }
+  @media(max-width:480px){
+    .app{grid-template-columns:52px 1fr}
+    .stats{grid-template-columns:1fr}
+    .rail{grid-template-columns:1fr}
+    .col-main{padding:16px 12px 32px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== SPINE ===== -->
+  <aside class="spine">
+    <div class="brand">H</div>
+    <nav class="nav">
+      <div class="navbtn" title="Command">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span class="tip">Command</span>
+      </div>
+      <div class="navbtn active" title="Acquisition">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M15 8a4 4 0 0 1 0 8"/><path d="M18 5a8 8 0 0 1 0 14"/></svg>
+        <span class="tip">Acquisition</span>
+      </div>
+      <div class="navbtn" title="Sales">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 13 3 8a3 3 0 0 1 4-4l1 1 1-1a3 3 0 0 1 4 4"/><path d="m11 6 6 6-4 4-2-2"/><path d="m13 12 4 4 4-4-3-3"/></svg>
+        <span class="tip">Sales</span>
+      </div>
+      <div class="navbtn" title="Fulfillment">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
+        <span class="tip">Fulfillment</span>
+      </div>
+      <div class="navbtn" title="Operations">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.7 2.7-2-2Z"/></svg>
+        <span class="tip">Operations</span>
+      </div>
+    </nav>
+    <div class="spine-foot">
+      <div class="navbtn" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        <span class="tip">Settings</span>
+      </div>
+      <div class="avatar">JH</div>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <div class="main">
+
+    <div class="topbar">
+      <div class="ticker num">
+        <span>DIALS <b>131</b></span>
+        <span>PICKUP <b class="g">16.0%</b></span>
+        <span>BOOKED <b>1</b></span>
+        <span>ROAS <b class="g">3.8x</b></span>
+        <span>CHURN <b class="r">12%</b></span>
+      </div>
+      <div class="clock num"><span class="dot">●</span> LIVE · MON 2/16 · 14:32:07</div>
+    </div>
+
+    <div class="content">
+      <div class="col-main">
+
+        <!-- HEADER -->
+        <div class="kicker">Acquisition</div>
+        <h1 class="title">Cold Calling</h1>
+        <p class="tagline">Daily dialing funnel. Log the raw counts, the rates compute themselves.</p>
+
+        <!-- TABS -->
+        <div class="tabs">
+          <div class="tab">Leads</div>
+          <div class="tab active">Cold Call</div>
+          <div class="tab">Cold Email</div>
+          <div class="tab">Cold DM</div>
+          <div class="tab">SMS</div>
+        </div>
+
+        <!-- STAT CARDS -->
+        <div class="stats">
+          <div class="stat">
+            <div class="lbl">Calls Made</div>
+            <div class="val num">131</div>
+            <div class="sub">today</div>
+            <div class="bench met"><span class="d"></span>min 100/day</div>
+          </div>
+          <div class="stat">
+            <div class="lbl">Pickup %</div>
+            <div class="val num">16.0<span style="font-size:16px;color:var(--txt-dim)">%</span></div>
+            <div class="sub">21 of 131</div>
+            <div class="bench met"><span class="d"></span>std &gt;15%</div>
+          </div>
+          <div class="stat">
+            <div class="lbl">Meetings Booked</div>
+            <div class="val num">1</div>
+            <div class="sub">today</div>
+          </div>
+          <div class="stat">
+            <div class="lbl">Booking %</div>
+            <div class="val num">0.76<span style="font-size:16px;color:var(--txt-dim)">%</span></div>
+            <div class="sub">per dial</div>
+            <div class="bench below"><span class="d"></span>target 1-3%</div>
+          </div>
+        </div>
+
+        <!-- DATA TABLE -->
+        <div class="panel">
+          <div class="panel-head">
+            <span class="h">Cold Call Tracker · Week of 2/12</span>
+            <span class="meta num">5 sessions · sample data</span>
+          </div>
+          <div class="tbl-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Calls Made</th>
+                  <th>Pickups</th>
+                  <th class="calc">Pickup %</th>
+                  <th>Pass-Through</th>
+                  <th class="calc">Pickup→PT %</th>
+                  <th>Meetings</th>
+                  <th class="calc">Pitch→Book %</th>
+                  <th class="notes">Objections</th>
+                  <th class="notes">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Mon 2/12</td>
+                  <td>131</td><td>21</td>
+                  <td class="calc pct-good">16.0%</td>
+                  <td>19</td>
+                  <td class="calc pct-good">90.5%</td>
+                  <td>1</td>
+                  <td class="calc pct-warn">5.3%</td>
+                  <td class="obj">price x3</td>
+                  <td class="notes empty">—</td>
+                </tr>
+                <tr>
+                  <td>Tue 2/13</td>
+                  <td>118</td><td>17</td>
+                  <td class="calc pct-warn">14.4%</td>
+                  <td>14</td>
+                  <td class="calc pct-warn">82.4%</td>
+                  <td>0</td>
+                  <td class="calc pct-bad">0.0%</td>
+                  <td class="obj">not now</td>
+                  <td class="notes empty">—</td>
+                </tr>
+                <tr>
+                  <td>Wed 2/14</td>
+                  <td>142</td><td>25</td>
+                  <td class="calc pct-good">17.6%</td>
+                  <td>22</td>
+                  <td class="calc pct-good">88.0%</td>
+                  <td>2</td>
+                  <td class="calc pct-good">9.1%</td>
+                  <td class="obj">using X</td>
+                  <td class="notes" style="color:var(--green)">strong day</td>
+                </tr>
+                <tr>
+                  <td>Thu 2/15</td>
+                  <td>96</td><td>12</td>
+                  <td class="calc pct-bad">12.5%</td>
+                  <td>9</td>
+                  <td class="calc pct-bad">75.0%</td>
+                  <td>0</td>
+                  <td class="calc pct-bad">0.0%</td>
+                  <td class="obj">gatekeeper</td>
+                  <td class="notes">short day</td>
+                </tr>
+                <tr>
+                  <td>Fri 2/16</td>
+                  <td>134</td><td>23</td>
+                  <td class="calc pct-good">17.2%</td>
+                  <td>20</td>
+                  <td class="calc pct-good">87.0%</td>
+                  <td>1</td>
+                  <td class="calc pct-warn">5.0%</td>
+                  <td class="obj">budget</td>
+                  <td class="notes empty">—</td>
+                </tr>
+                <tr class="addrow">
+                  <td colspan="10">
+                    <button>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      Log today's session
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="avg">
+                  <td>Average</td>
+                  <td>124</td><td>20</td>
+                  <td class="calc">15.5%</td>
+                  <td>17</td>
+                  <td class="calc">84.6%</td>
+                  <td>0.8</td>
+                  <td class="calc">3.9%</td>
+                  <td></td><td></td>
+                </tr>
+                <tr class="total">
+                  <td>Total</td>
+                  <td>621</td><td>98</td>
+                  <td class="calc">15.8%</td>
+                  <td>84</td>
+                  <td class="calc">85.7%</td>
+                  <td>4</td>
+                  <td class="calc"></td>
+                  <td></td><td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ===== KPI RAIL ===== -->
+      <aside class="rail">
+        <div class="rail-head">
+          <span class="h">Business Health</span>
+          <span class="tag">This month</span>
+        </div>
+
+        <div class="tile">
+          <div class="lbl">CAC</div>
+          <div class="row"><span class="val num">$850</span></div>
+          <div class="note">cost to acquire</div>
+        </div>
+        <div class="tile">
+          <div class="lbl">LTV : CAC</div>
+          <div class="row"><span class="val num">4.9x</span><span class="flag good">healthy &gt;3</span></div>
+        </div>
+        <div class="tile">
+          <div class="lbl">ROAS</div>
+          <div class="row"><span class="val num">3.8x</span><span class="flag good">good &gt;3</span></div>
+        </div>
+        <div class="tile">
+          <div class="lbl">Churn</div>
+          <div class="row"><span class="val num" style="color:var(--amber)">12%</span><span class="flag warn">watch</span></div>
+        </div>
+        <div class="tile">
+          <div class="lbl">New MRR</div>
+          <div class="row"><span class="val num">$6,000</span></div>
+        </div>
+        <div class="tile">
+          <div class="lbl">Clients</div>
+          <div class="row"><span class="val num">6</span><span class="flag up num">+3 this mo</span></div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -27,9 +27,11 @@ const completeJob: DemoRoute = {
   },
 };
 
-// POST /api/sales/leads/:id/stage -> apply the off-ramp to a demo lead. A lost /
-// abandoned status parks the lead (our "cold" status); any other status is a
-// no-op that still succeeds.
+// POST /api/sales/leads/:id/stage -> work a demo lead the way the Job Console
+// does: move its stage, record the job amount, and/or land an outcome. A won
+// lead carries its price + "won" outcome; a lost/abandoned lead parks (our
+// "cold" status) and takes the raw outcome. Mutations mirror the live write so
+// the demo feed reflects the change on the next read.
 const moveLeadStage: DemoRoute = {
   match: (_clean, seg) =>
     seg[0] === "api" &&
@@ -39,8 +41,18 @@ const moveLeadStage: DemoRoute = {
   respond: ({ seg, method, body }) => {
     if (method !== "POST") return { ok: false };
     const lead = DEMO_LEADS.find((l) => l.id === seg[3]);
-    if (lead && (body.status === "lost" || body.status === "abandoned")) {
-      lead.status = "cold";
+    if (lead) {
+      if (typeof body.monetaryValue === "number") lead.value = body.monetaryValue;
+      if (typeof body.stageName === "string" && body.stageName) {
+        lead.stageName = body.stageName;
+      }
+      if (body.status === "won") {
+        lead.outcome = "won";
+        lead.status = "won";
+      } else if (body.status === "lost" || body.status === "abandoned") {
+        lead.outcome = body.status;
+        lead.status = "cold";
+      }
     }
     return { ok: true };
   },

@@ -17,16 +17,12 @@ export const PAID_ADS_TABS: PageTab[] = [
   { to: "/marketing/paid-ads", label: "Overview", end: true },
   { to: "/marketing/paid-ads/creatives", label: "Your Ads" },
   { to: "/marketing/paid-ads/stats", label: "Ad Stats" },
-  { to: "/marketing/paid-ads/funnel", label: "Funnel" },
   { to: "/marketing/paid-ads/media", label: "Media" },
 ];
 
 export const REVIEWS_TABS: PageTab[] = [
-  { to: "/marketing/reviews", label: "Overview", end: true },
   { to: "/marketing/reviews/pipeline", label: "Review Pipeline" },
   { to: "/marketing/reviews/requests", label: "Ask for Reviews" },
-  { to: "/marketing/reviews/all", label: "All Reviews" },
-  { to: "/marketing/reviews/report", label: "Reputation Report" },
 ];
 
 export const WEBSITE_TABS: PageTab[] = [
@@ -55,7 +51,6 @@ export const REACTIVATION_TABS: PageTab[] = [
   { to: "/marketing/reactivation", label: "Overview", end: true },
   { to: "/marketing/reactivation/pipeline", label: "Pipeline" },
   { to: "/marketing/reactivation/data", label: "Full Data" },
-  { to: "/marketing/reactivation/messages", label: "Messages" },
 ];
 
 export const GROUP_OUTREACH_TABS: PageTab[] = [
@@ -67,11 +62,11 @@ export const GROUP_OUTREACH_TABS: PageTab[] = [
 
 export const LEADS_TABS: PageTab[] = [
   // Pipeline is the interactive board (drag stages, mark won/lost) and the section
-  // default. Organic = website form + chat leads. Paid Ads = ad leads. All three
-  // live under /sales/leads so the single "Leads" sidebar row stays highlighted.
+  // default. Organic = website form + chat leads. Both live under /sales/leads so
+  // the single "Leads" sidebar row stays highlighted.
   { to: "/sales/leads", label: "Pipeline", end: true },
+  { to: "/sales/leads/console", label: "Console" },
   { to: "/sales/leads/organic", label: "Organic" },
-  { to: "/sales/leads/paid-ads", label: "Paid Ads" },
 ];
 
 // The bold section label <PageBar> shows to the left of the tabs. Matched to the

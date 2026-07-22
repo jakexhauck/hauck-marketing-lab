@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Marketing — Leads (C · Split)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #eef0f4; --card: #ffffff; --ink: #14161c; --muted: #6b7280; --faint: #9aa1ad;
+    --line: #eceef2; --line-2: #e3e6ec;
+    --indigo: #6366f1; --indigo-tint: #eef0ff;
+    --green: #10b981; --green-tint: #e7f7f0;
+    --sky: #0ea5e9; --sky-tint: #e6f5fd;
+    --amber: #f59e0b; --amber-tint: #fdf3e2;
+    --violet: #8b5cf6; --violet-tint: #f1ecfe;
+    --teal: #14b8a6; --teal-tint: #e2f6f3;
+    --rose: #ef4444;
+    --radius: 22px;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--ink); display: flex; height: 100dvh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums lining-nums; }
+  .disp { font-family: "Poppins", sans-serif; }
+
+  .spine { width: 74px; flex-shrink: 0; background: #0c1020; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 6px; }
+  .brand { width: 42px; height: 42px; border-radius: 13px; margin-bottom: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 19px; box-shadow: 0 8px 20px -6px rgba(99,102,241,.7); }
+  .snav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .sbtn { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #8891a8; cursor: pointer; border: 0; background: transparent; transition: .15s; position: relative; }
+  .sbtn:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .sbtn.on { color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 18px -6px rgba(99,102,241,.75); }
+  .sbtn svg { width: 21px; height: 21px; }
+  .savatar { width: 40px; height: 40px; border-radius: 50%; margin-top: 8px; background: linear-gradient(135deg, #10b981, #0ea5e9); display: grid; place-items: center; font-family: "Poppins"; font-weight: 600; font-size: 13px; color: #fff; }
+
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 26px 30px 0; overflow: hidden; }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--indigo); }
+  h1.title { font-family: "Poppins"; font-weight: 700; font-size: 34px; letter-spacing: -.02em; margin-top: 4px; }
+  .tagline { color: var(--muted); font-size: 14.5px; margin-top: 4px; }
+
+  .controls { display: flex; align-items: center; gap: 16px; margin-top: 18px; flex-wrap: wrap; }
+  .tabs { display: inline-flex; gap: 4px; background: #e5e8ef; padding: 5px; border-radius: 15px; }
+  .tab { border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); padding: 8px 16px; border-radius: 11px; transition: .15s; }
+  .tab:hover { color: var(--ink); }
+  .tab.on { background: #fff; color: var(--ink); box-shadow: 0 2px 8px -2px rgba(20,22,28,.14); }
+  .addbtn { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; border: 0; background: var(--indigo); color: #fff; font-family: inherit; font-weight: 600; font-size: 13.5px; padding: 10px 16px; border-radius: 13px; cursor: pointer; box-shadow: 0 8px 18px -8px rgba(99,102,241,.8); transition: .15s; }
+  .addbtn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+  .addbtn svg { width: 16px; height: 16px; }
+
+  /* split layout */
+  .split { display: flex; gap: 16px; margin-top: 16px; flex: 1; min-height: 0; }
+  .left { flex: 1; min-width: 0; display: flex; }
+  .queue { width: 340px; flex-shrink: 0; }
+
+  .tablecard { background: var(--card); border-radius: var(--radius); flex: 1; min-height: 0; display: flex; flex-direction: column; box-shadow: 0 2px 16px -8px rgba(20,22,28,.18); overflow: hidden; width: 100%; }
+  .tc-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; flex-wrap: wrap; gap: 10px; }
+  .tc-title { font-family: "Poppins"; font-weight: 600; font-size: 16px; }
+  .tc-sub { font-size: 12px; color: var(--faint); margin-top: 1px; }
+
+  .scroll { flex: 1; min-height: 0; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 1180px; }
+  thead th { position: sticky; top: 0; z-index: 3; background: #fafbfc; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); text-align: left; padding: 11px 14px; white-space: nowrap; border-bottom: 1px solid var(--line-2); cursor: pointer; user-select: none; }
+  thead th.rt { text-align: right; }
+  thead th:hover { color: var(--muted); }
+  thead th .sorter { display: inline-flex; align-items: center; gap: 5px; }
+  thead th .caret { opacity: 0; }
+  thead th.sorted .caret { opacity: 1; color: var(--indigo); }
+  thead th .caret svg { width: 12px; height: 12px; display: block; }
+
+  tbody td { padding: 4px 8px; font-size: 13.5px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  tbody td.rt { text-align: right; }
+  tbody tr:hover { background: #fbfbfd; }
+  tbody tr.due td { background: #fffdf4; }
+  tbody tr.due:hover td { background: #fffae8; }
+  tbody tr.due td:first-child { box-shadow: inset 3px 0 0 var(--amber); }
+  tbody tr.flash td { animation: flash 1.1s ease; }
+  @keyframes flash { 0% { background: var(--indigo-tint); } 100% { background: transparent; } }
+  td input { width: 100%; min-width: 60px; border: 0; background: transparent; font: inherit; color: var(--ink); padding: 6px 8px; border-radius: 8px; transition: background .12s, box-shadow .12s; }
+  td.rt input { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; min-width: 44px; }
+  td.mono input { font-variant-numeric: tabular-nums; }
+  td.wide input { min-width: 190px; color: var(--muted); }
+  td.name input { font-weight: 600; }
+  td input::placeholder { color: #cdd2db; font-weight: 400; }
+  td input:hover { background: #f1f2f6; }
+  td input:focus { outline: 0; background: #fff; box-shadow: 0 0 0 2px var(--indigo); position: relative; z-index: 1; }
+
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; cursor: pointer; border: 0; font-family: inherit; white-space: nowrap; transition: filter .12s; }
+  .pill:hover { filter: brightness(.97); }
+  .pill svg { width: 12px; height: 12px; opacity: .6; }
+  .pill .pdot { width: 7px; height: 7px; border-radius: 50%; }
+  .st-new { background: var(--indigo-tint); color: #4a4de0; } .st-new .pdot { background: var(--indigo); }
+  .st-contacted { background: var(--sky-tint); color: #0b76a8; } .st-contacted .pdot { background: var(--sky); }
+  .st-noanswer { background: var(--amber-tint); color: #a86a08; } .st-noanswer .pdot { background: var(--amber); }
+  .st-booked { background: var(--green-tint); color: #0a7d58; } .st-booked .pdot { background: var(--green); }
+  .st-qualified { background: var(--violet-tint); color: #7c3aed; } .st-qualified .pdot { background: var(--violet); }
+  .st-closed { background: var(--teal-tint); color: #0f8a7e; } .st-closed .pdot { background: var(--teal); }
+  .st-dead { background: #f0edee; color: #a1737a; } .st-dead .pdot { background: #c78b93; }
+
+  .pop { position: fixed; z-index: 80; background: #fff; border-radius: 14px; box-shadow: 0 16px 40px -12px rgba(20,22,28,.34); padding: 6px; min-width: 178px; border: 1px solid var(--line-2); }
+  .pop button { display: flex; width: 100%; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 9px; border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--ink); text-align: left; }
+  .pop button:hover { background: #f4f5f8; }
+  .pop .sw { width: 11px; height: 11px; border-radius: 4px; flex-shrink: 0; }
+  .pop button .chk { margin-left: auto; opacity: 0; color: var(--indigo); }
+  .pop button.cur .chk { opacity: 1; }
+  .pop button .chk svg { width: 14px; height: 14px; display: block; }
+
+  .addrow td { padding: 0; border-bottom: 0; }
+  .addrow button { display: inline-flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: 0; background: transparent; color: var(--indigo); font-family: inherit; font-weight: 600; font-size: 13px; padding: 12px 16px; cursor: pointer; }
+  .addrow button:hover { background: var(--indigo-tint); }
+  .addrow button svg { width: 15px; height: 15px; }
+
+  /* Due-today queue panel */
+  .qcard { background: var(--card); border-radius: var(--radius); height: 100%; display: flex; flex-direction: column; box-shadow: 0 2px 16px -8px rgba(20,22,28,.18); overflow: hidden; }
+  .qhead { padding: 18px 18px 14px; border-bottom: 1px solid var(--line); }
+  .qhead .qtop { display: flex; align-items: center; gap: 10px; }
+  .qhead .qico { width: 34px; height: 34px; border-radius: 11px; background: var(--amber); color: #fff; display: grid; place-items: center; }
+  .qhead .qico svg { width: 18px; height: 18px; }
+  .qhead .qt { font-family: "Poppins"; font-weight: 600; font-size: 15.5px; }
+  .qhead .qd { font-size: 11.5px; color: var(--faint); margin-top: 1px; }
+  .qbadge { margin-left: auto; font-family: "Poppins"; font-weight: 700; font-size: 24px; color: var(--amber); }
+  .qlist { flex: 1; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .qitem { border: 1px solid var(--line-2); border-radius: 15px; padding: 12px 13px; transition: .15s; background: #fff; }
+  .qitem:hover { border-color: #d4d8e2; box-shadow: 0 4px 14px -8px rgba(20,22,28,.2); }
+  .qitem .r1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .qitem .qname { font-weight: 600; font-size: 14px; }
+  .qitem .qphone { font-size: 12px; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; }
+  .qitem .qphone svg { width: 12px; height: 12px; color: var(--faint); }
+  .qitem .qnote { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+  .qitem .qact { display: flex; gap: 7px; margin-top: 11px; }
+  .qitem .qbtn { flex: 1; border: 0; border-radius: 10px; padding: 8px; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: .12s; }
+  .qitem .qbtn svg { width: 13px; height: 13px; }
+  .qbtn.call { background: var(--indigo-tint); color: var(--indigo); } .qbtn.call:hover { background: #e2e5ff; }
+  .qbtn.done { background: var(--green-tint); color: #0a7d58; } .qbtn.done:hover { background: #d7f2e6; }
+  .qempty { flex: 1; display: grid; place-items: center; text-align: center; color: var(--faint); font-size: 13px; padding: 30px; }
+  .qempty .big { width: 46px; height: 46px; border-radius: 14px; background: var(--green-tint); color: var(--green); display: grid; place-items: center; margin: 0 auto 12px; }
+  .qempty .big svg { width: 22px; height: 22px; }
+
+  .footnote { font-size: 11px; color: var(--faint); padding: 8px 2px 14px; }
+
+  @media (max-width: 1080px) {
+    .split { flex-direction: column; overflow: auto; }
+    .left { min-height: 420px; }
+    .queue { width: 100%; }
+    .qcard { height: auto; }
+    .qlist { max-height: 360px; }
+  }
+  @media (max-width: 720px) { .main { padding: 18px 14px 0; } .addbtn { margin-left: 0; } }
+</style>
+</head>
+<body>
+  <aside class="spine">
+    <div class="brand">H</div>
+    <nav class="snav">
+      <button class="sbtn" title="Command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+      <button class="sbtn on" title="Acquisition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></button>
+      <button class="sbtn" title="Sales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17a4 4 0 0 1-8 0V7a4 4 0 0 1 8 0"/><path d="M13 7a4 4 0 0 1 8 0v10a4 4 0 0 1-8 0"/><path d="M11 7H3M21 17h-8"/></svg></button>
+      <button class="sbtn" title="Fulfillment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></button>
+      <button class="sbtn" title="Operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg></button>
+    </nav>
+    <button class="sbtn" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
+    <div class="savatar">JH</div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker">Acquisition</div>
+    <h1 class="title">Leads</h1>
+    <p class="tagline">The full list on the left, today's follow-ups queued on the right.</p>
+
+    <div class="controls">
+      <div class="tabs">
+        <button class="tab on">Leads</button>
+        <button class="tab">Cold Call</button>
+        <button class="tab">SMS</button>
+      </div>
+      <button class="addbtn" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Add lead</button>
+    </div>
+
+    <div class="split">
+      <div class="left">
+        <div class="tablecard">
+          <div class="tc-head">
+            <div>
+              <div class="tc-title">Prospect List</div>
+              <div class="tc-sub" id="tc-sub">Click any cell to edit, a column header to sort.</div>
+            </div>
+          </div>
+          <div class="scroll">
+            <table>
+              <thead><tr id="thead-row"></tr></thead>
+              <tbody id="tbody"></tbody>
+              <tfoot>
+                <tr class="addrow"><td id="addcell"><button id="addRow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Add lead</button></td></tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <aside class="queue">
+        <div class="qcard">
+          <div class="qhead">
+            <div class="qtop">
+              <div class="qico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+              <div>
+                <div class="qt">Due Today</div>
+                <div class="qd">Follow-ups dated Jul 17</div>
+              </div>
+              <div class="qbadge num" id="qbadge">0</div>
+            </div>
+          </div>
+          <div class="qlist" id="qlist"></div>
+        </div>
+      </aside>
+    </div>
+    <div class="footnote">Sample data for design review.</div>
+  </main>
+
+<script>
+  const TODAY = "Jul 17";
+  const STATUS_ORDER = ["New","Contacted","No Answer","Booked","Qualified","Closed","Dead"];
+  const STATUS = {
+    "New":       { cls:"st-new",       sw:"#6366f1" },
+    "Contacted": { cls:"st-contacted", sw:"#0ea5e9" },
+    "No Answer": { cls:"st-noanswer",  sw:"#f59e0b" },
+    "Booked":    { cls:"st-booked",    sw:"#10b981" },
+    "Qualified": { cls:"st-qualified", sw:"#8b5cf6" },
+    "Closed":    { cls:"st-closed",    sw:"#14b8a6" },
+    "Dead":      { cls:"st-dead",      sw:"#c78b93" }
+  };
+  const COLS = [
+    { key:"first",   label:"First Name",  cls:"name" },
+    { key:"last",    label:"Last Name",   cls:"name" },
+    { key:"phone",   label:"Phone",       cls:"mono" },
+    { key:"tz",      label:"Timezone" },
+    { key:"status",  label:"Status",      type:"status" },
+    { key:"firstContact", label:"First Contact", cls:"mono" },
+    { key:"source",  label:"Source" },
+    { key:"appt",    label:"Appointment Date", cls:"mono" },
+    { key:"noAnswer",label:"No Answer",   type:"num", rt:true },
+    { key:"lastContact", label:"Last Contact", cls:"mono" },
+    { key:"followUp",label:"Follow Up Date", type:"date", cls:"mono" },
+    { key:"email",   label:"Email" },
+    { key:"notes",   label:"Notes",       cls:"wide" }
+  ];
+  let _uid = 0;
+  const seed = [
+    ["Marcus","Whitfield","(602) 555-0148","MST","New","Jul 15","Cold Call","","0","Jul 15","Jul 17","marcus.whitfield@contractco.com","Owns 3 HVAC vans, wants more installs"],
+    ["Danielle","Cho","(415) 555-0193","PST","Contacted","Jul 12","Referral","","1","Jul 16","Jul 18","danielle@chodental.com","Callback after 5pm"],
+    ["Terrence","Boyd","(312) 555-0177","CST","No Answer","Jul 14","Cold Call","","3","Jul 16","Jul 17","tboyd@boydroofing.com","Gatekeeper blocks, try mobile"],
+    ["Priya","Nair","(206) 555-0164","PST","Booked","Jul 10","Website","Jul 21","0","Jul 15","Jul 21","priya.nair@nairlaw.com","Demo booked 2pm Tue"],
+    ["Wesley","Grant","(713) 555-0132","CST","Qualified","Jul 08","LinkedIn","Jul 19","1","Jul 16","Jul 19","wgrant@grantfitness.com","Budget approved, needs proposal"],
+    ["Sofia","Reyes","(305) 555-0159","EST","Closed","Jun 28","Referral","Jul 09","0","Jul 14","","sofia@reyesmedspa.com","Signed, onboarding started"],
+    ["Owen","Fletcher","(404) 555-0188","EST","Dead","Jun 22","Cold Call","","5","Jul 02","","owen.fletcher@example.com","Not interested, do not call"],
+    ["Hannah","Liu","(503) 555-0121","PST","Contacted","Jul 13","Website","","2","Jul 16","Jul 20","hannah@liuboutique.com","Wants pricing sheet emailed"],
+    ["Diego","Alvarez","(210) 555-0146","CST","New","Jul 16","SMS","","0","Jul 16","Jul 17","diego@alvarezautoshop.com","Replied to text, warm"],
+    ["Rachel","Kim","(646) 555-0170","EST","No Answer","Jul 11","Cold Call","","4","Jul 15","Jul 22","rachel.kim@kimcpa.com","Left 2 voicemails"]
+  ];
+  const LEADS = seed.map(r => { const o={_id:++_uid}; COLS.forEach((c,i)=>o[c.key]=r[i]); return o; });
+
+  let sort = { key:null, dir:1 };
+
+  const esc = s => String(s==null?"":s).replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  const monthIdx = { Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11 };
+  function dval(v){ if(!v) return Infinity; const [m,d]=v.split(" "); return (monthIdx[m]??12)*31 + (parseInt(d)||0); }
+  function cmp(a,b,c){
+    if(c.type==="num") return (parseFloat(a[c.key])||0)-(parseFloat(b[c.key])||0);
+    if(c.type==="date") return dval(a[c.key])-dval(b[c.key]);
+    if(c.key==="status") return STATUS_ORDER.indexOf(a.status)-STATUS_ORDER.indexOf(b.status);
+    return String(a[c.key]).localeCompare(String(b[c.key]));
+  }
+  const isDue = l => (l.followUp||"").trim() === TODAY;
+
+  function renderHead(){
+    document.getElementById("thead-row").innerHTML = COLS.map(c=>{
+      const sorted = sort.key===c.key;
+      const dirIcon = (sorted && sort.dir<0) ? '<path d="m6 9 6 6 6-6"/>' : '<path d="m18 15-6-6-6 6"/>';
+      return '<th data-key="'+c.key+'" class="'+(c.rt?"rt ":"")+(sorted?"sorted":"")+'"><span class="sorter">'+esc(c.label)+
+        '<span class="caret"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">'+dirIcon+'</svg></span></span></th>';
+    }).join("");
+  }
+  function cell(lead, c){
+    if(c.type==="status"){
+      const st = STATUS[lead.status] || STATUS["New"];
+      return '<td><button class="pill '+st.cls+'" data-id="'+lead._id+'" data-status><span class="pdot"></span>'+esc(lead.status)+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></td>';
+    }
+    const rt=c.rt?"rt ":""; const cls=c.cls?c.cls+" ":""; const ph=c.rt?"0":"—";
+    return '<td class="'+rt+cls.trim()+'"><input value="'+esc(lead[c.key])+'" data-id="'+lead._id+'" data-key="'+c.key+'" placeholder="'+ph+'" '+(c.type==="num"?'inputmode="numeric"':'')+' /></td>';
+  }
+  function orderedLeads(){
+    let arr = LEADS.slice();
+    if(sort.key){ const c=COLS.find(x=>x.key===sort.key); arr.sort((a,b)=>cmp(a,b,c)*sort.dir); }
+    return arr;
+  }
+  function renderTable(){
+    const tbody = document.getElementById("tbody");
+    tbody.innerHTML = orderedLeads().map(l =>
+      '<tr data-row="'+l._id+'" class="'+(isDue(l)?"due":"")+'">'+COLS.map(c=>cell(l,c)).join("")+'</tr>'
+    ).join("");
+    document.getElementById("addcell").colSpan = COLS.length;
+    document.getElementById("tc-sub").textContent = LEADS.length + " leads. Click a cell to edit, a header to sort.";
+  }
+  function renderQueue(){
+    const due = LEADS.filter(isDue);
+    document.getElementById("qbadge").textContent = due.length;
+    const list = document.getElementById("qlist");
+    if(!due.length){
+      list.innerHTML = '<div class="qempty"><div class="big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>All caught up. No follow-ups due today.</div>';
+      return;
+    }
+    list.innerHTML = due.map(l=>{
+      const st = STATUS[l.status] || STATUS["New"];
+      const name = (l.first+" "+l.last).trim() || "Unnamed lead";
+      return '<div class="qitem" data-id="'+l._id+'">'+
+        '<div class="r1"><div class="qname">'+esc(name)+'</div>'+
+          '<button class="pill '+st.cls+'" data-id="'+l._id+'" data-status><span class="pdot"></span>'+esc(l.status)+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>'+
+        '<div class="qphone num"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.7 2.34a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.74a2 2 0 0 1 2.11-.45c.74.34 1.53.57 2.34.7A2 2 0 0 1 22 16.92z"/></svg>'+esc(l.phone||"No number")+' &middot; '+esc(l.tz)+'</div>'+
+        (l.notes?'<div class="qnote">'+esc(l.notes)+'</div>':'')+
+        '<div class="qact">'+
+          '<button class="qbtn call" data-goto="'+l._id+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.7 2.34a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.74a2 2 0 0 1 2.11-.45c.74.34 1.53.57 2.34.7A2 2 0 0 1 22 16.92z"/></svg>Open</button>'+
+          '<button class="qbtn done" data-done="'+l._id+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Done</button>'+
+        '</div></div>';
+    }).join("");
+  }
+  function render(){ renderTable(); renderQueue(); }
+
+  let pop=null;
+  function closePop(){ if(pop){ pop.remove(); pop=null; document.removeEventListener("click", onDocClick, true); } }
+  function onDocClick(e){ if(pop && !pop.contains(e.target) && !e.target.closest("[data-status]")) closePop(); }
+  function openPop(btn){
+    closePop();
+    const lead = LEADS.find(l=>l._id===+btn.dataset.id);
+    pop = document.createElement("div"); pop.className="pop";
+    pop.innerHTML = STATUS_ORDER.map(s=>
+      '<button data-set="'+s+'" class="'+(s===lead.status?"cur":"")+'"><span class="sw" style="background:'+STATUS[s].sw+'"></span>'+s+
+      '<span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span></button>').join("");
+    document.body.appendChild(pop);
+    const r=btn.getBoundingClientRect(); let top=r.bottom+6,left=r.left; const pr=pop.getBoundingClientRect();
+    if(left+pr.width>window.innerWidth-10) left=window.innerWidth-pr.width-10;
+    if(top+pr.height>window.innerHeight-10) top=r.top-pr.height-6;
+    pop.style.top=top+"px"; pop.style.left=left+"px";
+    pop.addEventListener("click", e=>{ const b=e.target.closest("[data-set]"); if(!b) return; lead.status=b.dataset.set; closePop(); render(); });
+    setTimeout(()=>document.addEventListener("click", onDocClick, true),0);
+  }
+
+  document.getElementById("tbody").addEventListener("input", e=>{
+    const el=e.target; if(!el.dataset.key) return;
+    const lead=LEADS.find(l=>l._id===+el.dataset.id); if(!lead) return;
+    lead[el.dataset.key]=el.value;
+    if(el.dataset.key==="followUp") renderQueue();
+  });
+  document.getElementById("tbody").addEventListener("click", e=>{
+    const btn=e.target.closest("[data-status]"); if(btn){ e.stopPropagation(); openPop(btn); }
+  });
+  document.getElementById("thead-row").addEventListener("click", e=>{
+    const th=e.target.closest("th"); if(!th) return;
+    const key=th.dataset.key; if(sort.key===key) sort.dir*=-1; else { sort.key=key; sort.dir=1; }
+    renderHead(); renderTable();
+  });
+  document.getElementById("qlist").addEventListener("click", e=>{
+    const status=e.target.closest("[data-status]"); if(status){ e.stopPropagation(); openPop(status); return; }
+    const goto=e.target.closest("[data-goto]");
+    if(goto){
+      sort.key=null; renderTable();
+      const row=document.querySelector('tr[data-row="'+goto.dataset.goto+'"]');
+      if(row){ row.scrollIntoView({behavior:"smooth", block:"center"}); row.classList.add("flash"); setTimeout(()=>row.classList.remove("flash"),1200); const inp=row.querySelector("input"); if(inp) inp.focus(); }
+      return;
+    }
+    const done=e.target.closest("[data-done]");
+    if(done){
+      const lead=LEADS.find(l=>l._id===+done.dataset.done);
+      if(lead){ lead.followUp=""; lead.lastContact=TODAY; render(); }
+    }
+  });
+  function addLead(){
+    const o={_id:++_uid, first:"", last:"", phone:"", tz:"", status:"New", firstContact:TODAY, source:"", appt:"", noAnswer:"0", lastContact:TODAY, followUp:"", email:"", notes:""};
+    LEADS.push(o); sort.key=null; renderTable();
+    const row=document.querySelector('tr[data-row="'+o._id+'"] input'); if(row) row.focus();
+  }
+  document.getElementById("addRow").addEventListener("click", addLead);
+  document.getElementById("addBtn").addEventListener("click", addLead);
+  window.addEventListener("resize", closePop);
+  document.querySelector(".scroll").addEventListener("scroll", closePop);
+
+  renderHead(); render();
+</script>
+</body>
+</html>

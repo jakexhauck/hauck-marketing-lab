@@ -43,6 +43,12 @@ export interface ApiSalesLead extends ApiLead {
   source: LeadSource;
   status: LeadStatus;
   stageName: string;
+  // The raw GHL opportunity status ("open" | "won" | "lost" | "abandoned").
+  // The friendly `status` above is derived from the stage NAME and shadows the
+  // real one, so the Job Console (which needs to know a lead actually closed)
+  // reads `outcome` instead. Kept separate so existing status-pill surfaces are
+  // untouched.
+  outcome: string;
 }
 
 function norm(s: string): string {
@@ -122,11 +128,13 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     const opps = await fetchAllOpportunities(gctx, { pipelineId: paid.pipelineId });
     for (const o of opps) {
       const stageName = paid.stageNames.get(o.pipelineStageId ?? "") ?? "";
+      const shaped = shapeOpportunity(o);
       leads.push({
-        ...shapeOpportunity(o),
+        ...shaped,
         source: "ad",
         status: statusForStage(stageName),
         stageName,
+        outcome: shaped.status,
       });
     }
   }
@@ -135,11 +143,13 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     const opps = await fetchAllOpportunities(gctx, { pipelineId: organic.pipelineId });
     for (const o of opps) {
       const stageName = organic.stageNames.get(o.pipelineStageId ?? "") ?? "";
+      const shaped = shapeOpportunity(o);
       leads.push({
-        ...shapeOpportunity(o),
+        ...shaped,
         source: organicSource(o),
         status: statusForStage(stageName),
         stageName,
+        outcome: shaped.status,
       });
     }
   }

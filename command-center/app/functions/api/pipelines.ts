@@ -5,14 +5,16 @@ interface PipelinesResponse {
   pipelines: {
     id: string;
     name: string;
-    stages: { id: string; name: string; position: number }[];
+    stages: { id: string; name: string; position: number; color?: string }[];
   }[];
 }
 
 export interface ApiPipelineSummary {
   id: string;
   name: string;
-  stages: { id: string; name: string }[];
+  // `color` is the per-stage hex GHL stores (e.g. "#F97316"), so the app can
+  // paint each stage in the same colour the client sees inside GHL.
+  stages: { id: string; name: string; color?: string }[];
 }
 
 interface CacheEntry {
@@ -43,7 +45,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     name: p.name,
     stages: [...(p.stages ?? [])]
       .sort((a, b) => a.position - b.position)
-      .map((s) => ({ id: s.id, name: s.name })),
+      .map((s) => ({ id: s.id, name: s.name, color: s.color })),
   }));
 
   const result = { pipelines };

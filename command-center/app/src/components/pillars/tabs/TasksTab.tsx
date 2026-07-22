@@ -4,7 +4,7 @@
 // badge and this list share one fetch). Presentation only.
 
 import { useState, type FormEvent } from "react";
-import { Check, Loader2, Plus, Trash2 } from "lucide-react";
+import { Check, Loader2, Plus, X } from "lucide-react";
 import type { AdminTask } from "../../../lib/api";
 import type { UsePillarTasks } from "../../../hooks/usePillarTasks";
 
@@ -91,8 +91,8 @@ function TaskRow({
         <div className={`pk-task-title${task.completed ? " tk-done" : ""}`}>{task.title}</div>
         {task.note && <div className="pk-task-note">{task.note}</div>}
       </div>
-      <button type="button" className="tk-del" onClick={onDelete} aria-label="Delete task">
-        <Trash2 size={15} />
+      <button type="button" className="tk-del" onClick={onDelete} aria-label="Remove task" title="Remove task">
+        <X size={16} />
       </button>
     </div>
   );
@@ -133,11 +133,13 @@ const TK_CSS = `
   .tk-row:hover { border-color: color-mix(in srgb, var(--brand) 30%, var(--border)); }
   .tk-done { color: var(--text-faint); text-decoration: line-through; }
 
+  /* An always-visible X on the right removes the task. Full opacity so it reads
+     as a real control, not decoration. Removing is safe because it goes through
+     the undo window in usePillarTasks. */
   .tk-del {
     flex-shrink: 0; display: grid; place-items: center; width: 30px; height: 30px; margin: -4px -4px 0 0;
-    border: 0; border-radius: 8px; background: transparent; color: var(--text-faint); cursor: pointer;
-    opacity: 0; transition: opacity .14s, color .14s, background .14s;
+    border: 0; border-radius: 8px; background: transparent; color: var(--text-muted); cursor: pointer;
+    opacity: 1; transition: color .14s, background .14s;
   }
-  .pk-taskrow:hover .tk-del, .tk-del:focus-visible { opacity: 1; }
   .tk-del:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
 `;

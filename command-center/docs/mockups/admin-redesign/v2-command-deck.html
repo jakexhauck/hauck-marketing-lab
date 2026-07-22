@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Command Deck — Cold Calling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0A1D19;
+    --bg-2:#0C201B;
+    --panel:#12261F;
+    --panel-2:#132A22;
+    --hair:rgba(111,224,166,.14);
+    --hair-soft:rgba(255,255,255,.06);
+    --ink:#EAF3EE;
+    --ink-2:#A9C2B7;
+    --ink-3:#71897E;
+    --green:#4DBB83;
+    --green-bright:#6FE0A6;
+    --green-glow:rgba(77,187,131,.35);
+    --amber:#E7B24C;
+    --amber-soft:rgba(231,178,76,.14);
+    --good-soft:rgba(77,187,131,.14);
+    --shadow:0 24px 60px rgba(0,0,0,.45);
+    --radius:16px;
+    --radius-sm:11px;
+    font-synthesis:none;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 78% -12%, rgba(77,187,131,.10), transparent 60%),
+      radial-gradient(900px 500px at 6% 108%, rgba(77,187,131,.06), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  .tnum{font-variant-numeric:tabular-nums lining-nums;}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums;}
+
+  /* ===== Shell ===== */
+  .shell{
+    display:grid;
+    grid-template-columns:70px 1fr;
+    min-height:100vh;
+  }
+
+  /* ===== Icon spine ===== */
+  .spine{
+    position:sticky;top:0;height:100vh;
+    width:70px;
+    display:flex;flex-direction:column;align-items:center;
+    padding:16px 0 14px;
+    background:linear-gradient(180deg,#0B211B,#0A1B17);
+    border-right:1px solid var(--hair);
+    z-index:30;
+  }
+  .brand{
+    width:40px;height:40px;border-radius:12px;
+    display:grid;place-items:center;
+    font-family:"Poppins";font-weight:700;font-size:19px;color:#06120E;
+    background:linear-gradient(160deg,var(--green-bright),var(--green));
+    box-shadow:0 6px 18px var(--green-glow),inset 0 1px 0 rgba(255,255,255,.35);
+    margin-bottom:22px;
+  }
+  .navcol{display:flex;flex-direction:column;gap:8px;flex:1;width:100%;align-items:center;}
+  .navbtn{
+    position:relative;
+    width:46px;height:46px;border-radius:13px;
+    display:grid;place-items:center;
+    color:var(--ink-3);
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:color .18s,background .18s,border-color .18s;
+  }
+  .navbtn svg{width:21px;height:21px;display:block;}
+  .navbtn:hover{color:var(--ink);background:rgba(255,255,255,.04);}
+  .navbtn.active{
+    color:var(--green-bright);
+    background:linear-gradient(180deg,rgba(77,187,131,.16),rgba(77,187,131,.05));
+    border-color:rgba(111,224,166,.28);
+    box-shadow:0 0 0 1px rgba(111,224,166,.05),0 8px 22px rgba(77,187,131,.18);
+  }
+  .navbtn.active::before{
+    content:"";position:absolute;left:-16px;top:9px;bottom:9px;width:3px;border-radius:3px;
+    background:linear-gradient(180deg,var(--green-bright),var(--green));
+    box-shadow:0 0 12px var(--green-glow);
+  }
+  .navbtn .tip{
+    position:absolute;left:56px;top:50%;transform:translateY(-50%) translateX(-6px);
+    background:#0E241D;color:var(--ink);border:1px solid var(--hair);
+    padding:6px 10px;border-radius:9px;font-size:12px;font-weight:500;white-space:nowrap;
+    opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;
+    box-shadow:var(--shadow);z-index:50;
+  }
+  .navbtn:hover .tip{opacity:1;transform:translateY(-50%) translateX(0);}
+  .spine-foot{display:flex;flex-direction:column;gap:12px;align-items:center;}
+  .avatar{
+    width:38px;height:38px;border-radius:50%;
+    display:grid;place-items:center;font-size:12px;font-weight:700;color:#06120E;
+    font-family:"Poppins";
+    background:linear-gradient(160deg,#8fe9bd,#4DBB83);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.3);
+  }
+
+  /* ===== Main column ===== */
+  .main{min-width:0;padding:26px clamp(18px,3vw,40px) 40px;}
+  .wrap{max-width:1520px;margin:0 auto;}
+
+  /* Header */
+  .kicker{
+    font-size:11.5px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--green);margin:0 0 8px;
+    display:flex;align-items:center;gap:9px;
+  }
+  .kicker::before{content:"";width:22px;height:1px;background:linear-gradient(90deg,var(--green),transparent);}
+  h1.title{font-family:"Poppins";font-weight:600;font-size:clamp(28px,3.4vw,40px);letter-spacing:-.02em;margin:0;line-height:1.05;}
+  .tagline{margin:9px 0 0;color:var(--ink-2);font-size:14.5px;max-width:640px;}
+
+  /* Tab bar */
+  .tabs{
+    display:flex;gap:4px;margin:22px 0 24px;flex-wrap:wrap;
+    padding:5px;border-radius:14px;
+    background:rgba(9,22,18,.6);border:1px solid var(--hair-soft);
+    width:max-content;max-width:100%;
+  }
+  .tab{
+    font-family:"Poppins";font-weight:500;font-size:13.5px;
+    padding:9px 17px;border-radius:10px;color:var(--ink-2);
+    cursor:pointer;border:1px solid transparent;white-space:nowrap;
+    transition:color .16s,background .16s,border-color .16s;
+  }
+  .tab:hover{color:var(--ink);background:rgba(255,255,255,.04);}
+  .tab.active{
+    color:#06120E;font-weight:600;
+    background:linear-gradient(160deg,var(--green-bright),var(--green));
+    box-shadow:0 6px 18px var(--green-glow),inset 0 1px 0 rgba(255,255,255,.3);
+  }
+
+  /* Content grid: table + rail */
+  .layout{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:22px;align-items:start;}
+
+  /* Stat cards */
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px;}
+  .card{
+    position:relative;overflow:hidden;
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--hair-soft);border-radius:var(--radius);
+    padding:16px 17px 15px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+  }
+  .card::after{content:"";position:absolute;inset:0;border-radius:var(--radius);border:1px solid rgba(111,224,166,.06);pointer-events:none;}
+  .card .clabel{font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-bottom:11px;}
+  .card .cval{font-family:"IBM Plex Mono";font-weight:600;font-size:30px;letter-spacing:-.01em;line-height:1;}
+  .card .csub{font-size:12px;color:var(--ink-2);margin-top:8px;}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;margin-top:12px;
+    font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;
+    border:1px solid transparent;letter-spacing:.01em;
+  }
+  .chip::before{content:"";width:6px;height:6px;border-radius:50%;}
+  .chip.good{color:var(--green-bright);background:var(--good-soft);border-color:rgba(111,224,166,.25);}
+  .chip.good::before{background:var(--green-bright);box-shadow:0 0 8px var(--green-glow);}
+  .chip.warn{color:var(--amber);background:var(--amber-soft);border-color:rgba(231,178,76,.28);}
+  .chip.warn::before{background:var(--amber);}
+
+  /* Table panel */
+  .tablewrap{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--hair-soft);border-radius:var(--radius);
+    box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.03);
+    overflow:hidden;
+  }
+  .tablehead{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px 18px;border-bottom:1px solid var(--hair);
+  }
+  .tablehead h2{font-family:"Poppins";font-weight:600;font-size:15px;margin:0;letter-spacing:-.01em;}
+  .tablehead .th-sub{font-size:12px;color:var(--ink-3);margin-top:2px;}
+  .legend{display:flex;gap:14px;font-size:11px;color:var(--ink-3);flex-wrap:wrap;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:9px;height:9px;border-radius:3px;display:inline-block;}
+  .legend .l-in{background:rgba(234,243,238,.5);}
+  .legend .l-calc{background:rgba(113,137,126,.55);}
+
+  .scroll{overflow-x:auto;}
+  table{border-collapse:collapse;width:100%;min-width:940px;font-size:13px;}
+  thead th{
+    text-align:right;font-weight:600;font-size:11px;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--ink-3);padding:12px 14px;background:rgba(9,20,16,.5);
+    border-bottom:1px solid var(--hair);white-space:nowrap;position:sticky;top:0;
+  }
+  thead th.l{text-align:left;}
+  td{padding:11px 14px;border-bottom:1px solid var(--hair-soft);text-align:right;white-space:nowrap;}
+  td.l{text-align:left;}
+  tbody tr{transition:background .14s;}
+  tbody tr:hover{background:rgba(77,187,131,.05);}
+  .c-date{color:var(--ink);font-weight:500;font-family:"IBM Plex Mono";font-size:12.5px;}
+  .c-in{color:var(--ink);font-family:"IBM Plex Mono";font-variant-numeric:tabular-nums;}
+  .c-calc{color:var(--ink-3);font-family:"IBM Plex Mono";font-variant-numeric:tabular-nums;}
+  .c-calc.hi{color:var(--green-bright);}
+  .c-note{color:var(--ink-2);}
+  .c-note .q{color:var(--ink-3);}
+  .tag-day{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--good-soft);color:var(--green-bright);border:1px solid rgba(111,224,166,.22);}
+  .tag-day.mut{background:rgba(255,255,255,.05);color:var(--ink-3);border-color:var(--hair-soft);}
+  .em{color:var(--ink-3);}
+
+  /* add row */
+  tr.addrow td{padding:0;border-bottom:1px solid var(--hair-soft);}
+  .addbtn{
+    width:100%;display:flex;align-items:center;gap:9px;justify-content:flex-start;
+    padding:12px 14px;background:transparent;border:0;color:var(--ink-3);
+    font-family:"Inter";font-size:12.5px;font-weight:500;cursor:pointer;transition:color .15s,background .15s;
+  }
+  .addbtn:hover{color:var(--green-bright);background:rgba(77,187,131,.05);}
+  .addbtn svg{width:15px;height:15px;}
+
+  /* footer rows */
+  tfoot td{border-top:1px solid var(--hair);padding:11px 14px;text-align:right;white-space:nowrap;}
+  tfoot .flabel{text-align:left;font-family:"Poppins";font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;}
+  tfoot tr.avg td{color:var(--ink-2);background:rgba(9,20,16,.4);}
+  tfoot tr.avg .flabel{color:var(--ink-2);}
+  tfoot tr.total td{color:var(--ink);background:rgba(77,187,131,.07);font-family:"IBM Plex Mono";font-weight:600;}
+  tfoot tr.total .flabel{color:var(--green-bright);font-family:"Poppins";}
+  tfoot .mono{font-family:"IBM Plex Mono";}
+
+  /* ===== KPI rail ===== */
+  .rail{
+    position:sticky;top:22px;
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--hair-soft);border-radius:var(--radius);
+    padding:16px 15px 17px;box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.03);
+  }
+  .railhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .railhead .rh-title{font-family:"Poppins";font-weight:600;font-size:13px;letter-spacing:.02em;}
+  .railhead .rh-dot{font-size:10.5px;color:var(--green-bright);display:inline-flex;align-items:center;gap:6px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+  .railhead .rh-dot::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green-bright);box-shadow:0 0 8px var(--green-glow);}
+  .tiles{display:flex;flex-direction:column;gap:9px;}
+  .tile{
+    position:relative;
+    background:rgba(9,20,16,.42);border:1px solid var(--hair-soft);border-radius:var(--radius-sm);
+    padding:12px 13px;
+  }
+  .tile .tk{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);}
+  .tile .tv{font-family:"IBM Plex Mono";font-weight:600;font-size:23px;line-height:1;margin-top:8px;letter-spacing:-.01em;}
+  .tile .tn{font-size:11.5px;color:var(--ink-2);margin-top:7px;}
+  .tile.accent{border-color:rgba(111,224,166,.24);background:linear-gradient(180deg,rgba(77,187,131,.10),rgba(9,20,16,.42));}
+  .tile.accent .tv{color:var(--green-bright);}
+  .tile .rchip{
+    position:absolute;top:12px;right:12px;font-size:10px;font-weight:600;
+    padding:3px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;
+  }
+  .tile .rchip::before{content:"";width:5px;height:5px;border-radius:50%;}
+  .rchip.good{color:var(--green-bright);background:var(--good-soft);}
+  .rchip.good::before{background:var(--green-bright);}
+  .rchip.warn{color:var(--amber);background:var(--amber-soft);}
+  .rchip.warn::before{background:var(--amber);}
+
+  .disclaimer{margin-top:16px;font-size:11px;color:var(--ink-3);text-align:center;letter-spacing:.02em;}
+
+  /* ===== Responsive ===== */
+  @media(max-width:1080px){
+    .layout{grid-template-columns:1fr;}
+    .rail{position:static;}
+    .stats{grid-template-columns:repeat(2,minmax(0,1fr));}
+  }
+  @media(max-width:620px){
+    .shell{grid-template-columns:58px 1fr;}
+    .spine{width:58px;}
+    .stats{grid-template-columns:1fr 1fr;}
+    .main{padding:20px 14px 32px;}
+  }
+  @media(max-width:440px){
+    .stats{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ===== Icon spine ===== -->
+  <aside class="spine">
+    <div class="brand">H</div>
+    <nav class="navcol">
+      <button class="navbtn" aria-label="Command">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span class="tip">Command</span>
+      </button>
+      <button class="navbtn active" aria-label="Acquisition" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v3a1 1 0 0 0 1 1h3l3.5 3.5a.7.7 0 0 0 1.2-.5V6.5a.7.7 0 0 0-1.2-.5L7 9.5H4a1 1 0 0 0-1 1Z"/><path d="M16 9a3 3 0 0 1 0 6"/><path d="M18.5 6.5a6 6 0 0 1 0 11"/></svg>
+        <span class="tip">Acquisition</span>
+      </button>
+      <button class="navbtn" aria-label="Sales">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17-3.5 3.5a2.1 2.1 0 0 1-3-3L9 13"/><path d="m13 7 3.5-3.5a2.1 2.1 0 0 1 3 3L15 11"/><path d="M8.5 8.5 6 6"/><path d="m18 18-2.5-2.5"/><path d="m11 13 2-2"/></svg>
+        <span class="tip">Sales</span>
+      </button>
+      <button class="navbtn" aria-label="Fulfillment">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 12.05a8 8 0 1 1-6.5-8.86"/><path d="M21 4.5 12 13.5l-2.5-2.5"/></svg>
+        <span class="tip">Fulfillment</span>
+      </button>
+      <button class="navbtn" aria-label="Operations">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg>
+        <span class="tip">Operations</span>
+      </button>
+    </nav>
+    <div class="spine-foot">
+      <button class="navbtn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        <span class="tip">Settings</span>
+      </button>
+      <div class="avatar" title="Jake Hauck">JH</div>
+    </div>
+  </aside>
+
+  <!-- ===== Main ===== -->
+  <main class="main">
+    <div class="wrap">
+
+      <!-- Header -->
+      <header>
+        <p class="kicker">Acquisition</p>
+        <h1 class="title">Cold Calling</h1>
+        <p class="tagline">Daily dialing funnel. Log the raw counts, the rates compute themselves.</p>
+      </header>
+
+      <!-- Tab bar -->
+      <nav class="tabs" aria-label="Acquisition channels">
+        <div class="tab">Leads</div>
+        <div class="tab active" aria-current="page">Cold Call</div>
+        <div class="tab">Cold Email</div>
+        <div class="tab">Cold DM</div>
+        <div class="tab">SMS</div>
+      </nav>
+
+      <div class="layout">
+
+        <!-- LEFT: stats + table -->
+        <section>
+
+          <!-- Stat cards -->
+          <div class="stats">
+            <div class="card">
+              <div class="clabel">Calls Made</div>
+              <div class="cval tnum">131</div>
+              <div class="csub">today</div>
+              <span class="chip good">min 100/day</span>
+            </div>
+            <div class="card">
+              <div class="clabel">Pickup %</div>
+              <div class="cval tnum">16.0%</div>
+              <div class="csub">21 of 131</div>
+              <span class="chip good">std &gt;15%</span>
+            </div>
+            <div class="card">
+              <div class="clabel">Meetings Booked</div>
+              <div class="cval tnum">1</div>
+              <div class="csub">today</div>
+            </div>
+            <div class="card">
+              <div class="clabel">Booking %</div>
+              <div class="cval tnum">0.76%</div>
+              <div class="csub">per dial</div>
+              <span class="chip warn">target 1&ndash;3%</span>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="tablewrap">
+            <div class="tablehead">
+              <div>
+                <h2>Cold Call Tracker</h2>
+                <div class="th-sub">Week of Feb 12&ndash;16</div>
+              </div>
+              <div class="legend">
+                <span><i class="l-in"></i>Logged</span>
+                <span><i class="l-calc"></i>Computed</span>
+              </div>
+            </div>
+            <div class="scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="l">Date</th>
+                    <th>Calls Made</th>
+                    <th>Pickups</th>
+                    <th>Pickup %</th>
+                    <th>Pass-Through</th>
+                    <th>Pickup&rarr;PT %</th>
+                    <th>Meetings</th>
+                    <th>Pitch&rarr;Book %</th>
+                    <th class="l">Objections</th>
+                    <th class="l">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="l c-date">Mon 2/12</td>
+                    <td class="c-in">131</td>
+                    <td class="c-in">21</td>
+                    <td class="c-calc">16.0%</td>
+                    <td class="c-in">19</td>
+                    <td class="c-calc hi">90.5%</td>
+                    <td class="c-in">1</td>
+                    <td class="c-calc">5.3%</td>
+                    <td class="l c-note"><span class="q">"</span>price x3<span class="q">"</span></td>
+                    <td class="l"><span class="em">&mdash;</span></td>
+                  </tr>
+                  <tr>
+                    <td class="l c-date">Tue 2/13</td>
+                    <td class="c-in">118</td>
+                    <td class="c-in">17</td>
+                    <td class="c-calc">14.4%</td>
+                    <td class="c-in">14</td>
+                    <td class="c-calc">82.4%</td>
+                    <td class="c-in">0</td>
+                    <td class="c-calc">0.0%</td>
+                    <td class="l c-note"><span class="q">"</span>not now<span class="q">"</span></td>
+                    <td class="l"><span class="em">&mdash;</span></td>
+                  </tr>
+                  <tr>
+                    <td class="l c-date">Wed 2/14</td>
+                    <td class="c-in">142</td>
+                    <td class="c-in">25</td>
+                    <td class="c-calc hi">17.6%</td>
+                    <td class="c-in">22</td>
+                    <td class="c-calc hi">88.0%</td>
+                    <td class="c-in">2</td>
+                    <td class="c-calc hi">9.1%</td>
+                    <td class="l c-note"><span class="q">"</span>using X<span class="q">"</span></td>
+                    <td class="l"><span class="tag-day">strong day</span></td>
+                  </tr>
+                  <tr>
+                    <td class="l c-date">Thu 2/15</td>
+                    <td class="c-in">96</td>
+                    <td class="c-in">12</td>
+                    <td class="c-calc">12.5%</td>
+                    <td class="c-in">9</td>
+                    <td class="c-calc">75.0%</td>
+                    <td class="c-in">0</td>
+                    <td class="c-calc">0.0%</td>
+                    <td class="l c-note"><span class="q">"</span>gatekeeper<span class="q">"</span></td>
+                    <td class="l"><span class="tag-day mut">short day</span></td>
+                  </tr>
+                  <tr>
+                    <td class="l c-date">Fri 2/16</td>
+                    <td class="c-in">134</td>
+                    <td class="c-in">23</td>
+                    <td class="c-calc hi">17.2%</td>
+                    <td class="c-in">20</td>
+                    <td class="c-calc hi">87.0%</td>
+                    <td class="c-in">1</td>
+                    <td class="c-calc">5.0%</td>
+                    <td class="l c-note"><span class="q">"</span>budget<span class="q">"</span></td>
+                    <td class="l"><span class="em">&mdash;</span></td>
+                  </tr>
+                  <tr class="addrow">
+                    <td colspan="10">
+                      <button class="addbtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                        Add today&rsquo;s numbers
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr class="avg">
+                    <td class="flabel">Average</td>
+                    <td class="mono">124</td>
+                    <td class="mono">20</td>
+                    <td class="mono">15.5%</td>
+                    <td class="mono">17</td>
+                    <td class="mono">84.6%</td>
+                    <td class="mono">0.8</td>
+                    <td class="mono">3.9%</td>
+                    <td class="l"></td>
+                    <td class="l"></td>
+                  </tr>
+                  <tr class="total">
+                    <td class="flabel">Total</td>
+                    <td>621</td>
+                    <td>98</td>
+                    <td>15.8%</td>
+                    <td>84</td>
+                    <td>85.7%</td>
+                    <td>4</td>
+                    <td></td>
+                    <td class="l"></td>
+                    <td class="l"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT: KPI rail -->
+        <aside class="rail" aria-label="Business health">
+          <div class="railhead">
+            <span class="rh-title">Business Health</span>
+            <span class="rh-dot">This month</span>
+          </div>
+          <div class="tiles">
+            <div class="tile">
+              <div class="tk">CAC</div>
+              <div class="tv tnum">$850</div>
+              <div class="tn">cost to acquire</div>
+            </div>
+            <div class="tile accent">
+              <div class="tk">LTV : CAC</div>
+              <span class="rchip good">healthy</span>
+              <div class="tv tnum">4.9x</div>
+              <div class="tn">healthy &gt;3</div>
+            </div>
+            <div class="tile accent">
+              <div class="tk">ROAS</div>
+              <span class="rchip good">good</span>
+              <div class="tv tnum">3.8x</div>
+              <div class="tn">good &gt;3</div>
+            </div>
+            <div class="tile">
+              <div class="tk">Churn</div>
+              <span class="rchip warn">watch</span>
+              <div class="tv tnum">12%</div>
+              <div class="tn">watch</div>
+            </div>
+            <div class="tile">
+              <div class="tk">New MRR</div>
+              <div class="tv tnum">$6,000</div>
+            </div>
+            <div class="tile">
+              <div class="tk">Clients</div>
+              <div class="tv tnum">6</div>
+              <div class="tn" style="color:var(--green-bright)">+3 this month</div>
+            </div>
+          </div>
+          <div class="disclaimer">Sample data for design review.</div>
+        </aside>
+
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

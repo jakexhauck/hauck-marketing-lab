@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Marketing — Time Audit (B)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #eef0f4; --card: #ffffff; --ink: #14161c; --muted: #6b7280; --faint: #9aa1ad;
+    --line: #eceef2; --line-2: #e3e6ec;
+    --indigo: #6366f1; --indigo-tint: #eef0ff;
+    --green: #10b981; --green-tint: #e7f7f0;
+    --sky: #0ea5e9; --sky-tint: #e6f5fd;
+    --amber: #f59e0b; --amber-tint: #fdf3e2; --rose: #ef4444; --rose-tint: #fdecec;
+    --radius: 22px;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--ink); display: flex; height: 100dvh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums lining-nums; }
+  .disp { font-family: "Poppins", sans-serif; }
+
+  /* Spine */
+  .spine { width: 74px; flex-shrink: 0; background: #0c1020; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 6px; }
+  .brand { width: 42px; height: 42px; border-radius: 13px; margin-bottom: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 19px; box-shadow: 0 8px 20px -6px rgba(99,102,241,.7); }
+  .snav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .sbtn { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #8891a8; cursor: pointer; border: 0; background: transparent; transition: .15s; }
+  .sbtn:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .sbtn.on { color: #fff; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 18px -6px rgba(99,102,241,.75); }
+  .sbtn svg { width: 21px; height: 21px; }
+  .savatar { width: 40px; height: 40px; border-radius: 50%; margin-top: 8px; background: linear-gradient(135deg, #10b981, #0ea5e9); display: grid; place-items: center; font-family: "Poppins"; font-weight: 600; font-size: 13px; color: #fff; }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 26px 30px 0; overflow: hidden; }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--indigo); }
+  h1.title { font-family: "Poppins"; font-weight: 700; font-size: 34px; letter-spacing: -.02em; margin-top: 4px; }
+  .tagline { color: var(--muted); font-size: 14.5px; margin-top: 4px; }
+
+  .controls { display: flex; align-items: center; gap: 16px; margin-top: 18px; flex-wrap: wrap; }
+  .tabs { display: inline-flex; gap: 4px; background: #e5e8ef; padding: 5px; border-radius: 15px; }
+  .tab { border: 0; background: transparent; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); padding: 8px 16px; border-radius: 11px; transition: .15s; }
+  .tab:hover { color: var(--ink); }
+  .tab.on { background: #fff; color: var(--ink); box-shadow: 0 2px 8px -2px rgba(20,22,28,.14); }
+  .weekpill { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; background: #fff; border-radius: 14px; padding: 8px 14px; box-shadow: 0 2px 10px -4px rgba(20,22,28,.14); font-family: "Poppins"; font-weight: 600; font-size: 14px; }
+  .weekpill span { color: var(--faint); font-weight: 500; font-size: 12px; }
+
+  /* Bento summary */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr) 1.4fr; gap: 14px; margin-top: 18px; }
+  .stat { border-radius: var(--radius); padding: 16px 18px; }
+  .stat.green { background: var(--green-tint); } .stat.indigo { background: var(--indigo-tint); }
+  .stat.sky { background: var(--sky-tint); } .stat.rose { background: var(--rose-tint); }
+  .stat .ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: #fff; margin-bottom: 10px; }
+  .stat.green .ico { background: var(--green); } .stat.indigo .ico { background: var(--indigo); }
+  .stat.sky .ico { background: var(--sky); } .stat.rose .ico { background: var(--rose); }
+  .stat .ico svg { width: 18px; height: 18px; }
+  .stat .lbl { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  .stat .val { font-family: "Poppins"; font-weight: 700; font-size: 30px; letter-spacing: -.02em; margin-top: 2px; }
+  .stat .sub { font-size: 12px; color: var(--faint); margin-top: 2px; }
+
+  /* leverage distribution tile */
+  .distile { background: var(--card); border-radius: var(--radius); padding: 15px 18px; box-shadow: 0 2px 16px -8px rgba(20,22,28,.18); display: flex; flex-direction: column; }
+  .distile .dhead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .distile .dhead b { font-family: "Poppins"; font-weight: 600; font-size: 13px; }
+  .distile .dhead span { font-size: 11.5px; color: var(--faint); }
+  .distbar { display: flex; height: 16px; border-radius: 8px; overflow: hidden; background: #f1f2f6; }
+  .distbar i { display: block; height: 100%; }
+  .distlegend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 11px; }
+  .distlegend b { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+  .distlegend .d { width: 9px; height: 9px; border-radius: 3px; }
+  .distlegend .h { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+
+  /* Grid card */
+  .gridcard { background: var(--card); border-radius: var(--radius); margin-top: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column; box-shadow: 0 2px 16px -8px rgba(20,22,28,.18); overflow: hidden; }
+  .gc-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 11px; gap: 12px; flex-wrap: wrap; }
+  .gc-title { font-family: "Poppins"; font-weight: 600; font-size: 16px; }
+  .gc-sub { font-size: 12px; color: var(--faint); margin-top: 1px; }
+  .inline-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+  .inline-legend b { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+  .inline-legend .d { width: 9px; height: 9px; border-radius: 3px; }
+  .inline-legend .sep { width: 1px; height: 14px; background: var(--line-2); }
+
+  .scroll { flex: 1; min-height: 0; overflow: auto; }
+  table.grid { width: 100%; min-width: 700px; border-collapse: collapse; }
+  table.grid thead th { position: sticky; top: 0; z-index: 3; background: #fafbfc; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); text-align: center; padding: 10px 8px; white-space: nowrap; border-bottom: 1px solid var(--line-2); }
+  table.grid thead th:first-child { text-align: right; left: 0; z-index: 4; }
+  table.grid thead th b { display: block; font-family: "Poppins"; font-weight: 600; font-size: 13px; color: var(--ink); text-transform: none; letter-spacing: 0; }
+  .timecol { position: sticky; left: 0; z-index: 2; background: var(--card); text-align: right; padding: 0 12px 0 16px; font-size: 11px; color: var(--faint); white-space: nowrap; width: 78px; border-right: 1px solid var(--line-2); font-variant-numeric: tabular-nums; }
+  tr.hour .timecol { color: var(--muted); font-weight: 600; }
+  tr:not(.hour) .timecol { color: #c2c8d2; }
+  td.cell { height: 27px; padding: 2px 4px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); text-align: left; cursor: pointer; transition: filter .12s; }
+  td.cell:hover { filter: brightness(.97); }
+  tr.hour td.cell { border-top: 1px solid var(--line-2); }
+  td.cell.empty { color: #d7dbe2; text-align: center; font-size: 12px; }
+  td.cell .tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  td.cell .tdot { width: 6px; height: 6px; border-radius: 2px; flex-shrink: 0; }
+
+  tfoot td { position: sticky; bottom: 0; background: #fafbfc; border-top: 2px solid var(--line-2); padding: 11px 8px; text-align: center; font-family: "Poppins"; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+  tfoot td.timecol { text-align: right; font-family: "Poppins"; font-weight: 600; text-transform: uppercase; font-size: 10.5px; letter-spacing: .04em; color: var(--muted); background: #fafbfc; }
+  tfoot td.hi { color: #0a7d58; } tfoot td.lo { color: var(--faint); }
+
+  .footnote { font-size: 11px; color: var(--faint); padding: 8px 2px 14px; }
+
+  @media (max-width: 1180px) { .stats { grid-template-columns: repeat(2, 1fr); } .distile { grid-column: 1 / -1; } }
+  @media (max-width: 720px) { .main { padding: 18px 14px 0; } .stats { grid-template-columns: 1fr 1fr; gap: 10px; } .weekpill { margin-left: 0; } }
+</style>
+</head>
+<body>
+  <aside class="spine">
+    <div class="brand">H</div>
+    <nav class="snav">
+      <button class="sbtn" title="Command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+      <button class="sbtn" title="Acquisition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></button>
+      <button class="sbtn" title="Sales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17a4 4 0 0 1-8 0V7a4 4 0 0 1 8 0"/><path d="M13 7a4 4 0 0 1 8 0v10a4 4 0 0 1-8 0"/><path d="M11 7H3M21 17h-8"/></svg></button>
+      <button class="sbtn" title="Fulfillment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></button>
+      <button class="sbtn on" title="Operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/></svg></button>
+    </nav>
+    <button class="sbtn" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg></button>
+    <div class="savatar">JH</div>
+  </aside>
+
+  <main class="main">
+    <div class="kicker">Operations</div>
+    <h1 class="title">Time Audit</h1>
+    <p class="tagline">Where your hours actually go. Tag each block, see the leverage.</p>
+
+    <div class="controls">
+      <div class="tabs">
+        <button class="tab">Calculator</button>
+        <button class="tab on">Time Audit</button>
+        <button class="tab">Tasks</button>
+      </div>
+      <div class="weekpill disp">This week <span>Jul 13 &ndash; 19</span></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat green">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div class="lbl">Value this week</div>
+        <div class="val num" id="s-value">$0</div>
+        <div class="sub">across tagged blocks</div>
+      </div>
+      <div class="stat indigo">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div>
+        <div class="lbl">High-leverage</div>
+        <div class="val num" id="s-hi">0%</div>
+        <div class="sub" id="s-hi-sub">of tagged hours</div>
+      </div>
+      <div class="stat sky">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <div class="lbl">Hours tracked</div>
+        <div class="val num" id="s-hours">0</div>
+        <div class="sub">of 112 waking</div>
+      </div>
+      <div class="stat rose">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
+        <div class="lbl">Low-leverage leak</div>
+        <div class="val num" id="s-leak">0h</div>
+        <div class="sub">Low + Low/Mid blocks</div>
+      </div>
+      <div class="distile">
+        <div class="dhead"><b>Hours by leverage</b><span id="dtotal">0h tagged</span></div>
+        <div class="distbar" id="distbar"></div>
+        <div class="distlegend" id="distlegend"></div>
+      </div>
+    </div>
+
+    <div class="gridcard">
+      <div class="gc-head">
+        <div>
+          <div class="gc-title">Weekly Time Grid</div>
+          <div class="gc-sub">30-minute blocks, 6:00 AM to 10:00 PM. Click a block to cycle its tag.</div>
+        </div>
+        <div class="inline-legend" id="taskLegend"></div>
+      </div>
+      <div class="scroll">
+        <table class="grid">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+          <tfoot id="tfoot"></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="footnote">Sample data for design review.</div>
+  </main>
+
+<script>
+  const LEV = [
+    { n:1, label:"Low",      tint:"#fdecec", solid:"#ef4444", rate:0 },
+    { n:2, label:"Low/Mid",  tint:"#fdf3e2", solid:"#f59e0b", rate:20 },
+    { n:3, label:"Mid",      tint:"#e6f5fd", solid:"#0ea5e9", rate:60 },
+    { n:4, label:"Mid/High", tint:"#eef0ff", solid:"#6366f1", rate:160 },
+    { n:5, label:"High",     tint:"#e7f7f0", solid:"#10b981", rate:450 }
+  ];
+  const TASKS = [
+    { key:"sales",    label:"Sales calls",   color:"#10b981", lev:5 },
+    { key:"roleplay", label:"Roleplays",     color:"#0ea5e9", lev:4 },
+    { key:"outreach", label:"Outreach",      color:"#6366f1", lev:3 },
+    { key:"scrape",   label:"Scraping leads",color:"#f59e0b", lev:2 },
+    { key:"admin",    label:"Admin",         color:"#8b93a3", lev:2 },
+    { key:"scroll",   label:"Scrolling",     color:"#ef4444", lev:1 }
+  ];
+  const TASK = Object.fromEntries(TASKS.map(t => [t.key, t]));
+  const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const DATES = [13,14,15,16,17,18,19];
+  const BLOCKS = 32;
+
+  function timeLabel(b){
+    const mins = 6*60 + b*30, h = Math.floor(mins/60), m = mins%60;
+    let hh = h % 12; if (hh === 0) hh = 12;
+    const ap = h >= 12 ? "PM" : "AM";
+    return { text: hh + ":" + (m === 0 ? "00" : "30"), ap, hour: m === 0 };
+  }
+  const rateOf = key => key ? LEV[TASK[key].lev - 1].rate : 0;
+
+  const state = {};
+  function span(d, from, to, key){ for (let b = from; b < to; b++) state[d + "-" + b] = key; }
+  span(0,2,4,"admin"); span(0,4,6,"scrape"); span(0,6,10,"outreach"); span(0,10,12,"sales");
+  span(0,13,16,"sales"); span(0,16,17,"scroll"); span(0,17,18,"roleplay"); span(0,18,22,"sales");
+  span(0,22,24,"outreach"); span(0,24,25,"scroll");
+  span(1,2,3,"admin"); span(1,3,6,"scrape"); span(1,6,8,"outreach"); span(1,8,9,"roleplay");
+  span(1,9,12,"sales"); span(1,13,17,"sales"); span(1,17,18,"scroll"); span(1,18,20,"outreach");
+  span(1,20,22,"sales"); span(1,22,23,"admin");
+  span(2,1,3,"scroll"); span(2,3,5,"admin"); span(2,5,7,"scrape"); span(2,7,11,"outreach");
+  span(2,11,12,"sales"); span(2,13,15,"roleplay"); span(2,15,19,"sales"); span(2,19,20,"scroll");
+  span(2,20,22,"outreach");
+  span(3,2,4,"admin"); span(3,4,6,"scrape"); span(3,6,9,"sales"); span(3,9,10,"scroll");
+  span(3,10,12,"outreach"); span(3,13,17,"sales"); span(3,17,18,"roleplay"); span(3,18,21,"outreach");
+  span(4,2,4,"scrape"); span(4,4,7,"outreach"); span(4,7,8,"roleplay"); span(4,8,11,"sales");
+  span(4,12,13,"scroll"); span(4,13,16,"sales"); span(4,16,18,"admin"); span(4,18,20,"scroll");
+  span(5,4,6,"admin"); span(5,6,9,"scrape"); span(5,9,10,"scroll"); span(5,10,12,"outreach");
+  span(6,6,8,"admin"); span(6,8,10,"scroll"); span(6,16,18,"roleplay");
+
+  function buildHead(){
+    let h = "<tr><th class='timecol'>Time</th>";
+    for (let d = 0; d < 7; d++) h += "<th><b>" + DAYS[d] + "</b>Jul " + DATES[d] + "</th>";
+    document.getElementById("thead").innerHTML = h + "</tr>";
+  }
+  function cellHTML(d, b){
+    const key = state[d + "-" + b];
+    if (!key) return "<td class='cell empty' data-d='"+d+"' data-b='"+b+"'>&mdash;</td>";
+    const t = TASK[key], lev = LEV[t.lev - 1];
+    return "<td class='cell' data-d='"+d+"' data-b='"+b+"' style='background:"+lev.tint+";box-shadow:inset 3px 0 0 "+lev.solid+"'>"
+      + "<span class='tag' style='color:"+t.color+"'><span class='tdot' style='background:"+t.color+"'></span>"+t.label+"</span></td>";
+  }
+  function buildBody(){
+    let html = "";
+    for (let b = 0; b < BLOCKS; b++){
+      const tl = timeLabel(b);
+      html += "<tr class='" + (tl.hour ? "hour" : "") + "'><td class='timecol'>" + tl.text + (tl.hour ? " <span style='opacity:.6'>"+tl.ap+"</span>" : "") + "</td>";
+      for (let d = 0; d < 7; d++) html += cellHTML(d, b);
+      html += "</tr>";
+    }
+    document.getElementById("tbody").innerHTML = html;
+  }
+  function dayTotal(d){ let s = 0; for (let b = 0; b < BLOCKS; b++) s += rateOf(state[d + "-" + b]); return s; }
+  function money(v){ return "$" + v.toLocaleString(); }
+  function buildFoot(){
+    let html = "<tr><td class='timecol'>Total $ / day</td>";
+    let week = 0;
+    for (let d = 0; d < 7; d++){
+      const v = dayTotal(d); week += v;
+      html += "<td class='" + (v >= 800 ? "hi" : v === 0 ? "lo" : "") + "'>" + money(v) + "</td>";
+    }
+    document.getElementById("tfoot").innerHTML = html + "</tr>";
+    return week;
+  }
+  function buildTaskLegend(){
+    document.getElementById("taskLegend").innerHTML =
+      TASKS.map(t => "<b><span class='d' style='background:"+t.color+"'></span>"+t.label+"</b>").join("<span class='sep'></span>");
+  }
+  function refresh(){
+    const week = buildFoot();
+    // leverage buckets (count of half-hour blocks per level)
+    const buckets = [0,0,0,0,0]; let tagged = 0;
+    for (const k in state){ buckets[TASK[state[k]].lev - 1]++; tagged++; }
+    const hours = tagged * 0.5;
+    const hiBlocks = buckets[3] + buckets[4];
+    const leakHours = (buckets[0] + buckets[1]) * 0.5;
+    document.getElementById("s-value").textContent = money(week);
+    document.getElementById("s-hi").textContent = tagged ? Math.round(hiBlocks / tagged * 100) + "%" : "0%";
+    document.getElementById("s-hi-sub").textContent = hiBlocks * 0.5 + " of " + hours + " tracked hours";
+    document.getElementById("s-hours").textContent = hours;
+    document.getElementById("s-leak").textContent = leakHours + "h";
+    // distribution bar
+    document.getElementById("dtotal").textContent = hours + "h tagged";
+    document.getElementById("distbar").innerHTML = LEV.map((l, i) =>
+      buckets[i] ? "<i style='width:"+(buckets[i] / tagged * 100)+"%;background:"+l.solid+"'></i>" : ""
+    ).join("");
+    document.getElementById("distlegend").innerHTML = LEV.map((l, i) =>
+      "<b><span class='d' style='background:"+l.solid+"'></span>"+l.label+" <span class='h'>"+(buckets[i]*0.5)+"h</span></b>"
+    ).join("");
+  }
+
+  const ORDER = [null, ...TASKS.map(t => t.key)];
+  function cycle(d, b){
+    const cur = state[d + "-" + b] || null;
+    const idx = ORDER.indexOf(cur);
+    const next = ORDER[(idx + 1) % ORDER.length];
+    if (next) state[d + "-" + b] = next; else delete state[d + "-" + b];
+    const td = document.querySelector("td.cell[data-d='"+d+"'][data-b='"+b+"']");
+    const tmp = document.createElement("tbody"); tmp.innerHTML = "<tr>" + cellHTML(d, b) + "</tr>";
+    td.replaceWith(tmp.firstChild.firstChild);
+    refresh();
+  }
+  document.getElementById("tbody").addEventListener("click", e => {
+    const td = e.target.closest("td.cell"); if (!td) return;
+    cycle(+td.dataset.d, +td.dataset.b);
+  });
+
+  buildHead(); buildBody(); buildTaskLegend(); refresh();
+</script>
+</body>
+</html>

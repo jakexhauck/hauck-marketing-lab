@@ -52,21 +52,16 @@ export function ReviewsFunnelView({
     );
   }
 
-  const populated = Boolean(data && data.asked > 0);
-
-  if (!populated) {
-    return (
-      <Panel className="px-4 py-16">
-        <EmptyState
-          icon={<Star size={22} />}
-          title="We haven't started collecting reviews for you yet"
-          description="As soon as we begin asking your customers for reviews, the whole journey shows up here: how many were asked, how many opened the request, and how many left you a public review."
-        />
-      </Panel>
-    );
-  }
-
-  const d = data as ReviewFunnelData;
+  // Always render the funnel structure, even before the campaign has asked
+  // anyone: it reads as zeros now and simply fills in as reviews come through.
+  const d: ReviewFunnelData = data ?? {
+    asked: 0,
+    clicked: 0,
+    positive: 0,
+    negative: 0,
+    pending: 0,
+    recent: [],
+  };
   const conversion = d.asked > 0 ? Math.round((d.positive / d.asked) * 100) : 0;
 
   const kpis = [
