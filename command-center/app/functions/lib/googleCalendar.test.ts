@@ -5,6 +5,7 @@ import {
   getBusy,
   disconnect,
   parseBusy,
+  parseBusyEvents,
   composioUserId,
   mirrorAppointment,
 } from "./googleCalendar";
@@ -322,5 +323,55 @@ describe("mirrorAppointment", () => {
     vi.mocked(composio.proxyCall).mockRejectedValue(new Error("denied"));
 
     expect(await mirrorAppointment(env, "live:willis", appt)).toEqual({ mirrored: false });
+  });
+});
+
+describe("parseBusyEvents", () => {
+  const timed = (summary: string, extra: Record<string, unknown> = {}) => ({
+    summary,
+    start: { dateTime: "2026-07-22T14:00:00-04:00" },
+    end: { dateTime: "2026-07-22T15:00:00-04:00" },
+    ...extra,
+  });
+
+  it("maps timed events to intervals with their titles", () => {
+    const out = parseBusyEvents({ items: [timed("Roof measure - Hartman")] });
+    expect(out).toEqual([
+      {
+        start: "2026-07-22T14:00:00-04:00",
+        end: "2026-07-22T15:00:00-04:00",
+        title: "Roof measure - Hartman",
+      },
+    ]);
+  });
+
+  it("unwraps the response_data envelope Composio sometimes adds", () => {
+    const out = parseBusyEvents({ response_data: { items: [timed("Standup")] } });
+    expect(out).toHaveLength(1);
+    expect(out[0].title).toBe("Standup");
+  });
+
+  it("skips cancelled, transparent, and all-day events", () => {
+    const out = parseBusyEvents({
+      items: [
+        timed("Cancelled thing", { status: "cancelled" }),
+        timed("Marked free", { transparency: "transparent" }),
+        { summary: "All day", start: { date: "2026-07-22" }, end: { date: "2026-07-23" } },
+        timed("Kept"),
+      ],
+    });
+    expect(out.map((e) => e.title)).toEqual(["Kept"]);
+  });
+
+  it("keeps an untitled event with an empty title rather than dropping the block", () => {
+    const out = parseBusyEvents({ items: [timed(undefined as unknown as string)] });
+    expect(out).toHaveLength(1);
+    expect(out[0].title).toBe("");
+  });
+
+  it("returns empty on garbage shapes", () => {
+    expect(parseBusyEvents(null)).toEqual([]);
+    expect(parseBusyEvents({})).toEqual([]);
+    expect(parseBusyEvents({ items: "nope" })).toEqual([]);
   });
 });

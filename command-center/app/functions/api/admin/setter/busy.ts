@@ -1,13 +1,22 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { tenantTimezone } from "../../../lib/env";
 import { getGhlContextForTenant, TenantGhlError } from "../../../lib/tenantGhl";
-import { composioUserId, getConnection, getBusy } from "../../../lib/googleCalendar";
+import {
+  composioUserId,
+  getConnection,
+  getBusy,
+  getBusyEvents,
+} from "../../../lib/googleCalendar";
 
 // GET /api/admin/setter/busy?tenantId=&start=&end= (admin-only, gated in
 // _middleware.ts). A client's Google Calendar busy hours, so the Setter Suite
 // Calendar tab can grey out time the client has already committed elsewhere.
-// Availability only: no titles, no attendees, no detail of any kind is
-// requested or returned, exactly as on the client-facing route.
+// Unlike the client-facing route (availability only), this one returns event
+// TITLES: a setter offering slots on the client's behalf needs to know what
+// is blocking one. Attendees/descriptions are still never requested. If the
+// titled read comes back empty, the anonymous freebusy read is the fallback,
+// so a Composio hiccup degrades to "Busy" blocks rather than a grid that has
+// quietly lost its blocked hours.
 //
 // The client app has functions/api/calendar/busy.ts, but it resolves the
 // Composio user id from ctx.data.tenant, which admin requests never have:
@@ -78,11 +87,18 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       return Response.json({ connected: false, busy: [] });
     }
 
-    const busy = await getBusy(ctx.env, userId, {
-      timeMin,
-      timeMax,
-      timezone: tenantTimezone(ctx.env),
-    });
+    let busy: { start: string; end: string; title?: string }[] = await getBusyEvents(
+      ctx.env,
+      userId,
+      { timeMin, timeMax },
+    );
+    if (busy.length === 0) {
+      busy = await getBusy(ctx.env, userId, {
+        timeMin,
+        timeMax,
+        timezone: tenantTimezone(ctx.env),
+      });
+    }
     return Response.json(
       { connected: true, busy },
       {

@@ -1,15 +1,17 @@
-import { Mail, MessagesSquare, Phone, TriangleAlert, X } from "lucide-react";
+import { Mail, MessagesSquare, Phone, TriangleAlert, Users, X } from "lucide-react";
 import Avatar from "../../Avatar";
 import DialLogger from "./DialLogger";
 import TagField from "./TagField";
 import SlotPicker from "./SlotPicker";
 import StageActions from "./StageActions";
+import SetterNotesTasks from "./SetterNotesTasks";
 import { Button } from "../../ui/Button";
 import { useSetterLeadDetailQuery } from "../../../hooks/useApi";
 import { useNow } from "../../../context/NowContext";
 import { formatPhone } from "../../../lib/phone";
 import { timeAgo } from "../../../lib/timeAgo";
-import { formatOutcome, ghlContactUrl } from "../../../lib/setterModel";
+import { formatOutcome, ghlContactUrl, ghlConversationsUrl } from "../../../lib/setterModel";
+import { useToast } from "../../../context/ToastContext";
 import {
   confirmState,
   formatApptTime,
@@ -118,6 +120,24 @@ export default function SetterCockpit({
   // contact id). One check, so the header never has to re-test the inputs.
   const crmUrl = ghlContactUrl(locationId ?? "", lead.contactId);
 
+  const { showToast } = useToast();
+  // Group chat: the CRM has group SMS in its UI but no public API to create
+  // one (open feature request), so this is the honest v1: copy the lead's
+  // name for the CRM's picker and open Conversations in the same named tab
+  // the phone link reuses. Upgrade to one-click creation when the API ships.
+  const conversationsUrl = ghlConversationsUrl(locationId ?? "");
+  const openGroupChat = async () => {
+    if (!conversationsUrl) return;
+    try {
+      await navigator.clipboard.writeText(name);
+    } catch {
+      // Clipboard needs a secure context + permission; the button still
+      // works without the copy, the setter just types the name instead.
+    }
+    window.open(conversationsUrl, "ghl-contact", "noopener");
+    showToast("Name copied · hit + and pick Group Chat in the CRM");
+  };
+
   // Every resolvable stage renders the dialing panel; the old generic
   // cockpit below survives only as the fallback for a lead whose stage name
   // failed to resolve.
@@ -176,6 +196,17 @@ export default function SetterCockpit({
           </div>
           <div className="mt-1.5 truncate text-[11px] text-faint">{lead.stageName}</div>
         </div>
+        {conversationsUrl && (
+          <button
+            type="button"
+            onClick={openGroupChat}
+            title="Create a group chat in the CRM (copies this lead's name)"
+            aria-label="Create a group chat in the CRM"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-muted transition-colors hover:bg-surface-3 hover:text-brand-text"
+          >
+            <Users size={14} />
+          </button>
+        )}
         {onOpenChat && (
           <button
             type="button"
@@ -354,6 +385,10 @@ export default function SetterCockpit({
         </Section>
           </>
         )}
+
+        {/* Every stage, both branches: notes on the live contact record and
+            a direct task creator (same modal the Follow Up flow uses). */}
+        <SetterNotesTasks tenantId={tenantId} contactId={lead.contactId} leadName={name} />
       </div>
     </aside>
   );

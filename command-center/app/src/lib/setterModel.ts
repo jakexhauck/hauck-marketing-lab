@@ -75,6 +75,16 @@ export function ghlContactUrl(locationId: string, contactId: string): string | n
   return `https://app.gohighlevel.com/v2/location/${encodeURIComponent(loc)}/contacts/detail/${encodeURIComponent(contact)}`;
 }
 
+// The CRM's Conversations view for a location: where the setter creates a
+// group chat (no public API exists to create one; see the cockpit's Group
+// chat button). Same null contract as ghlContactUrl: a missing location id
+// yields null, never a half-built URL.
+export function ghlConversationsUrl(locationId: string): string | null {
+  const loc = locationId.trim();
+  if (!loc) return null;
+  return `https://app.gohighlevel.com/v2/location/${encodeURIComponent(loc)}/conversations/conversations`;
+}
+
 // Order pipelines by the numeric prefix the agency puts in their CRM names
 // ("1) Lead Form Pipeline", "2) Funnel Pipeline"), so the switcher shows them
 // in the intended sequence even though the UI strips the numbers from the

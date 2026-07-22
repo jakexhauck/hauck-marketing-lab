@@ -57,6 +57,7 @@ import {
   type ApiSetterBusy,
   type ApiSetterCallbacksResponse,
   type ApiSetterScoreboard,
+  type ApiSetterNote,
   type ApiSetterContact,
   type ApiSetterInboxResponse,
   type ApiSetterThreadResponse,
@@ -631,6 +632,37 @@ export function useCreateSetterTask() {
       }),
     onSettled: (_data, _err, input) => {
       qc.invalidateQueries({ queryKey: ["admin", "setter", "callbacks", input.tenantId] });
+    },
+  });
+}
+
+// Contact notes off the live CRM record (GET /api/admin/setter/notes).
+// Fetched per cockpit open; newest first.
+export function useSetterNotesQuery(tenantId: string, contactId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "setter", "notes", tenantId, contactId],
+    enabled: enabled && !!tenantId && !!contactId,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<{ notes: ApiSetterNote[] }>(
+        `/api/admin/setter/notes?tenantId=${encodeURIComponent(tenantId)}&contactId=${encodeURIComponent(contactId)}`,
+      ),
+  });
+}
+
+// Adds a note to the live CRM contact (POST /api/admin/setter/notes).
+export function useCreateSetterNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { tenantId: string; contactId: string; body: string }) =>
+      api<{ note: ApiSetterNote | null }>("/api/admin/setter/notes", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSettled: (_data, _err, input) => {
+      qc.invalidateQueries({
+        queryKey: ["admin", "setter", "notes", input.tenantId, input.contactId],
+      });
     },
   });
 }

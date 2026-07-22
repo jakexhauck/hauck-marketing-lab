@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
-  Gauge,
   LayoutGrid,
   MessagesSquare,
   ScrollText,
@@ -22,7 +21,6 @@ import SetterInbox from "../../components/admin/setter/SetterInbox";
 import SetterCalendar from "../../components/admin/setter/SetterCalendar";
 import SetterSettings from "../../components/admin/setter/SetterSettings";
 import SetterResults from "../../components/admin/setter/SetterResults";
-import SetterScoreboard from "../../components/admin/setter/SetterScoreboard";
 import SetterScoreStrip from "../../components/admin/setter/SetterScoreStrip";
 import SetterCallbacksRail from "../../components/admin/setter/SetterCallbacksRail";
 import SetterScriptOverlay from "../../components/admin/setter/SetterScriptOverlay";
@@ -52,17 +50,14 @@ import {
 // every setter's persisted hml_setter_view and silently reset their tab, which
 // is not worth it for a label change. A stored "dialhub" from before the
 // retirement maps to "settings" for the same reason.
-type SetterView = "board" | "inbox" | "calendar" | "results" | "scoreboard" | "settings";
+type SetterView = "board" | "inbox" | "calendar" | "results" | "settings";
 const SETTER_VIEW_KEY = "hml_setter_view";
 
+// A stored "scoreboard" (the retired tab; its numbers live on the board
+// strip now) falls through to the "board" default below.
 function isSetterView(v: string | null | undefined): v is SetterView {
   return (
-    v === "board" ||
-    v === "inbox" ||
-    v === "calendar" ||
-    v === "results" ||
-    v === "scoreboard" ||
-    v === "settings"
+    v === "board" || v === "inbox" || v === "calendar" || v === "results" || v === "settings"
   );
 }
 
@@ -316,15 +311,6 @@ export default function SetterSuite() {
           </button>
           <button
             type="button"
-            className={`pk-tab${view === "scoreboard" ? " on" : ""}`}
-            onClick={() => selectView("scoreboard")}
-            aria-current={view === "scoreboard" ? "page" : undefined}
-          >
-            <Gauge size={15} aria-hidden />
-            Scoreboard
-          </button>
-          <button
-            type="button"
             className={`pk-tab${view === "settings" ? " on" : ""}`}
             onClick={() => selectView("settings")}
             aria-current={view === "settings" ? "page" : undefined}
@@ -375,12 +361,6 @@ export default function SetterSuite() {
               clientName={activeClient.name}
               bookingIntent={bookingIntent}
               onBookingHandled={() => setBookingIntent(null)}
-            />
-          ) : view === "scoreboard" ? (
-            <SetterScoreboard
-              key={activeTenantId}
-              tenantId={activeTenantId}
-              clientName={activeClient.name}
             />
           ) : view === "results" ? (
             // Keyed on the tenant so switching client never carries one
