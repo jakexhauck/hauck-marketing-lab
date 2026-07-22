@@ -1,6 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { AlertTriangle } from "lucide-react";
+import BoardScrollbar from "../../BoardScrollbar";
 import SetterCard from "./SetterCard";
+import { dialCheckKey, stageTone } from "../../../lib/setterModel";
+import type { LeadAppointment } from "../../../lib/setterApptConfirm";
 import type { ApiSetterLead, ApiSetterPipeline } from "../../../lib/api";
 
 interface Props {
@@ -9,6 +12,16 @@ interface Props {
   truncated: boolean;
   now: number;
   selectedLeadId: string | null;
+  // Contacts mid-automation (setterAutomationLock.ts): their cards render
+  // greyed and unclickable until the automation's result is visible.
+  lockedContactIds: Set<string>;
+  // Session-local dial-attempt ticks keyed by dialCheckKey(contact, stage);
+  // the card renders them as a small segment bar under the contact.
+  dialChecks: Record<string, boolean[]>;
+  // Booked appointments for leads in "Appt Booked" stages, keyed by
+  // contactId (setterApptConfirm.ts). Cards use these for the appointment
+  // chip and the manual-confirm alert.
+  appointments: Map<string, LeadAppointment>;
   onSelectLead: (lead: ApiSetterLead) => void;
 }
 
@@ -24,8 +37,14 @@ export default function SetterBoard({
   truncated,
   now,
   selectedLeadId,
+  lockedContactIds,
+  dialChecks,
+  appointments,
   onSelectLead,
 }: Props) {
+  // For the slider below the board: the columns overflow this container.
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const byStage = useMemo(() => {
     const m = new Map<string, ApiSetterLead[]>();
     for (const s of pipeline.stages) m.set(s.name, []);
@@ -49,20 +68,23 @@ export default function SetterBoard({
         </div>
       )}
 
-      <div className="no-scrollbar flex items-start gap-3 overflow-x-auto pb-2">
+      <div ref={scrollRef} className="no-scrollbar flex items-start gap-3 overflow-x-auto pb-2">
         {pipeline.stages.map((stage) => {
           const items = byStage.get(stage.name) ?? [];
+          // Semantic tone only, deliberately ignoring the CRM's stage.color:
+          // GHL only sets it on some stages and its values are not reliably
+          // valid CSS, which left a board where only some columns showed any
+          // color at all. One rule, every column colored, always.
+          const tone = stageTone(stage.name);
           return (
             <section key={stage.id} className="flex w-[280px] shrink-0 flex-col gap-2">
               <header className="flex items-baseline justify-between gap-2 px-1">
                 <span className="flex min-w-0 items-center gap-1.5">
-                  {stage.color && (
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: stage.color }}
-                      aria-hidden
-                    />
-                  )}
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: tone }}
+                    aria-hidden
+                  />
                   <span
                     className="truncate font-display text-[14px] font-bold text-text"
                     title={stage.name}
@@ -70,7 +92,13 @@ export default function SetterBoard({
                     {stage.name}
                   </span>
                 </span>
-                <span className="font-data shrink-0 text-[12px] font-semibold text-muted">
+                <span
+                  className="font-data shrink-0 rounded-full px-1.5 text-[12px] font-bold"
+                  style={{
+                    color: tone,
+                    background: `color-mix(in srgb, ${tone} 12%, transparent)`,
+                  }}
+                >
                   {items.length}
                 </span>
               </header>
@@ -83,7 +111,10 @@ export default function SetterBoard({
                 </div>
               )}
 
-              <div className="flex min-h-[96px] flex-col gap-2 rounded-2xl bg-surface-2 p-2">
+              <div
+                className="flex min-h-[96px] flex-col gap-2 rounded-2xl bg-surface-2 p-2"
+                style={{ boxShadow: `inset 0 3px 0 ${tone}` }}
+              >
                 {items.length === 0 ? (
                   <p className="px-2 py-6 text-center text-[12px] text-faint">
                     {stage.needsDialing
@@ -95,9 +126,13 @@ export default function SetterBoard({
                     <SetterCard
                       key={lead.id}
                       lead={lead}
+                      stageColor={tone}
                       stageNeedsDialing={stage.needsDialing}
                       now={now}
                       selected={lead.id === selectedLeadId}
+                      locked={lockedContactIds.has(lead.contactId)}
+                      dialChecks={dialChecks[dialCheckKey(lead.contactId, lead.stageName)]}
+                      appointment={appointments.get(lead.contactId) ?? null}
                       onSelect={onSelectLead}
                     />
                   ))
@@ -107,6 +142,11 @@ export default function SetterBoard({
           );
         })}
       </div>
+
+      {/* Draggable slider mirroring the board's horizontal scroll, so the
+          off-screen stages are obviously reachable. Renders nothing when
+          every column already fits. */}
+      <BoardScrollbar scrollRef={scrollRef} className="px-1 pt-1" />
     </div>
   );
 }

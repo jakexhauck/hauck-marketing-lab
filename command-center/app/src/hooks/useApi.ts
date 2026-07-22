@@ -14,9 +14,8 @@ import {
   getScalingCalculator,
   saveScalingCalculator,
   getTimeAuditWeek,
-  getSetterDialHub,
-  saveSetterDialHub,
-  type ApiDialHub,
+  getSetterScript,
+  saveSetterScript,
   tagTimeAuditBlock,
   type TimeAuditTagBody,
   type TimeAuditWeekResponse,
@@ -56,6 +55,8 @@ import {
   type ApiSetterCalendar,
   type ApiSetterEventsResponse,
   type ApiSetterBusy,
+  type ApiSetterCallbacksResponse,
+  type ApiSetterScoreboard,
   type ApiSetterContact,
   type ApiSetterInboxResponse,
   type ApiSetterThreadResponse,
@@ -443,11 +444,20 @@ export function useSetterPipelinesQuery(tenantId: string, enabled = true) {
 // Setter Suite: every open lead in one pipeline, merged with its dial
 // history. Re-fetched per pipeline tab rather than once for all 8, so
 // switching tabs never fires 8 requests up front.
-export function useSetterLeadsQuery(tenantId: string, pipelineId: string, enabled = true) {
+export function useSetterLeadsQuery(
+  tenantId: string,
+  pipelineId: string,
+  enabled = true,
+  // While a stage-action automation is in flight the board polls on this
+  // interval so the automation lock (setterAutomationLock.ts) can see the
+  // stage move and release. False (the default) means no polling.
+  refetchIntervalMs: number | false = false,
+) {
   return useQuery({
     queryKey: ["admin", "setter", "leads", tenantId, pipelineId],
     enabled: enabled && !!tenantId && !!pipelineId,
     staleTime: 15_000,
+    refetchInterval: refetchIntervalMs,
     queryFn: () =>
       api<ApiSetterLeadsResponse>(
         `/api/admin/setter/leads?tenantId=${encodeURIComponent(tenantId)}&pipelineId=${encodeURIComponent(pipelineId)}`,
@@ -603,18 +613,69 @@ export interface SetterTaskInput {
   contactId: string;
   title: string;
   dueDate?: string;
+  // Display name for the callbacks rail's mirror row.
+  contactName?: string;
 }
 
 // Creates a follow-up task on the live CRM contact in the client's own
 // sub-account (POST /api/admin/setter/task). Used by the Follow Up cockpit
-// action, which applies its tag and then prompts for the task.
+// action, which applies its tag and then prompts for the task. The endpoint
+// also mirrors the task into setter_callbacks, so the rail refetches.
 export function useCreateSetterTask() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: SetterTaskInput) =>
       api<{ task: ApiTask | null }>("/api/admin/setter/task", {
         method: "POST",
         body: JSON.stringify(input),
       }),
+    onSettled: (_data, _err, input) => {
+      qc.invalidateQueries({ queryKey: ["admin", "setter", "callbacks", input.tenantId] });
+    },
+  });
+}
+
+// Pending scheduled callbacks for the board rail (GET
+// /api/admin/setter/callbacks). Soonest due first.
+export function useSetterCallbacksQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "setter", "callbacks", tenantId],
+    enabled: enabled && !!tenantId,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<ApiSetterCallbacksResponse>(
+        `/api/admin/setter/callbacks?tenantId=${encodeURIComponent(tenantId)}`,
+      ),
+  });
+}
+
+// Marks one callback done: mirror row plus the CRM task it points at (POST
+// /api/admin/setter/callbacks/complete).
+export function useCompleteSetterCallback() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { tenantId: string; id: string }) =>
+      api<{ ok: true; crmUpdated: boolean }>("/api/admin/setter/callbacks/complete", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSettled: (_data, _err, input) => {
+      qc.invalidateQueries({ queryKey: ["admin", "setter", "callbacks", input.tenantId] });
+    },
+  });
+}
+
+// The setter's headline numbers, both windows in one response (GET
+// /api/admin/setter/scoreboard). Derived live from setter_dials.
+export function useSetterScoreboardQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "setter", "scoreboard", tenantId],
+    enabled: enabled && !!tenantId,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<ApiSetterScoreboard>(
+        `/api/admin/setter/scoreboard?tenantId=${encodeURIComponent(tenantId)}`,
+      ),
   });
 }
 
@@ -645,36 +706,33 @@ export function useSetterCalendarsQuery(tenantId: string, enabled = true) {
   });
 }
 
-// The selected client's Dialing Hub document (GET
-// /api/admin/setter/dial-hub). Never 404s: a client that has never been
-// edited comes back as the seed template, so the tab has no "not set up yet"
-// state to render.
-export function useSetterDialHubQuery(tenantId: string, enabled = true) {
+// The selected client's dialing script (GET /api/admin/setter/script).
+// Never 404s: a client with no saved script comes back as empty html, so
+// "no script yet" is a rendering decision, not an error state.
+export function useSetterScriptQuery(tenantId: string, enabled = true) {
   return useQuery({
-    queryKey: ["admin", "setter", "dial-hub", tenantId],
+    queryKey: ["admin", "setter", "script", tenantId],
     enabled: enabled && !!tenantId,
     staleTime: 60_000,
-    queryFn: () => getSetterDialHub(tenantId),
+    queryFn: () => getSetterScript(tenantId),
   });
 }
 
-// Autosave for one client's hub. The response seeds the cache directly instead
-// of invalidating it: an invalidation refetches, and the refetch would land
-// under the field the admin is still typing in and snap it back.
+// Autosave for one client's script. The response seeds the cache directly
+// instead of invalidating it: an invalidation refetches, and the refetch
+// would land under the editor mid-typing and snap the cursor back.
 //
-// SCOPED, and it has to be. Every PATCH writes the WHOLE document, so two in
-// flight at once is last-response-wins on the server. Tabbing between fields
-// fires a save per blur, milliseconds apart: unscoped, React Query runs them in
-// parallel, an earlier PATCH carrying the older document can commit second, and
-// the newer field is silently dropped while the indicator still reads "Saved".
-// A shared scope id serializes them into a queue instead.
-export function useSaveSetterDialHubMutation(tenantId: string) {
+// SCOPED, and it has to be (inherited from the retired dial hub, which hit
+// this bug live): every PATCH writes the WHOLE document, so two in flight at
+// once is last-response-wins on the server. A shared scope id serializes
+// them into a queue instead.
+export function useSaveSetterScriptMutation(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
-    scope: { id: `setter-dial-hub-${tenantId}` },
-    mutationFn: (v: { tenantId: string; hub: ApiDialHub }) => saveSetterDialHub(v.tenantId, v.hub),
+    scope: { id: `setter-script-${tenantId}` },
+    mutationFn: (v: { tenantId: string; html: string }) => saveSetterScript(v.tenantId, v.html),
     onSuccess: (res, v) => {
-      qc.setQueryData(["admin", "setter", "dial-hub", v.tenantId], res);
+      qc.setQueryData(["admin", "setter", "script", v.tenantId], res);
     },
   });
 }
@@ -730,6 +788,28 @@ export function useSetterBookMutation() {
       }),
     onSuccess: (_data, input) => {
       qc.invalidateQueries({ queryKey: ["admin", "setter", "leads", input.tenantId] });
+      qc.invalidateQueries({ queryKey: ["calendar", "events"] });
+    },
+  });
+}
+
+// Cancel a lead's booked appointment (POST
+// /api/admin/setter/cancel-appointment), the Phone Appt Confirmed cockpit's
+// Reschedule / Cancel + Follow Up actions. Never retried: the cancel is
+// idempotent in effect but a retry storm against the calendar API helps
+// nobody. Settling invalidates the events range queries so the appointment
+// chip and manual-confirm tracking drop the dead booking.
+export function useCancelSetterAppointment() {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: { tenantId: string; eventId: string }) =>
+      api<{ ok: boolean }>("/api/admin/setter/cancel-appointment", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSettled: (_data, _err, input) => {
+      qc.invalidateQueries({ queryKey: ["admin", "setter-events", input.tenantId] });
       qc.invalidateQueries({ queryKey: ["calendar", "events"] });
     },
   });
@@ -893,6 +973,38 @@ export interface SetterSendInput {
 // still have gone out (the failure can be in our response path, not GHL's
 // delivery), so the thread must be refetched either way or the setter is shown
 // a thread that disagrees with what the customer received.
+// Delete a contact's conversation(s) in the client's CRM (DELETE
+// /api/admin/setter/inbox/:contactId). Irreversible; the UI confirms before
+// calling. Never retried: a retry storm on a destructive call helps nobody.
+export function useDeleteSetterConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: { tenantId: string; contactId: string }) =>
+      api<{ deleted: number; failed: number }>(
+        `/api/admin/setter/inbox/${encodeURIComponent(input.contactId)}?tenantId=${encodeURIComponent(input.tenantId)}`,
+        { method: "DELETE" },
+      ),
+    onSuccess: (_d, input) => {
+      // Prune the thread from every cached list window rather than
+      // invalidating: the CRM's conversation search is eventually consistent,
+      // so an immediate refetch resurrects the row we just deleted. The next
+      // natural refetch (staleTime expiry, tab return) reconciles with the
+      // server once its index catches up.
+      qc.setQueriesData<ApiSetterInboxResponse>(
+        { queryKey: ["admin", "setter-inbox", "threads", input.tenantId] },
+        (old) =>
+          old
+            ? { ...old, threads: old.threads.filter((t) => t.contactId !== input.contactId) }
+            : old,
+      );
+      qc.removeQueries({
+        queryKey: ["admin", "setter-inbox", "thread", input.tenantId, input.contactId],
+      });
+    },
+  });
+}
+
 export function useSetterSendMutation() {
   const qc = useQueryClient();
   return useMutation({

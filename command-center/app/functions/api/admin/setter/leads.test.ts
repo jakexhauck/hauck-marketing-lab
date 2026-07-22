@@ -32,6 +32,7 @@ describe("shapeSetterLead", () => {
       city: "Garden City",
       stageName: "Opted In (needs dialing)",
       createdAt: "2026-07-19T00:00:00Z",
+      updatedAt: null,
       attempts: 2,
       firstDialedAt: "2026-07-20T09:00:00Z",
       contacted: true,

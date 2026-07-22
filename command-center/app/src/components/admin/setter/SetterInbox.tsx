@@ -1,15 +1,25 @@
 import { useEffect, useState } from "react";
-import { MessagesSquare } from "lucide-react";
+import { MessagesSquare, Trash2 } from "lucide-react";
 import ThreadList from "./ThreadList";
 import ThreadView from "./ThreadView";
 import Composer from "./Composer";
-import { useSetterInboxQuery, useSetterThreadQuery } from "../../../hooks/useApi";
+import {
+  useDeleteSetterConversation,
+  useSetterInboxQuery,
+  useSetterThreadQuery,
+} from "../../../hooks/useApi";
+import { useToast } from "../../../context/ToastContext";
 import { INBOX_PAGE, MAX_INBOX_WINDOW } from "../../../lib/setterInbox";
 import type { ApiSetterThread } from "../../../lib/api";
 
 interface Props {
   tenantId: string;
   clientName: string;
+  // A one-shot hand-off from the cockpit's chat button: open this contact's
+  // conversation on arrival. The parent clears it via onChatHandled once
+  // consumed, mirroring the Calendar tab's bookingIntent.
+  chatIntent?: { contactId: string; name: string } | null;
+  onChatHandled?: () => void;
 }
 
 // How long typing settles before the search actually hits the CRM. A prior
@@ -31,11 +41,17 @@ const SEARCH_DEBOUNCE_MS = 350;
 // The skipped row is always the one with fresh activity, which is the row a
 // setter most needs to see. Re-reading from the top makes that impossible, and
 // it deletes the whole class of accumulator bugs with it.
-export default function SetterInbox({ tenantId, clientName }: Props) {
+export default function SetterInbox({ tenantId, clientName, chatIntent, onChatHandled }: Props) {
+  const { showToast } = useToast();
   const [searchInput, setSearchInput] = useState("");
   const [q, setQ] = useState("");
   const [windowSize, setWindowSize] = useState(INBOX_PAGE);
   const [selected, setSelected] = useState<ApiSetterThread | null>(null);
+  // Two-step delete: the trash icon arms it, a labeled confirm fires it.
+  // Disarms whenever the selection changes so a confirm can never land on a
+  // different conversation than the one it was armed for.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const deleteConversation = useDeleteSetterConversation();
 
   // Switching clients wipes the search, the window and the selection: none of
   // it means anything against a different client's inbox, and a stale selected
@@ -57,6 +73,24 @@ export default function SetterInbox({ tenantId, clientName }: Props) {
     return () => window.clearTimeout(t);
   }, [searchInput]);
 
+  // Consume a pending chat intent immediately with a synthetic thread stub:
+  // the thread view only needs the contactId to load messages, so the
+  // conversation opens without waiting for the list. The list row highlights
+  // itself later by contactId match once it loads.
+  useEffect(() => {
+    if (!chatIntent) return;
+    setSelected({
+      contactId: chatIntent.contactId,
+      name: chatIntent.name,
+      preview: "",
+      lastMessageAt: "",
+      lastMessageType: "",
+      unreadCount: 0,
+    });
+    onChatHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatIntent]);
+
   const inboxQuery = useSetterInboxQuery(tenantId, q, windowSize, !!tenantId);
 
   // React Query keys on (tenant, q, windowSize), so data is never another
@@ -77,6 +111,33 @@ export default function SetterInbox({ tenantId, clientName }: Props) {
       : "loading";
 
   const fetchingMore = !!data && inboxQuery.isFetching;
+
+  // Selection change disarms a pending delete confirm.
+  useEffect(() => {
+    setConfirmingDelete(false);
+  }, [selected?.contactId]);
+
+  const runDelete = () => {
+    if (!selected || deleteConversation.isPending) return;
+    deleteConversation.mutate(
+      { tenantId, contactId: selected.contactId },
+      {
+        onSuccess: (res) => {
+          setConfirmingDelete(false);
+          setSelected(null);
+          showToast(
+            res.failed > 0
+              ? `Deleted, but ${res.failed} conversation(s) could not be removed`
+              : "Conversation deleted",
+          );
+        },
+        onError: () => {
+          setConfirmingDelete(false);
+          showToast("Could not delete the conversation, please try again");
+        },
+      },
+    );
+  };
 
   const threadQuery = useSetterThreadQuery(tenantId, selected?.contactId ?? null, !!selected);
   const threadStatus = !selected
@@ -120,7 +181,7 @@ export default function SetterInbox({ tenantId, clientName }: Props) {
       />
 
       <section
-        className="flex min-h-[420px] w-full min-w-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)] lg:max-h-[calc(100dvh-9rem)]"
+        className="flex min-h-[420px] w-full min-w-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)] lg:h-[calc(100dvh-9rem)]"
         aria-label="Conversation"
       >
         {!selected ? (
@@ -132,13 +193,45 @@ export default function SetterInbox({ tenantId, clientName }: Props) {
           </div>
         ) : (
           <>
-            <div className="border-b border-divider px-4 py-3">
-              <div className="font-display text-[15px] font-semibold text-text">
-                {threadQuery.data?.name || selected.name}
+            <div className="flex items-center gap-3 border-b border-divider px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-display text-[15px] font-semibold text-text">
+                  {threadQuery.data?.name || selected.name}
+                </div>
               </div>
-              <p className="mt-0.5 text-[11.5px] text-faint">
-                Replies go out as {clientName}.
-              </p>
+              {confirmingDelete ? (
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="text-[11.5px] font-semibold text-danger">
+                    Delete forever?
+                  </span>
+                  <button
+                    type="button"
+                    onClick={runDelete}
+                    disabled={deleteConversation.isPending}
+                    className="rounded-[var(--radius)] bg-danger px-2.5 py-1 text-[11.5px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                  >
+                    {deleteConversation.isPending ? "Deleting..." : "Delete"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(false)}
+                    disabled={deleteConversation.isPending}
+                    className="rounded-[var(--radius)] bg-surface-2 px-2.5 py-1 text-[11.5px] font-semibold text-muted transition-colors hover:bg-surface-3 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(true)}
+                  title="Delete this conversation"
+                  aria-label="Delete this conversation"
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-muted transition-colors hover:bg-danger-tint hover:text-danger"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
             </div>
 
             <ThreadView

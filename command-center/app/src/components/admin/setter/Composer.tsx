@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Loader2, Send, TriangleAlert } from "lucide-react";
+import { Segmented } from "../../ui";
 import { useSetterSendMutation } from "../../../hooks/useApi";
 import { useToast } from "../../../context/ToastContext";
 import {
@@ -90,23 +91,16 @@ export default function Composer({ tenantId, contactId, contactName, lastMessage
         submit();
       }}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-2 text-[12px] text-muted">
-          Send as
-          <select
-            className="pk-select"
-            value={channel}
-            onChange={(e) => setChannel(e.target.value as SendChannel)}
-            disabled={send.isPending}
-            aria-label="Message channel"
-          >
-            {SEND_CHANNELS.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-[12px] font-semibold text-muted">Send as</span>
+        <Segmented
+          options={[...SEND_CHANNELS]}
+          value={channel}
+          onChange={(v) => {
+            if (!send.isPending) setChannel(v);
+          }}
+          size="sm"
+        />
         <span className="text-[11.5px] text-faint">
           Goes out under the client&apos;s name, not yours.
         </span>
@@ -152,10 +146,6 @@ export default function Composer({ tenantId, contactId, contactName, lastMessage
           {send.isPending ? "Sending..." : "Send"}
         </button>
       </div>
-
-      {blockReason && !send.isPending && (
-        <p className="mt-1.5 text-[11.5px] font-medium text-faint">{blockReason}</p>
-      )}
     </form>
   );
 }

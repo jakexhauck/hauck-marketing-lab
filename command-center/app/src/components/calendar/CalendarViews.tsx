@@ -27,6 +27,7 @@ export default function CalendarViews({
   view,
   onRangeChange,
   onSlotClick,
+  weekHourPx,
 }: {
   items: CalendarItem[];
   connected: Record<CalendarSource, boolean>;
@@ -38,6 +39,8 @@ export default function CalendarViews({
   // Setter Suite only. Passed straight to WeekView; when absent the week grid
   // renders no slot layer and stays read-only, as the client Jobs tab needs.
   onSlotClick?: (iso: string, startMinutes: number) => void;
+  // Optional vertical scale for the week grid, passed straight to WeekView.
+  weekHourPx?: number;
 }) {
   const demo = demoMode();
 
@@ -175,6 +178,7 @@ export default function CalendarViews({
           anchorIso={anchor}
           todayIso={todayIso}
           onSlotClick={onSlotClick}
+          hourPx={weekHourPx}
         />
       ) : (
         <MonthView

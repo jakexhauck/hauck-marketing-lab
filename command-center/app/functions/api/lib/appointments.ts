@@ -177,6 +177,24 @@ export async function createAppointment(
   return { ok: true, id: data.id ?? data.appointment?.id ?? "" };
 }
 
+// Cancel an appointment. GHL cancels by setting appointmentStatus, not by
+// DELETE (same pattern as functions/api/customers/[contactId]/plan.ts). The
+// booking stays on the calendar as a cancelled record, which is also what
+// keeps it out of listCalendarEvents consumers that filter dead statuses.
+export async function cancelAppointment(
+  gctx: GhlContext,
+  eventId: string,
+): Promise<{ ok: boolean; status: number; body?: string }> {
+  const res = await calFetch(gctx, `/calendars/events/appointments/${encodeURIComponent(eventId)}`, {
+    method: "PUT",
+    body: JSON.stringify({ appointmentStatus: "cancelled" }),
+  });
+  if (!res.ok) {
+    return { ok: false, status: res.status, body: (await res.text()).slice(0, 300) };
+  }
+  return { ok: true, status: res.status };
+}
+
 // Booked events, as opposed to free slots. Lifted from the client-app route
 // functions/api/calendar/events.ts so admin routes can list a client's
 // appointments without a client-app session. Two things differ from that

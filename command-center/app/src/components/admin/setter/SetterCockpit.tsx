@@ -1,4 +1,4 @@
-import { Mail, Phone, TriangleAlert, X } from "lucide-react";
+import { Mail, MessagesSquare, Phone, TriangleAlert, X } from "lucide-react";
 import Avatar from "../../Avatar";
 import DialLogger from "./DialLogger";
 import TagField from "./TagField";
@@ -10,6 +10,12 @@ import { useNow } from "../../../context/NowContext";
 import { formatPhone } from "../../../lib/phone";
 import { timeAgo } from "../../../lib/timeAgo";
 import { formatOutcome, ghlContactUrl } from "../../../lib/setterModel";
+import {
+  confirmState,
+  formatApptTime,
+  isApptBookedStage,
+  type LeadAppointment,
+} from "../../../lib/setterApptConfirm";
 import { isOptimisticDial } from "../../../lib/setterCockpit";
 import { stageActionsFor } from "../../../lib/setterStageActions";
 import type { BookingIntent } from "../../../lib/setterBooking";
@@ -28,6 +34,20 @@ interface Props {
   // Hands a "book this contact" intent up to the Setter Suite, which switches
   // to the Calendar tab with the booking panel pre-filled.
   onBookAppointment?: (intent: BookingIntent) => void;
+  // Same hand-off for chat: switches to the Inbox tab with this contact's
+  // conversation opened.
+  onOpenChat?: (contactId: string, name: string) => void;
+  // Fired when a stage-action tag lands: the Setter Suite locks this lead's
+  // board card until the CRM automation's result is visible.
+  onAutomationStart?: () => void;
+  // Dial-attempt ticks for this lead's current stage, owned by the Setter
+  // Suite so the board card's segment bar mirrors the cockpit's checkboxes.
+  dialed: boolean[];
+  onToggleDial: (index: number) => void;
+  // The funnel booking this lead is being confirmed for (only set for leads
+  // in an "Appt Booked" stage); inside the final 24h the cockpit shows the
+  // manual-confirm banner.
+  appointment?: LeadAppointment | null;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -73,8 +93,17 @@ export default function SetterCockpit({
   lead,
   onClose,
   onBookAppointment,
+  onOpenChat,
+  onAutomationStart,
+  dialed,
+  onToggleDial,
+  appointment,
 }: Props) {
   const now = useNow();
+  const apptState = appointment ? confirmState(appointment, now) : null;
+  // The manual-confirm banner belongs to the Appt Booked stage only; a
+  // confirmed lead's appointment renders as plain information.
+  const confirmDue = apptState === "due" && isApptBookedStage(lead.stageName);
   const detailQuery = useSetterLeadDetailQuery(tenantId, lead.contactId, true);
   const detail = detailQuery.data?.lead;
 
@@ -89,9 +118,10 @@ export default function SetterCockpit({
   // contact id). One check, so the header never has to re-test the inputs.
   const crmUrl = ghlContactUrl(locationId ?? "", lead.contactId);
 
-  // A stage with its own dialing panel renders that instead of the default
-  // cockpit sections. Null for every stage we have not built out yet.
-  const stageConfig = stageActionsFor(lead.stageName);
+  // Every resolvable stage renders the dialing panel; the old generic
+  // cockpit below survives only as the fallback for a lead whose stage name
+  // failed to resolve.
+  const stageConfig = stageActionsFor(lead.stageName, pipelineName);
 
   return (
     <aside
@@ -146,6 +176,17 @@ export default function SetterCockpit({
           </div>
           <div className="mt-1.5 truncate text-[11px] text-faint">{lead.stageName}</div>
         </div>
+        {onOpenChat && (
+          <button
+            type="button"
+            onClick={() => onOpenChat(lead.contactId, name)}
+            title="Open this conversation in the Inbox"
+            aria-label="Open this conversation in the Inbox"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-muted transition-colors hover:bg-surface-3 hover:text-brand-text"
+          >
+            <MessagesSquare size={14} />
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}
@@ -164,16 +205,73 @@ export default function SetterCockpit({
           the original cockpit (log call, tags, book, history) until we build
           out that stage. */}
       <div className="min-h-0 flex-1 overflow-y-auto">
+        {/* The lead's funnel booking. Inside the final 24h with the lead
+            still in the Appt Booked stage (= never confirmed), this turns
+            into the manual-confirm alert. */}
+        {appointment && (
+          <div
+            className={
+              "mx-4 mt-3 rounded-[var(--radius)] border px-3 py-2.5 " +
+              (confirmDue
+                ? "border-danger/30 bg-danger-tint"
+                : "border-border bg-surface-2")
+            }
+          >
+            <p
+              className={
+                "text-[12.5px] font-semibold " + (confirmDue ? "text-danger" : "text-text")
+              }
+            >
+              {apptState === "passed" ? "Appointment passed · " : "Appointment · "}
+              {formatApptTime(appointment.startMs)}
+            </p>
+            {confirmDue && (
+              <p className="mt-0.5 text-[12px] leading-snug text-danger">
+                Under 24 hours out and still unconfirmed. Call the lead and
+                confirm this appointment manually.
+              </p>
+            )}
+          </div>
+        )}
         {stageConfig ? (
-          <StageActions
-            tenantId={tenantId}
-            contactId={lead.contactId}
-            leadName={name}
-            phone={phone}
-            email={email}
-            config={stageConfig}
-            onBookAppointment={onBookAppointment}
-          />
+          <>
+            <StageActions
+              tenantId={tenantId}
+              contactId={lead.contactId}
+              leadName={name}
+              phone={phone}
+              email={email}
+              config={stageConfig}
+              onBookAppointment={onBookAppointment}
+              onAutomationStart={onAutomationStart}
+              dialed={dialed}
+              onToggleDial={onToggleDial}
+              appointment={appointment}
+            />
+            {/* Read-only: the stage panel's own buttons are the only tag
+                writers here, this just shows what is already on the live
+                contact so the setter can see prior automation state. */}
+            <Section title="Tags on contact">
+              {detailQuery.isError ? (
+                <DetailLoadError what="tags" onRetry={() => detailQuery.refetch()} />
+              ) : detailQuery.isLoading ? (
+                <p className="text-[12.5px] text-muted">Loading tags...</p>
+              ) : tags.length === 0 ? (
+                <p className="text-[12.5px] text-faint">No tags on this contact yet.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[11.5px] font-semibold text-muted"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </Section>
+          </>
         ) : (
           <>
         <Section title="Log this call">

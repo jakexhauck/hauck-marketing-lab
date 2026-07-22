@@ -139,7 +139,10 @@ export function SetterCalendar({ tenantId, clientName, bookingIntent, onBookingH
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    // Fixed to the viewport on desktop so Month stretches its rows to fill
+    // the screen instead of leaving dead space, and the compressed Week
+    // (weekHourPx below) fits whole with no page scroll.
+    <div className="flex min-h-0 flex-1 flex-col gap-3 lg:h-[calc(100dvh-9rem)]">
       <div className="flex flex-wrap items-center gap-3">
         <Segmented options={VIEW_OPTIONS} value={view} onChange={setView} size="sm" />
 
@@ -183,6 +186,7 @@ export function SetterCalendar({ tenantId, clientName, bookingIntent, onBookingH
         items={items}
         connected={connected}
         view={view}
+        weekHourPx={40}
         onRangeChange={onRangeChange}
         onSlotClick={(iso, startMinutes) => {
           clearSeed();

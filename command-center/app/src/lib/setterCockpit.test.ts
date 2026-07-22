@@ -154,6 +154,7 @@ describe("bumpLeadForDial", () => {
     city: "Garden City",
     stageName: "Needs Dialing",
     createdAt: "2026-07-18T00:00:00.000Z",
+    updatedAt: null,
     attempts: 0,
     firstDialedAt: null,
     contacted: false,

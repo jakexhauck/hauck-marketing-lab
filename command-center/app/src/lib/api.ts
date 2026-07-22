@@ -712,34 +712,28 @@ export async function saveBusinessHealth(
   });
 }
 
-// The Setter Suite Dialing Hub: one editable reference document per client.
-// The shape lives with the pure edit operations in ./dialHubModel so the
-// editor and the wire agree on one definition.
-import type { DialHub as ApiDialHubShape } from "./dialHubModel";
-
-export type ApiDialHub = ApiDialHubShape;
-
-export interface DialHubResponse {
-  hub: ApiDialHub;
+// The Setter Suite dialing script: one formatted document per client,
+// authored in the Settings tab and rendered by the cockpit's script overlay.
+// The html is sanitized server-side on every write
+// (functions/lib/setterScript.ts), which is what makes it safe to render.
+export interface SetterScriptResponse {
+  html: string;
   updatedAt: string | null;
 }
 
-export async function getSetterDialHub(tenantId: string): Promise<DialHubResponse> {
-  return api<DialHubResponse>(
-    `/api/admin/setter/dial-hub?tenantId=${encodeURIComponent(tenantId)}`,
+export async function getSetterScript(tenantId: string): Promise<SetterScriptResponse> {
+  return api<SetterScriptResponse>(
+    `/api/admin/setter/script?tenantId=${encodeURIComponent(tenantId)}`,
   );
 }
 
-// Writes the WHOLE document, not a field patch: the admin edits the structure
-// itself (adds rows, deletes sections), so there is no stable field set to
-// diff against.
-export async function saveSetterDialHub(
+export async function saveSetterScript(
   tenantId: string,
-  hub: ApiDialHub,
-): Promise<DialHubResponse> {
-  return api<DialHubResponse>("/api/admin/setter/dial-hub", {
+  html: string,
+): Promise<SetterScriptResponse> {
+  return api<SetterScriptResponse>("/api/admin/setter/script", {
     method: "PATCH",
-    body: JSON.stringify({ tenantId, hub }),
+    body: JSON.stringify({ tenantId, html }),
   });
 }
 
@@ -937,6 +931,9 @@ export interface ApiSetterLead {
   city: string;
   stageName: string;
   createdAt: string;
+  // When this opportunity last moved (status change, else any update); the
+  // Results tab's "recently won" sort/window key. Null when GHL sends neither.
+  updatedAt: string | null;
   attempts: number;
   firstDialedAt: string | null;
   contacted: boolean;
@@ -1019,6 +1016,39 @@ export interface ApiSetterEventsResponse {
   events: ApiSetterEvent[];
   incomplete: boolean;
   failedCalendars: number;
+}
+
+// One pending scheduled callback (functions/api/admin/setter/callbacks).
+// Mirror of a dated CRM follow-up task; the board rail renders these.
+export interface ApiSetterCallback {
+  id: string;
+  contactId: string;
+  contactName: string;
+  title: string;
+  dueAt: string;
+  ghlTaskId: string | null;
+}
+
+export interface ApiSetterCallbacksResponse {
+  callbacks: ApiSetterCallback[];
+}
+
+// One scoreboard window's numbers (functions/lib/setterScoreboard.ts).
+// bookRate is null (not 0) when nobody was reached: "reaching people and
+// booking none" and "reaching nobody" are different failures.
+export interface ApiScoreboardMetrics {
+  dials: number;
+  reached: number;
+  booked: number;
+  bookRate: number | null;
+}
+
+// GET /api/admin/setter/scoreboard: both windows in one response. Speed to
+// lead is deliberately absent (computed client-side from board leads; see
+// medianSpeedToLeadMs in setterModel.ts).
+export interface ApiSetterScoreboard {
+  today: ApiScoreboardMetrics;
+  week: ApiScoreboardMetrics;
 }
 
 // A client's Google Calendar busy hours, from

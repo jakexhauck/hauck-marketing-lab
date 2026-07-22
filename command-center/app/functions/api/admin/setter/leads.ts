@@ -40,6 +40,10 @@ export interface ApiSetterLead {
   city: string;
   stageName: string;
   createdAt: string;
+  // When this opportunity last moved (status change, else any update). The
+  // Results tab sorts and windows "recently won" by it; GHL's opportunity
+  // search carries no per-stage-entry time, so this is the honest proxy.
+  updatedAt: string | null;
   attempts: number;
   firstDialedAt: string | null;
   contacted: boolean;
@@ -67,6 +71,7 @@ export function shapeSetterLead(
     city: o.contact?.city ?? "",
     stageName: stageNames.get(o.pipelineStageId ?? "") ?? "",
     createdAt: o.createdAt ?? new Date().toISOString(),
+    updatedAt: o.lastStatusChangeAt ?? o.updatedAt ?? null,
     attempts: rollUp?.attempts ?? 0,
     firstDialedAt: rollUp?.firstDialedAt ?? null,
     contacted: rollUp?.contacted ?? false,

@@ -52,7 +52,7 @@ export default function ThreadList({
 
   return (
     <div
-      className="flex w-full shrink-0 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)] lg:w-[330px]"
+      className="flex w-full shrink-0 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)] lg:h-[calc(100dvh-9rem)] lg:w-[330px]"
       aria-label="Conversations"
     >
       <div className="border-b border-divider p-3">
@@ -72,7 +72,7 @@ export default function ThreadList({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto lg:max-h-[calc(100dvh-14rem)]">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {status === "loading" ? (
           <p className="px-4 py-8 text-center text-[13px] text-muted">
             Loading conversations...
@@ -139,18 +139,13 @@ export default function ThreadList({
                         <p className="mt-1 truncate text-[12.5px] text-muted">
                           {previewText(t.preview) || "No message text"}
                         </p>
-                        <div className="mt-1 flex items-center gap-2">
-                          {t.lastMessageType && (
-                            <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-faint">
-                              {t.lastMessageType}
-                            </span>
-                          )}
-                          {t.unreadCount > 0 && (
+                        {t.unreadCount > 0 && (
+                          <div className="mt-1">
                             <span className="rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-bold text-white">
                               {t.unreadCount}
                             </span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </button>
                   </li>

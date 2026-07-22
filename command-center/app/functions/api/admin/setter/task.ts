@@ -16,6 +16,9 @@ export interface SetterTaskBody {
   contactId?: string;
   title?: string;
   dueDate?: string;
+  // Display name for the callbacks rail (setter_callbacks.contact_name);
+  // denormalized so the rail never needs a contact fetch per row.
+  contactName?: string;
 }
 
 export interface ValidationResult {
@@ -79,6 +82,22 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
     const client = getServiceClient(ctx.env);
     if (client) {
+      // Mirror row for the callbacks rail. Deliberately non-fatal: the CRM
+      // task (the thing the setter asked for) already exists, and failing
+      // the response now would read as "task not created" and invite a
+      // duplicate. A missing mirror just means one callback the rail cannot
+      // show.
+      const { error: mirrorError } = await client.from("setter_callbacks").insert({
+        tenant_id: tenantId,
+        contact_id: contactId,
+        contact_name: body.contactName?.trim() ?? "",
+        title,
+        due_at: dueDate,
+        ghl_task_id: created.task?.id ?? null,
+        created_by: ctx.data.admin!.id,
+      });
+      if (mirrorError) console.error("setter_callbacks mirror insert failed", mirrorError);
+
       await logAdminAction(client, ctx.data.admin!.id, "setter.task", tenantId, {
         contactId,
         title,

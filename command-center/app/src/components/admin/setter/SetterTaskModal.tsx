@@ -47,7 +47,7 @@ export default function SetterTaskModal({ tenantId, contactId, leadName, onClose
     // Combine the local date + time into an absolute instant for the CRM.
     const dueDate = new Date(`${date}T${time}`).toISOString();
     createTask.mutate(
-      { tenantId, contactId, title: title.trim(), dueDate },
+      { tenantId, contactId, title: title.trim(), dueDate, contactName: leadName },
       {
         onSuccess: () => {
           showToast("Follow-up task added");

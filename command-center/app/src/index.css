@@ -678,3 +678,74 @@ body {
   }
   /* Spinner keeps turning: it is a loading indicator, not decoration. */
 }
+
+/* --- Setter Suite dialing script (Settings editor + cockpit overlay) ---
+   One typography block shared by the contenteditable editor and the
+   rendered overlay, so what the admin formats is exactly what the setter
+   reads. Tailwind's preflight flattens headings/lists, hence the manual
+   scale here. */
+.script-doc {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text);
+}
+.script-doc h1 {
+  font-family: var(--font-display, inherit);
+  font-size: 21px;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.1em 0 0.4em;
+}
+.script-doc h2 {
+  font-family: var(--font-display, inherit);
+  font-size: 16.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1em 0 0.35em;
+}
+.script-doc h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0.9em 0 0.3em;
+}
+.script-doc h1:first-child,
+.script-doc h2:first-child,
+.script-doc h3:first-child,
+.script-doc p:first-child {
+  margin-top: 0;
+}
+.script-doc p,
+.script-doc div {
+  margin: 0 0 0.55em;
+}
+.script-doc ul,
+.script-doc ol {
+  margin: 0 0 0.7em;
+  padding-left: 1.5em;
+}
+.script-doc ul {
+  list-style: disc;
+}
+.script-doc ol {
+  list-style: decimal;
+}
+.script-doc li {
+  margin: 0.15em 0;
+}
+.script-doc a {
+  color: var(--brand-text, var(--brand));
+  text-decoration: underline;
+}
+.script-doc blockquote {
+  border-left: 3px solid var(--border);
+  margin: 0 0 0.7em;
+  padding: 0.1em 0 0.1em 0.9em;
+  color: var(--text-muted);
+}
+
+/* Placeholder for the empty contenteditable editor. */
+.script-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-faint);
+  pointer-events: none;
+}

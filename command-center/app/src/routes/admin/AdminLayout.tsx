@@ -297,6 +297,42 @@ function AdminSpineStyle() {
         display: grid; place-items: center;
         font-family: var(--font-display); font-size: 11px; font-weight: 600;
       }
+
+      /* Restyled scrollbars for EVERY admin scroll container (the content
+         column, board wells, cockpit, inbox lists, overlays). Scoped to
+         .pk-kit so the client app keeps its native bars. A slim rounded
+         thumb floating on a transparent track; the 2px transparent border +
+         padding-box clip insets the pill from the edge. Hover deepens it,
+         and it picks up the brand on active drag. */
+      .pk-kit *::-webkit-scrollbar { width: 10px; height: 10px; }
+      .pk-kit *::-webkit-scrollbar-track { background: transparent; }
+      .pk-kit *::-webkit-scrollbar-corner { background: transparent; }
+      .pk-kit *::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, var(--text-faint) 34%, transparent);
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
+      .pk-kit *::-webkit-scrollbar-thumb:hover {
+        background: color-mix(in srgb, var(--text-faint) 55%, transparent);
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
+      .pk-kit *::-webkit-scrollbar-thumb:active {
+        background: color-mix(in srgb, var(--brand) 65%, transparent);
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
+      /* Firefox has no scrollbar pseudo-elements; give it the thin tinted
+         equivalent. Kept inside a -moz-only support gate because Chrome 121+
+         would otherwise prefer these standard properties and IGNORE the
+         styled pill above. */
+      @supports (-moz-appearance: none) {
+        .pk-kit * {
+          scrollbar-width: thin;
+          scrollbar-color: color-mix(in srgb, var(--text-faint) 45%, transparent) transparent;
+        }
+      }
     `}</style>
   );
 }
