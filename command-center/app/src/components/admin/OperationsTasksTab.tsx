@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronDown, Plus, X } from "lucide-react";
+import { Check, ChevronDown, GripVertical, Plus, X } from "lucide-react";
 import { useAdminTaskList, type TaskTextField } from "../../hooks/useAdminTaskList";
 import { taskCounts, type TaskStatus } from "../../lib/taskStatus";
 import type { AdminTask } from "../../lib/api";
@@ -22,13 +22,55 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 };
 
 export default function OperationsTasksTab() {
-  const { tasks, loading, error, adding, addTask, patchField, setStatus, toggleDone, deleteTask } =
-    useAdminTaskList();
+  const {
+    tasks,
+    loading,
+    error,
+    adding,
+    addTask,
+    patchField,
+    setStatus,
+    toggleDone,
+    deleteTask,
+    moveTask,
+  } = useAdminTaskList();
   // Uncommitted keystrokes per row, keyed by task id then field. Cleared on
   // blur once the write is away, so the row falls back to the stored value.
   const [drafts, setDrafts] = useState<Record<string, Partial<Record<TaskTextField, string>>>>({});
   // The row whose Task cell should take focus (the row just added).
   const [focusId, setFocusId] = useState<string | null>(null);
+  // Drag-to-reorder state. Rows carry inputs, so a row only becomes draggable
+  // while the mouse is down on its grip (armedId); dragIndex is the row in
+  // flight and insertIndex the gap the drop would land in (0..tasks.length).
+  const [armedId, setArmedId] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [insertIndex, setInsertIndex] = useState<number | null>(null);
+
+  const endDrag = () => {
+    setArmedId(null);
+    setDragIndex(null);
+    setInsertIndex(null);
+  };
+
+  const onRowDragOver = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+    if (dragIndex === null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    // Top half of a row inserts before it, bottom half after it.
+    const rect = e.currentTarget.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    setInsertIndex(before ? index : index + 1);
+  };
+
+  const onRowDrop = (e: React.DragEvent<HTMLTableRowElement>) => {
+    e.preventDefault();
+    if (dragIndex !== null && insertIndex !== null) {
+      // Removing the dragged row first shifts every gap below it up by one.
+      const target = insertIndex > dragIndex ? insertIndex - 1 : insertIndex;
+      void moveTask(dragIndex, target);
+    }
+    endDrag();
+  };
 
   const counts = taskCounts(tasks);
 
@@ -105,6 +147,7 @@ export default function OperationsTasksTab() {
             <table>
               <thead>
                 <tr>
+                  <th className="otk-griphead" aria-label="Reorder" />
                   <th>Done</th>
                   <th>Task</th>
                   <th>Notes / Files</th>
@@ -113,9 +156,47 @@ export default function OperationsTasksTab() {
                   <th className="otk-delhead" aria-label="Remove" />
                 </tr>
               </thead>
-              <tbody>
-                {tasks.map((task) => (
-                  <tr key={task.id} className={task.completed ? "otk-rowdone" : undefined}>
+              <tbody
+                onDragLeave={(e) => {
+                  // Only clear the indicator when the drag leaves the table
+                  // body entirely, not when it crosses between rows.
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setInsertIndex(null);
+                }}
+              >
+                {tasks.map((task, index) => (
+                  <tr
+                    key={task.id}
+                    className={[
+                      task.completed ? "otk-rowdone" : "",
+                      dragIndex === index ? "otk-dragging" : "",
+                      insertIndex === index ? "otk-drop-before" : "",
+                      insertIndex === tasks.length && index === tasks.length - 1
+                        ? "otk-drop-after"
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ") || undefined}
+                    draggable={armedId === task.id}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("text/plain", task.id);
+                      e.dataTransfer.effectAllowed = "move";
+                      setDragIndex(index);
+                    }}
+                    onDragEnd={endDrag}
+                    onDragOver={(e) => onRowDragOver(e, index)}
+                    onDrop={onRowDrop}
+                  >
+                    <td className="otk-gripcol">
+                      <span
+                        className="otk-grip"
+                        title="Drag to reorder"
+                        aria-hidden="true"
+                        onMouseDown={() => setArmedId(task.id)}
+                        onMouseUp={() => setArmedId(null)}
+                      >
+                        <GripVertical size={15} strokeWidth={2.2} />
+                      </span>
+                    </td>
                     <td className="otk-donecol">
                       <button
                         type="button"
@@ -266,6 +347,22 @@ function OperationsTasksStyle() {
         border-bottom: 1px solid var(--border); vertical-align: middle;
       }
       .pk-kit .otk-card tbody tr:hover td { background: var(--otk-hover); }
+
+      /* Drag-to-reorder: a grip that arms the row for HTML5 drag, a dimmed row
+         in flight, and a 2px indigo line marking the gap the drop lands in. */
+      .pk-kit .otk-card th.otk-griphead { width: 34px; }
+      .pk-kit .otk-card td.otk-gripcol { width: 34px; padding-right: 0; }
+      .pk-kit .otk-grip {
+        display: grid; place-items: center; width: 24px; height: 24px;
+        color: var(--text-faint); cursor: grab; border-radius: 6px;
+        opacity: 0; transition: opacity .12s, background .12s;
+      }
+      .pk-kit .otk-card tbody tr:hover .otk-grip { opacity: .8; }
+      .pk-kit .otk-grip:hover { background: var(--otk-input-hover); opacity: 1; }
+      .pk-kit .otk-grip:active { cursor: grabbing; }
+      .pk-kit .otk-card tr.otk-dragging td { opacity: .45; }
+      .pk-kit .otk-card tr.otk-drop-before td { box-shadow: inset 0 2px 0 var(--otk-indigo); }
+      .pk-kit .otk-card tr.otk-drop-after td { box-shadow: inset 0 -2px 0 var(--otk-indigo); }
 
       .pk-kit .otk-card td.otk-donecol { width: 46px; }
       .pk-kit .otk-chk {

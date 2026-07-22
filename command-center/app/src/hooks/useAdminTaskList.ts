@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, type AdminTask } from "../lib/api";
+import { moveItem, openFirst } from "../lib/taskOrder";
 import { deriveCoupling, type TaskStatus } from "../lib/taskStatus";
 
 // The inline-editable free-text cells.
@@ -28,6 +29,9 @@ export interface UseAdminTaskList {
   // Removes a task. Optimistic: the row disappears at once and is put back if
   // the delete fails.
   deleteTask: (task: AdminTask) => Promise<void>;
+  // Drag-to-reorder: moves the row at fromIndex to toIndex (indices into the
+  // rendered list). Optimistic with rollback, like every other edit here.
+  moveTask: (fromIndex: number, toIndex: number) => Promise<void>;
 }
 
 export function useAdminTaskList(): UseAdminTaskList {
@@ -145,5 +149,39 @@ export function useAdminTaskList(): UseAdminTaskList {
     }
   }, []);
 
-  return { tasks, loading, error, adding, addTask, patchField, setStatus, toggleDone, deleteTask };
+  const moveTask = useCallback(async (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    // Snapshot for rollback, then settle the drop locally: apply the move and
+    // re-partition open-above-done, exactly what the next GET would return.
+    let previous: AdminTask[] = [];
+    let next: AdminTask[] = [];
+    setTasks((list) => {
+      previous = list;
+      next = openFirst(moveItem(list, fromIndex, toIndex));
+      return next;
+    });
+    if (next.length === 0) return;
+    try {
+      await api("/api/admin/tasks/reorder", {
+        method: "POST",
+        body: JSON.stringify({ ids: next.map((t) => t.id) }),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reorder tasks.");
+      setTasks(previous);
+    }
+  }, []);
+
+  return {
+    tasks,
+    loading,
+    error,
+    adding,
+    addTask,
+    patchField,
+    setStatus,
+    toggleDone,
+    deleteTask,
+    moveTask,
+  };
 }

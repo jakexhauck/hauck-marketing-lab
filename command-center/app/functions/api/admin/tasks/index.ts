@@ -45,6 +45,8 @@ function toTask(row: TaskRow) {
 //   ?pillarId=<id>  -> that pillar's tasks, open first then seed/added order.
 //   (omitted)       -> the standalone agency/client tasks only (pillar_id null),
 //                      so seeded pillar tasks never leak into the /admin/tasks page.
+//                      Ordered by the drag-to-reorder position (0046), newest
+//                      first as the tiebreak for rows that share one.
 // Shared across admins.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
@@ -55,7 +57,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   let query = client.from("admin_tasks").select(SELECT).order("completed", { ascending: true });
   query = pillarId
     ? query.eq("pillar_id", pillarId).order("created_at", { ascending: true })
-    : query.is("pillar_id", null).order("created_at", { ascending: false });
+    : query
+        .is("pillar_id", null)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
 
   const { data, error } = await query;
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -114,6 +119,17 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     { status: body.status as TaskStatus | undefined },
   );
 
+  // New rows land at the bottom of their scope's list: one past the highest
+  // sort_order (0046). A read-then-write race would only tie two rows, which
+  // the created_at tiebreak resolves, so no lock is needed for one operator.
+  const { data: last } = await client
+    .from("admin_tasks")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextOrder = ((last as { sort_order: number } | null)?.sort_order ?? -1) + 1;
+
   const insert = {
     title,
     pillar_id: pillarId,
@@ -125,6 +141,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     status: coupled.status,
     updates: body.updates && body.updates.trim() ? body.updates.trim() : null,
     created_by: ctx.data.admin!.id,
+    sort_order: nextOrder,
   };
 
   const { data, error } = await client
