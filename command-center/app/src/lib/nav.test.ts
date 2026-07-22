@@ -2,38 +2,42 @@ import { describe, it, expect } from "vitest";
 import { NAV, flattenNav, isNavSection } from "./nav";
 
 describe("client nav structure", () => {
-  it("has exactly two sections: Marketing then Company", () => {
-    const sections = NAV.filter(isNavSection);
-    expect(sections.map((s) => s.id)).toEqual(["marketing", "company"]);
+  it("is one flat list with no sections", () => {
+    expect(NAV.filter(isNavSection)).toEqual([]);
   });
 
-  it("keeps Marketing flat (no expandable sub-groups in the sidebar)", () => {
-    const marketing = NAV.filter(isNavSection).find((s) => s.id === "marketing")!;
-    for (const item of marketing.items) {
+  it("has no expandable sub-groups in the sidebar", () => {
+    for (const item of flattenNav(NAV)) {
       expect(item.children).toBeUndefined();
     }
   });
 
-  it("shows exactly the four sold services in Marketing, back-burnered ones hidden", () => {
-    const marketing = NAV.filter(isNavSection).find((s) => s.id === "marketing")!;
-    expect(marketing.items.map((i) => i.to)).toEqual([
-      "/marketing/paid-ads",
-      "/marketing/website",
-      "/marketing/reviews",
-      "/marketing/reactivation",
-    ]);
+  it("shows only Paid Ads for marketing, back-burnered channels hidden", () => {
     const allRoutes = flattenNav(NAV).map((i) => i.to);
+    expect(allRoutes.filter((r) => r.startsWith("/marketing/"))).toEqual([
+      "/marketing/paid-ads",
+    ]);
     expect(allRoutes).not.toContain("/marketing/social");
     expect(allRoutes).not.toContain("/marketing/outreach");
     expect(allRoutes).not.toContain("/marketing/groups");
+    expect(allRoutes).not.toContain("/marketing/website");
+    expect(allRoutes).not.toContain("/marketing/reviews");
+    expect(allRoutes).not.toContain("/marketing/reactivation");
   });
 
-  it("folds the sales surfaces into Company", () => {
-    const company = NAV.filter(isNavSection).find((s) => s.id === "company")!;
-    const routes = company.items.map((i) => i.to);
-    expect(routes).toEqual(
-      expect.arrayContaining(["/sales/leads", "/sales/jobs", "/customers"]),
-    );
+  it("keeps the flat sidebar order: Home, Ads, then the company surfaces", () => {
+    expect(flattenNav(NAV).map((i) => i.to)).toEqual([
+      "/home",
+      "/marketing/paid-ads",
+      "/conversations",
+      "/apps",
+      "/sales/leads",
+      "/contacts",
+      "/customers",
+      "/sales/jobs",
+      "/team",
+      "/comms",
+    ]);
   });
 
   it("does not link Revenue: customer revenue lives on the Customers page", () => {

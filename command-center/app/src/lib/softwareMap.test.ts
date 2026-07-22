@@ -68,10 +68,11 @@ describe("software map coverage", () => {
   });
 
   it("groups pages, leading with Main and trailing with record pages", () => {
+    // The nav is currently one flat list (no sections), so every sidebar row
+    // lands in Main and the only other group is the record pages.
     expect(map[0].id).toBe("main");
     expect(map[map.length - 1].id).toBe("records");
-    expect(map.map((g) => g.id)).toContain("marketing");
-    expect(map.map((g) => g.id)).toContain("company");
+    expect(map.map((g) => g.id)).toEqual(["main", "records"]);
   });
 });
 

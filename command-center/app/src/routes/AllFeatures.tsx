@@ -9,15 +9,16 @@ import { PAGE_CONTAINER } from "../lib/layout";
 // nav.ts by route, so it can never drift from the real feature set, and it is
 // permission-gated (staff without Revenue/Team simply don't see those tiles).
 // This is the phone entry point the simplified nav is otherwise missing for
-// Paid Ads, Reviews, Website, Reactivation and Jobs.
+// Paid Ads and Jobs.
 const GROUPS: { label: string; routes: string[] }[] = [
   {
     label: "Get customers",
     routes: [
       "/marketing/paid-ads",
-      "/marketing/reviews",
-      "/marketing/website",
-      "/marketing/reactivation",
+      // Back-burnered with their nav.ts rows; restore alongside them:
+      //   "/marketing/reviews",
+      //   "/marketing/website",
+      //   "/marketing/reactivation",
     ],
   },
   {

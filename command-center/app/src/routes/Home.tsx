@@ -5,7 +5,6 @@ import {
   MessageSquare,
   RefreshCw,
   Search,
-  Star,
   UserPlus,
   type LucideIcon,
 } from "lucide-react";
@@ -122,9 +121,11 @@ export default function Home() {
   const jobsSubtitle = todaysJobs.slice(0, 3).map((j) => j.time).join(", ");
 
   // Finished jobs that have not yet been asked for a review (the actionable
-  // count), from the live reviews feed.
+  // count), from the live reviews feed. Unused while the reviews card below is
+  // back-burnered; keep the void reference so restoring the card is one paste.
   const reviewsToAsk =
     reviewsQuery.data?.contacts.filter((c) => !c.started).length ?? 0;
+  void reviewsToAsk;
 
   // Build the priority feed. Every row appears only when it has something to act
   // on (or always, in the demo view). All four are now backed by live feeds, so
@@ -170,19 +171,21 @@ export default function Home() {
         countColor: "text-amber-600 dark:text-amber-400",
       });
     }
-    if (reviewsToAsk > 0) {
-      cards.push({
-        key: "reviews",
-        title: "Reviews to request",
-        subtitle: "Finished jobs ready for a review ask",
-        count: reviewsToAsk,
-        to: "/marketing/reviews/requests",
-        Icon: Star,
-        stripe: "bg-emerald-500",
-        chip: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
-        countColor: "text-emerald-600 dark:text-emerald-400",
-      });
-    }
+    // "Reviews to request" card hidden while the Google Reviews page is
+    // back-burnered (see nav.ts). Restore alongside the nav row:
+    //   if (reviewsToAsk > 0) {
+    //     cards.push({
+    //       key: "reviews",
+    //       title: "Reviews to request",
+    //       subtitle: "Finished jobs ready for a review ask",
+    //       count: reviewsToAsk,
+    //       to: "/marketing/reviews/requests",
+    //       Icon: Star,
+    //       stripe: "bg-emerald-500",
+    //       chip: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
+    //       countColor: "text-emerald-600 dark:text-emerald-400",
+    //     });
+    //   }
   }
 
   // Sample week-at-a-glance figures. No week-level hook exists yet, so this row

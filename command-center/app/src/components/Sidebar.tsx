@@ -156,11 +156,22 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Flat column: Home, then every section always expanded under its header */}
+      {/* Flat column: standalone rows first (today that is the whole nav), then
+          any sections always expanded under an uppercase header. */}
       <nav className="flex-1 overflow-y-auto px-3 py-1">
-        {standalone.map((item) => (
-          <NavItemLink key={item.to} item={item} />
-        ))}
+        {standalone.map((item) =>
+          item.children?.length ? (
+            <NavItemGroup key={item.to} item={item} />
+          ) : (
+            <NavItemLink
+              key={item.to}
+              item={item}
+              // Jobs finished but never recorded. On Leads because that is
+              // where the close-out queue lives (Sales / Job Completed).
+              badge={item.to === "/sales/leads" ? closeOutCount : undefined}
+            />
+          ),
+        )}
         {sections.map((section) => (
           <div key={section.id} className="mt-4 first:mt-5">
             <div className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--text-faint)]">

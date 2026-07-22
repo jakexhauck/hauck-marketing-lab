@@ -5,13 +5,9 @@ import {
   MessagesSquare,
   CalendarCheck,
   UserCog,
-  Star,
-  Globe,
-  Building2,
   Contact,
   Split,
   LayoutGrid,
-  RotateCcw,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -66,62 +62,48 @@ export function isNavSection(entry: NavEntry): entry is NavSection {
   return "items" in entry;
 }
 
-// Single source of truth for navigation. The desktop sidebar renders this list
-// (sections become inline-headed groups); the phone bottom bar reads the
-// flattened items. Both honour the same per-surface permissions the backend
-// enforces, so they can never drift.
+// Single source of truth for navigation. The desktop sidebar renders this list;
+// the phone bottom bar reads the flattened items. Both honour the same
+// per-surface permissions the backend enforces, so they can never drift.
 //
-// Two sections only: Marketing (the agency engine) and Company (the day-to-day
-// business), with Home standalone on top and the agency Chat as a phone-only
-// tab. Every Marketing channel is a single flat row; its sub-pages live inside
-// the page as a <PageTabs> bar, not as sidebar children.
+// One flat list, no section headers: with only Paid Ads left in Marketing the
+// old Marketing / Company split was noise. Sections (NavSection) remain
+// supported by every consumer, so grouping can come back by wrapping rows again.
+// Every channel is a single flat row; its sub-pages live inside the page as a
+// <PageTabs> bar, not as sidebar children.
 export const NAV: NavEntry[] = [
   { to: "/home", label: "Home", shortLabel: "Today", icon: Home, capability: "overview", bottomNav: true },
-  // Marketing shows only the four services we sell. Three channels are
+  // Only the services we actively sell get a row. Six channels are
   // back-burnered (hidden here, routes still registered in App.tsx): to
-  // re-enable one, add its row back:
+  // re-enable one, add its row back (and re-import its icon):
   //   { to: "/marketing/social", label: "Social Media", shortLabel: "Social", icon: Share2 },
   //   { to: "/marketing/outreach", label: "Commercial Outreach", shortLabel: "Outreach", icon: Send },
   //   { to: "/marketing/groups", label: "Group Outreach", shortLabel: "Groups", icon: Users },
-  {
-    id: "marketing",
-    label: "Marketing",
-    icon: Megaphone,
-    items: [
-      { to: "/marketing/paid-ads", label: "Paid Ads", shortLabel: "Ads", icon: Megaphone },
-      { to: "/marketing/website", label: "Website", icon: Globe },
-      { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
-      { to: "/marketing/reactivation", label: "Reactivation", icon: RotateCcw },
-    ],
-  },
-  {
-    id: "company",
-    label: "Company",
-    icon: Building2,
-    items: [
-      { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
-      // Phone-only "app grid" launcher. Sidebar-hidden (desktop has the full
-      // sidebar), and placed here so the bottom-bar flatten order centres it:
-      // Today, Inbox, All, Contacts, Chat.
-      { to: "/apps", label: "All features", shortLabel: "All", icon: LayoutGrid, bottomNav: true, sidebarHidden: true },
-      // The one Leads surface. Its page hosts a New Leads / Pipeline tab bar, so
-      // the old standalone "Sales Overview" is a tab here, not a sidebar row.
-      // On phone it lives in the All-features grid, not the bottom bar.
-      { to: "/sales/leads", label: "Leads", shortLabel: "Leads", icon: Split },
-      { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
-      // Past customers: the GHL Customers pipeline joined to the job history we
-      // own. Ungated like its Leads and Jobs neighbours — the revenue it shows is
-      // job values the team already sees on the board, not the invoice-level
-      // detail the `billing` capability was drawn around.
-      { to: "/customers", label: "Customers", icon: Users },
-      { to: "/sales/jobs", label: "Jobs", shortLabel: "Jobs", icon: CalendarCheck },
-      // No Revenue row: customer revenue lives on /customers now, built from real
-      // logged jobs instead of the invoices + payments feed (which returns
-      // internal_error against live Willis). The /billing route stays registered
-      // so an existing bookmark does not 404, but nothing links to it.
-      { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
-    ],
-  },
+  //   { to: "/marketing/website", label: "Website", icon: Globe },
+  //   { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
+  //   { to: "/marketing/reactivation", label: "Reactivation", icon: RotateCcw },
+  { to: "/marketing/paid-ads", label: "Paid Ads", shortLabel: "Ads", icon: Megaphone },
+  { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
+  // Phone-only "app grid" launcher. Sidebar-hidden (desktop has the full
+  // sidebar), and placed here so the bottom-bar flatten order centres it:
+  // Today, Inbox, All, Contacts, Chat.
+  { to: "/apps", label: "All features", shortLabel: "All", icon: LayoutGrid, bottomNav: true, sidebarHidden: true },
+  // The one Leads surface. Its page hosts a New Leads / Pipeline tab bar, so
+  // the old standalone "Sales Overview" is a tab here, not a sidebar row.
+  // On phone it lives in the All-features grid, not the bottom bar.
+  { to: "/sales/leads", label: "Leads", shortLabel: "Leads", icon: Split },
+  { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
+  // Past customers: the GHL Customers pipeline joined to the job history we
+  // own. Ungated like its Leads and Jobs neighbours: the revenue it shows is
+  // job values the team already sees on the board, not the invoice-level
+  // detail the `billing` capability was drawn around.
+  { to: "/customers", label: "Customers", icon: Users },
+  { to: "/sales/jobs", label: "Jobs", shortLabel: "Jobs", icon: CalendarCheck },
+  // No Revenue row: customer revenue lives on /customers now, built from real
+  // logged jobs instead of the invoices + payments feed (which returns
+  // internal_error against live Willis). The /billing route stays registered
+  // so an existing bookmark does not 404, but nothing links to it.
+  { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
   // The agency chat: a phone bottom-bar tab only. On desktop it lives in the
   // top-right ChatLauncher icon, so it is hidden from the sidebar.
   { to: "/comms", label: "Chat", shortLabel: "Chat", icon: MessagesSquare, bottomNav: true, sidebarHidden: true },
