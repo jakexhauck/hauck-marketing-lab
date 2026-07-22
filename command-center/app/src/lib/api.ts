@@ -1018,6 +1018,13 @@ export interface ApiSetterEventsResponse {
   failedCalendars: number;
 }
 
+// One contact note off the live CRM record (functions/api/admin/setter/notes).
+export interface ApiSetterNote {
+  id: string;
+  body: string;
+  dateAdded?: string;
+}
+
 // One pending scheduled callback (functions/api/admin/setter/callbacks).
 // Mirror of a dated CRM follow-up task; the board rail renders these.
 export interface ApiSetterCallback {

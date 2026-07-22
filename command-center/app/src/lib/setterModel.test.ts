@@ -7,6 +7,7 @@ import {
   stageTone,
   staleWaitingLabel,
   ghlContactUrl,
+  ghlConversationsUrl,
   speedToLead,
   medianSpeedToLeadMs,
   formatStlDuration,
@@ -343,5 +344,18 @@ describe("noAnswerWait", () => {
 
   it("clamps a future timestamp (clock skew) to zero, not due", () => {
     expect(noAnswerWait(at(-5 * 60 * 1000), NOW)).toEqual({ label: "0m", due: false });
+  });
+});
+
+describe("ghlConversationsUrl", () => {
+  it("builds the conversations URL for a location", () => {
+    expect(ghlConversationsUrl("loc_abc123")).toBe(
+      "https://app.gohighlevel.com/v2/location/loc_abc123/conversations/conversations",
+    );
+  });
+
+  it("returns null when the location id is missing or blank", () => {
+    expect(ghlConversationsUrl("")).toBeNull();
+    expect(ghlConversationsUrl("   ")).toBeNull();
   });
 });
