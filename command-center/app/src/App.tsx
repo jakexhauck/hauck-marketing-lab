@@ -9,8 +9,6 @@ import { PipelinesProvider } from "./context/PipelinesContext";
 import Login from "./routes/Login";
 import Home from "./routes/Home";
 import AllFeatures from "./routes/AllFeatures";
-import LeadsPipelinePage from "./routes/sales/LeadsPipelinePage";
-import LeadsOrganic from "./routes/sales/LeadsOrganic";
 import Jobs from "./routes/sales/Jobs";
 import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
@@ -42,8 +40,8 @@ import SocialInsights from "./routes/social/SocialInsights";
 import WebsiteOverview from "./routes/website/WebsiteOverview";
 import WebsitePages from "./routes/website/WebsitePages";
 import WebsiteInsights from "./routes/website/WebsiteInsights";
-import AdsOverview from "./routes/paid-ads/AdsOverview";
-import AdsInsights from "./routes/paid-ads/AdsInsights";
+import AdsLeadTracker from "./routes/paid-ads/AdsLeadTracker";
+import AdsMetaData from "./routes/paid-ads/AdsMetaData";
 import AdsMedia from "./routes/paid-ads/AdsMedia";
 import Reactivation from "./routes/sales/Reactivation";
 import CampaignsAudiences from "./routes/campaigns/CampaignsAudiences";
@@ -59,6 +57,7 @@ import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminClientNew from "./routes/admin/AdminClientNew";
 import AdminCommand from "./routes/admin/AdminCommand";
+import AdminApps from "./routes/admin/AdminApps";
 import AdminDelivery from "./routes/admin/AdminDelivery";
 import DeliveryCockpit from "./routes/admin/DeliveryCockpit";
 import SetterSuite from "./routes/admin/SetterSuite";
@@ -73,7 +72,6 @@ import { isPreviewFrame } from "./lib/previewFrame";
 import DemoBanner from "./components/DemoBanner";
 import IncomingCallBanner from "./components/call/IncomingCallBanner";
 import ScrollToTop from "./components/ScrollToTop";
-import MotionPresetSwitcher from "./components/dev/MotionPresetSwitcher";
 import { ToastProvider } from "./context/ToastContext";
 import { NowProvider } from "./context/NowContext";
 import { ChatProvider } from "./context/ChatContext";
@@ -229,7 +227,6 @@ export default function App() {
             <TourProvider>
             <ServiceWorkerMessages />
             <ServiceWorkerUpdater />
-            {import.meta.env.DEV && <MotionPresetSwitcher />}
             <OfflineBanner />
             {/* Inside the admin Software tab's preview frame the surrounding
                 cockpit already says whose app this is, and there is no session
@@ -262,40 +259,18 @@ export default function App() {
               />
               {/* The old standalone /leads board now lands on the Pipeline tab. */}
               <Route path="/leads" element={<Navigate to="/sales/leads" replace />} />
-              {/* Section root = Sales pipeline board (the default tab). */}
-              <Route
-                path="/sales/leads"
-                element={
-                  <ProtectedRoute>
-                    <LeadsPipelinePage kind="sales" />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Trash = the dead-lead pipeline board. */}
-              <Route
-                path="/sales/leads/trash"
-                element={
-                  <ProtectedRoute>
-                    <LeadsPipelinePage kind="trash" />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Organic = website estimate-form + chat leads (list only). */}
-              <Route
-                path="/sales/leads/organic"
-                element={
-                  <ProtectedRoute>
-                    <LeadsOrganic />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Old paths fold into the new pages. Paid Ads is no longer a Leads
-                  tab; its old routes redirect to the Sales board. */}
-              <Route path="/sales/leads/pipeline" element={<Navigate to="/sales/leads" replace />} />
-              <Route path="/sales/leads/paid-ads" element={<Navigate to="/sales/leads" replace />} />
-              <Route path="/sales/forms" element={<Navigate to="/sales/leads/organic" replace />} />
-              <Route path="/sales/chat" element={<Navigate to="/sales/leads/organic" replace />} />
-              <Route path="/sales/paid-ads" element={<Navigate to="/sales/leads" replace />} />
+              {/* Section root = the Lead Tracker (ported from the tracking
+                  sheet), now rebuilt tab-for-tab inside Paid Ads. The whole
+                  Leads section retired 2026-07-23; every old path lands on the
+                  Paid Ads Dashboard. */}
+              <Route path="/sales/leads" element={<Navigate to="/marketing/paid-ads" replace />} />
+              <Route path="/sales/leads/trash" element={<Navigate to="/marketing/paid-ads" replace />} />
+              <Route path="/sales/leads/organic" element={<Navigate to="/marketing/paid-ads/leads" replace />} />
+              <Route path="/sales/leads/pipeline" element={<Navigate to="/marketing/paid-ads" replace />} />
+              <Route path="/sales/leads/paid-ads" element={<Navigate to="/marketing/paid-ads" replace />} />
+              <Route path="/sales/forms" element={<Navigate to="/marketing/paid-ads/leads" replace />} />
+              <Route path="/sales/chat" element={<Navigate to="/marketing/paid-ads/leads" replace />} />
+              <Route path="/sales/paid-ads" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route
                 path="/sales/jobs"
                 element={
@@ -467,17 +442,20 @@ export default function App() {
               <Route path="/marketing/campaigns/reactivation" element={<Navigate to="/marketing/reactivation" replace />} />
               <Route path="/sales/scripts" element={<ProtectedRoute><ComingSoon title="Sales Scripts" blurb="Your call and message scripts, ready to use. Coming soon." /></ProtectedRoute>} />
               <Route path="/operations/reports" element={<ProtectedRoute><ComingSoon title="Reports & Analytics" blurb="Performance across ads, leads, and revenue in one place. Coming soon." /></ProtectedRoute>} />
-              {/* Overview = the designed "at a glance" cockpit (AdsOverview). The raw
-                  media-buyer dashboard stays reachable at /paid-ads for the deep dive. */}
-              <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsOverview /></ProtectedRoute>} />
-              {/* "Your Ads" merged into "Media" (one live-marked creative view); old URL redirects. */}
-              <Route path="/marketing/paid-ads/creatives" element={<Navigate to="/marketing/paid-ads/media" replace />} />
-              {/* A marketing channel never hosts a lead list; ad leads live in Leads, filtered. */}
-              <Route path="/marketing/paid-ads/leads" element={<Navigate to="/sales/leads" replace />} />
-              <Route path="/marketing/paid-ads/stats" element={<ProtectedRoute><AdsInsights /></ProtectedRoute>} />
-              {/* Funnel tab retired; old URL redirects to the Paid Ads overview. */}
-              <Route path="/marketing/paid-ads/funnel" element={<Navigate to="/marketing/paid-ads" replace />} />
+              {/* Paid Ads = the client tracking sheet, trimmed to Lead Tracker
+                  (the default) + Meta Data, plus Media (kept from the old Paid
+                  Ads). Dashboard / Pipeline Stats / How to Use were removed
+                  2026-07-23. The raw media-buyer dashboard stays at /paid-ads. */}
+              <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsLeadTracker /></ProtectedRoute>} />
+              <Route path="/marketing/paid-ads/meta" element={<ProtectedRoute><AdsMetaData /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/media" element={<ProtectedRoute><AdsMedia /></ProtectedRoute>} />
+              {/* Old Paid Ads URLs fold into the current tabs. */}
+              <Route path="/marketing/paid-ads/leads" element={<Navigate to="/marketing/paid-ads" replace />} />
+              <Route path="/marketing/paid-ads/pipeline-stats" element={<Navigate to="/marketing/paid-ads" replace />} />
+              <Route path="/marketing/paid-ads/how-to" element={<Navigate to="/marketing/paid-ads" replace />} />
+              <Route path="/marketing/paid-ads/creatives" element={<Navigate to="/marketing/paid-ads/media" replace />} />
+              <Route path="/marketing/paid-ads/stats" element={<Navigate to="/marketing/paid-ads" replace />} />
+              <Route path="/marketing/paid-ads/funnel" element={<Navigate to="/marketing/paid-ads" replace />} />
               {/* Overview retired; Google Reviews opens on the Review Pipeline. */}
               <Route path="/marketing/reviews" element={<Navigate to="/marketing/reviews/pipeline" replace />} />
               <Route path="/marketing/reviews/pipeline" element={<ProtectedRoute><ReviewsPipeline /></ProtectedRoute>} />
@@ -527,6 +505,15 @@ export default function App() {
               {/* Clients now live inside Service Delivery. The old standalone
                   list route redirects to Command; client detail pages stay
                   (reused as the cockpit Config tab). */}
+              {/* The Command hub: the phone app launcher (raised center tab). */}
+              <Route
+                path="/admin/apps"
+                element={
+                  <AdminRoute>
+                    <AdminApps />
+                  </AdminRoute>
+                }
+              />
               <Route path="/admin/clients" element={<Navigate to="/admin" replace />} />
               {/* Declared above /admin/clients/:id or React Router hands "new"
                   to the detail page as a tenant id. */}
