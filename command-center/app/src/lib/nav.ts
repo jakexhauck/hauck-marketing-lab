@@ -6,7 +6,6 @@ import {
   CalendarCheck,
   UserCog,
   Contact,
-  Split,
   LayoutGrid,
   Users,
   type LucideIcon,
@@ -88,10 +87,9 @@ export const NAV: NavEntry[] = [
   // sidebar), and placed here so the bottom-bar flatten order centres it:
   // Today, Inbox, All, Contacts, Chat.
   { to: "/apps", label: "All features", shortLabel: "All", icon: LayoutGrid, bottomNav: true, sidebarHidden: true },
-  // The one Leads surface. Its page hosts a New Leads / Pipeline tab bar, so
-  // the old standalone "Sales Overview" is a tab here, not a sidebar row.
-  // On phone it lives in the All-features grid, not the bottom bar.
-  { to: "/sales/leads", label: "Leads", shortLabel: "Leads", icon: Split },
+  // No Leads row: the whole Leads section retired 2026-07-23. The client
+  // tracking sheet it hosted was rebuilt tab-for-tab inside Paid Ads (Dashboard
+  // / Lead Tracker / Meta Data / Pipeline Stats / How to Use).
   { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
   // Past customers: the GHL Customers pipeline joined to the job history we
   // own. Ungated like its Leads and Jobs neighbours: the revenue it shows is

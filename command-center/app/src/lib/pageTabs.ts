@@ -11,13 +11,14 @@ export interface PageTab {
 }
 
 export const PAID_ADS_TABS: PageTab[] = [
-  // No "Leads" tab: a marketing channel must not host a lead list (that is the
-  // Leads section's job). The Overview's lead count links into Leads; the
-  // ad-attribution analysis lives in "Ad Stats". "Media" is the single creative
-  // view (the old "Your Ads" tab merged in): every ad photo/video, live-marked.
-  { to: "/marketing/paid-ads", label: "Overview", end: true },
+  // The client tracking sheet, trimmed to what earns a tab (2026-07-23). Lead
+  // Tracker = the lead list (the section default); Meta Data = the raw daily ad
+  // snapshot. Media (live ad creatives) is kept from the old Paid Ads: the one
+  // useful thing the sheet never had. Dashboard, Pipeline Stats and How to Use
+  // were removed at Jake's call.
+  { to: "/marketing/paid-ads", label: "Lead Tracker", end: true },
+  { to: "/marketing/paid-ads/meta", label: "Meta Data" },
   { to: "/marketing/paid-ads/media", label: "Media" },
-  { to: "/marketing/paid-ads/stats", label: "Ad Stats" },
 ];
 
 export const REVIEWS_TABS: PageTab[] = [
@@ -62,12 +63,9 @@ export const GROUP_OUTREACH_TABS: PageTab[] = [
 // it renders its PageBar with an explicit section label and no tabs.
 
 export const LEADS_TABS: PageTab[] = [
-  // Sales = the consolidated sales pipeline board (the section default). Trash =
-  // the dead-lead pipeline board. Organic = form + chat leads. All three live
-  // under /sales/leads so the single "Leads" sidebar row stays highlighted.
-  { to: "/sales/leads", label: "Sales", end: true },
-  { to: "/sales/leads/trash", label: "Trash" },
-  { to: "/sales/leads/organic", label: "Organic" },
+  // One page: the Lead Tracker (ported from the client tracking sheet). The
+  // old Sales/Trash boards and Organic list folded into it 2026-07-23.
+  { to: "/sales/leads", label: "Lead Tracker", end: true },
 ];
 
 // The bold section label <PageBar> shows to the left of the tabs. Matched to the

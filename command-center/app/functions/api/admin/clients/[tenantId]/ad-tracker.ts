@@ -14,6 +14,7 @@ import {
   breakdown,
   rangeStart,
   rollup,
+  trackerPipelineRole,
   type BreakdownLevel,
   type TrackerOpportunity,
   type TrackerRange,
@@ -36,7 +37,6 @@ import {
 // Every ratio is computed server-side so the client cannot recompute one
 // differently and quietly disagree with the sheet.
 
-const PIPELINES = ["sales", "trash", "customers"];
 const RANGES: TrackerRange[] = ["all", "7", "30", "90"];
 const LEVELS: BreakdownLevel[] = ["campaign", "adset", "ad"];
 
@@ -81,8 +81,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const stageNames = new Map<string, string>();
   const wanted: string[] = [];
   for (const p of pipelines) {
-    const name = (p.name ?? "").trim().toLowerCase();
-    if (!PIPELINES.includes(name)) continue;
+    if (!trackerPipelineRole(p.name ?? "")) continue;
     wanted.push(p.id);
     for (const s of p.stages ?? []) stageNames.set(s.id, s.name ?? "");
   }

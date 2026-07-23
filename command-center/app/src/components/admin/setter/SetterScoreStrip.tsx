@@ -34,7 +34,7 @@ function localMidnightMs(now: number, daysBack: number): number {
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="flex items-baseline gap-1.5">
+    <div className="flex shrink-0 items-baseline gap-1.5">
       <span
         className={
           "font-display text-[15px] font-semibold leading-none " +
@@ -59,19 +59,33 @@ export default function SetterScoreStrip({ tenantId, leads, now }: Props) {
     metrics && metrics.bookRate !== null ? `${Math.round(metrics.bookRate * 100)}%` : "--";
 
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-border bg-surface px-4 py-2.5">
-      <span
-        className="flex items-center gap-1.5"
-        title="Median time from a lead landing to its first dial. Under 5 minutes is the standard a form lead deserves."
+    // Mobile: a column. The five numbers scroll as one row (never wrapping to a
+    // ragged two-line block), and the window toggle sits below them, right
+    // aligned. Desktop is unchanged: the stats wrapper is display:contents at lg
+    // so each stat rejoins the single wrapping row exactly as before.
+    <div className="mb-3 flex flex-col gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-5 lg:gap-y-2 lg:px-4">
+      <div className="no-scrollbar flex items-center gap-x-4 overflow-x-auto lg:contents">
+        <span
+          className="flex shrink-0 items-center gap-1.5"
+          title="Median time from a lead landing to its first dial. Under 5 minutes is the standard a form lead deserves."
+        >
+          <Timer size={13} className="text-brand" aria-hidden />
+          <Stat
+            label="Speed to lead"
+            value={stlMs === null ? "--" : formatStlDuration(stlMs)}
+            accent
+          />
+        </span>
+        <Stat label="Dials" value={String(metrics?.dials ?? "--")} />
+        <Stat label="Reached" value={String(metrics?.reached ?? "--")} />
+        <Stat label="Booked" value={String(metrics?.booked ?? "--")} />
+        <Stat label="Book rate" value={rate} />
+      </div>
+      <div
+        className="flex items-center gap-1 self-end lg:ml-auto lg:self-auto"
+        role="group"
+        aria-label="Scoreboard window"
       >
-        <Timer size={13} className="text-brand" aria-hidden />
-        <Stat label="Speed to lead" value={stlMs === null ? "--" : formatStlDuration(stlMs)} accent />
-      </span>
-      <Stat label="Dials" value={String(metrics?.dials ?? "--")} />
-      <Stat label="Reached" value={String(metrics?.reached ?? "--")} />
-      <Stat label="Booked" value={String(metrics?.booked ?? "--")} />
-      <Stat label="Book rate" value={rate} />
-      <div className="ml-auto flex items-center gap-1" role="group" aria-label="Scoreboard window">
         {(
           [
             { value: "today", label: "Today" },

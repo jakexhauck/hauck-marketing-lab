@@ -31,7 +31,6 @@ describe("client nav structure", () => {
       "/marketing/paid-ads",
       "/conversations",
       "/apps",
-      "/sales/leads",
       "/contacts",
       "/customers",
       "/sales/jobs",

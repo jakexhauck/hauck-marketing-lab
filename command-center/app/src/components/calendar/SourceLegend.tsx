@@ -20,7 +20,10 @@ export function SourceLegend({
   onToggle: (s: CalendarSource) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    // Chips run a touch smaller on a phone (tighter padding, gap and type) so
+    // the four sources fit the narrow legend row without wrapping oddly; the
+    // lg: values restore the original desktop sizing exactly.
+    <div className="flex flex-wrap items-center gap-1.5 lg:gap-2">
       {CALENDAR_SOURCE_ORDER.map((source) => {
         const meta = CALENDAR_SOURCE_META[source];
         const on = active.has(source);
@@ -36,16 +39,16 @@ export function SourceLegend({
                 : "Turns on once this is connected"
             }
             className={cn(
-              "inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 font-display text-[12px] font-semibold text-text transition-opacity",
+              "inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 font-display text-[11px] font-semibold text-text transition-opacity lg:gap-2 lg:px-3 lg:py-1.5 lg:text-[12px]",
               on ? "opacity-100" : "opacity-40",
             )}
           >
             <span
-              className="h-2.5 w-2.5 rounded-[3px]"
+              className="h-2 w-2 rounded-[3px] lg:h-2.5 lg:w-2.5"
               style={{ background: `var(${meta.varName})` }}
             />
             {meta.plural}
-            <span className="font-data text-[11px] text-faint">
+            <span className="font-data text-[10px] text-faint lg:text-[11px]">
               {counts[source] ?? 0}
             </span>
           </button>

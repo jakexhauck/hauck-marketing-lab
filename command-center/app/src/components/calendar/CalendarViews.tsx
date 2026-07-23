@@ -127,37 +127,41 @@ export default function CalendarViews({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {/* Controls row */}
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Controls row. Desktop: Today, the week nav, then the legend on the
+          right, all on one line. Mobile: the week nav takes a full-width row
+          with the range label centered between edge arrows, the legend drops
+          to its own row below, and Today is hidden (the arrows are enough on a
+          phone, and dropping it keeps the header condensed). */}
+      <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3">
         <button
           type="button"
           onClick={goToday}
-          className="rounded-[10px] border border-border bg-surface px-3 py-1.5 font-display text-[12px] font-semibold text-text hover:bg-surface-2"
+          className="hidden rounded-[10px] border border-border bg-surface px-3 py-1.5 font-display text-[12px] font-semibold text-text hover:bg-surface-2 lg:block"
         >
           Today
         </button>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-between gap-1 lg:justify-start">
           <button
             type="button"
             onClick={() => step(-1)}
             aria-label="Previous"
-            className="grid h-8 w-8 place-items-center rounded-[9px] border border-border bg-surface text-muted hover:bg-surface-2"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] border border-border bg-surface text-muted hover:bg-surface-2"
           >
             <ChevronLeft size={16} />
           </button>
-          <span className="min-w-[150px] text-center font-display text-[15px] font-semibold text-text">
+          <span className="flex-1 text-center font-display text-[15px] font-semibold text-text lg:flex-none lg:min-w-[150px]">
             {rangeLabel}
           </span>
           <button
             type="button"
             onClick={() => step(1)}
             aria-label="Next"
-            className="grid h-8 w-8 place-items-center rounded-[9px] border border-border bg-surface text-muted hover:bg-surface-2"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] border border-border bg-surface text-muted hover:bg-surface-2"
           >
             <ChevronRight size={16} />
           </button>
         </div>
-        <div className="ml-auto">
+        <div className="lg:ml-auto">
           <SourceLegend
             active={active}
             counts={counts}

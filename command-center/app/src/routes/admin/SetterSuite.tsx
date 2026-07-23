@@ -6,6 +6,7 @@ import {
   ScrollText,
   Settings,
   Trophy,
+  type LucideIcon,
 } from "lucide-react";
 import {
   useAdminClientsQuery,
@@ -25,6 +26,7 @@ import SetterScoreStrip from "../../components/admin/setter/SetterScoreStrip";
 import SetterCallbacksRail from "../../components/admin/setter/SetterCallbacksRail";
 import SetterScriptOverlay from "../../components/admin/setter/SetterScriptOverlay";
 import ClientPicker from "../../components/admin/setter/ClientPicker";
+import PipelinePicker from "../../components/admin/setter/PipelinePicker";
 import type { ApiSetterLead } from "../../lib/api";
 import type { BookingIntent } from "../../lib/setterBooking";
 import {
@@ -52,6 +54,16 @@ import {
 // retirement maps to "settings" for the same reason.
 type SetterView = "board" | "inbox" | "calendar" | "results" | "settings";
 const SETTER_VIEW_KEY = "hml_setter_view";
+
+// One list drives both navs: the desktop tab row and the phone's bottom bar,
+// so the two can never drift out of order or labels.
+const SETTER_VIEWS: { value: SetterView; label: string; icon: LucideIcon }[] = [
+  { value: "board", label: "Pipeline", icon: LayoutGrid },
+  { value: "inbox", label: "Inbox", icon: MessagesSquare },
+  { value: "calendar", label: "Calendar", icon: CalendarDays },
+  { value: "results", label: "Results", icon: Trophy },
+  { value: "settings", label: "Settings", icon: Settings },
+];
 
 // A stored "scoreboard" (the retired tab; its numbers live on the board
 // strip now) falls through to the "board" default below.
@@ -263,77 +275,49 @@ export default function SetterSuite() {
 
   return (
     <div className="pk-root">
-      {/* One header row: title, the view tabs inline beside it, the dialing
-          script one click away, and the client picker on the right. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <h1 className="pk-title">Setter Suite</h1>
+      {/* Top row: the title with the dialing-script button and the client
+          picker inline on the right. The view tabs sit on their own row below,
+          so on a phone the title and client picker read as one clean header and
+          the tabs get the full width to scroll. */}
+      <div className="flex items-center gap-3">
+        <h1 className="pk-title setter-title">Setter Suite</h1>
 
-        <nav
-          className="pk-tabs"
-          style={{ margin: 0, borderBottom: "none" }}
-          aria-label="Setter view"
-        >
+        <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
-            className={`pk-tab${view === "board" ? " on" : ""}`}
-            onClick={() => selectView("board")}
-            aria-current={view === "board" ? "page" : undefined}
+            onClick={() => setScriptOpen(true)}
+            disabled={!activeTenantId}
+            className="setter-scriptbtn inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-muted transition-colors hover:border-brand/40 hover:text-brand-text disabled:opacity-50"
+            aria-label="Dialing script"
           >
-            <LayoutGrid size={15} aria-hidden />
-            Pipeline
+            <ScrollText size={14} aria-hidden />
+            <span className="setter-scriptlabel">Dialing script</span>
           </button>
-          <button
-            type="button"
-            className={`pk-tab${view === "inbox" ? " on" : ""}`}
-            onClick={() => selectView("inbox")}
-            aria-current={view === "inbox" ? "page" : undefined}
-          >
-            <MessagesSquare size={15} aria-hidden />
-            Inbox
-          </button>
-          <button
-            type="button"
-            className={`pk-tab${view === "calendar" ? " on" : ""}`}
-            onClick={() => selectView("calendar")}
-            aria-current={view === "calendar" ? "page" : undefined}
-          >
-            <CalendarDays size={15} aria-hidden />
-            Calendar
-          </button>
-          <button
-            type="button"
-            className={`pk-tab${view === "results" ? " on" : ""}`}
-            onClick={() => selectView("results")}
-            aria-current={view === "results" ? "page" : undefined}
-          >
-            <Trophy size={15} aria-hidden />
-            Results
-          </button>
-          <button
-            type="button"
-            className={`pk-tab${view === "settings" ? " on" : ""}`}
-            onClick={() => selectView("settings")}
-            aria-current={view === "settings" ? "page" : undefined}
-          >
-            <Settings size={15} aria-hidden />
-            Settings
-          </button>
-        </nav>
 
-        <button
-          type="button"
-          onClick={() => setScriptOpen(true)}
-          disabled={!activeTenantId}
-          className="inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-muted transition-colors hover:border-brand/40 hover:text-brand-text disabled:opacity-50"
-        >
-          <ScrollText size={14} aria-hidden />
-          Dialing script
-        </button>
-
-        {clients.length > 0 && (
-          <ClientPicker clients={clients} activeId={activeTenantId} onSelect={selectClient} />
-        )}
+          {clients.length > 0 && (
+            <ClientPicker clients={clients} activeId={activeTenantId} onSelect={selectClient} />
+          )}
+        </div>
       </div>
+
+      <nav
+        className="pk-tabs setter-toptabs"
+        style={{ margin: "12px 0 0", borderBottom: "none" }}
+        aria-label="Setter view"
+      >
+        {SETTER_VIEWS.map((v) => (
+          <button
+            key={v.value}
+            type="button"
+            className={`pk-tab${view === v.value ? " on" : ""}`}
+            onClick={() => selectView(v.value)}
+            aria-current={view === v.value ? "page" : undefined}
+          >
+            <v.icon size={15} aria-hidden />
+            {v.label}
+          </button>
+        ))}
+      </nav>
 
       {clientsQuery.isLoading ? (
         <div className="pk-empty">Loading clients...</div>
@@ -389,15 +373,30 @@ export default function SetterSuite() {
               <SetterCallbacksRail tenantId={activeTenantId} />
               {pipelines.length > 0 && activePipelineId && (
                 <div className="mb-4">
-                  <Segmented
-                    options={pipelines.map((p) => ({
-                      value: p.id,
-                      label: pipelineTabLabel(p.name),
-                    }))}
-                    value={activePipelineId}
-                    onChange={selectPipeline}
-                    size="sm"
-                  />
+                  {/* Desktop: the full segmented pill row. Mobile: a dropdown
+                      picker (like the client picker) so six pipeline names never
+                      overflow a phone's width. */}
+                  <div className="hidden lg:block">
+                    <Segmented
+                      options={pipelines.map((p) => ({
+                        value: p.id,
+                        label: pipelineTabLabel(p.name),
+                      }))}
+                      value={activePipelineId}
+                      onChange={selectPipeline}
+                      size="sm"
+                    />
+                  </div>
+                  <div className="lg:hidden">
+                    <PipelinePicker
+                      options={pipelines.map((p) => ({
+                        value: p.id,
+                        label: pipelineTabLabel(p.name),
+                      }))}
+                      value={activePipelineId}
+                      onChange={selectPipeline}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -460,6 +459,39 @@ export default function SetterSuite() {
           onClose={() => setScriptOpen(false)}
         />
       )}
+
+      <SetterMobileStyle />
     </div>
+  );
+}
+
+// Phone layout rules for the suite, scoped under .pk-kit like the admin
+// spine's own style block. App-level navigation is the admin bottom bar
+// (AdminLayout); this page keeps its own view switch as a full-width
+// scrollable pill strip so the sub-views (Pipeline/Inbox/Calendar/...) never
+// wrap onto two rows on a narrow screen. Everything is behind one max-width
+// query so desktop renders exactly as before.
+function SetterMobileStyle() {
+  return (
+    <style>{`
+      @media (max-width: 1023.98px) {
+        .pk-kit .pk-root { padding: 14px 14px 24px; }
+        /* Smaller page title so the title + client picker sit on one tidy row. */
+        .pk-kit .setter-title { font-size: 19px; }
+        /* Script button collapses to an icon so it does not crowd the picker. */
+        .pk-kit .setter-scriptbtn { padding-left: 9px; padding-right: 9px; }
+        .pk-kit .setter-scriptlabel { display: none; }
+        /* View tabs: one full-width scrollable pill strip, never two rows. */
+        .pk-kit .setter-toptabs {
+          width: 100%;
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .pk-kit .setter-toptabs::-webkit-scrollbar { display: none; }
+        .pk-kit .setter-toptabs .pk-tab { flex: 0 0 auto; padding: 8px 12px; }
+      }
+    `}</style>
   );
 }

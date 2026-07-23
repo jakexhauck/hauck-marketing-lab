@@ -21,36 +21,82 @@ const LEVEL_ORDER: Record<TrackerLevel, number> = {
   sale: 3,
 };
 
-// Live GHL stage name (normalised) -> level. Pulled 2026-07-19 from the Sales,
-// Trash and Customers pipelines. Stages absent here fall through to "lead",
-// which counts the contact without inventing progress for it.
+// Live GHL stage name (normalised) -> level. Pulled 2026-07-23 from Willis's
+// real pipelines (1) Lead Form, 2) Funnel, 3) Sales, 4) Customers, 5) Cancelled
+// Appointments, 6) Trash). Stages absent here fall through to "lead", which
+// counts the contact without inventing progress for it.
+//
+// The ladder is: lead (came in) -> pickup (we made contact / they responded) ->
+// booking (an appointment or estimate exists) -> sale (paying customer).
 //
 // Deliberate mappings worth remembering:
-//   Long Term Nurture -> lead    (Jake: no response goes here, so not a pickup)
-//   No Close          -> booking (they took an appointment and did not buy;
-//                                 the sheet counts Lost as a booking)
-//   No-Show           -> booking (a booking was made, then missed)
-//   Opted Out         -> pickup  (they responded, even if only to leave)
+//   Opted In (needs dialing)  -> lead    (just arrived, nobody has dialled yet)
+//   No Answer Day N           -> lead    (we dialled, they never answered: no
+//                                          contact made, so not a pickup)
+//   Long Term Nurture         -> lead    (no response, per Jake)
+//   Survey Completed          -> pickup  (they engaged by completing a survey)
+//   Cancelled-appt stages     -> booking (an appointment was made, then moved)
+//   Job Completed             -> booking (the SALE signal is the app close-out
+//                                          value, not this stage; see assembleLeads)
 const STAGE_LEVELS: Record<string, TrackerLevel> = {
-  // Sales
-  "new lead": "lead",
-  "hot lead": "pickup",
-  "phone appointment booked": "booking",
-  "estimate scheduled": "booking",
+  // 1) Lead Form Pipeline
+  "opted in (needs dialing)": "lead",
+  "opted in follow up": "pickup",
+  "long term nurture": "lead",
+  // "No Answer Day 1..4 (needs dialing)" all match this prefix.
+  "no answer": "lead",
+  // 2) Funnel Pipeline
+  "survey completed no call booked (needs dialing)": "pickup",
+  "survey follow up": "pickup",
+  "phone appt booked": "booking",
+  "phone appt confirmed": "booking",
+  // 3) Sales Pipeline
+  "estimate booked": "booking",
   "job booked": "booking",
   "job completed": "booking",
   "follow up": "pickup",
-  "long term nurture": "lead",
-  // Trash
-  "no answer": "lead",
-  "no close": "booking",
-  "phone appointment no-show": "booking",
-  "opted out": "pickup",
-  // Customers. A secondary sale signal only: the money comes from the job
-  // ledger (see assembleLeads), because this pipeline has never been used.
+  // 5) Cancelled Appointments (an appointment existed, so still a booking)
+  "phone appt follow up": "booking",
+  "phone appt rescheduling": "booking",
+  "phone appt unspecified": "booking",
+  // 4) Customers Pipeline. A secondary sale signal; the money comes from the
+  // job ledger (see assembleLeads). The "1️⃣" keycap leaves an ASCII "1" behind
+  // that normalisation cannot strip, so this is matched by prefix.
   "one-time customer": "sale",
   "recurring customer": "sale",
+  // 6) Trash Pipeline. These count as bare leads; the "Lost" status itself is
+  // set from Trash-pipeline membership, not from the level (see leadTrackerData).
+  "services uninterested": "lead",
+  "services unqualified": "lead",
+  "bad intent": "lead",
 };
+
+// Which tracker pipelines a live pipeline belongs to, matched by name because
+// ids are per-location. Returns null for pipelines the ad tracker ignores
+// (Organic, Google Reviews, Reactivation): those are not paid-ad leads.
+//
+//   lead      the ad-lead journey (Lead Form, Funnel, Sales, Cancelled Appts)
+//   customers the Customers pipeline (a sale signal)
+//   trash     the Trash pipeline (marks a contact "Lost")
+export type PipelineRole = "lead" | "customers" | "trash";
+
+export function trackerPipelineRole(name: string): PipelineRole | null {
+  // Strip the "N) " agency prefix and any emoji, then match on keywords.
+  const key = normaliseStage(name).replace(/^\d+\)\s*/, "").trim();
+  if (!key) return null;
+  if (key.includes("trash")) return "trash";
+  if (key.includes("customer")) return "customers";
+  if (
+    key.includes("lead form") ||
+    key.includes("funnel") ||
+    key.includes("sales") ||
+    key.includes("cancelled appointment") ||
+    key.includes("canceled appointment")
+  ) {
+    return "lead";
+  }
+  return null;
+}
 
 // Strip emoji and any other non-ASCII, collapse runs of whitespace, lowercase.
 // GHL's live "Phone Appointment Booked  📞" carries a double space before the

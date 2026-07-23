@@ -5,6 +5,7 @@ import { Segmented } from "../../ui";
 import CalendarViews, { type CalendarView } from "../../calendar/CalendarViews";
 import BookSlotPanel from "./BookSlotPanel";
 import { useSetterEventsQuery, useSetterBusyQuery } from "../../../hooks/useApi";
+import { useIsMobile } from "../../../hooks/useIsMobile";
 import type { ApiSetterContact, ApiSetterEventsResponse } from "../../../lib/api";
 import { appointmentToItem, busyToItem, type CalendarSource } from "../../../lib/calendarModel";
 import { toIso } from "../../../lib/jobsPipeline";
@@ -53,6 +54,11 @@ export function SetterCalendar({ tenantId, clientName, bookingIntent, onBookingH
   // Week is the default because it is the only view with a slot layer, so it is
   // the only one a setter can book from.
   const [view, setView] = useState<CalendarView>("week");
+  // On a phone the calendar is week-only: Month and Agenda add no booking
+  // ability and do not lay out well narrow, so the view switcher is hidden and
+  // the grid is pinned to Week regardless of any desktop-set view.
+  const isMobile = useIsMobile();
+  const effectiveView = isMobile ? "week" : view;
   const [range, setRange] = useState<{ start: string; end: string }>({ start: "", end: "" });
   const [slot, setSlot] = useState<SetterSlot | null>(null);
   // The contact + calendar seeded when the panel is opened from the cockpit.
@@ -144,7 +150,10 @@ export function SetterCalendar({ tenantId, clientName, bookingIntent, onBookingH
     // (weekHourPx below) fits whole with no page scroll.
     <div className="flex min-h-0 flex-1 flex-col gap-3 lg:h-[calc(100dvh-9rem)]">
       <div className="flex flex-wrap items-center gap-3">
-        <Segmented options={VIEW_OPTIONS} value={view} onChange={setView} size="sm" />
+        {/* Month / Week / Agenda switch is desktop-only; the phone is week-only. */}
+        {!isMobile && (
+          <Segmented options={VIEW_OPTIONS} value={view} onChange={setView} size="sm" />
+        )}
 
         <button
           type="button"
@@ -185,7 +194,7 @@ export function SetterCalendar({ tenantId, clientName, bookingIntent, onBookingH
       <CalendarViews
         items={items}
         connected={connected}
-        view={view}
+        view={effectiveView}
         weekHourPx={40}
         onRangeChange={onRangeChange}
         onSlotClick={(iso, startMinutes) => {

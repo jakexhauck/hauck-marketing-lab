@@ -470,6 +470,52 @@ export interface AdTrackerResponse {
   };
 }
 
+// The client Lead Tracker (the Leads page): the admin Ad Tracker payload plus
+// per-lead rows. Status is derived server-side from the lead's furthest GHL
+// stage; "lost" means a card sits in the Trash pipeline and "sold" outranks it.
+export type LeadTrackerStatus = "new" | "contacted" | "booked" | "sold" | "lost";
+
+export interface LeadTrackerLead {
+  contactId: string;
+  // For linking into the close-out flow. Null when the contact has no card.
+  opportunityId: string | null;
+  name: string;
+  email: string;
+  phone: string;
+  createdAt: string;
+  status: LeadTrackerStatus;
+  value: number;
+  campaignName: string | null;
+  adsetName: string | null;
+  adName: string | null;
+  adId: string | null;
+}
+
+export interface LeadTrackerResponse extends AdTrackerResponse {
+  leads: LeadTrackerLead[];
+}
+
+// The Meta Data tab: the raw daily per-ad snapshot (the sheet's META DATA tab).
+export interface MetaDataRow {
+  date: string;
+  spend: number;
+  impressions: number;
+  reach: number;
+  linkClicks: number;
+  campaignName: string;
+  campaignId: string;
+  adsetName: string;
+  adsetId: string;
+  adName: string;
+  adId: string;
+}
+
+export interface MetaDataResponse {
+  rows: MetaDataRow[];
+  currency: string;
+}
+
+
 // An agency task in the admin "Tasks" tab, or a pillar task in a pillar
 // workspace's Tasks tab. tenantId null + pillarId null = agency-wide; tenantId
 // set = tied to that client (clientName is the joined label); pillarId set = a

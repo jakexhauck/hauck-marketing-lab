@@ -1,7 +1,8 @@
-import { Fragment, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
+  LayoutGrid,
   Megaphone,
   Handshake,
   HeartHandshake,
@@ -38,26 +39,36 @@ interface NavRow {
   // Command matches only its exact path; every other item matches its subtree
   // (e.g. Fulfillment is active for any /admin/delivery/:tenantId).
   end?: boolean;
+  // Compact label for the phone bottom bar, where seven tabs share one row and
+  // the full label ("Fulfillment", "Setter Suite") will not fit. Falls back to
+  // `label` when unset.
+  short?: string;
 }
 
 // The agency pillars. Sales is the agency's own sales performance (the Sales
 // Data pillar), NOT the per-client lead-working board.
 const PILLAR_NAV: NavRow[] = [
   { to: "/admin", label: "Command", icon: LayoutDashboard, end: true },
-  { to: "/admin/pillar/acquisition", label: "Acquisition", icon: Megaphone },
+  { to: "/admin/pillar/acquisition", label: "Acquisition", icon: Megaphone, short: "Acq" },
   { to: "/admin/pillar/sales", label: "Sales", icon: Handshake },
-  { to: "/admin/delivery", label: "Fulfillment", icon: HeartHandshake },
-  { to: "/admin/pillar/operations", label: "Operations", icon: Wrench },
+  { to: "/admin/delivery", label: "Fulfillment", icon: HeartHandshake, short: "Fulfill" },
+  { to: "/admin/pillar/operations", label: "Operations", icon: Wrench, short: "Ops" },
 ];
 
 // Client-work surfaces, below the divider. One row today; the zone is built to
 // take more without rework.
 const CLIENT_NAV: NavRow[] = [
-  { to: "/admin/setter", label: "Setter Suite", icon: PhoneCall },
+  { to: "/admin/setter", label: "Setter Suite", icon: PhoneCall, short: "Setter" },
 ];
 
-// Every row the phone's horizontal nav shows, in sidebar order.
-const ALL_NAV: NavRow[] = [...PILLAR_NAV, ...CLIENT_NAV];
+// The phone bottom bar is the four pillars split around a raised center button
+// (Command). Acquisition + Sales sit left of it, Fulfillment + Operations
+// right, matching the desktop rail's pillar order. The center button is not a
+// pillar: it opens the Command hub (the app launcher at /admin/apps), which is
+// where the Setter Suite and every future app live. Settings moves to the
+// header gear rather than taking a bottom slot.
+const BOTTOM_LEFT: NavRow[] = [PILLAR_NAV[1], PILLAR_NAV[2]]; // Acquisition, Sales
+const BOTTOM_RIGHT: NavRow[] = [PILLAR_NAV[3], PILLAR_NAV[4]]; // Fulfillment, Operations
 
 // One sidebar row. Active is the brand gradient pill; hover nudges right by a
 // half-pixel, matching the client rail exactly so the two never drift apart.
@@ -200,14 +211,26 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           container. Admin pages remount per route, so it starts at the top on
           navigation without needing ScrollToTop. */}
       <div className="flex min-w-0 flex-1 flex-col lg:h-full lg:min-h-0 lg:overflow-y-auto">
-        {/* Phone top bar (below lg): brand, theme + sign out, then scrollable nav. */}
+        {/* Phone top bar (below lg): brand + theme + sign out only. Navigation
+            moved to the fixed bottom bar below; the brand mark links home. */}
         <header className="sticky top-0 z-20 border-b border-border bg-surface/85 backdrop-blur-xl lg:hidden">
           <div className="flex items-center gap-3 px-4 py-3">
-            <span className="adm-brandmark !h-[26px] !w-[26px] !rounded-[8px] !text-[13px]" aria-hidden>
-              H
-            </span>
-            <span className="font-display text-[15px] font-semibold tracking-[-0.02em]">Hauck Admin</span>
+            <NavLink to="/admin" end className="flex items-center gap-3" aria-label="Command home">
+              <span className="adm-brandmark !h-[26px] !w-[26px] !rounded-[8px] !text-[13px]" aria-hidden>
+                H
+              </span>
+              <span className="font-display text-[15px] font-semibold tracking-[-0.02em]">Hauck Admin</span>
+            </NavLink>
             <div className="ml-auto flex items-center gap-1.5">
+              <NavLink
+                to="/admin/settings"
+                className={({ isActive }) =>
+                  `adm-iconbtn !h-9 !w-9${isActive ? " on" : ""}`
+                }
+                aria-label="Settings"
+              >
+                <Settings size={16} />
+              </NavLink>
               <button onClick={toggle} className="adm-iconbtn !h-9 !w-9" aria-label={themeLabel}>
                 {isLight ? <Moon size={16} /> : <Sun size={16} />}
               </button>
@@ -220,48 +243,58 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               </button>
             </div>
           </div>
-          {/* Same order as the sidebar, with the client-work zone kept visually
-              separate by a hairline rather than a horizontal divider. */}
-          <nav className="no-scrollbar flex items-center gap-1.5 overflow-x-auto px-3 pb-2.5">
-            {ALL_NAV.map((item, i) => (
-              <Fragment key={item.to}>
-                {i === PILLAR_NAV.length && (
-                  <span className="mx-0.5 h-5 w-px shrink-0 bg-[var(--border)]" aria-hidden />
-                )}
-                <NavLink
-                  to={item.to}
-                  end={item.end}
-                  className={({ isActive }) =>
-                    [
-                      "flex shrink-0 items-center gap-2 rounded-[10px] px-3 py-1.5 text-[13px] font-medium transition-colors",
-                      isActive ? "adm-nav-item on" : "text-muted hover:bg-surface-2 hover:text-text",
-                    ].join(" ")
-                  }
-                >
-                  <item.icon size={15} className="shrink-0" />
-                  {item.label}
-                </NavLink>
-              </Fragment>
-            ))}
-            <span className="mx-0.5 h-5 w-px shrink-0 bg-[var(--border)]" aria-hidden />
-            <NavLink
-              to="/admin/settings"
-              className={({ isActive }) =>
-                [
-                  "flex shrink-0 items-center gap-2 rounded-[10px] px-3 py-1.5 text-[13px] font-medium transition-colors",
-                  isActive ? "adm-nav-item on" : "text-muted hover:bg-surface-2 hover:text-text",
-                ].join(" ")
-              }
-            >
-              <Settings size={15} className="shrink-0" />
-              Settings
-            </NavLink>
-          </nav>
         </header>
 
-        {/* Each admin page renders its own content. */}
-        <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+        {/* Each admin page renders its own content. Padded on the phone so page
+            content clears the fixed bottom bar. */}
+        <main className="flex min-h-0 flex-1 flex-col pb-[calc(62px+env(safe-area-inset-bottom,0px))] lg:pb-0">
+          {children}
+        </main>
       </div>
+
+      {/* Phone bottom tab bar (below lg): the four pillars split around the
+          raised Command hub button. Acquisition + Sales left, Fulfillment +
+          Operations right, in the same order as the desktop rail. */}
+      <nav className="adm-bottombar" aria-label="Primary">
+        <div className="adm-bottomside">
+          {BOTTOM_LEFT.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => `adm-bottomtab${isActive ? " on" : ""}`}
+            >
+              <item.icon size={18} className="shrink-0" aria-hidden />
+              <span>{item.short ?? item.label}</span>
+            </NavLink>
+          ))}
+        </div>
+
+        <div className="adm-hubwrap">
+          <NavLink
+            to="/admin/apps"
+            className={({ isActive }) => `adm-hubbtn${isActive ? " on" : ""}`}
+            aria-label="Command"
+          >
+            <LayoutGrid size={24} aria-hidden />
+          </NavLink>
+          <span className="adm-hublabel">Command</span>
+        </div>
+
+        <div className="adm-bottomside">
+          {BOTTOM_RIGHT.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => `adm-bottomtab${isActive ? " on" : ""}`}
+            >
+              <item.icon size={18} className="shrink-0" aria-hidden />
+              <span>{item.short ?? item.label}</span>
+            </NavLink>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }
@@ -296,6 +329,63 @@ function AdminSpineStyle() {
         background: var(--grad-brand); color: #fff; box-shadow: var(--shadow-brand);
         display: grid; place-items: center;
         font-family: var(--font-display); font-size: 11px; font-weight: 600;
+      }
+
+      /* Phone bottom tab bar. Hidden on desktop (the rail is the nav there);
+         on phones, the four pillars split around a raised center Command hub.
+         Scoped to .pk-kit so it reads the Modern Motion tokens light and dark. */
+      .pk-kit .adm-bottombar { display: none; }
+      @media (max-width: 1023.98px) {
+        .pk-kit .adm-bottombar {
+          position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+          display: flex; align-items: stretch;
+          padding: 5px 4px calc(5px + env(safe-area-inset-bottom, 0px));
+          background: color-mix(in srgb, var(--surface) 90%, transparent);
+          backdrop-filter: blur(18px) saturate(1.4);
+          -webkit-backdrop-filter: blur(18px) saturate(1.4);
+          border-top: 1px solid var(--border);
+        }
+        /* Each side holds two pillar tabs, spread evenly; the hub wrapper in
+           between is a fixed width so the two sides stay balanced. */
+        .pk-kit .adm-bottomside {
+          flex: 1 1 0; min-width: 0;
+          display: flex; align-items: stretch; justify-content: space-around;
+        }
+        .pk-kit .adm-bottomtab {
+          flex: 1 1 0; min-width: 0;
+          display: flex; flex-direction: column; align-items: center; gap: 3px;
+          padding: 4px 1px; text-decoration: none;
+          color: var(--text-muted); font-size: 10px; font-weight: 600;
+          transition: color .14s;
+        }
+        .pk-kit .adm-bottomtab.on { color: var(--brand-text); }
+        .pk-kit .adm-bottomtab svg { opacity: .85; }
+        .pk-kit .adm-bottomtab.on svg { opacity: 1; }
+        .pk-kit .adm-bottomtab span {
+          line-height: 1; white-space: nowrap;
+          max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* The raised center hub: a brand-gradient circle lifted above the bar,
+           ringed in the surface color so it reads as floating over it. */
+        .pk-kit .adm-hubwrap {
+          flex: 0 0 74px; width: 74px;
+          display: flex; flex-direction: column; align-items: center; gap: 2px;
+        }
+        .pk-kit .adm-hubbtn {
+          width: 56px; height: 56px; border-radius: 50%;
+          margin-top: -22px; flex-shrink: 0;
+          display: grid; place-items: center; color: #fff;
+          background: var(--grad-brand); box-shadow: var(--shadow-brand);
+          border: 4px solid var(--surface);
+          transition: transform .16s ease;
+        }
+        .pk-kit .adm-hubbtn:active { transform: scale(0.94); }
+        .pk-kit .adm-hubbtn.on { box-shadow: var(--shadow-brand), 0 0 0 3px color-mix(in srgb, var(--brand) 30%, transparent); }
+        .pk-kit .adm-hublabel {
+          margin-top: -2px; line-height: 1;
+          font-size: 10px; font-weight: 600; color: var(--text-muted);
+        }
       }
 
       /* Restyled scrollbars for EVERY admin scroll container (the content

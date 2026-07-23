@@ -9,6 +9,7 @@ import {
   rollup,
   breakdown,
   ratio,
+  trackerPipelineRole,
   type TrackerLead,
   assembleLeads,
   type TrackerSpendRow,
@@ -120,43 +121,72 @@ describe("ratio", () => {
 });
 
 describe("deriveLevel", () => {
-  it("maps every live Sales stage", () => {
-    expect(deriveLevel("New Lead 🔔")).toBe("lead");
-    expect(deriveLevel("Hot Lead 🔥")).toBe("pickup");
-    expect(deriveLevel("Phone Appointment Booked  📞")).toBe("booking");
-    expect(deriveLevel("Estimate Scheduled 📋")).toBe("booking");
-    expect(deriveLevel("Job Booked 💼")).toBe("booking");
-    expect(deriveLevel("Job Completed ✅")).toBe("booking");
-    expect(deriveLevel("Follow Up 📌")).toBe("pickup");
-    expect(deriveLevel("Long Term Nurture 🌱")).toBe("lead");
+  it("maps the live Lead Form + Funnel intake stages", () => {
+    expect(deriveLevel("Opted In (needs dialing)")).toBe("lead");
+    expect(deriveLevel("Opted In Follow Up")).toBe("pickup");
+    expect(deriveLevel("Long Term Nurture")).toBe("lead");
+    // All four "No Answer Day N (needs dialing)" match by prefix.
+    expect(deriveLevel("No Answer Day 1 (needs dialing)")).toBe("lead");
+    expect(deriveLevel("No Answer Day 4 (needs dialing)")).toBe("lead");
+    expect(deriveLevel("Survey Completed No Call Booked (needs dialing)")).toBe("pickup");
+    expect(deriveLevel("Survey Follow Up")).toBe("pickup");
+    expect(deriveLevel("Phone Appt Booked")).toBe("booking");
+    expect(deriveLevel("Phone Appt Confirmed")).toBe("booking");
   });
 
-  it("maps every live Trash stage", () => {
-    expect(deriveLevel("No Answer 🤷")).toBe("lead");
-    expect(deriveLevel("No Close ⛔")).toBe("booking");
-    expect(deriveLevel("Phone Appointment No-Show ❌")).toBe("booking");
-    expect(deriveLevel("Opted Out 🚫")).toBe("pickup");
+  it("maps the live Sales stages", () => {
+    expect(deriveLevel("Estimate Booked")).toBe("booking");
+    expect(deriveLevel("Job Booked")).toBe("booking");
+    expect(deriveLevel("Job Completed")).toBe("booking");
+    expect(deriveLevel("Follow Up")).toBe("pickup");
   });
 
-  it("maps the Customers stages to a sale", () => {
+  it("maps the Cancelled Appointments stages to a booking", () => {
+    expect(deriveLevel("Phone Appt Follow Up")).toBe("booking");
+    expect(deriveLevel("Phone Appt Rescheduling")).toBe("booking");
+    expect(deriveLevel("Phone Appt Unspecified")).toBe("booking");
+  });
+
+  it("maps the Trash stages to a bare lead (Lost is set from pipeline membership)", () => {
+    expect(deriveLevel("Services Uninterested")).toBe("lead");
+    expect(deriveLevel("Services Unqualified")).toBe("lead");
+    expect(deriveLevel("Bad Intent")).toBe("lead");
+  });
+
+  it("maps the Customers stages to a sale, past the keycap emoji", () => {
     expect(deriveLevel("One-Time Customer 1️⃣")).toBe("sale");
     expect(deriveLevel("Recurring Customer 🔁")).toBe("sale");
   });
 
-  it("survives the double space GHL has before the phone emoji", () => {
-    expect(deriveLevel("Phone Appointment Booked  📞")).toBe(
-      deriveLevel("phone appointment booked"),
-    );
-  });
-
   it("is case and emoji insensitive", () => {
-    expect(deriveLevel("  HOT LEAD  ")).toBe("pickup");
-    expect(deriveLevel("hot lead")).toBe("pickup");
+    expect(deriveLevel("  ESTIMATE BOOKED  ")).toBe("booking");
+    expect(deriveLevel("estimate booked")).toBe("booking");
   });
 
   it("treats an unknown stage as a bare lead rather than throwing", () => {
     expect(deriveLevel("Some New Stage Nobody Told Us About")).toBe("lead");
     expect(deriveLevel("")).toBe("lead");
+  });
+});
+
+describe("trackerPipelineRole", () => {
+  it("classifies the ad-lead journey pipelines as 'lead'", () => {
+    expect(trackerPipelineRole("1) Lead Form Pipeline")).toBe("lead");
+    expect(trackerPipelineRole("2) Funnel Pipeline")).toBe("lead");
+    expect(trackerPipelineRole("3) Sales Pipeline")).toBe("lead");
+    expect(trackerPipelineRole("5) Cancelled Appointments")).toBe("lead");
+  });
+
+  it("classifies Customers and Trash", () => {
+    expect(trackerPipelineRole("4) Customers Pipeline")).toBe("customers");
+    expect(trackerPipelineRole("6) Trash Pipeline")).toBe("trash");
+  });
+
+  it("ignores pipelines that are not paid-ad leads", () => {
+    expect(trackerPipelineRole("Organic")).toBeNull();
+    expect(trackerPipelineRole("Google Reviews")).toBeNull();
+    expect(trackerPipelineRole("Reactivation")).toBeNull();
+    expect(trackerPipelineRole("")).toBeNull();
   });
 });
 
@@ -351,9 +381,9 @@ describe("breakdown", () => {
 
 describe("assembleLeads", () => {
   const stages = new Map([
-    ["s-new", "New Lead 🔔"],
-    ["s-hot", "Hot Lead 🔥"],
-    ["s-booked", "Phone Appointment Booked  📞"],
+    ["s-new", "Opted In (needs dialing)"],
+    ["s-hot", "Opted In Follow Up"],
+    ["s-booked", "Phone Appt Booked"],
     ["s-cust", "One-Time Customer 1️⃣"],
   ]);
   const attr = new Map([

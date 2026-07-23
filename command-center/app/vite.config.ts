@@ -69,6 +69,9 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
+    // host:true binds all interfaces so the dev build is reachable from a
+    // phone on the same wifi (mobile-layout testing). Dev-only.
+    host: true,
     proxy: {
       "/api": {
         target: "http://localhost:8788",

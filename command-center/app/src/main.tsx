@@ -47,6 +47,10 @@ const TWENTY_FOUR_HOURS = 1000 * 60 * 60 * 24;
   }
 })();
 
+// Motion is fixed to the "Lively" preset app-wide; the dev preset switcher was
+// retired. Set once here so every route renders with the lively token set.
+document.documentElement.setAttribute("data-motion", "lively");
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>

@@ -41,6 +41,8 @@ import {
   type AdTrackerLevel,
   type AdTrackerRange,
   type AdTrackerResponse,
+  type LeadTrackerResponse,
+  type MetaDataResponse,
   type ApiReviewsResponse,
   type PillarConstraint,
   getSalesData,
@@ -1130,6 +1132,34 @@ export function useAdminClientBillingSave(tenantId: string) {
 // swaps cache entries instead of refetching over the same key.
 // The rebuilt Ad Tracker. keepPreviousData so flipping range or pivot level
 // swaps the numbers without blanking the table first.
+// The Paid Ads tracker (Dashboard + Lead Tracker tabs): tracker payload scoped
+// to the session tenant, plus per-lead rows. keepPreviousData so flipping the
+// range or pivot level swaps numbers without blanking the page.
+export function useAdsTrackerQuery(
+  range: AdTrackerRange,
+  level: AdTrackerLevel,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ["ads-tracker", range, level],
+    enabled,
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
+    queryFn: () =>
+      api<LeadTrackerResponse>(`/api/ads/tracker?range=${range}&level=${level}`),
+  });
+}
+
+// The Meta Data tab: raw daily per-ad rows from the snapshot table.
+export function useAdsMetaDataQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["ads-meta-data"],
+    enabled,
+    staleTime: 60_000,
+    queryFn: () => api<MetaDataResponse>(`/api/ads/meta-data`),
+  });
+}
+
 export function useAdminAdTrackerQuery(
   tenantId: string,
   range: AdTrackerRange,
