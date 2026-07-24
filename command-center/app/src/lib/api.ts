@@ -126,6 +126,70 @@ export interface ApiSummary {
   unreadConversations: number;
 }
 
+// A lead a setter has qualified and handed to the business owner. Fully
+// internal to the app: no GHL. The setter creates one (opening a group chat
+// that connects the owner with the customer); the owner works it to a close.
+//
+// Lifecycle:
+//   new          handed off, owner has not replied yet
+//   working      owner is engaged in the group chat
+//   estimate_set an in-home estimate / appointment is booked
+//   won          job sold
+//   lost         not sold
+//   later        parked for a future follow-up (seasonal, "not now")
+export type HandoffStatus =
+  | "new"
+  | "estimate_set"
+  | "job_booked"
+  | "won"
+  | "lost"
+  | "later";
+
+// Why a handoff was lost, for the "why deals die" rollup.
+export type HandoffLostReason = "price" | "timing" | "competitor" | "ghosted" | "diy" | "other";
+
+export interface ApiHandoff {
+  id: string;
+  contactId: string;
+  name: string;
+  phone: string;
+  // Who qualified and handed it over (a Hauck setter's name).
+  setterName: string;
+  status: HandoffStatus;
+  // Job value in dollars, set when the owner marks it Won. Optional.
+  value: number | null;
+  lostReason: HandoffLostReason | null;
+  // Lifecycle timestamps. handedAt is always set; the rest fill in as the lead
+  // moves, and drive the funnel + owner-accountability metrics.
+  handedAt: string;
+  firstOwnerReplyAt: string | null; // owner's first message = response time
+  estimateAt: string | null; // booked estimate appointment (Home Estimate cal)
+  jobAt: string | null; // booked install appointment (Job cal)
+  followUpAt: string | null; // scheduled follow-up (becomes a GHL task)
+  followUpNote: string | null; // the follow-up task note
+  address: string | null; // service address, captured at the estimate booking
+  service: string | null; // service + scope, captured at the estimate booking
+  closedAt: string | null; // when won / lost / later was recorded
+  // Latest line in the group chat + unread count, for the list preview.
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  unread: number;
+}
+
+// One line in a handoff's group chat. Three participants: the customer (the
+// lead), the owner (the logged-in business owner), and the setter (Hauck) who
+// connected them.
+export type HandoffSender = "owner" | "customer" | "setter";
+
+export interface HandoffMessage {
+  id: string;
+  handoffId: string;
+  sender: HandoffSender;
+  senderName: string;
+  body: string;
+  at: string; // ISO
+}
+
 export interface ApiMessage {
   id: string;
   body: string;

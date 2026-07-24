@@ -27,7 +27,7 @@ export const PERSIST_CACHE_KEY = "hml_query_cache";
 // of rehydrating a stale, partial payload. This is what recovered clients stuck
 // on a pre-fix `["ads","insights"] = { configured: false }` entry (no `totals`),
 // which rehydrated before any refetch and crashed the Paid Ads render.
-export const PERSIST_CACHE_BUSTER = "2026-07-21.no-inbox-or-audit-persist";
+export const PERSIST_CACHE_BUSTER = "2026-07-23.handoffs-lifecycle";
 
 // Query keys whose DATA MUST NEVER BE WRITTEN TO DISK.
 //

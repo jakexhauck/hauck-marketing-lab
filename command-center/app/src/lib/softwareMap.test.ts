@@ -63,7 +63,7 @@ describe("software map coverage", () => {
   });
 
   it("lists the Jobs calendar views, which are not routes", () => {
-    const labels = pages.filter((p) => p.path.startsWith("/sales/jobs?")).map((p) => p.label);
+    const labels = pages.filter((p) => p.path.startsWith("/sales?")).map((p) => p.label);
     expect(labels).toEqual(["Jobs", "Month", "Week", "Agenda"]);
   });
 

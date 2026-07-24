@@ -9,7 +9,7 @@ import { PipelinesProvider } from "./context/PipelinesContext";
 import Login from "./routes/Login";
 import Home from "./routes/Home";
 import AllFeatures from "./routes/AllFeatures";
-import Jobs from "./routes/sales/Jobs";
+import Sales from "./routes/sales/Sales";
 import Dashboard from "./routes/Dashboard";
 import { PaidAds } from "./routes/PaidAds";
 import ReviewsRequests from "./routes/reviews/ReviewsRequests";
@@ -70,7 +70,6 @@ import OfflineBanner from "./components/OfflineBanner";
 import PreviewBanner from "./components/PreviewBanner";
 import { isPreviewFrame } from "./lib/previewFrame";
 import DemoBanner from "./components/DemoBanner";
-import IncomingCallBanner from "./components/call/IncomingCallBanner";
 import ScrollToTop from "./components/ScrollToTop";
 import { ToastProvider } from "./context/ToastContext";
 import { NowProvider } from "./context/NowContext";
@@ -234,7 +233,6 @@ export default function App() {
                 would be both redundant and a dead end. */}
             {!isPreviewFrame() && <PreviewBanner />}
             <DemoBanner />
-            <IncomingCallBanner />
             <ScrollToTop />
             <TourOverlay />
             <div className="app-shell">
@@ -272,13 +270,14 @@ export default function App() {
               <Route path="/sales/chat" element={<Navigate to="/marketing/paid-ads/leads" replace />} />
               <Route path="/sales/paid-ads" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route
-                path="/sales/jobs"
+                path="/sales"
                 element={
                   <ProtectedRoute>
-                    <Jobs />
+                    <Sales />
                   </ProtectedRoute>
                 }
               />
+              <Route path="/sales/jobs" element={<Navigate to="/sales?tab=schedule" replace />} />
               <Route
                 path="/dashboard"
                 element={
@@ -345,6 +344,8 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/handoffs" element={<Navigate to="/sales?tab=leads" replace />} />
+              <Route path="/handoffs/:id" element={<Navigate to="/sales?tab=leads" replace />} />
               <Route
                 path="/conversations"
                 element={

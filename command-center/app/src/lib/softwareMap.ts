@@ -55,9 +55,9 @@ const TABS_BY_PARENT: Record<string, PageTab[]> = {
   "/sales/leads": LEADS_TABS,
 };
 
-// The Jobs page hosts a Jobs/Month/Week/Agenda switcher whose state is local, so
-// these are not routes in App.tsx. Jobs.tsx accepts ?view= precisely so they can
-// be linked from here.
+// The Sales page's Schedule tab hosts a Jobs/Month/Week/Agenda switcher whose
+// state is local, so these are not routes in App.tsx. Sales reads ?tab= and
+// Jobs.tsx reads ?view=, so a view is linked as /sales?tab=schedule&view=<id>.
 const JOBS_VIEWS: { id: string; label: string }[] = [
   { id: "jobs", label: "Jobs" },
   { id: "month", label: "Month" },
@@ -107,12 +107,12 @@ function expand(item: NavItem): SoftwarePage[] {
     }
   }
 
-  if (item.to === "/sales/jobs") {
+  if (item.to === "/sales") {
     for (const view of JOBS_VIEWS) {
       out.push({
-        id: `/sales/jobs?view=${view.id}`,
+        id: `/sales?tab=schedule&view=${view.id}`,
         label: view.label,
-        path: `/sales/jobs?view=${view.id}`,
+        path: `/sales?tab=schedule&view=${view.id}`,
         child: true,
       });
     }

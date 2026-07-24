@@ -33,6 +33,7 @@ import {
   useStartReviewCampaign,
   useRescheduleAppointment,
   useMarkJobPaid,
+  useHandoffSlotsQuery,
 } from "../../hooks/useApi";
 import { DateTimeModal } from "../../components/DateTimeModal";
 import {
@@ -101,7 +102,38 @@ function initialJobsView(): JobsView {
   return "jobs";
 }
 
-export default function Jobs() {
+// A slot-booking request handed over from the Leads tab (structural subset of
+// Sales' BookingRequest, so no import cycle).
+interface JobsBooking {
+  name: string;
+  kind: "estimate" | "job";
+  calendar: string;
+  prefillAddress?: string;
+  prefillService?: string;
+}
+
+// What the owner fills in when booking the appointment.
+export interface BookingDetails {
+  address: string;
+  service: string;
+  notes: string;
+}
+
+// The Jobs calendar body. Rendered standalone (Jobs route) and inside the
+// combined Sales page's "Schedule" tab, where `embedded` drops the big page
+// title (Sales owns the title) and keeps only the view controls. In `booking`
+// mode the day panel becomes a slot picker for the lead being booked.
+export function JobsBoard({
+  embedded = false,
+  booking = null,
+  onBookPick,
+  onBookCancel,
+}: {
+  embedded?: boolean;
+  booking?: JobsBooking | null;
+  onBookPick?: (iso: string, details: BookingDetails) => void;
+  onBookCancel?: () => void;
+}) {
   const demo = demoMode();
   const jobs = useJobs();
   const { showToast } = useToast();
@@ -115,6 +147,12 @@ export default function Jobs() {
   const [msgJob, setMsgJob] = useState<Job | null>(null);
   // The job whose Reschedule picker is open (null = closed).
   const [reschedJob, setReschedJob] = useState<Job | null>(null);
+
+  // Booking flow (Schedule tab): the slot the owner picked, and the details form.
+  const [slotIso, setSlotIso] = useState<string | null>(null);
+  const [bkAddress, setBkAddress] = useState(booking?.prefillAddress ?? "");
+  const [bkService, setBkService] = useState(booking?.prefillService ?? "");
+  const [bkNotes, setBkNotes] = useState("");
 
   // Anchor the view to the demo month so the preview always reads full; a real
   // session opens on the current month (empty until connected).
@@ -247,30 +285,53 @@ export default function Jobs() {
     }
   }
 
-  return (
-    <Shell>
-      <div className={JOBS_CONTAINER}>
-        <PageHeader
-          title="Jobs"
-          description="Pick a day to see and work its jobs, or switch to a calendar view."
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              <GoogleCalendarLink />
-              <Segmented<JobsView>
-                options={[
-                  { value: "jobs", label: "Jobs" },
-                  { value: "month", label: "Month" },
-                  { value: "week", label: "Week" },
-                  { value: "agenda", label: "Agenda" },
-                ]}
-                value={jobsView}
-                onChange={setJobsViewPersist}
-              />
-            </div>
-          }
-        />
+  const viewControls = (
+    <div className="flex flex-wrap items-center gap-2">
+      <GoogleCalendarLink />
+      <Segmented<JobsView>
+        options={[
+          { value: "jobs", label: "Jobs" },
+          { value: "month", label: "Month" },
+          { value: "week", label: "Week" },
+          { value: "agenda", label: "Agenda" },
+        ]}
+        value={jobsView}
+        onChange={setJobsViewPersist}
+      />
+    </div>
+  );
 
-        {jobsView !== "jobs" ? (
+  return (
+    <>
+      <div className={JOBS_CONTAINER}>
+        {embedded ? (
+          <div className="flex justify-end pb-1 pt-1">{viewControls}</div>
+        ) : (
+          <PageHeader
+            title="Jobs"
+            description="Pick a day to see and work its jobs, or switch to a calendar view."
+            actions={viewControls}
+          />
+        )}
+
+        {booking && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--brand-primary)]/30 bg-brand-tint px-4 py-2.5">
+            <span className="text-[13px] font-semibold text-text">
+              Pick a time for{" "}
+              <span className="text-brand-text">{booking.name}</span>'s{" "}
+              {booking.kind === "estimate" ? "estimate" : "install"} · {booking.calendar}
+            </span>
+            <button
+              type="button"
+              onClick={onBookCancel}
+              className="ml-auto rounded-full border border-border bg-surface px-3 py-1 text-[12.5px] font-semibold text-muted transition-colors hover:text-text"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {!booking && jobsView !== "jobs" ? (
           <div className="mt-4 flex min-h-0 flex-1 flex-col">
             <CalendarViews
               items={calendarItems}
@@ -322,7 +383,10 @@ export default function Jobs() {
                     <button
                       key={cell.iso}
                       type="button"
-                      onClick={() => setSelected(cell.iso)}
+                      onClick={() => {
+                        setSelected(cell.iso);
+                        setSlotIso(null);
+                      }}
                       className={cn(
                         "relative flex aspect-square flex-col items-center justify-center rounded-[10px] font-display text-[12.5px] font-medium transition-colors",
                         isSel
@@ -382,9 +446,11 @@ export default function Jobs() {
                   {formatLongDay(selected)}
                 </div>
                 <div className="mt-0.5 text-[12px] text-muted">
-                  {dayJobs.length === 0
-                    ? "No jobs"
-                    : `${dayJobs.length} job${dayJobs.length > 1 ? "s" : ""}`}
+                  {booking
+                    ? "Open times to book"
+                    : dayJobs.length === 0
+                      ? "No jobs"
+                      : `${dayJobs.length} job${dayJobs.length > 1 ? "s" : ""}`}
                   {selected === today ? " · today" : ""}
                 </div>
               </div>
@@ -399,7 +465,37 @@ export default function Jobs() {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              {dayJobs.length === 0 ? (
+              {booking ? (
+                slotIso ? (
+                  <BookingForm
+                    kind={booking.kind}
+                    calendar={booking.calendar}
+                    slotIso={slotIso}
+                    address={bkAddress}
+                    setAddress={setBkAddress}
+                    service={bkService}
+                    setService={setBkService}
+                    notes={bkNotes}
+                    setNotes={setBkNotes}
+                    onBack={() => setSlotIso(null)}
+                    onConfirm={() =>
+                      onBookPick?.(slotIso, {
+                        address: bkAddress.trim(),
+                        service: bkService.trim(),
+                        notes: bkNotes.trim(),
+                      })
+                    }
+                  />
+                ) : (
+                  <BookingSlots
+                    dayIso={selected}
+                    dayJobs={dayJobs}
+                    demo={demo}
+                    calendar={booking.calendar}
+                    onPick={(iso) => setSlotIso(iso)}
+                  />
+                )
+              ) : dayJobs.length === 0 ? (
                 <div className="py-12">
                   <EmptyState
                     icon={<CalendarCheck size={22} />}
@@ -454,6 +550,16 @@ export default function Jobs() {
           }}
         />
       )}
+    </>
+  );
+}
+
+// Standalone Jobs route wrapper. The combined Sales page renders <JobsBoard
+// embedded /> under its "Schedule" tab instead.
+export default function Jobs() {
+  return (
+    <Shell>
+      <JobsBoard />
     </Shell>
   );
 }
@@ -592,6 +698,263 @@ function jobActions(job: Job): { label: string; icon: typeof CheckCircle2; prima
     { label: "Message", icon: MessageSquare },
     { label: "Ask for review", icon: Star },
   ];
+}
+
+// Bookable hours shown in the slot picker (8am to 5pm start times).
+const BOOK_HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+
+function slotLabel(h: number): string {
+  const ap = h < 12 ? "AM" : "PM";
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return `${hr}:00 ${ap}`;
+}
+
+// The starting hour a job occupies, parsed from its "2 PM" style time, so its
+// slot renders as blocked.
+function jobHour(t: string): number | null {
+  const m = t.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10) % 12;
+  if (/pm/i.test(m[3])) h += 12;
+  return h;
+}
+
+// A live slot ISO to a short time label ("9:00 AM"), for the real free-slot grid.
+function slotTimeLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+// The day's open-time grid for booking. In demo, a fixed 8-5 grid with hours
+// taken by that day's jobs rendered blocked. Live, the real free slots on the
+// chosen calendar (Home Estimate / Job) for the selected day, fetched from
+// /api/handoffs/slots; picking one books a real appointment on that calendar.
+function BookingSlots({
+  dayIso,
+  dayJobs,
+  demo,
+  calendar,
+  onPick,
+}: {
+  dayIso: string;
+  dayJobs: Job[];
+  demo: boolean;
+  // The GHL calendar name handed over from the Leads tab ("Home Estimate"|"Job").
+  calendar: string;
+  onPick: (iso: string) => void;
+}) {
+  const calKey: "home-estimate" | "job" =
+    calendar.toLowerCase().includes("estimate") ? "home-estimate" : "job";
+  const slots = useHandoffSlotsQuery(calKey, dayIso, !demo);
+
+  // Demo: the fixed grid blocked by that day's demo jobs.
+  if (demo) {
+    const blocked = new Set(
+      dayJobs.map((j) => jobHour(j.time)).filter((h): h is number => h != null),
+    );
+    return (
+      <div>
+        <div className="mb-3 flex items-center gap-4 text-[11px] font-medium text-muted">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-[3px] bg-brand-tint ring-1 ring-brand/40" />
+            Open
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-[3px] bg-surface-2" />
+            Blocked
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {BOOK_HOURS.map((h) => {
+            const isBlocked = blocked.has(h);
+            const iso = new Date(`${dayIso}T${String(h).padStart(2, "0")}:00:00`).toISOString();
+            return (
+              <button
+                key={h}
+                type="button"
+                disabled={isBlocked}
+                onClick={() => onPick(iso)}
+                className={cn(
+                  "flex items-center justify-center gap-1 rounded-xl border px-3 py-3 font-display text-[13px] font-semibold transition-colors",
+                  isBlocked
+                    ? "cursor-not-allowed border-divider bg-surface-2 text-faint line-through"
+                    : "border-brand/40 bg-brand-tint text-brand-text hover:bg-brand-tint-strong",
+                )}
+              >
+                {slotLabel(h)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Live states: loading, an honest not-bookable message, empty, or real slots.
+  if (slots.isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div
+          className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-brand"
+          aria-hidden
+        />
+      </div>
+    );
+  }
+  const data = slots.data;
+  if (slots.isError || (data && !data.ok)) {
+    const needsStaff = data?.error === "calendar_needs_staff";
+    const notFound = data?.error === "calendar_not_found";
+    return (
+      <div className="rounded-xl border border-warning/30 bg-warning-tint px-4 py-3 text-[12.5px] text-text">
+        {needsStaff
+          ? `The ${calendar} calendar has no team member assigned, so it can't take bookings yet. Add one in GHL, then try again.`
+          : notFound
+            ? `No "${calendar}" calendar found on this account yet.`
+            : "Could not load open times. Please try again."}
+      </div>
+    );
+  }
+  const open = data?.slots ?? [];
+  if (open.length === 0) {
+    return (
+      <div className="rounded-xl border border-divider bg-surface-2 px-4 py-3 text-[12.5px] text-muted">
+        No open times on {calendar} this day. Pick another day.
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div className="mb-3 text-[11px] font-medium text-muted">
+        Open times on <span className="text-brand-text">{calendar}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {open.map((iso) => (
+          <button
+            key={iso}
+            type="button"
+            onClick={() => onPick(iso)}
+            className="flex items-center justify-center gap-1 rounded-xl border border-brand/40 bg-brand-tint px-3 py-3 font-display text-[13px] font-semibold text-brand-text transition-colors hover:bg-brand-tint-strong"
+          >
+            {slotTimeLabel(iso)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function formatSlot(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+const BOOK_INPUT =
+  "w-full rounded-lg border border-border bg-[var(--bg)] px-3 py-2 text-[13px] text-text outline-none placeholder:text-faint focus:border-brand focus:ring-2 focus:ring-brand/20";
+
+// The details form shown once a slot is picked: address (required), service +
+// scope, and a notes field whose label fits the visit type.
+function BookingForm({
+  kind,
+  calendar,
+  slotIso,
+  address,
+  setAddress,
+  service,
+  setService,
+  notes,
+  setNotes,
+  onBack,
+  onConfirm,
+}: {
+  kind: "estimate" | "job";
+  calendar: string;
+  slotIso: string;
+  address: string;
+  setAddress: (v: string) => void;
+  service: string;
+  setService: (v: string) => void;
+  notes: string;
+  setNotes: (v: string) => void;
+  onBack: () => void;
+  onConfirm: () => void;
+}) {
+  const notesLabel = kind === "job" ? "Install notes" : "Visit notes";
+  const notesHint =
+    kind === "job"
+      ? "What's being installed, removal, access"
+      : "Gate code, dog, parking, call on arrival";
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between rounded-xl bg-brand-tint px-3.5 py-2.5">
+        <div className="min-w-0">
+          <div className="truncate font-display text-[14px] font-semibold text-text">
+            {formatSlot(slotIso)}
+          </div>
+          <div className="text-[11.5px] text-muted">on {calendar}</div>
+        </div>
+        <button
+          type="button"
+          onClick={onBack}
+          className="shrink-0 text-[12.5px] font-semibold text-brand-text hover:underline"
+        >
+          Change time
+        </button>
+      </div>
+
+      <label className="block">
+        <span className="mb-1 block text-[12px] font-semibold text-text">
+          Address <span className="text-danger">*</span>
+        </span>
+        <input
+          autoFocus
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="123 Harbor View Dr"
+          className={BOOK_INPUT}
+        />
+      </label>
+
+      <label className="block">
+        <span className="mb-1 block text-[12px] font-semibold text-text">Service + scope</span>
+        <input
+          value={service}
+          onChange={(e) => setService(e.target.value)}
+          placeholder="Window replacement, 6 windows"
+          className={BOOK_INPUT}
+        />
+      </label>
+
+      <label className="block">
+        <span className="mb-1 block text-[12px] font-semibold text-text">{notesLabel}</span>
+        <textarea
+          rows={2}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder={notesHint}
+          className={BOOK_INPUT + " resize-none"}
+        />
+      </label>
+
+      <button
+        type="button"
+        disabled={!address.trim()}
+        onClick={onConfirm}
+        className="mt-1 inline-flex h-10 items-center justify-center rounded-xl px-4 font-display text-[14px] font-semibold text-white shadow-[var(--shadow-brand)] disabled:opacity-40"
+        style={{ backgroundImage: "var(--grad-brand)" }}
+      >
+        {kind === "job" ? "Book install" : "Book estimate"}
+      </button>
+    </div>
+  );
 }
 
 function JobCard({ job, onAct }: { job: Job; onAct: (job: Job, label: string) => void }) {

@@ -61,6 +61,7 @@ describe("PERSIST_CACHE_BUSTER", () => {
   it("was bumped past every earlier value so old snapshots are discarded", () => {
     expect(PERSIST_CACHE_BUSTER).not.toBe("2026-07-19.no-credential-persist");
     expect(PERSIST_CACHE_BUSTER).not.toBe("2026-07-21.no-inbox-persist");
-    expect(PERSIST_CACHE_BUSTER).toBe("2026-07-21.no-inbox-or-audit-persist");
+    expect(PERSIST_CACHE_BUSTER).not.toBe("2026-07-21.no-inbox-or-audit-persist");
+    expect(PERSIST_CACHE_BUSTER).toBe("2026-07-23.handoffs-lifecycle");
   });
 });

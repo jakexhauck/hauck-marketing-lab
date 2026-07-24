@@ -28,12 +28,12 @@ describe("client nav structure", () => {
   it("keeps the flat sidebar order: Home, Ads, then the company surfaces", () => {
     expect(flattenNav(NAV).map((i) => i.to)).toEqual([
       "/home",
+      "/sales",
       "/marketing/paid-ads",
       "/conversations",
       "/apps",
       "/contacts",
       "/customers",
-      "/sales/jobs",
       "/team",
       "/comms",
     ]);
@@ -56,6 +56,7 @@ describe("client nav structure", () => {
       .map((i) => i.to);
     expect(bottom).toEqual([
       "/home",
+      "/sales",
       "/conversations",
       "/apps",
       "/contacts",

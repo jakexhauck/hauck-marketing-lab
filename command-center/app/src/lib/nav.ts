@@ -3,11 +3,11 @@ import {
   Megaphone,
   MessageSquare,
   MessagesSquare,
-  CalendarCheck,
   UserCog,
   Contact,
   LayoutGrid,
   Users,
+  Handshake,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -72,6 +72,9 @@ export function isNavSection(entry: NavEntry): entry is NavSection {
 // <PageTabs> bar, not as sidebar children.
 export const NAV: NavEntry[] = [
   { to: "/home", label: "Home", shortLabel: "Today", icon: Home, capability: "overview", bottomNav: true },
+  // Sales: the handed-off leads (Leads tab, outcomes board) and the jobs
+  // calendar (Schedule tab), combined into one surface.
+  { to: "/sales", label: "Sales", shortLabel: "Sales", icon: Handshake, bottomNav: true },
   // Only the services we actively sell get a row. Six channels are
   // back-burnered (hidden here, routes still registered in App.tsx): to
   // re-enable one, add its row back (and re-import its icon):
@@ -96,7 +99,6 @@ export const NAV: NavEntry[] = [
   // job values the team already sees on the board, not the invoice-level
   // detail the `billing` capability was drawn around.
   { to: "/customers", label: "Customers", icon: Users },
-  { to: "/sales/jobs", label: "Jobs", shortLabel: "Jobs", icon: CalendarCheck },
   // No Revenue row: customer revenue lives on /customers now, built from real
   // logged jobs instead of the invoices + payments feed (which returns
   // internal_error against live Willis). The /billing route stays registered

@@ -22,6 +22,10 @@ import {
   type ApiLead,
   type ApiPipelineSummary,
   type ApiSummary,
+  type ApiHandoff,
+  type HandoffMessage,
+  type HandoffStatus,
+  type HandoffLostReason,
   type ApiMessage,
   type ApiContact,
   type ApiConversation,
@@ -149,6 +153,138 @@ export function useSummaryQuery(enabled: boolean) {
     staleTime: 30_000,
     refetchInterval: 60_000,
     queryFn: () => api<ApiSummary>("/api/summary"),
+  });
+}
+
+// Internal lead handoffs (setter -> owner). No GHL. The owner's Home "Call now"
+// list reads this; polls so a fresh handoff surfaces within the minute.
+export function useHandoffsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["handoffs"],
+    enabled,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+    queryFn: () => api<{ handoffs: ApiHandoff[] }>("/api/handoffs"),
+  });
+}
+
+// Setter action: hand a qualified lead to the owner.
+export function useCreateHandoff() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      contactId: string;
+      name: string;
+      phone: string;
+      setterName?: string;
+    }) =>
+      api<{ handoff: ApiHandoff }>("/api/handoffs", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["handoffs"] });
+    },
+  });
+}
+
+// Owner action: move a handoff along its lifecycle (working / estimate set /
+// won / lost / later), optionally with a job value or a lost reason.
+export function useUpdateHandoff() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      id: string;
+      status?: HandoffStatus;
+      value?: number | null;
+      lostReason?: HandoffLostReason | null;
+      estimateAt?: string;
+      jobAt?: string;
+      followUpAt?: string;
+      followUpNote?: string | null;
+      address?: string;
+      service?: string;
+    }) =>
+      api<{ handoff: ApiHandoff | null }>(
+        `/api/handoffs/${encodeURIComponent(input.id)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            status: input.status,
+            value: input.value,
+            lostReason: input.lostReason,
+            estimateAt: input.estimateAt,
+            jobAt: input.jobAt,
+            followUpAt: input.followUpAt,
+            followUpNote: input.followUpNote,
+            address: input.address,
+            service: input.service,
+          }),
+        },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["handoffs"] });
+    },
+  });
+}
+
+export interface HandoffSlotsResponse {
+  ok: boolean;
+  timezone?: string;
+  slots: string[]; // ISO start times, open on the calendar for the day
+  error?: string;
+}
+
+// Live open slots for the Sales -> Schedule booking flow (GET
+// /api/handoffs/slots). `calendar` is "home-estimate" | "job"; `date` is the
+// day being booked (YYYY-MM-DD). Never retried: a missing-calendar / needs-staff
+// answer is permanent for this call, so the picker shows an honest message
+// instead of spinning. Skipped in demo mode (the demo blocks by its own jobs).
+export function useHandoffSlotsQuery(
+  calendar: "home-estimate" | "job",
+  date: string,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: ["handoffs", "slots", calendar, date],
+    enabled: enabled && Boolean(date),
+    staleTime: 30_000,
+    retry: false,
+    queryFn: () =>
+      api<HandoffSlotsResponse>(
+        `/api/handoffs/slots?calendar=${encodeURIComponent(calendar)}&date=${encodeURIComponent(date)}`,
+      ),
+  });
+}
+
+// The group chat for one handoff (owner + customer + setter). Polls so a new
+// customer line lands while the owner is looking at the thread.
+export function useHandoffMessagesQuery(handoffId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["handoffs", "messages", handoffId],
+    enabled: enabled && Boolean(handoffId),
+    staleTime: 10_000,
+    refetchInterval: 20_000,
+    queryFn: () =>
+      api<{ messages: HandoffMessage[] }>(
+        `/api/handoffs/${encodeURIComponent(handoffId as string)}/messages`,
+      ),
+  });
+}
+
+// Owner sends a line into the group chat.
+export function useSendHandoffMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { handoffId: string; body: string }) =>
+      api<{ message: HandoffMessage }>(
+        `/api/handoffs/${encodeURIComponent(input.handoffId)}/messages`,
+        { method: "POST", body: JSON.stringify({ body: input.body }) },
+      ),
+    onSuccess: (_data, input) => {
+      void qc.invalidateQueries({ queryKey: ["handoffs", "messages", input.handoffId] });
+      void qc.invalidateQueries({ queryKey: ["handoffs"] });
+    },
   });
 }
 

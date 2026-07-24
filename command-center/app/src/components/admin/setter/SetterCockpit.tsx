@@ -1,4 +1,5 @@
-import { Mail, MessagesSquare, Phone, TriangleAlert, Users, X } from "lucide-react";
+import { useState } from "react";
+import { Handshake, Mail, MessagesSquare, Phone, TriangleAlert, Users, X } from "lucide-react";
 import Avatar from "../../Avatar";
 import DialLogger from "./DialLogger";
 import TagField from "./TagField";
@@ -6,7 +7,7 @@ import SlotPicker from "./SlotPicker";
 import StageActions from "./StageActions";
 import SetterNotesTasks from "./SetterNotesTasks";
 import { Button } from "../../ui/Button";
-import { useSetterLeadDetailQuery } from "../../../hooks/useApi";
+import { useSetterLeadDetailQuery, useSetterTagsMutation } from "../../../hooks/useApi";
 import { useNow } from "../../../context/NowContext";
 import { formatPhone } from "../../../lib/phone";
 import { timeAgo } from "../../../lib/timeAgo";
@@ -58,6 +59,58 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h3 className="label-cap mb-2.5 text-faint">{title}</h3>
       {children}
     </section>
+  );
+}
+
+// Once a lead is qualified, the setter hands it to the owner. This drops the
+// `lead hand off` tag on the contact; the client's GHL automation moves it to
+// the Handed Off stage, where it surfaces in the owner's Sales > Leads list.
+// Same tag-apply hook + invalidation the stage-outcome buttons use.
+function HandoffToOwner({
+  tenantId,
+  contactId,
+  onDone,
+}: {
+  tenantId: string;
+  contactId: string;
+  onDone?: () => void;
+}) {
+  const tags = useSetterTagsMutation();
+  const { showToast } = useToast();
+  const [done, setDone] = useState(false);
+
+  const handoff = () => {
+    if (tags.isPending || done) return;
+    tags.mutate(
+      { tenantId, contactId, add: ["lead hand off"] },
+      {
+        onSuccess: () => {
+          setDone(true);
+          showToast("Lead handed off to owner");
+          onDone?.();
+        },
+        onError: () => showToast("Could not hand off, please try again"),
+      },
+    );
+  };
+
+  return (
+    <Section title="Hand off">
+      <Button
+        variant="primary"
+        size="md"
+        className="w-full"
+        disabled={tags.isPending || done}
+        onClick={handoff}
+      >
+        <Handshake size={16} />
+        {done ? "Handed off to owner" : tags.isPending ? "Handing off..." : "Hand off to owner"}
+      </Button>
+      <p className="mt-2 text-[12px] text-muted">
+        Tags the lead <span className="font-semibold text-text">lead hand off</span> and sends it
+        to the owner's Leads.
+      </p>
+    </Section>
   );
 }
 
@@ -386,8 +439,13 @@ export default function SetterCockpit({
           </>
         )}
 
-        {/* Every stage, both branches: notes on the live contact record and
-            a direct task creator (same modal the Follow Up flow uses). */}
+        {/* Every stage, both branches: the hand-off to the owner, then notes on
+            the live contact record and a direct task creator. */}
+        <HandoffToOwner
+          tenantId={tenantId}
+          contactId={lead.contactId}
+          onDone={onAutomationStart}
+        />
         <SetterNotesTasks tenantId={tenantId} contactId={lead.contactId} leadName={name} />
       </div>
     </aside>
