@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CalendarPlus } from "lucide-react";
 import SetterTaskModal from "./SetterTaskModal";
+import LeadAnsweredButton from "./LeadAnsweredButton";
 import { Button } from "../../ui/Button";
 import {
   useSetterTagsMutation,
@@ -38,6 +39,9 @@ interface Props {
   // than config.dials; missing entries are unticked.
   dialed: boolean[];
   onToggleDial: (index: number) => void;
+  // True when the live contact already carries the `lead contacted` tag, so
+  // the "They answered" button renders its done state.
+  answered: boolean;
   // The lead's tracked booking, required by actions flagged
   // cancelAppointment. Null/undefined when no live booking was found; those
   // actions still tag but tell the setter to cancel in the CRM by hand.
@@ -55,6 +59,7 @@ export default function StageActions({
   onAutomationStart,
   dialed,
   onToggleDial,
+  answered,
   appointment,
 }: Props) {
   const { showToast } = useToast();
@@ -172,6 +177,14 @@ export default function StageActions({
           </div>
         </section>
       )}
+
+      {/* Pressed the moment the lead picks up, before any outcome is known.
+          Its own section so it reads as the step between dialing and the
+          outcome, not as one more outcome button. */}
+      <section className="border-b border-divider px-4 py-4">
+        <h3 className="label-cap mb-2.5 text-faint">Answered the phone</h3>
+        <LeadAnsweredButton tenantId={tenantId} contactId={contactId} answered={answered} />
+      </section>
 
       <section className="px-4 py-4">
         <h3 className="label-cap mb-2.5 text-faint">Outcome</h3>

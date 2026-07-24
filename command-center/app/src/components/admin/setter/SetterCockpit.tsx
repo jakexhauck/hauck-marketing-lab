@@ -6,6 +6,7 @@ import TagField from "./TagField";
 import SlotPicker from "./SlotPicker";
 import StageActions from "./StageActions";
 import SetterNotesTasks from "./SetterNotesTasks";
+import LeadAnsweredButton, { hasContactedTag } from "./LeadAnsweredButton";
 import { Button } from "../../ui/Button";
 import { useSetterLeadDetailQuery, useSetterTagsMutation } from "../../../hooks/useApi";
 import { useNow } from "../../../context/NowContext";
@@ -167,6 +168,9 @@ export default function SetterCockpit({
   const email = detail?.email || "";
   const tags = detail?.tags ?? [];
   const dials = detail?.dials ?? [];
+  // Read off the live contact, so re-opening a lead the setter already spoke
+  // to shows the answered state instead of offering the tag again.
+  const answered = hasContactedTag(tags);
 
   const hasPhone = phone.replace(/[^0-9]/g, "").length >= 10;
   // Null whenever we cannot build a working link (no location resolved yet, no
@@ -330,6 +334,7 @@ export default function SetterCockpit({
               onAutomationStart={onAutomationStart}
               dialed={dialed}
               onToggleDial={onToggleDial}
+              answered={answered}
               appointment={appointment}
             />
             {/* Read-only: the stage panel's own buttons are the only tag
@@ -358,6 +363,14 @@ export default function SetterCockpit({
           </>
         ) : (
           <>
+        <Section title="Answered the phone">
+          <LeadAnsweredButton
+            tenantId={tenantId}
+            contactId={lead.contactId}
+            answered={answered}
+          />
+        </Section>
+
         <Section title="Log this call">
           <DialLogger tenantId={tenantId} pipelineId={pipelineId} pipelineName={pipelineName} lead={lead} />
         </Section>
