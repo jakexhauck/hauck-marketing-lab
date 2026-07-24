@@ -33,6 +33,15 @@ import {
 
 const DAY = "2026-03-15";
 
+// The KPI arithmetic reads `level`, never `status`, so the fixture just needs a
+// status consistent with the level it was asked for.
+const STATUS_FOR_LEVEL = {
+  lead: "new",
+  pickup: "contacted",
+  booking: "estimate_booked",
+  sale: "won",
+} as const;
+
 function lead(
   n: number,
   adId: string | null,
@@ -40,7 +49,14 @@ function lead(
   value = 0,
   createdAt = DAY,
 ): TrackerLead {
-  return { contactId: `c${n}`, createdAt, level, value, adId };
+  return {
+    contactId: `c${n}`,
+    createdAt,
+    level,
+    status: STATUS_FOR_LEVEL[level],
+    value,
+    adId,
+  };
 }
 
 // Build `count` leads on one ad at one level.
@@ -135,9 +151,9 @@ describe("deriveLevel", () => {
   });
 
   it("maps the live Sales stages", () => {
+    expect(deriveLevel("Handed Off")).toBe("booking");
     expect(deriveLevel("Estimate Booked")).toBe("booking");
     expect(deriveLevel("Job Booked")).toBe("booking");
-    expect(deriveLevel("Job Completed")).toBe("booking");
     expect(deriveLevel("Follow Up")).toBe("pickup");
   });
 
@@ -151,11 +167,14 @@ describe("deriveLevel", () => {
     expect(deriveLevel("Services Uninterested")).toBe("lead");
     expect(deriveLevel("Services Unqualified")).toBe("lead");
     expect(deriveLevel("Bad Intent")).toBe("lead");
+    expect(deriveLevel("Lost")).toBe("lead");
   });
 
-  it("maps the Customers stages to a sale, past the keycap emoji", () => {
-    expect(deriveLevel("One-Time Customer 1️⃣")).toBe("sale");
-    expect(deriveLevel("Recurring Customer 🔁")).toBe("sale");
+  it("maps the live Sales win stages to a sale", () => {
+    // These replaced the old Customers pipeline, which Jake removed. Without
+    // them a won lead fell through to "lead" and read as "New" on the tracker.
+    expect(deriveLevel("Won")).toBe("sale");
+    expect(deriveLevel("Won Recurring")).toBe("sale");
   });
 
   it("is case and emoji insensitive", () => {
@@ -384,7 +403,7 @@ describe("assembleLeads", () => {
     ["s-new", "Opted In (needs dialing)"],
     ["s-hot", "Opted In Follow Up"],
     ["s-booked", "Phone Appt Booked"],
-    ["s-cust", "One-Time Customer 1️⃣"],
+    ["s-won", "Won"],
   ]);
   const attr = new Map([
     ["c1", { adId: "ad1", campaignId: "k1", campaignName: "K", adsetName: "S", adName: "A" }],
@@ -402,6 +421,7 @@ describe("assembleLeads", () => {
       contactId: "c1",
       createdAt: "2026-03-01T00:00:00Z",
       level: "pickup",
+      status: "contacted",
       value: 0,
       adId: "ad1",
     });
@@ -411,7 +431,7 @@ describe("assembleLeads", () => {
     const out = assembleLeads(
       [
         { id: "o1", contactId: "c1", pipelineStageId: "s-new", createdAt: "2026-03-01T00:00:00Z" },
-        { id: "o2", contactId: "c1", pipelineStageId: "s-cust", createdAt: "2026-03-09T00:00:00Z" },
+        { id: "o2", contactId: "c1", pipelineStageId: "s-won", createdAt: "2026-03-09T00:00:00Z" },
       ],
       stages,
       attr,

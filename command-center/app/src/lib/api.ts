@@ -536,8 +536,33 @@ export interface AdTrackerResponse {
 
 // The client Lead Tracker (the Leads page): the admin Ad Tracker payload plus
 // per-lead rows. Status is derived server-side from the lead's furthest GHL
-// stage; "lost" means a card sits in the Trash pipeline and "sold" outranks it.
-export type LeadTrackerStatus = "new" | "contacted" | "booked" | "sold" | "lost";
+// stage (Jake's 12-status model, functions/lib/leadStatus.ts); a card in the
+// Trash pipeline reads "lost", and "won" outranks it.
+//
+// Keep this union in step with ClientLeadStatus on the server. It is duplicated
+// rather than imported because functions/ and src/ are separate tsconfigs.
+export type LeadTrackerStatus =
+  | "new"
+  | "contacted"
+  | "phone_follow_up"
+  | "long_term_nurture"
+  | "phone_appt_booked"
+  | "phone_appt_confirmed"
+  | "handed_off"
+  | "follow_up"
+  | "estimate_booked"
+  | "job_booked"
+  | "won"
+  | "lost";
+
+// The one date that matters for a lead, given its status: the GHL appointment
+// for the booked statuses, the next open task's due date for the ones we are
+// chasing. Null when neither exists yet (nothing booked, no task created).
+export interface LeadTrackerWhen {
+  at: string;
+  kind: "appointment" | "follow_up";
+  label: string;
+}
 
 export interface LeadTrackerLead {
   contactId: string;
@@ -548,6 +573,7 @@ export interface LeadTrackerLead {
   phone: string;
   createdAt: string;
   status: LeadTrackerStatus;
+  when: LeadTrackerWhen | null;
   value: number;
   campaignName: string | null;
   adsetName: string | null;

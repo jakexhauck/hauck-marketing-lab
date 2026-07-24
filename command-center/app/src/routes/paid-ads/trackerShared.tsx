@@ -19,11 +19,25 @@ export const LEVELS: { id: AdTrackerLevel; label: string }[] = [
   { id: "ad", label: "Ad" },
 ];
 
+// Jake's 12-status model, in journey order. Four chip families so the column
+// scans at a glance without the client reading every word:
+//   quiet   nothing has happened yet, or the lead is parked
+//   brand   we are moving them along (contacted, handed off, appointments)
+//   warning we are chasing them and waiting on a reply
+//   result  won or lost
+// Several statuses deliberately share a chip; the label carries the detail.
 export const STATUS_META: Record<LeadTrackerStatus, { label: string; chip: string }> = {
-  new: { label: "New", chip: "bg-brand/10 text-brand" },
-  contacted: { label: "Contacted", chip: "bg-warning/10 text-warning" },
-  booked: { label: "Booked", chip: "bg-brand/10 text-brand" },
-  sold: { label: "Sold", chip: "bg-positive-tint text-positive" },
+  new: { label: "New", chip: "bg-surface-2 text-muted" },
+  contacted: { label: "Contacted", chip: "bg-brand/10 text-brand" },
+  phone_follow_up: { label: "Phone Follow Up", chip: "bg-warning/10 text-warning" },
+  long_term_nurture: { label: "Long Term Nurture", chip: "bg-surface-2 text-faint" },
+  phone_appt_booked: { label: "Phone Appointment Booked", chip: "bg-brand/10 text-brand" },
+  phone_appt_confirmed: { label: "Phone Appointment Confirmed", chip: "bg-brand/20 text-brand" },
+  handed_off: { label: "Handed Off", chip: "bg-brand/10 text-brand" },
+  follow_up: { label: "Follow Up", chip: "bg-warning/10 text-warning" },
+  estimate_booked: { label: "Estimate Booked", chip: "bg-brand/20 text-brand" },
+  job_booked: { label: "Job Booked", chip: "bg-brand/20 text-brand" },
+  won: { label: "Won", chip: "bg-positive-tint text-positive" },
   lost: { label: "Lost", chip: "bg-danger-tint text-danger" },
 };
 
@@ -41,6 +55,28 @@ export function money0(value: number): string {
 
 export function money2(value: number | null): string {
   return value === null ? "-" : formatMoneyExact(value);
+}
+
+// The "when" cell: a date plus the time of day, in the viewer's local zone.
+// Returns "" for a missing or unparseable value so the cell falls back to "-"
+// rather than printing "Invalid Date" at the client.
+export function formatWhen(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const time = d
+    .toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    .toLowerCase()
+    .replace(" ", "");
+  return `${date}, ${time}`;
+}
+
+// True once a follow-up due date is in the past. Overdue follow-ups are the
+// ones worth the client's attention, so the cell leans on this rather than
+// hiding them.
+export function isOverdue(iso: string): boolean {
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) && t < Date.now();
 }
 
 export function formatLeadDate(iso: string): string {

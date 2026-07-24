@@ -100,6 +100,18 @@ export function toActivity(tenantId: string, e: GhlWebhookEvent): Activity | nul
             : "Lead status changed";
       return mk("status_changed", summary, tenantId, e);
     }
+    case "LeadStatusUpdate": {
+      // The type Jake's own GHL workflows post, one per status in the 12-status
+      // model, carrying `status` (and `stage` for the No Answer Day N cadence,
+      // which all collapse to one status). We do NOT store the status: the
+      // tracker derives it from the live stage on read, so a webhook that
+      // arrives late or out of order can never contradict GHL. This event exists
+      // to make the app refresh instantly and to leave a readable feed row.
+      const status = typeof e.status === "string" ? e.status.trim() : "";
+      // A win should wake the phone, exactly like the marketplace status event.
+      if (/^won\b/i.test(status)) return mk("status_changed", "Lead won", tenantId, e);
+      return mk("stage_changed", status || "Stage changed", tenantId, e);
+    }
     case "AppointmentCreate":
       return mk("appointment_create", "Appointment booked", tenantId, e);
     case "AppointmentUpdate":

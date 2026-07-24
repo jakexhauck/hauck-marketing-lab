@@ -9,6 +9,12 @@
 // This is NOT src/lib/adTrackingMetrics.ts (the old hand-typed daily tracker).
 // That one is being deleted; do not merge the two.
 
+import {
+  furthestStatus,
+  statusForStage,
+  type ClientLeadStatus,
+} from "./leadStatus";
+
 // A lead's furthest-along position. The ladder is cumulative: every sale is a
 // booking, every booking is a pickup. That single ordering is what makes both
 // the predicates and the cross-pipeline dedupe trivial.
@@ -21,10 +27,10 @@ const LEVEL_ORDER: Record<TrackerLevel, number> = {
   sale: 3,
 };
 
-// Live GHL stage name (normalised) -> level. Pulled 2026-07-23 from Willis's
-// real pipelines (1) Lead Form, 2) Funnel, 3) Sales, 4) Customers, 5) Cancelled
-// Appointments, 6) Trash). Stages absent here fall through to "lead", which
-// counts the contact without inventing progress for it.
+// Live GHL stage name (normalised) -> level. Re-pulled 2026-07-24 from Willis's
+// real pipelines (1) Lead Form, 2) Funnel, 3) Sales, 4) Cancelled Appointments,
+// 5) Trash). Stages absent here fall through to "lead", which counts the contact
+// without inventing progress for it.
 //
 // The ladder is: lead (came in) -> pickup (we made contact / they responded) ->
 // booking (an appointment or estimate exists) -> sale (paying customer).
@@ -36,39 +42,44 @@ const LEVEL_ORDER: Record<TrackerLevel, number> = {
 //   Long Term Nurture         -> lead    (no response, per Jake)
 //   Survey Completed          -> pickup  (they engaged by completing a survey)
 //   Cancelled-appt stages     -> booking (an appointment was made, then moved)
-//   Job Completed             -> booking (the SALE signal is the app close-out
-//                                          value, not this stage; see assembleLeads)
+//   Handed Off                -> booking (the setter only hands a lead over once
+//                                          a phone appointment exists)
+//   Won / Won Recurring       -> sale    (a SECOND sale signal alongside the app
+//                                          close-out value; see assembleLeads.
+//                                          The old Customers pipeline that used
+//                                          to carry this is gone.)
 const STAGE_LEVELS: Record<string, TrackerLevel> = {
   // 1) Lead Form Pipeline
   "opted in (needs dialing)": "lead",
   "opted in follow up": "pickup",
   "long term nurture": "lead",
-  // "No Answer Day 1..4 (needs dialing)" all match this prefix.
+  // "No Answer Day 1..N (needs dialing)" all match this prefix, in both the
+  // Lead Form and Funnel pipelines. Adding Day 5, 6, 7 in GHL needs no change.
   "no answer": "lead",
   // 2) Funnel Pipeline
   "survey completed no call booked (needs dialing)": "pickup",
   "survey follow up": "pickup",
   "phone appt booked": "booking",
   "phone appt confirmed": "booking",
-  // 3) Sales Pipeline
-  "estimate booked": "booking",
-  "job booked": "booking",
-  "job completed": "booking",
-  "follow up": "pickup",
-  // 5) Cancelled Appointments (an appointment existed, so still a booking)
+  // 4) Cancelled Appointments (an appointment existed, so still a booking).
+  // These sit above the "follow up" key so the prefix pass cannot reach them
+  // first; exact matching makes that belt-and-braces, not load-bearing.
   "phone appt follow up": "booking",
   "phone appt rescheduling": "booking",
   "phone appt unspecified": "booking",
-  // 4) Customers Pipeline. A secondary sale signal; the money comes from the
-  // job ledger (see assembleLeads). The "1️⃣" keycap leaves an ASCII "1" behind
-  // that normalisation cannot strip, so this is matched by prefix.
-  "one-time customer": "sale",
-  "recurring customer": "sale",
-  // 6) Trash Pipeline. These count as bare leads; the "Lost" status itself is
+  // 3) Sales Pipeline
+  "handed off": "booking",
+  "estimate booked": "booking",
+  "job booked": "booking",
+  "won recurring": "sale",
+  won: "sale",
+  "follow up": "pickup",
+  // 5) Trash Pipeline. These count as bare leads; the "Lost" status itself is
   // set from Trash-pipeline membership, not from the level (see leadTrackerData).
   "services uninterested": "lead",
   "services unqualified": "lead",
   "bad intent": "lead",
+  lost: "lead",
 };
 
 // Which tracker pipelines a live pipeline belongs to, matched by name because
@@ -155,6 +166,10 @@ export interface TrackerLead {
   contactId: string;
   createdAt: string;
   level: TrackerLevel;
+  // The client-facing label (Jake's 12-status model). Derived from the same
+  // stages as `level`, but a finer ladder: `level` drives the KPI arithmetic,
+  // `status` is what the lead tracker prints. See lib/leadStatus.ts.
+  status: ClientLeadStatus;
   // Deal value in dollars, summed from customer_jobs.value_cents. Zero until
   // the contact has a closed-out job.
   value: number;
@@ -387,11 +402,14 @@ export function assembleLeads(
     // No contact means no attribution and no way to dedupe. Nothing to track.
     if (!contactId) continue;
 
-    const level = deriveLevel(stageNames.get(opp.pipelineStageId) ?? "");
+    const stageName = stageNames.get(opp.pipelineStageId) ?? "";
+    const level = deriveLevel(stageName);
+    const status = statusForStage(stageName);
     const existing = byContact.get(contactId);
 
     if (existing) {
       existing.level = furthestLevel([existing.level, level]);
+      existing.status = furthestStatus([existing.status, status]);
       if (opp.createdAt && opp.createdAt < existing.createdAt) {
         existing.createdAt = opp.createdAt;
       }
@@ -402,6 +420,7 @@ export function assembleLeads(
       contactId,
       createdAt: opp.createdAt,
       level,
+      status,
       value: 0,
       adId: attributionByContact.get(contactId)?.adId ?? null,
     });
@@ -410,7 +429,10 @@ export function assembleLeads(
   for (const [contactId, value] of jobValueByContact) {
     const lead = byContact.get(contactId);
     if (!lead) continue;
+    // A closed-out job is money in the bank, so it wins outright over whatever
+    // stage the cards happen to sit in.
     lead.level = "sale";
+    lead.status = "won";
     lead.value = value;
   }
 

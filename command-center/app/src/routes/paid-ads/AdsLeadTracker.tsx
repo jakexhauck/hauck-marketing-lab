@@ -8,13 +8,40 @@ import { cn } from "../../lib/cn";
 import { formatMoneyExact } from "../../lib/formatMoney";
 import { useAuth } from "../../context/AuthContext";
 import { useAdsTrackerQuery } from "../../hooks/useApi";
-import type { AdTrackerRange, LeadTrackerLead } from "../../lib/api";
-import { ErrorNote, RANGES, STATUS_META, Segmented, Spinner, formatLeadDate } from "./trackerShared";
+import type { AdTrackerRange, LeadTrackerLead, LeadTrackerWhen } from "../../lib/api";
+import {
+  ErrorNote,
+  RANGES,
+  STATUS_META,
+  Segmented,
+  Spinner,
+  formatLeadDate,
+  formatWhen,
+  isOverdue,
+} from "./trackerShared";
 import { SAMPLE_LEADS } from "./sampleLeads";
 
 // Paid Ads > Lead Tracker. The sheet's Lead Tracker tab: every ad lead, newest
 // first, with the ad that earned it and a status that follows the pipeline
 // automatically (the sheet made the owner type it; the app derives it).
+
+// The When cell. An appointment prints its time plainly; an overdue follow-up
+// is called out, because a follow-up that has slipped is the row on this page
+// worth acting on. Nothing booked and no task yet reads "-", never a guess.
+function WhenCell({ when }: { when: LeadTrackerWhen | null }) {
+  const text = when ? formatWhen(when.at) : "";
+  if (!text) return <span className="text-faint">-</span>;
+  const overdue = when!.kind === "follow_up" && isOverdue(when!.at);
+  return (
+    <span
+      className={cn("tnum", overdue ? "font-semibold text-warning" : "text-text")}
+      title={when!.label}
+    >
+      {text}
+      {overdue && <span className="ml-1.5 text-[11px] font-semibold">overdue</span>}
+    </span>
+  );
+}
 
 export default function AdsLeadTracker() {
   const { session } = useAuth();
@@ -54,7 +81,6 @@ export default function AdsLeadTracker() {
       <div className={PAID_ADS_CONTAINER}>
         <PageBar
           tabs={PAID_ADS_TABS}
-          count={data ? `${leads.length} lead${leads.length === 1 ? "" : "s"}` : undefined}
           description="Every lead from your ads. Status follows your pipeline automatically; revenue fills in when a job is closed out."
           actions={<Segmented options={RANGES} value={range} onChange={setRange} label="Date range" />}
           filters={
@@ -99,10 +125,10 @@ export default function AdsLeadTracker() {
                 <tr className="border-b border-border text-[11px] text-faint">
                   <th className="px-3 py-2.5 text-left font-semibold">Date</th>
                   <th className="px-3 py-2.5 text-left font-semibold">Lead</th>
-                  <th className="px-3 py-2.5 text-left font-semibold">Contact</th>
-                  <th className="px-3 py-2.5 text-left font-semibold">Ad</th>
+                  <th className="px-3 py-2.5 text-left font-semibold">Phone</th>
+                  <th className="px-3 py-2.5 text-left font-semibold">Email</th>
                   <th className="px-3 py-2.5 text-left font-semibold">Status</th>
-                  <th className="px-3 py-2.5 text-right font-semibold">Value</th>
+                  <th className="px-3 py-2.5 text-left font-semibold">When</th>
                 </tr>
               </thead>
               <tbody>
@@ -121,15 +147,9 @@ export default function AdsLeadTracker() {
                       </td>
                       <td className="max-w-[220px] px-3 py-2.5">
                         <div className="truncate text-text">{lead.phone || "-"}</div>
-                        {lead.email && (
-                          <div className="truncate text-[11.5px] text-faint">{lead.email}</div>
-                        )}
                       </td>
                       <td className="max-w-[240px] px-3 py-2.5">
-                        <div className="truncate text-text">{lead.adName ?? "-"}</div>
-                        {lead.campaignName && (
-                          <div className="truncate text-[11.5px] text-faint">{lead.campaignName}</div>
-                        )}
+                        <div className="truncate text-text">{lead.email || "-"}</div>
                       </td>
                       <td className="whitespace-nowrap px-3 py-2.5">
                         <span
@@ -140,9 +160,14 @@ export default function AdsLeadTracker() {
                         >
                           {status.label}
                         </span>
+                        {lead.status === "won" && lead.value > 0 && (
+                          <span className="ml-2 font-semibold text-text tnum">
+                            {formatMoneyExact(lead.value)}
+                          </span>
+                        )}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2.5 text-right font-semibold text-text tnum">
-                        {lead.value > 0 ? formatMoneyExact(lead.value) : "-"}
+                      <td className="whitespace-nowrap px-3 py-2.5">
+                        <WhenCell when={lead.when} />
                       </td>
                     </tr>
                   );
