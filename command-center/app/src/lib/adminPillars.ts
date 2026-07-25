@@ -29,8 +29,10 @@ export const ADMIN_PILLARS: PillarDef[] = [
   {
     id: "acquisition",
     label: "Acquisition",
+    // Leads used to sit here as a sibling of Cold Call. It moved inside Cold
+    // Call (lib/coldCallPages), because the prospect book only exists to be
+    // dialed: two Leads pages meant two answers to "which list is the real one".
     tabs: [
-      { id: "leads", label: "Leads", ready: true },
       { id: "cold-call", label: "Cold Call", ready: true },
       { id: "sms", label: "SMS", ready: true },
     ],

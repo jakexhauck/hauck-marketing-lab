@@ -873,6 +873,20 @@ export async function saveSetterScript(
   });
 }
 
+// The agency's own cold-calling script (migration 0048). One document, so no
+// tenantId, unlike the per-client setter script above. Same shape, same
+// server-side sanitizer, and only an owner may write it.
+export async function getColdCallScript(): Promise<SetterScriptResponse> {
+  return api<SetterScriptResponse>("/api/admin/cold-call/script");
+}
+
+export async function saveColdCallScript(html: string): Promise<SetterScriptResponse> {
+  return api<SetterScriptResponse>("/api/admin/cold-call/script", {
+    method: "PATCH",
+    body: JSON.stringify({ html }),
+  });
+}
+
 // The task status union lives with the pure coupling helpers so the client
 // hook and the endpoints validate against one source.
 import type { TaskStatus } from "./taskStatus";

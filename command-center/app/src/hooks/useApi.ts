@@ -16,6 +16,8 @@ import {
   getTimeAuditWeek,
   getSetterScript,
   saveSetterScript,
+  getColdCallScript,
+  saveColdCallScript,
   tagTimeAuditBlock,
   type TimeAuditTagBody,
   type TimeAuditWeekResponse,
@@ -903,6 +905,33 @@ export function useSaveSetterScriptMutation(tenantId: string) {
     mutationFn: (v: { tenantId: string; html: string }) => saveSetterScript(v.tenantId, v.html),
     onSuccess: (res, v) => {
       qc.setQueryData(["admin", "setter", "script", v.tenantId], res);
+    },
+  });
+}
+
+// The agency's cold-calling script (GET /api/admin/cold-call/script). One
+// document for the whole agency, so no tenant key. Never 404s: an unwritten
+// script comes back as empty html.
+export function useColdCallScriptQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "cold-call", "script"],
+    enabled,
+    staleTime: 60_000,
+    queryFn: () => getColdCallScript(),
+  });
+}
+
+// Autosave for the cold-calling script. Same discipline as the setter one: the
+// response seeds the cache rather than invalidating it (a refetch would land
+// under the editor mid-typing and snap the cursor back), and the mutation is
+// scoped so two whole-document PATCHes are queued rather than raced.
+export function useSaveColdCallScriptMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    scope: { id: "cold-call-script" },
+    mutationFn: (html: string) => saveColdCallScript(html),
+    onSuccess: (res) => {
+      qc.setQueryData(["admin", "cold-call", "script"], res);
     },
   });
 }

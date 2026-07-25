@@ -34,7 +34,6 @@ describe("adminPillars config", () => {
       p.tabs.filter((t) => t.ready).map((t) => t.id),
     );
     expect(ready).toEqual([
-      "leads",
       "cold-call",
       "sms",
       "sales-data",
@@ -46,11 +45,9 @@ describe("adminPillars config", () => {
   });
 
   it("carries the tabs the foundation plan specifies", () => {
-    expect(tabsFor("acquisition").map((t) => t.id)).toEqual([
-      "leads",
-      "cold-call",
-      "sms",
-    ]);
+    // Leads moved inside Cold Call (lib/coldCallPages); the pillar's own tabs
+    // are the two surfaces that sit beside each other.
+    expect(tabsFor("acquisition").map((t) => t.id)).toEqual(["cold-call", "sms"]);
     expect(tabsFor("sales").map((t) => t.id)).toEqual(["sales-data"]);
     expect(tabsFor("operations").map((t) => t.id)).toEqual([
       "calculator",
@@ -86,15 +83,15 @@ describe("resolvePillarTab", () => {
   });
 
   it("falls back to the first tab when the param is missing", () => {
-    expect(resolvePillarTab("acquisition", null)).toBe("leads");
-    expect(resolvePillarTab("acquisition", undefined)).toBe("leads");
-    expect(resolvePillarTab("acquisition", "")).toBe("leads");
+    expect(resolvePillarTab("acquisition", null)).toBe("cold-call");
+    expect(resolvePillarTab("acquisition", undefined)).toBe("cold-call");
+    expect(resolvePillarTab("acquisition", "")).toBe("cold-call");
   });
 
   it("falls back to the first tab when the param is unknown or from another pillar", () => {
-    expect(resolvePillarTab("acquisition", "bogus")).toBe("leads");
+    expect(resolvePillarTab("acquisition", "bogus")).toBe("cold-call");
     // 'tasks' is an operations tab, not an acquisition tab -> default.
-    expect(resolvePillarTab("acquisition", "tasks")).toBe("leads");
+    expect(resolvePillarTab("acquisition", "tasks")).toBe("cold-call");
     expect(resolvePillarTab("sales", "leads")).toBe("sales-data");
   });
 
