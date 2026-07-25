@@ -53,7 +53,8 @@ import OutreachSms from "./routes/outreach/OutreachSms";
 import ReactivationPipeline from "./routes/reactivation/ReactivationPipeline";
 import ReactivationData from "./routes/reactivation/ReactivationData";
 import GroupOutreachOverview from "./routes/groups/GroupOutreachOverview";
-import AdminLayout from "./routes/admin/AdminLayout";
+import AdminLayout, { adminHomeFor } from "./routes/admin/AdminLayout";
+import { effectiveAdminRole, type AdminRole } from "./lib/adminRoles";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminClientNew from "./routes/admin/AdminClientNew";
 import AdminCommand from "./routes/admin/AdminCommand";
@@ -64,6 +65,8 @@ import SetterSuite from "./routes/admin/SetterSuite";
 import PillarPage from "./routes/admin/PillarPage";
 import AdminSettings from "./routes/admin/AdminSettings";
 import AdminAudit from "./routes/admin/AdminAudit";
+import AdminTeam from "./routes/admin/AdminTeam";
+import AdminCalling from "./routes/admin/AdminCalling";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -96,8 +99,17 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-function AdminRoute({ children }: { children: ReactNode }) {
-  const { status, isAdmin, preview } = useAuth();
+// An admin surface, optionally restricted to particular roles (0047). `roles`
+// left out means every signed-in admin may see it. The API enforces the same
+// boundary independently, so this only decides what renders.
+function AdminRoute({
+  children,
+  roles,
+}: {
+  children: ReactNode;
+  roles?: AdminRole[];
+}) {
+  const { status, isAdmin, preview, admin } = useAuth();
   if (status === "loading") return null;
   // Starting a client preview swaps the admin session for a read-only tenant
   // session, so isAdmin flips to false while this admin route is still mounted.
@@ -105,6 +117,12 @@ function AdminRoute({ children }: { children: ReactNode }) {
   // instead of bouncing to /login.
   if (preview) return <Navigate to="/home" replace />;
   if (!isAdmin) return <Navigate to="/login" replace />;
+  const role = effectiveAdminRole(admin?.role);
+  // A role that cannot use this page goes to its own home rather than /login:
+  // they are signed in correctly, they are simply somewhere they do not belong.
+  if (roles && !roles.includes(role)) {
+    return <Navigate to={adminHomeFor(role)} replace />;
+  }
   return <AdminLayout>{children}</AdminLayout>;
 }
 
@@ -498,7 +516,7 @@ export default function App() {
               <Route
                 path="/admin"
                 element={
-                  <AdminRoute>
+                  <AdminRoute roles={["owner"]}>
                     <AdminCommand />
                   </AdminRoute>
                 }
@@ -510,7 +528,7 @@ export default function App() {
               <Route
                 path="/admin/apps"
                 element={
-                  <AdminRoute>
+                  <AdminRoute roles={["owner"]}>
                     <AdminApps />
                   </AdminRoute>
                 }
@@ -521,7 +539,7 @@ export default function App() {
               <Route
                 path="/admin/clients/new"
                 element={
-                  <AdminRoute>
+                  <AdminRoute roles={["owner"]}>
                     <AdminClientNew />
                   </AdminRoute>
                 }
@@ -529,7 +547,7 @@ export default function App() {
               <Route
                 path="/admin/clients/:id"
                 element={
-                  <AdminRoute>
+                  <AdminRoute roles={["owner"]}>
                     <AdminClientDetail />
                   </AdminRoute>
                 }
@@ -546,7 +564,7 @@ export default function App() {
               <Route
                 path="/admin/delivery"
                 element={
-                  <AdminRoute>
+                  <AdminRoute roles={["owner"]}>
                     <AdminDelivery />
                   </AdminRoute>
                 }
@@ -554,7 +572,7 @@ export default function App() {
               <Route
                 path="/admin/delivery/:tenantId"
                 element={
-                  <AdminRoute>
+                  <AdminRoute roles={["owner"]}>
                     <DeliveryCockpit />
                   </AdminRoute>
                 }
@@ -564,15 +582,34 @@ export default function App() {
               <Route
                 path="/admin/setter"
                 element={
-                  <AdminRoute>
+                  <AdminRoute roles={["owner", "setter"]}>
                     <SetterSuite />
+                  </AdminRoute>
+                }
+              />
+              {/* Who has a login to this console, and what their role opens. */}
+              <Route
+                path="/admin/team"
+                element={
+                  <AdminRoute roles={["owner"]}>
+                    <AdminTeam />
+                  </AdminRoute>
+                }
+              />
+              {/* The cold caller's only surface. Owners can open it too, to see
+                  what their hire sees. */}
+              <Route
+                path="/admin/calling"
+                element={
+                  <AdminRoute roles={["owner", "cold_caller"]}>
+                    <AdminCalling />
                   </AdminRoute>
                 }
               />
               <Route
                 path="/admin/settings"
                 element={
-                  <AdminRoute>
+                  <AdminRoute roles={["owner"]}>
                     <AdminSettings />
                   </AdminRoute>
                 }
@@ -582,7 +619,7 @@ export default function App() {
               <Route
                 path="/admin/audit"
                 element={
-                  <AdminRoute>
+                  <AdminRoute roles={["owner"]}>
                     <AdminAudit />
                   </AdminRoute>
                 }
@@ -604,7 +641,7 @@ export default function App() {
               <Route
                 path="/admin/pillar/:pillarId"
                 element={
-                  <AdminRoute>
+                  <AdminRoute roles={["owner"]}>
                     <PillarPage />
                   </AdminRoute>
                 }

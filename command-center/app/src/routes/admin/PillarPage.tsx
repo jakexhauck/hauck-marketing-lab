@@ -10,16 +10,20 @@ import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalcu
 import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
 import SopsTab from "../../components/admin/operations/SopsTab";
-import LeadsBoard from "../../components/admin/leads/LeadsBoard";
-import ColdCallSurface from "../../components/admin/acquisition/ColdCallSurface";
+import ColdCallSection from "../../components/admin/acquisition/ColdCallSection";
 import ColdSmsSurface from "../../components/admin/acquisition/ColdSmsSurface";
 
-// An admin pillar page (/admin/pillar/:pillarId): a Bento Bold header
-// (kicker + title + tagline) and a per-pillar tab bar. The active tab is driven
-// by ?tab= so a tab is linkable and survives reload, mirroring the Fulfillment
+// An admin pillar page (/admin/pillar/:pillarId). The active tab is driven by
+// ?tab= so a page is linkable and survives reload, mirroring the Fulfillment
 // cockpit's useSearchParams approach. PillarStyle (the .pk-kit theme) is mounted
 // once by AdminLayout, so this page only renders .pk-root and the shared pk-*
 // classes.
+//
+// On desktop the sidebar dropdown is the only place the sibling pages are
+// listed. This page therefore shows the pillar as a kicker and the PAGE as the
+// title, which leaves the strip beneath the title free for that page's own
+// sub-pages (use .pk-subtabs inside the surface). Cold Call is about to need
+// exactly that.
 //
 // A tab body is an honest placeholder until its surface plan swaps in the real
 // one (Leads, Cold Call, SMS and Sales Data are built; Calculator, Time Audit
@@ -54,25 +58,39 @@ export default function PillarPage() {
 
   const activeTab = resolvePillarTab(pillar.id, searchParams.get("tab"));
 
+  const active = pillar.tabs.find((t) => t.id === activeTab)!;
+
   return (
     <div className="pk-root">
-      <h1 className="pk-title">{pillar.label}</h1>
+      {/* The page is the tab, not the pillar: the pillar is the address, shown
+          as a kicker above it. This matters because the strip under the title
+          belongs to THIS page's own sub-pages (Cold Call will have several), so
+          it cannot also be carrying its siblings. */}
+      <div className="pk-section-h" style={{ margin: "0 0 2px" }}>
+        {pillar.label}
+      </div>
+      <h1 className="pk-title">{active.label}</h1>
 
-      <nav className="pk-tabs" aria-label={`${pillar.label} sections`}>
-        {pillar.tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`pk-tab${activeTab === t.id ? " on" : ""}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </nav>
+      {/* Sibling pages, on the phone only. The desktop rail's dropdown already
+          does this job, and repeating it here would take the space this page's
+          own sub-pages need. Below lg there is no rail, so it stays. */}
+      <div className="lg:hidden">
+        <nav className="pk-tabs" aria-label={`${pillar.label} sections`}>
+          {pillar.tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={`pk-tab${activeTab === t.id ? " on" : ""}`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </div>
 
-      <div className="pk-section">
-        <PillarTabBody tab={pillar.tabs.find((t) => t.id === activeTab)!} />
+      <div className="pk-section" style={{ marginTop: 20 }}>
+        <PillarTabBody tab={active} />
       </div>
     </div>
   );
@@ -87,10 +105,10 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
   if (!tab.ready) return <div className="pk-empty">{placeholderCopy(tab.label)}</div>;
 
   switch (tab.id) {
-    case "leads":
-      return <LeadsBoard />;
+    // Cold Call is a section with its own pages (queue, callbacks, booked,
+    // tracker, scoreboard, settings), not a single surface.
     case "cold-call":
-      return <ColdCallSurface />;
+      return <ColdCallSection />;
     case "sms":
       return <ColdSmsSurface />;
     case "sales-data":

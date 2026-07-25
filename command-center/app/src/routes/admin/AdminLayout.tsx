@@ -1,5 +1,5 @@
-import { type ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { useEffect, useState, type ReactNode } from "react";
+import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   LayoutDashboard,
   LayoutGrid,
@@ -12,11 +12,15 @@ import {
   LogOut,
   Sun,
   Moon,
+  Users,
+  ChevronDown,
   type LucideIcon,
 } from "lucide-react";
+import { getPillar, resolvePillarTab, type PillarId } from "../../lib/adminPillars";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { PillarStyle } from "../../components/pillars/PillarKit";
+import { effectiveAdminRole, type AdminRole } from "../../lib/adminRoles";
 
 // The admin console chrome: a labelled sidebar (the same shape and row
 // treatment as the client app's rail, so the two consoles read as one product)
@@ -32,6 +36,17 @@ import { PillarStyle } from "../../components/pillars/PillarKit";
 // The Modern Motion theme is scoped to .pk-kit so it themes the whole admin
 // without touching the client app, and PillarStyle is mounted once here.
 
+// A page inside a pillar. Pillar tabs live on the pillar route behind ?tab=, so
+// `to` carries the query and the pillar/tab pair is kept alongside it: the
+// default tab renders with no ?tab= in the URL, and matching on the string alone
+// would leave the first child looking inactive on arrival.
+interface NavChild {
+  to: string;
+  label: string;
+  pillar?: PillarId;
+  tab?: string;
+}
+
 interface NavRow {
   to: string;
   label: string;
@@ -43,23 +58,84 @@ interface NavRow {
   // the full label ("Fulfillment", "Setter Suite") will not fit. Falls back to
   // `label` when unset.
   short?: string;
+  // Sub-pages. A row with children expands in the desktop rail; the parent is
+  // still a real page, so clicking it opens the group and navigates.
+  children?: NavChild[];
+}
+
+// A pillar as a rail group: every tab the pillar page offers becomes a child, so
+// the rail is generated from lib/adminPillars rather than a second hand-kept
+// list that quietly drifts when a tab is added.
+function pillarGroup(id: PillarId, icon: LucideIcon, short?: string): NavRow {
+  const pillar = getPillar(id);
+  const to = `/admin/pillar/${id}`;
+  return {
+    to,
+    label: pillar?.label ?? id,
+    icon,
+    short,
+    children: (pillar?.tabs ?? []).map((t) => ({
+      to: `${to}?tab=${t.id}`,
+      label: t.label,
+      pillar: id,
+      tab: t.id,
+    })),
+  };
 }
 
 // The agency pillars. Sales is the agency's own sales performance (the Sales
 // Data pillar), NOT the per-client lead-working board.
+//
+// Fulfillment is the exception to the generated groups: its pages are real
+// routes rather than tabs on one page. The Setter Suite sits inside it because
+// that is what it is, the work of delivering for a client.
 const PILLAR_NAV: NavRow[] = [
   { to: "/admin", label: "Command", icon: LayoutDashboard, end: true },
-  { to: "/admin/pillar/acquisition", label: "Acquisition", icon: Megaphone, short: "Acq" },
-  { to: "/admin/pillar/sales", label: "Sales", icon: Handshake },
-  { to: "/admin/delivery", label: "Fulfillment", icon: HeartHandshake, short: "Fulfill" },
-  { to: "/admin/pillar/operations", label: "Operations", icon: Wrench, short: "Ops" },
+  pillarGroup("acquisition", Megaphone, "Acq"),
+  pillarGroup("sales", Handshake),
+  {
+    to: "/admin/delivery",
+    label: "Fulfillment",
+    icon: HeartHandshake,
+    short: "Fulfill",
+    children: [
+      { to: "/admin/delivery", label: "Clients" },
+      { to: "/admin/setter", label: "Setter Suite" },
+    ],
+  },
+  pillarGroup("operations", Wrench, "Ops"),
 ];
 
-// Client-work surfaces, below the divider. One row today; the zone is built to
-// take more without rework.
+// Client-work surfaces, below the divider. Empty for an owner now that the
+// Setter Suite lives inside Fulfillment; a setter's whole rail is this one row.
 const CLIENT_NAV: NavRow[] = [
   { to: "/admin/setter", label: "Setter Suite", icon: PhoneCall, short: "Setter" },
 ];
+
+// What each role's rail contains (0047). A hired role does not see the agency
+// org chart at all: they get their own surface and nothing else. This is
+// cosmetic. The API refuses everything outside their role regardless of what is
+// rendered here, so a typed URL gets them a 403, not a back door.
+interface RoleNav {
+  pillars: NavRow[];
+  client: NavRow[];
+  // Where the brand mark and any redirect send this role.
+  home: string;
+}
+
+const ROLE_NAV: Record<AdminRole, RoleNav> = {
+  owner: { pillars: PILLAR_NAV, client: [], home: "/admin" },
+  cold_caller: {
+    pillars: [{ to: "/admin/calling", label: "Calling", icon: PhoneCall, end: true }],
+    client: [],
+    home: "/admin/calling",
+  },
+  setter: { pillars: [], client: CLIENT_NAV, home: "/admin/setter" },
+};
+
+export function adminHomeFor(role: AdminRole): string {
+  return ROLE_NAV[role].home;
+}
 
 // The phone bottom bar is the four pillars split around a raised center button
 // (Command). Acquisition + Sales sit left of it, Fulfillment + Operations
@@ -69,6 +145,100 @@ const CLIENT_NAV: NavRow[] = [
 // header gear rather than taking a bottom slot.
 const BOTTOM_LEFT: NavRow[] = [PILLAR_NAV[1], PILLAR_NAV[2]]; // Acquisition, Sales
 const BOTTOM_RIGHT: NavRow[] = [PILLAR_NAV[3], PILLAR_NAV[4]]; // Fulfillment, Operations
+
+// Is this child the page currently on screen? A pillar tab is matched through
+// the pillar's own resolver so the default tab reads as active on arrival, when
+// the URL still carries no ?tab=. Everything else matches its route subtree.
+function useChildActive(child: NavChild): boolean {
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  if (child.pillar && child.tab) {
+    if (location.pathname !== `/admin/pillar/${child.pillar}`) return false;
+    return resolvePillarTab(child.pillar, searchParams.get("tab")) === child.tab;
+  }
+  const path = child.to.split("?")[0];
+  return location.pathname === path || location.pathname.startsWith(`${path}/`);
+}
+
+// One sub-page row inside an expanded group. Indented under the guide rule, and
+// smaller than a parent row so the hierarchy is legible at a glance.
+function NavChildLink({ child }: { child: NavChild }) {
+  const active = useChildActive(child);
+  return (
+    <NavLink
+      to={child.to}
+      className={[
+        "mb-0.5 flex items-center rounded-[9px] px-3 py-2 text-[13px] font-medium transition-[color,background,transform] duration-200",
+        active
+          ? "text-white shadow-[var(--shadow-brand)]"
+          : "text-[var(--text-muted)] hover:translate-x-0.5 hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] hover:text-[var(--text)]",
+      ].join(" ")}
+      style={active ? { backgroundImage: "var(--grad-brand)" } : undefined}
+    >
+      {child.label}
+    </NavLink>
+  );
+}
+
+// A pillar row that owns sub-pages. The parent is itself a real page (the pillar
+// opens on its first tab), so clicking it both expands the group and navigates.
+// The group stays open whenever the route is inside it, so a deep link or the
+// back button never lands on a collapsed section.
+function NavRowGroup({ item }: { item: NavRow }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const children = item.children ?? [];
+  const parentPath = item.to.split("?")[0];
+  const within =
+    location.pathname === parentPath ||
+    location.pathname.startsWith(`${parentPath}/`) ||
+    children.some((c) => {
+      const p = c.to.split("?")[0];
+      return location.pathname === p || location.pathname.startsWith(`${p}/`);
+    });
+  const [open, setOpen] = useState(within);
+
+  useEffect(() => {
+    if (within) setOpen(true);
+  }, [within]);
+
+  const Icon = item.icon;
+  return (
+    <div className="mb-0.5">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => {
+          setOpen(true);
+          if (location.pathname !== item.to) navigate(item.to);
+        }}
+        className={[
+          "group relative flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-[color,background,transform] duration-200",
+          within
+            ? "bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] text-[var(--brand-text)]"
+            : "text-[var(--text)] hover:translate-x-0.5 hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)]",
+        ].join(" ")}
+      >
+        <Icon size={17} className="shrink-0 opacity-80" />
+        <span className="flex-1 text-left">{item.label}</span>
+        <ChevronDown
+          size={15}
+          className={[
+            "shrink-0 opacity-60 transition-transform duration-200",
+            open ? "rotate-180" : "",
+          ].join(" ")}
+        />
+      </button>
+      {open && (
+        <div className="ml-[22px] mt-0.5 flex flex-col border-l border-[var(--divider)] pl-2.5">
+          {children.map((child) => (
+            <NavChildLink key={child.to} child={child} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // One sidebar row. Active is the brand gradient pill; hover nudges right by a
 // half-pixel, matching the client rail exactly so the two never drift apart.
@@ -127,6 +297,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const { resolved, toggle } = useTheme();
   const isLight = resolved === "light";
   const themeLabel = isLight ? "Switch to dark mode" : "Switch to light mode";
+  const role = effectiveAdminRole(admin?.role);
+  const isOwnerAdmin = role === "owner";
+  const nav = ROLE_NAV[role];
+  // The phone's split-around-hub bar is the owner's five-surface layout. A role
+  // with one surface gets a plain row instead: a raised center button leading to
+  // an app launcher they cannot use is worse than no launcher.
+  const bottomLeft = isOwnerAdmin ? BOTTOM_LEFT : [];
+  const bottomRight = isOwnerAdmin ? BOTTOM_RIGHT : [];
 
   return (
     // Desktop (lg+): lock the frame to the available height (h-full resolves
@@ -146,7 +324,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Desktop sidebar (lg+). */}
       <aside className="adm-rail hidden lg:flex">
         {/* Brand mark */}
-        <NavLink to="/admin" end className="adm-rail-brand" aria-label="Command home">
+        <NavLink to={nav.home} end className="adm-rail-brand" aria-label="Command home">
           <span className="adm-rail-brand-mark" aria-hidden>
             H
           </span>
@@ -158,19 +336,47 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </span>
         </NavLink>
 
-        {/* Agency pillars, then the client-work zone behind a divider. */}
+        {/* Agency pillars, then the client-work zone behind a divider. Both
+            lists come from the role, so a hired role sees only its own. */}
         <nav className="flex-1 overflow-y-auto px-3 py-1">
-          {PILLAR_NAV.map((item) => (
-            <NavRowLink key={item.to} item={item} />
-          ))}
-          <div className="my-3 border-t border-[var(--border)]" />
-          {CLIENT_NAV.map((item) => (
+          {nav.pillars.map((item) =>
+            item.children?.length ? (
+              <NavRowGroup key={item.to} item={item} />
+            ) : (
+              <NavRowLink key={item.to} item={item} />
+            ),
+          )}
+          {nav.pillars.length > 0 && nav.client.length > 0 && (
+            <div className="my-3 border-t border-[var(--border)]" />
+          )}
+          {nav.client.map((item) => (
             <NavRowLink key={item.to} item={item} />
           ))}
         </nav>
 
         {/* Footer controls */}
         <div className="border-t border-[var(--border)] px-3 py-3">
+          {/* Team sits with Settings rather than in the org chart: it is account
+              administration, not a pillar of the business. Owners only. */}
+          {isOwnerAdmin && (
+            <NavLink
+              to="/admin/team"
+              className={({ isActive }) =>
+                [
+                  "mb-0.5 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13px] font-medium transition-[color,background,transform] duration-200",
+                  isActive
+                    ? "text-white shadow-[var(--shadow-brand)]"
+                    : "text-[var(--text)] hover:translate-x-0.5 hover:bg-[color-mix(in_srgb,var(--surface)_72%,transparent)]",
+                ].join(" ")
+              }
+              style={({ isActive }) =>
+                isActive ? { backgroundImage: "var(--grad-brand)" } : undefined
+              }
+            >
+              <Users size={16} className="shrink-0 opacity-80" /> Team
+            </NavLink>
+          )}
+          {isOwnerAdmin && (
           <NavLink
             to="/admin/settings"
             className={({ isActive }) =>
@@ -187,6 +393,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           >
             <Settings size={16} className="shrink-0 opacity-80" /> Settings
           </NavLink>
+          )}
           <FooterButton
             icon={isLight ? Moon : Sun}
             label={isLight ? "Dark mode" : "Light mode"}
@@ -215,13 +422,25 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             moved to the fixed bottom bar below; the brand mark links home. */}
         <header className="sticky top-0 z-20 border-b border-border bg-surface/85 backdrop-blur-xl lg:hidden">
           <div className="flex items-center gap-3 px-4 py-3">
-            <NavLink to="/admin" end className="flex items-center gap-3" aria-label="Command home">
+            <NavLink to={nav.home} end className="flex items-center gap-3" aria-label="Command home">
               <span className="adm-brandmark !h-[26px] !w-[26px] !rounded-[8px] !text-[13px]" aria-hidden>
                 H
               </span>
               <span className="font-display text-[15px] font-semibold tracking-[-0.02em]">Hauck Admin</span>
             </NavLink>
             <div className="ml-auto flex items-center gap-1.5">
+              {isOwnerAdmin && (
+                <NavLink
+                  to="/admin/team"
+                  className={({ isActive }) =>
+                    `adm-iconbtn !h-9 !w-9${isActive ? " on" : ""}`
+                  }
+                  aria-label="Team"
+                >
+                  <Users size={16} />
+                </NavLink>
+              )}
+              {isOwnerAdmin && (
               <NavLink
                 to="/admin/settings"
                 className={({ isActive }) =>
@@ -231,6 +450,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               >
                 <Settings size={16} />
               </NavLink>
+              )}
               <button onClick={toggle} className="adm-iconbtn !h-9 !w-9" aria-label={themeLabel}>
                 {isLight ? <Moon size={16} /> : <Sun size={16} />}
               </button>
@@ -252,12 +472,29 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      {/* Phone bottom tab bar (below lg): the four pillars split around the
-          raised Command hub button. Acquisition + Sales left, Fulfillment +
-          Operations right, in the same order as the desktop rail. */}
+      {/* Phone bottom tab bar (below lg). For an owner: the four pillars split
+          around the raised Command hub button, in the same order as the desktop
+          rail. For a hired role: a plain row of the one or two surfaces they
+          have, with no hub button, since the launcher only holds owner apps. */}
       <nav className="adm-bottombar" aria-label="Primary">
+        {!isOwnerAdmin && (
+          <div className="adm-bottomside" style={{ flex: 1, justifyContent: "center" }}>
+            {[...nav.pillars, ...nav.client].map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) => `adm-bottomtab${isActive ? " on" : ""}`}
+              >
+                <item.icon size={18} className="shrink-0" aria-hidden />
+                <span>{item.short ?? item.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        )}
+        {isOwnerAdmin && (
         <div className="adm-bottomside">
-          {BOTTOM_LEFT.map((item) => (
+          {bottomLeft.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -270,6 +507,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           ))}
         </div>
 
+        )}
+
+        {isOwnerAdmin && (
         <div className="adm-hubwrap">
           <NavLink
             to="/admin/apps"
@@ -280,9 +520,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </NavLink>
           <span className="adm-hublabel">Command</span>
         </div>
+        )}
 
+        {isOwnerAdmin && (
         <div className="adm-bottomside">
-          {BOTTOM_RIGHT.map((item) => (
+          {bottomRight.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -294,6 +536,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </NavLink>
           ))}
         </div>
+        )}
       </nav>
     </div>
   );
