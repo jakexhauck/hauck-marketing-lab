@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isAdminRole, type AdminRole } from "./adminRoles";
 
 // Super-admin ("control tower") identity helpers. An admin session carries a
 // signed adminId (see session.ts); these resolve it to a live account and record
@@ -10,6 +11,9 @@ export interface AdminRecord {
   email: string;
   name: string;
   status: "active" | "disabled";
+  // 0047. Rows written before roles existed read as owners (the column default),
+  // so an older account never loses access to its own console.
+  role: AdminRole;
 }
 
 // Resolve a signed adminId to an ACTIVE admin account, or null. A disabled or
@@ -22,11 +26,14 @@ export async function getActiveAdmin(
   if (!adminId) return null;
   const { data } = await client
     .from("admin_accounts")
-    .select("id, email, name, status")
+    .select("id, email, name, status, role")
     .eq("id", adminId)
     .maybeSingle();
-  const admin = data as AdminRecord | null;
-  return admin && admin.status === "active" ? admin : null;
+  const row = data as (Omit<AdminRecord, "role"> & { role?: unknown }) | null;
+  if (!row || row.status !== "active") return null;
+  // An unrecognized role in the database is treated as the most restricted one,
+  // never as an owner: a bad value must not hand out cross-tenant authority.
+  return { ...row, role: isAdminRole(row.role) ? row.role : "cold_caller" };
 }
 
 // A tenant row as the admin tower needs it. Never selects ghl_token: the admin

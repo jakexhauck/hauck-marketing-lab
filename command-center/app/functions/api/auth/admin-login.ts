@@ -8,6 +8,7 @@ import {
 import { getServiceClient } from "../../lib/supabase";
 import { verifyPassword } from "../../lib/password";
 import { normalizeEmail } from "../../lib/staff";
+import { isAdminRole } from "../../lib/adminRoles";
 
 interface Body {
   email?: string;
@@ -49,12 +50,19 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
   const { data } = await client
     .from("admin_accounts")
-    .select("id, password_hash, name, email, status")
+    .select("id, password_hash, name, email, status, role")
     .eq("email", email)
     .maybeSingle();
 
   const admin = data as
-    | { id: string; password_hash: string; name: string; email: string; status: string }
+    | {
+        id: string;
+        password_hash: string;
+        name: string;
+        email: string;
+        status: string;
+        role: string;
+      }
     | null;
 
   // Always run a verify, even with no/disabled account, so response timing does
@@ -70,12 +78,25 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({ error: "incorrect email or password" }, { status: 401 });
   }
 
+  // Stamp the sign-in so the roster can answer "is this person actually using
+  // it". Best-effort: a failed stamp must never block a valid login.
+  ctx.waitUntil(
+    (async () => {
+      const { error } = await client
+        .from("admin_accounts")
+        .update({ last_login_at: new Date().toISOString() })
+        .eq("id", admin.id);
+      if (error) console.warn("[admin-login] last_login_at not stamped", error.message);
+    })(),
+  );
+
+  const role = isAdminRole(admin.role) ? admin.role : "cold_caller";
   const token = await mintAdminSessionToken(ctx.env, admin.id);
   const cookie = await mintAdminSessionCookie(ctx.env, admin.id);
   return new Response(
     JSON.stringify({
       ok: true,
-      admin: { id: admin.id, name: admin.name, email: admin.email },
+      admin: { id: admin.id, name: admin.name, email: admin.email, role },
       token,
     }),
     {

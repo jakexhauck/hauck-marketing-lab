@@ -1,0 +1,106 @@
+import { describe, expect, it } from "vitest";
+import { canAdminAccess, isAdminRole, ADMIN_ROLE_SPECS } from "./adminRoles";
+
+describe("isAdminRole", () => {
+  it("accepts the three real roles", () => {
+    expect(isAdminRole("owner")).toBe(true);
+    expect(isAdminRole("cold_caller")).toBe(true);
+    expect(isAdminRole("setter")).toBe(true);
+  });
+
+  it("rejects anything else, including near-misses from a hand-typed body", () => {
+    expect(isAdminRole("admin")).toBe(false);
+    expect(isAdminRole("Owner")).toBe(false);
+    expect(isAdminRole("cold-caller")).toBe(false);
+    expect(isAdminRole("")).toBe(false);
+    expect(isAdminRole(undefined)).toBe(false);
+    expect(isAdminRole(null)).toBe(false);
+  });
+});
+
+describe("canAdminAccess", () => {
+  it("lets an owner through everything", () => {
+    expect(canAdminAccess("/api/admin/clients", "DELETE", "owner")).toBe(true);
+    expect(canAdminAccess("/api/admin/team", "POST", "owner")).toBe(true);
+    expect(canAdminAccess("/api/admin/anything/new", "PATCH", "owner")).toBe(true);
+  });
+
+  it("gives a cold caller his list and his numbers", () => {
+    expect(canAdminAccess("/api/admin/tracker/leads", "GET", "cold_caller")).toBe(true);
+    expect(canAdminAccess("/api/admin/tracker/leads", "PATCH", "cold_caller")).toBe(true);
+    expect(canAdminAccess("/api/admin/tracker/cold-calls", "POST", "cold_caller")).toBe(
+      true,
+    );
+  });
+
+  it("does not let a cold caller add or delete rows from the prospect book", () => {
+    // Jake supplies the leads. The caller works them, he does not source them.
+    expect(canAdminAccess("/api/admin/tracker/leads", "POST", "cold_caller")).toBe(false);
+    expect(canAdminAccess("/api/admin/tracker/leads", "DELETE", "cold_caller")).toBe(
+      false,
+    );
+  });
+
+  it("lets a cold caller read the dialing script but never rewrite it", () => {
+    expect(canAdminAccess("/api/admin/cold-call/script", "GET", "cold_caller")).toBe(true);
+    expect(canAdminAccess("/api/admin/cold-call/script", "PATCH", "cold_caller")).toBe(false);
+  });
+
+  it("keeps a cold caller out of clients, money and the team page", () => {
+    expect(canAdminAccess("/api/admin/clients", "GET", "cold_caller")).toBe(false);
+    expect(canAdminAccess("/api/admin/team", "GET", "cold_caller")).toBe(false);
+    expect(canAdminAccess("/api/admin/team", "POST", "cold_caller")).toBe(false);
+    expect(canAdminAccess("/api/admin/tracker/sales-data", "GET", "cold_caller")).toBe(
+      false,
+    );
+    expect(canAdminAccess("/api/admin/tracker/business-health", "GET", "cold_caller")).toBe(
+      false,
+    );
+    expect(canAdminAccess("/api/admin/audit", "GET", "cold_caller")).toBe(false);
+    expect(canAdminAccess("/api/admin/setter/leads", "GET", "cold_caller")).toBe(false);
+  });
+
+  it("matches on path segments, not string prefixes", () => {
+    // A future /api/admin/tracker/leads-export must NOT inherit the leads rule.
+    expect(canAdminAccess("/api/admin/tracker/leads-export", "GET", "cold_caller")).toBe(
+      false,
+    );
+    // A deeper path under an allowed prefix is still allowed.
+    expect(canAdminAccess("/api/admin/tracker/leads/abc-123", "PATCH", "cold_caller")).toBe(
+      true,
+    );
+  });
+
+  it("is case-insensitive on the method only", () => {
+    expect(canAdminAccess("/api/admin/tracker/leads", "get", "cold_caller")).toBe(true);
+    expect(canAdminAccess("/API/ADMIN/TRACKER/LEADS", "GET", "cold_caller")).toBe(false);
+  });
+
+  it("denies a role with no rules rather than falling open", () => {
+    // Defensive: an unknown role arriving from a hand-edited database row.
+    expect(canAdminAccess("/api/admin/tracker/leads", "GET", "ghost" as never)).toBe(false);
+  });
+
+  it("gives a setter the suite and a read-only client list", () => {
+    expect(canAdminAccess("/api/admin/setter/leads", "GET", "setter")).toBe(true);
+    expect(canAdminAccess("/api/admin/setter/book", "POST", "setter")).toBe(true);
+    expect(canAdminAccess("/api/admin/clients", "GET", "setter")).toBe(true);
+    expect(canAdminAccess("/api/admin/clients", "PATCH", "setter")).toBe(false);
+  });
+});
+
+describe("ADMIN_ROLE_SPECS", () => {
+  it("describes every role the picker offers", () => {
+    for (const role of ["owner", "cold_caller", "setter"] as const) {
+      const spec = ADMIN_ROLE_SPECS[role];
+      expect(spec.role).toBe(role);
+      expect(spec.label.length).toBeGreaterThan(0);
+      expect(spec.sees.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("spells out what a hire cannot reach, so the leash is readable", () => {
+    expect(ADMIN_ROLE_SPECS.cold_caller.denied).toContain("Client accounts");
+    expect(ADMIN_ROLE_SPECS.owner.denied).toHaveLength(0);
+  });
+});

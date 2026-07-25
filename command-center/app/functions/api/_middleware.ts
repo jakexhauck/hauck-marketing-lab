@@ -11,6 +11,7 @@ import {
 import { resolveCaller } from "../lib/identity";
 import { checkStaffAccess } from "../lib/permissions";
 import { getActiveAdmin } from "../lib/adminAuth";
+import { canAdminAccess } from "../lib/adminRoles";
 
 const allowedOrigins = new Set([
   "http://localhost:5173", // vite dev server
@@ -96,6 +97,12 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       const client = getServiceClient(ctx.env);
       const admin = client ? await getActiveAdmin(client, session.adminId) : null;
       if (!admin) return json(401, { error: "unauthorized" }, origin);
+      // Role gate (0047). Owners pass everything. A hired role reaches only the
+      // paths its role names, so a new admin route is invisible to them until
+      // it is added to the allowlist in lib/adminRoles.
+      if (!canAdminAccess(url.pathname, ctx.request.method, admin.role)) {
+        return json(403, { error: "forbidden" }, origin);
+      }
       ctx.data.session = session;
       ctx.data.admin = admin;
       // Fall through to ctx.next(): no tenant resolution, no surface checks.

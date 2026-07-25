@@ -66,7 +66,9 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       mode: session.mode,
       isOwner: false,
       isAdmin: true,
-      admin: { id: admin.id, name: admin.name, email: admin.email },
+      // role drives the admin nav and which surfaces render (0047). The backend
+      // gate in _middleware is the real enforcement; this only shapes the UI.
+      admin: { id: admin.id, name: admin.name, email: admin.email, role: admin.role },
       staff: null,
       permissions: {},
     });

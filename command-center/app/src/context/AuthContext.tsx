@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { Role, User } from "../types";
 import type { Capability } from "../lib/capabilities";
+import type { AdminRole } from "../lib/adminRoles";
 import { clearAllCaches } from "../lib/queryClient";
 import { clearAppBadge, disablePush } from "../lib/push";
 import { demoMode } from "../demo/demoMode";
@@ -50,6 +51,11 @@ interface AdminIdentity {
   id: string;
   name: string;
   email: string;
+  // 0047. Decides which admin surfaces render. The backend gate in
+  // functions/api/_middleware.ts stays authoritative; this only shapes the UI.
+  // Sessions that predate roles report no role and are treated as owners,
+  // matching the column default.
+  role?: AdminRole;
 }
 
 interface AuthContextValue {
