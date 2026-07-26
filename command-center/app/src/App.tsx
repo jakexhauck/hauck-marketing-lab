@@ -56,6 +56,7 @@ import GroupOutreachOverview from "./routes/groups/GroupOutreachOverview";
 import AdminLayout from "./routes/admin/AdminLayout";
 import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminClientNew from "./routes/admin/AdminClientNew";
+import AdminOnboarding from "./routes/admin/AdminOnboarding";
 import AdminCommand from "./routes/admin/AdminCommand";
 import AdminApps from "./routes/admin/AdminApps";
 import AdminDelivery from "./routes/admin/AdminDelivery";
@@ -533,10 +534,23 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              {/* Retired admin surfaces (SOPs, Onboarding, Build, Plans, Assets,
-                  Messages, Infrastructure, standalone Tasks) are gone; their
-                  work now lives inside the pillar tab bars. Old URLs fall
-                  through to RootRedirect below. */}
+              {/* Client onboarding: the intake submissions queue, and the
+                  per-client setup checklist a submission becomes once it is
+                  approved. The five Onboarding pillar lanes have linked here
+                  since before the route existed. Declared before :tenantId so
+                  the queue is not read as a tenant id. */}
+              <Route
+                path="/admin/onboarding"
+                element={
+                  <AdminRoute>
+                    <AdminOnboarding />
+                  </AdminRoute>
+                }
+              />
+              {/* Retired admin surfaces (SOPs, Build, Plans, Assets, Messages,
+                  Infrastructure, standalone Tasks) are gone; their work now
+                  lives inside the pillar tab bars. Old URLs fall through to
+                  RootRedirect below. */}
               {/* Service Delivery > Paid Ads: the old standalone ad tracker
                   is retired, replaced by the Fulfillment cockpit's Paid Ads tab. */}
               <Route path="/admin/ads" element={<Navigate to="/admin/delivery" replace />} />
