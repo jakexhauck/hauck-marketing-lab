@@ -1,11 +1,9 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { CAPABILITIES } from "../../../lib/permissions";
 import { hashPassword } from "../../../lib/password";
-import { normalizeSubdomain } from "../../../lib/tenantResolve";
 import { normalizeEmail } from "../../../lib/staff";
 import { logAdminAction } from "../../../lib/adminAuth";
+import { CreateTenantError, createTenantWithOwner } from "../../../lib/clientCreate";
 
 // GET /api/admin/clients  (admin-only, gated in _middleware.ts)
 // Every client in the database, with a light member count. Cross-tenant: this
@@ -96,30 +94,6 @@ interface CreateBody {
   ownerPassword?: string;
 }
 
-function slugify(input: string): string {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 48);
-}
-
-// Find a free slug, appending -2, -3, ... on collision.
-async function uniqueSlug(client: SupabaseClient, base: string): Promise<string> {
-  const root = base || "client";
-  for (let i = 0; i < 50; i++) {
-    const candidate = i === 0 ? root : `${root}-${i + 1}`;
-    const { data } = await client
-      .from("tenants")
-      .select("id")
-      .eq("slug", candidate)
-      .maybeSingle();
-    if (!data) return candidate;
-  }
-  return `${root}-${Math.floor(Date.now() / 1000)}`;
-}
-
 // POST /api/admin/clients  (admin-only) — register a new business.
 // Seeds the tenant row plus all current capabilities enabled (Layer 2), so the
 // new client immediately works the way an existing one does. GHL creds are
@@ -138,15 +112,6 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const name = (body.name ?? "").trim();
   if (!name) return Response.json({ error: "name is required" }, { status: 400 });
 
-  const niche = (body.niche ?? "general").trim() || "general";
-  const slug = await uniqueSlug(client, slugify(body.slug?.trim() || name));
-  const brandColor = (body.brandColor ?? "#1d6fb8").trim() || "#1d6fb8";
-  const brandInitials =
-    (body.brandInitials ?? "").trim().slice(0, 3).toUpperCase() ||
-    name.slice(0, 2).toUpperCase();
-  const appName = (body.appName ?? name).trim() || name;
-
-  const subdomain = normalizeSubdomain(body.subdomain?.trim() || slug);
   const ownerEmail = normalizeEmail(body.ownerEmail ?? "");
   const ownerPassword = (body.ownerPassword ?? "").trim();
   // Owner email + password come as a pair: one without the other can't make a
@@ -167,62 +132,39 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     );
   }
 
-  const insert = {
-    slug,
-    name,
-    niche,
-    brand_color: brandColor,
-    brand_initials: brandInitials,
-    app_name: appName,
-    won_label: (body.wonLabel ?? "Won").trim() || "Won",
-    value_label: (body.valueLabel ?? "Job Value").trim() || "Job Value",
-    // tenants.ghl_* are NOT NULL. Store placeholders until the client is wired
-    // to GoHighLevel (matches the test-account 'env' convention).
-    ghl_location_id: (body.ghlLocationId ?? "").trim() || "pending",
-    ghl_token: (body.ghlToken ?? "").trim() || "pending",
-    subdomain,
-    owner_password_hash: ownerPassword ? await hashPassword(ownerPassword) : null,
-    monthly_spend: typeof body.monthlySpend === "number" ? body.monthlySpend : 0,
-  };
-
-  const { data: inserted, error } = await client
-    .from("tenants")
-    .insert(insert)
-    .select("id, slug")
-    .single();
-  if (error || !inserted) {
-    return Response.json({ error: error?.message ?? "could not create client" }, { status: 500 });
-  }
-
-  const tenantId = (inserted as { id: string }).id;
-
-  // Seed entitlements: every capability the CRM ships today, enabled.
-  const seed = CAPABILITIES.map((c) => ({
-    tenant_id: tenantId,
-    capability: c.key,
-    enabled: true,
-  }));
-  await client.from("tenant_entitlements").upsert(seed, { onConflict: "tenant_id,capability" });
-
-  // Create the owner login (role 'owner') so the client can sign in immediately.
-  // Owners bypass per-surface permission checks, so no grants are seeded. A
-  // duplicate email (blocked by the global-unique index) leaves the tenant
-  // created but reports the owner-account failure so the admin can fix it.
-  let ownerWarning: string | undefined;
-  if (ownerEmail && ownerPassword) {
-    const { error: ownerErr } = await client.from("staff_accounts").insert({
-      tenant_id: tenantId,
-      ghl_user_id: null,
-      email: ownerEmail,
-      name: (body.ownerName ?? "").trim() || `${name} (Owner)`,
-      role: "owner",
-      status: "active",
-      password_hash: await hashPassword(ownerPassword),
+  // Validation lives here (it speaks HTTP); the creation itself is shared with
+  // intake approval, which arrives with an already-hashed password.
+  let result;
+  try {
+    result = await createTenantWithOwner(client, {
+      name,
+      niche: body.niche,
+      slug: body.slug,
+      brandColor: body.brandColor,
+      brandInitials: body.brandInitials,
+      appName: body.appName,
+      wonLabel: body.wonLabel,
+      valueLabel: body.valueLabel,
+      ghlLocationId: body.ghlLocationId,
+      ghlToken: body.ghlToken,
+      subdomain: body.subdomain,
+      monthlySpend: body.monthlySpend,
+      ownerEmail: ownerEmail || undefined,
+      ownerName: body.ownerName,
+      ownerPasswordHash: ownerPassword ? await hashPassword(ownerPassword) : undefined,
     });
-    if (ownerErr) ownerWarning = ownerErr.message;
+  } catch (e) {
+    if (!(e instanceof CreateTenantError)) throw e;
+    return Response.json({ error: e.message }, { status: 500 });
   }
 
-  await logAdminAction(client, ctx.data.admin!.id, "client.create", tenantId, { slug, name });
+  await logAdminAction(client, ctx.data.admin!.id, "client.create", result.tenantId, {
+    slug: result.slug,
+    name,
+  });
 
-  return Response.json({ ok: true, id: tenantId, slug, ownerWarning }, { status: 201 });
+  return Response.json(
+    { ok: true, id: result.tenantId, slug: result.slug, ownerWarning: result.ownerWarning },
+    { status: 201 },
+  );
 };

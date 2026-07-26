@@ -50,7 +50,21 @@ const PUBLIC_PATHS = new Set([
   // Verifies its own (preview) session; public so the read-only-preview gate
   // does not block this POST and an admin can always exit a preview.
   "/api/auth/exit-preview",
+  // The client intake funnel. Filled in before the client has any account at
+  // all, so it cannot carry a session. Its own guards are in lib/intake.ts:
+  // unknown keys dropped, answers size-capped, creates rate limited, and
+  // nothing it writes becomes a tenant until an admin approves it.
+  "/api/intake",
 ]);
+
+// Public paths with a dynamic segment, matched by prefix. Kept separate from the
+// exact-match set so no path can be made public by accident.
+const PUBLIC_PREFIXES = ["/api/intake/"];
+
+function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_PATHS.has(pathname)) return true;
+  return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
 
 function json(status: number, body: unknown, origin: string | null) {
   return new Response(JSON.stringify(body), {
@@ -70,7 +84,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
     return new Response(null, { status: 204, headers: corsHeaders(origin) });
   }
 
-  if (!PUBLIC_PATHS.has(url.pathname)) {
+  if (!isPublicPath(url.pathname)) {
     const session = await verifySession(ctx.request, ctx.env);
     if (!session) return json(401, { error: "unauthorized" }, origin);
 
@@ -140,6 +154,25 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         if (!tenant && clientLabelFromHost(host)) {
           return json(404, { error: "client not configured" }, origin);
         }
+      }
+
+      // The onboarding gate. A client Jake has approved but not yet finished
+      // standing up can authenticate, but cannot use the app: every tenant
+      // surface answers 423 and the frontend renders a holding screen.
+      //
+      // This sits ABOVE the GHL credentials check on purpose. A freshly approved
+      // tenant has placeholder creds, and falling through to the env fallback
+      // would quietly serve them another client's GoHighLevel data.
+      //
+      // Admin sessions never reach here (they short-circuit above). Preview is
+      // explicitly exempt: previewing a client mid-setup is exactly when Jake
+      // most wants to look.
+      if (tenant && tenant.onboarding_status === "setup" && !session.preview) {
+        return json(
+          423,
+          { error: "account setup in progress", onboardingStatus: "setup" },
+          origin,
+        );
       }
 
       const useTenantCreds = tenant ? tenantHasGhlCreds(tenant) : false;

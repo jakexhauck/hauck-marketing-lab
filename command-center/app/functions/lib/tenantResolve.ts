@@ -42,6 +42,8 @@ export interface TenantRow {
   google_place_id: string | null;
   ga4_property_id: string | null;
   owner_password_hash: string | null;
+  /** 'setup' = approved but still being stood up; the app shows a holding screen. */
+  onboarding_status: "setup" | "live" | null;
   monthly_spend: number | null;
   // Manual per-client Website > Pages list (0028). jsonb; comes back parsed.
   website_pages: WebsitePageRow[] | null;
@@ -51,7 +53,7 @@ export interface TenantRow {
 }
 
 const TENANT_COLS =
-  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, ghl_token, meta_ad_account_id, google_place_id, ga4_property_id, owner_password_hash, monthly_spend, website_pages, internal_recipients";
+  "id, slug, name, niche, brand_color, brand_initials, app_name, won_label, value_label, ghl_location_id, ghl_token, meta_ad_account_id, google_place_id, ga4_property_id, owner_password_hash, monthly_spend, website_pages, internal_recipients, onboarding_status";
 
 // Normalize an admin-entered subdomain label: lowercase, hyphen-separated, the
 // charset valid in a DNS label. Shared by the admin create/update endpoints.
