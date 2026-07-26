@@ -222,3 +222,13 @@ Verified: all five pass Shopify `theme check` with zero errors (7 font warnings 
 - [ ] **Set the Contact page to the `page.contact` template, not `page`.** On the wrong template it renders your text with no form and looks broken.
 - [ ] **Do not promise the client branded login screens.** I checked this after the fact and was wrong to imply it earlier. Shopify deprecated legacy customer accounts on 26 Feb 2026, and the current system serves account pages from Shopify, not from the theme. The seven account templates I built only apply to stores still on legacy accounts. On a modern store they are ignored and the login screens will not match the design. Nothing is broken, and every Shopify store is in the same position, but it changes what we can claim. A follow-up worth pricing: the `<shopify-account>` header component is the supported modern approach.
 - [ ] **Decide whether the mockup HTML should be rebuilt to match.** You said themes only, so the four HTML comps still share one layout while the themes now diverge. Fine if the themes are what the client installs, worth an hour if you are still showing the comps around.
+
+## Root & Ritual SOP as a Google Doc (2026-07-26)
+
+The upload SOP is now a native Google Doc in your "Root and Ritual Shopify Themes" folder, formatted to match the Cold Caller Commission Structure doc: Lexend, centred 36pt title, big blue index, bordered tables with bold left columns, 18pt section headings, rule between every section. Type metrics were taken from that doc's own export rather than eyeballed.
+
+While doing it I found the five zips in that Drive folder were the OLD build, from before the themes were restructured. Anyone following the SOP would have hit a dead end at the Contact step, because that template does not exist in the old zips. Replaced with the current build, same filenames.
+
+- [ ] **Nothing needed if you are happy with it. Send the folder or just the Doc.**
+- [ ] **Decide on the two candid sections before it goes to a client rather than a contractor.** "Read this before you promise anyone customer accounts" ends with "do not promise the client branded login screens", and Stage 5b says plainly that nobody has run the themes against a real catalogue. Both are true and I would keep them for a contractor. Say the word and I will soften either.
+- [ ] **If you want the six-tab layout like the Commission doc**, that part cannot be automated. Docs tabs are hand-made only. Takes about ten minutes to split it yourself, or I can talk you through it.
