@@ -1,4 +1,6 @@
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { effectiveAdminRole } from "../../lib/adminRoles";
 import {
   getPillar,
   resolvePillarTab,
@@ -30,9 +32,17 @@ import ColdSmsSurface from "../../components/admin/acquisition/ColdSmsSurface";
 // and Tasks are not yet). Service Delivery has its own cockpit; a direct hit on
 // that id redirects there and anything unknown drops back to Command.
 
+// What each non-owner role may open on a pillar page. A cold caller reaches
+// Acquisition for exactly one tab; everything else on the pillar is not theirs.
+const ROLE_TABS: Record<string, { pillar: string; tabs: string[] }> = {
+  cold_caller: { pillar: "acquisition", tabs: ["cold-call"] },
+};
+
 export default function PillarPage() {
   const { pillarId } = useParams<{ pillarId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { admin } = useAuth();
+  const role = effectiveAdminRole(admin?.role);
 
   // useParams/useSearchParams run unconditionally, before any redirect, so hook
   // order stays stable if the route param changes while this stays mounted
@@ -56,9 +66,22 @@ export default function PillarPage() {
   if (pillarId === "delivery") return <Navigate to="/admin/delivery" replace />;
   if (!pillar) return <Navigate to="/admin" replace />;
 
-  const activeTab = resolvePillarTab(pillar.id, searchParams.get("tab"));
+  // A hired role sees only its own tabs, and only on its own pillar. Landing
+  // anywhere else sends them back to the one page they have.
+  const limit = role === "owner" ? null : ROLE_TABS[role];
+  if (limit && limit.pillar !== pillar.id) {
+    return <Navigate to={`/admin/pillar/${limit.pillar}?tab=${limit.tabs[0]}`} replace />;
+  }
+  const visibleTabs = limit
+    ? pillar.tabs.filter((t) => limit.tabs.includes(t.id))
+    : pillar.tabs;
 
-  const active = pillar.tabs.find((t) => t.id === activeTab)!;
+  const requested = resolvePillarTab(pillar.id, searchParams.get("tab"));
+  const activeTab = visibleTabs.some((t) => t.id === requested)
+    ? requested
+    : visibleTabs[0].id;
+
+  const active = visibleTabs.find((t) => t.id === activeTab)!;
 
   return (
     <div className="pk-root">
@@ -76,7 +99,7 @@ export default function PillarPage() {
           own sub-pages need. Below lg there is no rail, so it stays. */}
       <div className="lg:hidden">
         <nav className="pk-tabs" aria-label={`${pillar.label} sections`}>
-          {pillar.tabs.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t.id}
               type="button"

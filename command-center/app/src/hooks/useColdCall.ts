@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type ColdCallRow } from "../lib/api";
+import {
+  api,
+  bookColdCall,
+  getColdCallCalendars,
+  getColdCallSlots,
+  type ColdCallRow,
+} from "../lib/api";
 import { isColdCallNumericField, type ColdCallField } from "../lib/coldCall";
 
 // Cold Call tracker data (Acquisition > Cold Call). Kept out of useApi.ts: this
@@ -10,18 +16,25 @@ export interface ColdCallsResponse {
   days: ColdCallRow[];
 }
 
-// One cache entry per viewed month.
-function monthKey(month: string) {
-  return ["admin", "tracker", "cold-calls", month];
+// One cache entry per viewed month PER PERSON (0050). Two callers looking at the
+// same month are two different sets of numbers, so the caller has to be in the
+// key or one would serve the other's rows from cache.
+function monthKey(month: string, callerId?: string) {
+  return ["admin", "tracker", "cold-calls", month, callerId ?? "me"];
 }
 
 // `month` is "YYYY-MM". Rows come back sparse: only days that were logged.
-export function useColdCallsQuery(month: string) {
+// callerId is an owner-only lens: left out, the server returns the caller's own
+// month, and a non-owner is pinned to their own whatever they send.
+export function useColdCallsQuery(month: string, callerId?: string) {
   return useQuery({
-    queryKey: monthKey(month),
+    queryKey: monthKey(month, callerId),
     staleTime: 30_000,
     queryFn: () =>
-      api<ColdCallsResponse>(`/api/admin/tracker/cold-calls?month=${month}`),
+      api<ColdCallsResponse>(
+        `/api/admin/tracker/cold-calls?month=${month}` +
+          (callerId ? `&callerId=${encodeURIComponent(callerId)}` : ""),
+      ),
   });
 }
 
@@ -29,6 +42,8 @@ export interface SaveColdCallInput {
   day: string; // "YYYY-MM-DD"
   field: ColdCallField;
   value: string;
+  // Whose day is being written. Owner-only; the server ignores it otherwise.
+  callerId?: string;
 }
 
 // A blank cell clears the column; the server applies the same rule.
@@ -52,11 +67,12 @@ export function useSaveColdCallDay() {
           day: input.day,
           field: input.field,
           value: input.value,
+          callerId: input.callerId,
         }),
       }),
     onMutate: async (input) => {
       const month = input.day.slice(0, 7);
-      const key = monthKey(month);
+      const key = monthKey(month, input.callerId);
       await qc.cancelQueries({ queryKey: key });
       const previous = qc.getQueryData<ColdCallsResponse>(key);
       if (previous) {
@@ -90,7 +106,50 @@ export function useSaveColdCallDay() {
       }
     },
     onSettled: (_data, _err, input) => {
-      qc.invalidateQueries({ queryKey: monthKey(input.day.slice(0, 7)) });
+      qc.invalidateQueries({
+        queryKey: monthKey(input.day.slice(0, 7), input.callerId),
+      });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Booking on the agency's own calendar (Cold Call > the Booked outcome).
+
+export function useColdCallCalendarsQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "cold-call", "calendars"],
+    enabled,
+    staleTime: 5 * 60_000,
+    queryFn: () => getColdCallCalendars(),
+  });
+}
+
+// Free slots for one calendar. Short staleTime: a slot offered on the phone
+// needs to still be there, and someone else may have taken it.
+export function useColdCallSlotsQuery(calendarId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "cold-call", "slots", calendarId],
+    enabled: enabled && Boolean(calendarId),
+    staleTime: 30_000,
+    queryFn: () => getColdCallSlots(calendarId, 14),
+  });
+}
+
+// Books for real. Never retried: a resent POST double-books a live calendar.
+export function useBookColdCall() {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: {
+      leadId: string;
+      calendarId: string;
+      startTime: string;
+      endTime: string;
+    }) => bookColdCall(input),
+    onSuccess: (_res, input) => {
+      qc.invalidateQueries({ queryKey: ["admin", "tracker", "leads"] });
+      qc.invalidateQueries({ queryKey: ["admin", "cold-call", "slots", input.calendarId] });
     },
   });
 }

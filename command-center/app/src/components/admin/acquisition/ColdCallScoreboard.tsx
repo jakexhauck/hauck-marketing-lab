@@ -37,17 +37,21 @@ function Stat({ value, label }: { value: number | string; label: string }) {
   );
 }
 
-export default function ColdCallScoreboard() {
+// callerId "" means everyone; otherwise one person's numbers. The tracker block
+// needs a specific person (its rows are per caller since 0050), so on "Everyone"
+// it says so rather than showing one person's dials as if they were the total.
+export default function ColdCallScoreboard({ callerId = "" }: { callerId?: string }) {
   const now = new Date();
   const month = monthParam(now);
   const today = todayIso();
   const monthPrefix = `${month}-`;
 
   const leadsQuery = useAdminLeadsQuery();
-  const trackerQuery = useColdCallsQuery(month);
+  const trackerQuery = useColdCallsQuery(month, callerId || undefined);
 
   const fromLeads = useMemo(() => {
-    const leads = leadsQuery.data?.leads ?? [];
+    const all = leadsQuery.data?.leads ?? [];
+    const leads = callerId ? all.filter((l) => l.assignedTo === callerId) : all;
     return {
       workedToday: leads.filter((l) => l.lastContact === today).length,
       workedMonth: leads.filter((l) => (l.lastContact ?? "").startsWith(monthPrefix)).length,
@@ -57,7 +61,7 @@ export default function ColdCallScoreboard() {
       ).length,
       remaining: leads.filter((l) => ["New", "Contacted", "No Answer"].includes(l.status)).length,
     };
-  }, [leadsQuery.data, today, monthPrefix]);
+  }, [leadsQuery.data, today, monthPrefix, callerId]);
 
   const fromTracker = useMemo(() => {
     const days = trackerQuery.data?.days ?? [];
@@ -88,11 +92,18 @@ export default function ColdCallScoreboard() {
 
       <section>
         <div className="pk-section-h">Typed into the tracker</div>
+        {!callerId ? (
+          <div className="pk-needs">
+            Dials and pickups are logged per person. Pick someone above to see
+            theirs.
+          </div>
+        ) : (
         <div className="pk-report">
           <Stat value={fromTracker.dials} label="Dials this month" />
           <Stat value={fromTracker.pickups} label="Pickups this month" />
           <Stat value={fromTracker.pickupRate} label="Pickup rate" />
         </div>
+        )}
         <div className="pk-needs" style={{ marginTop: 12 }}>
           These three are hand-entered on the Tracker page, so they are a claim
           rather than a measurement. They become real numbers when the dialer logs

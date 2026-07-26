@@ -29,19 +29,21 @@ function dateLabel(date: string): string {
   });
 }
 
-export default function ColdCallBooked() {
+// callerId "" means everyone; otherwise one person's booked meetings.
+export default function ColdCallBooked({ callerId = "" }: { callerId?: string }) {
   const leadsQuery = useAdminLeadsQuery();
   const now = today();
 
   const { upcoming, past } = useMemo(() => {
     const booked = (leadsQuery.data?.leads ?? [])
+      .filter((l) => (callerId ? l.assignedTo === callerId : true))
       .filter((l) => l.appointmentDate)
       .sort((a, b) => (a.appointmentDate ?? "").localeCompare(b.appointmentDate ?? ""));
     return {
       upcoming: booked.filter((l) => (l.appointmentDate ?? "") >= now),
       past: booked.filter((l) => (l.appointmentDate ?? "") < now).reverse(),
     };
-  }, [leadsQuery.data, now]);
+  }, [leadsQuery.data, now, callerId]);
 
   if (leadsQuery.isLoading) return <div className="pk-empty">Loading meetings...</div>;
   if (leadsQuery.isError) {

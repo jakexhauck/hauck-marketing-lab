@@ -34,17 +34,36 @@ const EDITABLE_FIELDS = new Set<string>(
   COLD_CALL_COLUMNS.filter((c) => c.kind !== "computed").map((c) => c.key),
 );
 
-export default function ColdCallSurface() {
+interface Props {
+  // The page may own the month cursor so it can render the stepper in its own
+  // header row (Cold Call does, beside the Dialing script button). Left out, the
+  // tracker keeps its own state and draws the stepper itself, which is how every
+  // other tracker still uses it.
+  cursor?: MonthCursor;
+  onCursorChange?: (cursor: MonthCursor) => void;
+  // Whose tracker to show. Owner-only lens; left out, the server serves the
+  // signed-in person's own month.
+  callerId?: string;
+}
+
+export default function ColdCallSurface({
+  cursor: cursorProp,
+  onCursorChange,
+  callerId,
+}: Props = {}) {
   // The real today, read once, then injected everywhere (trackerMonth is pure).
   const today = useMemo<TodayRef>(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
   }, []);
 
-  const [cursor, setCursor] = useState<MonthCursor>(() => cursorForToday(today));
+  const [ownCursor, setOwnCursor] = useState<MonthCursor>(() => cursorForToday(today));
+  const lifted = cursorProp !== undefined && onCursorChange !== undefined;
+  const cursor = lifted ? cursorProp : ownCursor;
+  const setCursor = lifted ? onCursorChange : setOwnCursor;
   const month = monthParam(cursor);
 
-  const { data } = useColdCallsQuery(month);
+  const { data } = useColdCallsQuery(month, callerId);
   const saveDay = useSaveColdCallDay();
 
   // What the server has, keyed by ISO day. Days with no row stay absent and
@@ -93,7 +112,7 @@ export default function ColdCallSurface() {
       key,
       setTimeout(() => {
         timers.current.delete(key);
-        saveDay.mutate({ day: iso, field: field as ColdCallField, value });
+        saveDay.mutate({ day: iso, field: field as ColdCallField, value, callerId });
       }, SAVE_DELAY_MS),
     );
   }
@@ -155,6 +174,7 @@ export default function ColdCallSurface() {
       rollup={rollup}
       onEdit={handleEdit}
       onMonthChange={setCursor}
+      hideMonthNav={lifted}
     />
   );
 }

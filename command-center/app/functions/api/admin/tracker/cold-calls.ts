@@ -83,9 +83,20 @@ function coerceText(value: unknown): string | null {
   return raw ? raw : null;
 }
 
-// GET /api/admin/tracker/cold-calls?month=YYYY-MM  (admin-only)
-// Returns only the days that exist. The client auto-generates the rest of the
-// month as blank rows, so an unlogged month is empty here, never zero-filled.
+// Whose tracker this request is for (0050). An owner may read and write anyone's
+// by passing ?callerId=; without it they get their own. Anyone else is pinned to
+// themselves whatever they ask for, so a caller cannot read a colleague's
+// numbers or write into them.
+function resolveCallerId(ctx: { data: ApiData; request: Request }): string {
+  const admin = ctx.data.admin!;
+  if (admin.role !== "owner") return admin.id;
+  const asked = new URL(ctx.request.url).searchParams.get("callerId");
+  return asked && asked.trim() ? asked.trim() : admin.id;
+}
+
+// GET /api/admin/tracker/cold-calls?month=YYYY-MM[&callerId=...]  (admin-only)
+// One person's month. Returns only the days that exist; the client auto-generates
+// the rest as blank rows, so an unlogged month is empty here, never zero-filled.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
@@ -95,10 +106,12 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     return Response.json({ error: "month must be YYYY-MM" }, { status: 400 });
   }
 
+  const callerId = resolveCallerId(ctx);
   const { first, last } = monthRange(month);
   const { data, error } = await client
     .from("cold_calls")
     .select(SELECT)
+    .eq("caller_id", callerId)
     .gte("day", first)
     .lte("day", last)
     .order("day", { ascending: true });
@@ -111,6 +124,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 interface PatchBody {
   // The day being edited, "YYYY-MM-DD".
   day?: string;
+  // Owner only: whose tracker is being written. Ignored for everyone else, who
+  // can only ever write their own.
+  callerId?: string;
   // Either one cell...
   field?: string;
   value?: unknown;
@@ -118,9 +134,9 @@ interface PatchBody {
   values?: Record<string, unknown>;
 }
 
-// PATCH /api/admin/tracker/cold-calls  (admin-only): upsert one day.
-// Keyed on the unique `day` column so a single cell edit needs no read first;
-// only the supplied columns are touched.
+// PATCH /api/admin/tracker/cold-calls  (admin-only): upsert one person's day.
+// Keyed on (day, caller_id), unique since 0050, so a single cell edit needs no
+// read first and two people can log the same Tuesday.
 export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
@@ -149,9 +165,18 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     return Response.json({ error: "no editable fields supplied" }, { status: 400 });
   }
 
+  // The body may name a caller, but resolveCallerId is what decides: a non-owner
+  // asking to write someone else's day writes their own instead.
+  const admin = ctx.data.admin!;
+  const bodyCaller = typeof body.callerId === "string" ? body.callerId.trim() : "";
+  const callerId = admin.role === "owner" && bodyCaller ? bodyCaller : admin.id;
+
   const { data, error } = await client
     .from("cold_calls")
-    .upsert({ day, ...update, updated_at: new Date().toISOString() }, { onConflict: "day" })
+    .upsert(
+      { day, caller_id: callerId, ...update, updated_at: new Date().toISOString() },
+      { onConflict: "day,caller_id" },
+    )
     .select(SELECT)
     .single();
   if (error || !data) {

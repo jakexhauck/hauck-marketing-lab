@@ -66,7 +66,6 @@ import PillarPage from "./routes/admin/PillarPage";
 import AdminSettings from "./routes/admin/AdminSettings";
 import AdminAudit from "./routes/admin/AdminAudit";
 import AdminTeam from "./routes/admin/AdminTeam";
-import AdminCalling from "./routes/admin/AdminCalling";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
 import OfflineBanner from "./components/OfflineBanner";
@@ -596,15 +595,11 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              {/* The cold caller's only surface. Owners can open it too, to see
-                  what their hire sees. */}
+              {/* The caller's old landing page. Kept as a redirect so an early
+                  bookmark still lands somewhere real. */}
               <Route
                 path="/admin/calling"
-                element={
-                  <AdminRoute roles={["owner", "cold_caller"]}>
-                    <AdminCalling />
-                  </AdminRoute>
-                }
+                element={<Navigate to="/admin/pillar/acquisition?tab=cold-call" replace />}
               />
               <Route
                 path="/admin/settings"
@@ -638,10 +633,13 @@ export default function App() {
               <Route path="/admin/pillar/:pillarId/:tabId" element={<PillarRedirect />} />
               {/* The pillar page itself (acquisition / sales / operations):
                   a Bento Bold header + per-pillar tab bar driven by ?tab=. */}
+              {/* A cold caller reaches Acquisition > Cold Call and nothing
+                  else: the pillar page renders only the tab they can use, and
+                  the API is what actually holds the line. */}
               <Route
                 path="/admin/pillar/:pillarId"
                 element={
-                  <AdminRoute roles={["owner"]}>
+                  <AdminRoute roles={["owner", "cold_caller"]}>
                     <PillarPage />
                   </AdminRoute>
                 }

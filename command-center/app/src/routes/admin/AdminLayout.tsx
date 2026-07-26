@@ -126,9 +126,20 @@ interface RoleNav {
 const ROLE_NAV: Record<AdminRole, RoleNav> = {
   owner: { pillars: PILLAR_NAV, client: [], home: "/admin" },
   cold_caller: {
-    pillars: [{ to: "/admin/calling", label: "Calling", icon: PhoneCall, end: true }],
+    // One item, pointed at the real section rather than a landing page of its
+    // own: what he needs IS Cold Call, and a second front door would only be a
+    // page to click through. The section hides Settings from him, and the API
+    // refuses everything else regardless of what is rendered.
+    pillars: [
+      {
+        to: "/admin/pillar/acquisition?tab=cold-call",
+        label: "Cold Calling",
+        icon: PhoneCall,
+        short: "Calling",
+      },
+    ],
     client: [],
-    home: "/admin/calling",
+    home: "/admin/pillar/acquisition?tab=cold-call",
   },
   setter: { pillars: [], client: CLIENT_NAV, home: "/admin/setter" },
 };

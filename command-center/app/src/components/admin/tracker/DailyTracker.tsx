@@ -76,6 +76,8 @@ export interface DailyTrackerProps {
   rollup: { average: RollupCells; total: RollupCells };
   onEdit: (iso: string, field: string, value: string) => void;
   onMonthChange: (cursor: MonthCursor) => void;
+  // Hide the built-in month row when the page renders TrackerMonthNav itself.
+  hideMonthNav?: boolean;
 
   // "standard" (default) is the original single-band table. "wide" adds the
   // grouped two-row header, the frozen Date column and a horizontal scroller,
@@ -90,6 +92,50 @@ export interface DailyTrackerProps {
   aboveTable?: ReactNode;
 }
 
+// The month stepper. Exported so a surface can lift it into its own header row
+// (Cold Call puts it beside the Dialing script button) rather than stacking it
+// above the tiles, which costs a whole row of vertical space before any data.
+export function TrackerMonthNav({
+  cursor,
+  today,
+  onMonthChange,
+}: {
+  cursor: MonthCursor;
+  today?: TodayRef | null;
+  onMonthChange: (cursor: MonthCursor) => void;
+}) {
+  return (
+    <div className="adt-monthnav">
+      <button
+        type="button"
+        className="adt-mbtn"
+        aria-label="Previous month"
+        onClick={() => onMonthChange(prevMonth(cursor))}
+      >
+        <ChevronLeft size={18} />
+      </button>
+      <span className="adt-mlabel">{monthLabel(cursor)}</span>
+      <button
+        type="button"
+        className="adt-mbtn"
+        aria-label="Next month"
+        onClick={() => onMonthChange(nextMonth(cursor))}
+      >
+        <ChevronRight size={18} />
+      </button>
+      {today && (
+        <button
+          type="button"
+          className="adt-today-btn"
+          onClick={() => onMonthChange(cursorForToday(today))}
+        >
+          Today
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function DailyTracker({
   title,
   subtitle,
@@ -102,6 +148,7 @@ export default function DailyTracker({
   rollup,
   onEdit,
   onMonthChange,
+  hideMonthNav = false,
   variant = "standard",
   columnGroups,
   minWidth,
@@ -120,36 +167,11 @@ export default function DailyTracker({
     <div className={`adt${wide ? " adt-wide" : ""}`}>
       <TrackerStyle />
 
-      <div className="adt-controls">
-        <div className="adt-monthnav">
-          <button
-            type="button"
-            className="adt-mbtn"
-            aria-label="Previous month"
-            onClick={() => onMonthChange(prevMonth(cursor))}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <span className="adt-mlabel">{monthLabel(cursor)}</span>
-          <button
-            type="button"
-            className="adt-mbtn"
-            aria-label="Next month"
-            onClick={() => onMonthChange(nextMonth(cursor))}
-          >
-            <ChevronRight size={18} />
-          </button>
-          {today && (
-            <button
-              type="button"
-              className="adt-today-btn"
-              onClick={() => onMonthChange(cursorForToday(today))}
-            >
-              Today
-            </button>
-          )}
+      {!hideMonthNav && (
+        <div className="adt-controls">
+          <TrackerMonthNav cursor={cursor} today={today} onMonthChange={onMonthChange} />
         </div>
-      </div>
+      )}
 
       {statTiles.length > 0 && (
         <div className="adt-stats">
