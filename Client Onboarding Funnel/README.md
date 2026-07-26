@@ -17,9 +17,20 @@ is pasted into a separate GHL page and cannot share a stylesheet.
 ## Putting them in GoHighLevel
 
 For each page: **Funnel > add a step > Custom JS/HTML element**, paste the whole
-file, then set the step to full width and clear GHL's own padding. The cards
-carry their own max-width and centring; a GHL column wrapped around them makes
-everything narrower than designed.
+file, then set the step to full width and clear GHL's own padding.
+
+The pages are already hardened for GHL's builder, which does four things that
+break naively-written custom code:
+
+| GHL behaviour | What the code does about it |
+|---|---|
+| Strips `<link>` tags out of custom blocks | Fonts load via `@import` inside the `<style>` block instead |
+| Wraps the block in its own narrow column | `width:100vw; margin-left:calc(50% - 50vw)` breaks out, so the background runs edge to edge |
+| Its theme CSS reaches into the block | Targeted resets on `button`, `input`, `label`, `ol`, `dl` inside `.hm-funnel` only |
+| Can run the script before the markup lands, or render a block twice | `boot()` waits for the markup, then marks the node so it is never wired twice |
+
+Everything is namespaced under `.hm-` and scoped to `.hm-funnel`, so it cannot
+leak out into the rest of the GHL page either.
 
 Then, in the **calendar settings** for `NK53JD0np0dfOaRpmUWh`, set the booking
 confirmation to redirect to the URL of page 3. Skip that and GHL shows its own
@@ -91,5 +102,8 @@ console.log(missing.length||extra.length ? "MISMATCH "+[...missing,...extra].joi
   be collected by email or on the kickoff call before texting can go live.
 - **The login email follows the contact email** until the client edits it, so
   step 3 is usually two keystrokes and a password.
-- **Progress saves after every step**, with a resume token in the URL. Closing
-  the tab loses nothing.
+- **Progress saves after every step.** The resume token goes into the URL so a
+  bookmarked or forwarded link works, and into `localStorage` as a second copy,
+  because some funnel builders sandbox `history.replaceState`. The stored copy
+  is cleared on submit, so the next person on a shared machine gets a fresh form
+  rather than someone else's thank-you screen.

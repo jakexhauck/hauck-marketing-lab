@@ -40,10 +40,6 @@
     reads it back.
 -->
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-
 <div class="hm-funnel" id="hm-funnel">
   <div class="hm-top">
     <div class="hm-mark"><span class="hm-mark-dot">H</span> Hauck Marketing</div>
@@ -53,14 +49,27 @@
 </div>
 
 <style>
+/* @import rather than a <link> tag: GoHighLevel's builder strips <link>
+   elements out of custom code blocks, which would silently drop the fonts. */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
 .hm-funnel{
   --hm-green:#4DBB83; --hm-green-deep:#3AA470; --hm-ink:#0C1512; --hm-body:#4A5A55;
   --hm-line:#E3E9E6; --hm-faint:#8B9A94; --hm-wash:#F6F8F7;
+  /* Break out of whatever column GHL wraps this in, so the background runs the
+     full width of the page instead of sitting in a boxed strip. */
+  width:100vw; max-width:100vw; margin-left:calc(50% - 50vw);
   position:relative; min-height:100vh; padding:0 20px 80px; overflow:hidden;
   background:radial-gradient(120% 60% at 50% -10%, rgba(77,187,131,.14), transparent 60%), var(--hm-wash);
   color:var(--hm-ink); font-family:Inter,-apple-system,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased;
+  text-align:left;
 }
+/* GHL's theme styles reach into custom blocks. Reset only what it touches. */
 .hm-funnel *{box-sizing:border-box}
+.hm-funnel button{margin:0;text-transform:none;letter-spacing:normal;line-height:normal}
+.hm-funnel input,.hm-funnel select,.hm-funnel textarea{margin:0;max-width:none;box-shadow:none}
+.hm-funnel label{margin:0;display:block;text-transform:none}
+.hm-funnel dl,.hm-funnel dd,.hm-funnel dt{margin:0}
 .hm-funnel h2{margin:0;font-family:Poppins,Inter,sans-serif;font-weight:600;letter-spacing:-.02em}
 .hm-funnel h3{margin:0}
 .hm-funnel p{margin:0}
@@ -224,8 +233,10 @@
   var state = { step: 1, answers: {}, errors: {}, token: null, saving: false,
                 savedAt: null, banner: null, done: false, dead: false };
 
-  var slot = document.getElementById("hm-slot");
-  var reassure = document.getElementById("hm-reassure");
+  // Assigned in boot(), not here: GHL sometimes runs a block's script before it
+  // has finished injecting that block's markup.
+  var slot = null;
+  var reassure = null;
 
   // ------------------------------------------------------------- validation
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -285,12 +296,7 @@
         if (!res.ok) throw new Error(data.error || "We could not save that. Please try again.");
         if (data.token && !state.token) {
           state.token = data.token;
-          // Put the resume token in the URL so closing the tab loses nothing.
-          try {
-            var url = new URL(window.location.href);
-            url.searchParams.set("r", data.token);
-            window.history.replaceState({}, "", url.toString());
-          } catch (e) { /* a funnel builder may sandbox this; not fatal */ }
+          rememberToken(data.token);
         }
         state.savedAt = new Date();
         state.banner = null;
@@ -306,9 +312,30 @@
     });
   }
 
-  function resume() {
+  // The resume token lives in the URL so a shared or bookmarked link works.
+  // Some funnel builders sandbox history.replaceState, so localStorage is kept
+  // as a second copy: same tab and same browser still resume, which covers the
+  // common case of closing the tab and coming back.
+  var TOKEN_STORE = "hm.intake.token";
+
+  function rememberToken(token) {
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set("r", token);
+      window.history.replaceState({}, "", url.toString());
+    } catch (e) { /* sandboxed; the store below still covers us */ }
+    try { window.localStorage.setItem(TOKEN_STORE, token); } catch (e) {}
+  }
+
+  function readToken() {
     var token = null;
     try { token = new URL(window.location.href).searchParams.get("r"); } catch (e) {}
+    if (token) return token;
+    try { return window.localStorage.getItem(TOKEN_STORE); } catch (e) { return null; }
+  }
+
+  function resume() {
+    var token = readToken();
     if (!token || HM_CONFIG.dryRun) { render(); return; }
 
     fetch(HM_CONFIG.apiBase + "/api/intake/" + encodeURIComponent(token))
@@ -319,7 +346,14 @@
       .then(function (data) {
         state.token = token;
         state.answers = data.answers || {};
-        if (!data.editable) { state.done = true; render(); return; }
+        if (!data.editable) {
+          state.done = true;
+          // Finished. Drop the stored token so the next client on a shared
+          // machine gets a fresh form rather than someone else's thank-you.
+          try { window.localStorage.removeItem(TOKEN_STORE); } catch (e) {}
+          render();
+          return;
+        }
         state.step = Math.min(data.furthestStep || 1, REVIEW_STEP);
         if (data.hasPassword) {
           state.banner = { tone: "info", text:
@@ -548,7 +582,10 @@
 
       save(submitting).then(function (ok) {
         if (!ok) { top(); return; }
-        if (submitting) { state.done = true; }
+        if (submitting) {
+          state.done = true;
+          try { window.localStorage.removeItem(TOKEN_STORE); } catch (e) {}
+        }
         else if (state.step < REVIEW_STEP) { state.step++; state.errors = {}; }
         render(); top();
       });
@@ -561,6 +598,25 @@
     } catch (e) { window.scrollTo(0, 0); }
   }
 
-  resume();
+  // GHL can run this script before its own markup lands, and can render the same
+  // block twice on a page. Wait for the markup, then refuse to wire it twice.
+  var tries = 0;
+  function boot() {
+    slot = document.getElementById("hm-slot");
+    reassure = document.getElementById("hm-reassure");
+    if (!slot || !reassure) {
+      if (tries++ < 100) { setTimeout(boot, 50); }
+      return;
+    }
+    if (slot.getAttribute("data-hm-ready")) return;
+    slot.setAttribute("data-hm-ready", "1");
+    resume();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
 })();
 </script>
