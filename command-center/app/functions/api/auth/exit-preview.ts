@@ -35,7 +35,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (!session || !session.preview || !session.adminId) {
     return new Response(JSON.stringify({ ok: false }), {
       status: 401,
-      headers: { "content-type": "application/json", "set-cookie": clearSessionCookie() },
+      headers: { "content-type": "application/json", "set-cookie": clearSessionCookie(ctx.request) },
     });
   }
 
@@ -44,11 +44,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (!admin) {
     return new Response(JSON.stringify({ ok: false }), {
       status: 401,
-      headers: { "content-type": "application/json", "set-cookie": clearSessionCookie() },
+      headers: { "content-type": "application/json", "set-cookie": clearSessionCookie(ctx.request) },
     });
   }
 
-  const cookie = await mintAdminSessionCookie(ctx.env, admin.id);
+  const cookie = await mintAdminSessionCookie(ctx.env, admin.id, ctx.request);
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
     headers: { "content-type": "application/json", "set-cookie": cookie },

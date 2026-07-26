@@ -95,7 +95,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
   const claims = { tenantId: staff.tenant_id, staffId: staff.id };
   const token = await mintSessionToken(ctx.env, mode, claims);
-  const cookie = await mintSessionCookie(ctx.env, mode, claims);
+  const cookie = await mintSessionCookie(ctx.env, mode, claims, ctx.request);
   return new Response(
     JSON.stringify({ ok: true, mode, token, staff: { id: staff.id, name: staff.name, role: staff.role } }),
     {

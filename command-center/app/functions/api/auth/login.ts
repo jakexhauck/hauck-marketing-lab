@@ -106,7 +106,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   // HttpOnly cookie and ignore `token`; bearer clients (desktop) read `token`
   // from the body and store it in the OS keychain.
   const token = await mintSessionToken(ctx.env, mode, { tenantId });
-  const cookie = await mintSessionCookie(ctx.env, mode, { tenantId });
+  const cookie = await mintSessionCookie(ctx.env, mode, { tenantId }, ctx.request);
   return new Response(JSON.stringify({ ok: true, mode, token }), {
     status: 200,
     headers: {

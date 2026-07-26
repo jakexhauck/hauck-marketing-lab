@@ -130,13 +130,53 @@ export async function mintSessionToken(
   return `${payload}.${sig}`;
 }
 
+// ---------------------------------------------------------------------------
+// Cookie attributes.
+//
+// Session cookies are Secure, which means the browser only keeps them over
+// HTTPS. Production is always HTTPS (Cloudflare serves nothing else), and
+// browsers treat http://localhost as a secure context, so the flag costs
+// nothing in either place.
+//
+// It does cost something in exactly one case: the dev server reached from
+// ANOTHER machine on the same wifi, over http://10.0.0.x:5173. There the login
+// succeeds and the browser then silently discards the cookie, so the session
+// never sticks and the sign-in looks broken.
+//
+// So Secure is dropped for plain-http requests to a loopback or private-network
+// address, and only those. The test is on the request the browser actually
+// made, and it FAILS CLOSED: no request, or anything that is not demonstrably
+// local, keeps Secure. A production request is https to a public hostname and
+// can never match.
+const PRIVATE_HOST =
+  /^(localhost|127\.\d+\.\d+\.\d+|\[::1\]|::1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$/;
+
+export function isPlainHttpLocalRequest(request?: Request): boolean {
+  if (!request) return false;
+  let url: URL;
+  try {
+    url = new URL(request.url);
+  } catch {
+    return false;
+  }
+  // HTTPS never needs the exception, whatever the host.
+  if (url.protocol !== "http:") return false;
+  return PRIVATE_HOST.test(url.hostname);
+}
+
+function cookieAttrs(request: Request | undefined, maxAge: number): string {
+  const secure = isPlainHttpLocalRequest(request) ? "" : " Secure;";
+  return `HttpOnly;${secure} SameSite=Lax; Path=/; Max-Age=${maxAge}`;
+}
+
 export async function mintSessionCookie(
   env: Env,
   mode: SessionMode = "live",
   claims: SessionClaims = {},
+  request?: Request,
 ): Promise<string> {
   const value = await mintSessionToken(env, mode, claims);
-  return `${COOKIE_NAME}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${MAX_AGE_SECONDS}`;
+  return `${COOKIE_NAME}=${value}; ${cookieAttrs(request, MAX_AGE_SECONDS)}`;
 }
 
 // Admin sessions use the literal "admin" in the mode slot so they can never be
@@ -160,9 +200,10 @@ export async function mintAdminSessionToken(
 export async function mintAdminSessionCookie(
   env: Env,
   adminId: string,
+  request?: Request,
 ): Promise<string> {
   const value = await mintAdminSessionToken(env, adminId);
-  return `${COOKIE_NAME}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${MAX_AGE_SECONDS}`;
+  return `${COOKIE_NAME}=${value}; ${cookieAttrs(request, MAX_AGE_SECONDS)}`;
 }
 
 // Preview-as-client sessions (Plan 05). The token carries the previewing admin
@@ -206,13 +247,17 @@ export async function mintPreviewSessionCookie(
   adminId: string,
   tenantId: string,
   staffId?: string,
+  request?: Request,
 ): Promise<string> {
   const value = await mintPreviewSessionToken(env, adminId, tenantId, staffId);
-  return `${COOKIE_NAME}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${PREVIEW_MAX_AGE_SECONDS}`;
+  return `${COOKIE_NAME}=${value}; ${cookieAttrs(request, PREVIEW_MAX_AGE_SECONDS)}`;
 }
 
-export function clearSessionCookie(): string {
-  return `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
+// Clearing carries the same attributes as minting: a browser only replaces a
+// cookie when they match, so a Secure clear would leave a non-Secure dev cookie
+// in place and quietly fail to log anyone out.
+export function clearSessionCookie(request?: Request): string {
+  return `${COOKIE_NAME}=; ${cookieAttrs(request, 0)}`;
 }
 
 function readCookie(req: Request, name: string): string | null {

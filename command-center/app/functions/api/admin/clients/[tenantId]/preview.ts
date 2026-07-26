@@ -33,7 +33,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   }
 
   const adminId = ctx.data.admin!.id;
-  const cookie = await mintPreviewSessionCookie(ctx.env, adminId, tenantId, staffId);
+  const cookie = await mintPreviewSessionCookie(ctx.env, adminId, tenantId, staffId, ctx.request);
 
   await logAdminAction(client, adminId, "client.preview", tenantId, staffId ? { staffId } : {});
 
