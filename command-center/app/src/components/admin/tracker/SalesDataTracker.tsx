@@ -91,9 +91,28 @@ export default function SalesDataTracker() {
 
   const rowsByDay = useMemo(() => {
     const map = new Map<string, TrackerRow>();
-    for (const row of data ?? []) map.set(row.day, toTrackerRow(row));
+    for (const row of data?.days ?? []) map.set(row.day, toTrackerRow(row));
     return map;
   }, [data]);
+
+  // Days whose counts come from the demo calls logged on the Sales Calls tab.
+  // Their number cells are read-only here: one day carrying a typed number and
+  // a derived one is a day nobody can trust. Notes stay typeable, because no
+  // call ever writes them.
+  const derivedDays = useMemo(() => new Set(data?.derivedDays ?? []), [data]);
+
+  const cellLocked = useCallback(
+    (iso: string, field: string) => field !== "notes" && derivedDays.has(iso),
+    [derivedDays],
+  );
+
+  const cellTitle = useCallback(
+    (iso: string, field: string) =>
+      cellLocked(iso, field)
+        ? "Counted from the demo calls logged on Sales Calls. Log the call there to change this."
+        : undefined,
+    [cellLocked],
+  );
 
   const getRow = useCallback(
     (iso: string): TrackerRow => ({ ...rowsByDay.get(iso), ...drafts[iso] }),
@@ -147,6 +166,12 @@ export default function SalesDataTracker() {
 
   const handleEdit = useCallback(
     (iso: string, field: string, value: string) => {
+      // The input is already read-only, so this only catches a paste or an
+      // autofill reaching a locked cell. The endpoint refuses it too (409
+      // derived_day); refusing here as well means no draft is ever left behind
+      // showing a number that was never stored.
+      if (cellLocked(iso, field)) return;
+
       setDrafts((prev) => ({ ...prev, [iso]: { ...prev[iso], [field]: value } }));
 
       const patch = pendingRef.current.get(iso) ?? {};
@@ -158,7 +183,7 @@ export default function SalesDataTracker() {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(flush, SAVE_DEBOUNCE_MS);
     },
-    [flush],
+    [flush, cellLocked],
   );
 
   // Changing month must not strand a half-typed day in the debounce window.
@@ -255,7 +280,9 @@ export default function SalesDataTracker() {
         subtitle={
           isPending && !data
             ? "Loading this month"
-            : "One row per day. Type the counts; the rates are computed."
+            : derivedDays.size > 0
+              ? `One row per day. ${derivedDays.size === 1 ? "1 day is" : `${derivedDays.size} days are`} counted from logged demo calls and cannot be typed over.`
+              : "One row per day. Type the counts; the rates are computed."
         }
         columns={SALES_COLUMNS}
         cursor={cursor}
@@ -266,6 +293,8 @@ export default function SalesDataTracker() {
         rollup={{ average: rollup.average, total: rollup.total }}
         onEdit={handleEdit}
         onMonthChange={handleMonthChange}
+        cellLocked={cellLocked}
+        cellTitle={cellTitle}
         hideMonthNav
       />
     </div>

@@ -9,6 +9,7 @@ import {
   type PillarTabDef,
 } from "../../lib/adminPillars";
 import SalesDataTracker from "../../components/admin/tracker/SalesDataTracker";
+import SalesCallsSurface from "../../components/admin/sales/SalesCallsSurface";
 import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
 import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
@@ -144,6 +145,11 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
       return <ColdCallSection />;
     case "sms":
       return <ColdSmsSurface />;
+    // The demo call itself: what is booked on the agency calendar, and what
+    // happened on it. Sales Data's counts are derived from what gets logged
+    // here, which is why it sits to the left of the tracker.
+    case "calls":
+      return <SalesCallsSurface />;
     case "sales-data":
       return <SalesDataTracker />;
     case "business-health":

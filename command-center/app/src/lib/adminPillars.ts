@@ -40,7 +40,13 @@ export const ADMIN_PILLARS: PillarDef[] = [
   {
     id: "sales",
     label: "Sales",
-    tabs: [{ id: "sales-data", label: "Sales Data", ready: true }],
+    // Sales Calls comes first: it is the work, Sales Data is the score. That is
+    // also the order they happen in now, since the tracker's counts are derived
+    // from the calls logged here rather than typed from memory.
+    tabs: [
+      { id: "calls", label: "Sales Calls", ready: true },
+      { id: "sales-data", label: "Sales Data", ready: true },
+    ],
   },
   {
     id: "operations",

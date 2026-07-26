@@ -237,8 +237,49 @@ export interface CalendarEventsResult {
   failedCalendarIds: string[];
 }
 
+function shapeEvent(ev: RawEvent): CalendarEvent | null {
+  const id = ev.id ?? ev._id ?? "";
+  if (!id) return null;
+  return {
+    id,
+    title: ev.title ?? "Appointment",
+    startTime: ev.startTime ?? null,
+    endTime: ev.endTime ?? null,
+    status: (ev.appointmentStatus ?? ev.status ?? "booked").toLowerCase(),
+    contactId: ev.contactId ?? "",
+    contactName: ev.contactName ?? "",
+  };
+}
+
+// ONE calendar's events, sorted. Throws if that calendar cannot be read.
+//
+// Separate from listCalendarEvents because reading every active calendar is
+// sometimes exactly the wrong thing. The agency's own account carries a
+// calendar that a personal Google account syncs flight bookings into, so the
+// Sales Calls surface has to name the calendar it means rather than sweep them
+// all up (see functions/api/admin/sales-calls/index.ts).
+//
 // [startMs, endMs] are epoch milliseconds, not ISO: the GHL events route
 // rejects ISO on startTime/endTime. Callers holding ISO strings parse first.
+export async function fetchCalendarEvents(
+  gctx: GhlContext,
+  calendarId: string,
+  startMs: number,
+  endMs: number,
+): Promise<CalendarEvent[]> {
+  const data = await ghlJson<{ events?: RawEvent[] }>(
+    gctx,
+    `/calendars/events?locationId=${encodeURIComponent(gctx.locationId)}` +
+      `&calendarId=${encodeURIComponent(calendarId)}` +
+      `&startTime=${startMs}&endTime=${endMs}`,
+  );
+  const events = (data.events ?? [])
+    .map(shapeEvent)
+    .filter((e): e is CalendarEvent => e !== null);
+  return events.sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? ""));
+}
+
+// Every active calendar's events, merged.
 //
 // One calendar 4xxing does not reject the whole promise (that blanked the tab
 // on a 502); its id is collected into failedCalendarIds instead. The calendar
@@ -255,33 +296,18 @@ export async function listCalendarEvents(
   const byId = new Map<string, CalendarEvent>();
   const failedCalendarIds: string[] = [];
   for (const cal of calendars) {
-    let data: { events?: RawEvent[] };
+    let found: CalendarEvent[];
     try {
-      data = await ghlJson<{ events?: RawEvent[] }>(
-        gctx,
-        `/calendars/events?locationId=${encodeURIComponent(gctx.locationId)}` +
-          `&calendarId=${encodeURIComponent(cal.id)}` +
-          `&startTime=${startMs}&endTime=${endMs}`,
-      );
+      found = await fetchCalendarEvents(gctx, cal.id, startMs, endMs);
     } catch (e) {
       console.warn(`[appointments.listCalendarEvents] calendar ${cal.id}`, e);
       failedCalendarIds.push(cal.id);
       continue;
     }
-    for (const ev of data.events ?? []) {
+    for (const ev of found) {
       // The same appointment can surface on more than one calendar, so first
       // sighting wins and later duplicates are ignored.
-      const id = ev.id ?? ev._id ?? "";
-      if (!id || byId.has(id)) continue;
-      byId.set(id, {
-        id,
-        title: ev.title ?? "Appointment",
-        startTime: ev.startTime ?? null,
-        endTime: ev.endTime ?? null,
-        status: (ev.appointmentStatus ?? ev.status ?? "booked").toLowerCase(),
-        contactId: ev.contactId ?? "",
-        contactName: ev.contactName ?? "",
-      });
+      if (!byId.has(ev.id)) byId.set(ev.id, ev);
     }
   }
 
