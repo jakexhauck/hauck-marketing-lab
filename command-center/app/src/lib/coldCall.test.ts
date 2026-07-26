@@ -7,11 +7,14 @@ import {
   isColdCallNumericField,
   isFilledColdCallDay,
   monthParam,
+  recordedTotals,
   rollupColdCallMonth,
   summarizeColdCallMonth,
   toTrackerRows,
+  typedCells,
 } from "./coldCall";
 import type { TrackerRow } from "../components/admin/tracker/DailyTracker";
+import type { ColdCallRow } from "./api";
 
 // A day row from the four counts, text cells blank unless given.
 function day(
@@ -28,6 +31,23 @@ function day(
     passThrough,
     meetingsBooked,
     ...extra,
+  };
+}
+
+// A day as the API returns it: typed cells null unless given, plus whatever the
+// app recorded that day.
+function apiDay(over: Partial<ColdCallRow> = {}): ColdCallRow {
+  return {
+    id: "a",
+    day: "2026-07-01",
+    callsMade: null,
+    pickups: null,
+    passThrough: null,
+    meetingsBooked: null,
+    objections: null,
+    notes: null,
+    recorded: null,
+    ...over,
   };
 }
 
@@ -86,6 +106,7 @@ describe("toTrackerRows", () => {
         meetingsBooked: 0,
         objections: null,
         notes: "gatekeepers",
+        recorded: null,
       },
     ]);
     expect(rows["2026-07-01"]).toEqual({
@@ -100,6 +121,116 @@ describe("toTrackerRows", () => {
 
   it("returns an empty map for a month with no logged days", () => {
     expect(toTrackerRows([])).toEqual({});
+  });
+
+  it("falls back to what the app recorded when nothing was typed", () => {
+    const rows = toTrackerRows([
+      apiDay({
+        recorded: { callsMade: 47, pickups: 6, passThrough: 3, meetingsBooked: 1 },
+      }),
+    ]);
+    expect(rows["2026-07-01"]).toMatchObject({
+      callsMade: "47",
+      pickups: "6",
+      passThrough: "3",
+      meetingsBooked: "1",
+    });
+  });
+
+  it("shows a recorded zero as a zero: it was measured, not left blank", () => {
+    const rows = toTrackerRows([
+      apiDay({
+        recorded: { callsMade: 12, pickups: 0, passThrough: 0, meetingsBooked: 0 },
+      }),
+    ]);
+    expect(rows["2026-07-01"].pickups).toBe("0");
+  });
+
+  it("lets a typed cell win over the recorded one, cell by cell", () => {
+    const rows = toTrackerRows([
+      apiDay({
+        callsMade: 90,
+        recorded: { callsMade: 47, pickups: 6, passThrough: 3, meetingsBooked: 1 },
+      }),
+    ]);
+    expect(rows["2026-07-01"]).toMatchObject({
+      callsMade: "90", // typed
+      pickups: "6", // still recorded
+    });
+  });
+});
+
+describe("typedCells", () => {
+  it("names each typed cell and the recorded number it overrode", () => {
+    const marks = typedCells([
+      apiDay({
+        callsMade: 90,
+        recorded: { callsMade: 47, pickups: 6, passThrough: 3, meetingsBooked: 1 },
+      }),
+    ]);
+    expect(marks["2026-07-01"]).toEqual({ callsMade: 47 });
+  });
+
+  it("reports null when the typing overrode nothing at all", () => {
+    const marks = typedCells([apiDay({ callsMade: 90 })]);
+    expect(marks["2026-07-01"]).toEqual({ callsMade: null });
+  });
+
+  it("leaves a day with no typing out entirely", () => {
+    const marks = typedCells([
+      apiDay({ recorded: { callsMade: 47, pickups: 6, passThrough: 3, meetingsBooked: 1 } }),
+    ]);
+    expect(marks).toEqual({});
+  });
+
+  it("ignores typed text: a note is not a count", () => {
+    expect(typedCells([apiDay({ notes: "long day" })])).toEqual({});
+  });
+});
+
+describe("recordedTotals", () => {
+  it("adds up only what the app measured", () => {
+    const totals = recordedTotals([
+      apiDay({
+        day: "2026-07-01",
+        recorded: { callsMade: 40, pickups: 6, passThrough: 3, meetingsBooked: 1 },
+      }),
+      apiDay({
+        day: "2026-07-02",
+        // Typed numbers on this day are deliberately much bigger; they must not
+        // reach the totals.
+        callsMade: 500,
+        pickups: 400,
+        recorded: { callsMade: 20, pickups: 4, passThrough: 2, meetingsBooked: 0 },
+      }),
+    ]);
+    expect(totals).toEqual({
+      callsMade: 60,
+      pickups: 10,
+      passThrough: 5,
+      meetingsBooked: 1,
+      days: 2,
+      typedDays: 1,
+    });
+  });
+
+  it("counts a typed-only day as typed and not as recorded", () => {
+    expect(recordedTotals([apiDay({ callsMade: 30 })])).toMatchObject({
+      callsMade: 0,
+      days: 0,
+      typedDays: 1,
+    });
+  });
+
+  it("is all zeros for a month nobody worked", () => {
+    expect(recordedTotals([])).toEqual({
+      callsMade: 0,
+      pickups: 0,
+      passThrough: 0,
+      meetingsBooked: 0,
+      days: 0,
+      typedDays: 0,
+    });
   });
 });
 

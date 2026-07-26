@@ -100,6 +100,7 @@ const PILLAR_NAV: NavRow[] = [
     short: "Fulfill",
     children: [
       { to: "/admin/delivery", label: "Clients" },
+      { to: "/admin/onboarding", label: "Onboarding" },
       { to: "/admin/setter", label: "Setter Suite" },
     ],
   },

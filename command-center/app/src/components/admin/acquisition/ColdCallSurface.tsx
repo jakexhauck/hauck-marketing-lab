@@ -15,17 +15,25 @@ import {
   coldCallFooter,
   computeColdCallRow,
   emptyColdCallRow,
+  isColdCallNumericField,
   monthParam,
   summarizeColdCallMonth,
   toTrackerRows,
+  typedCellNote,
+  typedCells,
   type ColdCallField,
 } from "../../../lib/coldCall";
 import { useColdCallsQuery, useSaveColdCallDay } from "../../../hooks/useColdCall";
 
 // The Acquisition pillar's "Cold Call" tab body: a month of dialing days, one
-// row each, typed by hand. All the layout lives in the shared DailyTracker and
-// all the math in lib/coldCall; this component only owns the month cursor, the
-// in-flight draft cells and the save debounce.
+// row each. All the layout lives in the shared DailyTracker and all the math in
+// lib/coldCall; this component only owns the month cursor, the in-flight draft
+// cells and the save debounce.
+//
+// Since 0052 the four counts fill themselves from the attempts logged on the
+// call card. Typing is still allowed, for dialing done off-app, and a typed cell
+// is marked as typed: the tracker shows a measurement and a claim side by side
+// and never lets them look alike.
 
 // Typing fires one save per cell, not per keystroke.
 const SAVE_DELAY_MS = 400;
@@ -70,6 +78,10 @@ export default function ColdCallSurface({
   // render as the blank template: an unlogged month shows blanks, not zeros.
   const saved = useMemo(() => toTrackerRows(data?.days ?? []), [data]);
 
+  // Which cells came from a keyboard rather than from a button press, and what
+  // the app had recorded underneath each one.
+  const typed = useMemo(() => typedCells(data?.days ?? []), [data]);
+
   // Cells typed but not yet round-tripped. Keyed by ISO day so they survive a
   // month switch and never collide across months.
   const [drafts, setDrafts] = useState<Record<string, TrackerRow>>({});
@@ -112,7 +124,26 @@ export default function ColdCallSurface({
       key,
       setTimeout(() => {
         timers.current.delete(key);
-        saveDay.mutate({ day: iso, field: field as ColdCallField, value, callerId });
+        saveDay.mutate(
+          { day: iso, field: field as ColdCallField, value, callerId },
+          {
+            // Once the server has it, the draft has done its job and must go.
+            // A cleared cell is the case that matters: the draft holds "", and
+            // an "" that outlives the save would keep hiding the number the app
+            // recorded for that day, which is exactly what clearing a typed
+            // cell is meant to bring back.
+            onSuccess: () =>
+              setDrafts((prev) => {
+                const row = prev[iso];
+                if (!row || row[field] !== value) return prev;
+                const { [field]: _saved, ...rest } = row;
+                const next = { ...prev };
+                if (Object.keys(rest).length === 0) delete next[iso];
+                else next[iso] = rest;
+                return next;
+              }),
+          },
+        );
       }, SAVE_DELAY_MS),
     );
   }
@@ -161,6 +192,19 @@ export default function ColdCallSurface({
     },
   ];
 
+  // undefined = nothing typed in this cell; otherwise the recorded number the
+  // typing overrode (null when the app recorded nothing that day). Read from the
+  // server's rows, not the drafts, so the mark cannot flicker mid-keystroke.
+  const overriddenValue = (iso: string, field: string): number | null | undefined =>
+    isColdCallNumericField(field) ? typed[iso]?.[field] : undefined;
+
+  const cellTitle = (iso: string, field: string) => {
+    const recorded = overriddenValue(iso, field);
+    if (recorded === undefined) return undefined;
+    const label = COLD_CALL_COLUMNS.find((c) => c.key === field)?.label ?? field;
+    return typedCellNote(label, recorded);
+  };
+
   return (
     <DailyTracker
       title="Cold Call Tracker"
@@ -175,6 +219,15 @@ export default function ColdCallSurface({
       onEdit={handleEdit}
       onMonthChange={setCursor}
       hideMonthNav={lifted}
+      cellClass={(iso, field) =>
+        overriddenValue(iso, field) !== undefined ? "typed" : undefined
+      }
+      cellTitle={cellTitle}
+      legendExtra={
+        <b title="Counts fill themselves from the outcome buttons on the call card.">
+          <span className="adt-dot rec" /> Recorded by the app
+        </b>
+      }
     />
   );
 }

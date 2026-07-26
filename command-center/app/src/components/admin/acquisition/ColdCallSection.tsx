@@ -13,6 +13,7 @@ import ColdCallSurface from "./ColdCallSurface";
 import ColdCallLeads from "./ColdCallLeads";
 import ColdCallCallbacks from "./ColdCallCallbacks";
 import ColdCallBooked from "./ColdCallBooked";
+import ColdCallPipelines from "./ColdCallPipelines";
 import ColdCallScoreboard from "./ColdCallScoreboard";
 import ColdCallSettings from "./ColdCallSettings";
 
@@ -162,6 +163,11 @@ function ColdCallBody({
       return <ColdCallCallbacks callerId={callerId} />;
     case "booked":
       return <ColdCallBooked callerId={callerId} />;
+    case "pipelines":
+      // Nobody's boards but the agency's: GHL has no idea which caller is
+      // looking, so this one page ignores the person selector rather than
+      // pretending to filter by it.
+      return <ColdCallPipelines />;
     case "tracker":
       // A tracker grid is one person's hand-typed month. There is no honest way
       // to merge two people's rows into one editable grid, so "Everyone" asks

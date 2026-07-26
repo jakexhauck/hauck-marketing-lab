@@ -2,8 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   api,
   bookColdCall,
+  getAgencyPipelines,
   getColdCallCalendars,
   getColdCallSlots,
+  logColdCallDial,
+  type ColdCallDialOutcome,
   type ColdCallRow,
 } from "../lib/api";
 import { isColdCallNumericField, type ColdCallField } from "../lib/coldCall";
@@ -60,8 +63,10 @@ function optimisticValue(field: ColdCallField, value: string): number | string |
 export function useSaveColdCallDay() {
   const qc = useQueryClient();
   return useMutation({
+    // The PATCH answers with the typed row only; the recorded counts are not
+    // touched by a typed cell, and the invalidate below refetches both anyway.
     mutationFn: (input: SaveColdCallInput) =>
-      api<{ ok: boolean; day: ColdCallRow }>("/api/admin/tracker/cold-calls", {
+      api<{ ok: boolean; day: Omit<ColdCallRow, "recorded"> }>("/api/admin/tracker/cold-calls", {
         method: "PATCH",
         body: JSON.stringify({
           day: input.day,
@@ -93,6 +98,7 @@ export function useSaveColdCallDay() {
                 meetingsBooked: null,
                 objections: null,
                 notes: null,
+                recorded: null,
                 ...patch,
               } as ColdCallRow,
             ].sort((a, b) => a.day.localeCompare(b.day));
@@ -109,6 +115,55 @@ export function useSaveColdCallDay() {
       qc.invalidateQueries({
         queryKey: monthKey(input.day.slice(0, 7), input.callerId),
       });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// The agency's GoHighLevel boards (Cold Call > Pipelines).
+
+// Read live, and kept fresh: these boards are moved by Jake's automations, not
+// by this app, so a stale column is a card sitting somewhere it has already
+// left. Short staleTime, and a refetch whenever the tab is looked at again.
+export function useAgencyPipelinesQuery(pipelineId?: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "cold-call", "pipelines", pipelineId ?? "all"],
+    enabled,
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
+    queryFn: () => getAgencyPipelines(pipelineId),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Recording the attempt itself (0052).
+
+export interface LogDialInput {
+  leadId: string | null;
+  outcome: ColdCallDialOutcome;
+  note?: string;
+  // Only for a callback: the agreed date, which becomes a GHL task.
+  followUpDate?: string;
+}
+
+// Append one attempt. Fire-and-forget from the caller's point of view: the
+// outcome buttons hand over the next prospect immediately rather than making
+// someone wait on a write, and the month is invalidated when it lands so the
+// tracker and the scoreboard catch up on their own.
+//
+// Not retried. A retry of a POST that actually succeeded would count the same
+// call twice, and an over-counted dial is worse than a missing one: the whole
+// point of this table is that its numbers cannot be inflated.
+export function useLogColdCallDial() {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: LogDialInput) => logColdCallDial(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "tracker", "cold-calls"] });
+      // The same request pushed the prospect into GoHighLevel and stamped the
+      // result onto the lead, so the list is now stale by one row.
+      qc.invalidateQueries({ queryKey: ["admin", "tracker", "leads"] });
     },
   });
 }

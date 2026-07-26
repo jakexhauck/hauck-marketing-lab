@@ -1,21 +1,18 @@
 import { useMemo } from "react";
 import { useAdminLeadsQuery } from "../../../hooks/useAdminLeads";
 import { useColdCallsQuery } from "../../../hooks/useColdCall";
+import { recordedTotals } from "../../../lib/coldCall";
 
 // Cold Call > Scoreboard: the numbers, and where each one comes from.
 //
-// Two sources, and the page is explicit about which is which, because they are
-// not equally trustworthy:
+// Since 0052 the dialing numbers are measured rather than claimed: every dial,
+// pickup and pass-through here is the footprint of an outcome button pressed on
+// the call card, appended to cold_call_dials and never editable afterwards. The
+// same is true of worked and booked, which come from the leads themselves.
 //
-//   - Booked and worked come from the LEADS themselves. Every one is the
-//     footprint of a button pressed on the Leads page, so they cannot be
-//     inflated by typing.
-//   - Dials and pickups come from the Tracker, which is typed by hand. Until the
-//     dialer logs each call itself, these are self-reported and the page says so
-//     rather than presenting them as measurement.
-//
-// Getting that distinction wrong is how a commission argument starts, so it is
-// on the page rather than in someone's memory.
+// Hand-typed cells still exist on the Tracker, for dialing done off-app. They
+// are NOT mixed into the numbers above; they get their own line, naming how many
+// days carry one. Blurring the two is how a commission argument starts.
 
 function monthParam(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -63,17 +60,15 @@ export default function ColdCallScoreboard({ callerId = "" }: { callerId?: strin
     };
   }, [leadsQuery.data, today, monthPrefix, callerId]);
 
-  const fromTracker = useMemo(() => {
-    const days = trackerQuery.data?.days ?? [];
-    const sum = (pick: (d: (typeof days)[number]) => number | null) =>
-      days.reduce((total, day) => total + (pick(day) ?? 0), 0);
-    const dials = sum((d) => d.callsMade);
-    const pickups = sum((d) => d.pickups);
+  // Measured only: what the app recorded, ignoring anything typed over it.
+  const recorded = useMemo(() => {
+    const totals = recordedTotals(trackerQuery.data?.days ?? []);
+    const rate = (part: number, whole: number) =>
+      whole > 0 ? `${Math.round((part / whole) * 100)}%` : "·";
     return {
-      dials,
-      pickups,
-      // Guard the divide: an unlogged month is blank, not 0%.
-      pickupRate: dials > 0 ? `${Math.round((pickups / dials) * 100)}%` : "·",
+      ...totals,
+      pickupRate: rate(totals.pickups, totals.callsMade),
+      pitchRate: rate(totals.passThrough, totals.pickups),
     };
   }, [trackerQuery.data]);
 
@@ -91,24 +86,38 @@ export default function ColdCallScoreboard({ callerId = "" }: { callerId?: strin
       </section>
 
       <section>
-        <div className="pk-section-h">Typed into the tracker</div>
+        <div className="pk-section-h">Dialing, as the app recorded it</div>
         {!callerId ? (
           <div className="pk-needs">
-            Dials and pickups are logged per person. Pick someone above to see
-            theirs.
+            Dials are recorded per person. Pick someone above to see theirs.
           </div>
         ) : (
-        <div className="pk-report">
-          <Stat value={fromTracker.dials} label="Dials this month" />
-          <Stat value={fromTracker.pickups} label="Pickups this month" />
-          <Stat value={fromTracker.pickupRate} label="Pickup rate" />
-        </div>
+          <>
+            <div className="pk-report">
+              <Stat value={recorded.callsMade} label="Dials this month" />
+              <Stat value={recorded.pickups} label="Pickups" />
+              <Stat value={recorded.pickupRate} label="Pickup rate" />
+              <Stat value={recorded.passThrough} label="Got to the pitch" />
+              <Stat value={recorded.pitchRate} label="Pickup to pitch" />
+            </div>
+            <div className="pk-needs" style={{ marginTop: 12 }}>
+              {recorded.days === 0
+                ? "Nothing recorded this month yet. Every outcome pressed on the Leads or Callbacks page lands here on its own."
+                : `Counted from ${recorded.callsMade} attempt${
+                    recorded.callsMade === 1 ? "" : "s"
+                  } logged across ${recorded.days} day${
+                    recorded.days === 1 ? "" : "s"
+                  }. Each one is an outcome button pressed on a call; nothing here can be typed.`}
+            </div>
+            {recorded.typedDays > 0 && (
+              <div className="pk-needs" style={{ marginTop: 8 }}>
+                {recorded.typedDays} day{recorded.typedDays === 1 ? " has" : "s have"} a
+                hand-typed count on the Tracker, for dialing done off-app. Those
+                are not included above.
+              </div>
+            )}
+          </>
         )}
-        <div className="pk-needs" style={{ marginTop: 12 }}>
-          These three are hand-entered on the Tracker page, so they are a claim
-          rather than a measurement. They become real numbers when the dialer logs
-          each call itself.
-        </div>
       </section>
     </div>
   );

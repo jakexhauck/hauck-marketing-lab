@@ -44,6 +44,12 @@ import {
   type AdminClientDetailResponse,
   type AdminClientBillingPatch,
   type AdminClientBillingResponse,
+  type AdminOnboardingListResponse,
+  type AdminOnboardingResponse,
+  type AdminOnboardingSavePatch,
+  type AdminOnboardingChecklistResponse,
+  type AdminOnboardingReadinessResponse,
+  type AdminProvisionResponse,
   type AdTrackerLevel,
   type AdTrackerRange,
   type AdTrackerResponse,
@@ -1288,6 +1294,143 @@ export function useAdminClientBillingSave(tenantId: string) {
         ["admin", "clients", tenantId, "billing"],
         { billing: data.billing },
       );
+    },
+  });
+}
+
+// --- Onboarding (Fulfillment > Onboarding) -----------------------------------
+
+// Every client with their onboarding status and recorded progress, for the
+// Onboarding roster rail.
+export function useAdminOnboardingListQuery() {
+  return useQuery({
+    queryKey: ["admin", "onboarding", "list"],
+    staleTime: 30_000,
+    queryFn: () => api<AdminOnboardingListResponse>("/api/admin/onboarding"),
+  });
+}
+
+// One client's saved setup values, intake answers and provision status, from
+// GET /api/admin/onboarding/:tenantId. A client who has never been onboarded
+// returns empty objects and status "draft", not an error.
+export function useAdminOnboardingQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "onboarding", tenantId],
+    enabled: enabled && !!tenantId,
+    staleTime: 30_000,
+    queryFn: () => api<AdminOnboardingResponse>(`/api/admin/onboarding/${tenantId}`),
+  });
+}
+
+// Saves the setup values, the intake answers, or both. The PUT only touches the
+// halves present in the body, so the two Save buttons cannot overwrite each
+// other. Refetch rather than seed the cache: the API diverts the GHL location
+// and token onto the tenant and never echoes the token back, so what was sent
+// is not what is stored.
+export function useAdminOnboardingSave(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: AdminOnboardingSavePatch) =>
+      api<{ ok: true }>(`/api/admin/onboarding/${tenantId}`, {
+        method: "PUT",
+        body: JSON.stringify(patch),
+      }),
+    onSuccess: () => {
+      // exact: this key is a prefix of the checklist and readiness keys, and
+      // saving a draft to our database is no reason to go and ask GHL anything.
+      void qc.invalidateQueries({ queryKey: ["admin", "onboarding", tenantId], exact: true });
+    },
+  });
+}
+
+// The saved state of every checklist task, from
+// GET /api/admin/onboarding/:tenantId/checklist. Only tasks that have been
+// touched have a row; the tab treats a missing row as not done.
+export function useAdminOnboardingChecklistQuery(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "onboarding", tenantId, "checklist"],
+    enabled: enabled && !!tenantId,
+    staleTime: 30_000,
+    queryFn: () =>
+      api<AdminOnboardingChecklistResponse>(`/api/admin/onboarding/${tenantId}/checklist`),
+  });
+}
+
+// Ticks or unticks one task. Optimistic: a checkbox that waits for a round trip
+// before moving feels broken, and the only failure mode here is a stale tick
+// that the rollback undoes.
+export function useAdminOnboardingChecklistToggle(tenantId: string) {
+  const qc = useQueryClient();
+  const key = ["admin", "onboarding", tenantId, "checklist"];
+  return useMutation({
+    mutationFn: (vars: { taskKey: string; done: boolean }) =>
+      api<{ ok: true }>(`/api/admin/onboarding/${tenantId}/checklist`, {
+        method: "PUT",
+        body: JSON.stringify(vars),
+      }),
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<AdminOnboardingChecklistResponse>(key);
+      qc.setQueryData<AdminOnboardingChecklistResponse>(key, (old) => {
+        const items = old?.items ?? [];
+        const existing = items.find((i) => i.task_key === vars.taskKey);
+        return {
+          items: existing
+            ? items.map((i) => (i.task_key === vars.taskKey ? { ...i, done: vars.done } : i))
+            : [...items, { task_key: vars.taskKey, done: vars.done, value: null }],
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(key, context.previous);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key });
+      // The roster rail shows each client's recorded progress, so it moves too.
+      void qc.invalidateQueries({ queryKey: ["admin", "onboarding", "list"] });
+    },
+  });
+}
+
+// The live readiness checks, from GET /api/admin/onboarding/:tenantId/readiness.
+// Every call reaches into GHL for custom values and calendars, so this is slow
+// and deliberately manual: it does not refetch on focus and goes stale slowly.
+// The tab drives it with an explicit Re-check button.
+export function useAdminOnboardingReadinessQuery(tenantId: string, enabled = true) {
+  const qc = useQueryClient();
+  return useQuery({
+    queryKey: ["admin", "onboarding", tenantId, "readiness"],
+    enabled: enabled && !!tenantId,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const res = await api<AdminOnboardingReadinessResponse>(
+        `/api/admin/onboarding/${tenantId}/readiness`,
+      );
+      // The endpoint records what GHL answered against the checklist, so both
+      // the saved ticks and the roster's recorded progress are stale the moment
+      // this returns.
+      void qc.invalidateQueries({ queryKey: ["admin", "onboarding", tenantId, "checklist"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "onboarding", "list"] });
+      return res;
+    },
+  });
+}
+
+// Writes every mapped setup value into the client's live GHL sub-account. This
+// one changes the client's account, not our database, so the tab asks before
+// firing it. Success moves the row to "provisioned" and may auto-tick a task,
+// so the record, the checklist and readiness all refresh afterwards.
+export function useAdminOnboardingProvision(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<AdminProvisionResponse>(`/api/admin/onboarding/${tenantId}/provision`, {
+        method: "POST",
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin", "onboarding", tenantId] });
     },
   });
 }

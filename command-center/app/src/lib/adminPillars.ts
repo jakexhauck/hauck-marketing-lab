@@ -45,7 +45,10 @@ export const ADMIN_PILLARS: PillarDef[] = [
   {
     id: "operations",
     label: "Operations",
+    // Business Health leads the pillar: it was the Command home until Command
+    // became the shortcut launcher, and it is the page you open Operations for.
     tabs: [
+      { id: "business-health", label: "Business Health", ready: true },
       { id: "calculator", label: "Calculator", ready: true },
       { id: "time-audit", label: "Time Audit", ready: true },
       { id: "tasks", label: "Tasks", ready: true },

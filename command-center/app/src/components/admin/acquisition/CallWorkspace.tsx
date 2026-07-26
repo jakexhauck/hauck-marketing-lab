@@ -1,20 +1,47 @@
-import { useState } from "react";
-import { Phone, PhoneOff, CalendarClock, CalendarCheck, Ban, ChevronRight } from "lucide-react";
-import type { AdminLead } from "../../../lib/api";
+import { useEffect, useState } from "react";
+import {
+  Phone,
+  PhoneOff,
+  CalendarClock,
+  CalendarCheck,
+  Ban,
+  ChevronRight,
+  Hand,
+  Moon,
+  CheckCircle2,
+  TriangleAlert,
+} from "lucide-react";
+import type { AdminLead, ColdCallDialOutcome } from "../../../lib/api";
 import { STATUS_META } from "../../../lib/adminLeads";
 import { useUpdateAdminLead } from "../../../hooks/useAdminLeads";
+import { useLogColdCallDial } from "../../../hooks/useColdCall";
+import {
+  isOutsideCallingHours,
+  localTimeLabel,
+  zoneForLead,
+} from "../../../lib/leadLocalTime";
 import BookingPanel from "./BookingPanel";
 
 // The calling workspace: a queue on the left, the one prospect being called on
-// the right, four buttons for how it went.
+// the right, five buttons for how it went.
 //
 // Shared by Leads (the cold queue) and Callbacks (people who asked to be called
 // back), because they are the same job. The only differences are which leads go
 // in and what the left column is called, so those are props and nothing else is.
 //
-// Pressing an outcome writes the row and hands over the next prospect. The
-// caller never picks who to call and never types a total, which is what makes
-// the Scoreboard worth paying commission against.
+// Pressing an outcome does two things: it moves the lead on, and it appends one
+// row to cold_call_dials (0052). That second write is what the Cold Call tracker
+// and the Scoreboard count, so the daily numbers are a record of buttons pressed
+// rather than figures somebody typed at the end of the day.
+//
+// The five outcomes exist because four could not tell "hung up on hello" from
+// "heard the pitch and said no", and the difference between those two is the
+// pass-through rate. See functions/lib/coldCallDials.ts for what each counts as.
+//
+// Each button also names a stage of the Cold Call Leads pipeline in the agency's
+// GoHighLevel account, and pressing it moves the prospect there (0053). "Hot
+// lead" carries the stage's own name for exactly that reason: it is the same
+// thing said twice, so nobody has to translate between the two systems.
 
 function today(): string {
   const d = new Date();
@@ -48,6 +75,17 @@ interface Props {
   badgeFor?: (lead: AdminLead) => QueueBadge | null;
 }
 
+// The prospect's own clock, re-read every half minute. Their time is the one
+// thing on this card that changes while you look at it.
+function useNow(intervalMs = 30_000): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(timer);
+  }, [intervalMs]);
+  return now;
+}
+
 export default function CallWorkspace({
   leads,
   queueTitle,
@@ -56,6 +94,8 @@ export default function CallWorkspace({
   badgeFor,
 }: Props) {
   const updateLead = useUpdateAdminLead();
+  const logDial = useLogColdCallDial();
+  const now = useNow();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Callback and Booked both need a date before they mean anything, so the
   // button opens an inline date field rather than writing a guess.
@@ -75,7 +115,17 @@ export default function CallWorkspace({
     setPendingDate("");
   };
 
-  const logOutcome = (lead: AdminLead, fields: Record<string, unknown>) => {
+  // The attempt is recorded first and the lead moved second. If the dial write
+  // fails the lead still moves on: losing the count of one call is a smaller
+  // wrong than stranding a prospect the caller has finished with.
+  const logOutcome = (
+    lead: AdminLead,
+    outcome: ColdCallDialOutcome,
+    fields: Record<string, unknown>,
+    // Carried through to GoHighLevel, where it becomes the callback task.
+    followUpDate?: string,
+  ) => {
+    logDial.mutate({ leadId: lead.id, outcome, followUpDate });
     updateLead.mutate({ id: lead.id, ...fields } as Parameters<typeof updateLead.mutate>[0]);
     advance(lead.id);
   };
@@ -84,7 +134,7 @@ export default function CallWorkspace({
   // prospect who was called back stays on the Callbacks page forever and the
   // page stops being a list of things to do.
   const noAnswer = (lead: AdminLead) =>
-    logOutcome(lead, {
+    logOutcome(lead, "no_answer", {
       status: "No Answer",
       noAnswer: lead.noAnswer + 1,
       lastContact: today(),
@@ -92,8 +142,18 @@ export default function CallWorkspace({
       followUpDate: null,
     });
 
+  // They picked up and it ended before the pitch. A pickup, not a pass-through,
+  // and the lead stays workable: a bad moment is not a no.
+  const brushOff = (lead: AdminLead) =>
+    logOutcome(lead, "brush_off", {
+      status: "Contacted",
+      lastContact: today(),
+      firstContactDate: lead.firstContactDate ?? today(),
+      followUpDate: null,
+    });
+
   const notInterested = (lead: AdminLead) =>
-    logOutcome(lead, {
+    logOutcome(lead, "not_interested", {
       status: "Dead",
       lastContact: today(),
       firstContactDate: lead.firstContactDate ?? today(),
@@ -104,12 +164,17 @@ export default function CallWorkspace({
   // calendar and is written by the booking endpoint, not here.
   const confirmCallback = (lead: AdminLead) => {
     if (!pendingDate) return;
-    logOutcome(lead, {
-      status: "Contacted",
-      followUpDate: pendingDate,
-      lastContact: today(),
-      firstContactDate: lead.firstContactDate ?? today(),
-    });
+    logOutcome(
+      lead,
+      "callback",
+      {
+        status: "Contacted",
+        followUpDate: pendingDate,
+        lastContact: today(),
+        firstContactDate: lead.firstContactDate ?? today(),
+      },
+      pendingDate,
+    );
   };
 
   return (
@@ -194,9 +259,9 @@ export default function CallWorkspace({
                 {fullName(selected)}
               </h2>
               <p className="mt-1 text-[13px] text-muted">
-                {[selected.source, selected.timezone].filter(Boolean).join(" · ") ||
-                  "No source recorded"}
+                {selected.source || "No source recorded"}
               </p>
+              <LocalTime lead={selected} now={now} />
             </div>
             <span className="font-mono text-[12px] text-muted">
               {selected.noAnswer > 0
@@ -223,16 +288,25 @@ export default function CallWorkspace({
             </p>
           )}
 
+          <GhlState lead={selected} />
+
           <div className="mt-6">
             <div className="pk-section-h" style={{ marginBottom: 10 }}>
               How did it go
             </div>
             <div className="flex flex-wrap gap-2">
               <OutcomeButton icon={PhoneOff} label="No answer" onClick={() => noAnswer(selected)} />
+              <OutcomeButton
+                icon={Hand}
+                label="Brush-off"
+                title="They picked up, but you never got to the pitch"
+                onClick={() => brushOff(selected)}
+              />
               <OutcomeButton icon={Ban} label="Not interested" onClick={() => notInterested(selected)} />
               <OutcomeButton
                 icon={CalendarClock}
-                label="Callback"
+                label="Hot lead"
+                title="They heard the pitch and gave you a next step. Asks for the callback date."
                 on={pending === "callback"}
                 onClick={() => {
                   setPending(pending === "callback" ? null : "callback");
@@ -278,8 +352,12 @@ export default function CallWorkspace({
               <BookingPanel
                 lead={selected}
                 onBooked={() => {
-                  // The endpoint already wrote the lead and the appointment; just
-                  // move him on to the next prospect.
+                  // The endpoint already wrote the lead and the appointment, so
+                  // all that is left is the record of the call. Logged HERE
+                  // rather than when the button was pressed: a recorded booking
+                  // that never made it onto the calendar would be a lie the
+                  // Scoreboard repeats every month.
+                  logDial.mutate({ leadId: selected.id, outcome: "booked" });
                   advance(selected.id);
                 }}
                 onCancel={() => setPending(null)}
@@ -299,14 +377,73 @@ export default function CallWorkspace({
   );
 }
 
+// What time it is where the prospect is, and a word when that time is one
+// nobody should be rung at. Shows nothing at all when neither the lead's
+// timezone nor its area code says where they are: a guessed clock would be
+// worse than none, since the whole point is to be trusted before dialing.
+function LocalTime({ lead, now }: { lead: AdminLead; now: number }) {
+  const zone = zoneForLead(lead);
+  if (!zone) return null;
+
+  const late = isOutsideCallingHours(zone.zone, now);
+  return (
+    <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px]">
+      <span
+        className={late ? "font-semibold text-danger" : "text-text"}
+        title={zone.zone}
+      >
+        {localTimeLabel(zone.zone, now)}
+      </span>
+      {zone.source === "areaCode" && (
+        <span className="text-[12px] text-faint">from the area code</span>
+      )}
+      {late && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2 py-0.5 text-[11.5px] font-semibold text-danger">
+          <Moon size={12} aria-hidden />
+          Outside 8am-9pm there
+        </span>
+      )}
+    </p>
+  );
+}
+
+// Where this prospect stands in the agency's GoHighLevel account.
+//
+// Silent until there is something to say. A prospect nobody has called yet is
+// not "missing from the CRM", it is simply not called, and a warning on all 44
+// rows would train everyone to ignore the one row that matters.
+function GhlState({ lead }: { lead: AdminLead }) {
+  if (lead.ghlError) {
+    return (
+      <p className="mt-4 flex items-start gap-2 rounded-[var(--radius)] border border-danger/40 px-4 py-3 text-[12.5px] text-danger">
+        <TriangleAlert size={14} className="mt-0.5 shrink-0" aria-hidden />
+        <span>
+          Not saved to GoHighLevel: {lead.ghlError} The call itself was recorded.
+        </span>
+      </p>
+    );
+  }
+
+  if (!lead.ghlContactId) return null;
+
+  return (
+    <p className="mt-4 flex items-center gap-1.5 text-[12.5px] text-muted">
+      <CheckCircle2 size={13} className="text-brand" aria-hidden />
+      In GoHighLevel
+    </p>
+  );
+}
+
 function OutcomeButton({
   icon: Icon,
   label,
+  title,
   on,
   onClick,
 }: {
   icon: typeof Phone;
   label: string;
+  title?: string;
   on?: boolean;
   onClick: () => void;
 }) {
@@ -314,6 +451,7 @@ function OutcomeButton({
     <button
       type="button"
       onClick={onClick}
+      title={title}
       aria-pressed={on}
       className={[
         "inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-[13.5px] font-semibold transition-colors",

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Check, ChevronDown, GripVertical, Plus, X } from "lucide-react";
 import { useAdminTaskList, type TaskTextField } from "../../hooks/useAdminTaskList";
 import { taskCounts, type TaskStatus } from "../../lib/taskStatus";
@@ -20,6 +20,74 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   doing: "Doing",
   done: "Done",
 };
+
+// A cell that shows everything typed into it. These were single-line inputs,
+// which silently clipped a long task at the column edge; a textarea sized to
+// its own content wraps instead and the row grows to fit.
+//
+// Enter still commits rather than inserting a newline, so the cell behaves the
+// way the input it replaced did. Shift+Enter is left alone for a deliberate
+// line break.
+function AutoCell({
+  value,
+  placeholder,
+  ariaLabel,
+  autoFocus,
+  onAutoFocused,
+  onChange,
+  onCommit,
+}: {
+  value: string;
+  placeholder: string;
+  ariaLabel: string;
+  // Take focus on mount (the row just added). onAutoFocused fires once so the
+  // parent can drop the request; without that the cell would grab focus back on
+  // every keystroke and park the caret at the start.
+  autoFocus?: boolean;
+  onAutoFocused?: () => void;
+  onChange: (value: string) => void;
+  onCommit: (value: string) => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+
+  useLayoutEffect(() => {
+    if (!autoFocus) return;
+    ref.current?.focus();
+    onAutoFocused?.();
+    // Runs on the autoFocus request alone; onAutoFocused is a fresh closure
+    // each render and would otherwise re-fire this every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFocus]);
+
+  // Re-measure on every value change, and on mount, so a stored task that
+  // wraps to three lines opens at three lines rather than growing on first
+  // keystroke. Layout effect so the row never paints at the wrong height.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      className="otk-txt"
+      rows={1}
+      value={value}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          e.currentTarget.blur();
+        }
+      }}
+      onBlur={(e) => onCommit(e.target.value)}
+    />
+  );
+}
 
 export default function OperationsTasksTab() {
   const {
@@ -210,29 +278,23 @@ export default function OperationsTasksTab() {
                       </button>
                     </td>
                     <td className="otk-taskcol">
-                      <input
-                        className="otk-txt"
+                      <AutoCell
                         value={draftValue(task, "title")}
                         placeholder="New task"
-                        aria-label="Task"
-                        ref={(el) => {
-                          if (el && focusId === task.id) {
-                            el.focus();
-                            setFocusId(null);
-                          }
-                        }}
-                        onChange={(e) => onCellChange(task, "title", e.target.value)}
-                        onBlur={(e) => onCellBlur(task, "title", e.target.value)}
+                        ariaLabel="Task"
+                        autoFocus={focusId === task.id}
+                        onAutoFocused={() => setFocusId(null)}
+                        onChange={(v) => onCellChange(task, "title", v)}
+                        onCommit={(v) => onCellBlur(task, "title", v)}
                       />
                     </td>
                     <td className="otk-notescol">
-                      <input
-                        className="otk-txt"
+                      <AutoCell
                         value={draftValue(task, "note")}
                         placeholder="Notes"
-                        aria-label="Notes"
-                        onChange={(e) => onCellChange(task, "note", e.target.value)}
-                        onBlur={(e) => onCellBlur(task, "note", e.target.value)}
+                        ariaLabel="Notes"
+                        onChange={(v) => onCellChange(task, "note", v)}
+                        onCommit={(v) => onCellBlur(task, "note", v)}
                       />
                     </td>
                     <td className="otk-statuscol">
@@ -253,13 +315,12 @@ export default function OperationsTasksTab() {
                       </span>
                     </td>
                     <td className="otk-updcol">
-                      <input
-                        className="otk-txt"
+                      <AutoCell
                         value={draftValue(task, "updates")}
                         placeholder="Add an update"
-                        aria-label="Updates"
-                        onChange={(e) => onCellChange(task, "updates", e.target.value)}
-                        onBlur={(e) => onCellBlur(task, "updates", e.target.value)}
+                        ariaLabel="Updates"
+                        onChange={(v) => onCellChange(task, "updates", v)}
+                        onCommit={(v) => onCellBlur(task, "updates", v)}
                       />
                     </td>
                     <td className="otk-delcol">
@@ -346,6 +407,15 @@ function OperationsTasksStyle() {
         padding: 8px 14px; font-size: 13.5px; text-align: left;
         border-bottom: 1px solid var(--border); vertical-align: middle;
       }
+      /* A row that has wrapped to several lines reads better with its controls
+         at the top of the row than floating in the middle of the text. */
+      .pk-kit .otk-card tbody td.otk-gripcol,
+      .pk-kit .otk-card tbody td.otk-donecol,
+      .pk-kit .otk-card tbody td.otk-statuscol,
+      .pk-kit .otk-card tbody td.otk-delcol { vertical-align: top; padding-top: 12px; }
+      .pk-kit .otk-card tbody td.otk-taskcol,
+      .pk-kit .otk-card tbody td.otk-notescol,
+      .pk-kit .otk-card tbody td.otk-updcol { vertical-align: top; }
       .pk-kit .otk-card tbody tr:hover td { background: var(--otk-hover); }
 
       /* Drag-to-reorder: a grip that arms the row for HTML5 drag, a dimmed row
@@ -375,9 +445,14 @@ function OperationsTasksStyle() {
       .pk-kit .otk-chk.on svg { opacity: 1; transform: scale(1); }
       .pk-kit .otk-chk:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--otk-indigo); }
 
+      /* A textarea rather than an input, so a long task wraps and stays
+         readable. Sized to its content in JS (AutoCell); resize and the scroll
+         gutter are off so it reads as a cell, not a form control. */
       .pk-kit .otk-card td .otk-txt {
         width: 100%; border: 0; background: transparent; font: inherit; color: var(--text);
         padding: 6px 8px; border-radius: 8px; transition: background .12s, box-shadow .12s;
+        display: block; resize: none; overflow: hidden; line-height: 1.45;
+        white-space: pre-wrap; overflow-wrap: anywhere;
       }
       .pk-kit .otk-card td.otk-taskcol .otk-txt { font-weight: 600; min-width: 160px; }
       .pk-kit .otk-card td.otk-notescol .otk-txt { color: var(--text-muted); font-weight: 400; min-width: 150px; }

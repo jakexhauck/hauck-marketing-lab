@@ -85,21 +85,95 @@ export function monthParam(cursor: MonthCursor): string {
   return `${cursor.year}-${month < 10 ? `0${month}` : month}`;
 }
 
-// API rows -> the tracker's iso-keyed map of raw string cells. null becomes ""
-// so a blank cell stays blank instead of showing a fabricated 0.
+// One count cell, resolved. Since 0052 a day can carry two numbers per column:
+// what the app recorded from the outcome buttons, and what somebody typed over
+// it. Typed wins, because the only reason to type is dialing the app could not
+// see. A cell with neither stays blank rather than showing a fabricated 0.
+function resolveCount(typed: number | null, recorded: number | null): string {
+  if (typed !== null) return String(typed);
+  if (recorded !== null) return String(recorded);
+  return "";
+}
+
+// API rows -> the tracker's iso-keyed map of raw string cells.
 export function toTrackerRows(days: ColdCallRow[]): Record<string, TrackerRow> {
   const byDay: Record<string, TrackerRow> = {};
   for (const d of days) {
+    const rec = d.recorded;
     byDay[d.day] = {
-      callsMade: d.callsMade === null ? "" : String(d.callsMade),
-      pickups: d.pickups === null ? "" : String(d.pickups),
-      passThrough: d.passThrough === null ? "" : String(d.passThrough),
-      meetingsBooked: d.meetingsBooked === null ? "" : String(d.meetingsBooked),
+      callsMade: resolveCount(d.callsMade, rec?.callsMade ?? null),
+      pickups: resolveCount(d.pickups, rec?.pickups ?? null),
+      passThrough: resolveCount(d.passThrough, rec?.passThrough ?? null),
+      meetingsBooked: resolveCount(d.meetingsBooked, rec?.meetingsBooked ?? null),
       objections: d.objections ?? "",
       notes: d.notes ?? "",
     };
   }
   return byDay;
+}
+
+// Which cells are hand-typed, and what the app had recorded underneath. The grid
+// marks these so nobody reads a typed figure as a measured one; the value is the
+// recorded number that was overridden, or null when the app recorded nothing.
+export type ColdCallTypedCells = Record<
+  string,
+  Partial<Record<ColdCallNumericField, number | null>>
+>;
+
+export function typedCells(days: ColdCallRow[]): ColdCallTypedCells {
+  const out: ColdCallTypedCells = {};
+  for (const d of days) {
+    const cells: Partial<Record<ColdCallNumericField, number | null>> = {};
+    for (const field of COLD_CALL_NUMERIC_FIELDS) {
+      if (d[field] === null) continue;
+      cells[field] = d.recorded ? d.recorded[field] : null;
+    }
+    if (Object.keys(cells).length > 0) out[d.day] = cells;
+  }
+  return out;
+}
+
+// The one-line explanation behind a typed cell, for its tooltip.
+export function typedCellNote(label: string, recorded: number | null): string {
+  return recorded === null
+    ? `${label}: typed by hand. The app recorded no dialing this day.`
+    : `${label}: typed by hand, over the ${recorded} the app recorded.`;
+}
+
+// What the app measured across a month, ignoring anything typed. The Scoreboard
+// reports these separately from the grid's resolved numbers, since only these
+// are un-inflatable.
+export interface ColdCallRecordedTotals {
+  callsMade: number;
+  pickups: number;
+  passThrough: number;
+  meetingsBooked: number;
+  // Days the app recorded at least one attempt on.
+  days: number;
+  // Days somebody typed at least one count into.
+  typedDays: number;
+}
+
+export function recordedTotals(days: ColdCallRow[]): ColdCallRecordedTotals {
+  const totals: ColdCallRecordedTotals = {
+    callsMade: 0,
+    pickups: 0,
+    passThrough: 0,
+    meetingsBooked: 0,
+    days: 0,
+    typedDays: 0,
+  };
+  for (const d of days) {
+    if (d.recorded) {
+      totals.callsMade += d.recorded.callsMade;
+      totals.pickups += d.recorded.pickups;
+      totals.passThrough += d.recorded.passThrough;
+      totals.meetingsBooked += d.recorded.meetingsBooked;
+      totals.days += 1;
+    }
+    if (COLD_CALL_NUMERIC_FIELDS.some((f) => d[f] !== null)) totals.typedDays += 1;
+  }
+  return totals;
 }
 
 // A day counts as logged when any of its four counts is set. Text-only notes do

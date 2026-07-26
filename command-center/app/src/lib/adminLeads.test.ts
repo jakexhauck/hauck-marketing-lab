@@ -28,8 +28,12 @@ function lead(over: Partial<AdminLead> & { id: string }): AdminLead {
     followUpDate: null,
     email: "",
     notes: "",
-  assignedTo: null,
+    assignedTo: null,
     createdAt: "2026-07-17T00:00:00.000Z",
+    // Nothing has been pushed to GoHighLevel for a lead in a unit test.
+    ghlContactId: null,
+    ghlSyncedAt: null,
+    ghlError: null,
     ...over,
   };
 }

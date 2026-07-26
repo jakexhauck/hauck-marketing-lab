@@ -15,8 +15,8 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useBusinessHealthQuery, useSaveBusinessHealthMutation } from "../../hooks/useApi";
-import { formatMoney } from "../../lib/format";
+import { useBusinessHealthQuery, useSaveBusinessHealthMutation } from "../../../hooks/useApi";
+import { formatMoney } from "../../../lib/format";
 import {
   EMPTY_INPUTS,
   benchmark,
@@ -27,9 +27,11 @@ import {
   type BusinessHealthInputs,
   type Computed,
   type PeriodType,
-} from "../../lib/businessHealth";
+} from "../../../lib/businessHealth";
 
-// Command home: Business Health, the whole-agency numbers.
+// The Operations pillar's Business Health tab: the whole-agency numbers. This
+// used to be the Command home; Command is now the shortcut launcher, so the
+// numbers live here as a page of their own.
 //
 // Two zoned panels (Money, Clients & Retention) over one period at a time.
 // Every tinted tile is a hand-entered input; every "Auto" tile is computed from
@@ -41,8 +43,8 @@ import {
 // toggle loads a different row, and a period nobody has filled in opens
 // all-zero rather than showing fabricated numbers.
 //
-// PillarStyle is mounted once by AdminLayout, so this page renders .pk-root and
-// its own scoped .bh-* block.
+// The kicker, title and pillar tab bar come from PillarPage, so this renders
+// only the controls row, the two panels and its own scoped .bh-* block.
 
 const PERIOD_TABS: { type: PeriodType; label: string }[] = [
   { type: "month", label: "This month" },
@@ -226,7 +228,7 @@ function inputWidth(text: string): string {
   return `calc(${Math.max(1, text.length)}ch + 10px)`;
 }
 
-export default function AdminCommand() {
+export default function BusinessHealthTab() {
   const [periodType, setPeriodType] = useState<PeriodType>("month");
   const period = periodKey(periodType);
 
@@ -357,12 +359,10 @@ export default function AdminCommand() {
   ];
 
   return (
-    <div className="pk-root">
+    <div>
       <BusinessHealthStyle />
 
-      <h1 className="pk-title">Business Health</h1>
-
-      <div className="bh-controls">
+      <div className="bh-controls" style={{ marginTop: 0 }}>
         <div className="bh-tabs" role="tablist" aria-label="Period">
           {PERIOD_TABS.map((tab) => (
             <button

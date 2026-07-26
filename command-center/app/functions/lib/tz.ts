@@ -61,3 +61,25 @@ export function startOfDayOffsetMs(
 ): number {
   return startOfTodayMs(zone, nowMs + days * 86_400_000);
 }
+
+// A wall-clock time on a given calendar date in a zone, as a UTC instant.
+// "2026-07-29" at 9am in New York is 13:00Z in summer and 14:00Z in winter, and
+// only this conversion knows the difference. Used to give a GHL task a due time
+// that lands on the right morning wherever the server happens to run.
+//
+// Same two-pass offset correction as startOfTodayMs, for the same reason: the
+// first guess uses the offset at the wrong instant near a DST boundary.
+export function zonedTimeToUtcMs(
+  zone: string,
+  isoDate: string,
+  hour = 9,
+  minute = 0,
+): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate.trim());
+  if (!match) return null;
+  const [, year, month, day] = match;
+  const asUtc = Date.UTC(Number(year), Number(month) - 1, Number(day), hour, minute);
+  let guess = asUtc - zoneOffsetMs(zone, asUtc);
+  guess = asUtc - zoneOffsetMs(zone, guess);
+  return guess;
+}

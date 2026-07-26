@@ -60,6 +60,8 @@ import AdminClientNew from "./routes/admin/AdminClientNew";
 import AdminCommand from "./routes/admin/AdminCommand";
 import AdminApps from "./routes/admin/AdminApps";
 import AdminDelivery from "./routes/admin/AdminDelivery";
+import AdminOnboarding from "./routes/admin/AdminOnboarding";
+import OnboardingClient from "./routes/admin/OnboardingClient";
 import DeliveryCockpit from "./routes/admin/DeliveryCockpit";
 import SetterSuite from "./routes/admin/SetterSuite";
 import PillarPage from "./routes/admin/PillarPage";
@@ -573,6 +575,24 @@ export default function App() {
                 element={
                   <AdminRoute roles={["owner"]}>
                     <DeliveryCockpit />
+                  </AdminRoute>
+                }
+              />
+              {/* Fulfillment > Onboarding: standing a new client up. The
+                  roster, then one client's whole onboarding record. */}
+              <Route
+                path="/admin/onboarding"
+                element={
+                  <AdminRoute roles={["owner"]}>
+                    <AdminOnboarding />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/onboarding/:tenantId"
+                element={
+                  <AdminRoute roles={["owner"]}>
+                    <OnboardingClient />
                   </AdminRoute>
                 }
               />

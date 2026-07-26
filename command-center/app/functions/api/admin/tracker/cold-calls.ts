@@ -1,10 +1,23 @@
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
+import {
+  mergeRecordedDays,
+  rollUpDialsByDay,
+  type DialRow,
+  type TypedDay,
+} from "../../../lib/coldCallDials";
 
 // Cold Call daily dialing funnel (Acquisition > Cold Call). Agency-global, one
-// row per calendar day in public.cold_calls (migration 0031), hand-entered.
+// row per caller per day in public.cold_calls (0035, 0050).
 // Admin-gated in functions/api/_middleware.ts, reached with the service client.
+//
+// Since 0052 a day carries TWO sets of counts: what the app recorded (derived
+// from cold_call_dials, one row per attempt) and what somebody typed. The typed
+// cells are an OVERRIDE for dialing done off-app; the recorded counts are the
+// measurement. GET returns both and never merges them into one number, because
+// which of the two you are looking at is exactly what a commission argument
+// turns on.
 //
 // Rates (pickup %, pickup -> pass-through %, pitch -> book %) are never stored
 // or returned: the client computes them in src/lib/coldCall.ts.
@@ -23,7 +36,7 @@ interface ColdCallDbRow {
 const SELECT =
   "id, day, calls_made, pickups, pass_through, meetings_booked, objections, notes";
 
-function toRow(row: ColdCallDbRow) {
+function toRow(row: ColdCallDbRow): TypedDay {
   return {
     id: row.id,
     day: row.day,
@@ -95,8 +108,9 @@ function resolveCallerId(ctx: { data: ApiData; request: Request }): string {
 }
 
 // GET /api/admin/tracker/cold-calls?month=YYYY-MM[&callerId=...]  (admin-only)
-// One person's month. Returns only the days that exist; the client auto-generates
-// the rest as blank rows, so an unlogged month is empty here, never zero-filled.
+// One person's month. Returns only the days that have something on them (a typed
+// row, recorded dials, or both); the client auto-generates the rest as blank
+// rows, so an unworked month is empty here, never zero-filled.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
@@ -108,17 +122,31 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   const callerId = resolveCallerId(ctx);
   const { first, last } = monthRange(month);
-  const { data, error } = await client
-    .from("cold_calls")
-    .select(SELECT)
-    .eq("caller_id", callerId)
-    .gte("day", first)
-    .lte("day", last)
-    .order("day", { ascending: true });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  const days = ((data ?? []) as unknown as ColdCallDbRow[]).map(toRow);
-  return Response.json({ days });
+  // Both sides of the month in parallel: the typed grid and the attempts the
+  // app recorded.
+  const [typedRes, dialsRes] = await Promise.all([
+    client
+      .from("cold_calls")
+      .select(SELECT)
+      .eq("caller_id", callerId)
+      .gte("day", first)
+      .lte("day", last)
+      .order("day", { ascending: true }),
+    client
+      .from("cold_call_dials")
+      .select("day, spoke, pitched, outcome")
+      .eq("caller_id", callerId)
+      .gte("day", first)
+      .lte("day", last),
+  ]);
+  if (typedRes.error) return Response.json({ error: typedRes.error.message }, { status: 500 });
+  if (dialsRes.error) return Response.json({ error: dialsRes.error.message }, { status: 500 });
+
+  const typed = ((typedRes.data ?? []) as unknown as ColdCallDbRow[]).map(toRow);
+  const recorded = rollUpDialsByDay((dialsRes.data ?? []) as unknown as DialRow[]);
+
+  return Response.json({ days: mergeRecordedDays(typed, recorded) });
 };
 
 interface PatchBody {

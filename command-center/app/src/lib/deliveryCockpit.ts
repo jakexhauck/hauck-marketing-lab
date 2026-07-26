@@ -36,6 +36,10 @@ export interface ServiceTabDef {
 // Phase 1 ships every sub-tab as ready:false. Later phases flip them on.
 export const SERVICE_TABS: ServiceTabDef[] = [
   { id: "overview", label: "Overview", ready: true },
+  // Onboarding is deliberately NOT a tab here. It is its own page under
+  // Fulfillment (/admin/onboarding), alongside Clients and the Setter Suite,
+  // because it is the work of standing a client up rather than one more service
+  // being delivered to a running one.
   // Software: a read-only inventory of every page of the client app, each one
   // previewable live. No sub-tabs; the page list is its own navigation.
   { id: "software", label: "Software", ready: true },

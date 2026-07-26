@@ -27,11 +27,10 @@ interface AppTile {
 // alongside the Setter Suite. Add a row to grow the launcher.
 const APPS: AppTile[] = [
   {
-    to: "/admin",
+    to: "/admin/pillar/operations?tab=business-health",
     label: "Business Health",
-    blurb: "Agency numbers and command dashboard",
+    blurb: "The agency's own numbers, period by period",
     icon: Gauge,
-    end: true,
   },
   {
     to: "/admin/setter",

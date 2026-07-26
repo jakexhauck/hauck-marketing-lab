@@ -37,6 +37,7 @@ describe("adminPillars config", () => {
       "cold-call",
       "sms",
       "sales-data",
+      "business-health",
       "calculator",
       "time-audit",
       "tasks",
@@ -50,6 +51,7 @@ describe("adminPillars config", () => {
     expect(tabsFor("acquisition").map((t) => t.id)).toEqual(["cold-call", "sms"]);
     expect(tabsFor("sales").map((t) => t.id)).toEqual(["sales-data"]);
     expect(tabsFor("operations").map((t) => t.id)).toEqual([
+      "business-health",
       "calculator",
       "time-audit",
       "tasks",

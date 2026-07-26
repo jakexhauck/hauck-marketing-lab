@@ -20,6 +20,9 @@ export interface Env {
   AGENCY_GHL_LOCATION_ID?: string;
   AGENCY_GHL_TOKEN?: string;
   AGENCY_TIMEZONE?: string;
+  // Who a callback task is assigned to in the agency's GHL. Defaults to Jake's
+  // user id; see functions/lib/agencyGhl.ts.
+  AGENCY_GHL_USER_ID?: string;
   // Supabase tenant slug for the test session mode (defaults to test-account).
   TEST_TENANT_SLUG?: string;
   SUPABASE_URL?: string;

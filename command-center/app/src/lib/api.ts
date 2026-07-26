@@ -481,6 +481,79 @@ export interface AdminClientBillingResponse {
   billing: AdminClientBilling;
 }
 
+// --- Onboarding (Fulfillment cockpit's Onboarding tab) -----------------------
+// One client's whole onboarding record: the setup values we push into their GHL
+// sub-account, their own intake answers, and where they are in the checklist.
+// The GHL token is write-only over this API: it is saved onto the tenant and
+// never read back, so hasToken is the only thing the UI can say about it.
+
+// One row of the Onboarding page's roster. tasksDone counts recorded ticks
+// only; the three GHL-checked tasks are answered live on the client's own page.
+export interface AdminOnboardingListItem {
+  id: string;
+  name: string;
+  slug: string;
+  niche: string;
+  brandColor: string;
+  brandInitials: string;
+  status: string;
+  provisionedAt: string | null;
+  tasksDone: number;
+  tasksTotal: number;
+}
+
+export interface AdminOnboardingListResponse {
+  clients: AdminOnboardingListItem[];
+}
+
+export interface AdminOnboardingResponse {
+  fields: Record<string, string>;
+  intake: Record<string, string>;
+  status: string;
+  hasToken: boolean;
+  provisionResult: AdminProvisionResult | null;
+}
+
+export interface AdminOnboardingSavePatch {
+  fields?: Record<string, string>;
+  intake?: Record<string, string>;
+}
+
+export interface AdminOnboardingChecklistItem {
+  task_key: string;
+  done: boolean;
+  value: string | null;
+}
+
+export interface AdminOnboardingChecklistResponse {
+  items: AdminOnboardingChecklistItem[];
+}
+
+export interface AdminOnboardingReadinessCheck {
+  key: string;
+  ok: boolean;
+  detail: string;
+}
+
+export interface AdminOnboardingReadinessResponse {
+  checks: AdminOnboardingReadinessCheck[];
+}
+
+// What a provision run wrote, what it could not write, and which custom values
+// the sub-account does not have. Stored on the row, so the tab can show the
+// last run without re-running it.
+export interface AdminProvisionResult {
+  written: string[];
+  failed: { name: string; status: number }[];
+  notFound: string[];
+  at?: string;
+}
+
+export interface AdminProvisionResponse extends AdminProvisionResult {
+  ok: boolean;
+  error?: string;
+}
+
 // --- Ad Tracker (the rebuild: derived from Meta + GHL, nothing typed) --------
 // Ratios arrive computed so the client cannot recompute one differently and
 // quietly disagree with the sheet this was ported from. null means the
@@ -995,9 +1068,29 @@ export interface AdminLead {
   // Whose queue this lead sits in (0049). Null = in the book, on nobody's list.
   assignedTo: string | null;
   createdAt: string;
+  // The prospect's record in the agency's own GoHighLevel account (0053).
+  // Written by the app's push, never edited here.
+  ghlContactId: string | null;
+  ghlSyncedAt: string | null;
+  // Why the last push failed, in words a caller can read. Null when it worked.
+  ghlError: string | null;
+}
+
+// What the app recorded for a day, derived from cold_call_dials (0052): one
+// attempt per outcome pressed on the call card. Null when nothing was dialled in
+// the app that day.
+export interface ColdCallRecorded {
+  callsMade: number;
+  pickups: number;
+  passThrough: number;
+  meetingsBooked: number;
 }
 
 // Cold Call (Acquisition > Cold Call): one row per dialing day.
+//
+// The four counts are what somebody TYPED, and null means they typed nothing.
+// `recorded` is what the app measured. The grid shows the typed number when
+// there is one and the recorded number otherwise; see src/lib/coldCall.ts.
 export interface ColdCallRow {
   id: string;
   day: string; // "YYYY-MM-DD"
@@ -1007,6 +1100,7 @@ export interface ColdCallRow {
   meetingsBooked: number | null;
   objections: string | null;
   notes: string | null;
+  recorded: ColdCallRecorded | null;
 }
 
 // Cold SMS (Acquisition > SMS): three sub-views, three row shapes.
@@ -1341,6 +1435,71 @@ export async function bookColdCall(input: {
   endTime: string;
 }): Promise<ColdCallBookResult> {
   return api("/api/admin/cold-call/book", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// The agency's own GoHighLevel boards (Cold Call > Pipelines), read live.
+export interface AgencyPipeline {
+  id: string;
+  name: string;
+  stages: { id: string; name: string }[];
+}
+
+export interface AgencyPipelineCard {
+  id: string;
+  name: string;
+  stageId: string;
+  status: string;
+  value: number | null;
+  contactId: string | null;
+  phone: string;
+  email: string;
+  tags: string[];
+  updatedAt: string | null;
+}
+
+export interface AgencyPipelinesResponse {
+  // False when the agency GHL account is not connected at all.
+  configured: boolean;
+  pipelines: AgencyPipeline[];
+  // Only when a pipeline id was asked for.
+  opportunities?: AgencyPipelineCard[];
+}
+
+export async function getAgencyPipelines(
+  pipelineId?: string,
+): Promise<AgencyPipelinesResponse> {
+  return api(
+    "/api/admin/cold-call/pipelines" +
+      (pipelineId ? `?id=${encodeURIComponent(pipelineId)}` : ""),
+  );
+}
+
+// One attempt, appended the moment an outcome is pressed (0052). The server
+// decides the caller (always the session), the day and what the outcome counts
+// as, so this carries only what it alone knows: which prospect, and how it went.
+export type ColdCallDialOutcome =
+  | "no_answer"
+  | "brush_off"
+  | "not_interested"
+  | "callback"
+  | "booked";
+
+export async function logColdCallDial(input: {
+  leadId: string | null;
+  outcome: ColdCallDialOutcome;
+  note?: string;
+  // Sent with a callback: it becomes a task on the contact in GoHighLevel, due
+  // that morning.
+  followUpDate?: string;
+}): Promise<{
+  dial: { id: string; day: string; outcome: string };
+  // What the push to GoHighLevel did, or null when the account is not connected.
+  ghl: { ok: boolean; error: string | null } | null;
+}> {
+  return api("/api/admin/cold-call/dials", {
     method: "POST",
     body: JSON.stringify(input),
   });

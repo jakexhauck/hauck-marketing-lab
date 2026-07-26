@@ -11,6 +11,7 @@ export type ColdCallView =
   | "leads"
   | "callbacks"
   | "booked"
+  | "pipelines"
   | "tracker"
   | "scoreboard"
   | "settings";
@@ -27,6 +28,8 @@ export const COLD_CALL_PAGES: ColdCallPageDef[] = [
   { id: "leads", label: "Leads" },
   { id: "callbacks", label: "Callbacks" },
   { id: "booked", label: "Booked" },
+  // The GoHighLevel boards, read live. One tab per pipeline inside.
+  { id: "pipelines", label: "Pipelines" },
   { id: "tracker", label: "Tracker" },
   { id: "scoreboard", label: "Scoreboard" },
   { id: "settings", label: "Settings", ownerOnly: true },

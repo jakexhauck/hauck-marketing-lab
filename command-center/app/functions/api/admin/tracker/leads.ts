@@ -42,10 +42,40 @@ export interface LeadRow {
   notes: string;
   assigned_to: string | null;
   created_at: string;
+  // The link into the agency's own GHL account (0053). Written by the push,
+  // never by a client.
+  // Optional: absent on a database that has not run 0053 yet.
+  ghl_contact_id?: string | null;
+  ghl_synced_at?: string | null;
+  ghl_error?: string | null;
 }
 
-export const SELECT =
+// The columns that have always been here. Kept separate from the GHL link
+// columns below because the two can be out of step: code deploys and database
+// migrations are separate steps, so there is a window where this file wants
+// columns the table does not have yet.
+const SELECT_BASE =
   "id, first_name, last_name, phone, timezone, status, first_contact_date, source, appointment_date, no_answer, last_contact, follow_up_date, email, notes, assigned_to, created_at";
+
+const SELECT_GHL = "ghl_contact_id, ghl_synced_at, ghl_error";
+
+export const SELECT = `${SELECT_BASE}, ${SELECT_GHL}`;
+
+// Postgres "undefined_column". Seen exactly once: between this code shipping and
+// migration 0053 running.
+const UNDEFINED_COLUMN = "42703";
+
+// Run a query with the GHL columns, and again without them if the table has not
+// been migrated yet. The lead book is the surface a caller works all day; it
+// loading without a sync marker is a small loss, and it not loading at all is
+// the whole job stopped.
+async function withGhlFallback<T>(
+  run: (select: string) => PromiseLike<{ data: T; error: { code?: string } | null }>,
+): Promise<{ data: T; error: { code?: string } | null }> {
+  const first = await run(SELECT);
+  if (!first.error || first.error.code !== UNDEFINED_COLUMN) return first;
+  return run(SELECT_BASE);
+}
 
 export function toLead(row: LeadRow) {
   return {
@@ -66,6 +96,12 @@ export function toLead(row: LeadRow) {
     // Whose queue this sits in (0049). Null = in the book, on nobody's list.
     assignedTo: row.assigned_to,
     createdAt: row.created_at,
+    // Where this prospect stands in the agency's GHL account (0053). The id is
+    // exposed so the console can link straight to the record; the error so a
+    // failed push is visible next to the prospect rather than buried in a log.
+    ghlContactId: row.ghl_contact_id ?? null,
+    ghlSyncedAt: row.ghl_synced_at ?? null,
+    ghlError: row.ghl_error ?? null,
   };
 }
 
@@ -172,11 +208,14 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
 
   const admin = ctx.data.admin!;
-  let query = client.from("leads").select(SELECT).is("deleted_at", null);
-  if (admin.role !== "owner") query = query.eq("assigned_to", admin.id);
-
-  const { data, error } = await query.order("created_at", { ascending: false });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  const { data, error } = await withGhlFallback((select) => {
+    let query = client.from("leads").select(select).is("deleted_at", null);
+    if (admin.role !== "owner") query = query.eq("assigned_to", admin.id);
+    return query.order("created_at", { ascending: false });
+  });
+  if (error) {
+    return Response.json({ error: (error as { message?: string }).message ?? "could not load leads" }, { status: 500 });
+  }
 
   const leads = ((data ?? []) as unknown as LeadRow[]).map(toLead);
   return Response.json({ leads });
@@ -204,9 +243,14 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     ...fields,
   };
 
-  const { data, error } = await client.from("leads").insert(insert).select(SELECT).single();
+  const { data, error } = await withGhlFallback((select) =>
+    client.from("leads").insert(insert).select(select).single(),
+  );
   if (error || !data) {
-    return Response.json({ error: error?.message ?? "could not create lead" }, { status: 500 });
+    return Response.json(
+      { error: (error as { message?: string } | null)?.message ?? "could not create lead" },
+      { status: 500 },
+    );
   }
 
   const lead = toLead(data as unknown as LeadRow);
@@ -248,17 +292,23 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     return Response.json({ error: "no fields to update" }, { status: 400 });
   }
 
-  let update = client
-    .from("leads")
-    .update({ ...fields, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .is("deleted_at", null);
-  // A caller may only write rows on their own queue. Scoping the UPDATE itself
-  // means a guessed id changes nothing and reports not found.
-  if (admin.role !== "owner") update = update.eq("assigned_to", admin.id);
-
-  const { data, error } = await update.select(SELECT).maybeSingle();
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  const { data, error } = await withGhlFallback((select) => {
+    let update = client
+      .from("leads")
+      .update({ ...fields, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .is("deleted_at", null);
+    // A caller may only write rows on their own queue. Scoping the UPDATE itself
+    // means a guessed id changes nothing and reports not found.
+    if (admin.role !== "owner") update = update.eq("assigned_to", admin.id);
+    return update.select(select).maybeSingle();
+  });
+  if (error) {
+    return Response.json(
+      { error: (error as { message?: string }).message ?? "could not save lead" },
+      { status: 500 },
+    );
+  }
   if (!data) return Response.json({ error: "lead not found" }, { status: 404 });
 
   await logAdminAction(client, admin.id, "leads.update", null, {

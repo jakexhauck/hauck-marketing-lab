@@ -1,3 +1,11 @@
+// The wizard exports its own ONBOARDING_FIELDS; alias both imports so the two
+// field models can sit in one module without shadowing each other.
+import {
+  ONBOARDING_FIELDS as WIZARD_FIELDS,
+  ONBOARDING_STEPS as WIZARD_STEPS,
+  type OnboardingField as WizardField,
+} from "./clientOnboarding";
+
 export type FieldGroup = "connection" | "business" | "rep" | "calendars";
 
 export interface OnboardingField {
@@ -66,6 +74,95 @@ export const CHECKLIST_TASKS: ChecklistTask[] = [
   { key: "smoke-test", phase: "Go Live", label: "Book + confirm test, watch title flip", auto: false },
 ];
 
+// --- The client's own intake answers ----------------------------------------
+//
+// Steps 4-6 of the new-client wizard are the questionnaire the client fills in
+// between payment and the kickoff call (contact + legal, targeting, story).
+// Those field definitions already exist in clientOnboarding.ts, so they are
+// reused here rather than retyped: add a question to the wizard and it appears
+// in the Onboarding tab too. Steps 1-3 are the technical shell Jake fills in and
+// already live on the tenant record, so they are deliberately excluded.
+
+export type { WizardField };
+
+/** The first wizard step that belongs to the client rather than to Jake. */
+export const FIRST_INTAKE_STEP = 4;
+
+export interface IntakeGroup {
+  step: number;
+  key: string;
+  label: string;
+  blurb: string;
+  fields: WizardField[];
+}
+
+/** The intake questionnaire, grouped by wizard step, in wizard order. */
+export function intakeGroups(): IntakeGroup[] {
+  return WIZARD_STEPS.filter((s) => s.n >= FIRST_INTAKE_STEP).map((s) => ({
+    step: s.n,
+    key: s.key,
+    label: s.label,
+    blurb: s.blurb,
+    fields: WIZARD_FIELDS.filter((f) => f.step === s.n),
+  }));
+}
+
+/** Every intake answer key, flat. The saved intake object is keyed by these. */
+export const INTAKE_KEYS: string[] = WIZARD_FIELDS.filter(
+  (f) => f.step >= FIRST_INTAKE_STEP,
+).map((f) => f.key);
+
+/** How many intake questions carry an answer. Blank strings do not count. */
+export function intakeAnswered(intake: Record<string, string>): number {
+  return INTAKE_KEYS.filter((k) => (intake[k] ?? "").trim() !== "").length;
+}
+
+// --- Checklist shaping -------------------------------------------------------
+
+export interface ChecklistPhase {
+  phase: string;
+  tasks: ChecklistTask[];
+}
+
+/** CHECKLIST_TASKS grouped into its phases, first-seen order preserved. */
+export function checklistPhases(): ChecklistPhase[] {
+  const out: ChecklistPhase[] = [];
+  for (const task of CHECKLIST_TASKS) {
+    const existing = out.find((p) => p.phase === task.phase);
+    if (existing) existing.tasks.push(task);
+    else out.push({ phase: task.phase, tasks: [task] });
+  }
+  return out;
+}
+
+export interface ChecklistProgress {
+  done: number;
+  total: number;
+  pct: number;
+}
+
+/**
+ * Progress over the real task list, not over whatever rows happen to be saved:
+ * a task with no row yet is not done, and a saved row for a task we no longer
+ * ship does not inflate the count.
+ */
+export function checklistProgress(
+  states: { taskKey: string; done: boolean }[],
+): ChecklistProgress {
+  const doneKeys = new Set(states.filter((s) => s.done).map((s) => s.taskKey));
+  const total = CHECKLIST_TASKS.length;
+  const done = CHECKLIST_TASKS.filter((t) => doneKeys.has(t.key)).length;
+  return { done, total, pct: total === 0 ? 0 : Math.round((done / total) * 100) };
+}
+
+/** The one-line human status for the tab header. */
+export function onboardingStage(status: string, progress: ChecklistProgress): string {
+  if (progress.done === 0) return "Not started";
+  if (progress.done === progress.total) return "Onboarding complete";
+  if (status === "provisioned") return "Provisioned, finishing setup";
+  return "In progress";
+}
+
 export interface GhlCustomValue { id: string; name: string; value?: string }
 export interface ProvisionWrite { id: string; name: string; value: string }
 export interface ProvisionPlan { writes: ProvisionWrite[]; notFound: string[] }
@@ -132,13 +229,13 @@ export function summarizeReadiness(input: ReadinessInput): ReadinessCheck[] {
       ok: empties.length === 0,
       detail: empties.length === 0
         ? "All mapped custom values are set"
-        : `${empties.length} custom value(s) still blank in GHL`,
+        : `${empties.length} custom ${empties.length === 1 ? "value is" : "values are"} still blank in GHL`,
     },
     {
       key: "calendars",
       ok: input.calendarIds.length > 0,
       detail: input.calendarIds.length > 0
-        ? `${input.calendarIds.length} calendar(s) present`
+        ? `${input.calendarIds.length} calendar${input.calendarIds.length === 1 ? "" : "s"} present`
         : "No calendars found in subaccount",
     },
   ];

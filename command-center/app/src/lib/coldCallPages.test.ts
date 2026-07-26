@@ -7,6 +7,7 @@ describe("coldCallPagesFor", () => {
       "leads",
       "callbacks",
       "booked",
+      "pipelines",
       "tracker",
       "scoreboard",
       "settings",

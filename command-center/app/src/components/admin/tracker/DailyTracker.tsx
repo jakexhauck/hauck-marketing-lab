@@ -90,6 +90,14 @@ export interface DailyTrackerProps {
   minWidth?: number;
   // Rendered between the month nav and the table (the rolling summary strip).
   aboveTable?: ReactNode;
+
+  // Per-cell decoration, for surfaces where a cell's value has a provenance
+  // worth showing. Cold Call uses it to mark a count that was typed over the
+  // one the app recorded. Optional: every other tracker renders as before.
+  cellClass?: (iso: string, field: string) => string | undefined;
+  cellTitle?: (iso: string, field: string) => string | undefined;
+  // An extra entry for the "You type / Computed" legend.
+  legendExtra?: ReactNode;
 }
 
 // The month stepper. Exported so a surface can lift it into its own header row
@@ -153,6 +161,9 @@ export default function DailyTracker({
   columnGroups,
   minWidth,
   aboveTable,
+  cellClass,
+  cellTitle,
+  legendExtra,
 }: DailyTrackerProps) {
   const days = buildMonthDays(cursor, today);
   const wide = variant === "wide" && !!columnGroups?.length;
@@ -208,6 +219,7 @@ export default function DailyTracker({
             <b>
               <span className="adt-dot calc" /> Computed
             </b>
+            {legendExtra}
           </div>
         </div>
 
@@ -277,10 +289,16 @@ export default function DailyTracker({
                         );
                       }
                       const isText = c.kind === "text";
+                      const extra = cellClass?.(d.iso, c.key);
+                      const title = cellTitle?.(d.iso, c.key);
                       return (
                         <td
                           key={c.key}
-                          className={[isText ? "txtcol" : "", divider].filter(Boolean).join(" ") || undefined}
+                          className={
+                            [isText ? "txtcol" : "", divider, extra ?? ""]
+                              .filter(Boolean)
+                              .join(" ") || undefined
+                          }
                         >
                           <input
                             inputMode={isText ? undefined : "numeric"}
@@ -288,6 +306,7 @@ export default function DailyTracker({
                             value={row[c.key] ?? ""}
                             placeholder={isText ? "" : "·"}
                             aria-label={`${c.label}, ${d.dowLabel} ${d.day}`}
+                            title={title}
                             onChange={(e) => onEdit(d.iso, c.key, e.target.value)}
                           />
                         </td>
@@ -431,6 +450,7 @@ function TrackerStyle() {
       .pk-kit .adt-dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
       .pk-kit .adt-dot.type { background: var(--adt-indigo); }
       .pk-kit .adt-dot.calc { background: var(--text-faint); }
+      .pk-kit .adt-dot.rec { background: var(--adt-green); }
 
       .pk-kit .adt-scroll { overflow: auto; max-height: min(62vh, 720px); }
       .pk-kit .adt-card table { width: 100%; border-collapse: collapse; }
@@ -459,6 +479,15 @@ function TrackerStyle() {
       }
       .pk-kit .adt-card td.txtcol input { text-align: left; font-weight: 400; color: var(--text-muted); min-width: 90px; }
       .pk-kit .adt-card td input::placeholder { color: var(--text-faint); font-weight: 400; }
+      /* A cell whose value was typed rather than measured (Cold Call, 0052).
+         Marked in the typing colour with a dotted rule, so a hand-entered count
+         never reads as a recorded one at a glance. */
+      .pk-kit .adt-card td.typed input {
+        color: var(--adt-indigo);
+        text-decoration: underline dotted;
+        text-underline-offset: 3px;
+        text-decoration-thickness: 1px;
+      }
       .pk-kit .adt-card td input:hover { background: var(--adt-input-hover); }
       .pk-kit .adt-card td input:focus { outline: 0; background: var(--surface); box-shadow: 0 0 0 2px var(--adt-indigo); position: relative; z-index: 1; }
 

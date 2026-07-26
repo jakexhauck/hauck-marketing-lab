@@ -1,4 +1,5 @@
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
+import { PILLAR_TITLE_ACTIONS_ID } from "../../components/pillars/PillarKit";
 import { useAuth } from "../../context/AuthContext";
 import { effectiveAdminRole } from "../../lib/adminRoles";
 import {
@@ -8,6 +9,7 @@ import {
   type PillarTabDef,
 } from "../../lib/adminPillars";
 import SalesDataTracker from "../../components/admin/tracker/SalesDataTracker";
+import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
 import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
@@ -89,10 +91,18 @@ export default function PillarPage() {
           as a kicker above it. This matters because the strip under the title
           belongs to THIS page's own sub-pages (Cold Call will have several), so
           it cannot also be carrying its siblings. */}
-      <div className="pk-section-h" style={{ margin: "0 0 2px" }}>
-        {pillar.label}
+      {/* The title line carries a slot at its right end, so a surface can put
+          its own controls (Sales Data's month stepper) up here instead of
+          spending a whole band on them. See PillarTitleActions. */}
+      <div className="pk-titlerow">
+        <div>
+          <div className="pk-section-h" style={{ margin: "0 0 2px" }}>
+            {pillar.label}
+          </div>
+          <h1 className="pk-title">{active.label}</h1>
+        </div>
+        <div id={PILLAR_TITLE_ACTIONS_ID} className="pk-titleactions" />
       </div>
-      <h1 className="pk-title">{active.label}</h1>
 
       {/* Sibling pages, on the phone only. The desktop rail's dropdown already
           does this job, and repeating it here would take the space this page's
@@ -136,6 +146,8 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
       return <ColdSmsSurface />;
     case "sales-data":
       return <SalesDataTracker />;
+    case "business-health":
+      return <BusinessHealthTab />;
     case "calculator":
       return <ScalingCalculatorTab />;
     case "time-audit":

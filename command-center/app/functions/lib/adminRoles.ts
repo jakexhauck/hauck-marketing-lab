@@ -90,6 +90,13 @@ const ROLE_RULES: Record<Exclude<AdminRole, "owner">, AdminRule[]> = {
     { prefix: "/api/admin/cold-call/calendars", methods: READ_ONLY, exact: true },
     { prefix: "/api/admin/cold-call/slots", methods: READ_ONLY, exact: true },
     { prefix: "/api/admin/cold-call/book", methods: ["POST"], exact: true },
+    // Logging the attempt he just made (0052). Append only: there is no route
+    // here that edits or removes a dial, so his own recorded numbers are as
+    // unarguable as anyone else's.
+    { prefix: "/api/admin/cold-call/dials", methods: ["POST"], exact: true },
+    // The GHL boards, read only. He can see where his own prospects stand; he
+    // cannot move them, because nothing in this app moves them.
+    { prefix: "/api/admin/cold-call/pipelines", methods: READ_ONLY, exact: true },
   ],
   setter: [
     { prefix: "/api/admin/setter", methods: READ_WRITE },

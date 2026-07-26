@@ -14,8 +14,27 @@ import {
   Boxes,
   type LucideIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { PillarStatus, ScoreboardField } from "../../lib/pillars";
+
+// The id of the slot PillarPage renders at the right end of its title row.
+export const PILLAR_TITLE_ACTIONS_ID = "pk-title-actions";
+
+// Render controls on the pillar page's title line rather than in a band of
+// their own beneath it. A surface (Sales Data's month stepper) is mounted well
+// below the title it belongs to, so it portals up instead of the page having to
+// know what each tab wants to put there.
+//
+// The host is looked up after mount, which costs one extra render and renders
+// nothing at all when the slot is absent (a surface mounted outside PillarPage).
+export function PillarTitleActions({ children }: { children: ReactNode }) {
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setHost(document.getElementById(PILLAR_TITLE_ACTIONS_ID));
+  }, []);
+  return host ? createPortal(children, host) : null;
+}
 
 const ICONS: Record<string, LucideIcon> = {
   Settings,
@@ -198,6 +217,10 @@ export function PillarStyle() {
       .pk-head-ic svg { width: 26px; height: 26px; }
       .pk-head-body { flex: 1; min-width: 0; }
       .pk-title { font-family: var(--font-display); font-size: 26px; font-weight: 600; letter-spacing: -0.03em; margin-top: 2px; }
+      /* The title line, with room at its right end for a surface's own controls
+         (see PillarTitleActions). Empty on most pages, where it costs nothing. */
+      .pk-titlerow { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+      .pk-titleactions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
       .pk-goal { color: var(--text); font-size: 14.5px; line-height: 1.6; margin-top: 12px; max-width: 720px; }
       .pk-head-side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
 

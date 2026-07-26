@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { PhoneCall, UserCheck, CheckCircle2, DollarSign } from "lucide-react";
-import DailyTracker, { type TrackerRow, type StatTile } from "./DailyTracker";
+import DailyTracker, { TrackerMonthNav, type TrackerRow, type StatTile } from "./DailyTracker";
+import { PillarTitleActions } from "../../pillars/PillarKit";
 import { useSalesDataQuery, useSaveSalesDataDay } from "../../../hooks/useApi";
 import type { SalesDataPatch, SalesDataRow } from "../../../lib/api";
 import {
@@ -229,7 +230,16 @@ export default function SalesDataTracker() {
   ];
 
   return (
-    <>
+    <div className="sdt">
+      <SalesDataLayoutStyle />
+
+      {/* The month stepper rides on the page's title line rather than taking a
+          band of its own above the tiles, which is what lets the tiles sit
+          straight under the title and the table take the height that frees. */}
+      <PillarTitleActions>
+        <TrackerMonthNav cursor={cursor} today={today} onMonthChange={handleMonthChange} />
+      </PillarTitleActions>
+
       {isError && (
         <div className="pk-empty">
           Sales Data could not be loaded. Nothing has been lost: reload to try again.
@@ -256,7 +266,21 @@ export default function SalesDataTracker() {
         rollup={{ average: rollup.average, total: rollup.total }}
         onEdit={handleEdit}
         onMonthChange={handleMonthChange}
+        hideMonthNav
       />
-    </>
+    </div>
+  );
+}
+
+// Scoped to this surface so the shared tracker engine is unchanged everywhere
+// else it is mounted.
+function SalesDataLayoutStyle() {
+  return (
+    <style>{`
+      /* No month band above them any more, so the tiles start at the top. */
+      .pk-kit .sdt .adt-stats { margin-top: 0; }
+      /* And the table takes the height that frees up. */
+      .pk-kit .sdt .adt-scroll { max-height: min(72vh, 880px); }
+    `}</style>
   );
 }

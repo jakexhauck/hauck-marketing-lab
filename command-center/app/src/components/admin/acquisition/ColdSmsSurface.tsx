@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { CalendarDays, MessageSquare, Percent, Table2, TrendingUp } from "lucide-react";
 import DailyTracker, {
+  TrackerMonthNav,
   type StatTile,
   type TrackerColumn,
   type TrackerRow,
@@ -26,10 +27,11 @@ import {
 // an in-page sub-nav: Daily, Monthly and Script Test.
 //
 // The month nav belongs to the Daily view alone (Monthly and Script are
-// all-time), and it is rendered by the shared DailyTracker engine, so mounting
-// that engine only inside the Daily view is what keeps the nav off the other
-// two. Nothing here fabricates data: an unlogged month renders the shared
-// engine's auto-generated empty day template.
+// all-time), so it is lifted out of the DailyTracker engine and rendered inline
+// with the sub-nav, on the Daily view only. That is the same move Cold Call
+// makes, and it buys back the whole row the nav used to take above the tiles.
+// Nothing here fabricates data: an unlogged month renders the shared engine's
+// auto-generated empty day template.
 
 type SubView = "daily" | "monthly" | "script";
 
@@ -185,6 +187,11 @@ export default function ColdSmsSurface() {
           label="Script Test"
           count={variationCount}
         />
+        {/* The month stepper rides in this row rather than above the tiles.
+            Daily only: the other two views are all-time. */}
+        {view === "daily" && (
+          <TrackerMonthNav cursor={cursor} today={today} onMonthChange={setCursor} />
+        )}
       </div>
 
       <div className="cs-views">
@@ -201,6 +208,7 @@ export default function ColdSmsSurface() {
             rollup={rollup}
             onEdit={onEdit}
             onMonthChange={setCursor}
+            hideMonthNav
           />
         )}
         {view === "monthly" && <MonthlyEconomicsTable />}
@@ -264,9 +272,23 @@ function ColdSmsStyle() {
       }
 
       .pk-kit .cs-subnav {
-        display: flex; gap: 5px; border-bottom: 1px solid var(--border);
-        margin-bottom: 14px; flex-wrap: wrap;
+        display: flex; align-items: stretch; gap: 5px;
+        border-bottom: 1px solid var(--border); margin-bottom: 8px; flex-wrap: wrap;
+        /* The stepper is the tallest thing this row ever holds; pinning the row
+           to it stops the tabs jumping when a view without a stepper opens. */
+        min-height: 51px;
       }
+      /* The lifted month stepper sits at the right end of the tab row. It is
+         taller than a tab, so the tabs stretch to match it (align-items above)
+         and their active underline still lands on the row's rule. */
+      .pk-kit .cs-subnav .adt-monthnav {
+        margin-left: auto; align-self: center; margin-bottom: 5px;
+      }
+
+      /* The tiles follow the tab row directly now that no month row separates
+         them, and the table takes the height that frees up. */
+      .pk-kit .cs .adt-stats { margin-top: 12px; }
+      .pk-kit .cs .adt-scroll { max-height: min(72vh, 880px); }
       .pk-kit .cs-subtab {
         border: 0; background: transparent; cursor: pointer; font-family: inherit;
         font-size: 13.5px; font-weight: 600; color: var(--text-faint); padding: 9px 4px;

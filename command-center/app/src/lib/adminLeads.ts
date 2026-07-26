@@ -148,5 +148,9 @@ export function blankLeadDraft(tempId = `temp-${Date.now()}`): AdminLead {
     // A hand-added row belongs to nobody until it is assigned.
     assignedTo: null,
     createdAt: new Date().toISOString(),
+    // Nothing has been pushed to GoHighLevel for a row that does not exist yet.
+    ghlContactId: null,
+    ghlSyncedAt: null,
+    ghlError: null,
   };
 }
