@@ -4,7 +4,12 @@ import { getServiceClient } from "../../../lib/supabase";
 import { agencyTimezone } from "../../../lib/agencyGhl";
 import { pushColdCallOutcome, type LeadForPush } from "../../../lib/agencyCrm";
 import { dateStringInZone } from "../../../lib/tz";
-import { DIAL_OUTCOMES, isDialOutcome } from "../../../lib/coldCallDials";
+import {
+  DIAL_OUTCOMES,
+  NOT_INTERESTED_REASONS,
+  isDialOutcome,
+  isNotInterestedReason,
+} from "../../../lib/coldCallDials";
 
 // POST /api/admin/cold-call/dials (admin session gated in _middleware.ts).
 // Appends one row to cold_call_dials for an attempt just made on the Leads or
@@ -26,6 +31,9 @@ import { DIAL_OUTCOMES, isDialOutcome } from "../../../lib/coldCallDials";
 interface Body {
   leadId?: string | null;
   outcome?: string;
+  // Why they said no. Only sent with a no, and it DECIDES the outcome: the
+  // client never gets to say whether a call reached the pitch.
+  reason?: string | null;
   note?: string | null;
   // The agreed callback date, "YYYY-MM-DD". Only sent with a callback, and what
   // turns it into a task on the contact in GHL.
@@ -36,7 +44,14 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const body = await readJsonBody<Body>(ctx.request);
   if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
 
-  if (!isDialOutcome(body.outcome)) {
+  const reason = body.reason ?? null;
+  if (reason !== null && !isNotInterestedReason(reason)) {
+    return Response.json({ error: "bad_reason" }, { status: 400 });
+  }
+  // A reason outranks whatever outcome was sent with it, so the pair can never
+  // disagree in the table.
+  const outcome = reason ? NOT_INTERESTED_REASONS[reason].outcome : body.outcome;
+  if (!isDialOutcome(outcome)) {
     return Response.json({ error: "bad_outcome" }, { status: 400 });
   }
 
@@ -44,7 +59,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
 
   const callerId = ctx.data.admin!.id;
-  const { spoke, pitched } = DIAL_OUTCOMES[body.outcome];
+  const { spoke, pitched } = DIAL_OUTCOMES[outcome];
   const day = dateStringInZone(agencyTimezone(ctx.env), Date.now());
   const note = typeof body.note === "string" && body.note.trim() ? body.note.trim() : null;
 
@@ -56,10 +71,11 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       day,
       spoke,
       pitched,
-      outcome: body.outcome,
+      outcome,
+      reason,
       note,
     })
-    .select("id, day, outcome, spoke, pitched")
+    .select("id, day, outcome, reason, spoke, pitched")
     .single();
   if (error || !data) {
     return Response.json({ error: error?.message ?? "could not log dial" }, { status: 500 });
@@ -70,7 +86,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // leaves the building. A push that fails is written onto the lead and shown in
   // the console; it never turns into an error the caller has to read mid-call.
   const ghl = body.leadId
-    ? await pushLead(ctx.env, client, body.leadId, body.outcome, body.followUpDate ?? null)
+    ? await pushLead(ctx.env, client, body.leadId, outcome, body.followUpDate ?? null)
     : null;
 
   return Response.json({ dial: data, ghl }, { status: 201 });

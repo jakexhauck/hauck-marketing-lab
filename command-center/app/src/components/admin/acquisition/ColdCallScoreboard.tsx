@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { COLD_CALL_STAGES } from "../../../lib/coldCallStages";
 import { useAdminLeadsQuery } from "../../../hooks/useAdminLeads";
 import { useColdCallsQuery } from "../../../hooks/useColdCall";
 import { recordedTotals } from "../../../lib/coldCall";
@@ -37,6 +38,12 @@ function Stat({ value, label }: { value: number | string; label: string }) {
 // callerId "" means everyone; otherwise one person's numbers. The tracker block
 // needs a specific person (its rows are per caller since 0050), so on "Everyone"
 // it says so rather than showing one person's dials as if they were the total.
+// Everything still in play. Booked and Not Interested have left the operation
+// and are counted on their own pages.
+const OPEN_STATUSES: string[] = COLD_CALL_STAGES.filter((s) => !s.terminal).map(
+  (s) => s.label,
+);
+
 export default function ColdCallScoreboard({ callerId = "" }: { callerId?: string }) {
   const now = new Date();
   const month = monthParam(now);
@@ -54,9 +61,9 @@ export default function ColdCallScoreboard({ callerId = "" }: { callerId?: strin
       workedMonth: leads.filter((l) => (l.lastContact ?? "").startsWith(monthPrefix)).length,
       bookedMonth: leads.filter((l) => (l.appointmentDate ?? "").startsWith(monthPrefix)).length,
       callbacksDue: leads.filter(
-        (l) => l.followUpDate && l.followUpDate <= today && l.status !== "Dead" && l.status !== "Closed",
+        (l) => l.status === "Call Back" && l.followUpDate !== null && l.followUpDate <= today,
       ).length,
-      remaining: leads.filter((l) => ["New", "Contacted", "No Answer"].includes(l.status)).length,
+      remaining: leads.filter((l) => OPEN_STATUSES.includes(l.status)).length,
     };
   }, [leadsQuery.data, today, monthPrefix, callerId]);
 

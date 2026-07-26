@@ -74,7 +74,10 @@ export default defineConfig({
     host: true,
     proxy: {
       "/api": {
-        target: "http://localhost:8788",
+        // Dev only. Another checkout of this repo may already own the default
+        // ports, and whoever grabs one first serves whatever branch it is on.
+        // API_PORT lets a worktree run a fully isolated pair.
+        target: `http://localhost:${process.env.API_PORT ?? 8788}`,
         changeOrigin: true,
       },
     },

@@ -7,14 +7,12 @@
 // Order is the order of the day: he lives in Leads, checks Callbacks, and the
 // rest are reference. Settings is last and only an owner sees it.
 
-export type ColdCallView =
-  | "leads"
-  | "callbacks"
-  | "booked"
-  | "pipelines"
-  | "tracker"
-  | "scoreboard"
-  | "settings";
+import { COLD_CALL_STAGES } from "./coldCallStages";
+
+// A page is either a stage of the Cold Calling pipeline or one of the three
+// things that are not a stage. The stage pages come first and in pipeline order,
+// so the strip reads the way the work flows.
+export type ColdCallView = string;
 
 export interface ColdCallPageDef {
   id: ColdCallView;
@@ -25,11 +23,10 @@ export interface ColdCallPageDef {
 }
 
 export const COLD_CALL_PAGES: ColdCallPageDef[] = [
-  { id: "leads", label: "Leads" },
-  { id: "callbacks", label: "Callbacks" },
-  { id: "booked", label: "Booked" },
-  // The GoHighLevel boards, read live. One tab per pipeline inside.
-  { id: "pipelines", label: "Pipelines" },
+  ...COLD_CALL_STAGES.map((stage) => ({ id: stage.id, label: stage.short })),
+  // The whole prospect book: import a list, hand rows out. An owner's job, so a
+  // caller never sees it and never picks his own work.
+  { id: "book", label: "Book", ownerOnly: true },
   { id: "tracker", label: "Tracker" },
   { id: "scoreboard", label: "Scoreboard" },
   { id: "settings", label: "Settings", ownerOnly: true },
@@ -41,7 +38,8 @@ export function coldCallPagesFor(isOwner: boolean): ColdCallPageDef[] {
 }
 
 // Resolve a raw ?view= against what this role can see, else the first page.
-// A cold caller who types ?view=settings lands on Leads rather than an error.
+// A cold caller who types ?view=settings lands on the first stage rather than
+// an error.
 export function resolveColdCallView(
   param: string | null | undefined,
   isOwner: boolean,

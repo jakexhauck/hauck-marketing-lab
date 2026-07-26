@@ -4,6 +4,7 @@ import { ScrollText } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { effectiveAdminRole } from "../../../lib/adminRoles";
 import { coldCallPagesFor, resolveColdCallView } from "../../../lib/coldCallPages";
+import { stageById } from "../../../lib/coldCallStages";
 import { useColdCallScriptQuery } from "../../../hooks/useApi";
 import { useAssignableCallersQuery } from "../../../hooks/useLeadAssignment";
 import ScriptPanel from "../script/ScriptPanel";
@@ -11,9 +12,9 @@ import { TrackerMonthNav } from "../tracker/DailyTracker";
 import { cursorForToday, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
 import ColdCallSurface from "./ColdCallSurface";
 import ColdCallLeads from "./ColdCallLeads";
+import ColdCallManage from "./ColdCallManage";
 import ColdCallCallbacks from "./ColdCallCallbacks";
 import ColdCallBooked from "./ColdCallBooked";
-import ColdCallPipelines from "./ColdCallPipelines";
 import ColdCallScoreboard from "./ColdCallScoreboard";
 import ColdCallSettings from "./ColdCallSettings";
 
@@ -156,18 +157,22 @@ function ColdCallBody({
   callerId: string;
   isOwner: boolean;
 }) {
+  // Most pages ARE a stage of the pipeline. Two of them have a surface built for
+  // the shape of that stage: Call Back is a list ordered by when someone is due,
+  // Booked is meetings split around today. Every other stage is a list you work,
+  // which is one page rendered seven ways rather than seven pages.
+  const stage = stageById(view);
+  if (stage) {
+    if (stage.id === "call-back") return <ColdCallCallbacks callerId={callerId} />;
+    if (stage.id === "booked") return <ColdCallBooked callerId={callerId} />;
+    return <ColdCallLeads stage={stage} callerId={callerId} />;
+  }
+
   switch (view) {
-    case "leads":
-      return <ColdCallLeads callerId={callerId} />;
-    case "callbacks":
-      return <ColdCallCallbacks callerId={callerId} />;
-    case "booked":
-      return <ColdCallBooked callerId={callerId} />;
-    case "pipelines":
-      // Nobody's boards but the agency's: GHL has no idea which caller is
-      // looking, so this one page ignores the person selector rather than
-      // pretending to filter by it.
-      return <ColdCallPipelines />;
+    case "book":
+      // Unfiltered on purpose: the book is every lead in every stage, which is
+      // what you need when handing work out.
+      return <ColdCallManage callerId={callerId} />;
     case "tracker":
       // A tracker grid is one person's hand-typed month. There is no honest way
       // to merge two people's rows into one editable grid, so "Everyone" asks

@@ -141,6 +141,9 @@ export function useAgencyPipelinesQuery(pipelineId?: string, enabled = true) {
 export interface LogDialInput {
   leadId: string | null;
   outcome: ColdCallDialOutcome;
+  // Why they said no. Sent with a no only, and it decides the outcome server
+  // side, so spoke/pitched can never be asserted from here.
+  reason?: string;
   note?: string;
   // Only for a callback: the agreed date, which becomes a GHL task.
   followUpDate?: string;
@@ -187,7 +190,7 @@ export function useColdCallSlotsQuery(calendarId: string, enabled = true) {
     queryKey: ["admin", "cold-call", "slots", calendarId],
     enabled: enabled && Boolean(calendarId),
     staleTime: 30_000,
-    queryFn: () => getColdCallSlots(calendarId, 14),
+    queryFn: () => getColdCallSlots(calendarId, 31),
   });
 }
 

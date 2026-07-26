@@ -19,6 +19,32 @@ export const DIAL_OUTCOMES = {
 
 export type DialOutcome = keyof typeof DIAL_OUTCOMES;
 
+// Why a prospect said no. Every reason carries the outcome it implies, so the
+// caller picks a sentence and the server decides spoke/pitched from it. That
+// keeps the one rule this table exists for: the numbers commission is paid
+// against are never asserted by the client.
+//
+// "Would not engage", "Not the decision maker" and "Not a fit" are brush_off:
+// the call was answered but never got as far as the pitch, and counting them as
+// pass-throughs would inflate the only number that measures the script.
+export const NOT_INTERESTED_REASONS = {
+  pitched_no: { label: "Heard the pitch, said no", outcome: "not_interested" },
+  no_engage: { label: "Would not engage", outcome: "brush_off" },
+  not_decision_maker: { label: "Not the decision maker", outcome: "brush_off" },
+  has_agency: { label: "Already has an agency", outcome: "not_interested" },
+  bad_fit: { label: "Not a fit", outcome: "brush_off" },
+} as const;
+
+export type NotInterestedReason = keyof typeof NOT_INTERESTED_REASONS;
+
+export const NOT_INTERESTED_REASON_KEYS = Object.keys(
+  NOT_INTERESTED_REASONS,
+) as NotInterestedReason[];
+
+export function isNotInterestedReason(value: unknown): value is NotInterestedReason {
+  return typeof value === "string" && value in NOT_INTERESTED_REASONS;
+}
+
 export const DIAL_OUTCOME_KEYS = Object.keys(DIAL_OUTCOMES) as DialOutcome[];
 
 export function isDialOutcome(value: unknown): value is DialOutcome {

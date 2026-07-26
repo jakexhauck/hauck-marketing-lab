@@ -1042,13 +1042,12 @@ export async function tagTimeAuditBlock(
 // Mirrors the CHECK constraint in migration 0030; LEAD_STATUSES in
 // src/lib/adminLeads.ts is the ordered runtime copy.
 export type AdminLeadStatus =
-  | "New"
-  | "Contacted"
-  | "No Answer"
+  | "New Lead"
+  | "1st Dial (Day 1)"
+  | "2nd Dial (Day 2)"
+  | "Call Back"
   | "Booked"
-  | "Qualified"
-  | "Closed"
-  | "Dead";
+  | "Not Interested";
 
 export interface AdminLead {
   id: string;
@@ -1491,6 +1490,10 @@ export async function logColdCallDial(input: {
   leadId: string | null;
   outcome: ColdCallDialOutcome;
   note?: string;
+  // Why they said no, from the fixed list in functions/lib/coldCallDials.ts.
+  // The server derives the outcome from it, so this and `outcome` can never
+  // disagree in the table.
+  reason?: string;
   // Sent with a callback: it becomes a task on the contact in GoHighLevel, due
   // that morning.
   followUpDate?: string;

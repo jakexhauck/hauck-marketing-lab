@@ -1,4 +1,5 @@
 import type { AdminLead, AdminLeadStatus } from "./api";
+import { COLD_CALL_STAGES, STAGE_LABELS } from "./coldCallStages";
 
 // Pure helpers for the Acquisition > Leads surface: the status vocabulary, its
 // colour tokens, and the list math behind the filter tiles and the sortable
@@ -9,15 +10,7 @@ import type { AdminLead, AdminLeadStatus } from "./api";
 // the server copy in functions/api/admin/tracker/leads.ts. A test guards
 // STATUS_META against drift from this list.
 
-export const LEAD_STATUSES: AdminLeadStatus[] = [
-  "New",
-  "Contacted",
-  "No Answer",
-  "Booked",
-  "Qualified",
-  "Closed",
-  "Dead",
-];
+export const LEAD_STATUSES: AdminLeadStatus[] = STAGE_LABELS;
 
 // "All" is the unfiltered tile, not a stored status.
 export type LeadFilter = AdminLeadStatus | "All";
@@ -32,15 +25,20 @@ export interface LeadStatusMeta {
   label: string;
 }
 
-export const STATUS_META: Record<AdminLeadStatus, LeadStatusMeta> = {
-  New: { tileClass: "t-new", pillClass: "st-new", swatch: "#6366f1", label: "New" },
-  Contacted: { tileClass: "t-contacted", pillClass: "st-contacted", swatch: "#0ea5e9", label: "Contacted" },
-  "No Answer": { tileClass: "t-noanswer", pillClass: "st-noanswer", swatch: "#f59e0b", label: "No Answer" },
-  Booked: { tileClass: "t-booked", pillClass: "st-booked", swatch: "#10b981", label: "Booked" },
-  Qualified: { tileClass: "t-qualified", pillClass: "st-qualified", swatch: "#8b5cf6", label: "Qualified" },
-  Closed: { tileClass: "t-closed", pillClass: "st-closed", swatch: "#14b8a6", label: "Closed" },
-  Dead: { tileClass: "t-dead", pillClass: "st-dead", swatch: "#c78b93", label: "Dead" },
-};
+// Built from the stage list so a rename or recolour is a one-line change there.
+export const STATUS_META: Record<AdminLeadStatus, LeadStatusMeta> =
+  COLD_CALL_STAGES.reduce(
+    (acc, stage) => {
+      acc[stage.label] = {
+        tileClass: `t-${stage.id}`,
+        pillClass: `st-${stage.id}`,
+        swatch: stage.swatch,
+        label: stage.short,
+      };
+      return acc;
+    },
+    {} as Record<AdminLeadStatus, LeadStatusMeta>,
+  );
 
 // Every status keyed to 0, so an empty list still renders a full tile strip.
 function zeroCounts(): Record<AdminLeadStatus, number> {
@@ -136,7 +134,7 @@ export function blankLeadDraft(tempId = `temp-${Date.now()}`): AdminLead {
     lastName: "",
     phone: "",
     timezone: "",
-    status: "New",
+    status: "New Lead",
     firstContactDate: today,
     source: "",
     appointmentDate: null,

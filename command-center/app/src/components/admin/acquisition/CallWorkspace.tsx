@@ -6,7 +6,6 @@ import {
   CalendarCheck,
   Ban,
   ChevronRight,
-  Hand,
   Moon,
   CheckCircle2,
   TriangleAlert,
@@ -21,6 +20,12 @@ import {
   zoneForLead,
 } from "../../../lib/leadLocalTime";
 import BookingPanel from "./BookingPanel";
+import { stageAfterNoAnswer } from "../../../lib/coldCallStages";
+import {
+  NOT_INTERESTED_REASONS,
+  NOT_INTERESTED_REASON_KEYS,
+  type NotInterestedReason,
+} from "../../../../functions/lib/coldCallDials";
 
 // The calling workspace: a queue on the left, the one prospect being called on
 // the right, five buttons for how it went.
@@ -99,7 +104,7 @@ export default function CallWorkspace({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Callback and Booked both need a date before they mean anything, so the
   // button opens an inline date field rather than writing a guess.
-  const [pending, setPending] = useState<"callback" | "booked" | null>(null);
+  const [pending, setPending] = useState<"callback" | "booked" | "no" | null>(null);
   const [pendingDate, setPendingDate] = useState("");
 
   // Selection follows the list: no explicit pick means the top, and a lead that
@@ -135,30 +140,33 @@ export default function CallWorkspace({
   // page stops being a list of things to do.
   const noAnswer = (lead: AdminLead) =>
     logOutcome(lead, "no_answer", {
-      status: "No Answer",
+      // The two dial stages are the count: attempt one lands on Day 1, anything
+      // after that on Day 2.
+      status: stageAfterNoAnswer(lead.noAnswer + 1),
       noAnswer: lead.noAnswer + 1,
       lastContact: today(),
       firstContactDate: lead.firstContactDate ?? today(),
       followUpDate: null,
     });
 
-  // They picked up and it ended before the pitch. A pickup, not a pass-through,
-  // and the lead stays workable: a bad moment is not a no.
-  const brushOff = (lead: AdminLead) =>
-    logOutcome(lead, "brush_off", {
-      status: "Contacted",
+  // Every no lands in the same stage; what differs is why, and the why is what
+  // the reporting needs. The reason decides the outcome server-side, so nothing
+  // here can claim a call reached the pitch when it did not.
+  const sayNo = (lead: AdminLead, reason: NotInterestedReason) => {
+    logDial.mutate({
+      leadId: lead.id,
+      outcome: NOT_INTERESTED_REASONS[reason].outcome,
+      reason,
+    });
+    updateLead.mutate({
+      id: lead.id,
+      status: "Not Interested",
       lastContact: today(),
       firstContactDate: lead.firstContactDate ?? today(),
       followUpDate: null,
-    });
-
-  const notInterested = (lead: AdminLead) =>
-    logOutcome(lead, "not_interested", {
-      status: "Dead",
-      lastContact: today(),
-      firstContactDate: lead.firstContactDate ?? today(),
-      followUpDate: null,
-    });
+    } as Parameters<typeof updateLead.mutate>[0]);
+    advance(lead.id);
+  };
 
   // Callback is a local date; Booked is a real appointment on the agency
   // calendar and is written by the booking endpoint, not here.
@@ -168,7 +176,7 @@ export default function CallWorkspace({
       lead,
       "callback",
       {
-        status: "Contacted",
+        status: "Call Back",
         followUpDate: pendingDate,
         lastContact: today(),
         firstContactDate: lead.firstContactDate ?? today(),
@@ -297,12 +305,12 @@ export default function CallWorkspace({
             <div className="flex flex-wrap gap-2">
               <OutcomeButton icon={PhoneOff} label="No answer" onClick={() => noAnswer(selected)} />
               <OutcomeButton
-                icon={Hand}
-                label="Brush-off"
-                title="They picked up, but you never got to the pitch"
-                onClick={() => brushOff(selected)}
+                icon={Ban}
+                label="Not interested"
+                title="Asks why, so the no is counted rather than just recorded"
+                on={pending === "no"}
+                onClick={() => setPending(pending === "no" ? null : "no")}
               />
-              <OutcomeButton icon={Ban} label="Not interested" onClick={() => notInterested(selected)} />
               <OutcomeButton
                 icon={CalendarClock}
                 label="Hot lead"
@@ -345,6 +353,24 @@ export default function CallWorkspace({
                 >
                   Save and next
                 </button>
+              </div>
+            )}
+
+            {pending === "no" && (
+              <div className="mt-3">
+                <div className="mb-2 text-[12.5px] text-muted">Why were they not interested?</div>
+                <div className="flex flex-wrap gap-2">
+                  {NOT_INTERESTED_REASON_KEYS.map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-semibold text-muted transition-colors hover:border-brand hover:text-brand"
+                      onClick={() => sayNo(selected, key)}
+                    >
+                      {NOT_INTERESTED_REASONS[key].label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 

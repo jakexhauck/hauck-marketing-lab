@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Upload, UserPlus } from "lucide-react";
-import type { AdminLead } from "../../../lib/api";
+import type { AdminLead, AdminLeadStatus } from "../../../lib/api";
 import { STATUS_META } from "../../../lib/adminLeads";
 import { useAdminLeadsQuery } from "../../../hooks/useAdminLeads";
 import { useAssignableCallersQuery, useAssignLeads } from "../../../hooks/useLeadAssignment";
@@ -25,7 +25,14 @@ function fullName(lead: AdminLead): string {
 
 // callerId, when set, preselects the assignee filter so the section's person
 // selector and this page agree about who you are looking at.
-export default function ColdCallManage({ callerId = "" }: { callerId?: string }) {
+export default function ColdCallManage({
+  callerId = "",
+  // When set, the table is one stage's rows rather than the whole book.
+  status,
+}: {
+  callerId?: string;
+  status?: AdminLeadStatus;
+}) {
   const { showToast } = useToast();
   const leadsQuery = useAdminLeadsQuery();
   const callers = useAssignableCallersQuery();
@@ -44,7 +51,11 @@ export default function ColdCallManage({ callerId = "" }: { callerId?: string })
     setFilter(callerId || "all");
   }, [callerId]);
 
-  const leads = leadsQuery.data?.leads ?? [];
+  const all = leadsQuery.data?.leads ?? [];
+  const leads = useMemo(
+    () => (status ? all.filter((l) => l.status === status) : all),
+    [all, status],
+  );
   const nameById = useMemo(() => {
     const map = new Map<string, string>();
     for (const c of callers.data ?? []) map.set(c.id, c.name);

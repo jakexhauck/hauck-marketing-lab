@@ -37,6 +37,7 @@ export default function ColdCallBooked({ callerId = "" }: { callerId?: string })
   const { upcoming, past } = useMemo(() => {
     const booked = (leadsQuery.data?.leads ?? [])
       .filter((l) => (callerId ? l.assignedTo === callerId : true))
+      .filter((l) => l.status === "Booked")
       .filter((l) => l.appointmentDate)
       .sort((a, b) => (a.appointmentDate ?? "").localeCompare(b.appointmentDate ?? ""));
     return {

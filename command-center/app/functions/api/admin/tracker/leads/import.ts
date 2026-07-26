@@ -118,7 +118,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       timezone: str(row.timezone),
       source: str(row.source),
       notes: str(row.notes),
-      status: "New",
+      status: "New Lead",
       no_answer: 0,
       // first_contact_date and last_contact stay null on purpose: an imported
       // row has never been called, and stamping today would tell the caller a

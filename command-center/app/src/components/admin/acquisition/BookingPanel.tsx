@@ -1,11 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarCheck, RefreshCw } from "lucide-react";
+import { CalendarCheck, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import type { AdminLead } from "../../../lib/api";
 import {
   useBookColdCall,
   useColdCallCalendarsQuery,
   useColdCallSlotsQuery,
 } from "../../../hooks/useColdCall";
+import {
+  buildBookingWeeks,
+  cursorForIso,
+  firstAvailableIso,
+} from "../../../lib/bookingCalendar";
+import {
+  DOW_LABELS,
+  cursorForToday,
+  monthLabel,
+  nextMonth,
+  prevMonth,
+  type MonthCursor,
+  type TodayRef,
+} from "../../../lib/trackerMonth";
 
 // Booking a meeting on Hauck Marketing's own calendar, from the call.
 //
@@ -17,6 +31,11 @@ import {
 //
 // The panel deliberately does not let a time be typed. Every offer is a slot the
 // calendar said was free, which is what makes "boom, booked" true.
+//
+// Laid out as a month grid with the chosen day's times beside it, which is the
+// shape GoHighLevel's own booking page uses. A day with no free time is dead on
+// the grid rather than missing from it, so "nothing that week" is visible
+// instead of being inferred from a gap in a row of chips.
 
 const DEFAULT_MINUTES = 30;
 
@@ -46,6 +65,12 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
   const calendars = useColdCallCalendarsQuery();
   const [calendarId, setCalendarId] = useState("");
   const [day, setDay] = useState("");
+  // The real today, read once, then injected so the grid math stays pure.
+  const today = useMemo<TodayRef>(() => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
+  }, []);
+  const [cursor, setCursor] = useState<MonthCursor>(() => cursorForToday(today));
   const [slot, setSlot] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -63,15 +88,32 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
 
   const days = useMemo(() => slots.data?.days ?? [], [slots.data]);
 
-  // Keep the chosen day pointing at something real as the data arrives or the
-  // calendar changes.
+  // Keep the chosen day pointing at something bookable as the data arrives or
+  // the calendar changes, and open the grid on the month that day is in. The
+  // first day WITH times, not merely the first day: landing on a fully booked
+  // today just shows an empty column.
   useEffect(() => {
     if (!days.length) {
       setDay("");
       return;
     }
-    if (!days.some((d) => d.date === day)) setDay(days[0].date);
+    if (days.some((d) => d.date === day)) return;
+    const first = firstAvailableIso(days) ?? days[0].date;
+    setDay(first);
+    const c = cursorForIso(first);
+    if (c) setCursor(c);
   }, [days, day]);
+
+  // Which days the calendar offered anything on, for the dots in the grid.
+  const availableDates = useMemo(
+    () => new Set(days.filter((d) => d.slots.length > 0).map((d) => d.date)),
+    [days],
+  );
+
+  const weeks = useMemo(
+    () => buildBookingWeeks(cursor, today, availableDates),
+    [cursor, today, availableDates],
+  );
 
   const daySlots = days.find((d) => d.date === day)?.slots ?? [];
 
@@ -151,51 +193,108 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
         </p>
       ) : days.length === 0 ? (
         <p className="mt-3 text-[13px] text-muted">
-          No free times on that calendar in the next two weeks.
+          No free times on that calendar in the next month.
         </p>
       ) : (
-        <>
-          {/* Days */}
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {days.map((d) => (
+        <div className="mt-4 grid gap-5 sm:grid-cols-[minmax(240px,272px)_1fr]">
+          {/* The month */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
               <button
-                key={d.date}
                 type="button"
-                onClick={() => {
-                  setDay(d.date);
-                  setSlot("");
-                }}
-                className={[
-                  "rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
-                  d.date === day
-                    ? "border-brand bg-brand/10 text-brand"
-                    : "border-border text-muted hover:text-text",
-                ].join(" ")}
+                className="rounded-[var(--radius)] p-1.5 text-muted transition-colors hover:bg-brand/10 hover:text-brand"
+                aria-label="Previous month"
+                onClick={() => setCursor(prevMonth(cursor))}
               >
-                {dayLabel(d.date)}
+                <ChevronLeft size={16} aria-hidden />
               </button>
-            ))}
+              <span className="font-display text-[13.5px] font-semibold">
+                {monthLabel(cursor)}
+              </span>
+              <button
+                type="button"
+                className="rounded-[var(--radius)] p-1.5 text-muted transition-colors hover:bg-brand/10 hover:text-brand"
+                aria-label="Next month"
+                onClick={() => setCursor(nextMonth(cursor))}
+              >
+                <ChevronRight size={16} aria-hidden />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {DOW_LABELS.map((d) => (
+                <span key={d} className="py-1 text-[10.5px] font-semibold uppercase text-faint">
+                  {d.slice(0, 2)}
+                </span>
+              ))}
+
+              {weeks.flat().map((cell, i) => {
+                if (!cell.iso) return <span key={`pad-${i}`} />;
+                const on = cell.iso === day;
+                // A day with no free time is shown and dead, so an empty week
+                // reads as "nothing that week" rather than as missing data.
+                const disabled = !cell.hasSlots;
+                return (
+                  <button
+                    key={cell.iso}
+                    type="button"
+                    disabled={disabled}
+                    aria-current={on ? "date" : undefined}
+                    onClick={() => {
+                      setDay(cell.iso!);
+                      setSlot("");
+                    }}
+                    className={[
+                      "relative aspect-square rounded-[var(--radius)] text-[12.5px] font-medium transition-colors",
+                      on
+                        ? "bg-brand text-white"
+                        : disabled
+                          ? "text-faint"
+                          : "text-text hover:bg-brand/10",
+                      cell.isToday && !on ? "ring-1 ring-brand/40" : "",
+                    ].join(" ")}
+                  >
+                    {cell.day}
+                    {cell.hasSlots && !on && (
+                      <span
+                        aria-hidden
+                        className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-brand"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Times */}
-          <div className="mt-3 flex max-h-[190px] flex-wrap gap-1.5 overflow-y-auto">
-            {daySlots.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSlot(s)}
-                className={[
-                  "rounded-[var(--radius)] border px-3 py-1.5 font-mono text-[12.5px] transition-colors",
-                  s === slot
-                    ? "border-brand bg-brand/10 text-brand"
-                    : "border-border text-text hover:border-brand",
-                ].join(" ")}
-              >
-                {timeLabel(s)}
-              </button>
-            ))}
+          {/* The chosen day's times */}
+          <div>
+            <div className="mb-2 font-display text-[13.5px] font-semibold">
+              {day ? dayLabel(day) : "Pick a day"}
+            </div>
+            {daySlots.length === 0 ? (
+              <p className="text-[13px] text-muted">Nothing free on this day.</p>
+            ) : (
+              <div className="grid max-h-[230px] grid-cols-2 gap-1.5 overflow-y-auto pr-1 lg:grid-cols-3">
+                {daySlots.map((sl) => (
+                  <button
+                    key={sl}
+                    type="button"
+                    onClick={() => setSlot(sl)}
+                    className={[
+                      "rounded-[var(--radius)] border px-2 py-2 font-mono text-[12.5px] transition-colors",
+                      sl === slot
+                        ? "border-brand bg-brand/10 text-brand"
+                        : "border-border text-text hover:border-brand",
+                    ].join(" ")}
+                  >
+                    {timeLabel(sl)}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        </>
+        </div>
       )}
 
       {error && <div className="pk-form-error">{error}</div>}
@@ -211,7 +310,7 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
           {book.isPending
             ? "Booking..."
             : slot
-              ? `Book ${timeLabel(slot)}`
+              ? `Book ${dayLabel(day)} at ${timeLabel(slot)}`
               : "Pick a time"}
         </button>
         <button type="button" className="pk-btn-cancel" onClick={onCancel} disabled={book.isPending}>
