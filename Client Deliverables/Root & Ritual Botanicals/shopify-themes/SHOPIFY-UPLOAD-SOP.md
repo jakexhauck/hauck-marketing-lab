@@ -55,13 +55,13 @@ home, product, collection, page, contact, FAQ, cart, search, 404, blog, article,
 
 - [ ] **Check you have room for five more themes.** Your limit depends on your plan.
 
-  | Plan | Theme limit |
-  |---|---|
-  | Starter | Cannot upload themes at all |
-  | Basic, Grow, Advanced | 20 |
-  | Plus | 100 |
+| Plan | Theme limit |
+|---|---|
+| Starter | Cannot upload themes at all |
+| Basic, Grow, Advanced | 20 |
+| Plus | 100 |
 
-  If you are at the limit, delete an old draft first.
+If you are at the limit, delete an old draft first.
 
 - [ ] **Do not unzip the files.** Upload them exactly as delivered. Unzipping and rezipping on a Mac adds a hidden `__MACOSX` folder that makes the upload fail.
 
