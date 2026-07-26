@@ -55,3 +55,11 @@ export function adminRoleLabel(role: AdminRole | undefined): string {
 export function effectiveAdminRole(role: AdminRole | undefined | null): AdminRole {
   return role ?? "owner";
 }
+
+// A sensible username from a person's name: the first word, letters and digits
+// only. "Marcus Bell" -> "marcus". Mirrors suggestUsername in
+// functions/lib/adminRoles.ts; the server validates whatever is sent.
+export function suggestUsername(name: string): string {
+  const first = name.trim().split(/\s+/)[0] ?? "";
+  return first.toLowerCase().replace(/[^a-z0-9]/g, "");
+}

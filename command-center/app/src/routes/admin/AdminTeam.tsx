@@ -13,6 +13,7 @@ import { api, ApiError } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import {
+  suggestUsername,
   ADMIN_ROLE_ORDER,
   ADMIN_ROLE_SPECS,
   adminRoleLabel,
@@ -35,6 +36,8 @@ import {
 interface Member {
   id: string;
   name: string;
+  // What they type to sign in (0051). Email is now optional and not a handle.
+  username: string;
   email: string;
   role: AdminRole;
   status: "active" | "disabled";
@@ -92,9 +95,11 @@ export default function AdminTeam() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Member | null>(null);
   // The one moment a plaintext password exists in the UI. Cleared on dismiss.
-  const [handoff, setHandoff] = useState<{ name: string; email: string; password: string } | null>(
-    null,
-  );
+  const [handoff, setHandoff] = useState<{
+    name: string;
+    username: string;
+    password: string;
+  } | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -136,7 +141,7 @@ export default function AdminTeam() {
 
   const onCreated = (member: Member, password: string) => {
     closeForm();
-    setHandoff({ name: member.name, email: member.email, password });
+    setHandoff({ name: member.name, username: member.username, password });
     void refresh();
   };
 
@@ -280,7 +285,7 @@ function MemberRow({
           )}
         </div>
         <div className="pk-li-sub" style={{ fontFamily: "var(--font-mono)", fontSize: 12.5 }}>
-          {member.email}
+          {member.username}
         </div>
       </div>
       <div className="pk-li-meta">
@@ -310,13 +315,13 @@ function HandoffCard({
   handoff,
   onDismiss,
 }: {
-  handoff: { name: string; email: string; password: string };
+  handoff: { name: string; username: string; password: string };
   onDismiss: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
-    const text = `Hauck Marketing console\nhttps://app.hauckmarketing.com/login\n\nEmail: ${handoff.email}\nPassword: ${handoff.password}`;
+    const text = `Hauck Marketing console\nhttps://app.hauckmarketing.com/login\n\nUsername: ${handoff.username}\nPassword: ${handoff.password}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -361,7 +366,7 @@ function HandoffCard({
         }}
       >
         <div>app.hauckmarketing.com/login</div>
-        <div>{handoff.email}</div>
+        <div>{handoff.username}</div>
         <div>{handoff.password}</div>
       </div>
       <div className="pk-form-actions">
@@ -396,6 +401,10 @@ function MemberForm({
 }) {
   const editingSelf = member?.id === selfId;
   const [name, setName] = useState(member?.name ?? "");
+  const [username, setUsername] = useState(member?.username ?? "");
+  // Once the username has been typed by hand it stops tracking the name, so a
+  // deliberate handle is never silently overwritten by a later name edit.
+  const [handleTouched, setHandleTouched] = useState(Boolean(member));
   const [email, setEmail] = useState(member?.email ?? "");
   const [role, setRole] = useState<AdminRole>(member?.role ?? "cold_caller");
   const [password, setPassword] = useState(() => (member ? "" : generatePassword()));
@@ -409,7 +418,7 @@ function MemberForm({
     setError(null);
 
     if (!name.trim()) return setError("Enter their name.");
-    if (!email.trim()) return setError("Enter their email address.");
+    if (!username.trim()) return setError("Enter a username for them.");
     // A password is required to create, optional to edit (blank = unchanged).
     if (!member && password.trim().length < MIN_PASSWORD) {
       return setError(`Password must be at least ${MIN_PASSWORD} characters.`);
@@ -421,7 +430,11 @@ function MemberForm({
     setSaving(true);
     try {
       if (member) {
-        const body: Record<string, unknown> = { name: name.trim(), email: email.trim() };
+        const body: Record<string, unknown> = {
+          name: name.trim(),
+          username: username.trim(),
+          email: email.trim(),
+        };
         // The server refuses a self role change; do not even offer it.
         if (!editingSelf) body.role = role;
         if (password.trim()) body.password = password.trim();
@@ -435,6 +448,7 @@ function MemberForm({
           method: "POST",
           body: JSON.stringify({
             name: name.trim(),
+            username: username.trim(),
             email: email.trim(),
             password: password.trim(),
             role,
@@ -466,23 +480,42 @@ function MemberForm({
             id="tm-name"
             className="pk-input"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (!handleTouched) setUsername(suggestUsername(e.target.value));
+            }}
             placeholder="Marcus Bell"
             autoComplete="off"
           />
         </div>
         <div className="pk-field">
-          <label htmlFor="tm-email">Email (this is their login)</label>
+          <label htmlFor="tm-username">Username (this is their login)</label>
           <input
-            id="tm-email"
+            id="tm-username"
             className="pk-input"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="marcus@hauckmarketing.com"
+            value={username}
+            onChange={(e) => {
+              setHandleTouched(true);
+              setUsername(e.target.value.toLowerCase());
+            }}
+            placeholder="marcus"
             autoComplete="off"
+            style={{ fontFamily: "var(--font-mono)" }}
           />
         </div>
+      </div>
+
+      <div className="pk-field">
+        <label htmlFor="tm-email">Email (optional)</label>
+        <input
+          id="tm-email"
+          className="pk-input"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Only if you want one on file"
+          autoComplete="off"
+        />
       </div>
 
       <div className="pk-field">

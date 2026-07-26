@@ -4,7 +4,12 @@ import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
 import { hashPassword } from "../../../lib/password";
 import { normalizeEmail } from "../../../lib/staff";
-import { isAdminRole, type AdminRole } from "../../../lib/adminRoles";
+import {
+  isAdminRole,
+  normalizeUsername,
+  usernameProblem,
+  type AdminRole,
+} from "../../../lib/adminRoles";
 
 // The agency's own logins (0008 + roles from 0047). This is the Team page:
 // who can sign into this console and what their role lets them reach.
@@ -17,20 +22,24 @@ import { isAdminRole, type AdminRole } from "../../../lib/adminRoles";
 export interface TeamRow {
   id: string;
   name: string;
-  email: string;
+  username: string | null;
+  email: string | null;
   role: string;
   status: string;
   created_at: string;
   last_login_at: string | null;
 }
 
-export const SELECT = "id, name, email, role, status, created_at, last_login_at";
+export const SELECT =
+  "id, name, username, email, role, status, created_at, last_login_at";
 
 export function toMember(row: TeamRow) {
   return {
     id: row.id,
     name: row.name,
-    email: row.email,
+    // The login handle since 0051. Rows written before it were backfilled.
+    username: row.username ?? "",
+    email: row.email ?? "",
     role: isAdminRole(row.role) ? row.role : "cold_caller",
     status: row.status === "disabled" ? "disabled" : "active",
     createdAt: row.created_at,
@@ -76,6 +85,17 @@ export async function emailTaken(
   return Boolean(data);
 }
 
+export async function usernameTaken(
+  client: SupabaseClient,
+  username: string,
+  exceptId?: string,
+): Promise<boolean> {
+  let query = client.from("admin_accounts").select("id").eq("username", username);
+  if (exceptId) query = query.neq("id", exceptId);
+  const { data } = await query.maybeSingle();
+  return Boolean(data);
+}
+
 // GET /api/admin/team  (owner-only) - the roster, oldest account first so Jake
 // stays at the top and new hires append below him.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -100,6 +120,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
 interface CreateBody {
   name?: string;
+  username?: string;
+  // Optional since 0051: an agency login needs a username, not a mailbox.
   email?: string;
   password?: string;
   role?: string;
@@ -125,12 +147,16 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   }
 
   const name = (body.name ?? "").trim();
+  const username = normalizeUsername(body.username ?? "");
   const email = normalizeEmail(body.email ?? "");
   const password = (body.password ?? "").trim();
   const role = body.role;
 
   if (!name) return Response.json({ error: "Enter their name." }, { status: 400 });
-  if (!isEmailish(email)) {
+  const userProblem = usernameProblem(username);
+  if (userProblem) return Response.json({ error: userProblem }, { status: 400 });
+  // Email is optional now. Supplied, it still has to look like one.
+  if (email && !isEmailish(email)) {
     return Response.json({ error: "Enter a valid email address." }, { status: 400 });
   }
   const pwProblem = passwordProblem(password);
@@ -139,7 +165,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     return Response.json({ error: "Pick a role." }, { status: 400 });
   }
 
-  if (await emailTaken(client, email)) {
+  if (await usernameTaken(client, username)) {
+    return Response.json({ error: "That username is taken." }, { status: 409 });
+  }
+  if (email && (await emailTaken(client, email))) {
     return Response.json({ error: "That email already has a login." }, { status: 409 });
   }
 
@@ -147,7 +176,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     .from("admin_accounts")
     .insert({
       name,
-      email,
+      username,
+      email: email || null,
       role: role as AdminRole,
       password_hash: await hashPassword(password),
       status: "active",
@@ -165,7 +195,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // before answering, and tell the caller if the record did not land.
   const logged = await logAdminAction(client, ctx.data.admin!.id, "team.create", null, {
     createdAdminId: member.id,
-    email: member.email,
+    username: member.username,
     role: member.role,
   });
 

@@ -46,6 +46,17 @@ describe("canAdminAccess", () => {
     expect(canAdminAccess("/api/admin/cold-call/script", "PATCH", "cold_caller")).toBe(false);
   });
 
+  it("lets a cold caller book on the agency calendar", () => {
+    expect(canAdminAccess("/api/admin/cold-call/calendars", "GET", "cold_caller")).toBe(true);
+    expect(canAdminAccess("/api/admin/cold-call/slots", "GET", "cold_caller")).toBe(true);
+    expect(canAdminAccess("/api/admin/cold-call/book", "POST", "cold_caller")).toBe(true);
+    // Reading a calendar list is not permission to change one.
+    expect(canAdminAccess("/api/admin/cold-call/calendars", "PATCH", "cold_caller")).toBe(
+      false,
+    );
+    expect(canAdminAccess("/api/admin/cold-call/book", "DELETE", "cold_caller")).toBe(false);
+  });
+
   it("keeps a cold caller out of clients, money and the team page", () => {
     expect(canAdminAccess("/api/admin/clients", "GET", "cold_caller")).toBe(false);
     expect(canAdminAccess("/api/admin/team", "GET", "cold_caller")).toBe(false);
@@ -65,10 +76,24 @@ describe("canAdminAccess", () => {
     expect(canAdminAccess("/api/admin/tracker/leads-export", "GET", "cold_caller")).toBe(
       false,
     );
-    // A deeper path under an allowed prefix is still allowed.
-    expect(canAdminAccess("/api/admin/tracker/leads/abc-123", "PATCH", "cold_caller")).toBe(
-      true,
+    // A deeper path under a non-exact allowed prefix is still allowed.
+    expect(canAdminAccess("/api/admin/setter/lead/abc-123", "PATCH", "setter")).toBe(true);
+  });
+
+  it("does not let a cold caller hand himself work", () => {
+    // The leads rule is EXACT: handing leads out is the owner's, and the
+    // sub-routes that do it must not be inherited from the queue he may read.
+    expect(canAdminAccess("/api/admin/tracker/leads/assign", "PATCH", "cold_caller")).toBe(
+      false,
     );
+    expect(canAdminAccess("/api/admin/tracker/leads/import", "POST", "cold_caller")).toBe(
+      false,
+    );
+    expect(canAdminAccess("/api/admin/tracker/leads/anything", "GET", "cold_caller")).toBe(
+      false,
+    );
+    // His own queue still works.
+    expect(canAdminAccess("/api/admin/tracker/leads", "PATCH", "cold_caller")).toBe(true);
   });
 
   it("is case-insensitive on the method only", () => {

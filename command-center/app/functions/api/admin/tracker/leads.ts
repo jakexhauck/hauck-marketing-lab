@@ -25,7 +25,7 @@ const LEAD_STATUSES = [
 
 type LeadStatus = (typeof LEAD_STATUSES)[number];
 
-interface LeadRow {
+export interface LeadRow {
   id: string;
   first_name: string;
   last_name: string;
@@ -40,13 +40,14 @@ interface LeadRow {
   follow_up_date: string | null;
   email: string;
   notes: string;
+  assigned_to: string | null;
   created_at: string;
 }
 
-const SELECT =
-  "id, first_name, last_name, phone, timezone, status, first_contact_date, source, appointment_date, no_answer, last_contact, follow_up_date, email, notes, created_at";
+export const SELECT =
+  "id, first_name, last_name, phone, timezone, status, first_contact_date, source, appointment_date, no_answer, last_contact, follow_up_date, email, notes, assigned_to, created_at";
 
-function toLead(row: LeadRow) {
+export function toLead(row: LeadRow) {
   return {
     id: row.id,
     firstName: row.first_name,
@@ -62,6 +63,8 @@ function toLead(row: LeadRow) {
     followUpDate: row.follow_up_date,
     email: row.email,
     notes: row.notes,
+    // Whose queue this sits in (0049). Null = in the book, on nobody's list.
+    assignedTo: row.assigned_to,
     createdAt: row.created_at,
   };
 }
@@ -160,15 +163,19 @@ async function readBody(request: Request): Promise<Record<string, unknown> | nul
 }
 
 // GET /api/admin/tracker/leads: every live lead, newest first.
+//
+// Scoped by role (0049). An owner sees the whole book. Anyone else sees only the
+// rows assigned to them, filtered HERE rather than in the browser: a caller must
+// not be one devtools request away from the entire prospect list.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
 
-  const { data, error } = await client
-    .from("leads")
-    .select(SELECT)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+  const admin = ctx.data.admin!;
+  let query = client.from("leads").select(SELECT).is("deleted_at", null);
+  if (admin.role !== "owner") query = query.eq("assigned_to", admin.id);
+
+  const { data, error } = await query.order("created_at", { ascending: false });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
   const leads = ((data ?? []) as unknown as LeadRow[]).map(toLead);
@@ -221,21 +228,39 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
 
   const fields = whitelist(body);
   if (!fields) return Response.json({ error: "invalid field value" }, { status: 400 });
+
+  const admin = ctx.data.admin!;
+
+  // Who a lead belongs to is the owner's call, never the caller's: handing
+  // yourself work, or handing your work to someone else, is not an edit.
+  if ("assignedTo" in body) {
+    if (admin.role !== "owner") {
+      return Response.json({ error: "forbidden" }, { status: 403 });
+    }
+    const value = body.assignedTo;
+    if (value !== null && typeof value !== "string") {
+      return Response.json({ error: "invalid field value" }, { status: 400 });
+    }
+    fields.assigned_to = value === null || value === "" ? null : value.trim();
+  }
+
   if (!Object.keys(fields).length) {
     return Response.json({ error: "no fields to update" }, { status: 400 });
   }
 
-  const { data, error } = await client
+  let update = client
     .from("leads")
     .update({ ...fields, updated_at: new Date().toISOString() })
     .eq("id", id)
-    .is("deleted_at", null)
-    .select(SELECT)
-    .maybeSingle();
+    .is("deleted_at", null);
+  // A caller may only write rows on their own queue. Scoping the UPDATE itself
+  // means a guessed id changes nothing and reports not found.
+  if (admin.role !== "owner") update = update.eq("assigned_to", admin.id);
+
+  const { data, error } = await update.select(SELECT).maybeSingle();
   if (error) return Response.json({ error: error.message }, { status: 500 });
   if (!data) return Response.json({ error: "lead not found" }, { status: 404 });
 
-  const admin = ctx.data.admin!;
   await logAdminAction(client, admin.id, "leads.update", null, {
     id,
     fields: Object.keys(fields),

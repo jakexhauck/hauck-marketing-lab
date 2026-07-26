@@ -63,6 +63,11 @@ export const ADMIN_ROLE_SPECS: Record<AdminRole, AdminRoleSpec> = {
 interface AdminRule {
   prefix: string;
   methods: string[];
+  // When true the path must equal the prefix exactly, so sub-routes are NOT
+  // inherited. Used where a base path is safe for a role but the routes beneath
+  // it are not: /leads is a caller's queue, /leads/assign and /leads/import are
+  // the owner handing work out.
+  exact?: boolean;
 }
 
 const READ_ONLY = ["GET", "HEAD"];
@@ -70,14 +75,21 @@ const READ_WRITE = ["GET", "HEAD", "POST", "PATCH", "PUT", "DELETE"];
 
 const ROLE_RULES: Record<Exclude<AdminRole, "owner">, AdminRule[]> = {
   cold_caller: [
-    // The agency prospect book: he works the list Jake gives him, so he reads
-    // and updates rows (status, notes, follow-up) but the list itself is Jake's.
-    { prefix: "/api/admin/tracker/leads", methods: ["GET", "HEAD", "PATCH"] },
+    // His own queue: he reads it and writes the outcome of a call (status,
+    // notes, follow-up). EXACT, so /leads/assign and /leads/import stay shut.
+    // The handler scopes both the read and the write to rows assigned to him.
+    { prefix: "/api/admin/tracker/leads", methods: ["GET", "HEAD", "PATCH"], exact: true },
     // His daily dialing numbers.
     { prefix: "/api/admin/tracker/cold-calls", methods: ["GET", "HEAD", "POST", "PATCH"] },
     // The dialing script, read only. Writing it is the owner's Settings page,
     // and the handler refuses a non-owner PATCH on its own account too.
     { prefix: "/api/admin/cold-call/script", methods: READ_ONLY },
+    // Booking a meeting on the agency's calendar: the whole point of the job.
+    // Reading calendars and free slots, and creating the appointment. Each is
+    // EXACT so nothing else that lands under /cold-call/ is inherited.
+    { prefix: "/api/admin/cold-call/calendars", methods: READ_ONLY, exact: true },
+    { prefix: "/api/admin/cold-call/slots", methods: READ_ONLY, exact: true },
+    { prefix: "/api/admin/cold-call/book", methods: ["POST"], exact: true },
   ],
   setter: [
     { prefix: "/api/admin/setter", methods: READ_WRITE },
@@ -87,9 +99,10 @@ const ROLE_RULES: Record<Exclude<AdminRole, "owner">, AdminRule[]> = {
 };
 
 function matches(pathname: string, rule: AdminRule, method: string): boolean {
-  if (pathname !== rule.prefix && !pathname.startsWith(`${rule.prefix}/`)) {
-    return false;
-  }
+  const pathOk = rule.exact
+    ? pathname === rule.prefix
+    : pathname === rule.prefix || pathname.startsWith(`${rule.prefix}/`);
+  if (!pathOk) return false;
   return rule.methods.includes(method.toUpperCase());
 }
 
@@ -103,4 +116,35 @@ export function canAdminAccess(
   if (role === "owner") return true;
   const rules = ROLE_RULES[role] ?? [];
   return rules.some((rule) => matches(pathname, rule, method));
+}
+
+// ---------------------------------------------------------------------------
+// Usernames (0051). The login handle for an agency account: what someone types
+// into the sign-in box. Stored lowercase so "Marcus" and "marcus" are one
+// account, and matched exactly rather than with a LIKE, so no input can be read
+// as a wildcard.
+export function normalizeUsername(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+const USERNAME_RE = /^[a-z0-9][a-z0-9._-]{2,31}$/;
+
+// Returns a human-readable problem, or null when the username is usable.
+export function usernameProblem(value: string): string | null {
+  const name = normalizeUsername(value);
+  if (!name) return "Enter a username.";
+  if (name.length < 3) return "A username needs at least 3 characters.";
+  if (name.length > 32) return "A username can be at most 32 characters.";
+  if (!USERNAME_RE.test(name)) {
+    return "Usernames can use letters, numbers, dots, dashes and underscores.";
+  }
+  return null;
+}
+
+// A sensible username from a person's name: the first word, letters and digits
+// only. "Marcus Bell" -> "marcus". Empty when there is nothing usable, so the
+// caller can decide what to do rather than being handed a junk default.
+export function suggestUsername(name: string): string {
+  const first = name.trim().split(/\s+/)[0] ?? "";
+  return first.toLowerCase().replace(/[^a-z0-9]/g, "");
 }

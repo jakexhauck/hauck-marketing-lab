@@ -4,10 +4,11 @@ import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
 import { hashPassword } from "../../../lib/password";
 import { normalizeEmail } from "../../../lib/staff";
-import { isAdminRole } from "../../../lib/adminRoles";
+import { isAdminRole, normalizeUsername, usernameProblem } from "../../../lib/adminRoles";
 import {
   SELECT,
   emailTaken,
+  usernameTaken,
   isEmailish,
   passwordProblem,
   requireOwner,
@@ -25,6 +26,7 @@ import {
 
 interface PatchBody {
   name?: string;
+  username?: string;
   email?: string;
   role?: string;
   status?: string;
@@ -86,12 +88,30 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     }
   }
 
+  if (typeof body.username === "string") {
+    const username = normalizeUsername(body.username);
+    const problem = usernameProblem(username);
+    if (problem) return Response.json({ error: problem }, { status: 400 });
+    if (username !== current.username) {
+      if (await usernameTaken(client, username, targetId)) {
+        return Response.json({ error: "That username is taken." }, { status: 409 });
+      }
+      patch.username = username;
+      changed.push("username");
+    }
+  }
+
   if (typeof body.email === "string") {
     const email = normalizeEmail(body.email);
-    if (!isEmailish(email)) {
+    // Blank clears it: an agency login does not need a mailbox.
+    if (email && !isEmailish(email)) {
       return Response.json({ error: "Enter a valid email address." }, { status: 400 });
     }
-    if (email !== current.email) {
+    if (!email && current.email) {
+      patch.email = null;
+      changed.push("email");
+    } else
+    if (email && email !== current.email) {
       if (await emailTaken(client, email, targetId)) {
         return Response.json({ error: "That email already has a login." }, { status: 409 });
       }
@@ -167,7 +187,7 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   const member = toMember(data as TeamRow);
   const logged = await logAdminAction(client, ctx.data.admin!.id, "team.update", null, {
     targetAdminId: targetId,
-    email: member.email,
+    username: member.username,
     changed,
     role: member.role,
     status: member.status,
@@ -224,7 +244,7 @@ export const onRequestDelete: PagesFunction<Env, string, ApiData> = async (ctx) 
   const member = toMember(data as TeamRow);
   const logged = await logAdminAction(client, ctx.data.admin!.id, "team.disable", null, {
     targetAdminId: targetId,
-    email: member.email,
+    username: member.username,
   });
 
   return Response.json({ member, audited: logged });
