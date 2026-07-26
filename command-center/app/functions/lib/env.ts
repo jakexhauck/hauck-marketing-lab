@@ -14,6 +14,12 @@ export interface Env {
   TEST_APP_PASSWORD?: string;
   TEST_GHL_LOCATION_ID?: string;
   TEST_GHL_TOKEN?: string;
+  // Hauck Marketing's OWN GoHighLevel sub-account (agency sales calls), as
+  // opposed to every other GHL credential here, which belongs to a client.
+  // See functions/lib/agencyGhl.ts.
+  AGENCY_GHL_LOCATION_ID?: string;
+  AGENCY_GHL_TOKEN?: string;
+  AGENCY_TIMEZONE?: string;
   // Supabase tenant slug for the test session mode (defaults to test-account).
   TEST_TENANT_SLUG?: string;
   SUPABASE_URL?: string;

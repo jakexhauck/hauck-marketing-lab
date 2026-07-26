@@ -992,6 +992,8 @@ export interface AdminLead {
   followUpDate: string | null;
   email: string;
   notes: string;
+  // Whose queue this lead sits in (0049). Null = in the book, on nobody's list.
+  assignedTo: string | null;
   createdAt: string;
 }
 
@@ -1293,4 +1295,53 @@ export interface ApiAuditResponse {
   limit: number;
   offset: number;
   hasMore: boolean;
+}
+
+// The agency's own GoHighLevel booking (Cold Call). Distinct from the Setter
+// Suite's per-client booking: one account, no tenantId, credentials from the
+// environment. See functions/lib/agencyGhl.ts.
+export interface AgencyCalendar {
+  id: string;
+  name: string;
+}
+
+export interface AgencySlotDay {
+  date: string; // "YYYY-MM-DD"
+  slots: string[]; // ISO datetimes with offset
+}
+
+export async function getColdCallCalendars(): Promise<{
+  configured: boolean;
+  calendars: AgencyCalendar[];
+}> {
+  return api("/api/admin/cold-call/calendars");
+}
+
+export async function getColdCallSlots(
+  calendarId: string,
+  days = 14,
+): Promise<{ days: AgencySlotDay[]; timezone: string }> {
+  return api(
+    `/api/admin/cold-call/slots?calendarId=${encodeURIComponent(calendarId)}&days=${days}`,
+  );
+}
+
+export interface ColdCallBookResult {
+  ok: true;
+  appointmentId: string;
+  contactId: string;
+  appointmentDate: string;
+  leadUpdated: boolean;
+}
+
+export async function bookColdCall(input: {
+  leadId: string;
+  calendarId: string;
+  startTime: string;
+  endTime: string;
+}): Promise<ColdCallBookResult> {
+  return api("/api/admin/cold-call/book", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
