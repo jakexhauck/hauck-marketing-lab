@@ -45,6 +45,10 @@ export default function ColdCallManage({
   // in practice, fifty at a time, and clicking fifty boxes is not that.
   const dragRef = useRef<{ anchor: number; adding: boolean } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  // Set while an import is landing. The list is stale the moment the first batch
+  // commits, and a half-filled table reads as "that is all of them", so the page
+  // says it is still filling until the wizard reports it has finished.
+  const [importing, setImporting] = useState(false);
   const [assignTo, setAssignTo] = useState("");
 
   useEffect(() => {
@@ -186,7 +190,7 @@ export default function ColdCallManage({
         </div>
         <button type="button" className="pk-link" onClick={() => setImportOpen(true)}>
           <Upload aria-hidden />
-          Import CSV
+          Import leads
         </button>
       </div>
 
@@ -319,11 +323,24 @@ export default function ColdCallManage({
         </div>
       )}
 
+      {importing && (
+        <div className="mb-3 flex items-center gap-2.5 rounded-[var(--radius-lg)] border border-border bg-surface-2 px-4 py-3 text-[13px] text-muted">
+          <span
+            aria-hidden
+            className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-border border-t-brand"
+          />
+          Importing your leads and tagging them in GoHighLevel. This list keeps
+          filling until it finishes.
+        </div>
+      )}
+
       {importOpen && (
         <ColdCallImportDialog
           onClose={() => setImportOpen(false)}
+          onStart={() => setImporting(true)}
           onImported={(summary) => {
             setImportOpen(false);
+            setImporting(false);
             showToast(summary);
           }}
         />

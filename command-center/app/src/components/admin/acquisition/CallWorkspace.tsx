@@ -290,11 +290,15 @@ export default function CallWorkspace({
             <p className="mt-2 font-mono text-[12.5px] text-muted">{selected.email}</p>
           )}
 
-          {selected.notes && (
-            <p className="mt-4 whitespace-pre-wrap rounded-[var(--radius)] bg-surface-2 px-4 py-3 text-[13px] leading-relaxed">
-              {selected.notes}
-            </p>
-          )}
+          <LeadNotes
+            key={selected.id}
+            value={selected.notes}
+            onSave={(notes) =>
+              updateLead.mutate({ id: selected.id, notes } as Parameters<
+                typeof updateLead.mutate
+              >[0])
+            }
+          />
 
           <GhlState lead={selected} />
 
@@ -457,6 +461,39 @@ function GhlState({ lead }: { lead: AdminLead }) {
       <CheckCircle2 size={13} className="text-brand" aria-hidden />
       In GoHighLevel
     </p>
+  );
+}
+
+// What the caller learns on the phone, kept for the next dial.
+//
+// Imported context starts here (the CSV import folds several columns into
+// notes), and from then on it is whatever the last person to call wrote. Saved
+// on blur rather than per keystroke: this is typed mid-call, and a PATCH per
+// character would put the network in front of the conversation.
+//
+// Keyed by lead id at the call site, so moving to the next prospect remounts it
+// and no draft can leak from one person onto another.
+function LeadNotes({
+  value,
+  onSave,
+}: {
+  value: string;
+  onSave: (notes: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+
+  return (
+    <textarea
+      className="mt-4 w-full resize-y rounded-[var(--radius)] bg-surface-2 px-4 py-3 text-[13px] leading-relaxed text-text outline-none transition-shadow placeholder:text-faint focus:shadow-[0_0_0_2px_var(--brand)]"
+      rows={3}
+      value={draft}
+      placeholder="What you learned on this call. Saved when you click away."
+      aria-label="Notes on this prospect"
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        if (draft !== value) onSave(draft);
+      }}
+    />
   );
 }
 

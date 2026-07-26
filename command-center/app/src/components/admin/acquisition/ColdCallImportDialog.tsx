@@ -24,14 +24,30 @@ import { useAssignableCallersQuery, useImportLeads } from "../../../hooks/useLea
 interface Props {
   onClose: () => void;
   onImported: (summary: string) => void;
+  // Fired when the first batch goes out, so the page behind can say it is still
+  // filling rather than showing a list that is only partly there.
+  onStart?: () => void;
 }
 
-export default function ColdCallImportDialog({ onClose, onImported }: Props) {
+// Rows per request. Small enough that a batch of GoHighLevel upserts finishes
+// well inside a worker's budget, big enough that a 500-row list is 20 requests
+// rather than 500.
+const IMPORT_BATCH = 25;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+export default function ColdCallImportDialog({ onClose, onImported, onStart }: Props) {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [fileName, setFileName] = useState("");
   const [parsed, setParsed] = useState<ParsedCsv | null>(null);
   const [mapping, setMapping] = useState<Record<number, LeadField>>({});
   const [assignedTo, setAssignedTo] = useState("");
+  // Rows confirmed landed, for the progress line.
+  const [done, setDone] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const callers = useAssignableCallersQuery();
@@ -76,19 +92,43 @@ export default function ColdCallImportDialog({ onClose, onImported }: Props) {
     });
   };
 
+  // One batch at a time. Every imported row is also a GoHighLevel contact
+  // upsert plus a tag, so a thousand-row file is a couple of thousand calls: far
+  // more than one request can carry. Batching is also what makes the progress
+  // real, since each response is rows that have genuinely landed.
   const submit = async () => {
     if (!prepared || prepared.rows.length === 0) return;
     setError(null);
+    setDone(0);
+    onStart?.();
+
+    const totals = { imported: 0, skippedDuplicate: 0, skippedNoPhone: 0, pushed: 0, pushFailed: 0 };
+    let notConfigured = false;
+
     try {
-      const result = await importLeads.mutateAsync({
-        rows: prepared.rows,
-        assignedTo: assignedTo || null,
-      });
-      const parts = [`${result.imported} imported`];
-      if (result.skippedDuplicate > 0) parts.push(`${result.skippedDuplicate} already in the book`);
-      if (result.skippedNoPhone + prepared.skippedNoPhone > 0) {
-        parts.push(`${result.skippedNoPhone + prepared.skippedNoPhone} with no phone number`);
+      for (const batch of chunk(prepared.rows, IMPORT_BATCH)) {
+        const result = await importLeads.mutateAsync({
+          rows: batch,
+          assignedTo: assignedTo || null,
+        });
+        totals.imported += result.imported;
+        totals.skippedDuplicate += result.skippedDuplicate;
+        totals.skippedNoPhone += result.skippedNoPhone;
+        totals.pushed += result.pushed ?? 0;
+        totals.pushFailed += result.pushFailed ?? 0;
+        if (result.notConfigured) notConfigured = true;
+        setDone((n) => n + batch.length);
       }
+
+      const parts = [`${totals.imported} imported`];
+      if (totals.skippedDuplicate > 0) parts.push(`${totals.skippedDuplicate} already in the book`);
+      if (totals.skippedNoPhone + prepared.skippedNoPhone > 0) {
+        parts.push(`${totals.skippedNoPhone + prepared.skippedNoPhone} with no phone number`);
+      }
+      // Say what did NOT reach the CRM. Silence here would read as success, and
+      // an untagged prospect never reaches the board.
+      if (notConfigured) parts.push("GoHighLevel not connected, so none were tagged");
+      else if (totals.pushFailed > 0) parts.push(`${totals.pushFailed} did not reach GoHighLevel`);
       onImported(parts.join(", "));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not import that file.");
@@ -218,7 +258,9 @@ export default function ColdCallImportDialog({ onClose, onImported }: Props) {
               onClick={() => void submit()}
             >
               {importLeads.isPending
-                ? "Importing..."
+                ? prepared
+                  ? `Importing ${done} of ${prepared.rows.length}...`
+                  : "Importing..."
                 : prepared && prepared.rows.length > 0
                   ? `Import ${prepared.rows.length}`
                   : "Import"}

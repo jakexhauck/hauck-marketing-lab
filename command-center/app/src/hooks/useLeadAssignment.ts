@@ -34,6 +34,11 @@ export function useAssignableCallersQuery(enabled = true) {
 }
 
 export interface ImportResult {
+  // How many of the imported rows made it into GoHighLevel tagged `cc new lead`.
+  pushed?: number;
+  pushFailed?: number;
+  // The agency GHL account is not connected, so nothing was pushed at all.
+  notConfigured?: boolean;
   imported: number;
   skippedNoPhone: number;
   skippedDuplicate: number;

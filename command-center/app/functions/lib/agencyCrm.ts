@@ -219,3 +219,30 @@ export function readableError(err: unknown): string {
   if (match) return match[1];
   return raw.length > 160 ? `${raw.slice(0, 157)}...` : raw;
 }
+
+
+// The tag every imported prospect gets. GoHighLevel decides what it means: a
+// workflow over there is what moves the contact onto the Cold Calling board.
+// This app only ever writes the tag, exactly as it does for the call outcomes.
+export const NEW_LEAD_TAG = "cc new lead";
+
+// Put an imported prospect into GoHighLevel and mark it new.
+//
+// Upsert first, tag second, and a failed tag is still reported as a failure:
+// a contact that exists but carries no tag is invisible to the workflow, which
+// is worse than not importing it, because nobody goes looking for it.
+export async function pushImportedLead(env: Env, lead: LeadForPush): Promise<PushResult> {
+  const upserted = await upsertAgencyContact(env, lead);
+  if (!upserted.ok || !upserted.contactId) return upserted;
+
+  try {
+    const ctx = getAgencyGhlContext(env);
+    await ghlJson(ctx, `/contacts/${upserted.contactId}/tags`, {
+      method: "POST",
+      body: JSON.stringify({ tags: [NEW_LEAD_TAG] }),
+    });
+    return upserted;
+  } catch (err) {
+    return { ok: false, contactId: upserted.contactId, error: readableError(err) };
+  }
+}

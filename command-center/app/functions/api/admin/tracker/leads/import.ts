@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../../../../lib/env";
 import { getServiceClient } from "../../../../lib/supabase";
 import { logAdminAction } from "../../../../lib/adminAuth";
+import { pushImportedLead } from "../../../../lib/agencyCrm";
 
 // POST /api/admin/tracker/leads/import  (owner-only)
 //
@@ -20,6 +21,17 @@ import { logAdminAction } from "../../../../lib/adminAuth";
 //
 // Rows are inserted assigned (or unassigned) exactly as the owner chose in the
 // import dialog, so a list can go straight onto someone's queue.
+//
+// Every row that lands is also pushed into GoHighLevel as a contact tagged
+// `cc new lead`, which is what a workflow over there watches for. The push runs
+// AFTER the insert and never fails the import: a prospect in the book but not
+// yet in the CRM can be re-pushed, whereas a lost row has to be re-imported by
+// hand. The response says how many made it, so the wizard can report it rather
+// than implying silence means success.
+//
+// The browser sends this endpoint one BATCH at a time, not a whole file: a
+// thousand-row list is a thousand GoHighLevel calls, which no single request
+// can survive. Batching is what makes the progress bar honest, too.
 
 const MAX_ROWS = 5000;
 
@@ -31,6 +43,16 @@ interface ImportRow {
   timezone?: unknown;
   source?: unknown;
   notes?: unknown;
+}
+
+// The columns read back after the insert, to push into GoHighLevel.
+interface ImportedRow {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  email: string | null;
+  source: string | null;
 }
 
 interface Body {
@@ -136,10 +158,37 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     });
   }
 
-  const { error } = await client.from("leads").insert(insert);
+  const { data: inserted, error } = await client
+    .from("leads")
+    .insert(insert)
+    .select("id, first_name, last_name, phone, email, source");
   if (error) {
     console.error("[leads/import] insert failed", error.message);
     return Response.json({ error: "Could not import those rows." }, { status: 500 });
+  }
+
+  // Into the CRM, tagged. Sequential rather than parallel: GoHighLevel rate
+  // limits, and a burst that trips the limit fails rows that would otherwise
+  // have landed.
+  let pushed = 0;
+  let pushFailed = 0;
+  let notConfigured = false;
+  for (const row of (inserted ?? []) as ImportedRow[]) {
+    const result = await pushImportedLead(ctx.env, {
+      id: row.id,
+      firstName: row.first_name ?? "",
+      lastName: row.last_name ?? "",
+      phone: row.phone ?? "",
+      email: row.email ?? "",
+      source: row.source ?? "",
+      ghlContactId: null,
+    });
+    if (result.notConfigured) {
+      notConfigured = true;
+      break;
+    }
+    if (result.ok) pushed += 1;
+    else pushFailed += 1;
   }
 
   await logAdminAction(client, admin.id, "leads.import", null, {
@@ -147,11 +196,16 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     skippedNoPhone: missingPhone,
     skippedDuplicate: duplicates,
     assignedTo,
+    pushed,
+    pushFailed,
   });
 
   return Response.json({
     imported: insert.length,
     skippedNoPhone: missingPhone,
     skippedDuplicate: duplicates,
+    pushed,
+    pushFailed,
+    notConfigured,
   });
 };

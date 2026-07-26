@@ -57,6 +57,8 @@ export interface DialRow {
   spoke: boolean;
   pitched: boolean;
   outcome: string;
+  // Why they said no, null for every dial that was not a no.
+  reason?: string | null;
 }
 
 // What the app recorded for one day. Always four real numbers: a day with rows
@@ -67,6 +69,9 @@ export interface RecordedCounts {
   pickups: number;
   passThrough: number;
   meetingsBooked: number;
+  // How many of the day's nos gave each reason. The Objections column is
+  // written from this, so "why we lose them" is counted rather than typed.
+  reasons: Record<string, number>;
 }
 
 // The counting rules, in one place:
@@ -87,11 +92,13 @@ export function rollUpDialsByDay(dials: DialRow[]): Record<string, RecordedCount
       pickups: 0,
       passThrough: 0,
       meetingsBooked: 0,
+      reasons: {},
     });
     counts.callsMade += 1;
     if (dial.spoke) counts.pickups += 1;
     if (dial.pitched) counts.passThrough += 1;
     if (dial.outcome === "booked") counts.meetingsBooked += 1;
+    if (dial.reason) counts.reasons[dial.reason] = (counts.reasons[dial.reason] ?? 0) + 1;
   }
   return byDay;
 }
@@ -144,4 +151,23 @@ export function mergeRecordedDays(
   }
 
   return merged.sort((a, b) => a.day.localeCompare(b.day));
+}
+
+
+// The Objections cell, written from the day's recorded reasons: "3 already has
+// an agency, 2 would not engage". Commonest first, and ties fall back to the
+// order the reasons are declared in so the sentence is stable between reads.
+//
+// Empty string when nothing was recorded, which the grid renders as a blank
+// cell rather than as "0 objections".
+export function formatObjections(reasons: Record<string, number> | null | undefined): string {
+  if (!reasons) return "";
+  const order = NOT_INTERESTED_REASON_KEYS;
+  const parts = Object.entries(reasons)
+    .filter(([key, n]) => n > 0 && key in NOT_INTERESTED_REASONS)
+    .sort(([aKey, a], [bKey, b]) =>
+      b - a || order.indexOf(aKey as NotInterestedReason) - order.indexOf(bKey as NotInterestedReason),
+    )
+    .map(([key, n]) => `${n} ${NOT_INTERESTED_REASONS[key as NotInterestedReason].label.toLowerCase()}`);
+  return parts.join(", ");
 }

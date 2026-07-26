@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { COLD_CALL_PAGES, coldCallPagesFor, resolveColdCallView } from "./coldCallPages";
+import {
+  COLD_CALL_PAGES,
+  coldCallPagesFor,
+  coldCallSides,
+  resolveColdCallView,
+} from "./coldCallPages";
 import { COLD_CALL_STAGES } from "./coldCallStages";
 
 describe("coldCallPagesFor", () => {
-  it("is the pipeline, in order, then the three pages that are not stages", () => {
+  it("is the pipeline in order, then the tracker, then what an owner runs", () => {
     expect(coldCallPagesFor(true).map((p) => p.id)).toEqual([
       "new-lead",
       "first-dial",
@@ -11,42 +16,72 @@ describe("coldCallPagesFor", () => {
       "call-back",
       "booked",
       "not-interested",
-      "book",
       "tracker",
-      "scoreboard",
+      "assign",
       "settings",
     ]);
   });
 
-  it("gives every stage a page, and none of them is owner-only", () => {
-    // A caller works the stages; hiding one would hide part of his own job.
-    const callerPages = coldCallPagesFor(false).map((p) => p.id);
-    for (const stage of COLD_CALL_STAGES) expect(callerPages).toContain(stage.id);
-  });
-
-  it("hides Settings from a cold caller and lands him on the first stage", () => {
+  it("gives a caller every stage and his own tracker", () => {
+    // All of it is his job: hiding a stage would hide part of the work, and
+    // hiding the tracker would hide the numbers he is measured on.
     const ids = coldCallPagesFor(false).map((p) => p.id);
-    expect(ids).not.toContain("settings");
-    expect(ids).not.toContain("book");
-    expect(ids[0]).toBe("new-lead");
+    for (const stage of COLD_CALL_STAGES) expect(ids).toContain(stage.id);
+    expect(ids).toContain("tracker");
   });
 
-  it("keeps the book and the settings owner-only", () => {
-    // A caller works his queue; he does not hand himself lists or edit the
-    // script. The API refuses both independently of what renders.
+  it("keeps assigning and the script owner-only", () => {
+    const ids = coldCallPagesFor(false).map((p) => p.id);
+    expect(ids).not.toContain("assign");
+    expect(ids).not.toContain("settings");
     expect(COLD_CALL_PAGES.filter((p) => p.ownerOnly).map((p) => p.id)).toEqual([
-      "book",
+      "assign",
       "settings",
     ]);
   });
 
-  it("has no page left over from the old mixed strip", () => {
+  it("has no page left over from an earlier strip", () => {
+    // Leads/Callbacks became stages; Brushed Off became a reason; Pipelines and
+    // the Scoreboard are gone; Book is now Assign.
     const ids = COLD_CALL_PAGES.map((p) => p.id);
-    // Brushed Off left too: it became a reason on the Not Interested prompt
-    // rather than a place a lead lives.
-    for (const gone of ["leads", "callbacks", "stages", "pipelines", "brushed-off"]) {
+    for (const gone of [
+      "leads",
+      "callbacks",
+      "stages",
+      "pipelines",
+      "brushed-off",
+      "scoreboard",
+      "book",
+    ]) {
       expect(ids).not.toContain(gone);
     }
+  });
+});
+
+describe("coldCallSides", () => {
+  it("splits the work from the running of it", () => {
+    const { left, right } = coldCallSides(true);
+    expect(left.map((p) => p.id)).toEqual([
+      "new-lead",
+      "first-dial",
+      "second-dial",
+      "call-back",
+      "booked",
+      "not-interested",
+      "tracker",
+    ]);
+    expect(right.map((p) => p.id)).toEqual(["assign", "settings"]);
+  });
+
+  it("gives a caller no right-hand group at all, so he gets no divider", () => {
+    const { left, right } = coldCallSides(false);
+    expect(right).toEqual([]);
+    expect(left.length).toBeGreaterThan(0);
+  });
+
+  it("loses no page in the split", () => {
+    const { left, right } = coldCallSides(true);
+    expect(left.length + right.length).toBe(coldCallPagesFor(true).length);
   });
 });
 
@@ -63,15 +98,16 @@ describe("resolveColdCallView", () => {
     expect(resolveColdCallView("bogus", true)).toBe("new-lead");
   });
 
-  it("sends a bookmark from the old strip somewhere real", () => {
-    // ?view=leads was the old first page. It no longer exists, so it resolves
-    // to the first stage rather than rendering nothing.
-    expect(resolveColdCallView("leads", true)).toBe("new-lead");
+  it("sends a bookmark from an earlier strip somewhere real", () => {
+    // ?view=book and ?view=scoreboard were both real pages an hour ago.
+    expect(resolveColdCallView("book", true)).toBe("new-lead");
+    expect(resolveColdCallView("scoreboard", true)).toBe("new-lead");
   });
 
-  it("sends a cold caller who types ?view=settings back to the first stage", () => {
+  it("sends a cold caller who types ?view=assign back to the first stage", () => {
     // Hiding the tab is not the enforcement (the API is), but a typed URL must
     // not render a page the role cannot use.
+    expect(resolveColdCallView("assign", false)).toBe("new-lead");
     expect(resolveColdCallView("settings", false)).toBe("new-lead");
   });
 });

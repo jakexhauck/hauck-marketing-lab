@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   DIAL_OUTCOMES,
+  formatObjections,
   isDialOutcome,
   mergeRecordedDays,
   rollUpDialsByDay,
@@ -54,7 +55,7 @@ describe("rollUpDialsByDay", () => {
       callsMade: 4,
       pickups: 3,
       passThrough: 2,
-      meetingsBooked: 1,
+      meetingsBooked: 1, reasons: {},
     });
   });
 
@@ -77,7 +78,7 @@ describe("rollUpDialsByDay", () => {
       callsMade: 1,
       pickups: 0,
       passThrough: 0,
-      meetingsBooked: 1,
+      meetingsBooked: 1, reasons: {},
     });
   });
 
@@ -91,7 +92,7 @@ describe("rollUpDialsByDay", () => {
 });
 
 describe("mergeRecordedDays", () => {
-  const counts = { callsMade: 9, pickups: 2, passThrough: 1, meetingsBooked: 0 };
+  const counts = { callsMade: 9, pickups: 2, passThrough: 1, meetingsBooked: 0, reasons: {} };
 
   it("attaches the recorded counts to a typed day", () => {
     const [row] = mergeRecordedDays([typedDay({ callsMade: 40 })], {
@@ -125,5 +126,43 @@ describe("mergeRecordedDays", () => {
       "2026-07-27": counts,
     });
     expect(rows.map((r) => r.day)).toEqual(["2026-07-26", "2026-07-27", "2026-07-28"]);
+  });
+});
+
+
+describe("reasons on the rollup", () => {
+  it("tallies why the day's nos were nos", () => {
+    const counts = rollUpDialsByDay([
+      { day: "2026-07-26", spoke: true, pitched: true, outcome: "not_interested", reason: "has_agency" },
+      { day: "2026-07-26", spoke: true, pitched: false, outcome: "brush_off", reason: "no_engage" },
+      { day: "2026-07-26", spoke: true, pitched: true, outcome: "not_interested", reason: "has_agency" },
+      { day: "2026-07-26", spoke: false, pitched: false, outcome: "no_answer", reason: null },
+    ]);
+    expect(counts["2026-07-26"].reasons).toEqual({ has_agency: 2, no_engage: 1 });
+    // A no-answer is still a call, and still not an objection.
+    expect(counts["2026-07-26"].callsMade).toBe(4);
+  });
+});
+
+describe("formatObjections", () => {
+  it("writes the day's objections commonest first", () => {
+    expect(formatObjections({ no_engage: 1, has_agency: 3 })).toBe(
+      "3 already has an agency, 1 would not engage",
+    );
+  });
+
+  it("is blank when nothing was recorded", () => {
+    expect(formatObjections({})).toBe("");
+    expect(formatObjections(null)).toBe("");
+  });
+
+  it("ignores a reason it does not know rather than printing a raw key", () => {
+    expect(formatObjections({ made_up: 4, bad_fit: 1 })).toBe("1 not a fit");
+  });
+
+  it("breaks ties in the order the reasons are declared, so the text is stable", () => {
+    expect(formatObjections({ bad_fit: 1, pitched_no: 1 })).toBe(
+      "1 heard the pitch, said no, 1 not a fit",
+    );
   });
 });

@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { ScrollText } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { effectiveAdminRole } from "../../../lib/adminRoles";
-import { coldCallPagesFor, resolveColdCallView } from "../../../lib/coldCallPages";
+import { coldCallSides, resolveColdCallView } from "../../../lib/coldCallPages";
 import { stageById } from "../../../lib/coldCallStages";
 import { useColdCallScriptQuery } from "../../../hooks/useApi";
 import { useAssignableCallersQuery } from "../../../hooks/useLeadAssignment";
@@ -15,7 +15,6 @@ import ColdCallLeads from "./ColdCallLeads";
 import ColdCallManage from "./ColdCallManage";
 import ColdCallCallbacks from "./ColdCallCallbacks";
 import ColdCallBooked from "./ColdCallBooked";
-import ColdCallScoreboard from "./ColdCallScoreboard";
 import ColdCallSettings from "./ColdCallSettings";
 
 // Acquisition > Cold Call. Unlike its sibling tabs this is a section rather than
@@ -53,7 +52,7 @@ export default function ColdCallSection() {
   const callers = useAssignableCallersQuery(isOwner);
   const scope = isOwner ? callerId : (admin?.id ?? "");
 
-  const pages = coldCallPagesFor(isOwner);
+  const { left, right } = coldCallSides(isOwner);
   const view = resolveColdCallView(searchParams.get("view"), isOwner);
 
   // Only load the script once it is asked for: most page views never open it.
@@ -73,8 +72,8 @@ export default function ColdCallSection() {
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <nav className="pk-subtabs !m-0" aria-label="Cold call pages">
-          {pages.map((p) => (
+        <nav className="pk-subtabs !m-0 flex items-center" aria-label="Cold call pages">
+          {left.map((p) => (
             <button
               key={p.id}
               type="button"
@@ -84,6 +83,23 @@ export default function ColdCallSection() {
               {p.label}
             </button>
           ))}
+
+          {right.length > 0 && (
+            <>
+              {/* The work on one side, the running of it on the other. */}
+              <span aria-hidden className="mx-2 h-5 w-px shrink-0 bg-border" />
+              {right.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`pk-subtab${view === p.id ? " on" : ""}`}
+                  onClick={() => setView(p.id)}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </>
+          )}
         </nav>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -169,9 +185,9 @@ function ColdCallBody({
   }
 
   switch (view) {
-    case "book":
-      // Unfiltered on purpose: the book is every lead in every stage, which is
-      // what you need when handing work out.
+    case "assign":
+      // Unfiltered on purpose: handing work out means seeing every lead in
+      // every stage, not one stage at a time.
       return <ColdCallManage callerId={callerId} />;
     case "tracker":
       // A tracker grid is one person's hand-typed month. There is no honest way
@@ -193,8 +209,6 @@ function ColdCallBody({
           callerId={callerId}
         />
       );
-    case "scoreboard":
-      return <ColdCallScoreboard callerId={callerId} />;
     case "settings":
       return <ColdCallSettings />;
     default:

@@ -1079,6 +1079,9 @@ export interface AdminLead {
 // attempt per outcome pressed on the call card. Null when nothing was dialled in
 // the app that day.
 export interface ColdCallRecorded {
+  // How many of the day's nos gave each reason, keyed by the reason. The
+  // Objections cell is written from this when nobody typed over it.
+  reasons?: Record<string, number>;
   callsMade: number;
   pickups: number;
   passThrough: number;
