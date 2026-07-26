@@ -1,20 +1,12 @@
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle, ArrowRight, Check, Inbox, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, Inbox, X } from "lucide-react";
 import DesktopPage from "../../components/desktop/DesktopPage";
 import { Button } from "../../components/ui/Button";
+import OnboardingBoard from "../../components/admin/onboarding/OnboardingBoard";
 import { useIntakeAction, useIntakeQueue, useIntakeSubmission } from "../../hooks/useIntake";
 import type { IntakeStatus } from "../../hooks/useIntake";
 import { INTAKE_FIELDS, INTAKE_STEPS } from "../../lib/intake";
-import {
-  ArrivalsFeed,
-  BackBar,
-  PipelineBoard,
-  TriageStrip,
-  VARIANTS,
-  groupByStage,
-  type VariantKey,
-} from "./onboardingVariants";
 
 // The intake submissions surface (/admin/onboarding).
 //
@@ -25,110 +17,53 @@ import {
 // This is also the route the five Onboarding pillar lanes have been linking to
 // since before it existed.
 //
-// LAYOUT IS UNDER REVIEW. Three directions render behind ?v=a|b|c while Jake
-// picks one. The first attempt used a list-and-detail split, which read as a
-// clone of the Fulfillment roster: a roster is a filing cabinet of equals,
-// whereas onboarding is a conveyor belt. All three replacements encode movement
-// instead. Once Jake picks, the other two and onboardingVariants.tsx are
-// deleted.
+// The layout is a pipeline board, chosen from three candidates. The first
+// attempt was a list-and-detail split, which read as a clone of the Fulfillment
+// roster; a roster is a filing cabinet of equals, whereas onboarding is a
+// conveyor belt. See OnboardingBoard.tsx.
 
 export default function AdminOnboarding() {
-  const [params, setParams] = useSearchParams();
-  const variant = (params.get("v") as VariantKey) ?? "a";
   const [selected, setSelected] = useState<string | null>(null);
 
   // One request, grouped in the browser. The stages are a view of the same
   // data, so refetching per column would be three round trips for one screen.
   const queue = useIntakeQueue("all");
-  const all = queue.data?.submissions ?? [];
-  const live = all.filter((s) => s.status !== "rejected");
-  const grouped = groupByStage(live);
-
-  function chooseVariant(key: VariantKey) {
-    params.set("v", key);
-    setParams(params, { replace: true });
-    setSelected(null);
-  }
+  const live = (queue.data?.submissions ?? []).filter((s) => s.status !== "rejected");
 
   return (
     <DesktopPage
       title="Onboarding"
       subtitle="Every client we are standing up, and where each one has got to."
     >
-      <VariantPicker current={variant} onPick={chooseVariant} />
-
-      {queue.isError ? (
-        <Empty icon={AlertTriangle}>Could not load submissions.</Empty>
-      ) : queue.isLoading ? (
-        <Empty icon={Inbox}>Loading...</Empty>
-      ) : live.length === 0 ? (
-        <Empty icon={Inbox}>
-          Nobody is being onboarded right now. Submissions land here the moment a
-          client finishes the intake form.
-        </Empty>
-      ) : selected && variant !== "c" ? (
-        <>
-          <BackBar onBack={() => setSelected(null)} label="Back to onboarding" />
-          <Panel>
-            <Detail id={selected} onDone={() => setSelected(null)} />
-          </Panel>
-        </>
-      ) : variant === "a" ? (
-        <PipelineBoard grouped={grouped} onSelect={setSelected} />
-      ) : variant === "b" ? (
-        <ArrivalsFeed submissions={live} onSelect={setSelected} />
-      ) : (
-        <>
-          <TriageStrip submissions={live} selected={selected} onSelect={setSelected} />
-          <Panel>
-            {selected ? (
+      <div className="mt-6">
+        {queue.isError ? (
+          <Empty icon={AlertTriangle}>Could not load submissions.</Empty>
+        ) : queue.isLoading ? (
+          <Empty icon={Inbox}>Loading...</Empty>
+        ) : selected ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-brand-text"
+            >
+              <ArrowLeft size={15} aria-hidden />
+              Back to onboarding
+            </button>
+            <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-sm)]">
               <Detail id={selected} onDone={() => setSelected(null)} />
-            ) : (
-              <Empty icon={Inbox}>Pick a client above to work through them.</Empty>
-            )}
-          </Panel>
-        </>
-      )}
+            </section>
+          </>
+        ) : live.length === 0 ? (
+          <Empty icon={Inbox}>
+            Nobody is being onboarded right now. Clients land here the moment they
+            start the intake form.
+          </Empty>
+        ) : (
+          <OnboardingBoard submissions={live} onSelect={setSelected} />
+        )}
+      </div>
     </DesktopPage>
-  );
-}
-
-function Panel({ children }: { children: React.ReactNode }) {
-  return (
-    <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-sm)]">
-      {children}
-    </section>
-  );
-}
-
-// Temporary, and labelled as such so nobody mistakes it for a feature.
-function VariantPicker({
-  current,
-  onPick,
-}: {
-  current: VariantKey;
-  onPick: (key: VariantKey) => void;
-}) {
-  return (
-    <div className="mb-5 mt-5 flex flex-wrap items-center gap-2 rounded-[var(--radius)] border border-dashed border-border bg-surface-2 px-3.5 py-2.5">
-      <span className="text-[12px] font-medium text-faint">Layout options (pick one):</span>
-      {VARIANTS.map((v) => (
-        <button
-          key={v.key}
-          type="button"
-          onClick={() => onPick(v.key)}
-          title={v.blurb}
-          className={[
-            "rounded-[var(--radius-sm)] border px-2.5 py-1 text-[12px] font-medium transition-colors",
-            current === v.key
-              ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand-text)]"
-              : "border-border bg-surface text-muted hover:text-text",
-          ].join(" ")}
-        >
-          {v.label}
-        </button>
-      ))}
-    </div>
   );
 }
 
