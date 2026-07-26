@@ -471,11 +471,11 @@
 
     slot.innerHTML = h;
 
-    var left = REVIEW_STEP - state.step;
+    // No countdown here. The ticks at the top of the card already show how far
+    // through they are, and spelling it out in words as well reads as nagging.
     reassure.textContent = onReview
       ? "Once you send this, we will start setting your account up."
-      : (left === 1 ? "One step left. " : left + " steps left. ") +
-        "Your answers save as you go, so you can stop and come back.";
+      : "Your answers save as you go, so you can stop and come back.";
 
     wire();
   }
