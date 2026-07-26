@@ -4,6 +4,8 @@ import {
   useQueryClient,
   keepPreviousData,
 } from "@tanstack/react-query";
+import type { HealthResponse as ConnectionHealthResponse } from "../lib/connectionHealth";
+import type { AgencySecretsResponse, ClientSecretsResponse } from "../lib/secretsApi";
 import {
   api,
   getAdminOverview,
@@ -2620,5 +2622,84 @@ export function useClientPreviewToken(tenantId: string, enabled = true) {
         `/api/admin/clients/${tenantId}/preview-token`,
         { method: "POST" },
       ),
+  });
+}
+
+// The admin connection control room (GET /api/admin/connections/health): live
+// probes of every credential in the registry, plus a per-client breakdown.
+//
+// Deliberately not cached for long. This page exists to answer "is it working
+// right now", so a stale snapshot is the exact failure it was built to prevent.
+// The probes hit real vendors, so it does not poll on an interval: refetching on
+// focus and on an explicit refresh covers the on-demand case, and the scheduled
+// job (once it exists) covers the overnight case.
+export function useConnectionHealth(enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "connections", "health"],
+    enabled,
+    staleTime: 0,
+    gcTime: 60_000,
+    refetchOnWindowFocus: true,
+    queryFn: () => api<ConnectionHealthResponse>("/api/admin/connections/health"),
+  });
+}
+
+// Agency-wide secrets as Doppler holds them, plus drift against the running
+// deploy (GET /api/admin/secrets/agency). Never cached: the whole value of the
+// drift flag is that it reflects this moment.
+export function useAgencySecrets(enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "secrets", "agency"],
+    enabled,
+    staleTime: 0,
+    gcTime: 60_000,
+    queryFn: () => api<AgencySecretsResponse>("/api/admin/secrets/agency"),
+  });
+}
+
+// Write one agency secret back to Doppler. The running app keeps the old value
+// until a rebind and redeploy, so this refreshes the list to surface the drift
+// the write just created rather than pretending the change is live.
+export function useSaveAgencySecret() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; value: string }) =>
+      api<{ name: string; masked: string | null; note: string }>("/api/admin/secrets/agency", {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "secrets", "agency"] });
+      qc.invalidateQueries({ queryKey: ["admin", "connections", "health"] });
+    },
+  });
+}
+
+// One client's own credentials (GET /api/admin/secrets/client/:tenantId).
+// Secrets come back masked; ids come back in full.
+export function useClientSecrets(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "secrets", "client", tenantId],
+    enabled: enabled && !!tenantId,
+    staleTime: 0,
+    queryFn: () => api<ClientSecretsResponse>(`/api/admin/secrets/client/${tenantId}`),
+  });
+}
+
+// Save a client's credentials. Only changed fields are sent, so an untouched
+// secret is never round-tripped through the browser. These are live on the next
+// request, with no deploy, because they are read from the tenants row.
+export function useSaveClientSecrets(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: Record<string, string>) =>
+      api<{ saved: string[]; fields: ClientSecretsResponse["fields"] }>(
+        `/api/admin/secrets/client/${tenantId}`,
+        { method: "PUT", body: JSON.stringify(patch) },
+      ),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "secrets", "client", tenantId] });
+      qc.invalidateQueries({ queryKey: ["admin", "connections", "health"] });
+    },
   });
 }
