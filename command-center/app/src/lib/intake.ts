@@ -1,10 +1,15 @@
 // The client intake funnel, declared as data.
 //
 // This is the public form at /onboarding: no login, filled in by the client
-// themselves between paying and the kickoff call. It carries all sixteen
-// questions from Jake's Google Form, plus the three things the form could not
-// do: the business basics needed to create an account, the login they choose,
-// and a review screen.
+// themselves between paying and the kickoff call. It carries fifteen of the
+// sixteen questions from Jake's Google Form, plus the three things the form
+// could not do: the business basics needed to create an account, the login they
+// choose, and a review screen.
+//
+// The sixteenth, Tax ID / EIN, was cut at Jake's request: he did not want to ask
+// a brand-new client for legal business details. It is still needed for A2P
+// phone registration, so it now has to be collected out of band, by email or on
+// the kickoff call, before texting can go live for that client.
 //
 // The funnel, its validation and its review screen all render from
 // INTAKE_FIELDS. Adding a question is one entry here, not a JSX edit in three
@@ -67,7 +72,7 @@ export const INTAKE_STEPS: IntakeStep[] = [
     n: 2,
     key: "contact",
     label: "Contact details",
-    blurb: "How we reach you, and what we need to register your phone number.",
+    blurb: "How we reach you, and where you are based.",
   },
   {
     n: 3,
@@ -155,13 +160,6 @@ export const INTAKE_FIELDS: IntakeField[] = [
     step: 2,
     required: true,
     wide: true,
-  },
-  {
-    key: "taxId",
-    label: "Tax ID / EIN",
-    type: "text",
-    step: 2,
-    help: "Required by the carriers to register a phone number for your business texts.",
   },
 
   // 3 - Your login (new: this is what creates the account)

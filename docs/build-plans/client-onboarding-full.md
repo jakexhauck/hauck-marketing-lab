@@ -113,9 +113,15 @@ moment step 3 is saved. Plaintext is never written. `login_email` is stored
 alongside so the queue can show it and so a duplicate can be caught before
 approval rather than after.
 
-The Tax ID sits inside `answers`. That table is RLS-on with no policies, so it is
-reachable by the service role only, which is the same protection the `onboarding`
-table already relies on for the same class of data.
+The `answers` blob holds ordinary business details rather than anything legally
+sensitive: Tax ID / EIN was cut from the funnel at Jake's request. The table is
+still RLS-on with no policies, reachable by the service role only, which is the
+same protection the `onboarding` table already relies on.
+
+**Consequence of that cut:** A2P phone registration requires an EIN, so it now
+has to be collected out of band (email or the kickoff call) before texting can go
+live for a client. The setup checklist item "Phone number registered, A2P
+approved" is where that gets caught.
 
 `onboarding` and `onboarding_checklist` from migration 0018 are unchanged and get
 their first real use.
@@ -137,7 +143,7 @@ Vercel project and cannot create accounts.
 | Step | Fields | Source |
 |---|---|---|
 | 1. Business | `name`*, `niche`*, `websiteUrl` | New |
-| 2. Contact and legal | `contactName`*, `contactEmail`*, `contactPhone`*, `timezone`*, `businessAddress`*, `taxId` | Google Doc Q1-Q6 |
+| 2. Contact details | `contactName`*, `contactEmail`*, `contactPhone`*, `timezone`*, `businessAddress`* | Google Doc Q1-Q5 |
 | 3. Your login | `loginEmail`*, `password`*, `passwordConfirm`* | New |
 | 4. Targeting and ops | `targetAreas`*, `areaCallout`*, `notifyPreference`, `calendarAvailability`, `leadConnectorInstalled` | Q7-Q11 |
 | 5. Story | `usp`, `whySignedUp`, `notes` | Q12, Q15, Q16 |

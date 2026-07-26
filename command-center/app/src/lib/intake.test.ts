@@ -96,7 +96,7 @@ describe("the schema itself", () => {
     }
   });
 
-  it("keeps all sixteen questions from the source form", () => {
+  it("keeps fifteen of the sixteen questions from the source form", () => {
     const keys = new Set(INTAKE_FIELDS.map((f) => f.key));
     const fromSourceForm = [
       "contactName",
@@ -104,7 +104,6 @@ describe("the schema itself", () => {
       "contactPhone",
       "timezone",
       "businessAddress",
-      "taxId",
       "targetAreas",
       "areaCallout",
       "notifyPreference",
@@ -116,10 +115,17 @@ describe("the schema itself", () => {
       "whySignedUp",
       "notes",
     ];
-    expect(fromSourceForm).toHaveLength(16);
+    expect(fromSourceForm).toHaveLength(15);
     for (const key of fromSourceForm) {
       expect(keys.has(key), `${key} is missing from the funnel`).toBe(true);
     }
+  });
+
+  // Cut at Jake's request: he did not want to ask a brand-new client for legal
+  // business details. Asserted rather than merely deleted, so nobody puts it
+  // back by accident. A2P registration still needs it, collected out of band.
+  it("never asks a client for their tax ID", () => {
+    expect(INTAKE_FIELDS.some((f) => f.key === "taxId")).toBe(false);
   });
 
   it("offers Both as a notification preference, not just text and email", () => {
@@ -145,7 +151,7 @@ describe("missingRequired", () => {
   });
 
   it("never treats an optional field as missing", () => {
-    expect(missingRequired(2, step2()).map((f) => f.key)).not.toContain("taxId");
+    expect(missingRequired(1, step1()).map((f) => f.key)).not.toContain("websiteUrl");
   });
 });
 
@@ -230,7 +236,7 @@ describe("completeness", () => {
   });
 
   it("stays at one hundred when optional fields are left blank", () => {
-    expect(completeness({ ...fullAnswers(), taxId: "", usp: "" })).toBe(100);
+    expect(completeness({ ...fullAnswers(), websiteUrl: "", usp: "" })).toBe(100);
   });
 
   it("rises as required fields are filled", () => {

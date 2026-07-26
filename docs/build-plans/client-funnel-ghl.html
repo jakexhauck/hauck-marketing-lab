@@ -169,7 +169,7 @@
 
   var STEPS = [
     { n: 1, label: "Your business", blurb: "The basics, so we know who we are building for." },
-    { n: 2, label: "Contact details", blurb: "How we reach you, and what we need to register your business phone number." },
+    { n: 2, label: "Contact details", blurb: "How we reach you, and where you are based." },
     { n: 3, label: "Your login", blurb: "Choose how you will sign in once your account is ready." },
     { n: 4, label: "Targeting", blurb: "Where your ads run, and how you want to hear about new leads." },
     { n: 5, label: "Your story", blurb: "What makes you different. This is the raw material for your ads." },
@@ -191,7 +191,6 @@
     { key: "contactPhone", label: "Phone", type: "tel", step: 2, required: true, placeholder: "(313) 555 0134" },
     { key: "timezone", label: "Timezone", type: "select", step: 2, required: true, options: TIMEZONES, help: "This sets the times on your booking calendar, so please get it right." },
     { key: "businessAddress", label: "Business address", type: "textarea", step: 2, required: true, wide: true, placeholder: "123 Ford Rd, Garden City, MI 48135" },
-    { key: "taxId", label: "Tax ID / EIN", type: "text", step: 2, wide: true, placeholder: "12-3456789", help: "Required by the phone carriers to register a number for your business texts. Nobody else sees it." },
 
     // 3 Your login
     { key: "loginEmail", label: "Login email", type: "email", step: 3, required: true, wide: true, help: "Prefilled from the email above. Change it if you would rather sign in with another." },
