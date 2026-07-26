@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Root &amp; Ritual Botanicals — 5 Website Directions</title>
+<link rel="stylesheet" href="assets/tokens.css">
+<style>
+  body { background: var(--cream-lift); }
+  .hub-top { background: var(--green); color: var(--cream); padding-block: clamp(3rem, 7vw, 5rem); }
+  .hub-top .eyebrow { color: var(--orange-soft); margin-bottom: 1rem; }
+  .hub-top h1 { font-size: clamp(2.4rem, 6vw, 4rem); color: var(--cream-lift); margin-bottom: 1rem; }
+  .hub-top p { color: rgba(243,235,221,.78); max-width: 44rem; font-size: .95rem; }
+
+  .swatches { display: flex; gap: .8rem; flex-wrap: wrap; margin-top: 2rem; }
+  .sw { display: flex; align-items: center; gap: .6rem; font-family: var(--caps); font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; color: rgba(243,235,221,.7); }
+  .sw b { width: 24px; height: 24px; border-radius: 3px; border: 1px solid rgba(243,235,221,.25); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: clamp(1.2rem, 2.5vw, 2rem); padding-block: clamp(3rem, 6vw, 4.5rem); }
+  .card { border: 1px solid rgba(32,49,38,.16); background: var(--cream); display: flex; flex-direction: column; transition: transform .4s var(--ease), box-shadow .4s var(--ease); }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 28px 55px -38px rgba(32,49,38,.75); }
+  .card__num { font-family: var(--display); font-size: 3.4rem; line-height: 1; color: var(--orange); }
+  .card__head { padding: clamp(1.6rem, 3vw, 2.2rem); display: flex; gap: 1.2rem; align-items: flex-start; border-bottom: 1px solid rgba(32,49,38,.14); }
+  .card h2 { font-size: 1.9rem; color: var(--green); margin-bottom: .3rem; }
+  .card .tag { font-family: var(--caps); font-size: .62rem; letter-spacing: .2em; text-transform: uppercase; color: var(--brown-soft); }
+  .card__body { padding: clamp(1.6rem, 3vw, 2.2rem); flex: 1; display: flex; flex-direction: column; gap: 1.1rem; }
+  .card__body p { font-size: .9rem; color: rgba(26,38,32,.76); }
+  .card .best { font-family: var(--caps); font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; color: var(--green); padding-top: .9rem; border-top: 1px solid rgba(32,49,38,.14); }
+  .card .best em { font-style: normal; color: var(--orange); }
+  .links { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: auto; padding-top: .4rem; }
+  .links a { font-family: var(--caps); font-size: .66rem; letter-spacing: .14em; text-transform: uppercase; text-decoration: none; padding: .7rem 1.05rem; border: 1px solid rgba(32,49,38,.24); color: var(--green); transition: all .3s var(--ease); }
+  .links a:hover { background: var(--green); color: var(--cream); border-color: var(--green); }
+  .links a.primary { background: var(--green); color: var(--cream); border-color: var(--green); }
+  .links a.primary:hover { background: var(--ink); }
+
+  .notes { background: var(--cream); border-top: 1px solid rgba(32,49,38,.16); padding-block: clamp(2.5rem, 5vw, 4rem); }
+  .notes h3 { font-family: var(--display); font-size: 1.6rem; color: var(--green); margin-bottom: 1rem; }
+  .notes ul { margin: 0; padding-left: 1.2rem; font-size: .9rem; color: rgba(26,38,32,.78); }
+  .notes li { margin-bottom: .55rem; }
+  .notes .cols { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 4rem); }
+  @media (max-width: 800px) { .notes .cols { grid-template-columns: 1fr; } }
+</style>
+<script>document.documentElement.className+=" js";</script>
+</head>
+<body>
+
+<section class="hub-top">
+  <div class="wrap">
+    <p class="eyebrow">Root &amp; Ritual Botanicals · Shopify Concepts</p>
+    <h1>Five directions.<br>One brand.</h1>
+    <p>Each direction is a complete four-page site: Home, Product, Shop and Our Story. All five use the same locked brand system from the guide, the same copy, and the same two product photographs. What changes is weight, framing and where the photography sits. Pick the one that feels right and it becomes the Shopify theme.</p>
+    <div class="swatches">
+      <span class="sw"><b style="background:#203126"></b> Mountain Green #203126</span>
+      <span class="sw"><b style="background:#F3EBDD"></b> Parchment Cream #F3EBDD</span>
+      <span class="sw"><b style="background:#C86A22"></b> Orange Accent #C86A22</span>
+      <span class="sw"><b style="background:#6A4A32"></b> Weathered Brown #6A4A32</span>
+      <span class="sw"><b style="background:linear-gradient(90deg,#203126 50%,#F3EBDD 50%)"></b> Cormorant Garamond + Libre Baskerville</span>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="grid">
+
+    <article class="card">
+      <div class="card__head">
+        <span class="card__num">01</span>
+        <div><h2>Faithful</h2><span class="tag">The control</span></div>
+      </div>
+      <div class="card__body">
+        <p>Your existing comp, rebuilt properly. Same badge logo overhanging the hero, same cream page, same dark green footer, but with a real type scale and a consistent spacing rhythm. The two products become alternating full-width feature rows instead of a thin two-card grid.</p>
+        <p class="best">Best if the client <em>already loves</em> what they have and just wants it built well.</p>
+        <div class="links">
+          <a class="primary" href="01-faithful/index.html">Home</a>
+          <a href="01-faithful/product.html">Product</a>
+          <a href="01-faithful/shop.html">Shop</a>
+          <a href="01-faithful/about.html">Our Story</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card__head">
+        <span class="card__num">02</span>
+        <div><h2>Parchment</h2><span class="tag">Illustration-led</span></div>
+      </div>
+      <div class="card__body">
+        <p>Cream dominates and photography steps back. The etched botanical language becomes structural: arched frames, double-ruled panels, ornament in the margins. Even the footer is cream instead of green. The quietest of the five, and the most like walking into an old apothecary.</p>
+        <p class="best">Best if the client wants <em>calm and heritage</em> over commercial punch.</p>
+        <div class="links">
+          <a class="primary" href="02-parchment/index.html">Home</a>
+          <a href="02-parchment/product.html">Product</a>
+          <a href="02-parchment/shop.html">Shop</a>
+          <a href="02-parchment/about.html">Our Story</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card__head">
+        <span class="card__num">03</span>
+        <div><h2>Deep Forest</h2><span class="tag">Green carries the page</span></div>
+      </div>
+      <div class="card__body">
+        <p>The ratio inverted. Mountain Green becomes the base and cream becomes the accent, so the product photography glows against the dark. Orange gets promoted to the primary button colour. The story section flips to cream for relief.</p>
+        <p class="best">Best if the client wants to look <em>premium</em> and sell well on Instagram.</p>
+        <div class="links">
+          <a class="primary" href="03-deep-forest/index.html">Home</a>
+          <a href="03-deep-forest/product.html">Product</a>
+          <a href="03-deep-forest/shop.html">Shop</a>
+          <a href="03-deep-forest/about.html">Our Story</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card__head">
+        <span class="card__num">04</span>
+        <div><h2>Field Guide</h2><span class="tag">Editorial almanac</span></div>
+      </div>
+      <div class="card__body">
+        <p>Hairline rules everywhere, small-caps labels, ruled data rows instead of icon strips, two-column prose on the story page. Products are presented as specimen entries. This is the direction that actually solves the education problem: it gives the ingredients somewhere credible to live.</p>
+        <p class="best">Best if the client wants to be believed on <em>mountain medicine</em>, not just look pretty.</p>
+        <div class="links">
+          <a class="primary" href="04-field-guide/index.html">Home</a>
+          <a href="04-field-guide/product.html">Product</a>
+          <a href="04-field-guide/shop.html">Shop</a>
+          <a href="04-field-guide/about.html">Our Story</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card__head">
+        <span class="card__num">05</span>
+        <div><h2>Golden Hour</h2><span class="tag">Photography-forward</span></div>
+      </div>
+      <div class="card__body">
+        <p>Almost no chrome. A full-screen hero, a transparent header that solidifies on scroll, and product sections that become full-bleed image bands with the copy sitting inside the picture. Oversized light-weight serif throughout. The boldest of the five.</p>
+        <p class="best">Best if the client is willing to <em>invest in photography</em>, because this direction lives or dies on it.</p>
+        <div class="links">
+          <a class="primary" href="05-golden-hour/index.html">Home</a>
+          <a href="05-golden-hour/product.html">Product</a>
+          <a href="05-golden-hour/shop.html">Shop</a>
+          <a href="05-golden-hour/about.html">Our Story</a>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</div>
+
+<section class="notes">
+  <div class="wrap cols">
+    <div>
+      <h3>What every direction fixes</h3>
+      <ul>
+        <li><strong>Two products no longer look like an empty store.</strong> No direction uses a plain two-card grid. Each solves it differently, and the Shop page adds a bundle so two SKUs become three offers.</li>
+        <li><strong>The hero stops competing with the product shots.</strong> The hero photo appears once per site; product images get shaped or framed so they read as objects.</li>
+        <li><strong>Social proof exists.</strong> Every direction has a review band.</li>
+        <li><strong>The story is on the site.</strong> North Georgia origin plus real ingredient detail on every product page.</li>
+        <li><strong>Sections have rhythm.</strong> Each direction commits to one dominant section type instead of centring everything.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Read before you send it on</h3>
+      <ul>
+        <li><strong>Only the two product photographs are real assets.</strong> No other image from the brand folder is used anywhere.</li>
+        <li><strong>Review quotes and star counts are placeholder.</strong> They must be swapped for real reviews before this goes anywhere near a customer.</li>
+        <li><strong>The pouches are not cut out.</strong> Backgrounds are handled with shaped crops and framing. If you want true cutouts on cream, that is a quick pass in Photoshop and the images drop straight in.</li>
+        <li><strong>The 40-bag size, the subscription option and the bundle price are invented</strong> to show the layout. Real merchandising decisions are the client's.</li>
+        <li><strong>These are HTML mockups, not a Shopify theme.</strong> Every section maps one-to-one to a Shopify section when you pick a winner.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer style="background:var(--green);color:rgba(243,235,221,.6);padding:1.6rem 0;font-size:.75rem">
+  <div class="wrap">Root &amp; Ritual Botanicals · Concept directions prepared by Hauck Marketing</div>
+</footer>
+
+</body>
+</html>
