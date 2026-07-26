@@ -96,6 +96,10 @@ export interface DailyTrackerProps {
   // one the app recorded. Optional: every other tracker renders as before.
   cellClass?: (iso: string, field: string) => string | undefined;
   cellTitle?: (iso: string, field: string) => string | undefined;
+  // Which cells are read-only because their value is derived somewhere else.
+  // Sales Data uses it for the days whose counts come from demo calls logged on
+  // the Sales Calls page: a day with two numbers is a day with no number.
+  cellLocked?: (iso: string, field: string) => boolean;
   // An extra entry for the "You type / Computed" legend.
   legendExtra?: ReactNode;
 }
@@ -163,6 +167,7 @@ export default function DailyTracker({
   aboveTable,
   cellClass,
   cellTitle,
+  cellLocked,
   legendExtra,
 }: DailyTrackerProps) {
   const days = buildMonthDays(cursor, today);
@@ -291,11 +296,16 @@ export default function DailyTracker({
                       const isText = c.kind === "text";
                       const extra = cellClass?.(d.iso, c.key);
                       const title = cellTitle?.(d.iso, c.key);
+                      // A cell whose value is derived elsewhere. Read-only
+                      // rather than disabled so it stays selectable and
+                      // screen-reader reachable: the number is real, it just is
+                      // not this table's to change.
+                      const locked = cellLocked?.(d.iso, c.key) ?? false;
                       return (
                         <td
                           key={c.key}
                           className={
-                            [isText ? "txtcol" : "", divider, extra ?? ""]
+                            [isText ? "txtcol" : "", divider, locked ? "locked" : "", extra ?? ""]
                               .filter(Boolean)
                               .join(" ") || undefined
                           }
@@ -307,7 +317,11 @@ export default function DailyTracker({
                             placeholder={isText ? "" : "·"}
                             aria-label={`${c.label}, ${d.dowLabel} ${d.day}`}
                             title={title}
-                            onChange={(e) => onEdit(d.iso, c.key, e.target.value)}
+                            readOnly={locked}
+                            onChange={(e) => {
+                              if (locked) return;
+                              onEdit(d.iso, c.key, e.target.value);
+                            }}
                           />
                         </td>
                       );
@@ -490,6 +504,14 @@ function TrackerStyle() {
       }
       .pk-kit .adt-card td input:hover { background: var(--adt-input-hover); }
       .pk-kit .adt-card td input:focus { outline: 0; background: var(--surface); box-shadow: 0 0 0 2px var(--adt-indigo); position: relative; z-index: 1; }
+
+      /* A cell whose value is derived elsewhere. Reads as settled rather than
+         broken: no hover affordance, a cursor that says "not here", and the
+         number itself at full contrast because it is real data, just not this
+         table's to edit. */
+      .pk-kit .adt-card td.locked input { cursor: default; color: var(--text-muted); }
+      .pk-kit .adt-card td.locked input:hover { background: transparent; }
+      .pk-kit .adt-card td.locked input:focus { box-shadow: none; background: transparent; }
 
       .pk-kit .adt-card tfoot td {
         padding: 12px 14px; font-size: 13.5px; text-align: right; font-variant-numeric: tabular-nums;

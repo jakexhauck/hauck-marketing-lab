@@ -870,13 +870,23 @@ export interface SalesDataRow {
 // left out keep whatever is stored: editing one cell never blanks the rest.
 export type SalesDataPatch = Partial<Omit<SalesDataRow, "day">>;
 
+// The month's rows, plus which days the server derived from demo calls logged
+// on the Sales Calls page rather than from anything typed here. The tracker
+// locks those cells: a day carrying two different numbers carries no number.
+export interface SalesDataMonth {
+  days: SalesDataRow[];
+  derivedDays: string[];
+}
+
 // Only the days that have a row. The client generates the empty ones, so an
 // unlogged day stays visibly empty rather than arriving as a fabricated zero.
-export async function getSalesData(month: string): Promise<SalesDataRow[]> {
-  const { days } = await api<{ days: SalesDataRow[] }>(
+export async function getSalesData(month: string): Promise<SalesDataMonth> {
+  const res = await api<{ days: SalesDataRow[]; derivedDays?: string[] }>(
     `/api/admin/tracker/sales-data?month=${encodeURIComponent(month)}`,
   );
-  return days;
+  // Tolerates an older response shape rather than crashing the table if a
+  // cached bundle meets a newer API or the other way round.
+  return { days: res.days ?? [], derivedDays: res.derivedDays ?? [] };
 }
 
 export async function saveSalesDataDay(
