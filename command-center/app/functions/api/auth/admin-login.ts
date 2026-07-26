@@ -8,9 +8,12 @@ import {
 import { getServiceClient } from "../../lib/supabase";
 import { verifyPassword } from "../../lib/password";
 import { normalizeEmail } from "../../lib/staff";
-import { isAdminRole } from "../../lib/adminRoles";
+import { isAdminRole, normalizeUsername } from "../../lib/adminRoles";
 
 interface Body {
+  // The login handle since 0051. `email` is still read so an older client (or a
+  // bookmarked form) keeps working.
+  username?: string;
   email?: string;
   password?: string;
 }
@@ -28,15 +31,15 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({ error: "invalid body" }, { status: 400 });
   }
 
-  const email = normalizeEmail(body.email ?? "");
+  const handle = normalizeUsername(body.username ?? body.email ?? "");
   const password = (body.password ?? "").trim();
-  if (!email || !password) {
-    return Response.json({ error: "incorrect email or password" }, { status: 401 });
+  if (!handle || !password) {
+    return Response.json({ error: "incorrect username or password" }, { status: 401 });
   }
 
   const ip = clientIp(ctx.request);
-  // Reuse the staff limiter: keyed on IP and the email being targeted.
-  if (await isStaffLoginRateLimited(ctx.env, ip, email)) {
+  // Reuse the staff limiter: keyed on IP and the handle being targeted.
+  if (await isStaffLoginRateLimited(ctx.env, ip, handle)) {
     return Response.json(
       { error: "too many attempts, try again later" },
       { status: 429 },
@@ -48,18 +51,30 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({ error: "admin login unavailable" }, { status: 503 });
   }
 
-  const { data } = await client
+  // Username first, then email: an account may have no email at all now, and a
+  // handle that looks like an address is still tried both ways.
+  const COLUMNS = "id, password_hash, name, email, username, status, role";
+  let found = await client
     .from("admin_accounts")
-    .select("id, password_hash, name, email, status, role")
-    .eq("email", email)
+    .select(COLUMNS)
+    .eq("username", handle)
     .maybeSingle();
+  if (!found.data && handle.includes("@")) {
+    found = await client
+      .from("admin_accounts")
+      .select(COLUMNS)
+      .eq("email", normalizeEmail(handle))
+      .maybeSingle();
+  }
+  const { data } = found;
 
   const admin = data as
     | {
         id: string;
         password_hash: string;
         name: string;
-        email: string;
+        email: string | null;
+        username: string | null;
         status: string;
         role: string;
       }
@@ -74,8 +89,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const ok = await verifyPassword(password, stored);
 
   if (!admin || admin.status !== "active" || !ok) {
-    await recordStaffLoginFailure(ctx.env, ip, email);
-    return Response.json({ error: "incorrect email or password" }, { status: 401 });
+    await recordStaffLoginFailure(ctx.env, ip, handle);
+    return Response.json({ error: "incorrect username or password" }, { status: 401 });
   }
 
   // Stamp the sign-in so the roster can answer "is this person actually using
@@ -92,11 +107,17 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
   const role = isAdminRole(admin.role) ? admin.role : "cold_caller";
   const token = await mintAdminSessionToken(ctx.env, admin.id);
-  const cookie = await mintAdminSessionCookie(ctx.env, admin.id);
+  const cookie = await mintAdminSessionCookie(ctx.env, admin.id, ctx.request);
   return new Response(
     JSON.stringify({
       ok: true,
-      admin: { id: admin.id, name: admin.name, email: admin.email, role },
+      admin: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        username: admin.username,
+        role,
+      },
       token,
     }),
     {

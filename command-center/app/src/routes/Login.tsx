@@ -14,8 +14,12 @@ type LoginMode = "live" | "test" | "admin";
 const BRAND_HEADLINE = "Your Business Command Center";
 const BRAND_TAGLINE = "Your clients, your pipeline, one command center.";
 
-// One email + password form for everyone. Owners and team members sign in with
-// their own email + password (staff-login); super-admins sign in to the admin
+// One handle + password form for everyone. Owners and team members sign in with
+// their own email + password (staff-login); agency staff sign in to the admin
+// console with a USERNAME (0051), because a hired caller has no agency mailbox
+// and an address is one more thing to mistype on a phone at 8am. The field
+// therefore relabels itself by mode rather than being two separate forms.
+// Historically the admin
 // console (admin-login). The account decides the tenant and role.
 //
 // "Modern Motion" look (repo-root design-kit.html): indigo/violet gradient brand
@@ -73,7 +77,7 @@ export default function Login() {
       ? "Test Account"
       : "Sign in with your email and password";
   const blockSubtitle = isAdmin
-    ? "Sign in to the admin console."
+    ? "Sign in to the admin console with your username."
     : isTest
       ? "Preview changes on the staging sub-account."
       : null;
@@ -117,13 +121,13 @@ export default function Login() {
         {/* Test mode is a shared-password login, so it shows no email field. */}
         {!isTest && (
           <label className="block">
-            <span className="label-cap">Email</span>
+            <span className="label-cap">{isAdmin ? "Username" : "Email"}</span>
             <input
-              type="email"
+              type={isAdmin ? "text" : "email"}
               autoCapitalize="none"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@email.com"
+              placeholder={isAdmin ? "your username" : "name@email.com"}
               autoComplete="username"
               required
               disabled={phase === "submitting"}
