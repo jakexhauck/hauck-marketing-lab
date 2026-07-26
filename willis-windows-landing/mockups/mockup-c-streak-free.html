@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Willis Windows | Streak-Free Windows, Metro Detroit</title>
+<!-- FAVICON PLACEHOLDER -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============ DIRECTION C — "STREAK-FREE": deep navy + fresh sky accent, centered, trust-first ============ */
+  :root{
+    --paper:#F6F8FA;      /* cool white */
+    --card:#FFFFFF;
+    --navy:#0C2740;       /* deep trust navy */
+    --navy-2:#123A5C;
+    --ink:#132433;
+    --ink-soft:#5C6B78;
+    --line:#E3E9EF;
+    --sky:#2E9BD6;        /* fresh water accent */
+    --sky-wash:#E8F4FB;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,.display{font-family:'Fraunces',Georgia,serif;line-height:1.06;letter-spacing:-.01em}
+  a{color:inherit}
+  .wrap{width:100%;max-width:1080px;margin:0 auto;padding:0 24px}
+  .narrow{max-width:760px;margin:0 auto}
+
+  /* ---------- News ribbon (top) ---------- */
+  .ribbon{background:var(--navy);color:#fff;text-align:center;font-size:13px;font-weight:500;padding:9px 16px}
+  .ribbon a{color:#9FD2ED;font-weight:600;text-decoration:none}
+  .ribbon a:hover{text-decoration:underline}
+
+  /* ---------- Header ---------- */
+  header{padding:20px 0;border-bottom:1px solid var(--line);background:var(--paper)}
+  .bar{display:flex;align-items:center;justify-content:space-between}
+  /* LOGO PLACEHOLDER SLOT */
+  .logo{display:flex;align-items:center;gap:11px;font-family:'Fraunces';font-weight:700;font-size:21px;color:var(--navy)}
+  .logo .mark{width:36px;height:36px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:16px;font-family:'Inter';font-weight:700}
+  .header-phone{font-weight:600;font-size:15px;color:var(--navy);text-decoration:none}
+
+  /* ---------- Hero (centered) ---------- */
+  .hero{padding:56px 0 44px;text-align:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--sky);margin-bottom:18px}
+  .eyebrow .ln{width:22px;height:1.5px;background:var(--sky)}
+  h1{font-size:clamp(38px,5.6vw,62px);font-weight:600;margin-bottom:18px}
+  h1 em{font-style:italic;color:var(--sky)}
+  .sub{font-size:clamp(16px,2vw,19px);color:var(--ink-soft);max-width:52ch;margin:0 auto 8px}
+
+  /* ---------- Form card (centered, prominent) ---------- */
+  .form-shell{max-width:560px;margin:34px auto 0}
+  .form-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 26px 60px -30px rgba(12,39,64,.4);padding:30px;text-align:left}
+  .form-card h2{font-family:'Fraunces';font-size:24px;font-weight:600;margin-bottom:4px}
+  .form-card p.lede{font-size:14.5px;color:var(--ink-soft);margin-bottom:18px}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}
+  .field input{width:100%;font-family:inherit;font-size:15px;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px;background:#FBFCFE;transition:.15s;color:var(--ink)}
+  .field input:focus{outline:none;border-color:var(--sky);box-shadow:0 0 0 4px var(--sky-wash)}
+  .field input.invalid{border-color:#E0574E;box-shadow:0 0 0 4px #FBEAE9}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .err{display:none;color:#CE4238;font-size:12px;margin-top:5px;font-weight:500}
+  .field.show-err .err{display:block}
+  .cta{width:100%;font-family:inherit;font-size:16px;font-weight:700;color:#fff;background:var(--navy);border:none;border-radius:12px;padding:15px;cursor:pointer;margin-top:6px;transition:.18s}
+  .cta:hover{background:var(--navy-2);transform:translateY(-1px)}
+  .fineprint{text-align:center;font-size:11.5px;color:var(--ink-soft);margin-top:11px}
+  .success{display:none;text-align:center;padding:26px 6px}
+  .success.on{display:block}
+  .success .check{width:56px;height:56px;border-radius:50%;background:var(--sky-wash);color:var(--sky);display:grid;place-items:center;margin:0 auto 14px;font-size:26px}
+  .success h2{font-family:'Fraunces';font-size:24px;margin-bottom:8px}
+  .success p{color:var(--ink-soft);font-size:15px;max-width:34ch;margin:0 auto}
+  /* urgency under form */
+  .urgency{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:14px;font-size:13.5px;font-weight:600;color:var(--navy)}
+  .urgency .pulse{width:8px;height:8px;border-radius:50%;background:#2FAE6E;animation:pulse 2s infinite}
+  .urgency b{color:#1E8F58}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,174,110,.5)}70%{box-shadow:0 0 0 8px rgba(47,174,110,0)}100%{box-shadow:0 0 0 0 rgba(47,174,110,0)}}
+
+  /* ---------- Trust bar ---------- */
+  .trust{margin-top:52px;background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:30px 0}
+  .trust-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+  .trust-item{text-align:center}
+  .trust-item .ic{width:46px;height:46px;border-radius:12px;background:var(--sky-wash);color:var(--navy);display:grid;place-items:center;font-size:20px;margin:0 auto 10px}
+  .trust-item .t{font-size:14.5px;font-weight:700}
+  .trust-item .d{font-size:12.5px;color:var(--ink-soft);margin-top:3px;max-width:22ch;margin-left:auto;margin-right:auto}
+
+  /* ---------- Why section ---------- */
+  .why{padding:74px 0}
+  .why-head{text-align:center;max-width:56ch;margin:0 auto 44px}
+  .why-head h2{font-size:clamp(28px,3.8vw,42px);font-weight:600;margin-top:12px}
+  .why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .why-card{text-align:center;padding:8px}
+  .why-card .ic{width:54px;height:54px;border-radius:14px;background:var(--navy);color:#fff;display:grid;place-items:center;font-size:22px;margin:0 auto 16px}
+  .why-card h3{font-family:'Fraunces';font-size:21px;font-weight:600;margin-bottom:9px}
+  .why-card p{font-size:14px;color:var(--ink-soft)}
+  .ppm-line{margin-top:14px;display:inline-flex;align-items:center;gap:10px;font-size:12.5px;font-weight:600;background:var(--sky-wash);color:var(--navy);padding:8px 14px;border-radius:100px}
+  .ppm-line s{color:var(--ink-soft)}
+  .ppm-line b{color:var(--sky)}
+  /* photo band */
+  .photo-band{margin-top:46px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .photo-slot{border-radius:var(--radius);border:1.5px dashed var(--line);background:linear-gradient(135deg,var(--sky-wash),#F6F8FA);aspect-ratio:16/9;display:grid;place-items:center;color:var(--ink-soft);font-size:13px;font-weight:600;text-align:center;padding:14px}
+
+  /* ---------- Second CTA ---------- */
+  .cta-band{background:var(--navy);color:#fff;border-radius:24px;padding:52px 40px;text-align:center;margin-bottom:70px}
+  .cta-band h2{font-family:'Fraunces';font-size:clamp(28px,3.6vw,40px);font-weight:600;margin-bottom:10px}
+  .cta-band h2 em{font-style:italic;color:#8FD0EE}
+  .cta-band p{color:rgba(255,255,255,.82);max-width:44ch;margin:0 auto 24px;font-size:16px}
+  .cta-band .btn{display:inline-block;background:#fff;color:var(--navy);font-weight:700;font-size:16px;text-decoration:none;padding:15px 32px;border-radius:12px;transition:.18s}
+  .cta-band .btn:hover{transform:translateY(-2px);box-shadow:0 16px 30px -12px rgba(0,0,0,.4)}
+  .cta-band .mini{margin-top:16px;font-size:13px;color:rgba(255,255,255,.75)}
+
+  /* ---------- Footer ---------- */
+  footer{border-top:1px solid var(--line);padding:36px 0 44px}
+  .foot{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .foot-phone{font-family:'Fraunces';font-weight:700;font-size:23px;color:var(--navy);text-decoration:none}
+  .foot-area{font-size:13px;color:var(--ink-soft)}
+
+  /* ---------- Responsive ---------- */
+  @media(max-width:880px){
+    .trust-grid{grid-template-columns:1fr 1fr;gap:26px}
+    .why-grid{grid-template-columns:1fr;gap:34px}
+    .photo-band{grid-template-columns:1fr}
+  }
+  @media(max-width:520px){
+    .row2{grid-template-columns:1fr}
+    .cta-band{padding:40px 22px}
+    .header-phone{display:none}
+    .foot{flex-direction:column;align-items:flex-start;gap:14px}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+<!-- ============ News ribbon ============ -->
+<div class="ribbon">📺 As Seen On <a href="https://www.facebook.com/metrodetroitnews/" target="_blank" rel="noopener">Metro Detroit News</a> &middot; Now booking Metro Detroit homes</div>
+
+<!-- ============ Header ============ -->
+<header>
+  <div class="wrap bar">
+    <!-- LOGO PLACEHOLDER SLOT -->
+    <div class="logo"><span class="mark">W</span> Willis Windows</div>
+    <a class="header-phone" href="tel:3134053227">(313) 405-3227</a>
+  </div>
+</header>
+
+<!-- ============ Hero ============ -->
+<section class="hero">
+  <div class="wrap narrow">
+    <span class="eyebrow"><span class="ln"></span> Residential window cleaning &middot; Metro Detroit <span class="ln"></span></span>
+    <h1>Windows so clean, they <em>disappear</em>.</h1>
+    <p class="sub">Streak-free, spot-free glass cleaned with pure filtered water that air-dries perfectly clear. Reserve your spot and we'll call to confirm your free quote.</p>
+  </div>
+
+  <!-- Opt-in form -->
+  <div class="wrap form-shell">
+    <div class="form-card">
+      <form id="lead-form-c" novalidate>
+        <h2>Reserve your spot</h2>
+        <p class="lede">Share your details and a Willis Windows rep will call you shortly with your free quote.</p>
+        <div class="field">
+          <label for="c-name">Full name</label>
+          <input id="c-name" name="name" type="text" autocomplete="name" required />
+          <div class="err">Please enter your name.</div>
+        </div>
+        <div class="field">
+          <label for="c-phone">Phone number</label>
+          <input id="c-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required />
+          <div class="err">Enter a valid phone number.</div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="c-email">Email</label>
+            <input id="c-email" name="email" type="email" autocomplete="email" required />
+            <div class="err">Enter a valid email.</div>
+          </div>
+          <div class="field">
+            <label for="c-zip">Zip code</label>
+            <input id="c-zip" name="zip" type="text" inputmode="numeric" maxlength="5" autocomplete="postal-code" required />
+            <div class="err">5-digit zip.</div>
+          </div>
+        </div>
+        <button class="cta" type="submit">Get My Free Quote</button>
+        <p class="fineprint">No obligation. We'll call to confirm details and pricing.</p>
+      </form>
+      <div class="success" id="success-c">
+        <div class="check">✓</div>
+        <h2>Thank you.</h2>
+        <p>A Willis Windows rep will call you shortly to confirm your quote and reserve your spot.</p>
+      </div>
+    </div>
+    <!-- Urgency (static editable number) -->
+    <div class="urgency"><span class="pulse"></span> Only <b>&nbsp;<span id="spots-c">4</span>&nbsp;</b> spots left this week</div>
+  </div>
+</section>
+
+<!-- ============ Trust Bar ============ -->
+<section class="trust">
+  <div class="wrap trust-grid">
+    <div class="trust-item"><span class="ic">🛡️</span><div class="t">Licensed &amp; Insured</div><div class="d">Fully covered on every visit</div></div>
+    <div class="trust-item"><span class="ic">★</span><div class="t">5-Star Rated</div><div class="d">Trusted by local homeowners</div></div>
+    <div class="trust-item"><span class="ic">🚫</span><div class="t">No Ladders Used</div><div class="d">No fall risk, no property damage</div></div>
+    <div class="trust-item"><span class="ic">💧</span><div class="t">3-Stage Filtration</div><div class="d">0 PPM water, spot-free finish</div></div>
+  </div>
+</section>
+
+<!-- ============ Why it matters ============ -->
+<section class="why">
+  <div class="wrap">
+    <div class="why-head">
+      <span class="eyebrow"><span class="ln"></span> The Willis difference <span class="ln"></span></span>
+      <h2>Cleaner water. Clearer glass.</h2>
+    </div>
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="ic">💧</div>
+        <h3>Pure water, no spots</h3>
+        <p>Our 3-stage filtration strips out the minerals that leave spots, so your glass rinses clean and air-dries streak-free, no towels needed.</p>
+        <div class="ppm-line"><s>Tap ~150 PPM</s> → <b>Ours 0 PPM</b></div>
+      </div>
+      <div class="why-card">
+        <div class="ic">🪜</div>
+        <h3>Safe, ground-level clean</h3>
+        <p>Water-fed poles reach every window from the ground. No ladders against your gutters or siding, and no safety risk on your property.</p>
+      </div>
+      <div class="why-card">
+        <div class="ic">📍</div>
+        <h3>Local Metro Detroit crew</h3>
+        <p>We're a local team, not a franchise. Reserve your spot and we'll call to confirm a quote and a time that works for you.</p>
+      </div>
+    </div>
+    <!-- IMAGE PLACEHOLDERS -->
+    <div class="photo-band">
+      <div class="photo-slot">Photo slot<br>Crew at work / water-fed pole</div>
+      <div class="photo-slot">Photo slot<br>Before / after glass</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Second CTA ============ -->
+<div class="wrap">
+  <section class="cta-band">
+    <h2>Ready for windows that <em>disappear</em>?</h2>
+    <p>Spots are limited each week. Reserve yours now and we'll call to lock in your free quote.</p>
+    <a class="btn" href="#lead-form-c" onclick="document.getElementById('c-name').focus()">Reserve My Spot</a>
+    <div class="mini">Or call us directly at (313) 405-3227</div>
+  </section>
+</div>
+
+<!-- ============ Footer ============ -->
+<footer>
+  <div class="wrap foot">
+    <div class="logo"><span class="mark">W</span> Willis Windows</div>
+    <a class="foot-phone" href="tel:3134053227">(313) 405-3227</a>
+    <div class="foot-area">Proudly serving homes across Metro Detroit</div>
+  </div>
+</footer>
+
+<script>
+  /* ====== EDITABLE CONFIG ====== */
+  const SPOTS_LEFT = 4;   // decreasing "spots left this week" number (NOT a timer)
+  document.getElementById('spots-c').textContent = SPOTS_LEFT;
+
+  const form = document.getElementById('lead-form-c');
+  const emailOk = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  const phoneOk = v => (v.replace(/\D/g,'').length >= 10);
+  const zipOk   = v => /^\d{5}$/.test(v.trim());
+  function mark(id, ok){
+    const f = document.getElementById(id).closest('.field');
+    document.getElementById(id).classList.toggle('invalid', !ok);
+    f.classList.toggle('show-err', !ok);
+    return ok;
+  }
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    const n  = mark('c-name',  document.getElementById('c-name').value.trim().length > 1);
+    const p  = mark('c-phone', phoneOk(document.getElementById('c-phone').value));
+    const em = mark('c-email', emailOk(document.getElementById('c-email').value));
+    const z  = mark('c-zip',   zipOk(document.getElementById('c-zip').value));
+    if(!(n && p && em && z)) return;
+    // TODO: connect to GHL webhook / form endpoint
+    form.style.display = 'none';
+    document.getElementById('success-c').classList.add('on');
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Willis Windows | Streak-Free Windows in Metro Detroit</title>
+<!-- FAVICON PLACEHOLDER: swap in Willis Windows favicon later -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============ DIRECTION A — "PURE WATER": airy light, single clean-blue accent ============ */
+  :root{
+    --paper:#F7F9FB;      /* off-white */
+    --card:#FFFFFF;
+    --ink:#131A20;        /* charcoal text */
+    --ink-soft:#556170;   /* muted */
+    --line:#E4E9EF;
+    --blue:#0E7CE0;       /* single accent — clean water blue */
+    --blue-deep:#0A5AA6;
+    --blue-wash:#EAF3FD;
+    --radius:18px;
+    --shadow:0 24px 60px -28px rgba(16,45,80,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--paper);color:var(--ink);
+    line-height:1.55;-webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{font-family:'Bricolage Grotesque',system-ui,sans-serif;line-height:1.03;letter-spacing:-.02em}
+  a{color:inherit}
+  .wrap{width:100%;max-width:1120px;margin:0 auto;padding:0 24px}
+  .accent{color:var(--blue)}
+
+  /* ---------- Top "As Seen On" banner (bright, animated) ---------- */
+  .top-banner{position:relative;overflow:hidden;display:block;text-decoration:none;color:#fff;
+    background:linear-gradient(100deg,#0A5AA6,#0E7CE0 42%,#37A6F5 68%,#0E7CE0);
+    background-size:220% 100%;animation:bannerShift 9s ease infinite}
+  @keyframes bannerShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  .top-banner .inner{max-width:1120px;margin:0 auto;padding:11px 24px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;position:relative;z-index:2}
+  .top-banner .live{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+  .top-banner .live .dot{width:8px;height:8px;border-radius:50%;background:#7FE0AC;box-shadow:0 0 0 0 rgba(127,224,172,.7);animation:pulse 1.8s infinite}
+  .top-banner .as-seen-txt{font-size:13.5px;font-weight:600;opacity:.95}
+  /* MDN LOGO PLACEHOLDER SLOT — replace the .mdn-logo chip with the real Metro Detroit News logo <img> */
+  .top-banner .mdn-logo{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0A5AA6;font-weight:800;font-size:14px;padding:5px 12px;border-radius:7px;letter-spacing:-.01em;white-space:nowrap;box-shadow:0 4px 14px -6px rgba(0,0,0,.35)}
+  .top-banner .mdn-logo .mdn-mark{width:24px;height:24px;border-radius:50%;object-fit:cover;display:block;flex:none}
+  .top-banner .arrow{font-size:15px;transition:transform .2s;display:inline-block}
+  .top-banner:hover .arrow{transform:translateX(4px)}
+  /* shimmer sweep */
+  .top-banner::after{content:"";position:absolute;top:0;left:-45%;width:45%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent);transform:skewX(-18deg);animation:sweep 5s ease-in-out infinite;pointer-events:none;z-index:1}
+  @keyframes sweep{0%{left:-45%}55%{left:125%}100%{left:125%}}
+
+  /* ---------- Header ---------- */
+  header{padding:22px 0;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(247,249,251,.82);backdrop-filter:blur(10px);z-index:20}
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .logo{display:flex;align-items:center;gap:11px;font-family:'Bricolage Grotesque';font-weight:700;font-size:19px;letter-spacing:-.01em}
+  .logo .mark{width:42px;height:42px;border-radius:50%;object-fit:cover;display:block;box-shadow:0 2px 10px -3px rgba(10,45,80,.4)}
+  .header-phone{font-weight:600;font-size:15px;color:var(--ink);text-decoration:none;white-space:nowrap}
+  .header-phone span{color:var(--ink-soft);font-weight:500}
+
+  /* ---------- Hero ---------- */
+  .hero{padding:52px 0 44px}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:52px;align-items:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--blue-deep);background:var(--blue-wash);padding:7px 13px;border-radius:100px}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--blue)}
+  h1{font-size:clamp(29px,4.2vw,45px);font-weight:800;margin:20px 0 16px;line-height:1.1}
+  .sub{font-size:clamp(16px,2vw,18px);color:var(--ink-soft);max-width:36ch}
+  /* Hero crew photo (fills the left column, sits beside the form) */
+  .hero-photo{position:relative;margin-top:28px;border-radius:16px;overflow:hidden;box-shadow:0 20px 46px -26px rgba(16,45,80,.5);aspect-ratio:16/10}
+  .hero-photo img{width:100%;height:100%;object-fit:cover;object-position:center 22%;display:block}
+  .hero-photo .tag{position:absolute;left:14px;bottom:14px;display:inline-flex;align-items:center;gap:7px;background:rgba(19,26,32,.82);color:#fff;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:100px;backdrop-filter:blur(4px)}
+  .hero-photo .tag .dot{width:7px;height:7px;border-radius:50%;background:#48D08A}
+  .as-seen{margin-top:26px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .news-badge{display:inline-flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:var(--ink);background:var(--card);border:1px solid var(--line);padding:9px 14px;border-radius:100px;text-decoration:none;transition:.18s}
+  .news-badge:hover{border-color:var(--blue);color:var(--blue-deep)}
+  .news-badge .tv{font-size:15px}
+  .news-badge small{color:var(--ink-soft);font-weight:500}
+
+  /* ---------- Form card ---------- */
+  .form-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
+  .form-card h2{font-size:23px;font-weight:700;margin-bottom:4px}
+  .form-card p.lede{font-size:14.5px;color:var(--ink-soft);margin-bottom:18px}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px}
+  .field input{width:100%;font-family:inherit;font-size:16px;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px;background:#FBFCFE;transition:.15s;color:var(--ink)}
+  .field input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 4px var(--blue-wash)}
+  .field input.invalid{border-color:#E0574E;box-shadow:0 0 0 4px #FBEAE9}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .err{display:none;color:#CE4238;font-size:12px;margin-top:5px;font-weight:500}
+  .field.show-err .err{display:block}
+  .cta{width:100%;font-family:inherit;font-size:16px;font-weight:700;color:#fff;background:var(--blue);border:none;border-radius:12px;padding:15px;cursor:pointer;margin-top:6px;transition:.18s;box-shadow:0 12px 24px -10px rgba(14,124,224,.6)}
+  .cta:hover{background:var(--blue-deep);transform:translateY(-1px)}
+  .fineprint{text-align:center;font-size:11.5px;color:var(--ink-soft);margin-top:11px}
+  /* success state */
+  .success{display:none;text-align:center;padding:26px 6px}
+  .success.on{display:block}
+  .success .check{width:56px;height:56px;border-radius:50%;background:var(--blue-wash);color:var(--blue);display:grid;place-items:center;margin:0 auto 14px;font-size:26px}
+  .success h2{font-size:23px;margin-bottom:8px}
+  .success p{color:var(--ink-soft);font-size:15px;max-width:34ch;margin:0 auto}
+
+  /* ---------- Urgency strip ---------- */
+  .urgency{display:flex;align-items:center;gap:10px;justify-content:center;background:#101820;color:#fff;font-size:14px;font-weight:600;padding:12px 16px;border-radius:12px;margin-top:14px}
+  .urgency .pulse{width:9px;height:9px;border-radius:50%;background:#48D08A;box-shadow:0 0 0 0 rgba(72,208,138,.6);animation:pulse 2s infinite}
+  .urgency b{color:#7FE0AC}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(72,208,138,.55)}70%{box-shadow:0 0 0 9px rgba(72,208,138,0)}100%{box-shadow:0 0 0 0 rgba(72,208,138,0)}}
+
+  /* ---------- Client logo marquee (commercial properties served) ---------- */
+  .clients{padding:32px 0 30px;border-top:1px solid var(--line);background:var(--card)}
+  .clients-label{text-align:center;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:22px}
+  .marquee{overflow:hidden;position:relative;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
+    mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+  .marquee-track{display:flex;align-items:center;width:max-content}
+  .marquee-track.run{animation:marquee var(--marquee-dur,40s) linear infinite}
+  .marquee:hover .marquee-track{animation-play-state:paused}
+  .marquee-set{display:flex;align-items:center;gap:68px;padding-right:68px}
+  .marquee img{height:46px;width:auto;max-width:170px;object-fit:contain;filter:grayscale(1);opacity:.55;transition:filter .25s,opacity .25s}
+  .marquee img:hover{filter:grayscale(0);opacity:1}
+  @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+  /* ---------- Trust bar ---------- */
+  .trust{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:26px 0;background:var(--card)}
+  .trust-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+  .trust-item{display:flex;gap:12px;align-items:flex-start}
+  .trust-item .ic{flex:none;width:38px;height:38px;border-radius:10px;background:var(--blue-wash);color:var(--blue-deep);display:grid;place-items:center;font-size:18px}
+  .trust-item .t{font-size:14.5px;font-weight:700;line-height:1.25}
+  .trust-item .d{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+
+  /* ---------- Signature: purity gauge / why-it-matters ---------- */
+  .why{padding:72px 0 44px}
+  .why-head{max-width:52ch;margin-bottom:40px}
+  .why-head .eyebrow{margin-bottom:14px}
+  .why-head h2{font-size:clamp(28px,3.6vw,40px);font-weight:800}
+  .why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
+  .why-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px;display:flex;flex-direction:column}
+  .why-card h3{font-size:19px;font-weight:700;margin-bottom:8px}
+  .why-card p{font-size:14px;color:var(--ink-soft);margin-bottom:18px}
+  /* SIGNATURE ELEMENT — PPM purity gauge */
+  .gauge{margin-top:20px}
+  .gauge-row{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;font-weight:600;margin-bottom:6px}
+  .gauge-track{height:12px;border-radius:100px;background:#EEF2F6;overflow:hidden;position:relative}
+  .gauge-fill{height:100%;border-radius:100px}
+  .gauge-fill.tap{width:100%;background:repeating-linear-gradient(45deg,#C7702F,#C7702F 6px,#B4652A 6px,#B4652A 12px)}
+  .gauge-fill.ours{width:2%;background:var(--blue);min-width:5px}
+  .gauge .lbl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-soft);margin-top:5px}
+  .ppm{font-family:'Bricolage Grotesque';font-weight:800}
+  .photo-slot{margin-top:20px;border-radius:14px;border:1.5px dashed var(--line);background:linear-gradient(135deg,#EAF3FD,#F7F9FB);aspect-ratio:16/10;display:grid;place-items:center;color:var(--ink-soft);font-size:12.5px;font-weight:600;text-align:center;padding:14px}
+  .photo-slot.filled{border:none;padding:0;overflow:hidden;aspect-ratio:1/1;margin-top:auto}
+  .photo-slot.filled img{width:100%;height:100%;object-fit:cover;object-position:center 22%;display:block}
+
+  /* ---------- Reviews (auto-cycling) ---------- */
+  .reviews{padding:40px 0 56px}
+  .reviews-head{text-align:center;max-width:60ch;margin:0 auto 22px}
+  .reviews-head h2{font-size:clamp(28px,3.6vw,40px);font-weight:800;margin-top:12px}
+  .rating-sum{display:inline-flex;align-items:center;gap:9px;margin-top:14px;font-size:14px;color:var(--ink-soft);flex-wrap:wrap;justify-content:center}
+  .rating-sum .stars{color:#F5A623;font-size:17px;letter-spacing:2px}
+  .rating-sum b{color:var(--ink);font-weight:800;font-family:'Bricolage Grotesque'}
+  .slider{max-width:720px;margin:0 auto;position:relative}
+  .slide-stage{position:relative;min-height:246px}
+  .slide{position:absolute;inset:0;opacity:0;transform:translateY(8px);transition:none;display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;padding:6px;pointer-events:none}
+  .slide.on{opacity:1;transform:none;pointer-events:auto;transition:opacity .5s ease,transform .5s ease}
+  .slide .qstars{color:#F5A623;font-size:18px;letter-spacing:3px;margin-bottom:16px}
+  .slide blockquote{font-family:'Bricolage Grotesque';font-weight:500;font-size:clamp(19px,2.3vw,25px);line-height:1.42;color:var(--ink);margin-bottom:22px;max-width:32ch}
+  .slide .who{display:flex;align-items:center;gap:11px}
+  .slide .av{width:42px;height:42px;border-radius:50%;background:var(--blue-wash);color:var(--blue-deep);display:grid;place-items:center;font-weight:800;font-size:15px;font-family:'Bricolage Grotesque'}
+  .slide .nm{text-align:left}
+  .slide .nm .n{font-weight:700;font-size:14.5px;color:var(--ink)}
+  .slide .nm .src{display:none}
+  .rdots{display:flex;justify-content:center;gap:8px;margin-top:22px}
+  .rdot{width:8px;height:8px;border-radius:50%;background:var(--line);border:none;padding:0;cursor:pointer;transition:.22s}
+  .rdot.on{background:var(--blue);width:22px;border-radius:100px}
+
+  /* ---------- Second CTA ---------- */
+  .cta-band{background:linear-gradient(135deg,#0A5AA6,#0E7CE0);color:#fff;border-radius:24px;padding:48px 40px;text-align:center;margin:0 0 60px}
+  .cta-band h2{font-size:clamp(26px,3.4vw,38px);font-weight:800;margin-bottom:10px}
+  .cta-band p{color:rgba(255,255,255,.85);max-width:44ch;margin:0 auto 24px;font-size:16px}
+  .cta-band .btn{display:inline-block;background:#fff;color:var(--blue-deep);font-weight:700;font-size:16px;text-decoration:none;padding:15px 32px;border-radius:12px;transition:.18s}
+  .cta-band .btn:hover{transform:translateY(-2px);box-shadow:0 16px 30px -12px rgba(0,0,0,.4)}
+  .cta-band .mini{margin-top:16px;font-size:13px;color:rgba(255,255,255,.8)}
+
+  /* ---------- Footer ---------- */
+  footer{border-top:1px solid var(--line);background:var(--card)}
+  .foot{display:grid;grid-template-columns:1.5fr 1fr;gap:40px;align-items:start;padding:46px 0 34px}
+  .foot-brand .logo{font-size:18px;margin-bottom:14px}
+  .foot-tag{font-size:14px;color:var(--ink-soft);max-width:42ch;margin-bottom:18px;line-height:1.5}
+  .foot-badges{display:flex;flex-wrap:wrap;gap:8px}
+  .foot-badges span{font-size:11.5px;font-weight:600;color:var(--blue-deep);background:var(--blue-wash);padding:6px 12px;border-radius:100px}
+  .foot-contact{display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+  .foot-ey{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+  .foot-phone{font-family:'Bricolage Grotesque';font-weight:800;font-size:30px;color:var(--ink);text-decoration:none;line-height:1}
+  .foot-phone:hover{color:var(--blue-deep)}
+  .foot-area{font-size:13px;color:var(--ink-soft)}
+  .foot-legal{border-top:1px solid var(--line)}
+  .foot-legal-row{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:15px 0 30px;font-size:12px;color:var(--ink-soft)}
+
+  /* ---------- Responsive ---------- */
+  @media(max-width:880px){
+    .hero{padding:40px 0 40px}
+    .hero-grid{grid-template-columns:1fr;gap:26px}
+    .sub{max-width:100%}
+    .why-grid{grid-template-columns:1fr;gap:16px}
+    .foot{grid-template-columns:1fr;gap:28px}
+    .header-phone{display:none}
+  }
+  @media(max-width:520px){
+    .wrap{padding:0 18px}
+    header{padding:16px 0}
+    .logo{font-size:17px}
+    .logo .mark{width:38px;height:38px}
+    .hero{padding:30px 0 34px}
+    h1{font-size:clamp(27px,7.6vw,34px)}
+    .sub{font-size:15px}
+    .form-card{padding:22px}
+    .form-card h2{font-size:21px}
+    .row2{grid-template-columns:1fr}
+    .cta{padding:16px;font-size:16px}
+    .urgency{font-size:13px;padding:11px 14px}
+    .clients{padding:26px 0 24px}
+    .clients-label{font-size:11px;margin-bottom:16px}
+    .marquee-set{gap:40px;padding-right:40px}
+    .marquee img{height:34px}
+    .why{padding:44px 0 32px}
+    .why-card{padding:22px}
+    .reviews{padding:32px 0 44px}
+    .slide-stage{min-height:320px}
+    .slide blockquote{font-size:18px;max-width:100%;margin-bottom:18px}
+    .cta-band{padding:36px 22px;border-radius:20px;margin-bottom:44px}
+    .foot-legal-row{flex-direction:column;gap:6px}
+    /* Slim the top banner to one clean line on phones */
+    .top-banner .live,.top-banner .arrow{display:none}
+    .top-banner .inner{gap:10px;padding:10px 16px}
+    .top-banner .as-seen-txt{font-size:12.5px}
+    .top-banner .mdn-logo{font-size:13px;padding:5px 10px}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+<!-- ============ Top "As Seen On" banner (bright, animated) ============ -->
+<a class="top-banner" href="https://www.facebook.com/metrodetroitnews/" target="_blank" rel="noopener" aria-label="As seen on Metro Detroit News — opens Facebook in a new tab">
+  <span class="inner">
+    <span class="live"><span class="dot"></span> Featured</span>
+    <span class="as-seen-txt">As Seen On</span>
+    <!-- Metro Detroit News logo (pulled from their official page) -->
+    <span class="mdn-logo"><img class="mdn-mark" src="assets/mdn-logo.jpg" alt="Metro Detroit News logo" /> Metro Detroit News</span>
+    <span class="arrow">&rarr;</span>
+  </span>
+</a>
+
+<!-- ============ Header ============ -->
+<header>
+  <div class="wrap bar">
+    <!-- LOGO PLACEHOLDER SLOT -->
+    <div class="logo"><img class="mark" src="assets/willis-logo.png" alt="Willis Windows logo" /> Willis&nbsp;Windows</div>
+    <a class="header-phone" href="tel:3134053227"><span>Call</span> (313) 405-3227</a>
+  </div>
+</header>
+
+<!-- ============ Hero ============ -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow"><span class="dot"></span> Residential window cleaning &middot; Metro Detroit</span>
+      <h1>The Young Crew As Seen on <span class="accent">Metro Detroit News</span>,<br />Determined to Make Your Windows <span class="accent">Crystal Clear</span></h1>
+      <p class="sub">Licensed, insured, and 5-star rated. We clean every Metro Detroit home with pure, 3-stage-filtered water (down to 0 PPM) and no ladders, so your windows dry streak-free and spot-free with no damage to your gutters, siding, or landscaping.</p>
+    </div>
+
+    <!-- Opt-in form (above the fold) -->
+    <div>
+      <div class="form-card">
+        <form id="lead-form-a" novalidate>
+          <h2>Claim your spot</h2>
+          <p class="lede">Fill out this form and we'll call you ASAP to get you your estimate.</p>
+          <div class="row2">
+            <div class="field">
+              <label for="a-first">First name</label>
+              <input id="a-first" name="first_name" type="text" autocomplete="given-name" required />
+              <div class="err">Enter your first name.</div>
+            </div>
+            <div class="field">
+              <label for="a-last">Last name</label>
+              <input id="a-last" name="last_name" type="text" autocomplete="family-name" required />
+              <div class="err">Enter your last name.</div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="a-phone">Phone number</label>
+            <input id="a-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required />
+            <div class="err">Enter a valid phone number.</div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="a-email">Email</label>
+              <input id="a-email" name="email" type="email" autocomplete="email" required />
+              <div class="err">Enter a valid email.</div>
+            </div>
+            <div class="field">
+              <label for="a-zip">Zip code</label>
+              <input id="a-zip" name="zip" type="text" inputmode="numeric" maxlength="5" autocomplete="postal-code" required />
+              <div class="err">5-digit zip.</div>
+            </div>
+          </div>
+          <button class="cta" type="submit">Get My Free Quote</button>
+        </form>
+      </div>
+      <!-- Urgency strip (static, editable number) -->
+      <div class="urgency"><span class="pulse"></span> Only <b id="spots-a">&nbsp;4&nbsp;</b> spots left this week</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Client logo marquee (commercial properties served) ============ -->
+<section class="clients">
+  <div class="wrap">
+    <p class="clients-label">Trusted by commercial properties across Metro Detroit</p>
+  </div>
+  <div class="marquee" id="clients-marquee">
+    <!-- One base set; script clones it to fill the width and duplicates for a seamless infinite loop -->
+    <div class="marquee-track" id="marquee-track">
+      <div class="marquee-set">
+        <img src="assets/ramshorn.png" alt="Ram's Horn Restaurants" />
+        <img src="assets/labo.png" alt="LaBo Chiropractic" />
+        <img src="assets/henryford.svg" alt="Henry Ford Health" />
+        <img src="assets/brome.png" alt="Brome Modern Eatery" />
+        <img src="assets/cousineau.png" alt="Cousineau Chiropractic" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Why it matters ============ -->
+<section class="why">
+  <div class="wrap">
+    <div class="why-head">
+      <span class="eyebrow"><span class="dot"></span> The Willis difference</span>
+      <h2>Why our windows dry perfectly clear</h2>
+    </div>
+    <div class="why-grid">
+      <div class="why-card">
+        <h3>Pure water, zero spots</h3>
+        <p>We filter our water in three stages, down to 0 PPM, stripping out the minerals that leave spots. It rinses clean and air-dries with no towels and no streaks.</p>
+        <!-- Pure-water filtration equipment photo -->
+        <div class="photo-slot filled"><img src="assets/filtration.jpg" alt="Willis Windows pure-water filtration system and gear" style="object-position:center 55%" /></div>
+      </div>
+      <div class="why-card">
+        <h3>Both feet on the ground</h3>
+        <p>Our water-fed pole system cleans from the ground, so there are no ladders leaning on your gutters, siding, or landscaping, and no safety risk on your property.</p>
+        <!-- No-ladder / water-fed pole photo -->
+        <div class="photo-slot filled"><img src="assets/pole.jpg" alt="Willis Windows cleaning an upper-story window from the ground with a water-fed pole" style="object-position:center 50%" /></div>
+      </div>
+      <div class="why-card">
+        <h3>Your local Metro Detroit crew</h3>
+        <p>We're a local team cleaning homes across Metro Detroit. Book your spot and we'll call to confirm your quote and a time that works for you.</p>
+        <!-- Crew photo -->
+        <div class="photo-slot filled"><img src="assets/crew.jpg" alt="The Willis Windows crew at a Metro Detroit home" /></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Reviews (real Google reviews, auto-cycling) ============ -->
+<section class="reviews">
+  <div class="wrap">
+    <div class="reviews-head">
+      <span class="eyebrow"><span class="dot"></span> Reviews</span>
+      <h2>What Metro Detroit homeowners say</h2>
+      <div class="rating-sum"><span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span> <b>4.9</b> <span>from 11 Google reviews</span></div>
+    </div>
+    <div class="slider">
+      <div class="slide-stage" id="rev-stage">
+        <figure class="slide on">
+          <div class="qstars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <blockquote>The guys did a great job on the windows and the gutters! Worked very efficiently and quickly. Looking forward to using them again.</blockquote>
+          <div class="who"><span class="av">JV</span><span class="nm"><span class="n">James Vassallo</span><span class="src">Google review</span></span></div>
+        </figure>
+        <figure class="slide">
+          <div class="qstars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <blockquote>These guys did a great job cleaning our windows, inside and out, and screens. They also did our gutters. Fast, efficient, quality work, and cleaned up everything. Will definitely call them again!</blockquote>
+          <div class="who"><span class="av">SF</span><span class="nm"><span class="n">Sheri Frader</span><span class="src">Google review</span></span></div>
+        </figure>
+        <figure class="slide">
+          <div class="qstars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <blockquote>The team from Willis Windows were great! Prompt, efficient and courteous. They cleaned all the windows, screens and sills to perfection. I highly recommend them.</blockquote>
+          <div class="who"><span class="av">MA</span><span class="nm"><span class="n">Marie Atkinson</span><span class="src">Google review</span></span></div>
+        </figure>
+        <figure class="slide">
+          <div class="qstars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <blockquote>Easy to schedule! Extremely professional and did a great job.</blockquote>
+          <div class="who"><span class="av">EK</span><span class="nm"><span class="n">Emily K.</span><span class="src">Google review</span></span></div>
+        </figure>
+        <figure class="slide">
+          <div class="qstars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <blockquote>Very professional, personable, and a great work ethic. We were very impressed!</blockquote>
+          <div class="who"><span class="av">CH</span><span class="nm"><span class="n">Carrie Hyman</span><span class="src">Google review</span></span></div>
+        </figure>
+        <figure class="slide">
+          <div class="qstars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <blockquote>The customer service with Willis Windows is top notch!</blockquote>
+          <div class="who"><span class="av">RG</span><span class="nm"><span class="n">Robert Gutierrez</span><span class="src">Google review</span></span></div>
+        </figure>
+      </div>
+      <div class="rdots" id="rev-dots"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Second CTA ============ -->
+<div class="wrap">
+  <section class="cta-band">
+    <h2>Ready for windows you can see through?</h2>
+    <p>Spots are limited each week. Claim yours now and we'll call to lock in your free quote.</p>
+    <a class="btn" href="#lead-form-a" onclick="document.getElementById('a-first').focus()">Claim My Spot</a>
+    <div class="mini">Or call us directly at (313) 405-3227</div>
+  </section>
+</div>
+
+<!-- ============ Footer ============ -->
+<footer>
+  <div class="wrap foot">
+    <div class="foot-brand">
+      <div class="logo"><img class="mark" src="assets/willis-logo.png" alt="Willis Windows logo" /> Willis Windows</div>
+      <p class="foot-tag">Streak-free, spot-free window cleaning for homes and businesses across Metro Detroit, using pure filtered water and no ladders.</p>
+      <div class="foot-badges">
+        <span>Licensed &amp; Insured</span>
+        <span>5-Star Rated</span>
+        <span>0 PPM Pure Water</span>
+        <span>No Ladders</span>
+      </div>
+    </div>
+    <div class="foot-contact">
+      <span class="foot-ey">Call for your free quote</span>
+      <a class="foot-phone" href="tel:3134053227">(313) 405-3227</a>
+      <span class="foot-area">Serving Metro Detroit &amp; surrounding suburbs</span>
+    </div>
+  </div>
+  <div class="foot-legal">
+    <div class="wrap foot-legal-row">
+      <span>&copy; 2026 Willis Windows. All rights reserved.</span>
+      <span>Residential &amp; commercial window cleaning &middot; Metro Detroit</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  /* ====== EDITABLE CONFIG — business updates these manually ====== */
+  const SPOTS_LEFT = 4;   // decreasing "spots left this week" number (NOT a timer)
+
+  // Paste the GoHighLevel Inbound Webhook URL here to start delivering leads into GHL.
+  // Leave blank to still show the thank-you page (useful for testing before it's connected).
+  const GHL_WEBHOOK_URL = 'https://services.leadconnectorhq.com/hooks/OznT3yyuwK3dqVXDsCaD/webhook-trigger/7f254ff9-23f0-4dcb-894b-a74f6bafc89c';
+
+  const THANK_YOU_PAGE = 'https://williswindows.com/thank-you';
+
+  document.getElementById('spots-a').textContent = ' ' + SPOTS_LEFT + ' ';
+
+  /* ====== Form validation + demo submit ====== */
+  const form = document.getElementById('lead-form-a');
+  const emailOk = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  const phoneOk = v => (v.replace(/\D/g,'').length >= 10);
+  const zipOk   = v => /^\d{5}$/.test(v.trim());
+
+  function mark(id, ok){
+    const f = document.getElementById(id).closest('.field');
+    document.getElementById(id).classList.toggle('invalid', !ok);
+    f.classList.toggle('show-err', !ok);
+    return ok;
+  }
+
+  // Deliver the lead into GoHighLevel via the Inbound Webhook, then send them to the thank-you page.
+  function sendLead(payload){
+    // Navigate the whole browser (works standalone and when embedded in an iframe on GHL).
+    const go = function(){
+      try { window.top.location.href = THANK_YOU_PAGE; }
+      catch(err){ window.location.href = THANK_YOU_PAGE; }
+    };
+
+    if(!GHL_WEBHOOK_URL){ go(); return; }
+
+    // Send as form-encoded (a "simple" request) so there is NO CORS preflight for GHL to block.
+    const params = new URLSearchParams();
+    Object.keys(payload).forEach(function(k){ params.append(k, payload[k] == null ? '' : payload[k]); });
+
+    let sent = false;
+    try { sent = navigator.sendBeacon && navigator.sendBeacon(GHL_WEBHOOK_URL, params); }
+    catch(err){ sent = false; }
+
+    if(!sent){
+      try { fetch(GHL_WEBHOOK_URL, {method:'POST', body: params, keepalive:true, mode:'no-cors'}); }
+      catch(err){ /* ignore */ }
+    }
+
+    // Hold the redirect briefly so the lead actually leaves the browser before we navigate away.
+    setTimeout(go, 700);
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    const fn = mark('a-first', document.getElementById('a-first').value.trim().length > 0);
+    const ln = mark('a-last',  document.getElementById('a-last').value.trim().length > 0);
+    const p  = mark('a-phone', phoneOk(document.getElementById('a-phone').value));
+    const em = mark('a-email', emailOk(document.getElementById('a-email').value));
+    const z  = mark('a-zip',   zipOk(document.getElementById('a-zip').value));
+    if(!(fn && ln && p && em && z)) return;
+
+    const btn = form.querySelector('.cta');
+    if(btn){ btn.disabled = true; btn.textContent = 'Sending...'; }
+
+    sendLead({
+      first_name: document.getElementById('a-first').value.trim(),
+      last_name:  document.getElementById('a-last').value.trim(),
+      phone:      document.getElementById('a-phone').value.trim(),
+      email:     document.getElementById('a-email').value.trim(),
+      postal_code: document.getElementById('a-zip').value.trim(),
+      source:    'Willis Landing - Metro Detroit News'
+    });
+  });
+
+  /* ====== Client logo marquee: seamless, infinite, never cuts off ====== */
+  (function(){
+    const marquee = document.getElementById('clients-marquee');
+    const track = document.getElementById('marquee-track');
+    if(!marquee || !track) return;
+    const baseSet = track.querySelector('.marquee-set');
+
+    function width(el){ return el.getBoundingClientRect().width; }
+
+    function build(){
+      // Clear any previous clones, keep the original set only.
+      track.classList.remove('run');
+      track.querySelectorAll('.marquee-set').forEach((s, i) => { if(i > 0) s.remove(); });
+
+      // Clone the set until one "half" comfortably exceeds the viewport width,
+      // so there is always content on screen (no right-side gap at any point).
+      const half = [baseSet];
+      let guard = 0;
+      while(half.reduce((w, s) => w + width(s), 0) < marquee.clientWidth + 80 && guard < 40){
+        const c = baseSet.cloneNode(true);
+        c.setAttribute('aria-hidden', 'true');
+        track.appendChild(c); half.push(c); guard++;
+      }
+      const halfWidth = half.reduce((w, s) => w + width(s), 0);
+
+      // Duplicate that full half so translateX(-50%) wraps perfectly seamlessly.
+      half.forEach(s => {
+        const c = s.cloneNode(true);
+        c.setAttribute('aria-hidden', 'true');
+        track.appendChild(c);
+      });
+
+      // Constant speed (~70px/s) regardless of how many logos are on screen.
+      track.style.setProperty('--marquee-dur', Math.max(16, Math.round(halfWidth / 70)) + 's');
+      track.classList.add('run');
+    }
+
+    const imgs = [...track.querySelectorAll('img')];
+    Promise.all(imgs.map(i => i.complete ? Promise.resolve()
+      : new Promise(r => { i.addEventListener('load', r); i.addEventListener('error', r); })
+    )).then(build);
+
+    let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(build, 250); });
+  })();
+
+  /* ====== Reviews: auto-cycling slider ====== */
+  (function(){
+    const stage = document.getElementById('rev-stage');
+    if(!stage) return;
+    const slides = [...stage.querySelectorAll('.slide')];
+    const dotsWrap = document.getElementById('rev-dots');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let idx = 0, timer = null;
+
+    slides.forEach((s, i) => {
+      const b = document.createElement('button');
+      b.className = 'rdot' + (i === 0 ? ' on' : '');
+      b.setAttribute('aria-label', 'Show review ' + (i + 1));
+      b.addEventListener('click', () => { go(i); restart(); });
+      dotsWrap.appendChild(b);
+    });
+    const dots = [...dotsWrap.children];
+
+    function go(n){
+      slides[idx].classList.remove('on'); dots[idx].classList.remove('on');
+      idx = n;
+      slides[idx].classList.add('on'); dots[idx].classList.add('on');
+    }
+    function next(){ go((idx + 1) % slides.length); }
+    function start(){ if(!reduce) timer = setInterval(next, 4500); }
+    function restart(){ clearInterval(timer); start(); }
+
+    const slider = document.querySelector('.slider');
+    slider.addEventListener('mouseenter', () => clearInterval(timer));
+    slider.addEventListener('mouseleave', start);
+    start();
+  })();
+
+  /* ====== Auto-height: report page height to a parent frame (for the GHL embed) ====== */
+  (function(){
+    if(window.parent === window) return; // not embedded, nothing to do
+    function postHeight(){
+      const h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+      parent.postMessage({ willisHeight: h }, '*');
+    }
+    window.addEventListener('load', postHeight);
+    window.addEventListener('resize', postHeight);
+    if(window.ResizeObserver){ new ResizeObserver(postHeight).observe(document.body); }
+    setTimeout(postHeight, 300); setTimeout(postHeight, 1200);
+  })();
+</script>
+</body>
+</html>

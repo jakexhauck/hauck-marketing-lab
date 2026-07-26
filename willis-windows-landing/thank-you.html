@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>Thank You | Willis Windows</title>
+<!-- FAVICON PLACEHOLDER -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============ Willis Windows — Thank You page (matches Direction A "Pure Water") ============ */
+  :root{
+    --paper:#F7F9FB;--card:#FFFFFF;--ink:#131A20;--ink-soft:#556170;--line:#E4E9EF;
+    --blue:#0E7CE0;--blue-deep:#0A5AA6;--blue-wash:#EAF3FD;--green:#22A866;--radius:18px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+  h1,h2,h3{font-family:'Bricolage Grotesque',system-ui,sans-serif;letter-spacing:-.02em;line-height:1.06}
+  a{color:inherit}
+  .wrap{width:100%;max-width:1120px;margin:0 auto;padding:0 24px}
+
+  /* Header */
+  header{padding:22px 0;border-bottom:1px solid var(--line);background:var(--card)}
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .logo{display:flex;align-items:center;gap:11px;font-family:'Bricolage Grotesque';font-weight:700;font-size:19px}
+  .logo .mark{width:42px;height:42px;border-radius:50%;object-fit:cover;display:block;box-shadow:0 2px 10px -3px rgba(10,45,80,.4)}
+  .header-phone{font-weight:600;font-size:15px;text-decoration:none;white-space:nowrap}
+  .header-phone span{color:var(--ink-soft);font-weight:500}
+
+  /* Confirmation */
+  main{flex:1;display:flex;align-items:center;justify-content:center;padding:56px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:0 30px 70px -34px rgba(16,45,80,.4);max-width:620px;width:100%;text-align:center;padding:48px 42px}
+  .check{width:76px;height:76px;border-radius:50%;background:rgba(34,168,102,.12);color:var(--green);display:grid;place-items:center;margin:0 auto 22px;font-size:38px;animation:pop .5s ease}
+  @keyframes pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--blue-deep);background:var(--blue-wash);padding:7px 13px;border-radius:100px;margin-bottom:16px}
+  h1{font-size:clamp(30px,4.4vw,42px);font-weight:800;margin-bottom:12px}
+  .lede{font-size:clamp(15px,2vw,17px);color:var(--ink-soft);max-width:42ch;margin:0 auto 30px}
+
+  /* Big animated "As Seen On" badge */
+  .asseen-big{display:inline-block;text-decoration:none;color:#fff;border-radius:16px;overflow:hidden;position:relative;
+    background:linear-gradient(100deg,#0A5AA6,#0E7CE0 42%,#37A6F5 68%,#0E7CE0);background-size:220% 100%;
+    animation:bannerShift 9s ease infinite;box-shadow:0 18px 38px -16px rgba(14,124,224,.6);transition:transform .18s}
+  .asseen-big:hover{transform:translateY(-2px)}
+  .asseen-big .inner{display:flex;align-items:center;gap:16px;padding:18px 30px;position:relative;z-index:2}
+  .asseen-big img{width:56px;height:56px;border-radius:50%;object-fit:cover;background:#fff;padding:3px;flex:none;box-shadow:0 4px 14px -6px rgba(0,0,0,.4)}
+  .asseen-big .txt{display:flex;flex-direction:column;align-items:flex-start;line-height:1.12;text-align:left}
+  .asseen-big .txt small{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;opacity:.92}
+  .asseen-big .txt b{font-family:'Bricolage Grotesque';font-weight:800;font-size:clamp(21px,3.2vw,27px);letter-spacing:-.01em}
+  .asseen-big::after{content:"";position:absolute;top:0;left:-45%;width:45%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:skewX(-18deg);animation:sweep 5s ease-in-out infinite;pointer-events:none;z-index:1}
+  @keyframes bannerShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  @keyframes sweep{0%{left:-45%}55%{left:125%}100%{left:125%}}
+
+  /* Footer */
+  footer{border-top:1px solid var(--line);background:var(--card);padding:22px 0}
+  .foot{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft)}
+
+  @media(max-width:560px){
+    .card{padding:38px 22px}
+    .steps{grid-template-columns:1fr;gap:10px}
+    .header-phone{display:none}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="wrap bar">
+    <div class="logo"><img class="mark" src="assets/willis-logo.png" alt="Willis Windows logo" /> Willis&nbsp;Windows</div>
+  </div>
+</header>
+
+<!-- Confirmation -->
+<main>
+  <div class="wrap" style="display:flex;justify-content:center">
+    <div class="card">
+      <div class="check">&#10003;</div>
+      <span class="eyebrow">Request received</span>
+      <h1>You're on the list.</h1>
+      <p class="lede">Thanks. We've got your details and we'll call you <b>ASAP</b> to get you your free estimate. Keep an eye on your phone.</p>
+
+      <a class="asseen-big" href="https://www.facebook.com/metrodetroitnews/" target="_blank" rel="noopener" aria-label="As seen on Metro Detroit News — opens Facebook in a new tab">
+        <span class="inner">
+          <img src="assets/mdn-logo.jpg" alt="Metro Detroit News logo" />
+          <span class="txt"><small>As Seen On</small><b>Metro Detroit News</b></span>
+        </span>
+      </a>
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer>
+  <div class="wrap foot">
+    <span>&copy; 2026 Willis Windows. All rights reserved.</span>
+    <span>Serving Metro Detroit &amp; surrounding suburbs</span>
+  </div>
+</footer>
+
+<script>
+  /* Report height to a parent frame so the GHL embed auto-sizes */
+  (function(){
+    if(window.parent === window) return;
+    function postHeight(){
+      var h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+      parent.postMessage({ willisHeight: h }, '*');
+    }
+    window.addEventListener('load', postHeight);
+    window.addEventListener('resize', postHeight);
+    if(window.ResizeObserver){ new ResizeObserver(postHeight).observe(document.body); }
+    setTimeout(postHeight, 300); setTimeout(postHeight, 1200);
+  })();
+</script>
+
+</body>
+</html>
