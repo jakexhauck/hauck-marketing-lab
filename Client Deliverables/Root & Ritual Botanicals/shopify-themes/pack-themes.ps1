@@ -48,14 +48,21 @@ $rows = Get-ChildItem $zipDir -Filter *.zip | ForEach-Object {
   $hasSchema = @($z.Entries | Where-Object { $_.FullName -eq 'config/settings_schema.json' }).Count
   $hasIndex  = @($z.Entries | Where-Object { $_.FullName -eq 'templates/index.json' }).Count
   $hasCss    = @($z.Entries | Where-Object { $_.FullName -eq 'assets/theme.css' }).Count
+  # Nested entries are the ones most likely to be lost by a packing change,
+  # so the customer templates are checked explicitly rather than by count.
+  $hasPwd    = @($z.Entries | Where-Object { $_.FullName -eq 'layout/password.liquid' }).Count
+  $custCount = @($z.Entries | Where-Object { $_.FullName -like 'templates/customers/*.liquid' }).Count
+  $stray     = @($z.Entries | Where-Object { $_.FullName -like '*_preview.html' }).Count
   $count     = $z.Entries.Count
   $z.Dispose()
-  if ($bad -ne 0 -or $hasLayout -ne 1 -or $hasSchema -ne 1 -or $hasIndex -ne 1 -or $hasCss -ne 1) {
+  if ($bad -ne 0 -or $hasLayout -ne 1 -or $hasSchema -ne 1 -or $hasIndex -ne 1 -or $hasCss -ne 1 `
+      -or $hasPwd -ne 1 -or $custCount -ne 7 -or $stray -ne 0) {
     $script:allOk = $false
   }
   [pscustomobject]@{
     Zip = $_.Name; Entries = $count; BadPaths = $bad
     Layout = $hasLayout; Schema = $hasSchema; Index = $hasIndex; Css = $hasCss
+    Pwd = $hasPwd; Customers = $custCount; Stray = $stray
     MB = [math]::Round($_.Length / 1MB, 2)
   }
 }

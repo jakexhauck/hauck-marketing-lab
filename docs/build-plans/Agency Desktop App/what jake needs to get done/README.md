@@ -204,3 +204,21 @@ Verified against 100 live Willis conversations: exactly those three hidden, 97 k
 - [ ] **Open the Inbox and confirm you no longer see yourself, your email, or my number in the list.** Those three were there before. If any of them is still showing, tell me which one.
 - [ ] **Tell me if any OTHER phone or email of yours or your team's gets these alerts.** I could only see what fired in the last few days, so I may have missed a person. Any I do not know about will keep showing until you tell me.
 - [ ] **Confirm (313) 405-3227 is a number of yours and not a real customer.** The booking system labelled it an internal notification recipient, so it should be safe to hide, but you would know a real customer's number on sight.
+
+## Root & Ritual: five complete Shopify themes (shipped 2026-07-26)
+
+The five directions were one theme in five colourways. Every mockup page and every generated theme shared identical markup; only the stylesheet changed. They are now five genuinely different sites: each has its own hero, product rows, header and footer, product page, and homepage order.
+
+The missing store plumbing is in too. Customer accounts (login, register, order history, addresses, password reset), a working contact form, an FAQ page, the pre-launch password page, and the gift card page. None of that existed before, so accounts and contact were simply broken.
+
+Two things you asked for specifically are done. The variant picker is real: chips that update price, photo and button, strike out combinations that do not exist, and mark sold-out ones. If its script fails it falls back to a dropdown that still submits the right variant, so it cannot add the wrong item. And no price is invented anywhere: the bundle computes its own saving from the products you nominate, and product rows show no price until a product is connected. A build check now fails if anyone types a price into the theme again.
+
+Verified: all five pass Shopify `theme check` with zero errors (7 font warnings each, unchanged), the build validator passes 350 checks, and all five homepages were rendered from their real Liquid and screenshotted to confirm they diverge.
+
+- [ ] **Upload all five zips to a Shopify store and preview them side by side.** They are drafts; nothing touches a live site. This is the first time these have been in front of Shopify rather than a checker, and it is how you pick a direction.
+- [ ] **Connect a real product and click through Add to Cart to checkout once.** The variant picker, the price display and the cart have never met a real catalogue. Everything was verified against an empty store, which is the state you upload in.
+- [ ] **Create a bundle product and nominate the two blends inside the Bundle offer section.** Until you do, the section shows no price at all, on purpose. Check the "Save X%" it works out matches what you expect.
+- [ ] **Replace the three PLACEHOLDER reviews or delete the Reviews section.** Still the one thing that will embarrass you if it goes live. Fake reviews breach Shopify's terms and FTC rules.
+- [ ] **Set the Contact page to the `page.contact` template, not `page`.** On the wrong template it renders your text with no form and looks broken.
+- [ ] **Turn on customer accounts in Settings if you want the account pages to work.** The templates are there, but accounts are a store setting I cannot flip for you.
+- [ ] **Decide whether the mockup HTML should be rebuilt to match.** You said themes only, so the four HTML comps still share one layout while the themes now diverge. Fine if the themes are what the client installs, worth an hour if you are still showing the comps around.

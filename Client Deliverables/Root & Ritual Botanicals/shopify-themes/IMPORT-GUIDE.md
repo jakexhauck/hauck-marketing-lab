@@ -8,15 +8,17 @@
 
 Five separate Shopify themes, one per design direction. Each is a complete, installable Online Store 2.0 theme, not a mockup.
 
+These are five different sites, not one site in five colourways. The page structure changes between them: where the story sits, how the product rows are built, whether the navigation is in the masthead or behind a menu button.
+
 | File | Direction | Character |
 |---|---|---|
 | `root-ritual-01-faithful.zip` | Faithful | The existing comp, rebuilt properly |
-| `root-ritual-02-parchment.zip` | Parchment | Cream dominant, illustration led |
-| `root-ritual-03-deep-forest.zip` | Deep Forest | Green carries the page |
-| `root-ritual-04-field-guide.zip` | Field Guide | Editorial almanac |
-| `root-ritual-05-golden-hour.zip` | Golden Hour | Photography forward |
+| `root-ritual-02-parchment.zip` | Parchment | Cream dominant, arched frames, story high on the page |
+| `root-ritual-03-deep-forest.zip` | Deep Forest | Green carries the page, trust marks under the hero |
+| `root-ritual-04-field-guide.zip` | Field Guide | Editorial almanac: centred masthead, ruled data tables |
+| `root-ritual-05-golden-hour.zip` | Golden Hour | Full-bleed photography, minimal chrome |
 
-Each zip is about 5 MB and contains 44 files. All five passed Shopify's own `theme check` with zero errors.
+Each zip is about 5 MB and contains 60 files. All five pass Shopify's own `theme check` with zero errors.
 
 **You can upload all five, compare them in preview, then publish one.** Uploading never touches your live site.
 
@@ -68,12 +70,12 @@ A fresh theme has no idea what your products or menus are. Do these in order.
 ### 3a. Create the two products
 
 1. Go to **Products**, then **Add product**.
-2. Create **Morning Ritual**. Set the price to $14.99. Upload the product photo.
+2. Create **Morning Ritual**. Set your real price. Upload the product photo.
 3. In the **Description** field, write the real product copy.
 4. Save.
 5. Repeat for **Evening Ritual**.
 
-*Until you do this, both product rows on the homepage show the placeholder text and the bundled product photos. That is deliberate, so the theme looks right the moment it is uploaded.*
+*Until you do this, both product rows on the homepage show the placeholder copy and the bundled product photos, and no price at all. That is deliberate. The theme will never show a price it invented, so an unfinished store cannot quote a number you never agreed to.*
 
 ### 3b. Create a collection
 
@@ -82,13 +84,28 @@ A fresh theme has no idea what your products or menus are. Do these in order.
 3. Add both products.
 4. Save.
 
-### 3c. Create the Our Story page
+### 3c. Create the pages
+
+**Our Story**
 
 1. Go to **Online Store**, then **Pages**, then **Add page**.
 2. Title it **Our Story**.
 3. Paste in the story copy.
 4. Under **Theme template**, leave it on **page**.
 5. Save.
+
+**Contact**
+
+1. **Add page**, title it **Contact**.
+2. Under **Theme template**, choose **page.contact**. This is the important bit: it is what turns the page into a working contact form. Messages arrive at the sender email set under **Settings**, then **Notifications**.
+3. Anything you type in the body appears above the form. Leaving it empty is fine.
+4. Save.
+
+**FAQ**
+
+1. **Add page**, title it **Questions** or **FAQ**.
+2. Under **Theme template**, choose **page.faq**.
+3. Save, then open **Customize** and edit the questions in the **FAQ** section. Four are pre-written as a starting point; change them to yours.
 
 ### 3d. Build the menus
 
@@ -106,7 +123,19 @@ A fresh theme has no idea what your products or menus are. Do these in order.
 5. Click the second **Product feature row** and select **Evening Ritual**.
 6. Click **Save**.
 
-### 3f. Replace the placeholder reviews
+### 3f. Set up the bundle, if you want one
+
+The **Bundle offer** section sits on the collection page. It does no arithmetic of its own invention: it shows the real price of a real bundle product, and works the saving out from the products you tell it are inside.
+
+1. In Shopify, create a product for the set itself, for example **The Full Ritual Set**, with its own price.
+2. In **Customize**, open the collection page and click **Bundle offer**.
+3. In **Bundle product**, choose the set you just made. That price is what customers see.
+4. In the two **Included product** blocks, choose Morning Ritual and Evening Ritual. The "bought separately" figure and the "Save X%" badge are calculated from those two prices.
+5. Click **Save**.
+
+If you leave **Bundle product** empty, the section shows no price and no saving. Nothing is fabricated to fill the gap.
+
+### 3g. Replace the placeholder reviews
 
 **Do this before launch. This is not optional.**
 
@@ -153,7 +182,7 @@ Never remove the published theme.
 
 ## What is in each theme
 
-Every direction ships with the same structure. Only the styling differs.
+All five carry the same set of sections, but each arranges them differently and builds several of them differently.
 
 **Homepage sections**, all editable and reorderable in the theme customiser:
 - Hero
@@ -164,7 +193,26 @@ Every direction ships with the same structure. Only the styling differs.
 - Reviews
 - Newsletter
 
-**Other templates**: product, collection, page, cart, search, 404, blog, article, collections list.
+**The homepage order differs by direction.** This is a deliberate part of each design, and you can still change it in **Customize** if you disagree.
+
+| Direction | Order |
+|---|---|
+| Faithful | hero, intro, products, icons, story, reviews |
+| Parchment | hero, intro, product, **story**, product, icons, reviews |
+| Deep Forest | hero, **icons**, intro, products, story, reviews |
+| Field Guide | hero, intro, **story**, products, icons, reviews |
+| Golden Hour | hero, **products**, intro, story, icons, reviews |
+
+**What is built differently, not just coloured differently:**
+
+- **Hero.** Faithful splits copy and photo. Parchment arches the photo and captions it like a botanical plate. Deep Forest closes with a band of trust marks. Field Guide replaces the subheading with a ruled Origin / Method / Batch table. Golden Hour runs full height with a frame credit.
+- **Product rows.** Field Guide renders the specs as a ruled two-column table with specimen numbers. Golden Hour runs each product as a full-bleed band with the copy over the photograph, alternating sides.
+- **Header and footer.** Field Guide centres the wordmark under a dated rule. Golden Hour removes the inline navigation entirely and puts it behind a menu button at every screen size, then closes with a full-width creed band.
+- **Product page.** Field Guide adds a ruled spec table. Golden Hour drops the thumbnail rail and stacks every photograph at full size.
+
+**Other templates**: product, collection, page, contact, FAQ, cart, search, 404, blog, article, collections list, gift card, and the password page shown before launch.
+
+**Customer accounts**: login, register, account, order detail, addresses, account activation, and password reset. Customers can log in and see their order history.
 
 **Extra sections you can add**: Bundle offer, for the "Full Ritual Set".
 
@@ -174,12 +222,16 @@ Everything uses the locked brand palette (Mountain Green `#203126`, Parchment Cr
 
 ## Known limitations, stated plainly
 
-1. **Reviews are placeholder.** Covered above. Replace or delete before launch.
-2. **The bundle price and the "Save 15%" claim are invented** to demonstrate the layout. Set real numbers, or remove the Bundle section.
-3. **Variant selection is a plain dropdown**, not the styled chips you saw in the mockup. The chips need custom JavaScript to map option values back to a variant ID. A half wired picker that silently adds the wrong variant is worse than a plain one that works, so this ships plain. Chips can be built properly in a follow up.
-4. **Fonts load from Google, not from Shopify's CDN.** This is the only warning Shopify's theme checker raises. It costs a little page speed. Self hosting the fonts inside the theme is a small follow up job if you want a perfect score.
-5. **The two product photos are bundled inside each theme** as fallbacks so the store never looks broken. Once you upload real product images in Shopify, those take over automatically.
-6. **Golden Hour stretches the photos past their native size.** Those images are 1254 pixels square, and that direction runs them full bleed. It looks right today but that direction will reward a proper photo shoot at 2400 pixels or larger more than the other four.
+1. **Reviews are placeholder.** Covered above. Replace or delete before launch. This is the one thing in the theme that will embarrass you if you skip it.
+2. **Fonts load from Google, not from Shopify's CDN.** This is the only warning Shopify's theme checker raises, seven times across the two layouts. It costs a little page speed. Self hosting the fonts inside the theme is a small follow up job if you want a perfect score.
+3. **The two product photos are bundled inside each theme** as fallbacks so the store never looks broken. Once you upload real product images in Shopify, those take over automatically.
+4. **Golden Hour stretches the photos past their native size.** Those images are 1254 pixels square, and that direction runs them full bleed. It looks right today, but that direction will reward a proper photo shoot at 2400 pixels or larger more than the other four.
+5. **Nothing here has been run against a real catalogue yet.** The themes were verified with `theme check` and rendered locally with an empty store, which is the state you will upload them in. The first person to connect real products and click through checkout will be you.
+
+### Things that used to be on this list and are now fixed
+
+- **The variant picker is real.** Selecting an option updates the price, the photo, and the Add to Cart button, and writes the variant into the URL so a copied link opens on the right one. Combinations that do not exist are struck through; combinations that exist but are out of stock stay visible and are marked sold out. If JavaScript fails to load, the picker falls back to a plain dropdown that still adds the correct variant, so the form can never submit the wrong thing.
+- **No price is invented anywhere.** The bundle works its saving out from the products you nominate. Product rows show no price until a product is connected. There is an automated check in the build that fails if anyone ever types a price into the theme again.
 
 ---
 
@@ -194,8 +246,14 @@ Hard refresh with Ctrl+F5, or Cmd+Shift+R on a Mac. Shopify caches stylesheets a
 **Icons show as empty squares**
 `icons.js` did not load. In the theme editor open **Assets** and confirm `icons.js` is present. If your store has an app that blocks or defers theme scripts, allow this one.
 
-**The homepage shows placeholder products**
-You have not connected real products yet. See step 3e.
+**The homepage shows placeholder products, or no prices**
+You have not connected real products yet. See step 3e. The missing price is intentional until then.
+
+**The Contact page shows my typed text but no form**
+The page is on the wrong template. Edit the page, and under **Theme template** choose **page.contact**, not **page**.
+
+**Customers cannot log in**
+Customer accounts are a store setting, not a theme one. Go to **Settings**, then **Customer accounts**, and enable them.
 
 **I cannot find the Themes page**
 The Online Store channel is not enabled, or your staff account lacks the Themes permission.
@@ -209,7 +267,7 @@ See "Rolling back" above. It is instant and nothing is lost.
 
 Every one of these is a settings change in **Customize**, not a code change: headings, body copy, button labels, images, the announcement bar, section order, and which sections appear at all.
 
-Anything structural, such as new page types, a proper variant picker, or a blog layout, comes back to us.
+Anything structural, such as new page types or a redesigned blog layout, comes back to us.
 
 ---
 
