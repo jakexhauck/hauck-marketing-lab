@@ -204,3 +204,19 @@ Verified against 100 live Willis conversations: exactly those three hidden, 97 k
 - [ ] **Open the Inbox and confirm you no longer see yourself, your email, or my number in the list.** Those three were there before. If any of them is still showing, tell me which one.
 - [ ] **Tell me if any OTHER phone or email of yours or your team's gets these alerts.** I could only see what fired in the last few days, so I may have missed a person. Any I do not know about will keep showing until you tell me.
 - [ ] **Confirm (313) 405-3227 is a number of yours and not a real customer.** The booking system labelled it an internal notification recipient, so it should be safe to hide, but you would know a real customer's number on sight.
+
+---
+
+## Cold Call went live (2026-07-26, `0596a24`)
+
+Cold Call is now the pipeline itself: one page per stage, in the order your
+GoHighLevel board has them. New Lead, 1st Dial, 2nd Dial and Call Back are all
+the same calling queue. "Run the book / Work the queue" is gone. Import leads
+now puts every row into GoHighLevel tagged `cc new lead`, and your workflow puts
+them on the board. I tested that whole path end to end with one contact and
+deleted it afterwards.
+
+- [ ] **Delete the "Brushed Off" stage and its `cc brush off` automation in GoHighLevel.** The app no longer has that stage, so anything your automations move there is invisible in the console. Brushed Off is now a reason on the "Not interested" button instead, which is better data: it tells you WHY they said no and feeds the tracker's Objections column.
+- [ ] **Tell anyone with the app open to hard-refresh once** (`Ctrl+Shift+R`). Their browser is still holding the old version, and the old version does not understand the new stage names, so it shows them a blank screen. New visitors are fine. I have a plan to make the app fix this itself.
+- [ ] **Say whether I can delete the demo data.** 44 fake leads ("DEMO Roofers list", "Demo Caller (delete me)") are live in production and showing on every stage page. They are not real prospects. Deleting is permanent.
+- [ ] **Decide what should happen when you import a list you have imported before.** Right now a phone number already in the book is skipped completely, so that prospect is never re-tagged and never goes back on the board. That is right for accidentally importing the same file twice, and wrong for deliberately re-working an old list. Tell me which you want.
