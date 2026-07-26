@@ -1,18 +1,22 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ArrowRight, Check, Inbox, X } from "lucide-react";
 import DesktopPage from "../../components/desktop/DesktopPage";
 import { Button } from "../../components/ui/Button";
-import {
-  useIntakeAction,
-  useIntakeQueue,
-  useIntakeSubmission,
-  type IntakeStatus,
-  type IntakeSubmissionSummary,
-} from "../../hooks/useIntake";
+import { useIntakeAction, useIntakeQueue, useIntakeSubmission } from "../../hooks/useIntake";
+import type { IntakeStatus } from "../../hooks/useIntake";
 import { INTAKE_FIELDS, INTAKE_STEPS } from "../../lib/intake";
+import {
+  ArrivalsFeed,
+  BackBar,
+  PipelineBoard,
+  TriageStrip,
+  VARIANTS,
+  groupByStage,
+  type VariantKey,
+} from "./onboardingVariants";
 
-// The intake submissions queue (/admin/onboarding).
+// The intake submissions surface (/admin/onboarding).
 //
 // The funnel at /onboarding is open to anyone, so nothing it produces becomes a
 // client until it is approved here. That is the whole security model: a junk
@@ -20,91 +24,111 @@ import { INTAKE_FIELDS, INTAKE_STEPS } from "../../lib/intake";
 //
 // This is also the route the five Onboarding pillar lanes have been linking to
 // since before it existed.
-
-const TABS: { key: IntakeStatus | "all"; label: string }[] = [
-  { key: "submitted", label: "Waiting on you" },
-  { key: "in_progress", label: "Still filling in" },
-  { key: "approved", label: "Approved" },
-  { key: "rejected", label: "Rejected" },
-  { key: "all", label: "All" },
-];
+//
+// LAYOUT IS UNDER REVIEW. Three directions render behind ?v=a|b|c while Jake
+// picks one. The first attempt used a list-and-detail split, which read as a
+// clone of the Fulfillment roster: a roster is a filing cabinet of equals,
+// whereas onboarding is a conveyor belt. All three replacements encode movement
+// instead. Once Jake picks, the other two and onboardingVariants.tsx are
+// deleted.
 
 export default function AdminOnboarding() {
-  const [tab, setTab] = useState<IntakeStatus | "all">("submitted");
+  const [params, setParams] = useSearchParams();
+  const variant = (params.get("v") as VariantKey) ?? "a";
   const [selected, setSelected] = useState<string | null>(null);
 
-  const queue = useIntakeQueue(tab);
-  const submissions = queue.data?.submissions ?? [];
-  const counts = queue.data?.counts ?? {};
+  // One request, grouped in the browser. The stages are a view of the same
+  // data, so refetching per column would be three round trips for one screen.
+  const queue = useIntakeQueue("all");
+  const all = queue.data?.submissions ?? [];
+  const live = all.filter((s) => s.status !== "rejected");
+  const grouped = groupByStage(live);
+
+  function chooseVariant(key: VariantKey) {
+    params.set("v", key);
+    setParams(params, { replace: true });
+    setSelected(null);
+  }
 
   return (
     <DesktopPage
       title="Onboarding"
-      subtitle="Everything the client intake form has sent in. Nothing becomes a client until you approve it."
+      subtitle="Every client we are standing up, and where each one has got to."
     >
-      <div className="mt-5 flex flex-wrap items-center gap-1.5">
-        {TABS.map((t) => {
-          const count = t.key === "all" ? queue.data?.total : counts[t.key as IntakeStatus];
-          const active = tab === t.key;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => {
-                setTab(t.key);
-                setSelected(null);
-              }}
-              className={[
-                "rounded-[var(--radius)] border px-3 py-1.5 text-[13px] font-medium transition-colors",
-                active
-                  ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand-text)]"
-                  : "border-border bg-surface text-muted hover:bg-surface-2 hover:text-text",
-              ].join(" ")}
-            >
-              {t.label}
-              {typeof count === "number" && count > 0 && (
-                <span className="ml-1.5 text-[12px] opacity-70">{count}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      <VariantPicker current={variant} onPick={chooseVariant} />
 
-      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-        <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-2 shadow-[var(--shadow-sm)]">
-          {queue.isError ? (
-            <Empty icon={AlertTriangle}>Could not load submissions.</Empty>
-          ) : queue.isLoading ? (
-            <Empty icon={Inbox}>Loading...</Empty>
-          ) : submissions.length === 0 ? (
-            <Empty icon={Inbox}>
-              {tab === "submitted"
-                ? "Nothing waiting on you."
-                : "Nothing here."}
-            </Empty>
-          ) : (
-            <ul className="flex flex-col">
-              {submissions.map((s) => (
-                <QueueRow
-                  key={s.id}
-                  submission={s}
-                  active={s.id === selected}
-                  onSelect={() => setSelected(s.id)}
-                />
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-sm)]">
-          {selected ? (
+      {queue.isError ? (
+        <Empty icon={AlertTriangle}>Could not load submissions.</Empty>
+      ) : queue.isLoading ? (
+        <Empty icon={Inbox}>Loading...</Empty>
+      ) : live.length === 0 ? (
+        <Empty icon={Inbox}>
+          Nobody is being onboarded right now. Submissions land here the moment a
+          client finishes the intake form.
+        </Empty>
+      ) : selected && variant !== "c" ? (
+        <>
+          <BackBar onBack={() => setSelected(null)} label="Back to onboarding" />
+          <Panel>
             <Detail id={selected} onDone={() => setSelected(null)} />
-          ) : (
-            <Empty icon={Inbox}>Pick a submission to read it.</Empty>
-          )}
-        </section>
-      </div>
+          </Panel>
+        </>
+      ) : variant === "a" ? (
+        <PipelineBoard grouped={grouped} onSelect={setSelected} />
+      ) : variant === "b" ? (
+        <ArrivalsFeed submissions={live} onSelect={setSelected} />
+      ) : (
+        <>
+          <TriageStrip submissions={live} selected={selected} onSelect={setSelected} />
+          <Panel>
+            {selected ? (
+              <Detail id={selected} onDone={() => setSelected(null)} />
+            ) : (
+              <Empty icon={Inbox}>Pick a client above to work through them.</Empty>
+            )}
+          </Panel>
+        </>
+      )}
     </DesktopPage>
+  );
+}
+
+function Panel({ children }: { children: React.ReactNode }) {
+  return (
+    <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-sm)]">
+      {children}
+    </section>
+  );
+}
+
+// Temporary, and labelled as such so nobody mistakes it for a feature.
+function VariantPicker({
+  current,
+  onPick,
+}: {
+  current: VariantKey;
+  onPick: (key: VariantKey) => void;
+}) {
+  return (
+    <div className="mb-5 mt-5 flex flex-wrap items-center gap-2 rounded-[var(--radius)] border border-dashed border-border bg-surface-2 px-3.5 py-2.5">
+      <span className="text-[12px] font-medium text-faint">Layout options (pick one):</span>
+      {VARIANTS.map((v) => (
+        <button
+          key={v.key}
+          type="button"
+          onClick={() => onPick(v.key)}
+          title={v.blurb}
+          className={[
+            "rounded-[var(--radius-sm)] border px-2.5 py-1 text-[12px] font-medium transition-colors",
+            current === v.key
+              ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand-text)]"
+              : "border-border bg-surface text-muted hover:text-text",
+          ].join(" ")}
+        >
+          {v.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -123,13 +147,8 @@ function Empty({
   );
 }
 
-const STATUS_TONE: Record<IntakeStatus, string> = {
-  submitted: "border-[var(--brand)]/40 bg-[var(--brand)]/10 text-[var(--brand-text)]",
-  in_progress: "border-border bg-surface-2 text-muted",
-  approved: "border-positive/40 bg-positive/10 text-positive",
-  rejected: "border-border bg-surface-2 text-faint",
-};
-
+// Stage colour moved onto the board columns, where position already carries the
+// meaning. Only the wording is still needed here, for the detail header.
 const STATUS_LABEL: Record<IntakeStatus, string> = {
   submitted: "Submitted",
   in_progress: "In progress",
@@ -137,58 +156,6 @@ const STATUS_LABEL: Record<IntakeStatus, string> = {
   rejected: "Rejected",
 };
 
-function QueueRow({
-  submission,
-  active,
-  onSelect,
-}: {
-  submission: IntakeSubmissionSummary;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <li>
-      <button
-        type="button"
-        onClick={onSelect}
-        className={[
-          "flex w-full flex-col gap-1.5 rounded-[var(--radius)] px-3.5 py-3 text-left transition-colors",
-          active ? "bg-surface-2" : "hover:bg-surface-2",
-        ].join(" ")}
-      >
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="truncate text-[14px] font-medium text-text">{submission.name}</span>
-          <span
-            className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${STATUS_TONE[submission.status]}`}
-          >
-            {STATUS_LABEL[submission.status]}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between gap-3 text-[12px] text-faint">
-          <span className="truncate">
-            {[submission.niche, submission.contactName].filter(Boolean).join(" · ") || "No details yet"}
-          </span>
-          <span className="shrink-0">{new Date(submission.createdAt).toLocaleDateString()}</span>
-        </div>
-
-        {/* Completeness counts required fields only, so a client who skipped the
-            optional questions still reads as finished. */}
-        <div className="flex items-center gap-2">
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-surface-2">
-            <div
-              className="h-full rounded-full bg-[var(--brand)] transition-[width]"
-              style={{ width: `${submission.completeness}%` }}
-            />
-          </div>
-          <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-faint">
-            {submission.completeness}%
-          </span>
-        </div>
-      </button>
-    </li>
-  );
-}
 
 function Detail({ id, onDone }: { id: string; onDone: () => void }) {
   const detail = useIntakeSubmission(id);
