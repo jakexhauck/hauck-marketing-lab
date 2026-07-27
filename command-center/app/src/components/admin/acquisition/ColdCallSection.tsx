@@ -21,7 +21,6 @@ import ColdCallLeads from "./ColdCallLeads";
 import ColdCallManagement from "./ColdCallManagement";
 import ColdCallCallbacks from "./ColdCallCallbacks";
 import ColdCallBooked from "./ColdCallBooked";
-import ColdCallSettings from "./ColdCallSettings";
 import ColdCallAvailability from "./ColdCallAvailability";
 
 // Acquisition > Cold Call. Unlike its sibling tabs this is a section rather than
@@ -185,10 +184,10 @@ export default function ColdCallSection() {
           emptyHint={
             scripts.length === 0
               ? isOwner
-                ? "No scripts yet. Add a variation on the Settings page and it will show here."
+                ? "No scripts yet. Add a variation under Management > Scripts and it will show here."
                 : "No script yet. Jake writes this one."
               : isOwner
-                ? `"${scripts.find((s) => s.id === selectedScriptId)?.name ?? "This variation"}" has nothing in it yet. Write it on the Settings page.`
+                ? `"${scripts.find((s) => s.id === selectedScriptId)?.name ?? "This variation"}" has nothing in it yet. Write it under Management > Scripts.`
                 : "This variation has not been written yet. Jake writes these."
           }
           onClose={() => setScriptOpen(false)}
@@ -260,8 +259,6 @@ function ColdCallBody({
       // person. The component asks the owner to pick one rather than merging
       // two people's hours into one paintable grid.
       return <ColdCallAvailability callerId={callerId} isOwner={isOwner} />;
-    case "settings":
-      return <ColdCallSettings />;
     default:
       // resolveColdCallView never returns anything else; a miss is a bug, not a
       // state worth rendering something plausible for.

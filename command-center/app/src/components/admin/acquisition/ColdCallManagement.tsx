@@ -1,7 +1,14 @@
 import { useSearchParams } from "react-router-dom";
-import { MANAGEMENT_PAGES, resolveManagementPage } from "../../../lib/coldCallPages";
+import {
+  MANAGEMENT_PAGES,
+  movedIntoManagement,
+  resolveManagementPage,
+} from "../../../lib/coldCallPages";
 import ColdCallManage from "./ColdCallManage";
 import ColdCallTeamAvailability from "./ColdCallTeamAvailability";
+import ScriptsPanel from "./ScriptsPanel";
+import AssetsPanel from "./AssetsPanel";
+import StagesPanel from "./StagesPanel";
 
 // Cold Call > Management: the owner's half of the operation, behind one tab.
 //
@@ -13,7 +20,11 @@ import ColdCallTeamAvailability from "./ColdCallTeamAvailability";
 // this section does.
 export default function ColdCallManagement({ callerId = "" }: { callerId?: string }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const page = resolveManagementPage(searchParams.get("manage"));
+  // With no ?manage= of its own, an old top-level link decides which page opens:
+  // ?view=settings still means "the scripts", not Management's default.
+  const page = resolveManagementPage(
+    searchParams.get("manage") ?? movedIntoManagement(searchParams.get("view"), true),
+  );
 
   const setPage = (next: string) => {
     setSearchParams(
@@ -45,16 +56,27 @@ export default function ColdCallManagement({ callerId = "" }: { callerId?: strin
         ))}
       </div>
 
-      {page === "availability" ? (
-        <ColdCallTeamAvailability />
-      ) : (
-        // Unfiltered by stage on purpose: handing work out means seeing every
-        // lead, not one stage at a time. The section's person selector still
-        // narrows it to one assignee.
-        <ColdCallManage callerId={callerId} />
-      )}
+      <ManagementBody page={page} callerId={callerId} />
     </div>
   );
+}
+
+function ManagementBody({ page, callerId }: { page: string; callerId: string }) {
+  switch (page) {
+    case "availability":
+      return <ColdCallTeamAvailability />;
+    case "scripts":
+      return <ScriptsPanel />;
+    case "assets":
+      return <AssetsPanel />;
+    case "stages":
+      return <StagesPanel />;
+    default:
+      // Unfiltered by stage on purpose: handing work out means seeing every
+      // lead, not one stage at a time. The section's person selector still
+      // narrows it to one assignee.
+      return <ColdCallManage callerId={callerId} />;
+  }
 }
 
 function ManagementStyle() {

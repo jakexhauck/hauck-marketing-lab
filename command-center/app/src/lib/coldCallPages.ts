@@ -43,12 +43,11 @@ export const COLD_CALL_PAGES: ColdCallPageDef[] = [
   // job, not the owner's, and an owner setting a hire's hours without asking
   // them is how a rota stops matching reality.
   { id: "availability", label: "Availability", side: "left" },
-  // Running the operation: handing work out, and reading the roster's week.
-  // Both were reached as their own strip entries once; they are one tab with
-  // pages inside it now, so the strip stays the length of a day's work rather
-  // than growing an entry every time the owner gains a lever.
+  // Running the operation: ONE owner-side tab, with everything the owner does
+  // as pages inside it. Assign, the roster's week, the scripts, the shelf and
+  // the stage check were all their own strip entries at some point; a strip
+  // that grows an entry per lever stops reading as a day's work.
   { id: "management", label: "Management", side: "right", ownerOnly: true },
-  { id: "settings", label: "Settings", side: "right", ownerOnly: true },
 ];
 
 // The pages inside Management (?view=management&manage=<id>). Owner-only by
@@ -58,11 +57,19 @@ export interface ManagementPageDef {
   label: string;
 }
 
+// Ordered by how often the owner opens them. Assign is daily, the rota is
+// weekly, and the scripts and shelf are set up once and revisited. Stages last:
+// it is a check, not a thing you edit.
+//
+// There is deliberately no page called Settings. The word grouped three
+// unrelated jobs (write a pitch, stock a shelf, verify a CRM) under one heading
+// that described none of them, so each is named for what it is.
 export const MANAGEMENT_PAGES: ManagementPageDef[] = [
-  // Assign first: handing work out is the thing done daily. Reading the rota is
-  // what happens when the week is being planned.
   { id: "assign", label: "Assign leads" },
   { id: "availability", label: "Team availability" },
+  { id: "scripts", label: "Scripts" },
+  { id: "assets", label: "Call shelf" },
+  { id: "stages", label: "Stage check" },
 ];
 
 export function resolveManagementPage(param: string | null | undefined): string {
@@ -75,6 +82,10 @@ export function resolveManagementPage(param: string | null | undefined): string 
 // rather than being silently dumped on the first stage.
 const MOVED_INTO_MANAGEMENT: Record<string, string> = {
   assign: "assign",
+  // Settings was three panels stacked on one page. It opens on the first of
+  // them rather than on Management's default, so an old link still lands on
+  // something it used to show.
+  settings: "scripts",
 };
 
 // The Management sub-page a retired top-level view maps to, or null when the

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   COLD_CALL_PAGES,
+  MANAGEMENT_PAGES,
   coldCallPagesFor,
   coldCallSides,
   movedIntoManagement,
@@ -21,7 +22,6 @@ describe("coldCallPagesFor", () => {
       "tracker",
       "availability",
       "management",
-      "settings",
     ]);
   });
 
@@ -35,20 +35,20 @@ describe("coldCallPagesFor", () => {
     expect(ids).toContain("availability");
   });
 
-  it("keeps management and the script owner-only", () => {
+  it("keeps management owner-only, and it is the only owner-side tab", () => {
     const ids = coldCallPagesFor(false).map((p) => p.id);
     expect(ids).not.toContain("management");
-    expect(ids).not.toContain("settings");
     expect(COLD_CALL_PAGES.filter((p) => p.ownerOnly).map((p) => p.id)).toEqual([
       "management",
-      "settings",
     ]);
   });
 
-  it("no longer offers Assign as a top-level page", () => {
-    // It became a page inside Management. Leaving it in both places would give
-    // the same surface two URLs and two places to look for it.
-    expect(COLD_CALL_PAGES.map((p) => p.id)).not.toContain("assign");
+  it("no longer offers Assign or Settings as top-level pages", () => {
+    // Both became pages inside Management. Leaving either in both places would
+    // give one surface two URLs and two places to look for it.
+    const ids = COLD_CALL_PAGES.map((p) => p.id);
+    expect(ids).not.toContain("assign");
+    expect(ids).not.toContain("settings");
   });
 
   it("has no page left over from an earlier strip", () => {
@@ -82,7 +82,7 @@ describe("coldCallSides", () => {
       "tracker",
       "availability",
     ]);
-    expect(right.map((p) => p.id)).toEqual(["management", "settings"]);
+    expect(right.map((p) => p.id)).toEqual(["management"]);
   });
 
   it("gives a caller no right-hand group at all, so he gets no divider", () => {
@@ -100,7 +100,7 @@ describe("coldCallSides", () => {
 describe("resolveColdCallView", () => {
   it("returns a known page", () => {
     expect(resolveColdCallView("call-back", false)).toBe("call-back");
-    expect(resolveColdCallView("settings", true)).toBe("settings");
+    expect(resolveColdCallView("management", true)).toBe("management");
   });
 
   it("lands on the first stage when the param is missing or nonsense", () => {
@@ -124,10 +124,11 @@ describe("resolveColdCallView", () => {
     expect(resolveColdCallView("settings", false)).toBe("new-lead");
   });
 
-  it("opens Management for an owner's old ?view=assign link", () => {
-    // Assign was its own tab until it moved inside Management. A bookmark or a
-    // pasted link should land on the page it names, not on the first stage.
+  it("opens Management for an owner's old ?view=assign or ?view=settings link", () => {
+    // Both were their own tab until they moved inside Management. A bookmark or
+    // a pasted link should land on the page it names, not on the first stage.
     expect(resolveColdCallView("assign", true)).toBe("management");
+    expect(resolveColdCallView("settings", true)).toBe("management");
   });
 });
 
@@ -135,6 +136,20 @@ describe("resolveManagementPage", () => {
   it("returns a known page", () => {
     expect(resolveManagementPage("assign")).toBe("assign");
     expect(resolveManagementPage("availability")).toBe("availability");
+    expect(resolveManagementPage("scripts")).toBe("scripts");
+    expect(resolveManagementPage("assets")).toBe("assets");
+    expect(resolveManagementPage("stages")).toBe("stages");
+  });
+
+  it("holds everything the retired Settings page held", () => {
+    // Settings stacked three panels on one page. Losing one of them in the move
+    // would be silent: nothing else in the app links to them.
+    const ids = MANAGEMENT_PAGES.map((p) => p.id);
+    for (const page of ["scripts", "assets", "stages"]) expect(ids).toContain(page);
+  });
+
+  it("has no page called settings", () => {
+    expect(MANAGEMENT_PAGES.map((p) => p.id)).not.toContain("settings");
   });
 
   it("defaults to Assign, the page opened daily", () => {
@@ -148,11 +163,14 @@ describe("resolveManagementPage", () => {
 describe("movedIntoManagement", () => {
   it("maps a retired top-level page to its new home", () => {
     expect(movedIntoManagement("assign", true)).toBe("assign");
+    // Settings was three panels; its link opens the first of them rather than
+    // Management's own default, which was never part of that page.
+    expect(movedIntoManagement("settings", true)).toBe("scripts");
   });
 
   it("is null for a page that never moved", () => {
     expect(movedIntoManagement("tracker", true)).toBeNull();
-    expect(movedIntoManagement("settings", true)).toBeNull();
+    expect(movedIntoManagement("booked", true)).toBeNull();
     expect(movedIntoManagement(null, true)).toBeNull();
   });
 
