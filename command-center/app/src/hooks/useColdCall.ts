@@ -5,9 +5,12 @@ import {
   getAgencyPipelines,
   getColdCallCalendars,
   getColdCallSlots,
+  getSalesMeetings,
   logColdCallDial,
+  recordMeetingOutcome,
   type ColdCallDialOutcome,
   type ColdCallRow,
+  type SalesMeeting,
 } from "../lib/api";
 import { isColdCallNumericField, type ColdCallField } from "../lib/coldCall";
 
@@ -208,6 +211,43 @@ export function useBookColdCall() {
     onSuccess: (_res, input) => {
       qc.invalidateQueries({ queryKey: ["admin", "tracker", "leads"] });
       qc.invalidateQueries({ queryKey: ["admin", "cold-call", "slots", input.calendarId] });
+      // The booking wrote the meeting's own row too, so Booked is stale.
+      qc.invalidateQueries({ queryKey: ["admin", "cold-call", "meetings"] });
     },
   });
+}
+
+// ---------------------------------------------------------------------------
+// What the meeting became (0057).
+
+// Booked meetings and their outcomes. "" means everyone; a caller is scoped to
+// themselves by the API whatever is passed.
+export function useSalesMeetingsQuery(callerId = "") {
+  return useQuery({
+    queryKey: ["admin", "cold-call", "meetings", callerId || "all"],
+    staleTime: 30_000,
+    queryFn: () => getSalesMeetings(callerId || undefined),
+  });
+}
+
+// Say what happened at one meeting. Retried never, for the same reason a dial is
+// not: this is the number a commission is argued over, and a resent PATCH that
+// actually succeeded is a second answer overwriting the first.
+export function useRecordMeetingOutcome() {
+  const qc = useQueryClient();
+  return useMutation({
+    retry: false,
+    mutationFn: (input: RecordOutcomeInput) => recordMeetingOutcome(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "cold-call", "meetings"] });
+    },
+  });
+}
+
+export interface RecordOutcomeInput {
+  id: string;
+  outcome: NonNullable<SalesMeeting["outcome"]>;
+  notAFitReason?: string;
+  followUpAt?: string;
+  cashCollected?: number | null;
 }

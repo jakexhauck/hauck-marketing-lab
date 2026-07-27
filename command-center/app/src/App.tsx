@@ -179,59 +179,6 @@ function ServiceWorkerMessages() {
   return null;
 }
 
-// Keep installed PWAs current without a reinstall. sw.ts already calls
-// skipWaiting() + clientsClaim(), so a new deploy's worker activates and takes
-// control the moment it is found, but the auto-injected registerSW.js only
-// registers the worker: it never reloads the open page, so the running tab
-// keeps executing the previous deploy's in-memory JS. This bridges the last
-// step in two parts.
-//
-// Trigger: iOS keeps PWAs suspended and resumes them without checking for a new
-// worker, so a client who never fully closes the app can run stale code for
-// days. Forcing registration.update() whenever the app returns to the
-// foreground (plus a slow heartbeat for sessions left open for hours) makes the
-// browser look for a new deploy.
-//
-// Apply: when a found worker activates and claims the page, controllerchange
-// fires and we reload into the new version. wasControlled guards the very first
-// claim on a fresh visit (page loaded with no controller), where a reload would
-// be a pointless flash and could loop.
-function ServiceWorkerUpdater() {
-  useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
-
-    const wasControlled = Boolean(navigator.serviceWorker.controller);
-    let reloading = false;
-    const onControllerChange = () => {
-      if (!wasControlled || reloading) return;
-      reloading = true;
-      window.location.reload();
-    };
-    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
-
-    let reg: ServiceWorkerRegistration | undefined;
-    let cancelled = false;
-    const check = () => {
-      if (document.visibilityState === "visible") void reg?.update().catch(() => {});
-    };
-    void navigator.serviceWorker.getRegistration().then((r) => {
-      if (cancelled) return;
-      reg = r ?? undefined;
-      check();
-    });
-    document.addEventListener("visibilitychange", check);
-    const interval = window.setInterval(check, 60 * 60 * 1000);
-
-    return () => {
-      cancelled = true;
-      navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
-      document.removeEventListener("visibilitychange", check);
-      window.clearInterval(interval);
-    };
-  }, []);
-  return null;
-}
-
 export default function App() {
   return (
     <ThemeProvider>
@@ -244,7 +191,6 @@ export default function App() {
             <ChatProvider>
             <TourProvider>
             <ServiceWorkerMessages />
-            <ServiceWorkerUpdater />
             <OfflineBanner />
             {/* Inside the admin Software tab's preview frame the surrounding
                 cockpit already says whose app this is, and there is no session

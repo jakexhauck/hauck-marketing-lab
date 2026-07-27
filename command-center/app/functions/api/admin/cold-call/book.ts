@@ -167,6 +167,37 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     .select("id")
     .maybeSingle();
 
+  // The meeting's own record (0057), so what it BECOMES has somewhere to live.
+  // Without this a booking is the last thing the app knows about a prospect, and
+  // booked-to-showed-to-closed stops one step short of the number that says
+  // whether any of the dialing was worth doing.
+  //
+  // Best-effort, on purpose, and after everything above: the appointment is real
+  // on a real calendar by now, so failing the request here would tell the caller
+  // a booking did not happen when it did. Keyed on the appointment id, so a
+  // booking made twice updates one row rather than growing a second.
+  const { error: meetingError } = await client.from("sales_calls").upsert(
+    {
+      ghl_appointment_id: appt.id,
+      ghl_contact_id: contact.contactId,
+      lead_id: leadId,
+      // Copied rather than joined, so a purged prospect still has a name on the
+      // revenue line.
+      prospect_name: name,
+      phone: lead.phone ?? "",
+      email: lead.email ?? "",
+      source: "Cold call",
+      scheduled_at: startTime,
+      appointment_status: "confirmed",
+      logged_by: admin.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "ghl_appointment_id" },
+  );
+  if (meetingError) {
+    console.error("[cold-call/book] sales_calls upsert failed", meetingError.message);
+  }
+
   await logAdminAction(client, admin.id, "coldcall.book", null, {
     leadId,
     calendarId,

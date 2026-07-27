@@ -58,6 +58,33 @@ export function useImportLeads() {
   });
 }
 
+export interface PushResult {
+  pushed: number;
+  failed: number;
+  // The agency GHL account is not connected, so nothing was attempted.
+  notConfigured: boolean;
+  // The first reason a row was refused, or null if none were.
+  error: string | null;
+}
+
+// Push a selection into GoHighLevel by hand. The import already tries this on
+// the way in; this is for the rows that did not make it, which are otherwise
+// stranded in the book and invisible to the workflow that would put them on the
+// board.
+export function usePushLeadsToGhl() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api<PushResult>("/api/admin/tracker/leads/push-ghl", {
+        method: "POST",
+        body: JSON.stringify({ ids }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: LEADS_KEY });
+    },
+  });
+}
+
 export function useAssignLeads() {
   const qc = useQueryClient();
   return useMutation({

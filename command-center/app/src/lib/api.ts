@@ -1510,3 +1510,48 @@ export async function logColdCallDial(input: {
     body: JSON.stringify(input),
   });
 }
+
+// A booked meeting and what became of it (0057). Created by the booking itself;
+// the outcome is filled in afterwards, by whoever ran the call.
+export interface SalesMeeting {
+  id: string;
+  appointmentId: string;
+  leadId: string | null;
+  prospectName: string;
+  businessName: string;
+  phone: string;
+  email: string;
+  scheduledAt: string | null;
+  appointmentStatus: string;
+  // Null until somebody says what happened. See functions/lib/salesCalls.ts.
+  outcome: "closed" | "follow_up" | "no_show" | "not_a_fit" | null;
+  notAFitReason: string | null;
+  followUpAt: string | null;
+  cashCollected: number | null;
+  assignedTo: string | null;
+  updatedAt: string;
+}
+
+export async function getSalesMeetings(callerId?: string): Promise<{
+  meetings: SalesMeeting[];
+}> {
+  return api(
+    "/api/admin/cold-call/meetings" +
+      (callerId ? `?callerId=${encodeURIComponent(callerId)}` : ""),
+  );
+}
+
+// Record what one meeting became. `showed` is deliberately absent: the server
+// derives it from the outcome, so a show rate cannot be typed.
+export async function recordMeetingOutcome(input: {
+  id: string;
+  outcome: NonNullable<SalesMeeting["outcome"]>;
+  notAFitReason?: string;
+  followUpAt?: string;
+  cashCollected?: number | null;
+}): Promise<{ meeting: SalesMeeting }> {
+  return api("/api/admin/cold-call/meetings", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}

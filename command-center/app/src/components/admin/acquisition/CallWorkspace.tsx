@@ -11,7 +11,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import type { AdminLead, ColdCallDialOutcome } from "../../../lib/api";
-import { STATUS_META } from "../../../lib/adminLeads";
+import { metaFor } from "../../../lib/adminLeads";
 import { useUpdateAdminLead } from "../../../hooks/useAdminLeads";
 import { useLogColdCallDial } from "../../../hooks/useColdCall";
 import {
@@ -215,7 +215,7 @@ export default function CallWorkspace({
                   >
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: STATUS_META[lead.status].swatch }}
+                      style={{ background: metaFor(lead.status).swatch }}
                       aria-hidden
                     />
                     <span className="min-w-0 flex-1">

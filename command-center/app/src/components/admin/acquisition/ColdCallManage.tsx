@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Upload, UserPlus } from "lucide-react";
+import { CloudUpload, Upload, UserPlus } from "lucide-react";
 import type { AdminLead, AdminLeadStatus } from "../../../lib/api";
-import { STATUS_META } from "../../../lib/adminLeads";
+import { metaFor } from "../../../lib/adminLeads";
 import { useAdminLeadsQuery } from "../../../hooks/useAdminLeads";
-import { useAssignableCallersQuery, useAssignLeads } from "../../../hooks/useLeadAssignment";
+import {
+  useAssignableCallersQuery,
+  useAssignLeads,
+  usePushLeadsToGhl,
+} from "../../../hooks/useLeadAssignment";
 import { useToast } from "../../../context/ToastContext";
 import ColdCallImportDialog from "./ColdCallImportDialog";
 
@@ -37,9 +41,14 @@ export default function ColdCallManage({
   const leadsQuery = useAdminLeadsQuery();
   const callers = useAssignableCallersQuery();
   const assignLeads = useAssignLeads();
+  const pushToGhl = usePushLeadsToGhl();
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<AssigneeFilter>(callerId || "all");
+  // A separate axis from the assignee filter, not another value of it: "whose
+  // list is this" and "did this row reach the CRM" are different questions, and
+  // the useful view is often both at once.
+  const [onlyMissingCrm, setOnlyMissingCrm] = useState(false);
   // Drag to select a run of rows: press on one, move down (or up) and every row
   // the pointer crosses joins the selection. This is how a list gets handed out
   // in practice, fifty at a time, and clicking fifty boxes is not that.
@@ -66,11 +75,20 @@ export default function ColdCallManage({
     return map;
   }, [callers.data]);
 
+  // Rows the CRM never got. `ghlContactId` null is the whole test: the import
+  // stamps it on every row that lands, so a null means the push was refused, or
+  // the account was not connected when the file went in.
+  const missingCrm = useMemo(() => leads.filter((l) => !l.ghlContactId), [leads]);
+
   const visible = useMemo(() => {
-    if (filter === "all") return leads;
-    if (filter === "unassigned") return leads.filter((l) => !l.assignedTo);
-    return leads.filter((l) => l.assignedTo === filter);
-  }, [leads, filter]);
+    const byAssignee =
+      filter === "all"
+        ? leads
+        : filter === "unassigned"
+          ? leads.filter((l) => !l.assignedTo)
+          : leads.filter((l) => l.assignedTo === filter);
+    return onlyMissingCrm ? byAssignee.filter((l) => !l.ghlContactId) : byAssignee;
+  }, [leads, filter, onlyMissingCrm]);
 
   // Selection is kept across filter changes on purpose: pick fifty from one
   // view, fifty from another, hand out all hundred at once.
@@ -162,6 +180,27 @@ export default function ColdCallManage({
     }
   };
 
+  const doPush = async () => {
+    if (selected.size === 0) return;
+    try {
+      const res = await pushToGhl.mutateAsync([...selected]);
+      if (res.notConfigured) {
+        showToast("GoHighLevel is not connected, so nothing was pushed.");
+        return;
+      }
+      showToast(
+        res.failed === 0
+          ? `${res.pushed} pushed to GoHighLevel`
+          : `${res.pushed} pushed, ${res.failed} refused: ${res.error ?? "no reason given"}`,
+      );
+      // The selection is deliberately kept when some failed: those rows are
+      // exactly the ones worth trying again.
+      if (res.failed === 0) setSelected(new Set());
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Could not push those leads");
+    }
+  };
+
   if (leadsQuery.isLoading) return <div className="pk-empty">Loading the book...</div>;
   if (leadsQuery.isError) {
     return <div className="pk-empty">Could not load the book. Reload to try again.</div>;
@@ -187,6 +226,20 @@ export default function ColdCallManage({
               </FilterChip>
             );
           })}
+          {/* Separate axis, so it reads as a different question rather than a
+              seventh person. Hidden when every row made it, because a chip
+              saying zero is a problem being advertised that does not exist. */}
+          {missingCrm.length > 0 && (
+            <>
+              <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+              <FilterChip
+                on={onlyMissingCrm}
+                onClick={() => setOnlyMissingCrm((v) => !v)}
+              >
+                Not in GoHighLevel ({missingCrm.length})
+              </FilterChip>
+            </>
+          )}
         </div>
         <button type="button" className="pk-link" onClick={() => setImportOpen(true)}>
           <Upload aria-hidden />
@@ -231,6 +284,16 @@ export default function ColdCallManage({
           <button
             type="button"
             className="pk-btn-cancel"
+            disabled={pushToGhl.isPending}
+            onClick={() => void doPush()}
+            title="Create or update these prospects in GoHighLevel and tag them 'cc new lead'"
+          >
+            <CloudUpload size={14} aria-hidden style={{ marginRight: 6, verticalAlign: -2 }} />
+            {pushToGhl.isPending ? "Pushing..." : "Push to GoHighLevel"}
+          </button>
+          <button
+            type="button"
+            className="pk-btn-cancel"
             onClick={() => setSelected(new Set())}
           >
             Clear
@@ -243,11 +306,13 @@ export default function ColdCallManage({
         <div className="pk-empty">
           {leads.length === 0
             ? "No leads yet. Import a CSV to fill the book."
-            : "Nothing here with that filter."}
+            : onlyMissingCrm
+              ? "Every one of these reached GoHighLevel."
+              : "Nothing here with that filter."}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-border">
-          <table className="w-full min-w-[720px] border-collapse text-[13px]">
+          <table className="w-full min-w-[880px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border text-left text-[11.5px] uppercase tracking-wider text-muted">
                 <th className="w-10 px-3 py-2.5">
@@ -263,6 +328,11 @@ export default function ColdCallManage({
                 <th className="px-3 py-2.5">Status</th>
                 <th className="px-3 py-2.5">Source</th>
                 <th className="px-3 py-2.5">Whose list</th>
+                {/* What a list is worth handing to somebody is in the notes, so
+                    the one column that decides the job was the one column not on
+                    the page. Read-only here: the call screen is where a note is
+                    written, because that is where something is learned. */}
+                <th className="px-3 py-2.5">Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -292,7 +362,26 @@ export default function ColdCallManage({
                         aria-label={`Select ${fullName(lead)}`}
                       />
                     </td>
-                    <td className="px-3 py-2.5 font-medium">{fullName(lead)}</td>
+                    <td className="px-3 py-2.5 font-medium">
+                      <span className="inline-flex items-center gap-1.5">
+                        {fullName(lead)}
+                        {/* A prospect the CRM never got is invisible to the
+                            workflow that puts them on the board, so nobody ever
+                            calls them. Said next to the name, quietly, rather
+                            than in a column nobody scrolls to. */}
+                        {!lead.ghlContactId && (
+                          <span
+                            className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
+                            title={
+                              lead.ghlError
+                                ? `Not in GoHighLevel: ${lead.ghlError}`
+                                : "Not in GoHighLevel yet"
+                            }
+                            aria-label="Not in GoHighLevel"
+                          />
+                        )}
+                      </span>
+                    </td>
                     <td className="px-3 py-2.5 font-mono text-[12.5px]">
                       {lead.phone || "No number"}
                     </td>
@@ -300,8 +389,8 @@ export default function ColdCallManage({
                       <span
                         className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
                         style={{
-                          background: `color-mix(in srgb, ${STATUS_META[lead.status].swatch} 14%, transparent)`,
-                          color: STATUS_META[lead.status].swatch,
+                          background: `color-mix(in srgb, ${metaFor(lead.status).swatch} 14%, transparent)`,
+                          color: metaFor(lead.status).swatch,
                         }}
                       >
                         {lead.status}
@@ -313,6 +402,15 @@ export default function ColdCallManage({
                         nameById.get(lead.assignedTo) ?? "Someone else"
                       ) : (
                         <span className="text-faint">Nobody</span>
+                      )}
+                    </td>
+                    <td className="max-w-[260px] px-3 py-2.5 text-muted">
+                      {lead.notes ? (
+                        <span className="block truncate" title={lead.notes}>
+                          {lead.notes}
+                        </span>
+                      ) : (
+                        <span className="text-faint">·</span>
                       )}
                     </td>
                   </tr>

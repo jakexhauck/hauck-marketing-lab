@@ -3,6 +3,7 @@ import type { AdminLead, AdminLeadStatus } from "./api";
 import {
   LEAD_STATUSES,
   STATUS_META,
+  metaFor,
   countByStatus,
   totalCount,
   filterByStatus,
@@ -168,6 +169,34 @@ describe("STATUS_META", () => {
       expect(meta.swatch).toMatch(/^#[0-9a-f]{6}$/i);
       expect(meta.label).toBeTruthy();
     }
+  });
+});
+
+describe("metaFor", () => {
+  it("returns the stage's own meta for a known status", () => {
+    for (const status of LEAD_STATUSES) {
+      expect(metaFor(status)).toEqual(STATUS_META[status as AdminLeadStatus]);
+    }
+  });
+
+  // The regression this helper exists for: reading .swatch straight off
+  // STATUS_META took the page down twice on 2026-07-26.
+  it("falls back rather than returning undefined for a status it has never seen", () => {
+    const meta = metaFor("Brushed Off");
+    expect(meta).toBeDefined();
+    expect(meta.swatch).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(meta.tileClass).toBeTruthy();
+    expect(meta.pillClass).toBeTruthy();
+  });
+
+  it("labels an unknown status with the raw status, so the drift is visible", () => {
+    expect(metaFor("Brushed Off").label).toBe("Brushed Off");
+    expect(metaFor("Some Stage Jake Added In GHL").label).toBe("Some Stage Jake Added In GHL");
+  });
+
+  it("survives an empty status", () => {
+    expect(metaFor("").label).toBe("Unknown");
+    expect(metaFor("").swatch).toMatch(/^#[0-9a-f]{6}$/i);
   });
 });
 
