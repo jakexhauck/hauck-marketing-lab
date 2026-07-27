@@ -9,6 +9,7 @@ import {
   type PillarTabDef,
 } from "../../lib/adminPillars";
 import SalesDataTracker from "../../components/admin/tracker/SalesDataTracker";
+import SalesCallsSection from "../../components/admin/sales/SalesCallsSection";
 import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
 import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
@@ -144,6 +145,10 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
       return <ColdCallSection />;
     case "sms":
       return <ColdSmsSurface />;
+    // The meetings themselves, read from the agency calendars, with the outcome
+    // routed onto the Sales Pipeline.
+    case "calls":
+      return <SalesCallsSection />;
     case "sales-data":
       return <SalesDataTracker />;
     case "business-health":

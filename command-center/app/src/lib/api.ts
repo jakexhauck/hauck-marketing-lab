@@ -1594,6 +1594,57 @@ export interface SalesMeeting {
   cashCollected: number | null;
   assignedTo: string | null;
   updatedAt: string;
+  // Where this meeting came from: "Cold call" when the app booked it, "Calendar"
+  // when the sync adopted one nobody typed here (0060).
+  source: string;
+  contactId: string | null;
+  // The card on the agency Sales Pipeline, and where the app last put it. Null
+  // means the meeting has never been pushed.
+  opportunityId: string | null;
+  crmStage: string | null;
+  // Why the last push did not land, in words. Null when it did.
+  crmError: string | null;
+  syncedAt: string | null;
+}
+
+// The Sales section's view: every meeting on the sales calendars, whoever
+// booked it, plus what the last calendar read did and which board the outcomes
+// route to.
+export interface SalesCallsResponse {
+  meetings: SalesMeeting[];
+  configured: boolean;
+  sync:
+    | {
+        ok: true;
+        added: number;
+        updated: number;
+        unchanged: number;
+        failedCalendarIds: string[];
+        calendarsRead: number;
+      }
+    | { ok: false; error: string }
+    | null;
+  pipeline: { id: string; name: string; missing: string[] } | null;
+}
+
+// `sync: false` reads what is stored without re-reading the calendars. Used
+// straight after recording an outcome, where two calendar round trips to redraw
+// one row is a wait nobody asked for.
+export async function getSalesCalls(sync = true): Promise<SalesCallsResponse> {
+  return api("/api/admin/sales/calls" + (sync ? "" : "?sync=0"));
+}
+
+export async function recordSalesCallOutcome(input: {
+  id: string;
+  outcome: NonNullable<SalesMeeting["outcome"]>;
+  notAFitReason?: string;
+  followUpAt?: string;
+  cashCollected?: number | null;
+}): Promise<{ meeting: SalesMeeting }> {
+  return api("/api/admin/sales/calls", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
 }
 
 export async function getSalesMeetings(callerId?: string): Promise<{

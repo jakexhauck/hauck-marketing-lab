@@ -36,6 +36,7 @@ describe("adminPillars config", () => {
     expect(ready).toEqual([
       "cold-call",
       "sms",
+      "calls",
       "sales-data",
       "business-health",
       "calculator",
@@ -49,7 +50,9 @@ describe("adminPillars config", () => {
     // Leads moved inside Cold Call (lib/coldCallPages); the pillar's own tabs
     // are the two surfaces that sit beside each other.
     expect(tabsFor("acquisition").map((t) => t.id)).toEqual(["cold-call", "sms"]);
-    expect(tabsFor("sales").map((t) => t.id)).toEqual(["sales-data"]);
+    // Sales Calls leads: it is the page with work on it, Sales Data is the
+    // month read back.
+    expect(tabsFor("sales").map((t) => t.id)).toEqual(["calls", "sales-data"]);
     expect(tabsFor("operations").map((t) => t.id)).toEqual([
       "business-health",
       "calculator",
@@ -94,7 +97,9 @@ describe("resolvePillarTab", () => {
     expect(resolvePillarTab("acquisition", "bogus")).toBe("cold-call");
     // 'tasks' is an operations tab, not an acquisition tab -> default.
     expect(resolvePillarTab("acquisition", "tasks")).toBe("cold-call");
-    expect(resolvePillarTab("sales", "leads")).toBe("sales-data");
+    expect(resolvePillarTab("sales", "leads")).toBe("calls");
+    // A link written before Sales Calls existed still lands on Sales Data.
+    expect(resolvePillarTab("sales", "sales-data")).toBe("sales-data");
   });
 
   it("defaults to the first declared tab for every pillar", () => {
