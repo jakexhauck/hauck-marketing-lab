@@ -167,6 +167,11 @@ export function blankLeadDraft(tempId = `temp-${Date.now()}`): AdminLead {
     followUpDate: null,
     email: "",
     notes: "",
+    businessName: "",
+    niche: "",
+    website: "",
+    city: "",
+    state: "",
     // A hand-added row belongs to nobody until it is assigned.
     assignedTo: null,
     createdAt: new Date().toISOString(),

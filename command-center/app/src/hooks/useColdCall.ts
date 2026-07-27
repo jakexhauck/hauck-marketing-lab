@@ -150,6 +150,9 @@ export interface LogDialInput {
   note?: string;
   // Only for a callback: the agreed date, which becomes a GHL task.
   followUpDate?: string;
+  // Which dialing variation was on screen (0058). Checked server-side against
+  // the live scripts, so this cannot credit a booking to whatever it likes.
+  scriptId?: string | null;
 }
 
 // Append one attempt. Fire-and-forget from the caller's point of view: the
@@ -170,6 +173,10 @@ export function useLogColdCallDial() {
       // The same request pushed the prospect into GoHighLevel and stamped the
       // result onto the lead, so the list is now stale by one row.
       qc.invalidateQueries({ queryKey: ["admin", "tracker", "leads"] });
+      // The dial was recorded against a script variation, and every variation's
+      // numbers are recomputed from these rows on read (0058), so the script
+      // test is now one dial out of date.
+      qc.invalidateQueries({ queryKey: ["admin", "cold-call", "assets"] });
     },
   });
 }

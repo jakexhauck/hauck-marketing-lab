@@ -946,20 +946,6 @@ export async function saveSetterScript(
   });
 }
 
-// The agency's own cold-calling script (migration 0048). One document, so no
-// tenantId, unlike the per-client setter script above. Same shape, same
-// server-side sanitizer, and only an owner may write it.
-export async function getColdCallScript(): Promise<SetterScriptResponse> {
-  return api<SetterScriptResponse>("/api/admin/cold-call/script");
-}
-
-export async function saveColdCallScript(html: string): Promise<SetterScriptResponse> {
-  return api<SetterScriptResponse>("/api/admin/cold-call/script", {
-    method: "PATCH",
-    body: JSON.stringify({ html }),
-  });
-}
-
 // The task status union lives with the pure coupling helpers so the client
 // hook and the endpoints validate against one source.
 import type { TaskStatus } from "./taskStatus";
@@ -1064,6 +1050,13 @@ export interface AdminLead {
   followUpDate: string | null;
   email: string;
   notes: string;
+  // Who the business is (0059). The book calls businesses, not people: before
+  // these existed the company name was buried in notes and the niche in source.
+  businessName: string;
+  niche: string;
+  website: string;
+  city: string;
+  state: string;
   // Whose queue this lead sits in (0049). Null = in the book, on nobody's list.
   assignedTo: string | null;
   createdAt: string;
@@ -1500,6 +1493,10 @@ export async function logColdCallDial(input: {
   // Sent with a callback: it becomes a task on the contact in GoHighLevel, due
   // that morning.
   followUpDate?: string;
+  // Which dialing variation was on screen (0058). The server checks it names a
+  // live script and drops it if not, so this is a claim rather than a fact
+  // until it gets there.
+  scriptId?: string | null;
 }): Promise<{
   dial: { id: string; day: string; outcome: string };
   // What the push to GoHighLevel did, or null when the account is not connected.
@@ -1508,6 +1505,73 @@ export async function logColdCallDial(input: {
   return api("/api/admin/cold-call/dials", {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+// The cold caller's shelf (0058): dialing script variations, and everything
+// else read mid-call under headings Jake names himself.
+export interface ColdCallAsset {
+  id: string;
+  // "script" is a variation of the pitch and the unit of the A/B test.
+  // "asset" is any other document, filed under `category`.
+  kind: "script" | "asset";
+  category: string;
+  name: string;
+  html: string;
+  sortOrder: number;
+  archivedAt: string | null;
+  updatedAt: string;
+  // Only a script carries numbers, and they are derived from recorded dials on
+  // every read, never stored. bookingRate is null below the sample floor: see
+  // MIN_DIALS_FOR_RATE in functions/lib/coldCallAssets.ts.
+  stats: {
+    dials: number;
+    pickups: number;
+    booked: number;
+    bookingRate: number | null;
+  } | null;
+}
+
+export async function getColdCallAssets(
+  includeArchived = false,
+): Promise<{ assets: ColdCallAsset[] }> {
+  return api("/api/admin/cold-call/assets" + (includeArchived ? "?archived=1" : ""));
+}
+
+export async function createColdCallAsset(input: {
+  kind: "script" | "asset";
+  name: string;
+  category?: string;
+  html?: string;
+}): Promise<{ asset: ColdCallAsset }> {
+  return api("/api/admin/cold-call/assets", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// Only the fields sent are touched, so the autosaving editor can PATCH html
+// alone without disturbing a name being edited elsewhere on the page.
+export async function updateColdCallAsset(input: {
+  id: string;
+  name?: string;
+  category?: string;
+  html?: string;
+  sortOrder?: number;
+  archived?: boolean;
+}): Promise<{ asset: ColdCallAsset }> {
+  return api("/api/admin/cold-call/assets", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+// Refused with a 409 when recorded dials name this script; archive it instead,
+// so the test it ran survives.
+export async function deleteColdCallAsset(id: string): Promise<{ ok: true }> {
+  return api("/api/admin/cold-call/assets", {
+    method: "DELETE",
+    body: JSON.stringify({ id }),
   });
 }
 

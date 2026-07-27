@@ -83,9 +83,49 @@ describe("suggestMapping", () => {
     expect(m[1]).toBe("phone");
   });
 
-  it("sends a company column to notes, since the book has no company field", () => {
+  // This used to send a company column into notes, and industry into source,
+  // because the book had nowhere else to put them (0059 gave it somewhere).
+  it("sends a company column to the business name, not to notes", () => {
     const m = suggestMapping(["Company", "Phone"]);
-    expect(m[0]).toBe("notes");
+    expect(m[0]).toBe("businessName");
+  });
+
+  it("sends an industry column to the niche, not to source", () => {
+    const m = suggestMapping(["Industry", "Phone"]);
+    expect(m[0]).toBe("niche");
+  });
+
+  it("keeps source meaning which list, when both are present", () => {
+    const m = suggestMapping(["Niche", "List Name", "Phone"]);
+    expect(m[0]).toBe("niche");
+    expect(m[1]).toBe("source");
+  });
+
+  it("places the rest of a business row", () => {
+    const m = suggestMapping(["Business Name", "Website", "City", "State", "Phone"]);
+    expect(m[0]).toBe("businessName");
+    expect(m[1]).toBe("website");
+    expect(m[2]).toBe("city");
+    expect(m[3]).toBe("state");
+    expect(m[4]).toBe("phone");
+  });
+
+  // The contains pass is greedy, so the field order it considers matters. A
+  // dialing list cannot work without the phone number, so phone is asked first.
+  it("gives 'Business Phone' to phone rather than to the business name", () => {
+    const m = suggestMapping(["Business Phone", "Company"]);
+    expect(m[0]).toBe("phone");
+    expect(m[1]).toBe("businessName");
+  });
+
+  // "st" was a state hint until it started matching "first", "last" and
+  // "status".
+  it("does not read a name or status column as a state", () => {
+    const m = suggestMapping(["First Name", "Last Name", "Status", "Phone"]);
+    expect(m[0]).toBe("firstName");
+    expect(m[1]).toBe("lastName");
+    expect(m[2]).toBeUndefined();
+    expect(m[3]).toBe("phone");
   });
 });
 
@@ -120,6 +160,13 @@ describe("buildImportRows", () => {
         timezone: "",
         source: "",
         notes: "",
+        // Every field the endpoint accepts is present and blank, so a partial
+        // file never sends undefined at a not-null column.
+        businessName: "",
+        niche: "",
+        website: "",
+        city: "",
+        state: "",
       },
     ]);
   });

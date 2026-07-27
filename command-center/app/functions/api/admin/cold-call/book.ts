@@ -40,6 +40,11 @@ interface LeadRow {
   phone: string;
   email: string;
   assigned_to: string | null;
+  // 0059. The meeting record has carried a business_name column since 0057 and
+  // never had anything to put in it.
+  business_name?: string | null;
+  timezone?: string | null;
+  source?: string | null;
 }
 
 // Create or update the prospect as a contact on the agency account. GHL's
@@ -58,6 +63,9 @@ async function upsertContact(
   };
   if (lead.phone) payload.phone = lead.phone;
   if (lead.email) payload.email = lead.email;
+  // Only when we have one: sending "" would blank a company name already
+  // corrected in GoHighLevel, which is where Jake works the board.
+  if (lead.business_name) payload.companyName = lead.business_name;
 
   const res = await ghlFetch(gctx, "/contacts/upsert", {
     method: "POST",
@@ -110,7 +118,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // guessed id reports not found rather than booking someone else's prospect.
   let query = client
     .from("leads")
-    .select("id, first_name, last_name, phone, email, assigned_to")
+    .select("id, first_name, last_name, phone, email, assigned_to, business_name, timezone, source")
     .eq("id", leadId)
     .is("deleted_at", null);
   if (admin.role !== "owner") query = query.eq("assigned_to", admin.id);
@@ -184,9 +192,11 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       // Copied rather than joined, so a purged prospect still has a name on the
       // revenue line.
       prospect_name: name,
+      business_name: lead.business_name ?? "",
       phone: lead.phone ?? "",
       email: lead.email ?? "",
-      source: "Cold call",
+      timezone: lead.timezone ?? "",
+      source: lead.source ?? "Cold call",
       scheduled_at: startTime,
       appointment_status: "confirmed",
       logged_by: admin.id,

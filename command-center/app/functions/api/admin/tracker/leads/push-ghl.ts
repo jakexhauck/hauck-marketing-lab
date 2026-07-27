@@ -39,6 +39,8 @@ interface LeadRow {
   email: string | null;
   source: string | null;
   ghl_contact_id: string | null;
+  business_name: string | null;
+  website: string | null;
 }
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -76,7 +78,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
   const { data, error } = await client
     .from("leads")
-    .select("id, first_name, last_name, phone, email, source, ghl_contact_id")
+    .select("id, first_name, last_name, phone, email, source, ghl_contact_id, business_name, website")
     .in("id", ids)
     .is("deleted_at", null);
   if (error) {
@@ -106,6 +108,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       phone: row.phone ?? "",
       email: row.email ?? "",
       source: row.source ?? "",
+      businessName: row.business_name ?? "",
+      website: row.website ?? "",
       ghlContactId: row.ghl_contact_id,
     };
 

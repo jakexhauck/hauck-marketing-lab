@@ -81,9 +81,11 @@ const ROLE_RULES: Record<Exclude<AdminRole, "owner">, AdminRule[]> = {
     { prefix: "/api/admin/tracker/leads", methods: ["GET", "HEAD", "PATCH"], exact: true },
     // His daily dialing numbers.
     { prefix: "/api/admin/tracker/cold-calls", methods: ["GET", "HEAD", "POST", "PATCH"] },
-    // The dialing script, read only. Writing it is the owner's Settings page,
-    // and the handler refuses a non-owner PATCH on its own account too.
-    { prefix: "/api/admin/cold-call/script", methods: READ_ONLY },
+    // The shelf he reads from mid-call (0058): the dialing script variations and
+    // the objection handling beside them. Read only. Writing them is the owner's
+    // Settings page, and the handler refuses a non-owner write on its own
+    // account too. (This replaced /cold-call/script, the single document.)
+    { prefix: "/api/admin/cold-call/assets", methods: READ_ONLY, exact: true },
     // Booking a meeting on the agency's calendar: the whole point of the job.
     // Reading calendars and free slots, and creating the appointment. Each is
     // EXACT so nothing else that lands under /cold-call/ is inherited.

@@ -2,14 +2,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CloudUpload, Upload, UserPlus } from "lucide-react";
 import type { AdminLead, AdminLeadStatus } from "../../../lib/api";
 import { metaFor } from "../../../lib/adminLeads";
-import { useAdminLeadsQuery } from "../../../hooks/useAdminLeads";
+import { useAdminLeadsQuery, useUpdateAdminLead } from "../../../hooks/useAdminLeads";
 import {
+  BULK_FIELDS,
   useAssignableCallersQuery,
   useAssignLeads,
+  useBulkSetLeadField,
   usePushLeadsToGhl,
+  type BulkField,
 } from "../../../hooks/useLeadAssignment";
+import { splitFullName } from "../../../lib/csvLeads";
 import { useToast } from "../../../context/ToastContext";
 import ColdCallImportDialog from "./ColdCallImportDialog";
+import EditableCell from "./EditableCell";
 
 // Cold Call > Leads, the owner's half: the book, and who each row belongs to.
 //
@@ -42,6 +47,8 @@ export default function ColdCallManage({
   const callers = useAssignableCallersQuery();
   const assignLeads = useAssignLeads();
   const pushToGhl = usePushLeadsToGhl();
+  const updateLead = useUpdateAdminLead();
+  const bulkSet = useBulkSetLeadField();
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<AssigneeFilter>(callerId || "all");
@@ -59,6 +66,10 @@ export default function ColdCallManage({
   // says it is still filling until the wizard reports it has finished.
   const [importing, setImporting] = useState(false);
   const [assignTo, setAssignTo] = useState("");
+  // The bulk fill. A list bought as "Detroit roofers" is one niche and one
+  // state across every row of it.
+  const [bulkField, setBulkField] = useState<BulkField>("niche");
+  const [bulkValue, setBulkValue] = useState("");
 
   useEffect(() => {
     setFilter(callerId || "all");
@@ -160,6 +171,32 @@ export default function ColdCallManage({
     window.addEventListener("pointerup", end);
     return () => window.removeEventListener("pointerup", end);
   }, []);
+
+  // One cell, one write. The mutation is optimistic in useAdminLeads, so tabbing
+  // across a row does not wait on a round trip per column.
+  const save = (id: string, fields: Partial<AdminLead>) => {
+    updateLead.mutate({ id, ...fields } as Parameters<typeof updateLead.mutate>[0]);
+  };
+
+  const doBulkSet = async () => {
+    if (selected.size === 0) return;
+    try {
+      const res = await bulkSet.mutateAsync({
+        ids: [...selected],
+        field: bulkField,
+        value: bulkValue,
+      });
+      const label = BULK_FIELDS.find((f) => f.field === bulkField)?.label ?? bulkField;
+      showToast(
+        bulkValue.trim()
+          ? `${label} set to "${bulkValue.trim()}" on ${res.updated}`
+          : `${label} cleared on ${res.updated}`,
+      );
+      setBulkValue("");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Could not set that");
+    }
+  };
 
   const doAssign = async (target: string | null) => {
     if (selected.size === 0) return;
@@ -298,6 +335,44 @@ export default function ColdCallManage({
           >
             Clear
           </button>
+
+          {/* Fill one field across the whole selection. Its own row, because it
+              answers a different question from "whose list is this". */}
+          <form
+            className="flex w-full flex-wrap items-center gap-2 border-t border-brand/25 pt-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void doBulkSet();
+            }}
+          >
+            <span className="text-[12.5px] text-muted">Set</span>
+            <select
+              className="pk-select !w-auto"
+              value={bulkField}
+              onChange={(e) => setBulkField(e.target.value as BulkField)}
+              aria-label="Which field to set on every selected lead"
+            >
+              {BULK_FIELDS.map((f) => (
+                <option key={f.field} value={f.field}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+            <span className="text-[12.5px] text-muted">to</span>
+            <input
+              className="pk-input !w-auto"
+              value={bulkValue}
+              onChange={(e) => setBulkValue(e.target.value)}
+              placeholder="e.g. Roofing"
+              aria-label="The value to set"
+            />
+            <button type="submit" className="pk-btn-save" disabled={bulkSet.isPending}>
+              {bulkSet.isPending ? "Setting..." : `Apply to ${selected.size}`}
+            </button>
+            <span className="text-[11.5px] text-faint">
+              Leave it blank to clear the field on all {selected.size}.
+            </span>
+          </form>
         </div>
       )}
 
@@ -312,7 +387,7 @@ export default function ColdCallManage({
         </div>
       ) : (
         <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-border">
-          <table className="w-full min-w-[880px] border-collapse text-[13px]">
+          <table className="w-full min-w-[1500px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-border text-left text-[11.5px] uppercase tracking-wider text-muted">
                 <th className="w-10 px-3 py-2.5">
@@ -323,8 +398,16 @@ export default function ColdCallManage({
                     aria-label="Select every lead shown"
                   />
                 </th>
-                <th className="px-3 py-2.5">Name</th>
+                {/* Business first. The book calls companies; the person who
+                    answers is the second thing you need, not the first. */}
+                <th className="px-3 py-2.5">Business</th>
+                <th className="px-3 py-2.5">Contact</th>
                 <th className="px-3 py-2.5">Phone</th>
+                <th className="px-3 py-2.5">Niche</th>
+                <th className="px-3 py-2.5">City</th>
+                <th className="px-3 py-2.5">State</th>
+                <th className="px-3 py-2.5">Website</th>
+                <th className="px-3 py-2.5">Email</th>
                 <th className="px-3 py-2.5">Status</th>
                 <th className="px-3 py-2.5">Source</th>
                 <th className="px-3 py-2.5">Whose list</th>
@@ -362,9 +445,14 @@ export default function ColdCallManage({
                         aria-label={`Select ${fullName(lead)}`}
                       />
                     </td>
-                    <td className="px-3 py-2.5 font-medium">
-                      <span className="inline-flex items-center gap-1.5">
-                        {fullName(lead)}
+                    <td className="min-w-[170px] px-2 py-1.5 font-medium">
+                      <span className="flex items-center gap-1.5">
+                        <EditableCell
+                          value={lead.businessName}
+                          onSave={(businessName) => save(lead.id, { businessName })}
+                          ariaLabel={`Business name for ${fullName(lead)}`}
+                          placeholder="Business"
+                        />
                         {/* A prospect the CRM never got is invisible to the
                             workflow that puts them on the board, so nobody ever
                             calls them. Said next to the name, quietly, rather
@@ -382,8 +470,60 @@ export default function ColdCallManage({
                         )}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 font-mono text-[12.5px]">
-                      {lead.phone || "No number"}
+                    {/* One cell for the whole name, split the way the CSV
+                        importer splits one: two boxes to tab through for a
+                        person's name is two boxes too many. */}
+                    <td className="min-w-[150px] px-2 py-1.5">
+                      <EditableCell
+                        value={`${lead.firstName} ${lead.lastName}`.trim()}
+                        onSave={(next) => save(lead.id, splitFullName(next))}
+                        ariaLabel={`Contact name at ${lead.businessName || "this business"}`}
+                        placeholder="Who answers"
+                      />
+                    </td>
+                    <td className="min-w-[140px] px-2 py-1.5">
+                      <EditableCell
+                        value={lead.phone}
+                        onSave={(phone) => save(lead.id, { phone })}
+                        ariaLabel={`Phone for ${fullName(lead)}`}
+                        placeholder="No number"
+                        mono
+                      />
+                    </td>
+                    <td className="min-w-[120px] px-2 py-1.5">
+                      <EditableCell
+                        value={lead.niche}
+                        onSave={(niche) => save(lead.id, { niche })}
+                        ariaLabel={`Niche for ${fullName(lead)}`}
+                      />
+                    </td>
+                    <td className="min-w-[110px] px-2 py-1.5">
+                      <EditableCell
+                        value={lead.city}
+                        onSave={(city) => save(lead.id, { city })}
+                        ariaLabel={`City for ${fullName(lead)}`}
+                      />
+                    </td>
+                    <td className="min-w-[70px] px-2 py-1.5">
+                      <EditableCell
+                        value={lead.state}
+                        onSave={(state) => save(lead.id, { state })}
+                        ariaLabel={`State for ${fullName(lead)}`}
+                      />
+                    </td>
+                    <td className="min-w-[150px] px-2 py-1.5">
+                      <EditableCell
+                        value={lead.website}
+                        onSave={(website) => save(lead.id, { website })}
+                        ariaLabel={`Website for ${fullName(lead)}`}
+                      />
+                    </td>
+                    <td className="min-w-[160px] px-2 py-1.5">
+                      <EditableCell
+                        value={lead.email}
+                        onSave={(email) => save(lead.id, { email })}
+                        ariaLabel={`Email for ${fullName(lead)}`}
+                      />
                     </td>
                     <td className="px-3 py-2.5">
                       <span
@@ -396,7 +536,13 @@ export default function ColdCallManage({
                         {lead.status}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-muted">{lead.source || "·"}</td>
+                    <td className="min-w-[130px] px-2 py-1.5">
+                      <EditableCell
+                        value={lead.source}
+                        onSave={(source) => save(lead.id, { source })}
+                        ariaLabel={`Source for ${fullName(lead)}`}
+                      />
+                    </td>
                     <td className="px-3 py-2.5">
                       {lead.assignedTo ? (
                         nameById.get(lead.assignedTo) ?? "Someone else"
@@ -404,14 +550,12 @@ export default function ColdCallManage({
                         <span className="text-faint">Nobody</span>
                       )}
                     </td>
-                    <td className="max-w-[260px] px-3 py-2.5 text-muted">
-                      {lead.notes ? (
-                        <span className="block truncate" title={lead.notes}>
-                          {lead.notes}
-                        </span>
-                      ) : (
-                        <span className="text-faint">·</span>
-                      )}
+                    <td className="min-w-[220px] px-2 py-1.5" title={lead.notes}>
+                      <EditableCell
+                        value={lead.notes}
+                        onSave={(notes) => save(lead.id, { notes })}
+                        ariaLabel={`Notes for ${fullName(lead)}`}
+                      />
                     </td>
                   </tr>
                 );

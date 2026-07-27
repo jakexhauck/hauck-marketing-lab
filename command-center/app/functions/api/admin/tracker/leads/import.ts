@@ -43,6 +43,14 @@ interface ImportRow {
   timezone?: unknown;
   source?: unknown;
   notes?: unknown;
+  // Who the business is (0059). Until these existed the importer folded a
+  // company column into notes and an industry column into source, which is how
+  // the two most useful facts on a bought list ended up unreadable.
+  businessName?: unknown;
+  niche?: unknown;
+  website?: unknown;
+  city?: unknown;
+  state?: unknown;
 }
 
 // The columns read back after the insert, to push into GoHighLevel.
@@ -53,6 +61,8 @@ interface ImportedRow {
   phone: string | null;
   email: string | null;
   source: string | null;
+  business_name: string | null;
+  website: string | null;
 }
 
 interface Body {
@@ -140,6 +150,11 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       timezone: str(row.timezone),
       source: str(row.source),
       notes: str(row.notes),
+      business_name: str(row.businessName),
+      niche: str(row.niche),
+      website: str(row.website),
+      city: str(row.city),
+      state: str(row.state),
       status: "New Lead",
       no_answer: 0,
       // first_contact_date and last_contact stay null on purpose: an imported
@@ -161,7 +176,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const { data: inserted, error } = await client
     .from("leads")
     .insert(insert)
-    .select("id, first_name, last_name, phone, email, source");
+    .select("id, first_name, last_name, phone, email, source, business_name, website");
   if (error) {
     console.error("[leads/import] insert failed", error.message);
     return Response.json({ error: "Could not import those rows." }, { status: 500 });
@@ -189,6 +204,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       phone: row.phone ?? "",
       email: row.email ?? "",
       source: row.source ?? "",
+      businessName: row.business_name ?? "",
+      website: row.website ?? "",
       ghlContactId: null,
     });
     // Not connected is a state of the whole install, not a fact about this

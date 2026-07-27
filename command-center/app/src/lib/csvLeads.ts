@@ -19,16 +19,29 @@ export type LeadField =
   | "email"
   | "timezone"
   | "source"
-  | "notes";
+  | "notes"
+  // Who the business is (0059). Before these existed a company column was
+  // folded into notes and an industry column into source, so the two facts that
+  // decide who a list should go to arrived unreadable.
+  | "businessName"
+  | "niche"
+  | "website"
+  | "city"
+  | "state";
 
 export const IMPORT_FIELDS: { field: LeadField; label: string }[] = [
   { field: "firstName", label: "First name" },
   { field: "lastName", label: "Last name" },
   { field: "fullName", label: "Full name (split)" },
+  { field: "businessName", label: "Business name" },
   { field: "phone", label: "Phone" },
   { field: "email", label: "Email" },
+  { field: "website", label: "Website" },
+  { field: "niche", label: "Niche" },
+  { field: "city", label: "City" },
+  { field: "state", label: "State" },
   { field: "timezone", label: "Timezone" },
-  { field: "source", label: "Source" },
+  { field: "source", label: "Source (which list)" },
   { field: "notes", label: "Notes" },
 ];
 
@@ -41,9 +54,47 @@ const HEADER_HINTS: Record<LeadField, string[]> = {
   phone: ["phone", "phonenumber", "mobile", "mobilenumber", "cell", "cellphone", "telephone", "tel", "number", "primaryphone"],
   email: ["email", "emailaddress", "mail", "primaryemail"],
   timezone: ["timezone", "tz", "time"],
-  source: ["source", "list", "listname", "campaign", "leadsource", "industry", "niche"],
-  notes: ["notes", "note", "comments", "comment", "description", "company", "business", "businessname", "companyname"],
+  // Which LIST the row came from, and nothing else. "industry" and "niche" used
+  // to land here, which meant one column answering two questions and the niche
+  // losing whenever a list name was also present.
+  source: ["source", "list", "listname", "campaign", "leadsource"],
+  // Free text about the prospect. "company" and friends used to land here,
+  // which is how the single most useful fact on a bought list ended up inside a
+  // paragraph nothing could filter on.
+  notes: ["notes", "note", "comments", "comment", "description"],
+  businessName: ["businessname", "business", "company", "companyname", "organization", "organisation", "account", "dba", "practice", "shop"],
+  niche: ["niche", "industry", "vertical", "category", "trade", "sector", "businesstype"],
+  website: ["website", "url", "site", "web", "domain", "homepage", "websiteurl"],
+  city: ["city", "locality"],
+  // No "st": it is a substring of "first", "last" and "status", and the second
+  // matching pass below is a contains match. A hint that short costs more than
+  // it saves.
+  state: ["state", "province", "region"],
 };
+
+// The order the two matching passes below consider fields in, which is NOT the
+// order they are offered in the dialog.
+//
+// It matters because the second pass is a CONTAINS match and the first field to
+// claim a column keeps it. "Business Phone" contains both "business" and
+// "phone"; the phone number is the column a dialing list cannot work without, so
+// phone gets asked first. Display order is about what a human scans for; this is
+// about not losing a phone number to a longer word.
+const MATCH_ORDER: LeadField[] = [
+  "phone",
+  "email",
+  "website",
+  "firstName",
+  "lastName",
+  "fullName",
+  "businessName",
+  "niche",
+  "city",
+  "state",
+  "timezone",
+  "source",
+  "notes",
+];
 
 function normalizeHeader(header: string): string {
   return header.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -151,7 +202,7 @@ export function suggestMapping(headers: string[]): Record<number, LeadField> {
   headers.forEach((header, index) => {
     const norm = normalizeHeader(header);
     if (!norm) return;
-    for (const { field } of IMPORT_FIELDS) {
+    for (const field of MATCH_ORDER) {
       if (taken.has(field)) continue;
       const hints = HEADER_HINTS[field];
       // Exact match first, then a contains match, so "Mobile Phone" lands on
@@ -162,7 +213,7 @@ export function suggestMapping(headers: string[]): Record<number, LeadField> {
         return;
       }
     }
-    for (const { field } of IMPORT_FIELDS) {
+    for (const field of MATCH_ORDER) {
       if (taken.has(field)) continue;
       if (HEADER_HINTS[field].some((hint) => norm.includes(hint))) {
         out[index] = field;
@@ -190,6 +241,12 @@ export interface ImportLead {
   timezone: string;
   source: string;
   notes: string;
+  // Who the business is (0059).
+  businessName: string;
+  niche: string;
+  website: string;
+  city: string;
+  state: string;
 }
 
 // "Jane Miller" -> first "Jane", last "Miller". Anything past the first space is
@@ -220,6 +277,11 @@ export function buildImportRows(
       timezone: "",
       source: "",
       notes: "",
+      businessName: "",
+      niche: "",
+      website: "",
+      city: "",
+      state: "",
     };
 
     for (const [indexKey, field] of Object.entries(mapping)) {
