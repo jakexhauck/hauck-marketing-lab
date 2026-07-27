@@ -94,6 +94,15 @@ const ROLE_RULES: Record<Exclude<AdminRole, "owner">, AdminRule[]> = {
     // here that edits or removes a dial, so his own recorded numbers are as
     // unarguable as anyone else's.
     { prefix: "/api/admin/cold-call/dials", methods: ["POST"], exact: true },
+    // Marking when he is on the phones (0057). Read and write, because the
+    // whole point is that he fills his own week in. The handler pins every
+    // request to the signed-in session, so this opens his own availability and
+    // nobody else's, whatever ?callerId= says.
+    {
+      prefix: "/api/admin/cold-call/availability",
+      methods: ["GET", "HEAD", "PUT"],
+      exact: true,
+    },
     // The GHL boards, read only. He can see where his own prospects stand; he
     // cannot move them, because nothing in this app moves them.
     { prefix: "/api/admin/cold-call/pipelines", methods: READ_ONLY, exact: true },

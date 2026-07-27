@@ -39,11 +39,54 @@ export const COLD_CALL_PAGES: ColdCallPageDef[] = [
   })),
   // The caller's own month of dialing. His numbers, so he can see them.
   { id: "tracker", label: "Tracker", side: "left" },
-  // Handing work out: pick rows, pick a person. Import lives here too, since a
-  // list has to arrive before it can be assigned.
-  { id: "assign", label: "Assign", side: "right", ownerOnly: true },
+  // When he is on the phones. LEFT rather than right: filling this in is his
+  // job, not the owner's, and an owner setting a hire's hours without asking
+  // them is how a rota stops matching reality.
+  { id: "availability", label: "Availability", side: "left" },
+  // Running the operation: handing work out, and reading the roster's week.
+  // Both were reached as their own strip entries once; they are one tab with
+  // pages inside it now, so the strip stays the length of a day's work rather
+  // than growing an entry every time the owner gains a lever.
+  { id: "management", label: "Management", side: "right", ownerOnly: true },
   { id: "settings", label: "Settings", side: "right", ownerOnly: true },
 ];
+
+// The pages inside Management (?view=management&manage=<id>). Owner-only by
+// construction: nothing renders them unless the Management tab does.
+export interface ManagementPageDef {
+  id: string;
+  label: string;
+}
+
+export const MANAGEMENT_PAGES: ManagementPageDef[] = [
+  // Assign first: handing work out is the thing done daily. Reading the rota is
+  // what happens when the week is being planned.
+  { id: "assign", label: "Assign leads" },
+  { id: "availability", label: "Team availability" },
+];
+
+export function resolveManagementPage(param: string | null | undefined): string {
+  const hit = MANAGEMENT_PAGES.find((p) => p.id === param);
+  return hit ? hit.id : MANAGEMENT_PAGES[0].id;
+}
+
+// Pages that used to be their own entry in the strip, and where they went. A
+// bookmark or a pasted link from before this change lands on the page it names
+// rather than being silently dumped on the first stage.
+const MOVED_INTO_MANAGEMENT: Record<string, string> = {
+  assign: "assign",
+};
+
+// The Management sub-page a retired top-level view maps to, or null when the
+// view was never a top-level page. Only meaningful for an owner: a cold caller
+// typing ?view=assign has nowhere legitimate to land.
+export function movedIntoManagement(
+  param: string | null | undefined,
+  isOwner: boolean,
+): string | null {
+  if (!isOwner || !param) return null;
+  return MOVED_INTO_MANAGEMENT[param] ?? null;
+}
 
 // The pages a role may see, in strip order.
 export function coldCallPagesFor(isOwner: boolean): ColdCallPageDef[] {
@@ -72,5 +115,9 @@ export function resolveColdCallView(
 ): ColdCallView {
   const pages = coldCallPagesFor(isOwner);
   const hit = pages.find((p) => p.id === param);
-  return hit ? hit.id : pages[0].id;
+  if (hit) return hit.id;
+  // An owner's link to a page that moved inside Management still opens
+  // Management rather than the first stage.
+  if (movedIntoManagement(param, isOwner)) return "management";
+  return pages[0].id;
 }

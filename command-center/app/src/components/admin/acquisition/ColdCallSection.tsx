@@ -3,7 +3,11 @@ import { useSearchParams } from "react-router-dom";
 import { ScrollText } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { effectiveAdminRole } from "../../../lib/adminRoles";
-import { coldCallSides, resolveColdCallView } from "../../../lib/coldCallPages";
+import {
+  coldCallSides,
+  resolveColdCallView,
+  resolveManagementPage,
+} from "../../../lib/coldCallPages";
 import { stageById } from "../../../lib/coldCallStages";
 import { useColdCallScriptQuery } from "../../../hooks/useApi";
 import { useAssignableCallersQuery } from "../../../hooks/useLeadAssignment";
@@ -12,10 +16,11 @@ import { TrackerMonthNav } from "../tracker/DailyTracker";
 import { cursorForToday, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
 import ColdCallSurface from "./ColdCallSurface";
 import ColdCallLeads from "./ColdCallLeads";
-import ColdCallManage from "./ColdCallManage";
+import ColdCallManagement from "./ColdCallManagement";
 import ColdCallCallbacks from "./ColdCallCallbacks";
 import ColdCallBooked from "./ColdCallBooked";
 import ColdCallSettings from "./ColdCallSettings";
+import ColdCallAvailability from "./ColdCallAvailability";
 
 // Acquisition > Cold Call. Unlike its sibling tabs this is a section rather than
 // a single surface: the caller works Leads all day, checks Callbacks, and the
@@ -54,6 +59,11 @@ export default function ColdCallSection() {
 
   const { left, right } = coldCallSides(isOwner);
   const view = resolveColdCallView(searchParams.get("view"), isOwner);
+
+  // The team availability page IS the whole roster, so a "whose section is
+  // this" selector sitting above it would be a control with nothing to control.
+  const rosterWide =
+    view === "management" && resolveManagementPage(searchParams.get("manage")) === "availability";
 
   // Only load the script once it is asked for: most page views never open it.
   const scriptQuery = useColdCallScriptQuery(scriptOpen);
@@ -103,7 +113,7 @@ export default function ColdCallSection() {
         </nav>
 
         <div className="flex flex-wrap items-center gap-3">
-          {isOwner && (
+          {isOwner && !rosterWide && (
             <select
               className="pk-select !w-auto"
               value={callerId}
@@ -185,10 +195,8 @@ function ColdCallBody({
   }
 
   switch (view) {
-    case "assign":
-      // Unfiltered on purpose: handing work out means seeing every lead in
-      // every stage, not one stage at a time.
-      return <ColdCallManage callerId={callerId} />;
+    case "management":
+      return <ColdCallManagement callerId={callerId} />;
     case "tracker":
       // A tracker grid is one person's hand-typed month. There is no honest way
       // to merge two people's rows into one editable grid, so "Everyone" asks
@@ -209,6 +217,11 @@ function ColdCallBody({
           callerId={callerId}
         />
       );
+    case "availability":
+      // Same reasoning as the tracker: a week of availability belongs to a
+      // person. The component asks the owner to pick one rather than merging
+      // two people's hours into one paintable grid.
+      return <ColdCallAvailability callerId={callerId} isOwner={isOwner} />;
     case "settings":
       return <ColdCallSettings />;
     default:

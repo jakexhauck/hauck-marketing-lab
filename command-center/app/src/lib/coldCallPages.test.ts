@@ -3,7 +3,9 @@ import {
   COLD_CALL_PAGES,
   coldCallPagesFor,
   coldCallSides,
+  movedIntoManagement,
   resolveColdCallView,
+  resolveManagementPage,
 } from "./coldCallPages";
 import { COLD_CALL_STAGES } from "./coldCallStages";
 
@@ -17,27 +19,36 @@ describe("coldCallPagesFor", () => {
       "booked",
       "not-interested",
       "tracker",
-      "assign",
+      "availability",
+      "management",
       "settings",
     ]);
   });
 
-  it("gives a caller every stage and his own tracker", () => {
-    // All of it is his job: hiding a stage would hide part of the work, and
-    // hiding the tracker would hide the numbers he is measured on.
+  it("gives a caller every stage, his own tracker and his own availability", () => {
+    // All of it is his job: hiding a stage would hide part of the work, hiding
+    // the tracker would hide the numbers he is measured on, and hiding
+    // availability would leave his hours to be guessed at by someone else.
     const ids = coldCallPagesFor(false).map((p) => p.id);
     for (const stage of COLD_CALL_STAGES) expect(ids).toContain(stage.id);
     expect(ids).toContain("tracker");
+    expect(ids).toContain("availability");
   });
 
-  it("keeps assigning and the script owner-only", () => {
+  it("keeps management and the script owner-only", () => {
     const ids = coldCallPagesFor(false).map((p) => p.id);
-    expect(ids).not.toContain("assign");
+    expect(ids).not.toContain("management");
     expect(ids).not.toContain("settings");
     expect(COLD_CALL_PAGES.filter((p) => p.ownerOnly).map((p) => p.id)).toEqual([
-      "assign",
+      "management",
       "settings",
     ]);
+  });
+
+  it("no longer offers Assign as a top-level page", () => {
+    // It became a page inside Management. Leaving it in both places would give
+    // the same surface two URLs and two places to look for it.
+    expect(COLD_CALL_PAGES.map((p) => p.id)).not.toContain("assign");
   });
 
   it("has no page left over from an earlier strip", () => {
@@ -69,8 +80,9 @@ describe("coldCallSides", () => {
       "booked",
       "not-interested",
       "tracker",
+      "availability",
     ]);
-    expect(right.map((p) => p.id)).toEqual(["assign", "settings"]);
+    expect(right.map((p) => p.id)).toEqual(["management", "settings"]);
   });
 
   it("gives a caller no right-hand group at all, so he gets no divider", () => {
@@ -108,6 +120,43 @@ describe("resolveColdCallView", () => {
     // Hiding the tab is not the enforcement (the API is), but a typed URL must
     // not render a page the role cannot use.
     expect(resolveColdCallView("assign", false)).toBe("new-lead");
+    expect(resolveColdCallView("management", false)).toBe("new-lead");
     expect(resolveColdCallView("settings", false)).toBe("new-lead");
+  });
+
+  it("opens Management for an owner's old ?view=assign link", () => {
+    // Assign was its own tab until it moved inside Management. A bookmark or a
+    // pasted link should land on the page it names, not on the first stage.
+    expect(resolveColdCallView("assign", true)).toBe("management");
+  });
+});
+
+describe("resolveManagementPage", () => {
+  it("returns a known page", () => {
+    expect(resolveManagementPage("assign")).toBe("assign");
+    expect(resolveManagementPage("availability")).toBe("availability");
+  });
+
+  it("defaults to Assign, the page opened daily", () => {
+    expect(resolveManagementPage(null)).toBe("assign");
+    expect(resolveManagementPage(undefined)).toBe("assign");
+    expect(resolveManagementPage("")).toBe("assign");
+    expect(resolveManagementPage("bogus")).toBe("assign");
+  });
+});
+
+describe("movedIntoManagement", () => {
+  it("maps a retired top-level page to its new home", () => {
+    expect(movedIntoManagement("assign", true)).toBe("assign");
+  });
+
+  it("is null for a page that never moved", () => {
+    expect(movedIntoManagement("tracker", true)).toBeNull();
+    expect(movedIntoManagement("settings", true)).toBeNull();
+    expect(movedIntoManagement(null, true)).toBeNull();
+  });
+
+  it("is null for a cold caller, who has no Management to land in", () => {
+    expect(movedIntoManagement("assign", false)).toBeNull();
   });
 });

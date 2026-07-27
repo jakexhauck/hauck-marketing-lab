@@ -57,6 +57,34 @@ describe("canAdminAccess", () => {
     expect(canAdminAccess("/api/admin/cold-call/book", "DELETE", "cold_caller")).toBe(false);
   });
 
+  it("lets a cold caller read and write their own availability", () => {
+    expect(
+      canAdminAccess("/api/admin/cold-call/availability", "GET", "cold_caller"),
+    ).toBe(true);
+    expect(
+      canAdminAccess("/api/admin/cold-call/availability", "PUT", "cold_caller"),
+    ).toBe(true);
+    // No bulk edit and no wiping a week: the handler only replaces one named
+    // day, and nothing here opens a route that does more.
+    expect(
+      canAdminAccess("/api/admin/cold-call/availability", "DELETE", "cold_caller"),
+    ).toBe(false);
+    expect(
+      canAdminAccess("/api/admin/cold-call/availability", "POST", "cold_caller"),
+    ).toBe(false);
+    // EXACT: a sub-route added under this path later is shut until someone
+    // deliberately opens it.
+    expect(
+      canAdminAccess("/api/admin/cold-call/availability/team", "GET", "cold_caller"),
+    ).toBe(false);
+  });
+
+  it("keeps a setter out of cold-call availability", () => {
+    expect(canAdminAccess("/api/admin/cold-call/availability", "GET", "setter")).toBe(
+      false,
+    );
+  });
+
   it("keeps a cold caller out of clients, money and the team page", () => {
     expect(canAdminAccess("/api/admin/clients", "GET", "cold_caller")).toBe(false);
     expect(canAdminAccess("/api/admin/team", "GET", "cold_caller")).toBe(false);
