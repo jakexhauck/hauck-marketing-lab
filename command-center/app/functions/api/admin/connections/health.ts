@@ -5,6 +5,8 @@ import { isConnected, getAccessToken, DriveNotConnectedError } from "../../../li
 import { parseServiceAccount } from "../../../lib/ga4";
 import { isPlaceholder } from "../../../lib/tenantGhl";
 import { CONNECTIONS } from "../../../../src/lib/connectionRegistry";
+import { HEALTH_CRON_HEADER, isHealthCronRequest } from "../../../lib/healthCron";
+import { recordAndAlert } from "../../../lib/healthWatch";
 import type {
   Probe,
   CredentialState,
@@ -152,6 +154,35 @@ const NO_PROBE: Record<string, string> = {
   "ghl-webhook": "Inbound only. GHL calls us, so we cannot test it from here.",
 };
 
+// The watchdog cannot usefully probe itself in the request that it is running:
+// the honest question is not "is the secret set" but "did the scheduler
+// actually fire recently", which only the snapshot history can answer.
+async function probeHealthCron(env: Env): Promise<Probe> {
+  if (!env.HEALTH_CRON_SECRET) {
+    return { state: "skipped", detail: "No secret set, so the scheduled check is off" };
+  }
+  const client = getServiceClient(env);
+  if (!client) return { state: "skipped", detail: "Supabase not configured" };
+  const { data, error } = await client
+    .from("connection_health_snapshots")
+    .select("checked_at")
+    .order("checked_at", { ascending: false })
+    .limit(1);
+  if (error) return { state: "failed", detail: error.message };
+  const last = (data as { checked_at: string }[] | null)?.[0]?.checked_at;
+  if (!last) {
+    return { state: "failed", detail: "Secret is set but the scheduler has never run" };
+  }
+  const ageMs = Date.now() - new Date(last).getTime();
+  const mins = Math.round(ageMs / 60000);
+  // The cron runs every 30 minutes. Ninety is three missed firings: late enough
+  // that this is the scheduler being down rather than one slow run.
+  if (ageMs > 90 * 60 * 1000) {
+    return { state: "failed", detail: `Last scheduled check was ${mins} minutes ago. The scheduler looks stopped.` };
+  }
+  return { state: "ok", detail: `Last scheduled check ${mins} minute${mins === 1 ? "" : "s"} ago` };
+}
+
 async function agencyHealth(env: Env): Promise<ConnectionHealth[]> {
   const probes: Record<string, () => Promise<Probe>> = {
     supabase: () => probeSupabase(env),
@@ -160,6 +191,7 @@ async function agencyHealth(env: Env): Promise<ConnectionHealth[]> {
     "google-drive": () => probeDrive(env),
     ga4: async () => probeGa4(env),
     "web-push": () => probePushSubscriptions(env),
+    "health-cron": () => probeHealthCron(env),
   };
 
   return Promise.all(
@@ -250,7 +282,8 @@ async function clientHealth(env: Env): Promise<ClientConnectionHealth[]> {
 }
 
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
-  const host = new URL(ctx.request.url).hostname;
+  const url = new URL(ctx.request.url);
+  const host = url.hostname;
   const environment = host === "localhost" || host === "127.0.0.1" ? "local" : "production";
 
   // Agency and per-client work are independent, so run them together: the page
@@ -263,6 +296,22 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     connections,
     clients,
   };
+
+  // The scheduled caller, and only it, records this run and alerts on changes.
+  // A person opening the page must NOT write a snapshot: doing so would consume
+  // the comparison, so a breakage seen on screen would look like the new normal
+  // to the next scheduled run, and the alert would never fire. See healthWatch.
+  const scheduled = isHealthCronRequest(
+    ctx.request.method,
+    url.pathname,
+    ctx.request.headers.get(HEALTH_CRON_HEADER),
+    ctx.env.HEALTH_CRON_SECRET,
+  );
+  if (scheduled) {
+    const watch = await recordAndAlert(ctx.env, body, crypto.randomUUID());
+    return Response.json({ ...body, watch }, { headers: { "Cache-Control": "no-store" } });
+  }
+
   // Never cached: a stale health snapshot is the exact failure this page exists
   // to prevent.
   return Response.json(body, { headers: { "Cache-Control": "no-store" } });

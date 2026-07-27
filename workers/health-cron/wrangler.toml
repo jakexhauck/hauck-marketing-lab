@@ -1,0 +1,24 @@
+name = "hauck-health-cron"
+main = "src/index.ts"
+compatibility_date = "2026-05-18"
+
+# Why this exists as a separate deploy at all: Cloudflare Pages projects cannot
+# carry a cron trigger. The Command Center is a Pages project, so the thing that
+# wakes up every 30 minutes has to be a Worker sitting beside it.
+#
+# It is deliberately tiny. It holds no database access, no vendor tokens and no
+# business logic: it makes one authenticated GET and logs the outcome. Every
+# decision about what is broken, what changed and who to tell lives in the app,
+# where it is tested.
+[triggers]
+crons = ["*/30 * * * *"]
+
+[vars]
+# The app to probe. Override per environment if you ever want this pointed at a
+# preview deploy rather than production.
+HEALTH_URL = "https://app.hauckmarketing.com/api/admin/connections/health"
+
+# HEALTH_CRON_SECRET is NOT here on purpose: it is a secret, set with
+#   wrangler secret put HEALTH_CRON_SECRET
+# and it has to match the value in the Pages project's own environment exactly,
+# or every run comes back 401 and the checks silently stop.

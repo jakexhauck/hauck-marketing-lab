@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-27-health-watchdog",
+    date: "27 July 2026",
+    title: "The console now checks itself every half hour",
+    items: [
+      "Connections are checked automatically every 30 minutes, so something breaking overnight is known by morning instead of whenever someone next opens Settings.",
+      "If something that was working stops working, admin devices get one notification saying what went down and which page goes dark with it. Nothing that stays broken nags you again.",
+      "A new Scheduled health checks row shows when the last automatic check ran, and goes red if the checker itself stops.",
+    ],
+  },
+  {
     id: "2026-07-27-cold-call-sops",
     date: "27 July 2026",
     title: "Cold calling: SOPs you can read on the job",
