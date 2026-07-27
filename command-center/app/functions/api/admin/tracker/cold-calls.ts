@@ -135,7 +135,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       .order("day", { ascending: true }),
     client
       .from("cold_call_dials")
-      .select("day, spoke, pitched, outcome")
+      .select("day, spoke, pitched, outcome, reason")
       .eq("caller_id", callerId)
       .gte("day", first)
       .lte("day", last),

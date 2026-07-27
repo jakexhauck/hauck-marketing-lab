@@ -10,6 +10,7 @@
 // (Supabase dashboard > Account > Access Tokens > Generate new token.)
 //
 // Usage:  npm run db:migrate
+//         npm run db:migrate -- --dry-run   (list what would run, change nothing)
 //
 // The project ref is derived from SUPABASE_URL. The very first run baselines the
 // migrations that were applied by hand before this automation existed (BASELINE
@@ -104,26 +105,45 @@ function sqlString(value) {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
+// --dry-run answers "what would this run?" without touching anything. Worth the
+// ten lines: the pending list is derived from a ledger, and a ledger that has
+// drifted turns a routine migrate into a replay of old data backfills.
+const dryRun = process.argv.slice(2).includes("--dry-run");
+
 async function main() {
-  console.log(`→ Project: ${ref}`);
+  console.log(`→ Project: ${ref}${dryRun ? " (dry run — nothing will be written)" : ""}`);
 
-  // Ledger of applied migrations. First time it appears, seed the baseline so the
-  // hand-applied migrations are recorded without re-running them.
-  await runSql(
-    `create table if not exists ${LEDGER} (` +
-      `name text primary key, applied_at timestamptz not null default now());`,
-  );
+  const applied = new Set();
 
-  const ledgerRows = await runSql(`select name from ${LEDGER};`);
-  const applied = new Set((ledgerRows ?? []).map((r) => r.name));
-
-  if (applied.size === 0) {
-    const values = BASELINE.map((n) => `(${sqlString(n)})`).join(",");
+  if (dryRun) {
+    // Read-only: never create the ledger, never seed the baseline. If the ledger
+    // is absent, report what a real run would seed rather than seeding it.
+    const [{ ledger }] = await runSql(`select to_regclass(${sqlString(LEDGER)}) as ledger;`);
+    if (ledger === null) {
+      console.log(`→ No ledger yet. A real run would baseline ${BASELINE.length} migrations.`);
+      for (const n of BASELINE) applied.add(n);
+    } else {
+      for (const r of (await runSql(`select name from ${LEDGER};`)) ?? []) applied.add(r.name);
+    }
+  } else {
+    // Ledger of applied migrations. First time it appears, seed the baseline so
+    // the hand-applied migrations are recorded without re-running them.
     await runSql(
-      `insert into ${LEDGER} (name) values ${values} on conflict (name) do nothing;`,
+      `create table if not exists ${LEDGER} (` +
+        `name text primary key, applied_at timestamptz not null default now());`,
     );
-    for (const n of BASELINE) applied.add(n);
-    console.log(`→ Baselined ${BASELINE.length} pre-automation migrations.`);
+
+    const ledgerRows = await runSql(`select name from ${LEDGER};`);
+    for (const r of ledgerRows ?? []) applied.add(r.name);
+
+    if (applied.size === 0) {
+      const values = BASELINE.map((n) => `(${sqlString(n)})`).join(",");
+      await runSql(
+        `insert into ${LEDGER} (name) values ${values} on conflict (name) do nothing;`,
+      );
+      for (const n of BASELINE) applied.add(n);
+      console.log(`→ Baselined ${BASELINE.length} pre-automation migrations.`);
+    }
   }
 
   const files = readdirSync(MIGRATIONS_DIR)
@@ -133,6 +153,13 @@ async function main() {
   const pending = files.filter((f) => !applied.has(f));
   if (pending.length === 0) {
     console.log("\x1b[32m✓ Database is up to date. Nothing to apply.\x1b[0m");
+    return;
+  }
+
+  if (dryRun) {
+    console.log(`→ ${pending.length} pending migration(s):`);
+    for (const file of pending) console.log(`    ${file}`);
+    console.log("Run without --dry-run to apply them.");
     return;
   }
 

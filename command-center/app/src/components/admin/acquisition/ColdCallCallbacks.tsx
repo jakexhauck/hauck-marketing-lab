@@ -46,8 +46,11 @@ export default function ColdCallCallbacks({ callerId = "" }: { callerId?: string
     const leads = leadsQuery.data?.leads ?? [];
     return leads
       .filter((l) => (callerId ? l.assignedTo === callerId : true))
-      .filter((l) => l.followUpDate && l.status !== "Dead" && l.status !== "Closed")
-      .sort((a, b) => (a.followUpDate ?? "").localeCompare(b.followUpDate ?? ""));
+      // The stage is the list: a lead is a callback because it sits in Call
+      // Back, not because it happens to carry a date. Undated rows sort last
+      // rather than vanishing, since a callback with no date is still owed.
+      .filter((l) => l.status === "Call Back")
+      .sort((a, b) => (a.followUpDate ?? "9999-12-31").localeCompare(b.followUpDate ?? "9999-12-31"));
   }, [leadsQuery.data, callerId]);
 
   if (leadsQuery.isLoading) return <div className="pk-empty">Loading callbacks...</div>;
@@ -61,7 +64,9 @@ export default function ColdCallCallbacks({ callerId = "" }: { callerId?: string
       queueTitle="Due back"
       emptyTitle="No callbacks due"
       emptyHint={'They appear here when a call ends in "Callback".'}
-      badgeFor={(lead: AdminLead) => whenBadge(lead.followUpDate!, now)}
+      badgeFor={(lead: AdminLead) =>
+        lead.followUpDate ? whenBadge(lead.followUpDate, now) : { text: "No date", tone: "late" }
+      }
     />
   );
 }

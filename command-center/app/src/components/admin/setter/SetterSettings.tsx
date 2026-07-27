@@ -10,7 +10,7 @@ interface Props {
 // the client's dialing script, written here and read by the cockpit's script
 // panel.
 //
-// The editor itself is shared with Cold Calling's Settings page
+// The editor itself is shared with Cold Calling's Management > Scripts page
 // (components/admin/script/ScriptEditor); this file only supplies the client's
 // document and where it saves to. The parent keys this component on the tenant,
 // so switching client remounts and reseeds the editor cleanly.

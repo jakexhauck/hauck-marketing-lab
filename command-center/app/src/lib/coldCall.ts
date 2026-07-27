@@ -22,6 +22,7 @@ import {
   type MonthCursor,
 } from "./trackerMonth";
 import type { ColdCallRow } from "./api";
+import { formatObjections } from "../../functions/lib/coldCallDials";
 import type {
   RollupCells,
   TrackerColumn,
@@ -105,7 +106,9 @@ export function toTrackerRows(days: ColdCallRow[]): Record<string, TrackerRow> {
       pickups: resolveCount(d.pickups, rec?.pickups ?? null),
       passThrough: resolveCount(d.passThrough, rec?.passThrough ?? null),
       meetingsBooked: resolveCount(d.meetingsBooked, rec?.meetingsBooked ?? null),
-      objections: d.objections ?? "",
+      // Same rule as the numbers: what somebody typed wins, otherwise the
+      // objections the app recorded from the Not Interested reasons.
+      objections: d.objections ?? formatObjections(rec?.reasons),
       notes: d.notes ?? "",
     };
   }

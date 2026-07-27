@@ -6,21 +6,29 @@ import {
   CalendarCheck,
   Ban,
   ChevronRight,
-  Hand,
   Moon,
   CheckCircle2,
+  Globe,
   TriangleAlert,
 } from "lucide-react";
 import type { AdminLead, ColdCallDialOutcome } from "../../../lib/api";
-import { STATUS_META } from "../../../lib/adminLeads";
+import { metaFor } from "../../../lib/adminLeads";
 import { useUpdateAdminLead } from "../../../hooks/useAdminLeads";
 import { useLogColdCallDial } from "../../../hooks/useColdCall";
+import { useColdCallScripts } from "../../../hooks/useColdCallAssets";
+import { resolveScriptId, useSelectedScriptId } from "../../../lib/selectedScript";
 import {
   isOutsideCallingHours,
   localTimeLabel,
   zoneForLead,
 } from "../../../lib/leadLocalTime";
 import BookingPanel from "./BookingPanel";
+import { stageAfterNoAnswer } from "../../../lib/coldCallStages";
+import {
+  NOT_INTERESTED_REASONS,
+  NOT_INTERESTED_REASON_KEYS,
+  type NotInterestedReason,
+} from "../../../../functions/lib/coldCallDials";
 
 // The calling workspace: a queue on the left, the one prospect being called on
 // the right, five buttons for how it went.
@@ -95,11 +103,23 @@ export default function CallWorkspace({
 }: Props) {
   const updateLead = useUpdateAdminLead();
   const logDial = useLogColdCallDial();
+
+  // Which dialing variation this call is being made from (0058). Read here
+  // rather than passed down, so no component between this and the script panel
+  // has to carry a prop it has no use for.
+  //
+  // resolveScriptId falls back to the first variation when nobody has picked
+  // one, which is what makes the attribution hold for a caller who never opens
+  // the panel. The server checks the id again before storing it, so this is a
+  // claim rather than the last word.
+  const scripts = useColdCallScripts();
+  const scriptId = resolveScriptId(useSelectedScriptId(), scripts);
+  const scriptName = scripts.find((s) => s.id === scriptId)?.name ?? null;
   const now = useNow();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Callback and Booked both need a date before they mean anything, so the
   // button opens an inline date field rather than writing a guess.
-  const [pending, setPending] = useState<"callback" | "booked" | null>(null);
+  const [pending, setPending] = useState<"callback" | "booked" | "no" | null>(null);
   const [pendingDate, setPendingDate] = useState("");
 
   // Selection follows the list: no explicit pick means the top, and a lead that
@@ -125,7 +145,7 @@ export default function CallWorkspace({
     // Carried through to GoHighLevel, where it becomes the callback task.
     followUpDate?: string,
   ) => {
-    logDial.mutate({ leadId: lead.id, outcome, followUpDate });
+    logDial.mutate({ leadId: lead.id, outcome, followUpDate, scriptId });
     updateLead.mutate({ id: lead.id, ...fields } as Parameters<typeof updateLead.mutate>[0]);
     advance(lead.id);
   };
@@ -135,30 +155,34 @@ export default function CallWorkspace({
   // page stops being a list of things to do.
   const noAnswer = (lead: AdminLead) =>
     logOutcome(lead, "no_answer", {
-      status: "No Answer",
+      // The two dial stages are the count: attempt one lands on Day 1, anything
+      // after that on Day 2.
+      status: stageAfterNoAnswer(lead.noAnswer + 1),
       noAnswer: lead.noAnswer + 1,
       lastContact: today(),
       firstContactDate: lead.firstContactDate ?? today(),
       followUpDate: null,
     });
 
-  // They picked up and it ended before the pitch. A pickup, not a pass-through,
-  // and the lead stays workable: a bad moment is not a no.
-  const brushOff = (lead: AdminLead) =>
-    logOutcome(lead, "brush_off", {
-      status: "Contacted",
+  // Every no lands in the same stage; what differs is why, and the why is what
+  // the reporting needs. The reason decides the outcome server-side, so nothing
+  // here can claim a call reached the pitch when it did not.
+  const sayNo = (lead: AdminLead, reason: NotInterestedReason) => {
+    logDial.mutate({
+      leadId: lead.id,
+      outcome: NOT_INTERESTED_REASONS[reason].outcome,
+      reason,
+      scriptId,
+    });
+    updateLead.mutate({
+      id: lead.id,
+      status: "Not Interested",
       lastContact: today(),
       firstContactDate: lead.firstContactDate ?? today(),
       followUpDate: null,
-    });
-
-  const notInterested = (lead: AdminLead) =>
-    logOutcome(lead, "not_interested", {
-      status: "Dead",
-      lastContact: today(),
-      firstContactDate: lead.firstContactDate ?? today(),
-      followUpDate: null,
-    });
+    } as Parameters<typeof updateLead.mutate>[0]);
+    advance(lead.id);
+  };
 
   // Callback is a local date; Booked is a real appointment on the agency
   // calendar and is written by the booking endpoint, not here.
@@ -168,7 +192,7 @@ export default function CallWorkspace({
       lead,
       "callback",
       {
-        status: "Contacted",
+        status: "Call Back",
         followUpDate: pendingDate,
         lastContact: today(),
         firstContactDate: lead.firstContactDate ?? today(),
@@ -207,12 +231,15 @@ export default function CallWorkspace({
                   >
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: STATUS_META[lead.status].swatch }}
+                      style={{ background: metaFor(lead.status).swatch }}
                       aria-hidden
                     />
                     <span className="min-w-0 flex-1">
+                      {/* The business, same as the card. Scanning a queue for
+                          "Reid Roofing" is how somebody finds their place; the
+                          contact's first name rarely is. */}
                       <span className="block truncate text-[13.5px] font-medium">
-                        {fullName(lead)}
+                        {lead.businessName || fullName(lead)}
                       </span>
                       <span className="block truncate font-mono text-[12px] text-muted">
                         {lead.phone || "No number"}
@@ -255,12 +282,19 @@ export default function CallWorkspace({
         <div className="pk-card rounded-[var(--radius-lg)] border border-border p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
+              {/* The business leads, because that is who is being called. The
+                  person who answers is the second line. Until 0059 there was no
+                  business name at all and `source` sat in this slot, which meant
+                  the card's largest text was often the name of a spreadsheet. */}
               <h2 className="font-display text-[22px] font-semibold tracking-[-0.02em]">
-                {fullName(selected)}
+                {selected.businessName || fullName(selected)}
               </h2>
               <p className="mt-1 text-[13px] text-muted">
-                {selected.source || "No source recorded"}
+                {selected.businessName && fullName(selected) !== "Unnamed prospect"
+                  ? fullName(selected)
+                  : selected.source || "No source recorded"}
               </p>
+              <ProspectFacts lead={selected} />
               <LocalTime lead={selected} now={now} />
             </div>
             <span className="font-mono text-[12px] text-muted">
@@ -282,27 +316,46 @@ export default function CallWorkspace({
             <p className="mt-2 font-mono text-[12.5px] text-muted">{selected.email}</p>
           )}
 
-          {selected.notes && (
-            <p className="mt-4 whitespace-pre-wrap rounded-[var(--radius)] bg-surface-2 px-4 py-3 text-[13px] leading-relaxed">
-              {selected.notes}
-            </p>
-          )}
+          <LeadNotes
+            key={selected.id}
+            value={selected.notes}
+            onSave={(notes) =>
+              updateLead.mutate({ id: selected.id, notes } as Parameters<
+                typeof updateLead.mutate
+              >[0])
+            }
+          />
 
           <GhlState lead={selected} />
 
           <div className="mt-6">
-            <div className="pk-section-h" style={{ marginBottom: 10 }}>
-              How did it go
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1" style={{ marginBottom: 10 }}>
+              <div className="pk-section-h" style={{ margin: 0 }}>
+                How did it go
+              </div>
+              {/* Which script this outcome will be recorded against. Said here,
+                  beside the buttons that do the recording, because a number
+                  attributed to a script somebody did not know they were on is
+                  not a measurement of anything. */}
+              <span className="text-[11.5px] text-faint">
+                {scriptName ? (
+                  <>
+                    Recording against <span className="font-semibold text-muted">{scriptName}</span>
+                  </>
+                ) : (
+                  "No script to record against yet"
+                )}
+              </span>
             </div>
             <div className="flex flex-wrap gap-2">
               <OutcomeButton icon={PhoneOff} label="No answer" onClick={() => noAnswer(selected)} />
               <OutcomeButton
-                icon={Hand}
-                label="Brush-off"
-                title="They picked up, but you never got to the pitch"
-                onClick={() => brushOff(selected)}
+                icon={Ban}
+                label="Not interested"
+                title="Asks why, so the no is counted rather than just recorded"
+                on={pending === "no"}
+                onClick={() => setPending(pending === "no" ? null : "no")}
               />
-              <OutcomeButton icon={Ban} label="Not interested" onClick={() => notInterested(selected)} />
               <OutcomeButton
                 icon={CalendarClock}
                 label="Hot lead"
@@ -348,6 +401,24 @@ export default function CallWorkspace({
               </div>
             )}
 
+            {pending === "no" && (
+              <div className="mt-3">
+                <div className="mb-2 text-[12.5px] text-muted">Why were they not interested?</div>
+                <div className="flex flex-wrap gap-2">
+                  {NOT_INTERESTED_REASON_KEYS.map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-semibold text-muted transition-colors hover:border-brand hover:text-brand"
+                      onClick={() => sayNo(selected, key)}
+                    >
+                      {NOT_INTERESTED_REASONS[key].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {pending === "booked" && (
               <BookingPanel
                 lead={selected}
@@ -357,7 +428,7 @@ export default function CallWorkspace({
                   // rather than when the button was pressed: a recorded booking
                   // that never made it onto the calendar would be a lie the
                   // Scoreboard repeats every month.
-                  logDial.mutate({ leadId: selected.id, outcome: "booked" });
+                  logDial.mutate({ leadId: selected.id, outcome: "booked", scriptId });
                   advance(selected.id);
                 }}
                 onCancel={() => setPending(null)}
@@ -431,6 +502,77 @@ function GhlState({ lead }: { lead: AdminLead }) {
       <CheckCircle2 size={13} className="text-brand" aria-hidden />
       In GoHighLevel
     </p>
+  );
+}
+
+// What the caller learns on the phone, kept for the next dial.
+//
+// Imported context starts here (the CSV import folds several columns into
+// notes), and from then on it is whatever the last person to call wrote. Saved
+// on blur rather than per keystroke: this is typed mid-call, and a PATCH per
+// character would put the network in front of the conversation.
+//
+// Keyed by lead id at the call site, so moving to the next prospect remounts it
+// and no draft can leak from one person onto another.
+// Niche, where they are, and a way to see the site before dialing. Only what is
+// actually known: a card full of "Unknown" teaches the reader to stop reading
+// it, and every one of these is blank on a thin list.
+function ProspectFacts({ lead }: { lead: AdminLead }) {
+  const place = [lead.city, lead.state].filter(Boolean).join(", ");
+  const href = websiteHref(lead.website);
+  if (!lead.niche && !place && !href) return null;
+
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12.5px] text-muted">
+      {lead.niche && <span className="font-medium text-text">{lead.niche}</span>}
+      {lead.niche && (place || href) && <span className="text-faint">·</span>}
+      {place && <span>{place}</span>}
+      {place && href && <span className="text-faint">·</span>}
+      {href && (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="inline-flex items-center gap-1 text-brand hover:underline"
+        >
+          <Globe size={12} aria-hidden />
+          {lead.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+        </a>
+      )}
+    </div>
+  );
+}
+
+// Bought lists write a website every way there is. Anything with a dot is
+// treated as a domain and given a scheme; anything else is not a link and is
+// not rendered as one.
+function websiteHref(website: string): string | null {
+  const raw = (website ?? "").trim();
+  if (!raw || !raw.includes(".")) return null;
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+}
+
+function LeadNotes({
+  value,
+  onSave,
+}: {
+  value: string;
+  onSave: (notes: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+
+  return (
+    <textarea
+      className="mt-4 w-full resize-y rounded-[var(--radius)] bg-surface-2 px-4 py-3 text-[13px] leading-relaxed text-text outline-none transition-shadow placeholder:text-faint focus:shadow-[0_0_0_2px_var(--brand)]"
+      rows={3}
+      value={draft}
+      placeholder="What you learned on this call. Saved when you click away."
+      aria-label="Notes on this prospect"
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        if (draft !== value) onSave(draft);
+      }}
+    />
   );
 }
 

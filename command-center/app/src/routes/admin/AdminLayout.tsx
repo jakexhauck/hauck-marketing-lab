@@ -21,6 +21,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { PillarStyle } from "../../components/pillars/PillarKit";
 import { effectiveAdminRole, type AdminRole } from "../../lib/adminRoles";
+import UpdateDialog from "../../components/admin/UpdateDialog";
 
 // The admin console chrome: a labelled sidebar (the same shape and row
 // treatment as the client app's rail, so the two consoles read as one product)
@@ -332,6 +333,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           below, also scoped to .pk-kit. */}
       <PillarStyle />
       <AdminSpineStyle />
+
+      {/* "Here is what changed", once per person per release. Mounted on the
+          shell rather than on a page, so it reaches whoever signs in wherever
+          they land. Renders nothing when there is nothing new. */}
+      <UpdateDialog />
 
       {/* Desktop sidebar (lg+). */}
       <aside className="adm-rail hidden lg:flex">

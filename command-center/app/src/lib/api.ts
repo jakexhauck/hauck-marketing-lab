@@ -946,20 +946,6 @@ export async function saveSetterScript(
   });
 }
 
-// The agency's own cold-calling script (migration 0048). One document, so no
-// tenantId, unlike the per-client setter script above. Same shape, same
-// server-side sanitizer, and only an owner may write it.
-export async function getColdCallScript(): Promise<SetterScriptResponse> {
-  return api<SetterScriptResponse>("/api/admin/cold-call/script");
-}
-
-export async function saveColdCallScript(html: string): Promise<SetterScriptResponse> {
-  return api<SetterScriptResponse>("/api/admin/cold-call/script", {
-    method: "PATCH",
-    body: JSON.stringify({ html }),
-  });
-}
-
 // The task status union lives with the pure coupling helpers so the client
 // hook and the endpoints validate against one source.
 import type { TaskStatus } from "./taskStatus";
@@ -1042,13 +1028,12 @@ export async function tagTimeAuditBlock(
 // Mirrors the CHECK constraint in migration 0030; LEAD_STATUSES in
 // src/lib/adminLeads.ts is the ordered runtime copy.
 export type AdminLeadStatus =
-  | "New"
-  | "Contacted"
-  | "No Answer"
+  | "New Lead"
+  | "1st Dial (Day 1)"
+  | "2nd Dial (Day 2)"
+  | "Call Back"
   | "Booked"
-  | "Qualified"
-  | "Closed"
-  | "Dead";
+  | "Not Interested";
 
 export interface AdminLead {
   id: string;
@@ -1065,6 +1050,13 @@ export interface AdminLead {
   followUpDate: string | null;
   email: string;
   notes: string;
+  // Who the business is (0059). The book calls businesses, not people: before
+  // these existed the company name was buried in notes and the niche in source.
+  businessName: string;
+  niche: string;
+  website: string;
+  city: string;
+  state: string;
   // Whose queue this lead sits in (0049). Null = in the book, on nobody's list.
   assignedTo: string | null;
   createdAt: string;
@@ -1080,6 +1072,9 @@ export interface AdminLead {
 // attempt per outcome pressed on the call card. Null when nothing was dialled in
 // the app that day.
 export interface ColdCallRecorded {
+  // How many of the day's nos gave each reason, keyed by the reason. The
+  // Objections cell is written from this when nobody typed over it.
+  reasons?: Record<string, number>;
   callsMade: number;
   pickups: number;
   passThrough: number;
@@ -1491,9 +1486,17 @@ export async function logColdCallDial(input: {
   leadId: string | null;
   outcome: ColdCallDialOutcome;
   note?: string;
+  // Why they said no, from the fixed list in functions/lib/coldCallDials.ts.
+  // The server derives the outcome from it, so this and `outcome` can never
+  // disagree in the table.
+  reason?: string;
   // Sent with a callback: it becomes a task on the contact in GoHighLevel, due
   // that morning.
   followUpDate?: string;
+  // Which dialing variation was on screen (0058). The server checks it names a
+  // live script and drops it if not, so this is a claim rather than a fact
+  // until it gets there.
+  scriptId?: string | null;
 }): Promise<{
   dial: { id: string; day: string; outcome: string };
   // What the push to GoHighLevel did, or null when the account is not connected.
@@ -1501,6 +1504,169 @@ export async function logColdCallDial(input: {
 }> {
   return api("/api/admin/cold-call/dials", {
     method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// The cold caller's shelf (0058): dialing script variations, and everything
+// else read mid-call under headings Jake names himself.
+export interface ColdCallAsset {
+  id: string;
+  // "script" is a variation of the pitch and the unit of the A/B test.
+  // "asset" is any other document, filed under `category`.
+  kind: "script" | "asset";
+  category: string;
+  name: string;
+  html: string;
+  sortOrder: number;
+  archivedAt: string | null;
+  updatedAt: string;
+  // Only a script carries numbers, and they are derived from recorded dials on
+  // every read, never stored. bookingRate is null below the sample floor: see
+  // MIN_DIALS_FOR_RATE in functions/lib/coldCallAssets.ts.
+  stats: {
+    dials: number;
+    pickups: number;
+    booked: number;
+    bookingRate: number | null;
+  } | null;
+}
+
+export async function getColdCallAssets(
+  includeArchived = false,
+): Promise<{ assets: ColdCallAsset[] }> {
+  return api("/api/admin/cold-call/assets" + (includeArchived ? "?archived=1" : ""));
+}
+
+export async function createColdCallAsset(input: {
+  kind: "script" | "asset";
+  name: string;
+  category?: string;
+  html?: string;
+}): Promise<{ asset: ColdCallAsset }> {
+  return api("/api/admin/cold-call/assets", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// Only the fields sent are touched, so the autosaving editor can PATCH html
+// alone without disturbing a name being edited elsewhere on the page.
+export async function updateColdCallAsset(input: {
+  id: string;
+  name?: string;
+  category?: string;
+  html?: string;
+  sortOrder?: number;
+  archived?: boolean;
+}): Promise<{ asset: ColdCallAsset }> {
+  return api("/api/admin/cold-call/assets", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+// Refused with a 409 when recorded dials name this script; archive it instead,
+// so the test it ran survives.
+export async function deleteColdCallAsset(id: string): Promise<{ ok: true }> {
+  return api("/api/admin/cold-call/assets", {
+    method: "DELETE",
+    body: JSON.stringify({ id }),
+  });
+}
+
+// A booked meeting and what became of it (0057). Created by the booking itself;
+// the outcome is filled in afterwards, by whoever ran the call.
+export interface SalesMeeting {
+  id: string;
+  appointmentId: string;
+  leadId: string | null;
+  prospectName: string;
+  businessName: string;
+  phone: string;
+  email: string;
+  scheduledAt: string | null;
+  appointmentStatus: string;
+  // Null until somebody says what happened. See functions/lib/salesCalls.ts.
+  outcome: "closed" | "follow_up" | "no_show" | "not_a_fit" | null;
+  notAFitReason: string | null;
+  followUpAt: string | null;
+  cashCollected: number | null;
+  assignedTo: string | null;
+  updatedAt: string;
+  // Where this meeting came from: "Cold call" when the app booked it, "Calendar"
+  // when the sync adopted one nobody typed here (0060).
+  source: string;
+  contactId: string | null;
+  // The card on the agency Sales Pipeline, and where the app last put it. Null
+  // means the meeting has never been pushed.
+  opportunityId: string | null;
+  crmStage: string | null;
+  // Why the last push did not land, in words. Null when it did.
+  crmError: string | null;
+  syncedAt: string | null;
+}
+
+// The Sales section's view: every meeting on the sales calendars, whoever
+// booked it, plus what the last calendar read did and which board the outcomes
+// route to.
+export interface SalesCallsResponse {
+  meetings: SalesMeeting[];
+  configured: boolean;
+  sync:
+    | {
+        ok: true;
+        added: number;
+        updated: number;
+        unchanged: number;
+        failedCalendarIds: string[];
+        calendarsRead: number;
+      }
+    | { ok: false; error: string }
+    | null;
+  pipeline: { id: string; name: string; missing: string[] } | null;
+}
+
+// `sync: false` reads what is stored without re-reading the calendars. Used
+// straight after recording an outcome, where two calendar round trips to redraw
+// one row is a wait nobody asked for.
+export async function getSalesCalls(sync = true): Promise<SalesCallsResponse> {
+  return api("/api/admin/sales/calls" + (sync ? "" : "?sync=0"));
+}
+
+export async function recordSalesCallOutcome(input: {
+  id: string;
+  outcome: NonNullable<SalesMeeting["outcome"]>;
+  notAFitReason?: string;
+  followUpAt?: string;
+  cashCollected?: number | null;
+}): Promise<{ meeting: SalesMeeting }> {
+  return api("/api/admin/sales/calls", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function getSalesMeetings(callerId?: string): Promise<{
+  meetings: SalesMeeting[];
+}> {
+  return api(
+    "/api/admin/cold-call/meetings" +
+      (callerId ? `?callerId=${encodeURIComponent(callerId)}` : ""),
+  );
+}
+
+// Record what one meeting became. `showed` is deliberately absent: the server
+// derives it from the outcome, so a show rate cannot be typed.
+export async function recordMeetingOutcome(input: {
+  id: string;
+  outcome: NonNullable<SalesMeeting["outcome"]>;
+  notAFitReason?: string;
+  followUpAt?: string;
+  cashCollected?: number | null;
+}): Promise<{ meeting: SalesMeeting }> {
+  return api("/api/admin/cold-call/meetings", {
+    method: "PATCH",
     body: JSON.stringify(input),
   });
 }

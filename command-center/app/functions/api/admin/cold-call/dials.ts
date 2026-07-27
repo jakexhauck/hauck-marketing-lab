@@ -4,7 +4,12 @@ import { getServiceClient } from "../../../lib/supabase";
 import { agencyTimezone } from "../../../lib/agencyGhl";
 import { pushColdCallOutcome, type LeadForPush } from "../../../lib/agencyCrm";
 import { dateStringInZone } from "../../../lib/tz";
-import { DIAL_OUTCOMES, isDialOutcome } from "../../../lib/coldCallDials";
+import {
+  DIAL_OUTCOMES,
+  NOT_INTERESTED_REASONS,
+  isDialOutcome,
+  isNotInterestedReason,
+} from "../../../lib/coldCallDials";
 
 // POST /api/admin/cold-call/dials (admin session gated in _middleware.ts).
 // Appends one row to cold_call_dials for an attempt just made on the Leads or
@@ -26,17 +31,32 @@ import { DIAL_OUTCOMES, isDialOutcome } from "../../../lib/coldCallDials";
 interface Body {
   leadId?: string | null;
   outcome?: string;
+  // Why they said no. Only sent with a no, and it DECIDES the outcome: the
+  // client never gets to say whether a call reached the pitch.
+  reason?: string | null;
   note?: string | null;
   // The agreed callback date, "YYYY-MM-DD". Only sent with a callback, and what
   // turns it into a task on the contact in GHL.
   followUpDate?: string | null;
+  // Which dialing variation was on screen (0058). Checked against the table
+  // below rather than trusted: this is the column the script test is read from,
+  // so a browser must not be able to attribute a booking to whichever script it
+  // fancies.
+  scriptId?: string | null;
 }
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const body = await readJsonBody<Body>(ctx.request);
   if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
 
-  if (!isDialOutcome(body.outcome)) {
+  const reason = body.reason ?? null;
+  if (reason !== null && !isNotInterestedReason(reason)) {
+    return Response.json({ error: "bad_reason" }, { status: 400 });
+  }
+  // A reason outranks whatever outcome was sent with it, so the pair can never
+  // disagree in the table.
+  const outcome = reason ? NOT_INTERESTED_REASONS[reason].outcome : body.outcome;
+  if (!isDialOutcome(outcome)) {
     return Response.json({ error: "bad_outcome" }, { status: 400 });
   }
 
@@ -44,9 +64,14 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
 
   const callerId = ctx.data.admin!.id;
-  const { spoke, pitched } = DIAL_OUTCOMES[body.outcome];
+  const { spoke, pitched } = DIAL_OUTCOMES[outcome];
   const day = dateStringInZone(agencyTimezone(ctx.env), Date.now());
   const note = typeof body.note === "string" && body.note.trim() ? body.note.trim() : null;
+
+  // Which script this was dialed from. Verified to name a live variation, and
+  // dropped to null if it does not: a dial that quietly credits a deleted or
+  // invented script is worse than one that admits it does not know.
+  const scriptId = await resolveScriptId(client, body.scriptId ?? null);
 
   const { data, error } = await client
     .from("cold_call_dials")
@@ -56,10 +81,12 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       day,
       spoke,
       pitched,
-      outcome: body.outcome,
+      outcome,
+      reason,
       note,
+      script_id: scriptId,
     })
-    .select("id, day, outcome, spoke, pitched")
+    .select("id, day, outcome, reason, spoke, pitched")
     .single();
   if (error || !data) {
     return Response.json({ error: error?.message ?? "could not log dial" }, { status: 500 });
@@ -70,11 +97,31 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // leaves the building. A push that fails is written onto the lead and shown in
   // the console; it never turns into an error the caller has to read mid-call.
   const ghl = body.leadId
-    ? await pushLead(ctx.env, client, body.leadId, body.outcome, body.followUpDate ?? null)
+    ? await pushLead(ctx.env, client, body.leadId, outcome, body.followUpDate ?? null)
     : null;
 
   return Response.json({ dial: data, ghl }, { status: 201 });
 };
+
+// Confirm the id names a real, live dialing script, or return null.
+//
+// Refusing the whole dial over a bad script id would be the wrong trade: the
+// call happened, and losing the record of it to protect an attribution is a
+// worse outcome than an unattributed dial. So a bad id is dropped, not fatal.
+async function resolveScriptId(
+  client: NonNullable<ReturnType<typeof getServiceClient>>,
+  scriptId: string | null,
+): Promise<string | null> {
+  if (!scriptId) return null;
+  const { data } = await client
+    .from("cold_call_assets")
+    .select("id")
+    .eq("id", scriptId)
+    .eq("kind", "script")
+    .is("archived_at", null)
+    .maybeSingle();
+  return (data as { id: string } | null)?.id ?? null;
+}
 
 interface LeadPushSummary {
   ok: boolean;
@@ -93,7 +140,7 @@ async function pushLead(
 
   const { data } = await client
     .from("leads")
-    .select("id, first_name, last_name, phone, email, source, ghl_contact_id")
+    .select("id, first_name, last_name, phone, email, source, ghl_contact_id, business_name, website")
     .eq("id", leadId)
     .maybeSingle();
   if (!data) return null;
@@ -106,6 +153,8 @@ async function pushLead(
     phone: row.phone ?? "",
     email: row.email ?? "",
     source: row.source ?? "",
+    businessName: row.business_name ?? "",
+    website: row.website ?? "",
     ghlContactId: row.ghl_contact_id,
   };
 

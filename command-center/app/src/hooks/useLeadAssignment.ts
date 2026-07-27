@@ -34,6 +34,11 @@ export function useAssignableCallersQuery(enabled = true) {
 }
 
 export interface ImportResult {
+  // How many of the imported rows made it into GoHighLevel tagged `cc new lead`.
+  pushed?: number;
+  pushFailed?: number;
+  // The agency GHL account is not connected, so nothing was pushed at all.
+  notConfigured?: boolean;
   imported: number;
   skippedNoPhone: number;
   skippedDuplicate: number;
@@ -45,6 +50,64 @@ export function useImportLeads() {
     mutationFn: (input: { rows: ImportLead[]; assignedTo: string | null }) =>
       api<ImportResult>("/api/admin/tracker/leads/import", {
         method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: LEADS_KEY });
+    },
+  });
+}
+
+export interface PushResult {
+  pushed: number;
+  failed: number;
+  // The agency GHL account is not connected, so nothing was attempted.
+  notConfigured: boolean;
+  // The first reason a row was refused, or null if none were.
+  error: string | null;
+}
+
+// Push a selection into GoHighLevel by hand. The import already tries this on
+// the way in; this is for the rows that did not make it, which are otherwise
+// stranded in the book and invisible to the workflow that would put them on the
+// board.
+export function usePushLeadsToGhl() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      api<PushResult>("/api/admin/tracker/leads/push-ghl", {
+        method: "POST",
+        body: JSON.stringify({ ids }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: LEADS_KEY });
+    },
+  });
+}
+
+// The descriptive fields that can be set across a selection at once (0059).
+// Matches the allowlist in functions/api/admin/tracker/leads/bulk-field.ts;
+// nothing that decides where a lead IS can be set this way.
+export const BULK_FIELDS = [
+  { field: "niche", label: "Niche" },
+  { field: "businessName", label: "Business name" },
+  { field: "city", label: "City" },
+  { field: "state", label: "State" },
+  { field: "website", label: "Website" },
+  { field: "source", label: "Source (which list)" },
+] as const;
+
+export type BulkField = (typeof BULK_FIELDS)[number]["field"];
+
+// Set one field on many prospects. A list bought as "Detroit roofers" is two
+// hundred rows with the same niche and the same state, and typing that two
+// hundred times is the reason a book never gets categorised at all.
+export function useBulkSetLeadField() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { ids: string[]; field: BulkField; value: string }) =>
+      api<{ updated: number }>("/api/admin/tracker/leads/bulk-field", {
+        method: "PATCH",
         body: JSON.stringify(input),
       }),
     onSuccess: () => {

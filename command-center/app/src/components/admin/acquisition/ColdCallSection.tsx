@@ -3,19 +3,25 @@ import { useSearchParams } from "react-router-dom";
 import { ScrollText } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { effectiveAdminRole } from "../../../lib/adminRoles";
-import { coldCallPagesFor, resolveColdCallView } from "../../../lib/coldCallPages";
-import { useColdCallScriptQuery } from "../../../hooks/useApi";
+import {
+  coldCallSides,
+  resolveColdCallView,
+  resolveManagementPage,
+} from "../../../lib/coldCallPages";
+import { stageById } from "../../../lib/coldCallStages";
+import { useColdCallAssetsQuery } from "../../../hooks/useColdCallAssets";
+import { groupByCategory } from "../../../../functions/lib/coldCallAssets";
+import { resolveScriptId, setSelectedScriptId, useSelectedScriptId } from "../../../lib/selectedScript";
 import { useAssignableCallersQuery } from "../../../hooks/useLeadAssignment";
 import ScriptPanel from "../script/ScriptPanel";
 import { TrackerMonthNav } from "../tracker/DailyTracker";
 import { cursorForToday, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
 import ColdCallSurface from "./ColdCallSurface";
 import ColdCallLeads from "./ColdCallLeads";
+import ColdCallManagement from "./ColdCallManagement";
 import ColdCallCallbacks from "./ColdCallCallbacks";
 import ColdCallBooked from "./ColdCallBooked";
-import ColdCallPipelines from "./ColdCallPipelines";
-import ColdCallScoreboard from "./ColdCallScoreboard";
-import ColdCallSettings from "./ColdCallSettings";
+import ColdCallAvailability from "./ColdCallAvailability";
 
 // Acquisition > Cold Call. Unlike its sibling tabs this is a section rather than
 // a single surface: the caller works Leads all day, checks Callbacks, and the
@@ -52,11 +58,34 @@ export default function ColdCallSection() {
   const callers = useAssignableCallersQuery(isOwner);
   const scope = isOwner ? callerId : (admin?.id ?? "");
 
-  const pages = coldCallPagesFor(isOwner);
+  const { left, right } = coldCallSides(isOwner);
   const view = resolveColdCallView(searchParams.get("view"), isOwner);
 
-  // Only load the script once it is asked for: most page views never open it.
-  const scriptQuery = useColdCallScriptQuery(scriptOpen);
+  // The team availability page IS the whole roster, so a "whose section is
+  // this" selector sitting above it would be a control with nothing to control.
+  const rosterWide =
+    view === "management" && resolveManagementPage(searchParams.get("manage")) === "availability";
+
+  // The shelf: the script variations and everything else read mid-call (0058).
+  //
+  // Loaded on every view of the section rather than only when the panel opens,
+  // because CallWorkspace needs the variation list to attribute a dial whether
+  // or not anybody opened the panel. That is what makes "tracked every single
+  // time" true for a caller who never looks at the script.
+  const shelfQuery = useColdCallAssetsQuery();
+  const shelfAssets = useMemo(() => shelfQuery.data?.assets ?? [], [shelfQuery.data]);
+  const scripts = useMemo(
+    () => shelfAssets.filter((a) => a.kind === "script" && !a.archivedAt),
+    [shelfAssets],
+  );
+  const assetGroups = useMemo(
+    () => groupByCategory(shelfAssets.filter((a) => a.kind === "asset" && !a.archivedAt)),
+    [shelfAssets],
+  );
+
+  // What the caller picked, corrected against what still exists.
+  const picked = useSelectedScriptId();
+  const selectedScriptId = resolveScriptId(picked, scripts);
 
   const setView = (next: string) => {
     setSearchParams(
@@ -72,8 +101,8 @@ export default function ColdCallSection() {
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <nav className="pk-subtabs !m-0" aria-label="Cold call pages">
-          {pages.map((p) => (
+        <nav className="pk-subtabs !m-0 flex items-center" aria-label="Cold call pages">
+          {left.map((p) => (
             <button
               key={p.id}
               type="button"
@@ -83,10 +112,27 @@ export default function ColdCallSection() {
               {p.label}
             </button>
           ))}
+
+          {right.length > 0 && (
+            <>
+              {/* The work on one side, the running of it on the other. */}
+              <span aria-hidden className="mx-2 h-5 w-px shrink-0 bg-border" />
+              {right.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`pk-subtab${view === p.id ? " on" : ""}`}
+                  onClick={() => setView(p.id)}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </>
+          )}
         </nav>
 
         <div className="flex flex-wrap items-center gap-3">
-          {isOwner && (
+          {isOwner && !rosterWide && (
             <select
               className="pk-select !w-auto"
               value={callerId}
@@ -126,16 +172,34 @@ export default function ColdCallSection() {
 
       {scriptOpen && (
         <ScriptPanel
-          html={scriptQuery.data?.html ?? ""}
+          // The shelf supplies the body now; this stays for the Setter Suite,
+          // which passes a single document and no shelf.
+          html=""
           subtitle="Agency cold calling"
-          isLoading={scriptQuery.isLoading}
-          isError={scriptQuery.isError}
+          isLoading={shelfQuery.isLoading}
+          isError={shelfQuery.isError}
+          // Three different nothings, and telling them apart is the difference
+          // between a useful hint and one that sends somebody to add a variation
+          // they already added.
           emptyHint={
-            isOwner
-              ? "No script yet. Write it on the Settings page and it will show here."
-              : "No script yet. Jake writes this one."
+            scripts.length === 0
+              ? isOwner
+                ? "No scripts yet. Add a variation under Management > Scripts and it will show here."
+                : "No script yet. Jake writes this one."
+              : isOwner
+                ? `"${scripts.find((s) => s.id === selectedScriptId)?.name ?? "This variation"}" has nothing in it yet. Write it under Management > Scripts.`
+                : "This variation has not been written yet. Jake writes these."
           }
           onClose={() => setScriptOpen(false)}
+          shelf={{
+            scripts: scripts.map((s) => ({ id: s.id, name: s.name, html: s.html })),
+            selectedId: selectedScriptId,
+            onSelect: setSelectedScriptId,
+            groups: assetGroups.map((g) => ({
+              category: g.category,
+              items: g.items.map((a) => ({ id: a.id, name: a.name, html: a.html })),
+            })),
+          }}
         />
       )}
     </>
@@ -156,18 +220,20 @@ function ColdCallBody({
   callerId: string;
   isOwner: boolean;
 }) {
+  // Most pages ARE a stage of the pipeline. Two of them have a surface built for
+  // the shape of that stage: Call Back is a list ordered by when someone is due,
+  // Booked is meetings split around today. Every other stage is a list you work,
+  // which is one page rendered seven ways rather than seven pages.
+  const stage = stageById(view);
+  if (stage) {
+    if (stage.id === "call-back") return <ColdCallCallbacks callerId={callerId} />;
+    if (stage.id === "booked") return <ColdCallBooked callerId={callerId} />;
+    return <ColdCallLeads stage={stage} callerId={callerId} />;
+  }
+
   switch (view) {
-    case "leads":
-      return <ColdCallLeads callerId={callerId} />;
-    case "callbacks":
-      return <ColdCallCallbacks callerId={callerId} />;
-    case "booked":
-      return <ColdCallBooked callerId={callerId} />;
-    case "pipelines":
-      // Nobody's boards but the agency's: GHL has no idea which caller is
-      // looking, so this one page ignores the person selector rather than
-      // pretending to filter by it.
-      return <ColdCallPipelines />;
+    case "management":
+      return <ColdCallManagement callerId={callerId} />;
     case "tracker":
       // A tracker grid is one person's hand-typed month. There is no honest way
       // to merge two people's rows into one editable grid, so "Everyone" asks
@@ -188,10 +254,11 @@ function ColdCallBody({
           callerId={callerId}
         />
       );
-    case "scoreboard":
-      return <ColdCallScoreboard callerId={callerId} />;
-    case "settings":
-      return <ColdCallSettings />;
+    case "availability":
+      // Same reasoning as the tracker: a week of availability belongs to a
+      // person. The component asks the owner to pick one rather than merging
+      // two people's hours into one paintable grid.
+      return <ColdCallAvailability callerId={callerId} isOwner={isOwner} />;
     default:
       // resolveColdCallView never returns anything else; a miss is a bug, not a
       // state worth rendering something plausible for.

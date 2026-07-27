@@ -81,9 +81,11 @@ const ROLE_RULES: Record<Exclude<AdminRole, "owner">, AdminRule[]> = {
     { prefix: "/api/admin/tracker/leads", methods: ["GET", "HEAD", "PATCH"], exact: true },
     // His daily dialing numbers.
     { prefix: "/api/admin/tracker/cold-calls", methods: ["GET", "HEAD", "POST", "PATCH"] },
-    // The dialing script, read only. Writing it is the owner's Settings page,
-    // and the handler refuses a non-owner PATCH on its own account too.
-    { prefix: "/api/admin/cold-call/script", methods: READ_ONLY },
+    // The shelf he reads from mid-call (0058): the dialing script variations and
+    // the objection handling beside them. Read only. Writing them is the owner's
+    // Settings page, and the handler refuses a non-owner write on its own
+    // account too. (This replaced /cold-call/script, the single document.)
+    { prefix: "/api/admin/cold-call/assets", methods: READ_ONLY, exact: true },
     // Booking a meeting on the agency's calendar: the whole point of the job.
     // Reading calendars and free slots, and creating the appointment. Each is
     // EXACT so nothing else that lands under /cold-call/ is inherited.
@@ -94,6 +96,15 @@ const ROLE_RULES: Record<Exclude<AdminRole, "owner">, AdminRule[]> = {
     // here that edits or removes a dial, so his own recorded numbers are as
     // unarguable as anyone else's.
     { prefix: "/api/admin/cold-call/dials", methods: ["POST"], exact: true },
+    // Marking when he is on the phones (0057). Read and write, because the
+    // whole point is that he fills his own week in. The handler pins every
+    // request to the signed-in session, so this opens his own availability and
+    // nobody else's, whatever ?callerId= says.
+    {
+      prefix: "/api/admin/cold-call/availability",
+      methods: ["GET", "HEAD", "PUT"],
+      exact: true,
+    },
     // The GHL boards, read only. He can see where his own prospects stand; he
     // cannot move them, because nothing in this app moves them.
     { prefix: "/api/admin/cold-call/pipelines", methods: READ_ONLY, exact: true },

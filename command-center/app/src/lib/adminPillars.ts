@@ -40,7 +40,13 @@ export const ADMIN_PILLARS: PillarDef[] = [
   {
     id: "sales",
     label: "Sales",
-    tabs: [{ id: "sales-data", label: "Sales Data", ready: true }],
+    // Sales Calls leads the pillar. Sales Data is the month in aggregate, and
+    // it is read; Sales Calls is the meetings themselves, and it is worked.
+    // The page with a job on it comes first.
+    tabs: [
+      { id: "calls", label: "Sales Calls", ready: true },
+      { id: "sales-data", label: "Sales Data", ready: true },
+    ],
   },
   {
     id: "operations",

@@ -1,6 +1,7 @@
 import type { Env, ApiData } from "../../../../lib/env";
 import { getServiceClient } from "../../../../lib/supabase";
 import { logAdminAction } from "../../../../lib/adminAuth";
+import { pushImportedLead } from "../../../../lib/agencyCrm";
 
 // POST /api/admin/tracker/leads/import  (owner-only)
 //
@@ -20,6 +21,17 @@ import { logAdminAction } from "../../../../lib/adminAuth";
 //
 // Rows are inserted assigned (or unassigned) exactly as the owner chose in the
 // import dialog, so a list can go straight onto someone's queue.
+//
+// Every row that lands is also pushed into GoHighLevel as a contact tagged
+// `cc new lead`, which is what a workflow over there watches for. The push runs
+// AFTER the insert and never fails the import: a prospect in the book but not
+// yet in the CRM can be re-pushed, whereas a lost row has to be re-imported by
+// hand. The response says how many made it, so the wizard can report it rather
+// than implying silence means success.
+//
+// The browser sends this endpoint one BATCH at a time, not a whole file: a
+// thousand-row list is a thousand GoHighLevel calls, which no single request
+// can survive. Batching is what makes the progress bar honest, too.
 
 const MAX_ROWS = 5000;
 
@@ -31,6 +43,26 @@ interface ImportRow {
   timezone?: unknown;
   source?: unknown;
   notes?: unknown;
+  // Who the business is (0059). Until these existed the importer folded a
+  // company column into notes and an industry column into source, which is how
+  // the two most useful facts on a bought list ended up unreadable.
+  businessName?: unknown;
+  niche?: unknown;
+  website?: unknown;
+  city?: unknown;
+  state?: unknown;
+}
+
+// The columns read back after the insert, to push into GoHighLevel.
+interface ImportedRow {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  email: string | null;
+  source: string | null;
+  business_name: string | null;
+  website: string | null;
 }
 
 interface Body {
@@ -118,7 +150,12 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       timezone: str(row.timezone),
       source: str(row.source),
       notes: str(row.notes),
-      status: "New",
+      business_name: str(row.businessName),
+      niche: str(row.niche),
+      website: str(row.website),
+      city: str(row.city),
+      state: str(row.state),
+      status: "New Lead",
       no_answer: 0,
       // first_contact_date and last_contact stay null on purpose: an imported
       // row has never been called, and stamping today would tell the caller a
@@ -136,10 +173,60 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     });
   }
 
-  const { error } = await client.from("leads").insert(insert);
+  const { data: inserted, error } = await client
+    .from("leads")
+    .insert(insert)
+    .select("id, first_name, last_name, phone, email, source, business_name, website");
   if (error) {
     console.error("[leads/import] insert failed", error.message);
     return Response.json({ error: "Could not import those rows." }, { status: 500 });
+  }
+
+  // Into the CRM, tagged. Sequential rather than parallel: GoHighLevel rate
+  // limits, and a burst that trips the limit fails rows that would otherwise
+  // have landed.
+  //
+  // What happened is written back onto each row (ghl_contact_id / ghl_synced_at
+  // / ghl_error), which is what those columns were added for in 0053. Counting
+  // the failures in the response and nowhere else made "3 did not reach
+  // GoHighLevel" a sentence that vanished when the wizard closed, and a prospect
+  // in the book but not in the CRM is invisible to the workflow, so nobody ever
+  // calls them. Stamped, they can be found again and pushed from the Assign
+  // page without re-importing the file.
+  let pushed = 0;
+  let pushFailed = 0;
+  let notConfigured = false;
+  for (const row of (inserted ?? []) as ImportedRow[]) {
+    const result = await pushImportedLead(ctx.env, {
+      id: row.id,
+      firstName: row.first_name ?? "",
+      lastName: row.last_name ?? "",
+      phone: row.phone ?? "",
+      email: row.email ?? "",
+      source: row.source ?? "",
+      businessName: row.business_name ?? "",
+      website: row.website ?? "",
+      ghlContactId: null,
+    });
+    // Not connected is a state of the whole install, not a fact about this
+    // prospect. Stamping it on every row would be the same noise 500 times.
+    if (result.notConfigured) {
+      notConfigured = true;
+      break;
+    }
+    if (result.ok) pushed += 1;
+    else pushFailed += 1;
+
+    await client
+      .from("leads")
+      .update({
+        ghl_contact_id: result.contactId,
+        // Only a clean push counts as synced. A half-push (contact made, tag
+        // refused) leaves synced_at null so the row still reads as unfinished.
+        ...(result.ok ? { ghl_synced_at: new Date().toISOString() } : {}),
+        ghl_error: result.error,
+      })
+      .eq("id", row.id);
   }
 
   await logAdminAction(client, admin.id, "leads.import", null, {
@@ -147,11 +234,16 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     skippedNoPhone: missingPhone,
     skippedDuplicate: duplicates,
     assignedTo,
+    pushed,
+    pushFailed,
   });
 
   return Response.json({
     imported: insert.length,
     skippedNoPhone: missingPhone,
     skippedDuplicate: duplicates,
+    pushed,
+    pushFailed,
+    notConfigured,
   });
 };

@@ -35,6 +35,11 @@ export interface LeadForPush {
   email: string;
   source: string;
   ghlContactId: string | null;
+  // Who the business is (0059). Optional so every existing caller compiles;
+  // absent simply means the field is not sent, rather than sent blank, which
+  // would overwrite something already correct in GoHighLevel.
+  businessName?: string;
+  website?: string;
 }
 
 export interface PushResult {
@@ -47,9 +52,13 @@ export interface PushResult {
   notConfigured?: boolean;
 }
 
+// What the contact is called in GoHighLevel. The person if we know them, then
+// the business, then the number. A bought list often has a company and no
+// contact name at all, and "Unnamed prospect" on a board full of them is a board
+// nobody can read.
 export function displayName(lead: LeadForPush): string {
   const name = `${lead.firstName} ${lead.lastName}`.trim();
-  return name || lead.phone || "Unnamed prospect";
+  return name || (lead.businessName ?? "").trim() || lead.phone || "Unnamed prospect";
 }
 
 // GHL rejects a malformed number outright, which would fail the whole push for
@@ -102,6 +111,13 @@ export async function upsertAgencyContact(
     };
     if (phone) body.phone = phone;
     if (email) body.email = email;
+    // Only sent when we have something. Sending "" would blank a company name
+    // somebody has already corrected over there, and GoHighLevel is the system
+    // Jake works the board in.
+    const companyName = (lead.businessName ?? "").trim();
+    if (companyName) body.companyName = companyName;
+    const website = (lead.website ?? "").trim();
+    if (website) body.website = website;
 
     const res = await ghlJson<ContactResponse>(ctx, "/contacts/upsert", {
       method: "POST",
@@ -218,4 +234,31 @@ export function readableError(err: unknown): string {
   const match = raw.match(/"message":"([^"]+)"/);
   if (match) return match[1];
   return raw.length > 160 ? `${raw.slice(0, 157)}...` : raw;
+}
+
+
+// The tag every imported prospect gets. GoHighLevel decides what it means: a
+// workflow over there is what moves the contact onto the Cold Calling board.
+// This app only ever writes the tag, exactly as it does for the call outcomes.
+export const NEW_LEAD_TAG = "cc new lead";
+
+// Put an imported prospect into GoHighLevel and mark it new.
+//
+// Upsert first, tag second, and a failed tag is still reported as a failure:
+// a contact that exists but carries no tag is invisible to the workflow, which
+// is worse than not importing it, because nobody goes looking for it.
+export async function pushImportedLead(env: Env, lead: LeadForPush): Promise<PushResult> {
+  const upserted = await upsertAgencyContact(env, lead);
+  if (!upserted.ok || !upserted.contactId) return upserted;
+
+  try {
+    const ctx = getAgencyGhlContext(env);
+    await ghlJson(ctx, `/contacts/${upserted.contactId}/tags`, {
+      method: "POST",
+      body: JSON.stringify({ tags: [NEW_LEAD_TAG] }),
+    });
+    return upserted;
+  } catch (err) {
+    return { ok: false, contactId: upserted.contactId, error: readableError(err) };
+  }
 }

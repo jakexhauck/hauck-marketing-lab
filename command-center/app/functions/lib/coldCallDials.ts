@@ -19,6 +19,32 @@ export const DIAL_OUTCOMES = {
 
 export type DialOutcome = keyof typeof DIAL_OUTCOMES;
 
+// Why a prospect said no. Every reason carries the outcome it implies, so the
+// caller picks a sentence and the server decides spoke/pitched from it. That
+// keeps the one rule this table exists for: the numbers commission is paid
+// against are never asserted by the client.
+//
+// "Would not engage", "Not the decision maker" and "Not a fit" are brush_off:
+// the call was answered but never got as far as the pitch, and counting them as
+// pass-throughs would inflate the only number that measures the script.
+export const NOT_INTERESTED_REASONS = {
+  pitched_no: { label: "Heard the pitch, said no", outcome: "not_interested" },
+  no_engage: { label: "Would not engage", outcome: "brush_off" },
+  not_decision_maker: { label: "Not the decision maker", outcome: "brush_off" },
+  has_agency: { label: "Already has an agency", outcome: "not_interested" },
+  bad_fit: { label: "Not a fit", outcome: "brush_off" },
+} as const;
+
+export type NotInterestedReason = keyof typeof NOT_INTERESTED_REASONS;
+
+export const NOT_INTERESTED_REASON_KEYS = Object.keys(
+  NOT_INTERESTED_REASONS,
+) as NotInterestedReason[];
+
+export function isNotInterestedReason(value: unknown): value is NotInterestedReason {
+  return typeof value === "string" && value in NOT_INTERESTED_REASONS;
+}
+
 export const DIAL_OUTCOME_KEYS = Object.keys(DIAL_OUTCOMES) as DialOutcome[];
 
 export function isDialOutcome(value: unknown): value is DialOutcome {
@@ -31,6 +57,8 @@ export interface DialRow {
   spoke: boolean;
   pitched: boolean;
   outcome: string;
+  // Why they said no, null for every dial that was not a no.
+  reason?: string | null;
 }
 
 // What the app recorded for one day. Always four real numbers: a day with rows
@@ -41,6 +69,9 @@ export interface RecordedCounts {
   pickups: number;
   passThrough: number;
   meetingsBooked: number;
+  // How many of the day's nos gave each reason. The Objections column is
+  // written from this, so "why we lose them" is counted rather than typed.
+  reasons: Record<string, number>;
 }
 
 // The counting rules, in one place:
@@ -61,11 +92,13 @@ export function rollUpDialsByDay(dials: DialRow[]): Record<string, RecordedCount
       pickups: 0,
       passThrough: 0,
       meetingsBooked: 0,
+      reasons: {},
     });
     counts.callsMade += 1;
     if (dial.spoke) counts.pickups += 1;
     if (dial.pitched) counts.passThrough += 1;
     if (dial.outcome === "booked") counts.meetingsBooked += 1;
+    if (dial.reason) counts.reasons[dial.reason] = (counts.reasons[dial.reason] ?? 0) + 1;
   }
   return byDay;
 }
@@ -118,4 +151,23 @@ export function mergeRecordedDays(
   }
 
   return merged.sort((a, b) => a.day.localeCompare(b.day));
+}
+
+
+// The Objections cell, written from the day's recorded reasons: "3 already has
+// an agency, 2 would not engage". Commonest first, and ties fall back to the
+// order the reasons are declared in so the sentence is stable between reads.
+//
+// Empty string when nothing was recorded, which the grid renders as a blank
+// cell rather than as "0 objections".
+export function formatObjections(reasons: Record<string, number> | null | undefined): string {
+  if (!reasons) return "";
+  const order = NOT_INTERESTED_REASON_KEYS;
+  const parts = Object.entries(reasons)
+    .filter(([key, n]) => n > 0 && key in NOT_INTERESTED_REASONS)
+    .sort(([aKey, a], [bKey, b]) =>
+      b - a || order.indexOf(aKey as NotInterestedReason) - order.indexOf(bKey as NotInterestedReason),
+    )
+    .map(([key, n]) => `${n} ${NOT_INTERESTED_REASONS[key as NotInterestedReason].label.toLowerCase()}`);
+  return parts.join(", ");
 }
