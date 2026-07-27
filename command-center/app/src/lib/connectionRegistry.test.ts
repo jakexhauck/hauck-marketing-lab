@@ -24,6 +24,10 @@ const NON_CREDENTIALS = new Set([
   "AGENCY_TIMEZONE",
   "DOPPLER_PROJECT",
   "DOPPLER_CONFIG",
+  // An override list of calendar ids, not a credential: absent is the normal
+  // case and the sync falls back to matching calendars by name. Nothing here
+  // expires or needs reissuing, so a red row for it would be a lie.
+  "AGENCY_SALES_CALENDAR_IDS",
 ]);
 
 function envInterfaceKeys(): string[] {

@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-27-settings-control-room",
+    date: "27 July 2026",
+    title: "Settings tells you what is broken, and what breaks with it",
+    items: [
+      "Agency Settings now opens on a short list of what needs you, worst first, instead of a wall of settings. Everything working stays quiet.",
+      "Every connection says what it feeds. When something goes down you are told the page that goes dark with it, not the name of a key.",
+      "A By surface view answers the other direction: pick a page that looks empty and see everything it needs to work.",
+      "Per client: see and fix a client's own credentials in the app, without going near a terminal.",
+      "Read this page on the live site, not localhost. Localhost cannot see the real credentials and says so at the top.",
+    ],
+  },
+  {
     id: "2026-07-27-cold-call-availability",
     date: "27 July 2026",
     title: "Cold calling: your hours, and one place to run it from",

@@ -162,7 +162,7 @@ export const CONNECTIONS: ConnectionDef[] = [
     vendor: "LeadConnector",
     scope: "agency",
     purpose:
-      "Hauck Marketing's OWN sub-account, where cold-call meetings get booked for Jake. Deliberately separate from every client's credentials.",
+      "Hauck Marketing's OWN sub-account, where cold-call meetings get booked for Jake and where those meetings are read back. Deliberately separate from every client's credentials.",
     credentials: [
       {
         name: "AGENCY_GHL_LOCATION_ID",
@@ -182,6 +182,11 @@ export const CONNECTIONS: ConnectionDef[] = [
     surfaces: [
       { label: "Cold Call booking", audience: "admin" },
       { label: "Cold Call dials and pipelines", audience: "admin" },
+      {
+        label: "Sales Calls",
+        to: "/admin/pillar/sales?tab=calls",
+        audience: "admin",
+      },
     ],
     remediation:
       "Reissue a Private Integration Token in the Hauck Marketing sub-account. Absent, every agency booking route answers 'not configured' rather than falling back to a client's account, which is the only safe way to fail.",
