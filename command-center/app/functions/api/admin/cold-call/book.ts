@@ -5,6 +5,7 @@ import { logAdminAction } from "../../../lib/adminAuth";
 import { ghlFetch } from "../../../lib/ghl";
 import { getAgencyGhlContext, AgencyGhlError } from "../../../lib/agencyGhl";
 import { createAppointment, isCalendarNotFound } from "../../lib/appointments";
+import { resolveAgencySalesPipeline, routeSalesCall } from "../../lib/agencySales";
 
 // POST /api/admin/cold-call/book  (admin-only)
 //
@@ -40,6 +41,11 @@ interface LeadRow {
   phone: string;
   email: string;
   assigned_to: string | null;
+  // 0059. The meeting record has carried a business_name column since 0057 and
+  // never had anything to put in it.
+  business_name?: string | null;
+  timezone?: string | null;
+  source?: string | null;
 }
 
 // Create or update the prospect as a contact on the agency account. GHL's
@@ -58,6 +64,9 @@ async function upsertContact(
   };
   if (lead.phone) payload.phone = lead.phone;
   if (lead.email) payload.email = lead.email;
+  // Only when we have one: sending "" would blank a company name already
+  // corrected in GoHighLevel, which is where Jake works the board.
+  if (lead.business_name) payload.companyName = lead.business_name;
 
   const res = await ghlFetch(gctx, "/contacts/upsert", {
     method: "POST",
@@ -75,6 +84,60 @@ async function upsertContact(
     return { ok: false, status: 502, body: "upsert returned no contact id" };
   }
   return { ok: true, contactId };
+}
+
+interface RoutedBooking {
+  opportunityId: string | null;
+  stage: string | null;
+  // A sentence fit for the console, or null when there is nothing to report.
+  // "Not connected" is not an error about this meeting, so it stays null.
+  error: string | null;
+}
+
+// Put the new meeting on the Sales Pipeline at Appointment Booked.
+//
+// Nothing here is allowed to fail the booking. The appointment is already on a
+// real calendar with a real person expecting it; a pipeline that did not catch
+// up is a line on the meetings page, not a reason to tell the caller their
+// booking did not happen.
+async function routeBookedMeeting(
+  env: Env,
+  contactId: string,
+  prospectName: string,
+  businessName: string | null | undefined,
+): Promise<RoutedBooking> {
+  let gctx;
+  try {
+    gctx = getAgencyGhlContext(env);
+  } catch {
+    return { opportunityId: null, stage: null, error: null };
+  }
+
+  try {
+    const pipeline = await resolveAgencySalesPipeline(gctx);
+    if (!pipeline) {
+      return {
+        opportunityId: null,
+        stage: null,
+        error: "No Sales Pipeline found in GoHighLevel, so no card was created.",
+      };
+    }
+    const result = await routeSalesCall(gctx, pipeline, {
+      opportunityId: null,
+      contactId,
+      name: [prospectName, businessName].filter(Boolean).join(" - ") || prospectName,
+      // No outcome yet: a meeting that has not happened routes to Appointment
+      // Booked, which is the whole point of the stage.
+      outcome: null,
+    });
+    return result.ok
+      ? { opportunityId: result.opportunityId, stage: result.stage, error: null }
+      : { opportunityId: null, stage: null, error: result.error };
+  } catch (err) {
+    console.error("[cold-call/book] pipeline routing failed", err);
+    const message = err instanceof Error ? err.message : String(err);
+    return { opportunityId: null, stage: null, error: message.split("\n")[0].slice(0, 200) };
+  }
 }
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -110,7 +173,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // guessed id reports not found rather than booking someone else's prospect.
   let query = client
     .from("leads")
-    .select("id, first_name, last_name, phone, email, assigned_to")
+    .select("id, first_name, last_name, phone, email, assigned_to, business_name, timezone, source")
     .eq("id", leadId)
     .is("deleted_at", null);
   if (admin.role !== "owner") query = query.eq("assigned_to", admin.id);
@@ -166,6 +229,51 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     .eq("id", leadId)
     .select("id")
     .maybeSingle();
+
+  // The card on the agency's Sales Pipeline (0060). A meeting that exists only
+  // in this database is a meeting Jake cannot see on the board he actually
+  // reads, which is how that pipeline came to hold zero opportunities while the
+  // app knew about every booking.
+  //
+  // Best effort, and after the appointment: the slot is real by now, so a CRM
+  // that would not answer must not turn a successful booking into an error.
+  const routed = await routeBookedMeeting(ctx.env, contact.contactId, name, lead.business_name);
+
+  // The meeting's own record (0057), so what it BECOMES has somewhere to live.
+  // Without this a booking is the last thing the app knows about a prospect, and
+  // booked-to-showed-to-closed stops one step short of the number that says
+  // whether any of the dialing was worth doing.
+  //
+  // Best-effort, on purpose, and after everything above: the appointment is real
+  // on a real calendar by now, so failing the request here would tell the caller
+  // a booking did not happen when it did. Keyed on the appointment id, so a
+  // booking made twice updates one row rather than growing a second.
+  const { error: meetingError } = await client.from("sales_calls").upsert(
+    {
+      ghl_appointment_id: appt.id,
+      ghl_contact_id: contact.contactId,
+      lead_id: leadId,
+      // Copied rather than joined, so a purged prospect still has a name on the
+      // revenue line.
+      prospect_name: name,
+      business_name: lead.business_name ?? "",
+      phone: lead.phone ?? "",
+      email: lead.email ?? "",
+      timezone: lead.timezone ?? "",
+      source: lead.source ?? "Cold call",
+      scheduled_at: startTime,
+      appointment_status: "confirmed",
+      ghl_opportunity_id: routed.opportunityId,
+      ghl_stage: routed.stage,
+      ghl_error: routed.error,
+      logged_by: admin.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "ghl_appointment_id" },
+  );
+  if (meetingError) {
+    console.error("[cold-call/book] sales_calls upsert failed", meetingError.message);
+  }
 
   await logAdminAction(client, admin.id, "coldcall.book", null, {
     leadId,

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+
 import { GripHorizontal, ScrollText, X } from "lucide-react";
 
 // The dialing script as a FLOATING PANEL, not a modal: no backdrop, nothing
@@ -16,6 +17,20 @@ import { GripHorizontal, ScrollText, X } from "lucide-react";
 // before storing it. Nothing that has not been through that sanitizer may be
 // passed to this component.
 
+// Cold calling's extra: several script variations to choose between, and the
+// other documents a caller reaches for mid-call. Optional, so the Setter Suite
+// passes none of it and behaves exactly as it always has.
+export interface ScriptShelf {
+  // The live dialing variations, in the owner's order.
+  scripts: { id: string; name: string; html: string }[];
+  // Which one the caller is working from. This is what gets recorded on every
+  // dial, so it changes only when they say so.
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  // Everything else, grouped under the owner's own headings.
+  groups: { category: string; items: { id: string; name: string; html: string }[] }[];
+}
+
 interface Props {
   html: string;
   // What this script belongs to: a client's name, or "Agency" for cold calling.
@@ -25,6 +40,7 @@ interface Props {
   // Where an empty document points the reader, e.g. "Write it in Settings".
   emptyHint: string;
   onClose: () => void;
+  shelf?: ScriptShelf;
 }
 
 export default function ScriptPanel({
@@ -34,7 +50,21 @@ export default function ScriptPanel({
   isError,
   emptyHint,
   onClose,
+  shelf,
 }: Props) {
+  // Which document the panel is SHOWING, which is not the same question as which
+  // script is being dialed from. Reading an objection walkthrough mid-call must
+  // not re-attribute the call to it, so looking and choosing are two states.
+  // Null means "show the selected script".
+  const [viewingAssetId, setViewingAssetId] = useState<string | null>(null);
+
+  const shelfAssets = shelf?.groups.flatMap((g) => g.items) ?? [];
+  const viewingAsset = shelfAssets.find((a) => a.id === viewingAssetId) ?? null;
+  const selectedScript = shelf?.scripts.find((s) => s.id === shelf.selectedId) ?? null;
+
+  // The shelf, when present, is the source of what to render; `html` remains the
+  // Setter Suite's single document.
+  const body = shelf ? (viewingAsset?.html ?? selectedScript?.html ?? "") : html;
   // Panel position, dragged by the header. Starts docked bottom-left-ish, clear
   // of anything docked to the right.
   const [pos, setPos] = useState(() => ({
@@ -99,15 +129,97 @@ export default function ScriptPanel({
         </button>
       </div>
 
+      {shelf && (
+        <div className="shrink-0 border-b border-divider px-4 py-2.5">
+          {/* Which script is being dialed. Changing it changes what every
+              outcome pressed from now on is recorded against, so it is a
+              deliberate control and not a view toggle. */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="mr-0.5 text-[11px] font-semibold uppercase tracking-wider text-faint">
+              Script
+            </span>
+            {shelf.scripts.length === 0 ? (
+              <span className="text-[12px] text-faint">None written yet</span>
+            ) : (
+              shelf.scripts.map((s) => {
+                const on = s.id === shelf.selectedId;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      shelf.onSelect(s.id);
+                      setViewingAssetId(null);
+                    }}
+                    className={[
+                      "rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition-colors",
+                      on
+                        ? "border-brand bg-brand/10 text-brand"
+                        : "border-border text-muted hover:text-text",
+                    ].join(" ")}
+                    aria-pressed={on}
+                  >
+                    {s.name}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {shelf.groups.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="mr-0.5 text-[11px] font-semibold uppercase tracking-wider text-faint">
+                Look up
+              </span>
+              {viewingAsset && (
+                <button
+                  type="button"
+                  onClick={() => setViewingAssetId(null)}
+                  className="rounded-full border border-border px-2.5 py-1 text-[11.5px] font-semibold text-muted hover:text-text"
+                >
+                  Back to the script
+                </button>
+              )}
+              {shelf.groups.map((group) =>
+                group.items.map((item) => {
+                  const on = item.id === viewingAssetId;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setViewingAssetId(on ? null : item.id)}
+                      title={group.category}
+                      className={[
+                        "rounded-full border px-2.5 py-1 text-[11.5px] transition-colors",
+                        on
+                          ? "border-brand bg-brand/10 font-semibold text-brand"
+                          : "border-border text-muted hover:text-text",
+                      ].join(" ")}
+                    >
+                      {item.name}
+                    </button>
+                  );
+                }),
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         {isLoading ? (
           <p className="text-[13px] text-muted">Loading script...</p>
         ) : isError ? (
           <p className="text-[13px] text-danger">Could not load the script. Close and retry.</p>
-        ) : html.trim() === "" ? (
-          <p className="text-[13px] text-faint">{emptyHint}</p>
+        ) : body.trim() === "" ? (
+          <p className="text-[13px] text-faint">
+            {/* The hint the section passed is about the SCRIPT. When the reader
+                has flipped to an empty look-up document, that hint would send
+                them to fix the wrong thing. */}
+            {viewingAsset ? `"${viewingAsset.name}" has nothing in it yet.` : emptyHint}
+          </p>
         ) : (
-          <div className="script-doc" dangerouslySetInnerHTML={{ __html: html }} />
+          <div className="script-doc" dangerouslySetInnerHTML={{ __html: body }} />
         )}
       </div>
     </section>

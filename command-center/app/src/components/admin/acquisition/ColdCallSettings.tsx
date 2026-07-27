@@ -1,24 +1,24 @@
-import ScriptEditor from "../script/ScriptEditor";
-import { useColdCallScriptQuery, useSaveColdCallScriptMutation } from "../../../hooks/useApi";
+import ScriptsPanel from "./ScriptsPanel";
+import AssetsPanel from "./AssetsPanel";
+import StagesPanel from "./StagesPanel";
 
-// Cold Call > Settings. Owner-only, and the only thing on it today is the
-// dialing script: what Jake writes, and what the caller reads in the floating
-// panel while he is on the phone.
+// Cold Call > Settings. Owner-only, and it holds three things now:
 //
-// Same editor as the Setter Suite's script (components/admin/script), pointed at
-// the one agency document instead of a per-client one.
+//   1. The dialing scripts, four variations of one pitch running against each
+//      other, each carrying the dials it actually earned.
+//   2. Everything else a caller reaches for mid-call, under headings Jake types
+//      himself.
+//   3. Whether this app and GoHighLevel still agree on what the stages are.
+//
+// The single-script editor that used to be the whole page is gone: it could hold
+// one script and could not say whether it worked. Migration 0058 carried its
+// contents forward as the first variation.
 export default function ColdCallSettings() {
-  const scriptQuery = useColdCallScriptQuery();
-  const saveMutation = useSaveColdCallScriptMutation();
-
   return (
-    <ScriptEditor
-      title="Dialing script"
-      subtitle="What the caller reads on every call. He can open it from any page in here, but only you can edit it."
-      html={scriptQuery.data?.html}
-      isLoading={scriptQuery.isLoading}
-      isError={scriptQuery.isError}
-      save={(html) => saveMutation.mutateAsync(html)}
-    />
+    <div className="flex flex-col gap-5">
+      <ScriptsPanel />
+      <AssetsPanel />
+      <StagesPanel />
+    </div>
   );
 }

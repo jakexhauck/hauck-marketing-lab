@@ -23,6 +23,12 @@ export interface Env {
   // Who a callback task is assigned to in the agency's GHL. Defaults to Jake's
   // user id; see functions/lib/agencyGhl.ts.
   AGENCY_GHL_USER_ID?: string;
+  // Which calendars the Sales Calls page reads, comma separated. Absent means
+  // the ones whose NAME says demo / discovery / sales, which is the same test
+  // the booking panel uses. Set this only when a sales calendar is named
+  // something else: reading every calendar on the account is what put four
+  // flights and a school prom on the sales meetings page.
+  AGENCY_SALES_CALENDAR_IDS?: string;
   // Supabase tenant slug for the test session mode (defaults to test-account).
   TEST_TENANT_SLUG?: string;
   SUPABASE_URL?: string;

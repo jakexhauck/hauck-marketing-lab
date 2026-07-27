@@ -1,56 +1,55 @@
 import { useMemo } from "react";
-import type { AdminLead } from "../../../lib/api";
-import { useAdminLeadsQuery } from "../../../hooks/useAdminLeads";
+import { useSalesMeetingsQuery, useRecordMeetingOutcome } from "../../../hooks/useColdCall";
+import { groupFor, totalsFor } from "../../../../functions/lib/salesCalls";
+import { Funnel, MeetingRow } from "../sales/meetingUi";
 
-// Cold Call > Booked: the meetings he set.
+// Cold Call > Booked: the meetings he set, and what became of them.
 //
-// This is the page that settles the commission conversation, so it says what
-// happened rather than what was claimed: upcoming meetings, then past ones. A
-// meeting that has been and gone sits under "Already happened" until its lead is
-// moved on to Qualified or Closed, which is the honest state of things until a
-// showed / no-showed outcome exists to record.
-
-function today(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate(),
-  ).padStart(2, "0")}`;
-}
-
-function fullName(lead: AdminLead): string {
-  return `${lead.firstName} ${lead.lastName}`.trim() || "Unnamed prospect";
-}
-
-function dateLabel(date: string): string {
-  return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-// callerId "" means everyone; otherwise one person's booked meetings.
+// This page used to end at "Already happened", which meant the app knew a
+// meeting had been booked and never knew whether anybody turned up. A booking is
+// not the result; it is the second-to-last step, and the step after it is the
+// only one that says whether the dialing was worth doing.
+//
+// So the page is ordered by what is WORK rather than by what is chronological.
+// Meetings whose slot has passed with nothing recorded come first, because they
+// are the only rows anybody has to do something about. Upcoming and finished
+// meetings are records, and records go underneath.
+//
+// The buttons, the funnel and the counting all come from elsewhere on purpose:
+// the rules from functions/lib/salesCalls.ts, the surface from
+// components/admin/sales/meetingUi.tsx, which Sales > Sales Calls also draws.
+// This is the CALLER's end of that record, scoped to one person's prospects;
+// Sales Calls is Jake's, showing every meeting on the calendar. Two ends of one
+// table, and neither may own a private copy of what a show rate is.
 export default function ColdCallBooked({ callerId = "" }: { callerId?: string }) {
-  const leadsQuery = useAdminLeadsQuery();
-  const now = today();
+  const query = useSalesMeetingsQuery(callerId);
+  const record = useRecordMeetingOutcome();
+  const meetings = useMemo(() => query.data?.meetings ?? [], [query.data]);
 
-  const { upcoming, past } = useMemo(() => {
-    const booked = (leadsQuery.data?.leads ?? [])
-      .filter((l) => (callerId ? l.assignedTo === callerId : true))
-      .filter((l) => l.status === "Booked")
-      .filter((l) => l.appointmentDate)
-      .sort((a, b) => (a.appointmentDate ?? "").localeCompare(b.appointmentDate ?? ""));
+  const { awaiting, upcoming, recorded, totals } = useMemo(() => {
+    const now = Date.now();
+    const countable = meetings.map((m) => ({
+      scheduledAt: m.scheduledAt,
+      outcome: m.outcome,
+      cashCollected: m.cashCollected,
+    }));
+    const bucket = (name: string) =>
+      meetings.filter((_m, i) => groupFor(countable[i], now) === name);
     return {
-      upcoming: booked.filter((l) => (l.appointmentDate ?? "") >= now),
-      past: booked.filter((l) => (l.appointmentDate ?? "") < now).reverse(),
+      awaiting: bucket("awaiting"),
+      // The list arrives newest first, which for meetings still to come means
+      // furthest away first. Reversed, so the next one is at the top.
+      upcoming: bucket("upcoming").slice().reverse(),
+      recorded: bucket("recorded"),
+      totals: totalsFor(countable),
     };
-  }, [leadsQuery.data, now, callerId]);
+  }, [meetings]);
 
-  if (leadsQuery.isLoading) return <div className="pk-empty">Loading meetings...</div>;
-  if (leadsQuery.isError) {
+  if (query.isLoading) return <div className="pk-empty">Loading meetings...</div>;
+  if (query.isError) {
     return <div className="pk-empty">Could not load meetings. Reload to try again.</div>;
   }
-  if (upcoming.length === 0 && past.length === 0) {
+  if (meetings.length === 0) {
     return (
       <div className="pk-empty">
         No meetings booked yet. They land here when a call ends in &quot;Booked&quot;.
@@ -59,32 +58,44 @@ export default function ColdCallBooked({ callerId = "" }: { callerId?: string })
   }
 
   return (
-    <div className="pk-list">
-      {upcoming.length > 0 && <div className="pk-list-sec-h">Coming up</div>}
-      {upcoming.map((lead) => (
-        <BookedRow key={lead.id} lead={lead} />
-      ))}
-      {past.length > 0 && <div className="pk-list-sec-h">Already happened</div>}
-      {past.map((lead) => (
-        <BookedRow key={lead.id} lead={lead} />
-      ))}
-    </div>
-  );
-}
+    <div>
+      {/* The strip counts what is OVERDUE an answer, not everything undecided.
+          A meeting three days out is undecided too, and calling it "still to
+          record" would be nagging somebody about the future. */}
+      <Funnel totals={totals} awaiting={awaiting.length} />
 
-function BookedRow({ lead }: { lead: AdminLead }) {
-  return (
-    <div className="pk-li">
-      <div className="pk-li-main">
-        <div className="pk-li-label">{fullName(lead)}</div>
-        <div className="pk-li-sub font-mono">{lead.phone || "No number"}</div>
-      </div>
-      <div className="pk-li-meta">
-        <div style={{ textAlign: "right" }}>
-          <div className="text-[13px] font-semibold">{dateLabel(lead.appointmentDate!)}</div>
-          <div className="text-[12px] text-muted">{lead.status}</div>
-        </div>
-      </div>
+      {awaiting.length > 0 && (
+        <>
+          <div className="pk-list-sec-h">Needs an answer ({awaiting.length})</div>
+          <div className="pk-list">
+            {awaiting.map((m) => (
+              <MeetingRow key={m.id} meeting={m} recordable record={record} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {upcoming.length > 0 && (
+        <>
+          <div className="pk-list-sec-h">Coming up</div>
+          <div className="pk-list">
+            {upcoming.map((m) => (
+              <MeetingRow key={m.id} meeting={m} record={record} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {recorded.length > 0 && (
+        <>
+          <div className="pk-list-sec-h">Recorded</div>
+          <div className="pk-list">
+            {recorded.map((m) => (
+              <MeetingRow key={m.id} meeting={m} recordable record={record} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

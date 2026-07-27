@@ -40,6 +40,30 @@ export const STATUS_META: Record<AdminLeadStatus, LeadStatusMeta> =
     {} as Record<AdminLeadStatus, LeadStatusMeta>,
   );
 
+// A status the vocabulary does not know. Deliberately grey and deliberately
+// labelled with the raw string: an unknown stage should look like nothing and
+// say exactly what it is, because that is how somebody notices the drift.
+const UNKNOWN_SWATCH = "#8b95a5";
+
+// STATUS_META is keyed by the six stage names, so `STATUS_META[lead.status]` is
+// undefined for anything else and reading `.swatch` off it takes the whole page
+// down. It did so twice on 2026-07-26.
+//
+// The vocabulary and the data CAN disagree, and not rarely: a stage renamed in
+// GoHighLevel, a row that predates a migration, a stage added over there before
+// the code that knows about it ships. None of those is a reason for a white
+// screen. Every render of a lead's status goes through this.
+export function metaFor(status: string): LeadStatusMeta {
+  return (
+    STATUS_META[status as AdminLeadStatus] ?? {
+      tileClass: "t-unknown",
+      pillClass: "st-unknown",
+      swatch: UNKNOWN_SWATCH,
+      label: status || "Unknown",
+    }
+  );
+}
+
 // Every status keyed to 0, so an empty list still renders a full tile strip.
 function zeroCounts(): Record<AdminLeadStatus, number> {
   const out = {} as Record<AdminLeadStatus, number>;
@@ -143,6 +167,11 @@ export function blankLeadDraft(tempId = `temp-${Date.now()}`): AdminLead {
     followUpDate: null,
     email: "",
     notes: "",
+    businessName: "",
+    niche: "",
+    website: "",
+    city: "",
+    state: "",
     // A hand-added row belongs to nobody until it is assigned.
     assignedTo: null,
     createdAt: new Date().toISOString(),

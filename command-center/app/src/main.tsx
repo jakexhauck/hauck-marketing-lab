@@ -4,6 +4,8 @@ import { BrowserRouter } from "react-router-dom";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import App from "./App";
+import RecoveryBoundary from "./components/RecoveryBoundary";
+import { startUpdateChecks } from "./lib/appRecovery";
 import {
   queryClient,
   PERSIST_CACHE_KEY,
@@ -51,8 +53,17 @@ const TWENTY_FOUR_HOURS = 1000 * 60 * 60 * 24;
 // retired. Set once here so every route renders with the lively token set.
 document.documentElement.setAttribute("data-motion", "lively");
 
+// Before createRoot, deliberately. Looking for a newer deploy is a browser
+// concern rather than a component concern, and it has to keep running when the
+// app itself cannot mount: that is precisely when the page is stuck on a stale
+// bundle and most needs replacing. See lib/appRecovery.ts.
+startUpdateChecks();
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
+    {/* Outside the providers, so a throw while a context is setting up is
+        caught too rather than taking the page down with it. */}
+    <RecoveryBoundary>
     <BrowserRouter>
       <PersistQueryClientProvider
         client={queryClient}
@@ -74,5 +85,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <App />
       </PersistQueryClientProvider>
     </BrowserRouter>
+    </RecoveryBoundary>
   </React.StrictMode>
 );

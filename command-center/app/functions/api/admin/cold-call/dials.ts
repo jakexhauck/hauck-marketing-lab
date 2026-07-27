@@ -38,6 +38,11 @@ interface Body {
   // The agreed callback date, "YYYY-MM-DD". Only sent with a callback, and what
   // turns it into a task on the contact in GHL.
   followUpDate?: string | null;
+  // Which dialing variation was on screen (0058). Checked against the table
+  // below rather than trusted: this is the column the script test is read from,
+  // so a browser must not be able to attribute a booking to whichever script it
+  // fancies.
+  scriptId?: string | null;
 }
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -63,6 +68,11 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const day = dateStringInZone(agencyTimezone(ctx.env), Date.now());
   const note = typeof body.note === "string" && body.note.trim() ? body.note.trim() : null;
 
+  // Which script this was dialed from. Verified to name a live variation, and
+  // dropped to null if it does not: a dial that quietly credits a deleted or
+  // invented script is worse than one that admits it does not know.
+  const scriptId = await resolveScriptId(client, body.scriptId ?? null);
+
   const { data, error } = await client
     .from("cold_call_dials")
     .insert({
@@ -74,6 +84,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       outcome,
       reason,
       note,
+      script_id: scriptId,
     })
     .select("id, day, outcome, reason, spoke, pitched")
     .single();
@@ -92,6 +103,26 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   return Response.json({ dial: data, ghl }, { status: 201 });
 };
 
+// Confirm the id names a real, live dialing script, or return null.
+//
+// Refusing the whole dial over a bad script id would be the wrong trade: the
+// call happened, and losing the record of it to protect an attribution is a
+// worse outcome than an unattributed dial. So a bad id is dropped, not fatal.
+async function resolveScriptId(
+  client: NonNullable<ReturnType<typeof getServiceClient>>,
+  scriptId: string | null,
+): Promise<string | null> {
+  if (!scriptId) return null;
+  const { data } = await client
+    .from("cold_call_assets")
+    .select("id")
+    .eq("id", scriptId)
+    .eq("kind", "script")
+    .is("archived_at", null)
+    .maybeSingle();
+  return (data as { id: string } | null)?.id ?? null;
+}
+
 interface LeadPushSummary {
   ok: boolean;
   error: string | null;
@@ -109,7 +140,7 @@ async function pushLead(
 
   const { data } = await client
     .from("leads")
-    .select("id, first_name, last_name, phone, email, source, ghl_contact_id")
+    .select("id, first_name, last_name, phone, email, source, ghl_contact_id, business_name, website")
     .eq("id", leadId)
     .maybeSingle();
   if (!data) return null;
@@ -122,6 +153,8 @@ async function pushLead(
     phone: row.phone ?? "",
     email: row.email ?? "",
     source: row.source ?? "",
+    businessName: row.business_name ?? "",
+    website: row.website ?? "",
     ghlContactId: row.ghl_contact_id,
   };
 

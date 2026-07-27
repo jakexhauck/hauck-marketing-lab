@@ -42,6 +42,13 @@ export interface LeadRow {
   notes: string;
   assigned_to: string | null;
   created_at: string;
+  // Who the prospect actually is (0059). Optional for the same reason as the
+  // GHL columns below: a database that has not run the migration yet.
+  business_name?: string | null;
+  niche?: string | null;
+  website?: string | null;
+  city?: string | null;
+  state?: string | null;
   // The link into the agency's own GHL account (0053). Written by the push,
   // never by a client.
   // Optional: absent on a database that has not run 0053 yet.
@@ -55,26 +62,42 @@ export interface LeadRow {
 // migrations are separate steps, so there is a window where this file wants
 // columns the table does not have yet.
 const SELECT_BASE =
-  "id, first_name, last_name, phone, timezone, status, first_contact_date, source, appointment_date, no_answer, last_contact, follow_up_date, email, notes, assigned_to, created_at";
+  "id, first_name, last_name, phone, timezone, status, first_contact_date, source," +
+  " appointment_date, no_answer, last_contact, follow_up_date, email, notes, assigned_to," +
+  " created_at";
 
 const SELECT_GHL = "ghl_contact_id, ghl_synced_at, ghl_error";
 
-export const SELECT = `${SELECT_BASE}, ${SELECT_GHL}`;
+// Who the prospect is (0059). A third group rather than folded into the base,
+// for the same reason the GHL columns are separate: this file will want them
+// before the migration that adds them has necessarily run.
+const SELECT_BUSINESS = "business_name, niche, website, city, state";
 
-// Postgres "undefined_column". Seen exactly once: between this code shipping and
-// migration 0053 running.
+export const SELECT = `${SELECT_BASE}, ${SELECT_GHL}, ${SELECT_BUSINESS}`;
+
+// Postgres "undefined_column". Seen exactly once per migration: between this
+// code shipping and the migration running.
 const UNDEFINED_COLUMN = "42703";
 
-// Run a query with the GHL columns, and again without them if the table has not
-// been migrated yet. The lead book is the surface a caller works all day; it
-// loading without a sync marker is a small loss, and it not loading at all is
+// Try everything, then drop the optional groups one at a time, newest first.
+// The lead book is the surface a caller works all day: loading it without a
+// sync marker or without a niche is a small loss, and not loading it at all is
 // the whole job stopped.
+const FALLBACKS = [
+  `${SELECT_BASE}, ${SELECT_GHL}, ${SELECT_BUSINESS}`,
+  `${SELECT_BASE}, ${SELECT_GHL}`,
+  SELECT_BASE,
+];
+
 async function withGhlFallback<T>(
   run: (select: string) => PromiseLike<{ data: T; error: { code?: string } | null }>,
 ): Promise<{ data: T; error: { code?: string } | null }> {
-  const first = await run(SELECT);
-  if (!first.error || first.error.code !== UNDEFINED_COLUMN) return first;
-  return run(SELECT_BASE);
+  let last: { data: T; error: { code?: string } | null } | null = null;
+  for (const select of FALLBACKS) {
+    last = await run(select);
+    if (!last.error || last.error.code !== UNDEFINED_COLUMN) return last;
+  }
+  return last!;
 }
 
 export function toLead(row: LeadRow) {
@@ -93,6 +116,15 @@ export function toLead(row: LeadRow) {
     followUpDate: row.follow_up_date,
     email: row.email,
     notes: row.notes,
+    // Who the prospect actually is (0059). Coalesced rather than passed
+    // through: the fallback SELECT below drops these columns on a database that
+    // predates them, and a caller's table should render blanks rather than
+    // "undefined".
+    businessName: row.business_name ?? "",
+    niche: row.niche ?? "",
+    website: row.website ?? "",
+    city: row.city ?? "",
+    state: row.state ?? "",
     // Whose queue this sits in (0049). Null = in the book, on nobody's list.
     assignedTo: row.assigned_to,
     createdAt: row.created_at,
@@ -115,6 +147,14 @@ const TEXT_FIELDS: Record<string, string> = {
   source: "source",
   email: "email",
   notes: "notes",
+  // Who the prospect actually is (0059). A caller edits these mid-call as often
+  // as anything else on the row: half of what a bought list says about a
+  // business turns out to be wrong the moment somebody picks up.
+  businessName: "business_name",
+  niche: "niche",
+  website: "website",
+  city: "city",
+  state: "state",
 };
 
 const DATE_FIELDS: Record<string, string> = {

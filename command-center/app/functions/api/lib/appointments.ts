@@ -244,12 +244,20 @@ export interface CalendarEventsResult {
 // on a 502); its id is collected into failedCalendarIds instead. The calendar
 // LIST failing still throws: there is nothing to be partial about, and the
 // caller cannot tell a client with no calendars from a CRM outage.
+// `only` narrows the read to specific calendars. Absent means every calendar on
+// the account, which is right for a setter's grid (a slot is taken whatever
+// booked it) and wrong for the sales meetings page: the agency's Onboarding
+// calendar is linked to a personal Google account, so reading everything there
+// produces a sales pipeline containing flights and a school prom.
 export async function listCalendarEvents(
   gctx: GhlContext,
   startMs: number,
   endMs: number,
+  only?: string[],
 ): Promise<CalendarEventsResult> {
-  const calendars = await listCalendars(gctx);
+  const all = await listCalendars(gctx);
+  const wanted = only && only.length > 0 ? new Set(only) : null;
+  const calendars = wanted ? all.filter((c) => wanted.has(c.id)) : all;
   if (calendars.length === 0) return { events: [], failedCalendarIds: [] };
 
   const byId = new Map<string, CalendarEvent>();

@@ -76,12 +76,43 @@ the power dialer both need a contact to act on.
 - Contact upsert is keyed on phone/email (the account's own duplicate rule), so
   re-importing a list cannot double a prospect.
 
-## Stage 2 — Sales pipeline (booked to closed)
+## Stage 2 — Sales pipeline (booked to closed): BUILT 2026-07-27
 
 A booked meeting becomes an opportunity in **Sales Pipeline** at Appointment Booked,
-and the app grows the two buttons that pipeline needs: Showed and No-Show, then New
-Client. This is the "booked -> showed -> closed" gap in the Scoreboard, answered with
-Jake's own pipeline rather than new app fields.
+and the outcome moves it. This is the "booked -> showed -> closed" gap in the
+Scoreboard, answered with Jake's own pipeline rather than new app fields.
+
+The four outcomes 0057 already recorded map onto his stages, so no new vocabulary was
+invented. The board is resolved live by NAME, never by id, which earned itself on day
+one: the plan above says "Not Interested" and the live stage reads "Not
+Interested/Unqualified".
+
+| Outcome | Stage | Status |
+| --- | --- | --- |
+| (booked, nothing decided) | Appointment Booked | open |
+| Showed, closed | New Client | won |
+| Showed, needs another | Appointment Showed | open |
+| Showed, not a fit | Not Interested/Unqualified | lost |
+| No-showed | No-Show | **open** |
+
+A no-show stays OPEN on purpose. They can be re-booked, and marking it lost writes off
+a prospect the day they overslept.
+
+This is a wider licence than Stage 1 took, and deliberately so. Cold Call writes one
+tag and lets the workflows decide, because a dialled lead is something his automations
+already act on. The Sales Pipeline has no such automation and held zero opportunities,
+so a board nothing writes to stays empty. The rules that keep it honest: the app only
+ever moves a card **it created** (`sales_calls.ghl_opportunity_id`), never one made by
+hand, and it still deletes nothing.
+
+- `functions/lib/salesPipeline.ts` (+18 tests) — the stage map and the name matcher.
+- `functions/api/lib/agencySales.ts` — resolve the board, create or move the card.
+- `functions/api/lib/recordSalesCall.ts` — the outcome rules, shared by both surfaces
+  so Cold Call > Booked and Sales > Sales Calls cannot drift apart.
+- `supabase/migrations/0060_sales_call_routing.sql` — the link plus `ghl_error` and
+  `ghl_stage`, so a failed push is visible on the row instead of lost.
+- `cold-call/book.ts` creates the card at Appointment Booked, best effort: a CRM that
+  will not answer must never turn a real booking into an error.
 
 ## Stage 3 — Conversations and SMS
 
@@ -89,10 +120,36 @@ Read the agency's conversations into the admin console and send from it. The SMS
 tracker's hand-typed counts give way to what was actually sent, the same way the
 dialing counts just did.
 
-## Stage 4 — Meetings calendar
+## Stage 4 — Meetings calendar: BUILT 2026-07-27
 
-The Onboarding and Demo Call calendars, read live: what is booked, what showed, what
-is coming. Replaces the appointment date sitting on a lead row.
+Read live on every load of Sales > Sales Calls: what is booked, what showed, what is
+coming. A meeting booked on a phone, by a workflow, or moved to next Tuesday inside
+GoHighLevel is now on the page without anybody re-typing it.
+
+The direction of trust is the whole design. **GoHighLevel owns WHEN** the meeting is
+and whether it is still on the calendar; those fields are overwritten on every sync.
+**The app owns WHAT HAPPENED** at it; outcome, cash and follow-up are never touched by
+a sync, which is what makes running one on page load safe.
+
+**Not every calendar, and this is the correction that matters.** The plan line above
+said "the Onboarding and Demo Call calendars". Reading both put four flights and a
+school prom on the sales meetings page: the agency's Onboarding calendar is linked to
+a personal Google account. The sync now takes only calendars whose name says demo,
+discovery or sales, which is the same test `BookingPanel` already uses to decide where
+a discovery call goes, so the calendar the app books into is the calendar it reads
+back. `AGENCY_SALES_CALENDAR_IDS` overrides it by id. Matching nothing yields nothing
+and says so on the page, rather than falling back to everything.
+
+- `functions/api/lib/salesCallSync.ts` (+19 tests) — the reconcile and the calendar
+  picker.
+- `functions/api/admin/sales/calls.ts` — GET syncs then lists; PATCH records and routes.
+- `src/components/admin/sales/SalesCallsSection.tsx` — the page, with a status line
+  that says when a count is only as good as a calendar read that failed.
+
+Both stages verified on localhost against the real account on 2026-07-27: 1 calendar
+read, 1 meeting adopted, `Sales Pipeline` resolved with no missing stages. Recording an
+outcome against the live board is **still unproven**: it writes a real opportunity, and
+that wants Jake watching.
 
 ## Verify (every stage)
 

@@ -42,8 +42,8 @@ describe("canAdminAccess", () => {
   });
 
   it("lets a cold caller read the dialing script but never rewrite it", () => {
-    expect(canAdminAccess("/api/admin/cold-call/script", "GET", "cold_caller")).toBe(true);
-    expect(canAdminAccess("/api/admin/cold-call/script", "PATCH", "cold_caller")).toBe(false);
+    expect(canAdminAccess("/api/admin/cold-call/assets", "GET", "cold_caller")).toBe(true);
+    expect(canAdminAccess("/api/admin/cold-call/assets", "PATCH", "cold_caller")).toBe(false);
   });
 
   it("lets a cold caller book on the agency calendar", () => {
