@@ -220,3 +220,70 @@ deleted it afterwards.
 - [ ] **Tell anyone with the app open to hard-refresh once** (`Ctrl+Shift+R`). Their browser is still holding the old version, and the old version does not understand the new stage names, so it shows them a blank screen. New visitors are fine. I have a plan to make the app fix this itself.
 - [ ] **Say whether I can delete the demo data.** 44 fake leads ("DEMO Roofers list", "Demo Caller (delete me)") are live in production and showing on every stage page. They are not real prospects. Deleting is permanent.
 - [ ] **Decide what should happen when you import a list you have imported before.** Right now a phone number already in the book is skipped completely, so that prospect is never re-tagged and never goes back on the board. That is right for accidentally importing the same file twice, and wrong for deliberately re-working an old list. Tell me which you want.
+
+---
+
+## Agency Settings, and a console that checks itself (2026-07-27, `3debab5` + `056f55f`)
+
+Settings now opens on a short list of what needs you, worst first, instead of a
+wall of settings. Every connection says what it feeds, so a red row tells you the
+page that goes dark rather than the name of a key. A By surface view answers the
+other direction: pick a page that looks empty and see everything it needs.
+
+On top of that, the console now checks itself every 30 minutes and sends admin
+devices one notification when something that WAS working stops working. Nothing
+that stays broken nags you again, and a recovery does not buzz anyone at all.
+
+Two pieces are built and shipped but not yet switched on, and both need
+something only you can issue.
+
+- [ ] **Turn the automatic checks on.** The app half is live and the secret is
+      already generated and sitting in `command-center/app/.env.local` as
+      `HEALTH_CRON_SECRET`. Two commands, in this order. The first was blocked
+      for me by the permission classifier:
+      ```
+      cd command-center/app
+      node scripts/cf-rebind.mjs --add HEALTH_CRON_SECRET
+      ```
+      Read what it prints before saying yes: it also rewrites 9 existing secrets
+      from `.env.local`, and `SESSION_SECRET` is one of them, so if that value is
+      stale everyone gets logged out. Then deploy the alarm clock:
+      ```
+      cd workers/health-cron
+      npm install && npx wrangler login && npx wrangler secret put HEALTH_CRON_SECRET
+      npx wrangler deploy
+      ```
+      Paste the SAME value both times. Until both are done, Agency Settings shows
+      a red "Scheduled health checks" row, which is it telling the truth about
+      itself.
+
+- [ ] **Prove the alert actually arrives.** Once deployed:
+      `curl -X POST https://hauck-health-cron.<subdomain>.workers.dev/run -H "x-health-cron: <the secret>"`.
+      It answers with a summary line. Then break something harmless in the test
+      account, run it again, and confirm your phone buzzes. Nobody has ever seen
+      this notification fire, so it is unproven until you see it.
+
+- [ ] **Generate a read-only Doppler service token** for `hauck-command-center` /
+      `prd`. Until this exists, the agency half of the Secrets tab can only show
+      what the running app has, and it cannot tell you when Doppler and the live
+      deploy have drifted apart. Optional second token with write access if you
+      want to edit secrets in the app; leave it out and editing stays off, which
+      the page says plainly.
+
+- [ ] **Eyeball the page on the live site, not localhost.** `app.hauckmarketing.com/admin/settings`.
+      Localhost cannot see the real credentials and will show false alarms; the
+      page warns you about this at the top. Two things to check against: Google
+      Drive should read broken ("never consented"), and Willis's GoHighLevel
+      should pass.
+
+- [ ] **Decide about the one-click rebind button.** You picked the option that
+      mentioned it and I did not build it. It needs a Cloudflare API token living
+      inside the app, which turns an admin login being stolen into someone owning
+      the whole Cloudflare account. The drift banner hands you a copy-paste
+      command instead. Say if you want the button anyway.
+
+- [ ] **Your `feat/client-onboarding` branch has ~500 lines of uncommitted
+      settings work in it** (an older copy of what just shipped, missing the
+      agency GoHighLevel entry). It is superseded now. I left it alone because it
+      is your uncommitted work, but it will collide the next time that branch
+      merges main. Tell me to delete it and I will.
