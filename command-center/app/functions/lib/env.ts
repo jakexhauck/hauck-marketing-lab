@@ -109,6 +109,12 @@ export interface Env {
   DOPPLER_WRITE_TOKEN?: string;
   DOPPLER_PROJECT?: string;
   DOPPLER_CONFIG?: string;
+  // Shared secret that lets the scheduler Worker call the connection health
+  // probe unattended, since Cloudflare Pages has no cron trigger of its own.
+  // Unset means the scheduled check is simply off; it opens no other route
+  // either way. Must be at least 32 chars or the gate refuses it. See
+  // functions/lib/healthCron.ts.
+  HEALTH_CRON_SECRET?: string;
   KV_CACHE?: KVNamespace;
 }
 

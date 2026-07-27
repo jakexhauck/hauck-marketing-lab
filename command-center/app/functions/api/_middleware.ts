@@ -12,6 +12,7 @@ import { resolveCaller } from "../lib/identity";
 import { checkStaffAccess } from "../lib/permissions";
 import { getActiveAdmin } from "../lib/adminAuth";
 import { canAdminAccess } from "../lib/adminRoles";
+import { HEALTH_CRON_HEADER, isHealthCronRequest } from "../lib/healthCron";
 
 const allowedOrigins = new Set([
   "http://localhost:5173", // vite dev server
@@ -69,6 +70,22 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
 
   if (ctx.request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders(origin) });
+  }
+
+  // The scheduled health probe, and only that. See lib/healthCron.ts for why
+  // this gate is written as one exact-match pure function. It runs before the
+  // session gate but grants strictly less: no ctx.data.admin is set, so the
+  // caller is not an admin and no other route becomes reachable. A wrong or
+  // absent secret simply falls through and gets the usual 401.
+  if (
+    isHealthCronRequest(
+      ctx.request.method,
+      url.pathname,
+      ctx.request.headers.get(HEALTH_CRON_HEADER),
+      ctx.env.HEALTH_CRON_SECRET,
+    )
+  ) {
+    return await runNext(ctx, origin, url);
   }
 
   if (!PUBLIC_PATHS.has(url.pathname)) {

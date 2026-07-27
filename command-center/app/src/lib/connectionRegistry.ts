@@ -344,10 +344,29 @@ export const CONNECTIONS: ConnectionDef[] = [
     ],
     surfaces: [
       { label: "New lead push alerts", audience: "client" },
-      { label: "Connection health alerts (planned)", audience: "admin" },
+      { label: "Connection health alerts", audience: "admin" },
     ],
     remediation:
       "Never rotate VAPID keys casually: every subscribed device has to re-subscribe, and users who dismissed the prompt have no way back in yet.",
+  },
+  {
+    id: "health-cron",
+    label: "Scheduled health checks",
+    vendor: "Cloudflare Workers",
+    scope: "agency",
+    purpose:
+      "The watchdog that runs this very page every 30 minutes unattended, so a credential that dies at 3am is known by 3:30 rather than whenever someone next opens Settings.",
+    credentials: [
+      {
+        name: "HEALTH_CRON_SECRET",
+        home: "cloudflare",
+        inDoppler: true,
+        note: "Shared with the scheduler Worker, which is a separate deploy: Pages projects cannot carry a cron trigger. At least 32 chars or the gate refuses it. Buys the caller one read-only snapshot and no admin power at all.",
+      },
+    ],
+    surfaces: [{ label: "Connection health alerts", audience: "admin" }],
+    remediation:
+      "Set the same value in two places or the checks silently stop: this app's Cloudflare env, and the scheduler Worker's own secret (`wrangler secret put HEALTH_CRON_SECRET` in workers/health-cron). Absent here, the scheduled check is off and this page is only as fresh as the last time someone opened it.",
   },
   {
     id: "resend",
