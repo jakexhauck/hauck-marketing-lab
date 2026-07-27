@@ -539,60 +539,17 @@ git commit -m "feat(connections): surface Connections as an onboarding step"
 
 ---
 
-## Task 8: Admin status mirror
+## Task 8: Admin status mirror ~~(SUPERSEDED, do not build)~~
 
-**Files:**
-- Create: `functions/api/admin/connections/[tenantId].ts`
-- Create: `src/routes/admin/AdminConnections.tsx`
-- Modify: `src/App.tsx` (register `/admin/connections`)
-- Test: `functions/api/admin/connections/tenantId.test.ts`
+Built and shipped instead as the Agency Settings control room (2026-07-27,
+`3debab5`), which went considerably further than this task described: a
+registry of every integration, live probes, per-client credential editing, and
+a scheduled watchdog. Anything here about an admin-side connection view is
+already done and this section would only send you to rebuild it.
 
-**Interfaces:**
-- Consumes: the same `readSocialAccounts` helper, but per an admin-selected tenant. Admin auth via existing `functions/lib/adminAuth.ts`.
-- Produces: `GET /api/admin/connections/:tenantId` returns `{ connections: ConnectionStatus[] }` for that tenant.
-
-- [ ] **Step 1: Write the failing test** - admin endpoint requires admin session and resolves the target tenant's GHL context (mock `adminAuth` + `resolveTenantById`).
-
-```ts
-import { it, expect, vi } from "vitest";
-import * as ghl from "../../../../lib/ghl";
-import { onRequestGet } from "./[tenantId]";
-
-it("returns status for the requested tenant", async () => {
-  vi.spyOn(ghl, "ghlJson").mockResolvedValue({ accounts: [{ platform: "facebook" }] } as never);
-  const ctx: any = {
-    params: { tenantId: "willis-windows" },
-    data: { admin: { id: "A1" }, resolveTenant: async () => ({ ghl_token: "t", ghl_location_id: "L1" }) },
-  };
-  const res = await onRequestGet(ctx);
-  const json = await res.json();
-  expect(json.connections.find((c: any) => c.id === "facebook").state).toBe("connected");
-});
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-Run: `npx vitest run functions/api/admin/connections/tenantId.test.ts`
-Expected: FAIL.
-
-- [ ] **Step 3: Implement the admin endpoint** - guard with admin auth (mirror an existing `functions/api/admin/*` handler), resolve the target tenant's GHL context via the existing admin tenant resolver, then reuse `readSocialAccounts` and return the same `ConnectionStatus[]` shape as `/api/connections/status`.
-
-- [ ] **Step 4: Run test to verify it passes**
-Run: `npx vitest run functions/api/admin/connections/tenantId.test.ts`
-Expected: PASS.
-
-- [ ] **Step 5: Implement `AdminConnections.tsx`** - list tenants (reuse the existing admin clients list), a red/amber/green dot per integration from the endpoint. Register `/admin/connections` in `src/App.tsx` behind the admin guard.
-
-- [ ] **Step 6: Build**
-Run: `pnpm build`
-Expected: clean build.
-
-- [ ] **Step 7: Commit**
-```bash
-git add functions/api/admin/connections src/routes/admin/AdminConnections.tsx src/App.tsx
-git commit -m "feat(connections): admin status mirror across tenants"
-```
-
----
+What is still unbuilt in THIS plan is the client-facing half: letting a client
+link their own Facebook and Google from `/company/connections`. That is worth
+doing and is untouched by the settings work.
 
 ## Task 9: Verify + ship
 
