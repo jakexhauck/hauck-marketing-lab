@@ -68,7 +68,11 @@ function ManagementBody({ page, callerId }: { page: string; callerId: string }) 
     case "scripts":
       return <ScriptsPanel />;
     case "assets":
-      return <AssetsPanel />;
+      return <AssetsPanel kind="asset" />;
+    case "sops":
+      // Same panel, different kind and wording. What the team reads on their
+      // own SOPs page is written here.
+      return <AssetsPanel kind="sop" />;
     case "stages":
       return <StagesPanel />;
     default:

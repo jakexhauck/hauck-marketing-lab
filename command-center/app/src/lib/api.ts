@@ -1513,8 +1513,9 @@ export async function logColdCallDial(input: {
 export interface ColdCallAsset {
   id: string;
   // "script" is a variation of the pitch and the unit of the A/B test.
-  // "asset" is any other document, filed under `category`.
-  kind: "script" | "asset";
+  // "asset" is any other document read mid-call, filed under `category`.
+  // "sop" is how the job is done, read before and between calls (0061).
+  kind: "script" | "asset" | "sop";
   category: string;
   name: string;
   html: string;
@@ -1539,7 +1540,7 @@ export async function getColdCallAssets(
 }
 
 export async function createColdCallAsset(input: {
-  kind: "script" | "asset";
+  kind: "script" | "asset" | "sop";
   name: string;
   category?: string;
   html?: string;

@@ -9,12 +9,19 @@ import {
 import { groupByCategory } from "../../../../functions/lib/coldCallAssets";
 import AssetEditor from "./AssetEditor";
 
-// Cold Call > Settings: everything the caller reads that is not the pitch.
+// Cold Call > Management: the owner writing what a caller reads.
 //
-// Objection handling first, and then whatever Jake decides next month. The
-// headings are typed rather than chosen from a list this app ships, which is the
-// point: adding "Voicemail" should be Jake's afternoon, not a migration and a
-// deploy.
+// Two pages use this one panel, because they are the same job with a different
+// audience and moment:
+//   kind="asset" the mid-call shelf, opened in the floating panel.
+//   kind="sop"   how the job is done, read on its own page before and between
+//                calls (0061).
+// A second near-identical file would have been two places to fix every bug in
+// adding, renaming, deleting and grouping a document.
+//
+// The headings are typed rather than chosen from a list this app ships, which is
+// the point: adding "Voicemail" should be Jake's afternoon, not a migration and
+// a deploy.
 //
 // The category field offers what already exists as suggestions but accepts
 // anything, so the common case is one click and a new heading is still one
@@ -22,7 +29,52 @@ import AssetEditor from "./AssetEditor";
 // "Objection handling" typed twice slightly differently stays one section rather
 // than quietly becoming two that look identical.
 
-export default function AssetsPanel() {
+// The wording per kind. Kept beside the component rather than passed in from
+// every call site, so the two pages cannot drift into describing the same
+// mechanism two different ways.
+const DEFAULT_COPY: Record<"asset" | "sop", AssetsPanelCopy> = {
+  asset: {
+    heading: "Objection handling and everything else",
+    blurb:
+      "Anything a caller needs to reach for mid-call. It opens in the same floating panel as the script, so nobody leaves the call to find it. Name the sections whatever you want.",
+    addLabel: "Add a document",
+    namePlaceholder: 'Name it, e.g. "We already have an agency"',
+    categoryPlaceholder: "Section, e.g. Objection handling",
+    emptyText: "Nothing here yet. Objection handling is the usual first one.",
+    editorSubtitle: "Read from the floating panel mid-call. Saves as you type.",
+  },
+  sop: {
+    heading: "Standard operating procedures",
+    blurb:
+      "How the job is done, for the team to read before and between calls rather than during one. Everyone with a cold calling login gets their own SOPs page and sees these the moment you save.",
+    addLabel: "Add an SOP",
+    namePlaceholder: 'Name it, e.g. "Logging a call outcome"',
+    categoryPlaceholder: "Section, e.g. Daily routine",
+    emptyText:
+      "No SOPs yet. The first one is usually how to work the day's list start to finish.",
+    editorSubtitle:
+      "Visible on the team's SOPs page as soon as it saves. Saves as you type.",
+  },
+};
+
+export interface AssetsPanelCopy {
+  heading: string;
+  blurb: string;
+  addLabel: string;
+  namePlaceholder: string;
+  categoryPlaceholder: string;
+  emptyText: string;
+  editorSubtitle: string;
+}
+
+export default function AssetsPanel({
+  kind = "asset",
+  copy,
+}: {
+  kind?: "asset" | "sop";
+  copy?: Partial<AssetsPanelCopy>;
+}) {
+  const text: AssetsPanelCopy = { ...DEFAULT_COPY[kind], ...copy };
   const query = useColdCallAssetsQuery();
   const create = useCreateColdCallAsset();
   const remove = useDeleteColdCallAsset();
@@ -34,8 +86,8 @@ export default function AssetsPanel() {
   const [error, setError] = useState<string | null>(null);
 
   const assets = useMemo(
-    () => (query.data?.assets ?? []).filter((a) => a.kind === "asset" && !a.archivedAt),
-    [query.data],
+    () => (query.data?.assets ?? []).filter((a) => a.kind === kind && !a.archivedAt),
+    [query.data, kind],
   );
 
   const groups = useMemo(() => groupByCategory(assets), [assets]);
@@ -49,7 +101,7 @@ export default function AssetsPanel() {
     if (!trimmed) return;
     try {
       const res = await create.mutateAsync({
-        kind: "asset",
+        kind,
         name: trimmed,
         category: category.trim(),
       });
@@ -76,16 +128,12 @@ export default function AssetsPanel() {
     <section className="rounded-[var(--radius-lg)] border border-border p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-[15px] font-semibold">Objection handling and everything else</h3>
-          <p className="mt-1 max-w-[62ch] text-[13px] text-muted">
-            Anything a caller needs to reach for mid-call. It opens in the same
-            floating panel as the script, so nobody leaves the call to find it.
-            Name the sections whatever you want.
-          </p>
+          <h3 className="text-[15px] font-semibold">{text.heading}</h3>
+          <p className="mt-1 max-w-[62ch] text-[13px] text-muted">{text.blurb}</p>
         </div>
         <button type="button" className="pk-link" onClick={() => setAdding((v) => !v)}>
           <Plus size={14} aria-hidden />
-          Add a document
+          {text.addLabel}
         </button>
       </div>
 
@@ -99,7 +147,7 @@ export default function AssetsPanel() {
         >
           <input
             className="pk-input !w-auto"
-            placeholder='Name it, e.g. "We already have an agency"'
+            placeholder={text.namePlaceholder}
             value={name}
             onChange={(e) => setName(e.target.value)}
             aria-label="Document name"
@@ -107,13 +155,14 @@ export default function AssetsPanel() {
           />
           <input
             className="pk-input !w-auto"
-            list="cold-call-asset-categories"
-            placeholder="Section, e.g. Objection handling"
+            // Per kind, so the SOP form never suggests a mid-call heading.
+            list={`cold-call-${kind}-categories`}
+            placeholder={text.categoryPlaceholder}
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             aria-label="Section"
           />
-          <datalist id="cold-call-asset-categories">
+          <datalist id={`cold-call-${kind}-categories`}>
             {knownCategories.map((c) => (
               <option key={c} value={c} />
             ))}
@@ -134,9 +183,7 @@ export default function AssetsPanel() {
       ) : query.isError ? (
         <p className="mt-4 text-[13px] text-danger">Could not load these.</p>
       ) : groups.length === 0 ? (
-        <p className="mt-4 text-[13px] text-muted">
-          Nothing here yet. Objection handling is the usual first one.
-        </p>
+        <p className="mt-4 text-[13px] text-muted">{text.emptyText}</p>
       ) : (
         groups.map((group) => (
           <div key={group.category} className="mt-5">
@@ -172,7 +219,7 @@ export default function AssetsPanel() {
                   {openId === asset.id && (
                     <AssetEditor
                       asset={asset}
-                      subtitle="Read from the floating panel mid-call. Saves as you type."
+                      subtitle={text.editorSubtitle}
                       onDone={() => setOpenId(null)}
                     />
                   )}

@@ -6,11 +6,19 @@ import { DIAL_OUTCOMES, isDialOutcome } from "./coldCallDials";
 //
 // A "script" is a variation of the pitch and is the unit of the A/B test.
 // An "asset" is any other document, filed under a heading Jake names himself.
+// An "sop" is how the job is done, read before and between calls rather than
+// during one, so it gets a page instead of the floating panel (0061).
 // They share a table because they are the same thing to everyone except the
 // dial that references one.
 
-export const ASSET_KINDS = ["script", "asset"] as const;
+export const ASSET_KINDS = ["script", "asset", "sop"] as const;
 export type AssetKind = (typeof ASSET_KINDS)[number];
+
+// The kinds filed under an owner-named heading. A script has no category: it is
+// one flat list, because the A/B test compares all of them against each other.
+export function usesCategory(kind: AssetKind): boolean {
+  return kind === "asset" || kind === "sop";
+}
 
 export function isAssetKind(value: unknown): value is AssetKind {
   return typeof value === "string" && (ASSET_KINDS as readonly string[]).includes(value);

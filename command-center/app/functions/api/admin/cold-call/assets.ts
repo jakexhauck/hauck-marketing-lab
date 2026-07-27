@@ -8,6 +8,7 @@ import {
   cleanName,
   isAssetKind,
   statsByScript,
+  usesCategory,
   type ScriptDialRow,
 } from "../../../lib/coldCallAssets";
 
@@ -130,7 +131,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     return Response.json({ error: "Give it a name so it can be told apart." }, { status: 400 });
   }
   // A script belongs to the test, not to a folder, so it never carries one.
-  const category = body.kind === "asset" ? cleanCategory(body.category) : "";
+  // Assets and SOPs are both filed under a heading the owner types.
+  const category = usesCategory(body.kind) ? cleanCategory(body.category) : "";
 
   const html = typeof body.html === "string" ? body.html : "";
   if (html.length > MAX_SCRIPT_HTML) {

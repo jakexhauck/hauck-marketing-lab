@@ -43,6 +43,9 @@ export const COLD_CALL_PAGES: ColdCallPageDef[] = [
   // job, not the owner's, and an owner setting a hire's hours without asking
   // them is how a rota stops matching reality.
   { id: "availability", label: "Availability", side: "left" },
+  // How the job is done. LEFT because it is written FOR the caller: the owner
+  // writes them under Management, everybody reads them here.
+  { id: "sops", label: "SOPs", side: "left" },
   // Running the operation: ONE owner-side tab, with everything the owner does
   // as pages inside it. Assign, the roster's week, the scripts, the shelf and
   // the stage check were all their own strip entries at some point; a strip
@@ -69,6 +72,8 @@ export const MANAGEMENT_PAGES: ManagementPageDef[] = [
   { id: "availability", label: "Team availability" },
   { id: "scripts", label: "Scripts" },
   { id: "assets", label: "Call shelf" },
+  // Writing the SOPs the team reads on their own SOPs page.
+  { id: "sops", label: "SOPs" },
   { id: "stages", label: "Stage check" },
 ];
 

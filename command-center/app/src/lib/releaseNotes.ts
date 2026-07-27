@@ -26,6 +26,15 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-27-cold-call-sops",
+    date: "27 July 2026",
+    title: "Cold calling: SOPs you can read on the job",
+    items: [
+      "New SOPs page in cold calling: how the job is done, written by Jake and readable by everyone. Pick a document on the left, read it on the right.",
+      "SOPs live on their own page rather than in the mid-call panel, because they are for reading before the first dial and between calls, not while somebody is on the line.",
+    ],
+  },
+  {
     id: "2026-07-27-cold-call-availability",
     date: "27 July 2026",
     title: "Cold calling: your hours, and one place to run it from",

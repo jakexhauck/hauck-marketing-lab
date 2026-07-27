@@ -22,6 +22,7 @@ import ColdCallManagement from "./ColdCallManagement";
 import ColdCallCallbacks from "./ColdCallCallbacks";
 import ColdCallBooked from "./ColdCallBooked";
 import ColdCallAvailability from "./ColdCallAvailability";
+import ColdCallSops from "./ColdCallSops";
 
 // Acquisition > Cold Call. Unlike its sibling tabs this is a section rather than
 // a single surface: the caller works Leads all day, checks Callbacks, and the
@@ -259,6 +260,10 @@ function ColdCallBody({
       // person. The component asks the owner to pick one rather than merging
       // two people's hours into one paintable grid.
       return <ColdCallAvailability callerId={callerId} isOwner={isOwner} />;
+    case "sops":
+      // Roster-wide by nature: an SOP is the same document for everyone, so the
+      // person selector does not scope it.
+      return <ColdCallSops />;
     default:
       // resolveColdCallView never returns anything else; a miss is a bug, not a
       // state worth rendering something plausible for.

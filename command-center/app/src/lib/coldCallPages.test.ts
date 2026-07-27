@@ -21,6 +21,7 @@ describe("coldCallPagesFor", () => {
       "not-interested",
       "tracker",
       "availability",
+      "sops",
       "management",
     ]);
   });
@@ -33,6 +34,9 @@ describe("coldCallPagesFor", () => {
     for (const stage of COLD_CALL_STAGES) expect(ids).toContain(stage.id);
     expect(ids).toContain("tracker");
     expect(ids).toContain("availability");
+    // The SOPs are written FOR him. A caller who cannot read how the job is
+    // done is the one person who needed the page.
+    expect(ids).toContain("sops");
   });
 
   it("keeps management owner-only, and it is the only owner-side tab", () => {
@@ -81,6 +85,7 @@ describe("coldCallSides", () => {
       "not-interested",
       "tracker",
       "availability",
+      "sops",
     ]);
     expect(right.map((p) => p.id)).toEqual(["management"]);
   });
@@ -138,7 +143,18 @@ describe("resolveManagementPage", () => {
     expect(resolveManagementPage("availability")).toBe("availability");
     expect(resolveManagementPage("scripts")).toBe("scripts");
     expect(resolveManagementPage("assets")).toBe("assets");
+    expect(resolveManagementPage("sops")).toBe("sops");
     expect(resolveManagementPage("stages")).toBe("stages");
+  });
+
+  it("writing SOPs is a Management page, reading them is a strip page", () => {
+    // The same id deliberately exists in both lists: they are different params
+    // (?manage= writes, ?view= reads) and different audiences. This pins that
+    // the pair stays in step, since removing either half strands the other.
+    expect(MANAGEMENT_PAGES.map((p) => p.id)).toContain("sops");
+    expect(COLD_CALL_PAGES.map((p) => p.id)).toContain("sops");
+    // The reading side must NOT be owner-only, or the team cannot reach it.
+    expect(COLD_CALL_PAGES.find((p) => p.id === "sops")?.ownerOnly).toBeFalsy();
   });
 
   it("holds everything the retired Settings page held", () => {
