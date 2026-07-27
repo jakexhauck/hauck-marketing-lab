@@ -40,7 +40,7 @@ export const RELEASES: Release[] = [
     date: "27 July 2026",
     title: "Cold calling: SOPs you can read on the job",
     items: [
-      "New SOPs page in cold calling: how the job is done, written by Jake and readable by everyone. Pick a document on the left, read it on the right.",
+      "New SOPs page in cold calling: how the job is done, written by Jake and readable by everyone. Pick a document from the dropdown and it opens full width, laid out to be read start to finish.",
       "SOPs live on their own page rather than in the mid-call panel, because they are for reading before the first dial and between calls, not while somebody is on the line.",
     ],
   },

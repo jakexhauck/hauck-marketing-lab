@@ -16,8 +16,10 @@ import { groupByCategory } from "../../../../functions/lib/coldCallAssets";
 // and returned to between calls, and it is usually longer than a panel wants to
 // be.
 //
-// Contents rail on the left, one document open at a time on the right. An SOP
-// nobody can find is an SOP nobody follows.
+// One document at full width, picked from a dropdown above it, rather than a
+// contents rail down the side. An SOP is read start to finish, so the reading
+// surface gets the whole column and the navigation costs one click only when
+// somebody actually wants a different document.
 export default function ColdCallSops() {
   const query = useColdCallAssetsQuery();
   const [openId, setOpenId] = useState<string | null>(null);
@@ -48,54 +50,59 @@ export default function ColdCallSops() {
     <div className="ccsop">
       <SopStyle />
 
-      <nav className="ccsop-rail" aria-label="SOPs">
-        {groups.map((group) => (
-          <div key={group.category} className="ccsop-group">
-            <h3 className="ccsop-cat">{group.category}</h3>
-            <ul>
-              {group.items.map((sop) => (
-                <li key={sop.id}>
-                  <button
-                    type="button"
-                    className={`ccsop-item${selected?.id === sop.id ? " on" : ""}`}
-                    aria-current={selected?.id === sop.id}
-                    onClick={() => setOpenId(sop.id)}
-                  >
+      <div className="ccsop-bar">
+        <label className="ccsop-pick">
+          <span className="ccsop-picklabel">SOP</span>
+          <select
+            className="pk-select !w-auto"
+            value={selected?.id ?? ""}
+            onChange={(e) => setOpenId(e.target.value)}
+            aria-label="Which SOP to read"
+          >
+            {/* Grouped by the owner's own headings. optgroup rather than a
+                flat list so a growing set stays findable. */}
+            {groups.map((group) => (
+              <optgroup key={group.category} label={group.category}>
+                {group.items.map((sop) => (
+                  <option key={sop.id} value={sop.id}>
                     {sop.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </nav>
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </label>
 
-      <article className="ccsop-doc">
-        {selected && (
-          <>
-            <header className="ccsop-head">
-              <span className="ccsop-badge">
-                <BookOpen size={13} aria-hidden />
-                {selected.category || "SOP"}
-              </span>
-              <h2 className="ccsop-title">{selected.name}</h2>
-            </header>
-            {selected.html.trim() ? (
-              // Sanitized server-side on every write (functions/lib/setterScript.ts),
-              // which is the same boundary the dialing script and the mid-call
-              // shelf are rendered through.
-              <div
-                className="ccsop-body"
-                dangerouslySetInnerHTML={{ __html: selected.html }}
-              />
-            ) : (
-              <p className="ccsop-blank">
-                This one has not been written yet. Jake writes these.
-              </p>
-            )}
-          </>
-        )}
-      </article>
+        <span className="ccsop-count">
+          {sops.length} {sops.length === 1 ? "document" : "documents"}
+        </span>
+      </div>
+
+      {selected && (
+        <article className="ccsop-doc">
+          <header className="ccsop-head">
+            <span className="ccsop-badge">
+              <BookOpen size={13} aria-hidden />
+              {selected.category || "SOP"}
+            </span>
+            <h2 className="ccsop-title">{selected.name}</h2>
+          </header>
+
+          {selected.html.trim() ? (
+            // Sanitized server-side on every write (functions/lib/setterScript.ts),
+            // which is the same boundary the dialing script and the mid-call
+            // shelf are rendered through.
+            <div
+              className="ccsop-body"
+              dangerouslySetInnerHTML={{ __html: selected.html }}
+            />
+          ) : (
+            <p className="ccsop-blank">
+              This one has not been written yet. Jake writes these.
+            </p>
+          )}
+        </article>
+      )}
     </div>
   );
 }
@@ -103,46 +110,49 @@ export default function ColdCallSops() {
 function SopStyle() {
   return (
     <style>{`
-      .ccsop { display: flex; gap: 22px; align-items: flex-start; }
+      .ccsop-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+      .ccsop-pick { display: inline-flex; align-items: center; gap: 9px; }
+      .ccsop-picklabel { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
+      .ccsop-count { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); }
 
-      .ccsop-rail { flex: 0 0 216px; position: sticky; top: 0; }
-      .ccsop-group + .ccsop-group { margin-top: 18px; }
-      .ccsop-cat { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); margin: 0 0 7px; }
-      .ccsop-rail ul { list-style: none; margin: 0; padding: 0; }
-      .ccsop-item { display: block; width: 100%; text-align: left; border: 0; background: transparent; border-left: 2px solid var(--divider); padding: 7px 12px; font: inherit; font-size: 13.5px; color: var(--text-muted); cursor: pointer; transition: color .14s, border-color .14s; }
-      .ccsop-item:hover { color: var(--text); }
-      .ccsop-item.on { color: var(--brand-text); border-left-color: var(--brand); font-weight: 600; }
+      /* The document owns the whole column. */
+      .ccsop-doc { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 38px 52px 46px; }
 
-      .ccsop-doc { flex: 1 1 auto; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px 30px; }
-      .ccsop-head { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--divider); }
+      .ccsop-head { margin-bottom: 26px; padding-bottom: 20px; border-bottom: 1px solid var(--divider); }
       .ccsop-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--brand-text); background: var(--brand-tint); border-radius: 999px; padding: 3px 10px; }
-      .ccsop-title { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -0.01em; color: var(--text); margin: 10px 0 0; line-height: 1.25; }
+      .ccsop-title { font-family: var(--font-display); font-size: 27px; font-weight: 600; letter-spacing: -0.015em; color: var(--text); margin: 13px 0 0; line-height: 1.2; }
 
-      /* Long-form reading: wider line height and a capped measure, since an SOP
-         is read start to finish rather than scanned like the mid-call shelf. */
-      .ccsop-body { max-width: 68ch; font-size: 14.5px; line-height: 1.7; color: var(--text-muted); }
-      .ccsop-body h1, .ccsop-body h2, .ccsop-body h3 { font-family: var(--font-display); color: var(--text); line-height: 1.3; margin: 24px 0 8px; }
-      .ccsop-body h1 { font-size: 20px; }
-      .ccsop-body h2 { font-size: 17px; }
-      .ccsop-body h3 { font-size: 15px; }
-      .ccsop-body p { margin: 0 0 13px; }
-      .ccsop-body ul, .ccsop-body ol { margin: 0 0 13px; padding-left: 22px; }
-      .ccsop-body li { margin: 5px 0; }
-      .ccsop-body li::marker { color: var(--brand); }
+      /* Long-form reading. The measure is capped generously rather than tightly:
+         the document has the full width, and a cap this wide only bites on a
+         very large monitor, where an uncapped line would run past what an eye
+         can track back from. */
+      .ccsop-body { max-width: 92ch; font-size: 15px; line-height: 1.75; color: var(--text-muted); }
+      .ccsop-body > *:first-child { margin-top: 0; }
+      .ccsop-body h1, .ccsop-body h2, .ccsop-body h3 { font-family: var(--font-display); color: var(--text); line-height: 1.3; font-weight: 600; margin: 30px 0 10px; }
+      .ccsop-body h1 { font-size: 21px; }
+      .ccsop-body h2 { font-size: 18px; }
+      .ccsop-body h3 { font-size: 15.5px; }
+      .ccsop-body p { margin: 0 0 15px; }
+      .ccsop-body ul, .ccsop-body ol { margin: 0 0 15px; padding-left: 24px; }
+      .ccsop-body li { margin: 7px 0; }
+      .ccsop-body li::marker { color: var(--brand); font-weight: 600; }
       .ccsop-body a { color: var(--brand-text); }
       .ccsop-body strong { color: var(--text); font-weight: 600; }
+      .ccsop-body blockquote { margin: 0 0 15px; padding: 2px 0 2px 16px; border-left: 3px solid var(--brand); color: var(--text); }
       .ccsop-blank { color: var(--text-faint); font-size: 13.5px; margin: 0; }
 
-      /* On a phone the rail becomes a scrolling chip row above the document,
-         rather than a 216px column eating half the width. */
+      /* A phone does not have a column to give away, so the padding comes back
+         to something a thumb-width screen can carry. */
       @media (max-width: 860px) {
-        .ccsop { flex-direction: column; }
-        .ccsop-rail { position: static; flex: none; width: 100%; display: flex; gap: 18px; overflow-x: auto; padding-bottom: 4px; }
-        .ccsop-group + .ccsop-group { margin-top: 0; }
-        .ccsop-rail ul { display: flex; gap: 6px; }
-        .ccsop-item { white-space: nowrap; border-left: 0; border-bottom: 2px solid var(--divider); padding: 6px 10px; }
-        .ccsop-item.on { border-bottom-color: var(--brand); }
-        .ccsop-doc { padding: 20px; }
+        .ccsop-doc { padding: 24px 20px 30px; }
+        .ccsop-title { font-size: 22px; }
+      }
+
+      /* Printing an SOP is a real thing somebody does on their first day. */
+      @media print {
+        .ccsop-bar { display: none; }
+        .ccsop-doc { border: 0; box-shadow: none; padding: 0; }
+        .ccsop-body { max-width: none; color: #000; }
       }
     `}</style>
   );
