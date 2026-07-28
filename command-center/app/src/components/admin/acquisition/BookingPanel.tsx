@@ -157,7 +157,7 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
     <div className="mt-3 rounded-[var(--radius-lg)] border border-border p-4">
       <div className="flex flex-wrap items-center gap-3">
         <select
-          className="pk-select !w-auto"
+          className="pk-select pk-select-pill"
           value={calendarId}
           onChange={(e) => {
             setCalendarId(e.target.value);

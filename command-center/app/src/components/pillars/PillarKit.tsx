@@ -443,10 +443,51 @@ export function PillarStyle() {
       .pk-input, .pk-select, .pk-textarea {
         width: 100%; padding: 8px 11px; border-radius: 9px; border: 1px solid var(--border);
         background: var(--surface); color: var(--text); font: inherit; font-size: 13.5px;
+        transition: border-color .14s, color .14s, background-color .14s, box-shadow .14s;
       }
       .pk-input:focus, .pk-select:focus, .pk-textarea:focus { outline: 2px solid var(--brand); outline-offset: 1px; border-color: var(--brand); }
       .pk-input:disabled, .pk-select:disabled, .pk-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
       .pk-textarea { resize: vertical; min-height: 64px; line-height: 1.55; }
+
+      /* A select the browser draws itself is the one control in the admin that
+         still looks like an OS widget: grey bevel, system arrow, no hover. Kill
+         the native appearance and paint our own chevron, so a dropdown reads as
+         part of the same set as .pk-link and .pk-btn-* beside it. The chevron is
+         a data URI (a select cannot hold a pseudo-element), which means its
+         color is baked in, so dark mode gets its own copy below. */
+      .pk-select {
+        appearance: none; -webkit-appearance: none; -moz-appearance: none;
+        padding-right: 32px; cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23555a6b' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 14px 14px;
+      }
+      [data-theme="dark"] .pk-select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23a8adc0' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      }
+      /* Hover takes the border, the label AND the chevron to brand, the same
+         move .pk-link makes; a grey arrow left behind on an indigo control is
+         the tell that the arrow was never really ours. */
+      .pk-select:hover:not(:disabled) {
+        border-color: var(--brand); color: var(--brand-text);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      }
+      [data-theme="dark"] .pk-select:hover:not(:disabled) {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23bcb6ff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      }
+      /* The open popup is drawn by the OS on some platforms and inherits the
+         page colors on others; naming them keeps dark mode from going white. */
+      .pk-select option, .pk-select optgroup { background: var(--surface); color: var(--text); }
+
+      /* Toolbar variant: a dropdown that lives in a header row rather than a
+         form, sat beside pill buttons. Matches .pk-link exactly (same height,
+         radius, weight and hover) so the row reads as one set of controls. */
+      .pk-select-pill {
+        width: auto; border-radius: 999px; padding: 9px 34px 9px 14px;
+        font-size: 13px; font-weight: 600; line-height: 1.2;
+      }
+      .pk-select-pill { background-position: right 13px center; }
 
       .pk-checkbox-row { display: flex; align-items: flex-start; gap: 9px; font-size: 13.5px; color: var(--text); margin-bottom: 18px; cursor: pointer; }
       .pk-checkbox-row input { margin-top: 2px; flex-shrink: 0; }

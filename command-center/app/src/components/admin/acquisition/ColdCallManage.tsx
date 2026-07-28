@@ -290,7 +290,7 @@ export default function ColdCallManage({
         <div className="mb-3 flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-brand bg-brand/5 px-4 py-3">
           <span className="text-[13px] font-semibold">{selected.size} selected</span>
           <select
-            className="pk-select !w-auto"
+            className="pk-select pk-select-pill"
             value={assignTo}
             onChange={(e) => setAssignTo(e.target.value)}
           >
@@ -347,7 +347,7 @@ export default function ColdCallManage({
           >
             <span className="text-[12.5px] text-muted">Set</span>
             <select
-              className="pk-select !w-auto"
+              className="pk-select pk-select-pill"
               value={bulkField}
               onChange={(e) => setBulkField(e.target.value as BulkField)}
               aria-label="Which field to set on every selected lead"

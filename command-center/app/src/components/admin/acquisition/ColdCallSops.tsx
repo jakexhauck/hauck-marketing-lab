@@ -54,7 +54,7 @@ export default function ColdCallSops() {
         <label className="ccsop-pick">
           <span className="ccsop-picklabel">SOP</span>
           <select
-            className="pk-select !w-auto"
+            className="pk-select pk-select-pill"
             value={selected?.id ?? ""}
             onChange={(e) => setOpenId(e.target.value)}
             aria-label="Which SOP to read"

@@ -135,7 +135,7 @@ export default function ColdCallSection() {
         <div className="flex flex-wrap items-center gap-3">
           {isOwner && !rosterWide && (
             <select
-              className="pk-select !w-auto"
+              className="pk-select pk-select-pill"
               value={callerId}
               onChange={(e) => setCallerId(e.target.value)}
               aria-label="Whose cold calling to show"
