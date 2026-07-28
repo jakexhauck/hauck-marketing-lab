@@ -38,6 +38,9 @@ interface Body {
   // The agreed callback date, "YYYY-MM-DD". Only sent with a callback, and what
   // turns it into a task on the contact in GHL.
   followUpDate?: string | null;
+  // The agreed time on that date, "HH:MM" (0064). Optional: a callback agreed
+  // as a day and no time is a real answer, and the GHL task falls back to 9am.
+  followUpTime?: string | null;
   // Which dialing variation was on screen (0058). Checked against the table
   // below rather than trusted: this is the column the script test is read from,
   // so a browser must not be able to attribute a booking to whichever script it
@@ -97,7 +100,14 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   // leaves the building. A push that fails is written onto the lead and shown in
   // the console; it never turns into an error the caller has to read mid-call.
   const ghl = body.leadId
-    ? await pushLead(ctx.env, client, body.leadId, outcome, body.followUpDate ?? null)
+    ? await pushLead(
+        ctx.env,
+        client,
+        body.leadId,
+        outcome,
+        body.followUpDate ?? null,
+        body.followUpTime ?? null,
+      )
     : null;
 
   return Response.json({ dial: data, ghl }, { status: 201 });
@@ -135,6 +145,7 @@ async function pushLead(
   leadId: string,
   outcome: string,
   followUpDate: string | null,
+  followUpTime: string | null,
 ): Promise<LeadPushSummary | null> {
   if (!client) return null;
 
@@ -163,6 +174,7 @@ async function pushLead(
     outcome,
     attempt: outcome === "no_answer" ? await countNoAnswers(client, leadId) : 1,
     followUpDate,
+    followUpTime,
   });
 
   // The account not being connected is not a failure to report on the lead: it

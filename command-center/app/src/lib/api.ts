@@ -1062,6 +1062,10 @@ export interface AdminLead {
   noAnswer: number;
   lastContact: string | null;
   followUpDate: string | null;
+  // The time of day agreed for that callback (0064), "HH:MM:SS" as Postgres
+  // returns it. Null means a day was agreed and no time, which is a real
+  // answer: see src/lib/callbackTimes.ts.
+  followUpTime: string | null;
   email: string;
   notes: string;
   // Who the business is (0059). The book calls businesses, not people: before
@@ -1510,8 +1514,11 @@ export async function logColdCallDial(input: {
   // disagree in the table.
   reason?: string;
   // Sent with a callback: it becomes a task on the contact in GoHighLevel, due
-  // that morning.
+  // at the agreed time.
   followUpDate?: string;
+  // The agreed time on that date, "HH:MM" (0064). Omitted means no time was
+  // agreed, and the GHL task falls back to 9am.
+  followUpTime?: string;
   // Which dialing variation was on screen (0058). The server checks it names a
   // live script and drops it if not, so this is a claim rather than a fact
   // until it gets there.

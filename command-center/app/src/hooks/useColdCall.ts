@@ -150,6 +150,9 @@ export interface LogDialInput {
   note?: string;
   // Only for a callback: the agreed date, which becomes a GHL task.
   followUpDate?: string;
+  // The agreed time on that date, "HH:MM" (0064). Absent means no time was
+  // agreed, and the task falls back to 9am.
+  followUpTime?: string;
   // Which dialing variation was on screen (0058). Checked server-side against
   // the live scripts, so this cannot credit a booking to whatever it likes.
   scriptId?: string | null;

@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-28-callback-time-and-scripts",
+    date: "28 July 2026",
+    title: "Callbacks now have a time, and each call names its script",
+    items: [
+      'The third outcome button is now "Call back" rather than "Hot lead". It always moved the prospect into Call Back in GoHighLevel; now it says so.',
+      "Picking when to ring them back is a proper calendar with the times beside it, the same one booking uses, instead of a typed date box.",
+      'You can give a callback a time. The task that lands in GoHighLevel is due at that time rather than always 9am. A time is optional: "Thursday, some time" stays exactly that.',
+      'The Callbacks queue shows the time next to the day, so "Today" and "Today 2:30 pm" are no longer the same chip.',
+      "On the call card you can now choose which script the call is being recorded against, per prospect. Switching variation call by call is how a script test actually gets run.",
+    ],
+  },
+  {
     id: "2026-07-28-task-categories",
     date: "28 July 2026",
     title: "Tasks can be sorted into your own categories",

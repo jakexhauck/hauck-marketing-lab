@@ -165,6 +165,7 @@ export function blankLeadDraft(tempId = `temp-${Date.now()}`): AdminLead {
     noAnswer: 0,
     lastContact: today,
     followUpDate: null,
+    followUpTime: null,
     email: "",
     notes: "",
     businessName: "",

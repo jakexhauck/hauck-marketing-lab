@@ -146,6 +146,9 @@ export interface OutcomePushInput {
   // The agreed callback date, "YYYY-MM-DD". Only meaningful for a callback, and
   // what turns it into a task in GHL.
   followUpDate?: string | null;
+  // The agreed time on that date, "HH:MM" (0064). Null or absent means a day
+  // was agreed and no time, which is a real answer and not a missing one.
+  followUpTime?: string | null;
 }
 
 // One press of an outcome button, in GHL terms.
@@ -191,7 +194,14 @@ export async function pushColdCallOutcome(
     }
 
     if (outcome === "callback" && input.followUpDate) {
-      await createCallbackTask(env, ctx, contactId, lead, input.followUpDate);
+      await createCallbackTask(
+        env,
+        ctx,
+        contactId,
+        lead,
+        input.followUpDate,
+        input.followUpTime ?? null,
+      );
     }
 
     return { ok: true, contactId, error: null };
@@ -200,19 +210,34 @@ export async function pushColdCallOutcome(
   }
 }
 
-// A task on the contact, due the morning of the agreed day, so the callback
-// exists in Jake's GHL task list and not only in this app.
+// "14:30" or the "14:30:00" a Postgres time column returns. Anything else is
+// treated as no time at all rather than as a guess.
+const HHMM = /^([01]\d|2[0-3]):([0-5]\d)/;
+
+export function callbackHourMinute(time: string | null | undefined): { hour: number; minute: number } {
+  const m = time ? HHMM.exec(time.trim()) : null;
+  // 9am is the fallback, and only the fallback: it is the start of the working
+  // day for a callback that was agreed as a day and nothing more.
+  if (!m) return { hour: 9, minute: 0 };
+  return { hour: Number(m[1]), minute: Number(m[2]) };
+}
+
+// A task on the contact at the agreed time, so the callback exists in Jake's
+// GHL task list and not only in this app.
 //
-// 9am in the AGENCY's timezone, not the server's and not the prospect's: it is
-// Jake's working day the task lands in.
+// In the AGENCY's timezone, not the server's and not the prospect's: it is
+// Jake's working day the task lands in. Before 0064 this was always 9am, which
+// meant a prospect who said "call me at two" got a task saying nine.
 async function createCallbackTask(
   env: Env,
   ctx: ReturnType<typeof getAgencyGhlContext>,
   contactId: string,
   lead: LeadForPush,
   followUpDate: string,
+  followUpTime: string | null,
 ): Promise<void> {
-  const dueMs = zonedTimeToUtcMs(agencyTimezone(env), followUpDate, 9, 0);
+  const { hour, minute } = callbackHourMinute(followUpTime);
+  const dueMs = zonedTimeToUtcMs(agencyTimezone(env), followUpDate, hour, minute);
   if (dueMs === null) return;
 
   await ghlJson(ctx, `/contacts/${contactId}/tasks`, {

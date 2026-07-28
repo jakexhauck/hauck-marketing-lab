@@ -27,6 +27,7 @@ function lead(over: Partial<AdminLead> & { id: string }): AdminLead {
     noAnswer: 0,
     lastContact: null,
     followUpDate: null,
+    followUpTime: null,
     email: "",
     notes: "",
     businessName: "",

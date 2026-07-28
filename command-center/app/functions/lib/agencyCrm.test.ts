@@ -198,6 +198,51 @@ describe("pushColdCallOutcome", () => {
     expect(task?.body.dueDate).toBe("2026-07-29T13:00:00.000Z");
   });
 
+  // 0064: before this, a prospect who said "call me at two" got a task saying
+  // nine, and the caller found out by being an hour into somebody's lunch.
+  it("puts the task at the agreed time when one was given", async () => {
+    mockGhl();
+    await pushColdCallOutcome(env, {
+      lead: lead({ ghlContactId: "c" }),
+      outcome: "callback",
+      followUpDate: "2026-07-29",
+      followUpTime: "14:30",
+    });
+    const task = calls.find((c) => c.url.endsWith("/tasks"));
+    // 2:30pm New York on 29 July is 18:30 UTC.
+    expect(task?.body.dueDate).toBe("2026-07-29T18:30:00.000Z");
+  });
+
+  // A `time` column comes back with seconds attached, and the same value can
+  // arrive from the picker without them. Both are the same o'clock.
+  it("accepts the time in the shape the database returns it", async () => {
+    mockGhl();
+    await pushColdCallOutcome(env, {
+      lead: lead({ ghlContactId: "c" }),
+      outcome: "callback",
+      followUpDate: "2026-07-29",
+      followUpTime: "14:30:00",
+    });
+    const task = calls.find((c) => c.url.endsWith("/tasks"));
+    expect(task?.body.dueDate).toBe("2026-07-29T18:30:00.000Z");
+  });
+
+  // "Thursday, some time" is a real thing a prospect says. It must not become
+  // an invented appointment, so it stays the start of the working day.
+  it("falls back to 9am when the time is missing or unusable", async () => {
+    for (const time of [null, "", "half two"]) {
+      mockGhl();
+      await pushColdCallOutcome(env, {
+        lead: lead({ ghlContactId: "c" }),
+        outcome: "callback",
+        followUpDate: "2026-07-29",
+        followUpTime: time,
+      });
+      const task = calls.find((c) => c.url.endsWith("/tasks"));
+      expect(task?.body.dueDate).toBe("2026-07-29T13:00:00.000Z");
+    }
+  });
+
   it("makes no task when no date was agreed", async () => {
     mockGhl();
     await pushColdCallOutcome(env, { lead: lead({ ghlContactId: "c" }), outcome: "callback" });

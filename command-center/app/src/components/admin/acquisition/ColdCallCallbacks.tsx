@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { AdminLead } from "../../../lib/api";
 import { useAdminLeadsQuery } from "../../../hooks/useAdminLeads";
+import { formatTime } from "../../../lib/callbackTimes";
 import CallWorkspace, { type QueueBadge } from "./CallWorkspace";
 
 // Cold Call > Callbacks: everyone who said "call me back on Thursday".
@@ -22,15 +23,21 @@ function today(): string {
 
 // "Overdue", "Today", "Tomorrow", then the date. Relative wording only where it
 // is unambiguous; past a couple of days out, a date is clearer than "in 4 days".
-function whenBadge(date: string, now: string): QueueBadge {
+// The agreed time rides along with the day (0063). "Today" on its own sends
+// somebody to the phone now; "Today 2:30 pm" is the difference between keeping
+// the promise and breaking it by four hours.
+function whenBadge(date: string, now: string, time?: string | null): QueueBadge {
+  const at = formatTime(time);
+  const withTime = (text: string) => (at ? `${text} ${at}` : text);
+
   if (date < now) return { text: "Overdue", tone: "late" };
-  if (date === now) return { text: "Today", tone: "now" };
+  if (date === now) return { text: withTime("Today"), tone: "now" };
   const d = new Date(`${date}T00:00:00`);
   const n = new Date(`${now}T00:00:00`);
   const days = Math.round((d.getTime() - n.getTime()) / 86_400_000);
-  if (days === 1) return { text: "Tomorrow", tone: "soon" };
+  if (days === 1) return { text: withTime("Tomorrow"), tone: "soon" };
   return {
-    text: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    text: withTime(d.toLocaleDateString(undefined, { month: "short", day: "numeric" })),
     tone: "soon",
   };
 }
@@ -65,7 +72,9 @@ export default function ColdCallCallbacks({ callerId = "" }: { callerId?: string
       emptyTitle="No callbacks due"
       emptyHint={'They appear here when a call ends in "Callback".'}
       badgeFor={(lead: AdminLead) =>
-        lead.followUpDate ? whenBadge(lead.followUpDate, now) : { text: "No date", tone: "late" }
+        lead.followUpDate
+          ? whenBadge(lead.followUpDate, now, lead.followUpTime)
+          : { text: "No date", tone: "late" }
       }
     />
   );

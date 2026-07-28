@@ -53,6 +53,9 @@ export interface LeadRow {
   website?: string | null;
   city?: string | null;
   state?: string | null;
+  // The time of day agreed for the callback (0064). Optional for the same
+  // reason as the columns above and below.
+  follow_up_time?: string | null;
   // The link into the agency's own GHL account (0053). Written by the push,
   // never by a client.
   // Optional: absent on a database that has not run 0053 yet.
@@ -72,12 +75,17 @@ const SELECT_BASE =
 
 const SELECT_GHL = "ghl_contact_id, ghl_synced_at, ghl_error";
 
+// The time of day agreed for a callback (0064). Its own group for the same
+// reason as the two below: this file will want it before the migration that
+// adds it has necessarily run.
+const SELECT_TIME = "follow_up_time";
+
 // Who the prospect is (0059). A third group rather than folded into the base,
 // for the same reason the GHL columns are separate: this file will want them
 // before the migration that adds them has necessarily run.
 const SELECT_BUSINESS = "business_name, niche, website, city, state";
 
-export const SELECT = `${SELECT_BASE}, ${SELECT_GHL}, ${SELECT_BUSINESS}`;
+export const SELECT = `${SELECT_BASE}, ${SELECT_GHL}, ${SELECT_BUSINESS}, ${SELECT_TIME}`;
 
 // Postgres "undefined_column". Seen exactly once per migration: between this
 // code shipping and the migration running.
@@ -88,6 +96,7 @@ const UNDEFINED_COLUMN = "42703";
 // sync marker or without a niche is a small loss, and not loading it at all is
 // the whole job stopped.
 const FALLBACKS = [
+  `${SELECT_BASE}, ${SELECT_GHL}, ${SELECT_BUSINESS}, ${SELECT_TIME}`,
   `${SELECT_BASE}, ${SELECT_GHL}, ${SELECT_BUSINESS}`,
   `${SELECT_BASE}, ${SELECT_GHL}`,
   SELECT_BASE,
@@ -118,6 +127,10 @@ export function toLead(row: LeadRow) {
     noAnswer: row.no_answer,
     lastContact: row.last_contact,
     followUpDate: row.follow_up_date,
+    // The time agreed for that callback (0064), or null for "that day, some
+    // time". Postgres hands a `time` column back as "14:30:00"; the client
+    // reduces it to "14:30" rather than this file guessing at a format.
+    followUpTime: row.follow_up_time ?? null,
     email: row.email,
     notes: row.notes,
     // Who the prospect actually is (0059). Coalesced rather than passed
@@ -169,6 +182,9 @@ const DATE_FIELDS: Record<string, string> = {
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+// "14:30" or "14:30:00". Postgres accepts far more than this; the narrow shape
+// is what the picker sends, and anything else is a client bug.
+const ISO_TIME = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
 
 function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
@@ -183,6 +199,16 @@ function dateOrNull(v: unknown): string | null | undefined {
   if (!s) return null;
   if (!ISO_DATE.test(s) || Number.isNaN(Date.parse(s))) return undefined;
   return s;
+}
+
+// A callback time is either a clean HH:MM or empty (stored null). Empty is a
+// real answer here, not a missing one: it means a day was agreed and no time.
+function timeOrNull(v: unknown): string | null | undefined {
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v !== "string") return undefined;
+  const s = v.trim();
+  if (!s) return null;
+  return ISO_TIME.test(s) ? s : undefined;
 }
 
 // The running attempt counter: a non-negative integer, blank reads as 0.
@@ -211,6 +237,12 @@ function whitelist(body: Record<string, unknown>): Record<string, unknown> | nul
     const parsed = dateOrNull(body[key]);
     if (parsed === undefined) return null;
     out[column] = parsed;
+  }
+
+  if ("followUpTime" in body) {
+    const parsed = timeOrNull(body.followUpTime);
+    if (parsed === undefined) return null;
+    out.follow_up_time = parsed;
   }
 
   if ("noAnswer" in body) {

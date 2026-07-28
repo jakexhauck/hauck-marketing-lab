@@ -23,6 +23,7 @@ import {
   zoneForLead,
 } from "../../../lib/leadLocalTime";
 import BookingPanel from "./BookingPanel";
+import CallbackPicker from "./CallbackPicker";
 import { stageAfterNoAnswer } from "../../../lib/coldCallStages";
 import {
   NOT_INTERESTED_REASONS,
@@ -46,10 +47,13 @@ import {
 // "heard the pitch and said no", and the difference between those two is the
 // pass-through rate. See functions/lib/coldCallDials.ts for what each counts as.
 //
-// Each button also names a stage of the Cold Call Leads pipeline in the agency's
-// GoHighLevel account, and pressing it moves the prospect there (0053). "Hot
-// lead" carries the stage's own name for exactly that reason: it is the same
-// thing said twice, so nobody has to translate between the two systems.
+// Each button also names a stage of the Cold Calling pipeline in the agency's
+// GoHighLevel account, and pressing it moves the prospect there (0053). Every
+// label carries the stage's own name for exactly that reason: it is the same
+// thing said twice, so nobody has to translate between the two systems. That is
+// why the third button reads "Call back" and not "Hot lead": the stage it moves
+// a prospect into, on the live board, is Call Back. There is no Hot Lead stage
+// on that pipeline at all.
 
 function today(): string {
   const d = new Date();
@@ -113,19 +117,39 @@ export default function CallWorkspace({
   // the panel. The server checks the id again before storing it, so this is a
   // claim rather than the last word.
   const scripts = useColdCallScripts();
-  const scriptId = resolveScriptId(useSelectedScriptId(), scripts);
-  const scriptName = scripts.find((s) => s.id === scriptId)?.name ?? null;
+  const shelfScriptId = resolveScriptId(useSelectedScriptId(), scripts);
+  // An override for this call, set from the picker on the card. Null falls back
+  // to whichever variation the script panel is on, so a caller who never
+  // touches this still records against something real.
+  //
+  // Held per prospect rather than globally: switching prospect should not
+  // silently carry the last one's variation over, and going back to a prospect
+  // mid-shift should find the same one selected.
+  const [scriptByLead, setScriptByLead] = useState<Record<string, string>>({});
   const now = useNow();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Callback and Booked both need a date before they mean anything, so the
   // button opens an inline date field rather than writing a guess.
   const [pending, setPending] = useState<"callback" | "booked" | "no" | null>(null);
   const [pendingDate, setPendingDate] = useState("");
+  // The time on that date, optional (0064). Empty means the day was agreed and
+  // nothing more, which is what a lot of prospects actually say.
+  const [pendingTime, setPendingTime] = useState("");
 
   // Selection follows the list: no explicit pick means the top, and a lead that
   // leaves the list hands over to whoever is now in its place.
   const selectedIndex = selectedId ? leads.findIndex((l) => l.id === selectedId) : 0;
   const selected = leads[selectedIndex >= 0 ? selectedIndex : 0] ?? null;
+
+  // What this call will be attributed to: this prospect's pick if one was made,
+  // otherwise the shelf's. The server checks the id again before storing it, so
+  // this is a claim rather than the last word.
+  const chosen = selected ? scriptByLead[selected.id] : undefined;
+  const scriptId = (chosen && scripts.some((s) => s.id === chosen) ? chosen : null) ?? shelfScriptId;
+  const setCallScriptId = (id: string | null) => {
+    if (!selected || !id) return;
+    setScriptByLead((prev) => ({ ...prev, [selected.id]: id }));
+  };
 
   const advance = (fromId: string) => {
     const i = leads.findIndex((l) => l.id === fromId);
@@ -142,10 +166,12 @@ export default function CallWorkspace({
     lead: AdminLead,
     outcome: ColdCallDialOutcome,
     fields: Record<string, unknown>,
-    // Carried through to GoHighLevel, where it becomes the callback task.
+    // Carried through to GoHighLevel, where they become the callback task and
+    // the time it is due.
     followUpDate?: string,
+    followUpTime?: string,
   ) => {
-    logDial.mutate({ leadId: lead.id, outcome, followUpDate, scriptId });
+    logDial.mutate({ leadId: lead.id, outcome, followUpDate, followUpTime, scriptId });
     updateLead.mutate({ id: lead.id, ...fields } as Parameters<typeof updateLead.mutate>[0]);
     advance(lead.id);
   };
@@ -194,10 +220,14 @@ export default function CallWorkspace({
       {
         status: "Call Back",
         followUpDate: pendingDate,
+        // Sent even when empty, which is what clears a time from a prospect
+        // who has been rescheduled to "just that day".
+        followUpTime: pendingTime || null,
         lastContact: today(),
         firstContactDate: lead.firstContactDate ?? today(),
       },
       pendingDate,
+      pendingTime || undefined,
     );
   };
 
@@ -333,19 +363,34 @@ export default function CallWorkspace({
               <div className="pk-section-h" style={{ margin: 0 }}>
                 How did it go
               </div>
-              {/* Which script this outcome will be recorded against. Said here,
-                  beside the buttons that do the recording, because a number
-                  attributed to a script somebody did not know they were on is
-                  not a measurement of anything. */}
-              <span className="text-[11.5px] text-faint">
-                {scriptName ? (
-                  <>
-                    Recording against <span className="font-semibold text-muted">{scriptName}</span>
-                  </>
-                ) : (
-                  "No script to record against yet"
-                )}
-              </span>
+              {/* Which script this outcome will be recorded against, and the
+                  place to change it. Here beside the buttons that do the
+                  recording, because a number attributed to a script somebody
+                  did not know they were on is not a measurement of anything.
+                  Picking here is per prospect: a caller testing two variations
+                  switches between them call by call, which is the whole point
+                  of a script test. */}
+              {scripts.length > 0 ? (
+                <label className="flex items-center gap-2 text-[11.5px] text-faint">
+                  Recording against
+                  <select
+                    className="pk-select !py-1 !text-[12px]"
+                    value={scriptId ?? ""}
+                    onChange={(e) => setCallScriptId(e.target.value || null)}
+                    aria-label="Which script this call is testing"
+                  >
+                    {scripts.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <span className="text-[11.5px] text-faint">
+                  No script to record against yet
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <OutcomeButton icon={PhoneOff} label="No answer" onClick={() => noAnswer(selected)} />
@@ -358,12 +403,13 @@ export default function CallWorkspace({
               />
               <OutcomeButton
                 icon={CalendarClock}
-                label="Hot lead"
-                title="They heard the pitch and gave you a next step. Asks for the callback date."
+                label="Call back"
+                title="They heard the pitch and gave you a next step. Asks when to ring them."
                 on={pending === "callback"}
                 onClick={() => {
                   setPending(pending === "callback" ? null : "callback");
                   setPendingDate("");
+                  setPendingTime("");
                 }}
               />
               <OutcomeButton
@@ -378,27 +424,15 @@ export default function CallWorkspace({
             </div>
 
             {pending === "callback" && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <label htmlFor="cc-date" className="text-[12.5px] text-muted">
-                  Call them back on
-                </label>
-                <input
-                  id="cc-date"
-                  type="date"
-                  className="pk-input !w-auto"
-                  value={pendingDate}
-                  min={today()}
-                  onChange={(e) => setPendingDate(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="pk-btn-save"
-                  disabled={!pendingDate}
-                  onClick={() => confirmCallback(selected)}
-                >
-                  Save and next
-                </button>
-              </div>
+              <CallbackPicker
+                date={pendingDate}
+                time={pendingTime}
+                onChange={({ date, time }) => {
+                  setPendingDate(date);
+                  setPendingTime(time);
+                }}
+                onConfirm={() => confirmCallback(selected)}
+              />
             )}
 
             {pending === "no" && (
