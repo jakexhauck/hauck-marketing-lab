@@ -1,5 +1,6 @@
 import type { AgencyPipeline } from "./api";
 import { COLD_CALL_STAGES } from "./coldCallStages";
+import { pickColdCallPipeline as pickBoard } from "../../functions/lib/coldCallSync";
 
 // Comparing the app's stage list against the live one in GoHighLevel.
 //
@@ -43,30 +44,15 @@ function key(name: string): string {
 
 // Which of the account's pipelines is the cold calling one.
 //
-// By overlap rather than by name, because the pipeline can be called anything
-// and the stages are the thing being compared: whichever board shares the most
-// stage names with the app is the board the app is about. A name match is only
-// the tie-break, for the case where drift is severe enough that overlap is low.
+// The rule itself lives in functions/lib/coldCallSync.ts, because the server
+// answers the same question when it pulls prospects out of that board. Two
+// copies could disagree, and then this panel would report drift against one
+// board while the sync imported from another.
 export function pickColdCallPipeline(pipelines: AgencyPipeline[]): AgencyPipeline | null {
-  if (pipelines.length === 0) return null;
-
-  const wanted = new Set(COLD_CALL_STAGES.map((s) => key(s.label)));
-  let best: AgencyPipeline | null = null;
-  let bestScore = -1;
-
-  for (const p of pipelines) {
-    const overlap = p.stages.filter((s) => wanted.has(key(s.name))).length;
-    const named = key(p.name).includes("cold") ? 1 : 0;
-    const score = overlap * 10 + named;
-    if (score > bestScore) {
-      bestScore = score;
-      best = p;
-    }
-  }
-
-  // Nothing matched on either count: refusing to guess is more useful than
-  // naming an unrelated board and calling every stage in it drift.
-  return bestScore > 0 ? best : null;
+  return pickBoard(
+    pipelines,
+    COLD_CALL_STAGES.map((s) => s.label),
+  );
 }
 
 export function compareStages(pipelines: AgencyPipeline[]): StageComparison {

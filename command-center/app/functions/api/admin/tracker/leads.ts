@@ -13,7 +13,11 @@ import { logAdminAction } from "../../../lib/adminAuth";
 // Mirrors LEAD_STATUSES in src/lib/adminLeads.ts and the CHECK constraint in
 // migration 0055_lead_stage_vocabulary.sql. All three must stay in step; the unit test guards
 // the client copy.
-const LEAD_STATUSES = [
+//
+// Exported for the GoHighLevel sync (./leads/sync-ghl.ts), which matches these
+// names against the live board's stages: a status this list does not contain is
+// one the CHECK constraint would reject.
+export const LEAD_STATUSES = [
   "New Lead",
   "1st Dial (Day 1)",
   "2nd Dial (Day 2)",

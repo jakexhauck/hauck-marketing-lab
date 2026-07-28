@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-28-ghl-lead-sync",
+    date: "28 July 2026",
+    title: "Prospects added in GoHighLevel now show up here",
+    items: [
+      "Anyone added to the cold calling board in GoHighLevel now appears in the console automatically. Until now the console only knew about prospects typed or imported here, so anything created over there sat in no queue and no count.",
+      "It happens on its own when you open Cold Call. If anything new came across, a line at the top says how many.",
+      "Nobody gets added twice. A prospect already in the book is recognised by their number even if it is written differently, or by their GoHighLevel record.",
+      "New arrivals land unassigned and in the stage GoHighLevel has them in, so they drop straight into the right page.",
+    ],
+  },
+  {
     id: "2026-07-27-health-watchdog",
     date: "27 July 2026",
     title: "The console now checks itself every half hour",

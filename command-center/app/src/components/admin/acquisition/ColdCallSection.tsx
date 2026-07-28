@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ScrollText } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
@@ -13,6 +13,7 @@ import { useColdCallAssetsQuery } from "../../../hooks/useColdCallAssets";
 import { groupByCategory } from "../../../../functions/lib/coldCallAssets";
 import { resolveScriptId, setSelectedScriptId, useSelectedScriptId } from "../../../lib/selectedScript";
 import { useAssignableCallersQuery } from "../../../hooks/useLeadAssignment";
+import { useSyncAdminLeadsFromGhl } from "../../../hooks/useAdminLeads";
 import ScriptPanel from "../script/ScriptPanel";
 import { TrackerMonthNav } from "../tracker/DailyTracker";
 import { cursorForToday, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
@@ -61,6 +62,39 @@ export default function ColdCallSection() {
 
   const { left, right } = coldCallSides(isOwner);
   const view = resolveColdCallView(searchParams.get("view"), isOwner);
+
+  // Bring in anything sitting in the GoHighLevel board that the book has never
+  // seen: a prospect created over there (a form, an import, by hand) used to
+  // exist in no queue and no count here.
+  //
+  // Fired once when the section opens rather than behind a button, because a
+  // lead you have to remember to go and fetch is a lead that sits there. The
+  // endpoint matches on contact id and phone number, so running it again adds
+  // nothing; that is what makes doing it unprompted safe.
+  const sync = useSyncAdminLeadsFromGhl();
+  const syncOnce = useRef(false);
+  useEffect(() => {
+    if (syncOnce.current) return;
+    syncOnce.current = true;
+    sync.mutate();
+    // Deliberately once per mount: sync.mutate is stable and re-running on any
+    // dependency change would turn a page interaction into a round trip to GHL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Only say something when there is something to say. A silent no-op sync is
+  // the normal case and does not deserve a line of the caller's screen.
+  const syncResult = sync.data;
+  const syncNote = useMemo(() => {
+    if (sync.isError) return "Could not reach GoHighLevel, so any new prospects there are not in this list yet.";
+    if (!syncResult || syncResult.added === 0) return "";
+    const n = syncResult.added;
+    const stages = syncResult.skippedStages ?? [];
+    const drift = stages.length
+      ? ` ${stages.length === 1 ? "One prospect sits" : "Prospects sit"} in ${stages.join(", ")}, which has no page here.`
+      : "";
+    return `Added ${n} new ${n === 1 ? "prospect" : "prospects"} from ${syncResult.pipeline ?? "GoHighLevel"}.${drift}`;
+  }, [sync.isError, syncResult]);
 
   // The team availability page IS the whole roster, so a "whose section is
   // this" selector sitting above it would be a control with nothing to control.
@@ -162,6 +196,12 @@ export default function ColdCallSection() {
           </button>
         </div>
       </div>
+
+      {syncNote && (
+        <p className="mb-4 text-[13px] text-muted" role="status">
+          {syncNote}
+        </p>
+      )}
 
       <ColdCallBody
         view={view}

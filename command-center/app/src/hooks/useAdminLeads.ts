@@ -30,6 +30,39 @@ export function useAdminLeadsQuery(enabled = true) {
   });
 }
 
+// What a sync did, in the words the section reports it with.
+export interface LeadSyncResult {
+  // False when the agency GoHighLevel account is not connected at all.
+  configured: boolean;
+  // True when it is connected but no board resembles the cold calling one.
+  noPipeline?: boolean;
+  pipeline?: string;
+  added: number;
+  leads: AdminLead[];
+  skippedExisting?: number;
+  skippedNoPhone?: number;
+  // Stages GoHighLevel has that the console has no page for.
+  skippedStages?: string[];
+}
+
+// Pull anything the board has and the book does not.
+//
+// A mutation rather than a query because it writes, but it is safe to fire
+// unprompted: the server matches on GHL contact id and phone number, so a
+// second run adds nothing. That is what lets the section call it on open, which
+// is the difference between leads that populate and leads somebody has to
+// remember to go and fetch.
+export function useSyncAdminLeadsFromGhl() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<LeadSyncResult>(`${PATH}/sync-ghl`, { method: "POST" }),
+    onSuccess: (result) => {
+      // Only disturb the list when the sync actually changed it.
+      if (result.added > 0) qc.invalidateQueries({ queryKey: KEY });
+    },
+  });
+}
+
 // Add a row. The blank draft lands at the top of the list straight away (the
 // list is newest first) and is swapped for the saved row when the POST returns.
 export function useAddAdminLead() {
