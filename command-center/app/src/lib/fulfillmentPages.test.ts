@@ -1,0 +1,158 @@
+import { describe, it, expect } from "vitest";
+import {
+  FULFILLMENT_PAGES,
+  FULFILLMENT_NAV,
+  FULFILLMENT_HOME,
+  DEFAULT_FULFILLMENT_PAGE,
+  getFulfillmentPage,
+  isFulfillmentPage,
+  legacyFulfillmentPage,
+  subTabsFor,
+  resolveSubTab,
+  fulfillmentPath,
+  placeholderCopy,
+} from "./fulfillmentPages";
+
+describe("fulfillmentPages config", () => {
+  it("carries only the services we actually deliver", () => {
+    expect(FULFILLMENT_PAGES.map((p) => p.id)).toEqual([
+      "software",
+      "paid-ads",
+      "management",
+    ]);
+  });
+
+  it("has no unbuilt pages left in the rail", () => {
+    expect(FULFILLMENT_PAGES.every((p) => p.ready)).toBe(true);
+  });
+
+  it("has unique page ids and unique sub-tab ids within a page", () => {
+    const ids = FULFILLMENT_PAGES.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const page of FULFILLMENT_PAGES) {
+      const subs = (page.subTabs ?? []).map((s) => s.id);
+      expect(new Set(subs).size).toBe(subs.length);
+    }
+  });
+
+  it("defaults to a page that is actually built", () => {
+    expect(getFulfillmentPage(DEFAULT_FULFILLMENT_PAGE)?.ready).toBe(true);
+  });
+
+  it("never marks a page ready while all of its sub-tabs are not", () => {
+    for (const page of FULFILLMENT_PAGES) {
+      if (page.ready && page.subTabs?.length) {
+        expect(page.subTabs.some((s) => s.ready)).toBe(true);
+      }
+    }
+  });
+});
+
+describe("FULFILLMENT_NAV", () => {
+  it("leads with Onboarding, because a client is stood up before anything else", () => {
+    expect(FULFILLMENT_NAV[0]).toEqual({ to: "/admin/onboarding", label: "Onboarding" });
+    expect(FULFILLMENT_HOME).toBe("/admin/onboarding");
+  });
+
+  it("lists the Setter Suite in the same run as the service pages", () => {
+    expect(FULFILLMENT_NAV.map((r) => r.label)).toEqual([
+      "Onboarding",
+      "Software",
+      "Paid Ads",
+      "Setter Suite",
+      "Management",
+    ]);
+  });
+
+  // The guard against the rail and the page config drifting apart.
+  it("has a row for every page, and every page row points at a real page", () => {
+    const rowPaths = new Set(FULFILLMENT_NAV.map((r) => r.to));
+    for (const page of FULFILLMENT_PAGES) {
+      expect(rowPaths.has(`/admin/fulfillment/${page.id}`)).toBe(true);
+    }
+    for (const row of FULFILLMENT_NAV) {
+      const id = row.to.startsWith("/admin/fulfillment/")
+        ? row.to.slice("/admin/fulfillment/".length)
+        : null;
+      if (id) expect(isFulfillmentPage(id)).toBe(true);
+    }
+  });
+});
+
+describe("legacyFulfillmentPage", () => {
+  it("keeps a tab that is still a page", () => {
+    expect(legacyFulfillmentPage("paid-ads")).toBe("paid-ads");
+  });
+
+  it("sends the retired paperwork tabs to Management", () => {
+    expect(legacyFulfillmentPage("billing")).toBe("management");
+    expect(legacyFulfillmentPage("config")).toBe("management");
+  });
+
+  it("sends the retired service tabs to the default page", () => {
+    for (const tab of ["overview", "web-design", "google-reviews", "reactivation"]) {
+      expect(legacyFulfillmentPage(tab)).toBe(DEFAULT_FULFILLMENT_PAGE);
+    }
+  });
+
+  it("falls back to the default for an absent or unknown tab", () => {
+    expect(legacyFulfillmentPage(null)).toBe(DEFAULT_FULFILLMENT_PAGE);
+    expect(legacyFulfillmentPage("nonsense")).toBe(DEFAULT_FULFILLMENT_PAGE);
+  });
+});
+
+describe("isFulfillmentPage / getFulfillmentPage", () => {
+  it("accepts a known id and rejects anything else", () => {
+    expect(isFulfillmentPage("management")).toBe(true);
+    expect(isFulfillmentPage("billing")).toBe(false);
+    expect(isFulfillmentPage("clients")).toBe(false);
+    expect(isFulfillmentPage(null)).toBe(false);
+    expect(isFulfillmentPage(undefined)).toBe(false);
+    expect(getFulfillmentPage("nope")).toBeNull();
+  });
+});
+
+describe("subTabsFor / resolveSubTab", () => {
+  it("returns [] and null for a page with no second level", () => {
+    expect(subTabsFor("management")).toEqual([]);
+    expect(resolveSubTab("management", "anything")).toBeNull();
+  });
+
+  it("keeps a valid sub-tab and falls back to the first otherwise", () => {
+    expect(resolveSubTab("paid-ads", "ad-library")).toBe("ad-library");
+    expect(resolveSubTab("paid-ads", "not-a-sub")).toBe("campaigns");
+    expect(resolveSubTab("paid-ads", null)).toBe("campaigns");
+  });
+
+  it("resolves against an unknown page as if it had no sub-tabs", () => {
+    expect(resolveSubTab("nope", "campaigns")).toBeNull();
+  });
+});
+
+describe("fulfillmentPath", () => {
+  it("builds a bare page path when there is no client yet", () => {
+    expect(fulfillmentPath("software")).toBe("/admin/fulfillment/software");
+    expect(fulfillmentPath("software", null)).toBe("/admin/fulfillment/software");
+  });
+
+  it("carries the client, and the sub-tab when there is one", () => {
+    expect(fulfillmentPath("management", "t1")).toBe(
+      "/admin/fulfillment/management?client=t1",
+    );
+    expect(fulfillmentPath("paid-ads", "t1", "ad-tracking")).toBe(
+      "/admin/fulfillment/paid-ads?client=t1&sub=ad-tracking",
+    );
+  });
+
+  it("escapes an id that would otherwise break the query string", () => {
+    expect(fulfillmentPath("management", "a b&c")).toBe(
+      "/admin/fulfillment/management?client=a+b%26c",
+    );
+  });
+});
+
+describe("placeholderCopy", () => {
+  it("names the surface that is not built yet", () => {
+    expect(placeholderCopy("Ad Tracking")).toBe("Ad Tracking is coming in a later phase.");
+  });
+});

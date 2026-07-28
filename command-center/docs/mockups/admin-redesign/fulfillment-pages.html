@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hauck Marketing — Fulfillment as pages</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #eef0f4; --card: #ffffff; --ink: #14161c; --muted: #6b7280; --faint: #9aa1ad;
+    --line: #eceef2; --line-2: #e3e6ec;
+    --indigo: #6366f1; --indigo-tint: #eef0ff; --violet: #8b5cf6;
+    --green: #10b981; --green-tint: #e7f7f0;
+    --sky: #0ea5e9; --sky-tint: #e6f5fd;
+    --amber: #f59e0b; --amber-tint: #fdf3e2;
+    --radius: 22px;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--ink); display: flex; height: 100dvh; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  .disp { font-family: "Poppins", sans-serif; }
+  button { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
+
+  /* ---------------- icon spine ---------------- */
+  .spine { width: 74px; flex-shrink: 0; background: #0c1020; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 6px; }
+  .brand { width: 42px; height: 42px; border-radius: 13px; margin-bottom: 14px; background: linear-gradient(135deg, var(--indigo), var(--violet)); display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 19px; box-shadow: 0 8px 20px -6px rgba(99,102,241,.7); }
+  .snav { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .sbtn { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #8891a8; cursor: pointer; border: 0; background: transparent; transition: .15s; }
+  .sbtn:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .sbtn.on { color: #fff; background: linear-gradient(135deg, var(--indigo), var(--violet)); box-shadow: 0 8px 18px -6px rgba(99,102,241,.75); }
+  .sbtn svg { width: 21px; height: 21px; }
+
+  /* ---------------- labelled rail ---------------- */
+  .rail { width: 238px; flex-shrink: 0; background: #f8f9fb; border-right: 1px solid var(--line-2); padding: 18px 12px; overflow-y: auto; }
+  .railcap { font-size: 10.5px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; color: var(--faint); padding: 0 8px 10px; }
+  .nrow { display: flex; width: 100%; align-items: center; gap: 11px; border: 0; background: transparent; cursor: pointer; border-radius: 10px; padding: 9px 11px; font-size: 13.5px; font-weight: 500; color: var(--ink); margin-bottom: 2px; text-align: left; transition: .15s; }
+  .nrow:hover { background: rgba(255,255,255,.9); transform: translateX(1px); }
+  .nrow svg { width: 17px; height: 17px; opacity: .8; flex-shrink: 0; }
+  .nrow .grow { flex: 1; }
+  .nrow.within { background: #fff; color: #4f46e5; box-shadow: 0 1px 3px rgba(20,22,28,.05); }
+  .nrow .chev { width: 15px; height: 15px; opacity: .6; transition: transform .2s; }
+  .nrow.within .chev { transform: rotate(180deg); }
+
+  .kids { margin-left: 22px; margin-top: 2px; padding-left: 10px; border-left: 1px solid var(--line-2); display: flex; flex-direction: column; }
+  .kid { border: 0; background: transparent; cursor: pointer; text-align: left; border-radius: 9px; padding: 7px 12px; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 2px; transition: .15s; }
+  .kid:hover { background: rgba(255,255,255,.95); color: var(--ink); transform: translateX(1px); }
+  .kid.on { background: linear-gradient(135deg, var(--indigo), var(--violet)); color: #fff; box-shadow: 0 6px 14px -6px rgba(99,102,241,.8); }
+  .kid.soon { color: var(--faint); }
+  .kid.soon::after { content: "soon"; float: right; font-size: 10px; font-weight: 600; letter-spacing: .04em; color: var(--faint); }
+
+  /* ---------------- main ---------------- */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 26px 30px 0; overflow: hidden; }
+  .note { align-self: flex-start; font-size: 11.5px; color: var(--muted); background: #fff; border: 1px solid var(--line-2); border-radius: 999px; padding: 5px 13px; margin-bottom: 16px; }
+
+  .titlerow { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--indigo); }
+  h1.title { font-family: "Poppins"; font-weight: 700; font-size: 34px; letter-spacing: -.02em; margin-top: 3px; }
+  .titleactions { display: flex; align-items: center; gap: 10px; }
+
+  /* ---------------- the client picker ---------------- */
+  .picker { position: relative; }
+  .pickbtn { display: inline-flex; align-items: center; gap: 11px; background: var(--card); border: 1px solid var(--line-2); border-radius: 15px; padding: 7px 12px 7px 8px; cursor: pointer; box-shadow: 0 2px 10px -5px rgba(20,22,28,.2); transition: .15s; }
+  .pickbtn:hover { border-color: #cfd4de; box-shadow: 0 6px 18px -8px rgba(20,22,28,.28); }
+  .chip { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; font-family: "Poppins"; font-weight: 700; font-size: 12.5px; color: #fff; flex-shrink: 0; letter-spacing: .01em; }
+  .pickmeta { text-align: left; line-height: 1.25; }
+  .picklbl { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+  .pickname { font-family: "Poppins"; font-weight: 600; font-size: 14.5px; color: var(--ink); }
+  .pickbtn .chev { width: 16px; height: 16px; color: var(--faint); margin-left: 3px; transition: transform .2s; }
+  .picker.open .pickbtn .chev { transform: rotate(180deg); }
+
+  .panel { position: absolute; right: 0; top: calc(100% + 8px); width: 316px; background: var(--card); border: 1px solid var(--line-2); border-radius: 18px; box-shadow: 0 26px 60px -22px rgba(20,22,28,.36); padding: 8px; z-index: 30; display: none; }
+  .picker.open .panel { display: block; }
+  .search { width: 100%; border: 1px solid var(--line-2); border-radius: 11px; background: #f7f8fb; padding: 9px 12px; font: inherit; font-size: 13px; color: var(--ink); margin-bottom: 6px; }
+  .search::placeholder { color: var(--faint); }
+  .search:focus { outline: 0; border-color: var(--indigo); background: #fff; }
+  .prow { display: flex; width: 100%; align-items: center; gap: 11px; border: 0; background: transparent; cursor: pointer; border-radius: 12px; padding: 8px 9px; text-align: left; transition: .12s; }
+  .prow:hover { background: #f5f6f9; }
+  .prow.on { background: var(--indigo-tint); }
+  .prow .nm { font-weight: 600; font-size: 13.5px; }
+  .prow .sl { font-size: 11.5px; color: var(--faint); }
+  .prow .tick { margin-left: auto; width: 16px; height: 16px; color: var(--indigo); opacity: 0; }
+  .prow.on .tick { opacity: 1; }
+
+  .ghostbtn { display: inline-flex; align-items: center; gap: 7px; background: var(--card); border: 1px solid var(--line-2); border-radius: 13px; padding: 9px 14px; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; transition: .15s; }
+  .ghostbtn:hover { border-color: #cfd4de; }
+  .ghostbtn svg { width: 15px; height: 15px; opacity: .75; }
+
+  /* ---------------- sub-tabs + body sketch ---------------- */
+  .subtabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line-2); margin-top: 20px; }
+  .subtab { border: 0; background: transparent; cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--faint); padding: 10px 2px; margin-right: 24px; border-bottom: 2.5px solid transparent; transition: .15s; }
+  .subtab:hover { color: var(--ink); }
+  .subtab.on { color: var(--indigo); border-bottom-color: var(--indigo); }
+
+  .body { flex: 1; min-height: 0; overflow: auto; padding: 20px 0 24px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .stat { border-radius: var(--radius); padding: 16px 18px; }
+  .stat.indigo { background: var(--indigo-tint); } .stat.green { background: var(--green-tint); }
+  .stat.sky { background: var(--sky-tint); } .stat.amber { background: var(--amber-tint); }
+  .stat .lbl { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  .stat .val { font-family: "Poppins"; font-weight: 700; font-size: 30px; letter-spacing: -.02em; margin-top: 2px; }
+  .stat .sub { font-size: 12px; color: var(--faint); margin-top: 2px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); margin-top: 16px; padding: 40px 22px; text-align: center; color: var(--faint); font-size: 13px; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<nav class="spine" aria-label="Pillars">
+  <div class="brand disp">H</div>
+  <div class="snav">
+    <button class="sbtn" title="Command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg></button>
+    <button class="sbtn" title="Acquisition"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></button>
+    <button class="sbtn" title="Sales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.9-3.9a2 2 0 0 1 0-2.8l.9-.9a2 2 0 0 1 2.8 0l3.2 3.2"/><path d="m21 3-3 3"/><path d="M3 11 6 8"/></svg></button>
+    <button class="sbtn on" title="Fulfillment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></button>
+    <button class="sbtn" title="Operations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></button>
+  </div>
+</nav>
+
+<nav class="rail" aria-label="Fulfillment">
+  <div class="railcap">Agency</div>
+
+  <button class="nrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="grow">Command</span></button>
+  <button class="nrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg><span class="grow">Acquisition</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+  <button class="nrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.9-3.9a2 2 0 0 1 0-2.8l.9-.9a2 2 0 0 1 2.8 0l3.2 3.2"/></svg><span class="grow">Sales</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+
+  <button class="nrow within"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg><span class="grow">Fulfillment</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+
+  <div class="kids">
+    <button class="kid" data-page="Onboarding">Onboarding</button>
+    <button class="kid" data-page="Software">Software</button>
+    <button class="kid on" data-page="Paid Ads">Paid Ads</button>
+    <button class="kid" data-page="Setter Suite">Setter Suite</button>
+    <button class="kid" data-page="Management">Management</button>
+  </div>
+
+  <button class="nrow" style="margin-top:2px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="grow">Operations</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+</nav>
+
+<main class="main">
+  <div class="note">Mockup. Client names and numbers below are sample data.</div>
+
+  <div class="titlerow">
+    <div>
+      <div class="kicker">Fulfillment</div>
+      <h1 class="title disp" id="pageTitle">Paid Ads</h1>
+    </div>
+
+    <div class="titleactions">
+      <div class="picker" id="picker">
+        <button class="pickbtn" id="pickbtn" aria-haspopup="listbox" aria-expanded="false">
+          <span class="chip" id="chip" style="background:#0e7ce0">WW</span>
+          <span class="pickmeta">
+            <span class="picklbl">Client</span><br />
+            <span class="pickname" id="pickname">Willis Windows</span>
+          </span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+
+        <div class="panel" role="listbox" aria-label="Choose a client">
+          <input class="search" type="text" placeholder="Find a client" />
+          <button class="prow on" role="option" data-name="Willis Windows" data-slug="willis-windows" data-initials="WW" data-color="#0e7ce0">
+            <span class="chip" style="background:#0e7ce0">WW</span>
+            <span><span class="nm">Willis Windows</span><br /><span class="sl">willis-windows</span></span>
+            <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </button>
+          <button class="prow" role="option" data-name="Northside Roofing" data-slug="northside-roofing" data-initials="NR" data-color="#f59e0b">
+            <span class="chip" style="background:#f59e0b">NR</span>
+            <span><span class="nm">Northside Roofing</span><br /><span class="sl">northside-roofing</span></span>
+            <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </button>
+          <button class="prow" role="option" data-name="Harbor Dental" data-slug="harbor-dental" data-initials="HD" data-color="#10b981">
+            <span class="chip" style="background:#10b981">HD</span>
+            <span><span class="nm">Harbor Dental</span><br /><span class="sl">harbor-dental</span></span>
+            <svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="ghostbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Enter live app</button>
+    </div>
+  </div>
+
+  <nav class="subtabs" id="subtabs">
+    <button class="subtab on">Campaigns</button>
+    <button class="subtab">Ad Library</button>
+    <button class="subtab">Ad Tracking</button>
+    <button class="subtab">Data &amp; Leads</button>
+  </nav>
+
+  <div class="body">
+    <div class="stats">
+      <div class="stat indigo"><div class="lbl">Spend</div><div class="val">$4,180</div><div class="sub">month to date</div></div>
+      <div class="stat green"><div class="lbl">Leads</div><div class="val">63</div><div class="sub">month to date</div></div>
+      <div class="stat sky"><div class="lbl">Cost per lead</div><div class="val">$66</div><div class="sub">per lead</div></div>
+      <div class="stat amber"><div class="lbl">Booked</div><div class="val">19</div><div class="sub">month to date</div></div>
+    </div>
+    <div class="card">The existing Paid Ads tab body renders here, unchanged, reading the client above.</div>
+  </div>
+</main>
+
+<script>
+  // Picker open/close
+  const picker = document.getElementById('picker');
+  const pickbtn = document.getElementById('pickbtn');
+  pickbtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = picker.classList.toggle('open');
+    pickbtn.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', () => { picker.classList.remove('open'); pickbtn.setAttribute('aria-expanded', 'false'); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { picker.classList.remove('open'); pickbtn.setAttribute('aria-expanded', 'false'); } });
+  picker.querySelector('.panel').addEventListener('click', (e) => e.stopPropagation());
+
+  // Choosing a client. In the app this writes the URL and localStorage, so it
+  // carries to every other Fulfillment page.
+  picker.querySelectorAll('.prow').forEach((row) => {
+    row.addEventListener('click', () => {
+      picker.querySelectorAll('.prow').forEach((r) => r.classList.remove('on'));
+      row.classList.add('on');
+      const chip = document.getElementById('chip');
+      chip.textContent = row.dataset.initials;
+      chip.style.background = row.dataset.color;
+      document.getElementById('pickname').textContent = row.dataset.name;
+      picker.classList.remove('open');
+      pickbtn.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  // Switching pages keeps the picked client: that is the whole point.
+  const SUBS = {
+    'Paid Ads': ['Campaigns', 'Ad Library', 'Ad Tracking', 'Data & Leads'],
+  };
+  const subtabs = document.getElementById('subtabs');
+  document.querySelectorAll('.kid').forEach((kid) => {
+    kid.addEventListener('click', () => {
+      document.querySelectorAll('.kid').forEach((k) => k.classList.remove('on'));
+      kid.classList.add('on');
+      const page = kid.dataset.page;
+      document.getElementById('pageTitle').textContent = page;
+      const subs = SUBS[page];
+      subtabs.classList.toggle('hidden', !subs);
+      if (subs) {
+        subtabs.innerHTML = subs.map((s, i) => `<button class="subtab${i === 0 ? ' on' : ''}">${s}</button>`).join('');
+      }
+    });
+  });
+</script>
+</body>
+</html>

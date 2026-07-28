@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { getPillar, resolvePillarTab, type PillarId } from "../../lib/adminPillars";
+import { FULFILLMENT_HOME, FULFILLMENT_NAV } from "../../lib/fulfillmentPages";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { PillarStyle } from "../../components/pillars/PillarKit";
@@ -84,27 +85,31 @@ function pillarGroup(id: PillarId, icon: LucideIcon, short?: string): NavRow {
   };
 }
 
+// Fulfillment's rail group. The order comes from lib/fulfillmentPages, which
+// interleaves the picker-driven service pages with Onboarding and the Setter
+// Suite: they all read as one list because they are one job, even though those
+// two carry their own client lists rather than the page picker.
+function fulfillmentGroup(): NavRow {
+  return {
+    to: FULFILLMENT_HOME,
+    label: "Fulfillment",
+    icon: HeartHandshake,
+    short: "Fulfill",
+    children: FULFILLMENT_NAV.map((row) => ({ to: row.to, label: row.label })),
+  };
+}
+
 // The agency pillars. Sales is the agency's own sales performance (the Sales
 // Data pillar), NOT the per-client lead-working board.
 //
-// Fulfillment is the exception to the generated groups: its pages are real
-// routes rather than tabs on one page. The Setter Suite sits inside it because
-// that is what it is, the work of delivering for a client.
+// Fulfillment is the exception to the generated pillar groups: its pages are
+// real routes rather than tabs on one page. The Setter Suite sits inside it
+// because that is what it is, the work of delivering for a client.
 const PILLAR_NAV: NavRow[] = [
   { to: "/admin", label: "Command", icon: LayoutDashboard, end: true },
   pillarGroup("acquisition", Megaphone, "Acq"),
   pillarGroup("sales", Handshake),
-  {
-    to: "/admin/delivery",
-    label: "Fulfillment",
-    icon: HeartHandshake,
-    short: "Fulfill",
-    children: [
-      { to: "/admin/delivery", label: "Clients" },
-      { to: "/admin/onboarding", label: "Onboarding" },
-      { to: "/admin/setter", label: "Setter Suite" },
-    ],
-  },
+  fulfillmentGroup(),
   pillarGroup("operations", Wrench, "Ops"),
 ];
 
@@ -356,7 +361,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
         {/* Agency pillars, then the client-work zone behind a divider. Both
             lists come from the role, so a hired role sees only its own. */}
-        <nav className="flex-1 overflow-y-auto px-3 py-1">
+        {/* Bottom padding, not just py: Fulfillment expanded is ten rows, so
+            the column now scrolls on a short window and the last row needs
+            somewhere to land clear of the pinned footer. */}
+        <nav className="flex-1 overflow-y-auto px-3 pb-4 pt-1">
           {nav.pillars.map((item) =>
             item.children?.length ? (
               <NavRowGroup key={item.to} item={item} />

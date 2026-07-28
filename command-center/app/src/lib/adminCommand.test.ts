@@ -35,8 +35,8 @@ function mk(overrides: Partial<PillarConstraint>): PillarConstraint {
 }
 
 describe("pillarRoute", () => {
-  it("routes delivery to its dedicated cockpit", () => {
-    expect(pillarRoute("delivery")).toBe("/admin/delivery");
+  it("routes delivery to the first row of the Fulfillment rail", () => {
+    expect(pillarRoute("delivery")).toBe("/admin/onboarding");
   });
 
   it("routes every other pillar to the generic pillar workspace", () => {

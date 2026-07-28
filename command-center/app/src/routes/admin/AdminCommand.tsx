@@ -66,7 +66,8 @@ const PILLAR_SHORTCUTS: Shortcut[] = ADMIN_PILLARS.flatMap((pillar) =>
 
 // The surfaces that are real routes rather than pillar tabs.
 const ROUTE_SHORTCUTS: Shortcut[] = [
-  { to: "/admin/delivery", label: "Clients", zone: "Fulfillment", icon: HeartHandshake },
+  { to: "/admin/onboarding", label: "Onboarding", zone: "Fulfillment", icon: HeartHandshake },
+  { to: "/admin/fulfillment/software", label: "Software", zone: "Fulfillment", icon: HeartHandshake },
   { to: "/admin/setter", label: "Setter Suite", zone: "Fulfillment", icon: Headphones },
   { to: "/admin/team", label: "Team", zone: "Account", icon: Users },
   { to: "/admin/settings", label: "Settings", zone: "Account", icon: Settings },

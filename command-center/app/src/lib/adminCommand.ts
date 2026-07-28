@@ -22,10 +22,11 @@ export const PILLAR_LABELS: Record<Pillar, string> = {
   operations: "Operations",
 };
 
-// Service Delivery has its own dedicated cockpit route; every other pillar
-// uses the generic Theory-of-Constraints pillar workspace.
+// Fulfillment's pages are real routes of their own rather than tabs on a pillar
+// page, so it opens on the first row of its rail (Onboarding); every other
+// pillar uses the generic Theory-of-Constraints pillar workspace.
 export function pillarRoute(pillar: Pillar): string {
-  return pillar === "delivery" ? "/admin/delivery" : `/admin/pillar/${pillar}`;
+  return pillar === "delivery" ? "/admin/onboarding" : `/admin/pillar/${pillar}`;
 }
 
 const SEVERITY_WORD: Record<Severity, string> = {

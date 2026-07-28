@@ -1,5 +1,12 @@
 import { useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { queryClient } from "./lib/queryClient";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ClientProvider } from "./context/ClientContext";
@@ -55,14 +62,17 @@ import ReactivationData from "./routes/reactivation/ReactivationData";
 import GroupOutreachOverview from "./routes/groups/GroupOutreachOverview";
 import AdminLayout, { adminHomeFor } from "./routes/admin/AdminLayout";
 import { effectiveAdminRole, type AdminRole } from "./lib/adminRoles";
-import AdminClientDetail from "./routes/admin/AdminClientDetail";
 import AdminClientNew from "./routes/admin/AdminClientNew";
 import AdminCommand from "./routes/admin/AdminCommand";
 import AdminApps from "./routes/admin/AdminApps";
-import AdminDelivery from "./routes/admin/AdminDelivery";
 import AdminOnboarding from "./routes/admin/AdminOnboarding";
 import OnboardingClient from "./routes/admin/OnboardingClient";
-import DeliveryCockpit from "./routes/admin/DeliveryCockpit";
+import FulfillmentPage from "./routes/admin/FulfillmentPage";
+import {
+  DEFAULT_FULFILLMENT_PAGE,
+  fulfillmentPath,
+  legacyFulfillmentPage,
+} from "./lib/fulfillmentPages";
 import SetterSuite from "./routes/admin/SetterSuite";
 import PillarPage from "./routes/admin/PillarPage";
 import AdminSettings from "./routes/admin/AdminSettings";
@@ -133,6 +143,27 @@ function AdminRoute({
 function PillarRedirect() {
   const { pillarId } = useParams<{ pillarId: string }>();
   return <Navigate to={`/admin/pillar/${pillarId ?? ""}`} replace />;
+}
+
+// The retired per-client cockpit (/admin/delivery/:tenantId?tab=&sub=). Its
+// service tabs are now pages, so the old address maps across exactly: the tab
+// becomes the page, the tenant becomes the ?client=, and the sub-tab is kept.
+// An unknown or missing tab lands on Overview, which is where the cockpit
+// opened anyway.
+function DeliveryCockpitRedirect() {
+  const { tenantId } = useParams<{ tenantId: string }>();
+  const [searchParams] = useSearchParams();
+  const page = legacyFulfillmentPage(searchParams.get("tab"));
+  return (
+    <Navigate to={fulfillmentPath(page, tenantId, searchParams.get("sub"))} replace />
+  );
+}
+
+// The retired standalone client hub (/admin/clients/:id), which was the config
+// cards and nothing else. Those cards sit under Fulfillment > Management now.
+function ClientDetailRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={fulfillmentPath("management", id)} replace />;
 }
 
 function RootRedirect() {
@@ -491,39 +522,45 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              <Route
-                path="/admin/clients/:id"
-                element={
-                  <AdminRoute roles={["owner"]}>
-                    <AdminClientDetail />
-                  </AdminRoute>
-                }
-              />
+              {/* The standalone client hub is retired: its config cards are the
+                  Fulfillment > Config page, on the same shared panel. */}
+              <Route path="/admin/clients/:id" element={<ClientDetailRedirect />} />
               {/* Retired admin surfaces (SOPs, Onboarding, Build, Plans, Assets,
                   Messages, Infrastructure, standalone Tasks) are gone; their
                   work now lives inside the pillar tab bars. Old URLs fall
                   through to RootRedirect below. */}
               {/* Service Delivery > Paid Ads: the old standalone ad tracker
-                  is retired, replaced by the Fulfillment cockpit's Paid Ads tab. */}
-              <Route path="/admin/ads" element={<Navigate to="/admin/delivery" replace />} />
-              <Route path="/admin/ads/:clientId" element={<Navigate to="/admin/delivery" replace />} />
-              {/* Service Delivery: the client roster and per-account cockpits. */}
+                  is retired, replaced by the Fulfillment Paid Ads page. */}
+              <Route
+                path="/admin/ads"
+                element={<Navigate to="/admin/fulfillment/paid-ads" replace />}
+              />
+              <Route
+                path="/admin/ads/:clientId"
+                element={<Navigate to="/admin/fulfillment/paid-ads" replace />}
+              />
+
+              {/* Fulfillment: one route per service page. The client is a
+                  picker on the page (?client=), not part of the address, so
+                  switching client keeps you on the page you were reading. */}
+              <Route
+                path="/admin/fulfillment"
+                element={<Navigate to={`/admin/fulfillment/${DEFAULT_FULFILLMENT_PAGE}`} replace />}
+              />
+              <Route
+                path="/admin/fulfillment/:page"
+                element={
+                  <AdminRoute roles={["owner"]}>
+                    <FulfillmentPage />
+                  </AdminRoute>
+                }
+              />
+              {/* The roster landing and the per-client cockpit it fed. */}
               <Route
                 path="/admin/delivery"
-                element={
-                  <AdminRoute roles={["owner"]}>
-                    <AdminDelivery />
-                  </AdminRoute>
-                }
+                element={<Navigate to={`/admin/fulfillment/${DEFAULT_FULFILLMENT_PAGE}`} replace />}
               />
-              <Route
-                path="/admin/delivery/:tenantId"
-                element={
-                  <AdminRoute roles={["owner"]}>
-                    <DeliveryCockpit />
-                  </AdminRoute>
-                }
-              />
+              <Route path="/admin/delivery/:tenantId" element={<DeliveryCockpitRedirect />} />
               {/* Fulfillment > Onboarding: standing a new client up. The
                   roster, then one client's whole onboarding record. */}
               <Route
