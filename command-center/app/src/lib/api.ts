@@ -1179,6 +1179,11 @@ export interface ApiSetterLead {
   firstDialedAt: string | null;
   contacted: boolean;
   lastOutcome: string | null;
+  // The contact's CRM tags, carried inline on the opportunity search response
+  // (no extra fetch). Load-bearing since the CRM rebuild: the follow-up tag a
+  // lead should get, and whether its booking is confirmed, are both derived
+  // from these. Empty array when the location's response omits them.
+  tags: string[];
 }
 
 export interface ApiSetterLeadsResponse {

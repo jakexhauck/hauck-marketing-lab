@@ -1,104 +1,133 @@
 import { describe, expect, it } from "vitest";
-import { stageActionsFor } from "./setterStageActions";
+import { followUpTagFor, isDialingPipeline, stageActionsFor } from "./setterStageActions";
 
-function tags(stageName: string, pipelineName: string): string[] {
-  return (stageActionsFor(stageName, pipelineName)?.actions ?? []).map((a) => a.tag);
+const LEADS = "1) Leads";
+const NO_ANSWER = "2) No Answer";
+
+function tags(stageName: string, pipelineName: string, leadTags?: string[]): string[] {
+  return (stageActionsFor(stageName, pipelineName, leadTags)?.actions ?? []).map((a) => a.tag);
 }
 
-function labels(stageName: string, pipelineName: string): string[] {
-  return (stageActionsFor(stageName, pipelineName)?.actions ?? []).map((a) => a.label);
+function labels(stageName: string, pipelineName: string, leadTags?: string[]): string[] {
+  return (stageActionsFor(stageName, pipelineName, leadTags)?.actions ?? []).map((a) => a.label);
 }
+
+describe("isDialingPipeline", () => {
+  it("accepts the two pipelines a setter works", () => {
+    expect(isDialingPipeline(LEADS)).toBe(true);
+    expect(isDialingPipeline(NO_ANSWER)).toBe(true);
+  });
+
+  it("rejects every pipeline that is not setter work", () => {
+    for (const p of ["3) Sales", "4) Trash", "Google Reviews", "Reactivation", "Organic", "News Channel"]) {
+      expect(isDialingPipeline(p)).toBe(false);
+    }
+  });
+});
 
 describe("stageActionsFor", () => {
-  it("returns null only when the stage name is missing", () => {
-    expect(stageActionsFor(null, "1) Lead Form Pipeline")).toBeNull();
-    expect(stageActionsFor(undefined, "1) Lead Form Pipeline")).toBeNull();
-    expect(stageActionsFor("", "1) Lead Form Pipeline")).toBeNull();
+  it("returns null when the stage name is missing", () => {
+    expect(stageActionsFor(null, LEADS)).toBeNull();
+    expect(stageActionsFor(undefined, LEADS)).toBeNull();
+    expect(stageActionsFor("", LEADS)).toBeNull();
   });
 
-  it("gives every stage the dialing panel, even unlisted ones", () => {
-    const cfg = stageActionsFor("Long Term Nurture", "1) Lead Form Pipeline");
-    expect(cfg?.dials).toBe(3);
-    expect(labels("Long Term Nurture", "1) Lead Form Pipeline")).toEqual([
+  it("returns null outside the dialing pipelines, so Sales and Trash keep the generic cockpit", () => {
+    expect(stageActionsFor("Won", "3) Sales")).toBeNull();
+    expect(stageActionsFor("Job Booked", "3) Sales")).toBeNull();
+    expect(stageActionsFor("Services Uninterested", "4) Trash")).toBeNull();
+    expect(stageActionsFor("Asked For Review", "Google Reviews")).toBeNull();
+  });
+
+  it("walks the no-answer chain one day per press, all seven days", () => {
+    expect(tags("Lead Form Opt In", LEADS)).toContain("no answer day 1");
+    expect(tags("Funnel Opt In", LEADS)).toContain("no answer day 1");
+    expect(tags("Lead Follow Up", LEADS)).toContain("no answer day 1");
+    for (let day = 1; day <= 6; day++) {
+      expect(tags(`No Answer Day ${day}`, NO_ANSWER)).toContain(`no answer day ${day + 1}`);
+    }
+  });
+
+  it("matches stage names case-insensitively", () => {
+    expect(tags("NO ANSWER DAY 2", NO_ANSWER)).toContain("no answer day 3");
+  });
+
+  it("ends the chain at day 7 rather than inventing a day 8", () => {
+    expect(labels("No Answer Day 7", NO_ANSWER)).toEqual([
       "Unqualified",
       "Uninterested",
       "Follow Up",
     ]);
   });
 
-  it("keys the no-answer chain off the stage name, case-insensitively", () => {
-    expect(tags("Opted In (needs dialing)", "1) Lead Form Pipeline")).toContain(
-      "no answer day 1",
-    );
-    expect(tags("NO ANSWER DAY 2 (NEEDS DIALING)", "1) Lead Form Pipeline")).toContain(
-      "no answer day 3",
-    );
-  });
-
-  it("drops the No Answer button on day 4", () => {
-    expect(labels("No Answer Day 4 (needs dialing)", "1) Lead Form Pipeline")).toEqual([
+  it("gives the parking stages no No Answer button", () => {
+    expect(labels("Slow Burn", LEADS)).toEqual(["Unqualified", "Uninterested", "Follow Up"]);
+    expect(labels("Long Term Nurture", LEADS)).toEqual([
       "Unqualified",
       "Uninterested",
       "Follow Up",
     ]);
   });
 
-  it("uses the lead form follow-up tag outside the funnel", () => {
-    expect(tags("Opted In (needs dialing)", "1) Lead Form Pipeline")).toContain(
-      "lead form follow up",
-    );
-    expect(tags("New Lead", "3) Sales Pipeline")).toContain("lead form follow up");
-  });
-
-  it("uses the funnel follow-up tag on every Funnel Pipeline stage", () => {
-    expect(
-      tags("Survey Completed No Call Booked (needs dialing)", "2) Funnel Pipeline"),
-    ).toContain("funnel follow up");
-    // The no-answer stages exist verbatim in both pipelines; the funnel's
-    // must follow up on the funnel tag.
-    expect(tags("No Answer Day 1 (needs dialing)", "2) Funnel Pipeline")).toContain(
-      "funnel follow up",
-    );
-  });
-
-  it("drops the Follow Up button on follow-up stages themselves", () => {
-    expect(labels("Opted In Follow Up", "1) Lead Form Pipeline")).toEqual([
+  it("drops the Follow Up button on a follow-up stage, keeping its No Answer", () => {
+    expect(labels("Lead Follow Up", LEADS)).toEqual([
       "Unqualified",
       "Uninterested",
-    ]);
-    expect(labels("Survey Follow Up", "2) Funnel Pipeline")).toEqual([
-      "Unqualified",
-      "Uninterested",
+      "No Answer",
     ]);
   });
 
-  it("starts the survey stage's no-answer chain at day 1", () => {
-    expect(
-      tags("Survey Completed No Call Booked (needs dialing)", "2) Funnel Pipeline"),
-    ).toContain("no answer day 1");
+  it("prompts a task only on Follow Up", () => {
+    const cfg = stageActionsFor("Lead Form Opt In", LEADS);
+    expect((cfg?.actions ?? []).filter((a) => a.promptTask).map((a) => a.label)).toEqual([
+      "Follow Up",
+    ]);
   });
 
-  it("gives Phone Appt Confirmed the SOP's on-call buttons", () => {
-    const cfg = stageActionsFor("Phone Appt Confirmed", "2) Funnel Pipeline");
+  it("gives the Phone Appt stage the SOP's on-call buttons, with the live tag names", () => {
+    const cfg = stageActionsFor("Phone Appt", LEADS);
     expect(cfg?.actions.map((a) => [a.label, a.tag])).toEqual([
       ["Unqualified", "services unqualified"],
-      ["Uninterested", "services uninterested"],
-      ["Reschedule", "cancelled-call-rescheduling"],
-      ["Cancel + Follow Up", "cancelled-call-follow-up"],
+      ["Uninterested", "cancelled appointment uninterested"],
+      ["Reschedule", "cancelled appointment rescheduling"],
+      ["Cancel + Follow Up", "cancelled appointment follow up"],
     ]);
     const reschedule = cfg?.actions.find((a) => a.label === "Reschedule");
-    expect(reschedule?.cancelAppointment).toBe(true);
     expect(reschedule?.bookAfter).toBe(true);
     expect(reschedule?.promptTask).toBeUndefined();
     const cancel = cfg?.actions.find((a) => a.label === "Cancel + Follow Up");
-    expect(cancel?.cancelAppointment).toBe(true);
     expect(cancel?.promptTask).toBe(true);
     expect(cancel?.bookAfter).toBeUndefined();
   });
 
-  it("prompts a task only on Follow Up", () => {
-    const cfg = stageActionsFor("Opted In (needs dialing)", "1) Lead Form Pipeline");
-    const prompts = (cfg?.actions ?? []).filter((a) => a.promptTask).map((a) => a.label);
-    expect(prompts).toEqual(["Follow Up"]);
+  it("leaves the appointment cancel to the automation, except for Unqualified", () => {
+    const cfg = stageActionsFor("Phone Appt", LEADS);
+    const cancels = (cfg?.actions ?? []).filter((a) => a.cancelAppointment).map((a) => a.label);
+    expect(cancels).toEqual(["Unqualified"]);
+  });
+});
+
+describe("followUpTagFor", () => {
+  it("reads the origin off the contact's own tags, not the pipeline", () => {
+    expect(followUpTagFor("No Answer Day 3", ["funnel survey completed"])).toBe(
+      "funnel follow up",
+    );
+    expect(followUpTagFor("No Answer Day 3", ["lead form"])).toBe("lead form follow up");
+  });
+
+  it("falls back to the stage name when the lead carries no origin tag", () => {
+    expect(followUpTagFor("Funnel Opt In")).toBe("funnel follow up");
+    expect(followUpTagFor("Lead Form Opt In")).toBe("lead form follow up");
+  });
+
+  it("defaults to the lead form when nothing says otherwise", () => {
+    expect(followUpTagFor("No Answer Day 1", [])).toBe("lead form follow up");
+    expect(followUpTagFor("Slow Burn")).toBe("lead form follow up");
+  });
+
+  it("is what a funnel lead in the No Answer pipeline gets", () => {
+    expect(tags("No Answer Day 2", NO_ANSWER, ["funnel survey completed"])).toContain(
+      "funnel follow up",
+    );
   });
 });

@@ -91,6 +91,12 @@ export interface GhlOpportunity {
     // others; the Setter Suite board reads it for the lead card when GHL
     // supplies it, and falls back to an empty string when it does not.
     city?: string;
+    // The contact's tags, which the opportunity SEARCH response carries
+    // inline (verified against the live account 2026-07-28). That is why the
+    // Setter Suite board can show tag-derived state without the N+1 contact
+    // fetch the ApiLead list path avoids: this is one response, already paid
+    // for. Absent on responses that omit it, so every reader defaults it.
+    tags?: string[];
   };
   source?: string;
   // GHL user id this opportunity is assigned to (drives rep-only filtering).

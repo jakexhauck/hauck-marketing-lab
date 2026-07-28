@@ -21,6 +21,7 @@ function lead(over: Partial<ApiSetterLead>): ApiSetterLead {
     firstDialedAt: null,
     contacted: false,
     lastOutcome: null,
+    tags: [],
     ...over,
   };
 }

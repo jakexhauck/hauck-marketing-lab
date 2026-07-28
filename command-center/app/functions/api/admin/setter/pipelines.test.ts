@@ -40,19 +40,63 @@ describe("shapeSetterPipeline", () => {
     expect(p.stages.map((s) => s.id)).toEqual(["s1", "s2"]);
   });
 
-  it("flags a stage as needsDialing on a case-insensitive match anywhere in the name", () => {
+  it("flags every working stage in a dialing pipeline", () => {
     const p = shapeSetterPipeline({
       id: "p1",
-      name: "Funnel Pipeline",
+      name: "1) Leads",
       stages: [
-        { id: "s1", name: "Survey Completed No Call Booked (needs dialing)", position: 0 },
-        { id: "s2", name: "NEEDS DIALING", position: 1 },
-        { id: "s3", name: "Survey Follow Up", position: 2 },
+        { id: "s1", name: "Lead Form Opt In", position: 0 },
+        { id: "s2", name: "Funnel Opt In", position: 1 },
+        { id: "s3", name: "Lead Follow Up", position: 2 },
+        { id: "s4", name: "Phone Appt", position: 3 },
       ],
     });
-    expect(p.stages.find((s) => s.id === "s1")!.needsDialing).toBe(true);
-    expect(p.stages.find((s) => s.id === "s2")!.needsDialing).toBe(true);
-    expect(p.stages.find((s) => s.id === "s3")!.needsDialing).toBe(false);
+    expect(p.stages.every((s) => s.needsDialing)).toBe(true);
+  });
+
+  it("flags the whole no-answer chain", () => {
+    const p = shapeSetterPipeline({
+      id: "p2",
+      name: "2) No Answer",
+      stages: Array.from({ length: 7 }, (_, i) => ({
+        id: `s${i + 1}`,
+        name: `No Answer Day ${i + 1}`,
+        position: i,
+      })),
+    });
+    expect(p.stages.every((s) => s.needsDialing)).toBe(true);
+  });
+
+  it("leaves the parking stages unflagged, so nurture leads get no overdue rail", () => {
+    const p = shapeSetterPipeline({
+      id: "p1",
+      name: "1) Leads",
+      stages: [
+        { id: "s1", name: "Slow Burn", position: 0 },
+        { id: "s2", name: "Long Term Nurture", position: 1 },
+      ],
+    });
+    expect(p.stages.every((s) => s.needsDialing)).toBe(false);
+  });
+
+  it("flags nothing outside the dialing pipelines", () => {
+    for (const name of ["3) Sales", "4) Trash", "Google Reviews", "Reactivation"]) {
+      const p = shapeSetterPipeline({
+        id: "p",
+        name,
+        stages: [{ id: "s1", name: "Anything", position: 0 }],
+      });
+      expect(p.stages[0].needsDialing).toBe(false);
+    }
+  });
+
+  it("no longer depends on the retired (needs dialing) marker", () => {
+    const p = shapeSetterPipeline({
+      id: "p1",
+      name: "3) Sales",
+      stages: [{ id: "s1", name: "Won (needs dialing)", position: 0 }],
+    });
+    expect(p.stages[0].needsDialing).toBe(false);
   });
 
   it("carries the live stage color through unchanged", () => {

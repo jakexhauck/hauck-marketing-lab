@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { TriangleAlert } from "lucide-react";
 import { formatMessageStamp, isOutbound } from "../../../lib/setterInbox";
+import { toPlainText } from "../../../lib/plainText";
 import type { ApiSetterMessage } from "../../../lib/api";
 
 interface Props {
@@ -75,8 +76,11 @@ export default function ThreadView({ messages, status, onRetry }: Props) {
                     : "border-border bg-surface-2")
                 }
               >
+                {/* Emails arrive as HTML; SMS does not. Flattened either way,
+                    so a marketing email never renders its markup as text in
+                    the middle of a conversation. */}
                 <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-text">
-                  {m.body || <span className="text-faint">No message text</span>}
+                  {toPlainText(m.body) || <span className="text-faint">No message text</span>}
                 </p>
                 <div
                   className={

@@ -17,7 +17,7 @@ import { useToast } from "../../../context/ToastContext";
 import {
   confirmState,
   formatApptTime,
-  isApptBookedStage,
+  isAwaitingConfirm,
   type LeadAppointment,
 } from "../../../lib/setterApptConfirm";
 import { isOptimisticDial } from "../../../lib/setterCockpit";
@@ -157,16 +157,18 @@ export default function SetterCockpit({
 }: Props) {
   const now = useNow();
   const apptState = appointment ? confirmState(appointment, now) : null;
-  // The manual-confirm banner belongs to the Appt Booked stage only; a
-  // confirmed lead's appointment renders as plain information.
-  const confirmDue = apptState === "due" && isApptBookedStage(lead.stageName);
   const detailQuery = useSetterLeadDetailQuery(tenantId, lead.contactId, true);
   const detail = detailQuery.data?.lead;
 
   const name = detail?.name || lead.name;
   const phone = detail?.phone || lead.phone;
   const email = detail?.email || "";
-  const tags = detail?.tags ?? [];
+  // The live contact's tags where the detail has loaded, the board's copy
+  // until then, so the panel is never briefly built from no tags at all.
+  const tags = detail?.tags ?? lead.tags ?? [];
+  // The manual-confirm banner belongs to a lead whose booking nobody has
+  // confirmed; confirmation is a tag now, not a separate stage.
+  const confirmDue = apptState === "due" && isAwaitingConfirm(lead.stageName, tags);
   const dials = detail?.dials ?? [];
   // Read off the live contact, so re-opening a lead the setter already spoke
   // to shows the answered state instead of offering the tag again.
@@ -195,10 +197,14 @@ export default function SetterCockpit({
     showToast("Name copied · hit + and pick Group Chat in the CRM");
   };
 
-  // Every resolvable stage renders the dialing panel; the old generic
-  // cockpit below survives only as the fallback for a lead whose stage name
-  // failed to resolve.
-  const stageConfig = stageActionsFor(lead.stageName, pipelineName);
+  // Stages in a dialing pipeline render the purpose-built panel. The generic
+  // cockpit below is the fallback for everything else: a lead in Sales, Trash
+  // or a client-specific pipeline is not setter work, and offering it the
+  // dialing buttons would let one press drag a won job back into follow-up.
+  //
+  // Tags are passed because the follow-up tag depends on where the lead came
+  // from, which only its tags now record.
+  const stageConfig = stageActionsFor(lead.stageName, pipelineName, tags);
 
   return (
     <aside

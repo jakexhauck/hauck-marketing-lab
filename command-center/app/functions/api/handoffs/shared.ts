@@ -58,18 +58,13 @@ export interface ApiHandoff {
   unread: number;
 }
 
-// Willis last-resort fallbacks (build plan section 1). Applied ONLY when the
-// live location is Willis and name resolution failed, never for a cloned client.
 export const WILLIS_LOCATION_ID = "OznT3yyuwK3dqVXDsCaD";
-export const WILLIS_SALES_PIPELINE_ID = "7MJx8GtDCrni5AO54sGQ";
-const WILLIS_STAGE_IDS: Record<HandoffStatus, string> = {
-  new: "7a3284b5-442d-4f28-8c3d-c24ee354c67a", // Handed Off
-  estimate_set: "89f9d347-80fd-41ae-95db-d4d514a77853", // Estimate Booked
-  job_booked: "2183e4b6-d75b-412c-b41d-ceb527ea1bc6", // Job Booked
-  won: "edce7a5f-bebb-433b-a61b-c3b964eddf53", // Won
-  lost: "d8fc71b5-8dc1-4c9f-8670-4ac2bcd77422", // Lost
-  later: "206d6d45-d541-43b2-b957-7255afd25ee4", // Follow Up
-};
+
+// The hardcoded Willis pipeline and stage ids that used to sit here were
+// deleted with the 2026-07-27 CRM rebuild, so every one of them pointed at
+// nothing. They are gone rather than refreshed: an id fallback cannot be
+// verified from the code, and it fails silently when it rots. Resolution is
+// by NAME only now, with an explicit named fallback below.
 
 // The canonical GHL stage name each status writes into (resolved by name).
 export const STATUS_STAGE_NAME: Record<HandoffStatus, string> = {
@@ -113,6 +108,10 @@ export function stageNameToStatus(name: string): HandoffStatus | null {
   const n = normalizeStageName(name);
   if (!n) return null;
   if (n === "handed off" || n.includes("hand off") || n.includes("handed")) return "new";
+  // Before the estimate/job checks: the live "Job/Estimate Cancelled" stage
+  // contains both words, and a cancelled appointment is not a booking. The
+  // owner has to chase it again, so it reads as the follow-up state.
+  if (n.includes("cancel")) return "later";
   if (n.includes("estimate")) return "estimate_set";
   if (n === "job booked" || (n.includes("job") && n.includes("book"))) return "job_booked";
   if (n.includes("follow")) return "later";
@@ -147,12 +146,12 @@ export async function resolveSalesPipeline(
     `/opportunities/pipelines?locationId=${encodeURIComponent(gctx.locationId)}`,
   );
   const pipes = data.pipelines ?? [];
+  // By name only. The Willis id fallback that used to sit here pointed at a
+  // pipeline deleted in the 2026-07-27 rebuild; the live pipeline is named
+  // "3) Sales", which the contains-match already finds.
   const pipe =
     pipes.find((p) => normalizeStageName(p.name) === "sales") ??
-    pipes.find((p) => normalizeStageName(p.name).includes("sales")) ??
-    (gctx.locationId === WILLIS_LOCATION_ID
-      ? pipes.find((p) => p.id === WILLIS_SALES_PIPELINE_ID)
-      : undefined);
+    pipes.find((p) => normalizeStageName(p.name).includes("sales"));
   if (!pipe) return null;
 
   const statusByStageId = new Map<string, HandoffStatus>();
@@ -163,8 +162,14 @@ export async function resolveSalesPipeline(
   return { pipelineId: pipe.id, statusByStageId };
 }
 
-// Resolve the target stage id for a status within a known pipeline, by name,
-// with the Willis id as a last resort (Willis location only).
+// Resolve the target stage id for a status within a known pipeline, by name.
+//
+// The hand-off itself ("new") is the one status whose stage is not universal.
+// Willis has a dedicated "Handed Off" stage at the top of its Sales pipeline.
+// Every client after it hands off at the moment the estimate is booked, so
+// there is no separate stage to move into and "Estimate Booked" IS the
+// hand-off. Trying the named stage first and falling back to Estimate Booked
+// covers both without branching on the location id.
 export async function resolveTargetStageId(
   gctx: GhlContext,
   pipelineId: string,
@@ -172,7 +177,9 @@ export async function resolveTargetStageId(
 ): Promise<string | null> {
   const byName = await resolveStageInPipeline(gctx, pipelineId, STATUS_STAGE_NAME[status]);
   if (byName) return byName;
-  if (gctx.locationId === WILLIS_LOCATION_ID) return WILLIS_STAGE_IDS[status];
+  if (status === "new") {
+    return await resolveStageInPipeline(gctx, pipelineId, STATUS_STAGE_NAME.estimate_set);
+  }
   return null;
 }
 

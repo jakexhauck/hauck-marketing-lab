@@ -6,6 +6,7 @@ import { useSetterNotesQuery, useCreateSetterNote } from "../../../hooks/useApi"
 import { useToast } from "../../../context/ToastContext";
 import { useNow } from "../../../context/NowContext";
 import { timeAgo } from "../../../lib/timeAgo";
+import { toPlainText } from "../../../lib/plainText";
 
 // Notes + task creation for the cockpit, rendered on EVERY stage (both the
 // stage-driven dialing panels and the generic fallback): whatever the stage,
@@ -101,7 +102,12 @@ export default function SetterNotesTasks({ tenantId, contactId, leadName }: Prop
           <ul className="mt-3 flex flex-col gap-2">
             {visible.map((n) => (
               <li key={n.id} className="rounded-[var(--radius)] border border-border bg-surface-2 px-3 py-2">
-                <p className="whitespace-pre-wrap break-words text-[12.5px] text-text">{n.body}</p>
+                {/* A note written by a form submission arrives as HTML. Shown
+                    raw it was tag soup on screen ("<p style=...><strong>..."),
+                    so it is flattened to the text it meant. */}
+                <p className="whitespace-pre-wrap break-words text-[12.5px] text-text">
+                  {toPlainText(n.body)}
+                </p>
                 {n.dateAdded && (
                   <p className="font-data mt-1 text-[10.5px] text-faint">{timeAgo(n.dateAdded, now)}</p>
                 )}

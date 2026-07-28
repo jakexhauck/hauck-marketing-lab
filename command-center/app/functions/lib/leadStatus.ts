@@ -66,12 +66,19 @@ const RANK: Record<ClientLeadStatus, number> = CLIENT_STATUS_ORDER.reduce(
 // Insertion order matters for the prefix pass in statusForStage: longer, more
 // specific keys must come before the shorter keys they contain.
 const STAGE_STATUS: Record<string, ClientLeadStatus> = {
-  // 1) Lead Form Pipeline
-  "opted in (needs dialing)": "new",
-  "opted in follow up": "contacted",
+  // 1) Leads (the 2026-07-27 rebuild: the lead form and the funnel share one
+  // pipeline now, and a phone appointment is one stage rather than three).
+  "lead form opt in": "new",
+  "funnel opt in": "new",
+  "lead follow up": "contacted",
+  "phone appt": "phone_appt_booked",
+  "slow burn": "long_term_nurture",
   "long term nurture": "long_term_nurture",
 
-  // 2) Funnel Pipeline
+  // The pre-rebuild names, kept because a client who has not been migrated
+  // still runs them and an unmapped stage silently reads as "New".
+  "opted in (needs dialing)": "new",
+  "opted in follow up": "contacted",
   "survey completed no call booked (needs dialing)": "new",
   "survey follow up": "contacted",
   "phone appt booked": "phone_appt_booked",
@@ -90,6 +97,12 @@ const STAGE_STATUS: Record<string, ClientLeadStatus> = {
   "no answer": "phone_follow_up",
 
   // 3) Sales Pipeline
+  //
+  // "Job/Estimate Cancelled" sits above the two booked keys because the prefix
+  // pass would otherwise never reach it, and it must not read as a live
+  // booking: the appointment was cancelled, so the honest client-facing label
+  // is that the lead is back in follow-up, not that an estimate stands.
+  "job/estimate cancelled": "follow_up",
   "handed off": "handed_off",
   "estimate booked": "estimate_booked",
   "job booked": "job_booked",

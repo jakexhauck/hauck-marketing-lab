@@ -3,9 +3,11 @@ import {
   CONFIRM_WINDOW_MS,
   appointmentFor,
   confirmState,
-  isApptBookedStage,
-  isApptConfirmedStage,
-  isApptTrackedStage,
+  hasApptBookedTag,
+  hasApptConfirmedTag,
+  isApptTracked,
+  isAwaitingConfirm,
+  isPhoneApptStage,
 } from "./setterApptConfirm";
 import type { ApiSetterEvent } from "./api";
 
@@ -25,30 +27,62 @@ function event(overrides: Partial<ApiSetterEvent>): ApiSetterEvent {
   };
 }
 
-describe("isApptBookedStage", () => {
+describe("isPhoneApptStage", () => {
   it("matches the live stage name and a spelled-out variant", () => {
-    expect(isApptBookedStage("Phone Appt Booked")).toBe(true);
-    expect(isApptBookedStage("Phone Appointment Booked")).toBe(true);
+    expect(isPhoneApptStage("Phone Appt")).toBe(true);
+    expect(isPhoneApptStage("Phone Appointment")).toBe(true);
   });
 
-  it("does not match confirmed or unrelated stages", () => {
-    expect(isApptBookedStage("Phone Appt Confirmed")).toBe(false);
-    expect(isApptBookedStage("Survey Follow Up")).toBe(false);
-    expect(isApptBookedStage(null)).toBe(false);
+  it("does not match unrelated stages", () => {
+    expect(isPhoneApptStage("Lead Follow Up")).toBe(false);
+    expect(isPhoneApptStage("No Answer Day 3")).toBe(false);
+    expect(isPhoneApptStage(null)).toBe(false);
   });
 });
 
-describe("isApptConfirmedStage / isApptTrackedStage", () => {
-  it("matches confirmed stages only", () => {
-    expect(isApptConfirmedStage("Phone Appt Confirmed")).toBe(true);
-    expect(isApptConfirmedStage("Phone Appointment Confirmed")).toBe(true);
-    expect(isApptConfirmedStage("Phone Appt Booked")).toBe(false);
+describe("appointment tags", () => {
+  it("reads the two tags the automation stamps, case-insensitively", () => {
+    expect(hasApptBookedTag(["phone appointment booked"])).toBe(true);
+    expect(hasApptConfirmedTag(["Phone Appointment Confirmed"])).toBe(true);
+    expect(hasApptConfirmedTag(["phone appointment booked"])).toBe(false);
+    expect(hasApptBookedTag(null)).toBe(false);
+  });
+});
+
+describe("isAwaitingConfirm", () => {
+  it("is true for a booked lead the automation has not confirmed", () => {
+    expect(isAwaitingConfirm("Phone Appt", ["phone appointment booked"])).toBe(true);
   });
 
-  it("tracks both the booked and confirmed stages", () => {
-    expect(isApptTrackedStage("Phone Appt Booked")).toBe(true);
-    expect(isApptTrackedStage("Phone Appt Confirmed")).toBe(true);
-    expect(isApptTrackedStage("Survey Follow Up")).toBe(false);
+  it("is false once the confirmed tag lands", () => {
+    expect(
+      isAwaitingConfirm("Phone Appt", ["phone appointment booked", "phone appointment confirmed"]),
+    ).toBe(false);
+  });
+
+  it("treats a missing tag as unconfirmed, never as confirmed", () => {
+    expect(isAwaitingConfirm("Phone Appt", [])).toBe(true);
+    expect(isAwaitingConfirm("Phone Appt", null)).toBe(true);
+  });
+
+  it("is false outside the appointment stage", () => {
+    expect(isAwaitingConfirm("No Answer Day 1", [])).toBe(false);
+  });
+});
+
+describe("isApptTracked", () => {
+  it("tracks every lead in the appointment stage", () => {
+    expect(isApptTracked("Phone Appt", [])).toBe(true);
+  });
+
+  it("tracks a lead carrying either appointment tag wherever it sits", () => {
+    expect(isApptTracked("Lead Follow Up", ["phone appointment booked"])).toBe(true);
+    expect(isApptTracked("Lead Follow Up", ["phone appointment confirmed"])).toBe(true);
+  });
+
+  it("ignores everything else", () => {
+    expect(isApptTracked("No Answer Day 2", ["lead form"])).toBe(false);
+    expect(isApptTracked("Won", undefined)).toBe(false);
   });
 });
 

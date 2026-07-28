@@ -10,7 +10,7 @@ import {
 import {
   confirmState,
   formatApptTime,
-  isApptBookedStage,
+  isAwaitingConfirm,
   type LeadAppointment,
 } from "../../../lib/setterApptConfirm";
 import { timeAgo } from "../../../lib/timeAgo";
@@ -71,9 +71,11 @@ export default function SetterCard({
     ? noAnswerWait(lead.updatedAt ?? lead.createdAt, now)
     : null;
   const apptState = appointment ? confirmState(appointment, now) : null;
-  // The manual-confirm alert belongs to the Appt Booked stage only: a lead
-  // in Appt Confirmed already confirmed, its chip is plain information.
-  const confirmDue = apptState === "due" && isApptBookedStage(lead.stageName);
+  // The manual-confirm alert belongs to a lead whose booking nobody has
+  // confirmed. Confirmation is a TAG now, not a separate stage, so a confirmed
+  // lead's chip is plain information while an unconfirmed one inside 24 hours
+  // is a call to make.
+  const confirmDue = apptState === "due" && isAwaitingConfirm(lead.stageName, lead.tags);
 
   // Composed by hand rather than via Tailwind box-shadow utility classes,
   // because the rail and the selection ring can both be present at once and

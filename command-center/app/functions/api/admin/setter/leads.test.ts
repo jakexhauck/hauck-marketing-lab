@@ -37,7 +37,35 @@ describe("shapeSetterLead", () => {
       firstDialedAt: "2026-07-20T09:00:00Z",
       contacted: true,
       lastOutcome: "booked",
+      tags: [],
     });
+  });
+
+  it("carries the contact's tags through from the opportunity search", () => {
+    const o: GhlOpportunity = {
+      id: "o3",
+      name: "Tagged Lead",
+      pipelineStageId: "s1",
+      contact: { id: "c3", tags: ["funnel survey completed", "phone appointment booked"] },
+      createdAt: "2026-07-19T00:00:00Z",
+    };
+    expect(shapeSetterLead(o, stageNames, new Map()).tags).toEqual([
+      "funnel survey completed",
+      "phone appointment booked",
+    ]);
+  });
+
+  // A location whose search response omits contact.tags must read as "no
+  // evidence", never as undefined: the follow-up tag and the confirm alert
+  // both branch on this array.
+  it("defaults tags to an empty array when the response omits them", () => {
+    const o: GhlOpportunity = {
+      id: "o4",
+      pipelineStageId: "s1",
+      contact: { id: "c4" },
+      createdAt: "2026-07-19T00:00:00Z",
+    };
+    expect(shapeSetterLead(o, stageNames, new Map()).tags).toEqual([]);
   });
 
   it("defaults every dial field for a lead never dialed", () => {

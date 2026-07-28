@@ -159,6 +159,7 @@ describe("bumpLeadForDial", () => {
     firstDialedAt: null,
     contacted: false,
     lastOutcome: null,
+    tags: [],
   };
 
   it("increments attempts and sets lastOutcome to the new dial's outcome", () => {

@@ -38,7 +38,7 @@ import {
 import { dialCheckKey, orderByNumberPrefix } from "../../lib/setterModel";
 import {
   appointmentFor,
-  isApptTrackedStage,
+  isApptTracked,
   type LeadAppointment,
 } from "../../lib/setterApptConfirm";
 
@@ -168,14 +168,14 @@ export default function SetterSuite() {
     return () => window.clearInterval(id);
   }, [boardLeads, locks.length]);
 
-  // Appointment tracking (setterApptConfirm.ts): leads in an "Appt Booked"
-  // stage need the manual-confirm alert, and leads in "Appt Confirmed" need
-  // their booking for the on-call reschedule/cancel actions. Booked events
-  // are fetched only while such a lead is on the board, and joined to leads
-  // by contactId. The range bounds are floored to the hour so the query key
-  // does not churn a refetch every render.
+  // Appointment tracking (setterApptConfirm.ts): a lead with a booking needs
+  // its appointment resolved, both for the manual-confirm alert (unconfirmed,
+  // inside 24 hours) and for the on-call reschedule/cancel actions. Booked
+  // events are fetched only while such a lead is on the board, and joined to
+  // leads by contactId. The range bounds are floored to the hour so the query
+  // key does not churn a refetch every render.
   const now = useNow();
-  const apptLeads = (boardLeads ?? []).filter((l) => isApptTrackedStage(l.stageName));
+  const apptLeads = (boardLeads ?? []).filter((l) => isApptTracked(l.stageName, l.tags));
   const HOUR_MS = 60 * 60 * 1000;
   const rangeAnchor = Math.floor(now / HOUR_MS) * HOUR_MS;
   const eventsQuery = useSetterEventsQuery(

@@ -14,10 +14,12 @@ import { rollUpByContact, chunk, type ContactRollUp, type DialRow } from "../../
 // card can show attempts/contacted/last outcome without a second round-trip
 // per lead.
 //
-// Deliberately excludes `tags`: fetching a contact's tags per card would be
-// an N+1 contact fetch across the whole board (see ghl.ts:108-110, the same
-// cost reason the list-view ApiLead omits attribution/tags). Tags belong to
-// the per-lead detail endpoint (Task 5), which fetches one contact at a time.
+// Tags ARE included, which an earlier note here said they could not be. That
+// note assumed a per-contact fetch; the opportunity SEARCH response carries
+// contact.tags inline (verified against the live account 2026-07-28), so the
+// board gets them for free in the request it already makes. They are load-
+// bearing now: the follow-up tag a lead should receive, and whether a booked
+// appointment has been confirmed, are both tag-derived since the CRM rebuild.
 
 interface GhlStage {
   id: string;
@@ -48,6 +50,10 @@ export interface ApiSetterLead {
   firstDialedAt: string | null;
   contacted: boolean;
   lastOutcome: string | null;
+  // The contact's CRM tags, as the opportunity search returned them. Empty
+  // when the location's response omits them, never undefined, so callers can
+  // treat "no tags" and "tags not supplied" the same way: as no evidence.
+  tags: string[];
 }
 
 // Pure: shape one live opportunity plus its already-computed dial roll-up
@@ -76,6 +82,7 @@ export function shapeSetterLead(
     firstDialedAt: rollUp?.firstDialedAt ?? null,
     contacted: rollUp?.contacted ?? false,
     lastOutcome: rollUp?.lastOutcome ?? null,
+    tags: o.contact?.tags ?? [],
   };
 }
 

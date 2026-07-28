@@ -1,37 +1,66 @@
 import type { ApiSetterEvent } from "./api";
 
-// Manual-confirm tracking for funnel-booked phone appointments.
+// Manual-confirm tracking for booked phone appointments.
 //
-// A lead who books through the funnel lands in the "Phone Appt Booked" stage
-// and gets automated confirmation SMS/email. The automation moves them out
-// once they confirm; a lead still sitting in that stage as the appointment
-// approaches has NOT confirmed, and inside the final 24 hours the setter
-// must call and confirm manually. This module is the pure logic behind that
-// alert: which stages count, which booked event is "the" appointment, and
-// whether the manual-confirm window is open.
+// A lead who books gets automated confirmation SMS/email. A lead who has NOT
+// confirmed as the appointment approaches needs a manual call inside the final
+// 24 hours. This module is the pure logic behind that alert: which leads count,
+// which booked event is "the" appointment, and whether the window is open.
+//
+// Rebuilt 2026-07-28. Booked and confirmed used to be two separate CRM stages,
+// which is what this module matched on. They are now two TAGS on one "Phone
+// Appt" stage, so every check here reads tags; the stage only decides whether
+// a lead has an appointment worth resolving at all. Matching on the old stage
+// names silently returned false for every lead, which switched the whole
+// alert off without anything appearing to break.
 
 export const CONFIRM_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-// The stage a funnel booking parks in until confirmed. Matched on the name
-// so it survives both "Phone Appt Booked" and a spelled-out rename.
-export function isApptBookedStage(stageName: string | undefined | null): boolean {
-  if (!stageName) return false;
-  const s = stageName.trim().toLowerCase();
-  return s.includes("appt booked") || s.includes("appointment booked");
+// Tag comparison has to survive casing and stray spacing, since these strings
+// are typed by hand in the CRM's automation builder.
+function hasTag(tags: string[] | undefined | null, want: string): boolean {
+  return (tags ?? []).some((t) => t.trim().toLowerCase() === want);
 }
 
-// The stage after confirmation. Its cockpit works the live call (SOP:
-// reschedule / cancel actions against the tracked booking), so these leads
-// need their appointment resolved too, WITHOUT the manual-confirm alert.
-export function isApptConfirmedStage(stageName: string | undefined | null): boolean {
+// The one stage a phone appointment lives in. Kept name-based on purpose: it
+// is the cheap board-level filter that decides which leads are worth fetching
+// calendar events for.
+export function isPhoneApptStage(stageName: string | undefined | null): boolean {
   if (!stageName) return false;
   const s = stageName.trim().toLowerCase();
-  return s.includes("appt confirmed") || s.includes("appointment confirmed");
+  return s.includes("phone appt") || s.includes("phone appointment");
 }
 
-// Any stage whose leads should have their booked appointment looked up.
-export function isApptTrackedStage(stageName: string | undefined | null): boolean {
-  return isApptBookedStage(stageName) || isApptConfirmedStage(stageName);
+// The lead confirmed: the client's Phone Appointment Confirmed automation
+// stamps this tag when the appointment status flips to confirmed.
+export function hasApptConfirmedTag(tags: string[] | undefined | null): boolean {
+  return hasTag(tags, "phone appointment confirmed");
+}
+
+export function hasApptBookedTag(tags: string[] | undefined | null): boolean {
+  return hasTag(tags, "phone appointment booked");
+}
+
+// A lead with a booking that nobody has confirmed yet: the only lead the
+// manual-confirm alert is for. A lead carrying neither tag but sitting in the
+// stage counts as unconfirmed too, because an absent tag is not evidence of a
+// confirmation.
+export function isAwaitingConfirm(
+  stageName: string | undefined | null,
+  tags: string[] | undefined | null,
+): boolean {
+  if (!isPhoneApptStage(stageName)) return false;
+  return !hasApptConfirmedTag(tags);
+}
+
+// Any lead whose booked appointment should be looked up: in the appointment
+// stage, or carrying either appointment tag (a lead the automation has moved
+// on but whose booking the cockpit still acts against).
+export function isApptTracked(
+  stageName: string | undefined | null,
+  tags?: string[] | null,
+): boolean {
+  return isPhoneApptStage(stageName) || hasApptBookedTag(tags) || hasApptConfirmedTag(tags);
 }
 
 export interface LeadAppointment {
