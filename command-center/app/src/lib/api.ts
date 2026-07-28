@@ -687,6 +687,9 @@ export interface AdminTask {
   id: string;
   tenantId: string | null;
   pillarId: string | null;
+  // The operator's own category (admin_task_categories, 0063). null is
+  // Uncategorised, which is a normal state, not a missing value.
+  categoryId: string | null;
   clientName: string | null;
   title: string;
   note: string | null;
@@ -696,6 +699,17 @@ export interface AdminTask {
   // through deriveCoupling in src/lib/taskStatus.ts.
   status: TaskStatus;
   updates: string | null;
+  createdAt: string;
+}
+
+// A category on the admin Tasks checklist. Operator-managed: added, renamed,
+// recoloured and deleted from the console, never seeded. `color` is a palette
+// token from src/lib/taskCategories.ts, resolved to theme tints at render.
+export interface AdminTaskCategory {
+  id: string;
+  name: string;
+  color: string;
+  sortOrder: number;
   createdAt: string;
 }
 

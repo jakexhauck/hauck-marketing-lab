@@ -4,12 +4,13 @@ import { logAdminAction } from "../../../lib/adminAuth";
 import { deriveCoupling, isValidStatus, type TaskStatus } from "../../../lib/taskStatus";
 
 const SELECT =
-  "id, tenant_id, pillar_id, title, note, due_date, completed, status, updates, created_at, tenants(name)";
+  "id, tenant_id, pillar_id, category_id, title, note, due_date, completed, status, updates, created_at, tenants(name)";
 
 interface TaskRow {
   id: string;
   tenant_id: string | null;
   pillar_id: string | null;
+  category_id: string | null;
   title: string;
   note: string | null;
   due_date: string | null;
@@ -25,6 +26,7 @@ function toTask(row: TaskRow) {
     id: row.id,
     tenantId: row.tenant_id,
     pillarId: row.pillar_id,
+    categoryId: row.category_id,
     clientName: row.tenants?.name ?? null,
     title: row.title,
     note: row.note,
@@ -39,8 +41,11 @@ function toTask(row: TaskRow) {
 
 interface PatchBody {
   title?: string;
-  // null clears the category back to agency-wide; a string re-tags to a client.
+  // null clears the client back to agency-wide; a string re-tags to a client.
   tenantId?: string | null;
+  // A row in admin_task_categories (0063). null files the task under
+  // Uncategorised; the row itself is never touched by a category change.
+  categoryId?: string | null;
   // Optional context line under the title. Empty string clears it.
   note?: string | null;
   dueDate?: string | null;
@@ -78,6 +83,7 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     update.title = title;
   }
   if ("tenantId" in body) update.tenant_id = body.tenantId ? body.tenantId : null;
+  if ("categoryId" in body) update.category_id = body.categoryId ? body.categoryId : null;
   if ("note" in body) update.note = body.note && body.note.trim() ? body.note.trim() : null;
   if ("dueDate" in body) update.due_date = body.dueDate ? body.dueDate : null;
   if ("updates" in body) {

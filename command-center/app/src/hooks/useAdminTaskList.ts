@@ -24,6 +24,12 @@ export interface UseAdminTaskList {
   // Appends a blank todo row and returns its id so the caller can focus it.
   addTask: () => Promise<string | null>;
   patchField: (task: AdminTask, field: TaskTextField, value: string) => Promise<void>;
+  // Files the task under a category, or null for Uncategorised.
+  setCategory: (task: AdminTask, categoryId: string | null) => Promise<void>;
+  // Local-only: drops a deleted category from every row that carried it. The
+  // server has already done this (ON DELETE SET NULL), so this only keeps the
+  // rows on screen honest without a refetch.
+  forgetCategory: (categoryId: string) => void;
   setStatus: (task: AdminTask, status: TaskStatus) => Promise<void>;
   toggleDone: (task: AdminTask) => Promise<void>;
   // Removes a task. Optimistic: the row disappears at once and is put back if
@@ -96,6 +102,28 @@ export function useAdminTaskList(): UseAdminTaskList {
         list.map((t) => (t.id === task.id ? { ...t, [field]: task[field] } : t)),
       );
     }
+  }, []);
+
+  const setCategory = useCallback(async (task: AdminTask, categoryId: string | null) => {
+    if (categoryId === task.categoryId) return;
+    setTasks((list) => list.map((t) => (t.id === task.id ? { ...t, categoryId } : t)));
+    try {
+      await api(`/api/admin/tasks/${task.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ categoryId }),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not change that category.");
+      setTasks((list) =>
+        list.map((t) => (t.id === task.id ? { ...t, categoryId: task.categoryId } : t)),
+      );
+    }
+  }, []);
+
+  const forgetCategory = useCallback((categoryId: string) => {
+    setTasks((list) =>
+      list.map((t) => (t.categoryId === categoryId ? { ...t, categoryId: null } : t)),
+    );
   }, []);
 
   // Shared writer for the two coupled controls (pill and checkbox).
@@ -179,6 +207,8 @@ export function useAdminTaskList(): UseAdminTaskList {
     adding,
     addTask,
     patchField,
+    setCategory,
+    forgetCategory,
     setStatus,
     toggleDone,
     deleteTask,

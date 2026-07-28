@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-28-task-categories",
+    date: "28 July 2026",
+    title: "Tasks can be sorted into your own categories",
+    items: [
+      "Every task now has a Category, picked from a list you build yourself. There is nothing preset: add the categories that match how you actually work.",
+      "Add, rename, recolour and remove them from Manage above the list, or from the bottom of any task's category dropdown.",
+      "The row of buttons above the checklist filters it to one category at a time, with a live count on each. Uncategorised shows up as its own filter whenever something has no category yet.",
+      "Removing a category never removes the work. Anything filed under it stays in the list as uncategorised.",
+      "Drag-to-reorder stays available on the full list. While a filter is on, the drag handles hide, since reordering part of a list would shuffle the rest.",
+    ],
+  },
+  {
     id: "2026-07-28-ghl-lead-sync",
     date: "28 July 2026",
     title: "Prospects added in GoHighLevel now show up here",

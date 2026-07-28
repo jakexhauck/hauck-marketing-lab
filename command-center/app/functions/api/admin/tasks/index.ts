@@ -10,6 +10,7 @@ interface TaskRow {
   id: string;
   tenant_id: string | null;
   pillar_id: string | null;
+  category_id: string | null;
   title: string;
   note: string | null;
   due_date: string | null;
@@ -21,13 +22,14 @@ interface TaskRow {
 }
 
 const SELECT =
-  "id, tenant_id, pillar_id, title, note, due_date, completed, status, updates, created_at, tenants(name)";
+  "id, tenant_id, pillar_id, category_id, title, note, due_date, completed, status, updates, created_at, tenants(name)";
 
 function toTask(row: TaskRow) {
   return {
     id: row.id,
     tenantId: row.tenant_id,
     pillarId: row.pillar_id,
+    categoryId: row.category_id,
     clientName: row.tenants?.name ?? null,
     title: row.title,
     note: row.note,
@@ -76,6 +78,8 @@ interface CreateBody {
   // A pillar id (operations, outreach, ...) makes this a pillar task. When set,
   // tenant_id is forced null: a task is a pillar task or a client task, never both.
   pillarId?: string | null;
+  // A row in admin_task_categories (0063). Omit or null for uncategorised.
+  categoryId?: string | null;
   // Optional context line shown under the title.
   note?: string | null;
   // ISO date (YYYY-MM-DD) or omit for no due date.
@@ -133,6 +137,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const insert = {
     title,
     pillar_id: pillarId,
+    category_id: body.categoryId ? body.categoryId : null,
     note,
     // A pillar task is never also a client task.
     tenant_id: pillarId ? null : body.tenantId ? body.tenantId : null,

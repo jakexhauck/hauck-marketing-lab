@@ -1,7 +1,16 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { Check, ChevronDown, GripVertical, Plus, X } from "lucide-react";
+import { Check, ChevronDown, GripVertical, Plus, SlidersHorizontal, X } from "lucide-react";
 import { useAdminTaskList, type TaskTextField } from "../../hooks/useAdminTaskList";
+import { useAdminTaskCategories } from "../../hooks/useAdminTaskCategories";
 import { taskCounts, type TaskStatus } from "../../lib/taskStatus";
+import {
+  ALL_CATEGORIES,
+  filterTasksByCategory,
+  isSameFilter,
+  tallyByCategory,
+  type CategoryFilter,
+} from "../../lib/taskCategories";
+import TaskCategoryManager from "./TaskCategoryManager";
 import type { AdminTask } from "../../lib/api";
 
 // The Operations pillar's Tasks tab: one flat, editable agency checklist.
@@ -20,6 +29,12 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   doing: "Doing",
   done: "Done",
 };
+
+// Sentinel values for the per-row category <select>. A select needs string
+// values, and these two are not category ids: one files the task under nothing,
+// the other opens the manage panel instead of writing anything.
+const UNCATEGORISED = "__none";
+const MANAGE = "__manage";
 
 // A cell that shows everything typed into it. These were single-line inputs,
 // which silently clipped a long task at the column edge; a textarea sized to
@@ -97,11 +112,18 @@ export default function OperationsTasksTab() {
     adding,
     addTask,
     patchField,
+    setCategory,
+    forgetCategory,
     setStatus,
     toggleDone,
     deleteTask,
     moveTask,
   } = useAdminTaskList();
+  const categoryCtl = useAdminTaskCategories();
+  const { categories } = categoryCtl;
+  // Which category the list is narrowed to, and whether the manage panel is up.
+  const [filter, setFilter] = useState<CategoryFilter>(ALL_CATEGORIES);
+  const [managerOpen, setManagerOpen] = useState(false);
   // Uncommitted keystrokes per row, keyed by task id then field. Cleared on
   // blur once the write is away, so the row falls back to the stored value.
   const [drafts, setDrafts] = useState<Record<string, Partial<Record<TaskTextField, string>>>>({});
@@ -140,7 +162,44 @@ export default function OperationsTasksTab() {
     endDrag();
   };
 
-  const counts = taskCounts(tasks);
+  // The rows on screen. Under "All" this is the whole list, which is what makes
+  // the drag indices below safe: moveTask addresses the stored order, so
+  // reordering is only offered when what is rendered IS the stored order.
+  const visible = filterTasksByCategory(tasks, filter);
+  const canReorder = filter.kind === "all";
+  const counts = taskCounts(visible);
+  const tally = tallyByCategory(tasks);
+
+  const chips: { key: string; label: string; count: number; value: CategoryFilter }[] = [
+    { key: "all", label: "All", count: tally.all, value: ALL_CATEGORIES },
+    ...categories.map((c) => ({
+      key: c.id,
+      label: c.name,
+      count: tally.byId[c.id] ?? 0,
+      value: { kind: "id", id: c.id } as CategoryFilter,
+    })),
+    // Only worth offering when something is actually uncategorised.
+    ...(tally.none > 0
+      ? [
+          {
+            key: "none",
+            label: "Uncategorised",
+            count: tally.none,
+            value: { kind: "none" } as CategoryFilter,
+          },
+        ]
+      : []),
+  ];
+
+  const categoryOf = (task: AdminTask) => categories.find((c) => c.id === task.categoryId) ?? null;
+
+  const onCategoryChange = (task: AdminTask, value: string) => {
+    if (value === MANAGE) {
+      setManagerOpen(true);
+      return;
+    }
+    void setCategory(task, value === UNCATEGORISED ? null : value);
+  };
 
   const draftValue = (task: AdminTask, field: TaskTextField) =>
     drafts[task.id]?.[field] ?? task[field] ?? "";
@@ -174,11 +233,47 @@ export default function OperationsTasksTab() {
       <OperationsTasksStyle />
 
       <div className="otk-controls">
+        <div className="otk-chips" role="group" aria-label="Filter by category">
+          {chips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              className={`otk-chip${isSameFilter(filter, chip.value) ? " on" : ""}`}
+              aria-pressed={isSameFilter(filter, chip.value)}
+              onClick={() => setFilter(chip.value)}
+            >
+              {chip.label}
+              <span className="otk-chipn">{chip.count}</span>
+            </button>
+          ))}
+          <button
+            type="button"
+            className="otk-chip otk-chipmanage"
+            onClick={() => setManagerOpen(true)}
+          >
+            <SlidersHorizontal size={13} strokeWidth={2.4} />
+            {categories.length === 0 ? "Add categories" : "Manage"}
+          </button>
+        </div>
+
         <button type="button" className="otk-add" onClick={() => void onAdd()} disabled={adding}>
           <Plus size={16} strokeWidth={2.4} />
           {adding ? "Adding" : "Add task"}
         </button>
       </div>
+
+      {managerOpen ? (
+        <TaskCategoryManager
+          controller={categoryCtl}
+          onClose={() => setManagerOpen(false)}
+          onDeleted={(id) => {
+            forgetCategory(id);
+            // Sitting on a filter for a category that no longer exists would
+            // show an empty list with no way back except a page reload.
+            setFilter((f) => (f.kind === "id" && f.id === id ? ALL_CATEGORIES : f));
+          }}
+        />
+      ) : null}
 
       <div className="otk-card">
         <div className="otk-head">
@@ -210,6 +305,13 @@ export default function OperationsTasksTab() {
           <div className="otk-state">Loading tasks</div>
         ) : tasks.length === 0 ? (
           <div className="otk-state">No tasks yet. Add one to start the checklist.</div>
+        ) : visible.length === 0 ? (
+          <div className="otk-state">
+            Nothing filed under this category yet.{" "}
+            <button type="button" className="otk-link" onClick={() => setFilter(ALL_CATEGORIES)}>
+              Show all tasks
+            </button>
+          </div>
         ) : (
           <div className="otk-scroll">
             <table>
@@ -219,6 +321,7 @@ export default function OperationsTasksTab() {
                   <th>Done</th>
                   <th>Task</th>
                   <th>Notes / Files</th>
+                  <th>Category</th>
                   <th>Status</th>
                   <th>Updates</th>
                   <th className="otk-delhead" aria-label="Remove" />
@@ -231,20 +334,20 @@ export default function OperationsTasksTab() {
                   if (!e.currentTarget.contains(e.relatedTarget as Node)) setInsertIndex(null);
                 }}
               >
-                {tasks.map((task, index) => (
+                {visible.map((task, index) => (
                   <tr
                     key={task.id}
                     className={[
                       task.completed ? "otk-rowdone" : "",
                       dragIndex === index ? "otk-dragging" : "",
                       insertIndex === index ? "otk-drop-before" : "",
-                      insertIndex === tasks.length && index === tasks.length - 1
+                      insertIndex === visible.length && index === visible.length - 1
                         ? "otk-drop-after"
                         : "",
                     ]
                       .filter(Boolean)
                       .join(" ") || undefined}
-                    draggable={armedId === task.id}
+                    draggable={canReorder && armedId === task.id}
                     onDragStart={(e) => {
                       e.dataTransfer.setData("text/plain", task.id);
                       e.dataTransfer.effectAllowed = "move";
@@ -255,15 +358,19 @@ export default function OperationsTasksTab() {
                     onDrop={onRowDrop}
                   >
                     <td className="otk-gripcol">
-                      <span
-                        className="otk-grip"
-                        title="Drag to reorder"
-                        aria-hidden="true"
-                        onMouseDown={() => setArmedId(task.id)}
-                        onMouseUp={() => setArmedId(null)}
-                      >
-                        <GripVertical size={15} strokeWidth={2.2} />
-                      </span>
+                      {/* Reordering a filtered list would write the wrong
+                          order, so the grip is only offered under "All". */}
+                      {canReorder ? (
+                        <span
+                          className="otk-grip"
+                          title="Drag to reorder"
+                          aria-hidden="true"
+                          onMouseDown={() => setArmedId(task.id)}
+                          onMouseUp={() => setArmedId(null)}
+                        >
+                          <GripVertical size={15} strokeWidth={2.2} />
+                        </span>
+                      ) : null}
                     </td>
                     <td className="otk-donecol">
                       <button
@@ -296,6 +403,25 @@ export default function OperationsTasksTab() {
                         onChange={(v) => onCellChange(task, "note", v)}
                         onCommit={(v) => onCellBlur(task, "note", v)}
                       />
+                    </td>
+                    <td className="otk-catcol">
+                      <span className="otk-pill">
+                        <select
+                          className={`otk-cat c-${categoryOf(task)?.color ?? "none"}`}
+                          value={task.categoryId ?? UNCATEGORISED}
+                          aria-label="Category"
+                          onChange={(e) => onCategoryChange(task, e.target.value)}
+                        >
+                          <option value={UNCATEGORISED}>Uncategorised</option>
+                          {categories.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                          <option value={MANAGE}>Manage categories</option>
+                        </select>
+                        <ChevronDown className="otk-caret" size={13} strokeWidth={2.4} />
+                      </span>
                     </td>
                     <td className="otk-statuscol">
                       <span className="otk-pill">
@@ -490,6 +616,121 @@ function OperationsTasksStyle() {
       }
       .pk-kit .otk-del:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
       .pk-kit .otk-del:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--danger); }
+
+      /* ===== Categories =====
+         One hue per palette token (mirrors CATEGORY_COLORS in
+         src/lib/taskCategories.ts). Each .c-<token> only sets --swatch; the
+         pills, chips and dots all derive their fill and ink from that one var
+         with color-mix, so a new token is one line here rather than four rules,
+         and light/dark differ only in what the ink is mixed toward. */
+      .pk-kit .otk {
+        --c-indigo: #6366f1; --c-sky: #0ea5e9; --c-green: #10b981; --c-amber: #f59e0b;
+        --c-rose: #f43f5e;   --c-violet: #8b5cf6; --c-teal: #14b8a6; --c-slate: #64748b;
+        --otk-ink-mix: #000; --otk-ink-pct: 62%; --otk-tint-pct: 13%;
+      }
+      [data-theme="dark"] .pk-kit .otk {
+        --otk-ink-mix: #fff; --otk-ink-pct: 55%; --otk-tint-pct: 20%;
+      }
+      .pk-kit .otk .c-indigo { --swatch: var(--c-indigo); }
+      .pk-kit .otk .c-sky    { --swatch: var(--c-sky); }
+      .pk-kit .otk .c-green  { --swatch: var(--c-green); }
+      .pk-kit .otk .c-amber  { --swatch: var(--c-amber); }
+      .pk-kit .otk .c-rose   { --swatch: var(--c-rose); }
+      .pk-kit .otk .c-violet { --swatch: var(--c-violet); }
+      .pk-kit .otk .c-teal   { --swatch: var(--c-teal); }
+      .pk-kit .otk .c-slate  { --swatch: var(--c-slate); }
+
+      /* Filter chips: the category strip above the table. */
+      .pk-kit .otk-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .pk-kit .otk-chip {
+        display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border);
+        background: var(--surface); color: var(--text-muted); font: inherit; font-size: 12.5px;
+        font-weight: 600; padding: 7px 13px; border-radius: 999px; cursor: pointer;
+        transition: background .14s, color .14s, border-color .14s;
+      }
+      .pk-kit .otk-chip:hover { background: var(--otk-input-hover); color: var(--text); }
+      .pk-kit .otk-chip.on {
+        background: var(--otk-indigo); border-color: var(--otk-indigo); color: #fff;
+      }
+      .pk-kit .otk-chip:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--otk-indigo); }
+      .pk-kit .otk-chipn {
+        font-size: 11px; font-variant-numeric: tabular-nums; opacity: .7;
+        background: color-mix(in srgb, currentColor 14%, transparent);
+        padding: 1px 6px; border-radius: 999px; min-width: 18px; text-align: center;
+      }
+      .pk-kit .otk-chipmanage { color: var(--text-faint); border-style: dashed; }
+
+      /* The per-row category pill. Same silhouette as the status pill so the two
+         read as one control strip rather than two unrelated widgets. */
+      .pk-kit .otk-card td.otk-catcol { width: 150px; vertical-align: top; padding-top: 12px; }
+      .pk-kit .otk-cat {
+        appearance: none; -webkit-appearance: none; border: 0; cursor: pointer; font: inherit;
+        font-weight: 600; font-size: 12.5px; padding: 6px 30px 6px 13px; border-radius: 999px;
+        max-width: 100%; transition: .14s;
+        background: color-mix(in srgb, var(--swatch) var(--otk-tint-pct), transparent);
+        color: color-mix(in srgb, var(--swatch) var(--otk-ink-pct), var(--otk-ink-mix));
+      }
+      /* Uncategorised: no hue to carry, so it reads as a quiet placeholder. */
+      .pk-kit .otk-cat.c-none { background: transparent; color: var(--text-faint); font-weight: 500; }
+      .pk-kit .otk-cat.c-none:hover { background: var(--otk-input-hover); }
+      .pk-kit .otk-cat:focus { outline: 0; box-shadow: 0 0 0 2px var(--otk-indigo); }
+
+      .pk-kit .otk-link {
+        border: 0; background: none; padding: 0; font: inherit; color: var(--otk-indigo);
+        font-weight: 600; cursor: pointer; text-decoration: underline;
+      }
+
+      /* ===== Manage categories panel ===== */
+      .pk-kit .otk-modal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; }
+      .pk-kit .otk-scrim {
+        position: absolute; inset: 0; border: 0; padding: 0; cursor: default;
+        background: rgba(9, 12, 20, .45); backdrop-filter: blur(2px);
+      }
+      .pk-kit .otk-panel {
+        position: relative; width: min(420px, calc(100vw - 32px)); max-height: min(80vh, 640px);
+        display: flex; flex-direction: column; background: var(--surface);
+        border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow-lg, 0 24px 60px -20px rgba(0,0,0,.5));
+        overflow: hidden;
+      }
+      .pk-kit .otk-panelhead {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 16px 12px 20px; border-bottom: 1px solid var(--border);
+      }
+      .pk-kit .otk-panelerr {
+        padding: 10px 20px; font-size: 12.5px; color: var(--danger);
+        background: color-mix(in srgb, var(--danger) 10%, transparent);
+      }
+      .pk-kit .otk-panelbody { overflow: auto; padding: 8px 12px; flex: 1; }
+      .pk-kit .otk-catlist { list-style: none; margin: 0; padding: 0; }
+      .pk-kit .otk-catrow {
+        display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 12px;
+        position: relative; flex-wrap: wrap;
+      }
+      .pk-kit .otk-catrow:hover { background: var(--otk-hover); }
+      .pk-kit .otk-swatch {
+        width: 22px; height: 22px; flex: 0 0 auto; border-radius: 8px; cursor: pointer;
+        border: 1px solid color-mix(in srgb, var(--swatch) 45%, transparent);
+        background: var(--swatch); color: #fff; display: grid; place-items: center; padding: 0;
+        transition: transform .12s, box-shadow .12s;
+      }
+      .pk-kit .otk-swatch:hover { transform: scale(1.08); }
+      .pk-kit .otk-swatch.on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--swatch); }
+      .pk-kit .otk-swatch:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--otk-indigo); }
+      .pk-kit .otk-catname {
+        flex: 1 1 120px; min-width: 0; border: 1px solid transparent; background: transparent;
+        font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text);
+        padding: 7px 10px; border-radius: 9px; transition: background .12s, border-color .12s;
+      }
+      .pk-kit .otk-catname:hover { background: var(--otk-input-hover); }
+      .pk-kit .otk-catname:focus { outline: 0; background: var(--surface); border-color: var(--otk-indigo); }
+      /* The expanded colour picker sits on its own line under the row it edits. */
+      .pk-kit .otk-picker { display: flex; gap: 7px; flex-wrap: wrap; flex-basis: 100%; padding: 4px 2px 2px; }
+      .pk-kit .otk-addcat { border-top: 1px solid var(--border); padding: 12px 20px 16px; }
+      .pk-kit .otk-addrow { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+      .pk-kit .otk-addcat .otk-catname {
+        border-color: var(--border); background: var(--otk-input-hover);
+      }
+      .pk-kit .otk-addcat .otk-add { margin-left: 0; padding: 9px 14px; }
 
       @media (max-width: 720px) { .pk-kit .otk-add { margin-left: 0; } }
     `}</style>
