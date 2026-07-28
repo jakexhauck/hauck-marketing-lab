@@ -8,6 +8,7 @@ import DailyTracker, {
 } from "../tracker/DailyTracker";
 import MonthlyEconomicsTable from "./MonthlyEconomicsTable";
 import ScriptTestTable from "./ScriptTestTable";
+import { PillarTitleActions } from "../../pillars/PillarKit";
 import {
   buildMonthDays,
   cursorForToday,
@@ -164,35 +165,39 @@ export default function ColdSmsSurface() {
     <div className="cs">
       <ColdSmsStyle />
 
-      <div className="cs-subnav" role="tablist" aria-label="Cold SMS views">
-        <SubTab
-          id="daily"
-          view={view}
-          onSelect={setView}
-          icon={<CalendarDays size={16} />}
-          label="Daily"
-        />
-        <SubTab
-          id="monthly"
-          view={view}
-          onSelect={setView}
-          icon={<TrendingUp size={16} />}
-          label="Monthly"
-        />
-        <SubTab
-          id="script"
-          view={view}
-          onSelect={setView}
-          icon={<Table2 size={16} />}
-          label="Script Test"
-          count={variationCount}
-        />
-        {/* The month stepper rides in this row rather than above the tiles.
-            Daily only: the other two views are all-time. */}
-        {view === "daily" && (
-          <TrackerMonthNav cursor={cursor} today={today} onMonthChange={setCursor} />
-        )}
-      </div>
+      {/* The sub-nav and the month stepper ride on the page's own title line,
+          beside "SMS", rather than in a band of their own. That is a whole row
+          of vertical space the tiles and the table get back. */}
+      <PillarTitleActions>
+        <div className="cs-subnav" role="tablist" aria-label="Cold SMS views">
+          <SubTab
+            id="daily"
+            view={view}
+            onSelect={setView}
+            icon={<CalendarDays size={16} />}
+            label="Daily"
+          />
+          <SubTab
+            id="monthly"
+            view={view}
+            onSelect={setView}
+            icon={<TrendingUp size={16} />}
+            label="Monthly"
+          />
+          <SubTab
+            id="script"
+            view={view}
+            onSelect={setView}
+            icon={<Table2 size={16} />}
+            label="Script Test"
+            count={variationCount}
+          />
+          {/* Daily only: the other two views are all-time. */}
+          {view === "daily" && (
+            <TrackerMonthNav cursor={cursor} today={today} onMonthChange={setCursor} />
+          )}
+        </div>
+      </PillarTitleActions>
 
       <div className="cs-views">
         {view === "daily" && (
@@ -271,28 +276,22 @@ function ColdSmsStyle() {
         --cs-input-hover: rgba(255,255,255,.06);
       }
 
+      /* The sub-nav now lives in .pk-titleactions, on the title line. It keeps
+         its underline-tab look but carries no rule of its own: the title row
+         bottom-aligns it, so the active underline reads against the h1. */
       .pk-kit .cs-subnav {
-        display: flex; align-items: stretch; gap: 5px;
-        border-bottom: 1px solid var(--border); margin-bottom: 8px; flex-wrap: wrap;
-        /* The stepper is the tallest thing this row ever holds; pinning the row
-           to it stops the tabs jumping when a view without a stepper opens. */
-        min-height: 51px;
+        display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
       }
-      /* The lifted month stepper sits at the right end of the tab row. It is
-         taller than a tab, so the tabs stretch to match it (align-items above)
-         and their active underline still lands on the row's rule. */
-      .pk-kit .cs-subnav .adt-monthnav {
-        margin-left: auto; align-self: center; margin-bottom: 5px;
-      }
+      .pk-kit .cs-subnav .adt-monthnav { margin-left: 0; }
 
-      /* The tiles follow the tab row directly now that no month row separates
-         them, and the table takes the height that frees up. */
-      .pk-kit .cs .adt-stats { margin-top: 12px; }
-      .pk-kit .cs .adt-scroll { max-height: min(72vh, 880px); }
+      /* Nothing sits between the title line and the tiles now, so the tiles
+         start the body and the table takes back both freed rows. */
+      .pk-kit .cs .adt-stats { margin-top: 0; }
+      .pk-kit .cs .adt-scroll { max-height: min(80vh, 1040px); }
       .pk-kit .cs-subtab {
         border: 0; background: transparent; cursor: pointer; font-family: inherit;
-        font-size: 13.5px; font-weight: 600; color: var(--text-faint); padding: 9px 4px;
-        margin-right: 22px; border-bottom: 2.5px solid transparent; transition: .15s;
+        font-size: 13.5px; font-weight: 600; color: var(--text-faint); padding: 9px 2px;
+        border-bottom: 2.5px solid transparent; transition: .15s;
         display: inline-flex; align-items: center; gap: 7px;
       }
       .pk-kit .cs-subtab:hover { color: var(--text); }
@@ -394,7 +393,7 @@ function ColdSmsStyle() {
       .pk-kit .cs-footnote { font-size: 11px; color: var(--text-faint); padding: 12px 2px 4px; }
 
       @media (max-width: 720px) {
-        .pk-kit .cs-subtab { margin-right: 14px; }
+        .pk-kit .cs-subnav { gap: 10px; }
         .pk-kit .cs-headright { width: 100%; }
       }
     `}</style>
