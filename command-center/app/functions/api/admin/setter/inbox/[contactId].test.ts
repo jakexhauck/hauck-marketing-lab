@@ -138,6 +138,38 @@ describe("GET /api/admin/setter/inbox/:contactId", () => {
         { id: "m1", direction: "inbound", channel: "SMS", body: "hi", sentAt: "2026-07-01T10:00:00.000Z" },
         { id: "m2", direction: "outbound", channel: "SMS", body: "hello", sentAt: "2026-07-01T10:05:00.000Z" },
       ],
+      // The fixture contact carries no DND fields at all, which is "we do not
+      // know" rather than "reachable". Null is the honest answer and the UI
+      // renders it as no claim either way.
+      dnd: null,
+    });
+  });
+
+  // The composer's warning has to come from the record the SEND will hit, not
+  // from the list's cached copy, which is why this handler reports it.
+  it("reports a per-channel block off the contact record", async () => {
+    vi.mocked(ghlFetch).mockResolvedValue(
+      contactResponse(200, {
+        contact: {
+          id: "ct1",
+          firstName: "Jane",
+          dnd: false,
+          dndSettings: { SMS: { status: "active", message: "TWILIO_ERROR_CODE: 30006" } },
+        },
+      }),
+    );
+    vi.mocked(fetchContactThread).mockResolvedValue({
+      conversationId: "cv1",
+      truncated: false,
+      unreadCount: 0,
+      messages: [],
+    });
+    const res = await onRequestGet(getCtx("https://x/api/admin/setter/inbox/ct1?tenantId=t1"));
+    const body = (await res.json()) as { dnd: { all: boolean; channels: string[] } | null };
+    expect(body.dnd).toEqual({
+      all: false,
+      channels: ["SMS"],
+      reasons: { SMS: "TWILIO_ERROR_CODE: 30006" },
     });
   });
 

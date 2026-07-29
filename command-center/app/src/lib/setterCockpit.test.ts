@@ -159,6 +159,7 @@ describe("bumpLeadForDial", () => {
     firstDialedAt: null,
     contacted: false,
     lastOutcome: null,
+    dnd: null,
     tags: [],
   };
 

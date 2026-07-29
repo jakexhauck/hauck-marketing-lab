@@ -8,6 +8,13 @@ import {
   isOutbound,
   formatMessageStamp,
   previewText,
+  groupThreadsByPipeline,
+  pipelineGroupLabel,
+  dndBadgeLabel,
+  dndSendWarning,
+  isChannelBlocked,
+  NO_PIPELINE_KEY,
+  NO_PIPELINE_LABEL,
 } from "./setterInbox";
 
 describe("SEND_CHANNELS", () => {
@@ -117,5 +124,177 @@ describe("previewText", () => {
 
   it("leaves a short preview alone", () => {
     expect(previewText("short")).toBe("short");
+  });
+});
+
+describe("pipelineGroupLabel", () => {
+  it("strips the CRM numbering prefix and the Pipeline suffix", () => {
+    expect(pipelineGroupLabel("1) Lead Form Pipeline")).toBe("Lead Form");
+    expect(pipelineGroupLabel("4) Sales Pipeline")).toBe("Sales");
+  });
+
+  it("leaves a plain name alone", () => {
+    expect(pipelineGroupLabel("Google Reviews")).toBe("Google Reviews");
+  });
+
+  it("falls back to the raw name rather than emptying it", () => {
+    expect(pipelineGroupLabel("Pipeline")).toBe("Pipeline");
+    expect(pipelineGroupLabel("2)")).toBe("2)");
+  });
+});
+
+describe("groupThreadsByPipeline", () => {
+  const t = (
+    contactId: string,
+    pipelineId: string | null,
+    pipelineName: string | null,
+    stageName: string | null = null,
+  ) => ({ contactId, pipelineId, pipelineName, stageName });
+
+  it("cuts the window into one group per pipeline", () => {
+    const groups = groupThreadsByPipeline([
+      t("a", "p1", "1) Lead Form Pipeline"),
+      t("b", "p2", "2) No Answer Pipeline"),
+      t("c", "p1", "1) Lead Form Pipeline"),
+    ]);
+    expect(groups.map((g) => g.label)).toEqual(["Lead Form", "No Answer"]);
+    expect(groups[0].threads.map((x) => x.contactId)).toEqual(["a", "c"]);
+  });
+
+  it("orders groups by the agency's numbering, not by first appearance", () => {
+    const groups = groupThreadsByPipeline([
+      t("a", "p4", "4) Sales Pipeline"),
+      t("b", "p1", "1) Lead Form Pipeline"),
+      t("c", "p2", "2) No Answer Pipeline"),
+    ]);
+    expect(groups.map((g) => g.key)).toEqual(["p1", "p2", "p4"]);
+  });
+
+  it("sorts an unnumbered pipeline after every numbered one", () => {
+    const groups = groupThreadsByPipeline([
+      t("a", "px", "Google Reviews"),
+      t("b", "p1", "1) Lead Form Pipeline"),
+    ]);
+    expect(groups.map((g) => g.key)).toEqual(["p1", "px"]);
+  });
+
+  it("collects contacts with no opportunity into their own last group", () => {
+    const groups = groupThreadsByPipeline([
+      t("a", null, null),
+      t("b", "p1", "1) Lead Form Pipeline"),
+      t("c", null, null),
+    ]);
+    expect(groups).toHaveLength(2);
+    const last = groups[groups.length - 1];
+    expect(last.key).toBe(NO_PIPELINE_KEY);
+    expect(last.label).toBe(NO_PIPELINE_LABEL);
+    expect(last.threads.map((x) => x.contactId)).toEqual(["a", "c"]);
+  });
+
+  // "Not in a pipeline" is pinned last even when its name would otherwise sort
+  // it first, so its position never moves as a client's pipelines change.
+  it("pins the no-pipeline group last against an unnumbered pipeline", () => {
+    const groups = groupThreadsByPipeline([
+      t("a", null, null),
+      t("b", "px", "Google Reviews"),
+    ]);
+    expect(groups.map((g) => g.key)).toEqual(["px", NO_PIPELINE_KEY]);
+  });
+
+  it("keeps recency order inside a group", () => {
+    const groups = groupThreadsByPipeline([
+      t("newest", "p1", "1) Lead Form Pipeline"),
+      t("older", "p1", "1) Lead Form Pipeline"),
+      t("oldest", "p1", "1) Lead Form Pipeline"),
+    ]);
+    expect(groups[0].threads.map((x) => x.contactId)).toEqual([
+      "newest",
+      "older",
+      "oldest",
+    ]);
+  });
+
+  it("returns nothing for an empty window", () => {
+    expect(groupThreadsByPipeline([])).toEqual([]);
+  });
+});
+
+describe("dndBadgeLabel", () => {
+  it("names a single blocked channel", () => {
+    expect(dndBadgeLabel({ all: false, channels: ["SMS"] })).toBe("No SMS");
+  });
+
+  it("names two", () => {
+    expect(dndBadgeLabel({ all: false, channels: ["SMS", "Email"] })).toBe("No SMS or Email");
+  });
+
+  it("collapses three or more, which would not fit the row", () => {
+    expect(dndBadgeLabel({ all: false, channels: ["SMS", "Email", "Call"] })).toBe(
+      "3 channels off",
+    );
+  });
+
+  it("says Do not disturb for the contact-level switch", () => {
+    expect(dndBadgeLabel({ all: true, channels: [] })).toBe("Do not disturb");
+  });
+
+  // Silence for both "nothing blocked" and "we never saw the record": the only
+  // claim this app makes about DND is a block it actually observed, so there
+  // is deliberately no all-clear label to return.
+  it("says nothing when nothing is blocked or nothing is known", () => {
+    expect(dndBadgeLabel({ all: false, channels: [] })).toBeNull();
+    expect(dndBadgeLabel(null)).toBeNull();
+    expect(dndBadgeLabel(undefined)).toBeNull();
+  });
+});
+
+describe("isChannelBlocked (client mirror)", () => {
+  it("blocks everything under the contact-level switch", () => {
+    expect(isChannelBlocked({ all: true, channels: [] }, "Email")).toBe(true);
+  });
+
+  it("blocks only the named channel otherwise, case-insensitively", () => {
+    const dnd = { all: false, channels: ["SMS"] };
+    expect(isChannelBlocked(dnd, "SMS")).toBe(true);
+    expect(isChannelBlocked(dnd, "sms")).toBe(true);
+    expect(isChannelBlocked(dnd, "Email")).toBe(false);
+  });
+
+  it("blocks nothing when DND is unknown", () => {
+    expect(isChannelBlocked(null, "SMS")).toBe(false);
+  });
+});
+
+describe("dndSendWarning", () => {
+  it("says the message will not reach them, and why", () => {
+    const msg = dndSendWarning(
+      { all: false, channels: ["SMS"], reasons: { SMS: "TWILIO_ERROR_CODE: 30006" } },
+      "SMS",
+    );
+    expect(msg).toMatch(/will not reach them/i);
+    expect(msg).toMatch(/TWILIO_ERROR_CODE: 30006/);
+  });
+
+  it("works without a reason", () => {
+    const msg = dndSendWarning({ all: false, channels: ["SMS"] }, "SMS");
+    expect(msg).toMatch(/will not reach them/i);
+    expect(msg).not.toMatch(/reason/i);
+  });
+
+  it("names Do Not Disturb for the contact-level switch", () => {
+    expect(dndSendWarning({ all: true, channels: [] }, "Email")).toMatch(/Do Not Disturb/i);
+  });
+
+  it("finds the reason even when GHL's casing differs from the composer's", () => {
+    const msg = dndSendWarning(
+      { all: false, channels: ["SMS"], reasons: { sms: "TWILIO_ERROR_CODE: 30003" } },
+      "SMS",
+    );
+    expect(msg).toMatch(/30003/);
+  });
+
+  it("stays silent for a channel that is not blocked", () => {
+    expect(dndSendWarning({ all: false, channels: ["SMS"] }, "Email")).toBeNull();
+    expect(dndSendWarning(null, "SMS")).toBeNull();
   });
 });

@@ -1,5 +1,6 @@
 import type { Env, ApiData } from "../../../../lib/env";
 import { readJsonBody } from "../../../../lib/body";
+import { readContactDnd } from "../../../../lib/dnd";
 import { ghlFetch, ghlJson } from "../../../../lib/ghl";
 import {
   fetchContactThread,
@@ -64,6 +65,8 @@ interface GhlContactResponse {
     lastName?: string;
     email?: string;
     phone?: string;
+    dnd?: boolean;
+    dndSettings?: Record<string, { status?: string; message?: string } | null | undefined>;
   };
 }
 
@@ -134,6 +137,11 @@ export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (ctx
       contactId,
       name,
       messages: shapeMessages(thread.messages),
+      // Read from the contact record this handler already fetched, so the
+      // composer's warning comes from the SAME record the send will hit rather
+      // than from whatever the list happened to cache. The list carries it too
+      // (for the row badge); this is the authoritative one.
+      dnd: readContactDnd(c),
     });
   } catch {
     return Response.json({ error: "ghl_unavailable" }, { status: 502 });

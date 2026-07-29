@@ -38,7 +38,42 @@ describe("shapeSetterLead", () => {
       contacted: true,
       lastOutcome: "booked",
       tags: [],
+      // No DND index passed, so nothing is known about this contact. Null is
+      // the honest answer and the card renders it as no claim, never as an
+      // all-clear.
+      dnd: null,
     });
+  });
+
+  // The opportunity search does NOT carry DND (verified live 2026-07-29: its
+  // contact object is {id, name, companyName, email, phone, tags, score}),
+  // which is why the route reads the contact roster alongside and hands the
+  // index in here.
+  it("attaches DND from the contact roster index", () => {
+    const o: GhlOpportunity = {
+      id: "o1",
+      contact: { id: "c1", name: "Jane Doe" },
+      pipelineStageId: "s1",
+      createdAt: "2026-07-19T00:00:00Z",
+    };
+    const lead = shapeSetterLead(
+      o,
+      new Map([["s1", "Opted In"]]),
+      new Map(),
+      new Map([["c1", { all: false, channels: ["Call"], reasons: {} }]]),
+    );
+    expect(lead.dnd).toEqual({ all: false, channels: ["Call"], reasons: {} });
+  });
+
+  it("leaves DND null for a lead the roster did not hold", () => {
+    const o: GhlOpportunity = {
+      id: "o1",
+      contact: { id: "c9", name: "Jane Doe" },
+      pipelineStageId: "s1",
+      createdAt: "2026-07-19T00:00:00Z",
+    };
+    const lead = shapeSetterLead(o, new Map([["s1", "Opted In"]]), new Map(), new Map());
+    expect(lead.dnd).toBeNull();
   });
 
   it("carries the contact's tags through from the opportunity search", () => {

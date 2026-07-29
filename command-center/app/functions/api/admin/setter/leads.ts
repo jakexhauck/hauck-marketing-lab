@@ -1,6 +1,8 @@
 import type { Env, ApiData } from "../../../lib/env";
+import { readContactDnd, type ContactDnd } from "../../../lib/dnd";
 import {
   ghlJson,
+  fetchAllContacts,
   fetchAllOpportunities,
   type GhlOpportunity,
 } from "../../../lib/ghl";
@@ -54,6 +56,17 @@ export interface ApiSetterLead {
   // when the location's response omits them, never undefined, so callers can
   // treat "no tags" and "tags not supplied" the same way: as no evidence.
   tags: string[];
+  // Channels the CRM has switched off for this contact, or null when their
+  // record was not in the roster we read.
+  //
+  // Unlike tags, this does NOT ride along on the opportunity search: that
+  // response carries only {id, name, companyName, email, phone, tags, score}
+  // (verified live 2026-07-29, on a contact we know has SMS blocked). So the
+  // contact roster is fetched alongside, exactly as the inbox does.
+  //
+  // null means "not in the roster", never "reachable". Nothing may render it
+  // as an all-clear.
+  dnd: ContactDnd | null;
 }
 
 // Pure: shape one live opportunity plus its already-computed dial roll-up
@@ -63,6 +76,7 @@ export function shapeSetterLead(
   o: GhlOpportunity,
   stageNames: Map<string, string>,
   rollUps: Map<string, ContactRollUp>,
+  dnd?: Map<string, ContactDnd>,
 ): ApiSetterLead {
   const contactId = o.contact?.id ?? o.contactId ?? "";
   const fullName =
@@ -83,6 +97,7 @@ export function shapeSetterLead(
     contacted: rollUp?.contacted ?? false,
     lastOutcome: rollUp?.lastOutcome ?? null,
     tags: o.contact?.tags ?? [],
+    dnd: dnd?.get(contactId) ?? null,
   };
 }
 
@@ -109,7 +124,21 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     for (const s of pipeline.stages ?? []) stageNames.set(s.id, s.name);
 
     const truncated = { value: false };
-    const opps = await fetchAllOpportunities(gctx, { pipelineId, truncated });
+    // The contact roster rides alongside purely for DND, which the opportunity
+    // search does not carry. Degrades to an empty roster on failure: a board
+    // without the DND chips is still a working board, and every lead then
+    // reports null (unknown), which renders as no claim rather than a false
+    // all-clear.
+    const [opps, contacts] = await Promise.all([
+      fetchAllOpportunities(gctx, { pipelineId, truncated }),
+      fetchAllContacts(gctx).catch(() => []),
+    ]);
+    const dndIndex = new Map<string, ContactDnd>();
+    for (const c of contacts) {
+      if (!c.id) continue;
+      const d = readContactDnd(c);
+      if (d) dndIndex.set(c.id, d);
+    }
 
     const contactIds = [
       ...new Set(opps.map((o) => o.contact?.id ?? o.contactId).filter((id): id is string => !!id)),
@@ -142,7 +171,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       }
     }
 
-    const leads = opps.map((o) => shapeSetterLead(o, stageNames, rollUps));
+    const leads = opps.map((o) => shapeSetterLead(o, stageNames, rollUps, dndIndex));
 
     return Response.json({ leads, truncated: truncated.value });
   } catch (e) {

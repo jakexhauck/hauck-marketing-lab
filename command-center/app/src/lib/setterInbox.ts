@@ -129,3 +129,162 @@ export function previewText(preview: string, max = 90): string {
   if (flat.length <= max) return flat;
   return `${flat.slice(0, max - 3).trimEnd()}...`;
 }
+
+// ---------------------------------------------------------------------------
+// Do Not Disturb
+// ---------------------------------------------------------------------------
+
+// What the CRM knows about a contact's blocked channels. Structural rather
+// than an import of ApiContactDnd so this module stays free of the API surface
+// (and its tests stay free of fixtures).
+export interface DndLike {
+  all: boolean;
+  channels: string[];
+  reasons?: Record<string, string>;
+}
+
+// Whether a message on this channel is blocked. The contact-level switch
+// covers everything; otherwise the channel has to be named. Case-insensitive:
+// the composer's vocabulary and GHL's match only by convention.
+//
+// Mirrors isChannelBlocked in functions/lib/dnd.ts. The two are the same rule
+// stated on each side of the wire, deliberately, as with stageNeedsDialing.
+export function isChannelBlocked(
+  dnd: DndLike | null | undefined,
+  channel: string,
+): boolean {
+  if (!dnd) return false;
+  if (dnd.all) return true;
+  const wanted = channel.trim().toLowerCase();
+  return dnd.channels.some((c) => c.toLowerCase() === wanted);
+}
+
+// The badge on a row, or null when there is nothing to say. Never returns a
+// "contactable" or "all clear" label: a contact we did not see and a contact
+// with nothing blocked are both silent, because the only claim worth making
+// here is the one we can stand behind.
+export function dndBadgeLabel(dnd: DndLike | null | undefined): string | null {
+  if (!dnd) return null;
+  if (dnd.all) return "Do not disturb";
+  if (!dnd.channels.length) return null;
+  // Two or more blocked channels would run past a 330px row, so they collapse
+  // to a count. The thread header spells them out.
+  if (dnd.channels.length > 2) return `${dnd.channels.length} channels off`;
+  return `No ${dnd.channels.join(" or ")}`;
+}
+
+// The sentence over the composer when the picked channel will not deliver.
+// Phrased as what will HAPPEN, not as a status: a setter about to press send
+// needs the consequence, not the CRM's vocabulary. GHL accepts the send and
+// drops it silently, which is exactly why this has to be said up front.
+export function dndSendWarning(
+  dnd: DndLike | null | undefined,
+  channel: string,
+): string | null {
+  if (!isChannelBlocked(dnd, channel)) return null;
+  const why = dnd?.reasons?.[channel] ?? findReason(dnd, channel);
+  const base = dnd?.all
+    ? `${channel} is off for this contact: they are on Do Not Disturb, so this will not reach them.`
+    : `${channel} is switched off for this contact, so this will not reach them.`;
+  return why ? `${base} The booking system's reason: ${why}` : base;
+}
+
+// dnd.reasons is keyed in GHL's casing, which the composer does not
+// necessarily match.
+function findReason(dnd: DndLike | null | undefined, channel: string): string | undefined {
+  if (!dnd?.reasons) return undefined;
+  const wanted = channel.trim().toLowerCase();
+  for (const [k, v] of Object.entries(dnd.reasons)) {
+    if (k.toLowerCase() === wanted) return v;
+  }
+  return undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Grouping
+// ---------------------------------------------------------------------------
+
+// The inbox is a flat recency list, which answers "who spoke last" and nothing
+// else. A setter reading it needs the other half: where this person actually
+// is. So the list is cut into one group per pipeline, plus one group for the
+// people who hold no opportunity at all, and every row states its stage.
+//
+// Grouping happens over the LOADED WINDOW, not the whole inbox. The counts are
+// therefore "rows on screen", never "leads in that pipeline", and the header
+// must not be phrased as the latter.
+
+// The group for contacts with no opportunity anywhere. Not a real pipeline id,
+// and prefixed so it can never collide with one.
+export const NO_PIPELINE_KEY = "__no_pipeline__";
+export const NO_PIPELINE_LABEL = "Not in a pipeline";
+
+export interface InboxGroup {
+  key: string;
+  label: string;
+  threads: InboxThreadLike[];
+}
+
+// The shape grouping actually needs, so the model does not depend on the full
+// API type (and the tests do not have to build one).
+export interface InboxThreadLike {
+  contactId: string;
+  pipelineId: string | null;
+  pipelineName: string | null;
+  stageName: string | null;
+}
+
+// The CRM's pipeline names carry a numbering prefix and a "Pipeline" suffix
+// ("1) Lead Form Pipeline") that read as clutter on a group heading. Same rule
+// as the board's pipeline tabs (src/routes/admin/SetterSuite.tsx), kept here
+// rather than shared because the two labels are allowed to diverge and a
+// shared helper across a route and a lib would invite one to be changed for
+// the other's sake. Falls back to the raw name if stripping would empty it.
+export function pipelineGroupLabel(name: string): string {
+  const cleaned = name
+    .replace(/^\s*\d+\)\s*/, "")
+    .replace(/\s*pipeline\s*$/i, "")
+    .trim();
+  return cleaned || name;
+}
+
+// Sort key from the agency's numeric prefix ("1) Leads" -> 1). Unnumbered
+// pipelines sort after every numbered one; a stable sort then keeps them in
+// the order they first appeared in the list.
+function pipelineOrder(name: string): number {
+  const m = /^\s*(\d+)\)/.exec(name);
+  return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
+}
+
+// Cut the window into pipeline groups. Threads keep their incoming order
+// inside each group, which is recency, so the newest conversation in a
+// pipeline is still the first row of that group. "Not in a pipeline" is always
+// last: it is the group a setter needs least often, and pinning it means its
+// position never moves as pipelines come and go.
+export function groupThreadsByPipeline<T extends InboxThreadLike>(
+  threads: T[],
+): { key: string; label: string; threads: T[] }[] {
+  const groups = new Map<string, { key: string; label: string; name: string; threads: T[] }>();
+
+  for (const t of threads) {
+    const key = t.pipelineId ?? NO_PIPELINE_KEY;
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        key,
+        label: t.pipelineName ? pipelineGroupLabel(t.pipelineName) : NO_PIPELINE_LABEL,
+        name: t.pipelineName ?? "",
+        threads: [],
+      };
+      groups.set(key, group);
+    }
+    group.threads.push(t);
+  }
+
+  return [...groups.values()]
+    .sort((a, b) => {
+      if (a.key === NO_PIPELINE_KEY) return 1;
+      if (b.key === NO_PIPELINE_KEY) return -1;
+      return pipelineOrder(a.name) - pipelineOrder(b.name);
+    })
+    .map(({ key, label, threads: rows }) => ({ key, label, threads: rows }));
+}

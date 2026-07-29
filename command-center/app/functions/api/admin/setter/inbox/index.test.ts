@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { GhlConversation } from "../../../../lib/ghl";
+import type { GhlConversation, GhlOpportunity } from "../../../../lib/ghl";
 
 // The route's pure core (limit/cursor parsing, search matching, shaping and
 // paging) is tested directly. The handler itself is tested against mocked
@@ -26,6 +26,8 @@ import {
   shapeThread,
   pagesNeeded,
   pageThreads,
+  buildPlacementIndex,
+  buildDndIndex,
   isUpstreamCapped,
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -150,6 +152,10 @@ describe("shapeThread", () => {
       lastMessageAt: new Date(1_700_000_000_000).toISOString(),
       lastMessageType: "SMS",
       unreadCount: 0,
+      pipelineId: null,
+      pipelineName: null,
+      stageName: null,
+      dnd: null,
     });
   });
 
@@ -368,5 +374,161 @@ describe("GET /api/admin/setter/inbox", () => {
     const res = await onRequestGet(makeCtx("https://x/api/admin/setter/inbox?tenantId=t1"));
     expect(res.status).toBe(502);
     await expect(res.json()).resolves.toEqual({ error: "ghl_unavailable" });
+  });
+});
+
+describe("buildPlacementIndex", () => {
+  const PIPELINES = [
+    { id: "p1", name: "1) Lead Form Pipeline", stages: [{ id: "s1", name: "Opted In" }] },
+    { id: "p4", name: "4) Sales Pipeline", stages: [{ id: "s9", name: "Booked" }] },
+  ];
+
+  const opp = (over: Partial<GhlOpportunity> = {}): GhlOpportunity => ({
+    id: over.id ?? "o1",
+    contactId: "ct1",
+    pipelineId: "p1",
+    pipelineStageId: "s1",
+    status: "open",
+    updatedAt: "2026-07-01T00:00:00.000Z",
+    ...over,
+  });
+
+  it("maps a contact to its pipeline and live stage name", () => {
+    const index = buildPlacementIndex([opp()], PIPELINES);
+    expect(index.get("ct1")).toEqual({
+      pipelineId: "p1",
+      pipelineName: "1) Lead Form Pipeline",
+      stageName: "Opted In",
+    });
+  });
+
+  it("reads the contact id off the nested contact when the flat one is absent", () => {
+    const index = buildPlacementIndex(
+      [opp({ contactId: undefined, contact: { id: "ct9" } })],
+      PIPELINES,
+    );
+    expect(index.get("ct9")?.pipelineId).toBe("p1");
+  });
+
+  it("prefers an open opportunity over a closed one, whatever the dates say", () => {
+    const index = buildPlacementIndex(
+      [
+        opp({ id: "won", pipelineId: "p4", pipelineStageId: "s9", status: "won", updatedAt: "2026-07-28T00:00:00.000Z" }),
+        opp({ id: "open", status: "open", updatedAt: "2026-07-02T00:00:00.000Z" }),
+      ],
+      PIPELINES,
+    );
+    expect(index.get("ct1")?.pipelineId).toBe("p1");
+  });
+
+  it("takes the most recently touched when both are open", () => {
+    const index = buildPlacementIndex(
+      [
+        opp({ id: "old", updatedAt: "2026-07-01T00:00:00.000Z" }),
+        opp({ id: "new", pipelineId: "p4", pipelineStageId: "s9", updatedAt: "2026-07-20T00:00:00.000Z" }),
+      ],
+      PIPELINES,
+    );
+    expect(index.get("ct1")?.pipelineId).toBe("p4");
+  });
+
+  it("sorts on lastStatusChangeAt ahead of updatedAt", () => {
+    const index = buildPlacementIndex(
+      [
+        opp({ id: "a", updatedAt: "2026-07-25T00:00:00.000Z" }),
+        opp({
+          id: "b",
+          pipelineId: "p4",
+          pipelineStageId: "s9",
+          updatedAt: "2026-07-01T00:00:00.000Z",
+          lastStatusChangeAt: "2026-07-27T00:00:00.000Z",
+        }),
+      ],
+      PIPELINES,
+    );
+    expect(index.get("ct1")?.pipelineId).toBe("p4");
+  });
+
+  // An unresolvable pipeline would render as an empty chip, which reads as
+  // "no stage" rather than "we could not tell".
+  it("skips an opportunity whose pipeline this location no longer returns", () => {
+    const index = buildPlacementIndex([opp({ pipelineId: "gone" })], PIPELINES);
+    expect(index.size).toBe(0);
+  });
+
+  it("still places a lead whose stage id is unknown, with an empty stage", () => {
+    const index = buildPlacementIndex([opp({ pipelineStageId: "retired" })], PIPELINES);
+    expect(index.get("ct1")).toEqual({
+      pipelineId: "p1",
+      pipelineName: "1) Lead Form Pipeline",
+      stageName: "",
+    });
+  });
+
+  it("ignores opportunities with no contact", () => {
+    const index = buildPlacementIndex([opp({ contactId: undefined })], PIPELINES);
+    expect(index.size).toBe(0);
+  });
+});
+
+describe("shapeThread placement", () => {
+  it("attaches the contact's pipeline and stage", () => {
+    const index = new Map([
+      ["ct1", { pipelineId: "p1", pipelineName: "1) Lead Form Pipeline", stageName: "Opted In" }],
+    ]);
+    const t = shapeThread(conv({ contactId: "ct1" }), index);
+    expect(t.pipelineId).toBe("p1");
+    expect(t.stageName).toBe("Opted In");
+  });
+
+  it("nulls the placement for a contact holding no opportunity", () => {
+    const t = shapeThread(conv({ contactId: "ct2" }), new Map());
+    expect(t.pipelineId).toBeNull();
+    expect(t.pipelineName).toBeNull();
+    expect(t.stageName).toBeNull();
+  });
+});
+
+describe("buildDndIndex", () => {
+  it("indexes the roster the internal-recipient filter already fetched", () => {
+    const index = buildDndIndex([
+      { id: "ct1", dnd: false, dndSettings: { SMS: { status: "active" } } },
+      { id: "ct2", dnd: true },
+    ]);
+    expect(index.get("ct1")?.channels).toEqual(["SMS"]);
+    expect(index.get("ct2")?.all).toBe(true);
+  });
+
+  // Present-and-clear must be distinguishable from never-seen, so a contact
+  // with nothing blocked is still indexed.
+  it("keeps a contact with nothing blocked", () => {
+    const index = buildDndIndex([{ id: "ct1", dnd: false }]);
+    expect(index.get("ct1")).toEqual({ all: false, channels: [], reasons: {} });
+  });
+
+  it("skips a record that says nothing about DND at all", () => {
+    expect(buildDndIndex([{ id: "ct1" }]).size).toBe(0);
+  });
+
+  it("skips a record with no id", () => {
+    expect(buildDndIndex([{ dnd: true }]).size).toBe(0);
+  });
+});
+
+describe("shapeThread DND", () => {
+  it("attaches the contact's blocked channels", () => {
+    const index = new Map([
+      ["ct1", { all: false, channels: ["SMS"], reasons: { SMS: "TWILIO_ERROR_CODE: 30006" } }],
+    ]);
+    expect(shapeThread(conv({ contactId: "ct1" }), undefined, index).dnd).toEqual({
+      all: false,
+      channels: ["SMS"],
+      reasons: { SMS: "TWILIO_ERROR_CODE: 30006" },
+    });
+  });
+
+  // Null is "not in the roster we read", which the UI renders as no claim.
+  it("nulls DND for a contact the roster did not hold", () => {
+    expect(shapeThread(conv({ contactId: "ct2" }), undefined, new Map()).dnd).toBeNull();
   });
 });

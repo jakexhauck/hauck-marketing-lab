@@ -1202,6 +1202,9 @@ export interface ApiSetterLead {
   // lead should get, and whether its booking is confirmed, are both derived
   // from these. Empty array when the location's response omits them.
   tags: string[];
+  // Channels the CRM has switched off for this contact, or null when their
+  // record was not in the roster the server read. Null is not an all-clear.
+  dnd: ApiContactDnd | null;
 }
 
 export interface ApiSetterLeadsResponse {
@@ -1241,6 +1244,9 @@ export interface ApiSetterLeadDetail {
   email: string;
   tags: string[];
   dials: ApiSetterDial[];
+  // Read off the same contact record as the phone number above, so the
+  // cockpit's warning and the number it sits next to can never disagree.
+  dnd: ApiContactDnd | null;
 }
 
 // One bookable calendar, from functions/api/admin/setter/calendars.ts. The
@@ -1355,6 +1361,32 @@ export interface ApiSetterThread {
   lastMessageAt: string;
   lastMessageType: string;
   unreadCount: number;
+  // Where this person sits in the CRM right now, or null when they hold no
+  // opportunity at all. The inbox groups its list on this so a setter can see
+  // whether a thread is a live lead, a booked job or somebody outside every
+  // pipeline without opening the board.
+  pipelineId: string | null;
+  pipelineName: string | null;
+  stageName: string | null;
+  // Channels this contact has switched off, or null when their record was not
+  // in the roster the server read. null is NOT an all-clear and must never be
+  // rendered as one: the app only ever asserts a block it actually saw.
+  dnd: ApiContactDnd | null;
+}
+
+// Do Not Disturb as the CRM holds it: a contact-level switch plus independent
+// per-channel blocks. The per-channel form is the common one (GHL sets it
+// automatically when a carrier rejects the number), and the flat switch stays
+// false through all of it, so both have to be read.
+export interface ApiContactDnd {
+  // Every channel is off.
+  all: boolean;
+  // Channels individually off, in GHL's casing ("SMS", "Email", "Call", ...).
+  channels: string[];
+  // GHL's own reason per channel where it gave one, e.g. a raw Twilio error
+  // code. Left verbatim: guessing at what a carrier rejection means is worse
+  // than showing the code an operator can look up.
+  reasons: Record<string, string>;
 }
 
 export interface ApiSetterInboxResponse {
@@ -1368,6 +1400,15 @@ export interface ApiSetterInboxResponse {
   // as a complete one: "no matches in the part we searched" and "no matches"
   // are different answers, and only one of them is safe to act on.
   truncated: boolean;
+  // FALSE when the pipeline lookup failed outright. Every thread then carries
+  // a null placement for a reason that has nothing to do with the contacts, so
+  // the list must fall back to one ungrouped run rather than filing the whole
+  // inbox under "Not in a pipeline".
+  placementAvailable: boolean;
+  // FALSE when the opportunity read hit its page cap, so some contacts may
+  // hold a pipeline place we never saw. The "Not in a pipeline" group has to
+  // say so instead of asserting it.
+  placementComplete: boolean;
 }
 
 // One message in a thread (functions/api/admin/setter/inbox/[contactId].ts).
@@ -1383,6 +1424,9 @@ export interface ApiSetterThreadResponse {
   contactId: string;
   name: string;
   messages: ApiSetterMessage[];
+  // Read from the contact record the send itself will hit, so the composer
+  // warns off the authoritative copy rather than the list's.
+  dnd: ApiContactDnd | null;
 }
 
 // One row of admin_audit_log (functions/api/admin/audit.ts). adminName is the

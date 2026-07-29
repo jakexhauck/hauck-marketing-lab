@@ -1,4 +1,5 @@
 import type { Env, ApiData } from "../../../../lib/env";
+import { readContactDnd, type ContactDnd } from "../../../../lib/dnd";
 import { ghlJson } from "../../../../lib/ghl";
 import { getGhlContextForTenant, TenantGhlError } from "../../../../lib/tenantGhl";
 import { getServiceClient } from "../../../../lib/supabase";
@@ -22,6 +23,8 @@ interface GhlContactResponse {
     email?: string;
     phone?: string;
     tags?: string[];
+    dnd?: boolean;
+    dndSettings?: Record<string, { status?: string; message?: string } | null | undefined>;
   };
 }
 
@@ -32,6 +35,14 @@ export interface ApiSetterLeadDetail {
   email: string;
   tags: string[];
   dials: ApiDialRow[];
+  // Channels the CRM has switched off for this contact, or null when the
+  // record said nothing about DND. null is "we do not know", never an
+  // all-clear: the cockpit only ever states a block it actually saw.
+  //
+  // Call matters most on this surface. A setter reads this panel with a
+  // handset in their hand, and a contact on Do Not Disturb for Call is one the
+  // client has been asked not to ring.
+  dnd: ContactDnd | null;
 }
 
 export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (ctx) => {
@@ -72,6 +83,7 @@ export const onRequestGet: PagesFunction<Env, "contactId", ApiData> = async (ctx
       email: c.email ?? "",
       tags: c.tags ?? [],
       dials,
+      dnd: readContactDnd(c),
     };
 
     return Response.json({ lead });

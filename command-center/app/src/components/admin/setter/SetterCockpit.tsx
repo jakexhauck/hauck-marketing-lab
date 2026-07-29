@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { Handshake, Mail, MessagesSquare, Phone, TriangleAlert, Users, X } from "lucide-react";
+import {
+  BellOff,
+  Handshake,
+  Mail,
+  MessagesSquare,
+  Phone,
+  TriangleAlert,
+  Users,
+  X,
+} from "lucide-react";
 import Avatar from "../../Avatar";
 import DialLogger from "./DialLogger";
 import TagField from "./TagField";
@@ -21,6 +30,7 @@ import {
   type LeadAppointment,
 } from "../../../lib/setterApptConfirm";
 import { isOptimisticDial } from "../../../lib/setterCockpit";
+import { isChannelBlocked } from "../../../lib/setterInbox";
 import { stageActionsFor } from "../../../lib/setterStageActions";
 import type { BookingIntent } from "../../../lib/setterBooking";
 import type { ApiSetterLead } from "../../../lib/api";
@@ -175,6 +185,14 @@ export default function SetterCockpit({
   const answered = hasContactedTag(tags);
 
   const hasPhone = phone.replace(/[^0-9]/g, "").length >= 10;
+  // The live contact's DND where the detail has loaded, the board's copy until
+  // then, so the panel never briefly implies a lead is reachable while the
+  // setter is already reaching for the phone. Null from both = nobody said,
+  // which renders as no claim rather than an all-clear.
+  const dnd = detail?.dnd ?? lead.dnd ?? null;
+  const dndBlocks = dnd && (dnd.all || dnd.channels.length > 0) ? dnd : null;
+  // Call is the one that matters on this panel: the setter is about to dial.
+  const callBlocked = isChannelBlocked(dndBlocks, "Call");
   // Null whenever we cannot build a working link (no location resolved yet, no
   // contact id). One check, so the header never has to re-test the inputs.
   const crmUrl = ghlContactUrl(locationId ?? "", lead.contactId);
@@ -257,6 +275,20 @@ export default function SetterCockpit({
               </a>
             )}
           </div>
+          {/* Directly under the number the setter is about to ring, not down
+              in the body: a warning below the fold arrives after the dial. */}
+          {dndBlocks && (
+            <div className="mt-1.5 flex items-start gap-1.5 rounded-lg bg-danger-tint px-2 py-1 text-[11px] font-semibold leading-snug text-danger">
+              <BellOff size={12} className="mt-0.5 shrink-0" aria-hidden />
+              <span>
+                {dndBlocks.all
+                  ? "On Do Not Disturb: the client has been asked not to contact them."
+                  : callBlocked
+                    ? `Do not call. Switched off in the CRM: ${dndBlocks.channels.join(", ")}`
+                    : `Switched off in the CRM: ${dndBlocks.channels.join(", ")}`}
+              </span>
+            </div>
+          )}
           <div className="mt-1.5 truncate text-[11px] text-faint">{lead.stageName}</div>
         </div>
         {conversationsUrl && (

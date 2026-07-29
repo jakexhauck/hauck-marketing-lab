@@ -1,4 +1,5 @@
-import { CalendarClock, Hourglass, Timer } from "lucide-react";
+import { BellOff, CalendarClock, Hourglass, Timer } from "lucide-react";
+import { dndBadgeLabel } from "../../../lib/setterInbox";
 import {
   cardRail,
   formatOutcome,
@@ -76,6 +77,9 @@ export default function SetterCard({
   // lead's chip is plain information while an unconfirmed one inside 24 hours
   // is a call to make.
   const confirmDue = apptState === "due" && isAwaitingConfirm(lead.stageName, lead.tags);
+  // Null (the roster did not hold this contact) and "nothing blocked" both
+  // produce no label, so the card never claims a lead is reachable.
+  const dndLabel = dndBadgeLabel(lead.dnd);
 
   // Composed by hand rather than via Tailwind box-shadow utility classes,
   // because the rail and the selection ring can both be present at once and
@@ -159,6 +163,22 @@ export default function SetterCard({
         </div>
       )}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {/* First in the row on purpose. "Do not reach them this way" outranks
+            "reach them fast": a setter who acts on the speed chip and ignores
+            this one works a lead through a channel that cannot deliver. */}
+        {dndLabel && (
+          <span
+            className="flex items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-danger"
+            title={
+              lead.dnd?.all
+                ? "This contact is on Do Not Disturb in the CRM."
+                : `Switched off in the CRM: ${lead.dnd?.channels.join(", ")}`
+            }
+          >
+            <BellOff size={11} aria-hidden />
+            {dndLabel}
+          </span>
+        )}
         {stl && (
           <span
             className={

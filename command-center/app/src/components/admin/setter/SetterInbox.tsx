@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessagesSquare, Trash2 } from "lucide-react";
+import { BellOff, MessagesSquare, Trash2 } from "lucide-react";
 import ThreadList from "./ThreadList";
 import ThreadView from "./ThreadView";
 import Composer from "./Composer";
@@ -86,6 +86,13 @@ export default function SetterInbox({ tenantId, clientName, chatIntent, onChatHa
       lastMessageAt: "",
       lastMessageType: "",
       unreadCount: 0,
+      // The stub exists only to open the thread view immediately; it claims no
+      // placement, and the real row (with its pipeline and stage) takes over
+      // when the list lands.
+      pipelineId: null,
+      pipelineName: null,
+      stageName: null,
+      dnd: null,
     });
     onChatHandled?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -140,6 +147,14 @@ export default function SetterInbox({ tenantId, clientName, chatIntent, onChatHa
   };
 
   const threadQuery = useSetterThreadQuery(tenantId, selected?.contactId ?? null, !!selected);
+
+  // The thread's own copy is authoritative (same record the send hits), but it
+  // arrives a moment after the click. The list row's copy fills that gap so the
+  // warning is never missing at the instant a setter starts typing. Falls back
+  // rather than defaulting to "fine": a null here means nobody said, and null
+  // renders as no claim at all.
+  const openDnd = threadQuery.data?.dnd ?? selected?.dnd ?? null;
+  const headerDnd = openDnd && (openDnd.all || openDnd.channels.length > 0) ? openDnd : null;
   const threadStatus = !selected
     ? "ready"
     : threadQuery.isError
@@ -174,6 +189,11 @@ export default function SetterInbox({ tenantId, clientName, chatIntent, onChatHa
           data?.truncated === true ||
           (data?.nextCursor != null && windowSize >= MAX_INBOX_WINDOW)
         }
+        // Default TRUE while there is no response to read: the grouped list is
+        // the normal shape, and flashing the "not grouped" warning on every
+        // load would train setters to ignore it for the loads where it is real.
+        placementAvailable={data ? data.placementAvailable : true}
+        placementComplete={data ? data.placementComplete : true}
         onLoadMore={() => {
           if (inboxQuery.isFetching) return;
           setWindowSize((n) => Math.min(n + INBOX_PAGE, MAX_INBOX_WINDOW));
@@ -198,6 +218,17 @@ export default function SetterInbox({ tenantId, clientName, chatIntent, onChatHa
                 <div className="truncate font-display text-[15px] font-semibold text-text">
                   {threadQuery.data?.name || selected.name}
                 </div>
+                {/* Spelled out here, unlike the row badge, which collapses
+                    three or more channels to a count. Prefers the thread's own
+                    copy: it comes from the record the send will hit. */}
+                {headerDnd && (
+                  <div className="mt-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold text-danger">
+                    <BellOff size={12} className="shrink-0" aria-hidden />
+                    {headerDnd.all
+                      ? "On Do Not Disturb: no channel will reach them."
+                      : `Switched off in the booking system: ${headerDnd.channels.join(", ")}`}
+                  </div>
+                )}
               </div>
               {confirmingDelete ? (
                 <div className="flex shrink-0 items-center gap-1.5">
@@ -246,6 +277,7 @@ export default function SetterInbox({ tenantId, clientName, chatIntent, onChatHa
               contactId={selected.contactId}
               contactName={threadQuery.data?.name || selected.name}
               lastMessageType={selected.lastMessageType}
+              dnd={openDnd}
             />
           </>
         )}

@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { Loader2, Send, TriangleAlert } from "lucide-react";
+import { BellOff, Loader2, Send, TriangleAlert } from "lucide-react";
 import { Segmented } from "../../ui";
 import { useSetterSendMutation } from "../../../hooks/useApi";
 import { useToast } from "../../../context/ToastContext";
 import {
   SEND_CHANNELS,
   defaultChannelFor,
+  dndSendWarning,
   sendBlockReason,
   sendErrorMessage,
   type SendChannel,
 } from "../../../lib/setterInbox";
+import type { ApiContactDnd } from "../../../lib/api";
 
 interface Props {
   tenantId: string;
@@ -18,6 +20,9 @@ interface Props {
   // The thread's own last message type, which decides where the composer opens:
   // reply where they reached you.
   lastMessageType: string | null;
+  // Channels the CRM has switched off for this contact, or null when it did
+  // not say. Null is not an all-clear and produces no warning either way.
+  dnd?: ApiContactDnd | null;
 }
 
 // The composer sends a REAL message to a REAL customer under the client's name.
@@ -34,7 +39,20 @@ interface Props {
 //   3. Email without a subject is a 400 from the endpoint
 //      (functions/lib/messaging.ts:sendChannelMessage), so it is blocked here
 //      rather than bouncing the setter off the network mid-call.
-export default function Composer({ tenantId, contactId, contactName, lastMessageType }: Props) {
+//
+// The Do Not Disturb warning WARNS and does not disable. A switched-off channel
+// is the CRM's state, not a rule of this app: the send is still accepted
+// upstream, an operator may have a reason to try it, and a channel GHL turned
+// off automatically after one carrier rejection can be wrong about a number
+// that has since changed hands. Silently dropping the message is what actually
+// happens today, so saying so is the fix; taking the decision away is not.
+export default function Composer({
+  tenantId,
+  contactId,
+  contactName,
+  lastMessageType,
+  dnd,
+}: Props) {
   const { showToast } = useToast();
   const send = useSetterSendMutation();
 
@@ -44,6 +62,7 @@ export default function Composer({ tenantId, contactId, contactName, lastMessage
 
   const blockReason = sendBlockReason(channel, body, subject);
   const disabled = blockReason !== null || send.isPending;
+  const dndWarning = dndSendWarning(dnd, channel);
 
   const submit = () => {
     if (blockReason !== null || send.isPending) return;
@@ -105,6 +124,15 @@ export default function Composer({ tenantId, contactId, contactName, lastMessage
           Goes out under the client&apos;s name, not yours.
         </span>
       </div>
+
+      {/* Above the box, not below it: a setter reads downward as they type,
+          so a warning under the textarea arrives after the decision. */}
+      {dndWarning && (
+        <p className="mt-2 flex items-start gap-1.5 rounded-[var(--radius)] border border-danger/30 bg-danger-tint px-3 py-2 text-[12px] leading-snug text-danger">
+          <BellOff size={13} className="mt-0.5 shrink-0" aria-hidden />
+          {dndWarning}
+        </p>
+      )}
 
       {channel === "Email" && (
         <input

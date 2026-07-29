@@ -305,6 +305,14 @@ export interface GhlContactRecord {
   dateUpdated?: string;
   tags?: string[];
   source?: string;
+  // Do Not Disturb, both the contact-level switch and the per-channel blocks.
+  // The bulk contact list carries both (verified live 2026-07-29), so any
+  // surface that already holds this roster can tell a setter that a channel
+  // will not deliver without a second request. Read them through
+  // readContactDnd in ./dnd, never directly: the flat boolean is false on most
+  // genuinely blocked contacts.
+  dnd?: boolean;
+  dndSettings?: Record<string, { status?: string; message?: string } | null | undefined>;
   // Touch history, including Meta ad ids on paid-social leads. Already on the
   // wire from the bulk list; see adAttribution.ts for why this and not the
   // utm_* custom fields.

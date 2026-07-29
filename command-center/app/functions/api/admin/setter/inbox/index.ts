@@ -2,8 +2,13 @@ import type { Env, ApiData } from "../../../../lib/env";
 import {
   fetchAllConversations,
   fetchAllContacts,
+  fetchAllOpportunities,
+  ghlJson,
+  type GhlContext,
   type GhlConversation,
+  type GhlOpportunity,
 } from "../../../../lib/ghl";
+import { readContactDnd, type ContactDnd } from "../../../../lib/dnd";
 import { makeInternalConversationFilter } from "../../../../lib/internalRecipients";
 import { normalizeMessageType } from "../../../../lib/messaging";
 import { getGhlContextForTenant, TenantGhlError } from "../../../../lib/tenantGhl";
@@ -32,6 +37,28 @@ export interface ApiInboxThread {
   lastMessageAt: string;
   lastMessageType: string;
   unreadCount: number;
+  // Where this person sits in the CRM, or null when they hold no opportunity
+  // at all. The inbox groups on this: a setter opening a thread needs to know
+  // whether they are talking to a lead being worked, a booked appointment or
+  // somebody who is not in a pipeline at all, WITHOUT leaving the inbox.
+  //
+  // null is only ever "no opportunity found". When the placement lookup itself
+  // fails or is incomplete the response says so at the top level
+  // (placementAvailable / placementComplete) rather than quietly labelling the
+  // whole inbox as un-pipelined, which would be a confident lie about every
+  // row on the screen.
+  pipelineId: string | null;
+  pipelineName: string | null;
+  stageName: string | null;
+  // Which channels this contact has switched off, or null when the contact's
+  // record was not in the roster we read.
+  //
+  // null means "we did not see it", NOT "they are contactable". Nothing in the
+  // UI is allowed to render null as an all-clear: the only claim this app ever
+  // makes about DND is a block it actually observed. That asymmetry is the
+  // whole point, because the failure it prevents is a setter typing a text
+  // into a number the carrier will reject.
+  dnd: ContactDnd | null;
 }
 
 export const DEFAULT_LIMIT = 50;
@@ -52,6 +79,10 @@ const MAX_UPSTREAM_PAGES = 10;
 // A search has to look past the current window (a match may sit far down the
 // list), so it scans a wider but still bounded slice.
 const SEARCH_UPSTREAM_PAGES = 10;
+// Opportunity pages pulled to work out where each contact sits (100 each, so
+// 1000 opportunities). Same ceiling as the conversation read: past this the
+// response says the placement is incomplete rather than guessing.
+const MAX_OPPORTUNITY_PAGES = 10;
 
 export function parseLimit(raw: string | null): number {
   const n = Number(raw);
@@ -103,10 +134,15 @@ function lastMessageMs(c: GhlConversation): number {
   return 0;
 }
 
-export function shapeThread(c: GhlConversation): ApiInboxThread {
+export function shapeThread(
+  c: GhlConversation,
+  placement?: Map<string, ThreadPlacement>,
+  dnd?: Map<string, ContactDnd>,
+): ApiInboxThread {
   const rawType = typeof c.lastMessageType === "string" ? c.lastMessageType : "";
   const type = normalizeMessageType({ type: c.lastMessageType });
   const ms = lastMessageMs(c);
+  const where = placement?.get(c.contactId as string) ?? null;
   return {
     contactId: c.contactId as string,
     name: nameOf(c),
@@ -117,6 +153,131 @@ export function shapeThread(c: GhlConversation): ApiInboxThread {
     lastMessageAt: new Date(ms || Date.now()).toISOString(),
     lastMessageType: type,
     unreadCount: c.unreadCount ?? 0,
+    pipelineId: where?.pipelineId ?? null,
+    pipelineName: where?.pipelineName ?? null,
+    stageName: where?.stageName ?? null,
+    dnd: dnd?.get(c.contactId as string) ?? null,
+  };
+}
+
+// contactId -> DND, for every contact whose record the roster actually held.
+// Contacts with nothing switched off are deliberately INCLUDED (as an
+// all-clear object) rather than omitted, so a later reader can tell "we looked
+// and they are fine" apart from "we never saw them".
+export function buildDndIndex(
+  contacts: Array<{ id?: string; dnd?: boolean; dndSettings?: Record<string, { status?: string; message?: string } | null | undefined> }>,
+): Map<string, ContactDnd> {
+  const index = new Map<string, ContactDnd>();
+  for (const c of contacts) {
+    if (!c.id) continue;
+    const dnd = readContactDnd(c);
+    if (dnd) index.set(c.id, dnd);
+  }
+  return index;
+}
+
+// ---------------------------------------------------------------------------
+// Pipeline placement
+// ---------------------------------------------------------------------------
+
+export interface ThreadPlacement {
+  pipelineId: string;
+  pipelineName: string;
+  stageName: string;
+}
+
+interface PlacementStage {
+  id: string;
+  name: string;
+}
+interface PlacementPipeline {
+  id: string;
+  name: string;
+  stages?: PlacementStage[];
+}
+interface PlacementPipelinesResponse {
+  pipelines?: PlacementPipeline[];
+}
+
+// A contact can hold several opportunities at once (a lead that also became a
+// review request, a repeat customer). The inbox shows ONE line per person, so
+// one of them has to win, and the rule is stated here rather than left to
+// whatever order GHL happened to return:
+//
+//   1. An OPEN opportunity beats a closed one (won/lost/abandoned). Where a
+//      person is being worked right now matters more than where they finished.
+//   2. Within that, the most recently touched wins, using the same timestamp
+//      the board sorts by (lastStatusChangeAt, else updatedAt, else createdAt).
+//
+// Opportunities in a pipeline this location no longer returns are skipped: a
+// stage name we cannot resolve would render as an empty chip, which reads as
+// "no stage" rather than "unknown pipeline".
+export function buildPlacementIndex(
+  opps: GhlOpportunity[],
+  pipelines: PlacementPipeline[],
+): Map<string, ThreadPlacement> {
+  const byPipeline = new Map<string, PlacementPipeline>();
+  for (const p of pipelines) byPipeline.set(p.id, p);
+
+  const best = new Map<string, { placement: ThreadPlacement; open: boolean; at: number }>();
+
+  for (const o of opps) {
+    const contactId = o.contact?.id ?? o.contactId;
+    if (!contactId || !o.pipelineId) continue;
+    const pipeline = byPipeline.get(o.pipelineId);
+    if (!pipeline) continue;
+
+    const stage = (pipeline.stages ?? []).find((s) => s.id === o.pipelineStageId);
+    const open = (o.status ?? "open").toLowerCase() === "open";
+    const at = +new Date(o.lastStatusChangeAt ?? o.updatedAt ?? o.createdAt ?? 0) || 0;
+
+    const current = best.get(contactId);
+    if (current) {
+      if (current.open !== open) {
+        if (!open) continue;
+      } else if (at <= current.at) {
+        continue;
+      }
+    }
+
+    best.set(contactId, {
+      open,
+      at,
+      placement: {
+        pipelineId: pipeline.id,
+        pipelineName: pipeline.name,
+        stageName: stage?.name ?? "",
+      },
+    });
+  }
+
+  const index = new Map<string, ThreadPlacement>();
+  for (const [contactId, entry] of best) index.set(contactId, entry.placement);
+  return index;
+}
+
+// Reads every opportunity in the location once (the same haul the board pays
+// for per pipeline) and resolves it against the live pipeline list, so a
+// renamed stage follows on the next load with no mapping table here.
+//
+// `complete` is false when the opportunity read hit its page cap. That matters:
+// an incomplete read makes real leads look like they are in no pipeline, and
+// the UI has to be able to say "we did not see all of them" instead of showing
+// a confident "Not in a pipeline" heading over people who are.
+export async function loadPlacement(
+  gctx: GhlContext,
+): Promise<{ index: Map<string, ThreadPlacement>; complete: boolean }> {
+  const truncated = { value: false };
+  const [pipeData, opps] = await Promise.all([
+    ghlJson<PlacementPipelinesResponse>(
+      gctx,
+      `/opportunities/pipelines?locationId=${encodeURIComponent(gctx.locationId)}`,
+    ),
+    fetchAllOpportunities(gctx, { maxPages: MAX_OPPORTUNITY_PAGES, truncated }),
+  ]);
+  return {
+    index: buildPlacementIndex(opps, pipeData.pipelines ?? []),
+    complete: !truncated.value,
   };
 }
 
@@ -140,7 +301,14 @@ export function isUpstreamCapped(convCount: number, pagesRequested: number): boo
 
 export function pageThreads(
   convs: GhlConversation[],
-  opts: { q: string; limit: number; offset: number; upstreamCapped?: boolean },
+  opts: {
+    q: string;
+    limit: number;
+    offset: number;
+    upstreamCapped?: boolean;
+    placement?: Map<string, ThreadPlacement>;
+    dnd?: Map<string, ContactDnd>;
+  },
 ): { threads: ApiInboxThread[]; nextCursor: string | null; truncated: boolean } {
   // Filter BEFORE slicing: filtering a page that was already cut would hide
   // matches that sort below the window.
@@ -150,7 +318,9 @@ export function pageThreads(
     .sort((a, b) => lastMessageMs(b) - lastMessageMs(a));
 
   const end = opts.offset + opts.limit;
-  const threads = filtered.slice(opts.offset, end).map(shapeThread);
+  const threads = filtered
+    .slice(opts.offset, end)
+    .map((c) => shapeThread(c, opts.placement, opts.dnd));
   return {
     threads,
     nextCursor: filtered.length > end ? String(end) : null,
@@ -187,23 +357,36 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     // sinks. Jake's call 2026-07-21: they are hidden everywhere, including the
     // agency's own setter tools, not just the client app. Degrades to an empty
     // roster on failure, leaving the configured-recipient signal working.
-    const [convs, contacts] = await Promise.all([
+    const [convs, contacts, placement] = await Promise.all([
       fetchAllConversations(gctx, { maxPages: pages }),
       fetchAllContacts(gctx).catch(() => []),
+      // Degrades to null rather than failing the inbox: a setter who cannot
+      // see the pipeline grouping can still read and answer their messages,
+      // which is what this screen is for. The flags below tell the UI to drop
+      // back to one flat list instead of inventing a "Not in a pipeline"
+      // heading over the entire inbox.
+      loadPlacement(gctx).catch(() => null),
     ]);
     const isInternalConversation = makeInternalConversationFilter(
       contacts,
       gctx.internal_recipients,
     );
     const visible = convs.filter((c) => !isInternalConversation(c));
-    return Response.json(
-      pageThreads(visible, {
+    // The same roster the internal-recipient filter already needed, read a
+    // second way. No extra request: DND rides along on the bulk contact list.
+    const dnd = buildDndIndex(contacts);
+    return Response.json({
+      ...pageThreads(visible, {
         q,
         limit,
         offset,
         upstreamCapped: isUpstreamCapped(convs.length, pages),
+        placement: placement?.index,
+        dnd,
       }),
-    );
+      placementAvailable: placement !== null,
+      placementComplete: placement?.complete ?? false,
+    });
   } catch {
     return Response.json({ error: "ghl_unavailable" }, { status: 502 });
   }

@@ -1,8 +1,15 @@
-import { Search, TriangleAlert, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { BellOff, ChevronDown, Search, TriangleAlert, Loader2 } from "lucide-react";
 import Avatar from "../../Avatar";
 import { timeAgo } from "../../../lib/timeAgo";
 import { useNow } from "../../../context/NowContext";
-import { previewText } from "../../../lib/setterInbox";
+import {
+  dndBadgeLabel,
+  groupThreadsByPipeline,
+  previewText,
+  NO_PIPELINE_KEY,
+} from "../../../lib/setterInbox";
+import { stageTone } from "../../../lib/setterModel";
 import type { ApiSetterThread } from "../../../lib/api";
 
 // Loading, failed and empty are three different answers and this list renders
@@ -31,6 +38,106 @@ interface Props {
   // setter to opposite conclusions while they are on the phone.
   truncated: boolean;
   onLoadMore: () => void;
+  // FALSE when the server could not read the client's pipelines at all. Every
+  // thread then carries a null placement for a reason that has nothing to do
+  // with the contacts, so the list renders flat instead of filing the whole
+  // inbox under "Not in a pipeline", which would be a confident lie about
+  // every row on the screen.
+  placementAvailable: boolean;
+  // FALSE when the opportunity read stopped short, so somebody shown as not in
+  // a pipeline may simply be past where we looked. Said out loud in the group
+  // rather than asserted away, same rule as `truncated`.
+  placementComplete: boolean;
+}
+
+// One thread row. Lifted out of the map so the grouped and flat lists render
+// the identical row rather than two copies that can drift.
+function ThreadRow({
+  thread,
+  selected,
+  onSelect,
+  now,
+}: {
+  thread: ApiSetterThread;
+  selected: boolean;
+  onSelect: (t: ApiSetterThread) => void;
+  now: number;
+}) {
+  const dndLabel = dndBadgeLabel(thread.dnd);
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onSelect(thread)}
+        aria-current={selected ? "true" : undefined}
+        className={
+          "flex w-full items-start gap-3 border-b border-divider px-3 py-3 text-left transition-colors " +
+          (selected ? "bg-brand-tint" : "hover:bg-surface-2")
+        }
+      >
+        <Avatar name={thread.name} size="sm" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2">
+            <span className="min-w-0 flex-1 truncate font-display text-[13.5px] font-semibold text-text">
+              {thread.name}
+            </span>
+            <span className="font-data shrink-0 text-[11px] text-faint">
+              {timeAgo(thread.lastMessageAt, now)}
+            </span>
+          </div>
+          <p className="mt-1 truncate text-[12.5px] text-muted">
+            {previewText(thread.preview) || "No message text"}
+          </p>
+          {(thread.stageName || dndLabel || thread.unreadCount > 0) && (
+            <div className="mt-1.5 flex items-center gap-1.5">
+              {/* The stage, verbatim from the CRM. This is the answer to
+                  "where is this lead at" without leaving the inbox, so it is
+                  never abbreviated or re-worded. */}
+              {thread.stageName && (
+                <span
+                  className="inline-flex min-w-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold"
+                  style={{
+                    borderColor: `color-mix(in srgb, ${stageTone(thread.stageName)} 35%, transparent)`,
+                    color: stageTone(thread.stageName),
+                    backgroundColor: `color-mix(in srgb, ${stageTone(thread.stageName)} 10%, transparent)`,
+                  }}
+                >
+                  <span
+                    className="h-1.5 w-1.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: stageTone(thread.stageName) }}
+                    aria-hidden
+                  />
+                  <span className="truncate">{thread.stageName}</span>
+                </span>
+              )}
+              {/* A blocked channel outranks the stage for space: a setter can
+                  look up the stage, but a message typed into a switched-off
+                  channel is simply lost with no error anywhere. */}
+              {dndLabel && (
+                <span
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-danger/30 bg-danger-tint px-2 py-0.5 text-[10.5px] font-semibold text-danger"
+                  title={
+                    thread.dnd?.all
+                      ? "This contact is on Do Not Disturb in the booking system."
+                      : `Switched off in the booking system: ${thread.dnd?.channels.join(", ")}`
+                  }
+                >
+                  <BellOff size={10} aria-hidden />
+                  {dndLabel}
+                </span>
+              )}
+              {thread.unreadCount > 0 && (
+                <span className="shrink-0 rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  {thread.unreadCount}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </button>
+    </li>
+  );
 }
 
 export default function ThreadList({
@@ -47,8 +154,22 @@ export default function ThreadList({
   moreError,
   truncated,
   onLoadMore,
+  placementAvailable,
+  placementComplete,
 }: Props) {
   const now = useNow();
+  // Collapsed groups, by key. Empty by default: a setter opening the inbox
+  // sees everything, and hiding rows is a choice they make, never one made for
+  // them. Deliberately not persisted, so a collapsed group cannot quietly
+  // survive into another client's inbox and hide their conversations.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggle = (key: string) =>
+    setCollapsed((c) => ({ ...c, [key]: !c[key] }));
+
+  // No placement means no honest grouping, so the list stays flat and says why
+  // once, at the top. Grouping on a failed lookup would put every contact
+  // under "Not in a pipeline".
+  const groups = placementAvailable ? groupThreadsByPipeline(threads) : [];
 
   return (
     <div
@@ -112,46 +233,89 @@ export default function ThreadList({
           </div>
         ) : (
           <>
-            <ul>
-              {threads.map((t) => {
-                const on = t.contactId === selectedContactId;
+            {!placementAvailable ? (
+              <>
+                <p className="flex items-start gap-1.5 border-b border-divider px-3 py-2.5 text-[11.5px] text-faint">
+                  <TriangleAlert size={13} className="mt-0.5 shrink-0" aria-hidden />
+                  Could not read this client&apos;s pipelines, so these
+                  conversations are not grouped. The messages themselves are
+                  fine.
+                </p>
+                <ul>
+                  {threads.map((t) => (
+                    <ThreadRow
+                      key={t.contactId}
+                      thread={t}
+                      selected={t.contactId === selectedContactId}
+                      onSelect={onSelect}
+                      now={now}
+                    />
+                  ))}
+                </ul>
+              </>
+            ) : (
+              groups.map((g) => {
+                const isCollapsed = collapsed[g.key] === true;
+                const none = g.key === NO_PIPELINE_KEY;
                 return (
-                  <li key={t.contactId}>
-                    <button
-                      type="button"
-                      onClick={() => onSelect(t)}
-                      aria-current={on ? "true" : undefined}
-                      className={
-                        "flex w-full items-start gap-3 border-b border-divider px-3 py-3 text-left transition-colors " +
-                        (on ? "bg-brand-tint" : "hover:bg-surface-2")
-                      }
-                    >
-                      <Avatar name={t.name} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline gap-2">
-                          <span className="min-w-0 flex-1 truncate font-display text-[13.5px] font-semibold text-text">
-                            {t.name}
-                          </span>
-                          <span className="font-data shrink-0 text-[11px] text-faint">
-                            {timeAgo(t.lastMessageAt, now)}
-                          </span>
-                        </div>
-                        <p className="mt-1 truncate text-[12.5px] text-muted">
-                          {previewText(t.preview) || "No message text"}
-                        </p>
-                        {t.unreadCount > 0 && (
-                          <div className="mt-1">
-                            <span className="rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-bold text-white">
-                              {t.unreadCount}
-                            </span>
-                          </div>
+                  <section key={g.key} aria-label={g.label}>
+                    <h3 className="sticky top-0 z-10">
+                      <button
+                        type="button"
+                        onClick={() => toggle(g.key)}
+                        aria-expanded={!isCollapsed}
+                        className="flex w-full items-center gap-2 border-b border-divider bg-surface-2 px-3 py-2 text-left transition-colors hover:bg-surface-3"
+                      >
+                        <ChevronDown
+                          size={13}
+                          aria-hidden
+                          className={
+                            "shrink-0 text-faint transition-transform " +
+                            (isCollapsed ? "-rotate-90" : "")
+                          }
+                        />
+                        <span
+                          className={
+                            "min-w-0 flex-1 truncate font-display text-[11.5px] font-bold uppercase tracking-[0.06em] " +
+                            (none ? "text-faint" : "text-muted")
+                          }
+                        >
+                          {g.label}
+                        </span>
+                        {/* Rows in THIS list, not leads in that pipeline. The
+                            inbox only ever holds the loaded window, so a count
+                            phrased as a pipeline total would be wrong the
+                            moment the window ends. */}
+                        <span className="font-data shrink-0 text-[11px] text-faint">
+                          {g.threads.length}
+                        </span>
+                      </button>
+                    </h3>
+                    {!isCollapsed && (
+                      <>
+                        {none && !placementComplete && (
+                          <p className="border-b border-divider px-3 py-2 text-[11px] text-faint">
+                            Some of these may hold a pipeline place further down
+                            than this client&apos;s opportunities were read.
+                          </p>
                         )}
-                      </div>
-                    </button>
-                  </li>
+                        <ul>
+                          {g.threads.map((t) => (
+                            <ThreadRow
+                              key={t.contactId}
+                              thread={t}
+                              selected={t.contactId === selectedContactId}
+                              onSelect={onSelect}
+                              now={now}
+                            />
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </section>
                 );
-              })}
-            </ul>
+              })
+            )}
 
             {moreError && (
               <p className="flex items-start gap-1.5 px-3 pt-3 text-[12px] text-danger">
