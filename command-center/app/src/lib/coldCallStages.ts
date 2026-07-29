@@ -13,9 +13,14 @@ import type { AdminLeadStatus } from "./api";
 export interface ColdCallStage {
   // URL segment: ?view=<id>
   id: string;
-  // The stored status, and the live GHL stage name.
+  // The stored status, and the live GHL stage name. Identity, not display:
+  // changing one of these means a migration on leads.status, its CHECK
+  // constraint, and renaming the stage in GoHighLevel, or the sync stops
+  // recognising the board.
   label: AdminLeadStatus;
-  // Strip label: short enough to sit in a ten-item row.
+  // What a person reads. Every surface renders this: the page strip, the status
+  // pill (via STATUS_META in adminLeads.ts) and the page headings. So a stage
+  // can be renamed for humans without touching what is stored anywhere.
   short: string;
   meaning: string;
   tag: string | null;
@@ -42,7 +47,7 @@ export const COLD_CALL_STAGES: ColdCallStage[] = [
   {
     id: "first-dial",
     label: "1st Dial (Day 1)",
-    short: "1st Dial",
+    short: "No Answer Day 1",
     meaning: "Dialed once, no answer. Dial again today.",
     tag: "cc no answer day 1",
     queue: true,
@@ -52,7 +57,7 @@ export const COLD_CALL_STAGES: ColdCallStage[] = [
   {
     id: "second-dial",
     label: "2nd Dial (Day 2)",
-    short: "2nd Dial",
+    short: "No Answer Day 2",
     meaning: "Dialed twice, still no answer. Last attempt before nurture.",
     tag: "cc no answer day 2",
     queue: true,

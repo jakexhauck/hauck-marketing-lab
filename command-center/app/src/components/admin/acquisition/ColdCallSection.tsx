@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ScrollText } from "lucide-react";
+import { MessagesSquare, ScrollText } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { effectiveAdminRole } from "../../../lib/adminRoles";
 import {
@@ -40,6 +40,9 @@ export default function ColdCallSection() {
   const isOwner = effectiveAdminRole(admin?.role) === "owner";
   const [searchParams, setSearchParams] = useSearchParams();
   const [scriptOpen, setScriptOpen] = useState(false);
+  // Its own state, so the two panels are independent: reading an objection does
+  // not close the script somebody is halfway through.
+  const [objectionsOpen, setObjectionsOpen] = useState(false);
 
   // The tracker's month lives here rather than inside the tracker, so its
   // stepper can sit in this header row beside the Dialing script button instead
@@ -115,6 +118,21 @@ export default function ColdCallSection() {
   );
   const assetGroups = useMemo(
     () => groupByCategory(shelfAssets.filter((a) => a.kind === "asset" && !a.archivedAt)),
+    [shelfAssets],
+  );
+
+  // Objection handling gets its own button and its own panel, because it is not
+  // read like the rest of the shelf. It is reached for at one specific moment,
+  // mid-sentence, while somebody is talking, and digging two levels into a
+  // panel to find it is two levels too many at that moment.
+  //
+  // Found by name rather than by a fixed id, so Jake can rewrite the document
+  // (or replace it entirely) from Management without anything here changing.
+  const objections = useMemo(
+    () =>
+      shelfAssets.find(
+        (a) => a.kind === "asset" && !a.archivedAt && /objection/i.test(a.name),
+      ) ?? null,
     [shelfAssets],
   );
 
@@ -194,6 +212,15 @@ export default function ColdCallSection() {
             <ScrollText aria-hidden />
             Dialing script
           </button>
+          <button
+            type="button"
+            className="pk-link"
+            onClick={() => setObjectionsOpen((s) => !s)}
+            aria-pressed={objectionsOpen}
+          >
+            <MessagesSquare aria-hidden />
+            Objections
+          </button>
         </div>
       </div>
 
@@ -241,6 +268,31 @@ export default function ColdCallSection() {
               items: g.items.map((a) => ({ id: a.id, name: a.name, html: a.html })),
             })),
           }}
+        />
+      )}
+
+      {/* Objection handling, on the other side of the screen so both can be
+          open at once: the script being worked from on the left, the answer to
+          what was just said on the right. No shelf, because this panel is one
+          document and a picker on it would only be a way to lose it. */}
+      {objectionsOpen && (
+        <ScriptPanel
+          title="Objection handling"
+          dock="right"
+          html={objections?.html ?? ""}
+          subtitle={objections?.name ?? "Agency cold calling"}
+          isLoading={shelfQuery.isLoading}
+          isError={shelfQuery.isError}
+          emptyHint={
+            !objections
+              ? isOwner
+                ? 'Nothing here yet. Add a shelf document with "objection" in its name under Management > Shelf and it opens from this button.'
+                : "No objection handling written yet. Jake writes this one."
+              : isOwner
+                ? `"${objections.name}" has nothing in it yet. Write it under Management > Shelf.`
+                : "This has not been written yet. Jake writes these."
+          }
+          onClose={() => setObjectionsOpen(false)}
         />
       )}
     </>

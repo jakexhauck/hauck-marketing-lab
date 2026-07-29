@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-28-objections-panel",
+    date: "28 July 2026",
+    title: "Objection handling is one click away, and the dial stages say what they mean",
+    items: [
+      "New Objections button next to Dialing script. It opens the objection handling document as its own floating panel on the right, so it and the script can be open at once: the script in one hand, the answer to what was just said in the other.",
+      "Like the script panel, it can be dragged anywhere and resized, and the page underneath keeps working while it is open.",
+      'The two dial stages now read "No Answer Day 1" and "No Answer Day 2" instead of "1st Dial" and "2nd Dial", which is what the GoHighLevel automations have always called them.',
+    ],
+  },
+  {
     id: "2026-07-28-callback-time-and-scripts",
     date: "28 July 2026",
     title: "Callbacks now have a time, and each call names its script",

@@ -41,7 +41,18 @@ interface Props {
   emptyHint: string;
   onClose: () => void;
   shelf?: ScriptShelf;
+  // Which side the panel opens on. Two of these can be up at once (the script
+  // in one hand, the objections in the other), so they must not land on top of
+  // each other. Dragging still moves either anywhere.
+  dock?: "left" | "right";
+  // Heading text. Defaults to the dialing script, since that is what this panel
+  // was built for and what every existing caller passes.
+  title?: string;
 }
+
+// 440px wide (the w-[440px] below) plus a 16px margin.
+const PANEL_WIDTH = 440;
+const DOCK_MARGIN = 16;
 
 export default function ScriptPanel({
   html,
@@ -51,6 +62,8 @@ export default function ScriptPanel({
   emptyHint,
   onClose,
   shelf,
+  dock = "left",
+  title = "Dialing script",
 }: Props) {
   // Which document the panel is SHOWING, which is not the same question as which
   // script is being dialed from. Reading an objection walkthrough mid-call must
@@ -68,7 +81,10 @@ export default function ScriptPanel({
   // Panel position, dragged by the header. Starts docked bottom-left-ish, clear
   // of anything docked to the right.
   const [pos, setPos] = useState(() => ({
-    x: 16,
+    x:
+      dock === "right"
+        ? Math.max(DOCK_MARGIN, window.innerWidth - PANEL_WIDTH - DOCK_MARGIN)
+        : DOCK_MARGIN,
     y: Math.max(16, window.innerHeight * 0.12),
   }));
   const dragRef = useRef<{ dx: number; dy: number } | null>(null);
@@ -95,7 +111,7 @@ export default function ScriptPanel({
   return (
     <section
       role="dialog"
-      aria-label="Dialing script"
+      aria-label={title}
       // resize: the browser's native corner handle (bottom-right). It writes
       // inline width/height as the user drags, which is exactly what we want;
       // the min/max classes bound it so it can neither vanish nor swallow the
@@ -114,7 +130,7 @@ export default function ScriptPanel({
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-[14px] font-semibold leading-tight text-text">
-            Dialing script
+            {title}
           </h2>
           <p className="truncate text-[11.5px] text-muted">{subtitle}</p>
         </div>
@@ -122,7 +138,7 @@ export default function ScriptPanel({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close dialing script"
+          aria-label={`Close ${title.toLowerCase()}`}
           className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-muted transition-colors hover:bg-surface-3 hover:text-text"
         >
           <X size={14} />

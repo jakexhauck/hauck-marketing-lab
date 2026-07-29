@@ -47,7 +47,7 @@ export default function ColdCallLeads({
     <CallWorkspace
       leads={queue}
       queueTitle="To call"
-      emptyTitle={`Nobody in ${stage.label}`}
+      emptyTitle={`Nobody in ${stage.short}`}
       emptyHint="Every prospect in this stage has been worked."
     />
   );
