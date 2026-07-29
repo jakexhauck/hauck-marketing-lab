@@ -53,6 +53,21 @@ export type ClaudeCheck = {
   error: string | null;
 };
 
+export type SkillEntry = {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  activation_command: string | null;
+  skill_path: string;
+};
+
+export type KnowledgeTitle = {
+  id: string;
+  title: string;
+  path: string;
+};
+
 export type StreamEvent =
   | { kind: "started"; id: string }
   | { kind: "delta"; id: string; text: string }

@@ -14,6 +14,7 @@ type Props = {
   activeAgent: AgentSummary;
   clientName: string;
   initialChat: ChatFile | null;
+  initialInput?: string;
   onClose: () => void;
   onAgentChange: (agent: AgentSummary) => void;
   onChatSaved: () => void;
@@ -43,13 +44,14 @@ export function ChatDrawer({
   activeAgent,
   clientName,
   initialChat,
+  initialInput,
   onClose,
   onAgentChange,
   onChatSaved,
   onOpenPalette,
 }: Props) {
   const [chatFile, setChatFile] = useState<ChatFile | null>(initialChat);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialInput ?? "");
   const [streaming, setStreaming] = useState(false);
   const [, setStreamId] = useState<string | null>(null);
   const [streamText, setStreamText] = useState("");
@@ -64,6 +66,10 @@ export function ChatDrawer({
     setStreaming(false);
     setStreamId(null);
   }, [initialChat]);
+
+  useEffect(() => {
+    if (initialInput !== undefined) setInput(initialInput);
+  }, [initialInput]);
 
   useEffect(() => {
     inputRef.current?.focus();

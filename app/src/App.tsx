@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { AgentRail } from "./components/AgentRail";
 import { AskDock } from "./components/AskDock";
 import { ChatDrawer } from "./components/ChatDrawer";
@@ -13,6 +14,8 @@ import type {
   ChatFile,
   ChatSummary,
   FolderSummary,
+  KnowledgeTitle,
+  SkillEntry,
 } from "./lib/types";
 
 const CLIENT_NAME = "Willis Windows";
@@ -26,6 +29,8 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentChat, setCurrentChat] = useState<ChatFile | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [pendingInput, setPendingInput] = useState<string | undefined>(undefined);
+  const pendingInputTick = useRef(0);
   const [bootDone, setBootDone] = useState(false);
 
   const loadFolder = useCallback(async (path: string) => {
@@ -143,6 +148,28 @@ export default function App() {
     if (root) loadFolder(root);
   };
 
+  const onPaletteChat = async (chat: ChatSummary) => {
+    setPaletteOpen(false);
+    await onOpenChatFromList(chat);
+  };
+
+  const onPaletteSkill = (skill: SkillEntry) => {
+    setPaletteOpen(false);
+    pendingInputTick.current += 1;
+    setPendingInput(`Run the ${skill.name} skill.`);
+    const agent = activeAgent ?? summary?.agents[0];
+    if (agent) openDrawer(agent, currentChat);
+  };
+
+  const onPaletteKnowledge = async (item: KnowledgeTitle) => {
+    setPaletteOpen(false);
+    try {
+      await openPath(item.path);
+    } catch (e) {
+      setBootError(String(e));
+    }
+  };
+
   const onAgentChangeInDrawer = (agent: AgentSummary) => {
     setActiveAgent(agent);
     setCurrentChat(null);
@@ -210,19 +237,32 @@ export default function App() {
 
       {drawerOpen && activeAgent && (
         <ChatDrawer
+          key={`drawer-${pendingInputTick.current}`}
           root={root}
           agents={summary.agents}
           activeAgent={activeAgent}
           clientName={CLIENT_NAME}
           initialChat={currentChat}
-          onClose={() => setDrawerOpen(false)}
+          initialInput={pendingInput}
+          onClose={() => {
+            setDrawerOpen(false);
+            setPendingInput(undefined);
+          }}
           onAgentChange={onAgentChangeInDrawer}
           onChatSaved={onChatSaved}
           onOpenPalette={() => setPaletteOpen(true)}
         />
       )}
 
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <CommandPalette
+        open={paletteOpen}
+        root={root}
+        chats={summary.chats}
+        onClose={() => setPaletteOpen(false)}
+        onOpenChat={onPaletteChat}
+        onScaffoldSkill={onPaletteSkill}
+        onOpenKnowledge={onPaletteKnowledge}
+      />
     </>
   );
 }

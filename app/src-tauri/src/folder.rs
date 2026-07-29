@@ -220,3 +220,127 @@ pub fn read_agent_body(root: String, slug: String) -> Result<String, String> {
     let p = PathBuf::from(&root).join("agents").join(format!("{slug}.md"));
     fs::read_to_string(&p).map_err(|e| format!("read agent {slug}: {e}"))
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SkillEntry {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub category: String,
+    pub activation_command: Option<String>,
+    pub skill_path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct KnowledgeTitle {
+    pub id: String,
+    pub title: String,
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct KnowledgeFrontmatter {
+    id: Option<String>,
+    title: Option<String>,
+}
+
+#[tauri::command]
+pub fn list_skills(root: String) -> Result<Vec<SkillEntry>, String> {
+    let registry_path = PathBuf::from(&root).join("skills").join("_registry.yaml");
+    let raw = fs::read_to_string(&registry_path)
+        .map_err(|e| format!("read registry: {e}"))?;
+    let doc: serde_yaml::Value =
+        serde_yaml::from_str(&raw).map_err(|e| format!("parse registry: {e}"))?;
+    let skills_map = doc
+        .get("skills")
+        .and_then(|v| v.as_mapping())
+        .ok_or_else(|| "registry missing skills map".to_string())?;
+
+    let mut out = Vec::new();
+    for (key, value) in skills_map {
+        let id = value
+            .get("id")
+            .and_then(|v| v.as_str())
+            .or_else(|| key.as_str())
+            .unwrap_or("")
+            .to_string();
+        if id.is_empty() {
+            continue;
+        }
+        let name = value
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&id)
+            .to_string();
+        let description = value
+            .get("description")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        let category = value
+            .get("category")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let activation_command = value
+            .get("activation_command")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        let skill_path = PathBuf::from(&root)
+            .join("skills")
+            .join(&category)
+            .join(&id)
+            .join("SKILL.md")
+            .to_string_lossy()
+            .into_owned();
+        out.push(SkillEntry {
+            id,
+            name,
+            description,
+            category,
+            activation_command,
+            skill_path,
+        });
+    }
+    out.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(out)
+}
+
+#[tauri::command]
+pub fn list_knowledge_titles(root: String) -> Result<Vec<KnowledgeTitle>, String> {
+    let dir = PathBuf::from(&root).join("knowledge");
+    if !dir.exists() {
+        return Ok(Vec::new());
+    }
+    let mut out = Vec::new();
+    if let Ok(rd) = fs::read_dir(&dir) {
+        for entry in rd.flatten() {
+            let p = entry.path();
+            if p.extension().and_then(|e| e.to_str()) != Some("md") {
+                continue;
+            }
+            let stem = match p.file_stem().and_then(|s| s.to_str()) {
+                Some(s) if s.starts_with("TFC-") => s.to_string(),
+                _ => continue,
+            };
+            let raw = match fs::read_to_string(&p) {
+                Ok(r) => r,
+                Err(_) => continue,
+            };
+            let parsed = frontmatter::parse::<KnowledgeFrontmatter>(&raw);
+            let (id, title) = match parsed {
+                Some(p) => (
+                    p.front.id.unwrap_or_else(|| stem.clone()),
+                    p.front.title.unwrap_or_else(|| stem.clone()),
+                ),
+                None => continue,
+            };
+            out.push(KnowledgeTitle {
+                id,
+                title,
+                path: p.to_string_lossy().into_owned(),
+            });
+        }
+    }
+    out.sort_by(|a, b| a.id.cmp(&b.id));
+    Ok(out)
+}

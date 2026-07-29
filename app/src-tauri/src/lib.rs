@@ -15,6 +15,8 @@ pub fn run() {
             config::suggest_folder_candidates,
             folder::parse_folder,
             folder::read_agent_body,
+            folder::list_skills,
+            folder::list_knowledge_titles,
             chat::create_chat,
             chat::read_chat,
             chat::append_turn,

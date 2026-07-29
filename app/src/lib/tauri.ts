@@ -7,6 +7,8 @@ import type {
   ChatTurn,
   ClaudeCheck,
   FolderSummary,
+  KnowledgeTitle,
+  SkillEntry,
   StreamEvent,
 } from "./types";
 
@@ -17,6 +19,9 @@ export const api = {
   parseFolder: (root: string) => invoke<FolderSummary>("parse_folder", { root }),
   readAgentBody: (root: string, slug: string) =>
     invoke<string>("read_agent_body", { root, slug }),
+  listSkills: (root: string) => invoke<SkillEntry[]>("list_skills", { root }),
+  listKnowledgeTitles: (root: string) =>
+    invoke<KnowledgeTitle[]>("list_knowledge_titles", { root }),
   createChat: (root: string, agent: string | null, title: string) =>
     invoke<ChatFile>("create_chat", { root, agent, title }),
   readChat: (path: string) => invoke<ChatFile>("read_chat", { path }),

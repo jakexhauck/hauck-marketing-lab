@@ -1,28 +1,198 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { api } from "../lib/tauri";
+import type {
+  ChatSummary,
+  KnowledgeTitle,
+  SkillEntry,
+} from "../lib/types";
 
 type Props = {
   open: boolean;
+  root: string | null;
+  chats: ChatSummary[];
   onClose: () => void;
+  onOpenChat: (chat: ChatSummary) => void;
+  onScaffoldSkill: (skill: SkillEntry) => void;
+  onOpenKnowledge: (item: KnowledgeTitle) => void;
 };
 
-export function CommandPalette({ open, onClose }: Props) {
-  const ref = useRef<HTMLInputElement>(null);
+type ResultRow =
+  | { kind: "SKILL"; key: string; label: string; sub: string; data: SkillEntry }
+  | { kind: "CHAT"; key: string; label: string; sub: string; data: ChatSummary }
+  | { kind: "KNOWLEDGE"; key: string; label: string; sub: string; data: KnowledgeTitle };
+
+function fuzzyScore(query: string, target: string): number {
+  if (!query) return 1;
+  const q = query.toLowerCase();
+  const t = target.toLowerCase();
+  let qi = 0;
+  let score = 0;
+  let streak = 0;
+  let prev = -2;
+  for (let i = 0; i < t.length && qi < q.length; i++) {
+    if (t[i] === q[qi]) {
+      let bonus = 1;
+      if (i === prev + 1) {
+        streak++;
+        bonus += streak * 2;
+      } else {
+        streak = 0;
+      }
+      if (i === 0 || /[\s\-_/.]/.test(t[i - 1])) bonus += 3;
+      score += bonus;
+      prev = i;
+      qi++;
+    }
+  }
+  return qi === q.length ? score : 0;
+}
+
+export function CommandPalette({
+  open,
+  root,
+  chats,
+  onClose,
+  onOpenChat,
+  onScaffoldSkill,
+  onOpenKnowledge,
+}: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState("");
+  const [active, setActive] = useState(0);
+  const [skills, setSkills] = useState<SkillEntry[] | null>(null);
+  const [knowledge, setKnowledge] = useState<KnowledgeTitle[] | null>(null);
+  const [indexing, setIndexing] = useState(false);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
-    if (open) {
-      const t = setTimeout(() => ref.current?.focus(), 30);
-      return () => clearTimeout(t);
-    }
+    if (!open) return;
+    setQuery("");
+    setActive(0);
+    const t = setTimeout(() => inputRef.current?.focus(), 30);
+    return () => clearTimeout(t);
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !root || loadedRef.current) return;
+    loadedRef.current = true;
+    setIndexing(true);
+    (async () => {
+      try {
+        const [s, k] = await Promise.all([
+          api.listSkills(root),
+          api.listKnowledgeTitles(root),
+        ]);
+        setSkills(s);
+        setKnowledge(k);
+      } catch {
+        setSkills([]);
+        setKnowledge([]);
+      } finally {
+        setIndexing(false);
+      }
+    })();
+  }, [open, root]);
+
+  const results = useMemo<ResultRow[]>(() => {
+    if (!open) return [];
+    const skillRows: ResultRow[] = (skills ?? []).map((s) => ({
+      kind: "SKILL" as const,
+      key: `skill:${s.id}`,
+      label: s.name,
+      sub: s.description ?? s.id,
+      data: s,
+    }));
+    const chatRows: ResultRow[] = chats.map((c) => ({
+      kind: "CHAT" as const,
+      key: `chat:${c.path}`,
+      label: c.title,
+      sub: c.preview ?? c.slug,
+      data: c,
+    }));
+    const knowledgeRows: ResultRow[] = (knowledge ?? []).map((k) => ({
+      kind: "KNOWLEDGE" as const,
+      key: `knowledge:${k.path}`,
+      label: k.title,
+      sub: k.id,
+      data: k,
+    }));
+
+    const q = query.trim();
+    if (!q) {
+      return [
+        ...chatRows.slice(0, 5),
+        ...skillRows.slice(0, 5),
+        ...knowledgeRows.slice(0, 5),
+      ];
+    }
+
+    const scoreRow = (r: ResultRow): number => {
+      if (r.kind === "SKILL") {
+        const s = r.data;
+        return Math.max(
+          fuzzyScore(q, s.name),
+          fuzzyScore(q, s.description ?? ""),
+          fuzzyScore(q, s.id),
+        );
+      }
+      if (r.kind === "CHAT") {
+        const c = r.data;
+        return Math.max(fuzzyScore(q, c.title), fuzzyScore(q, c.preview ?? ""));
+      }
+      const k = r.data;
+      return Math.max(fuzzyScore(q, k.id), fuzzyScore(q, k.title));
+    };
+
+    const all = [...skillRows, ...chatRows, ...knowledgeRows]
+      .map((r) => ({ r, s: scoreRow(r) }))
+      .filter((x) => x.s > 0)
+      .sort((a, b) => b.s - a.s)
+      .slice(0, 30)
+      .map((x) => x.r);
+    return all;
+  }, [open, query, skills, knowledge, chats]);
+
+  useEffect(() => {
+    setActive(0);
+  }, [query, results.length]);
+
+  useEffect(() => {
+    const el = listRef.current?.querySelector<HTMLDivElement>(
+      `.palette-row[data-idx="${active}"]`,
+    );
+    el?.scrollIntoView({ block: "nearest" });
+  }, [active]);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActive((i) => (results.length === 0 ? 0 : (i + 1) % results.length));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActive((i) =>
+          results.length === 0 ? 0 : (i - 1 + results.length) % results.length,
+        );
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        const row = results[active];
+        if (!row) return;
+        fire(row);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, results, active]);
+
+  const fire = (row: ResultRow) => {
+    if (row.kind === "SKILL") onScaffoldSkill(row.data);
+    else if (row.kind === "CHAT") onOpenChat(row.data);
+    else onOpenKnowledge(row.data);
+  };
 
   if (!open) return null;
 
@@ -30,13 +200,33 @@ export function CommandPalette({ open, onClose }: Props) {
     <div className="palette-overlay" onClick={onClose}>
       <div className="palette" onClick={(e) => e.stopPropagation()}>
         <input
-          ref={ref}
+          ref={inputRef}
           className="palette-input"
           placeholder="Search skills, threads, knowledge…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
         />
-        <div className="palette-empty">
-          ▸ palette content arrives in v1.1 — wired to skill registry + knowledge index
-        </div>
+        {indexing && skills === null && knowledge === null ? (
+          <div className="palette-empty">▸ indexing skills + knowledge…</div>
+        ) : results.length === 0 ? (
+          <div className="palette-empty">▸ no matches</div>
+        ) : (
+          <div className="palette-list" ref={listRef}>
+            {results.map((r, i) => (
+              <div
+                key={r.key}
+                data-idx={i}
+                className={`palette-row ${i === active ? "active" : ""}`}
+                onMouseEnter={() => setActive(i)}
+                onClick={() => fire(r)}
+              >
+                <span className="palette-row-kind">{r.kind}</span>
+                <span className="palette-row-label">{r.label}</span>
+                <span className="palette-row-sub">{r.sub}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

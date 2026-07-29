@@ -1425,6 +1425,64 @@ body {
   text-transform: uppercase;
   color: var(--text-faint);
 }
+.palette-list {
+  max-height: 440px;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+.palette-list::-webkit-scrollbar {
+  width: 4px;
+}
+.palette-list::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+}
+.palette-row {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 14px;
+  row-gap: 2px;
+  align-items: baseline;
+  padding: 10px 26px;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+}
+.palette-row.active {
+  background: var(--bg-elev);
+  border-left-color: var(--copper);
+}
+.palette-row-kind {
+  grid-row: 1 / span 2;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  padding-top: 3px;
+  font-weight: 600;
+}
+.palette-row.active .palette-row-kind {
+  color: var(--copper);
+}
+.palette-row-label {
+  font-family: var(--sans);
+  font-size: 14.5px;
+  color: var(--text);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.palette-row-sub {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ── folder picker / first-launch screen ──────────────── */
 .picker-shell {
