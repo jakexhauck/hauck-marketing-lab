@@ -1,5 +1,6 @@
 import { demoMode } from "../demo/demoMode";
 import { handleDemoRequest } from "../demo/handler";
+import type { BusinessHealthInputs, PeriodType } from "./businessHealth";
 
 export class ApiError extends Error {
   status: number;
@@ -547,4 +548,34 @@ export interface AdminOverview {
 
 export async function getAdminOverview(): Promise<AdminOverview> {
   return api<AdminOverview>("/api/admin/overview");
+}
+
+// Business Health (admin Command home). Agency-global manual metrics, one row
+// per period key. The 10 inputs are hand-entered; the "Auto" tiles (CAC, ROAS,
+// LTV, LTV:CAC, End clients) are derived client-side in lib/businessHealth.ts
+// and are not part of this DTO. See functions/api/admin/tracker/business-health.ts.
+export type { BusinessHealthInputs } from "./businessHealth";
+
+export interface BusinessHealthResponse {
+  period: string; // echoed period_key, e.g. "2026-07"
+  periodType: PeriodType;
+  inputs: BusinessHealthInputs;
+  updatedAt: string | null; // null when the period has no saved row yet
+}
+
+export async function getBusinessHealth(period: string): Promise<BusinessHealthResponse> {
+  return api<BusinessHealthResponse>(
+    `/api/admin/tracker/business-health?period=${encodeURIComponent(period)}`,
+  );
+}
+
+export async function saveBusinessHealth(
+  period: string,
+  periodType: PeriodType,
+  inputs: Partial<BusinessHealthInputs>,
+): Promise<BusinessHealthResponse> {
+  return api<BusinessHealthResponse>("/api/admin/tracker/business-health", {
+    method: "PATCH",
+    body: JSON.stringify({ period, periodType, inputs }),
+  });
 }

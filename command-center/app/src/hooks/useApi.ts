@@ -7,8 +7,12 @@ import {
 import {
   api,
   getAdminOverview,
+  getBusinessHealth,
+  saveBusinessHealth,
   getConstraints,
   saveConstraint,
+  type BusinessHealthInputs,
+  type BusinessHealthResponse,
   type ApiLead,
   type ApiPipelineSummary,
   type ApiSummary,
@@ -622,6 +626,33 @@ export function useSaveConstraintMutation() {
     mutationFn: (payload: Omit<PillarConstraint, "updatedAt">) => saveConstraint(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "constraints"] });
+    },
+  });
+}
+
+// Business Health (admin Command home). One row per period key; switching the
+// period toggle changes `period` and this refetches that row.
+export function useBusinessHealthQuery(period: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["admin", "tracker", "business-health", period],
+    enabled: enabled && !!period,
+    staleTime: 60_000,
+    queryFn: () => getBusinessHealth(period),
+  });
+}
+
+// Debounced autosave upserts the current period's row and seeds the cache with
+// the reconciled server row so a later query for that period is instant.
+export function useSaveBusinessHealthMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: {
+      period: string;
+      periodType: BusinessHealthResponse["periodType"];
+      inputs: Partial<BusinessHealthInputs>;
+    }) => saveBusinessHealth(v.period, v.periodType, v.inputs),
+    onSuccess: (res) => {
+      qc.setQueryData(["admin", "tracker", "business-health", res.period], res);
     },
   });
 }
