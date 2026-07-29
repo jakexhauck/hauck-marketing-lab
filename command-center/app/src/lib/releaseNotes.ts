@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-29-sales-reads-itself",
+    date: "29 July 2026",
+    title: "The Sales pages read the calendar and the board on their own",
+    items: [
+      'Sales Calls, Sales Pipeline and Sales Data no longer have a "Read the calendar" or "Read the board" button. There is nothing to press: the pages keep themselves current.',
+      "Each one reads GoHighLevel when you open it, again the moment you come back to the tab, and on a timer while you sit on it. A meeting booked on a phone, or a deal you dragged in the CRM, turns up without you asking.",
+      "The line saying what the read brought in stays, so you can still see when something new arrived.",
+    ],
+  },
+  {
     id: "2026-07-29-agency-availability",
     date: "29 July 2026",
     title: "Availability on Agency shows the whole roster's week at once",

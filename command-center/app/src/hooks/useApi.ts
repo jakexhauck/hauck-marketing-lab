@@ -2366,6 +2366,13 @@ export function useSalesDataQuery(month: string) {
     // a reload, long enough that stepping between tabs does not re-read the
     // calendars every time.
     staleTime: 60_000,
+    // The page has no read button, so the timer is the read: the month on
+    // screen reconciles itself every two minutes, and the default focus
+    // refetch catches up anything booked while the tab was behind another.
+    // Only the mounted month polls, so stepping back through the nav does not
+    // leave a trail of months re-reading the calendars.
+    refetchInterval: 120_000,
+    refetchIntervalInBackground: false,
     // The month nav should not blank the table while the next month loads.
     placeholderData: keepPreviousData,
     queryFn: () => getSalesData(month),

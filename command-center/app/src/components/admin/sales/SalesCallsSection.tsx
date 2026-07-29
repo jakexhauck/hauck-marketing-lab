@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarRange, RefreshCw } from "lucide-react";
+import { CalendarRange } from "lucide-react";
 import { useSalesCallsQuery, useRecordSalesCallOutcome } from "../../../hooks/useSalesCalls";
 import { daysLate, groupFor, totalsFor } from "../../../../functions/lib/salesCalls";
 import { Funnel, MeetingRow } from "./meetingUi";
@@ -13,9 +13,10 @@ import { Funnel, MeetingRow } from "./meetingUi";
 //
 // Two things happen here that do not happen on the caller's page:
 //
-//   1. The calendars are READ on load, so a meeting booked on a phone, by a
-//      workflow, or moved to next Tuesday inside GoHighLevel is on this page
-//      without anybody re-typing it.
+//   1. The calendars are READ on load, on focus and on a timer, so a meeting
+//      booked on a phone, by a workflow, or moved to next Tuesday inside
+//      GoHighLevel is on this page without anybody re-typing it or asking for
+//      it.
 //   2. Recording an outcome TAGS THE CONTACT in GoHighLevel, and Jake's own
 //      workflow moves the card on the Sales board from there. The app writes no
 //      stage: same arrangement as the Setter Suite and Cold Call, and the
@@ -104,8 +105,6 @@ export default function SalesCallsSection() {
         configured={data?.configured ?? false}
         sync={data?.sync ?? null}
         pipeline={data?.pipeline ?? null}
-        refreshing={query.isFetching}
-        onRefresh={() => void query.refetch()}
         calendars={calendars}
         calendarId={calendarId}
         onCalendarChange={setCalendarId}
@@ -180,12 +179,14 @@ export default function SalesCallsSection() {
 // This is not decoration. Every number below it is only as true as the last
 // calendar read, and a page that silently fell back to its own database looks
 // exactly like a page that is up to date.
+//
+// There is no read button: the calendars are reconciled on load, again whenever
+// the tab is looked at, and on a timer while it is open (useSalesCallsQuery). A
+// button there would only pull forward a read the page was already going to do.
 function StatusLine({
   configured,
   sync,
   pipeline,
-  refreshing,
-  onRefresh,
   calendars,
   calendarId,
   onCalendarChange,
@@ -194,8 +195,6 @@ function StatusLine({
   configured: boolean;
   sync: NonNullable<ReturnType<typeof useSalesCallsQuery>["data"]>["sync"];
   pipeline: { id: string; name: string; missing: string[] } | null;
-  refreshing: boolean;
-  onRefresh: () => void;
   calendars: { id: string; name: string }[];
   calendarId: string;
   onCalendarChange: (id: string) => void;
@@ -217,7 +216,7 @@ function StatusLine({
 
   if (calendars.length > 1 && unlabelled > 0) {
     warnings.push(
-      `${unlabelled} ${unlabelled === 1 ? "meeting has" : "meetings have"} no calendar recorded, so ${unlabelled === 1 ? "it is" : "they are"} only visible under All calendars. Reading the calendar fills that in.`,
+      `${unlabelled} ${unlabelled === 1 ? "meeting has" : "meetings have"} no calendar recorded, so ${unlabelled === 1 ? "it is" : "they are"} only visible under All calendars. The next read of the calendar fills that in.`,
     );
   }
 
@@ -273,16 +272,6 @@ function StatusLine({
           </select>
         </label>
       )}
-
-      <button
-        type="button"
-        className="pk-btn-cancel inline-flex items-center gap-1.5"
-        onClick={onRefresh}
-        disabled={refreshing}
-      >
-        <RefreshCw size={13} aria-hidden className={refreshing ? "animate-spin" : undefined} />
-        {refreshing ? "Reading the calendar..." : "Read the calendar"}
-      </button>
 
       {changed && <span className="text-[12px] text-muted">{changed} from the calendar.</span>}
 

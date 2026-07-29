@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
 import DailyTracker, { TrackerMonthNav, type TrackerRow } from "./DailyTracker";
 import FullFunnel from "../sales/FullFunnel";
 import { PillarTitleActions } from "../../pillars/PillarKit";
@@ -41,8 +40,7 @@ export default function SalesDataTracker() {
   const [cursor, setCursor] = useState<MonthCursor>(() => cursorForToday(today));
 
   const month = monthKey(cursor);
-  const query = useSalesDataQuery(month);
-  const { data, isPending, isError } = query;
+  const { data, isPending, isError } = useSalesDataQuery(month);
 
   const byDay = useMemo(() => {
     const map = new Map<string, DerivedSalesDay>();
@@ -91,12 +89,7 @@ export default function SalesDataTracker() {
         </div>
       )}
 
-      <StatusLine
-        data={data ?? null}
-        awaiting={rollup.totals.awaiting}
-        refreshing={query.isFetching}
-        onRefresh={() => void query.refetch()}
-      />
+      <StatusLine data={data ?? null} awaiting={rollup.totals.awaiting} />
 
       {/* The month, dialing through to cash. Above the grid, because the grid
           is the detail behind it. */}
@@ -134,16 +127,16 @@ export default function SalesDataTracker() {
 // What the page just did, and anything that makes a count on it mean less than
 // it looks. Same job as the Sales Calls status line: a month that silently
 // failed to reach the calendar looks exactly like a quiet month.
+//
+// No read button, same as Sales Calls and the Sales board: the month reconciles
+// itself on load, on focus and on a timer (useSalesDataQuery), so nothing here
+// is waiting to be asked.
 function StatusLine({
   data,
   awaiting,
-  refreshing,
-  onRefresh,
 }: {
   data: SalesDataResponse | null;
   awaiting: number;
-  refreshing: boolean;
-  onRefresh: () => void;
 }) {
   const warnings: string[] = [];
   const sync = data?.sync ?? null;
@@ -190,17 +183,7 @@ function StatusLine({
 
   return (
     <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-      <button
-        type="button"
-        className="pk-btn-cancel inline-flex items-center gap-1.5"
-        onClick={onRefresh}
-        disabled={refreshing}
-      >
-        <RefreshCw size={13} aria-hidden className={refreshing ? "animate-spin" : undefined} />
-        {refreshing ? "Reading the calendar..." : "Read the calendar"}
-      </button>
-
-      {changed && <span className="text-[12px] text-muted">{changed} from the calendar.</span>}
+      {changed &&<span className="text-[12px] text-muted">{changed} from the calendar.</span>}
 
       {warnings.length === 0 && data?.configured && (
         <span className="text-[12px] text-faint">

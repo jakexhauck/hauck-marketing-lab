@@ -1,5 +1,5 @@
 import { useMemo, useRef } from "react";
-import { ExternalLink, RefreshCw } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import BoardScrollbar from "../../BoardScrollbar";
 import { useSalesPipelineQuery } from "../../../hooks/useSalesCalls";
 import { ghlContactUrl, stageTone } from "../../../lib/setterModel";
@@ -61,8 +61,6 @@ export default function SalesPipelineBoard() {
         pipeline={data?.pipeline ?? null}
         truncated={data?.truncated ?? false}
         totals={totals}
-        refreshing={query.isFetching}
-        onRefresh={() => void query.refetch()}
       />
 
       {columns.length === 0 ? (
@@ -226,20 +224,20 @@ function StatusPill({ status }: { status: string }) {
 // What this board is, and anything that makes what is on it mean less than it
 // looks. Same job as the Sales Calls status line, and for the same reason: a
 // board that quietly failed to reach the CRM looks exactly like a quiet week.
+//
+// No refresh button. The board keeps itself in step (useSalesPipelineQuery
+// polls and refetches on focus), so a button would only ever do what the page
+// was about to do anyway, while implying the numbers wait for a click.
 function StatusLine({
   configured,
   pipeline,
   truncated,
   totals,
-  refreshing,
-  onRefresh,
 }: {
   configured: boolean;
   pipeline: { id: string; name: string; missing: string[] } | null;
   truncated: boolean;
   totals: { deals: number; openDeals: number; openValue: number };
-  refreshing: boolean;
-  onRefresh: () => void;
 }) {
   const warnings: string[] = [];
 
@@ -263,16 +261,6 @@ function StatusLine({
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-      <button
-        type="button"
-        className="pk-btn-cancel inline-flex items-center gap-1.5"
-        onClick={onRefresh}
-        disabled={refreshing}
-      >
-        <RefreshCw size={13} aria-hidden className={refreshing ? "animate-spin" : undefined} />
-        {refreshing ? "Reading the board..." : "Read the board"}
-      </button>
-
       {pipeline && (
         <span className="text-[12px] text-muted">
           <span className="font-semibold text-text">{pipeline.name}</span>, live from GoHighLevel.{" "}

@@ -23,6 +23,13 @@ export function useSalesCallsQuery() {
     // without a reload, and long enough that clicking between tabs does not
     // re-read GoHighLevel every time.
     staleTime: 60_000,
+    // The page has no read button any more, so the timer is what keeps it
+    // honest: an open tab reconciles the calendars every two minutes, and the
+    // focus refetch catches anything booked while it was in the background.
+    // Not in the background, since a tab nobody is looking at reading the CRM
+    // all day buys nothing.
+    refetchInterval: 120_000,
+    refetchIntervalInBackground: false,
     queryFn: () => getSalesCalls(true),
   });
 }
@@ -39,6 +46,10 @@ export function useSalesPipelineQuery() {
     queryKey: PIPELINE_KEY,
     staleTime: 15_000,
     refetchOnWindowFocus: true,
+    // And a timer on top of the focus refetch, so a board left on screen while
+    // Jake works the deals in GoHighLevel catches up on its own.
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
     queryFn: () => getSalesPipeline(),
   });
 }
