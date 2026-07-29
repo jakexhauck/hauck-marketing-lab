@@ -17,7 +17,7 @@ import { useSyncAdminLeadsFromGhl } from "../../../hooks/useAdminLeads";
 import ScriptPanel from "../script/ScriptPanel";
 import { TrackerMonthNav } from "../tracker/DailyTracker";
 import { cursorForToday, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
-import ColdCallSurface from "./ColdCallSurface";
+import ColdCallSurface, { AGENCY_CALLER_ID } from "./ColdCallSurface";
 import ColdCallLeads from "./ColdCallLeads";
 import ColdCallManagement from "./ColdCallManagement";
 import ColdCallCallbacks from "./ColdCallCallbacks";
@@ -55,7 +55,7 @@ export default function ColdCallSection() {
 
   // Whose section this is. An owner switches between people, which is what makes
   // "each caller has their own page" true without building five pages per
-  // person: the same five pages, scoped. "" means everyone.
+  // person: the same five pages, scoped. "" means the agency: everyone at once.
   //
   // A caller never sees the selector and is pinned to themselves by the API,
   // regardless of what is rendered here.
@@ -192,7 +192,9 @@ export default function ColdCallSection() {
               onChange={(e) => setCallerId(e.target.value)}
               aria-label="Whose cold calling to show"
             >
-              <option value="">Everyone</option>
+              {/* The whole operation, not "nobody in particular": every page in
+                  this section reads agency-wide with no caller chosen. */}
+              <option value="">Agency</option>
               {(callers.data ?? []).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -328,29 +330,25 @@ function ColdCallBody({
     case "management":
       return <ColdCallManagement callerId={callerId} />;
     case "tracker":
-      // A tracker grid is one person's hand-typed month. There is no honest way
-      // to merge two people's rows into one editable grid, so "Everyone" asks
-      // for a name rather than inventing a combined month.
-      if (!callerId) {
-        return (
-          <div className="pk-empty">
-            {isOwner
-              ? "Pick a person above to see their dialing tracker."
-              : "No tracker for this view."}
-          </div>
-        );
+      // With nobody chosen, an owner gets the same grid reading the whole
+      // roster: each caller's day resolved on its own and then added up, so the
+      // agency month equals the sum of the individual months. It is read-only,
+      // which is the one difference: a total is not a row anybody can type into.
+      if (!callerId && !isOwner) {
+        return <div className="pk-empty">No tracker for this view.</div>;
       }
       return (
         <ColdCallSurface
           cursor={cursor}
           onCursorChange={onCursorChange}
-          callerId={callerId}
+          callerId={callerId || AGENCY_CALLER_ID}
         />
       );
     case "availability":
-      // Same reasoning as the tracker: a week of availability belongs to a
-      // person. The component asks the owner to pick one rather than merging
-      // two people's hours into one paintable grid.
+      // Unlike the tracker, this one cannot be summed: a week of availability is
+      // hours belonging to a person, and two people's hours painted onto one
+      // grid would make every cell ambiguous about whose it is. The component
+      // asks the owner to pick somebody.
       return <ColdCallAvailability callerId={callerId} isOwner={isOwner} />;
     case "sops":
       // Roster-wide by nature: an SOP is the same document for everyone, so the

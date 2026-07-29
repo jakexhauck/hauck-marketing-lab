@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-29-agency-cold-call-tracker",
+    date: "29 July 2026",
+    title: "The cold call tracker now has an agency view",
+    items: [
+      'The person picker above the cold calling pages says "Agency" instead of "Everyone".',
+      "With it on Agency, Tracker no longer asks you to pick somebody. It draws the same tracker you get for one caller, with every caller's day added together: the same tiles, the same columns, the same Average and Total MTD.",
+      "The totals match the sum of the individual trackers, including any dialing somebody typed in by hand for calls made off-app. The subtitle says how many people are in the month and how many of its days contain typed counts.",
+      "Nothing on the agency view can be typed into, since a cell there is a total of several people rather than anybody's own row. Pick a name to type.",
+      'The "Why they said no" counts are merged across the roster too, so one row tells you what the whole team is hearing that day.',
+    ],
+  },
+  {
     id: "2026-07-28-objections-panel",
     date: "28 July 2026",
     title: "Objection handling is one click away, and the dial stages say what they mean",

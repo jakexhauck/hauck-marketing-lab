@@ -99,9 +99,11 @@ export interface DailyTrackerProps {
   // An extra entry for the "You type / Computed" legend.
   legendExtra?: ReactNode;
   // A grid with nothing typeable on it (Sales Data, which is counted from the
-  // meetings themselves). Only the legend changes: promising "You type" above a
-  // table with no inputs in it is the kind of small lie that makes somebody
-  // hunt for a cell that does not exist.
+  // meetings themselves; the agency roll-up of Cold Call, which is a total of
+  // everyone). The legend drops its "You type" entry, and input and text cells
+  // render as plain values rather than as boxes: promising "You type" above a
+  // table you cannot type into, or showing a cursor in a cell that discards what
+  // it is given, is the kind of small lie that costs somebody five minutes.
   readOnly?: boolean;
 }
 
@@ -305,15 +307,24 @@ export default function DailyTracker({
                       const isText = c.kind === "text";
                       const extra = cellClass?.(d.iso, c.key);
                       const title = cellTitle?.(d.iso, c.key);
+                      const cls =
+                        [isText ? "txtcol" : "", divider, extra ?? "", readOnly ? "ro" : ""]
+                          .filter(Boolean)
+                          .join(" ") || undefined;
+
+                      // Read-only: the value, not a box around the value. An
+                      // empty cell stays empty rather than showing the "·"
+                      // placeholder, which on this grid means "type here".
+                      if (readOnly) {
+                        return (
+                          <td key={c.key} className={cls} title={title}>
+                            {row[c.key] ?? ""}
+                          </td>
+                        );
+                      }
+
                       return (
-                        <td
-                          key={c.key}
-                          className={
-                            [isText ? "txtcol" : "", divider, extra ?? ""]
-                              .filter(Boolean)
-                              .join(" ") || undefined
-                          }
-                        >
+                        <td key={c.key} className={cls}>
                           <input
                             inputMode={isText ? undefined : "numeric"}
                             type="text"
@@ -502,6 +513,15 @@ function TrackerStyle() {
         text-underline-offset: 3px;
         text-decoration-thickness: 1px;
       }
+      /* A read-only value cell, standing in for an input. The padding matches
+         the input's own so a read-only grid and a typeable one line up exactly,
+         which matters here: the agency roll-up and one caller's month are the
+         same table read two ways. */
+      .pk-kit .adt-card td.ro {
+        padding: 9px 15px; font-weight: 600; color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .pk-kit .adt-card td.ro.txtcol { text-align: left; font-weight: 400; color: var(--text-muted); min-width: 90px; }
       .pk-kit .adt-card td input:hover { background: var(--adt-input-hover); }
       .pk-kit .adt-card td input:focus { outline: 0; background: var(--surface); box-shadow: 0 0 0 2px var(--adt-indigo); position: relative; z-index: 1; }
 

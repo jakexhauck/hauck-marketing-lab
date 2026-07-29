@@ -34,6 +34,11 @@ import { useColdCallsQuery, useSaveColdCallDay } from "../../../hooks/useColdCal
 // call card. Typing is still allowed, for dialing done off-app, and a typed cell
 // is marked as typed: the tracker shows a measurement and a claim side by side
 // and never lets them look alike.
+//
+// With callerId "all" the same table reads the whole roster: one row per day,
+// every caller summed (functions/lib/coldCallAgency.ts). Identical shape,
+// identical arithmetic, nothing typeable, because a total of five people is not
+// a row anybody owns.
 
 // Typing fires one save per cell, not per keystroke.
 const SAVE_DELAY_MS = 400;
@@ -50,9 +55,12 @@ interface Props {
   cursor?: MonthCursor;
   onCursorChange?: (cursor: MonthCursor) => void;
   // Whose tracker to show. Owner-only lens; left out, the server serves the
-  // signed-in person's own month.
+  // signed-in person's own month. AGENCY_CALLER_ID reads every caller at once.
   callerId?: string;
 }
+
+// The whole roster rather than one person. Owner-only, and enforced server side.
+export const AGENCY_CALLER_ID = "all";
 
 export default function ColdCallSurface({
   cursor: cursorProp,
@@ -64,6 +72,10 @@ export default function ColdCallSurface({
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
   }, []);
+
+  // The roster's month rather than one person's. Read-only: the counts are a sum
+  // across callers, so there is no cell for a keystroke to belong to.
+  const agency = callerId === AGENCY_CALLER_ID;
 
   const [ownCursor, setOwnCursor] = useState<MonthCursor>(() => cursorForToday(today));
   const lifted = cursorProp !== undefined && onCursorChange !== undefined;
@@ -113,6 +125,10 @@ export default function ColdCallSurface({
   const summary = useMemo(() => summarizeColdCallMonth(monthRows), [monthRows]);
 
   function handleEdit(iso: string, field: string, value: string) {
+    // Nothing on the agency grid is rendered as an input, so no edit should ever
+    // arrive here. Refusing it anyway is what stops a future change to the
+    // shared tracker from silently filing the roster's total under one person.
+    if (agency) return;
     if (!EDITABLE_FIELDS.has(field)) return;
 
     setDrafts((prev) => ({ ...prev, [iso]: { ...(prev[iso] ?? {}), [field]: value } }));
@@ -205,10 +221,27 @@ export default function ColdCallSurface({
     return typedCellNote(label, recorded);
   };
 
+  // What the reader is looking at. The per-caller subtitle ends "Type into any
+  // row to start", which would be an instruction with nowhere to follow it on a
+  // grid that is a total; and a sum that quietly contains hand-typed dialing
+  // should say so, since the rest of this page's promise is that its numbers are
+  // measured.
+  const agencyMeta = data?.agency;
+  const agencySubtitle = (() => {
+    if (!summary.filledDays) return "Every caller combined. Nothing dialled this month yet.";
+    const people = agencyMeta?.callers ?? 0;
+    const who = people === 1 ? "1 caller" : `${people} callers`;
+    const typedDays = agencyMeta?.typedDays ?? 0;
+    const hand = typedDays
+      ? `, ${typedDays} of them including counts somebody typed by hand`
+      : "";
+    return `Every caller combined: ${who}, ${summary.filledDays} ${summary.filledDays === 1 ? "day" : "days"} logged${hand}.`;
+  })();
+
   return (
     <DailyTracker
-      title="Cold Call Tracker"
-      subtitle={summary.subtitle}
+      title={agency ? "Agency Cold Call Tracker" : "Cold Call Tracker"}
+      subtitle={agency ? agencySubtitle : summary.subtitle}
       columns={COLD_CALL_COLUMNS}
       cursor={cursor}
       today={today}
@@ -219,14 +252,21 @@ export default function ColdCallSurface({
       onEdit={handleEdit}
       onMonthChange={setCursor}
       hideMonthNav={lifted}
+      readOnly={agency}
       cellClass={(iso, field) =>
         overriddenValue(iso, field) !== undefined ? "typed" : undefined
       }
       cellTitle={cellTitle}
       legendExtra={
-        <b title="Counts fill themselves from the outcome buttons on the call card.">
-          <span className="adt-dot rec" /> Recorded by the app
-        </b>
+        agency ? (
+          <b title="Each caller's day is resolved on its own and then added up, so this matches the sum of the individual trackers.">
+            <span className="adt-dot rec" /> Every caller added up
+          </b>
+        ) : (
+          <b title="Counts fill themselves from the outcome buttons on the call card.">
+            <span className="adt-dot rec" /> Recorded by the app
+          </b>
+        )
       }
     />
   );

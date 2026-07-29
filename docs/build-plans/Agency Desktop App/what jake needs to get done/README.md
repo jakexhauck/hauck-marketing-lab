@@ -287,3 +287,16 @@ something only you can issue.
       agency GoHighLevel entry). It is superseded now. I left it alone because it
       is your uncommitted work, but it will collide the next time that branch
       merges main. Tell me to delete it and I will.
+
+## Cold call tracker: the agency view (shipped 29 July 2026)
+
+- [ ] **Look at Acquisition > Cold Call > Tracker with the picker on "Agency".**
+      It used to say "pick a person"; it now draws the same tracker with every
+      caller summed. Check the Total MTD row against what you get by stepping
+      through each name one at a time: the two must agree. If they do not, the
+      resolution order is wrong and I want to know.
+
+- [ ] **Confirm the read-only grid is what you want there.** The agency view has
+      no typeable cells, because a cell holding five people's numbers belongs to
+      nobody. If you would rather type a correction at the agency level, say so
+      and I will build somewhere honest for it to live.

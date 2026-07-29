@@ -20,6 +20,11 @@ import { isColdCallNumericField, type ColdCallField } from "../lib/coldCall";
 
 export interface ColdCallsResponse {
   days: ColdCallRow[];
+  // Present only for the agency roll-up (callerId "all"): how many people are in
+  // the sum, and how many of its days contain counts somebody typed rather than
+  // dialled in the app. The page states both rather than passing a total off as
+  // a pure measurement.
+  agency?: { callers: number; typedDays: number };
 }
 
 // One cache entry per viewed month PER PERSON (0050). Two callers looking at the
@@ -31,7 +36,8 @@ function monthKey(month: string, callerId?: string) {
 
 // `month` is "YYYY-MM". Rows come back sparse: only days that were logged.
 // callerId is an owner-only lens: left out, the server returns the caller's own
-// month, and a non-owner is pinned to their own whatever they send.
+// month, and a non-owner is pinned to their own whatever they send. "all" asks
+// for every caller summed into one row per day.
 export function useColdCallsQuery(month: string, callerId?: string) {
   return useQuery({
     queryKey: monthKey(month, callerId),

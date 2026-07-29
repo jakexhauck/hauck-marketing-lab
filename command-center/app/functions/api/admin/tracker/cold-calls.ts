@@ -7,6 +7,11 @@ import {
   type DialRow,
   type TypedDay,
 } from "../../../lib/coldCallDials";
+import {
+  aggregateAgencyMonth,
+  type AgencyDialRow,
+  type AgencyTypedRow,
+} from "../../../lib/coldCallAgency";
 
 // Cold Call daily dialing funnel (Acquisition > Cold Call). Agency-global, one
 // row per caller per day in public.cold_calls (0035, 0050).
@@ -96,6 +101,10 @@ function coerceText(value: unknown): string | null {
   return raw ? raw : null;
 }
 
+// The whole roster at once, rather than one person: ?callerId=all. Owner only,
+// and safe as a sentinel because every real caller id is a uuid.
+const AGENCY = "all";
+
 // Whose tracker this request is for (0050). An owner may read and write anyone's
 // by passing ?callerId=; without it they get their own. Anyone else is pinned to
 // themselves whatever they ask for, so a caller cannot read a colleague's
@@ -108,9 +117,10 @@ function resolveCallerId(ctx: { data: ApiData; request: Request }): string {
 }
 
 // GET /api/admin/tracker/cold-calls?month=YYYY-MM[&callerId=...]  (admin-only)
-// One person's month. Returns only the days that have something on them (a typed
-// row, recorded dials, or both); the client auto-generates the rest as blank
-// rows, so an unworked month is empty here, never zero-filled.
+// One person's month, or the whole roster's with ?callerId=all. Returns only the
+// days that have something on them (a typed row, recorded dials, or both); the
+// client auto-generates the rest as blank rows, so an unworked month is empty
+// here, never zero-filled.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
@@ -122,6 +132,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   const callerId = resolveCallerId(ctx);
   const { first, last } = monthRange(month);
+
+  if (callerId === AGENCY) return agencyMonth(client, first, last);
 
   // Both sides of the month in parallel: the typed grid and the attempts the
   // app recorded.
@@ -148,6 +160,63 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
 
   return Response.json({ days: mergeRecordedDays(typed, recorded) });
 };
+
+// The whole roster's month, one row per day (?callerId=all, owner only).
+//
+// Same two reads as above with the caller filter dropped, then combined in
+// lib/coldCallAgency.ts: each person's typed cells are resolved against their
+// own recorded dials BEFORE the people are summed, which is what makes the
+// agency total equal the sum of the individual trackers.
+//
+// The answer carries an `agency` block so the page can say what it is showing:
+// how many people are in the sum, and how many of its days contain dialing that
+// was typed rather than measured.
+async function agencyMonth(
+  client: NonNullable<ReturnType<typeof getServiceClient>>,
+  first: string,
+  last: string,
+): Promise<Response> {
+  const [typedRes, dialsRes] = await Promise.all([
+    client
+      .from("cold_calls")
+      .select(`caller_id, ${SELECT}`)
+      .gte("day", first)
+      .lte("day", last)
+      .order("day", { ascending: true }),
+    client
+      .from("cold_call_dials")
+      .select("caller_id, day, spoke, pitched, outcome, reason")
+      .gte("day", first)
+      .lte("day", last),
+  ]);
+  if (typedRes.error) return Response.json({ error: typedRes.error.message }, { status: 500 });
+  if (dialsRes.error) return Response.json({ error: dialsRes.error.message }, { status: 500 });
+
+  const typed: AgencyTypedRow[] = (
+    (typedRes.data ?? []) as unknown as (ColdCallDbRow & { caller_id: string | null })[]
+  ).map((row) => ({ ...toRow(row), callerId: row.caller_id ?? "" }));
+
+  const dials: AgencyDialRow[] = (
+    (dialsRes.data ?? []) as unknown as {
+      caller_id: string | null;
+      day: string;
+      spoke: boolean | null;
+      pitched: boolean | null;
+      outcome: string | null;
+      reason: string | null;
+    }[]
+  ).map((row) => ({
+    callerId: row.caller_id ?? "",
+    day: row.day,
+    spoke: Boolean(row.spoke),
+    pitched: Boolean(row.pitched),
+    outcome: row.outcome ?? "",
+    reason: row.reason,
+  }));
+
+  const { days, callers, typedDays } = aggregateAgencyMonth(typed, dials);
+  return Response.json({ days, agency: { callers, typedDays } });
+}
 
 interface PatchBody {
   // The day being edited, "YYYY-MM-DD".
@@ -197,6 +266,17 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
   // asking to write someone else's day writes their own instead.
   const admin = ctx.data.admin!;
   const bodyCaller = typeof body.callerId === "string" ? body.callerId.trim() : "";
+
+  // The agency view is a sum, not a row. There is nothing to write into, and
+  // quietly writing the owner's own day instead would be worse than refusing:
+  // it would file the whole roster's number under one person.
+  if (bodyCaller === AGENCY) {
+    return Response.json(
+      { error: "the agency view is a total of everyone, so it cannot be typed into" },
+      { status: 400 },
+    );
+  }
+
   const callerId = admin.role === "owner" && bodyCaller ? bodyCaller : admin.id;
 
   const { data, error } = await client

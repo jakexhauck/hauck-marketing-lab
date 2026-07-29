@@ -59,7 +59,7 @@ export default function ColdCallAvailability({
   const rows = useMemo(() => gridSlots(), []);
   const sunday = days[6].iso;
 
-  // An owner looking at "Everyone" has no week to draw: availability belongs to
+  // An owner looking at "Agency" has no week to draw: availability belongs to
   // a person, and merging two people's hours into one paintable grid would make
   // every cell ambiguous about whose it is.
   const needsPerson = isOwner && !callerId;
