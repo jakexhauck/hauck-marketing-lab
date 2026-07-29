@@ -46,6 +46,8 @@ export const api = {
     invoke<string>("invoke_claude", { id, prompt }),
   matchKnowledgeChunks: (root: string, userInput: string) =>
     invoke<KnowledgeChunk[]>("match_knowledge_chunks", { root, userInput }),
+  readKnowledgeChunk: (root: string, chunkId: string) =>
+    invoke<KnowledgeChunk>("read_knowledge_chunk", { root, chunkId }),
 
   readLaunchChecklist: (root: string, clientSlug: string) =>
     invoke<LaunchChecklist>("read_launch_checklist", { root, clientSlug }),

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { AgentRail } from "./components/AgentRail";
 import { AskDock } from "./components/AskDock";
 import { ChatDrawer } from "./components/ChatDrawer";
@@ -8,6 +7,7 @@ import { CommandPalette } from "./components/CommandPalette";
 import { Dashboard } from "./components/Dashboard";
 import { DiagnosisForm } from "./components/DiagnosisForm";
 import { FolderPicker } from "./components/FolderPicker";
+import { KnowledgeBrowser } from "./components/KnowledgeBrowser";
 import { StatusBar } from "./components/StatusBar";
 import { api } from "./lib/tauri";
 import type {
@@ -16,6 +16,7 @@ import type {
   ChatSummary,
   ClientStatus,
   FolderSummary,
+  KnowledgeChunk,
   KnowledgeTitle,
   SkillEntry,
 } from "./lib/types";
@@ -33,6 +34,8 @@ export default function App() {
   const [currentChat, setCurrentChat] = useState<ChatFile | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [diagnosisOpen, setDiagnosisOpen] = useState(false);
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
+  const [knowledgeChunkId, setKnowledgeChunkId] = useState<string | null>(null);
   const [pendingInput, setPendingInput] = useState<string | undefined>(undefined);
   const pendingInputTick = useRef(0);
   const [bootDone, setBootDone] = useState(false);
@@ -203,13 +206,33 @@ export default function App() {
     if (agent) openDrawer(agent, currentChat);
   };
 
-  const onPaletteKnowledge = async (item: KnowledgeTitle) => {
+  const onPaletteKnowledge = (item: KnowledgeTitle) => {
     setPaletteOpen(false);
-    try {
-      await openPath(item.path);
-    } catch (e) {
-      setBootError(String(e));
-    }
+    setKnowledgeChunkId(item.id);
+    setKnowledgeOpen(true);
+  };
+
+  const onOpenKnowledgeBrowser = () => {
+    setPaletteOpen(false);
+    setKnowledgeChunkId(null);
+    setKnowledgeOpen(true);
+  };
+
+  const onCloseKnowledge = () => {
+    setKnowledgeOpen(false);
+    setKnowledgeChunkId(null);
+  };
+
+  const onPinKnowledgeToChat = (chunk: KnowledgeChunk) => {
+    const agent = activeAgent ?? summary?.agents[0];
+    if (!agent) return;
+    setKnowledgeOpen(false);
+    setKnowledgeChunkId(null);
+    pendingInputTick.current += 1;
+    setPendingInput(
+      `Reference this knowledge chunk in your reply:\n\n## ${chunk.id} — ${chunk.title}\n${chunk.body}\n\n`,
+    );
+    openDrawer(agent, null);
   };
 
   const onOpenDiagnosis = () => {
@@ -279,6 +302,13 @@ export default function App() {
             clientSlug={CLIENT_SLUG}
             onClose={onCloseDiagnosis}
           />
+        ) : knowledgeOpen ? (
+          <KnowledgeBrowser
+            root={root}
+            initialChunkId={knowledgeChunkId}
+            onClose={onCloseKnowledge}
+            onPinToChat={onPinKnowledgeToChat}
+          />
         ) : (
           <Dashboard
             summary={summary}
@@ -330,6 +360,7 @@ export default function App() {
         onScaffoldSkill={onPaletteSkill}
         onOpenKnowledge={onPaletteKnowledge}
         onOpenDiagnosis={onOpenDiagnosis}
+        onOpenKnowledgeBrowser={onOpenKnowledgeBrowser}
       />
     </>
   );

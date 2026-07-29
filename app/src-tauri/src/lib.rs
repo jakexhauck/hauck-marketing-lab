@@ -26,6 +26,7 @@ pub fn run() {
             folder::list_knowledge_titles,
             knowledge::parse_skill_router,
             knowledge::match_knowledge_chunks,
+            knowledge::read_knowledge_chunk,
             chat::create_chat,
             chat::read_chat,
             chat::append_turn,

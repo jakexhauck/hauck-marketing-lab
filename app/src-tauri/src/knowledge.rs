@@ -179,6 +179,26 @@ pub fn parse_skill_router(root: String) -> Result<RouterIndex, String> {
 }
 
 #[tauri::command]
+pub fn read_knowledge_chunk(root: String, chunk_id: String) -> Result<KnowledgeChunk, String> {
+    let root_path = PathBuf::from(&root);
+    let dir = root_path.join("knowledge");
+    let safe_id = chunk_id.trim();
+    if safe_id.is_empty() {
+        return Err("chunk_id is empty".to_string());
+    }
+    let candidate = dir.join(format!("{}.md", safe_id));
+    let chunk = if candidate.exists() {
+        read_chunk(&candidate).ok_or_else(|| format!("failed to parse chunk: {}", safe_id))?
+    } else {
+        load_chunks(&root_path)
+            .into_iter()
+            .find(|c| c.id == safe_id)
+            .ok_or_else(|| format!("chunk not found: {}", safe_id))?
+    };
+    Ok(chunk)
+}
+
+#[tauri::command]
 pub fn match_knowledge_chunks(
     root: String,
     user_input: String,
