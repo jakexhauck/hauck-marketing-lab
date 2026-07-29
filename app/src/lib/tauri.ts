@@ -9,6 +9,7 @@ import type {
   ClientEntry,
   ClientStatus,
   CreativesManifest,
+  DataChangedEvent,
   DiagnosisFile,
   DiagnosisInputs,
   FolderSummary,
@@ -99,4 +100,7 @@ export const api = {
 
   onClaudeStream: (handler: (e: StreamEvent) => void): Promise<UnlistenFn> =>
     listen<StreamEvent>("claude://stream", (evt) => handler(evt.payload)),
+
+  onDataChanged: (handler: (e: DataChangedEvent) => void): Promise<UnlistenFn> =>
+    listen<DataChangedEvent>("data://changed", (evt) => handler(evt.payload)),
 };

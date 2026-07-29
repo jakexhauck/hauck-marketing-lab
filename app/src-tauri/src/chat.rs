@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use tauri::AppHandle;
+
+use crate::events::{emit_changed, DataKind};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChatTurn {
@@ -140,6 +143,7 @@ fn render_file(file: &ChatFile) -> String {
 
 #[tauri::command]
 pub fn create_chat(
+    app: AppHandle,
     root: String,
     agent: Option<String>,
     title: String,
@@ -173,6 +177,7 @@ pub fn create_chat(
     };
     let rendered = render_file(&file);
     fs::write(&path, rendered).map_err(|e| format!("write chat: {e}"))?;
+    emit_changed(&app, DataKind::Chat, None, Some(file.path.clone()));
     Ok(file)
 }
 
@@ -216,17 +221,18 @@ pub fn read_chat(path: String) -> Result<ChatFile, String> {
 }
 
 #[tauri::command]
-pub fn append_turn(path: String, turn: ChatTurn) -> Result<(), String> {
+pub fn append_turn(app: AppHandle, path: String, turn: ChatTurn) -> Result<(), String> {
     let p = Path::new(&path);
     let mut file = read_chat(path.clone())?;
     file.turns.push(turn);
     let rendered = render_file(&file);
     fs::write(p, rendered).map_err(|e| format!("write chat: {e}"))?;
+    emit_changed(&app, DataKind::Chat, None, Some(path));
     Ok(())
 }
 
 #[tauri::command]
-pub fn replace_last_turn(path: String, turn: ChatTurn) -> Result<(), String> {
+pub fn replace_last_turn(app: AppHandle, path: String, turn: ChatTurn) -> Result<(), String> {
     let p = Path::new(&path);
     let mut file = read_chat(path.clone())?;
     if let Some(last) = file.turns.last_mut() {
@@ -236,5 +242,6 @@ pub fn replace_last_turn(path: String, turn: ChatTurn) -> Result<(), String> {
     }
     let rendered = render_file(&file);
     fs::write(p, rendered).map_err(|e| format!("write chat: {e}"))?;
+    emit_changed(&app, DataKind::Chat, None, Some(path));
     Ok(())
 }

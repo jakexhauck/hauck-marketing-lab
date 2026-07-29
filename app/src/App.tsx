@@ -100,6 +100,22 @@ export default function App() {
     };
   }, [root, loadFolder]);
 
+  // refresh folder summary when chats are written (e.g. via CLI)
+  useEffect(() => {
+    if (!root) return;
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      unlisten = await api.onDataChanged((evt) => {
+        if (evt.kind === "chat") {
+          loadFolder(root);
+        }
+      });
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [root, loadFolder]);
+
   // ⌘K / Ctrl+K palette
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

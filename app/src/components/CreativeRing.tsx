@@ -41,6 +41,20 @@ export function CreativeRing({ root, clientSlug }: Props) {
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      unlisten = await api.onDataChanged((evt) => {
+        if (evt.kind !== "creatives") return;
+        if (evt.client_slug !== null && evt.client_slug !== clientSlug) return;
+        refresh();
+      });
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [clientSlug, refresh]);
+
   if (!manifest) {
     return (
       <>

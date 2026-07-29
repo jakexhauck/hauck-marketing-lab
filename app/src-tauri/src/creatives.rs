@@ -2,6 +2,9 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use tauri::AppHandle;
+
+use crate::events::{emit_changed, DataKind};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
@@ -50,6 +53,7 @@ pub fn read_creatives_manifest(
 
 #[tauri::command]
 pub fn write_creatives_manifest(
+    app: AppHandle,
     root: String,
     client_slug: String,
     manifest: CreativesManifest,
@@ -66,5 +70,12 @@ pub fn write_creatives_manifest(
     };
     let yaml = serde_yaml::to_string(&stamped).map_err(|e| format!("serialize creatives: {e}"))?;
     fs::write(&path, yaml).map_err(|e| format!("write creatives: {e}"))?;
-    Ok(path.to_string_lossy().into_owned())
+    let path_str = path.to_string_lossy().into_owned();
+    emit_changed(
+        &app,
+        DataKind::Creatives,
+        Some(client_slug),
+        Some(path_str.clone()),
+    );
+    Ok(path_str)
 }

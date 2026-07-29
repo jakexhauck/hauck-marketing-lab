@@ -2,6 +2,9 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use tauri::AppHandle;
+
+use crate::events::{emit_changed, DataKind};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
@@ -125,6 +128,7 @@ pub fn read_launch_checklist(
 
 #[tauri::command]
 pub fn write_launch_checklist(
+    app: AppHandle,
     root: String,
     client_slug: String,
     checklist: LaunchChecklist,
@@ -139,7 +143,14 @@ pub fn write_launch_checklist(
         items: checklist.items,
     };
     let yaml = serde_yaml::to_string(&stamped).map_err(|e| format!("serialize checklist: {e}"))?;
-    fs::write(&path, yaml).map_err(|e| format!("write checklist: {e}"))
+    fs::write(&path, yaml).map_err(|e| format!("write checklist: {e}"))?;
+    emit_changed(
+        &app,
+        DataKind::LaunchChecklist,
+        Some(client_slug),
+        Some(path.to_string_lossy().into_owned()),
+    );
+    Ok(())
 }
 
 #[tauri::command]
@@ -159,6 +170,7 @@ pub fn read_client_status(root: String, client_slug: String) -> Result<ClientSta
 
 #[tauri::command]
 pub fn set_client_status(
+    app: AppHandle,
     root: String,
     client_slug: String,
     status: ClientStatus,
@@ -179,17 +191,20 @@ pub fn set_client_status(
                 .collect::<Vec<_>>()
                 .join(" ");
             clients.push(ClientEntry {
-                slug: client_slug,
+                slug: client_slug.clone(),
                 name,
                 status,
             });
         }
     }
-    write_clients_file(&root, &clients)
+    write_clients_file(&root, &clients)?;
+    emit_changed(&app, DataKind::Client, Some(client_slug), None);
+    Ok(())
 }
 
 #[tauri::command]
 pub fn save_launch_readiness_verdict(
+    app: AppHandle,
     root: String,
     client_slug: String,
     body: String,
@@ -199,5 +214,12 @@ pub fn save_launch_readiness_verdict(
     fs::create_dir_all(&dir).map_err(|e| format!("create dirs: {e}"))?;
     let path = dir.join(format!("{date}-{client_slug}.md"));
     fs::write(&path, body).map_err(|e| format!("write verdict: {e}"))?;
-    Ok(path.to_string_lossy().into_owned())
+    let path_str = path.to_string_lossy().into_owned();
+    emit_changed(
+        &app,
+        DataKind::LaunchChecklist,
+        Some(client_slug),
+        Some(path_str.clone()),
+    );
+    Ok(path_str)
 }

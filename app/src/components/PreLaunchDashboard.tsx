@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cn } from "../lib/cn";
 import { api } from "../lib/tauri";
 import type { ChecklistItem, ChecklistStatus, LaunchChecklist as LaunchChecklistType } from "../lib/types";
@@ -68,6 +68,30 @@ export function PreLaunchDashboard({ root, clientName, clientSlug, drawerOpen, o
       cancelled = true;
     };
   }, [root, clientSlug]);
+
+  const reload = useCallback(async () => {
+    try {
+      const data = await api.readLaunchChecklist(root, clientSlug);
+      setChecklist(data);
+      setError(null);
+    } catch (err) {
+      setError(String(err));
+    }
+  }, [root, clientSlug]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      unlisten = await api.onDataChanged((evt) => {
+        if (evt.kind !== "launch_checklist") return;
+        if (evt.client_slug !== null && evt.client_slug !== clientSlug) return;
+        reload();
+      });
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [clientSlug, reload]);
 
   const handleItemStatusChange = async (id: string, next: ChecklistStatus) => {
     if (!checklist) return;

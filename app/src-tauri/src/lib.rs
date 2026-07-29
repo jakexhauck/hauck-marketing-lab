@@ -3,6 +3,7 @@ mod claude;
 mod config;
 mod creatives;
 mod diagnosis;
+mod events;
 mod folder;
 mod frontmatter;
 mod knowledge;

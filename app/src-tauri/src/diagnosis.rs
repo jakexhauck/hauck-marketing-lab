@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
+use tauri::AppHandle;
+
+use crate::events::{emit_changed, DataKind};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
@@ -215,6 +218,7 @@ fn yaml_quote(s: &str) -> String {
 
 #[tauri::command]
 pub fn save_diagnosis(
+    app: AppHandle,
     root: String,
     client_slug: String,
     inputs: DiagnosisInputs,
@@ -287,6 +291,12 @@ pub fn save_diagnosis(
 
     fs::write(&path, contents).map_err(|e| format!("write diagnosis: {e}"))?;
     file.path = path.to_string_lossy().into_owned();
+    emit_changed(
+        &app,
+        DataKind::Diagnosis,
+        Some(client_slug.clone()),
+        Some(file.path.clone()),
+    );
     Ok(file)
 }
 

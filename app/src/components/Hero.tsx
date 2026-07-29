@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/tauri";
 import type { DiagnosisFile, DiagnosisVerdict } from "../lib/types";
 
@@ -18,6 +18,15 @@ const VERDICT_PILL: Record<DiagnosisVerdict, { label: string; className: string 
 export function Hero({ clientName, root, clientSlug, onOpenDiagnosis }: Props) {
   const [diagnosis, setDiagnosis] = useState<DiagnosisFile | null>(null);
 
+  const load = useCallback(async () => {
+    try {
+      const latest = await api.readLatestDiagnosis(root, clientSlug);
+      setDiagnosis(latest);
+    } catch {
+      setDiagnosis(null);
+    }
+  }, [root, clientSlug]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -32,6 +41,20 @@ export function Hero({ clientName, root, clientSlug, onOpenDiagnosis }: Props) {
       cancelled = true;
     };
   }, [root, clientSlug]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      unlisten = await api.onDataChanged((evt) => {
+        if (evt.kind !== "diagnosis") return;
+        if (evt.client_slug !== null && evt.client_slug !== clientSlug) return;
+        load();
+      });
+    })();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [clientSlug, load]);
 
   const pill = diagnosis ? VERDICT_PILL[diagnosis.verdict] : VERDICT_PILL.hold;
   const markerLeft = diagnosis

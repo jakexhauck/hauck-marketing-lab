@@ -198,3 +198,18 @@ export type DiagnosisFile = {
   transcript: string;
   path: string;
 };
+
+export type DataKind =
+  | "diagnosis"
+  | "kpi"
+  | "tracking"
+  | "creatives"
+  | "launch_checklist"
+  | "chat"
+  | "client";
+
+export type DataChangedEvent = {
+  kind: DataKind;
+  client_slug: string | null;
+  path: string | null;
+};
