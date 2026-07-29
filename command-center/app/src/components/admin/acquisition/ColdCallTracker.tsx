@@ -22,10 +22,13 @@ import {
 } from "../../../lib/coldCall";
 import { useColdCallsQuery, useSaveColdCallDay } from "../../../hooks/useColdCall";
 
-// The Acquisition pillar's "Cold Call" tab body: a month of dialing days, one
-// row each, typed by hand. All the layout lives in the shared DailyTracker and
-// all the math in lib/coldCall; this component only owns the month cursor, the
-// in-flight draft cells and the save debounce.
+// The Tracker page of the Cold Calling workspace: a month of dialing days, one
+// row each, typed by hand. It sits at the end of the stage strip because it
+// measures the dialing, rather than holding leads like the seven stage pages do.
+//
+// All the layout lives in the shared DailyTracker and all the math in
+// lib/coldCall; this component only owns the month cursor, the in-flight draft
+// cells and the save debounce.
 
 // Typing fires one save per cell, not per keystroke.
 const SAVE_DELAY_MS = 400;
@@ -34,7 +37,7 @@ const EDITABLE_FIELDS = new Set<string>(
   COLD_CALL_COLUMNS.filter((c) => c.kind !== "computed").map((c) => c.key),
 );
 
-export default function ColdCallSurface() {
+export default function ColdCallTracker() {
   // The real today, read once, then injected everywhere (trackerMonth is pure).
   const today = useMemo<TodayRef>(() => {
     const now = new Date();

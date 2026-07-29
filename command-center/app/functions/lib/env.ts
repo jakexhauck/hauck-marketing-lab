@@ -83,6 +83,17 @@ export interface Env {
   // column (0043). Comma or newline separated phones/emails that receive
   // internal GHL notifications; their conversations are hidden everywhere.
   INTERNAL_RECIPIENTS?: string;
+  // Doppler is the source of truth for every agency-wide secret. The admin
+  // control room reads it so the app can show what Doppler holds and flag drift
+  // against the values the running deploy actually has.
+  // DOPPLER_TOKEN is read-only. DOPPLER_WRITE_TOKEN is separate and optional:
+  // without it, in-app editing of agency secrets is off and the UI says so, so
+  // the app never carries write power it is not being asked to use.
+  // PROJECT/CONFIG default to hauck-command-center/prd (see doppler.yaml).
+  DOPPLER_TOKEN?: string;
+  DOPPLER_WRITE_TOKEN?: string;
+  DOPPLER_PROJECT?: string;
+  DOPPLER_CONFIG?: string;
   KV_CACHE?: KVNamespace;
 }
 

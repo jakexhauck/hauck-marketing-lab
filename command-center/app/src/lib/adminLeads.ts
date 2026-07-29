@@ -1,23 +1,19 @@
 import type { AdminLead, AdminLeadStatus } from "./api";
+import { COLD_CALL_STAGES } from "./coldCallStages";
 
-// Pure helpers for the Acquisition > Leads surface: the status vocabulary, its
-// colour tokens, and the list math behind the filter tiles and the sortable
+// Pure helpers for the Acquisition lead surfaces: the status vocabulary, its
+// colour tokens, and the list math behind the stage tiles and the sortable
 // table. No React and no network, so the components and the unit tests read
 // from exactly one source of truth.
 //
-// The status list mirrors the CHECK constraint in migration 0030_leads.sql and
-// the server copy in functions/api/admin/tracker/leads.ts. A test guards
-// STATUS_META against drift from this list.
+// The vocabulary is no longer invented here: it is the Cold Call Leads pipeline,
+// mirrored in lib/coldCallStages.ts, so every page correlates to a real GHL
+// stage. It also mirrors the CHECK constraint on admin_leads.status and the
+// server copy in functions/api/admin/tracker/leads.ts.
 
-export const LEAD_STATUSES: AdminLeadStatus[] = [
-  "New",
-  "Contacted",
-  "No Answer",
-  "Booked",
-  "Qualified",
-  "Closed",
-  "Dead",
-];
+export const LEAD_STATUSES: AdminLeadStatus[] = COLD_CALL_STAGES.map(
+  (s) => s.label as AdminLeadStatus,
+);
 
 // "All" is the unfiltered tile, not a stored status.
 export type LeadFilter = AdminLeadStatus | "All";
@@ -32,15 +28,21 @@ export interface LeadStatusMeta {
   label: string;
 }
 
-export const STATUS_META: Record<AdminLeadStatus, LeadStatusMeta> = {
-  New: { tileClass: "t-new", pillClass: "st-new", swatch: "#6366f1", label: "New" },
-  Contacted: { tileClass: "t-contacted", pillClass: "st-contacted", swatch: "#0ea5e9", label: "Contacted" },
-  "No Answer": { tileClass: "t-noanswer", pillClass: "st-noanswer", swatch: "#f59e0b", label: "No Answer" },
-  Booked: { tileClass: "t-booked", pillClass: "st-booked", swatch: "#10b981", label: "Booked" },
-  Qualified: { tileClass: "t-qualified", pillClass: "st-qualified", swatch: "#8b5cf6", label: "Qualified" },
-  Closed: { tileClass: "t-closed", pillClass: "st-closed", swatch: "#14b8a6", label: "Closed" },
-  Dead: { tileClass: "t-dead", pillClass: "st-dead", swatch: "#c78b93", label: "Dead" },
-};
+// Built from the stage list so a stage rename or recolour never needs a second
+// edit here. `label` is the short tile label; the stored status is the key.
+export const STATUS_META: Record<AdminLeadStatus, LeadStatusMeta> =
+  COLD_CALL_STAGES.reduce(
+    (acc, stage) => {
+      acc[stage.label as AdminLeadStatus] = {
+        tileClass: stage.tileClass,
+        pillClass: stage.pillClass,
+        swatch: stage.swatch,
+        label: stage.short,
+      };
+      return acc;
+    },
+    {} as Record<AdminLeadStatus, LeadStatusMeta>,
+  );
 
 // Every status keyed to 0, so an empty list still renders a full tile strip.
 function zeroCounts(): Record<AdminLeadStatus, number> {
@@ -136,7 +138,7 @@ export function blankLeadDraft(tempId = `temp-${Date.now()}`): AdminLead {
     lastName: "",
     phone: "",
     timezone: "",
-    status: "New",
+    status: "New Lead",
     firstContactDate: today,
     source: "",
     appointmentDate: null,

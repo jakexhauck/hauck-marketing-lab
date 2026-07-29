@@ -861,17 +861,19 @@ export async function tagTimeAuditBlock(
 // adminLeads.ts, coldCall.ts, coldSms.ts) and never persisted.
 // ---------------------------------------------------------------------------
 
-// Leads (Acquisition > Leads): the hand-kept agency prospect book.
-// Mirrors the CHECK constraint in migration 0030; LEAD_STATUSES in
-// src/lib/adminLeads.ts is the ordered runtime copy.
+// Leads (Acquisition > Leads and the Cold Calling stage pages): the hand-kept
+// agency prospect book. Its status vocabulary is the Cold Call Leads pipeline's
+// stage names, so an app page and a GHL stage always mean the same thing. Keep
+// in step with COLD_CALL_STAGES in src/lib/coldCallStages.ts (the ordered
+// runtime copy) and the CHECK constraint in migration 0047.
 export type AdminLeadStatus =
-  | "New"
-  | "Contacted"
-  | "No Answer"
+  | "New Lead"
+  | "1st Dial (Day 1)"
+  | "2nd Dial (Day 2)"
+  | "Brushed Off"
+  | "Call Back"
   | "Booked"
-  | "Qualified"
-  | "Closed"
-  | "Dead";
+  | "Not Interested";
 
 export interface AdminLead {
   id: string;

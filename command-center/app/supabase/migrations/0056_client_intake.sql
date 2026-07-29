@@ -1,4 +1,4 @@
--- 0047_client_intake.sql — the public client intake funnel (service-role only)
+-- 0056_client_intake.sql — the public client intake funnel (service-role only)
 --
 -- A submission has no tenant yet, so it cannot live in the `onboarding` table
 -- from 0018 (which is keyed on tenant_id). It gets its own table, and gains a

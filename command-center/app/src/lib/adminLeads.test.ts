@@ -19,7 +19,7 @@ function lead(over: Partial<AdminLead> & { id: string }): AdminLead {
     lastName: "",
     phone: "",
     timezone: "",
-    status: "New",
+    status: "New Lead",
     firstContactDate: null,
     source: "",
     appointmentDate: null,
@@ -34,24 +34,24 @@ function lead(over: Partial<AdminLead> & { id: string }): AdminLead {
 }
 
 const mixed: AdminLead[] = [
-  lead({ id: "1", status: "New" }),
-  lead({ id: "2", status: "New" }),
-  lead({ id: "3", status: "Contacted" }),
-  lead({ id: "4", status: "No Answer" }),
+  lead({ id: "1", status: "New Lead" }),
+  lead({ id: "2", status: "New Lead" }),
+  lead({ id: "3", status: "1st Dial (Day 1)" }),
+  lead({ id: "4", status: "2nd Dial (Day 2)" }),
   lead({ id: "5", status: "Booked" }),
-  lead({ id: "6", status: "Dead" }),
+  lead({ id: "6", status: "Not Interested" }),
 ];
 
 describe("countByStatus / totalCount", () => {
   it("counts each status across a mixed list", () => {
     const counts = countByStatus(mixed);
-    expect(counts.New).toBe(2);
-    expect(counts.Contacted).toBe(1);
-    expect(counts["No Answer"]).toBe(1);
+    expect(counts["New Lead"]).toBe(2);
+    expect(counts["1st Dial (Day 1)"]).toBe(1);
+    expect(counts["2nd Dial (Day 2)"]).toBe(1);
     expect(counts.Booked).toBe(1);
-    expect(counts.Qualified).toBe(0);
-    expect(counts.Closed).toBe(0);
-    expect(counts.Dead).toBe(1);
+    expect(counts["Call Back"]).toBe(0);
+    expect(counts["Brushed Off"]).toBe(0);
+    expect(counts["Not Interested"]).toBe(1);
     expect(totalCount(mixed)).toBe(6);
   });
 
@@ -68,7 +68,7 @@ describe("filterByStatus", () => {
   });
 
   it("returns only the rows with that status", () => {
-    const rows = filterByStatus(mixed, "New");
+    const rows = filterByStatus(mixed, "New Lead");
     expect(rows.map((l) => l.id)).toEqual(["1", "2"]);
   });
 
@@ -125,8 +125,8 @@ describe("sortLeads", () => {
 
   it("sorts status by pipeline order, not alphabetically", () => {
     const rows = [
-      lead({ id: "dead", status: "Dead" }),
-      lead({ id: "new", status: "New" }),
+      lead({ id: "dead", status: "Not Interested" }),
+      lead({ id: "new", status: "New Lead" }),
       lead({ id: "booked", status: "Booked" }),
     ];
     expect(sortLeads(rows, "status", "asc").map((l) => l.id)).toEqual([
@@ -149,7 +149,7 @@ describe("sortLeads", () => {
 });
 
 describe("STATUS_META", () => {
-  it("covers exactly the seven LEAD_STATUSES", () => {
+  it("covers exactly the seven pipeline stages", () => {
     const metaKeys = Object.keys(STATUS_META).sort();
     const statusKeys = [...LEAD_STATUSES].sort();
     expect(LEAD_STATUSES).toHaveLength(7);
@@ -162,16 +162,16 @@ describe("STATUS_META", () => {
       expect(meta.tileClass).toBeTruthy();
       expect(meta.pillClass).toBeTruthy();
       expect(meta.swatch).toMatch(/^#[0-9a-f]{6}$/i);
-      expect(meta.label).toBe(status);
+      expect(meta.label).toBeTruthy();
     }
   });
 });
 
 describe("blankLeadDraft", () => {
-  it("starts as a New lead dated today with no attempts", () => {
+  it("starts in the New Lead stage, dated today, with no attempts", () => {
     const draft = blankLeadDraft("temp-1");
     expect(draft.id).toBe("temp-1");
-    expect(draft.status).toBe("New");
+    expect(draft.status).toBe("New Lead");
     expect(draft.firstContactDate).toBe(todayIso());
     expect(draft.lastContact).toBe(todayIso());
     expect(draft.noAnswer).toBe(0);

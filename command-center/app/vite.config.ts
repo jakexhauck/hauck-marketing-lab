@@ -74,7 +74,10 @@ export default defineConfig({
     host: true,
     proxy: {
       "/api": {
-        target: "http://localhost:8788",
+        // Overridable so two checkouts (e.g. a worktree under review and main)
+        // can run at once without fighting over one API port. Defaults to the
+        // port `npm run dev:api` uses.
+        target: process.env.VITE_PROXY_TARGET ?? "http://localhost:8788",
         changeOrigin: true,
       },
     },

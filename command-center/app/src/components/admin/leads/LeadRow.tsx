@@ -49,9 +49,12 @@ interface LeadRowProps {
   onDelete: () => void;
   // Focus the first cell: set on a freshly added row.
   autoFocus?: boolean;
+  // Demo rows render exactly like real ones but cannot be edited or deleted, so
+  // nothing fabricated can ever be written anywhere.
+  readOnly?: boolean;
 }
 
-export default function LeadRow({ lead, onPatch, onDelete, autoFocus }: LeadRowProps) {
+export default function LeadRow({ lead, onPatch, onDelete, autoFocus, readOnly }: LeadRowProps) {
   const who = [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "New lead";
 
   return (
@@ -66,6 +69,7 @@ export default function LeadRow({ lead, onPatch, onDelete, autoFocus }: LeadRowP
               <LeadStatusPill
                 status={lead.status}
                 label={who}
+                disabled={readOnly}
                 onChange={(status: AdminLeadStatus) => onPatch({ status })}
               />
             </td>
@@ -80,6 +84,7 @@ export default function LeadRow({ lead, onPatch, onDelete, autoFocus }: LeadRowP
                 type="date"
                 value={value ?? ""}
                 aria-label={ariaLabel}
+                disabled={readOnly}
                 onChange={(e) => onPatch({ [col.key]: e.target.value || null } as LeadPatch)}
               />
             </td>
@@ -92,6 +97,7 @@ export default function LeadRow({ lead, onPatch, onDelete, autoFocus }: LeadRowP
               <NumCell
                 value={lead.noAnswer}
                 ariaLabel={ariaLabel}
+                disabled={readOnly}
                 onCommit={(noAnswer) => onPatch({ noAnswer })}
               />
             </td>
@@ -105,13 +111,14 @@ export default function LeadRow({ lead, onPatch, onDelete, autoFocus }: LeadRowP
               value={value}
               ariaLabel={ariaLabel}
               autoFocus={autoFocus && i === 0}
+              disabled={readOnly}
               onCommit={(next) => onPatch({ [col.key]: next } as LeadPatch)}
             />
           </td>
         );
       })}
       <td className="adl-actioncell">
-        <DeleteCell onDelete={onDelete} who={who} />
+        {!readOnly && <DeleteCell onDelete={onDelete} who={who} />}
       </td>
     </tr>
   );
@@ -123,11 +130,13 @@ function TextCell({
   value,
   ariaLabel,
   autoFocus,
+  disabled,
   onCommit,
 }: {
   value: string;
   ariaLabel: string;
   autoFocus?: boolean;
+  disabled?: boolean;
   onCommit: (value: string) => void;
 }) {
   const [draft, setDraft] = useState(value);
@@ -143,6 +152,7 @@ function TextCell({
       value={draft}
       aria-label={ariaLabel}
       autoFocus={autoFocus}
+      disabled={disabled}
       placeholder="-"
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => {
@@ -160,10 +170,12 @@ function TextCell({
 function NumCell({
   value,
   ariaLabel,
+  disabled,
   onCommit,
 }: {
   value: number;
   ariaLabel: string;
+  disabled?: boolean;
   onCommit: (value: number) => void;
 }) {
   const [draft, setDraft] = useState(String(value));
@@ -186,6 +198,7 @@ function NumCell({
       inputMode="numeric"
       value={draft}
       aria-label={ariaLabel}
+      disabled={disabled}
       placeholder="0"
       onChange={(e) => setDraft(e.target.value.replace(/[^\d]/g, ""))}
       onBlur={commit}

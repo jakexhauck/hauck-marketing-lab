@@ -31,7 +31,7 @@ export const ADMIN_PILLARS: PillarDef[] = [
     label: "Acquisition",
     tabs: [
       { id: "leads", label: "Leads", ready: true },
-      { id: "cold-call", label: "Cold Call", ready: true },
+      { id: "cold-call", label: "Cold Calling", ready: true },
       { id: "sms", label: "SMS", ready: true },
     ],
   },

@@ -10,17 +10,20 @@ import { logAdminAction } from "../../../lib/adminAuth";
 // Phase 1 is manual entry: the app DB is the source of truth and nothing here
 // reads from GHL or Meta.
 
-// Mirrors LEAD_STATUSES in src/lib/adminLeads.ts and the CHECK constraint in
-// migration 0030_leads.sql. All three must stay in step; the unit test guards
-// the client copy.
+// The Cold Call Leads pipeline stages, so a stored status and a GHL stage always
+// mean the same thing. Mirrors COLD_CALL_STAGES in src/lib/coldCallStages.ts and
+// the CHECK constraint in supabase/migrations/pending/0057_lead_stage_vocabulary.sql.
+// All three must stay in step; the unit tests guard the client copy. That
+// migration is parked until this branch ships: the live database still speaks
+// the 0034 vocabulary, so this file must not reach production ahead of it.
 const LEAD_STATUSES = [
-  "New",
-  "Contacted",
-  "No Answer",
+  "New Lead",
+  "1st Dial (Day 1)",
+  "2nd Dial (Day 2)",
+  "Brushed Off",
+  "Call Back",
   "Booked",
-  "Qualified",
-  "Closed",
-  "Dead",
+  "Not Interested",
 ] as const;
 
 type LeadStatus = (typeof LEAD_STATUSES)[number];
@@ -175,7 +178,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   return Response.json({ leads });
 };
 
-// POST /api/admin/tracker/leads: add a row. A bare {} creates the blank New
+// POST /api/admin/tracker/leads: add a row. A bare {} creates the blank New Lead
 // lead the "Add lead" button inserts; any whitelisted fields sent override the
 // server defaults.
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -189,7 +192,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const today = todayIso();
   const admin = ctx.data.admin!;
   const insert = {
-    status: "New",
+    status: "New Lead",
     first_contact_date: today,
     last_contact: today,
     no_answer: 0,

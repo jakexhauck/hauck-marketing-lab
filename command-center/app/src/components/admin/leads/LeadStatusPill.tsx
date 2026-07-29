@@ -13,12 +13,26 @@ interface LeadStatusPillProps {
   status: AdminLeadStatus;
   onChange: (status: AdminLeadStatus) => void;
   label?: string;
+  // Demo rows are shown, never edited: the pill renders but does not open.
+  disabled?: boolean;
 }
 
-export default function LeadStatusPill({ status, onChange, label }: LeadStatusPillProps) {
+export default function LeadStatusPill({
+  status,
+  onChange,
+  label,
+  disabled,
+}: LeadStatusPillProps) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const meta = STATUS_META[status];
+  // A row saved under the retired vocabulary (Contacted, Qualified, Dead) has no
+  // meta. Show it as-is in a neutral pill rather than guessing a stage for it.
+  const meta = STATUS_META[status] ?? {
+    pillClass: "st-unknown",
+    label: status,
+    tileClass: "t-all",
+    swatch: "#94a3b8",
+  };
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -31,6 +45,7 @@ export default function LeadStatusPill({ status, onChange, label }: LeadStatusPi
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={label ? `${label}: ${meta.label}` : `Status: ${meta.label}`}
+        disabled={disabled}
         onClick={() => setOpen((v) => !v)}
       >
         <span className="adl-pdot" aria-hidden />
@@ -38,7 +53,7 @@ export default function LeadStatusPill({ status, onChange, label }: LeadStatusPi
         <ChevronDown size={12} strokeWidth={2.4} aria-hidden />
       </button>
 
-      {open && (
+      {open && !disabled && (
         <LeadStatusMenu
           anchorRef={buttonRef}
           current={status}
