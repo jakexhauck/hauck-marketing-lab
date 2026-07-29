@@ -32,6 +32,9 @@ export type SopHubStatus = "ok" | "not_configured" | "not_connected" | "no_acces
 export interface SopTreeResponse {
   status: SopHubStatus;
   categories: SopCategory[];
+  // Which Google account is linked, or null when none is. Shown so consenting
+  // as the wrong account is visible rather than arriving as a bare 403.
+  connectedEmail?: string | null;
   error?: string;
 }
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ChevronDown, ExternalLink, FileText, ArrowLeft, Paperclip, Search } from "lucide-react";
 import { useSopHub } from "../../../hooks/useSopHub";
@@ -9,22 +9,59 @@ import { totalSops, type SopCategory, type SopEntry } from "../../../lib/sopHub"
 //
 // Content lives in the agency's Google Drive folder, not in this repo: each
 // subfolder is a category, each Google Doc is an SOP. Adding an SOP means
-// creating a Doc, so nothing here is seeded and nothing needs a deploy.
+// creating a Doc, so nothing here is seeded and nothing needs a deploy. Drive is
+// the only place SOPs are authored; this tab reads and never writes.
 //
 // The kicker, title, tagline and pillar tab bar come from PillarPage, so this
 // renders only the search row and the category cards. Opening an SOP swaps the
 // list for the reader in place; the tab bar has no nested routes.
 //
+// The tree refreshes itself while this tab is open (see useSopHub), so the
+// reader must never hold onto the category and SOP objects it was opened with:
+// it stores the keys and resolves them against the current tree on every render.
+//
 // Nothing here fabricates data: an unconnected Drive says exactly that, and a
 // category with no Docs shows its attachments rather than inventing SOPs.
 
+// Begins Google consent for the one agency account. Named "assets" for historic
+// reasons: it is the same single Drive connection the SOP Hub reads through.
+const CONNECT_URL = "/api/admin/assets/oauth/start";
+// The Google account that owns the SOPs folder. Any other account consents
+// happily and then 403s on every read, so the notices name it outright rather
+// than saying "the right one".
+const OWNER_ACCOUNT = "contact.jakehauck@gmail.com";
+const PROD_ORIGIN = "https://app.hauckmarketing.com";
+
+// Google refuses any callback URL not registered against the OAuth client, and
+// only the production one is, so consenting from a dev origin dies on a
+// redirect_uri_mismatch. Sending it to production is not a workaround: the
+// refresh token lands in one shared row that every origin reads, so connecting
+// there connects here. Reading Drive afterwards needs no callback at all.
+function connectHref(): string {
+  const offProd = typeof window !== "undefined" && window.location.origin !== PROD_ORIGIN;
+  return offProd ? `${PROD_ORIGIN}${CONNECT_URL}` : CONNECT_URL;
+}
+
 export default function SopsTab() {
-  const { categories, status, loading, error, considered, toggleFlag, docs, docLoading, docError, openDoc } =
-    useSopHub();
+  const {
+    categories,
+    status,
+    loading,
+    error,
+    connectedEmail,
+    considered,
+    toggleFlag,
+    docs,
+    docLoading,
+    docError,
+    openDoc,
+  } = useSopHub();
   const [query, setQuery] = useState("");
   const [selectedOnly, setSelectedOnly] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [reading, setReading] = useState<{ cat: SopCategory; sop: SopEntry } | null>(null);
+  // Keys, not objects: the tree refetches underneath an open reader, and holding
+  // the objects would pin it to the copy it was opened with.
+  const [reading, setReading] = useState<{ catKey: string; slug: string } | null>(null);
   // The Google OAuth callback lands back here, so a failed consent reports the
   // reason rather than showing a bare "not connected" the admin has to guess at.
   const [searchParams] = useSearchParams();
@@ -35,23 +72,55 @@ export default function SopsTab() {
     [categories, query, considered, selectedOnly],
   );
 
+  // The SOP being read, resolved against the tree as it stands right now. Null
+  // while reading is set means the Doc left the folder.
+  const readingPair = useMemo(() => {
+    if (!reading) return null;
+    const cat = categories.find((c) => c.key === reading.catKey);
+    const sop = cat?.sops.find((s) => s.slug === reading.slug);
+    return cat && sop ? { cat, sop } : null;
+  }, [reading, categories]);
+
+  // Opens the Doc, and re-renders it whenever Drive reports a newer
+  // modifiedTime. A cache hit is a no-op, so the first open and every live
+  // update run through one path.
+  const readingFileId = readingPair?.sop.fileId;
+  const readingModified = readingPair?.sop.modifiedTime ?? null;
+  useEffect(() => {
+    if (!readingFileId) return;
+    void openDoc(readingFileId, readingModified);
+  }, [readingFileId, readingModified, openDoc]);
+
   const open = (cat: SopCategory, sop: SopEntry) => {
-    setReading({ cat, sop });
-    void openDoc(sop.fileId);
+    setReading({ catKey: cat.key, slug: sop.slug });
   };
 
   if (reading) {
     return (
       <div className="sop">
         <SopsStyle />
-        <SopReader
-          cat={reading.cat}
-          sop={reading.sop}
-          doc={docs[reading.sop.fileId]}
-          loading={docLoading === reading.sop.fileId}
-          error={docError}
-          onBack={() => setReading(null)}
-        />
+        {readingPair ? (
+          <SopReader
+            cat={readingPair.cat}
+            sop={readingPair.sop}
+            doc={docs[readingPair.sop.fileId]}
+            loading={docLoading === readingPair.sop.fileId}
+            error={docError}
+            onBack={() => setReading(null)}
+          />
+        ) : (
+          <>
+            <div className="sop-readerbar">
+              <button type="button" className="sop-back" onClick={() => setReading(null)}>
+                <ArrowLeft size={15} strokeWidth={2.4} />
+                All SOPs
+              </button>
+            </div>
+            <div className="sop-state">
+              {loading ? "Loading SOPs from Drive" : "That SOP is no longer in the Drive folder."}
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -64,15 +133,16 @@ export default function SopsTab() {
         <div className="sop-setup sop-failed">
           <h3>Connecting Google failed</h3>
           <p>
-            Google returned <code>{connectError}</code>. Start the connect again, and make sure you pick the
-            account that owns the SOPs folder.
+            Google returned <code>{connectError}</code>. Start the connect again, and make sure you pick{" "}
+            <code>{OWNER_ACCOUNT}</code>, the account that owns the SOPs folder.
           </p>
+          <ConnectButton label="Try connecting again" />
         </div>
       )}
 
       {status !== "ok" ? (
         <div className="sop-setup">
-          <SetupNotice status={status} error={error} />
+          <SetupNotice status={status} error={error} connectedEmail={connectedEmail} />
         </div>
       ) : loading ? (
         <div className="sop-state">Loading SOPs from Drive</div>
@@ -103,6 +173,7 @@ export default function SopsTab() {
             </button>
             <div className="sop-count">
               {totalSops(categories)} SOPs, {considered.size} ticked
+              {connectedEmail && <span className="sop-acct"> · Drive: {connectedEmail}</span>}
             </div>
           </div>
 
@@ -179,9 +250,41 @@ export default function SopsTab() {
   );
 }
 
+// A plain link rather than a fetch: the endpoint answers with a 302 to Google's
+// consent screen, which only the browser can follow. The admin session cookie
+// rides along on the navigation, which is what authorises the route.
+function ConnectButton({ label }: { label: string }) {
+  const href = connectHref();
+  const offProd = href !== CONNECT_URL;
+  return (
+    <>
+      <a className="sop-connect" href={href}>
+        {label}
+        <ExternalLink size={13} strokeWidth={2.2} />
+      </a>
+      {offProd && (
+        <p className="sop-note">
+          This opens the live console to consent, because Google only accepts the production callback
+          address. The connection is shared, so once it is done there this copy reads Drive too.
+        </p>
+      )}
+    </>
+  );
+}
+
 // Each failure has a different fix, so each gets its own instruction rather than
-// a shared "something went wrong".
-function SetupNotice({ status, error }: { status: string; error: string | null }) {
+// a shared "something went wrong". The two that a click can fix carry the button
+// that fixes them: the connect flow used to live on an Assets page that no
+// longer exists, which left the only route in an API URL typed by hand.
+function SetupNotice({
+  status,
+  error,
+  connectedEmail,
+}: {
+  status: string;
+  error: string | null;
+  connectedEmail: string | null;
+}) {
   if (status === "not_configured") {
     return (
       <>
@@ -198,9 +301,11 @@ function SetupNotice({ status, error }: { status: string; error: string | null }
       <>
         <h3>Google Drive is not connected</h3>
         <p>
-          SOPs live in Drive, and no Google account is linked yet. Connect the agency account from the Assets
-          hub, then reload this tab.
+          SOPs live in Drive, and no Google account is linked yet. Connect as <code>{OWNER_ACCOUNT}</code>,
+          the account that owns the SOPs folder. Any other account will sign in and then be refused on
+          every read.
         </p>
+        <ConnectButton label="Connect Google Drive" />
       </>
     );
   }
@@ -209,9 +314,10 @@ function SetupNotice({ status, error }: { status: string; error: string | null }
       <>
         <h3>That account cannot see the SOP folder</h3>
         <p>
-          Drive returned a 403. The connected Google account is not the one that owns the SOPs folder.
-          Reconnect using the account that does.
+          Drive returned a 403{connectedEmail ? <> for <code>{connectedEmail}</code></> : null}. That account
+          does not own the SOPs folder. Reconnect as <code>{OWNER_ACCOUNT}</code>.
         </p>
+        <ConnectButton label="Reconnect Google Drive" />
       </>
     );
   }
@@ -304,6 +410,14 @@ function SopsStyle() {
   font-size: 12.5px; padding: 1px 5px; border-radius: 5px;
   background: color-mix(in srgb, var(--text) 8%, transparent);
 }
+.pk-kit .sop-connect {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 14px;
+  padding: 9px 15px; font-size: 13px; font-weight: 500; text-decoration: none;
+  color: var(--text); background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--text) 32%, transparent); border-radius: 9px;
+}
+.pk-kit .sop-connect:hover { border-color: color-mix(in srgb, var(--text) 55%, transparent); }
+.pk-kit .sop-note { margin: 10px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--text-faint); }
 
 .pk-kit .sop-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
 .pk-kit .sop-search {
@@ -322,6 +436,7 @@ function SopsStyle() {
 }
 .pk-kit .sop-toggle.on { color: var(--text); border-color: color-mix(in srgb, var(--text) 32%, transparent); }
 .pk-kit .sop-count { font-size: 12.5px; color: var(--text-faint); margin-left: auto; }
+.pk-kit .sop-acct { opacity: .8; }
 
 .pk-kit .sop-card {
   background: var(--surface); border: 1px solid var(--sop-line); border-radius: 14px;

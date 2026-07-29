@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-29-sops-live-from-drive",
+    date: "29 July 2026",
+    title: "The SOPs tab keeps itself in step with Drive",
+    items: [
+      "Operations > SOPs has a Connect Google Drive button. Until now the only way to link the account was to type an address into the browser by hand, so the tab sat empty.",
+      "The notice names the Google account that owns the SOPs folder, and says which account is currently linked, so signing in as the wrong one is obvious instead of showing up as an unexplained refusal.",
+      "Leave the tab open and it keeps up on its own. Add a Doc to the folder in Drive and it appears within a minute, without a reload.",
+      "Editing an SOP in Drive while you have it open in the app now updates what you are reading. It used to keep showing the version from when you first opened it.",
+      "An SOP you have open that gets moved or deleted in Drive says so, instead of sitting there as a page that no longer exists.",
+    ],
+  },
+  {
     id: "2026-07-29-agency-cold-call-tracker",
     date: "29 July 2026",
     title: "The cold call tracker now has an agency view",
