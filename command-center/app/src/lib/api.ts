@@ -2,6 +2,24 @@ import { demoMode } from "../demo/demoMode";
 import { handleDemoRequest } from "../demo/handler";
 import { previewHeaders } from "./previewFrame";
 import type { BusinessHealthInputs, PeriodType } from "./businessHealth";
+import type { DerivedSalesDay, DialTotals } from "../../functions/lib/salesDataRollup";
+
+// What one reconciliation against the agency's GoHighLevel calendars did.
+// Shared by the two pages that trigger one: Sales Calls and Sales Data.
+export interface SalesCallSyncResult {
+  // Meetings the console had never seen, now on the page.
+  added: number;
+  // Rows whose time or calendar status moved underneath us.
+  updated: number;
+  unchanged: number;
+  // Calendars GoHighLevel would not read. Named rather than swallowed: a page
+  // missing one calendar looks exactly like a quiet week.
+  failedCalendarIds: string[];
+  // How many calendars were treated as sales calendars. Zero means the account
+  // has none this app recognises, which a page must say out loud rather than
+  // rendering as a month with no meetings in it.
+  calendarsRead: number;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -865,43 +883,37 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   return api<AdminOverview>("/api/admin/overview");
 }
 
-// One logged day of the agency's own sales-call funnel (Sales pillar > Sales
-// Data, migration 0030). Raw counts only: every rate the page shows is derived
-// in src/lib/salesTracker.ts, so nothing computed crosses the wire. A null field
-// is a cell nobody has filled in, which is not the same as a zero.
-export interface SalesDataRow {
+// One day of the agency's own sales-call funnel (Sales pillar > Sales Data).
+//
+// DERIVED, never typed. Each field is counted from the meetings themselves
+// (public.sales_calls) by functions/lib/salesDataRollup.ts, so this page and
+// the Sales Calls page can never disagree about a month. There is no save: the
+// endpoint has no PATCH any more.
+export interface SalesDataDay extends DerivedSalesDay {
   day: string; // "YYYY-MM-DD", the row's identity
-  callsOnCalendar: number | null;
-  rescheduledCancelled: number | null;
-  callsTaken: number | null;
-  qualified: number | null;
-  closed: number | null;
-  cashCollected: number | null;
-  notes: string | null;
 }
 
-// The subset of a day a single save carries. The endpoint upserts, so fields
-// left out keep whatever is stored: editing one cell never blanks the rest.
-export type SalesDataPatch = Partial<Omit<SalesDataRow, "day">>;
-
-// Only the days that have a row. The client generates the empty ones, so an
-// unlogged day stays visibly empty rather than arriving as a fabricated zero.
-export async function getSalesData(month: string): Promise<SalesDataRow[]> {
-  const { days } = await api<{ days: SalesDataRow[] }>(
-    `/api/admin/tracker/sales-data?month=${encodeURIComponent(month)}`,
-  );
-  return days;
+export interface SalesDataResponse {
+  // Only the days a meeting sat on. The client generates the empty ones, so a
+  // month with no selling in it stays visibly empty rather than arriving as a
+  // run of fabricated zero rows.
+  days: SalesDataDay[];
+  // False when the agency GoHighLevel account is not connected at all.
+  configured: boolean;
+  // What the calendar read did on the way through, or null when it was skipped.
+  sync: (SalesCallSyncResult & { ok: true }) | { ok: false; error: string } | null;
+  // Meetings the calendar gave no time, so they belong to no day.
+  undated: number;
+  // The dialing half of the month's funnel, counted from the attempts
+  // themselves across every caller.
+  dials: DialTotals;
 }
 
-export async function saveSalesDataDay(
-  day: string,
-  patch: SalesDataPatch,
-): Promise<SalesDataRow> {
-  const res = await api<{ ok: true; day: SalesDataRow }>(
-    "/api/admin/tracker/sales-data",
-    { method: "PATCH", body: JSON.stringify({ day, ...patch }) },
+// `sync: false` reads what is stored without re-reading the calendars.
+export async function getSalesData(month: string, sync = true): Promise<SalesDataResponse> {
+  return api<SalesDataResponse>(
+    `/api/admin/tracker/sales-data?month=${encodeURIComponent(month)}` + (sync ? "" : "&sync=0"),
   );
-  return res.day;
 }
 
 // Business Health (0030): the agency's own numbers, one row per period key.
@@ -1658,8 +1670,15 @@ export interface SalesMeeting {
   email: string;
   scheduledAt: string | null;
   appointmentStatus: string;
+  // Which calendar the meeting was booked under (0066). Null on meetings
+  // recorded before that, until the next calendar read fills them in.
+  calendarId: string | null;
+  calendarName: string | null;
   // Null until somebody says what happened. See functions/lib/salesCalls.ts.
-  outcome: "closed" | "follow_up" | "no_show" | "not_a_fit" | null;
+  // See functions/lib/salesCalls.ts. not_interested is "heard it, said no" and
+  // stays qualified; not_qualified is "never a prospect". Named after the tags
+  // the live automation listens for (0067).
+  outcome: "closed" | "follow_up" | "not_interested" | "not_qualified" | "no_show" | null;
   notAFitReason: string | null;
   followUpAt: string | null;
   cashCollected: number | null;
@@ -1673,6 +1692,10 @@ export interface SalesMeeting {
   // means the meeting has never been pushed.
   opportunityId: string | null;
   crmStage: string | null;
+  // The sc tag the app applied for this meeting. What actually drives the
+  // board: a workflow of Jake's reads it and moves the card. crmStage is
+  // historic, from when the app moved cards itself.
+  crmTag: string | null;
   // Why the last push did not land, in words. Null when it did.
   crmError: string | null;
   syncedAt: string | null;
@@ -1684,17 +1707,7 @@ export interface SalesMeeting {
 export interface SalesCallsResponse {
   meetings: SalesMeeting[];
   configured: boolean;
-  sync:
-    | {
-        ok: true;
-        added: number;
-        updated: number;
-        unchanged: number;
-        failedCalendarIds: string[];
-        calendarsRead: number;
-      }
-    | { ok: false; error: string }
-    | null;
+  sync: (SalesCallSyncResult & { ok: true }) | { ok: false; error: string } | null;
   pipeline: { id: string; name: string; missing: string[] } | null;
 }
 
@@ -1703,6 +1716,68 @@ export interface SalesCallsResponse {
 // one row is a wait nobody asked for.
 export async function getSalesCalls(sync = true): Promise<SalesCallsResponse> {
   return api("/api/admin/sales/calls" + (sync ? "" : "?sync=0"));
+}
+
+// Sales > Sales Pipeline: the agency's own Sales board, read live and read
+// only. Reuses the card shape Cold Call > Pipelines already publishes
+// (AgencyPipelineCard), because it is the same account and the same board type.
+export interface SalesPipelineColumn {
+  id: string;
+  name: string;
+  cards: AgencyPipelineCard[];
+}
+
+export interface SalesPipelineResponse {
+  // False when the agency GoHighLevel account is not connected at all.
+  configured: boolean;
+  // Null when connected but no board on the account answers to "Sales".
+  pipeline: {
+    id: string;
+    name: string;
+    // Stages the console can write that this board has no column for.
+    missing: string[];
+  } | null;
+  locationId?: string;
+  columns: SalesPipelineColumn[];
+  // True when the card fetch hit its page cap, so the board is showing some of
+  // the deals rather than all of them.
+  truncated: boolean;
+}
+
+export async function getSalesPipeline(): Promise<SalesPipelineResponse> {
+  return api("/api/admin/sales/pipeline");
+}
+
+// Sales > Cold Call Data: the agency's month of dialing, every caller at once.
+// Derived from the attempts logged on the call card; nothing here is typed.
+export interface ColdCallDataDay {
+  day: string; // "YYYY-MM-DD"
+  callsMade: number;
+  pickups: number;
+  passThrough: number;
+  meetingsBooked: number;
+  // How many of the day's nos gave each reason.
+  reasons: Record<string, number>;
+}
+
+export interface ColdCallDataCaller {
+  id: string;
+  name: string;
+  dials: number;
+  talked: number;
+  pitched: number;
+  booked: number;
+}
+
+export interface ColdCallDataResponse {
+  // Only the days that were dialled; the client generates the blank ones.
+  days: ColdCallDataDay[];
+  // Busiest first.
+  callers: ColdCallDataCaller[];
+}
+
+export async function getColdCallData(month: string): Promise<ColdCallDataResponse> {
+  return api(`/api/admin/tracker/cold-call-data?month=${encodeURIComponent(month)}`);
 }
 
 export async function recordSalesCallOutcome(input: {

@@ -1,10 +1,13 @@
-// The agency's own Sales Pipeline, and what each meeting outcome means in it.
+// The agency's own Sales board: which pipeline it is, and where each outcome is
+// expected to end up on it.
 //
-// Cold Call ends at Booked. This is the board the meeting lands on afterwards,
-// and until now the app never touched it: outcomes were recorded in our own
-// database and the pipeline Jake actually reads held nothing. Stage 2 of
-// command-center/docs/build-plans/agency-ghl-connection.md is this file plus
-// agencySales.ts.
+// Cold Call ends at Booked. This is the board the meeting lands on afterwards.
+// The app used to move the cards itself (Stage 2 of
+// docs/build-plans/agency-ghl-connection.md); since
+// docs/build-plans/sales-call-tags.md it does not. It applies a tag and Jake's
+// workflow moves the card, so everything below about stages is EXPECTATION, for
+// telling him when his board and his buttons have parted company. Nothing here
+// is written anywhere.
 //
 // Pure. No network, no database, so the endpoint and the tests agree about what
 // an outcome means without an account to ask.
@@ -18,67 +21,108 @@
 
 import type { SalesCallOutcome } from "./salesCalls";
 
-// The six stages as they read on the live board (surveyed 2026-07-27,
-// pipeline Faxunp7Qq5zCtJrfFpS8). Only four are ever written by the app.
+// The stages the buttons EXPECT to exist on the live board.
+//
+// NOTHING HERE IS WRITTEN BY THE APP any more (0065). The app applies a tag and
+// Jake's workflow moves the card, so this table is a drift check and nothing
+// else: it lets the Sales Pipeline page say "your workflows are expected to
+// move cards into Follow Up and this board has no such stage" instead of
+// letting somebody discover it days later by wondering where a deal went.
+//
+// Re-surveyed 2026-07-29 (evening) on pipeline Faxunp7Qq5zCtJrfFpS8, after Jake
+// rebuilt the board and its workflows. It now reads, in order:
+//
+//   Demo Call Booked -> Not Interested/Unqualified | No-Show | Follow Up
+//                    -> Closed -> Onboarding Call Booked -> New Client
+//
+// Only the stages a sales-call BUTTON is expected to reach are listed here.
+// Onboarding Call Booked and New Client are deliberately absent: they come
+// after the sale, driven by Jake's onboarding automations, and listing them
+// would make the drift check demand columns no button here targets.
 export const SALES_STAGES = {
-  newLead: "New Lead",
+  // Matched loosely on purpose: the live column is "Not Interested/Unqualified"
+  // and findStage tolerates the qualifier. BOTH no-buttons land here; they are
+  // told apart by their tag, not by their column.
   notInterested: "Not Interested",
-  booked: "Appointment Booked",
-  showed: "Appointment Showed",
+  booked: "Demo Call Booked",
+  followUp: "Follow Up",
+  closed: "Closed",
   noShow: "No-Show",
-  newClient: "New Client",
 } as const;
 
 export const SALES_PIPELINE_NAME = "Sales Pipeline";
 
-// What each outcome does to the card. The status matters as much as the stage:
-// GoHighLevel reports won/lost separately from the column, and a "New Client"
-// card left sitting at status open is a sale that never reaches a report.
+// What that board is actually called, in order of preference.
+//
+// It read "Sales Pipeline" when this file was written and reads "Sales" on the
+// live account today. Matching only the long name meant the resolver found
+// nothing at all, which is worse than it sounds: a null pipeline is not an
+// error anybody sees, it is a page quietly showing no board.
+//
+// Both are matched EXACTLY (after normalizeStageName), with one deliberate
+// exception below for a suffixed long name. A prefix match on the short name
+// would let "Sales Calls" or "Sales Team" answer to it, and picking the wrong
+// board is how a page reports on something nobody is selling from.
+export const SALES_PIPELINE_NAMES: readonly string[] = [SALES_PIPELINE_NAME, "Sales"];
+
+// The Sales board out of everything on the account, or null when none of them
+// is it. Pure, so which board the app calls "Sales" is decided in one place and
+// tested without an account.
+export function pickSalesPipeline<T extends { name?: string }>(
+  pipelines: readonly T[],
+): T | null {
+  for (const wanted of SALES_PIPELINE_NAMES) {
+    const target = normalizeStageName(wanted);
+    const exact = pipelines.find((p) => normalizeStageName(p.name ?? "") === target);
+    if (exact) return exact;
+  }
+  // "Sales Pipeline (2026)" is still the Sales Pipeline. Only the long name
+  // gets this, and only when exactly one board matches: two say the account has
+  // a distinction this app does not know about.
+  const long = normalizeStageName(SALES_PIPELINE_NAME);
+  const prefixed = pipelines.filter((p) => normalizeStageName(p.name ?? "").startsWith(long));
+  return prefixed.length === 1 ? prefixed[0] : null;
+}
+
+// What each outcome is expected to become on the board. Read only: see above.
 export interface StageRoute {
+  // The name matched against the live board. Tolerant on purpose: findStage
+  // accepts a longer live name, which is how "Not Interested" finds
+  // "Not Interested/Unqualified".
   stage: string;
-  status: "open" | "won" | "lost";
-  // Said out loud in the console, so the person pressing the button knows what
-  // it does to the board before it does it.
-  describe: string;
+  // What that column is CALLED on the board, verbatim, punctuation and all.
+  //
+  // This is what the outcome buttons say. A button reading "Showed, not a fit"
+  // beside a column reading "Not Interested/Unqualified" makes somebody hold
+  // two vocabularies for one thing and guess at the mapping; naming the button
+  // after the column it lands in removes the guess. Surveyed 2026-07-29.
+  label: string;
 }
 
 const ROUTES: Record<SalesCallOutcome, StageRoute> = {
-  closed: {
-    stage: SALES_STAGES.newClient,
-    status: "won",
-    describe: "New Client, marked won",
-  },
-  // They turned up and it is not decided. "Appointment Showed" is exactly that
-  // stage: the meeting happened and the card is still in play. There is no
-  // Follow Up column on this board, and inventing one here would be this app
-  // designing Jake's pipeline for him.
-  follow_up: {
-    stage: SALES_STAGES.showed,
-    status: "open",
-    describe: "Appointment Showed, still open",
-  },
-  not_a_fit: {
-    stage: SALES_STAGES.notInterested,
-    status: "lost",
-    describe: "Not Interested, marked lost",
-  },
-  // Left OPEN on purpose. A no-show is somebody who can still be re-booked, and
-  // marking it lost writes off a prospect the day they overslept.
-  no_show: {
-    stage: SALES_STAGES.noShow,
-    status: "open",
-    describe: "No-Show, still open",
-  },
+  // The sale itself. New Client comes later, after onboarding is booked, and is
+  // not this button's business.
+  closed: { stage: SALES_STAGES.closed, label: "Closed" },
+  follow_up: { stage: SALES_STAGES.followUp, label: "Follow Up" },
+  // Both nos share ONE column, so their labels cannot come from the stage name
+  // the way the others do: two buttons both reading "Not Interested/Unqualified"
+  // would be indistinguishable. They are named after their tags instead, which
+  // is still Jake's vocabulary and is what actually differs between them.
+  not_interested: { stage: SALES_STAGES.notInterested, label: "Not Interested" },
+  not_qualified: { stage: SALES_STAGES.notInterested, label: "Not Qualified" },
+  no_show: { stage: SALES_STAGES.noShow, label: "No-Show" },
 };
 
-// Where a meeting sits the moment it is booked, before anybody has run it.
+// Where a meeting is expected to sit the moment it is booked, before anybody
+// has run it. The booked TAG is what puts it there; a workflow of Jake's reads
+// that tag and creates the card.
 export const BOOKING_ROUTE: StageRoute = {
   stage: SALES_STAGES.booked,
-  status: "open",
-  describe: "Appointment Booked",
+  label: "Demo Call Booked",
 };
 
-// The route for an outcome, or the booking route when there is no outcome yet.
+// The expected stage for an outcome, or the booking stage when there is no
+// outcome yet.
 export function routeFor(outcome: SalesCallOutcome | null | undefined): StageRoute {
   return outcome ? ROUTES[outcome] : BOOKING_ROUTE;
 }
@@ -122,8 +166,8 @@ export function findStage(stages: NamedStage[], wanted: string): NamedStage | nu
   return prefixed.length === 1 ? prefixed[0] : null;
 }
 
-// Every stage this app is capable of writing, so a caller can check a board once
-// up front rather than discovering a missing column mid-press.
+// Every stage a button is expected to land in, so a board can be checked once
+// up front rather than somebody discovering a missing column days later.
 export function requiredStages(): string[] {
   return [
     BOOKING_ROUTE.stage,
@@ -131,8 +175,8 @@ export function requiredStages(): string[] {
   ].filter((v, i, a) => a.indexOf(v) === i);
 }
 
-// Which of the stages this app writes are missing from a board. Empty means the
-// pipeline can carry everything the console can say.
+// Which of those stages a board does not have. Empty means the pipeline can
+// carry everything the console's buttons can say.
 export function missingStages(stages: NamedStage[]): string[] {
   return requiredStages().filter((name) => findStage(stages, name) === null);
 }

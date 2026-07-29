@@ -1,68 +1,34 @@
-import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { PhoneCall, UserCheck, CheckCircle2, DollarSign } from "lucide-react";
-import DailyTracker, { TrackerMonthNav, type TrackerRow, type StatTile } from "./DailyTracker";
+import { useCallback, useMemo, useState } from "react";
+import { RefreshCw } from "lucide-react";
+import DailyTracker, { TrackerMonthNav, type TrackerRow } from "./DailyTracker";
+import FullFunnel from "../sales/FullFunnel";
 import { PillarTitleActions } from "../../pillars/PillarKit";
-import { useSalesDataQuery, useSaveSalesDataDay } from "../../../hooks/useApi";
-import type { SalesDataPatch, SalesDataRow } from "../../../lib/api";
+import { useSalesDataQuery } from "../../../hooks/useApi";
+import type { SalesDataResponse } from "../../../lib/api";
+import type { DerivedSalesDay } from "../../../../functions/lib/salesDataRollup";
 import {
   buildMonthDays,
   monthKey,
   cursorForToday,
-  formatNum,
-  formatPct,
   type MonthCursor,
   type TodayRef,
 } from "../../../lib/trackerMonth";
-import {
-  SALES_COLUMNS,
-  computeSalesRow,
-  computeSalesRollup,
-  formatMoney,
-  toMoney,
-} from "../../../lib/salesTracker";
+import { SALES_COLUMNS, computeSalesRow, computeSalesRollup } from "../../../lib/salesTracker";
 
-// The Sales pillar's Sales Data tab: the agency's daily sales-call funnel,
-// typed by hand. The month grid, the rate math and the table chrome are all
-// shared (trackerMonth / salesTracker / DailyTracker); what lives here is the
-// bit that is genuinely this surface's own, which is the editing loop:
+// The Sales pillar's Sales Data tab: the agency's daily sales-call funnel.
 //
-//   type -> show the keystroke immediately (draft)
-//        -> debounce, then PATCH that day
-//        -> on settle, drop the draft so the server's stored value takes over
+// This page used to be a form. Somebody counted their own month and typed it
+// into a grid, which meant the same question had two answers: the one typed
+// here and the one the outcomes recorded on Sales Calls already knew. It is now
+// a REPORT, and it has no editing loop at all: opening it reconciles the
+// GoHighLevel calendars, the meetings are counted a day at a time
+// (functions/lib/salesDataRollup.ts), and every cell is read-only.
 //
-// Drafts are what make the table feel like a spreadsheet instead of a form. They
-// are deliberately dropped once their save settles: the server coerces what you
-// type ("9.7" becomes 9, "$4,500" becomes 4500), and the cell should end up
-// showing what is actually stored rather than what was typed at it.
-
-const SAVE_DEBOUNCE_MS = 600;
-
-// A stored day -> the raw strings the table edits. null is an empty cell, not a
-// zero: an unlogged day must stay visibly blank.
-function toTrackerRow(row: SalesDataRow): TrackerRow {
-  const cell = (v: number | string | null) => (v === null ? "" : String(v));
-  return {
-    callsOnCalendar: cell(row.callsOnCalendar),
-    rescheduledCancelled: cell(row.rescheduledCancelled),
-    callsTaken: cell(row.callsTaken),
-    qualified: cell(row.qualified),
-    closed: cell(row.closed),
-    cashCollected: cell(row.cashCollected),
-    notes: cell(row.notes),
-  };
-}
-
-// A typed cell -> the value the API stores. Emptying a cell clears it to null
-// rather than writing a 0.
-function toPatchValue(field: string, raw: string): number | string | null {
-  const trimmed = raw.trim();
-  if (field === "notes") return trimmed === "" ? null : trimmed;
-  if (trimmed === "") return null;
-  // Send the parsed number so the optimistic cache holds the same shape the
-  // server will return. Anything unparseable lands as 0, matching the display
-  // math rather than silently disagreeing with it.
-  return toMoney(trimmed);
-}
+// What that buys, beyond one less thing to remember: the funnel on this page
+// and the funnel on Sales Calls are now the same arithmetic over the same rows,
+// so they cannot drift. What it costs is that selling done entirely outside the
+// app is invisible here, which is the honest trade: a number nobody measured
+// should not appear beside numbers that were measured.
 
 export default function SalesDataTracker() {
   // "Today" is read once on mount and then injected everywhere, so the month
@@ -75,160 +41,39 @@ export default function SalesDataTracker() {
   const [cursor, setCursor] = useState<MonthCursor>(() => cursorForToday(today));
 
   const month = monthKey(cursor);
-  const { data, isPending, isError } = useSalesDataQuery(month);
-  const save = useSaveSalesDataDay();
+  const query = useSalesDataQuery(month);
+  const { data, isPending, isError } = query;
 
-  // Unsaved keystrokes, by ISO day then field. Merged over the server rows so a
-  // cell shows what you just typed, not what was last fetched.
-  const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
-
-  // Saves waiting on the debounce, and the in-flight count per cell. The count
-  // is what stops a settled save from wiping a draft the user has since typed
-  // over again.
-  const pendingRef = useRef<Map<string, SalesDataPatch>>(new Map());
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inflightRef = useRef<Map<string, number>>(new Map());
-
-  const rowsByDay = useMemo(() => {
-    const map = new Map<string, TrackerRow>();
-    for (const row of data ?? []) map.set(row.day, toTrackerRow(row));
+  const byDay = useMemo(() => {
+    const map = new Map<string, DerivedSalesDay>();
+    for (const row of data?.days ?? []) map.set(row.day, row);
     return map;
   }, [data]);
 
-  const getRow = useCallback(
-    (iso: string): TrackerRow => ({ ...rowsByDay.get(iso), ...drafts[iso] }),
-    [rowsByDay, drafts],
+  // The table's row identity. Nothing on this grid is typed, so a row carries
+  // only the day it is; the counts are looked up from it in computeRow.
+  const getRow = useCallback((iso: string): TrackerRow => ({ day: iso }), []);
+
+  const computeRow = useCallback(
+    (row: TrackerRow) => computeSalesRow(byDay.get(row.day) ?? null),
+    [byDay],
   );
 
-  const clearDraftCell = useCallback((iso: string, field: string) => {
-    setDrafts((prev) => {
-      const day = prev[iso];
-      if (!day || !(field in day)) return prev;
-      const { [field]: _dropped, ...rest } = day;
-      const next = { ...prev };
-      if (Object.keys(rest).length) next[iso] = rest;
-      else delete next[iso];
-      return next;
-    });
-  }, []);
-
-  const flush = useCallback(() => {
-    timerRef.current = null;
-    const pending = Array.from(pendingRef.current.entries());
-    pendingRef.current = new Map();
-
-    for (const [day, patch] of pending) {
-      const fields = Object.keys(patch);
-      for (const f of fields) {
-        const key = `${day}:${f}`;
-        inflightRef.current.set(key, (inflightRef.current.get(key) ?? 0) + 1);
-      }
-      save.mutate(
-        { day, patch },
-        {
-          onSettled: () => {
-            for (const f of fields) {
-              const key = `${day}:${f}`;
-              const left = (inflightRef.current.get(key) ?? 1) - 1;
-              if (left > 0) {
-                inflightRef.current.set(key, left);
-              } else {
-                // Last save for this cell has landed and nothing newer is
-                // queued, so the stored value can take the cell back.
-                inflightRef.current.delete(key);
-                clearDraftCell(day, f);
-              }
-            }
-          },
-        },
-      );
-    }
-  }, [save, clearDraftCell]);
-
-  const handleEdit = useCallback(
-    (iso: string, field: string, value: string) => {
-      setDrafts((prev) => ({ ...prev, [iso]: { ...prev[iso], [field]: value } }));
-
-      const patch = pendingRef.current.get(iso) ?? {};
-      pendingRef.current.set(iso, {
-        ...patch,
-        [field]: toPatchValue(field, value),
-      } as SalesDataPatch);
-
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(flush, SAVE_DEBOUNCE_MS);
-    },
-    [flush],
+  // The footer and the tiles read the same days the table renders, over the
+  // whole month rather than only the days that came back, so an average is per
+  // worked day and never per row-that-happens-to-exist.
+  const monthDays = useMemo(
+    () => buildMonthDays(cursor, today).map((d) => byDay.get(d.iso) ?? null),
+    [cursor, today, byDay],
+  );
+  const rollup = useMemo(
+    () => computeSalesRollup(monthDays.filter((d): d is DerivedSalesDay => d !== null)),
+    [monthDays],
   );
 
-  // Changing month must not strand a half-typed day in the debounce window.
-  const handleMonthChange = useCallback(
-    (next: MonthCursor) => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        flush();
-      }
-      setCursor(next);
-    },
-    [flush],
-  );
-
-  // Same guarantee when the tab is closed or navigated away from mid-edit.
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        flush();
-      }
-    };
-    // Intentionally mount/unmount only: re-running on every flush identity
-    // change would fire the pending save on each keystroke.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // The footer and the tiles read the same merged rows the table renders, so
-  // they move with the keystroke rather than lagging a save behind.
-  const monthRows = useMemo(
-    () => buildMonthDays(cursor, today).map((d) => getRow(d.iso)),
-    [cursor, today, getRow],
-  );
-  const rollup = useMemo(() => computeSalesRollup(monthRows), [monthRows]);
-
-  const statTiles: StatTile[] = [
-    {
-      key: "taken",
-      tone: "indigo",
-      icon: <PhoneCall />,
-      label: "Calls Taken MTD",
-      value: formatNum(rollup.totals.callsTaken),
-      sub: `${rollup.filledDays} ${rollup.filledDays === 1 ? "day" : "days"} logged`,
-    },
-    {
-      key: "showup",
-      tone: "sky",
-      icon: <UserCheck />,
-      label: "Show-Up %",
-      value: formatPct(rollup.rates.showUpPct),
-      sub: `${formatNum(rollup.totals.callsOnCalendar)} booked`,
-    },
-    {
-      key: "closed",
-      tone: "green",
-      icon: <CheckCircle2 />,
-      label: "Closed",
-      value: formatNum(rollup.totals.closed),
-      sub: `${formatPct(rollup.rates.closePct)} of calls taken`,
-    },
-    {
-      key: "cash",
-      tone: "amber",
-      icon: <DollarSign />,
-      label: "Cash Collected",
-      value: formatMoney(rollup.totals.cashCollected),
-      sub: `${formatNum(rollup.totals.qualified)} qualified`,
-    },
-  ];
-
+  // The tile row is gone: the funnel strip below says everything those four
+  // tiles said and three steps more, and a page carrying both would be stating
+  // the same month twice in two shapes.
   return (
     <div className="sdt">
       <SalesDataLayoutStyle />
@@ -237,7 +82,7 @@ export default function SalesDataTracker() {
           band of its own above the tiles, which is what lets the tiles sit
           straight under the title and the table take the height that frees. */}
       <PillarTitleActions>
-        <TrackerMonthNav cursor={cursor} today={today} onMonthChange={handleMonthChange} />
+        <TrackerMonthNav cursor={cursor} today={today} onMonthChange={setCursor} />
       </PillarTitleActions>
 
       {isError && (
@@ -245,29 +90,129 @@ export default function SalesDataTracker() {
           Sales Data could not be loaded. Nothing has been lost: reload to try again.
         </div>
       )}
-      {save.isError && (
-        <div className="pk-empty">
-          That last edit did not save. The cell has been put back to its stored value.
-        </div>
-      )}
+
+      <StatusLine
+        data={data ?? null}
+        awaiting={rollup.totals.awaiting}
+        refreshing={query.isFetching}
+        onRefresh={() => void query.refetch()}
+      />
+
+      {/* The month, dialing through to cash. Above the grid, because the grid
+          is the detail behind it. */}
+      <FullFunnel
+        dials={data?.dials ?? { dials: 0, talked: 0, pitched: 0, booked: 0 }}
+        totals={rollup.totals}
+        rates={rollup.rates}
+      />
+
       <DailyTracker
         title="Daily sales funnel"
         subtitle={
           isPending && !data
-            ? "Loading this month"
-            : "One row per day. Type the counts; the rates are computed."
+            ? "Reading the calendar"
+            : "One row per day, counted from the meetings themselves. Nothing here is typed."
         }
         columns={SALES_COLUMNS}
         cursor={cursor}
         today={today}
-        statTiles={statTiles}
+        statTiles={[]}
         getRow={getRow}
-        computeRow={computeSalesRow}
+        computeRow={computeRow}
         rollup={{ average: rollup.average, total: rollup.total }}
-        onEdit={handleEdit}
-        onMonthChange={handleMonthChange}
+        // Nothing is editable, so no edit can arrive. Required by the shared
+        // tracker's contract; kept as an explicit no-op rather than a cast.
+        onEdit={() => {}}
+        onMonthChange={setCursor}
         hideMonthNav
+        readOnly
       />
+    </div>
+  );
+}
+
+// What the page just did, and anything that makes a count on it mean less than
+// it looks. Same job as the Sales Calls status line: a month that silently
+// failed to reach the calendar looks exactly like a quiet month.
+function StatusLine({
+  data,
+  awaiting,
+  refreshing,
+  onRefresh,
+}: {
+  data: SalesDataResponse | null;
+  awaiting: number;
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
+  const warnings: string[] = [];
+  const sync = data?.sync ?? null;
+
+  if (data && !data.configured) {
+    warnings.push(
+      "The agency GoHighLevel account is not connected, so this month is only what was already stored.",
+    );
+  } else if (sync && sync.ok === false) {
+    warnings.push(`The calendar could not be read: ${sync.error}`);
+  } else if (sync && sync.ok && sync.calendarsRead === 0) {
+    warnings.push(
+      "No sales calendar was found in GoHighLevel. Name one demo, discovery or sales, or set AGENCY_SALES_CALENDAR_IDS.",
+    );
+  }
+
+  if (sync && sync.ok && sync.failedCalendarIds.length > 0) {
+    warnings.push(
+      `${sync.failedCalendarIds.length} calendar could not be read, so meetings may be missing from this month.`,
+    );
+  }
+
+  if (awaiting > 0) {
+    warnings.push(
+      `${awaiting} ${awaiting === 1 ? "meeting has" : "meetings have"} no outcome recorded, so ${awaiting === 1 ? "it is" : "they are"} counted in neither the shows nor the no-shows. Record ${awaiting === 1 ? "it" : "them"} on Sales Calls.`,
+    );
+  }
+
+  if (data && data.undated > 0) {
+    warnings.push(
+      `${data.undated} ${data.undated === 1 ? "meeting has" : "meetings have"} no time on the calendar, so ${data.undated === 1 ? "it belongs" : "they belong"} to no day and ${data.undated === 1 ? "is" : "are"} not counted here.`,
+    );
+  }
+
+  const changed =
+    sync && sync.ok && (sync.added > 0 || sync.updated > 0)
+      ? [
+          sync.added > 0 ? `${sync.added} new` : null,
+          sync.updated > 0 ? `${sync.updated} updated` : null,
+        ]
+          .filter(Boolean)
+          .join(", ")
+      : null;
+
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+      <button
+        type="button"
+        className="pk-btn-cancel inline-flex items-center gap-1.5"
+        onClick={onRefresh}
+        disabled={refreshing}
+      >
+        <RefreshCw size={13} aria-hidden className={refreshing ? "animate-spin" : undefined} />
+        {refreshing ? "Reading the calendar..." : "Read the calendar"}
+      </button>
+
+      {changed && <span className="text-[12px] text-muted">{changed} from the calendar.</span>}
+
+      {warnings.length === 0 && data?.configured && (
+        <span className="text-[12px] text-faint">
+          Counted from your meetings. Nothing on this page is typed.
+        </span>
+      )}
+
+      {warnings.map((w) => (
+        <span key={w} className="text-[12px] font-semibold text-[var(--warning)]">
+          {w}
+        </span>
+      ))}
     </div>
   );
 }
@@ -281,6 +226,10 @@ function SalesDataLayoutStyle() {
       .pk-kit .sdt .adt-stats { margin-top: 0; }
       /* And the table takes the height that frees up. */
       .pk-kit .sdt .adt-scroll { max-height: min(72vh, 880px); }
+      /* The Meetings column is the only text cell on a numeric grid; left-align
+         it and let it be the one column that gets the room. */
+      .pk-kit .sdt .adt-card td:last-child,
+      .pk-kit .sdt .adt-card th:last-child { text-align: left; min-width: 150px; }
     `}</style>
   );
 }

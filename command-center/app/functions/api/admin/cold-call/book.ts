@@ -4,8 +4,8 @@ import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
 import { ghlFetch } from "../../../lib/ghl";
 import { getAgencyGhlContext, AgencyGhlError } from "../../../lib/agencyGhl";
-import { createAppointment, isCalendarNotFound } from "../../lib/appointments";
-import { resolveAgencySalesPipeline, routeSalesCall } from "../../lib/agencySales";
+import { createAppointment, isCalendarNotFound, listCalendars } from "../../lib/appointments";
+import { pushSalesCallTag } from "../../lib/salesCallPush";
 
 // POST /api/admin/cold-call/book  (admin-only)
 //
@@ -86,57 +86,57 @@ async function upsertContact(
   return { ok: true, contactId };
 }
 
-interface RoutedBooking {
-  opportunityId: string | null;
-  stage: string | null;
+// The chosen calendar's name, best effort. Stored beside the id so a brand-new
+// booking is labelled on the meetings page immediately rather than reading as
+// "unknown calendar" until the next sync. An empty string is fine: the sync
+// fills it in, and a wrong name is never guessed.
+async function calendarNameFor(
+  gctx: { locationId: string; token: string },
+  calendarId: string,
+): Promise<string> {
+  try {
+    const all = await listCalendars(gctx);
+    return all.find((c) => c.id === calendarId)?.name ?? "";
+  } catch {
+    return "";
+  }
+}
+
+interface TaggedBooking {
+  // The tag that landed on the contact, or null when nothing was written.
+  tag: string | null;
   // A sentence fit for the console, or null when there is nothing to report.
   // "Not connected" is not an error about this meeting, so it stays null.
   error: string | null;
 }
 
-// Put the new meeting on the Sales Pipeline at Appointment Booked.
+// Tell GoHighLevel a meeting has been booked, by TAGGING the contact.
+//
+// The app used to create the opportunity itself, in Appointment Booked. It does
+// not any more (docs/build-plans/sales-call-tags.md): a workflow of Jake's
+// reads this tag and creates the card, which is what makes the whole board his
+// rather than half his and half ours. That workflow must exist, or a booked
+// meeting reaches the calendar and never reaches the board.
 //
 // Nothing here is allowed to fail the booking. The appointment is already on a
-// real calendar with a real person expecting it; a pipeline that did not catch
-// up is a line on the meetings page, not a reason to tell the caller their
-// booking did not happen.
-async function routeBookedMeeting(
-  env: Env,
-  contactId: string,
-  prospectName: string,
-  businessName: string | null | undefined,
-): Promise<RoutedBooking> {
+// real calendar with a real person expecting it; a CRM that did not catch up is
+// a line on the meetings page, not a reason to tell the caller their booking
+// did not happen.
+async function tagBookedMeeting(env: Env, contactId: string): Promise<TaggedBooking> {
   let gctx;
   try {
     gctx = getAgencyGhlContext(env);
   } catch {
-    return { opportunityId: null, stage: null, error: null };
+    return { tag: null, error: null };
   }
 
   try {
-    const pipeline = await resolveAgencySalesPipeline(gctx);
-    if (!pipeline) {
-      return {
-        opportunityId: null,
-        stage: null,
-        error: "No Sales Pipeline found in GoHighLevel, so no card was created.",
-      };
-    }
-    const result = await routeSalesCall(gctx, pipeline, {
-      opportunityId: null,
-      contactId,
-      name: [prospectName, businessName].filter(Boolean).join(" - ") || prospectName,
-      // No outcome yet: a meeting that has not happened routes to Appointment
-      // Booked, which is the whole point of the stage.
-      outcome: null,
-    });
-    return result.ok
-      ? { opportunityId: result.opportunityId, stage: result.stage, error: null }
-      : { opportunityId: null, stage: null, error: result.error };
+    const result = await pushSalesCallTag(gctx, { contactId, event: "booked" });
+    return { tag: result.tag, error: result.error };
   } catch (err) {
-    console.error("[cold-call/book] pipeline routing failed", err);
+    console.error("[cold-call/book] booked tag failed", err);
     const message = err instanceof Error ? err.message : String(err);
-    return { opportunityId: null, stage: null, error: message.split("\n")[0].slice(0, 200) };
+    return { tag: null, error: message.split("\n")[0].slice(0, 200) };
   }
 }
 
@@ -230,14 +230,16 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     .select("id")
     .maybeSingle();
 
-  // The card on the agency's Sales Pipeline (0060). A meeting that exists only
-  // in this database is a meeting Jake cannot see on the board he actually
-  // reads, which is how that pipeline came to hold zero opportunities while the
-  // app knew about every booking.
+  // Tell GoHighLevel a meeting exists (0065). A meeting that lives only in this
+  // database is one Jake cannot see on the board he actually reads, which is
+  // how that pipeline came to hold zero opportunities while the app knew about
+  // every booking. The tag is what puts it there now; his workflow makes the
+  // card.
   //
   // Best effort, and after the appointment: the slot is real by now, so a CRM
   // that would not answer must not turn a successful booking into an error.
-  const routed = await routeBookedMeeting(ctx.env, contact.contactId, name, lead.business_name);
+  const tagged = await tagBookedMeeting(ctx.env, contact.contactId);
+  const calendarName = await calendarNameFor(gctx, calendarId);
 
   // The meeting's own record (0057), so what it BECOMES has somewhere to live.
   // Without this a booking is the last thing the app knows about a prospect, and
@@ -263,9 +265,15 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       source: lead.source ?? "Cold call",
       scheduled_at: startTime,
       appointment_status: "confirmed",
-      ghl_opportunity_id: routed.opportunityId,
-      ghl_stage: routed.stage,
-      ghl_error: routed.error,
+      // Which calendar the caller chose. Stored now rather than waiting for the
+      // next sync to work it out, so the meeting is filterable the moment it
+      // appears. The name is best effort: the sync corrects it either way.
+      calendar_id: calendarId,
+      calendar_name: calendarName,
+      // The app creates no card, so there is no opportunity id to store yet:
+      // the workflow makes one, and the next close is what finds it.
+      ghl_tag: tagged.tag,
+      ghl_error: tagged.error,
       logged_by: admin.id,
       updated_at: new Date().toISOString(),
     },

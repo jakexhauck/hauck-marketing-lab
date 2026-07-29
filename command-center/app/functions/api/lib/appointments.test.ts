@@ -119,6 +119,10 @@ describe("listCalendarEvents", () => {
       status: "booked",
       contactId: "",
       contactName: "",
+      // The calendar it came off (0066). This one has no name in GHL, which is
+      // allowed: an empty label is honest, and the id still groups it.
+      calendarId: "c1",
+      calendarName: "",
     });
   });
 

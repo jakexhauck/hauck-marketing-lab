@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useSalesMeetingsQuery, useRecordMeetingOutcome } from "../../../hooks/useColdCall";
-import { groupFor, totalsFor } from "../../../../functions/lib/salesCalls";
+import { daysLate, groupFor, totalsFor } from "../../../../functions/lib/salesCalls";
 import { Funnel, MeetingRow } from "../sales/meetingUi";
 
 // Cold Call > Booked: the meetings he set, and what became of them.
@@ -26,16 +26,22 @@ export default function ColdCallBooked({ callerId = "" }: { callerId?: string })
   const record = useRecordMeetingOutcome();
   const meetings = useMemo(() => query.data?.meetings ?? [], [query.data]);
 
-  const { awaiting, upcoming, recorded, totals } = useMemo(() => {
+  const { dueBack, awaiting, upcoming, recorded, totals } = useMemo(() => {
     const now = Date.now();
     const countable = meetings.map((m) => ({
       scheduledAt: m.scheduledAt,
       outcome: m.outcome,
       cashCollected: m.cashCollected,
+      followUpAt: m.followUpAt,
     }));
     const bucket = (name: string) =>
       meetings.filter((_m, i) => groupFor(countable[i], now) === name);
     return {
+      // Most overdue first. A caller sees their own promises here, same as Jake
+      // sees his on Sales Calls.
+      dueBack: bucket("due_back")
+        .slice()
+        .sort((a, b) => (daysLate(b.followUpAt, now) ?? 0) - (daysLate(a.followUpAt, now) ?? 0)),
       awaiting: bucket("awaiting"),
       // The list arrives newest first, which for meetings still to come means
       // furthest away first. Reversed, so the next one is at the top.
@@ -63,6 +69,19 @@ export default function ColdCallBooked({ callerId = "" }: { callerId?: string })
           A meeting three days out is undecided too, and calling it "still to
           record" would be nagging somebody about the future. */}
       <Funnel totals={totals} awaiting={awaiting.length} />
+
+      {/* A promise to come back, on the day it was promised for. Above the
+          undecided meetings: somebody was told a date. */}
+      {dueBack.length > 0 && (
+        <>
+          <div className="pk-list-sec-h">Due back ({dueBack.length})</div>
+          <div className="pk-list">
+            {dueBack.map((m) => (
+              <MeetingRow key={m.id} meeting={m} recordable record={record} />
+            ))}
+          </div>
+        </>
+      )}
 
       {awaiting.length > 0 && (
         <>

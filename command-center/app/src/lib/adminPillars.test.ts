@@ -37,7 +37,9 @@ describe("adminPillars config", () => {
       "cold-call",
       "sms",
       "calls",
+      "pipeline",
       "sales-data",
+      "cold-call-data",
       "business-health",
       "calculator",
       "time-audit",
@@ -50,9 +52,14 @@ describe("adminPillars config", () => {
     // Leads moved inside Cold Call (lib/coldCallPages); the pillar's own tabs
     // are the two surfaces that sit beside each other.
     expect(tabsFor("acquisition").map((t) => t.id)).toEqual(["cold-call", "sms"]);
-    // Sales Calls leads: it is the page with work on it, Sales Data is the
-    // month read back.
-    expect(tabsFor("sales").map((t) => t.id)).toEqual(["calls", "sales-data"]);
+    // Sales Calls leads: it is the page with work on it. Sales Pipeline is the
+    // board its outcomes land on, and Sales Data is the month read back.
+    expect(tabsFor("sales").map((t) => t.id)).toEqual([
+      "calls",
+      "pipeline",
+      "sales-data",
+      "cold-call-data",
+    ]);
     expect(tabsFor("operations").map((t) => t.id)).toEqual([
       "business-health",
       "calculator",

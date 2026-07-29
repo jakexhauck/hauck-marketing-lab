@@ -1,50 +1,53 @@
 import { describe, it, expect } from "vitest";
-import type { TrackerRow } from "../components/admin/tracker/DailyTracker";
+import type { DerivedSalesDay } from "../../functions/lib/salesDataRollup";
 import {
   SALES_COLUMNS,
-  toMoney,
-  readCounts,
   salesRates,
   formatMoney,
-  isSalesRowFilled,
+  formatNames,
+  countsFor,
+  emptyCounts,
+  isDayWorked,
   computeSalesRow,
   computeSalesRollup,
 } from "./salesTracker";
 
 // The Sales Data schema case for the shared daily-funnel engine (the generic
-// month/rate helpers are covered in ./trackerMonth.test.ts). What matters here
-// is the four funnel rates, that a zero denominator never becomes a fake 0%, and
-// that the footer totals before it divides.
+// month/rate helpers are covered in ./trackerMonth.test.ts, and the meeting ->
+// day counting in functions/lib/salesDataRollup.test.ts). What matters here is
+// the four funnel rates, that a zero denominator never becomes a fake 0%, that
+// a day with no meetings renders blank rather than zeroed, and that the footer
+// totals before it divides.
+
+function day(over: Partial<DerivedSalesDay> = {}): DerivedSalesDay {
+  return {
+    onCalendar: 0,
+    cancelled: 0,
+    awaiting: 0,
+    decided: 0,
+    taken: 0,
+    qualified: 0,
+    closed: 0,
+    cash: 0,
+    names: [],
+    ...over,
+  };
+}
 
 describe("SALES_COLUMNS", () => {
-  it("keys every editable column to its API field name", () => {
-    // The component sends the column key straight to the endpoint as a PATCH
-    // field, so a drift here is a silent save failure.
-    const editable = SALES_COLUMNS.filter((c) => c.kind !== "computed").map(
-      (c) => c.key,
-    );
-    expect(editable).toEqual([
-      "callsOnCalendar",
-      "rescheduledCancelled",
-      "callsTaken",
-      "qualified",
-      "closed",
-      "cashCollected",
-      "notes",
-    ]);
+  it("has nothing typeable on it", () => {
+    // The whole point of the surface: every count is measured from a meeting,
+    // so an "input" column here would be a cell somebody could disagree with
+    // the CRM in.
+    expect(SALES_COLUMNS.every((c) => c.kind === "computed")).toBe(true);
   });
 
-  it("puts every rate the row math produces in the table", () => {
-    const computed = SALES_COLUMNS.filter((c) => c.kind === "computed").map(
-      (c) => c.key,
-    );
-    expect(computed).toEqual([
-      "showUpPct",
-      "qualifiedPct",
-      "closePct",
-      "closeFromQualifiedPct",
-    ]);
-    expect(Object.keys(computeSalesRow({})).sort()).toEqual(computed.sort());
+  it("fills every column it declares", () => {
+    // computeSalesRow is the only thing that writes a cell, so a column with no
+    // key in it renders a permanent "-".
+    const keys = SALES_COLUMNS.map((c) => c.key).sort();
+    const filled = Object.keys(computeSalesRow(day({ onCalendar: 1 }))).sort();
+    expect(filled).toEqual(keys);
   });
 
   it("uses no em dash in any label", () => {
@@ -52,64 +55,31 @@ describe("SALES_COLUMNS", () => {
   });
 });
 
-describe("toMoney", () => {
-  it("parses what a human types into a cash cell", () => {
-    expect(toMoney("4500")).toBe(4500);
-    expect(toMoney("4500.50")).toBe(4500.5);
-    expect(toMoney("$4,500.00")).toBe(4500);
-    expect(toMoney(1200)).toBe(1200);
-  });
-
-  it("treats blank and garbage as 0", () => {
-    expect(toMoney("")).toBe(0);
-    expect(toMoney("   ")).toBe(0);
-    expect(toMoney("lots")).toBe(0);
-    expect(toMoney(null)).toBe(0);
-    expect(toMoney(undefined)).toBe(0);
-  });
-});
-
 describe("salesRates", () => {
-  const counts = readCounts({
-    callsOnCalendar: "10",
-    rescheduledCancelled: "2",
-    callsTaken: "8",
-    qualified: "5",
-    closed: "2",
-    cashCollected: "9000",
+  it("divides the show rate by the DECIDED meetings, not the calendar", () => {
+    // Four booked, one still unanswered, three recorded of which two turned up.
+    // 2/3, not 2/4: a meeting nobody has recorded is not a no-show, and this is
+    // the one line that keeps this page agreeing with Sales Calls.
+    const rates = salesRates(
+      countsFor(day({ onCalendar: 4, awaiting: 1, decided: 3, taken: 2 })),
+    );
+    expect(rates.showUpPct).toBeCloseTo(66.67, 1);
   });
 
-  it("computes show-up as taken over booked", () => {
-    expect(salesRates(counts).showUpPct).toBe(80);
+  it("computes the three rates that hang off calls taken", () => {
+    const rates = salesRates(
+      countsFor(day({ onCalendar: 5, decided: 5, taken: 4, qualified: 3, closed: 2 })),
+    );
+    expect(rates.qualifiedPct).toBe(75);
+    expect(rates.closePct).toBe(50);
+    expect(rates.closeFromQualifiedPct).toBeCloseTo(66.67, 1);
   });
 
-  it("computes qualified as qualified over taken", () => {
-    expect(salesRates(counts).qualifiedPct).toBe(62.5);
-  });
-
-  it("computes the overall close rate as closed over taken", () => {
-    expect(salesRates(counts).closePct).toBe(25);
-  });
-
-  it("computes the qualified close rate as closed over qualified", () => {
-    expect(salesRates(counts).closeFromQualifiedPct).toBe(40);
-  });
-
-  it("returns null, not 0%, for every rate on an empty day", () => {
-    const empty = salesRates(readCounts({}));
-    expect(empty).toEqual({
-      showUpPct: null,
-      qualifiedPct: null,
-      closePct: null,
-      closeFromQualifiedPct: null,
-    });
-  });
-
-  it("returns null only for the rates whose denominator is missing", () => {
-    // Calls were booked but none were taken: show-up is a real 0%, while the
-    // rates that divide by "taken" have nothing to divide by yet.
-    const rates = salesRates(readCounts({ callsOnCalendar: "6", callsTaken: "0" }));
-    expect(rates.showUpPct).toBe(0);
+  it("returns null, never 0%, for a rate with no denominator", () => {
+    // A day nobody has recorded has no show rate. Rendering it as 0% would read
+    // as "everybody stood us up".
+    const rates = salesRates(emptyCounts());
+    expect(rates.showUpPct).toBeNull();
     expect(rates.qualifiedPct).toBeNull();
     expect(rates.closePct).toBeNull();
     expect(rates.closeFromQualifiedPct).toBeNull();
@@ -117,23 +87,111 @@ describe("salesRates", () => {
 });
 
 describe("computeSalesRow", () => {
-  it("formats each rate to one decimal", () => {
-    const cells = computeSalesRow({
-      callsOnCalendar: "12",
-      callsTaken: "7",
-      qualified: "3",
-      closed: "1",
-    });
-    expect(cells.showUpPct).toBe("58.3%");
-    expect(cells.qualifiedPct).toBe("42.9%");
-    expect(cells.closePct).toBe("14.3%");
-    expect(cells.closeFromQualifiedPct).toBe("33.3%");
+  it("renders a day with no meetings entirely blank", () => {
+    // Not zeroes. An empty row is "nothing was booked"; a row of zeroes reads
+    // like a day that was worked and produced nothing.
+    const cells = computeSalesRow(null);
+    expect(Object.values(cells).every((v) => v === "")).toBe(true);
+    expect(Object.values(computeSalesRow(day())).every((v) => v === "")).toBe(true);
   });
 
-  it("renders a plain hyphen for a rate with no denominator", () => {
-    const cells = computeSalesRow({});
-    expect(cells.showUpPct).toBe("-");
-    expect(cells.showUpPct).not.toContain("—");
+  it("writes the counts and the rates for a day that had meetings", () => {
+    const cells = computeSalesRow(
+      day({
+        onCalendar: 3,
+        decided: 2,
+        taken: 2,
+        qualified: 1,
+        closed: 1,
+        awaiting: 1,
+        cash: 4500,
+        names: ["Acme Roofing", "Baker Co", "Nolan Bros"],
+      }),
+    );
+    expect(cells.onCalendar).toBe("3");
+    expect(cells.taken).toBe("2");
+    expect(cells.awaiting).toBe("1");
+    expect(cells.showUpPct).toBe("100.0%");
+    expect(cells.closePct).toBe("50.0%");
+    expect(cells.cash).toBe("$4,500");
+    expect(cells.names).toBe("Acme Roofing, Baker Co +1");
+  });
+
+  it("leaves a clean day's exception columns blank rather than zeroed", () => {
+    // Cancelled and Awaiting are exceptions, not measurements: a day with
+    // neither should read as clean, not as two zeroes to scan past.
+    const cells = computeSalesRow(day({ onCalendar: 2, decided: 2, taken: 2 }));
+    expect(cells.cancelled).toBe("");
+    expect(cells.awaiting).toBe("");
+    // A measured zero still prints: nobody closed, and that is a fact.
+    expect(cells.closed).toBe("0");
+  });
+});
+
+describe("formatNames", () => {
+  it("lists a short day in full and truncates a long one with a count", () => {
+    expect(formatNames([])).toBe("");
+    expect(formatNames(["Acme"])).toBe("Acme");
+    expect(formatNames(["Acme", "Baker"])).toBe("Acme, Baker");
+    expect(formatNames(["Acme", "Baker", "Nolan", "Fox"])).toBe("Acme, Baker +2");
+  });
+});
+
+describe("isDayWorked", () => {
+  it("counts a day that had a meeting on the calendar, cancelled or not", () => {
+    expect(isDayWorked(countsFor(day({ onCalendar: 1, cancelled: 1 })))).toBe(true);
+    expect(isDayWorked(emptyCounts())).toBe(false);
+  });
+});
+
+describe("computeSalesRollup", () => {
+  const days = [
+    day({ onCalendar: 2, decided: 2, taken: 2, qualified: 2, closed: 1, cash: 3000 }),
+    day({
+      onCalendar: 4,
+      cancelled: 1,
+      awaiting: 1,
+      decided: 2,
+      taken: 1,
+      qualified: 1,
+      closed: 1,
+      cash: 1500,
+    }),
+  ];
+
+  it("totals the counts across the month", () => {
+    const { totals } = computeSalesRollup(days);
+    expect(totals.onCalendar).toBe(6);
+    expect(totals.decided).toBe(4);
+    expect(totals.taken).toBe(3);
+    expect(totals.closed).toBe(2);
+    expect(totals.cash).toBe(4500);
+  });
+
+  it("computes the footer rates from the month's totals, not the day averages", () => {
+    // 3 taken of 4 decided = 75%. Close rate is the one that proves totals were
+    // used: 2/3 = 66.7%, where averaging the two days' own rates (50% and 100%)
+    // would say 75%.
+    const { total, rates } = computeSalesRollup(days);
+    expect(rates.closePct).toBeCloseTo(66.67, 1);
+    expect(total.closePct).toBe("66.7%");
+    expect(total.showUpPct).toBe("75.0%");
+  });
+
+  it("averages per WORKED day, not per calendar day", () => {
+    const rollup = computeSalesRollup([...days, day(), day(), day()]);
+    expect(rollup.workedDays).toBe(2);
+    // 6 meetings over the 2 days that had any, not over all 5 rows.
+    expect(rollup.average.onCalendar).toBe("3.0");
+  });
+
+  it("survives a month with nothing in it", () => {
+    const rollup = computeSalesRollup([]);
+    expect(rollup.workedDays).toBe(0);
+    expect(rollup.totals.onCalendar).toBe(0);
+    // No denominator anywhere, so every rate is "-" rather than a flattering 0%.
+    expect(rollup.total.showUpPct).toBe("-");
+    expect(rollup.total.closePct).toBe("-");
   });
 });
 
@@ -142,87 +200,6 @@ describe("formatMoney", () => {
     expect(formatMoney(4500)).toBe("$4,500");
     expect(formatMoney(4500.5)).toBe("$4,500.50");
     expect(formatMoney(0)).toBe("$0");
-  });
-
-  it("renders a plain hyphen for null", () => {
     expect(formatMoney(null)).toBe("-");
-  });
-});
-
-describe("isSalesRowFilled", () => {
-  it("counts a day with any number in it", () => {
-    expect(isSalesRowFilled({ callsTaken: "3" })).toBe(true);
-    expect(isSalesRowFilled({ cashCollected: "500" })).toBe(true);
-  });
-
-  it("does not count an empty day or a notes-only day", () => {
-    expect(isSalesRowFilled({})).toBe(false);
-    expect(isSalesRowFilled({ callsTaken: "  " })).toBe(false);
-    // A note without numbers is not a logged day of selling.
-    expect(isSalesRowFilled({ notes: "out sick" })).toBe(false);
-  });
-});
-
-describe("computeSalesRollup", () => {
-  const rows: TrackerRow[] = [
-    {
-      callsOnCalendar: "10",
-      rescheduledCancelled: "2",
-      callsTaken: "8",
-      qualified: "5",
-      closed: "2",
-      cashCollected: "9000",
-    },
-    {
-      callsOnCalendar: "6",
-      rescheduledCancelled: "1",
-      callsTaken: "4",
-      qualified: "2",
-      closed: "1",
-      cashCollected: "3000",
-    },
-    {}, // an unlogged day
-  ];
-
-  it("totals every numeric column", () => {
-    const { total, totals } = computeSalesRollup(rows);
-    expect(totals.callsOnCalendar).toBe(16);
-    expect(totals.callsTaken).toBe(12);
-    expect(totals.closed).toBe(3);
-    expect(total.callsTaken).toBe("12");
-    expect(total.cashCollected).toBe("$12,000");
-  });
-
-  it("averages over logged days only, not the calendar", () => {
-    const { average, filledDays } = computeSalesRollup(rows);
-    expect(filledDays).toBe(2);
-    expect(average.callsTaken).toBe("6.0"); // 12 / 2, not 12 / 3
-    expect(average.cashCollected).toBe("$6,000");
-  });
-
-  it("computes the footer rates from the month totals, not an average of rates", () => {
-    // Averaging the daily close rates (25% and 25%) happens to agree here, so
-    // use show-up, where the two differ: 12/16 = 75%, while the daily rates are
-    // 80% and 66.7% (mean 73.3%).
-    const { total, rates } = computeSalesRollup(rows);
-    expect(rates.showUpPct).toBe(75);
-    expect(total.showUpPct).toBe("75.0%");
-    expect(total.closeFromQualifiedPct).toBe("42.9%"); // 3 / 7
-  });
-
-  it("leaves the rate columns blank on the Average row", () => {
-    const { average } = computeSalesRollup(rows);
-    expect(average.showUpPct).toBeUndefined();
-    expect(average.closePct).toBeUndefined();
-  });
-
-  it("survives an entirely empty month without dividing by zero", () => {
-    const { average, total, rates, filledDays } = computeSalesRollup([{}, {}]);
-    expect(filledDays).toBe(0);
-    expect(average.callsTaken).toBe("-");
-    expect(average.cashCollected).toBe("-");
-    expect(total.callsTaken).toBe("0");
-    expect(total.showUpPct).toBe("-");
-    expect(rates.showUpPct).toBeNull();
   });
 });

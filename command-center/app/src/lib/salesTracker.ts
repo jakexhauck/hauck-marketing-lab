@@ -2,76 +2,75 @@
 // the shared daily-funnel tracker (the generic month/rollup engine is in
 // ./trackerMonth, the view is components/admin/tracker/DailyTracker).
 //
+// THE GRID IS A REPORT, NOT A FORM. Every count here is derived from the
+// meetings themselves (functions/lib/salesDataRollup.ts, one row per meeting in
+// public.sales_calls). It used to be typed by hand, which meant the same month
+// had two answers: the one somebody counted and the one the outcomes on Sales
+// Calls already knew. Nothing on this page can be typed any more, so the two
+// can no longer disagree.
+//
 // Kept pure and out of the component so the four rates that describe how the
 // agency actually sells can be unit-tested directly. Nothing here invents a
-// number: every rate divides two counts a human typed, and a rate whose
-// denominator is 0 is null (rendered "-"), never a flattering 0%.
-//
-// The column keys are the API's camelCase field names on purpose, so a cell edit
-// carries straight through to the PATCH body with no second mapping to keep in
-// sync.
+// number: every rate divides two counts that came off real meetings, and a rate
+// whose denominator is 0 is null (rendered "-"), never a flattering 0%.
 
-import type {
-  TrackerColumn,
-  TrackerRow,
-  RollupCells,
-} from "../components/admin/tracker/DailyTracker";
-import {
-  toInt,
-  pct,
-  formatPct,
-  formatNum,
-  rollupColumn,
-  countFilledDays,
-} from "./trackerMonth";
+import type { TrackerColumn, RollupCells } from "../components/admin/tracker/DailyTracker";
+import type { DerivedSalesDay } from "../../functions/lib/salesDataRollup";
+import { pct, formatPct, formatNum, safeDivide } from "./trackerMonth";
 
-// The fields a human types, in table order. Everything else on the row is
-// derived.
-export const SALES_INPUT_FIELDS = [
-  "callsOnCalendar",
-  "rescheduledCancelled",
-  "callsTaken",
-  "qualified",
-  "closed",
-  "cashCollected",
-  "notes",
-] as const;
-
-// The numeric ones, which is what the footer totals and averages.
+// The numeric columns, which is what the footer totals and averages.
 export const SALES_NUMERIC_FIELDS = [
-  "callsOnCalendar",
-  "rescheduledCancelled",
-  "callsTaken",
+  "onCalendar",
+  "cancelled",
+  "awaiting",
+  "taken",
   "qualified",
   "closed",
-  "cashCollected",
+  "cash",
 ] as const;
+
+export type SalesNumericField = (typeof SALES_NUMERIC_FIELDS)[number];
 
 // Table order: each computed rate sits immediately right of the count that
-// produces it, so the funnel reads left to right (booked -> showed -> qualified
-// -> closed -> cash).
+// produces it, so the funnel reads left to right (on the calendar -> taken ->
+// qualified -> closed -> cash).
+//
+// Every column is "computed": the shared tracker renders a computed cell as
+// read-only text, which is exactly what a derived grid is. No column is
+// "input", so there is nothing on this page to type into.
 export const SALES_COLUMNS: TrackerColumn[] = [
-  { key: "callsOnCalendar", label: "On Calendar", kind: "input" },
-  { key: "rescheduledCancelled", label: "Resched / Cancel", kind: "input" },
-  { key: "callsTaken", label: "Taken", kind: "input" },
+  { key: "onCalendar", label: "On Calendar", kind: "computed" },
+  { key: "cancelled", label: "Cancelled", kind: "computed" },
+  // Meetings whose outcome nobody has recorded. It sits BEFORE Taken on
+  // purpose: it is the reason a day's Taken can be lower than its calendar, and
+  // reading it after the rates would be finding out too late.
+  { key: "awaiting", label: "Awaiting", kind: "computed" },
+  { key: "taken", label: "Taken", kind: "computed" },
   { key: "showUpPct", label: "Show-Up %", kind: "computed" },
-  { key: "qualified", label: "Qualified", kind: "input" },
+  { key: "qualified", label: "Qualified", kind: "computed" },
   { key: "qualifiedPct", label: "Qual %", kind: "computed" },
-  { key: "closed", label: "Closed", kind: "input" },
+  { key: "closed", label: "Closed", kind: "computed" },
   { key: "closePct", label: "Close %", kind: "computed" },
   { key: "closeFromQualifiedPct", label: "Close % (Qual)", kind: "computed" },
-  { key: "cashCollected", label: "Cash", kind: "input" },
-  { key: "notes", label: "Notes", kind: "text" },
+  { key: "cash", label: "Cash", kind: "computed" },
+  // Who the day's meetings were with, so a number on this row can be traced to
+  // a name without opening another page.
+  { key: "names", label: "Meetings", kind: "computed" },
 ];
 
-// One day's typed counts, parsed.
+// One day's counts, as the table holds them.
 export interface SalesCounts {
-  callsOnCalendar: number;
-  rescheduledCancelled: number;
-  callsTaken: number;
+  onCalendar: number;
+  cancelled: number;
+  awaiting: number;
+  // Meetings with an outcome recorded. Not a column of its own (it is
+  // onCalendar minus cancelled minus awaiting), but it is the denominator for
+  // show-up %, so it is carried rather than re-derived at each use.
+  decided: number;
+  taken: number;
   qualified: number;
   closed: number;
-  cashCollected: number;
+  cash: number;
 }
 
 // The four rates. null means "no denominator yet", not zero.
@@ -82,38 +81,49 @@ export interface SalesRates {
   closeFromQualifiedPct: number | null;
 }
 
-// Parse a money cell as typed: tolerate "$4,500.00" the same way the endpoint
-// does, so the live footer matches what gets stored.
-export function toMoney(value: string | number | null | undefined): number {
-  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-  const cleaned = String(value ?? "").trim().replace(/[$,\s]/g, "");
-  if (!cleaned) return 0;
-  const n = Number(cleaned);
-  return Number.isFinite(n) ? n : 0;
-}
-
-export function readCounts(row: TrackerRow): SalesCounts {
+export function emptyCounts(): SalesCounts {
   return {
-    callsOnCalendar: toInt(row.callsOnCalendar),
-    rescheduledCancelled: toInt(row.rescheduledCancelled),
-    callsTaken: toInt(row.callsTaken),
-    qualified: toInt(row.qualified),
-    closed: toInt(row.closed),
-    cashCollected: toMoney(row.cashCollected),
+    onCalendar: 0,
+    cancelled: 0,
+    awaiting: 0,
+    decided: 0,
+    taken: 0,
+    qualified: 0,
+    closed: 0,
+    cash: 0,
   };
 }
 
 // The funnel, in one place.
-//   Show-Up %   calls taken / calls on the calendar
-//   Qualified % qualified / calls taken
-//   Close %     closed / calls taken            (overall close rate)
-//   Close % Q   closed / qualified              (close rate once qualified)
+//   Show-Up %   taken / DECIDED, not / on the calendar. A meeting nobody has
+//               recorded yet is not a no-show, and dividing by the whole
+//               calendar would quietly count it as one. This is the same rule
+//               the Sales Calls funnel uses (functions/lib/salesCalls.ts:
+//               showRate), which is what makes the two pages agree.
+//   Qualified % qualified / taken
+//   Close %     closed / taken       (close rate over everyone who turned up)
+//   Close % Q   closed / qualified   (close rate once qualified)
 export function salesRates(counts: SalesCounts): SalesRates {
   return {
-    showUpPct: pct(counts.callsTaken, counts.callsOnCalendar),
-    qualifiedPct: pct(counts.qualified, counts.callsTaken),
-    closePct: pct(counts.closed, counts.callsTaken),
+    showUpPct: pct(counts.taken, counts.decided),
+    qualifiedPct: pct(counts.qualified, counts.taken),
+    closePct: pct(counts.closed, counts.taken),
     closeFromQualifiedPct: pct(counts.closed, counts.qualified),
+  };
+}
+
+// A derived day -> the counts the table reads. Kept as its own step so the
+// wire shape and the table's shape can move independently.
+export function countsFor(day: DerivedSalesDay): SalesCounts {
+  return {
+    onCalendar: day.onCalendar,
+    cancelled: day.cancelled,
+    awaiting: day.awaiting,
+    decided: day.decided,
+    taken: day.taken,
+    qualified: day.qualified,
+    closed: day.closed,
+    cash: day.cash,
   };
 }
 
@@ -132,20 +142,51 @@ export function formatMoney(value: number | null): string {
   });
 }
 
-// A day is "logged" if any numeric cell has something in it. Averages divide by
-// this count, so an unworked weekend never drags the per-day average down.
-export function isSalesRowFilled(row: TrackerRow): boolean {
-  return SALES_NUMERIC_FIELDS.some((f) => String(row[f] ?? "").trim() !== "");
+// The day's meetings as one cell: "Acme Roofing, Baker Co". Truncated with a
+// count rather than running the column off the page.
+const NAMES_SHOWN = 2;
+
+export function formatNames(names: string[]): string {
+  if (names.length === 0) return "";
+  if (names.length <= NAMES_SHOWN) return names.join(", ");
+  return `${names.slice(0, NAMES_SHOWN).join(", ")} +${names.length - NAMES_SHOWN}`;
 }
 
-// The computed cells for one table row.
-export function computeSalesRow(row: TrackerRow): RollupCells {
-  const rates = salesRates(readCounts(row));
+// A day is "logged" if a meeting sat on the calendar for it. Averages divide by
+// this count, so a weekend with no selling on it never drags the per-day
+// average down.
+export function isDayWorked(counts: SalesCounts): boolean {
+  return counts.onCalendar > 0;
+}
+
+// The computed cells for one table row. A day with no meetings on it renders
+// entirely blank: an empty row is an honest "nothing was booked", where a row of
+// zeroes reads like a day that was worked and produced nothing.
+export function computeSalesRow(day: DerivedSalesDay | null): RollupCells {
+  if (!day || day.onCalendar === 0) {
+    const blank: RollupCells = {};
+    for (const c of SALES_COLUMNS) blank[c.key] = "";
+    return blank;
+  }
+
+  const counts = countsFor(day);
+  const rates = salesRates(counts);
   return {
+    onCalendar: formatNum(counts.onCalendar),
+    // Zero is left blank on the two columns that are exceptions rather than
+    // measurements: a day with nothing cancelled and nothing outstanding should
+    // read as a clean day, not as two zeroes to scan past.
+    cancelled: counts.cancelled ? formatNum(counts.cancelled) : "",
+    awaiting: counts.awaiting ? formatNum(counts.awaiting) : "",
+    taken: formatNum(counts.taken),
     showUpPct: formatPct(rates.showUpPct),
+    qualified: formatNum(counts.qualified),
     qualifiedPct: formatPct(rates.qualifiedPct),
+    closed: formatNum(counts.closed),
     closePct: formatPct(rates.closePct),
     closeFromQualifiedPct: formatPct(rates.closeFromQualifiedPct),
+    cash: counts.cash ? formatMoney(counts.cash) : "",
+    names: formatNames(day.names),
   };
 }
 
@@ -155,49 +196,50 @@ export interface SalesRollup {
   // The month's totals and month-to-date rates, for the stat tiles.
   totals: SalesCounts;
   rates: SalesRates;
-  filledDays: number;
+  // Days that had at least one meeting on the calendar.
+  workedDays: number;
 }
 
 // The sticky footer plus everything the stat tiles need.
 //
 // The rate cells on the Total row are computed from the month's TOTALS, not
-// averaged across days: a 4-call day that closed 1 and a 40-call day that closed
-// 4 are not each "worth" the same close rate. The Average row leaves the rate
-// columns blank rather than print a second, subtly different number next to
-// them.
-export function computeSalesRollup(rows: TrackerRow[]): SalesRollup {
-  const counts = rows.map(readCounts);
-  const filledDays = countFilledDays(rows, isSalesRowFilled);
+// averaged across days: a 1-meeting day that closed 1 and a 10-meeting day that
+// closed 4 are not each "worth" the same close rate. The Average row leaves the
+// rate columns blank rather than print a second, subtly different number next
+// to them.
+export function computeSalesRollup(days: DerivedSalesDay[]): SalesRollup {
+  const counts = days.map(countsFor);
+  const workedDays = counts.filter(isDayWorked).length;
+
+  const totals = emptyCounts();
+  for (const c of counts) {
+    totals.onCalendar += c.onCalendar;
+    totals.cancelled += c.cancelled;
+    totals.awaiting += c.awaiting;
+    totals.decided += c.decided;
+    totals.taken += c.taken;
+    totals.qualified += c.qualified;
+    totals.closed += c.closed;
+    totals.cash += c.cash;
+  }
 
   const average: RollupCells = {};
   const total: RollupCells = {};
-
   for (const field of SALES_NUMERIC_FIELDS) {
-    const roll = rollupColumn(
-      counts.map((c) => c[field]),
-      filledDays,
-    );
-    const money = field === "cashCollected";
-    average[field] = money
-      ? formatMoney(roll.average)
-      : formatNum(roll.average, 1);
-    total[field] = money ? formatMoney(roll.total) : formatNum(roll.total);
+    const sum = totals[field];
+    const money = field === "cash";
+    // Per WORKED day, not per calendar day: dividing a month's meetings by 31
+    // describes a diary, not a sales week.
+    const mean = safeDivide(sum, workedDays);
+    average[field] = money ? (mean === null ? "" : formatMoney(mean)) : formatNum(mean, 1);
+    total[field] = money ? formatMoney(sum) : formatNum(sum);
   }
 
-  const totals: SalesCounts = {
-    callsOnCalendar: counts.reduce((s, c) => s + c.callsOnCalendar, 0),
-    rescheduledCancelled: counts.reduce((s, c) => s + c.rescheduledCancelled, 0),
-    callsTaken: counts.reduce((s, c) => s + c.callsTaken, 0),
-    qualified: counts.reduce((s, c) => s + c.qualified, 0),
-    closed: counts.reduce((s, c) => s + c.closed, 0),
-    cashCollected: counts.reduce((s, c) => s + c.cashCollected, 0),
-  };
   const rates = salesRates(totals);
-
   total.showUpPct = formatPct(rates.showUpPct);
   total.qualifiedPct = formatPct(rates.qualifiedPct);
   total.closePct = formatPct(rates.closePct);
   total.closeFromQualifiedPct = formatPct(rates.closeFromQualifiedPct);
 
-  return { average, total, totals, rates, filledDays };
+  return { average, total, totals, rates, workedDays };
 }

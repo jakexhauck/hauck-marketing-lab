@@ -4,52 +4,59 @@ import {
   findStage,
   missingStages,
   normalizeStageName,
+  pickSalesPipeline,
   requiredStages,
   routeFor,
   SALES_STAGES,
 } from "./salesPipeline";
 
-// The live Sales Pipeline as it actually read on 2026-07-27. Note the tail on
-// "Not Interested/Unqualified": the plan written the day before called it
-// "Not Interested", which is the whole reason findStage tolerates a suffix.
+// The live board on 2026-07-29, with the Follow Up stage Jake is adding for the
+// follow-up button. Note the tail on "Not Interested/Unqualified": the plan
+// called it "Not Interested", which is the whole reason findStage tolerates a
+// suffix.
 const LIVE_STAGES = [
-  { id: "e1ab", name: "New Lead" },
+  { id: "1540", name: "Demo Call Booked" },
   { id: "b753", name: "Not Interested/Unqualified" },
-  { id: "1540", name: "Appointment Booked" },
-  { id: "3991", name: "Appointment Showed" },
   { id: "c3da", name: "No-Show" },
+  { id: "f001", name: "Follow Up" },
+  { id: "cl01", name: "Closed" },
+  { id: "on01", name: "Onboarding Call Booked" },
   { id: "2397", name: "New Client" },
 ];
 
 describe("routeFor", () => {
-  it("sends a close to New Client and marks it won", () => {
-    expect(routeFor("closed")).toMatchObject({
-      stage: SALES_STAGES.newClient,
-      status: "won",
-    });
+  // NOTHING here is written to GoHighLevel. Since the tag rebuild the app
+  // applies a tag and Jake's workflow moves the card; this table only says
+  // where each outcome is EXPECTED to end up, so the console can report a board
+  // that has drifted from the buttons.
+
+  it("expects a close in Closed, not in New Client", () => {
+    // New Client comes after onboarding is booked. A close that jumped straight
+    // there would skip two stages of Jake's own process.
+    expect(routeFor("closed").stage).toBe(SALES_STAGES.closed);
+    expect(Object.values(SALES_STAGES)).not.toContain("New Client");
   });
 
-  it("sends a not-a-fit to Not Interested and marks it lost", () => {
-    expect(routeFor("not_a_fit")).toMatchObject({
-      stage: SALES_STAGES.notInterested,
-      status: "lost",
-    });
+  it("expects a follow-up in Follow Up, and names no retired stage", () => {
+    // Every one of these was on the board at some point in July and is not now.
+    // Expecting a stage that no longer exists is how a button silently stops.
+    expect(routeFor("follow_up").stage).toBe(SALES_STAGES.followUp);
+    for (const retired of ["Appointment Showed", "Appointment Booked", "No-Close"]) {
+      expect(Object.values(SALES_STAGES)).not.toContain(retired);
+    }
   });
 
-  it("leaves a no-show OPEN, because they can be re-booked", () => {
-    expect(routeFor("no_show")).toMatchObject({
-      stage: SALES_STAGES.noShow,
-      status: "open",
-    });
+  it("sends both nos to the one column, told apart by their LABEL", () => {
+    // The board has a single "Not Interested/Unqualified" column, so the stage
+    // cannot distinguish them; the tag does. Their labels therefore have to
+    // differ, or the two buttons would be indistinguishable on screen.
+    expect(routeFor("not_interested").stage).toBe(SALES_STAGES.notInterested);
+    expect(routeFor("not_qualified").stage).toBe(SALES_STAGES.notInterested);
+    expect(routeFor("not_interested").label).not.toBe(routeFor("not_qualified").label);
   });
 
-  it("puts a follow-up on Appointment Showed, still open", () => {
-    // They turned up. That is the fact the board should carry, and the deal is
-    // not decided either way.
-    expect(routeFor("follow_up")).toMatchObject({
-      stage: SALES_STAGES.showed,
-      status: "open",
-    });
+  it("expects a no-show in No-Show", () => {
+    expect(routeFor("no_show").stage).toBe(SALES_STAGES.noShow);
   });
 
   it("falls back to the booking stage when nothing has been decided", () => {
@@ -58,11 +65,14 @@ describe("routeFor", () => {
     expect(BOOKING_ROUTE.stage).toBe(SALES_STAGES.booked);
   });
 
-  it("never marks a showed-but-undecided meeting won", () => {
-    // A show rate turning into a close rate is the exact failure 0057 was
-    // shaped to prevent; it must not come back in through the pipeline.
-    expect(routeFor("follow_up").status).not.toBe("won");
-    expect(routeFor("no_show").status).not.toBe("won");
+  it("asserts no won/lost status anywhere", () => {
+    // The app used to set won/lost alongside the stage. It sets neither now:
+    // status is the workflow's to decide, and two systems deciding it is how a
+    // report and a board start disagreeing.
+    expect(BOOKING_ROUTE).not.toHaveProperty("status");
+    for (const outcome of ["closed", "follow_up", "not_interested", "not_qualified", "no_show"] as const) {
+      expect(routeFor(outcome)).not.toHaveProperty("status");
+    }
   });
 });
 
@@ -113,7 +123,8 @@ describe("findStage", () => {
   });
 
   it("returns null for a stage that is not on the board", () => {
-    expect(findStage(LIVE_STAGES, "Follow Up")).toBeNull();
+    // "Appointment Showed" was on this board in July and is not any more.
+    expect(findStage(LIVE_STAGES, "Appointment Showed")).toBeNull();
   });
 
   it("returns null for an empty board and an empty name", () => {
@@ -123,24 +134,85 @@ describe("findStage", () => {
 });
 
 describe("requiredStages / missingStages", () => {
-  it("lists the five stages the app is capable of writing, without repeats", () => {
+  it("lists each expected stage once, with the shared no-column not repeated", () => {
     const required = requiredStages();
     expect(required).toEqual([...new Set(required)]);
     expect(required).toContain(SALES_STAGES.booked);
-    expect(required).toContain(SALES_STAGES.showed);
-    expect(required).toContain(SALES_STAGES.noShow);
-    expect(required).toContain(SALES_STAGES.newClient);
+    expect(required).toContain(SALES_STAGES.followUp);
     expect(required).toContain(SALES_STAGES.notInterested);
-    // New Lead is on the board and the app never writes it.
-    expect(required).not.toContain(SALES_STAGES.newLead);
+    expect(required).toContain(SALES_STAGES.noShow);
+    expect(required).toContain(SALES_STAGES.closed);
+    // Two outcomes point at it; it is named once.
+    expect(required.filter((r) => r === SALES_STAGES.notInterested)).toHaveLength(1);
   });
 
-  it("finds nothing missing on the real board", () => {
+  it("finds nothing missing on the live board as Jake rebuilt it", () => {
     expect(missingStages(LIVE_STAGES)).toEqual([]);
   });
 
-  it("names the stage a stripped-down board cannot carry", () => {
-    const stripped = LIVE_STAGES.filter((s) => s.name !== "No-Show");
-    expect(missingStages(stripped)).toEqual(["No-Show"]);
+  it("names a stage the board has lost", () => {
+    const before = LIVE_STAGES.filter((s) => s.name !== "Follow Up");
+    expect(missingStages(before)).toEqual(["Follow Up"]);
+  });
+});
+
+describe("pickSalesPipeline", () => {
+  // The four boards on the live agency account, 2026-07-29. The Sales board was
+  // called "Sales Pipeline" when this file was written and is called "Sales"
+  // now, which is the whole reason the short name is accepted.
+  const LIVE_BOARDS = [
+    { id: "Lwzn", name: "Cold Calling" },
+    { id: "Hr5i", name: "Cold SMS" },
+    { id: "qjwU", name: "Main" },
+    { id: "Faxu", name: "Sales" },
+  ];
+
+  it("finds the board on the live account, which is called Sales", () => {
+    expect(pickSalesPipeline(LIVE_BOARDS)?.id).toBe("Faxu");
+  });
+
+  it("still finds it under its old, longer name", () => {
+    expect(pickSalesPipeline([...LIVE_BOARDS, { id: "old", name: "Sales Pipeline" }])?.id).toBe(
+      "old",
+    );
+  });
+
+  it("prefers the long name when both are on the account", () => {
+    // Two boards both plausibly the one. The name this app was written against
+    // wins, rather than whichever GoHighLevel happened to return first.
+    const both = [
+      { id: "short", name: "Sales" },
+      { id: "long", name: "Sales Pipeline" },
+    ];
+    expect(pickSalesPipeline(both)?.id).toBe("long");
+    expect(pickSalesPipeline(both.slice().reverse())?.id).toBe("long");
+  });
+
+  it("finds a long name the account has added a qualifier to", () => {
+    expect(pickSalesPipeline([{ id: "q", name: "Sales Pipeline (2026)" }])?.id).toBe("q");
+  });
+
+  it("does not let a board that merely starts with Sales answer for it", () => {
+    // The short name is exact-only on purpose: picking the wrong board is how
+    // cards land somewhere nobody is looking.
+    expect(pickSalesPipeline([{ id: "c", name: "Sales Calls" }])).toBeNull();
+    expect(pickSalesPipeline([{ id: "t", name: "Sales Team" }])).toBeNull();
+  });
+
+  it("ignores case and punctuation, like every other name match here", () => {
+    expect(pickSalesPipeline([{ id: "s", name: "SALES 💰" }])?.id).toBe("s");
+  });
+
+  it("returns null when no board on the account is the Sales board", () => {
+    expect(pickSalesPipeline(LIVE_BOARDS.slice(0, 3))).toBeNull();
+    expect(pickSalesPipeline([])).toBeNull();
+  });
+
+  it("refuses to guess between two qualified long names", () => {
+    const two = [
+      { id: "a", name: "Sales Pipeline 2025" },
+      { id: "b", name: "Sales Pipeline 2026" },
+    ];
+    expect(pickSalesPipeline(two)).toBeNull();
   });
 });

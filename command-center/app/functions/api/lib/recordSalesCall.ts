@@ -3,7 +3,7 @@ import type { Env } from "../../lib/env";
 import { logAdminAction } from "../../lib/adminAuth";
 import { getAgencyGhlContext, AgencyGhlError } from "../../lib/agencyGhl";
 import { SALES_CALL_OUTCOMES, isSalesCallOutcome } from "../../lib/salesCalls";
-import { resolveAgencySalesPipeline, routeSalesCall } from "./agencySales";
+import { createFollowUpTask, pushSalesCallTag } from "./salesCallPush";
 
 // Recording what a sales meeting became, in one place.
 //
@@ -21,10 +21,11 @@ import { resolveAgencySalesPipeline, routeSalesCall } from "./agencySales";
 //      calendar cannot have happened, so there is no way to type one into
 //      being from an outcome button.
 //
-// New in Stage 2: after the row is written, the card moves on the agency's own
-// Sales Pipeline. That push is BEST EFFORT and deliberately after the write.
-// The meeting is over by the time anybody presses a button; failing the request
-// because a CRM was unreachable would throw away the answer somebody just gave.
+// After the row is written, the contact is TAGGED in the agency's own
+// GoHighLevel, and Jake's workflow moves the card from there. That push is BEST
+// EFFORT and deliberately after the write: the meeting is over by the time
+// anybody presses a button, and failing the request because a CRM was
+// unreachable would throw away the answer somebody just gave.
 
 export interface AdminRef {
   id: string;
@@ -48,6 +49,9 @@ export interface MeetingRow {
   ghl_opportunity_id: string | null;
   ghl_error: string | null;
   ghl_stage: string | null;
+  // The sc tag last applied for this meeting (0065). What the app actually
+  // wrote, now that it writes no stage.
+  ghl_tag: string | null;
   lead_id: string | null;
   prospect_name: string;
   business_name: string;
@@ -56,6 +60,10 @@ export interface MeetingRow {
   source: string;
   scheduled_at: string | null;
   appointment_status: string;
+  // Which calendar this meeting was booked under (0066). Null on rows written
+  // before it; the next sync fills them.
+  calendar_id: string | null;
+  calendar_name: string | null;
   outcome: string | null;
   not_a_fit_reason: string | null;
   follow_up_at: string | null;
@@ -69,8 +77,10 @@ export interface MeetingRow {
 // meeting, and whose prospect it is lives on the lead.
 export const MEETING_SELECT =
   "id, ghl_appointment_id, ghl_contact_id, ghl_opportunity_id, ghl_error, ghl_stage," +
+  " ghl_tag," +
   " lead_id, prospect_name, business_name, phone, email, source, scheduled_at," +
-  " appointment_status, outcome, not_a_fit_reason, follow_up_at, cash_collected," +
+  " appointment_status, calendar_id, calendar_name," +
+  " outcome, not_a_fit_reason, follow_up_at, cash_collected," +
   " synced_at, updated_at, leads(assigned_to)";
 
 export function shapeMeeting(row: MeetingRow) {
@@ -79,8 +89,11 @@ export function shapeMeeting(row: MeetingRow) {
     appointmentId: row.ghl_appointment_id,
     contactId: row.ghl_contact_id,
     opportunityId: row.ghl_opportunity_id,
-    // What the board says, and why it might not say it.
+    // What was written to the CRM, and why it might not have been. crmStage is
+    // historic: nothing has asserted a stage since 0065, so a row recorded
+    // since then carries a tag instead.
     crmStage: row.ghl_stage,
+    crmTag: row.ghl_tag,
     crmError: row.ghl_error,
     leadId: row.lead_id,
     prospectName: row.prospect_name,
@@ -90,6 +103,8 @@ export function shapeMeeting(row: MeetingRow) {
     source: row.source,
     scheduledAt: row.scheduled_at,
     appointmentStatus: row.appointment_status,
+    calendarId: row.calendar_id,
+    calendarName: row.calendar_name,
     outcome: row.outcome,
     notAFitReason: row.not_a_fit_reason,
     followUpAt: row.follow_up_at,
@@ -104,24 +119,22 @@ function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
-// Push the card to where the outcome says it belongs. Never throws: every
-// failure comes back as a sentence to store on the row and show on the page.
-async function pushToPipeline(
+// Tell GoHighLevel what happened: ONE tag on the contact, and the cash figure
+// on the card when a deal closed. Never throws: every failure comes back as a
+// sentence to store on the row and show on the page.
+//
+// This used to move the card itself. It does not any more
+// (docs/build-plans/sales-call-tags.md): Jake's workflow reads the tag and
+// moves the opportunity, which is the same arrangement the Setter Suite and
+// Cold Call already run on.
+async function pushOutcome(
   env: Env,
   row: MeetingRow,
   outcome: keyof typeof SALES_CALL_OUTCOMES,
   cash: number | null,
-): Promise<{ opportunityId: string | null; stage: string | null; error: string | null }> {
-  if (!row.ghl_contact_id) {
-    // A meeting synced off a calendar can arrive without one. Not an error
-    // worth alarming anybody about; there is simply nobody to hang a card on.
-    return {
-      opportunityId: row.ghl_opportunity_id,
-      stage: row.ghl_stage,
-      error: "No GoHighLevel contact on this meeting, so no card was moved.",
-    };
-  }
-
+  // The agreed return date as an ISO string, on a follow-up only.
+  followUpAt: string | null,
+): Promise<{ tag: string | null; opportunityId: string | null; error: string | null }> {
   let gctx;
   try {
     gctx = getAgencyGhlContext(env);
@@ -129,43 +142,38 @@ async function pushToPipeline(
     if (err instanceof AgencyGhlError) {
       // Not connected is a state of the install, not a fact about this meeting.
       // Recorded as null so the row does not carry a permanent complaint.
-      return { opportunityId: row.ghl_opportunity_id, stage: row.ghl_stage, error: null };
+      return { tag: null, opportunityId: row.ghl_opportunity_id, error: null };
     }
     throw err;
   }
 
-  try {
-    const pipeline = await resolveAgencySalesPipeline(gctx);
-    if (!pipeline) {
-      return {
-        opportunityId: row.ghl_opportunity_id,
-        stage: row.ghl_stage,
-        error: "No Sales Pipeline found in GoHighLevel, so the card was not moved.",
-      };
-    }
+  const result = await pushSalesCallTag(gctx, {
+    contactId: row.ghl_contact_id,
+    event: outcome,
+    cash,
+    opportunityId: row.ghl_opportunity_id,
+  });
 
-    const name =
-      [row.prospect_name, row.business_name].filter(Boolean).join(" - ") || "Sales call";
-    const result = await routeSalesCall(gctx, pipeline, {
-      opportunityId: row.ghl_opportunity_id,
+  // A promised return date becomes a real task on the contact, so it reaches
+  // whoever has to make the call rather than living only in this console.
+  let taskError: string | null = null;
+  if (outcome === "follow_up" && followUpAt && row.ghl_contact_id) {
+    taskError = await createFollowUpTask(env, gctx, {
       contactId: row.ghl_contact_id,
-      name,
-      outcome,
-      cash,
+      name: [row.prospect_name, row.business_name].filter(Boolean).join(" - "),
+      phone: row.phone,
+      followUpAt,
     });
-
-    if (!result.ok) {
-      return { opportunityId: row.ghl_opportunity_id, stage: row.ghl_stage, error: result.error };
-    }
-    return { opportunityId: result.opportunityId, stage: result.stage, error: null };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return {
-      opportunityId: row.ghl_opportunity_id,
-      stage: row.ghl_stage,
-      error: message.split("\n")[0].slice(0, 200),
-    };
   }
+  return {
+    tag: result.tag,
+    // Keep the card we already knew about when the push found none: forgetting
+    // an id because one lookup came back empty would orphan the row.
+    opportunityId: result.opportunityId ?? row.ghl_opportunity_id,
+    // The tag failing matters more than the task failing, so it is reported
+    // first; both are shown rather than one silently winning.
+    error: result.error ?? taskError,
+  };
 }
 
 export type RecordResult =
@@ -223,7 +231,14 @@ export async function recordSalesCallOutcome(
     return { ok: false, status: 404, error: "meeting not found" };
   }
 
-  const push = await pushToPipeline(env, row, outcome, outcome === "closed" ? cash : null);
+  const followUpIso = meta.needsFollowUp && followUpAt ? followUpAt.toISOString() : null;
+  const push = await pushOutcome(
+    env,
+    row,
+    outcome,
+    outcome === "closed" ? cash : null,
+    followUpIso,
+  );
 
   const { data, error } = await client
     .from("sales_calls")
@@ -232,13 +247,19 @@ export async function recordSalesCallOutcome(
       // Only ever a fit reason on a not-a-fit, and only ever a follow-up date on
       // a follow-up: an outcome changed from one to the other must not leave the
       // previous answer's detail behind, still being read as current.
-      not_a_fit_reason: outcome === "not_a_fit" ? str(body.notAFitReason) || null : null,
-      follow_up_at: meta.needsFollowUp && followUpAt ? followUpAt.toISOString() : null,
+      not_a_fit_reason: outcome === "not_qualified" ? str(body.notAFitReason) || null : null,
+      follow_up_at: followUpIso,
       // Cash rides with a close, and nothing else. See the column comment.
       cash_collected: outcome === "closed" ? cash : null,
-      qualified: meta.showed ? outcome !== "not_a_fit" : null,
+      // Turned up AND was a real prospect. not_interested still counts as
+      // qualified: they heard the pitch and said no, which is a fact about the
+      // pitch. Only not_qualified says they were never a prospect.
+      qualified: meta.showed ? outcome !== "not_qualified" : null,
       ghl_opportunity_id: push.opportunityId,
-      ghl_stage: push.stage,
+      // What was actually written to the CRM. The app asserts no stage now, so
+      // ghl_stage is left as whatever the old routing put there rather than
+      // being overwritten with a guess.
+      ghl_tag: push.tag,
       // Cleared on a success, so a stale complaint never sits beside a card
       // that is now correct.
       ghl_error: push.error,
@@ -257,8 +278,8 @@ export async function recordSalesCallOutcome(
     meetingId: id,
     outcome,
     cash,
-    routedTo: push.stage,
-    routeError: push.error,
+    tagged: push.tag,
+    pushError: push.error,
   });
 
   return { ok: true, meeting: shapeMeeting(data as unknown as MeetingRow) };

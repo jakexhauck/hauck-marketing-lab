@@ -9,7 +9,9 @@ import {
   type PillarTabDef,
 } from "../../lib/adminPillars";
 import SalesDataTracker from "../../components/admin/tracker/SalesDataTracker";
+import ColdCallDataTracker from "../../components/admin/tracker/ColdCallDataTracker";
 import SalesCallsSection from "../../components/admin/sales/SalesCallsSection";
+import SalesPipelineBoard from "../../components/admin/sales/SalesPipelineBoard";
 import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
 import TimeAuditGrid from "../../components/admin/tracker/TimeAuditGrid";
@@ -149,8 +151,14 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     // routed onto the Sales Pipeline.
     case "calls":
       return <SalesCallsSection />;
+    // The board those outcomes land on, read live and read only.
+    case "pipeline":
+      return <SalesPipelineBoard />;
     case "sales-data":
       return <SalesDataTracker />;
+    // The dialing half of the funnel, every caller at once.
+    case "cold-call-data":
+      return <ColdCallDataTracker />;
     case "business-health":
       return <BusinessHealthTab />;
     case "calculator":

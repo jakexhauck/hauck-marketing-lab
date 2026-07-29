@@ -58,6 +58,8 @@ function event(over: Partial<CalendarEvent> = {}): CalendarEvent {
     endTime: "2026-08-03T15:30:00.000Z",
     status: "confirmed",
     contactId: "c-1",
+    calendarId: "cal-demo",
+    calendarName: "Hauck Marketing Demo Call",
     contactName: "Tom Hale",
     ...over,
   };

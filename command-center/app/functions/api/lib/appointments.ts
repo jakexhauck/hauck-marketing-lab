@@ -212,6 +212,11 @@ export interface CalendarEvent {
   status: string;
   contactId: string;
   contactName: string;
+  // Which calendar this came off. Carried because the caller cannot work it out
+  // afterwards: the events of several calendars arrive as one flat list, and
+  // the Sales Calls picker needs to tell a demo call from a sales call.
+  calendarId: string;
+  calendarName: string;
 }
 
 interface RawEvent {
@@ -289,6 +294,11 @@ export async function listCalendarEvents(
         status: (ev.appointmentStatus ?? ev.status ?? "booked").toLowerCase(),
         contactId: ev.contactId ?? "",
         contactName: ev.contactName ?? "",
+        // The calendar being read on this pass. First sighting wins above, so
+        // an appointment that surfaces on two calendars is attributed to the
+        // first one read, which is the same rule its row already follows.
+        calendarId: cal.id,
+        calendarName: cal.name ?? "",
       });
     }
   }

@@ -27,6 +27,8 @@ const EV = {
   status: "booked",
   contactId: "k1",
   contactName: "Tom Beckett",
+  calendarId: "cal-1",
+  calendarName: "Home Estimate",
 };
 
 function req(query: string): Parameters<typeof onRequestGet>[0] {

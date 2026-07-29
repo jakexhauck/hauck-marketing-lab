@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getSalesCalls, recordSalesCallOutcome, type SalesMeeting } from "../lib/api";
+import {
+  getColdCallData,
+  getSalesCalls,
+  getSalesPipeline,
+  recordSalesCallOutcome,
+  type SalesMeeting,
+} from "../lib/api";
 
 // Sales > Sales Calls (0060).
 //
@@ -18,6 +24,35 @@ export function useSalesCallsQuery() {
     // re-read GoHighLevel every time.
     staleTime: 60_000,
     queryFn: () => getSalesCalls(true),
+  });
+}
+
+// Sales > Sales Pipeline: the board those outcomes land on.
+//
+// Short staleTime and a refetch on focus, matching useAgencyPipelinesQuery: the
+// cards are moved by Jake's own hands in GoHighLevel as often as by this app,
+// so a board left sitting is a board that is wrong.
+const PIPELINE_KEY = ["admin", "sales", "pipeline"];
+
+export function useSalesPipelineQuery() {
+  return useQuery({
+    queryKey: PIPELINE_KEY,
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
+    queryFn: () => getSalesPipeline(),
+  });
+}
+
+// Sales > Cold Call Data. Keyed by month so stepping back through the nav
+// caches each one rather than refetching. Nothing here reads GoHighLevel: the
+// dials are ours, already in our own database, so this is cheap and can be
+// stale for longer than the calendar-reading queries beside it.
+export function useColdCallDataQuery(month: string) {
+  return useQuery({
+    queryKey: ["admin", "tracker", "cold-call-data", month],
+    enabled: !!month,
+    staleTime: 60_000,
+    queryFn: () => getColdCallData(month),
   });
 }
 
@@ -44,6 +79,8 @@ export function useRecordSalesCallOutcome() {
       // Cold Call > Booked is the same table seen from the caller's end, so it
       // is stale the moment an outcome is recorded here.
       qc.invalidateQueries({ queryKey: ["admin", "cold-call", "meetings"] });
+      // The outcome just moved a card, so the board is a column out of date.
+      qc.invalidateQueries({ queryKey: PIPELINE_KEY });
     },
   });
 }

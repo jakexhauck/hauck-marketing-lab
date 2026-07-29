@@ -1,0 +1,297 @@
+import { useMemo, useRef } from "react";
+import { ExternalLink, RefreshCw } from "lucide-react";
+import BoardScrollbar from "../../BoardScrollbar";
+import { useSalesPipelineQuery } from "../../../hooks/useSalesCalls";
+import { ghlContactUrl, stageTone } from "../../../lib/setterModel";
+import { formatMoney, formatMoneyExact } from "../../../lib/formatMoney";
+import { timeAgo } from "../../../lib/timeAgo";
+import type { AgencyPipelineCard } from "../../../lib/api";
+
+// Sales > Sales Pipeline: the agency's own Sales board in GoHighLevel, drawn as
+// a board.
+//
+// Sales Calls is the page with a job on it. This is the page you look at: where
+// every meeting the agency has run currently stands, in the columns Jake reads
+// in the CRM, with the stage names taken verbatim so this page and that account
+// can never describe the same deal differently.
+//
+// READ ONLY, deliberately. Cards here are moved by Jake's own workflows, which
+// fire on the tags the Sales Calls buttons apply, and by his own hands in
+// GoHighLevel. A second place to drag them is how a pipeline starts disagreeing
+// with itself, so a card links out to the contact in the CRM instead of
+// offering to move it.
+//
+// Structurally the Setter Suite board (SetterBoard.tsx): a dot + name + count
+// header, a rounded well of cards, a slider under the columns that overflow.
+// The same board type deserves the same board.
+
+export default function SalesPipelineBoard() {
+  const query = useSalesPipelineQuery();
+  const data = query.data;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Read once per render pass so every "2d ago" on the board is measured from
+  // the same instant.
+  const now = Date.now();
+
+  const columns = useMemo(() => data?.columns ?? [], [data]);
+
+  // What the board is holding, counted from the cards themselves. Open only:
+  // totalling won and lost deals from three years alongside them would make the
+  // number an all-time figure wearing a pipeline's clothes.
+  const totals = useMemo(() => {
+    const cards = columns.flatMap((c) => c.cards);
+    const open = cards.filter((c) => c.status === "open");
+    const value = open.reduce((sum, c) => sum + (c.value ?? 0), 0);
+    return { deals: cards.length, openDeals: open.length, openValue: value };
+  }, [columns]);
+
+  if (query.isLoading) return <div className="pk-empty">Reading the board...</div>;
+  if (query.isError) {
+    return (
+      <div className="pk-empty">
+        Could not read the Sales board from GoHighLevel. Reload to try again.
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <StatusLine
+        configured={data?.configured ?? false}
+        pipeline={data?.pipeline ?? null}
+        truncated={data?.truncated ?? false}
+        totals={totals}
+        refreshing={query.isFetching}
+        onRefresh={() => void query.refetch()}
+      />
+
+      {columns.length === 0 ? (
+        <div className="pk-empty">
+          {data?.configured && data.pipeline
+            ? "That board has no stages, so there is nothing to draw."
+            : "No Sales board to show."}
+        </div>
+      ) : (
+        <div className="pt-1">
+          <div ref={scrollRef} className="no-scrollbar flex items-start gap-3 overflow-x-auto pb-2">
+            {columns.map((column) => {
+              // Semantic tone from the stage NAME, ignoring the CRM's own
+              // stage.color: GHL only sets it on some stages and its values are
+              // not reliably valid CSS. One rule, every column coloured.
+              const tone = stageTone(column.name);
+              return (
+                <section key={column.id} className="flex w-[280px] shrink-0 flex-col gap-2">
+                  <header className="flex items-baseline justify-between gap-2 px-1">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: tone }}
+                        aria-hidden
+                      />
+                      <span
+                        className="truncate font-display text-[14px] font-bold text-text"
+                        title={column.name}
+                      >
+                        {column.name}
+                      </span>
+                    </span>
+                    <span
+                      className="font-data shrink-0 rounded-full px-1.5 text-[12px] font-bold"
+                      style={{
+                        color: tone,
+                        background: `color-mix(in srgb, ${tone} 12%, transparent)`,
+                      }}
+                    >
+                      {column.cards.length}
+                    </span>
+                  </header>
+
+                  <div
+                    className="flex min-h-[96px] flex-col gap-2 rounded-2xl bg-surface-2 p-2"
+                    style={{ boxShadow: `inset 0 3px 0 ${tone}` }}
+                  >
+                    {column.cards.length === 0 ? (
+                      <p className="px-2 py-6 text-center text-[12px] text-faint">
+                        Nothing in this stage.
+                      </p>
+                    ) : (
+                      column.cards.map((card) => (
+                        <DealCard
+                          key={card.id}
+                          card={card}
+                          tone={tone}
+                          locationId={data?.locationId ?? ""}
+                          now={now}
+                        />
+                      ))
+                    )}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+
+          {/* Draggable slider mirroring the board's horizontal scroll, so the
+              off-screen stages are obviously reachable. Renders nothing when
+              every column already fits. */}
+          <BoardScrollbar scrollRef={scrollRef} className="px-1 pt-1" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// One deal. It opens the contact in GoHighLevel and does nothing else: this
+// board writes nothing, so the card's only action is the one that hands you to
+// the place where changing it is allowed.
+function DealCard({
+  card,
+  tone,
+  locationId,
+  now,
+}: {
+  card: AgencyPipelineCard;
+  tone: string;
+  locationId: string;
+  now: number;
+}) {
+  const href = card.contactId ? ghlContactUrl(locationId, card.contactId) : null;
+  const moved = card.updatedAt ? timeAgo(card.updatedAt, now) : "";
+
+  const body = (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 truncate text-[13px] font-semibold text-text" title={card.name}>
+          {card.name}
+        </span>
+        {href && (
+          <ExternalLink size={12} aria-hidden className="mt-0.5 shrink-0 text-faint" />
+        )}
+      </div>
+
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-muted">
+        {/* Value only when the card carries one. A deal with no figure in the
+            CRM shows nothing here rather than $0, which would read as a sale
+            worth nothing instead of a number nobody has filled in. */}
+        {card.value !== null && (
+          <span className="font-data font-semibold text-text">
+            {formatMoneyExact(card.value)}
+          </span>
+        )}
+        {card.status !== "open" && <StatusPill status={card.status} />}
+        {moved && <span className="text-faint">{moved}</span>}
+      </div>
+    </>
+  );
+
+  const className =
+    "block rounded-xl bg-surface p-2.5 text-left transition-colors hover:bg-surface-2";
+  const style = { boxShadow: `inset 2px 0 0 ${tone}` };
+
+  return href ? (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={className}
+      style={style}
+      title="Open this contact in GoHighLevel"
+    >
+      {body}
+    </a>
+  ) : (
+    <div className={className} style={style}>
+      {body}
+    </div>
+  );
+}
+
+// Won and lost, said plainly. GoHighLevel tracks these separately from the
+// column, and a New Client card still sitting at status open is a sale that
+// never reaches a report, so the board shows the status rather than assuming
+// the column implies it.
+function StatusPill({ status }: { status: string }) {
+  const won = status === "won";
+  const color = won ? "var(--positive)" : "var(--danger)";
+  return (
+    <span
+      className="rounded-full px-1.5 py-px text-[10px] font-bold uppercase tracking-wide"
+      style={{ color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}
+    >
+      {won ? "Won" : status === "lost" ? "Lost" : status}
+    </span>
+  );
+}
+
+// What this board is, and anything that makes what is on it mean less than it
+// looks. Same job as the Sales Calls status line, and for the same reason: a
+// board that quietly failed to reach the CRM looks exactly like a quiet week.
+function StatusLine({
+  configured,
+  pipeline,
+  truncated,
+  totals,
+  refreshing,
+  onRefresh,
+}: {
+  configured: boolean;
+  pipeline: { id: string; name: string; missing: string[] } | null;
+  truncated: boolean;
+  totals: { deals: number; openDeals: number; openValue: number };
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
+  const warnings: string[] = [];
+
+  if (!configured) {
+    warnings.push(
+      "The agency GoHighLevel account is not connected, so there is no board to read.",
+    );
+  } else if (!pipeline) {
+    warnings.push(
+      "No Sales board was found in GoHighLevel. It is matched by name, so a renamed board needs the name adding in functions/lib/salesPipeline.ts.",
+    );
+  } else if (pipeline.missing.length > 0) {
+    warnings.push(
+      `This board has no ${pipeline.missing.join(" or ")} stage, so a workflow has nowhere to move that outcome to.`,
+    );
+  }
+
+  if (truncated) {
+    warnings.push("Showing the first 500 deals on this board. There are more than are shown here.");
+  }
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+      <button
+        type="button"
+        className="pk-btn-cancel inline-flex items-center gap-1.5"
+        onClick={onRefresh}
+        disabled={refreshing}
+      >
+        <RefreshCw size={13} aria-hidden className={refreshing ? "animate-spin" : undefined} />
+        {refreshing ? "Reading the board..." : "Read the board"}
+      </button>
+
+      {pipeline && (
+        <span className="text-[12px] text-muted">
+          <span className="font-semibold text-text">{pipeline.name}</span>, live from GoHighLevel.{" "}
+          {totals.deals} {totals.deals === 1 ? "deal" : "deals"}
+          {totals.openDeals > 0 && (
+            <>
+              , {totals.openDeals} still open
+              {totals.openValue > 0 && ` worth ${formatMoney(totals.openValue)}`}
+            </>
+          )}
+          .
+        </span>
+      )}
+
+      {warnings.map((w) => (
+        <span key={w} className="text-[12px] font-semibold text-[var(--warning)]">
+          {w}
+        </span>
+      ))}
+    </div>
+  );
+}

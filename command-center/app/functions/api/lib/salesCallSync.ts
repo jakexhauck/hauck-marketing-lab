@@ -48,13 +48,10 @@ interface ExistingRow {
 }
 
 // A cancelled meeting is still a fact worth keeping (it was booked, and it did
-// not happen), so nothing is ever deleted here. GHL's own vocabulary varies by
-// endpoint; lowercased, these are the ones that mean "not going ahead".
-const DEAD_STATUSES = new Set(["cancelled", "canceled", "invalid", "noshow", "no-show"]);
-
-export function isDeadStatus(status: string): boolean {
-  return DEAD_STATUSES.has(status.trim().toLowerCase().replace(/\s+/g, ""));
-}
+// not happen), so nothing is ever deleted here. The list itself moved to
+// lib/salesCalls.ts once the Sales Data rollup needed to count cancellations
+// too; re-exported so this module's existing callers are unchanged.
+export { isDeadStatus } from "../../lib/salesCalls";
 
 // The name to put on a row the app did not book.
 //
@@ -202,6 +199,8 @@ export async function syncAgencyMeetings(
         prospect_name: nameFromEvent(event),
         scheduled_at: event.startTime,
         appointment_status: event.status,
+        calendar_id: event.calendarId,
+        calendar_name: event.calendarName,
         // Where this row came from. Rows the app booked say "Cold call"; this
         // one arrived off the calendar and should not claim otherwise.
         source: "Calendar",
@@ -214,7 +213,18 @@ export async function syncAgencyMeetings(
       result.unchanged += 1;
       // Still stamp the sync, so "last checked" is honest even when nothing
       // moved. Cheap, and it is what makes a stale page detectable.
-      updates.push({ id: row.id, fields: { synced_at: syncedAt } });
+      //
+      // The calendar rides along on this branch too, which is what backfills
+      // every row written before 0066 without a migration having to guess. It
+      // also follows a calendar RENAME, since the name is re-read each pass.
+      updates.push({
+        id: row.id,
+        fields: {
+          synced_at: syncedAt,
+          calendar_id: event.calendarId,
+          calendar_name: event.calendarName,
+        },
+      });
       continue;
     }
 
@@ -224,6 +234,8 @@ export async function syncAgencyMeetings(
         scheduled_at: event.startTime,
         appointment_status: event.status,
         synced_at: syncedAt,
+        calendar_id: event.calendarId,
+        calendar_name: event.calendarName,
         // Deliberately NOT touched: outcome, cash_collected, follow_up_at,
         // qualified, logged_by. The calendar has no opinion about what
         // happened in the room.

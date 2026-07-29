@@ -98,6 +98,11 @@ export interface DailyTrackerProps {
   cellTitle?: (iso: string, field: string) => string | undefined;
   // An extra entry for the "You type / Computed" legend.
   legendExtra?: ReactNode;
+  // A grid with nothing typeable on it (Sales Data, which is counted from the
+  // meetings themselves). Only the legend changes: promising "You type" above a
+  // table with no inputs in it is the kind of small lie that makes somebody
+  // hunt for a cell that does not exist.
+  readOnly?: boolean;
 }
 
 // The month stepper. Exported so a surface can lift it into its own header row
@@ -164,6 +169,7 @@ export default function DailyTracker({
   cellClass,
   cellTitle,
   legendExtra,
+  readOnly = false,
 }: DailyTrackerProps) {
   const days = buildMonthDays(cursor, today);
   const wide = variant === "wide" && !!columnGroups?.length;
@@ -213,12 +219,20 @@ export default function DailyTracker({
             {subtitle && <div className="adt-tsub">{subtitle}</div>}
           </div>
           <div className="adt-legend">
-            <b>
-              <span className="adt-dot type" /> You type
-            </b>
-            <b>
-              <span className="adt-dot calc" /> Computed
-            </b>
+            {readOnly ? (
+              <b>
+                <span className="adt-dot calc" /> Measured
+              </b>
+            ) : (
+              <>
+                <b>
+                  <span className="adt-dot type" /> You type
+                </b>
+                <b>
+                  <span className="adt-dot calc" /> Computed
+                </b>
+              </>
+            )}
             {legendExtra}
           </div>
         </div>

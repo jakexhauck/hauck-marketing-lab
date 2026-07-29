@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { CalendarX, Check, HandCoins, Repeat, ThumbsDown } from "lucide-react";
+import { CalendarX, Check, CircleSlash, HandCoins, Repeat, ThumbsDown } from "lucide-react";
 import type { SalesMeeting } from "../../../lib/api";
+import { routeFor } from "../../../../functions/lib/salesPipeline";
 import { useToast } from "../../../context/ToastContext";
-import { SALES_CALL_OUTCOMES, totalsFor, type SalesCallOutcome } from "../../../../functions/lib/salesCalls";
+import {
+  SALES_CALL_OUTCOMES,
+  daysLate,
+  totalsFor,
+  type SalesCallOutcome,
+} from "../../../../functions/lib/salesCalls";
 
 // The parts Cold Call > Booked and Sales > Sales Calls both draw.
 //
@@ -14,27 +20,128 @@ import { SALES_CALL_OUTCOMES, totalsFor, type SalesCallOutcome } from "../../../
 //
 // The counting rules come from functions/lib/salesCalls.ts, not from here.
 
-// The four buttons, in the order somebody thinks: did they turn up, and then
-// what happened. Leading three of them with "Showed" is deliberate. Turning up
-// and buying are different facts, and a label that blurs them is how a show rate
-// quietly becomes a close rate.
-export const CHOICES: {
+// The five buttons, NAMED AFTER THE STAGES THEY LAND IN.
+//
+// They used to read "Showed, closed" / "Showed, not a fit". That described what
+// happened in the room, which sounds right until you look at the board beside
+// it: a button called "Showed, not a fit" puts a card in a column called
+// "Not Interested/Unqualified", so anybody reading both has to hold two
+// vocabularies for one thing and guess at the mapping. Now the button says the
+// column, verbatim (functions/lib/salesPipeline.ts:ROUTES.label), and pressing
+// "New Client" is visibly the thing that makes a New Client.
+//
+// Order is the funnel, best to worst, so the row reads as a slide down it
+// rather than as five equal options.
+//
+// "No-Close" and "Not Interested/Unqualified" are deliberately separate. Both
+// are a no, but one heard the pitch and did not buy and the other was never a
+// prospect. Merging them makes the close rate look worse than it is and hides
+// whether the problem is the pitch or the list.
+export interface OutcomeChoice {
   outcome: SalesCallOutcome;
   label: string;
   icon: typeof Check;
-}[] = [
-  { outcome: "closed", label: "Showed, closed", icon: HandCoins },
-  { outcome: "follow_up", label: "Showed, needs another", icon: Repeat },
-  { outcome: "not_a_fit", label: "Showed, not a fit", icon: ThumbsDown },
-  { outcome: "no_show", label: "No-showed", icon: CalendarX },
+  tone: string;
+}
+
+// The four outcomes where somebody turned up. Grouped, because the labels no
+// longer say "Showed" and that distinction is the one the show rate is built
+// on: it needs to survive the rename.
+export const SHOWED_CHOICES: OutcomeChoice[] = [
+  { outcome: "closed", label: routeFor("closed").label, icon: HandCoins, tone: "var(--positive)" },
+  { outcome: "follow_up", label: routeFor("follow_up").label, icon: Repeat, tone: "var(--brand)" },
+  {
+    outcome: "not_interested",
+    label: routeFor("not_interested").label,
+    icon: CircleSlash,
+    tone: "var(--danger)",
+  },
+  {
+    outcome: "not_qualified",
+    label: routeFor("not_qualified").label,
+    icon: ThumbsDown,
+    tone: "var(--text-muted)",
+  },
 ];
 
-export const OUTCOME_TONE: Record<SalesCallOutcome, string> = {
-  closed: "var(--positive)",
-  follow_up: "var(--brand)",
-  not_a_fit: "var(--text-muted)",
-  no_show: "var(--warning)",
+// The one where they did not.
+export const NO_SHOW_CHOICE: OutcomeChoice = {
+  outcome: "no_show",
+  label: routeFor("no_show").label,
+  icon: CalendarX,
+  tone: "var(--warning)",
 };
+
+export const CHOICES: OutcomeChoice[] = [...SHOWED_CHOICES, NO_SHOW_CHOICE];
+
+export const OUTCOME_TONE: Record<SalesCallOutcome, string> = Object.fromEntries(
+  CHOICES.map((c) => [c.outcome, c.tone]),
+) as Record<SalesCallOutcome, string>;
+
+// What a recorded outcome is called on screen: the same stage name the button
+// said, so the row reads identically before and after it is answered.
+export function outcomeLabel(outcome: SalesCallOutcome): string {
+  return routeFor(outcome).label;
+}
+
+// One outcome button. The icon carries the colour so the row reads as a funnel
+// (green through amber) while every label stays the plain stage name; colouring
+// the whole button five different ways would turn a row of choices into a
+// traffic jam.
+function OutcomeButton({
+  choice,
+  on,
+  disabled,
+  onPick,
+}: {
+  choice: OutcomeChoice;
+  on: boolean;
+  disabled: boolean;
+  onPick: (outcome: SalesCallOutcome) => void;
+}) {
+  const Icon = choice.icon;
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onPick(choice.outcome)}
+      title={`Move this deal to ${choice.label}`}
+      className={[
+        "inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5",
+        "text-[12px] font-semibold leading-none transition-colors",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        on ? "" : "border-border text-text hover:bg-surface-2",
+      ].join(" ")}
+      style={
+        on
+          ? {
+              borderColor: choice.tone,
+              background: `color-mix(in srgb, ${choice.tone} 12%, transparent)`,
+              color: choice.tone,
+            }
+          : undefined
+      }
+    >
+      <Icon size={13} aria-hidden style={{ color: choice.tone }} />
+      {choice.label}
+    </button>
+  );
+}
+
+// A promised return date, said the way somebody would say it out loud. Late is
+// counted in whole days and stated plainly: "3 days late" is a thing you act
+// on, where "back Jul 26" makes the reader do the arithmetic and most will not.
+export function dueLabel(followUpAt: string, nowMs: number = Date.now()): string {
+  const late = daysLate(followUpAt, nowMs);
+  const on = new Date(followUpAt).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+  if (late === null) return `back ${on}`;
+  if (late >= 1) return `${late} ${late === 1 ? "day" : "days"} late`;
+  if (late === 0) return "due back today";
+  return `back ${on}`;
+}
 
 export function whenLabel(iso: string | null): string {
   if (!iso) return "No time set";
@@ -161,7 +268,7 @@ export function MeetingRow({
         followUpAt: outcome === "follow_up" ? value : undefined,
         cashCollected: outcome === "closed" ? (value === "" ? null : Number(value)) : undefined,
       });
-      showToast(`${meeting.prospectName || "Meeting"}: ${SALES_CALL_OUTCOMES[outcome].label}`);
+      showToast(`${meeting.prospectName || "Meeting"}: ${outcomeLabel(outcome)}`);
       setPending(null);
       setDetail("");
     } catch (err) {
@@ -215,15 +322,14 @@ export function MeetingRow({
                 className="text-[12px] font-semibold"
                 style={{ color: OUTCOME_TONE[meeting.outcome] }}
               >
-                {meta.label}
+                {/* The stage name again, not a second word for it, so the row
+                    says the same thing before and after it is answered. */}
+                {outcomeLabel(meeting.outcome)}
                 {meeting.outcome === "closed" && meeting.cashCollected
                   ? ` · ${money(meeting.cashCollected)}`
                   : ""}
                 {meeting.outcome === "follow_up" && meeting.followUpAt
-                  ? ` · back ${new Date(meeting.followUpAt).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}`
+                  ? ` · ${dueLabel(meeting.followUpAt)}`
                   : ""}
               </div>
             ) : (
@@ -234,28 +340,32 @@ export function MeetingRow({
       </div>
 
       {recordable && pending === null && (
-        <div className="flex flex-wrap gap-1.5">
-          {CHOICES.map((c) => {
-            const Icon = c.icon;
-            const on = meeting.outcome === c.outcome;
-            return (
-              <button
-                key={c.outcome}
-                type="button"
-                disabled={record.isPending}
-                onClick={() => choose(c.outcome)}
-                className={[
-                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-semibold transition-colors",
-                  on
-                    ? "border-brand bg-brand/10 text-brand"
-                    : "border-border text-muted hover:text-text",
-                ].join(" ")}
-              >
-                <Icon size={13} aria-hidden />
-                {c.label}
-              </button>
-            );
-          })}
+        // Two groups on one line: the four outcomes where somebody turned up,
+        // then a rule, then the one where they did not. The labels no longer
+        // carry the word "Showed", so the grouping is what keeps a show apart
+        // from a no-show, which is the distinction the show rate rests on.
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-faint">
+            Showed
+          </span>
+          {SHOWED_CHOICES.map((c) => (
+            <OutcomeButton
+              key={c.outcome}
+              choice={c}
+              on={meeting.outcome === c.outcome}
+              disabled={record.isPending}
+              onPick={choose}
+            />
+          ))}
+
+          <span className="mx-1 h-5 w-px shrink-0 bg-[var(--border)]" aria-hidden />
+
+          <OutcomeButton
+            choice={NO_SHOW_CHOICE}
+            on={meeting.outcome === NO_SHOW_CHOICE.outcome}
+            disabled={record.isPending}
+            onPick={choose}
+          />
         </div>
       )}
 
