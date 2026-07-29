@@ -205,6 +205,17 @@ export interface RosterWeek {
   days: WeekAvailability;
 }
 
+// Who is available in one cell, in roster order. The members themselves rather
+// than their names: the agency grid colours a cell per person, so it needs the
+// identity, and a name is not one (two hires can share a first name).
+export function coverageIn(
+  roster: RosterWeek[],
+  day: string,
+  slot: number,
+): RosterWeek[] {
+  return roster.filter((m) => hasSlot(m.days, day, slot));
+}
+
 // Who is available in one cell, in roster order. Names rather than a count,
 // because the count is derivable from it and the names are not.
 export function coveredBy(
@@ -212,7 +223,40 @@ export function coveredBy(
   day: string,
   slot: number,
 ): string[] {
-  return roster.filter((m) => hasSlot(m.days, day, slot)).map((m) => m.name);
+  return coverageIn(roster, day, slot).map((m) => m.name);
+}
+
+// The roster flattened into one week: a slot is marked when ANYBODY has it.
+//
+// Deliberately a WeekAvailability, so every function above works on the agency's
+// week unchanged: dayHours, weekHours and describeDay all then read "hours the
+// phones are covered" rather than "hours one person is on". A merged week is the
+// only honest thing to feed them, since three people on at 10am is still one
+// covered half hour, not three.
+export function unionWeek(roster: RosterWeek[]): WeekAvailability {
+  const merged: WeekAvailability = {};
+  for (const member of roster) {
+    for (const [day, slots] of Object.entries(member.days)) {
+      const seen = merged[day];
+      if (!seen) {
+        merged[day] = [...slots].sort((a, b) => a - b);
+        continue;
+      }
+      // A day already merged: union, kept sorted so the block maths downstream
+      // can keep assuming order.
+      const set = new Set(seen);
+      for (const slot of slots) set.add(slot);
+      merged[day] = [...set].sort((a, b) => a - b);
+    }
+  }
+  return merged;
+}
+
+// Person-hours across the drawn week: the capacity being offered, which is a
+// different question from how much of the week is covered. Two people on the
+// same morning is one covered morning and two person-hours.
+export function rosterHours(roster: RosterWeek[], days: WeekDay[]): number {
+  return roster.reduce((sum, m) => sum + weekHours(m.days, days), 0);
 }
 
 // The busiest cell in the drawn week, which sets the shading scale. Returns 0

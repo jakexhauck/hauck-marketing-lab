@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-29-agency-availability",
+    date: "29 July 2026",
+    title: "Availability on Agency shows the whole roster's week at once",
+    items: [
+      "With the picker on Agency, Availability no longer asks you to pick somebody. It draws the same week grid a caller paints, with everybody on it at once.",
+      "Each caller has their own colour, listed under the grid with the hours they have marked. Where two or more overlap, the cell splits into a stripe each, so a busy hour and a thin one are told apart at a glance.",
+      "Hover any cell to read who is on at that half hour. The lines under the grid say when the phones are covered each day, and name the days nobody is on.",
+      "The top line separates two numbers that are easy to confuse: covered hours (how much of the week has anybody on it) and person-hours (how much phone time you are actually buying), plus how many hours between 8am and 8pm nobody has claimed.",
+      "The agency view is read-only. Painting a cell shared by three people would have to pick one of them to write to, so changing somebody's hours still means picking their name first.",
+    ],
+  },
+  {
     id: "2026-07-29-sops-live-from-drive",
     date: "29 July 2026",
     title: "The SOPs tab keeps itself in step with Drive",

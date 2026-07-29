@@ -5,11 +5,14 @@ import {
   addWeeks,
   blocksFor,
   buildWeek,
+  coverageIn,
   coveredBy,
   dayHours,
   describeDay,
   peakCoverage,
+  rosterHours,
   uncoveredHours,
+  unionWeek,
   formatHours,
   gridSlots,
   hasSlot,
@@ -21,6 +24,7 @@ import {
   weekHours,
   weekLabel,
   weekStart,
+  type RosterWeek,
 } from "./availabilityWeek";
 
 describe("weekStart", () => {
@@ -268,6 +272,52 @@ describe("coverage", () => {
 
   it("counts the whole window as uncovered when nobody has marked anything", () => {
     expect(uncoveredHours([], days, slots)).toBe(14);
+  });
+
+  it("hands back the members in a cell, not just their names", () => {
+    expect(coverageIn(roster, "2026-07-27", 18).map((m) => m.id)).toEqual(["z", "j"]);
+    expect(coverageIn(roster, "2026-07-27", 16).map((m) => m.id)).toEqual(["z"]);
+    expect(coverageIn(roster, "2026-07-27", 30)).toEqual([]);
+  });
+});
+
+describe("the roster as one week", () => {
+  const roster: RosterWeek[] = [
+    { id: "z", name: "Zach", days: { "2026-07-27": [16, 17, 18], "2026-07-28": [20] } },
+    { id: "j", name: "Jake", days: { "2026-07-27": [18, 19] } },
+  ];
+  const days = buildWeek("2026-07-27", "2026-07-27");
+
+  it("merges everyone into one marked week", () => {
+    expect(unionWeek(roster)).toEqual({
+      "2026-07-27": [16, 17, 18, 19],
+      "2026-07-28": [20],
+    });
+  });
+
+  it("counts an overlap once, because a covered half hour is a covered half hour", () => {
+    // Zach and Jake are both on at slot 18. Four distinct slots = 2 hours.
+    expect(dayHours(unionWeek(roster), "2026-07-27")).toBe(2);
+  });
+
+  it("reads as coverage, not as one person's day", () => {
+    expect(describeDay(unionWeek(roster), "2026-07-27")).toBe("8:00 AM - 10:00 AM");
+  });
+
+  it("is empty for an empty roster", () => {
+    expect(unionWeek([])).toEqual({});
+    expect(unionWeek([{ id: "z", name: "Zach", days: {} }])).toEqual({});
+  });
+
+  it("adds up person-hours separately from covered hours", () => {
+    // Zach 3 slots + 1 slot = 2h, Jake 2 slots = 1h. Capacity is 3 person-hours
+    // while only 2.5 hours of the week are covered.
+    expect(rosterHours(roster, days)).toBe(3);
+    expect(weekHours(unionWeek(roster), days)).toBe(2.5);
+  });
+
+  it("is 0 person-hours for nobody", () => {
+    expect(rosterHours([], days)).toBe(0);
   });
 });
 

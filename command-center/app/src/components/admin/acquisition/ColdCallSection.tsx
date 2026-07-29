@@ -23,6 +23,7 @@ import ColdCallManagement from "./ColdCallManagement";
 import ColdCallCallbacks from "./ColdCallCallbacks";
 import ColdCallBooked from "./ColdCallBooked";
 import ColdCallAvailability from "./ColdCallAvailability";
+import ColdCallAgencyAvailability from "./ColdCallAgencyAvailability";
 import ColdCallSops from "./ColdCallSops";
 
 // Acquisition > Cold Call. Unlike its sibling tabs this is a section rather than
@@ -345,10 +346,12 @@ function ColdCallBody({
         />
       );
     case "availability":
-      // Unlike the tracker, this one cannot be summed: a week of availability is
-      // hours belonging to a person, and two people's hours painted onto one
-      // grid would make every cell ambiguous about whose it is. The component
-      // asks the owner to pick somebody.
+      // On Agency, the same week read across everybody: colour-coded by who,
+      // read-only. It cannot be SUMMED the way the tracker is (hours belong to a
+      // person, and a merged cell has no one owner to paint into), so the
+      // agency version shows whose hours are whose instead of merging them into
+      // one anonymous block.
+      if (!callerId && isOwner) return <ColdCallAgencyAvailability />;
       return <ColdCallAvailability callerId={callerId} isOwner={isOwner} />;
     case "sops":
       // Roster-wide by nature: an SOP is the same document for everyone, so the

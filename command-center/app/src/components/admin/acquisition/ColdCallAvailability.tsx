@@ -344,7 +344,10 @@ function Row({
   );
 }
 
-function AvailabilityStyle() {
+// Exported so the agency overview renders in exactly the same grid rather than
+// in a copy of it that drifts. It is the whole point of that page that it is
+// this page's shape, read across everybody.
+export function AvailabilityStyle() {
   return (
     <style>{`
       .cca { --cca-rowh: 17px; }
