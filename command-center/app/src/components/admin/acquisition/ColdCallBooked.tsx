@@ -105,12 +105,22 @@ export default function ColdCallBooked({ callerId = "" }: { callerId?: string })
         </>
       )}
 
+      {/* Answered, and therefore read-only here: the outcome shows as text with
+          no buttons under it. This list is the caller's record of what became of
+          their bookings, not a place to revise it, and a row of live buttons
+          under a settled answer invites a stray click that moves a card on the
+          agency pipeline. A recorded answer that genuinely needs correcting is
+          corrected on Sales > Sales Calls.
+
+          "Due back" above deliberately keeps its buttons. A follow-up that has
+          come due is unfinished work, and locking it would break the only loop
+          this page exists to close. */}
       {recorded.length > 0 && (
         <>
           <div className="pk-list-sec-h">Recorded</div>
           <div className="pk-list">
             {recorded.map((m) => (
-              <MeetingRow key={m.id} meeting={m} recordable record={record} />
+              <MeetingRow key={m.id} meeting={m} record={record} />
             ))}
           </div>
         </>

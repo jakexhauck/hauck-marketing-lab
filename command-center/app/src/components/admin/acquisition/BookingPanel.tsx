@@ -77,14 +77,16 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
   const book = useBookColdCall();
   const slots = useColdCallSlotsQuery(calendarId);
 
-  // Default to the sales calendar rather than whichever happens to be first: a
-  // discovery call belongs on the demo calendar, not on onboarding.
+  // There is exactly one calendar a cold call books into, and the endpoint
+  // returns only that one (functions/lib/coldCallCalendar.ts). This used to be a
+  // select over all three agency calendars that merely DEFAULTED to a demo one,
+  // which meant Onboarding stayed one click away for anybody in a hurry.
+  const calendar = calendars.data?.calendars?.[0] ?? null;
+
   useEffect(() => {
-    if (calendarId || !calendars.data?.calendars?.length) return;
-    const list = calendars.data.calendars;
-    const demo = list.find((c) => /demo|discovery|sales/i.test(c.name)) ?? list[0];
-    setCalendarId(demo.id);
-  }, [calendars.data, calendarId]);
+    if (!calendar || calendarId === calendar.id) return;
+    setCalendarId(calendar.id);
+  }, [calendar, calendarId]);
 
   const days = useMemo(() => slots.data?.days ?? [], [slots.data]);
 
@@ -152,25 +154,27 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
       </div>
     );
   }
+  // No cold call calendar means no booking, deliberately. Falling back to the
+  // next most plausible calendar is what this change exists to stop, and a
+  // caller told plainly is better than a meeting quietly on the wrong diary.
+  if (!calendar) {
+    return (
+      <div className="pk-needs">
+        No cold call calendar in GoHighLevel. Meetings are booked into the calendar whose name
+        includes &quot;Cold Call&quot;, and the agency account has none right now.
+      </div>
+    );
+  }
 
   return (
     <div className="mt-3 rounded-[var(--radius-lg)] border border-border p-4">
       <div className="flex flex-wrap items-center gap-3">
-        <select
-          className="pk-select pk-select-pill"
-          value={calendarId}
-          onChange={(e) => {
-            setCalendarId(e.target.value);
-            setSlot("");
-          }}
-          aria-label="Calendar"
-        >
-          {(calendars.data?.calendars ?? []).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        {/* Stated, not chosen. The calendar is a fact about the booking rather
+            than a decision the caller makes on the call. */}
+        <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold">
+          <CalendarCheck size={14} aria-hidden className="text-muted" />
+          {calendar.name}
+        </span>
         <button
           type="button"
           className="pk-btn-cancel"

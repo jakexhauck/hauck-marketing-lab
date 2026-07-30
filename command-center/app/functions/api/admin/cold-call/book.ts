@@ -275,6 +275,11 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       ghl_tag: tagged.tag,
       ghl_error: tagged.error,
       logged_by: admin.id,
+      // Who SET the appointment (0073). Separate from logged_by, which the
+      // outcome record overwrites with whoever answered for the meeting: one
+      // column cannot hold both people, and the booker is the one the Booked
+      // page names.
+      booked_by: admin.id,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "ghl_appointment_id" },

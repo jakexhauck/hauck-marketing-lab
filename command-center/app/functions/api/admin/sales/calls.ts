@@ -8,6 +8,7 @@ import {
   MEETING_SELECT,
   recordSalesCallOutcome,
   shapeMeeting,
+  attachBookers,
   type MeetingRow,
   type RecordBody,
 } from "../../lib/recordSalesCall";
@@ -101,6 +102,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   }
 
   const meetings = ((data ?? []) as unknown as MeetingRow[]).map(shapeMeeting);
+  // Who set each appointment. Jake's view of every meeting is the one where it
+  // matters most: agency-wide, the setter is the only thing on the row that
+  // says whose booking it was.
+  await attachBookers(client, meetings);
   const body: GetResponse = { meetings, configured: Boolean(gctx), sync, pipeline };
   return Response.json(body);
 };

@@ -3,11 +3,13 @@ import { readJsonBody } from "../../../lib/body";
 import { getServiceClient } from "../../../lib/supabase";
 import {
   MEETING_SELECT,
+  attachBookers,
   recordSalesCallOutcome,
   shapeMeeting,
   type MeetingRow,
   type RecordBody,
 } from "../../lib/recordSalesCall";
+import { isColdCallCalendar } from "../../../lib/coldCallCalendar";
 
 // GET   /api/admin/cold-call/meetings            -> booked meetings and what became of them
 // PATCH /api/admin/cold-call/meetings            -> record one meeting's outcome
@@ -51,9 +53,16 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // turning the join into an inner one, which would silently drop every meeting
   // whose lead has since been purged.
   const meetings = rows
+    // This page is the cold call calendar's, and only its. The agency also runs
+    // an Onboarding calendar and a second demo one, and a meeting off either is
+    // not something a caller set. Read from the name stored on the row (0066)
+    // rather than from GoHighLevel, so the answer holds for a meeting whose
+    // calendar has since been deleted. Sales > Sales Calls stays unfiltered.
+    .filter((r) => isColdCallCalendar(r.calendar_name))
     .filter((r) => (scope ? r.leads?.assigned_to === scope : true))
     .map(shapeMeeting);
 
+  await attachBookers(client, meetings);
   return Response.json({ meetings });
 };
 

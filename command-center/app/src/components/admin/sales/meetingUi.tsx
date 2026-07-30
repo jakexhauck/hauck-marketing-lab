@@ -369,6 +369,14 @@ export function MeetingRow({
             ) : null}
           </div>
           <div className="pk-li-sub font-mono">{meeting.phone || "No number"}</div>
+          {/* Who set it. On the agency-wide Booked list this is the only thing
+              on the row that says whose booking it was, and a show rate nobody
+              can attribute is a number without an owner. Absent on a meeting the
+              sync adopted off the calendar, where the honest answer is nobody
+              here, and the provenance line says so instead. */}
+          {meeting.bookedBy && (
+            <div className="mt-0.5 text-[11.5px] text-faint">Set by {meeting.bookedBy}</div>
+          )}
           {/* What was said on the call, where anybody wrote it down. Under the
               name rather than beside the outcome: it is about the meeting, not
               about the answer, and a follow-up three weeks later is why it is

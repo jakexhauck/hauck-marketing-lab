@@ -96,17 +96,25 @@ export interface MeetingRow {
   synced_at: string | null;
   updated_at: string;
   leads: { assigned_to: string | null } | null;
+  // Who set the appointment. Written once at booking (0057's column) and never
+  // overwritten since. Null on a meeting the sync adopted off the calendar:
+  // nobody set that one from inside this app.
+  logged_by: string | null;
 }
 
 // The join is what makes scoping possible at all: sales_calls records the
 // meeting, and whose prospect it is lives on the lead.
+//
+// logged_by rides along as the booker's id. It is only an id here: the column
+// carries no foreign key, so PostgREST cannot embed the name and attachBookers
+// below resolves it in one extra query rather than per row.
 export const MEETING_SELECT =
   "id, ghl_appointment_id, ghl_contact_id, ghl_opportunity_id, ghl_error, ghl_stage," +
   " ghl_tag," +
   " lead_id, prospect_name, business_name, phone, email, source, scheduled_at," +
   " appointment_status, calendar_id, calendar_name," +
   " outcome, not_a_fit_reason, follow_up_at, cash_collected, deal, scratchpad," +
-  " synced_at, updated_at, leads(assigned_to)";
+  " synced_at, updated_at, logged_by, leads(assigned_to)";
 
 export function shapeMeeting(row: MeetingRow) {
   return {
@@ -145,8 +153,43 @@ export function shapeMeeting(row: MeetingRow) {
     notes: row.scratchpad ?? "",
     syncedAt: row.synced_at,
     assignedTo: row.leads?.assigned_to ?? null,
+    // Who set the appointment. The id is what the row stores; the name is filled
+    // in by attachBookers, which is the only thing that can resolve it. Null
+    // here rather than absent, so a caller that forgets to attach shows a row
+    // with no setter instead of one claiming the wrong shape.
+    bookedById: row.logged_by ?? null,
+    bookedBy: null as string | null,
     updatedAt: row.updated_at,
   };
+}
+
+// Put a NAME on every meeting that has a booker id.
+//
+// One query for the whole page rather than a join, because logged_by carries no
+// foreign key and PostgREST will not embed across one. Cheap: the ids are
+// deduped first, and there are a handful of admins, not a handful per meeting.
+//
+// Best effort on purpose. A lookup that fails leaves the setter blank, which
+// costs a line on the row; throwing here would cost the whole page, and the
+// meetings are the thing anybody came for.
+export async function attachBookers<T extends { bookedById: string | null; bookedBy: string | null }>(
+  client: SupabaseClient,
+  meetings: T[],
+): Promise<T[]> {
+  const ids = [...new Set(meetings.map((m) => m.bookedById).filter(Boolean))] as string[];
+  if (ids.length === 0) return meetings;
+
+  const { data, error } = await client.from("admin_accounts").select("id, name").in("id", ids);
+  if (error) {
+    console.error("[recordSalesCall] booker lookup failed", error.message);
+    return meetings;
+  }
+
+  const names = new Map((data ?? []).map((a: { id: string; name: string }) => [a.id, a.name]));
+  for (const m of meetings) {
+    m.bookedBy = (m.bookedById && names.get(m.bookedById)) || null;
+  }
+  return meetings;
 }
 
 function str(v: unknown): string {
@@ -349,7 +392,13 @@ export async function recordSalesCallOutcome(
       // Cleared on a success, so a stale complaint never sits beside a card
       // that is now correct.
       ghl_error: push.error,
-      logged_by: admin.id,
+      // logged_by is deliberately NOT touched. It is written once, by
+      // cold-call/book.ts, and it means WHO SET THE APPOINTMENT: the Booked page
+      // names that person on the row. This used to overwrite it with whoever
+      // recorded the outcome, which quietly erased the booker the moment anybody
+      // answered for the meeting, and left one column trying to hold two
+      // different people. Who recorded the outcome is already kept, properly, on
+      // the audit line below.
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
@@ -373,5 +422,9 @@ export async function recordSalesCallOutcome(
     pushError: push.error,
   });
 
-  return { ok: true, meeting: shapeMeeting(data as unknown as MeetingRow) };
+  // Attached here too, not only on the list reads: this row goes straight back
+  // to the page that recorded the outcome, and a setter that vanished the moment
+  // somebody answered would look exactly like the bug this replaced.
+  const [meeting] = await attachBookers(client, [shapeMeeting(data as unknown as MeetingRow)]);
+  return { ok: true, meeting };
 }
