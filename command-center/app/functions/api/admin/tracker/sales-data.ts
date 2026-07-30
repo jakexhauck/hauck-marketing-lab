@@ -5,13 +5,10 @@ import { agencyTimezone, getAgencyGhlContext, AgencyGhlError } from "../../../li
 import { syncAgencyMeetings, type SyncResult } from "../../lib/salesCallSync";
 import {
   daysInMonth,
-  rollUpDials,
   rollUpSalesCalls,
   rowsInMonth,
   toCountable,
   type DerivedSalesDay,
-  type DialRow,
-  type DialTotals,
   type SalesCallRow,
 } from "../../../lib/salesDataRollup";
 import { bySource, reasonCounts, type SourceSplitRow } from "../../../lib/salesCalls";
@@ -97,10 +94,6 @@ interface GetResponse {
   // Meetings with no time on them, so they belong to no day. Reported rather
   // than dropped.
   undated: number;
-  // The dialing half of the funnel, for the same month. Counted from the
-  // attempts themselves (cold_call_dials), across every caller: this page is
-  // the agency's month, not one person's.
-  dials: DialTotals;
   // The month split by where the meetings came from, busiest first. Counted per
   // MEETING rather than per day, which is why it is sent whole rather than
   // summed by the client off the day rows.
@@ -183,23 +176,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   // them disagreeing.
   const monthRows = rowsInMonth(rows, timeZone, monthKey).map(toCountable);
 
-  // The month's dialing. `day` is a plain date column written in the agency's
-  // own day, so it needs no timezone conversion: the month window is used as-is.
-  //
-  // Best effort: a funnel missing its first three steps is still worth showing,
-  // and failing the whole month because one table would not read would take the
-  // meetings down with it.
-  let dials: DialTotals = { dials: 0, talked: 0, pitched: 0, booked: 0 };
-  const { data: dialRows, error: dialError } = await client
-    .from("cold_call_dials")
-    .select("spoke, pitched, outcome")
-    .gte("day", window.first)
-    .lte("day", window.last);
-  if (dialError) {
-    console.error("[tracker/sales-data] dial read failed", dialError.message);
-  } else {
-    dials = rollUpDials((dialRows ?? []) as DialRow[]);
-  }
+  // No cold_call_dials read here any more. This page used to open with the
+  // month's dialing so the strip could run Dials through to cash, but the same
+  // month is already reported on Acquisition > Cold Call > Tracker and a number
+  // with two homes drifts. Sales counts meetings; Cold Call counts dials.
 
   const body: GetResponse = {
     // Only the days that have a meeting on them. The client generates the empty
@@ -211,7 +191,6 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     configured: Boolean(gctx),
     sync,
     undated: rolled.undated,
-    dials,
     sources: bySource(monthRows),
     reasons: reasonCounts(monthRows),
   };

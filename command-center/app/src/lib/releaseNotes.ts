@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-30-sales-is-selling-only",
+    date: "30 July 2026",
+    title: "Sales is the selling now, and the dialing lives in one place",
+    items: [
+      'The "Cold Call Data" tab has left Sales. The same month, every caller at once, is on Cold Call > Tracker with the caller box set to "Agency", so there is one page to read the phones off instead of two that could disagree.',
+      'The funnel strip on Sales Data now starts at "On calendar". Dials, Talked and Booked came off it for the same reason, and the divider that used to sit in the middle of it is gone with them.',
+      "Nothing was lost: every dial ever logged is still counted, still on Cold Call, and Sales Data still reads meetings through to New MRR and cash collected.",
+    ],
+  },
+  {
     id: "2026-07-29-sales-what-was-sold",
     date: "29 July 2026",
     title: "Sales records what was sold, where it came from and why the nos were nos",

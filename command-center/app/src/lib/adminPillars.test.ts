@@ -40,7 +40,6 @@ describe("adminPillars config", () => {
       "calls",
       "pipeline",
       "sales-data",
-      "cold-call-data",
       "business-health",
       "calculator",
       "time-audit",
@@ -61,7 +60,6 @@ describe("adminPillars config", () => {
       "calls",
       "pipeline",
       "sales-data",
-      "cold-call-data",
     ]);
     expect(tabsFor("operations").map((t) => t.id)).toEqual([
       "business-health",
@@ -110,6 +108,10 @@ describe("resolvePillarTab", () => {
     expect(resolvePillarTab("sales", "leads")).toBe("calls");
     // A link written before Sales Calls existed still lands on Sales Data.
     expect(resolvePillarTab("sales", "sales-data")).toBe("sales-data");
+    // Cold Call Data was removed from this pillar (its month lives on
+    // Acquisition > Cold Call > Tracker). A bookmark to it lands on Sales
+    // Calls rather than on a blank tab.
+    expect(resolvePillarTab("sales", "cold-call-data")).toBe("calls");
   });
 
   it("defaults to the first declared tab for every pillar", () => {

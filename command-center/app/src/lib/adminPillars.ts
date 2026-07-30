@@ -58,16 +58,16 @@ export const ADMIN_PILLARS: PillarDef[] = [
     // Sales Pipeline sits between them: it is where the outcomes recorded on
     // Sales Calls land, so it reads as the next step from that page rather than
     // as a third unrelated view. Read only.
-    // Cold Call Data is the first CHANNEL page: the dialing half of the funnel
-    // Sales Data reads the other end of. Ads Data and Cold SMS Data join it
-    // here as they are wired up, which is why the channel pages live in Sales
-    // rather than each inside its own acquisition section: they are read
-    // against the selling, not against each other.
+    //
+    // A Cold Call Data tab used to sit here as a "channel" page, the dialing
+    // half of the funnel this pillar reads the other end of. It is gone: the
+    // same month, agency-wide, was already on Acquisition > Cold Call > Tracker
+    // with the caller selector on "Agency", and one number with two pages is one
+    // page too many. Sales is the selling now, calendar through to cash.
     tabs: [
       { id: "calls", label: "Sales Calls", ready: true },
       { id: "pipeline", label: "Sales Pipeline", ready: true },
       { id: "sales-data", label: "Sales Data", ready: true },
-      { id: "cold-call-data", label: "Cold Call Data", ready: true },
     ],
   },
   {

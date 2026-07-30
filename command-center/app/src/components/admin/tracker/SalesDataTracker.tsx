@@ -92,13 +92,9 @@ export default function SalesDataTracker() {
 
       <StatusLine data={data ?? null} awaiting={rollup.totals.awaiting} />
 
-      {/* The month, dialing through to cash. Above the grid, because the grid
+      {/* The month, calendar through to cash. Above the grid, because the grid
           is the detail behind it. */}
-      <FullFunnel
-        dials={data?.dials ?? { dials: 0, talked: 0, pitched: 0, booked: 0 }}
-        totals={rollup.totals}
-        rates={rollup.rates}
-      />
+      <FullFunnel totals={rollup.totals} rates={rollup.rates} />
 
       <DailyTracker
         title="Daily sales funnel"

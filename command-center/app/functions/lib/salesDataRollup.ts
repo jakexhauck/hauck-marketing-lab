@@ -216,48 +216,7 @@ export function daysInMonth(
   return out;
 }
 
-// ---------------------------------------------------------------------------
-// The whole funnel, dialing through to cash.
-//
-// Cold Call counts dials and bookings; Sales Data counts meetings and closes.
-// Nothing joined them, so the one number that says whether cold calling pays
-// for itself (a dial, eventually, becoming money) was on no page in the app.
-// This is that join.
-//
-// The two halves are counted from DIFFERENT tables on purpose and the funnel
-// says so rather than pretending one flows cleanly into the other:
-//
-//   dials, talked, booked   from cold_call_dials, one row per attempt
-//   onCalendar onwards      from sales_calls, one row per meeting
-//
-// "Booked" and "On calendar" therefore do not have to match, and the gap is
-// information: it is the meetings that came from somewhere other than the
-// phones (a form, a referral, Jake booking one himself). Forcing them to agree
-// would mean either hiding those meetings or crediting them to the dialing.
-
-export interface DialTotals {
-  dials: number;
-  // Attempts where somebody picked up.
-  talked: number;
-  // Attempts that got as far as the pitch.
-  pitched: number;
-  // Attempts that ended in a meeting.
-  booked: number;
-}
-
-export interface DialRow {
-  spoke: boolean | null;
-  pitched: boolean | null;
-  outcome: string | null;
-}
-
-export function rollUpDials(rows: DialRow[]): DialTotals {
-  const totals: DialTotals = { dials: 0, talked: 0, pitched: 0, booked: 0 };
-  for (const row of rows) {
-    totals.dials += 1;
-    if (row.spoke) totals.talked += 1;
-    if (row.pitched) totals.pitched += 1;
-    if (row.outcome === "booked") totals.booked += 1;
-  }
-  return totals;
-}
+// A rollUpDials lived here, counting cold_call_dials so Sales Data could open
+// its funnel with the month's dialing. It is gone with that half of the strip:
+// the dialing month is reported on Acquisition > Cold Call, from
+// lib/coldCallDials, and this file counts meetings only.

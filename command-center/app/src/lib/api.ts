@@ -2,7 +2,7 @@ import { demoMode } from "../demo/demoMode";
 import { handleDemoRequest } from "../demo/handler";
 import { previewHeaders } from "./previewFrame";
 import type { BusinessHealthInputs, PeriodType } from "./businessHealth";
-import type { DerivedSalesDay, DialTotals } from "../../functions/lib/salesDataRollup";
+import type { DerivedSalesDay } from "../../functions/lib/salesDataRollup";
 import type { SourceSplitRow } from "../../functions/lib/salesCalls";
 
 // What one reconciliation against the agency's GoHighLevel calendars did.
@@ -939,9 +939,6 @@ export interface SalesDataResponse {
   sync: (SalesCallSyncResult & { ok: true }) | { ok: false; error: string } | null;
   // Meetings the calendar gave no time, so they belong to no day.
   undated: number;
-  // The dialing half of the month's funnel, counted from the attempts
-  // themselves across every caller.
-  dials: DialTotals;
   // The month split by where the meetings came from, busiest first.
   sources: SourceSplitRow[];
   // How many of the month's nos gave each reason, keyed by SALES_NO_REASONS.
@@ -1801,38 +1798,6 @@ export interface SalesPipelineResponse {
 
 export async function getSalesPipeline(): Promise<SalesPipelineResponse> {
   return api("/api/admin/sales/pipeline");
-}
-
-// Sales > Cold Call Data: the agency's month of dialing, every caller at once.
-// Derived from the attempts logged on the call card; nothing here is typed.
-export interface ColdCallDataDay {
-  day: string; // "YYYY-MM-DD"
-  callsMade: number;
-  pickups: number;
-  passThrough: number;
-  meetingsBooked: number;
-  // How many of the day's nos gave each reason.
-  reasons: Record<string, number>;
-}
-
-export interface ColdCallDataCaller {
-  id: string;
-  name: string;
-  dials: number;
-  talked: number;
-  pitched: number;
-  booked: number;
-}
-
-export interface ColdCallDataResponse {
-  // Only the days that were dialled; the client generates the blank ones.
-  days: ColdCallDataDay[];
-  // Busiest first.
-  callers: ColdCallDataCaller[];
-}
-
-export async function getColdCallData(month: string): Promise<ColdCallDataResponse> {
-  return api(`/api/admin/tracker/cold-call-data?month=${encodeURIComponent(month)}`);
 }
 
 export async function recordSalesCallOutcome(input: {

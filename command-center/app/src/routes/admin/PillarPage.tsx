@@ -9,7 +9,6 @@ import {
   type PillarTabDef,
 } from "../../lib/adminPillars";
 import SalesDataTracker from "../../components/admin/tracker/SalesDataTracker";
-import ColdCallDataTracker from "../../components/admin/tracker/ColdCallDataTracker";
 import SalesCallsSection from "../../components/admin/sales/SalesCallsSection";
 import SalesPipelineBoard from "../../components/admin/sales/SalesPipelineBoard";
 import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
@@ -160,9 +159,6 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
       return <SalesPipelineBoard />;
     case "sales-data":
       return <SalesDataTracker />;
-    // The dialing half of the funnel, every caller at once.
-    case "cold-call-data":
-      return <ColdCallDataTracker />;
     case "business-health":
       return <BusinessHealthTab />;
     case "calculator":

@@ -3,7 +3,6 @@ import {
   callLabel,
   daysInMonth,
   emptyDay,
-  rollUpDials,
   rollUpSalesCalls,
   rowsInMonth,
   toCountable,
@@ -186,42 +185,6 @@ describe("daysInMonth", () => {
     // "2026-1" must not match "2026-10-05". The dash in the prefix is what
     // prevents it, so it is worth a test of its own.
     expect(Object.keys(daysInMonth({ "2026-10-05": emptyDay() }, "2026-1"))).toHaveLength(0);
-  });
-});
-
-describe("rollUpDials", () => {
-  const dial = (over: Partial<{ spoke: boolean; pitched: boolean; outcome: string }> = {}) => ({
-    spoke: false,
-    pitched: false,
-    outcome: "no_answer",
-    ...over,
-  });
-
-  it("counts every attempt as a dial", () => {
-    expect(rollUpDials([dial(), dial(), dial()]).dials).toBe(3);
-  });
-
-  it("reads spoke and pitched off the ROW, not off the outcome", () => {
-    // The stored booleans are what the app measured at the time. Re-deriving
-    // them from the outcome here would let this page and the Cold Call tracker
-    // disagree about what a pickup is.
-    const totals = rollUpDials([
-      dial({ spoke: true, pitched: true, outcome: "booked" }),
-      dial({ spoke: true, pitched: false, outcome: "brush_off" }),
-      dial(),
-    ]);
-    expect(totals.talked).toBe(2);
-    expect(totals.pitched).toBe(1);
-    expect(totals.booked).toBe(1);
-  });
-
-  it("tolerates the nulls a database column can hold", () => {
-    const totals = rollUpDials([{ spoke: null, pitched: null, outcome: null }]);
-    expect(totals).toEqual({ dials: 1, talked: 0, pitched: 0, booked: 0 });
-  });
-
-  it("has an all-zero month rather than a missing one", () => {
-    expect(rollUpDials([])).toEqual({ dials: 0, talked: 0, pitched: 0, booked: 0 });
   });
 });
 

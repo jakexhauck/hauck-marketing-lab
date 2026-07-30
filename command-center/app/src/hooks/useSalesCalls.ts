@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  getColdCallData,
   getSalesCalls,
   getSalesPipeline,
   recordSalesCallOutcome,
@@ -51,19 +50,6 @@ export function useSalesPipelineQuery() {
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
     queryFn: () => getSalesPipeline(),
-  });
-}
-
-// Sales > Cold Call Data. Keyed by month so stepping back through the nav
-// caches each one rather than refetching. Nothing here reads GoHighLevel: the
-// dials are ours, already in our own database, so this is cheap and can be
-// stale for longer than the calendar-reading queries beside it.
-export function useColdCallDataQuery(month: string) {
-  return useQuery({
-    queryKey: ["admin", "tracker", "cold-call-data", month],
-    enabled: !!month,
-    staleTime: 60_000,
-    queryFn: () => getColdCallData(month),
   });
 }
 
