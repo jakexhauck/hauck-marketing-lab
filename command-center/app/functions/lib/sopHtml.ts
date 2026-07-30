@@ -1,10 +1,25 @@
 // Google Docs' text/html export into something we can render inside the admin.
 //
-// The export is a full document whose every visual property lives in a <style>
-// block of generated class names (.c3 { font-weight:700 }) applied to a soup of
-// <span>s. Stripping classes naively would therefore throw away all bold and
-// italic, so we read the style block first, work out which classes mean bold or
-// italic, and promote those spans to <strong>/<em> before the classes go.
+// The export is a full document whose every visual property lives on a soup of
+// <span>s. Stripping those naively throws away all bold and italic, so the
+// emphasis is harvested first and promoted to <strong>/<em>/<u> before the
+// styling goes.
+//
+// Google states emphasis in TWO places, and this only ever read one of them:
+//
+//   1. A <style> block of generated class names, `.c3{font-weight:700}`, applied
+//      as class="c3". This is what the file was written against.
+//   2. An inline attribute, style="font-weight:700", on the span itself.
+//
+// Measured across all 40 SOPs in the real folder on 2026-07-29: form 1 appeared
+// ZERO times and form 2 appeared 1,106 times (934 bold, 111 italic, 61
+// underline) across 33 of the 40 documents. So every emphasis mark in every SOP
+// was being discarded and each one rendered as flat grey text. Both forms are
+// read now; form 1 is kept because it costs nothing and older exports use it.
+//
+// The tests next door pin form 1 against synthetic markup, which is exactly why
+// this went unnoticed: a synthetic fixture cannot tell you what Google actually
+// emits today. Verified against the live folder, not a fixture.
 //
 // Pure and dependency-free on purpose: it runs in a Worker (no DOM) and is the
 // piece most likely to meet a Doc we have not seen, so it must be unit testable.
@@ -53,22 +68,45 @@ export function cleanDocHtml(html: string): string {
 
 // --- style block -----------------------------------------------------------
 
-interface EmphasisClasses { bold: Set<string>; italic: Set<string> }
+interface EmphasisClasses { bold: Set<string>; italic: Set<string>; underline: Set<string> }
+
+// What one span's styling says about emphasis, however that styling was written.
+interface Emphasis { bold: boolean; italic: boolean; underline: boolean }
+
+// Only these count as emphasis. Google also writes the NORMAL values out
+// explicitly (font-weight:400, font-style:normal) on most spans, so testing for
+// the property alone would wrap the entire document in <strong>.
+const BOLD_RE = /font-weight\s*:\s*(?:bold(?:er)?|[6-9]00)/i;
+const ITALIC_RE = /font-style\s*:\s*italic/i;
+// text-decoration is shorthand ("underline solid rgb(0,0,0)"), so match the
+// keyword anywhere in the value rather than expecting it alone. `none` is the
+// common value and must not match.
+const UNDERLINE_RE = /text-decoration(?:-line)?\s*:\s*[^;"]*\bunderline\b/i;
+
+function readDecls(decls: string): Emphasis {
+  return {
+    bold: BOLD_RE.test(decls),
+    italic: ITALIC_RE.test(decls),
+    underline: UNDERLINE_RE.test(decls),
+  };
+}
 
 // Map generated class names to the emphasis they encode, so `.c3{font-weight:700}`
 // survives as <strong> rather than vanishing with the rest of the CSS.
 function readEmphasisClasses(html: string): EmphasisClasses {
   const bold = new Set<string>();
   const italic = new Set<string>();
+  const underline = new Set<string>();
   for (const block of html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) {
     for (const rule of (block[1] || "").matchAll(/\.([A-Za-z0-9_-]+)\s*\{([^}]*)\}/g)) {
       const name = rule[1];
-      const decls = rule[2];
-      if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(decls)) bold.add(name);
-      if (/font-style\s*:\s*italic/i.test(decls)) italic.add(name);
+      const e = readDecls(rule[2]);
+      if (e.bold) bold.add(name);
+      if (e.italic) italic.add(name);
+      if (e.underline) underline.add(name);
     }
   }
-  return { bold, italic };
+  return { bold, italic, underline };
 }
 
 function takeBody(html: string): string {
@@ -140,9 +178,9 @@ function transform(nodes: Node[], emphasis: EmphasisClasses): Node[] {
     const tag = RENAME[node.tag] ?? node.tag;
 
     if (UNWRAP.has(tag) || !ALLOWED.has(tag)) {
-      // A span carrying a bold/italic class becomes real emphasis; otherwise it
-      // dissolves into its children.
-      const wrapped = applyEmphasis(children, node.attrs["class"], emphasis);
+      // A span carrying emphasis becomes real emphasis; otherwise it dissolves
+      // into its children.
+      const wrapped = applyEmphasis(children, node.attrs, emphasis);
       out.push(...wrapped);
       continue;
     }
@@ -168,16 +206,30 @@ function transform(nodes: Node[], emphasis: EmphasisClasses): Node[] {
   return out;
 }
 
-function applyEmphasis(children: Node[], className: string | undefined, emphasis: EmphasisClasses): Node[] {
-  if (!className || children.length === 0) return children;
-  const names = className.split(/\s+/).filter(Boolean);
+// Emphasis from either source, the inline attribute winning where both speak
+// (it is the more specific of the two, as in CSS).
+function applyEmphasis(
+  children: Node[],
+  attrs: Record<string, string>,
+  emphasis: EmphasisClasses,
+): Node[] {
+  if (children.length === 0) return children;
+
+  const names = (attrs["class"] ?? "").split(/\s+/).filter(Boolean);
+  const inline = readDecls(attrs["style"] ?? "");
+  const found: Emphasis = {
+    bold: inline.bold || names.some((n) => emphasis.bold.has(n)),
+    italic: inline.italic || names.some((n) => emphasis.italic.has(n)),
+    underline: inline.underline || names.some((n) => emphasis.underline.has(n)),
+  };
+  if (!found.bold && !found.italic && !found.underline) return children;
+
+  // Innermost first, so the emitted nesting is <strong><em><u>text</u></em></strong>
+  // whichever combination a span carries.
   let wrapped = children;
-  if (names.some((n) => emphasis.italic.has(n))) {
-    wrapped = [{ type: "el", tag: "em", attrs: {}, children: wrapped }];
-  }
-  if (names.some((n) => emphasis.bold.has(n))) {
-    wrapped = [{ type: "el", tag: "strong", attrs: {}, children: wrapped }];
-  }
+  if (found.underline) wrapped = [{ type: "el", tag: "u", attrs: {}, children: wrapped }];
+  if (found.italic) wrapped = [{ type: "el", tag: "em", attrs: {}, children: wrapped }];
+  if (found.bold) wrapped = [{ type: "el", tag: "strong", attrs: {}, children: wrapped }];
   return wrapped;
 }
 

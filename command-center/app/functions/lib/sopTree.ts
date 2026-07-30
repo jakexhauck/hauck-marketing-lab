@@ -1,4 +1,9 @@
-import { listFolderChildren, FOLDER_MIME, type DriveFile } from "./driveDirect";
+import { FOLDER_MIME, type DriveFile } from "./driveDirect";
+
+// How the walk reads one folder. Injected rather than imported so the tree does
+// not care whether Drive is reached through our own OAuth grant or brokered by
+// Composio; see driveComposio.ts for why there are two.
+export type ListFolder = (folderId: string) => Promise<DriveFile[]>;
 
 // Turns the agency's "SOPs Templates" Drive folder into the shape the admin hub
 // renders. The folder already encodes everything we need, so nothing is invented:
@@ -13,7 +18,13 @@ import { listFolderChildren, FOLDER_MIME, type DriveFile } from "./driveDirect";
 // shortcut loop must not spin a Worker until it times out.
 
 export const DOC_MIME = "application/vnd.google-apps.document";
-const MAX_DEPTH = 3;
+// The real folder reaches five levels deep, so a limit of 3 (what this shipped
+// with) hid 27 of its 32 folders and 15 SOPs outright, including the whole Cold
+// Email course. Six leaves headroom for a level Jake adds later without another
+// silent disappearance. The bound stays because Drive folders are user-editable
+// and a shortcut loop must not spin a Worker until it times out; `visited`
+// already catches revisits, so this only guards genuine depth.
+const MAX_DEPTH = 6;
 
 // Scaffolding, not content: an empty template tree Jake copies per client.
 const EXCLUDED_FOLDERS = new Set(["example client folder"]);
@@ -37,6 +48,11 @@ export interface SopAttachment {
 export interface SopCategoryNode {
   key: string;
   name: string;
+  // The folders above this one, real Drive names, nearest last. Needed because
+  // `name` is only the leaf: nested four deep, "Day 2: Find The Right People"
+  // says nothing about living under Agency Acquisition > Cold Email. The key
+  // cannot stand in for it, being slugified (lowercased, emoji stripped).
+  trail: string[];
   sops: SopEntry[];
   attachments: SopAttachment[];
 }
@@ -81,7 +97,12 @@ function stripExtension(name: string): string {
 }
 
 /** One folder's children sorted into SOP pages and loose attachments. */
-export function buildCategory(name: string, key: string, children: DriveFile[]): SopCategoryNode {
+export function buildCategory(
+  name: string,
+  key: string,
+  children: DriveFile[],
+  trail: string[] = [],
+): SopCategoryNode {
   const docs = children.filter((f) => f.mimeType === DOC_MIME);
   const rest = children.filter((f) => f.mimeType !== DOC_MIME && !f.isFolder);
 
@@ -126,49 +147,85 @@ export function buildCategory(name: string, key: string, children: DriveFile[]):
     .filter((f) => !claimed.has(f.id))
     .map((f) => ({ id: f.id, name: f.name, mimeType: f.mimeType, webViewLink: f.webViewLink }));
 
-  return { key, name, sops, attachments };
+  return { key, name, trail, sops, attachments };
+}
+
+/** One folder, its contents, and the folders inside it. */
+export interface SopFolderNode extends SopCategoryNode {
+  folders: SopFolderNode[];
+  // Own plus every descendant. A folder card says what is inside it without the
+  // browser having to walk the subtree to find out.
+  totalSops: number;
+  totalFiles: number;
+}
+
+/** The SOP root: the folders in it, plus anything sitting loose at the top. */
+export interface SopTree {
+  folders: SopFolderNode[];
+  sops: SopEntry[];
+  attachments: SopAttachment[];
 }
 
 /**
- * Walk the SOP root into categories. Each subfolder becomes a category; nested
- * subfolders become their own category keyed by path ("fullfillment/facebook-ads")
- * so "Fullfillment > Facebook Ads" stays distinct from a top-level "Facebook Ads".
+ * Walk the SOP root into the folder hierarchy as Drive actually has it.
+ *
+ * This used to FLATTEN: every folder holding Docs became a top-level category and
+ * the nesting was thrown away, so a two-folder Drive arrived as 25 sibling cards
+ * with "Day 2: Find The Right People" next to "Client Sales". The hub browses the
+ * tree instead, so the shape has to survive the walk.
+ *
+ * A folder with nothing in it is KEPT. Flattening dropped those as "shelves",
+ * which is right for a flat list (an empty card says nothing) and wrong for a
+ * browser: an empty folder is real structure Jake made, and hiding it means the
+ * app disagrees with Drive about what exists.
+ *
+ * The walk is bounded and tracks visited ids: Drive folders are user-editable and
+ * a shortcut loop must not spin a Worker until it times out.
  */
-export async function buildSopTree(token: string, rootId: string): Promise<SopCategoryNode[]> {
-  const out: SopCategoryNode[] = [];
+export async function buildSopTree(list: ListFolder, rootId: string): Promise<SopTree> {
   const visited = new Set<string>([rootId]);
 
-  const walk = async (folderId: string, path: string[], depth: number): Promise<void> => {
-    const children = await listFolderChildren(token, folderId);
+  const walk = async (folderId: string, path: string[], depth: number): Promise<SopFolderNode> => {
+    const children = await list(folderId);
+    const own = buildCategory(
+      path[path.length - 1],
+      path.map(slugify).join("/"),
+      children,
+      path.slice(0, -1),
+    );
 
-    if (path.length > 0) {
-      const node = buildCategory(path[path.length - 1], path.map(slugify).join("/"), children);
-      // A folder that holds only subfolders is a shelf, not a category.
-      if (node.sops.length > 0 || node.attachments.length > 0) out.push(node);
+    const folders: SopFolderNode[] = [];
+    if (depth < MAX_DEPTH) {
+      for (const child of children) {
+        if (child.mimeType !== FOLDER_MIME) continue;
+        if (isExcludedFolder(child.name)) continue;
+        if (visited.has(child.id)) continue;
+        visited.add(child.id);
+        folders.push(await walk(child.id, [...path, child.name], depth + 1));
+      }
     }
 
-    if (depth >= MAX_DEPTH) return;
-    for (const child of children) {
-      if (child.mimeType !== FOLDER_MIME) continue;
-      if (isExcludedFolder(child.name)) continue;
-      if (visited.has(child.id)) continue;
-      visited.add(child.id);
-      await walk(child.id, [...path, child.name], depth + 1);
-    }
+    return {
+      ...own,
+      folders,
+      totalSops: own.sops.length + folders.reduce((n, f) => n + f.totalSops, 0),
+      totalFiles: own.attachments.length + folders.reduce((n, f) => n + f.totalFiles, 0),
+    };
   };
 
-  // Docs sitting loose at the root become an implicit "General" category.
-  const rootChildren = await listFolderChildren(token, rootId);
-  const rootNode = buildCategory("General", "general", rootChildren);
-  if (rootNode.sops.length > 0) out.push(rootNode);
+  const rootChildren = await list(rootId);
+  // Loose Docs and files at the root belong to no folder, so they sit at the top
+  // level beside the folders rather than inside an invented "General" one.
+  const rootOwn = buildCategory("General", "general", rootChildren);
 
+  const folders: SopFolderNode[] = [];
   for (const child of rootChildren) {
     if (child.mimeType !== FOLDER_MIME) continue;
     if (isExcludedFolder(child.name)) continue;
     if (visited.has(child.id)) continue;
     visited.add(child.id);
-    await walk(child.id, [child.name], 1);
+    folders.push(await walk(child.id, [child.name], 1));
   }
 
-  return out;
+  return { folders, sops: rootOwn.sops, attachments: rootOwn.attachments };
 }

@@ -19,21 +19,32 @@
 //     modifiedTime too, so a changed Doc refetches and an unchanged one stays
 //     instant.
 //
+// A rendered SOP arrives as SECTIONS, one per Google Doc tab, because Drive's
+// export otherwise runs every tab together with no boundary. See the doc endpoint.
+//
 // A background refresh is silent by design: no spinner, no flicker, and no state
 // write at all when nothing in Drive moved.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
 import { flagKey } from "../lib/sopTriage";
-import type { SopCategory, SopDocResponse, SopHubStatus, SopTreeResponse } from "../lib/sopHub";
+import { EMPTY_TREE, type SopDocResponse, type SopHubStatus, type SopTree, type SopTreeResponse } from "../lib/sopHub";
 
-// How often an open, visible tab re-reads the folder tree. Each poll re-walks
-// the Drive folder, which is a handful of Drive calls: fine for an admin-only
-// surface with a tab or two open, and well inside Google's per-project quota.
-const POLL_MS = 60_000;
-// visibilitychange and focus both fire when returning to the tab. This keeps
-// that from becoming two requests.
-const MIN_REFETCH_MS = 5_000;
+// How often an open, visible tab re-reads the folder tree.
+//
+// Measured, not guessed: walking the real folder is one Drive call per folder,
+// and it has 32 of them across five levels. Those go through Composio, which
+// meters tool executions, so a 60s poll would be ~1,900 calls an hour per open
+// tab to notice a Doc that gets added a few times a week. Five minutes is the
+// honest trade, and the poll is not the interesting half anyway: the case that
+// actually happens is adding a Doc in Drive and switching back to the app, which
+// the focus refetch answers.
+const POLL_MS = 5 * 60_000;
+// The floor between reads. It stops visibilitychange and focus (both fire on
+// returning to a tab) becoming two walks, and stops flicking between windows
+// costing 32 calls a time. Long enough to be quiet, short enough that going to
+// Drive, adding a Doc and coming back still refetches.
+const MIN_REFETCH_MS = 30_000;
 
 // A rendered Doc plus the Drive modifiedTime it was rendered from, which is what
 // makes the client cache safe to trust.
@@ -42,7 +53,7 @@ interface CachedDoc extends SopDocResponse {
 }
 
 export interface UseSopHub {
-  categories: SopCategory[];
+  tree: SopTree;
   status: SopHubStatus;
   loading: boolean;
   error: string | null;
@@ -61,7 +72,7 @@ export interface UseSopHub {
 }
 
 export function useSopHub(): UseSopHub {
-  const [categories, setCategories] = useState<SopCategory[]>([]);
+  const [tree, setTree] = useState<SopTree>(EMPTY_TREE);
   const [status, setStatus] = useState<SopHubStatus>("ok");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,17 +106,17 @@ export function useSopHub(): UseSopHub {
         setError(null);
       }
       try {
-        const tree = await api<SopTreeResponse>("/api/admin/sops");
+        const res = await api<SopTreeResponse>("/api/admin/sops");
         if (cancelled) return;
-        const nextCategories = tree.categories ?? [];
-        const json = JSON.stringify(nextCategories);
+        const nextTree = res.tree ?? EMPTY_TREE;
+        const json = JSON.stringify(nextTree);
         if (json !== lastTreeJson) {
           lastTreeJson = json;
-          setCategories(nextCategories);
+          setTree(nextTree);
         }
-        setStatus(tree.status ?? "ok");
-        setConnectedEmail(tree.connectedEmail ?? null);
-        setError(tree.error ?? null);
+        setStatus(res.status ?? "ok");
+        setConnectedEmail(res.connectedEmail ?? null);
+        setError(res.error ?? null);
       } catch (err) {
         // A failed background poll must not wipe SOPs already on screen; only a
         // foreground load is allowed to turn the tab into an error state.
@@ -227,7 +238,7 @@ export function useSopHub(): UseSopHub {
   }, []);
 
   return {
-    categories,
+    tree,
     status,
     loading,
     error,
