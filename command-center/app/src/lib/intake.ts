@@ -1,15 +1,22 @@
 // The client intake funnel, declared as data.
 //
-// This is the public form at /onboarding: no login, filled in by the client
-// themselves between paying and the kickoff call. It carries fifteen of the
-// sixteen questions from Jake's Google Form, plus the three things the form
-// could not do: the business basics needed to create an account, the login they
-// choose, and a review screen.
+// This is the public form at /onboarding-form: no login, filled in by the client
+// themselves between paying and the kickoff call. It carries all sixteen
+// questions from Jake's Google Form, plus the three things the form could not
+// do: the business basics needed to create an account, the login they choose,
+// and a review screen.
 //
-// The sixteenth, Tax ID / EIN, was cut at Jake's request: he did not want to ask
-// a brand-new client for legal business details. It is still needed for A2P
-// phone registration, so it now has to be collected out of band, by email or on
-// the kickoff call, before texting can go live for that client.
+// THE LEGAL BLOCK ON STEP 2 (legalName, taxId, entityType, contactTitle) exists
+// for one reason: A2P 10DLC. A carrier will not register a business texting
+// number without the legal name, the EIN, the entity type and the job title of
+// the person vouching for it. These were cut once, on the reasoning that a
+// brand-new client should not be asked for legal details, and collecting them by
+// email afterwards turned out to be the thing that held texting up. Asking once,
+// here, is the lesser evil.
+//
+// All four are OPTIONAL. A client who does not know their EIN off-hand must
+// still be able to finish the form; the gap gets caught by the A2P item on their
+// setup checklist rather than by a blocked submit button.
 //
 // The funnel, its validation and its review screen all render from
 // INTAKE_FIELDS. Adding a question is one entry here, not a JSX edit in three
@@ -72,7 +79,7 @@ export const INTAKE_STEPS: IntakeStep[] = [
     n: 2,
     key: "contact",
     label: "Contact details",
-    blurb: "How we reach you, and where you are based.",
+    blurb: "How we reach you, and what we need to register your phone number.",
   },
   {
     n: 3,
@@ -112,6 +119,17 @@ const NOTIFY_OPTIONS: IntakeOption[] = [
 ];
 
 const ASSET_HELP = "Paste a Google Drive, Dropbox or iCloud link. Make sure it is shared.";
+
+// How the business is registered. The carriers' own list for 10DLC brand
+// registration, in their wording, so an answer here transfers to the form Jake
+// fills in without a judgement call in between.
+const ENTITY_OPTIONS: IntakeOption[] = [
+  { value: "llc", label: "LLC" },
+  { value: "corporation", label: "Corporation" },
+  { value: "sole_proprietor", label: "Sole proprietor" },
+  { value: "partnership", label: "Partnership" },
+  { value: "non_profit", label: "Non-profit" },
+];
 
 export const INTAKE_FIELDS: IntakeField[] = [
   // 1 - Your business
@@ -160,6 +178,42 @@ export const INTAKE_FIELDS: IntakeField[] = [
     step: 2,
     required: true,
     wide: true,
+  },
+  // The A2P block. Optional on purpose: see the note at the top of this file.
+  {
+    key: "legalName",
+    label: "Legal business name",
+    type: "text",
+    step: 2,
+    placeholder: "Willis Exteriors LLC",
+    help: "As registered with the IRS. Often the trading name plus LLC or Inc.",
+  },
+  {
+    key: "taxId",
+    label: "Tax ID / EIN",
+    type: "text",
+    step: 2,
+    placeholder: "12-3456789",
+    // Plain text, no markup: the admin record renders help through React, which
+    // escapes it. The funnel's own copy of this field carries the same sentence
+    // plus a link out to an explainer, which is the version a client reads.
+    help:
+      "We know this one is sensitive. The mobile carriers will not let a business send texts until they have checked it is a real business, and the EIN is how they check. We use it for that registration and nothing else.",
+  },
+  {
+    key: "entityType",
+    label: "Business structure",
+    type: "select",
+    step: 2,
+    options: ENTITY_OPTIONS,
+  },
+  {
+    key: "contactTitle",
+    label: "Your job title",
+    type: "text",
+    step: 2,
+    placeholder: "Owner",
+    help: "The carriers ask who is authorising the registration.",
   },
 
   // 3 - Your login (new: this is what creates the account)

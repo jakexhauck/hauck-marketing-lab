@@ -4,11 +4,34 @@ The three pages a newly signed client walks through, built to paste into
 GoHighLevel. One visual language across all three, so it never feels like they
 have been handed off to a different company halfway along.
 
-| Order | File | What it does |
+| Order | File | Published at | What it does |
+|---|---|---|---|
+| 1 | `01-intake-form.html` | `/onboarding-form` | Seven-step intake form. Everything we need to stand the account up. |
+| 2 | `02-book-your-call.html` | `/onboarding-calendar` | The onboarding calendar, wrapped in the same card. |
+| 3 | `03-thank-you.html` | `/onboarding-thank-you` | Confirmation, what happens next, and one thing they can do now. |
+
+All three on `www.hauckmarketing.com`. Note that the APEX (`hauckmarketing.com`)
+is the Vercel marketing site and `www` is the GHL funnel: different hosts, same
+brand, so always write the `www.` in these links.
+
+## How one page reaches the next
+
+The two hand-offs work differently, which is the thing to remember when one of
+them breaks.
+
+| Hop | Mechanism | Where to change it |
 |---|---|---|
-| 1 | `01-intake-form.html` | Seven-step intake form. Everything we need to stand the account up. |
-| 2 | `02-book-your-call.html` | The onboarding calendar, wrapped in the same card. |
-| 3 | `03-thank-you.html` | Confirmation, what happens next, and one thing they can do now. |
+| 1 to 2 | `window.location` on submit | `HM_CONFIG.nextUrl` in `01-intake-form.html` |
+| 2 to 3 | The calendar's confirmation redirect | GHL calendar `NK53JD0np0dfOaRpmUWh` settings |
+
+Page 2 contains no link to page 3 and never will: the client must actually book
+before they are sent on, and only the calendar knows whether they did. Skip that
+GHL setting and they land on GoHighLevel's own generic confirmation, finishing
+the flow on someone else's page.
+
+If the redirect out of page 1 is ever blocked by the browser, its confirmation
+screen carries a "Book your call" link to the same address, so the funnel has no
+dead end.
 
 Each file is entirely self-contained: markup, styles and behaviour in one block,
 no framework and no build step. They repeat their CSS on purpose, because each
@@ -43,12 +66,14 @@ That API is live and tested. Two things must be true before a GHL-hosted page
 can reach it:
 
 1. `HM_CONFIG.apiBase` at the top of the script points at the deployed app.
-2. **The funnel's published origin is set as `FUNNEL_ORIGIN`.** A browser on any
-   other domain is blocked by CORS and every save fails. This is an environment
-   variable rather than a line of code, so turning the form on is a settings
-   change and not a deploy: put the origin in Doppler and in the Cloudflare Pages
-   project, exactly as it appears in the address bar and with no trailing slash
-   (`https://go.hauckmarketing.com`).
+2. **`FUNNEL_URL` is set to page 1's published address**, the whole link and no
+   trailing slash (`https://www.hauckmarketing.com/onboarding-form`). The API
+   derives the allowed CORS origin from it, so a browser on any other domain is
+   blocked and every save fails. One setting, read two ways, because two settings
+   could disagree and the failure that causes is a form that looks live and
+   silently cannot save. It goes in Doppler (`hauck-command-center`/`prd`) and in
+   the Cloudflare Pages project. It is configuration, not a deploy: there is no
+   origin list in `functions/api/_middleware.ts` to edit.
 
 Until item 2 is done, `01-intake-form.html` ships with:
 
@@ -56,12 +81,13 @@ Until item 2 is done, `01-intake-form.html` ships with:
 dryRun: true
 ```
 
-The form then works end to end, keeps progress in the browser, and shows the
-thank-you screen, but posts nothing. A form that looks like it saved and did not
-is worse than one that plainly does nothing.
+The form then works end to end, keeps progress in the browser, and hands off to
+the calendar, but posts nothing. A form that looks like it saved and did not is
+worse than one that plainly does nothing.
 
-**To go live:** publish the funnel, set `FUNNEL_ORIGIN` to its domain, then flip
-`dryRun` to `false` in page 1.
+**To go live:** publish the funnel, set `FUNNEL_URL` to page 1's address, then
+flip `dryRun` to `false` in page 1. That order matters: flipping `dryRun` first
+makes every save die on CORS.
 
 ## Where submissions land
 
@@ -100,9 +126,17 @@ console.log(missing.length||extra.length ? "MISMATCH "+[...missing,...extra].joi
 - **Assets are links, not uploads.** A public unauthenticated upload endpoint is
   a storage-bombing target and the app has no storage bucket. Clients paste a
   Drive or Dropbox link instead.
-- **No Tax ID / EIN.** Cut deliberately: we do not ask a brand-new client for
-  legal business details. A2P phone registration still needs one, so it has to
-  be collected by email or on the kickoff call before texting can go live.
+- **The A2P block is back, and it is optional.** Step 2 asks for legal business
+  name, EIN, business structure and job title. These were cut once, on the
+  reasoning that a brand-new client should not be asked for legal details, and
+  chasing them by email afterwards is what held texting up. A carrier will not
+  register a business texting number without all four. They are optional, so a
+  client who does not know their EIN off-hand still reaches the end of the form
+  and the gap is caught by the A2P item on their setup checklist instead.
+- **The EIN says why it is being asked.** Its help text names the sensitivity
+  out loud, explains that the carriers check a business is real before letting
+  it text, and links to an explainer. An unexplained request for a tax ID on a
+  web form reads as a scam, and a client who thinks that abandons the form.
 - **The login email follows the contact email** until the client edits it, so
   step 3 is usually two keystrokes and a password.
 - **Progress saves after every step.** The resume token goes into the URL so a

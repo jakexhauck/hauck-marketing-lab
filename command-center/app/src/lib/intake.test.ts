@@ -96,7 +96,7 @@ describe("the schema itself", () => {
     }
   });
 
-  it("keeps fifteen of the sixteen questions from the source form", () => {
+  it("keeps all sixteen questions from the source form", () => {
     const keys = new Set(INTAKE_FIELDS.map((f) => f.key));
     const fromSourceForm = [
       "contactName",
@@ -104,6 +104,7 @@ describe("the schema itself", () => {
       "contactPhone",
       "timezone",
       "businessAddress",
+      "taxId",
       "targetAreas",
       "areaCallout",
       "notifyPreference",
@@ -115,17 +116,39 @@ describe("the schema itself", () => {
       "whySignedUp",
       "notes",
     ];
-    expect(fromSourceForm).toHaveLength(15);
+    expect(fromSourceForm).toHaveLength(16);
     for (const key of fromSourceForm) {
       expect(keys.has(key), `${key} is missing from the funnel`).toBe(true);
     }
   });
 
-  // Cut at Jake's request: he did not want to ask a brand-new client for legal
-  // business details. Asserted rather than merely deleted, so nobody puts it
-  // back by accident. A2P registration still needs it, collected out of band.
-  it("never asks a client for their tax ID", () => {
-    expect(INTAKE_FIELDS.some((f) => f.key === "taxId")).toBe(false);
+  // The A2P block. Carriers will not register a business texting number without
+  // all four, and collecting them by email after the fact is what held texting
+  // up last time. Asserted as a set so removing one quietly is a failing test
+  // rather than a client who cannot be registered.
+  it("asks for everything A2P brand registration needs", () => {
+    const keys = new Set(INTAKE_FIELDS.map((f) => f.key));
+    for (const key of ["legalName", "taxId", "entityType", "contactTitle"]) {
+      expect(keys.has(key), `${key} is missing from the funnel`).toBe(true);
+    }
+  });
+
+  // Optional on purpose. A client who does not know their EIN off-hand must
+  // still reach the end of the form; the gap is caught by the A2P item on their
+  // setup checklist, not by a submit button that will not move.
+  it("never blocks the form on a legal detail", () => {
+    for (const key of ["legalName", "taxId", "entityType", "contactTitle"]) {
+      expect(INTAKE_FIELDS.find((f) => f.key === key)?.required ?? false).toBe(false);
+    }
+  });
+
+  // The admin record renders help through React, which escapes it. Markup in a
+  // shared help string would reach Jake as visible tags, so the link that
+  // explains A2P lives only in the funnel's own copy of the schema.
+  it("keeps markup out of every help string", () => {
+    for (const field of INTAKE_FIELDS) {
+      expect(field.help ?? "", `${field.key} help must be plain text`).not.toMatch(/[<>]/);
+    }
   });
 
   it("offers Both as a notification preference, not just text and email", () => {

@@ -14,22 +14,33 @@
      card will sit inside a narrower column than it was designed for.
   4. Publish, then open the page and walk all seven steps.
 
+  WHERE IT SITS IN THE FUNNEL
+  Step 1 of 3. On submit it navigates to HM_CONFIG.nextUrl, which is step 2, the
+  onboarding calendar. Step 2 reaches step 3 through the CALENDAR's confirmation
+  redirect, a GoHighLevel setting rather than anything in this file.
+
+    1. /onboarding-form        this page
+    2. /onboarding-calendar    HM_CONFIG.nextUrl, below
+    3. /onboarding-thank-you   set in the calendar's settings, not here
+
   BEFORE IT CAN SAVE ANYTHING  (read this)
   The form posts to the Command Center API at HM_CONFIG.apiBase below. That API
   already exists, is tested, and is live. Two things must be true for it to
   accept calls from a GHL-hosted page:
 
     a) apiBase must point at the deployed app, not localhost.
-    b) The GHL funnel's origin must be added to the allowed-origins list in
-       command-center/app/functions/api/_middleware.ts. Right now that list is
-       app.hauckmarketing.com only, so a browser on any other domain will be
-       blocked by CORS and every save will fail.
+    b) FUNNEL_URL must be set on the Command Center (Doppler and the Cloudflare
+       Pages project) to this page's published address, whole link and no
+       trailing slash. The API derives the allowed CORS origin from it, so
+       setting it is what lets a browser on this domain reach the API at all.
+       This is configuration, NOT a code change: there is no origin list in
+       functions/api/_middleware.ts to edit any more.
 
-  Tell me the published funnel domain and I will add it and ship that change.
-
-  UNTIL THEN: set HM_CONFIG.dryRun = true. The funnel works end to end, keeps
-  progress in the browser, and shows the thank-you screen, but posts nothing.
-  Good for testing the look and the flow without wiring.
+  UNTIL THAT IS DONE: leave HM_CONFIG.dryRun = true. The funnel works end to
+  end, keeps progress in the browser, and hands off to the calendar, but posts
+  nothing. Good for testing the look and the flow without wiring. Flipping it to
+  false before FUNNEL_URL is set makes every save fail on CORS, which a client
+  reads as "the form is broken".
 
   WHAT IT DOES
   - Seven steps plus a review screen, matching src/lib/intake.ts exactly.
@@ -101,6 +112,12 @@
   outline:none;border-color:var(--hm-green);box-shadow:0 0 0 3px rgba(77,187,131,.16)}
 .hm-field.has-error input,.hm-field.has-error select,.hm-field.has-error textarea{border-color:#D4553F}
 .hm-help{font-size:11.5px;line-height:1.45;color:var(--hm-faint)}
+/* Help text can carry a link (the A2P explainer, the app store links). GHL's
+   theme styles anchors, so these get their own rule rather than inheriting
+   whatever colour the surrounding funnel happens to use. */
+.hm-funnel .hm-help a{color:var(--hm-green-deep);font-weight:500;
+  text-decoration:underline;text-underline-offset:2px}
+.hm-funnel .hm-help a:hover{color:var(--hm-ink)}
 .hm-err{font-size:11.5px;line-height:1.45;color:#C2492F}
 .hm-check{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
 .hm-check input{width:17px;height:17px;margin-top:1px;flex:none;accent-color:var(--hm-green)}
@@ -115,6 +132,9 @@
 .hm-btn{border:none;border-radius:10px;padding:12px 22px;cursor:pointer;font-family:Poppins,Inter,sans-serif;
   font-size:14px;font-weight:600;letter-spacing:-.01em;transition:background .15s,color .15s,border-color .15s}
 .hm-btn:disabled{opacity:.55;cursor:default}
+/* The confirmation's "Book your call" is a link, not a button: it has to survive
+   a blocked redirect, and a link is the thing a browser will always follow. */
+a.hm-btn{display:inline-block;text-decoration:none}
 .hm-btn-primary{background:var(--hm-green);color:#062018}
 .hm-btn-primary:not(:disabled):hover{background:var(--hm-green-deep);color:#fff}
 .hm-btn-ghost{background:transparent;color:var(--hm-body);border:1px solid var(--hm-line)}
@@ -153,9 +173,20 @@
   var HM_CONFIG = {
     // The deployed Command Center. No trailing slash.
     apiBase: "https://app.hauckmarketing.com",
-    // true = nothing is posted anywhere. Use this until the funnel's origin is
-    // added to the API's allowed-origins list, or every save will fail on CORS.
-    dryRun: true
+    // Step 2 of the funnel: the onboarding calendar. Sending them there is the
+    // whole point of finishing this form, so it is a full page navigation rather
+    // than anything clever. Set it to "" and the form ends on its own
+    // confirmation instead, which is what it did before there was a step 2.
+    nextUrl: "https://www.hauckmarketing.com/onboarding-calendar",
+    // LIVE. FUNNEL_URL is set on the Command Center to this page's address, so
+    // the API allows this origin and every step saves for real.
+    //
+    // Set this back to true and the funnel still walks end to end, keeping
+    // progress in the browser and handing off to the calendar, but posts
+    // nothing. That is the safe state for testing a copy change. What is NOT
+    // safe is false while FUNNEL_URL is unset: every save dies on CORS, and a
+    // client reads that as the form being broken.
+    dryRun: false
   };
 
   // ------------------------------------------------- schema (mirrors intake.ts)
@@ -200,6 +231,15 @@
     { key: "contactPhone", label: "Phone", type: "tel", step: 2, required: true, placeholder: "(313) 555 0134" },
     { key: "timezone", label: "Timezone", type: "select", step: 2, required: true, options: TIMEZONES, help: "This sets the times on your booking calendar, so please get it right." },
     { key: "businessAddress", label: "Business address", type: "textarea", step: 2, required: true, wide: true, placeholder: "123 Ford Rd, Garden City, MI 48135" },
+    // The A2P block. All four optional: a client who does not know their EIN
+    // off-hand must still be able to finish. help renders as HTML (see
+    // fieldHtml), which is what lets the EIN note carry a link out.
+    { key: "legalName", label: "Legal business name", type: "text", step: 2, placeholder: "Willis Exteriors LLC", help: "As registered with the IRS. Often your trading name plus LLC or Inc." },
+    { key: "taxId", label: "Tax ID / EIN", type: "text", step: 2, wide: true, placeholder: "12-3456789",
+      help: "We know this one is sensitive, so here is exactly why we ask. The mobile carriers will not let a business send texts until they have checked it is a real business, and the EIN is how they check. We use it for that registration and nothing else. " +
+            '<a href="https://www.twilio.com/docs/messaging/compliance/a2p-10dlc" target="_blank" rel="noreferrer">Read what this registration is</a>' },
+    { key: "entityType", label: "Business structure", type: "select", step: 2, options: [["llc", "LLC"], ["corporation", "Corporation"], ["sole_proprietor", "Sole proprietor"], ["partnership", "Partnership"], ["non_profit", "Non-profit"]] },
+    { key: "contactTitle", label: "Your job title", type: "text", step: 2, placeholder: "Owner", help: "The carriers ask who is authorising the registration." },
 
     // 3 Your login
     { key: "loginEmail", label: "Login email", type: "email", step: 3, required: true, wide: true, help: "Prefilled from the email above. Change it if you would rather sign in with another." },
@@ -468,9 +508,17 @@
       return;
     }
     if (state.done) {
+      // Normally nobody reads this: the submit handler sends them straight to the
+      // calendar. It is what they see if that navigation is blocked or slow, so
+      // it has to carry the same next step under its own steam.
       slot.innerHTML = '<div class="hm-final"><div class="hm-final-mark">&#10003;</div>' +
         "<h2>That is everything, thank you</h2>" +
-        "<p>We have got what we need and we are setting your account up now. You will hear from us shortly with your login and the next steps.</p></div>";
+        (HM_CONFIG.nextUrl
+          ? "<p>One thing left: pick a time for your onboarding call.</p>" +
+            '<p style="margin-top:18px"><a class="hm-btn hm-btn-primary" href="' +
+            esc(HM_CONFIG.nextUrl) + '">Book your call</a></p>'
+          : "<p>We have got what we need and we are setting your account up now. You will hear from us shortly with your login and the next steps.</p>") +
+        "</div>";
       reassure.textContent = "";
       return;
     }
@@ -588,6 +636,14 @@
         }
         else if (state.step < REVIEW_STEP) { state.step++; state.errors = {}; }
         render(); top();
+        // Step 2 is a page of its own, so the hand-off is a navigation. Fired
+        // AFTER the render on purpose: the confirmation is already painted, so a
+        // browser that blocks or delays the move leaves them on a screen that
+        // tells them what to do next rather than on a filled-in form.
+        if (submitting && HM_CONFIG.nextUrl) {
+          try { window.top.location.assign(HM_CONFIG.nextUrl); }
+          catch (e) { window.location.assign(HM_CONFIG.nextUrl); }
+        }
       });
     });
   }
