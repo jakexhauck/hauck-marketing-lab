@@ -300,3 +300,30 @@ something only you can issue.
       no typeable cells, because a cell holding five people's numbers belongs to
       nobody. If you would rather type a correction at the agency level, say so
       and I will build somewhere honest for it to live.
+
+## Sales pillar: what was sold, sources, reasons, notes, stale deals (shipped 29 July 2026)
+
+- [ ] **Record one real close end to end.** Sales > Sales Calls, press "Closed",
+      put in the monthly, the term and the cash taken. Then check three places
+      agree: the row reads back "$2,000/mo, 12 mo, $500 today", the funnel's New
+      MRR moved, and Sales Data's New MRR column shows it on the right day. This
+      write path has never been used against a real meeting.
+
+- [ ] **Decide whether the reason list is the right list.** Both "no" buttons now
+      refuse to save without one, from eight fixed options (too expensive, wants
+      to think, already has an agency, not the decision maker, bad timing, not a
+      business we serve, not convinced it works, something else). If two of those
+      never get used and something you hear weekly is missing, say so: it is one
+      line to change while nothing has been recorded, and a rename later
+      invalidates the counts already collected.
+
+- [ ] **Confirm 14 days is the right staleness threshold.** An open deal on the
+      Sales board that has not moved in a fortnight now carries an amber dot and
+      a per-column count. If your cycle means 14 days is normal, the whole board
+      will glow amber and the signal is worthless. Tell me the number.
+
+- [ ] **The reason and notes are only as good as the habit.** Every no now costs
+      a reason click and every outcome offers a notes box. If that friction stops
+      you recording outcomes at all, the funnel goes blank and that is worse than
+      no reasons. Tell me if it drags and I will make the no-show path one click
+      again.

@@ -57,12 +57,26 @@ export default function FullFunnel({
         <Link value={formatPct(rates.closePct)} label="closed" />
         <Step value={totals.closed} label="Closed" />
 
-        <div className="ml-auto">
-          <div className="font-data text-[22px] font-semibold leading-none">
-            {formatMoney(totals.cash)}
+        {/* Two money figures, not one. New MRR is what the month's closes are
+            worth every month from here; cash is what actually arrived. An agency
+            selling retainers reads almost nothing from the second on its own,
+            which is why the first leads. */}
+        <div className="ml-auto flex items-end gap-6">
+          <div>
+            <div className="font-data text-[22px] font-semibold leading-none">
+              {formatMoney(totals.mrr)}
+            </div>
+            <div className="mt-1.5 text-[11.5px] uppercase tracking-wider text-muted">
+              New MRR
+            </div>
           </div>
-          <div className="mt-1.5 text-[11.5px] uppercase tracking-wider text-muted">
-            Cash collected
+          <div>
+            <div className="font-data text-[22px] font-semibold leading-none">
+              {formatMoney(totals.cash)}
+            </div>
+            <div className="mt-1.5 text-[11.5px] uppercase tracking-wider text-muted">
+              Cash collected
+            </div>
           </div>
         </div>
       </div>

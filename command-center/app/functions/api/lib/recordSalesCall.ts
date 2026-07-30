@@ -2,7 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Env } from "../../lib/env";
 import { logAdminAction } from "../../lib/adminAuth";
 import { getAgencyGhlContext, AgencyGhlError } from "../../lib/agencyGhl";
-import { SALES_CALL_OUTCOMES, isSalesCallOutcome } from "../../lib/salesCalls";
+import {
+  SALES_CALL_OUTCOMES,
+  isSalesCallOutcome,
+  isSalesNoReason,
+  parseDeal,
+  type SalesDeal,
+} from "../../lib/salesCalls";
 import { createFollowUpTask, pushSalesCallTag } from "./salesCallPush";
 
 // Recording what a sales meeting became, in one place.
@@ -35,11 +41,24 @@ export interface AdminRef {
 export interface RecordBody {
   id?: string;
   outcome?: unknown;
+  // Why they said no. A key from SALES_NO_REASONS, required by BOTH kinds of no
+  // (0068): the reason counts on Sales Data are only worth reading if every no
+  // carries one.
+  reason?: unknown;
+  // The old name for the same field, from before the reason applied to both nos.
+  // Still accepted so a browser holding the previous bundle keeps working.
   notAFitReason?: unknown;
   // "YYYY-MM-DD" or a full ISO timestamp. Required by a follow_up, ignored by
   // everything else.
   followUpAt?: unknown;
   cashCollected?: unknown;
+  // What was sold, on a close: dollars a month and how many months were agreed.
+  // The term is optional (month-to-month is a real deal); without a monthly
+  // figure no deal is stored at all.
+  monthly?: unknown;
+  months?: unknown;
+  // Whatever was said on the call, in words. Optional on every outcome.
+  notes?: unknown;
 }
 
 export interface MeetingRow {
@@ -68,6 +87,12 @@ export interface MeetingRow {
   not_a_fit_reason: string | null;
   follow_up_at: string | null;
   cash_collected: number | null;
+  // What was sold (0057's jsonb column, first written in 0068's release). Shape
+  // is not trusted: parseDeal decides what counts as a deal.
+  deal: unknown;
+  // Notes taken on the call. The column has existed since 0057 and held '' on
+  // every row until the record panel started writing it.
+  scratchpad: string | null;
   synced_at: string | null;
   updated_at: string;
   leads: { assigned_to: string | null } | null;
@@ -80,7 +105,7 @@ export const MEETING_SELECT =
   " ghl_tag," +
   " lead_id, prospect_name, business_name, phone, email, source, scheduled_at," +
   " appointment_status, calendar_id, calendar_name," +
-  " outcome, not_a_fit_reason, follow_up_at, cash_collected," +
+  " outcome, not_a_fit_reason, follow_up_at, cash_collected, deal, scratchpad," +
   " synced_at, updated_at, leads(assigned_to)";
 
 export function shapeMeeting(row: MeetingRow) {
@@ -106,9 +131,18 @@ export function shapeMeeting(row: MeetingRow) {
     calendarId: row.calendar_id,
     calendarName: row.calendar_name,
     outcome: row.outcome,
+    // One column, two questions it can answer: why a not_qualified meeting was
+    // never a prospect, and why a not_interested one said no. `reason` is the
+    // name the page reads; notAFitReason is kept beside it so nothing that still
+    // asks for the old name breaks.
+    reason: row.not_a_fit_reason,
     notAFitReason: row.not_a_fit_reason,
     followUpAt: row.follow_up_at,
     cashCollected: row.cash_collected,
+    // Parsed here, once, at the boundary: every page downstream gets a deal or
+    // null and never has to wonder what shape the jsonb was.
+    deal: parseDeal(row.deal),
+    notes: row.scratchpad ?? "",
     syncedAt: row.synced_at,
     assignedTo: row.leads?.assigned_to ?? null,
     updatedAt: row.updated_at,
@@ -216,6 +250,50 @@ export async function recordSalesCallOutcome(
     cash = parsed;
   }
 
+  // WHY THEY SAID NO, on either kind of no.
+  //
+  // Required, and validated against the list rather than stored as whatever
+  // arrived: the counts on Sales Data are the reason the field exists, and a
+  // month of free text or half-empty rows answers nothing. `notAFitReason` is
+  // read as a fallback so a browser on the previous bundle still records.
+  const reasonRaw = body.reason !== undefined ? body.reason : body.notAFitReason;
+  const isNo = outcome === "not_interested" || outcome === "not_qualified";
+  let reason: string | null = null;
+  if (isNo) {
+    if (!isSalesNoReason(reasonRaw)) {
+      return { ok: false, status: 400, error: "Pick why they said no." };
+    }
+    reason = reasonRaw;
+  }
+
+  // WHAT WAS SOLD, on a close. Optional in the same way cash is: a close
+  // recorded in a hurry is still a close, and refusing it would cost the outcome
+  // to save the figure. No monthly means no deal stored, rather than a $0 one.
+  let deal: SalesDeal | null = null;
+  if (outcome === "closed") {
+    const monthlyGiven =
+      body.monthly !== undefined && body.monthly !== null && body.monthly !== "";
+    if (monthlyGiven) {
+      const monthly = Number(body.monthly);
+      if (!Number.isFinite(monthly) || monthly < 0) {
+        return { ok: false, status: 400, error: "That is not a monthly amount." };
+      }
+      const monthsGiven = body.months !== undefined && body.months !== null && body.months !== "";
+      const months = monthsGiven ? Number(body.months) : null;
+      if (months !== null && (!Number.isInteger(months) || months < 0)) {
+        return { ok: false, status: 400, error: "That is not a number of months." };
+      }
+      // parseDeal has the final say on what a deal is, so the rule lives in one
+      // place: a zero monthly comes back null here exactly as it would when read.
+      deal = parseDeal({ monthly, months });
+    }
+  }
+
+  // Whatever was said, on any outcome. Capped rather than refused: a long note
+  // is somebody doing the right thing, and losing the outcome over it would be
+  // the wrong trade.
+  const notes = str(body.notes).slice(0, 4000);
+
   // Read first, so a caller cannot record an outcome on somebody else's meeting
   // by guessing an id. Owners skip the check, not the read: the row is needed
   // either way to know which card to move.
@@ -244,13 +322,21 @@ export async function recordSalesCallOutcome(
     .from("sales_calls")
     .update({
       outcome,
-      // Only ever a fit reason on a not-a-fit, and only ever a follow-up date on
-      // a follow-up: an outcome changed from one to the other must not leave the
+      // Only ever a reason on a no, and only ever a follow-up date on a
+      // follow-up: an outcome changed from one to the other must not leave the
       // previous answer's detail behind, still being read as current.
-      not_a_fit_reason: outcome === "not_qualified" ? str(body.notAFitReason) || null : null,
+      not_a_fit_reason: reason,
       follow_up_at: followUpIso,
       // Cash rides with a close, and nothing else. See the column comment.
       cash_collected: outcome === "closed" ? cash : null,
+      // The retainer, on the same terms as the cash: cleared the moment the
+      // outcome is something other than a close, so a corrected answer cannot
+      // leave revenue behind on a deal that did not happen.
+      deal: outcome === "closed" ? deal : null,
+      // Notes belong to the meeting, not to the outcome, so they are NOT cleared
+      // when an answer changes. Re-recording an outcome without retyping the
+      // notes keeps what was written; sending new notes replaces them.
+      ...(notes ? { scratchpad: notes } : {}),
       // Turned up AND was a real prospect. not_interested still counts as
       // qualified: they heard the pitch and said no, which is a fact about the
       // pitch. Only not_qualified says they were never a prospect.
@@ -278,6 +364,11 @@ export async function recordSalesCallOutcome(
     meetingId: id,
     outcome,
     cash,
+    // The retainer is on the audit line too: it is the number a month's revenue
+    // is read from, so who entered it and when is worth keeping.
+    monthly: deal?.monthly ?? null,
+    months: deal?.months ?? null,
+    reason,
     tagged: push.tag,
     pushError: push.error,
   });

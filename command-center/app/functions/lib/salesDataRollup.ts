@@ -1,5 +1,11 @@
 import { dateStringInZone } from "./tz";
-import { SALES_CALL_OUTCOMES, isDeadStatus, isSalesCallOutcome } from "./salesCalls";
+import {
+  SALES_CALL_OUTCOMES,
+  isDeadStatus,
+  isSalesCallOutcome,
+  parseDeal,
+  type CountableCall,
+} from "./salesCalls";
 
 // Sales Data, derived from the meetings themselves.
 //
@@ -30,9 +36,30 @@ export interface SalesCallRow {
   // (recordSalesCall.ts). Null on a meeting nobody has recorded.
   qualified: boolean | null;
   cashCollected: number | null;
+  // What was sold, as the jsonb column holds it. Parsed rather than trusted:
+  // see salesCalls.ts:parseDeal.
+  deal?: unknown;
+  // Why they said no, on either kind of no. A key from SALES_NO_REASONS.
+  reason?: string | null;
+  // Where the meeting came from. Blank means the app booked it.
+  source?: string | null;
   // For the day's "Meetings" cell, so a row can be traced back to who it was.
   prospectName: string;
   businessName: string;
+}
+
+// The same meeting, as the shared counting rules want it. One mapper, so the
+// month grid and the Sales Calls funnel are fed from identically shaped rows and
+// cannot drift into counting different things.
+export function toCountable(row: SalesCallRow): CountableCall {
+  return {
+    scheduledAt: row.scheduledAt,
+    outcome: isSalesCallOutcome(row.outcome) ? row.outcome : null,
+    cashCollected: row.cashCollected,
+    deal: parseDeal(row.deal),
+    reason: row.reason ?? null,
+    source: row.source ?? null,
+  };
 }
 
 export interface DerivedSalesDay {
@@ -55,6 +82,11 @@ export interface DerivedSalesDay {
   qualified: number;
   closed: number;
   cash: number;
+  // Monthly recurring revenue the day's closes added. Counted apart from cash:
+  // cash is what was taken on the call, this is what those clients are worth
+  // every month from now on. Zero on a day that closed nothing, and on a close
+  // whose retainer nobody filled in.
+  mrr: number;
   // Who the day's meetings were with, in the order they were read. The day's
   // numbers are traceable to names without opening another page.
   names: string[];
@@ -70,6 +102,7 @@ export function emptyDay(): DerivedSalesDay {
     qualified: 0,
     closed: 0,
     cash: 0,
+    mrr: 0,
     names: [],
   };
 }
@@ -123,7 +156,13 @@ export function rollUpSalesCalls(rows: SalesCallRow[], timeZone: string): SalesR
     if (isSalesCallOutcome(row.outcome)) {
       d.decided += 1;
       if (SALES_CALL_OUTCOMES[row.outcome].showed) d.taken += 1;
-      if (row.outcome === "closed") d.closed += 1;
+      if (row.outcome === "closed") {
+        d.closed += 1;
+        // Only on a close, unlike cash: a retainer recorded against a meeting
+        // that did not sell is a mistake upstream, and totalling it here would
+        // report revenue from a lost deal. Same rule as salesCalls.ts:totalsFor.
+        d.mrr += parseDeal(row.deal)?.monthly ?? 0;
+      }
     } else if (!dead) {
       // A cancelled meeting is not waiting on an answer: it was called off, and
       // asking somebody to record an outcome for it would be asking them to
@@ -135,6 +174,32 @@ export function rollUpSalesCalls(rows: SalesCallRow[], timeZone: string): SalesR
   }
 
   return { days, undated };
+}
+
+// Keep only the MEETINGS whose day falls inside "YYYY-MM".
+//
+// The month grid is trimmed by day (daysInMonth below). The source table and the
+// reason list are counted per MEETING rather than per day, so they need the same
+// trim applied to the rows themselves: the query window is widened by a day at
+// each end, and counting those extra rows would put a neighbouring month's
+// objections in this month's list.
+//
+// The timezone rule is the one the grid uses, for the same reason it exists
+// there: a 9pm New York call is tomorrow in UTC, and a table that disagreed with
+// the grid beside it about which month a meeting belongs to would be worse than
+// no table.
+export function rowsInMonth(
+  rows: SalesCallRow[],
+  timeZone: string,
+  month: string,
+): SalesCallRow[] {
+  return rows.filter((row) => {
+    const at = row.scheduledAt ? Date.parse(row.scheduledAt) : NaN;
+    // A meeting with no time belongs to no day, so it belongs to no month
+    // either. It is reported as undated rather than counted here.
+    if (Number.isNaN(at)) return false;
+    return dateStringInZone(timeZone, at).startsWith(`${month}-`);
+  });
 }
 
 // Keep only the days inside "YYYY-MM". The database is queried on a UTC window

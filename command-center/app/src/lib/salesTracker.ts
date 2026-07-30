@@ -26,6 +26,7 @@ export const SALES_NUMERIC_FIELDS = [
   "taken",
   "qualified",
   "closed",
+  "mrr",
   "cash",
 ] as const;
 
@@ -52,6 +53,10 @@ export const SALES_COLUMNS: TrackerColumn[] = [
   { key: "closed", label: "Closed", kind: "computed" },
   { key: "closePct", label: "Close %", kind: "computed" },
   { key: "closeFromQualifiedPct", label: "Close % (Qual)", kind: "computed" },
+  // What the day's closes are worth every month, next to what was taken on the
+  // day itself. Two different questions, so two columns: an agency selling
+  // retainers reads almost nothing from the cash figure alone.
+  { key: "mrr", label: "New MRR", kind: "computed" },
   { key: "cash", label: "Cash", kind: "computed" },
   // Who the day's meetings were with, so a number on this row can be traced to
   // a name without opening another page.
@@ -70,6 +75,8 @@ export interface SalesCounts {
   taken: number;
   qualified: number;
   closed: number;
+  // Monthly recurring revenue the day's closes added.
+  mrr: number;
   cash: number;
 }
 
@@ -90,6 +97,7 @@ export function emptyCounts(): SalesCounts {
     taken: 0,
     qualified: 0,
     closed: 0,
+    mrr: 0,
     cash: 0,
   };
 }
@@ -123,6 +131,7 @@ export function countsFor(day: DerivedSalesDay): SalesCounts {
     taken: day.taken,
     qualified: day.qualified,
     closed: day.closed,
+    mrr: day.mrr,
     cash: day.cash,
   };
 }
@@ -185,6 +194,10 @@ export function computeSalesRow(day: DerivedSalesDay | null): RollupCells {
     closed: formatNum(counts.closed),
     closePct: formatPct(rates.closePct),
     closeFromQualifiedPct: formatPct(rates.closeFromQualifiedPct),
+    // Blank rather than $0 on a day that closed nothing, same as Cash: a column
+    // of zeroes reads as measured failure where an empty cell reads as nothing
+    // to report.
+    mrr: counts.mrr ? formatMoney(counts.mrr) : "",
     cash: counts.cash ? formatMoney(counts.cash) : "",
     names: formatNames(day.names),
   };
@@ -220,6 +233,7 @@ export function computeSalesRollup(days: DerivedSalesDay[]): SalesRollup {
     totals.taken += c.taken;
     totals.qualified += c.qualified;
     totals.closed += c.closed;
+    totals.mrr += c.mrr;
     totals.cash += c.cash;
   }
 
@@ -227,7 +241,7 @@ export function computeSalesRollup(days: DerivedSalesDay[]): SalesRollup {
   const total: RollupCells = {};
   for (const field of SALES_NUMERIC_FIELDS) {
     const sum = totals[field];
-    const money = field === "cash";
+    const money = field === "cash" || field === "mrr";
     // Per WORKED day, not per calendar day: dividing a month's meetings by 31
     // describes a diary, not a sales week.
     const mean = safeDivide(sum, workedDays);

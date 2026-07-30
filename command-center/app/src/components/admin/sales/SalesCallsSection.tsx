@@ -76,6 +76,9 @@ export default function SalesCallsSection() {
       outcome: m.outcome,
       cashCollected: m.cashCollected,
       followUpAt: m.followUpAt,
+      // Carried so the funnel can total New MRR beside the cash. Already parsed
+      // by the endpoint, so it arrives as a deal or null.
+      deal: m.deal,
     }));
     const bucket = (name: string) =>
       meetings.filter((_m, i) => groupFor(countable[i], now) === name);

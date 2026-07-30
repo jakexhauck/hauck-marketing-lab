@@ -5,6 +5,7 @@ import { useSalesPipelineQuery } from "../../../hooks/useSalesCalls";
 import { ghlContactUrl, stageTone } from "../../../lib/setterModel";
 import { formatMoney, formatMoneyExact } from "../../../lib/formatMoney";
 import { timeAgo } from "../../../lib/timeAgo";
+import { STALE_AFTER_DAYS, daysStill, isStale } from "../../../../functions/lib/salesPipeline";
 import type { AgencyPipelineCard } from "../../../lib/api";
 
 // Sales > Sales Pipeline: the agency's own Sales board in GoHighLevel, drawn as
@@ -42,8 +43,16 @@ export default function SalesPipelineBoard() {
     const cards = columns.flatMap((c) => c.cards);
     const open = cards.filter((c) => c.status === "open");
     const value = open.reduce((sum, c) => sum + (c.value ?? 0), 0);
-    return { deals: cards.length, openDeals: open.length, openValue: value };
-  }, [columns]);
+    return {
+      deals: cards.length,
+      openDeals: open.length,
+      openValue: value,
+      // Open deals nobody has touched in a fortnight. The board has always drawn
+      // each card's age and done nothing with it, which let a deal sit still for
+      // a month in plain sight.
+      stale: open.filter((c) => isStale(c, now)).length,
+    };
+  }, [columns, now]);
 
   if (query.isLoading) return <div className="pk-empty">Reading the board...</div>;
   if (query.isError) {
@@ -77,6 +86,7 @@ export default function SalesPipelineBoard() {
               // stage.color: GHL only sets it on some stages and its values are
               // not reliably valid CSS. One rule, every column coloured.
               const tone = stageTone(column.name);
+              const stale = column.cards.filter((c) => isStale(c, now)).length;
               return (
                 <section key={column.id} className="flex w-[280px] shrink-0 flex-col gap-2">
                   <header className="flex items-baseline justify-between gap-2 px-1">
@@ -93,14 +103,31 @@ export default function SalesPipelineBoard() {
                         {column.name}
                       </span>
                     </span>
-                    <span
-                      className="font-data shrink-0 rounded-full px-1.5 text-[12px] font-bold"
-                      style={{
-                        color: tone,
-                        background: `color-mix(in srgb, ${tone} 12%, transparent)`,
-                      }}
-                    >
-                      {column.cards.length}
+                    <span className="flex shrink-0 items-baseline gap-1">
+                      {/* How many of this column's deals have gone quiet. Only
+                          when there are any: a "0 stale" badge on every column
+                          would be noise on a board that is behaving. */}
+                      {stale > 0 && (
+                        <span
+                          className="font-data rounded-full px-1.5 text-[12px] font-bold"
+                          style={{
+                            color: "var(--warning)",
+                            background: "color-mix(in srgb, var(--warning) 14%, transparent)",
+                          }}
+                          title={`${stale} ${stale === 1 ? "deal has" : "deals have"} not moved in ${STALE_AFTER_DAYS} days`}
+                        >
+                          {stale} stale
+                        </span>
+                      )}
+                      <span
+                        className="font-data rounded-full px-1.5 text-[12px] font-bold"
+                        style={{
+                          color: tone,
+                          background: `color-mix(in srgb, ${tone} 12%, transparent)`,
+                        }}
+                      >
+                        {column.cards.length}
+                      </span>
                     </span>
                   </header>
 
@@ -155,11 +182,24 @@ function DealCard({
 }) {
   const href = card.contactId ? ghlContactUrl(locationId, card.contactId) : null;
   const moved = card.updatedAt ? timeAgo(card.updatedAt, now) : "";
+  // Open, and nothing has happened to it in a fortnight.
+  const stale = isStale(card, now);
+  const still = daysStill(card.updatedAt, now);
 
   const body = (
     <>
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 truncate text-[13px] font-semibold text-text" title={card.name}>
+          {/* The dot leads the name rather than sitting in the meta line: the
+              point of it is to be seen while scanning a column, not found while
+              reading a card. */}
+          {stale && (
+            <span
+              className="mr-1.5 inline-block h-2 w-2 rounded-full align-middle"
+              style={{ background: "var(--warning)" }}
+              aria-hidden
+            />
+          )}
           {card.name}
         </span>
         {href && (
@@ -177,7 +217,16 @@ function DealCard({
           </span>
         )}
         {card.status !== "open" && <StatusPill status={card.status} />}
-        {moved && <span className="text-faint">{moved}</span>}
+        {/* A stale card says how long in words instead of "24d ago", because the
+            number is the complaint. Everything else keeps the quiet relative
+            time it had. */}
+        {stale && still !== null ? (
+          <span className="font-semibold text-[var(--warning)]">
+            {still} days, no movement
+          </span>
+        ) : (
+          moved && <span className="text-faint">{moved}</span>
+        )}
       </div>
     </>
   );
@@ -237,7 +286,7 @@ function StatusLine({
   configured: boolean;
   pipeline: { id: string; name: string; missing: string[] } | null;
   truncated: boolean;
-  totals: { deals: number; openDeals: number; openValue: number };
+  totals: { deals: number; openDeals: number; openValue: number; stale: number };
 }) {
   const warnings: string[] = [];
 
@@ -257,6 +306,15 @@ function StatusLine({
 
   if (truncated) {
     warnings.push("Showing the first 500 deals on this board. There are more than are shown here.");
+  }
+
+  // Not a warning about the connection, like the rest of them: a warning about
+  // the selling. It reads in the same amber for the same reason, because it is
+  // the same instruction ("something here needs you").
+  if (totals.stale > 0) {
+    warnings.push(
+      `${totals.stale} open ${totals.stale === 1 ? "deal has" : "deals have"} not moved in ${STALE_AFTER_DAYS} days.`,
+    );
   }
 
   return (

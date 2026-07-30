@@ -28,6 +28,7 @@ function day(over: Partial<DerivedSalesDay> = {}): DerivedSalesDay {
     taken: 0,
     qualified: 0,
     closed: 0,
+    mrr: 0,
     cash: 0,
     names: [],
     ...over,

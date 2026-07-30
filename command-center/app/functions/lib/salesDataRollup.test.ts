@@ -5,6 +5,8 @@ import {
   emptyDay,
   rollUpDials,
   rollUpSalesCalls,
+  rowsInMonth,
+  toCountable,
   type SalesCallRow,
 } from "./salesDataRollup";
 
@@ -220,5 +222,92 @@ describe("rollUpDials", () => {
 
   it("has an all-zero month rather than a missing one", () => {
     expect(rollUpDials([])).toEqual({ dials: 0, talked: 0, pitched: 0, booked: 0 });
+  });
+});
+
+describe("what the closes are worth every month", () => {
+  it("adds the retainer to the day it closed on, apart from the cash", () => {
+    const { days } = rollUpSalesCalls(
+      [
+        meeting({
+          outcome: "closed",
+          cashCollected: 500,
+          deal: { monthly: 2000, months: 12 },
+        }),
+      ],
+      NY,
+    );
+    expect(days["2026-07-15"]).toMatchObject({ closed: 1, cash: 500, mrr: 2000 });
+  });
+
+  it("leaves a close with no retainer filled in at zero rather than guessing", () => {
+    const { days } = rollUpSalesCalls([meeting({ outcome: "closed", cashCollected: 500 })], NY);
+    expect(days["2026-07-15"].mrr).toBe(0);
+  });
+
+  it("ignores a retainer sitting on a meeting that did not sell", () => {
+    const { days } = rollUpSalesCalls(
+      [meeting({ outcome: "not_interested", deal: { monthly: 9000, months: 12 } })],
+      NY,
+    );
+    expect(days["2026-07-15"].mrr).toBe(0);
+  });
+
+  it("starts every day at no MRR", () => {
+    expect(emptyDay().mrr).toBe(0);
+  });
+});
+
+describe("rowsInMonth", () => {
+  // The query window is widened a day at each end, so without this trim a
+  // meeting from the 31st of last month would put its objection in this month's
+  // list.
+  it("keeps only the meetings whose local day is in the month", () => {
+    const rows = [
+      meeting({ scheduledAt: "2026-06-30T20:00:00Z" }),
+      meeting({ scheduledAt: "2026-07-15T15:00:00Z" }),
+      meeting({ scheduledAt: "2026-08-01T15:00:00Z" }),
+    ];
+    expect(rowsInMonth(rows, NY, "2026-07")).toHaveLength(1);
+  });
+
+  it("uses the agency's day, not UTC, at the boundary", () => {
+    // 1am UTC on 1 August is still 9pm on 31 July in New York, so this meeting
+    // belongs to July and its objection is July's.
+    const late = meeting({ scheduledAt: "2026-08-01T01:00:00Z" });
+    expect(rowsInMonth([late], NY, "2026-07")).toHaveLength(1);
+    expect(rowsInMonth([late], "UTC", "2026-07")).toHaveLength(0);
+  });
+
+  it("drops a meeting with no time on it, which belongs to no month", () => {
+    expect(rowsInMonth([meeting({ scheduledAt: null })], NY, "2026-07")).toEqual([]);
+  });
+});
+
+describe("toCountable", () => {
+  it("hands the shared counting rules a parsed deal and the source", () => {
+    const c = toCountable(
+      meeting({
+        outcome: "closed",
+        cashCollected: 250,
+        deal: { monthly: 1000 },
+        source: "Calendar",
+        reason: null,
+      }),
+    );
+    expect(c).toEqual({
+      scheduledAt: "2026-07-15T15:00:00Z",
+      outcome: "closed",
+      cashCollected: 250,
+      deal: { monthly: 1000, months: null },
+      reason: null,
+      source: "Calendar",
+    });
+  });
+
+  it("refuses an outcome the app does not recognise rather than passing it on", () => {
+    // A value the CHECK constraint would not accept must not reach the counting
+    // as if it were an outcome.
+    expect(toCountable(meeting({ outcome: "showed_up" })).outcome).toBeNull();
   });
 });

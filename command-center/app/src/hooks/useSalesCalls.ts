@@ -70,9 +70,16 @@ export function useColdCallDataQuery(month: string) {
 export interface RecordSalesCallInput {
   id: string;
   outcome: NonNullable<SalesMeeting["outcome"]>;
-  notAFitReason?: string;
+  // Required by both kinds of no. A key from SALES_NO_REASONS, never free text.
+  reason?: string;
   followUpAt?: string;
+  // Money on the call, and separately the retainer that was sold. Both only
+  // mean anything on a close.
   cashCollected?: number | null;
+  monthly?: number | null;
+  months?: number | null;
+  // Notes on the meeting, allowed on every outcome.
+  notes?: string;
 }
 
 // Say what happened at one meeting, and move its card.

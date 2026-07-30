@@ -5,9 +5,15 @@ import { routeFor } from "../../../../functions/lib/salesPipeline";
 import { useToast } from "../../../context/ToastContext";
 import {
   SALES_CALL_OUTCOMES,
+  SALES_NO_REASONS,
+  SALES_NO_REASON_KEYS,
+  contractValue,
+  parseDeal,
   daysLate,
+  sourceLabel,
   totalsFor,
   type SalesCallOutcome,
+  type SalesNoReason,
 } from "../../../../functions/lib/salesCalls";
 
 // The parts Cold Call > Booked and Sales > Sales Calls both draw.
@@ -193,6 +199,21 @@ export function Funnel({
             reproach rather than a job to do. Same words as the section heading
             below, because it is the same pile of rows. */}
         {awaiting > 0 && <Step value={awaiting} label="Needs an answer" muted />}
+        {/* The retainer sold, beside the money taken. They are different
+            questions and the pair is the point: $500 today off a $2,000/month
+            client is a good day, and cash alone reports it as a small one.
+            Shown only once something has been sold, so an empty month is not
+            two zeroes. */}
+        {totals.newMrr > 0 && (
+          <div>
+            <div className="text-[22px] font-semibold leading-none tabular-nums">
+              {money(totals.newMrr)}
+            </div>
+            <div className="mt-1.5 text-[11.5px] uppercase tracking-wider text-muted">
+              New MRR
+            </div>
+          </div>
+        )}
         <div>
           <div className="text-[22px] font-semibold leading-none tabular-nums">
             {money(totals.cash)}
@@ -235,7 +256,46 @@ export interface RecordOutcome {
     outcome: SalesCallOutcome;
     followUpAt?: string;
     cashCollected?: number | null;
+    // The retainer, on a close.
+    monthly?: number | null;
+    months?: number | null;
+    // Why they said no, on either kind of no. Required by the server.
+    reason?: string;
+    // Notes, allowed on any outcome.
+    notes?: string;
   }) => Promise<unknown>;
+}
+
+// What the panel is holding while somebody answers for a meeting.
+//
+// One shape for all five outcomes rather than a field per outcome: the panel
+// asks for what that outcome needs, and everything it does not need is simply
+// never read. Prefilled from the meeting, so correcting an answer does not mean
+// retyping the figures or losing the notes.
+interface Draft {
+  followUpAt: string;
+  cash: string;
+  monthly: string;
+  months: string;
+  reason: SalesNoReason | "";
+  notes: string;
+}
+
+function draftFor(meeting: SalesMeeting): Draft {
+  return {
+    followUpAt: meeting.followUpAt ? meeting.followUpAt.slice(0, 10) : "",
+    cash: meeting.cashCollected === null ? "" : String(meeting.cashCollected),
+    monthly: meeting.deal ? String(meeting.deal.monthly) : "",
+    months: meeting.deal?.months ? String(meeting.deal.months) : "",
+    // Only a reason still on the list is prefilled. A stored value the list no
+    // longer has would otherwise light up no button while still counting as an
+    // answer, letting Save fire something the server will refuse.
+    reason:
+      meeting.reason && meeting.reason in SALES_NO_REASONS
+        ? (meeting.reason as SalesNoReason)
+        : "",
+    notes: meeting.notes ?? "",
+  };
 }
 
 export function MeetingRow({
@@ -253,38 +313,45 @@ export function MeetingRow({
   showProvenance?: boolean;
 }) {
   const { showToast } = useToast();
-  // Which outcome is mid-answer, when it needs a second fact before it can be
-  // saved. Null the rest of the time, which is most of the time.
+  // Which outcome is mid-answer. Null the rest of the time.
   const [pending, setPending] = useState<SalesCallOutcome | null>(null);
-  const [detail, setDetail] = useState("");
+  const [draft, setDraft] = useState<Draft>(() => draftFor(meeting));
 
   const meta = meeting.outcome ? SALES_CALL_OUTCOMES[meeting.outcome] : null;
 
-  const submit = async (outcome: SalesCallOutcome, value: string) => {
+  const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
+
+  const submit = async (outcome: SalesCallOutcome) => {
     try {
       await record.mutateAsync({
         id: meeting.id,
         outcome,
-        followUpAt: outcome === "follow_up" ? value : undefined,
-        cashCollected: outcome === "closed" ? (value === "" ? null : Number(value)) : undefined,
+        followUpAt: outcome === "follow_up" ? draft.followUpAt : undefined,
+        cashCollected:
+          outcome === "closed" ? (draft.cash === "" ? null : Number(draft.cash)) : undefined,
+        // The retainer. Sent only on a close, and only where a monthly figure was
+        // given: an empty box means "not recorded", which the server stores as no
+        // deal rather than as a client worth nothing.
+        monthly: outcome === "closed" && draft.monthly !== "" ? Number(draft.monthly) : undefined,
+        months: outcome === "closed" && draft.months !== "" ? Number(draft.months) : undefined,
+        reason: draft.reason || undefined,
+        // Sent on every outcome, and only when there is something to send: an
+        // empty box must not wipe notes typed earlier.
+        notes: draft.notes.trim() || undefined,
       });
       showToast(`${meeting.prospectName || "Meeting"}: ${outcomeLabel(outcome)}`);
       setPending(null);
-      setDetail("");
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Could not record that");
     }
   };
 
+  // EVERY outcome opens the panel now, including a no-show that needs no extra
+  // fact. It costs one click and buys two things: notes on any outcome, and one
+  // shape to learn instead of "some buttons ask and some just fire".
   const choose = (outcome: SalesCallOutcome) => {
-    // A close and a follow-up each need one more fact before they mean
-    // anything, so they open a field rather than saving half an answer.
-    if (outcome === "closed" || outcome === "follow_up") {
-      setPending(outcome);
-      setDetail("");
-      return;
-    }
-    void submit(outcome, "");
+    setDraft(draftFor(meeting));
+    setPending(outcome);
   };
 
   const cancelled = /cancel/i.test(meeting.appointmentStatus);
@@ -302,6 +369,15 @@ export function MeetingRow({
             ) : null}
           </div>
           <div className="pk-li-sub font-mono">{meeting.phone || "No number"}</div>
+          {/* What was said on the call, where anybody wrote it down. Under the
+              name rather than beside the outcome: it is about the meeting, not
+              about the answer, and a follow-up three weeks later is why it is
+              on the row at all instead of behind a click. */}
+          {meeting.notes && (
+            <div className="mt-1 whitespace-pre-wrap text-[12px] leading-snug text-muted">
+              {meeting.notes}
+            </div>
+          )}
           {showProvenance && <Provenance meeting={meeting} />}
         </div>
         <div className="pk-li-meta">
@@ -325,12 +401,7 @@ export function MeetingRow({
                 {/* The stage name again, not a second word for it, so the row
                     says the same thing before and after it is answered. */}
                 {outcomeLabel(meeting.outcome)}
-                {meeting.outcome === "closed" && meeting.cashCollected
-                  ? ` · ${money(meeting.cashCollected)}`
-                  : ""}
-                {meeting.outcome === "follow_up" && meeting.followUpAt
-                  ? ` · ${dueLabel(meeting.followUpAt)}`
-                  : ""}
+                {outcomeDetail(meeting)}
               </div>
             ) : (
               <div className="text-[12px] text-muted">Nothing recorded</div>
@@ -370,51 +441,228 @@ export function MeetingRow({
       )}
 
       {pending !== null && (
-        <form
-          className="flex flex-wrap items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void submit(pending, detail);
-          }}
-        >
-          <label className="text-[12px] text-muted" htmlFor={`detail-${meeting.id}`}>
-            {pending === "closed" ? "Cash collected on the call" : "Come back on"}
-          </label>
-          <input
-            id={`detail-${meeting.id}`}
-            className="pk-input !w-auto"
-            type={pending === "closed" ? "number" : "date"}
-            min={pending === "closed" ? "0" : undefined}
-            step={pending === "closed" ? "1" : undefined}
-            value={detail}
-            onChange={(e) => setDetail(e.target.value)}
-            autoFocus
-          />
-          <button
-            type="submit"
-            className="pk-btn-save"
-            disabled={record.isPending || (pending === "follow_up" && !detail)}
-          >
-            {record.isPending ? "Saving..." : "Save"}
-          </button>
-          <button
-            type="button"
-            className="pk-btn-cancel"
-            onClick={() => {
-              setPending(null);
-              setDetail("");
-            }}
-          >
-            Cancel
-          </button>
-          {pending === "closed" && (
-            <span className="text-[11.5px] text-faint">
-              Leave it blank if nothing was taken on the call itself.
-            </span>
-          )}
-        </form>
+        <RecordPanel
+          meeting={meeting}
+          outcome={pending}
+          draft={draft}
+          set={set}
+          saving={record.isPending}
+          onSave={() => void submit(pending)}
+          onCancel={() => setPending(null)}
+        />
       )}
     </div>
+  );
+}
+
+// What the recorded answer amounted to, in one line beside the stage name.
+//
+// A close now says what was SOLD and not only what was taken: "$2,000/mo, 12 mo,
+// $500 today". Those are three different numbers and a page that showed only the
+// last of them made a retainer look like a one-off.
+function outcomeDetail(meeting: SalesMeeting): string {
+  const parts: string[] = [];
+
+  if (meeting.outcome === "closed") {
+    if (meeting.deal) {
+      parts.push(`${money(meeting.deal.monthly)}/mo`);
+      if (meeting.deal.months) parts.push(`${meeting.deal.months} mo`);
+    }
+    if (meeting.cashCollected) parts.push(`${money(meeting.cashCollected)} today`);
+  }
+
+  if (meeting.outcome === "follow_up" && meeting.followUpAt) {
+    parts.push(dueLabel(meeting.followUpAt));
+  }
+
+  // Why they said no, on either kind of no. The outcome already says which kind.
+  if (
+    (meeting.outcome === "not_interested" || meeting.outcome === "not_qualified") &&
+    meeting.reason &&
+    meeting.reason in SALES_NO_REASONS
+  ) {
+    parts.push(SALES_NO_REASONS[meeting.reason as SalesNoReason].label.toLowerCase());
+  }
+
+  return parts.length ? ` · ${parts.join(" · ")}` : "";
+}
+
+// The one panel every outcome opens.
+//
+// It asks for what THIS outcome needs and nothing else, with the notes box
+// always at the bottom. One shape for five answers: the alternative was three
+// different behaviours (two buttons that opened a field, two that fired
+// immediately, one that asked for a reason), which nobody could predict without
+// pressing them.
+function RecordPanel({
+  meeting,
+  outcome,
+  draft,
+  set,
+  saving,
+  onSave,
+  onCancel,
+}: {
+  meeting: SalesMeeting;
+  outcome: SalesCallOutcome;
+  draft: Draft;
+  set: (patch: Partial<Draft>) => void;
+  saving: boolean;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const isNo = outcome === "not_interested" || outcome === "not_qualified";
+  // A follow-up with no date is a promise nobody can keep, and a no with no
+  // reason is the empty column the reason list exists to prevent. Both block the
+  // save rather than being quietly accepted half-answered.
+  const incomplete = (outcome === "follow_up" && !draft.followUpAt) || (isNo && !draft.reason);
+  // Through parseDeal rather than multiplied here, so a half-typed box reads as
+  // "no figure yet" instead of "$NaN", and the panel agrees with the server about
+  // what counts as a deal.
+  const total = contractValue(parseDeal({ monthly: draft.monthly, months: draft.months }));
+
+  return (
+    <form
+      className="rounded-xl bg-surface-2 p-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!incomplete) onSave();
+      }}
+    >
+      <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-faint">
+        {outcomeLabel(outcome)}
+      </div>
+
+      {outcome === "closed" && (
+        <div className="mb-3 flex flex-wrap items-end gap-3">
+          <Field label="Monthly" hint="What they pay every month">
+            <input
+              className="pk-input !w-[110px]"
+              type="number"
+              min="0"
+              step="1"
+              inputMode="numeric"
+              value={draft.monthly}
+              onChange={(e) => set({ monthly: e.target.value })}
+              autoFocus
+            />
+          </Field>
+          <Field label="Months" hint="Blank for month-to-month">
+            <input
+              className="pk-input !w-[90px]"
+              type="number"
+              min="0"
+              step="1"
+              inputMode="numeric"
+              value={draft.months}
+              onChange={(e) => set({ months: e.target.value })}
+            />
+          </Field>
+          <Field label="Cash today" hint="Taken on the call itself">
+            <input
+              className="pk-input !w-[110px]"
+              type="number"
+              min="0"
+              step="1"
+              inputMode="numeric"
+              value={draft.cash}
+              onChange={(e) => set({ cash: e.target.value })}
+            />
+          </Field>
+          {/* The multiplication, done for the reader. Only when both halves are
+              there: month-to-month has no total, and printing one would be a
+              guess about how long they stay. */}
+          {total !== null && (
+            <div className="pb-1.5 text-[12px] text-muted">
+              Contract value <span className="font-semibold text-text">{money(total)}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {outcome === "follow_up" && (
+        <div className="mb-3">
+          <Field label="Come back on">
+            <input
+              className="pk-input !w-auto"
+              type="date"
+              value={draft.followUpAt}
+              onChange={(e) => set({ followUpAt: e.target.value })}
+              autoFocus
+            />
+          </Field>
+        </div>
+      )}
+
+      {isNo && (
+        <div className="mb-3">
+          <div className="mb-1.5 text-[12px] text-muted">Why they said no</div>
+          <div className="flex flex-wrap gap-1.5">
+            {SALES_NO_REASON_KEYS.map((key) => {
+              const on = draft.reason === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => set({ reason: key })}
+                  className={[
+                    "rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold leading-none",
+                    "transition-colors",
+                    on
+                      ? "border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)]"
+                      : "border-border text-text hover:bg-surface",
+                  ].join(" ")}
+                >
+                  {SALES_NO_REASONS[key].label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="mb-3">
+        <Field label="Notes" hint="What was said. Optional.">
+          <textarea
+            className="pk-input !h-auto"
+            rows={2}
+            value={draft.notes}
+            onChange={(e) => set({ notes: e.target.value })}
+            placeholder={`Anything worth knowing when ${meeting.prospectName || "they"} come back up`}
+          />
+        </Field>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="submit" className="pk-btn-save" disabled={saving || incomplete}>
+          {saving ? "Saving..." : "Save"}
+        </button>
+        <button type="button" className="pk-btn-cancel" onClick={onCancel}>
+          Cancel
+        </button>
+        {isNo && !draft.reason && (
+          <span className="text-[11.5px] text-faint">Pick a reason to save.</span>
+        )}
+      </div>
+    </form>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-[12px] text-muted">{label}</span>
+      {children}
+      {hint && <span className="mt-1 block text-[11px] text-faint">{hint}</span>}
+    </label>
   );
 }
 
@@ -425,7 +673,11 @@ export function MeetingRow({
 // identical otherwise, and a routing that failed is invisible unless it says so.
 function Provenance({ meeting }: { meeting: SalesMeeting }) {
   const parts: string[] = [];
-  parts.push(meeting.source === "Calendar" ? "From the calendar" : meeting.source || "Cold call");
+  // The same rule the source table on Sales Data counts by (salesCalls.ts:
+  // sourceLabel), said as a sentence here. One function, so the line on the row
+  // and the row in the table can never describe a blank source differently.
+  const label = sourceLabel(meeting.source);
+  parts.push(label === "Calendar" ? "From the calendar" : label);
   if (meeting.crmStage) parts.push(meeting.crmStage);
 
   return (

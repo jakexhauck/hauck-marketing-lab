@@ -260,10 +260,20 @@ export function useRecordMeetingOutcome() {
   });
 }
 
+// Identical to RecordSalesCallInput in useSalesCalls.ts, and it has to be: both
+// pages record through the shared handler with the same panel
+// (components/admin/sales/meetingUi.tsx), so a field missing here would be a
+// fact the caller's page silently cannot record.
 export interface RecordOutcomeInput {
   id: string;
   outcome: NonNullable<SalesMeeting["outcome"]>;
-  notAFitReason?: string;
+  // Required by both kinds of no. A key from SALES_NO_REASONS, never free text.
+  reason?: string;
   followUpAt?: string;
+  // Money on the call, and separately the retainer sold. Close only.
   cashCollected?: number | null;
+  monthly?: number | null;
+  months?: number | null;
+  // Notes on the meeting, allowed on every outcome.
+  notes?: string;
 }

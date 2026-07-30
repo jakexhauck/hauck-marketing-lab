@@ -3,6 +3,7 @@ import { handleDemoRequest } from "../demo/handler";
 import { previewHeaders } from "./previewFrame";
 import type { BusinessHealthInputs, PeriodType } from "./businessHealth";
 import type { DerivedSalesDay, DialTotals } from "../../functions/lib/salesDataRollup";
+import type { SourceSplitRow } from "../../functions/lib/salesCalls";
 
 // What one reconciliation against the agency's GoHighLevel calendars did.
 // Shared by the two pages that trigger one: Sales Calls and Sales Data.
@@ -907,6 +908,10 @@ export interface SalesDataResponse {
   // The dialing half of the month's funnel, counted from the attempts
   // themselves across every caller.
   dials: DialTotals;
+  // The month split by where the meetings came from, busiest first.
+  sources: SourceSplitRow[];
+  // How many of the month's nos gave each reason, keyed by SALES_NO_REASONS.
+  reasons: Record<string, number>;
 }
 
 // `sync: false` reads what is stored without re-reading the calendars.
@@ -1679,9 +1684,21 @@ export interface SalesMeeting {
   // stays qualified; not_qualified is "never a prospect". Named after the tags
   // the live automation listens for (0067).
   outcome: "closed" | "follow_up" | "not_interested" | "not_qualified" | "no_show" | null;
+  // Why they said no, on either kind of no: a key from SALES_NO_REASONS
+  // (functions/lib/salesCalls.ts), null on every other outcome.
+  reason: string | null;
+  // The same value under its original name, kept while anything still reads it.
   notAFitReason: string | null;
   followUpAt: string | null;
+  // Money taken on the call itself. What the client is worth every month is the
+  // deal below; the two are different questions and are counted apart.
   cashCollected: number | null;
+  // The retainer sold on a close: dollars a month, and the term where one was
+  // agreed. Null on anything that did not close, and on a close recorded without
+  // the figures.
+  deal: { monthly: number; months: number | null } | null;
+  // Whatever was said on the call. "" when nothing was typed.
+  notes: string;
   assignedTo: string | null;
   updatedAt: string;
   // Where this meeting came from: "Cold call" when the app booked it, "Calendar"
@@ -1783,9 +1800,14 @@ export async function getColdCallData(month: string): Promise<ColdCallDataRespon
 export async function recordSalesCallOutcome(input: {
   id: string;
   outcome: NonNullable<SalesMeeting["outcome"]>;
-  notAFitReason?: string;
+  // Required by both kinds of no; the server refuses one without it.
+  reason?: string;
   followUpAt?: string;
   cashCollected?: number | null;
+  // The retainer, on a close. A monthly with no term is month-to-month.
+  monthly?: number | null;
+  months?: number | null;
+  notes?: string;
 }): Promise<{ meeting: SalesMeeting }> {
   return api("/api/admin/sales/calls", {
     method: "PATCH",
@@ -1804,12 +1826,20 @@ export async function getSalesMeetings(callerId?: string): Promise<{
 
 // Record what one meeting became. `showed` is deliberately absent: the server
 // derives it from the outcome, so a show rate cannot be typed.
+//
+// Same shape as recordSalesCallOutcome above, because it is the same record seen
+// from the caller's end and both land in the one shared handler
+// (functions/api/lib/recordSalesCall.ts). The two pages must ask for identical
+// facts or a meeting would carry different detail depending on who answered it.
 export async function recordMeetingOutcome(input: {
   id: string;
   outcome: NonNullable<SalesMeeting["outcome"]>;
-  notAFitReason?: string;
+  reason?: string;
   followUpAt?: string;
   cashCollected?: number | null;
+  monthly?: number | null;
+  months?: number | null;
+  notes?: string;
 }): Promise<{ meeting: SalesMeeting }> {
   return api("/api/admin/cold-call/meetings", {
     method: "PATCH",

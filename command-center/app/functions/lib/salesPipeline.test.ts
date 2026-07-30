@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   BOOKING_ROUTE,
+  STALE_AFTER_DAYS,
+  daysStill,
   findStage,
+  isStale,
   missingStages,
   normalizeStageName,
   pickSalesPipeline,
@@ -214,5 +217,50 @@ describe("pickSalesPipeline", () => {
       { id: "b", name: "Sales Pipeline 2026" },
     ];
     expect(pickSalesPipeline(two)).toBeNull();
+  });
+});
+
+describe("deals going stale", () => {
+  const now = Date.parse("2026-07-29T12:00:00.000Z");
+  const card = (over: Record<string, unknown> = {}) => ({
+    status: "open",
+    updatedAt: "2026-07-29T09:00:00.000Z",
+    ...over,
+  });
+
+  it("counts the days a card has sat still", () => {
+    expect(daysStill("2026-07-15T12:00:00.000Z", now)).toBe(14);
+    expect(daysStill("2026-07-29T09:00:00.000Z", now)).toBe(0);
+  });
+
+  it("reports no age at all for a card the CRM gave no date", () => {
+    // Unknown age is not the same fact as fresh, and drawing it as either would
+    // be inventing one.
+    expect(daysStill(null, now)).toBeNull();
+    expect(daysStill("", now)).toBeNull();
+    expect(daysStill("last Tuesday", now)).toBeNull();
+  });
+
+  it("never reads a card as younger than today when the CRM clock runs ahead", () => {
+    expect(daysStill("2026-07-30T12:00:00.000Z", now)).toBe(0);
+  });
+
+  it("flags an open card that has not moved in a fortnight", () => {
+    expect(isStale(card({ updatedAt: "2026-07-15T12:00:00.000Z" }), now)).toBe(true);
+    expect(isStale(card({ updatedAt: "2026-07-16T12:00:00.000Z" }), now)).toBe(false);
+    expect(STALE_AFTER_DAYS).toBe(14);
+  });
+
+  // A sale is not a neglected deal. Flagging the won column would turn every
+  // close into a complaint that never goes away.
+  it("leaves won and lost deals alone however long they sit", () => {
+    const old = { updatedAt: "2026-01-01T12:00:00.000Z" };
+    expect(isStale(card({ ...old, status: "won" }), now)).toBe(false);
+    expect(isStale(card({ ...old, status: "lost" }), now)).toBe(false);
+    expect(isStale(card({ ...old, status: "open" }), now)).toBe(true);
+  });
+
+  it("does not flag a card whose age is unknown", () => {
+    expect(isStale(card({ updatedAt: null }), now)).toBe(false);
   });
 });

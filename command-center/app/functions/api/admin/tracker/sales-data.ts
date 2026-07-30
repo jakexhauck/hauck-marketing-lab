@@ -7,11 +7,14 @@ import {
   daysInMonth,
   rollUpDials,
   rollUpSalesCalls,
+  rowsInMonth,
+  toCountable,
   type DerivedSalesDay,
   type DialRow,
   type DialTotals,
   type SalesCallRow,
 } from "../../../lib/salesDataRollup";
+import { bySource, reasonCounts, type SourceSplitRow } from "../../../lib/salesCalls";
 
 // GET /api/admin/tracker/sales-data?month=YYYY-MM
 //
@@ -42,12 +45,19 @@ interface SalesCallDbRow {
   outcome: string | null;
   qualified: boolean | null;
   cash_collected: number | string | null;
+  // What was sold, why they said no, and where the meeting came from. All three
+  // have been on the table for months and were read by nothing until the source
+  // table, the reason list and New MRR needed them.
+  deal: unknown;
+  not_a_fit_reason: string | null;
+  source: string | null;
   prospect_name: string | null;
   business_name: string | null;
 }
 
 const SELECT =
-  "scheduled_at, appointment_status, outcome, qualified, cash_collected, prospect_name, business_name";
+  "scheduled_at, appointment_status, outcome, qualified, cash_collected," +
+  " deal, not_a_fit_reason, source, prospect_name, business_name";
 
 // numeric arrives as a string on some drivers, so cash is normalised to a
 // number exactly once, here at the boundary.
@@ -64,6 +74,9 @@ function toRow(row: SalesCallDbRow): SalesCallRow {
     outcome: row.outcome,
     qualified: row.qualified,
     cashCollected: toMoney(row.cash_collected),
+    deal: row.deal,
+    reason: row.not_a_fit_reason,
+    source: row.source,
     prospectName: row.prospect_name ?? "",
     businessName: row.business_name ?? "",
   };
@@ -88,6 +101,12 @@ interface GetResponse {
   // attempts themselves (cold_call_dials), across every caller: this page is
   // the agency's month, not one person's.
   dials: DialTotals;
+  // The month split by where the meetings came from, busiest first. Counted per
+  // MEETING rather than per day, which is why it is sent whole rather than
+  // summed by the client off the day rows.
+  sources: SourceSplitRow[];
+  // How many of the month's nos gave each reason, keyed by SALES_NO_REASONS.
+  reasons: Record<string, number>;
 }
 
 // A New York day reaches into two UTC days, so the window queried is widened by
@@ -150,13 +169,19 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     return Response.json({ error: "failed to load sales data" }, { status: 500 });
   }
 
-  const rolled = rollUpSalesCalls(
-    ((data ?? []) as SalesCallDbRow[]).map(toRow),
-    agencyTimezone(ctx.env),
-  );
+  const timeZone = agencyTimezone(ctx.env);
+  const rows = ((data ?? []) as unknown as SalesCallDbRow[]).map(toRow);
+  const rolled = rollUpSalesCalls(rows, timeZone);
   // From the validated window rather than the raw query string, so the trim can
   // never be asked to match a month the read did not cover.
-  const inMonth = daysInMonth(rolled.days, window.first.slice(0, 7));
+  const monthKey = window.first.slice(0, 7);
+  const inMonth = daysInMonth(rolled.days, monthKey);
+
+  // The two per-meeting breakdowns. Trimmed to the month by the same timezone
+  // rule the grid uses, then counted by the same functions the Sales Calls page
+  // counts with, so no reader can hold this table against that funnel and find
+  // them disagreeing.
+  const monthRows = rowsInMonth(rows, timeZone, monthKey).map(toCountable);
 
   // The month's dialing. `day` is a plain date column written in the agency's
   // own day, so it needs no timezone conversion: the month window is used as-is.
@@ -187,6 +212,8 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     sync,
     undated: rolled.undated,
     dials,
+    sources: bySource(monthRows),
+    reasons: reasonCounts(monthRows),
   };
   return Response.json(body);
 };

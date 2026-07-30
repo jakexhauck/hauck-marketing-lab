@@ -180,3 +180,44 @@ export function requiredStages(): string[] {
 export function missingStages(stages: NamedStage[]): string[] {
   return requiredStages().filter((name) => findStage(stages, name) === null);
 }
+
+// ---------------------------------------------------------------------------
+// Deals going stale.
+//
+// The board has always drawn "moved 2d ago" on each card and done nothing with
+// it, which means a deal can sit untouched for a month in plain sight. A dot and
+// a per-column count is the whole feature: it changes what you notice, not what
+// the board can do.
+
+// How long a card may sit still before the board says so.
+//
+// Two weeks: long enough that a deal waiting on a scheduled follow-up next week
+// is not nagged about, short enough that a forgotten one surfaces inside the
+// month it was booked in. A constant rather than a setting, until there is a
+// second opinion about the number worth storing.
+export const STALE_AFTER_DAYS = 14;
+
+// Whole days since the card last moved. Null when the CRM gave no date, because
+// a card of unknown age is not the same fact as a fresh one and must not be
+// drawn as either.
+export function daysStill(updatedAt: string | null | undefined, nowMs: number): number | null {
+  if (!updatedAt) return null;
+  const at = Date.parse(updatedAt);
+  if (Number.isNaN(at)) return null;
+  // Clamped at zero: a CRM clock a few seconds ahead of ours should read as
+  // "today", never as a negative age.
+  return Math.max(0, Math.floor((nowMs - at) / 86_400_000));
+}
+
+// Is this card rotting?
+//
+// OPEN CARDS ONLY. A won or lost deal sitting still is finished, not neglected,
+// and flagging the New Client column would turn every sale into a complaint.
+export function isStale(
+  card: { status?: string | null; updatedAt?: string | null },
+  nowMs: number,
+): boolean {
+  if ((card.status ?? "open") !== "open") return false;
+  const days = daysStill(card.updatedAt, nowMs);
+  return days !== null && days >= STALE_AFTER_DAYS;
+}
