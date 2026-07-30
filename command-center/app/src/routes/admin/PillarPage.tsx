@@ -19,6 +19,7 @@ import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
 import SopsTab from "../../components/admin/operations/SopsTab";
 import ColdCallSection from "../../components/admin/acquisition/ColdCallSection";
 import ColdSmsSurface from "../../components/admin/acquisition/ColdSmsSurface";
+import LeadsSurface from "../../components/admin/acquisition/LeadsSurface";
 
 // An admin pillar page (/admin/pillar/:pillarId). The active tab is driven by
 // ?tab= so a page is linkable and survives reload, mirroring the Fulfillment
@@ -147,6 +148,9 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
       return <ColdCallSection />;
     case "sms":
       return <ColdSmsSurface />;
+    // Sourcing: the scraper's results, and the hand-off into the two above.
+    case "leads":
+      return <LeadsSurface />;
     // The meetings themselves, read from the agency calendars, with the outcome
     // routed onto the Sales Pipeline.
     case "calls":

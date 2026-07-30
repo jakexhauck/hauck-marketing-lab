@@ -1,0 +1,7 @@
+# The SOP's dependency list. phonenumbers is the only one the qualifier needs;
+# scrapling/requests/lxml are for the Houzz/Manta thin-metro fallback.
+phonenumbers>=8.13
+scrapling>=0.2
+requests>=2.31
+lxml>=5.0
+certifi>=2024.2.2

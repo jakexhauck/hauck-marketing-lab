@@ -1,0 +1,4 @@
+# Permanent do-not-contact list. One E.164 number per line.
+# A phone in here NEVER exports again, regardless of score, send_status or a
+# requalification. This file is tracked in git on purpose: losing it means texting
+# someone who already opted out.

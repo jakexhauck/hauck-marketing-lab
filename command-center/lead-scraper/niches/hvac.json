@@ -1,0 +1,64 @@
+{
+  "id": "hvac",
+  "label": "HVAC (heating and cooling)",
+  "extends": "_shared",
+  "_comment": "A single trade. It inherits the shared deny list, venue words and whole-word guards, and separates itself from its sibling trades by PRIMARY category only. A roofer who also remodels is still a roofer, so no sibling trade is ever denied on the business name.",
+  "keywords": [
+    "hvac contractor",
+    "air conditioning repair",
+    "heating and cooling",
+    "furnace repair",
+    "ac installation",
+    "heat pump installation",
+    "furnace replacement",
+    "air conditioning installation",
+    "hvac repair",
+    "heating contractor"
+  ],
+  "allow_core": [
+    "hvac contractor",
+    "heating contractor",
+    "air conditioning contractor",
+    "furnace repair service",
+    "air conditioning repair service"
+  ],
+  "primary_deny": [
+    "bathroom remodeler",
+    "bathroom remodeling service",
+    "construction company",
+    "door installation service",
+    "general contractor",
+    "gutter service",
+    "home builder",
+    "insulation contractor",
+    "kitchen remodeler",
+    "remodeler",
+    "roof repair service",
+    "roofing contractor",
+    "roofing service",
+    "siding contractor",
+    "window installation service"
+  ],
+  "name_signals": {
+    "hvac": [
+      "hvac"
+    ],
+    "heating": [
+      "heating",
+      "heat pump",
+      "furnace"
+    ],
+    "cooling": [
+      "cooling",
+      "air conditioning",
+      "refrigeration"
+    ],
+    "comfort": [
+      "comfort",
+      "climate"
+    ],
+    "mechanical": [
+      "mechanical"
+    ]
+  }
+}

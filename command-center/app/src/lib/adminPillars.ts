@@ -32,9 +32,20 @@ export const ADMIN_PILLARS: PillarDef[] = [
     // Leads used to sit here as a sibling of Cold Call. It moved inside Cold
     // Call (lib/coldCallPages), because the prospect book only exists to be
     // dialed: two Leads pages meant two answers to "which list is the real one".
+    //
+    // It is back, and the old objection is answered rather than ignored: this
+    // Leads tab is a SOURCING table, not a second prospect book. Nothing is
+    // dialed from it. A row leaves it by being ticked and sent, at which point it
+    // becomes a GoHighLevel contact and, for the call channel, a row in the Cold
+    // Call book, which remains the only list anyone works.
+    //
+    // It sits LAST rather than first despite being first in the funnel, because
+    // the first tab is the pillar's landing page and Cold Call is the one opened
+    // daily. Sourcing is a thing you go to deliberately.
     tabs: [
       { id: "cold-call", label: "Cold Call", ready: true },
       { id: "sms", label: "SMS", ready: true },
+      { id: "leads", label: "Leads", ready: true },
     ],
   },
   {

@@ -1,0 +1,67 @@
+{
+  "id": "roofing",
+  "label": "Roofing",
+  "extends": "_shared",
+  "_comment": "A single trade. It inherits the shared deny list, venue words and whole-word guards, and separates itself from its sibling trades by PRIMARY category only. A roofer who also remodels is still a roofer, so no sibling trade is ever denied on the business name.",
+  "keywords": [
+    "roofing contractor",
+    "roofing company",
+    "roof replacement",
+    "roof repair",
+    "residential roofing",
+    "metal roofing",
+    "shingle roof replacement",
+    "storm damage roof repair",
+    "flat roof contractor",
+    "emergency roof repair"
+  ],
+  "allow_core": [
+    "roofing contractor",
+    "roofing service",
+    "roof repair service"
+  ],
+  "primary_deny": [
+    "air conditioning contractor",
+    "air conditioning repair service",
+    "bathroom remodeler",
+    "bathroom remodeling service",
+    "construction company",
+    "door installation service",
+    "furnace repair service",
+    "general contractor",
+    "gutter service",
+    "heating contractor",
+    "home builder",
+    "hvac contractor",
+    "insulation contractor",
+    "kitchen remodeler",
+    "remodeler",
+    "siding contractor",
+    "window installation service"
+  ],
+  "name_signals": {
+    "roof": [
+      "roof",
+      "roofing"
+    ],
+    "shingle": [
+      "shingle"
+    ],
+    "metal roof": [
+      "metal roof"
+    ],
+    "restoration": [
+      "restoration",
+      "storm"
+    ],
+    "exteriors": [
+      "exterior",
+      "exteriors"
+    ],
+    "construction": [
+      "construction",
+      "contracting",
+      "contractors"
+    ]
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "id": "home_services",
+  "label": "Home services (all trades)",
+  "extends": "_shared",
+  "_comment": "The catch-all: every home trade at once. Use a single-trade niche when you want a campaign that speaks to one trade.",
+  "keywords": [
+    "roofing contractor",
+    "roof replacement",
+    "roofing company",
+    "hvac contractor",
+    "air conditioning repair",
+    "heating and cooling",
+    "furnace repair",
+    "home remodeling",
+    "kitchen remodeling",
+    "bathroom remodeling",
+    "home renovation",
+    "general contractor",
+    "siding contractor",
+    "window replacement"
+  ],
+  "allow_core": [
+    "roofing contractor",
+    "roofing service",
+    "hvac contractor",
+    "heating contractor",
+    "air conditioning contractor",
+    "furnace repair service",
+    "general contractor",
+    "remodeler",
+    "kitchen remodeler",
+    "bathroom remodeler",
+    "construction company",
+    "home builder",
+    "siding contractor",
+    "window installation service",
+    "insulation contractor",
+    "gutter service"
+  ],
+  "name_signals": {
+    "roof": [
+      "roof",
+      "roofing"
+    ],
+    "hvac": [
+      "hvac"
+    ],
+    "heating and air": [
+      "heating",
+      "cooling",
+      "air conditioning",
+      "heating and air"
+    ],
+    "remodel": [
+      "remodel",
+      "remodeling"
+    ],
+    "renovation": [
+      "renovation",
+      "renovations"
+    ],
+    "construction": [
+      "construction",
+      "contracting",
+      "contractors"
+    ],
+    "exteriors": [
+      "exterior",
+      "exteriors",
+      "siding"
+    ],
+    "builders": [
+      "builder",
+      "builders"
+    ],
+    "restoration": [
+      "restoration"
+    ],
+    "windows": [
+      "window",
+      "windows"
+    ]
+  }
+}

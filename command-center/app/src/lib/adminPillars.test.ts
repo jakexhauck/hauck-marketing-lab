@@ -36,6 +36,7 @@ describe("adminPillars config", () => {
     expect(ready).toEqual([
       "cold-call",
       "sms",
+      "leads",
       "calls",
       "pipeline",
       "sales-data",
@@ -49,9 +50,11 @@ describe("adminPillars config", () => {
   });
 
   it("carries the tabs the foundation plan specifies", () => {
-    // Leads moved inside Cold Call (lib/coldCallPages); the pillar's own tabs
-    // are the two surfaces that sit beside each other.
-    expect(tabsFor("acquisition").map((t) => t.id)).toEqual(["cold-call", "sms"]);
+    // The prospect book still lives inside Cold Call (lib/coldCallPages). Leads
+    // is not a second one: it is the scraper's output, and a row leaves it by
+    // being sent to one of the two tabs before it. It sits last on purpose, so
+    // the pillar still lands on Cold Call.
+    expect(tabsFor("acquisition").map((t) => t.id)).toEqual(["cold-call", "sms", "leads"]);
     // Sales Calls leads: it is the page with work on it. Sales Pipeline is the
     // board its outcomes land on, and Sales Data is the month read back.
     expect(tabsFor("sales").map((t) => t.id)).toEqual([

@@ -1,0 +1,16 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# Run artefacts. The queue and the scrape output are per-machine and disposable;
+# the suppression list is NOT (it is the permanent do-not-contact record), so it is
+# tracked deliberately.
+data/queue*.jsonl
+data/b_*.json
+data/b_*.queries.txt
+data/.engine
+out/
+logs/
+!data/metros.json
+!data/suppression.txt
