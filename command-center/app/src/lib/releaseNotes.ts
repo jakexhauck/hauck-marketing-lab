@@ -26,6 +26,20 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-29-sales-what-was-sold",
+    date: "29 July 2026",
+    title: "Sales records what was sold, where it came from and why the nos were nos",
+    items: [
+      'Recording a close now asks what they pay monthly and for how many months, alongside the cash taken on the call. A $2,000/month client who paid $500 today used to be filed as $500.',
+      'Sales Calls and Sales Data both show "New MRR" beside "Cash collected", and Sales Data has a New MRR column per day. The contract value is worked out for you as you type.',
+      'Answering "Not Interested" or "Not Qualified" now asks why, from a fixed list. Sales Data counts them under "Why they said no", so what is actually killing deals is a list rather than a feeling.',
+      'Sales Data has a "Where the meetings came from" table: booked, showed, show rate, closed, close rate, MRR and cash for each source. Cold-call meetings and meetings that came in on their own are no longer one number.',
+      "Every outcome now opens one panel with a notes box, so you can write down what was said. The notes show on the row, which is what makes a follow-up three weeks later worth having.",
+      "On the Sales board, an open deal that has not moved in 14 days gets an amber dot, says how many days it has sat, and is counted on its column and at the top of the page.",
+      "Notes stay with the meeting: correcting an outcome later does not wipe them.",
+    ],
+  },
+  {
     id: "2026-07-29-sales-reads-itself",
     date: "29 July 2026",
     title: "The Sales pages read the calendar and the board on their own",
