@@ -22,7 +22,9 @@ export interface UseAdminTaskList {
   error: string | null;
   adding: boolean;
   // Appends a blank todo row and returns its id so the caller can focus it.
-  addTask: () => Promise<string | null>;
+  // The optional category files the new row straight away, so adding while the
+  // list is narrowed to one category does not drop the row out of view.
+  addTask: (categoryId?: string | null) => Promise<string | null>;
   patchField: (task: AdminTask, field: TaskTextField, value: string) => Promise<void>;
   // Files the task under a category, or null for Uncategorised.
   setCategory: (task: AdminTask, categoryId: string | null) => Promise<void>;
@@ -65,13 +67,13 @@ export function useAdminTaskList(): UseAdminTaskList {
     };
   }, []);
 
-  const addTask = useCallback(async () => {
+  const addTask = useCallback(async (categoryId?: string | null) => {
     setAdding(true);
     try {
       // No title: the row is created blank and the UI focuses the Task cell.
       const { task } = await api<{ task: AdminTask }>("/api/admin/tasks", {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify(categoryId ? { categoryId } : {}),
       });
       setTasks((list) => [...list, task]);
       return task.id;

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, ChevronDown, GripVertical, Plus, SlidersHorizontal, X } from "lucide-react";
 import { useAdminTaskList, type TaskTextField } from "../../hooks/useAdminTaskList";
 import { useAdminTaskCategories } from "../../hooks/useAdminTaskCategories";
@@ -104,7 +104,56 @@ function AutoCell({
   );
 }
 
-export default function OperationsTasksTab() {
+// The "are you sure" for a delete. A centred panel rather than window.confirm:
+// the browser dialog blocks the tab, lands top-of-window away from the row that
+// asked, and cannot be styled. Escape and the scrim both cancel, and the
+// confirm button takes focus so Enter is the answer to the question asked.
+function ConfirmDelete({
+  label,
+  onCancel,
+  onConfirm,
+}: {
+  label: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const ref = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    ref.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
+  return (
+    <div className="otk-modal" role="dialog" aria-modal="true" aria-label="Remove task">
+      <button type="button" className="otk-scrim" aria-label="Cancel" onClick={onCancel} />
+
+      <div className="otk-panel otk-confirm">
+        <div className="otk-confirmtitle">Remove this task?</div>
+        <p className="otk-confirmbody">
+          <b>{label}</b> will be deleted. This cannot be undone.
+        </p>
+        <div className="otk-confirmrow">
+          <button type="button" className="otk-btnghost" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="button" ref={ref} className="otk-btndanger" onClick={onConfirm}>
+            Remove task
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// `fill` stretches the card to the height of its container (the Command page,
+// where the list is the whole page). The pillar tab renders it unset, so the
+// table keeps its capped height with the rest of the tab below it.
+export default function OperationsTasksTab({ fill = false }: { fill?: boolean } = {}) {
   const {
     tasks,
     loading,
@@ -129,6 +178,8 @@ export default function OperationsTasksTab() {
   const [drafts, setDrafts] = useState<Record<string, Partial<Record<TaskTextField, string>>>>({});
   // The row whose Task cell should take focus (the row just added).
   const [focusId, setFocusId] = useState<string | null>(null);
+  // The task the delete dialog is asking about, if any.
+  const [pendingDelete, setPendingDelete] = useState<AdminTask | null>(null);
   // Drag-to-reorder state. Rows carry inputs, so a row only becomes draggable
   // while the mouse is down on its grip (armedId); dragIndex is the row in
   // flight and insertIndex the gap the drop would land in (0..tasks.length).
@@ -218,18 +269,14 @@ export default function OperationsTasksTab() {
   };
 
   const onAdd = async () => {
-    const id = await addTask();
+    // Adding while the list is narrowed to a category files the new row under
+    // it, so it appears where it was asked for instead of vanishing into All.
+    const id = await addTask(filter.kind === "id" ? filter.id : null);
     if (id) setFocusId(id);
   };
 
-  const onDelete = (task: AdminTask) => {
-    const label = task.title?.trim() || "this task";
-    if (!window.confirm(`Remove ${label}?`)) return;
-    void deleteTask(task);
-  };
-
   return (
-    <div className="otk">
+    <div className={fill ? "otk otk-fill" : "otk"}>
       <OperationsTasksStyle />
 
       <div className="otk-controls">
@@ -455,7 +502,7 @@ export default function OperationsTasksTab() {
                         className="otk-del"
                         aria-label={`Remove ${task.title?.trim() || "untitled task"}`}
                         title="Remove task"
-                        onClick={() => onDelete(task)}
+                        onClick={() => setPendingDelete(task)}
                       >
                         <X size={15} strokeWidth={2.4} />
                       </button>
@@ -467,6 +514,17 @@ export default function OperationsTasksTab() {
           </div>
         )}
       </div>
+
+      {pendingDelete ? (
+        <ConfirmDelete
+          label={pendingDelete.title?.trim() || "This untitled task"}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => {
+            void deleteTask(pendingDelete);
+            setPendingDelete(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -522,6 +580,14 @@ function OperationsTasksStyle() {
       .pk-kit .otk-state { padding: 18px 20px 24px; font-size: 13.5px; color: var(--text-muted); }
 
       .pk-kit .otk-scroll { overflow: auto; max-height: min(62vh, 720px); }
+
+      /* Fill mode: the checklist IS the page, so the card takes whatever height
+         its container has and the table scrolls inside it rather than under a
+         62vh cap with dead space below. min-height keeps the rows readable if
+         the container is ever short (a phone in landscape). */
+      .pk-kit .otk-fill { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+      .pk-kit .otk-fill .otk-card { flex: 1 1 auto; min-height: 0; }
+      .pk-kit .otk-fill .otk-scroll { flex: 1 1 auto; max-height: none; min-height: 220px; }
       .pk-kit .otk-card table { width: 100%; border-collapse: collapse; }
       .pk-kit .otk-card thead th {
         position: sticky; top: 0; z-index: 2; background: var(--otk-head-bg);
@@ -731,6 +797,32 @@ function OperationsTasksStyle() {
         border-color: var(--border); background: var(--otk-input-hover);
       }
       .pk-kit .otk-addcat .otk-add { margin-left: 0; padding: 9px 14px; }
+
+      /* ===== Remove-task confirm ===== */
+      .pk-kit .otk-confirm { width: min(380px, calc(100vw - 32px)); padding: 22px 22px 18px; }
+      .pk-kit .otk-confirmtitle {
+        font-family: var(--font-display); font-weight: 600; font-size: 17px; color: var(--text);
+      }
+      .pk-kit .otk-confirmbody {
+        margin: 8px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--text-muted);
+      }
+      .pk-kit .otk-confirmbody b { color: var(--text); font-weight: 600; }
+      .pk-kit .otk-confirmrow { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+      .pk-kit .otk-btnghost, .pk-kit .otk-btndanger {
+        border: 1px solid var(--border); background: var(--surface); color: var(--text);
+        font: inherit; font-weight: 600; font-size: 13px; padding: 9px 15px;
+        border-radius: 11px; cursor: pointer; transition: .14s;
+      }
+      .pk-kit .otk-btnghost:hover { background: var(--otk-input-hover); }
+      .pk-kit .otk-btndanger {
+        border-color: var(--danger); background: var(--danger); color: #fff;
+        box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--danger) 80%, transparent);
+      }
+      .pk-kit .otk-btndanger:hover { filter: brightness(1.06); }
+      .pk-kit .otk-btnghost:focus-visible { outline: 0; box-shadow: 0 0 0 2px var(--otk-indigo); }
+      .pk-kit .otk-btndanger:focus-visible {
+        outline: 0; box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--danger);
+      }
 
       @media (max-width: 720px) { .pk-kit .otk-add { margin-left: 0; } }
     `}</style>
