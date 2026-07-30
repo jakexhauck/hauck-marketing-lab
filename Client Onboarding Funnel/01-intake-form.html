@@ -1,0 +1,622 @@
+<!--
+  HAUCK MARKETING CLIENT INTAKE FUNNEL
+  Paste-ready custom code for a GoHighLevel funnel step.
+
+  WHAT THIS IS
+  The full seven-step intake funnel in the "Segmented" card design, as one
+  self-contained block: markup, styles and behaviour. No build step, no
+  framework, no dependencies beyond a Google Fonts link.
+
+  HOW TO USE IT IN GHL
+  1. Funnel > add a step > drop in a Custom JS/HTML element.
+  2. Paste everything below.
+  3. Set the funnel step to full width and remove GHL's own padding, or the
+     card will sit inside a narrower column than it was designed for.
+  4. Publish, then open the page and walk all seven steps.
+
+  BEFORE IT CAN SAVE ANYTHING  (read this)
+  The form posts to the Command Center API at HM_CONFIG.apiBase below. That API
+  already exists, is tested, and is live. Two things must be true for it to
+  accept calls from a GHL-hosted page:
+
+    a) apiBase must point at the deployed app, not localhost.
+    b) The GHL funnel's origin must be added to the allowed-origins list in
+       command-center/app/functions/api/_middleware.ts. Right now that list is
+       app.hauckmarketing.com only, so a browser on any other domain will be
+       blocked by CORS and every save will fail.
+
+  Tell me the published funnel domain and I will add it and ship that change.
+
+  UNTIL THEN: set HM_CONFIG.dryRun = true. The funnel works end to end, keeps
+  progress in the browser, and shows the thank-you screen, but posts nothing.
+  Good for testing the look and the flow without wiring.
+
+  WHAT IT DOES
+  - Seven steps plus a review screen, matching src/lib/intake.ts exactly.
+  - Client-side validation per step, mirroring the server's rules.
+  - Saves after every step and puts a resume token in the URL, so closing the
+    tab loses nothing.
+  - Never sends the password anywhere except over the save call, and never
+    reads it back.
+-->
+
+<div class="hm-funnel" id="hm-funnel">
+  <div class="hm-top">
+    <div class="hm-mark"><span class="hm-mark-dot">H</span> Hauck Marketing</div>
+  </div>
+  <div class="hm-card"><div class="hm-pad" id="hm-slot"></div></div>
+  <p class="hm-reassure" id="hm-reassure"></p>
+</div>
+
+<style>
+/* @import rather than a <link> tag: GoHighLevel's builder strips <link>
+   elements out of custom code blocks, which would silently drop the fonts. */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+.hm-funnel{
+  --hm-green:#4DBB83; --hm-green-deep:#3AA470; --hm-ink:#0C1512; --hm-body:#4A5A55;
+  --hm-line:#E3E9E6; --hm-faint:#8B9A94; --hm-wash:#F6F8F7;
+  /* Break out of whatever column GHL wraps this in, so the background runs the
+     full width of the page instead of sitting in a boxed strip. */
+  width:100vw; max-width:100vw; margin-left:calc(50% - 50vw);
+  position:relative; min-height:100vh; padding:0 20px 80px; overflow:hidden;
+  background:radial-gradient(120% 60% at 50% -10%, rgba(77,187,131,.14), transparent 60%), var(--hm-wash);
+  color:var(--hm-ink); font-family:Inter,-apple-system,"Segoe UI",sans-serif; -webkit-font-smoothing:antialiased;
+  text-align:left;
+}
+/* GHL's theme styles reach into custom blocks. Reset only what it touches. */
+.hm-funnel *{box-sizing:border-box}
+.hm-funnel button{margin:0;text-transform:none;letter-spacing:normal;line-height:normal}
+.hm-funnel input,.hm-funnel select,.hm-funnel textarea{margin:0;max-width:none;box-shadow:none}
+.hm-funnel label{margin:0;display:block;text-transform:none}
+.hm-funnel dl,.hm-funnel dd,.hm-funnel dt{margin:0}
+.hm-funnel h2{margin:0;font-family:Poppins,Inter,sans-serif;font-weight:600;letter-spacing:-.02em}
+.hm-funnel h3{margin:0}
+.hm-funnel p{margin:0}
+.hm-top{display:flex;justify-content:center;padding:38px 0 28px}
+.hm-mark{display:flex;align-items:center;gap:9px;font-family:Poppins,Inter,sans-serif;font-weight:600;font-size:15px;letter-spacing:-.02em}
+.hm-mark-dot{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--hm-green);color:#062018;font-size:11px;font-weight:600}
+.hm-card{position:relative;max-width:620px;margin:0 auto;background:#fff;border:1px solid #E9EEEC;border-radius:20px;
+  box-shadow:0 2px 4px rgba(10,29,25,.03), 0 16px 44px rgba(10,29,25,.09);overflow:hidden}
+.hm-pad{padding:32px 40px 34px}
+.hm-segs{display:flex;gap:6px;margin-bottom:24px}
+.hm-segs i{flex:1;height:4px;border-radius:3px;background:#E7EDEA;transition:background .3s,opacity .3s}
+.hm-segs i.is-done{background:var(--hm-green)}
+.hm-segs i.is-now{background:var(--hm-green);opacity:.45}
+.hm-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.hm-head h2{font-size:25px}
+.hm-step-of{font-size:11.5px;color:var(--hm-faint);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hm-sub{margin-top:8px;font-size:14px;line-height:1.55;color:var(--hm-body)}
+.hm-body{margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.hm-wide{grid-column:1/-1}
+.hm-field{display:flex;flex-direction:column;gap:6px}
+.hm-field>label{font-size:12.5px;font-weight:500;color:var(--hm-body)}
+.hm-req{color:var(--hm-green-deep)}
+.hm-field input,.hm-field select,.hm-field textarea{
+  width:100%;padding:11px 13px;font:inherit;font-size:14.5px;color:var(--hm-ink);background:#fff;
+  border:1px solid var(--hm-line);border-radius:10px;transition:border-color .15s,box-shadow .15s}
+.hm-field textarea{resize:vertical}
+.hm-field input::placeholder,.hm-field textarea::placeholder{color:#A9B6B1}
+.hm-field input:focus,.hm-field select:focus,.hm-field textarea:focus{
+  outline:none;border-color:var(--hm-green);box-shadow:0 0 0 3px rgba(77,187,131,.16)}
+.hm-field.has-error input,.hm-field.has-error select,.hm-field.has-error textarea{border-color:#D4553F}
+.hm-help{font-size:11.5px;line-height:1.45;color:var(--hm-faint)}
+.hm-err{font-size:11.5px;line-height:1.45;color:#C2492F}
+.hm-check{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
+.hm-check input{width:17px;height:17px;margin-top:1px;flex:none;accent-color:var(--hm-green)}
+.hm-check span{font-size:14px;line-height:1.45;color:var(--hm-ink)}
+.hm-radios{display:flex;flex-wrap:wrap;gap:8px}
+.hm-radio{display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 14px;border:1px solid var(--hm-line);
+  border-radius:10px;font-size:14px;background:#fff;transition:border-color .15s,background .15s}
+.hm-radio input{width:15px;height:15px;accent-color:var(--hm-green)}
+.hm-radio.is-on{border-color:var(--hm-green);background:rgba(77,187,131,.07)}
+.hm-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:32px;padding-top:22px;border-top:1px solid var(--hm-line)}
+.hm-saved{font-size:11.5px;color:var(--hm-faint)}
+.hm-btn{border:none;border-radius:10px;padding:12px 22px;cursor:pointer;font-family:Poppins,Inter,sans-serif;
+  font-size:14px;font-weight:600;letter-spacing:-.01em;transition:background .15s,color .15s,border-color .15s}
+.hm-btn:disabled{opacity:.55;cursor:default}
+.hm-btn-primary{background:var(--hm-green);color:#062018}
+.hm-btn-primary:not(:disabled):hover{background:var(--hm-green-deep);color:#fff}
+.hm-btn-ghost{background:transparent;color:var(--hm-body);border:1px solid var(--hm-line)}
+.hm-btn-ghost:not(:disabled):hover{border-color:#C7D3CE;color:var(--hm-ink)}
+.hm-reassure{max-width:620px;margin:18px auto 0;text-align:center;font-size:12px;line-height:1.6;color:var(--hm-faint)}
+.hm-group+.hm-group{margin-top:22px}
+.hm-group h3{margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--hm-green-deep)}
+.hm-group-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.hm-rows{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;margin:0}
+.hm-rows dt{font-size:11.5px;color:var(--hm-faint)}
+.hm-rows dd{margin:0 0 6px;font-size:14px;color:var(--hm-ink);white-space:pre-wrap;overflow-wrap:anywhere}
+.hm-edit{background:none;border:none;padding:0;cursor:pointer;font:inherit;font-size:12px;font-weight:500;color:var(--hm-body)}
+.hm-edit:hover{color:var(--hm-green-deep)}
+.hm-banner{margin-bottom:20px;padding:12px 14px;border-radius:10px;font-size:13px;line-height:1.5}
+.hm-banner-warn{background:rgba(212,85,63,.07);border:1px solid rgba(212,85,63,.3);color:#8F3323}
+.hm-banner-info{background:rgba(77,187,131,.08);border:1px solid rgba(77,187,131,.35);color:#24614A}
+.hm-final{padding:46px 40px;text-align:center}
+.hm-final-mark{display:grid;place-items:center;width:46px;height:46px;margin:0 auto 18px;border-radius:50%;
+  background:rgba(77,187,131,.14);color:var(--hm-green-deep);font-size:20px}
+.hm-final h2{font-size:23px}
+.hm-final p{margin-top:10px;font-size:14px;line-height:1.6;color:var(--hm-body)}
+@media(max-width:640px){
+  .hm-pad{padding:26px 22px 24px}
+  .hm-head h2{font-size:21px}
+  .hm-body,.hm-rows{grid-template-columns:1fr}
+  .hm-foot{flex-wrap:wrap}
+  .hm-saved{order:3;width:100%;text-align:center}
+}
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------- config
+  var HM_CONFIG = {
+    // The deployed Command Center. No trailing slash.
+    apiBase: "https://app.hauckmarketing.com",
+    // true = nothing is posted anywhere. Use this until the funnel's origin is
+    // added to the API's allowed-origins list, or every save will fail on CORS.
+    dryRun: true
+  };
+
+  // ------------------------------------------------- schema (mirrors intake.ts)
+  // Keep in step with command-center/app/src/lib/intake.ts. The server drops any
+  // key it does not recognise, so an extra field here is silently ignored rather
+  // than stored: safe, but it will not reach Jake.
+  var TIMEZONES = [
+    ["Pacific/Honolulu", "Hawaii (HST)"],
+    ["America/Anchorage", "Alaska (AKT)"],
+    ["America/Los_Angeles", "Pacific (PT)"],
+    ["America/Phoenix", "Arizona (no DST)"],
+    ["America/Denver", "Mountain (MT)"],
+    ["America/Chicago", "Central (CT)"],
+    ["America/New_York", "Eastern (ET)"],
+    ["America/Detroit", "Eastern - Detroit (ET)"],
+    ["America/Toronto", "Eastern - Toronto (ET)"]
+  ];
+
+  var ASSET_HELP = "Paste a Google Drive, Dropbox or iCloud link. Make sure it is shared.";
+
+  var STEPS = [
+    { n: 1, label: "Your business", blurb: "The basics, so we know who we are building for." },
+    { n: 2, label: "Contact details", blurb: "How we reach you, and where you are based." },
+    { n: 3, label: "Your login", blurb: "Choose how you will sign in once your account is ready." },
+    { n: 4, label: "Targeting", blurb: "Where your ads run, and how you want to hear about new leads." },
+    { n: 5, label: "Your story", blurb: "What makes you different. This is the raw material for your ads." },
+    { n: 6, label: "Assets", blurb: "Photos and a logo we can use in your marketing." },
+    { n: 7, label: "Review", blurb: "Check it over, then send it to us." }
+  ];
+  var LAST_INPUT_STEP = 6;
+  var REVIEW_STEP = 7;
+
+  var FIELDS = [
+    // 1 Your business
+    { key: "name", label: "Business name", type: "text", step: 1, required: true, placeholder: "Willis Exteriors" },
+    { key: "niche", label: "What do you do?", type: "text", step: 1, required: true, placeholder: "Roofing & Exteriors" },
+    { key: "websiteUrl", label: "Website", type: "url", step: 1, placeholder: "https://willisexteriors.com", help: "Leave blank if you do not have one yet." },
+
+    // 2 Contact details
+    { key: "contactName", label: "Your name", type: "text", step: 2, required: true, placeholder: "Jim Willis" },
+    { key: "contactEmail", label: "Email", type: "email", step: 2, required: true, placeholder: "jim@willisexteriors.com" },
+    { key: "contactPhone", label: "Phone", type: "tel", step: 2, required: true, placeholder: "(313) 555 0134" },
+    { key: "timezone", label: "Timezone", type: "select", step: 2, required: true, options: TIMEZONES, help: "This sets the times on your booking calendar, so please get it right." },
+    { key: "businessAddress", label: "Business address", type: "textarea", step: 2, required: true, wide: true, placeholder: "123 Ford Rd, Garden City, MI 48135" },
+
+    // 3 Your login
+    { key: "loginEmail", label: "Login email", type: "email", step: 3, required: true, wide: true, help: "Prefilled from the email above. Change it if you would rather sign in with another." },
+    { key: "password", label: "Choose a password", type: "password", step: 3, required: true, help: "At least 8 characters." },
+    { key: "passwordConfirm", label: "Confirm password", type: "password", step: 3, required: true },
+
+    // 4 Targeting
+    { key: "targetAreas", label: "Areas to target for your ads", type: "textarea", step: 4, required: true, wide: true, placeholder: "78704, Travis County, Downtown Austin, Round Rock", help: "Any combination of zip codes, counties, neighbourhoods or cities." },
+    { key: "areaCallout", label: "How should the ads name your area?", type: "text", step: 4, required: true, wide: true, placeholder: "Detroit area", help: '"Westlake County and Surrounding Areas", for example.' },
+    { key: "notifyPreference", label: "How would you like to hear about new leads and appointments?", type: "radio", step: 4, wide: true, options: [["text", "Text"], ["email", "Email"], ["both", "Both"]] },
+    { key: "calendarAvailability", label: "Your preferred calendar availability", type: "textarea", step: 4, wide: true, placeholder: "Mon-Fri 9am-5pm, Saturday 12-3pm, Sunday off" },
+    { key: "leadConnectorInstalled", label: "I have installed the LeadConnector app on my phone", type: "checkbox", step: 4, wide: true },
+
+    // 5 Your story
+    { key: "usp", label: "Do you have a unique selling proposition?", type: "textarea", step: 5, wide: true, placeholder: "We guarantee a home sale in 30 days or pay the seller $10k" },
+    { key: "whySignedUp", label: "What made you want to work with Hauck Marketing?", type: "textarea", step: 5, wide: true },
+    { key: "notes", label: "Anything else we should know?", type: "textarea", step: 5, wide: true },
+
+    // 6 Assets
+    { key: "logoUrl", label: "Your logo", type: "url", step: 6, wide: true, help: ASSET_HELP },
+    { key: "headshotUrl", label: "A clear headshot of yourself", type: "url", step: 6, wide: true, help: ASSET_HELP },
+    { key: "pastWorkUrl", label: "Photos of your past work", type: "url", step: 6, wide: true, help: ASSET_HELP }
+  ];
+
+  var LEADCONNECTOR = {
+    ios: "https://apps.apple.com/us/app/lead-connector/id1564302502",
+    android: "https://play.google.com/store/apps/details?id=com.LeadConnector&hl=en_US"
+  };
+
+  // ------------------------------------------------------------------ state
+  var state = { step: 1, answers: {}, errors: {}, token: null, saving: false,
+                savedAt: null, banner: null, done: false, dead: false };
+
+  // Assigned in boot(), not here: GHL sometimes runs a block's script before it
+  // has finished injecting that block's markup.
+  var slot = null;
+  var reassure = null;
+
+  // ------------------------------------------------------------- validation
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var URL_RE = /^(https?:\/\/)?[^\s.]+(\.[^\s.]+)+(\/\S*)?$/;
+
+  function txt(key) {
+    var v = state.answers[key];
+    return typeof v === "string" ? v.trim() : "";
+  }
+  function fieldsFor(step) {
+    return FIELDS.filter(function (f) { return f.step === step; });
+  }
+  function validate(step) {
+    var errs = {};
+    fieldsFor(step).forEach(function (f) {
+      var v = txt(f.key);
+      if (f.required && !v) { errs[f.key] = f.label + " is required"; return; }
+      if (!v) return;
+      if (f.type === "email" && !EMAIL_RE.test(v)) errs[f.key] = "That does not look like an email address";
+      if (f.type === "url" && !URL_RE.test(v)) errs[f.key] = "That does not look like a web address";
+    });
+    if (step === 3) {
+      var p = txt("password"), c = txt("passwordConfirm");
+      if (p && p.length < 8) errs.password = "At least 8 characters";
+      if (p && c && p !== c) errs.passwordConfirm = "The two passwords do not match";
+    }
+    return errs;
+  }
+
+  // ------------------------------------------------------------------ saving
+  function answersToSend() {
+    var out = {};
+    Object.keys(state.answers).forEach(function (k) {
+      // Internal bookkeeping, not an answer. The server would drop it anyway
+      // (it ignores keys not on the schema), but there is no reason to send it.
+      if (k.indexOf("__") === 0) return;
+      out[k] = state.answers[k];
+    });
+    return out;
+  }
+
+  function save(submit) {
+    if (HM_CONFIG.dryRun) {
+      state.savedAt = new Date();
+      return Promise.resolve(true);
+    }
+    state.saving = true; render();
+    return fetch(HM_CONFIG.apiBase + "/api/intake", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        token: state.token, answers: answersToSend(),
+        step: state.step, submit: !!submit
+      })
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.error || "We could not save that. Please try again.");
+        if (data.token && !state.token) {
+          state.token = data.token;
+          rememberToken(data.token);
+        }
+        state.savedAt = new Date();
+        state.banner = null;
+        return true;
+      });
+    }).catch(function (err) {
+      state.banner = { tone: "warn", text: err.message ||
+        "We could not reach the server. Check your connection and try again." };
+      return false;
+    }).then(function (ok) {
+      state.saving = false; render();
+      return ok;
+    });
+  }
+
+  // The resume token lives in the URL so a shared or bookmarked link works.
+  // Some funnel builders sandbox history.replaceState, so localStorage is kept
+  // as a second copy: same tab and same browser still resume, which covers the
+  // common case of closing the tab and coming back.
+  var TOKEN_STORE = "hm.intake.token";
+
+  function rememberToken(token) {
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set("r", token);
+      window.history.replaceState({}, "", url.toString());
+    } catch (e) { /* sandboxed; the store below still covers us */ }
+    try { window.localStorage.setItem(TOKEN_STORE, token); } catch (e) {}
+  }
+
+  function readToken() {
+    var token = null;
+    try { token = new URL(window.location.href).searchParams.get("r"); } catch (e) {}
+    if (token) return token;
+    try { return window.localStorage.getItem(TOKEN_STORE); } catch (e) { return null; }
+  }
+
+  function resume() {
+    var token = readToken();
+    if (!token || HM_CONFIG.dryRun) { render(); return; }
+
+    fetch(HM_CONFIG.apiBase + "/api/intake/" + encodeURIComponent(token))
+      .then(function (res) {
+        if (!res.ok) throw new Error("dead");
+        return res.json();
+      })
+      .then(function (data) {
+        state.token = token;
+        state.answers = data.answers || {};
+        if (!data.editable) {
+          state.done = true;
+          // Finished. Drop the stored token so the next client on a shared
+          // machine gets a fresh form rather than someone else's thank-you.
+          try { window.localStorage.removeItem(TOKEN_STORE); } catch (e) {}
+          render();
+          return;
+        }
+        state.step = Math.min(data.furthestStep || 1, REVIEW_STEP);
+        if (data.hasPassword) {
+          state.banner = { tone: "info", text:
+            "Welcome back. For your security we do not store your password in a readable form, so if you change it on step 3 you will need to type it twice again." };
+        }
+        render();
+      })
+      .catch(function () { state.dead = true; render(); });
+  }
+
+  // ------------------------------------------------------------------ render
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function segs() {
+    var out = '<div class="hm-segs">';
+    for (var i = 1; i <= REVIEW_STEP; i++) {
+      var cls = i < state.step ? "is-done" : (i === state.step ? "is-now" : "");
+      out += '<i class="' + cls + '"></i>';
+    }
+    return out + "</div>";
+  }
+
+  function fieldHtml(f) {
+    var val = state.answers[f.key];
+    var err = state.errors[f.key];
+    var cls = "hm-field" + (f.wide ? " hm-wide" : "") + (err ? " has-error" : "");
+    var req = f.required ? ' <span class="hm-req">*</span>' : "";
+    var id = "hm-" + f.key;
+    var h = "";
+
+    if (f.type === "checkbox") {
+      h += '<div class="' + cls + '">';
+      h += '<label class="hm-check"><input type="checkbox" data-k="' + f.key + '"' +
+           (val === true ? " checked" : "") + '><span>' + esc(f.label) + "</span></label>";
+    } else if (f.type === "radio") {
+      h += '<div class="' + cls + '"><label>' + esc(f.label) + req + "</label>";
+      h += '<div class="hm-radios">';
+      f.options.forEach(function (o) {
+        var on = val === o[0];
+        h += '<label class="hm-radio' + (on ? " is-on" : "") + '">' +
+             '<input type="radio" name="' + id + '" data-k="' + f.key + '" value="' + esc(o[0]) + '"' +
+             (on ? " checked" : "") + ">" + esc(o[1]) + "</label>";
+      });
+      h += "</div>";
+    } else if (f.type === "select") {
+      h += '<div class="' + cls + '"><label for="' + id + '">' + esc(f.label) + req + "</label>";
+      h += '<select id="' + id + '" data-k="' + f.key + '"><option value="">Please choose...</option>';
+      f.options.forEach(function (o) {
+        h += '<option value="' + esc(o[0]) + '"' + (val === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>";
+      });
+      h += "</select>";
+    } else if (f.type === "textarea") {
+      h += '<div class="' + cls + '"><label for="' + id + '">' + esc(f.label) + req + "</label>";
+      h += '<textarea id="' + id + '" rows="3" data-k="' + f.key + '" placeholder="' +
+           esc(f.placeholder || "") + '">' + esc(typeof val === "string" ? val : "") + "</textarea>";
+    } else {
+      h += '<div class="' + cls + '"><label for="' + id + '">' + esc(f.label) + req + "</label>";
+      h += '<input id="' + id + '" type="' + f.type + '" data-k="' + f.key + '" placeholder="' +
+           esc(f.placeholder || "") + '" value="' + esc(typeof val === "string" ? val : "") + '"' +
+           (f.type === "password" ? ' autocomplete="new-password"' : "") + ">";
+    }
+
+    if (err) h += '<p class="hm-err">' + esc(err) + "</p>";
+    else if (f.help) h += '<p class="hm-help">' + f.help + "</p>";
+
+    // The LeadConnector question is a task, not a question, so the store links
+    // belong right beside it.
+    if (f.key === "leadConnectorInstalled") {
+      h += '<p class="hm-help">Get the app: ' +
+           '<a href="' + LEADCONNECTOR.ios + '" target="_blank" rel="noreferrer">iPhone</a> or ' +
+           '<a href="' + LEADCONNECTOR.android + '" target="_blank" rel="noreferrer">Android</a></p>';
+    }
+    return h + "</div>";
+  }
+
+  function reviewHtml() {
+    var h = "";
+    STEPS.slice(0, LAST_INPUT_STEP).forEach(function (s) {
+      var rows = fieldsFor(s.n).map(function (f) {
+        var v = state.answers[f.key];
+        if (f.type === "checkbox") return v === true ? { l: f.label, v: "Yes" } : null;
+        if (f.type === "password") return null; // never shown back
+        if (typeof v !== "string" || !v.trim()) return null;
+        if (f.options) {
+          var hit = f.options.filter(function (o) { return o[0] === v; })[0];
+          return { l: f.label, v: hit ? hit[1] : v };
+        }
+        return { l: f.label, v: v };
+      }).filter(Boolean);
+      if (!rows.length) return;
+
+      h += '<div class="hm-group"><div class="hm-group-head"><h3>' + esc(s.label) + "</h3>" +
+           '<button type="button" class="hm-edit" data-goto="' + s.n + '">Edit</button></div><dl class="hm-rows">';
+      rows.forEach(function (r) {
+        h += "<dt>" + esc(r.l) + "</dt><dd>" + esc(r.v) + "</dd>";
+      });
+      h += "</dl></div>";
+    });
+    return h || '<p class="hm-sub">Nothing filled in yet.</p>';
+  }
+
+  function render() {
+    if (state.dead) {
+      slot.innerHTML = '<div class="hm-final"><div class="hm-final-mark">!</div>' +
+        "<h2>That link is not valid</h2>" +
+        "<p>It may have expired, or been mistyped. Reply to the email that brought you here and we will send a fresh one.</p></div>";
+      reassure.textContent = "";
+      return;
+    }
+    if (state.done) {
+      slot.innerHTML = '<div class="hm-final"><div class="hm-final-mark">&#10003;</div>' +
+        "<h2>That is everything, thank you</h2>" +
+        "<p>We have got what we need and we are setting your account up now. You will hear from us shortly with your login and the next steps.</p></div>";
+      reassure.textContent = "";
+      return;
+    }
+
+    var step = STEPS[state.step - 1];
+    var onReview = state.step === REVIEW_STEP;
+    var h = segs();
+
+    if (state.banner) {
+      h += '<div class="hm-banner hm-banner-' + state.banner.tone + '">' + esc(state.banner.text) + "</div>";
+    }
+
+    h += '<div class="hm-head"><h2>' + esc(step.label) + "</h2>" +
+         '<p class="hm-step-of">' + state.step + " of " + REVIEW_STEP + "</p></div>";
+    h += '<p class="hm-sub">' + esc(step.blurb) + "</p>";
+
+    if (onReview) {
+      h += '<div style="margin-top:28px">' + reviewHtml() + "</div>";
+    } else {
+      h += '<div class="hm-body">' + fieldsFor(state.step).map(fieldHtml).join("") + "</div>";
+    }
+
+    h += '<div class="hm-foot">';
+    h += '<button type="button" class="hm-btn hm-btn-ghost" data-act="back"' +
+         (state.step === 1 ? " disabled" : "") + ">Back</button>";
+    h += '<p class="hm-saved">' + (state.saving ? "Saving..." :
+         (state.savedAt ? "Saved " + timeAgo(state.savedAt) : "&nbsp;")) + "</p>";
+    h += '<button type="button" class="hm-btn hm-btn-primary" data-act="' +
+         (onReview ? "submit" : "next") + '"' + (state.saving ? " disabled" : "") + ">" +
+         (onReview ? "Send it in" : "Continue") + "</button>";
+    h += "</div>";
+
+    slot.innerHTML = h;
+
+    // Nothing under the card on the input steps. The ticks show progress and the
+    // footer shows the save state; saying either again in prose was noise on
+    // every single screen. The review step gets one line, because "what happens
+    // when I press this" is a real question and only asked once.
+    reassure.textContent = onReview
+      ? "Once you send this, we will start setting your account up."
+      : "";
+
+    wire();
+  }
+
+  function timeAgo(d) {
+    var s = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (s < 45) return "a moment ago";
+    if (s < 90) return "a minute ago";
+    return Math.round(s / 60) + " minutes ago";
+  }
+
+  // ------------------------------------------------------------------ events
+  function wire() {
+    slot.querySelectorAll("[data-k]").forEach(function (el) {
+      var key = el.getAttribute("data-k");
+      var evt = (el.type === "checkbox" || el.type === "radio" || el.tagName === "SELECT")
+        ? "change" : "input";
+      el.addEventListener(evt, function () {
+        if (el.type === "checkbox") state.answers[key] = el.checked;
+        else state.answers[key] = el.value;
+
+        // The login email follows the contact email until it is edited itself.
+        if (key === "contactEmail" && !state.answers.__loginTouched) {
+          state.answers.loginEmail = el.value;
+        }
+        if (key === "loginEmail") state.answers.__loginTouched = true;
+
+        if (state.errors[key]) { delete state.errors[key]; render(); }
+        else if (el.type === "radio" || el.type === "checkbox") render();
+      });
+    });
+
+    slot.querySelectorAll("[data-goto]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        state.step = Number(b.getAttribute("data-goto"));
+        state.errors = {};
+        render(); top();
+      });
+    });
+
+    var back = slot.querySelector('[data-act="back"]');
+    if (back) back.addEventListener("click", function () {
+      if (state.step === 1) return;
+      state.step--; state.errors = {}; render(); top();
+    });
+
+    var go = slot.querySelector('[data-act="next"], [data-act="submit"]');
+    if (go) go.addEventListener("click", function () {
+      var submitting = go.getAttribute("data-act") === "submit";
+
+      if (!submitting) {
+        var errs = validate(state.step);
+        if (Object.keys(errs).length) { state.errors = errs; render(); top(); return; }
+      } else {
+        // On submit, re-check every input step so nothing incomplete slips past.
+        for (var s = 1; s <= LAST_INPUT_STEP; s++) {
+          var e = validate(s);
+          if (Object.keys(e).length) {
+            state.step = s;
+            state.errors = e;
+            state.banner = { tone: "warn", text: "Something on this step still needs filling in." };
+            render();
+            top();
+            return;
+          }
+        }
+      }
+
+      save(submitting).then(function (ok) {
+        if (!ok) { top(); return; }
+        if (submitting) {
+          state.done = true;
+          try { window.localStorage.removeItem(TOKEN_STORE); } catch (e) {}
+        }
+        else if (state.step < REVIEW_STEP) { state.step++; state.errors = {}; }
+        render(); top();
+      });
+    });
+  }
+
+  function top() {
+    try {
+      document.getElementById("hm-funnel").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) { window.scrollTo(0, 0); }
+  }
+
+  // GHL can run this script before its own markup lands, and can render the same
+  // block twice on a page. Wait for the markup, then refuse to wire it twice.
+  var tries = 0;
+  function boot() {
+    slot = document.getElementById("hm-slot");
+    reassure = document.getElementById("hm-reassure");
+    if (!slot || !reassure) {
+      if (tries++ < 100) { setTimeout(boot, 50); }
+      return;
+    }
+    if (slot.getAttribute("data-hm-ready")) return;
+    slot.setAttribute("data-hm-ready", "1");
+    resume();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();
+</script>

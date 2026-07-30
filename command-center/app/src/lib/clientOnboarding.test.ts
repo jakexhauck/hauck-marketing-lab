@@ -5,6 +5,7 @@ import {
   ONBOARDING_STEPS,
   SENSITIVE_KEYS,
   TIMEZONES,
+  buildCreatePayload,
   deriveInitials,
   fieldsForStep,
   forRestore,
@@ -65,8 +66,18 @@ describe("the field schema", () => {
     }
   });
 
-  it("keeps the six steps in order", () => {
-    expect(ONBOARDING_STEPS.map((s) => s.n)).toEqual([1, 2, 3, 4, 5, 6]);
+  it("keeps the three steps in order", () => {
+    expect(ONBOARDING_STEPS.map((s) => s.n)).toEqual([1, 2, 3]);
+  });
+
+  // The client's own questions live on the funnel now (src/lib/intake.ts).
+  // Asking them here too would be two forms drifting apart, and the answers
+  // would land in the wrong half of the onboarding record.
+  it("asks nothing the client should be answering themselves", () => {
+    const keys = ONBOARDING_FIELDS.map((f) => f.key);
+    for (const clientKey of ["contactName", "targetAreas", "usp", "timezone", "headshotUrl"]) {
+      expect(keys).not.toContain(clientKey);
+    }
   });
 
   it("offers America/Detroit, since the first client is in Michigan", () => {
@@ -186,13 +197,12 @@ describe("validateStep", () => {
   });
 
   it("rejects a malformed email", () => {
-    const result = validateStep(4, step4({ contactEmail: "jim-at-willis" }));
+    const result = validateStep(3, {
+      ownerEmail: "jim-at-willis",
+      ownerPassword: "hunter2hunter2",
+    });
     expect(result.ok).toBe(false);
-    expect(result.errors.contactEmail).toBeTruthy();
-  });
-
-  it("accepts a well-formed email", () => {
-    expect(validateStep(4, step4()).ok).toBe(true);
+    expect(result.errors.ownerEmail).toBeTruthy();
   });
 
   it("rejects a subdomain that is not slug-shaped", () => {
@@ -227,8 +237,8 @@ describe("isPristine", () => {
     expect(isPristine({ ...DEFAULT_VALUES, brandColor: "#000000" })).toBe(false);
   });
 
-  it("notices a ticked checkbox", () => {
-    expect(isPristine({ ...DEFAULT_VALUES, leadConnectorInstalled: true })).toBe(false);
+  it("notices an edited field", () => {
+    expect(isPristine({ ...DEFAULT_VALUES, ghlLocationId: "loc_123" })).toBe(false);
   });
 
   it("ignores keys that are not onboarding fields", () => {
@@ -270,11 +280,10 @@ describe("stripSensitive", () => {
     contactEmail: "jim@willis.com",
   };
 
-  it("removes the password, the GHL token and the tax ID", () => {
+  it("removes the password and the GHL token", () => {
     const stripped = stripSensitive(filled);
     expect(stripped.ownerPassword).toBeUndefined();
     expect(stripped.ghlToken).toBeUndefined();
-    expect(stripped.taxId).toBeUndefined();
   });
 
   it("keeps everything else", () => {
@@ -294,5 +303,59 @@ describe("stripSensitive", () => {
     const stripped = stripSensitive(all);
     const removed = Object.keys(all).filter((k) => !(k in stripped));
     expect(removed.sort()).toEqual([...SENSITIVE_KEYS].sort());
+  });
+});
+
+describe("buildCreatePayload", () => {
+  const filled: DraftValues = {
+    name: "  Willis Windows  ",
+    niche: "Window Cleaning",
+    subdomain: "williswindows",
+    appName: "Willis Windows",
+    brandColor: "#1d6fb8",
+    brandInitials: "WW",
+    websiteUrl: "https://williswindows.com",
+    ownerName: "Dave Willis",
+    ownerEmail: "dave@williswindows.com",
+    ownerPassword: "hunter2hunter2",
+    ghlLocationId: "loc_123",
+    ghlToken: "pit-abc123",
+    metaAdAccountId: "act_123456789",
+  };
+
+  it("sends the shell the API asks for", () => {
+    const payload = buildCreatePayload(filled);
+    expect(payload.name).toBe("Willis Windows");
+    expect(payload.niche).toBe("Window Cleaning");
+    // The API calls it slug; the wizard asks for it as the subdomain.
+    expect(payload.slug).toBe("williswindows");
+    expect(payload.websiteUrl).toBe("https://williswindows.com");
+    expect(payload.ownerEmail).toBe("dave@williswindows.com");
+    expect(payload.ghlToken).toBe("pit-abc123");
+    expect(payload.metaAdAccountId).toBe("act_123456789");
+  });
+
+  it("carries every field the form still asks for", () => {
+    const every: DraftValues = {};
+    for (const field of ONBOARDING_FIELDS) every[field.key] = "x";
+    const payload = buildCreatePayload(every) as unknown as Record<string, unknown>;
+    for (const field of ONBOARDING_FIELDS) {
+      // subdomain travels as slug; everything else keeps its own name.
+      const key = field.key === "subdomain" ? "slug" : field.key;
+      expect(payload[key], `${field.key} was dropped on the way to the API`).toBe("x");
+    }
+  });
+
+  it("omits what was never answered instead of sending blanks", () => {
+    const payload = buildCreatePayload({ name: "Willis Windows", niche: "", subdomain: "ww" });
+    expect(payload.ownerEmail).toBeUndefined();
+    expect(payload.ghlLocationId).toBeUndefined();
+    // The three the API requires are always present, even when empty, so a
+    // missing name is the API's 400 rather than a silently absent key.
+    expect(payload.niche).toBe("");
+  });
+
+  it("trims what it sends", () => {
+    expect(buildCreatePayload({ name: "  Willis  " }).name).toBe("Willis");
   });
 });

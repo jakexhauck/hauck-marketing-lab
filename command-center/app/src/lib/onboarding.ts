@@ -1,10 +1,7 @@
-// The wizard exports its own ONBOARDING_FIELDS; alias both imports so the two
-// field models can sit in one module without shadowing each other.
-import {
-  ONBOARDING_FIELDS as WIZARD_FIELDS,
-  ONBOARDING_STEPS as WIZARD_STEPS,
-  type OnboardingField as WizardField,
-} from "./clientOnboarding";
+// This module names its own ONBOARDING_FIELDS (the values pushed to GHL), so
+// the funnel's field model is imported under its own names rather than aliased.
+import { INTAKE_FIELDS, INTAKE_STEPS, REVIEW_STEP, type IntakeField } from "./intake";
+import { SETUP_PHASES, SETUP_STEPS } from "./clientSetup";
 
 export type FieldGroup = "connection" | "business" | "rep" | "calendars";
 
@@ -62,54 +59,63 @@ export interface ChecklistTask {
   auto: boolean;
 }
 
-export const CHECKLIST_TASKS: ChecklistTask[] = [
-  { key: "provision-values", phase: "GHL Setup", label: "Custom values written to GHL", auto: true },
-  { key: "token-connected", phase: "GHL Setup", label: "API token valid + connected", auto: true },
-  { key: "calendars-present", phase: "GHL Setup", label: "Calendars exist in subaccount", auto: true },
-  { key: "google-calendar", phase: "Connections", label: "Connect Google Calendar (2-way sync)", auto: false },
-  { key: "phone", phase: "Connections", label: "Connect phone number / LC Phone", auto: false },
-  { key: "email-domain", phase: "Connections", label: "Verify sending email domain", auto: false },
-  { key: "assign-user", phase: "Connections", label: "Add + assign the rep to calendars", auto: false },
-  { key: "publish-workflows", phase: "Go Live", label: "Publish workflows + activate triggers", auto: false },
-  { key: "smoke-test", phase: "Go Live", label: "Book + confirm test, watch title flip", auto: false },
-];
+/**
+ * The setup steps, in the shape the older readers here expect.
+ *
+ * Derived from SETUP_STEPS rather than restated, because there is exactly one
+ * list of what standing a client up involves (src/lib/clientSetup.ts) and a
+ * second copy would be a second answer to "is this client ready".
+ *
+ * Still exported because the seeding path and the Go Live gate on the server
+ * read it: both only need the keys and which phase they sit in.
+ */
+export const CHECKLIST_TASKS: ChecklistTask[] = SETUP_STEPS.map((step) => ({
+  key: step.key,
+  phase: SETUP_PHASES.find((p) => p.key === step.phase)?.label ?? step.phase,
+  label: step.label,
+  auto: Boolean(step.auto),
+}));
 
 // --- The client's own intake answers ----------------------------------------
 //
-// Steps 4-6 of the new-client wizard are the questionnaire the client fills in
-// between payment and the kickoff call (contact + legal, targeting, story).
-// Those field definitions already exist in clientOnboarding.ts, so they are
-// reused here rather than retyped: add a question to the wizard and it appears
-// in the Onboarding tab too. Steps 1-3 are the technical shell Jake fills in and
-// already live on the tenant record, so they are deliberately excluded.
+// These come from the public funnel (src/lib/intake.ts), which the client fills
+// in themselves between paying and the kickoff call. The record renders the
+// funnel's own schema, so a question added to the funnel appears on the record
+// with no change here.
+//
+// It used to read the admin wizard's steps 4-6, back when Jake typed the
+// client's answers for them. Those steps are gone; the funnel owns the
+// questions now.
 
-export type { WizardField };
-
-/** The first wizard step that belongs to the client rather than to Jake. */
-export const FIRST_INTAKE_STEP = 4;
+export type { IntakeField };
 
 export interface IntakeGroup {
   step: number;
   key: string;
   label: string;
   blurb: string;
-  fields: WizardField[];
+  fields: IntakeField[];
 }
 
-/** The intake questionnaire, grouped by wizard step, in wizard order. */
+/** The questionnaire, grouped by funnel step, in the order the client saw it. */
 export function intakeGroups(): IntakeGroup[] {
-  return WIZARD_STEPS.filter((s) => s.n >= FIRST_INTAKE_STEP).map((s) => ({
+  return INTAKE_STEPS.filter((s) => s.n < REVIEW_STEP).map((s) => ({
     step: s.n,
     key: s.key,
     label: s.label,
     blurb: s.blurb,
-    fields: WIZARD_FIELDS.filter((f) => f.step === s.n),
+    fields: INTAKE_FIELDS.filter((f) => f.step === s.n && !PRIVATE_INTAKE_KEYS.has(f.key)),
   }));
 }
 
+// The login step is the client choosing how they sign in, not something they
+// told us about their business. The password is hashed on arrival and never
+// comes back at all; showing its empty boxes on the record would be noise.
+const PRIVATE_INTAKE_KEYS = new Set(["password", "passwordConfirm"]);
+
 /** Every intake answer key, flat. The saved intake object is keyed by these. */
-export const INTAKE_KEYS: string[] = WIZARD_FIELDS.filter(
-  (f) => f.step >= FIRST_INTAKE_STEP,
+export const INTAKE_KEYS: string[] = INTAKE_FIELDS.filter(
+  (f) => f.step < REVIEW_STEP && !PRIVATE_INTAKE_KEYS.has(f.key),
 ).map((f) => f.key);
 
 /** How many intake questions carry an answer. Blank strings do not count. */

@@ -149,10 +149,18 @@ export function OnboardingStyle() {
       .pk-kit .onb-seg-bar { height: 6px; border-radius: 999px; background: var(--onb-track); overflow: hidden; }
       .pk-kit .onb-seg-fill { height: 100%; border-radius: 999px; background: var(--onb-indigo); transition: width .3s ease; }
       .pk-kit .onb-seg.full .onb-seg-fill { background: var(--onb-green); }
+      /* Four phases in the width that held three, so the name and the count stack
+         instead of sharing a line: side by side, "CONNECTIONS" clipped to
+         "CONNECTI...". Stacked, every phase reads in full and the counts line up
+         down the row, which is the comparison being made anyway. */
       .pk-kit .onb-seg-label {
-        display: flex; justify-content: space-between; gap: 8px; margin-top: 7px;
-        font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-faint);
+        display: flex; flex-direction: column; gap: 1px; margin-top: 7px;
+        font-size: 10px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--text-faint);
       }
+      .pk-kit .onb-seg-label > span:first-child {
+        min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      .pk-kit .onb-seg-n { font-size: 11px; color: var(--text-muted); letter-spacing: 0; }
       .pk-kit .onb-seg.full .onb-seg-label { color: var(--onb-done-ink); }
       .pk-kit .onb-seg-n { font-variant-numeric: tabular-nums; }
 
@@ -176,9 +184,6 @@ export function OnboardingStyle() {
       .pk-kit .onb-ok { font-size: 12.5px; font-weight: 600; color: var(--positive); }
       .pk-kit .onb-err { font-size: 12.5px; font-weight: 600; color: var(--danger); }
       .pk-kit .onb-saverow { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
-
-      /* --- two-column body ----------------------------------------------- */
-      .pk-kit .onb-columns { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 
       /* --- checklist ------------------------------------------------------ */
       .pk-kit .onb-phase + .onb-phase { margin-top: 18px; }
@@ -209,6 +214,58 @@ export function OnboardingStyle() {
       .pk-kit .onb-badge {
         font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
         padding: 3px 7px; border-radius: 999px; background: var(--onb-sky-tint); color: var(--onb-sky); flex-shrink: 0;
+      }
+
+      /* --- the way into the setup steps ----------------------------------- */
+      .pk-kit a.onb-setup-link {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        text-decoration: none; color: inherit; transition: border-color .12s, transform .12s;
+      }
+      .pk-kit a.onb-setup-link:hover { border-color: var(--onb-indigo); transform: translateY(-1px); }
+      .pk-kit .onb-setup-link-main { display: flex; align-items: center; gap: 12px; min-width: 0; }
+      .pk-kit .onb-setup-link-icon {
+        width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center;
+        background: var(--onb-indigo-tint); color: var(--onb-indigo); flex-shrink: 0;
+      }
+      .pk-kit .onb-setup-link-main h3 {
+        font-family: var(--font-display); font-size: 15px; font-weight: 650; color: var(--text);
+      }
+      .pk-kit .onb-setup-link-main p { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+      .pk-kit .onb-setup-link-side {
+        display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0;
+      }
+      .pk-kit .onb-setup-link-bar {
+        display: block; width: 96px; height: 5px; border-radius: 999px;
+        background: var(--onb-track); overflow: hidden;
+      }
+      .pk-kit .onb-setup-link-bar > span {
+        display: block; height: 100%; border-radius: 999px; background: var(--onb-indigo);
+        transition: width .3s ease;
+      }
+
+      /* --- go live -------------------------------------------------------- */
+      .pk-kit .onb-golive {
+        display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+      }
+      .pk-kit .onb-golive-main { min-width: 0; flex: 1 1 320px; }
+      .pk-kit .onb-golive-main h3 {
+        font-family: var(--font-display); font-size: 16px; font-weight: 650; color: var(--text);
+      }
+      .pk-kit .onb-golive-main p { font-size: 13px; color: var(--text-muted); margin-top: 4px; max-width: 62ch; }
+      .pk-kit .onb-golive-side {
+        display: flex; flex-direction: column; align-items: flex-end; gap: 6px; text-align: right;
+      }
+
+      /* --- the client's answers, read-only -------------------------------- */
+      .pk-kit .onb-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; }
+      .pk-kit .onb-answer.wide { grid-column: 1 / -1; }
+      .pk-kit .onb-answer dt { font-size: 11.5px; color: var(--text-faint); margin-bottom: 2px; }
+      .pk-kit .onb-answer dd {
+        font-size: 13.5px; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere;
+      }
+      .pk-kit .onb-empty-line { font-size: 13px; color: var(--text-muted); }
+      @media (max-width: 720px) {
+        .pk-kit .onb-answers { grid-template-columns: minmax(0, 1fr); }
       }
 
       /* --- readiness ------------------------------------------------------ */
@@ -270,7 +327,6 @@ export function OnboardingStyle() {
       .pk-kit .onb-empty { font-size: 13px; color: var(--text-faint); line-height: 1.6; }
 
       @container (max-width: 900px) {
-        .pk-kit .onb-columns { grid-template-columns: 1fr; }
       }
       @container (max-width: 760px) {
         .pk-kit .onb-strip-side { flex-basis: 100%; align-items: flex-start; }

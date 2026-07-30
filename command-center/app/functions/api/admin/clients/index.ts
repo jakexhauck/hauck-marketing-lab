@@ -1,11 +1,15 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Env, ApiData } from "../../../lib/env";
 import { getServiceClient } from "../../../lib/supabase";
-import { CAPABILITIES } from "../../../lib/permissions";
 import { hashPassword } from "../../../lib/password";
-import { normalizeSubdomain } from "../../../lib/tenantResolve";
 import { normalizeEmail } from "../../../lib/staff";
 import { logAdminAction } from "../../../lib/adminAuth";
+import {
+  CreateTenantError,
+  createTenantWithOwner,
+  seedOnboardingRecord,
+} from "../../../lib/clientCreate";
+import { provisionClientFolder } from "../../../lib/clientDriveFolder";
+import { CHECKLIST_TASKS } from "../../../../src/lib/onboarding";
 
 // GET /api/admin/clients  (admin-only, gated in _middleware.ts)
 // Every client in the database, with a light member count. Cross-tenant: this
@@ -94,36 +98,30 @@ interface CreateBody {
   ownerEmail?: string;
   ownerName?: string;
   ownerPassword?: string;
+  // Step 3 connections. Each has had a column on tenants for a while; the
+  // wizard was the first thing to ask for them at creation.
+  websiteUrl?: string;
+  metaAdAccountId?: string;
+  ga4PropertyId?: string;
+  googlePlaceId?: string;
+  // The client's own intake answers (wizard steps 4-6): contact and legal,
+  // targeting, story. Saved verbatim to onboarding.intake and never pushed to
+  // GHL. A few of them seed onboarding.fields on the way past; see
+  // onboardingSeed.ts.
+  intake?: Record<string, string>;
 }
 
-function slugify(input: string): string {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 48);
-}
-
-// Find a free slug, appending -2, -3, ... on collision.
-async function uniqueSlug(client: SupabaseClient, base: string): Promise<string> {
-  const root = base || "client";
-  for (let i = 0; i < 50; i++) {
-    const candidate = i === 0 ? root : `${root}-${i + 1}`;
-    const { data } = await client
-      .from("tenants")
-      .select("id")
-      .eq("slug", candidate)
-      .maybeSingle();
-    if (!data) return candidate;
-  }
-  return `${root}-${Math.floor(Date.now() / 1000)}`;
-}
-
-// POST /api/admin/clients  (admin-only) — register a new business.
-// Seeds the tenant row plus all current capabilities enabled (Layer 2), so the
-// new client immediately works the way an existing one does. GHL creds are
-// optional at creation; placeholders are stored until the client is connected.
+// POST /api/admin/clients  (admin-only) — register a new business by hand.
+//
+// The manual path, for a client who never filled in the intake funnel. Approving
+// a submission (api/admin/intake/[id].ts) is the other one, and both stand the
+// client up through the same functions/lib/clientCreate.ts: one place that
+// writes a tenant, its entitlements and its owner login. What differs is only
+// what this handler does first — validate a plaintext password and hash it —
+// and that a hand-made client is live immediately rather than held behind the
+// setup screen.
+//
+// GHL creds are optional at creation; placeholders are stored until connected.
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
@@ -138,15 +136,6 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const name = (body.name ?? "").trim();
   if (!name) return Response.json({ error: "name is required" }, { status: 400 });
 
-  const niche = (body.niche ?? "general").trim() || "general";
-  const slug = await uniqueSlug(client, slugify(body.slug?.trim() || name));
-  const brandColor = (body.brandColor ?? "#1d6fb8").trim() || "#1d6fb8";
-  const brandInitials =
-    (body.brandInitials ?? "").trim().slice(0, 3).toUpperCase() ||
-    name.slice(0, 2).toUpperCase();
-  const appName = (body.appName ?? name).trim() || name;
-
-  const subdomain = normalizeSubdomain(body.subdomain?.trim() || slug);
   const ownerEmail = normalizeEmail(body.ownerEmail ?? "");
   const ownerPassword = (body.ownerPassword ?? "").trim();
   // Owner email + password come as a pair: one without the other can't make a
@@ -167,62 +156,76 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     );
   }
 
-  const insert = {
-    slug,
-    name,
-    niche,
-    brand_color: brandColor,
-    brand_initials: brandInitials,
-    app_name: appName,
-    won_label: (body.wonLabel ?? "Won").trim() || "Won",
-    value_label: (body.valueLabel ?? "Job Value").trim() || "Job Value",
-    // tenants.ghl_* are NOT NULL. Store placeholders until the client is wired
-    // to GoHighLevel (matches the test-account 'env' convention).
-    ghl_location_id: (body.ghlLocationId ?? "").trim() || "pending",
-    ghl_token: (body.ghlToken ?? "").trim() || "pending",
-    subdomain,
-    owner_password_hash: ownerPassword ? await hashPassword(ownerPassword) : null,
-    monthly_spend: typeof body.monthlySpend === "number" ? body.monthlySpend : 0,
-  };
-
-  const { data: inserted, error } = await client
-    .from("tenants")
-    .insert(insert)
-    .select("id, slug")
-    .single();
-  if (error || !inserted) {
-    return Response.json({ error: error?.message ?? "could not create client" }, { status: 500 });
-  }
-
-  const tenantId = (inserted as { id: string }).id;
-
-  // Seed entitlements: every capability the CRM ships today, enabled.
-  const seed = CAPABILITIES.map((c) => ({
-    tenant_id: tenantId,
-    capability: c.key,
-    enabled: true,
-  }));
-  await client.from("tenant_entitlements").upsert(seed, { onConflict: "tenant_id,capability" });
-
-  // Create the owner login (role 'owner') so the client can sign in immediately.
-  // Owners bypass per-surface permission checks, so no grants are seeded. A
-  // duplicate email (blocked by the global-unique index) leaves the tenant
-  // created but reports the owner-account failure so the admin can fix it.
-  let ownerWarning: string | undefined;
-  if (ownerEmail && ownerPassword) {
-    const { error: ownerErr } = await client.from("staff_accounts").insert({
-      tenant_id: tenantId,
-      ghl_user_id: null,
-      email: ownerEmail,
-      name: (body.ownerName ?? "").trim() || `${name} (Owner)`,
-      role: "owner",
-      status: "active",
-      password_hash: await hashPassword(ownerPassword),
+  // The tenant, its entitlements and the owner login. Shared with intake
+  // approval (functions/lib/clientCreate.ts), which arrives with a password
+  // hashed days earlier at funnel step 3 — hence a hash in, never plaintext.
+  let created;
+  try {
+    created = await createTenantWithOwner(client, {
+      name,
+      niche: body.niche,
+      // Raw, not resolved: createTenantWithOwner owns slug uniqueness and
+      // derives the subdomain from whatever slug it lands on, so resolving
+      // either here would only give it a second chance to disagree with itself.
+      slug: body.slug,
+      subdomain: body.subdomain,
+      brandColor: body.brandColor,
+      brandInitials: body.brandInitials,
+      appName: body.appName,
+      wonLabel: body.wonLabel,
+      valueLabel: body.valueLabel,
+      ghlLocationId: body.ghlLocationId,
+      ghlToken: body.ghlToken,
+      monthlySpend: body.monthlySpend,
+      websiteUrl: body.websiteUrl,
+      metaAdAccountId: body.metaAdAccountId,
+      ga4PropertyId: body.ga4PropertyId,
+      googlePlaceId: body.googlePlaceId,
+      ownerEmail: ownerEmail || undefined,
+      ownerName: body.ownerName,
+      ownerPasswordHash: ownerPassword ? await hashPassword(ownerPassword) : undefined,
+      // Stood up by hand rather than through the funnel, so there is no approval
+      // step and no holding screen: this client is live the moment it exists.
+      onboardingStatus: "live",
     });
-    if (ownerErr) ownerWarning = ownerErr.message;
+  } catch (e) {
+    if (!(e instanceof CreateTenantError)) throw e;
+    return Response.json({ error: e.message }, { status: 500 });
   }
 
-  await logAdminAction(client, ctx.data.admin!.id, "client.create", tenantId, { slug, name });
+  const { tenantId, slug: createdSlug, ownerWarning } = created;
 
-  return Response.json({ ok: true, id: tenantId, slug, ownerWarning }, { status: 201 });
+  // The onboarding record the client's setup page reads. Written even with no
+  // intake answers, so the record opens on a real row rather than on "this
+  // client has never been onboarded".
+  const onboardingWarning = await seedOnboardingRecord(
+    client,
+    tenantId,
+    { ...(body.intake ?? {}), name },
+    CHECKLIST_TASKS.map((t) => t.key),
+  );
+
+  // Last, and never fatal: the tenant and the owner login are already written,
+  // and a folder is the one part of this that can simply be made again.
+  const drive = await provisionClientFolder(ctx.env, client, tenantId, name, ctx.data.admin!.id);
+
+  await logAdminAction(client, ctx.data.admin!.id, "client.create", tenantId, {
+    slug: createdSlug,
+    name,
+  });
+
+  return Response.json(
+    {
+      ok: true,
+      id: tenantId,
+      // The slug that was actually taken, which is not always the one asked for:
+      // a collision appends -2, -3 and so on.
+      slug: createdSlug,
+      ownerWarning,
+      onboardingWarning,
+      driveWarning: drive.warning ?? undefined,
+      driveFolderUrl: drive.folder?.webViewLink ?? undefined,
+    },
+    { status: 201 },
+  );
 };

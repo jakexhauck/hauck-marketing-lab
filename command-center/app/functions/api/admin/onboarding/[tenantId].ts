@@ -15,7 +15,7 @@ export const onRequestGet: PagesFunction<Env, "tenantId", ApiData> = async (ctx)
     .maybeSingle();
   const { data: tenant } = await client
     .from("tenants")
-    .select("ghl_location_id, ghl_token")
+    .select("name, ghl_location_id, ghl_token, onboarding_status")
     .eq("id", tenantId)
     .maybeSingle();
 
@@ -31,6 +31,10 @@ export const onRequestGet: PagesFunction<Env, "tenantId", ApiData> = async (ctx)
     status: (row?.status as string) ?? "draft",
     hasToken,
     provisionResult: row?.provision_result ?? null,
+    name: (tenant?.name as string) ?? "",
+    // 'setup' while the client is held at the holding screen, 'live' once Go
+    // Live has been pressed. Drives the Go Live block at the foot of the record.
+    onboardingStatus: (tenant?.onboarding_status as string) ?? "live",
   });
 };
 

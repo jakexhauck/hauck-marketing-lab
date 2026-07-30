@@ -96,6 +96,24 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
   if (caller.revoked) return Response.json({ ok: false }, { status: 401 });
 
+  // Whether this client's app is open to them yet. A client approved from the
+  // intake funnel can sign in the moment Jake approves them, but every tenant
+  // surface answers 423 until Go Live, so the app needs to know to render the
+  // holding screen rather than a page full of failed requests.
+  //
+  // This endpoint is on the public path and does its own session check, so it
+  // never hits the middleware's gate and can still answer while the rest of the
+  // API is closed. That is exactly what makes it the right place to say so.
+  let onboardingStatus = "live";
+  if (client && tenantId) {
+    const { data } = await client
+      .from("tenants")
+      .select("onboarding_status, name")
+      .eq("id", tenantId)
+      .maybeSingle();
+    onboardingStatus = (data?.onboarding_status as string) ?? "live";
+  }
+
   return Response.json({
     ok: true,
     mode: session.mode,
@@ -111,5 +129,6 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
         }
       : null,
     permissions: caller.permissions,
+    onboardingStatus,
   });
 };

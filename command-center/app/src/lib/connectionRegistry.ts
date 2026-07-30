@@ -149,7 +149,7 @@ export const CONNECTIONS: ConnectionDef[] = [
       { label: "Contacts", to: "/contacts", audience: "client" },
       { label: "Customers", to: "/customers", audience: "client" },
       { label: "Jobs", to: "/sales/jobs", audience: "client" },
-      { label: "Paid Ads > Lead Tracker", to: "/marketing/paid-ads", audience: "client" },
+      { label: "Paid Ads > Lead Tracker", to: "/marketing/paid-ads/leads", audience: "client" },
       { label: "Setter Suite (board, cockpit, dials)", to: "/admin/setter", audience: "admin" },
       { label: "Onboarding readiness checks", audience: "admin" },
     ],
@@ -218,13 +218,13 @@ export const CONNECTIONS: ConnectionDef[] = [
       },
     ],
     surfaces: [
-      { label: "Paid Ads > Lead Tracker", to: "/marketing/paid-ads", audience: "client" },
+      { label: "Paid Ads > Dashboard", to: "/marketing/paid-ads", audience: "client" },
+      { label: "Paid Ads > Lead Tracker", to: "/marketing/paid-ads/leads", audience: "client" },
       { label: "Paid Ads > Meta Data", to: "/marketing/paid-ads/meta", audience: "client" },
-      { label: "Paid Ads > Media", to: "/marketing/paid-ads/media", audience: "client" },
       { label: "Ad Tracker (spend and ROAS)", audience: "admin" },
     ],
     remediation:
-      "System User tokens do not expire on a timer but die when the app or the user's permissions change. Reissue in Meta Business Settings, then push to Doppler and Cloudflare. Spend also goes stale with a healthy token because no sync cron exists yet.",
+      "System User tokens do not expire on a timer but die when the app or the user's permissions change. Reissue in Meta Business Settings, then push to Doppler and Cloudflare. Spend is refreshed nightly by workers/ads-cron; if it goes stale with a healthy token, check that Worker rather than the token.",
   },
   {
     id: "ga4",
@@ -297,10 +297,21 @@ export const CONNECTIONS: ConnectionDef[] = [
         optional: true,
         note: "The 'SOPs Templates' folder. Unset renders a setup state rather than reading the wrong folder.",
       },
+      {
+        // Same shape as the SOP folder above: a location, not a credential.
+        // Unset costs a new client its Drive folder and says so on the screen
+        // that would have made it; nothing else notices.
+        name: "CLIENT_DRIVE_ROOT_FOLDER_ID",
+        home: "cloudflare",
+        inDoppler: true,
+        optional: true,
+        note: "The folder a new client's own folder is created inside. Unset means creating a client skips the folder and warns.",
+      },
     ],
     surfaces: [
       { label: "Assets hub", audience: "admin" },
       { label: "SOP Hub", audience: "admin" },
+      { label: "New client > Create", to: "/admin/clients/new", audience: "admin" },
     ],
     remediation:
       "No connect button exists in the UI yet. Re-consent by opening /api/admin/assets/oauth/start and signing in as the agency Google account. A refresh token dies if consent is revoked or the account password changes.",
@@ -367,6 +378,28 @@ export const CONNECTIONS: ConnectionDef[] = [
     surfaces: [{ label: "Connection health alerts", audience: "admin" }],
     remediation:
       "Set the same value in two places or the checks silently stop: this app's Cloudflare env, and the scheduler Worker's own secret (`wrangler secret put HEALTH_CRON_SECRET` in workers/health-cron). Absent here, the scheduled check is off and this page is only as fresh as the last time someone opened it.",
+  },
+  {
+    id: "ads-cron",
+    label: "Nightly ad spend sync",
+    vendor: "Cloudflare Workers",
+    scope: "agency",
+    purpose:
+      "Refreshes the per-ad, per-day Meta spend snapshot every night. Without it the client Paid Ads Dashboard keeps dividing by an old spend figure, so ROAS and cost per lead drift upward looking perfectly plausible.",
+    credentials: [
+      {
+        name: "ADS_CRON_SECRET",
+        home: "cloudflare",
+        inDoppler: true,
+        note: "Shared with the scheduler Worker (workers/ads-cron), a separate deploy because Pages projects cannot carry a cron trigger. At least 32 chars or the gate refuses it. Must NOT be the same value as HEALTH_CRON_SECRET: that one buys a read, this one triggers a write.",
+      },
+    ],
+    surfaces: [
+      { label: "Paid Ads > Dashboard", to: "/marketing/paid-ads", audience: "client" },
+      { label: "Ad Tracker > Refresh spend", audience: "admin" },
+    ],
+    remediation:
+      "Set the same value in this app's Cloudflare env and the Worker's own secret (`wrangler secret put ADS_CRON_SECRET` in workers/ads-cron), or every run comes back 401 and spend silently stops updating. The admin Ad Tracker panel shows how many days behind the snapshot is, and its Refresh button pulls it manually in the meantime.",
   },
   {
     id: "resend",

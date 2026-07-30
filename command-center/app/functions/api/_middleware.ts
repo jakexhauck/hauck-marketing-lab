@@ -13,6 +13,8 @@ import { checkStaffAccess } from "../lib/permissions";
 import { getActiveAdmin } from "../lib/adminAuth";
 import { canAdminAccess } from "../lib/adminRoles";
 import { HEALTH_CRON_HEADER, isHealthCronRequest } from "../lib/healthCron";
+import { ADS_CRON_HEADER, isAdsCronRequest } from "../lib/adsCron";
+import { funnelOrigin } from "../lib/funnelUrl";
 
 const allowedOrigins = new Set([
   "http://localhost:5173", // vite dev server
@@ -21,11 +23,19 @@ const allowedOrigins = new Set([
   "https://hauck-command-center.pages.dev", // Pages default domain after rename
 ]);
 
-function corsHeaders(origin: string | null): HeadersInit {
+// The published intake form's origin, derived from the one link that is
+// configured (lib/funnelUrl.ts). Only the public /api/intake endpoints are
+// reachable cross-origin in practice; every other path demands a session cookie
+// the form does not have.
+function originAllowed(origin: string, env: Env): boolean {
+  return allowedOrigins.has(origin) || origin === funnelOrigin(env);
+}
+
+function corsHeaders(origin: string | null, env: Env): HeadersInit {
   // Same-origin requests send no Origin header and need no CORS headers.
   // Unrecognized origins get none either, so credentialed responses are never
   // shared with arbitrary sites.
-  if (!origin || !allowedOrigins.has(origin)) return { vary: "origin" };
+  if (!origin || !originAllowed(origin, env)) return { vary: "origin" };
   return {
     "access-control-allow-origin": origin,
     "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
@@ -52,14 +62,28 @@ const PUBLIC_PATHS = new Set([
   // Verifies its own (preview) session; public so the read-only-preview gate
   // does not block this POST and an admin can always exit a preview.
   "/api/auth/exit-preview",
+  // The client intake funnel. Filled in before the client has any account at
+  // all, so it cannot carry a session. Its own guards are in lib/intake.ts:
+  // unknown keys dropped, answers size-capped, creates rate limited, and
+  // nothing it writes becomes a tenant until an admin approves it.
+  "/api/intake",
 ]);
 
-function json(status: number, body: unknown, origin: string | null) {
+// Public paths with a dynamic segment, matched by prefix. Kept separate from the
+// exact-match set so no path can be made public by accident.
+const PUBLIC_PREFIXES = ["/api/intake/"];
+
+function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_PATHS.has(pathname)) return true;
+  return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+function json(status: number, body: unknown, origin: string | null, env: Env) {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       "content-type": "application/json",
-      ...corsHeaders(origin),
+      ...corsHeaders(origin, env),
     },
   });
 }
@@ -69,7 +93,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const url = new URL(ctx.request.url);
 
   if (ctx.request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders(origin) });
+    return new Response(null, { status: 204, headers: corsHeaders(origin, ctx.env) });
   }
 
   // The scheduled health probe, and only that. See lib/healthCron.ts for why
@@ -88,9 +112,24 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
     return await runNext(ctx, origin, url);
   }
 
-  if (!PUBLIC_PATHS.has(url.pathname)) {
+  // The scheduled Meta spend sync, and only that. Sibling of the gate above and
+  // written to be read beside it; see lib/adsCron.ts for the two deliberate
+  // differences (POST, and the handler writes). Same rules otherwise: one exact
+  // path, its own secret, no ctx.data.admin, and a miss falls through to 401.
+  if (
+    isAdsCronRequest(
+      ctx.request.method,
+      url.pathname,
+      ctx.request.headers.get(ADS_CRON_HEADER),
+      ctx.env.ADS_CRON_SECRET,
+    )
+  ) {
+    return await runNext(ctx, origin, url);
+  }
+
+  if (!isPublicPath(url.pathname)) {
     const session = await verifySession(ctx.request, ctx.env);
-    if (!session) return json(401, { error: "unauthorized" }, origin);
+    if (!session) return json(401, { error: "unauthorized" }, origin, ctx.env);
 
     // Preview-as-client (Plan 05): an admin impersonating a client's view,
     // read-only. Any state-changing method is refused here, before a handler can
@@ -98,7 +137,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
     // tenant path below (its tenantId is set) and lands as a read-only owner of
     // that client. Admin routes are off-limits while previewing.
     if (session.preview && ctx.request.method !== "GET") {
-      return json(403, { error: "preview is read-only" }, origin);
+      return json(403, { error: "preview is read-only" }, origin, ctx.env);
     }
 
     // Cross-tenant admin routes (0008). These operate ABOVE the per-tenant pin:
@@ -109,16 +148,16 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       // A preview session carries an adminId too, but it is a read-only client
       // impersonation, not admin authority: keep it out of the admin surface.
       if (!session.adminId || session.preview) {
-        return json(403, { error: "forbidden" }, origin);
+        return json(403, { error: "forbidden" }, origin, ctx.env);
       }
       const client = getServiceClient(ctx.env);
       const admin = client ? await getActiveAdmin(client, session.adminId) : null;
-      if (!admin) return json(401, { error: "unauthorized" }, origin);
+      if (!admin) return json(401, { error: "unauthorized" }, origin, ctx.env);
       // Role gate (0047). Owners pass everything. A hired role reaches only the
       // paths its role names, so a new admin route is invisible to them until
       // it is added to the allowlist in lib/adminRoles.
       if (!canAdminAccess(url.pathname, ctx.request.method, admin.role)) {
-        return json(403, { error: "forbidden" }, origin);
+        return json(403, { error: "forbidden" }, origin, ctx.env);
       }
       ctx.data.session = session;
       ctx.data.admin = admin;
@@ -128,7 +167,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
 
     if (session.mode === "test") {
       if (!ctx.env.TEST_GHL_LOCATION_ID || !ctx.env.TEST_GHL_TOKEN) {
-        return json(500, { error: "test GHL env vars not configured" }, origin);
+        return json(500, { error: "test GHL env vars not configured" }, origin, ctx.env);
       }
       ctx.data.tenant = {
         ghl_location_id: ctx.env.TEST_GHL_LOCATION_ID,
@@ -156,14 +195,34 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
       if (session.tenantId && svc) {
         tenant = await loadTenantById(svc, session.tenantId);
         // The session names a client that no longer exists: reject (log out).
-        if (!tenant) return json(401, { error: "unauthorized" }, origin);
+        if (!tenant) return json(401, { error: "unauthorized" }, origin, ctx.env);
       } else {
         tenant = svc ? await loadLiveTenantForHost(svc, ctx.env, host) : null;
         // A subdomain that matches no client is a real misconfiguration: refuse
         // rather than silently serving the fallback client's data on it.
         if (!tenant && clientLabelFromHost(host)) {
-          return json(404, { error: "client not configured" }, origin);
+          return json(404, { error: "client not configured" }, origin, ctx.env);
         }
+      }
+
+      // The onboarding gate. A client who has been approved but not yet stood
+      // up can authenticate, but cannot use the app: every tenant surface
+      // answers 423 and the frontend renders a holding screen.
+      //
+      // This sits ABOVE the GHL credentials check on purpose. A freshly approved
+      // tenant has placeholder creds, so falling through to the env fallback
+      // would quietly serve them another client's GoHighLevel data.
+      //
+      // Admin sessions never reach here (they short-circuit above). Preview is
+      // explicitly exempt: previewing a client mid-setup is exactly when Jake
+      // most wants to look.
+      if (tenant && tenant.onboarding_status === "setup" && !session.preview) {
+        return json(
+          423,
+          { error: "account setup in progress", onboardingStatus: "setup" },
+          origin,
+          ctx.env,
+        );
       }
 
       const useTenantCreds = tenant ? tenantHasGhlCreds(tenant) : false;
@@ -172,7 +231,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         : ctx.env.GHL_LOCATION_ID;
       const ghlToken = useTenantCreds ? tenant!.ghl_token : ctx.env.GHL_TOKEN;
       if (!ghlLocationId || !ghlToken) {
-        return json(500, { error: "GHL credentials not configured" }, origin);
+        return json(500, { error: "GHL credentials not configured" }, origin, ctx.env);
       }
       ctx.data.tenant = {
         ghl_location_id: ghlLocationId,
@@ -210,7 +269,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
         session.tenantId ??
         (client ? await resolveTenantId(client, ctx.data.tenant.slug) : null);
       const caller = await resolveCaller(client, tenantId, session);
-      if (caller.revoked) return json(401, { error: "unauthorized" }, origin);
+      if (caller.revoked) return json(401, { error: "unauthorized" }, origin, ctx.env);
 
       ctx.data.session = session;
       ctx.data.isOwner = caller.isOwner;
@@ -224,7 +283,7 @@ export const onRequest: PagesFunction<Env, string, ApiData> = async (ctx) => {
           caller.permissions,
         );
         if (!decision.allowed) {
-          return json(403, { error: "forbidden", capability: decision.missing }, origin);
+          return json(403, { error: "forbidden", capability: decision.missing }, origin, ctx.env);
         }
       }
     } else {
@@ -249,7 +308,7 @@ async function runNext(
   try {
     const response = await ctx.next();
     const headers = new Headers(response.headers);
-    for (const [key, value] of Object.entries(corsHeaders(origin))) {
+    for (const [key, value] of Object.entries(corsHeaders(origin, ctx.env))) {
       headers.set(key, value as string);
     }
     return new Response(response.body, {
@@ -262,6 +321,6 @@ async function runNext(
     // client: GHL error bodies can contain internal URLs and request detail.
     const message = err instanceof Error ? err.message : "unknown error";
     console.error("[api]", url.pathname, message);
-    return json(500, { error: "internal_error" }, origin);
+    return json(500, { error: "internal_error" }, origin, ctx.env);
   }
 }

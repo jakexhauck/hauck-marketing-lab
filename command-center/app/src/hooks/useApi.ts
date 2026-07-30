@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import type { HealthResponse as ConnectionHealthResponse } from "../lib/connectionHealth";
 import type { AgencySecretsResponse, ClientSecretsResponse } from "../lib/secretsApi";
+import type { CreateClientPayload } from "../lib/clientOnboarding";
 import {
   api,
   getAdminOverview,
@@ -41,6 +42,8 @@ import {
   type ApiCalendarEvent,
   type ApiTenant,
   type AdminClient,
+  type AdminClientCreated,
+  type AdminGoLiveResult,
   type AdminClientDetailResponse,
   type AdminClientBillingPatch,
   type AdminClientBillingResponse,
@@ -1297,6 +1300,24 @@ export function useAdminOnboardingQuery(tenantId: string, enabled = true) {
 // other. Refetch rather than seed the cache: the API diverts the GHL location
 // and token onto the tenant and never echoes the token back, so what was sent
 // is not what is stored.
+// Create a client from the new-client wizard. The only writer of new tenants,
+// so it invalidates both lists that would otherwise not show the client that
+// was just made: the Onboarding roster and the admin clients list.
+export function useAdminClientCreate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateClientPayload) =>
+      api<AdminClientCreated>("/api/admin/clients", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin", "clients"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "onboarding"] });
+    },
+  });
+}
+
 export function useAdminOnboardingSave(tenantId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -1405,6 +1426,23 @@ export function useAdminOnboardingProvision(tenantId: string) {
   });
 }
 
+// The end of onboarding: open the client's app. The server re-counts the
+// checklist and refuses if anything is outstanding, so this can be called from
+// a button that is merely disabled rather than one that is trusted.
+export function useAdminOnboardingGoLive(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api<AdminGoLiveResult>(`/api/admin/onboarding/${tenantId}/go-live`, { method: "POST" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin", "onboarding", tenantId] });
+      // The board reads the same lifecycle, so it must not keep showing this
+      // client as still being set up.
+      void qc.invalidateQueries({ queryKey: ["admin", "intake"] });
+    },
+  });
+}
+
 // One month of a client's paid-ad funnel tracker for the Fulfillment cockpit's
 // Paid Ads > Ad Tracking sub-tab. Keyed by tenant AND month so switching months
 // swaps cache entries instead of refetching over the same key.
@@ -1454,6 +1492,7 @@ export function useAdminAdTrackerQuery(
       ),
   });
 }
+
 
 
 // One client's real GA4 numbers for the Fulfillment cockpit's Web Design >

@@ -57,6 +57,27 @@ export interface Env {
   // SOP pages. Unset => the hub renders a setup state rather than guessing at a
   // folder, since reading the wrong one would surface the wrong documents.
   SOP_DRIVE_FOLDER_ID?: string;
+  // The Drive folder a NEW client's folder is created inside, on that same
+  // agency account ("🌟 Hauck Marketing", where the live client folders sit).
+  // Unset => creating a client skips the folder and says so, rather than
+  // dropping a client folder in whatever Drive root it could reach.
+  CLIENT_DRIVE_ROOT_FOLDER_ID?: string;
+  // The published client intake form, whole, e.g.
+  // https://hauckmarketing.com/onboarding-form. Two jobs from one value: it is
+  // the link Jake sends a new client, and its ORIGIN is the extra origin CORS
+  // lets post to /api/intake. One value, so the link he hands out and the
+  // address the API accepts can never be two different things.
+  //
+  // A setting rather than a line of code, because where the funnel is published
+  // is decided outside this repo and moving it must not need a deploy. Unset
+  // means no link is shown and no extra origin is allowed, which is the state
+  // before it is published.
+  FUNNEL_URL?: string;
+  // The GoHighLevel calendar a new client's onboarding call is booked on, from
+  // the Add a client page. Unset uses the calendar the intake funnel's own
+  // booking page already embeds, so the two agree by default; set it only when
+  // that calendar is replaced. See functions/lib/onboardingCall.ts.
+  ONBOARDING_CALENDAR_ID?: string;
   // Composio brokers the per-CLIENT Google Calendar grant, which is a different
   // shape from the agency-wide Drive connection above: each client links their
   // own calendar and Composio holds that token, keyed by the tenant id passed
@@ -115,6 +136,12 @@ export interface Env {
   // either way. Must be at least 32 chars or the gate refuses it. See
   // functions/lib/healthCron.ts.
   HEALTH_CRON_SECRET?: string;
+  // Shared secret that lets the scheduler Worker refresh the Meta spend
+  // snapshot nightly, for the same reason. Deliberately NOT the same value as
+  // HEALTH_CRON_SECRET: that one buys a read, this one buys a write. Unset
+  // means the nightly sync is off and spend goes stale. See
+  // functions/lib/adsCron.ts.
+  ADS_CRON_SECRET?: string;
   KV_CACHE?: KVNamespace;
 }
 

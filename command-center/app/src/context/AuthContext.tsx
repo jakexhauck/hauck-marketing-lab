@@ -77,6 +77,10 @@ interface AuthContextValue {
   staff: StaffIdentity | null;
   // Effective per-surface permissions for a staff session; empty for owners.
   permissions: EffectivePermissions;
+  // 'setup' while this client is still being stood up: they can sign in, but
+  // every tenant surface answers 423 until Go Live, so the app shows a holding
+  // screen instead. 'live' for everyone else, including admins.
+  onboardingStatus: string;
   // Permission gate used by the nav + edit controls. Owners pass everything;
   // staff need a matching grant. Mirrors the backend enforcement, which stays
   // authoritative. Defaults to the "view" action.
@@ -212,6 +216,7 @@ interface SessionProbe {
   staff: StaffIdentity | null;
   permissions: EffectivePermissions;
   preview: PreviewState;
+  onboardingStatus: string;
 }
 
 interface ApiMe {
@@ -222,6 +227,7 @@ interface ApiMe {
   staff?: StaffIdentity | null;
   permissions?: EffectivePermissions;
   preview?: { tenantId: string; staff?: { id: string; name: string } | null } | null;
+  onboardingStatus?: string;
 }
 
 const EMPTY_PROBE = (offline: boolean): SessionProbe => ({
@@ -234,6 +240,7 @@ const EMPTY_PROBE = (offline: boolean): SessionProbe => ({
   staff: null,
   permissions: {},
   preview: null,
+  onboardingStatus: "live",
 });
 
 async function checkSession(): Promise<SessionProbe> {
@@ -263,6 +270,9 @@ async function checkSession(): Promise<SessionProbe> {
       staff: body?.staff ?? null,
       permissions: body?.permissions ?? {},
       preview: body?.preview ?? null,
+      // Absent means live: every client that predates the onboarding gate, and
+      // every admin session, has no such status and must not be held back.
+      onboardingStatus: body?.onboardingStatus ?? "live",
     };
   } catch {
     return EMPTY_PROBE(true);
@@ -281,6 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [staff, setStaff] = useState<StaffIdentity | null>(null);
   const [permissions, setPermissions] = useState<EffectivePermissions>({});
   const [preview, setPreview] = useState<PreviewState>(null);
+  const [onboardingStatus, setOnboardingStatus] = useState("live");
   // The stored GHL user id chosen at the "who are you?" step, and the resolved
   // team member it maps to. identityResolved guards the picker from flashing
   // before the lookup completes.
@@ -311,6 +322,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStaff(null);
       setPermissions({});
       setPreview(null);
+      setOnboardingStatus("live");
       setStatus("authenticated");
       return;
     }
@@ -324,6 +336,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStaff(probe.staff);
       setPermissions(probe.permissions);
       setPreview(probe.preview);
+      setOnboardingStatus(probe.onboardingStatus);
       setStatus("authenticated");
       return;
     }
@@ -763,6 +776,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isOwner,
       staff,
       permissions,
+      onboardingStatus,
       can,
       signInWithPassword,
       signInAsStaff,
@@ -786,6 +800,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isOwner,
       staff,
       permissions,
+      onboardingStatus,
       can,
       signInWithPassword,
       signInAsStaff,

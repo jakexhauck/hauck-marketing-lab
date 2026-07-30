@@ -1,14 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Info, RotateCcw, Smartphone } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ExternalLink,
+  FolderOpen,
+  RotateCcw,
+  TriangleAlert,
+} from "lucide-react";
 import DesktopPage from "../../components/desktop/DesktopPage";
 import { Button } from "../../components/ui/Button";
 import WizardField from "../../components/admin/onboarding/WizardField";
 import WizardSteps from "../../components/admin/onboarding/WizardSteps";
+import { useAdminClientCreate } from "../../hooks/useApi";
+import type { AdminClientCreated } from "../../lib/api";
 import {
   DEFAULT_VALUES,
   ONBOARDING_FIELDS,
   ONBOARDING_STEPS,
+  buildCreatePayload,
   deriveInitials,
   fieldsForStep,
   forRestore,
@@ -20,16 +30,17 @@ import {
   type DraftValues,
 } from "../../lib/clientOnboarding";
 
-// The new-client onboarding wizard (/admin/clients/new). Six steps then a
-// review: steps 1-3 are the technical shell Jake fills in, steps 4-6 are the
-// client intake questionnaire.
+// The new-client wizard (/admin/clients/new). Three steps then a review.
 //
-// NOTHING IS WIRED UP YET. There are no API calls in this file and the Create
-// button is disabled on purpose. POST /api/admin/clients exists and would take
-// the step 1-3 fields today, but the 16 intake answers have nowhere to go until
-// they have columns, and a form that silently bins half of what you typed is
-// worse than one that plainly says it is not finished. See
-// docs/build-plans/client-onboarding-wizard.md.
+// The MANUAL way to stand a client up, for one who never filled in the intake
+// funnel. Most clients arrive the other way: they answer the funnel themselves
+// and Jake approves the submission at /admin/onboarding, which creates exactly
+// the same thing through the same code. This form is what is left once the
+// client's own questions moved to where the client is.
+//
+// Create sends the lot to POST /api/admin/clients in one request: the tenant,
+// its owner login, the connection ids, and their Drive folder. See
+// docs/build-plans/onboarding-funnel-board.md.
 
 const DRAFT_KEY = "hml.admin.newClient.draft";
 const REVIEW_STEP = ONBOARDING_STEPS.length + 1;
@@ -61,9 +72,10 @@ export default function AdminClientNew() {
   const [step, setStep] = useState(1);
   const [furthest, setFurthest] = useState(1);
   const [values, setValues] = useState<DraftValues>({ ...DEFAULT_VALUES });
-  const [files, setFiles] = useState<Record<string, File[]>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [restoredAt, setRestoredAt] = useState<string | null>(null);
+  const [created, setCreated] = useState<AdminClientCreated | null>(null);
+  const create = useAdminClientCreate();
 
   // Once either of these is edited by hand it stops tracking the business name.
   const touched = useRef<Set<string>>(new Set());
@@ -131,10 +143,6 @@ export default function AdminClientNew() {
     });
   }, []);
 
-  const setFileList = useCallback((key: string, list: File[]) => {
-    setFiles((prev) => ({ ...prev, [key]: list }));
-  }, []);
-
   function goTo(n: number) {
     setStep(n);
     setFurthest((f) => Math.max(f, n));
@@ -151,21 +159,47 @@ export default function AdminClientNew() {
     goTo(step + 1);
   }
 
-  function discardDraft() {
+  function forgetDraft() {
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {
       // Nothing to do; the in-memory reset below is what matters.
     }
+  }
+
+  function discardDraft() {
+    forgetDraft();
     touched.current = new Set();
     setValues({ ...DEFAULT_VALUES });
-    setFiles({});
     setErrors({});
     setRestoredAt(null);
     goTo(1);
   }
 
-  // Every required field still empty, across all six steps. Drives the review
+  // Every step re-validated, not just the one on screen: the review screen can
+  // be reached by jumping, and the API applies these same rules server-side.
+  function submit() {
+    for (const s of ONBOARDING_STEPS) {
+      const result = validateStep(s.n, values);
+      if (!result.ok) {
+        setErrors(result.errors);
+        goTo(s.n);
+        return;
+      }
+    }
+
+    create.mutate(buildCreatePayload(values), {
+      onSuccess: (result) => {
+        // Only now. A draft cleared before the response would be gone if the
+        // request failed, taking twenty minutes of typing with it.
+        forgetDraft();
+        hydrated.current = false;
+        setCreated(result);
+      },
+    });
+  }
+
+  // Every required field still empty, across every step. Drives the review
   // screen's outstanding list.
   const outstanding = useMemo(
     () =>
@@ -181,7 +215,7 @@ export default function AdminClientNew() {
   return (
     <DesktopPage
       title="New client"
-      subtitle="Stand up the account, then capture what we need from the client."
+      subtitle="Stand up an account by hand, for a client with no intake form."
       actions={
         <Link to="/admin/delivery">
           <Button variant="ghost" size="sm">
@@ -191,6 +225,15 @@ export default function AdminClientNew() {
         </Link>
       }
     >
+      {created ? (
+        <Created
+          result={created}
+          name={typeof values.name === "string" ? values.name : ""}
+          niche={typeof values.niche === "string" ? values.niche : ""}
+          brandColor={typeof values.brandColor === "string" ? values.brandColor : "#1d6fb8"}
+          initials={typeof values.brandInitials === "string" ? values.brandInitials : ""}
+        />
+      ) : (
       <div className="mt-6 w-full max-w-[860px]">
         {restoredAt && (
           <div className="mb-5 flex items-center gap-3 rounded-[var(--radius)] border border-border bg-surface-2 px-3.5 py-2.5 text-[13px] text-muted">
@@ -209,7 +252,7 @@ export default function AdminClientNew() {
 
         <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-sm)]">
           {onReview ? (
-            <Review outstanding={outstanding} values={values} files={files} onJump={goTo} />
+            <Review outstanding={outstanding} values={values} onJump={goTo} />
           ) : (
             <>
               <header className="mb-5">
@@ -228,15 +271,12 @@ export default function AdminClientNew() {
                     key={field.key}
                     field={field}
                     value={values[field.key]}
-                    files={files[field.key]}
                     error={errors[field.key]}
                     onChange={setValue}
-                    onFiles={setFileList}
                   />
                 ))}
               </div>
 
-              {step === 5 && <LeadConnectorLinks />}
             </>
           )}
 
@@ -248,9 +288,25 @@ export default function AdminClientNew() {
 
             {onReview ? (
               <div className="flex items-center gap-3">
-                <span className="text-[12px] text-faint">Not wired up yet</span>
-                <Button variant="primary" disabled title="Saving is the next build">
-                  Create client
+                {create.isError && (
+                  <span className="text-[12px] font-medium text-danger">
+                    {create.error instanceof Error
+                      ? create.error.message
+                      : "The client could not be created"}
+                  </span>
+                )}
+                <Button
+                  variant="primary"
+                  onClick={submit}
+                  loading={create.isPending}
+                  disabled={outstanding.length > 0}
+                  title={
+                    outstanding.length > 0
+                      ? "Fill the required fields listed above first"
+                      : undefined
+                  }
+                >
+                  {create.isPending ? "Creating..." : "Create client"}
                 </Button>
               </div>
             ) : (
@@ -262,61 +318,116 @@ export default function AdminClientNew() {
           </footer>
         </section>
       </div>
+      )}
     </DesktopPage>
   );
 }
 
-// The source questionnaire asks the client to install LeadConnector, so the
-// store links belong beside the checkbox rather than in a separate SOP.
-function LeadConnectorLinks() {
-  const linkCls =
-    "text-brand-text underline decoration-brand/40 underline-offset-2 hover:decoration-brand";
+// What the wizard becomes once the client exists.
+//
+// Not a receipt. Everything on this screen is either proof the client is real
+// (their own brand colour and initials, rendering for the first time) or the
+// next place to go. The two destinations are named by what they are, because
+// both are somewhere Jake goes next and neither is "done".
+function Created({
+  result,
+  name,
+  niche,
+  brandColor,
+  initials,
+}: {
+  result: AdminClientCreated;
+  name: string;
+  niche: string;
+  brandColor: string;
+  initials: string;
+}) {
+  const warnings = [result.ownerWarning, result.onboardingWarning, result.driveWarning].filter(
+    (w): w is string => Boolean(w),
+  );
+
   return (
-    <p className="mt-4 flex items-center gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3.5 py-2.5 text-[13px] text-muted">
-      <Smartphone size={15} className="shrink-0" aria-hidden />
-      <span>
-        Send them the app:{" "}
-        <a
-          className={linkCls}
-          href="https://apps.apple.com/us/app/lead-connector/id1564302502"
-          target="_blank"
-          rel="noreferrer"
-        >
-          iPhone
-        </a>{" "}
-        or{" "}
-        <a
-          className={linkCls}
-          href="https://play.google.com/store/apps/details?id=com.LeadConnector&hl=en_US"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Android
-        </a>
-      </span>
-    </p>
+    <div className="mt-6 w-full max-w-[860px]">
+      <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-sm)]">
+        <div className="flex items-center gap-4">
+          <span
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-[var(--radius)] font-display text-[17px] font-semibold text-white"
+            style={{ background: brandColor }}
+            aria-hidden
+          >
+            {initials || name.slice(0, 2).toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <h2 className="font-display text-[21px] font-semibold text-text">{name} is set up.</h2>
+            <p className="mt-0.5 text-[13px] text-muted">
+              {niche ? `${niche} · ` : ""}
+              {result.slug}
+            </p>
+          </div>
+        </div>
+
+        <p className="mt-5 text-[14px] leading-relaxed text-muted">
+          Their onboarding record holds the answers you just entered, with the setup values
+          seeded from them. Finish the checklist there, then push the values to their GHL
+          sub-account.
+        </p>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <Link to={`/admin/onboarding/${result.id}`}>
+            <Button variant="primary">
+              Open their onboarding record
+              <ArrowRight size={15} aria-hidden />
+            </Button>
+          </Link>
+
+          {result.driveFolderUrl && (
+            <a href={result.driveFolderUrl} target="_blank" rel="noreferrer">
+              <Button variant="secondary">
+                <FolderOpen size={15} aria-hidden />
+                Open their Drive folder
+                <ExternalLink size={13} className="text-faint" aria-hidden />
+              </Button>
+            </a>
+          )}
+
+          <Link to="/admin/clients/new" reloadDocument>
+            <Button variant="ghost">Add another client</Button>
+          </Link>
+        </div>
+
+        {warnings.length > 0 && (
+          <div className="mt-5 rounded-[var(--radius)] border border-danger/40 bg-danger/5 p-4">
+            <p className="flex items-center gap-2 text-[13px] font-semibold text-danger">
+              <TriangleAlert size={15} aria-hidden />
+              The client was created, but not everything went through
+            </p>
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {warnings.map((w) => (
+                <li key={w} className="text-[13px] leading-snug text-muted">
+                  {w}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
 
 function Review({
   outstanding,
   values,
-  files,
   onJump,
 }: {
   outstanding: { step: number; field: { key: string; label: string } }[];
   values: DraftValues;
-  files: Record<string, File[]>;
   onJump: (n: number) => void;
 }) {
   function display(key: string): string | null {
     const field = ONBOARDING_FIELDS.find((f) => f.key === key);
     if (!field) return null;
 
-    if (field.type === "file") {
-      const count = files[key]?.length ?? 0;
-      return count === 0 ? null : count === 1 ? files[key][0].name : `${count} files`;
-    }
     if (field.type === "checkbox") return values[key] === true ? "Yes" : null;
 
     const raw = values[key];
@@ -398,10 +509,11 @@ function Review({
       </div>
 
       <p className="mt-6 flex items-start gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3.5 py-3 text-[13px] leading-snug text-muted">
-        <Info size={15} className="mt-0.5 shrink-0" aria-hidden />
+        <FolderOpen size={15} className="mt-0.5 shrink-0" aria-hidden />
         <span>
-          This form does not save anything yet. Your answers are kept in this browser only, and
-          the password, GHL token and tax ID are never written to that draft.
+          Creating the client also creates their Google Drive folder, and the owner can sign in
+          with the email and password above straight away. Their own answers are not asked for
+          here: those come from the intake form.
         </span>
       </p>
     </>

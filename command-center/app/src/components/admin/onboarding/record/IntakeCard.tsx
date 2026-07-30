@@ -1,181 +1,82 @@
-import { useState } from "react";
 import { ClipboardList } from "lucide-react";
-import { Card, Field, SaveRow } from "./OnboardingKit";
+import { Card } from "./OnboardingKit";
 import {
   INTAKE_KEYS,
   intakeAnswered,
   intakeGroups,
-  type WizardField,
+  type IntakeField,
 } from "../../../../lib/onboarding";
 
-// What the client told us: the questionnaire they answer between paying and the
-// kickoff call. Editable here because that is how it actually arrives - a form
-// emailed over, answers read back on a call - and a record you cannot correct is
-// a record nobody trusts.
+// What the client told us, in their own words.
 //
-// The questions come from the new-client wizard's own definitions, so this card
-// never drifts from the form the client filled in.
+// Read-only, and that is the point. These are the answers the client typed into
+// the funnel themselves; editing them here would quietly replace what they said
+// with what we remember them saying, and the record would stop being evidence.
+// Anything that needs correcting for our own use is a setup value, and those are
+// editable on the card above.
+//
+// The questions come from the funnel's own schema, so this card never drifts
+// from the form the client actually filled in.
 
-export default function IntakeCard({
-  intake,
-  saving,
-  saved,
-  error,
-  onSave,
-}: {
-  intake: Record<string, string>;
-  saving: boolean;
-  saved: boolean;
-  error: string | null;
-  onSave: (values: Record<string, string>) => void;
-}) {
-  // Seeded once, on mount. The parent gives this card a key of the tenant id,
-  // so switching client remounts it with that client's answers. Re-seeding from
-  // props on every change would mean a background refetch - one alt-tab back to
-  // the browser is enough to trigger one - throwing away whatever is half-typed.
-  const [values, setValues] = useState<Record<string, string>>(intake);
-
-  const set = (key: string, value: string) =>
-    setValues((prev) => ({ ...prev, [key]: value }));
-
-  const answered = intakeAnswered(values);
+export default function IntakeCard({ intake }: { intake: Record<string, string> }) {
+  const answered = intakeAnswered(intake);
 
   return (
     <Card
       icon={<ClipboardList />}
       tone="green"
-      title="Intake answers"
-      note="The client's own answers, in their words"
+      title="What the client told us"
+      note="Their own answers, from the intake form"
       right={
         <span className="onb-count">
           {answered} of {INTAKE_KEYS.length} answered
         </span>
       }
     >
-      {intakeGroups().map((group) => (
-        <div key={group.key} className="onb-phase">
-          <div className="onb-phase-name">{group.label}</div>
-          <div className="onb-grid" style={{ paddingBottom: 6 }}>
-            {group.fields.map((field) => (
-              <IntakeField
-                key={field.key}
-                field={field}
-                value={values[field.key] ?? ""}
-                onChange={(v) => set(field.key, v)}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
+      {answered === 0 ? (
+        <p className="onb-empty-line">
+          No answers yet. They appear here as soon as the client completes the intake form.
+        </p>
+      ) : (
+        intakeGroups().map((group) => {
+          const rows = group.fields
+            .map((field) => ({ field, value: display(field, intake[field.key]) }))
+            .filter((row) => row.value !== null);
+          if (rows.length === 0) return null;
 
-      <SaveRow
-        pending={saving}
-        saved={saved}
-        error={error}
-        onSave={() => onSave(values)}
-        label="Save intake answers"
-      />
+          return (
+            <div key={group.key} className="onb-phase">
+              <div className="onb-phase-name">{group.label}</div>
+              <dl className="onb-answers">
+                {rows.map(({ field, value }) => (
+                  <div
+                    key={field.key}
+                    className={`onb-answer${field.wide || field.type === "textarea" ? " wide" : ""}`}
+                  >
+                    <dt>{field.label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          );
+        })
+      )}
     </Card>
   );
 }
 
-function IntakeField({
-  field,
-  value,
-  onChange,
-}: {
-  field: WizardField;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const id = `onb-i-${field.key}`;
-  // Everything on this card is stored as text, so the two non-text controls get
-  // a text answer: a radio stores its option value, a checkbox stores "yes".
-  const wide = field.wide || field.type === "textarea";
-
-  if (field.type === "textarea") {
-    return (
-      <Field label={field.label} htmlFor={id} hint={field.help} wide>
-        <textarea
-          id={id}
-          value={value}
-          placeholder={field.placeholder ?? "No answer yet"}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      </Field>
-    );
+// One answer as the client left it, or null when they left it blank. A blank
+// renders as nothing at all rather than as an empty row: a question they skipped
+// is not a fact about their business.
+function display(field: IntakeField, raw: string | undefined): string | null {
+  if (field.type === "checkbox") {
+    // The funnel stores a tick as the string "yes" (see buildCreatePayload and
+    // sanitizeAnswers, which agree on text for every answer).
+    return raw === "yes" || raw === "true" ? "Yes" : null;
   }
-
-  if (field.type === "select") {
-    return (
-      <Field label={field.label} htmlFor={id} hint={field.help} wide={wide}>
-        <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
-          <option value="">No answer yet</option>
-          {(field.options ?? []).map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-    );
-  }
-
-  if (field.type === "radio" || field.type === "checkbox") {
-    const choices =
-      field.type === "checkbox"
-        ? [
-            { value: "yes", label: "Yes" },
-            { value: "no", label: "Not yet" },
-          ]
-        : (field.options ?? []);
-    return (
-      <div className={`onb-field${wide ? " wide" : ""}`}>
-        <label htmlFor={`${id}-${choices[0]?.value ?? "0"}`}>{field.label}</label>
-        <div className="onb-choices" role="group" aria-label={field.label}>
-          {choices.map((choice) => (
-            <button
-              key={choice.value}
-              id={`${id}-${choice.value}`}
-              type="button"
-              className={`onb-choice${value === choice.value ? " on" : ""}`}
-              aria-pressed={value === choice.value}
-              // Pressing the chosen option again clears it, so a wrong answer
-              // can go back to "no answer" instead of being stuck.
-              onClick={() => onChange(value === choice.value ? "" : choice.value)}
-            >
-              {choice.label}
-            </button>
-          ))}
-        </div>
-        {field.help && <span className="onb-hint">{field.help}</span>}
-      </div>
-    );
-  }
-
-  const type =
-    field.type === "email" || field.type === "tel" || field.type === "url"
-      ? field.type
-      : "text";
-
-  return (
-    <Field
-      label={field.label}
-      htmlFor={id}
-      hint={field.type === "file" ? "Paste the link to where this lives" : field.help}
-      wide={wide}
-    >
-      <input
-        id={id}
-        type={type}
-        value={value}
-        placeholder={
-          field.type === "file"
-            ? "https://drive.google.com/..."
-            : (field.placeholder ?? "No answer yet")
-        }
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </Field>
-  );
+  const value = (raw ?? "").trim();
+  if (!value) return null;
+  if (field.options) return field.options.find((o) => o.value === value)?.label ?? value;
+  return value;
 }

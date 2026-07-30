@@ -1,16 +1,23 @@
-// The new-client onboarding wizard, declared as data.
+// The new-client wizard, declared as data.
 //
-// Two halves live on one form. Steps 1-3 are the technical shell Jake fills in
-// to stand a client up (branding, subdomain, owner login, connections). Steps
-// 4-6 are the client intake questionnaire, carried over from the Google Form
-// Jake sends between payment and the kickoff call: its job is the GHL
-// sub-account, A2P phone verification, and giving the client something to do so
-// the engagement keeps momentum.
+// Three steps, all of them Jake's: the technical shell that stands a client up
+// (business, brand, connections). This is the MANUAL path, for a client who
+// never filled in the intake funnel. Everything the client themselves can
+// answer lives in src/lib/intake.ts and arrives through that funnel instead.
+//
+// It used to run to six steps and ask Jake to type the client's answers for
+// them. Those three steps moved to the funnel, where the person who knows the
+// answers is the one being asked.
 //
 // The wizard, its validation and its review screen all render from
 // ONBOARDING_FIELDS. Adding a field is one entry here, not a JSX edit in three
-// places. See docs/build-plans/client-onboarding-wizard.md.
+// places. See docs/build-plans/onboarding-funnel-board.md.
 
+// No "file" type, deliberately. The wizard used to offer three uploaders with
+// nowhere to put the bytes: the only Drive grant that can transfer files runs on
+// an OAuth client whose consent screen is still in Testing, so its token dies
+// weekly. Creating a client now creates the client's Drive FOLDER instead
+// (functions/lib/clientDriveFolder.ts), and the assets go in there.
 export type FieldType =
   | "text"
   | "email"
@@ -21,8 +28,7 @@ export type FieldType =
   | "select"
   | "radio"
   | "checkbox"
-  | "color"
-  | "file";
+  | "color";
 
 export interface FieldOption {
   value: string;
@@ -38,8 +44,6 @@ export interface OnboardingField {
   placeholder?: string;
   help?: string;
   options?: FieldOption[];
-  // File fields only: accept multiple selections (past-work photos).
-  multiple?: boolean;
   // Lay the field out full-width instead of in the two-column grid.
   wide?: boolean;
 }
@@ -70,24 +74,6 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     label: "Access & Connections",
     blurb: "All optional. Every one of these can be added later from the client's config.",
   },
-  {
-    n: 4,
-    key: "contact",
-    label: "Contact & Legal",
-    blurb: "Who we deal with, and what GHL needs for A2P phone registration.",
-  },
-  {
-    n: 5,
-    key: "targeting",
-    label: "Targeting & Ops",
-    blurb: "Where the ads run, and how the client hears about a new lead.",
-  },
-  {
-    n: 6,
-    key: "story",
-    label: "Story & Assets",
-    blurb: "The raw material for ad copy and creative.",
-  },
 ];
 
 // US-first, because every client so far is. Ordered west to east, then the
@@ -105,12 +91,6 @@ export const TIMEZONES: FieldOption[] = [
   { value: "America/New_York", label: "Eastern (ET)" },
   { value: "America/Detroit", label: "Eastern - Detroit (ET)" },
   { value: "America/Toronto", label: "Eastern - Toronto (ET)" },
-];
-
-const NOTIFY_OPTIONS: FieldOption[] = [
-  { value: "text", label: "Text" },
-  { value: "email", label: "Email" },
-  { value: "both", label: "Both" },
 ];
 
 export const ONBOARDING_FIELDS: OnboardingField[] = [
@@ -169,7 +149,6 @@ export const ONBOARDING_FIELDS: OnboardingField[] = [
     step: 2,
     help: "Two letters for the avatar. Derived from the business name until you edit it.",
   },
-  { key: "logo", label: "Logo", type: "file", step: 2 },
   {
     key: "wonLabel",
     label: '"Won" label',
@@ -219,129 +198,15 @@ export const ONBOARDING_FIELDS: OnboardingField[] = [
     placeholder: "123456789",
   },
   { key: "googlePlaceId", label: "Google Place ID", type: "text", step: 3 },
-
-  // 4 - Contact & Legal
-  { key: "contactName", label: "Contact name", type: "text", step: 4, required: true },
-  { key: "contactEmail", label: "Email", type: "email", step: 4, required: true },
-  { key: "contactPhone", label: "Phone", type: "tel", step: 4, required: true },
-  {
-    key: "timezone",
-    label: "Timezone",
-    type: "select",
-    step: 4,
-    required: true,
-    options: TIMEZONES,
-    help: "Drives the client's booking calendar. Get this right.",
-  },
-  {
-    key: "businessAddress",
-    label: "Business address",
-    type: "textarea",
-    step: 4,
-    required: true,
-    wide: true,
-  },
-  {
-    key: "taxId",
-    label: "Tax ID / EIN",
-    type: "text",
-    step: 4,
-    help: "Needed to register a phone number for A2P. Never written to the saved draft.",
-  },
-
-  // 5 - Targeting & Ops
-  {
-    key: "targetAreas",
-    label: "Areas to target for the ads",
-    type: "textarea",
-    step: 5,
-    required: true,
-    wide: true,
-    placeholder: "78704, Travis County, Downtown Austin, Round Rock",
-    help: "Any combination of zip codes, counties, neighbourhoods or cities.",
-  },
-  {
-    key: "areaCallout",
-    label: "Area callout",
-    type: "text",
-    step: 5,
-    required: true,
-    wide: true,
-    placeholder: "Detroit area",
-    help: 'How the ads name the area. "Westlake County and Surrounding Areas".',
-  },
-  {
-    key: "notifyPreference",
-    label: "How they want new leads and appointments",
-    type: "radio",
-    step: 5,
-    options: NOTIFY_OPTIONS,
-    wide: true,
-  },
-  {
-    key: "calendarAvailability",
-    label: "Preferred calendar availability",
-    type: "textarea",
-    step: 5,
-    wide: true,
-    placeholder: "Mon-Fri 9am-5pm, Saturday 12-3pm, Sunday off",
-  },
-  {
-    key: "leadConnectorInstalled",
-    label: "LeadConnector app installed on their phone",
-    type: "checkbox",
-    step: 5,
-    wide: true,
-  },
-
-  // 6 - Story & Assets
-  {
-    key: "usp",
-    label: "Unique selling proposition",
-    type: "textarea",
-    step: 6,
-    wide: true,
-    placeholder: "We guarantee a home sale in 30 days or pay the seller $10k",
-  },
-  {
-    key: "whySignedUp",
-    label: "Why they signed with Hauck Marketing",
-    type: "textarea",
-    step: 6,
-    wide: true,
-    help: "Their own words. Good testimonial and ad-copy material.",
-  },
-  {
-    key: "notes",
-    label: "Anything else we should know",
-    type: "textarea",
-    step: 6,
-    wide: true,
-  },
-  {
-    key: "headshot",
-    label: "Headshot",
-    type: "file",
-    step: 6,
-    help: "A clear one, for use in marketing assets.",
-  },
-  {
-    key: "pastWorkPhotos",
-    label: "Photos of past work",
-    type: "file",
-    step: 6,
-    multiple: true,
-  },
 ];
 
-// A password, an API token and a tax ID have no business sitting in a
-// JS-readable store on a shared machine. These three are stripped before the
-// draft is written to localStorage, so they survive a step change (React state)
-// but not a refresh. Each one says so in its own help text.
-export const SENSITIVE_KEYS = ["ownerPassword", "ghlToken", "taxId"] as const;
+// A password and an API token have no business sitting in a JS-readable store
+// on a shared machine. Both are stripped before the draft is written to
+// localStorage, so they survive a step change (React state) but not a refresh.
+// Each one says so in its own help text.
+export const SENSITIVE_KEYS = ["ownerPassword", "ghlToken"] as const;
 
-// File values never serialise and never reach the draft; they live in the
-// wizard's own state. This type covers only what is persistable.
+// What the draft can hold. Every wizard answer is a string or a checkbox.
 export type DraftValues = Record<string, string | boolean | undefined>;
 
 // What the wizard starts with. Kept here rather than inline in the route so
@@ -439,6 +304,77 @@ export function validateStep(step: number, values: DraftValues): StepValidation 
   }
 
   return { ok: Object.keys(errors).length === 0, errors };
+}
+
+// --- Submitting ---------------------------------------------------------------
+
+/** What POST /api/admin/clients is sent when the wizard is completed. */
+export interface CreateClientPayload {
+  name: string;
+  niche: string;
+  slug: string;
+  appName?: string;
+  brandColor?: string;
+  brandInitials?: string;
+  wonLabel?: string;
+  valueLabel?: string;
+  websiteUrl?: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  ownerPassword?: string;
+  ghlLocationId?: string;
+  ghlToken?: string;
+  metaAdAccountId?: string;
+  ga4PropertyId?: string;
+  googlePlaceId?: string;
+}
+
+/**
+ * The request body, built from the wizard's answers.
+ *
+ * Every field here is Jake's technical shell and lands in a column of its own on
+ * the tenant. There is no intake half any more: a client stood up by hand has
+ * answered nothing, and one who came through the funnel never reaches this form.
+ *
+ * Empty answers are dropped rather than sent as "". The API reads a blank the
+ * same as absent for most of these, but not all (an empty owner email with a
+ * password set is an error), and a payload that says only what was actually
+ * answered is easier to read in a network tab.
+ */
+export function buildCreatePayload(values: DraftValues): CreateClientPayload {
+  const text = (key: string): string => textValue(values, key);
+
+  const payload: CreateClientPayload = {
+    name: text("name"),
+    niche: text("niche"),
+    slug: text("subdomain"),
+  };
+
+  // Same name on both sides, so the list is the keys themselves: every one of
+  // these is a wizard field key AND the payload key the API reads it from.
+  const optional = [
+    "appName",
+    "brandColor",
+    "brandInitials",
+    "wonLabel",
+    "valueLabel",
+    "websiteUrl",
+    "ownerName",
+    "ownerEmail",
+    "ownerPassword",
+    "ghlLocationId",
+    "ghlToken",
+    "metaAdAccountId",
+    "ga4PropertyId",
+    "googlePlaceId",
+  ] as const satisfies readonly (keyof CreateClientPayload)[];
+
+  for (const key of optional) {
+    const value = text(key);
+    if (value) payload[key] = value;
+  }
+
+  return payload;
 }
 
 export function stripSensitive(values: DraftValues): DraftValues {

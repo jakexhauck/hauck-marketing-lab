@@ -49,7 +49,6 @@ import WebsitePages from "./routes/website/WebsitePages";
 import WebsiteInsights from "./routes/website/WebsiteInsights";
 import AdsLeadTracker from "./routes/paid-ads/AdsLeadTracker";
 import AdsMetaData from "./routes/paid-ads/AdsMetaData";
-import AdsMedia from "./routes/paid-ads/AdsMedia";
 import Reactivation from "./routes/sales/Reactivation";
 import CampaignsAudiences from "./routes/campaigns/CampaignsAudiences";
 import OutreachOverview from "./routes/outreach/OutreachOverview";
@@ -63,10 +62,11 @@ import GroupOutreachOverview from "./routes/groups/GroupOutreachOverview";
 import AdminLayout, { adminHomeFor } from "./routes/admin/AdminLayout";
 import { effectiveAdminRole, type AdminRole } from "./lib/adminRoles";
 import AdminClientNew from "./routes/admin/AdminClientNew";
+import AdminNewClient from "./routes/admin/AdminNewClient";
 import AdminCommand from "./routes/admin/AdminCommand";
 import AdminApps from "./routes/admin/AdminApps";
 import AdminOnboarding from "./routes/admin/AdminOnboarding";
-import OnboardingClient from "./routes/admin/OnboardingClient";
+import { clientSetupPath } from "./lib/onboardingViews";
 import FulfillmentPage from "./routes/admin/FulfillmentPage";
 import {
   DEFAULT_FULFILLMENT_PAGE,
@@ -80,6 +80,7 @@ import AdminAudit from "./routes/admin/AdminAudit";
 import AdminTeam from "./routes/admin/AdminTeam";
 import Shell from "./components/Shell";
 import IdentityPicker from "./components/IdentityPicker";
+import SetupHoldingScreen from "./components/client/SetupHoldingScreen";
 import OfflineBanner from "./components/OfflineBanner";
 import PreviewBanner from "./components/PreviewBanner";
 import { isPreviewFrame } from "./lib/previewFrame";
@@ -93,11 +94,17 @@ import TourOverlay from "./components/tour/TourOverlay";
 import type { ReactNode } from "react";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { status, currentUser, needsIdentity, setIdentity, isAdmin } = useAuth();
+  const { status, currentUser, needsIdentity, setIdentity, isAdmin, onboardingStatus } =
+    useAuth();
   if (status === "loading") return null;
   // A super-admin has no tenant and never belongs on a client surface.
   if (isAdmin) return <Navigate to="/admin" replace />;
   if (!currentUser) return <Navigate to="/login" replace />;
+  // Approved, but not yet live. Ahead of the identity picker: choosing who you
+  // are is pointless in an app you cannot open yet. The API refuses every tenant
+  // surface in this state regardless, so this is the presentable version of a
+  // gate that is already being enforced.
+  if (onboardingStatus === "setup") return <SetupHoldingScreen />;
   // One-time "who are you?" step after the shared-password login. Skipping
   // (or any failure) falls back to the hardcoded-owner default in AuthContext.
   if (needsIdentity) {
@@ -135,6 +142,14 @@ function AdminRoute({
     return <Navigate to={adminHomeFor(role)} replace />;
   }
   return <AdminLayout>{children}</AdminLayout>;
+}
+
+// /admin/onboarding/:tenantId and its old /setup child both became one view of
+// the Onboarding page. Reads the tenant out of the path and hands it over as the
+// selected client.
+function OnboardingClientRedirect() {
+  const { tenantId } = useParams<{ tenantId: string }>();
+  return <Navigate to={tenantId ? clientSetupPath(tenantId) : "/admin/onboarding"} replace />;
 }
 
 // Old pillar sub-routes (lane workspaces and tab deep links) collapse to the
@@ -253,14 +268,14 @@ export default function App() {
               />
               {/* The old standalone /leads board now lands on the Pipeline tab. */}
               <Route path="/leads" element={<Navigate to="/sales/leads" replace />} />
-              {/* Section root = the Lead Tracker (ported from the tracking
-                  sheet), now rebuilt tab-for-tab inside Paid Ads. The whole
-                  Leads section retired 2026-07-23; every old path lands on the
-                  Paid Ads Dashboard. */}
-              <Route path="/sales/leads" element={<Navigate to="/marketing/paid-ads" replace />} />
-              <Route path="/sales/leads/trash" element={<Navigate to="/marketing/paid-ads" replace />} />
+              {/* The whole Leads section retired 2026-07-23 into Paid Ads. Each
+                  old path lands on the tab that replaced it: the lead lists go
+                  to the Lead Tracker, not the Dashboard, so a bookmark that used
+                  to show leads still shows leads. */}
+              <Route path="/sales/leads" element={<Navigate to="/marketing/paid-ads/leads" replace />} />
+              <Route path="/sales/leads/trash" element={<Navigate to="/marketing/paid-ads/leads" replace />} />
               <Route path="/sales/leads/organic" element={<Navigate to="/marketing/paid-ads/leads" replace />} />
-              <Route path="/sales/leads/pipeline" element={<Navigate to="/marketing/paid-ads" replace />} />
+              <Route path="/sales/leads/pipeline" element={<Navigate to="/marketing/paid-ads/leads" replace />} />
               <Route path="/sales/leads/paid-ads" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/sales/forms" element={<Navigate to="/marketing/paid-ads/leads" replace />} />
               <Route path="/sales/chat" element={<Navigate to="/marketing/paid-ads/leads" replace />} />
@@ -439,18 +454,18 @@ export default function App() {
               <Route path="/marketing/campaigns/reactivation" element={<Navigate to="/marketing/reactivation" replace />} />
               <Route path="/sales/scripts" element={<ProtectedRoute><ComingSoon title="Sales Scripts" blurb="Your call and message scripts, ready to use. Coming soon." /></ProtectedRoute>} />
               <Route path="/operations/reports" element={<ProtectedRoute><ComingSoon title="Reports & Analytics" blurb="Performance across ads, leads, and revenue in one place. Coming soon." /></ProtectedRoute>} />
-              {/* Paid Ads = the client tracking sheet, trimmed to Lead Tracker
-                  (the default) + Meta Data, plus Media (kept from the old Paid
-                  Ads). Dashboard / Pipeline Stats / How to Use were removed
-                  2026-07-23. The raw media-buyer dashboard stays at /paid-ads. */}
-              <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsLeadTracker /></ProtectedRoute>} />
+              {/* Paid Ads = the client tracking sheet: Dashboard (the landing
+                  page, as the workbook opened), Lead Tracker, Meta Data. Media
+                  was dropped 2026-07-30 as it was never in the sheet; Pipeline
+                  Stats and How to Use are not being rebuilt. The raw media-buyer
+                  dashboard stays at /paid-ads. */}
+              <Route path="/marketing/paid-ads/leads" element={<ProtectedRoute><AdsLeadTracker /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/meta" element={<ProtectedRoute><AdsMetaData /></ProtectedRoute>} />
-              <Route path="/marketing/paid-ads/media" element={<ProtectedRoute><AdsMedia /></ProtectedRoute>} />
               {/* Old Paid Ads URLs fold into the current tabs. */}
-              <Route path="/marketing/paid-ads/leads" element={<Navigate to="/marketing/paid-ads" replace />} />
+              <Route path="/marketing/paid-ads/media" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/pipeline-stats" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/how-to" element={<Navigate to="/marketing/paid-ads" replace />} />
-              <Route path="/marketing/paid-ads/creatives" element={<Navigate to="/marketing/paid-ads/media" replace />} />
+              <Route path="/marketing/paid-ads/creatives" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/stats" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/funnel" element={<Navigate to="/marketing/paid-ads" replace />} />
               {/* Overview retired; Google Reviews opens on the Review Pipeline. */}
@@ -513,9 +528,19 @@ export default function App() {
               />
               <Route path="/admin/clients" element={<Navigate to="/admin" replace />} />
               {/* Declared above /admin/clients/:id or React Router hands "new"
-                  to the detail page as a tenant id. */}
+                  to the detail page as a tenant id. The launchpad is the page
+                  Jake opens when someone signs; the three-step form behind
+                  /manual is the rare path, for a client with no intake form. */}
               <Route
                 path="/admin/clients/new"
+                element={
+                  <AdminRoute roles={["owner"]}>
+                    <AdminNewClient />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/clients/new/manual"
                 element={
                   <AdminRoute roles={["owner"]}>
                     <AdminClientNew />
@@ -571,11 +596,62 @@ export default function App() {
                   </AdminRoute>
                 }
               />
+              {/* Onboarding is one page in two views (?view=pipeline|setup), so
+                  the per-client addresses it used to have redirect into the
+                  setup view with that client selected. Old links, the pillar
+                  lanes and anything bookmarked all still land. */}
+              <Route
+                path="/admin/onboarding/:tenantId/setup"
+                element={<OnboardingClientRedirect />}
+              />
               <Route
                 path="/admin/onboarding/:tenantId"
+                element={<OnboardingClientRedirect />}
+              />
+
+              {/* Retired admin surfaces (SOPs, Onboarding, Build, Plans, Assets,
+                  Messages, Infrastructure, standalone Tasks) are gone; their
+                  work now lives inside the pillar tab bars. Old URLs fall
+                  through to RootRedirect below. */}
+              {/* Service Delivery > Paid Ads: the old standalone ad tracker
+                  is retired, replaced by the Fulfillment Paid Ads page. */}
+              <Route
+                path="/admin/ads"
+                element={<Navigate to="/admin/fulfillment/paid-ads" replace />}
+              />
+              <Route
+                path="/admin/ads/:clientId"
+                element={<Navigate to="/admin/fulfillment/paid-ads" replace />}
+              />
+
+              {/* Fulfillment: one route per service page. The client is a
+                  picker on the page (?client=), not part of the address, so
+                  switching client keeps you on the page you were reading. */}
+              <Route
+                path="/admin/fulfillment"
+                element={<Navigate to={`/admin/fulfillment/${DEFAULT_FULFILLMENT_PAGE}`} replace />}
+              />
+              <Route
+                path="/admin/fulfillment/:page"
                 element={
                   <AdminRoute roles={["owner"]}>
-                    <OnboardingClient />
+                    <FulfillmentPage />
+                  </AdminRoute>
+                }
+              />
+              {/* The roster landing and the per-client cockpit it fed. */}
+              <Route
+                path="/admin/delivery"
+                element={<Navigate to={`/admin/fulfillment/${DEFAULT_FULFILLMENT_PAGE}`} replace />}
+              />
+              <Route path="/admin/delivery/:tenantId" element={<DeliveryCockpitRedirect />} />
+              {/* Fulfillment > Onboarding: standing a new client up. The
+                  roster, then one client's whole onboarding record. */}
+              <Route
+                path="/admin/onboarding"
+                element={
+                  <AdminRoute roles={["owner"]}>
+                    <AdminOnboarding />
                   </AdminRoute>
                 }
               />

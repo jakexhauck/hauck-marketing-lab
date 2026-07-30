@@ -408,6 +408,22 @@ export interface AdminClient {
   healthNote: string | null;
 }
 
+// What POST /api/admin/clients answers with when the wizard creates a client.
+// The two warnings are deliberately not errors: the client exists either way,
+// and both name something Jake can fix afterwards without redoing the form.
+export interface AdminClientCreated {
+  ok: true;
+  id: string;
+  slug: string;
+  /** The owner login could not be created (usually a duplicate email). */
+  ownerWarning?: string;
+  /** The onboarding record could not be written. */
+  onboardingWarning?: string;
+  /** No Drive folder was made, and why. */
+  driveWarning?: string;
+  driveFolderUrl?: string;
+}
+
 // The single-client detail (GET /api/admin/clients/:tenantId): everything the
 // Service Delivery cockpit's header + Overview tab (Task 3.3) and the Config
 // tab render, shared so both read the same cached request instead of each
@@ -531,6 +547,15 @@ export interface AdminOnboardingResponse {
   status: string;
   hasToken: boolean;
   provisionResult: AdminProvisionResult | null;
+  name: string;
+  /** 'setup' = held at the holding screen, 'live' = their app is open. */
+  onboardingStatus: string;
+}
+
+export interface AdminGoLiveResult {
+  ok: true;
+  onboardingStatus: "live";
+  alreadyLive?: boolean;
 }
 
 export interface AdminOnboardingSavePatch {
@@ -606,6 +631,8 @@ export interface AdTrackerBreakdownRow {
   roas: number | null;
   costPerLead: number | null;
   costPerBooking: number | null;
+  // Running in Meta right now. Badged "Live" and sorted to the top.
+  live: boolean;
 }
 
 export interface AdTrackerResponse {
@@ -623,6 +650,13 @@ export interface AdTrackerResponse {
     spendDays: number;
     // No snapshot has ever been taken, which looks identical to "no spend".
     neverSynced: boolean;
+    // Most recent day in the spend snapshot (YYYY-MM-DD), null when empty.
+    // Every cost and ROAS figure divides by spend, so a snapshot running days
+    // behind makes them quietly wrong. Surfaced so staleness is visible.
+    lastSpendDate: string | null;
+    // Campaigns the breakdown is scoped to. Empty means it is showing
+    // everything: nothing is live, or no structure has been synced yet.
+    liveCampaigns: string[];
   };
 }
 
@@ -1700,6 +1734,10 @@ export interface SalesMeeting {
   // Whatever was said on the call. "" when nothing was typed.
   notes: string;
   assignedTo: string | null;
+  // Who set the appointment (0073), by name. Null on a meeting the sync adopted
+  // off the calendar, which nobody set from inside this app.
+  bookedBy: string | null;
+  bookedById: string | null;
   updatedAt: string;
   // Where this meeting came from: "Cold call" when the app booked it, "Calendar"
   // when the sync adopted one nobody typed here (0060).

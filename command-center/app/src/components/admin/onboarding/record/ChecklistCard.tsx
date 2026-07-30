@@ -32,7 +32,7 @@ export default function ChecklistCard({
       icon={<ListChecks />}
       tone="indigo"
       title="Go-live checklist"
-      note="Three phases, in the order they happen"
+      note="Four phases, in the order they happen"
     >
       {checklistPhases().map((phase) => (
         <div key={phase.phase} className="onb-phase">

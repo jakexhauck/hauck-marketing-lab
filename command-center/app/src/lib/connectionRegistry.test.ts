@@ -28,6 +28,14 @@ const NON_CREDENTIALS = new Set([
   // case and the sync falls back to matching calendars by name. Nothing here
   // expires or needs reissuing, so a red row for it would be a lie.
   "AGENCY_SALES_CALENDAR_IDS",
+  // The intake funnel's published domain. A public address that decides which
+  // origin CORS lets through, not a secret: there is nothing to reissue and
+  // nothing that expires. Absent simply means the funnel is not published yet.
+  "FUNNEL_URL",
+  // Which calendar the onboarding call lands on. An id, not a credential: the
+  // GHL token that reaches it is AGENCY_GHL_TOKEN, which is declared. Unset
+  // falls back to the calendar the intake funnel already books.
+  "ONBOARDING_CALENDAR_ID",
 ]);
 
 function envInterfaceKeys(): string[] {

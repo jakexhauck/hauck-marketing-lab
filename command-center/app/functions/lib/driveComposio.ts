@@ -56,7 +56,38 @@ export function composioDriveConfigured(env: Env): boolean {
   return Boolean(env.COMPOSIO_API_KEY);
 }
 
-async function callComposio<T>(env: Env, path: string, init: RequestInit = {}): Promise<T> {
+// Composio meters tool executions against a quota shared with every other
+// customer on managed auth, so a throttle is a normal event rather than a fault:
+// it means "ask again shortly", and the only wrong response is to give up on the
+// first one and put the raw envelope on Jake's screen.
+//
+// Three attempts, not more: past that the burst is the problem, not the pacing,
+// and a Worker holding a request open for ten seconds to find that out helps
+// nobody. Retries stay cheap because `init.body` is always a string here, never
+// a stream, so the same init replays safely.
+const MAX_ATTEMPTS = 3;
+const BASE_BACKOFF_MS = 600;
+const MAX_BACKOFF_MS = 5_000;
+
+function isTransient(status: number): boolean {
+  return status === 429 || status === 502 || status === 503 || status === 504;
+}
+
+function backoffMs(res: Response, attempt: number): number {
+  // Composio sends Retry-After on some throttles. Its own number beats ours.
+  const header = Number(res.headers.get("retry-after"));
+  if (Number.isFinite(header) && header > 0) return Math.min(header * 1000, MAX_BACKOFF_MS);
+  return Math.min(BASE_BACKOFF_MS * 2 ** (attempt - 1), MAX_BACKOFF_MS);
+}
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function callComposio<T>(
+  env: Env,
+  path: string,
+  init: RequestInit = {},
+  attempt = 1,
+): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
@@ -68,6 +99,18 @@ async function callComposio<T>(env: Env, path: string, init: RequestInit = {}): 
   });
   const text = await res.text();
   if (!res.ok) {
+    if (isTransient(res.status) && attempt < MAX_ATTEMPTS) {
+      await sleep(backoffMs(res, attempt));
+      return callComposio<T>(env, path, init, attempt + 1);
+    }
+    // A throttle that outlives its retries is stated in English, because this
+    // string is rendered on the SOPs tab. The raw JSON envelope told Jake
+    // nothing he could act on.
+    if (res.status === 429) {
+      throw new Error(
+        "Google Drive is rate limited through Composio right now. It usually clears within a minute.",
+      );
+    }
     throw new Error(`composio ${init.method ?? "GET"} ${path} ${res.status}: ${text.slice(0, 300)}`);
   }
   return (text ? JSON.parse(text) : {}) as T;
@@ -149,13 +192,81 @@ async function proxyGet(env: Env, accountId: string, endpoint: string): Promise<
   return body.data;
 }
 
+/**
+ * The same proxy, writing.
+ *
+ * Composio takes a method and a body on the same execute call, so this is
+ * proxyGet with two more keys rather than a second transport. Kept separate
+ * anyway: every caller of proxyGet is a read, and a helper that silently
+ * accepts a body is a helper that eventually writes by accident.
+ *
+ * Only metadata goes through here. Composio still cannot move file BYTES (see
+ * the note at the top of this file), so creating a folder works and uploading a
+ * logo does not.
+ */
+async function proxyPost(
+  env: Env,
+  accountId: string,
+  endpoint: string,
+  body: unknown,
+): Promise<unknown> {
+  const envelope = await callComposio<ProxyEnvelope>(env, "/tools/execute/proxy", {
+    method: "POST",
+    body: JSON.stringify({
+      connected_account_id: accountId,
+      endpoint,
+      method: "POST",
+      body,
+    }),
+  });
+  const status = envelope.status ?? 200;
+  if (status >= 400) throw driveError(endpoint, status, stringify(envelope.data));
+  return envelope.data;
+}
+
+/** Create a folder inside `parentId`. Returns what Drive says it made. */
+export async function createDriveFolder(
+  env: Env,
+  accountId: string,
+  parentId: string,
+  name: string,
+): Promise<{ id: string; name: string; webViewLink: string | null }> {
+  if (!isValidFileId(parentId)) throw new Error(`invalid parent folder id: ${parentId}`);
+  const clean = name.trim();
+  if (!clean) throw new Error("a folder name is required");
+
+  const params = new URLSearchParams({
+    fields: "id,name,webViewLink",
+    supportsAllDrives: "true",
+  });
+  const data = asObject(
+    await proxyPost(env, accountId, `/files?${params}`, {
+      name: clean,
+      mimeType: FOLDER_MIME,
+      parents: [parentId],
+    }),
+    "create",
+  );
+  const id = typeof data.id === "string" ? data.id : "";
+  if (!id) throw new Error("Drive created a folder but returned no id.");
+  return {
+    id,
+    name: typeof data.name === "string" ? data.name : clean,
+    webViewLink: typeof data.webViewLink === "string" ? data.webViewLink : null,
+  };
+}
+
+// `parents` rides along because the batched read below asks for several folders
+// at once and Drive answers with one flat list; the parent is the only thing
+// that says which folder a file came back for.
 const LIST_FIELDS =
-  "nextPageToken,files(id,name,mimeType,webViewLink,iconLink,thumbnailLink,modifiedTime,size)";
+  "nextPageToken,files(id,name,mimeType,parents,webViewLink,iconLink,thumbnailLink,modifiedTime,size)";
 
 interface RawFile {
   id: string;
   name: string;
   mimeType: string;
+  parents?: string[];
   webViewLink?: string;
   iconLink?: string;
   thumbnailLink?: string;
@@ -177,30 +288,69 @@ function normalize(f: RawFile): DriveFile {
   };
 }
 
-export async function listFolderChildren(
+// How many folders go into one `q`. Drive takes an arbitrary number of `in
+// parents` clauses but the query is a URL parameter, so this keeps it to roughly
+// 1.5 KB. Well inside any limit, and the real folder never fills one chunk.
+const PARENTS_PER_QUERY = 25;
+// Drive's ceiling. Asking for the maximum is what keeps a whole level to a single
+// call: 25 folders of children still arrive in one page.
+const PAGE_SIZE = "1000";
+
+/**
+ * The children of MANY folders, in as few Drive calls as possible.
+ *
+ * Deliberately plural. The SOP folder is 32 folders across five levels, and
+ * reading them one at a time meant 32 sequential calls through Composio on every
+ * load of the tab. Composio meters against a quota shared with all its customers,
+ * and that burst is what was answering 429. Drive will take every folder on a
+ * level in one query (`'a' in parents or 'b' in parents`), which turns the walk
+ * into one call per LEVEL: six instead of thirty-two.
+ *
+ * Returns a map keyed by the folder ids that were asked for, always with an entry
+ * for each, so a caller never has to distinguish "empty" from "missing". A file
+ * with two parents lands under both, matching what a per-folder read would have
+ * said about each of them.
+ */
+export async function listChildrenOfMany(
   env: Env,
   accountId: string,
-  folderId: string,
-): Promise<DriveFile[]> {
-  if (!isValidFileId(folderId)) throw new Error(`invalid folder id: ${folderId}`);
-  const all: DriveFile[] = [];
-  let pageToken: string | undefined;
-  do {
-    const params = new URLSearchParams({
-      q: `'${folderId}' in parents and trashed = false`,
-      fields: LIST_FIELDS,
-      orderBy: "folder,name",
-      pageSize: "200",
-      supportsAllDrives: "true",
-      includeItemsFromAllDrives: "true",
-    });
-    if (pageToken) params.set("pageToken", pageToken);
-    const data = asObject(await proxyGet(env, accountId, `/files?${params}`), "list");
-    const parsed = data as { files?: RawFile[]; nextPageToken?: string };
-    for (const f of parsed.files ?? []) all.push(normalize(f));
-    pageToken = parsed.nextPageToken;
-  } while (pageToken);
-  return all;
+  folderIds: string[],
+): Promise<Map<string, DriveFile[]>> {
+  const out = new Map<string, DriveFile[]>();
+  for (const id of folderIds) {
+    if (!isValidFileId(id)) throw new Error(`invalid folder id: ${id}`);
+    out.set(id, []);
+  }
+  if (out.size === 0) return out;
+
+  const ids = [...out.keys()];
+  for (let i = 0; i < ids.length; i += PARENTS_PER_QUERY) {
+    const chunk = ids.slice(i, i + PARENTS_PER_QUERY);
+    const clause = chunk.map((id) => `'${id}' in parents`).join(" or ");
+    let pageToken: string | undefined;
+    do {
+      const params = new URLSearchParams({
+        q: `(${clause}) and trashed = false`,
+        fields: LIST_FIELDS,
+        orderBy: "folder,name",
+        pageSize: PAGE_SIZE,
+        supportsAllDrives: "true",
+        includeItemsFromAllDrives: "true",
+      });
+      if (pageToken) params.set("pageToken", pageToken);
+      const data = asObject(await proxyGet(env, accountId, `/files?${params}`), "list");
+      const parsed = data as { files?: RawFile[]; nextPageToken?: string };
+      for (const f of parsed.files ?? []) {
+        for (const parent of f.parents ?? []) {
+          // Drive can name a parent outside the chunk (a shared file reachable
+          // from elsewhere); only the folders we asked about get a bucket.
+          out.get(parent)?.push(normalize(f));
+        }
+      }
+      pageToken = parsed.nextPageToken;
+    } while (pageToken);
+  }
+  return out;
 }
 
 export async function getFileMeta(

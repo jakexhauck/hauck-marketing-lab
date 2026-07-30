@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
 import { UploadCloud } from "lucide-react";
-import ChecklistCard, { type TaskState } from "./ChecklistCard";
+import type { TaskState } from "./ChecklistCard";
 import IntakeCard from "./IntakeCard";
 import ReadinessCard from "./ReadinessCard";
 import SetupValuesCard from "./SetupValuesCard";
 import { OnboardingStyle } from "./OnboardingKit";
 import {
   useAdminOnboardingChecklistQuery,
-  useAdminOnboardingChecklistToggle,
   useAdminOnboardingProvision,
   useAdminOnboardingQuery,
   useAdminOnboardingReadinessQuery,
@@ -15,15 +14,17 @@ import {
 } from "../../../../hooks/useApi";
 import {
   CHECKLIST_TASKS,
-  checklistPhases,
   checklistProgress,
   onboardingStage,
 } from "../../../../lib/onboarding";
 import type { AdminProvisionResult } from "../../../../lib/api";
 
-// One client's whole onboarding record, the body of /admin/onboarding/:tenantId:
-// where they are, what is left, the values we push into their GHL sub-account,
-// and their own intake answers.
+// One client's onboarding record: where they are, the values we push into their
+// GHL sub-account, and their own intake answers.
+//
+// The upper half of the Client setup view. The steps themselves are below it
+// (SetupSteps), on the same page, because working a step usually means reading
+// an answer.
 //
 // The backend for all of this already existed (functions/api/admin/onboarding/*,
 // tables from migration 0018) and had never had a screen. Nothing here is
@@ -48,10 +49,8 @@ export default function OnboardingRecord({ tenantId }: { tenantId: string }) {
   const record = useAdminOnboardingQuery(tenantId);
   const checklist = useAdminOnboardingChecklistQuery(tenantId);
   const readiness = useAdminOnboardingReadinessQuery(tenantId);
-  const toggle = useAdminOnboardingChecklistToggle(tenantId);
   const provision = useAdminOnboardingProvision(tenantId);
   const saveFields = useAdminOnboardingSave(tenantId);
-  const saveIntake = useAdminOnboardingSave(tenantId);
 
   // Provisioning writes into the client's live GHL sub-account, so the button
   // asks first. Inline, not a browser dialog: this is one destination-changing
@@ -116,30 +115,9 @@ export default function OnboardingRecord({ tenantId }: { tenantId: string }) {
               </span>
             </div>
 
-            <div className="onb-spine">
-              {checklistPhases().map((phase) => {
-                const total = phase.tasks.length;
-                const done = phase.tasks.filter(
-                  (t) => states.find((s) => s.taskKey === t.key)?.done,
-                ).length;
-                return (
-                  <div key={phase.phase} className={`onb-seg${done === total ? " full" : ""}`}>
-                    <div className="onb-seg-bar">
-                      <div
-                        className="onb-seg-fill"
-                        style={{ width: `${total === 0 ? 0 : (done / total) * 100}%` }}
-                      />
-                    </div>
-                    <div className="onb-seg-label">
-                      <span>{phase.phase}</span>
-                      <span className="onb-seg-n">
-                        {done}/{total}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {/* No phase spine here any more. Six phases and forty steps is the
+                setup page's job; this header says where the client is, and the
+                card below says how far through. */}
           </div>
 
           <div className="onb-strip-side">
@@ -186,19 +164,15 @@ export default function OnboardingRecord({ tenantId }: { tenantId: string }) {
         </div>
       </section>
 
-      <div className="onb-columns">
-        <ChecklistCard
-          states={states}
-          readinessLoading={readiness.isFetching}
-          onToggle={(task, next) => toggle.mutate({ taskKey: task.key, done: next })}
-        />
-        <ReadinessCard
-          checks={checks}
-          loading={readiness.isFetching}
-          error={errorText(readiness.error)}
-          onRecheck={() => void readiness.refetch()}
-        />
-      </div>
+      {/* Full width, not a column. This was half of a two-up with the link
+          through to the steps; the steps are on this page now, so the grid had
+          one child and a hole beside it. */}
+      <ReadinessCard
+        checks={checks}
+        loading={readiness.isFetching}
+        error={errorText(readiness.error)}
+        onRecheck={() => void readiness.refetch()}
+      />
 
       {/* Keyed by tenant: each card seeds its form once, on mount, so a
           background refetch cannot wipe what is being typed. Switching client
@@ -213,14 +187,8 @@ export default function OnboardingRecord({ tenantId }: { tenantId: string }) {
         onSave={(values) => saveFields.mutate({ fields: values })}
       />
 
-      <IntakeCard
-        key={`intake-${tenantId}`}
-        intake={record.data?.intake ?? {}}
-        saving={saveIntake.isPending}
-        saved={saveIntake.isSuccess}
-        error={errorText(saveIntake.error)}
-        onSave={(values) => saveIntake.mutate({ intake: values })}
-      />
+      <IntakeCard intake={record.data?.intake ?? {}} />
+
     </div>
   );
 }

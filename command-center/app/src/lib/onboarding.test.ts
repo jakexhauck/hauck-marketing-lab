@@ -1,3 +1,4 @@
+import { SETUP_PHASES } from "./clientSetup";
 import { describe, it, expect } from "vitest";
 import {
   CHECKLIST_TASKS,
@@ -58,8 +59,11 @@ describe("checklistPhases", () => {
   });
 
   it("keeps each phase name once, in first-seen order", () => {
+    // The phases are the setup process's own (src/lib/clientSetup.ts), so this
+    // asserts they arrive here in order rather than restating them.
     const names = checklistPhases().map((p) => p.phase);
-    expect(names).toEqual(["GHL Setup", "Connections", "Go Live"]);
+    expect(names).toEqual(SETUP_PHASES.map((p) => p.label));
+    expect(new Set(names).size).toBe(names.length);
   });
 });
 
@@ -74,7 +78,7 @@ describe("checklistProgress", () => {
 
   it("counts only tasks marked done", () => {
     const progress = checklistProgress([
-      { taskKey: "phone", done: true },
+      { taskKey: "phone-a2p", done: true },
       { taskKey: "smoke-test", done: false },
     ]);
     expect(progress.done).toBe(1);
@@ -92,16 +96,33 @@ describe("checklistProgress", () => {
 });
 
 describe("intake", () => {
-  it("groups the client-answered wizard steps only", () => {
+  it("groups every funnel step the client answered, in the order they saw them", () => {
     const groups = intakeGroups();
-    expect(groups.map((g) => g.key)).toEqual(["contact", "targeting", "story"]);
+    expect(groups.map((g) => g.key)).toEqual([
+      "business",
+      "contact",
+      "login",
+      "targeting",
+      "story",
+      "assets",
+    ]);
     expect(groups.every((g) => g.fields.length > 0)).toBe(true);
+  });
+
+  it("never renders the password back, not even as an empty row", () => {
+    const keys = intakeGroups().flatMap((g) => g.fields.map((f) => f.key));
+    expect(keys).not.toContain("password");
+    expect(keys).not.toContain("passwordConfirm");
+    expect(INTAKE_KEYS).not.toContain("password");
   });
 
   it("exposes every intake field key and no shell keys", () => {
     expect(INTAKE_KEYS).toContain("contactName");
     expect(INTAKE_KEYS).toContain("targetAreas");
+    // Jake's own technical fields are never on the funnel, so they can never
+    // arrive as an intake answer either.
     expect(INTAKE_KEYS).not.toContain("subdomain");
+    expect(INTAKE_KEYS).not.toContain("ghlToken");
   });
 
   it("counts answered questions, treating whitespace as blank", () => {
