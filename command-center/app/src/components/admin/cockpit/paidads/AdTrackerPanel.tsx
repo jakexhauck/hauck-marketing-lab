@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAdminAdTrackerQuery } from "../../../../hooks/useApi";
+import { useAdminAdTrackerQuery, useAdsSyncMutation } from "../../../../hooks/useApi";
 import type {
   AdTrackerBreakdownRow,
   AdTrackerLevel,
@@ -56,6 +56,24 @@ function roas(value: number | null): string {
   return value === null ? "-" : `${value.toFixed(2)}x`;
 }
 
+// How old the spend snapshot is, said plainly. A dashboard that divides by a
+// stale number does not look broken, it looks wrong-but-plausible, so this line
+// is the difference between catching that and not.
+function spendAge(lastSpendDate: string | null): { text: string; stale: boolean } {
+  if (!lastSpendDate) return { text: "Spend has never been pulled in", stale: true };
+  const today = new Date();
+  const todayIso = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+  );
+  const [y, m, d] = lastSpendDate.split("-").map(Number);
+  const last = Date.UTC(y, (m ?? 1) - 1, d ?? 1);
+  const days = Math.round((todayIso.getTime() - last) / 86_400_000);
+  // One day behind is the healthy state: the cron runs overnight and Meta only
+  // closes out a day after it ends. Two is a missed run.
+  if (days <= 1) return { text: "Spend up to date", stale: false };
+  return { text: `Spend is ${days} days behind`, stale: true };
+}
+
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="adt-kpi">
@@ -71,6 +89,7 @@ export default function AdTrackerPanel({ tenantId }: { tenantId: string }) {
   const [level, setLevel] = useState<AdTrackerLevel>("ad");
 
   const query = useAdminAdTrackerQuery(tenantId, range, level);
+  const sync = useAdsSyncMutation();
 
   if (query.isLoading && !query.data) {
     return <div className="pk-empty">Loading ad tracking...</div>;
@@ -82,6 +101,7 @@ export default function AdTrackerPanel({ tenantId }: { tenantId: string }) {
   const data = query.data!;
   const { kpis } = data;
   const rows: AdTrackerBreakdownRow[] = data.breakdown;
+  const age = spendAge(data.meta.lastSpendDate);
 
   return (
     <div className="adt-wrap">
@@ -95,19 +115,38 @@ export default function AdTrackerPanel({ tenantId }: { tenantId: string }) {
             bookings and revenue matched to ads via the lead's first-touch attribution.
           </p>
         </div>
-        <div className="adt-seg" role="group" aria-label="Date range">
-          {RANGES.map((r) => (
+        <div className="adt-actions">
+          <div className="adt-sync">
+            <span className={age.stale ? "adt-sync-stale" : "adt-sync-ok"}>{age.text}</span>
             <button
-              key={r.id}
               type="button"
-              className={r.id === range ? "adt-seg-on" : ""}
-              onClick={() => setRange(r.id)}
+              className="adt-refresh"
+              onClick={() => sync.mutate(tenantId)}
+              disabled={sync.isPending}
             >
-              {r.label}
+              {sync.isPending ? "Pulling..." : "Refresh spend"}
             </button>
-          ))}
+          </div>
+          <div className="adt-seg" role="group" aria-label="Date range">
+            {RANGES.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                className={r.id === range ? "adt-seg-on" : ""}
+                onClick={() => setRange(r.id)}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
+
+      {sync.isError && (
+        <p className="adt-sync-error">
+          Could not pull spend: {(sync.error as Error | null)?.message ?? "unknown error"}
+        </p>
+      )}
 
       <section className="adt-kpis">
         <Kpi label="Leads" value={String(kpis.leads)} />
@@ -205,6 +244,15 @@ function AdTrackerStyle() {
 .adt-seg button + button { border-left: 1px solid var(--pk-line, rgba(148,163,184,0.28)); }
 .adt-seg button:hover { opacity: 0.9; }
 .adt-seg .adt-seg-on { background: var(--pk-accent-soft, rgba(99,102,241,0.14)); opacity: 1; font-weight: 600; }
+
+.adt-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; flex-shrink: 0; }
+.adt-sync { display: inline-flex; align-items: center; gap: 9px; font-size: 11.5px; }
+.adt-sync-ok { opacity: 0.55; }
+.adt-sync-stale { color: var(--pk-warn, #b45309); font-weight: 600; }
+.adt-refresh { appearance: none; background: transparent; border: 1px solid var(--pk-line, rgba(148,163,184,0.28)); border-radius: 9px; padding: 6px 12px; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; color: inherit; }
+.adt-refresh:hover:not(:disabled) { background: var(--pk-surface, rgba(148,163,184,0.08)); }
+.adt-refresh:disabled { opacity: 0.5; cursor: default; }
+.adt-sync-error { margin: 0; font-size: 12px; color: var(--pk-danger, #dc2626); }
 
 .adt-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px; }
 .adt-kpi { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border: 1px solid var(--pk-line, rgba(148,163,184,0.22)); border-radius: 11px; background: var(--pk-surface, rgba(148,163,184,0.05)); }

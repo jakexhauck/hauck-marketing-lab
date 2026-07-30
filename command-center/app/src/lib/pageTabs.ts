@@ -11,14 +11,15 @@ export interface PageTab {
 }
 
 export const PAID_ADS_TABS: PageTab[] = [
-  // The client tracking sheet, trimmed to what earns a tab (2026-07-23). Lead
-  // Tracker = the lead list (the section default); Meta Data = the raw daily ad
-  // snapshot. Media (live ad creatives) is kept from the old Paid Ads: the one
-  // useful thing the sheet never had. Dashboard, Pipeline Stats and How to Use
-  // were removed at Jake's call.
-  { to: "/marketing/paid-ads", label: "Lead Tracker", end: true },
+  // The client tracking sheet's own tab order (2026-07-30). Dashboard = the
+  // RESULTS + BREAKDOWN report and the section's landing page, exactly as
+  // opening the workbook landed on it; Lead Tracker = the lead list; Meta Data
+  // = the raw daily ad snapshot. Media (live ad creatives) was dropped at
+  // Jake's call: it was never in the sheet. Pipeline Stats and How to Use are
+  // not being rebuilt.
+  { to: "/marketing/paid-ads", label: "Dashboard", end: true },
+  { to: "/marketing/paid-ads/leads", label: "Lead Tracker" },
   { to: "/marketing/paid-ads/meta", label: "Meta Data" },
-  { to: "/marketing/paid-ads/media", label: "Media" },
 ];
 
 export const REVIEWS_TABS: PageTab[] = [

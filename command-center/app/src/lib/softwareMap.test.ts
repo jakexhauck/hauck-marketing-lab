@@ -55,8 +55,8 @@ describe("software map coverage", () => {
   });
 
   it("expands in-page tabs as children of their parent page", () => {
-    const media = pages.find((p) => p.path === "/marketing/paid-ads/media");
-    expect(media?.child).toBe(true);
+    const metaData = pages.find((p) => p.path === "/marketing/paid-ads/meta");
+    expect(metaData?.child).toBe(true);
     // The parent's own row is not a child, and is listed exactly once.
     expect(pages.filter((p) => p.path === "/marketing/paid-ads")).toHaveLength(1);
     expect(pages.find((p) => p.path === "/marketing/paid-ads")?.child).toBeUndefined();

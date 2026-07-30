@@ -15,6 +15,7 @@ import {
 } from "./ghl";
 import { firstTouchAttribution, type AdAttribution } from "./adAttribution";
 import { toSpendRows } from "./metaAdDays";
+import { toAdEntities, type AdEntity } from "./metaAdEntities";
 import { makeInternalConversationFilter } from "./internalRecipients";
 import {
   assembleLeads,
@@ -28,6 +29,10 @@ import {
 export interface TrackerData {
   leads: TrackerLead[];
   spendRows: TrackerSpendRow[];
+  // Meta's structure as it stands today: every campaign, ad set and ad with its
+  // live status. Empty until a sync has run, which the breakdown treats as
+  // "do not filter" rather than "nothing exists".
+  entities: AdEntity[];
   // Contacts holding a card in the Trash pipeline (shown as "Lost").
   lostContacts: Set<string>;
   // One opportunity id per contact (Sales preferred) for the close-out link.
@@ -71,7 +76,7 @@ export async function loadTrackerData(
     for (const s of p.stages ?? []) stageNames.set(s.id, s.name ?? "");
   }
 
-  const [oppSets, contacts, jobsRes, spendRes] = await Promise.all([
+  const [oppSets, contacts, jobsRes, spendRes, entityRes] = await Promise.all([
     Promise.all(wanted.map((p) => fetchAllOpportunities(gctx, { pipelineId: p.id }))),
     fetchAllContacts(gctx),
     client.from("customer_jobs").select("ghl_contact_id, value_cents").eq("tenant_id", tenantId),
@@ -81,10 +86,15 @@ export async function loadTrackerData(
         "date, ad_id, ad_name, adset_id, adset_name, campaign_id, campaign_name, spend, impressions, reach, link_clicks",
       )
       .eq("tenant_id", tenantId),
+    client
+      .from("meta_ad_entities")
+      .select("level, entity_id, name, status, campaign_id, adset_id")
+      .eq("tenant_id", tenantId),
   ]);
 
   if (jobsRes.error) throw new Error(jobsRes.error.message);
   if (spendRes.error) throw new Error(spendRes.error.message);
+  if (entityRes.error) throw new Error(entityRes.error.message);
 
   const attributionByContact = new Map(
     contacts.map((c) => [c.id, firstTouchAttribution(c.attributions)]),
@@ -128,6 +138,7 @@ export async function loadTrackerData(
   return {
     leads,
     spendRows,
+    entities: toAdEntities((entityRes.data ?? []) as Record<string, unknown>[]),
     lostContacts,
     oppIdByContact,
     contactById: new Map(contacts.map((c) => [c.id, c])),

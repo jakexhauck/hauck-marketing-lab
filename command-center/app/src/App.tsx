@@ -47,6 +47,7 @@ import SocialInsights from "./routes/social/SocialInsights";
 import WebsiteOverview from "./routes/website/WebsiteOverview";
 import WebsitePages from "./routes/website/WebsitePages";
 import WebsiteInsights from "./routes/website/WebsiteInsights";
+import AdsDashboard from "./routes/paid-ads/AdsDashboard";
 import AdsLeadTracker from "./routes/paid-ads/AdsLeadTracker";
 import AdsMetaData from "./routes/paid-ads/AdsMetaData";
 import Reactivation from "./routes/sales/Reactivation";
@@ -459,6 +460,7 @@ export default function App() {
                   was dropped 2026-07-30 as it was never in the sheet; Pipeline
                   Stats and How to Use are not being rebuilt. The raw media-buyer
                   dashboard stays at /paid-ads. */}
+              <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsDashboard /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/leads" element={<ProtectedRoute><AdsLeadTracker /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/meta" element={<ProtectedRoute><AdsMetaData /></ProtectedRoute>} />
               {/* Old Paid Ads URLs fold into the current tabs. */}

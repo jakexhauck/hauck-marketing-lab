@@ -1493,6 +1493,27 @@ export function useAdminAdTrackerQuery(
   });
 }
 
+// Pull this client's Meta spend again, now, rather than waiting for the nightly
+// worker (workers/ads-cron). Thirty days rather than the cron's seven: the
+// reason to reach for this button is usually that something looks wrong further
+// back than a week, and the upsert makes a wide window cost nothing but time.
+export function useAdsSyncMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tenantId: string) =>
+      api<{ days: number; rows: number }>(
+        `/api/admin/ads/sync?tenantId=${encodeURIComponent(tenantId)}&days=30`,
+        { method: "POST" },
+      ),
+    // Both trackers read the same meta_ad_days rows, so a refresh triggered from
+    // the admin panel has to move the client's own page too.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "ad-tracker"] });
+      qc.invalidateQueries({ queryKey: ["ads-tracker"] });
+      qc.invalidateQueries({ queryKey: ["ads-meta-data"] });
+    },
+  });
+}
 
 
 // One client's real GA4 numbers for the Fulfillment cockpit's Web Design >

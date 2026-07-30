@@ -3,6 +3,7 @@ import { getServiceClient } from "../../../lib/supabase";
 import { logAdminAction } from "../../../lib/adminAuth";
 import { resolveAdAccount } from "../../../lib/metaGraph";
 import { buildAdDayUpserts, fetchAdDays } from "../../../lib/metaAdDays";
+import { buildEntityUpserts, fetchAdEntities } from "../../../lib/metaAdEntities";
 
 // Refresh the per-ad, per-day Meta spend snapshot that backs the Ad Tracker.
 // Replaces the Make scenario "AC: (Local Ads School) Client Meta Data Feed".
@@ -13,12 +14,13 @@ import { buildAdDayUpserts, fetchAdDays } from "../../../lib/metaAdDays";
 //
 // Auth is enforced upstream in _middleware.ts (admin session only).
 //
-// SCHEDULING: Cloudflare Pages has no cron trigger, and this repo has no
-// scheduler of any kind yet, so nothing calls this automatically. It is safe to
-// call as often as you like: the (tenant_id, date, ad_id) upsert makes a re-run
-// a no-op, which is the whole reason it was built this way rather than
-// appending like Make did. Wiring a nightly trigger is a config change, not a
-// code change.
+// SCHEDULING: Cloudflare Pages has no cron trigger, so the nightly run lives in
+// a separate Worker (workers/ads-cron) that calls this route with a shared
+// secret. That path is gated in _middleware.ts via lib/adsCron.ts and carries no
+// admin session, which is why the audit write below is conditional. It is safe
+// to call as often as you like: the (tenant_id, date, ad_id) upsert makes a
+// re-run a no-op, which is the whole reason it was built this way rather than
+// appending like Make did.
 
 const DEFAULT_DAYS = 7;
 // Chunked so a client with many ads does not exceed the statement size.
@@ -34,8 +36,49 @@ interface SyncResult {
   tenantId: string;
   name: string;
   rows?: number;
+  // Campaigns + ad sets + ads whose structure and live status were refreshed.
+  entities?: number;
   skipped?: string;
   error?: string;
+}
+
+// Refresh the account's structure: every campaign, ad set and ad, with the
+// status Meta reports today. This is what lets the client breakdown scope
+// itself to the live campaign and mark the ads actually running.
+//
+// Replaced whole rather than merged. A campaign deleted in Meta must disappear
+// here too, or the page keeps filtering toward a campaign that no longer exists,
+// and the client sees an empty breakdown with no explanation.
+async function syncEntities(
+  client: NonNullable<ReturnType<typeof getServiceClient>>,
+  tenantId: string,
+  token: string,
+  account: string,
+): Promise<number> {
+  const entities = await fetchAdEntities(token, account);
+  const upserts = buildEntityUpserts(entities, tenantId);
+  if (upserts.length === 0) return 0;
+
+  const now = new Date().toISOString();
+  for (let i = 0; i < upserts.length; i += CHUNK) {
+    const chunk = upserts.slice(i, i + CHUNK).map((r) => ({ ...r, updated_at: now }));
+    const { error } = await client
+      .from("meta_ad_entities")
+      .upsert(chunk, { onConflict: "tenant_id,entity_id" });
+    if (error) throw new Error(error.message);
+  }
+
+  // Anything not in this pull no longer exists in the account. Deleting by
+  // "older than this run" rather than by id list keeps the statement small
+  // however many ads the client has.
+  const { error: pruneError } = await client
+    .from("meta_ad_entities")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .lt("updated_at", now);
+  if (pruneError) throw new Error(pruneError.message);
+
+  return upserts.length;
 }
 
 async function syncTenant(
@@ -50,15 +93,19 @@ async function syncTenant(
   if (!account) return { tenantId: tenant.id, name, skipped: "no ad account" };
 
   let rows;
+  let entities = 0;
   try {
     rows = await fetchAdDays(token, account, days);
+    // Structure and status, for the client breakdown's live-campaign scope.
+    // Same try block: if Meta will not talk to us, neither half is trustworthy.
+    entities = await syncEntities(client!, tenant.id, token, account);
   } catch (err) {
     // One client's broken ad account must not abort the others.
     return { tenantId: tenant.id, name, error: String(err).slice(0, 200) };
   }
 
   const upserts = buildAdDayUpserts(rows, tenant.id);
-  if (upserts.length === 0) return { tenantId: tenant.id, name, rows: 0 };
+  if (upserts.length === 0) return { tenantId: tenant.id, name, rows: 0, entities };
 
   const now = new Date().toISOString();
   for (let i = 0; i < upserts.length; i += CHUNK) {
@@ -69,7 +116,7 @@ async function syncTenant(
     if (error) return { tenantId: tenant.id, name, error: error.message };
   }
 
-  return { tenantId: tenant.id, name, rows: upserts.length };
+  return { tenantId: tenant.id, name, rows: upserts.length, entities };
 }
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -102,12 +149,25 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   }
 
   const synced = results.reduce((sum, r) => sum + (r.rows ?? 0), 0);
-  await logAdminAction(client, ctx.data.admin!.id, "ads.metaAdDays.sync", onlyTenant, {
-    days,
-    tenants: results.length,
-    rows: synced,
-    failed: results.filter((r) => r.error).length,
-  });
+  const failed = results.filter((r) => r.error).length;
+
+  // The scheduler reaches this handler without an admin session (see the
+  // SCHEDULING note above), so there is no admin id to attribute the row to.
+  // Log to the console instead of inventing an actor: an audit trail that names
+  // the wrong person is worse than one that says "the cron did it".
+  const admin = ctx.data.admin;
+  if (admin) {
+    await logAdminAction(client, admin.id, "ads.metaAdDays.sync", onlyTenant, {
+      days,
+      tenants: results.length,
+      rows: synced,
+      failed,
+    });
+  } else {
+    console.log(
+      `[ads/sync] scheduled run: ${results.length} clients, ${synced} rows, ${failed} failed`,
+    );
+  }
 
   return Response.json({ days, rows: synced, results });
 };

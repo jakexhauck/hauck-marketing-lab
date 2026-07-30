@@ -10,6 +10,9 @@ import {
   breakdown,
   ratio,
   trackerPipelineRole,
+  liveCampaignIds,
+  type BreakdownEntity,
+  type BreakdownLevel,
   type TrackerLead,
   assembleLeads,
   type TrackerSpendRow,
@@ -201,11 +204,62 @@ describe("trackerPipelineRole", () => {
     expect(trackerPipelineRole("6) Trash Pipeline")).toBe("trash");
   });
 
+  // The exact names live in Willis's GHL as of 2026-07-30, after the 07-28
+  // realignment. This is the regression guard for that rename: it matched none
+  // of the keywords above, so the tracker returned zero leads while spend kept
+  // arriving, and nothing failed loudly enough to notice.
+  it("classifies the realigned four-pipeline CRM", () => {
+    expect(trackerPipelineRole("1) Leads")).toBe("lead");
+    expect(trackerPipelineRole("2) No Answer")).toBe("lead");
+    expect(trackerPipelineRole("3) Sales")).toBe("lead");
+    expect(trackerPipelineRole("4) Trash")).toBe("trash");
+  });
+
   it("ignores pipelines that are not paid-ad leads", () => {
     expect(trackerPipelineRole("Organic")).toBeNull();
     expect(trackerPipelineRole("Google Reviews")).toBeNull();
     expect(trackerPipelineRole("Reactivation")).toBeNull();
+    expect(trackerPipelineRole("News Channel")).toBeNull();
     expect(trackerPipelineRole("")).toBeNull();
+  });
+});
+
+// Every stage of the four live pipelines, so a lead can never sit in a real
+// stage and be counted as bare "lead" by accident.
+describe("deriveLevel across the realigned pipelines", () => {
+  it("reads 1) Leads", () => {
+    expect(deriveLevel("Lead Form Opt In")).toBe("lead");
+    expect(deriveLevel("Funnel Opt In")).toBe("lead");
+    expect(deriveLevel("Lead Follow Up")).toBe("pickup");
+    expect(deriveLevel("Phone Appt")).toBe("booking");
+    expect(deriveLevel("Slow Burn")).toBe("lead");
+    expect(deriveLevel("Long Term Nurture")).toBe("lead");
+  });
+
+  it("reads 2) No Answer as dialled-but-never-reached", () => {
+    // We rang, they never picked up. No contact was made, so it is not a pickup.
+    for (const day of [1, 2, 3, 4, 5, 6, 7]) {
+      expect(deriveLevel(`No Answer Day ${day}`)).toBe("lead");
+    }
+  });
+
+  it("reads 3) Sales", () => {
+    expect(deriveLevel("Handed Off")).toBe("booking");
+    expect(deriveLevel("Estimate Booked")).toBe("booking");
+    expect(deriveLevel("Job Booked")).toBe("booking");
+    expect(deriveLevel("Won")).toBe("sale");
+    expect(deriveLevel("Follow Up")).toBe("pickup");
+    // The appointment happened and then fell through. It still counts as a
+    // booking for the ad that earned it.
+    expect(deriveLevel("Job/Estimate Cancelled")).toBe("booking");
+    expect(deriveLevel("Lost")).toBe("lead");
+  });
+
+  it("reads 4) Trash as bare leads", () => {
+    expect(deriveLevel("Services Uninterested")).toBe("lead");
+    expect(deriveLevel("Services Unqualified")).toBe("lead");
+    expect(deriveLevel("Bad Intent")).toBe("lead");
+    expect(deriveLevel("DND")).toBe("lead");
   });
 });
 
@@ -504,5 +558,116 @@ describe("assembleLeads", () => {
     );
     expect(lead.level).toBe("sale");
     expect(lead.value).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scoping the breakdown to the live campaign (Jake's rule, 2026-07-30).
+//
+// The client breakdown shows the campaign they are paying for right now, with
+// every ad in it listed and the ones actually running marked and sorted first.
+// Results above it stays unscoped, which is why the page says which campaign it
+// is showing.
+// ---------------------------------------------------------------------------
+
+function ent(
+  id: string,
+  level: BreakdownLevel,
+  campaignId: string,
+  live: boolean,
+): BreakdownEntity {
+  return { id, level, campaignId, name: `${level} ${id}`, live };
+}
+
+// Two campaigns: "live1" is running, "old1" is paused. Ad a1 (running) and a2
+// (paused, has spent) sit in the live one; a9 sits in the paused one. Ad a3 is
+// in the live campaign and has never run.
+const ENTITIES: BreakdownEntity[] = [
+  ent("live1", "campaign", "live1", true),
+  ent("old1", "campaign", "old1", false),
+  ent("a1", "ad", "live1", true),
+  ent("a2", "ad", "live1", false),
+  ent("a3", "ad", "live1", false),
+  ent("a9", "ad", "old1", false),
+];
+
+function adSpend(adId: string, spend: number): TrackerSpendRow {
+  return { ...spendRow(adId, "A", spend), adName: `ad ${adId}` };
+}
+
+describe("breakdown scoped to the live campaign", () => {
+  const spend = [adSpend("a1", 80), adSpend("a2", 20), adSpend("a9", 500)];
+
+  it("drops rows outside the live campaign", () => {
+    const rows = breakdown([], spend, "ad", null, ENTITIES);
+    expect(rows.map((r) => r.id).sort()).toEqual(["a1", "a2", "a3"]);
+    // The paused campaign's ad spent the most, and is still gone.
+    expect(rows.find((r) => r.id === "a9")).toBeUndefined();
+  });
+
+  it("lists an ad that has never run, at zero", () => {
+    const a3 = breakdown([], spend, "ad", null, ENTITIES).find((r) => r.id === "a3")!;
+    expect(a3).toMatchObject({ spend: 0, leads: 0, live: false });
+    // Not "-": zero spend is a measured zero. The null ratios are what say
+    // nothing could be divided.
+    expect(a3.costPerLead).toBeNull();
+  });
+
+  it("puts what is running at the top, whatever it spent", () => {
+    // a2 outspends nothing here, but a1 is the only live one, so it leads.
+    const rows = breakdown([], [adSpend("a1", 1), adSpend("a2", 999)], "ad", null, ENTITIES);
+    expect(rows[0].id).toBe("a1");
+    expect(rows[0].live).toBe(true);
+    expect(rows[1].id).toBe("a2");
+  });
+
+  it("scopes the campaign level to the live campaign itself", () => {
+    const rows = breakdown([], spend, "campaign", null, ENTITIES);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: "live1", live: true });
+  });
+
+  it("shows everything when no campaign is live", () => {
+    // Between campaigns. A blank breakdown would be a worse answer than an
+    // unfiltered one, so nothing is filtered and nothing is badged.
+    const paused = ENTITIES.map((e) => ({ ...e, live: false }));
+    const rows = breakdown([], spend, "ad", null, paused);
+    expect(rows.map((r) => r.id).sort()).toEqual(["a1", "a2", "a9"]);
+    expect(rows.every((r) => !r.live)).toBe(true);
+  });
+
+  it("shows everything when no structure has been synced", () => {
+    const rows = breakdown([], spend, "ad", null, []);
+    expect(rows.map((r) => r.id).sort()).toEqual(["a1", "a2", "a9"]);
+  });
+
+  it("counts leads only for the ads it kept", () => {
+    const rows = breakdown(
+      [...leads(3, "a1", "booking"), ...leads(5, "a9", "booking")],
+      spend,
+      "ad",
+      null,
+      ENTITIES,
+    );
+    expect(rows.find((r) => r.id === "a1")!.leads).toBe(3);
+    expect(rows.find((r) => r.id === "a9")).toBeUndefined();
+  });
+});
+
+describe("liveCampaignIds", () => {
+  it("returns the live campaigns", () => {
+    expect(liveCampaignIds(ENTITIES)).toEqual(new Set(["live1"]));
+  });
+
+  it("returns null when nothing is live, meaning do not filter", () => {
+    expect(liveCampaignIds(ENTITIES.map((e) => ({ ...e, live: false })))).toBeNull();
+    expect(liveCampaignIds([])).toBeNull();
+  });
+
+  it("ignores a live ad whose campaign is paused", () => {
+    // Meta reports an ad's own status separately from its campaign's, so an ad
+    // can read ACTIVE inside a paused campaign. The campaign is the authority.
+    expect(liveCampaignIds([ent("old1", "campaign", "old1", false), ent("a9", "ad", "old1", true)]))
+      .toBeNull();
   });
 });

@@ -9,9 +9,11 @@ import {
 } from "../../../../lib/ghl";
 import { firstTouchAttribution } from "../../../../lib/adAttribution";
 import { toSpendRows } from "../../../../lib/metaAdDays";
+import { toAdEntities } from "../../../../lib/metaAdEntities";
 import {
   assembleLeads,
   breakdown,
+  lastSpendDate,
   rangeStart,
   rollup,
   trackerPipelineRole,
@@ -86,7 +88,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     for (const s of p.stages ?? []) stageNames.set(s.id, s.name ?? "");
   }
 
-  const [oppSets, contacts, jobsRes, spendRes] = await Promise.all([
+  const [oppSets, contacts, jobsRes, spendRes, entityRes] = await Promise.all([
     Promise.all(wanted.map((pipelineId) => fetchAllOpportunities(gctx, { pipelineId }))),
     fetchAllContacts(gctx),
     client
@@ -100,10 +102,15 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       )
       .eq("tenant_id", tenantId)
       .gte("date", start ?? "1970-01-01"),
+    client
+      .from("meta_ad_entities")
+      .select("level, entity_id, name, status, campaign_id, adset_id")
+      .eq("tenant_id", tenantId),
   ]);
 
   if (jobsRes.error) return Response.json({ error: jobsRes.error.message }, { status: 500 });
   if (spendRes.error) return Response.json({ error: spendRes.error.message }, { status: 500 });
+  if (entityRes.error) return Response.json({ error: entityRes.error.message }, { status: 500 });
 
   const attributionByContact = new Map(
     contacts.map((c) => [c.id, firstTouchAttribution(c.attributions)]),
@@ -128,8 +135,10 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const leads = assembleLeads(opportunities, stageNames, attributionByContact, jobValueByContact);
   const spendRows = toSpendRows((spendRes.data ?? []) as Record<string, unknown>[]);
 
+  const entities = toAdEntities((entityRes.data ?? []) as Record<string, unknown>[]);
+
   const kpis = rollup(leads, spendRows, start);
-  const rows = breakdown(leads, spendRows, level, start);
+  const rows = breakdown(leads, spendRows, level, start, entities);
 
   // Leads inside the window that carry no ad id. Surfaced so the KPI row and
   // the breakdown never look like they disagree: the breakdown is always the
@@ -153,6 +162,18 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       // True when nothing has ever been snapshotted, which reads identically to
       // "no spend" on the page. The UI uses it to say which.
       neverSynced: spendRows.length === 0,
+      // The most recent day in the snapshot. Every cost and ROAS figure on the
+      // page divides by spend, so a snapshot running days behind makes them
+      // quietly wrong rather than obviously missing. Surfacing the date is what
+      // lets the panel say so out loud.
+      lastSpendDate: lastSpendDate(spendRows),
+      // The campaigns the breakdown is scoped to. Empty means it is showing
+      // everything, either because nothing is live or because no structure has
+      // been synced yet. The page has to say which, since Results above it is
+      // never scoped and the two columns will not otherwise add up.
+      liveCampaigns: entities
+        .filter((e) => e.level === "campaign" && e.live)
+        .map((e) => e.name),
     },
   });
 };

@@ -27,10 +27,16 @@ const LEVEL_ORDER: Record<TrackerLevel, number> = {
   sale: 3,
 };
 
-// Live GHL stage name (normalised) -> level. Re-pulled 2026-07-24 from Willis's
-// real pipelines (1) Lead Form, 2) Funnel, 3) Sales, 4) Cancelled Appointments,
-// 5) Trash). Stages absent here fall through to "lead", which counts the contact
-// without inventing progress for it.
+// Live GHL stage name (normalised) -> level. Re-pulled 2026-07-30 from Willis's
+// real pipelines, which the 2026-07-28 CRM realignment reduced to four:
+// 1) Leads, 2) No Answer, 3) Sales, 4) Trash. Stages absent here fall through
+// to "lead", which counts the contact without inventing progress for it.
+//
+// The pre-realignment names are kept below rather than deleted. A client who has
+// not been migrated still runs them, and the failure mode of a missing name is
+// silent: the lead is counted but never progresses, so the client's booking rate
+// quietly reads zero. That is exactly what happened between 28 and 30 July,
+// when this map still named pipelines that no longer existed.
 //
 // The ladder is: lead (came in) -> pickup (we made contact / they responded) ->
 // booking (an appointment or estimate exists) -> sale (paying customer).
@@ -49,7 +55,26 @@ const LEVEL_ORDER: Record<TrackerLevel, number> = {
 //                                          The old Customers pipeline that used
 //                                          to carry this is gone.)
 const STAGE_LEVELS: Record<string, TrackerLevel> = {
-  // 1) Lead Form Pipeline
+  // 1) Leads (post-realignment: the lead form and the funnel share one pipeline,
+  // and a phone appointment is one stage rather than three).
+  "lead form opt in": "lead",
+  "funnel opt in": "lead",
+  "lead follow up": "pickup",
+  "phone appt": "booking",
+  "slow burn": "lead",
+
+  // 3) Sales. "Job/Estimate Cancelled" sits above the two booked keys because
+  // the prefix pass would otherwise never reach it. It stays a booking: the
+  // appointment did happen, and demoting it would understate the ad that earned
+  // it. The client-facing status disagrees on purpose (leadStatus.ts calls it
+  // Follow Up), because "did an appointment exist" and "what should I do about
+  // this lead today" are different questions.
+  "job/estimate cancelled": "booking",
+
+  // 4) Trash
+  dnd: "lead",
+
+  // 1) Lead Form Pipeline (pre-realignment)
   "opted in (needs dialing)": "lead",
   "opted in follow up": "pickup",
   "long term nurture": "lead",
@@ -84,11 +109,18 @@ const STAGE_LEVELS: Record<string, TrackerLevel> = {
 
 // Which tracker pipelines a live pipeline belongs to, matched by name because
 // ids are per-location. Returns null for pipelines the ad tracker ignores
-// (Organic, Google Reviews, Reactivation): those are not paid-ad leads.
+// (Organic, Google Reviews, Reactivation, News Channel): those are not paid-ad
+// leads.
 //
-//   lead      the ad-lead journey (Lead Form, Funnel, Sales, Cancelled Appts)
+//   lead      the ad-lead journey (Leads, No Answer, Sales, and the
+//             pre-realignment Lead Form / Funnel / Cancelled Appointments)
 //   customers the Customers pipeline (a sale signal)
 //   trash     the Trash pipeline (marks a contact "Lost")
+//
+// Getting this wrong does not throw, it returns zero leads while spend keeps
+// arriving, which is a dashboard that looks alive and reads nonsense. The
+// 2026-07-28 realignment renamed "1) Lead Form" to "1) Leads" and "2) Funnel"
+// to "2) No Answer", and this function matched neither until 2026-07-30.
 export type PipelineRole = "lead" | "customers" | "trash";
 
 export function trackerPipelineRole(name: string): PipelineRole | null {
@@ -98,6 +130,10 @@ export function trackerPipelineRole(name: string): PipelineRole | null {
   if (key.includes("trash")) return "trash";
   if (key.includes("customer")) return "customers";
   if (
+    // Post-realignment names.
+    key.includes("leads") ||
+    key.includes("no answer") ||
+    // Pre-realignment names, for a client who has not been migrated.
     key.includes("lead form") ||
     key.includes("funnel") ||
     key.includes("sales") ||
@@ -220,6 +256,21 @@ export interface BreakdownRow {
   roas: number | null;
   costPerLead: number | null;
   costPerBooking: number | null;
+  // Running in Meta right now. Drives the "Live" badge and sorts the row to the
+  // top, so the client's eye lands on what their money is buying today rather
+  // than on whichever dead creative happened to spend the most historically.
+  live: boolean;
+}
+
+// One campaign / ad set / ad as Meta describes it today. Supplied by
+// lib/metaAdEntities.ts; kept as a structural type here so the arithmetic stays
+// free of that module and its network calls.
+export interface BreakdownEntity {
+  id: string;
+  level: BreakdownLevel;
+  name: string;
+  campaignId: string;
+  live: boolean;
 }
 
 // A zero denominator yields null, never 0 and never Infinity. The UI renders
@@ -245,6 +296,22 @@ export function rangeStart(range: TrackerRange, now: Date): string | null {
 function inRange(value: string, start: string | null): boolean {
   if (!start) return true;
   return String(value).slice(0, 10) >= start;
+}
+
+// The most recent day present in the spend snapshot, or null if it is empty.
+//
+// Worth its own function because a stale snapshot is the quietest way for this
+// page to lie: spend simply stops growing, and every ROAS, cost per lead and
+// cost per booking derived from it drifts up looking perfectly plausible. The
+// UI shows this date so the staleness is visible rather than inferred.
+export function lastSpendDate(spendRows: TrackerSpendRow[]): string | null {
+  let latest: string | null = null;
+  for (const r of spendRows) {
+    const d = String(r.date ?? "").slice(0, 10);
+    if (!d) continue;
+    if (latest === null || d > latest) latest = d;
+  }
+  return latest;
 }
 
 export function rollup(
@@ -299,6 +366,20 @@ function groupOf(row: TrackerSpendRow, level: BreakdownLevel): GroupKey {
   return { id: row.adId, name: row.adName };
 }
 
+// Which campaign the breakdown is scoped to: the one Meta says is live.
+//
+// Returns null when no entity data has been synced yet, or when nothing is
+// live. Both cases mean "do not filter": a blank breakdown is a worse answer
+// than an unfiltered one, and a client between campaigns should still see where
+// their money went.
+export function liveCampaignIds(entities: BreakdownEntity[]): Set<string> | null {
+  const live = new Set<string>();
+  for (const e of entities) {
+    if (e.level === "campaign" && e.live) live.add(e.id);
+  }
+  return live.size > 0 ? live : null;
+}
+
 // Pivot spend and leads to one row per campaign / ad set / ad.
 //
 // The spend rows own the hierarchy: GHL gives us an ad id and nothing else, so
@@ -308,36 +389,70 @@ function groupOf(row: TrackerSpendRow, level: BreakdownLevel): GroupKey {
 //   - a lead whose ad id we have never seen spend for is dropped from the
 //     breakdown; it is still counted by rollup(), and the caller surfaces the
 //     difference as an unattributed count so the two never look inconsistent.
+//
+// `entities` (Meta's live structure, from lib/metaAdEntities.ts) changes two
+// things when supplied and a campaign is live, per Jake's rule of 2026-07-30:
+//   - rows outside the live campaign are dropped, so a client sees the campaign
+//     they are paying for rather than a museum of dead ones
+//   - every entity in it gets a row even if it has never spent, and the ones
+//     actually running are marked live and sorted to the top
+//
+// Note that this scopes the BREAKDOWN only. The Results block above it stays the
+// true total for the date range, which is the sheet's behaviour and Jake's
+// explicit call: the two answer different questions, so they are allowed to
+// differ, and the page says so.
 export function breakdown(
   leads: TrackerLead[],
   spendRows: TrackerSpendRow[],
   level: BreakdownLevel,
   start: string | null = null,
+  entities: BreakdownEntity[] = [],
 ): BreakdownRow[] {
   const rows = new Map<string, BreakdownRow>();
   const adToGroup = new Map<string, string>();
+
+  const liveCampaigns = liveCampaignIds(entities);
+  const atLevel = entities.filter((e) => e.level === level);
+  const inScope = liveCampaigns
+    ? new Set(atLevel.filter((e) => liveCampaigns.has(e.campaignId)).map((e) => e.id))
+    : null;
+  const entityById = new Map(atLevel.map((e) => [e.id, e]));
+
+  const blank = (id: string, name: string): BreakdownRow => ({
+    id,
+    name,
+    spend: 0,
+    leads: 0,
+    bookings: 0,
+    sales: 0,
+    revenue: 0,
+    roas: null,
+    costPerLead: null,
+    costPerBooking: null,
+    live: entityById.get(id)?.live ?? false,
+  });
+
+  // Seed from Meta's own structure so an ad that has never run still gets a row.
+  // Only possible when we have entity data; spend rows alone cannot know that an
+  // ad exists.
+  if (inScope) {
+    for (const id of inScope) {
+      const e = entityById.get(id)!;
+      rows.set(id, blank(id, e.name));
+    }
+  }
 
   for (const row of spendRows.filter((r) => inRange(r.date, start))) {
     const { id, name } = groupOf(row, level);
     if (!id) continue;
     adToGroup.set(row.adId, id);
+    if (inScope && !inScope.has(id)) continue;
 
     const existing = rows.get(id);
     if (existing) {
       existing.spend += row.spend;
     } else {
-      rows.set(id, {
-        id,
-        name,
-        spend: row.spend,
-        leads: 0,
-        bookings: 0,
-        sales: 0,
-        revenue: 0,
-        roas: null,
-        costPerLead: null,
-        costPerBooking: null,
-      });
+      rows.set(id, { ...blank(id, name), spend: row.spend });
     }
   }
 
@@ -372,7 +487,12 @@ export function breakdown(
     row.costPerBooking = ratio(row.spend, row.bookings);
   }
 
-  return [...rows.values()].sort((a, b) => b.spend - a.spend);
+  // Live first, then by spend. What is running today is the thing worth looking
+  // at; among the rest, the biggest spender is.
+  return [...rows.values()].sort((a, b) => {
+    if (a.live !== b.live) return a.live ? -1 : 1;
+    return b.spend - a.spend;
+  });
 }
 
 // Fold opportunities, contact attribution and the job ledger into one lead per

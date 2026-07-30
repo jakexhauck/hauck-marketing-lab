@@ -15,6 +15,7 @@ import {
 } from "../../lib/leadWhen";
 import {
   breakdown,
+  lastSpendDate,
   rangeStart,
   rollup,
   type BreakdownLevel,
@@ -76,7 +77,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   }
 
   const kpis = rollup(data.leads, data.spendRows, start);
-  const rows = breakdown(data.leads, data.spendRows, level, start);
+  const rows = breakdown(data.leads, data.spendRows, level, start, data.entities);
   const unattributed = data.leads.filter(
     (l) => !l.adId && (!start || l.createdAt.slice(0, 10) >= start),
   ).length;
@@ -161,6 +162,16 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
       opportunities: data.opportunitiesCount,
       spendDays: data.spendRows.length,
       neverSynced: data.spendRows.length === 0,
+      // See lastSpendDate(): every cost and ROAS figure divides by spend, so a
+      // snapshot running days behind is wrong rather than merely incomplete.
+      lastSpendDate: lastSpendDate(data.spendRows),
+      // The campaigns the breakdown is scoped to. Empty means it is showing
+      // everything, either because nothing is live or because no structure has
+      // been synced yet. The page has to say which, since Results above it is
+      // never scoped and the two columns will not otherwise add up.
+      liveCampaigns: data.entities
+        .filter((e) => e.level === "campaign" && e.live)
+        .map((e) => e.name),
     },
   });
 };
