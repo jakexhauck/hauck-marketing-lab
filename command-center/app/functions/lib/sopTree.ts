@@ -1,9 +1,13 @@
 import { FOLDER_MIME, type DriveFile } from "./driveDirect";
 
-// How the walk reads one folder. Injected rather than imported so the tree does
-// not care whether Drive is reached through our own OAuth grant or brokered by
+// How the walk reads folders. Injected rather than imported so the tree does not
+// care whether Drive is reached through our own OAuth grant or brokered by
 // Composio; see driveComposio.ts for why there are two.
-export type ListFolder = (folderId: string) => Promise<DriveFile[]>;
+//
+// PLURAL, and that is the whole point: the walk asks for a level at a time, not
+// a folder at a time. Must answer with an entry for every id it was given, even
+// an empty one.
+export type ListFolders = (folderIds: string[]) => Promise<Map<string, DriveFile[]>>;
 
 // Turns the agency's "SOPs Templates" Drive folder into the shape the admin hub
 // renders. The folder already encodes everything we need, so nothing is invented:
@@ -181,29 +185,68 @@ export interface SopTree {
  *
  * The walk is bounded and tracks visited ids: Drive folders are user-editable and
  * a shortcut loop must not spin a Worker until it times out.
+ *
+ * It reads BREADTH-first and builds depth-first, which is why the two halves are
+ * separate below. Depth-first reading meant one Drive call per folder, 32 of them
+ * in sequence on every load, and through Composio's shared quota that burst came
+ * back 429. A level at a time is one call per level: six, for the same tree and
+ * the same output.
  */
-export async function buildSopTree(list: ListFolder, rootId: string): Promise<SopTree> {
+export async function buildSopTree(list: ListFolders, rootId: string): Promise<SopTree> {
   const visited = new Set<string>([rootId]);
+  // What the read half hands the build half: every folder's children, and the
+  // child folders each one actually claimed.
+  const childrenById = new Map<string, DriveFile[]>();
+  const walkedUnder = new Map<string, string[]>();
 
-  const walk = async (folderId: string, path: string[], depth: number): Promise<SopFolderNode> => {
-    const children = await list(folderId);
+  // A folder reachable from two parents belongs to whichever claimed it first,
+  // exactly as the depth-first walk decided it. Without that a Drive shortcut
+  // loop would put a folder inside itself.
+  const claim = (parentId: string, children: DriveFile[]): string[] => {
+    const ids: string[] = [];
+    for (const child of children) {
+      if (child.mimeType !== FOLDER_MIME) continue;
+      if (isExcludedFolder(child.name)) continue;
+      if (visited.has(child.id)) continue;
+      visited.add(child.id);
+      ids.push(child.id);
+    }
+    walkedUnder.set(parentId, ids);
+    return ids;
+  };
+
+  const rootChildren = (await list([rootId])).get(rootId) ?? [];
+  childrenById.set(rootId, rootChildren);
+
+  let frontier = claim(rootId, rootChildren);
+  for (let depth = 1; depth <= MAX_DEPTH && frontier.length > 0; depth++) {
+    const level = await list(frontier);
+    const next: string[] = [];
+    for (const id of frontier) {
+      const children = level.get(id) ?? [];
+      childrenById.set(id, children);
+      // At the bound the folder is still read, so its own SOPs survive; only
+      // what sits below it is left out, which is what the depth limit means.
+      if (depth < MAX_DEPTH) next.push(...claim(id, children));
+      else walkedUnder.set(id, []);
+    }
+    frontier = next;
+  }
+
+  const build = (folderId: string, path: string[]): SopFolderNode => {
+    const children = childrenById.get(folderId) ?? [];
     const own = buildCategory(
       path[path.length - 1],
       path.map(slugify).join("/"),
       children,
       path.slice(0, -1),
     );
-
-    const folders: SopFolderNode[] = [];
-    if (depth < MAX_DEPTH) {
-      for (const child of children) {
-        if (child.mimeType !== FOLDER_MIME) continue;
-        if (isExcludedFolder(child.name)) continue;
-        if (visited.has(child.id)) continue;
-        visited.add(child.id);
-        folders.push(await walk(child.id, [...path, child.name], depth + 1));
-      }
-    }
+    // Iterating `children` rather than the claimed ids keeps Drive's own
+    // folder,name ordering.
+    const claimed = new Set(walkedUnder.get(folderId) ?? []);
+    const folders = children
+      .filter((c) => claimed.has(c.id))
+      .map((c) => build(c.id, [...path, c.name]));
 
     return {
       ...own,
@@ -213,19 +256,13 @@ export async function buildSopTree(list: ListFolder, rootId: string): Promise<So
     };
   };
 
-  const rootChildren = await list(rootId);
   // Loose Docs and files at the root belong to no folder, so they sit at the top
   // level beside the folders rather than inside an invented "General" one.
   const rootOwn = buildCategory("General", "general", rootChildren);
-
-  const folders: SopFolderNode[] = [];
-  for (const child of rootChildren) {
-    if (child.mimeType !== FOLDER_MIME) continue;
-    if (isExcludedFolder(child.name)) continue;
-    if (visited.has(child.id)) continue;
-    visited.add(child.id);
-    folders.push(await walk(child.id, [child.name], 1));
-  }
+  const rootClaimed = new Set(walkedUnder.get(rootId) ?? []);
+  const folders = rootChildren
+    .filter((c) => rootClaimed.has(c.id))
+    .map((c) => build(c.id, [c.name]));
 
   return { folders, sops: rootOwn.sops, attachments: rootOwn.attachments };
 }
