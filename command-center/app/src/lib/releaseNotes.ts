@@ -26,6 +26,20 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-31-keys-panel",
+    date: "31 July 2026",
+    title: "Agency keys, pasted and applied without a terminal",
+    items: [
+      "Onboarding has a third tab, Keys. It holds every agency credential the app runs on, grouped by what each one switches on: paid ads, lead sync, calendars, email, Drive, sign-in, the scheduled jobs.",
+      'Each key says one of three things. "Not set" means nowhere. "Saved, pending restart" means it is stored but the running app has not picked it up. "Live" means it is actually in use.',
+      'Saving a key no longer leaves you a shell command. Paste what you have, then press "Apply and restart" once at the bottom and the whole batch goes live together, in about two minutes.',
+      "Four keys are invented rather than pasted, and now have a Generate button: the session secret, both scheduled-job secrets, and the push notification pair. Each one warns you what changing it costs first, because rotating the session secret signs everybody out and rotating the push pair unsubscribes every device.",
+      "A generated value is shown once so it can be copied where it is also needed, then masked like everything else.",
+      "Six keys are visible but deliberately not editable: the three that grant this page its own access, and the three database ones a new client never needs touched.",
+      "The same panel is on Settings > Secrets, so it can be worked from either side.",
+    ],
+  },
+  {
     id: "2026-07-31-on-call",
     date: "31 July 2026",
     title: "A page to work the sales call on, while you are on it",

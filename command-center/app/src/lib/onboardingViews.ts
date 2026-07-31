@@ -11,7 +11,7 @@
 // whose real work was on the setup page anyway. Old ?view=pipeline links land on
 // setup rather than on nothing.
 
-export type OnboardingView = "setup" | "management";
+export type OnboardingView = "setup" | "management" | "keys";
 
 export interface OnboardingViewDef {
   id: OnboardingView;
@@ -30,6 +30,14 @@ export const ONBOARDING_VIEWS: OnboardingViewDef[] = [
     id: "management",
     label: "Management",
     blurb: "The process itself. Editing a step here changes it for every client.",
+  },
+  {
+    // Agency-wide, not per client, and here anyway: standing a client up is
+    // when a missing key is discovered, and Settings is the wrong side of the
+    // app to go hunting mid-onboarding. Same component either way.
+    id: "keys",
+    label: "Keys",
+    blurb: "The agency credentials every client depends on. Paste, apply, live.",
   },
 ];
 

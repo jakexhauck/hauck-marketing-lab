@@ -488,6 +488,36 @@ export const CONNECTIONS: ConnectionDef[] = [
       "Create a service token in the Doppler dashboard for hauck-command-center/prd. Read-only for DOPPLER_TOKEN. Only add DOPPLER_WRITE_TOKEN if you want to edit secrets from inside the app.",
   },
   {
+    id: "cloudflare-deploy",
+    label: "Cloudflare deploys",
+    vendor: "Cloudflare",
+    scope: "agency",
+    purpose:
+      "What lets the Keys panel finish the job: writing an agency secret into the running deploy and restarting it, instead of printing a shell command and leaving it half done.",
+    credentials: [
+      {
+        name: "CF_DEPLOY_TOKEN",
+        home: "cloudflare",
+        inDoppler: true,
+        note: "Deliberately NOT the account-wide CLOUDFLARE_API_TOKEN. Scoped to Pages:Edit on this one project, so an admin session that reached it still cannot touch DNS, other Workers, or another project. The account token stays on Jake's machine.",
+      },
+      { name: "CLOUDFLARE_ACCOUNT_ID", home: "cloudflare", inDoppler: true },
+      {
+        name: "CF_PAGES_PROJECT",
+        home: "cloudflare",
+        inDoppler: true,
+        optional: true,
+        note: "Defaults to hauck-command-center, the name in wrangler.toml.",
+      },
+    ],
+    surfaces: [
+      { label: "Onboarding > Keys", to: "/admin/onboarding?view=keys", audience: "admin" },
+      { label: "Agency Settings > Secrets", to: "/admin/settings", audience: "admin" },
+    ],
+    remediation:
+      "Cloudflare dashboard > My Profile > API Tokens > Create Token > Custom. One permission: Account > Cloudflare Pages > Edit. Nothing else. Put it in Doppler as CF_DEPLOY_TOKEN and bind it with `cf-rebind --add CF_DEPLOY_TOKEN`. Absent, the Keys panel still saves to Doppler and simply says a redeploy is needed, which is exactly how it behaved before this existed.",
+  },
+  {
     id: "ghl-webhook",
     label: "GHL webhook",
     vendor: "LeadConnector",

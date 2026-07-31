@@ -5,7 +5,13 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query";
 import type { HealthResponse as ConnectionHealthResponse } from "../lib/connectionHealth";
-import type { AgencySecretsResponse, ClientSecretsResponse } from "../lib/secretsApi";
+import type {
+  AgencySecretsResponse,
+  ApplyResponse,
+  ClientSecretsResponse,
+  DeployStatusResponse,
+  GenerateResponse,
+} from "../lib/secretsApi";
 import type { CreateClientPayload } from "../lib/clientOnboarding";
 import {
   api,
@@ -2661,6 +2667,46 @@ export function useSaveAgencySecret() {
       qc.invalidateQueries({ queryKey: ["admin", "secrets", "agency"] });
       qc.invalidateQueries({ queryKey: ["admin", "connections", "health"] });
     },
+  });
+}
+
+// Generate an invented key (session secret, cron secrets, the VAPID pair) and
+// write it to Doppler. The value comes back once, because the cron secrets have
+// to be pasted into their Worker as well, and is masked from then on.
+export function useGenerateAgencySecret() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string }) =>
+      api<GenerateResponse>("/api/admin/secrets/generate", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "secrets", "agency"] });
+    },
+  });
+}
+
+// Rebind every saved key into Cloudflare and start one deployment.
+export function useApplyAgencySecrets() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<ApplyResponse>("/api/admin/secrets/apply", { method: "POST" }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "secrets", "deploy"] });
+    },
+  });
+}
+
+// How the deployment is doing. Polled only while one is in flight: a Pages build
+// takes a couple of minutes, and polling a finished deploy forever is a request
+// every few seconds for nothing.
+export function useDeployStatus(polling: boolean) {
+  return useQuery({
+    queryKey: ["admin", "secrets", "deploy"],
+    staleTime: 0,
+    refetchInterval: polling ? 6_000 : false,
+    queryFn: () => api<DeployStatusResponse>("/api/admin/secrets/apply"),
   });
 }
 

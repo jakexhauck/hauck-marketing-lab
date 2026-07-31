@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from "react-router-dom";
 import ClientSetupView from "../../components/admin/onboarding/ClientSetupView";
 import OnboardingManagement from "../../components/admin/onboarding/OnboardingManagement";
+import KeysPanel from "../../components/admin/secrets/KeysPanel";
 import {
   ONBOARDING_VIEWS,
   resolveOnboardingView,
@@ -60,7 +61,13 @@ export default function AdminOnboarding() {
         </div>
       }
     >
-      {view === "management" ? <OnboardingManagement /> : <ClientSetupView />}
+      {view === "keys" ? (
+        <KeysPanel />
+      ) : view === "management" ? (
+        <OnboardingManagement />
+      ) : (
+        <ClientSetupView />
+      )}
     </DesktopPage>
   );
 }

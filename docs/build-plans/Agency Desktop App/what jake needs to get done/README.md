@@ -327,3 +327,34 @@ something only you can issue.
       you recording outcomes at all, the funnel goes blank and that is worse than
       no reasons. Tell me if it drags and I will make the no-show path one click
       again.
+
+## Agency keys panel (Onboarding > Keys, 31 July 2026)
+
+- [ ] **Create the scoped Cloudflare token. Nothing else in this build works
+      without it.** Cloudflare dashboard, My Profile, API Tokens, Create Token,
+      Custom. ONE permission: Account, Cloudflare Pages, Edit. Nothing else, and
+      scoped to your account only. Then
+      `doppler secrets set CF_DEPLOY_TOKEN` in `hauck-command-center/prd`, and
+      `node scripts/cf-rebind.mjs --add CF_DEPLOY_TOKEN` to bind it. Until this
+      exists the panel says "Apply is off" and saves reach Doppler only, which
+      is exactly how it behaved before. Deliberately NOT the account-wide
+      CLOUDFLARE_API_TOKEN: that one can touch DNS and every other Worker, and
+      it stays on your machine.
+
+- [ ] **Press Apply once, and watch it land.** The write path to Cloudflare has
+      never been exercised from inside the app. The blanking guard is tested and
+      copied from cf-rebind, but a real Apply against the real project is the
+      only thing that proves the deploy trigger.
+
+- [ ] **Generate the two cron secrets, and paste them into their Workers.** The
+      panel makes the value and shows it once. `HEALTH_CRON_SECRET` goes into
+      `workers/health-cron` and `ADS_CRON_SECRET` into `workers/ads-cron`, both
+      via `wrangler secret put`. They must be DIFFERENT values. Set in only one
+      place and the jobs silently do nothing, which is the state they have been
+      in for weeks.
+
+- [ ] **Do not press Regenerate on SESSION_SECRET or the VAPID pair casually.**
+      Both now have a button where they used to have a command line. The first
+      signs every user out including clients; the second unsubscribes every
+      device from push with no way back for anyone who dismissed the prompt.
+      The panel asks first, but it will do it.

@@ -10,6 +10,7 @@ import {
   DopplerError,
 } from "../../../lib/doppler";
 import { CONNECTIONS } from "../../../../src/lib/connectionRegistry";
+import { isLocked, LOCK_REASON } from "../../../../src/lib/agencyKeys";
 import { maskSecret } from "../../../../src/lib/clientSecrets";
 import type { AgencySecretRow } from "../../../../src/lib/secretsApi";
 
@@ -132,6 +133,18 @@ export const onRequestPut: PagesFunction<Env, string, ApiData> = async (ctx) => 
     return Response.json(
       { error: "That key is not one this app declares. Add it to the registry first." },
       { status: 400 },
+    );
+  }
+
+  // Enforced HERE, not only in the UI. Three of these keys are what grant this
+  // endpoint its own power (the Cloudflare deploy token and both Doppler
+  // tokens), so a write path that trusted a hidden button could be used to
+  // revoke its own access or quietly widen it. The Supabase three are refused
+  // for a duller reason: nothing about a new client needs them changed.
+  if (isLocked(name)) {
+    return Response.json(
+      { error: `${name} cannot be changed here. ${LOCK_REASON[name] ?? ""}`.trim() },
+      { status: 403 },
     );
   }
 

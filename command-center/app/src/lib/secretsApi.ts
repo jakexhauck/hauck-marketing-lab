@@ -42,3 +42,41 @@ export function agencyAttention(rows: AgencySecretRow[]): number {
   return rows.filter((r) => r.drift === true || (!r.optional && !r.inDoppler && !r.inRuntime))
     .length;
 }
+
+// --- Apply: making a saved key actually live ---------------------------------
+
+export interface DeploymentView {
+  id: string;
+  /** Flattened from Cloudflare's stage model, which has five stages and six statuses. */
+  state: "queued" | "building" | "live" | "failed";
+  stage: string;
+  createdAt: string | null;
+}
+
+export interface ApplyResponse {
+  /** Secrets rewritten into Cloudflare from Doppler. */
+  set: number;
+  /** Secrets Cloudflare had never seen, bound for the first time. */
+  added: string[];
+  /** Cloudflare holds these and Doppler cannot supply them, so they were left alone. */
+  skipped: string[];
+  /** Asked for, but Doppler had no value. Never bound blank. */
+  refused: string[];
+  deployment: DeploymentView | null;
+}
+
+export interface DeployStatusResponse {
+  /** False when CF_DEPLOY_TOKEN is absent. The panel then explains the manual route. */
+  canDeploy: boolean;
+  deployment: DeploymentView | null;
+}
+
+export interface GenerateResponse {
+  /**
+   * Key name to value, shown once and never again. A pair generator returns
+   * both halves, because generating them separately yields a public key that
+   * does not match its private one.
+   */
+  values: Record<string, string>;
+  note: string;
+}

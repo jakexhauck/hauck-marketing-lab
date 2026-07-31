@@ -130,6 +130,19 @@ export interface Env {
   DOPPLER_WRITE_TOKEN?: string;
   DOPPLER_PROJECT?: string;
   DOPPLER_CONFIG?: string;
+  // What lets the Keys panel finish the job: write an agency secret into the
+  // running deploy and restart it, rather than printing a shell command.
+  //
+  // CF_DEPLOY_TOKEN is deliberately NOT the account-wide CLOUDFLARE_API_TOKEN
+  // used by the local scripts. It is scoped to Pages:Edit on this one project,
+  // so an admin session that reached it still cannot touch DNS, other Workers,
+  // or another project. The account token stays off this app on purpose.
+  //
+  // Absent, the panel still saves to Doppler and simply reports that a redeploy
+  // is needed, which is how it behaved before any of this existed.
+  CF_DEPLOY_TOKEN?: string;
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CF_PAGES_PROJECT?: string;
   // Shared secret that lets the scheduler Worker call the connection health
   // probe unattended, since Cloudflare Pages has no cron trigger of its own.
   // Unset means the scheduled check is simply off; it opens no other route

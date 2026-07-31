@@ -8,8 +8,10 @@ import {
 } from "./onboardingViews";
 
 describe("the views", () => {
-  it("ships exactly the two, in order", () => {
-    expect(ONBOARDING_VIEWS.map((v) => v.id)).toEqual(["setup", "management"]);
+  it("ships exactly the three, in order", () => {
+    // Keys is agency-wide rather than per client, and sits here anyway: standing
+    // a client up is when a missing key gets discovered.
+    expect(ONBOARDING_VIEWS.map((v) => v.id)).toEqual(["setup", "management", "keys"]);
   });
 
   it("opens on the client's setup", () => {
