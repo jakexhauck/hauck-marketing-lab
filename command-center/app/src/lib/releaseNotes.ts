@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-31-playbook-categories",
+    date: "31 July 2026",
+    title: "Headings inside the sales playbook",
+    items: [
+      'Sales > Playbook: each of the three columns can be cut into headings of your own. "Add a heading" at the bottom of a column, then file prompts under it from the dropdown on each one.',
+      "A heading is a real thing, not a label typed twice. Rename it once and every prompt under it follows. Move it with the arrows and its whole block moves.",
+      "Prompts you have not filed sit in a block at the bottom of their column, and On Call draws them under \"Anything else\". Adding a prompt without picking a heading still works, so you can catch a question mid-thought and file it later.",
+      "Deleting a heading never deletes the questions under it. They drop to that unfiled block, still on the call, where you can refile them.",
+      "On Call shows the headings as you work down each column. The count in the column heading is still the whole column, not one per heading.",
+    ],
+  },
+  {
     id: "2026-07-31-keys-panel",
     date: "31 July 2026",
     title: "Agency keys, pasted and applied without a terminal",

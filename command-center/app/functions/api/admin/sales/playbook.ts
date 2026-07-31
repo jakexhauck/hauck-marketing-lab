@@ -33,25 +33,45 @@ import {
 // owner check on each write is the second lock on the same door, matching the
 // cold-call assets endpoint.
 
-const SELECT = "id, section, prompt, hint, sort_order, archived_at";
+const SELECT = "id, section, category_id, prompt, hint, sort_order, archived_at";
+
+const CATEGORY_SELECT = "id, section, name, sort_order";
 
 interface ItemRow {
   id: string;
   section: string;
+  category_id: string | null;
   prompt: string;
   hint: string;
   sort_order: number;
   archived_at: string | null;
 }
 
+interface CategoryRow {
+  id: string;
+  section: string;
+  name: string;
+  sort_order: number;
+}
+
 function shape(row: ItemRow) {
   return {
     id: row.id,
     section: row.section as PlaybookSectionId,
+    categoryId: row.category_id,
     prompt: row.prompt,
     hint: row.hint,
     sortOrder: row.sort_order,
     archivedAt: row.archived_at,
+  };
+}
+
+function shapeCategory(row: CategoryRow) {
+  return {
+    id: row.id,
+    section: row.section as PlaybookSectionId,
+    name: row.name,
+    sortOrder: row.sort_order,
   };
 }
 
@@ -83,13 +103,33 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     return Response.json({ error: "could not read the playbook" }, { status: 500 });
   }
 
-  return Response.json({ items: ((data ?? []) as ItemRow[]).map(shape) });
+  // The headings come back on the same read as the prompts. No page has ever
+  // wanted one without the other, and two reads would give the two lists two
+  // different moments in which to disagree about what exists.
+  const { data: catData, error: catError } = await client
+    .from("sales_playbook_categories")
+    .select(CATEGORY_SELECT)
+    .order("section", { ascending: true })
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (catError) {
+    console.error("[sales/playbook] category read failed", catError.message);
+    return Response.json({ error: "could not read the playbook" }, { status: 500 });
+  }
+
+  return Response.json({
+    items: ((data ?? []) as ItemRow[]).map(shape),
+    categories: ((catData ?? []) as CategoryRow[]).map(shapeCategory),
+  });
 };
 
 interface PostBody {
   section?: unknown;
   prompt?: unknown;
   hint?: unknown;
+  // Optional: the heading to file it under straight away, so "add a prompt"
+  // inside a category does not mean adding it loose and then refiling it.
+  categoryId?: unknown;
 }
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -115,6 +155,21 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
 
   const adminId = ctx.data.admin!.id;
 
+  // A heading was named: it has to be one of that column's own.
+  let categoryId: string | null = null;
+  if (typeof body.categoryId === "string" && body.categoryId !== "") {
+    const { data: cat } = await client
+      .from("sales_playbook_categories")
+      .select("id, section")
+      .eq("id", body.categoryId)
+      .maybeSingle();
+    const category = cat as { id: string; section: string } | null;
+    if (!category || category.section !== body.section) {
+      return Response.json({ error: "bad_category" }, { status: 400 });
+    }
+    categoryId = category.id;
+  }
+
   // New prompts go to the bottom of their own section. Reading the current
   // maximum is a race in theory and not in practice: one owner, one page.
   const { data: last } = await client
@@ -130,6 +185,7 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     .from("sales_playbook_items")
     .insert({
       section: body.section,
+      category_id: categoryId,
       prompt,
       hint: cleanHint(body.hint),
       sort_order: sortOrder,
@@ -155,6 +211,10 @@ interface PatchBody {
   prompt?: unknown;
   hint?: unknown;
   sortOrder?: unknown;
+  // The heading to file it under. null unfiles it. Absent leaves it alone,
+  // which is why the three states have to be told apart by `in` rather than by
+  // truthiness.
+  categoryId?: unknown;
   // true retires, false puts it back. Absent leaves it alone.
   archived?: unknown;
 }
@@ -189,6 +249,36 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     patch.prompt = prompt;
   }
   if (body.hint !== undefined) patch.hint = cleanHint(body.hint);
+  if (body.categoryId !== undefined) {
+    if (body.categoryId === null || body.categoryId === "") {
+      patch.category_id = null;
+    } else if (typeof body.categoryId !== "string") {
+      return Response.json({ error: "bad_category" }, { status: 400 });
+    } else {
+      // The heading must be in the same column as the prompt. Nothing in the UI
+      // can offer a mismatch, so this is the guard against a hand-written PATCH
+      // filing a discovery question under an objections heading, which would
+      // render it nowhere.
+      const { data: pair } = await client
+        .from("sales_playbook_items")
+        .select("section")
+        .eq("id", id)
+        .maybeSingle();
+      const itemSection = (pair as { section: string } | null)?.section;
+      if (!itemSection) return Response.json({ error: "not found" }, { status: 404 });
+
+      const { data: cat } = await client
+        .from("sales_playbook_categories")
+        .select("id, section")
+        .eq("id", body.categoryId)
+        .maybeSingle();
+      const category = cat as { id: string; section: string } | null;
+      if (!category || category.section !== itemSection) {
+        return Response.json({ error: "bad_category" }, { status: 400 });
+      }
+      patch.category_id = category.id;
+    }
+  }
   if (body.sortOrder !== undefined) {
     const n = Number(body.sortOrder);
     if (!Number.isFinite(n)) return Response.json({ error: "bad_sort" }, { status: 400 });

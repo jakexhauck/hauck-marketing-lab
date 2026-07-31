@@ -1704,11 +1704,16 @@ export async function deleteColdCallAsset(id: string): Promise<{ ok: true }> {
 // pages render prompt and hint as text, never as markup, which is why there is
 // no html field anywhere near this.
 
-export type { PlaybookItem } from "../../functions/lib/salesPlaybook";
+export type { PlaybookItem, PlaybookCategory } from "../../functions/lib/salesPlaybook";
 
+type ApiPlaybookItem = import("../../functions/lib/salesPlaybook").PlaybookItem;
+type ApiPlaybookCategory = import("../../functions/lib/salesPlaybook").PlaybookCategory;
+
+// The prompts and the headings above them come back on one read: no page wants
+// one without the other.
 export async function getSalesPlaybook(
   includeArchived = false,
-): Promise<{ items: import("../../functions/lib/salesPlaybook").PlaybookItem[] }> {
+): Promise<{ items: ApiPlaybookItem[]; categories: ApiPlaybookCategory[] }> {
   return api("/api/admin/sales/playbook" + (includeArchived ? "?archived=1" : ""));
 }
 
@@ -1716,7 +1721,8 @@ export async function createSalesPlaybookItem(input: {
   section: string;
   prompt: string;
   hint?: string;
-}): Promise<{ item: import("../../functions/lib/salesPlaybook").PlaybookItem }> {
+  categoryId?: string | null;
+}): Promise<{ item: ApiPlaybookItem }> {
   return api("/api/admin/sales/playbook", {
     method: "POST",
     body: JSON.stringify(input),
@@ -1728,11 +1734,45 @@ export async function updateSalesPlaybookItem(input: {
   prompt?: string;
   hint?: string;
   sortOrder?: number;
+  // null unfiles it; leaving the key out leaves the filing alone.
+  categoryId?: string | null;
   archived?: boolean;
-}): Promise<{ item: import("../../functions/lib/salesPlaybook").PlaybookItem }> {
+}): Promise<{ item: ApiPlaybookItem }> {
   return api("/api/admin/sales/playbook", {
     method: "PATCH",
     body: JSON.stringify(input),
+  });
+}
+
+// ===== The headings inside a column (0075) =====
+
+export async function createSalesPlaybookCategory(input: {
+  section: string;
+  name: string;
+}): Promise<{ category: ApiPlaybookCategory }> {
+  return api("/api/admin/sales/playbook/categories", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateSalesPlaybookCategory(input: {
+  id: string;
+  name?: string;
+  sortOrder?: number;
+}): Promise<{ category: ApiPlaybookCategory }> {
+  return api("/api/admin/sales/playbook/categories", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+// Removes the heading only. The prompts under it fall loose to the bottom of
+// the same column, still on the call.
+export async function deleteSalesPlaybookCategory(id: string): Promise<{ ok: true }> {
+  return api("/api/admin/sales/playbook/categories", {
+    method: "DELETE",
+    body: JSON.stringify({ id }),
   });
 }
 

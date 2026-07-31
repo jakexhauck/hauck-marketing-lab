@@ -16,7 +16,9 @@ import { sourceLabel } from "../../../../functions/lib/salesCalls";
 import { useSalesPlaybookQuery } from "../../../hooks/useSalesPlaybook";
 import {
   PLAYBOOK_SECTIONS,
-  itemsForSection,
+  groupItems,
+  type PlaybookCategory,
+  type PlaybookGroup,
   type PlaybookItem,
   type PlaybookSectionDef,
 } from "../../../../functions/lib/salesPlaybook";
@@ -98,6 +100,7 @@ export default function OnCallSection() {
       key={meeting.id}
       meeting={meeting}
       items={playbook.data?.items ?? []}
+      categories={playbook.data?.categories ?? []}
       record={record}
       onLeave={() => open("")}
     />
@@ -206,22 +209,29 @@ function clearCallState(meetingId: string) {
 function Cockpit({
   meeting,
   items,
+  categories,
   record,
   onLeave,
 }: {
   meeting: SalesMeeting;
   items: PlaybookItem[];
+  categories: PlaybookCategory[];
   record: ReturnType<typeof useRecordSalesCallOutcome>;
   onLeave: () => void;
 }) {
-  // The live prompts of each column, and every id across them. The ids are what
-  // a stored tick is checked against, so a prompt retired mid-call takes its
-  // tick with it rather than leaving a column reading 6 of 5.
+  // Each column cut into its headings, with whatever is unfiled last. The ids
+  // across all of them are what a stored tick is checked against, so a prompt
+  // retired mid-call takes its tick with it rather than leaving a column
+  // reading 6 of 5.
   const columns = useMemo(
-    () => PLAYBOOK_SECTIONS.map((s) => ({ section: s, items: itemsForSection(items, s.id) })),
-    [items],
+    () =>
+      PLAYBOOK_SECTIONS.map((s) => ({ section: s, groups: groupItems(items, categories, s.id) })),
+    [items, categories],
   );
-  const knownIds = useMemo(() => columns.flatMap((c) => c.items.map((i) => i.id)), [columns]);
+  const knownIds = useMemo(
+    () => columns.flatMap((c) => c.groups.flatMap((g) => g.items.map((i) => i.id))),
+    [columns],
+  );
 
   // Held under the meeting id it was read for, so the write below can tell a
   // loaded state from the empty one this render started with. Writing before
@@ -287,11 +297,11 @@ function Cockpit({
       {/* The call, left to right. One column each on a laptop, stacked on a
           phone, because three columns of prompts at 390px is none of them. */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {columns.map(({ section, items: sectionItems }) => (
+        {columns.map(({ section, groups }) => (
           <Column
             key={section.id}
             section={section}
-            items={sectionItems}
+            groups={groups}
             ticked={state.ticked}
             notes={state.notes}
             onToggle={toggle}
@@ -381,20 +391,24 @@ function Header({
 // prompts, each with somewhere to put what they answered.
 function Column({
   section,
-  items,
+  groups,
   ticked,
   notes,
   onToggle,
   onNote,
 }: {
   section: PlaybookSectionDef;
-  items: PlaybookItem[];
+  groups: PlaybookGroup[];
   ticked: string[];
   notes: Record<string, string>;
   onToggle: (id: string) => void;
   onNote: (id: string, value: string) => void;
 }) {
-  const { covered, total } = sectionProgress(items, ticked);
+  // The column's count is the whole column, headings and loose prompts
+  // together. A per-heading count would be four numbers to read mid-call where
+  // the only question is "have I finished discovery".
+  const all = groups.flatMap((g) => g.items);
+  const { covered, total } = sectionProgress(all, ticked);
   // An empty column is not a finished one. Without this an unwritten section
   // would show a green 0/0 as though it had been worked through.
   const done = total > 0 && covered === total;
@@ -416,15 +430,42 @@ function Column({
       </header>
 
       <div className="px-5 py-2">
-        {items.length === 0 && (
+        {all.length === 0 && (
           <p className="py-4 text-[12.5px] text-faint">
             Nothing written for this part of the call yet. Add prompts on the Playbook page.
           </p>
         )}
-        {items.map((item) => {
-          const on = ticked.includes(item.id);
-          return (
-            <div key={item.id} className="border-b border-[var(--divider)] py-3 last:border-b-0">
+        {groups.map((group) => (
+          <div key={group.category?.id ?? "__loose"}>
+            {/* The heading, drawn as a rule across the column. Nothing when the
+                block is the unfiled remainder: a heading that said "no heading"
+                would be noise on a column Jake has not sorted yet, and a label
+                on the loose block only earns its place when there is a real
+                heading above it to distinguish it from. */}
+            {group.category && (
+              <div className="mt-3 flex items-center gap-2 first:mt-1">
+                <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-[var(--brand)]">
+                  {group.category.name}
+                </span>
+                <span className="h-px flex-1 bg-[var(--divider)]" aria-hidden />
+              </div>
+            )}
+            {!group.category && groups.length > 1 && (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-faint">
+                  Anything else
+                </span>
+                <span className="h-px flex-1 bg-[var(--divider)]" aria-hidden />
+              </div>
+            )}
+
+            {group.items.map((item) => {
+              const on = ticked.includes(item.id);
+              return (
+                <div
+                  key={item.id}
+                  className="border-b border-[var(--divider)] py-3 last:border-b-0"
+                >
               <div className="flex items-start gap-2.5">
                 {/* The tick is the control, so the whole prompt is the hit area
                     rather than a 16px box you have to aim at mid-conversation. */}
@@ -469,9 +510,11 @@ function Column({
                 onChange={(e) => onNote(item.id, e.target.value)}
                 placeholder={section.placeholder}
               />
-            </div>
-          );
-        })}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </section>
   );

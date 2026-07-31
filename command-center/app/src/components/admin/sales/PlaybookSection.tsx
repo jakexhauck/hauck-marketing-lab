@@ -1,15 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArchiveRestore, ChevronDown, ChevronUp, Plus, Trash2, Undo2 } from "lucide-react";
 import {
+  ArchiveRestore,
+  ChevronDown,
+  ChevronUp,
+  FolderPlus,
+  Plus,
+  Trash2,
+  Undo2,
+} from "lucide-react";
+import {
+  useCreatePlaybookCategory,
   useCreatePlaybookItem,
+  useDeletePlaybookCategory,
   useDeletePlaybookItem,
   useSalesPlaybookQuery,
+  useUpdatePlaybookCategory,
   useUpdatePlaybookItem,
 } from "../../../hooks/useSalesPlaybook";
 import {
   PLAYBOOK_SECTIONS,
-  itemsForSection,
+  categoriesForSection,
+  groupItems,
   swapTargets,
+  type PlaybookCategory,
+  type PlaybookGroup,
   type PlaybookItem,
   type PlaybookSectionDef,
   type PlaybookSectionId,
@@ -18,9 +32,10 @@ import {
 // Sales > Playbook.
 //
 // Where the three columns of On Call are written. Same three sections, same
-// order, so editing the call looks like the call: a change made here is what
-// Jake reads on the phone tomorrow, and a page that arranged them differently
-// would make him translate between two layouts to check his own work.
+// order, same headings inside them, so editing the call looks like the call: a
+// change made here is what Jake reads on the phone tomorrow, and a page that
+// arranged them differently would make him translate between two layouts to
+// check his own work.
 //
 // Everything saves on blur rather than behind a Save button. Rewording a
 // question is a one-word edit made twenty times in a sitting, and a button per
@@ -33,8 +48,10 @@ import {
 export default function PlaybookSection() {
   const [showRetired, setShowRetired] = useState(false);
   const query = useSalesPlaybookQuery(true);
+
   const items = useMemo(() => query.data?.items ?? [], [query.data]);
-  const retiredCount = items.filter((i) => i.archivedAt).length;
+  const categories = useMemo(() => query.data?.categories ?? [], [query.data]);
+  const retired = useMemo(() => items.filter((i) => i.archivedAt), [items]);
 
   if (query.isLoading) return <div className="pk-empty">Reading the playbook...</div>;
   if (query.isError) {
@@ -45,7 +62,8 @@ export default function PlaybookSection() {
     <div>
       <p className="mb-4 max-w-[74ch] text-[13px] leading-relaxed text-muted">
         What you work through on a sales call. These three columns are what On Call draws, in this
-        order. Edits save as you leave a box and are live on the next call.
+        order. Group the prompts under headings of your own, or leave them loose. Edits save as you
+        leave a box and are live on the next call.
       </p>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -53,21 +71,18 @@ export default function PlaybookSection() {
           <SectionEditor
             key={section.id}
             section={section}
-            items={itemsForSection(items, section.id)}
+            groups={groupItems(items, categories, section.id)}
+            categories={categoriesForSection(categories, section.id)}
           />
         ))}
       </div>
 
-      {(retiredCount > 0 || showRetired) && (
+      {(retired.length > 0 || showRetired) && (
         <div className="mt-5">
           <button type="button" className="pk-link" onClick={() => setShowRetired((v) => !v)}>
-            {showRetired
-              ? "Hide retired prompts"
-              : `Show retired prompts (${retiredCount})`}
+            {showRetired ? "Hide retired prompts" : `Show retired prompts (${retired.length})`}
           </button>
-          {showRetired && (
-            <RetiredList items={items.filter((i) => i.archivedAt)} />
-          )}
+          {showRetired && <RetiredList items={retired} />}
         </div>
       )}
     </div>
@@ -78,42 +93,61 @@ export default function PlaybookSection() {
 
 function SectionEditor({
   section,
-  items,
+  groups,
+  categories,
 }: {
   section: PlaybookSectionDef;
-  items: PlaybookItem[];
+  groups: PlaybookGroup[];
+  categories: PlaybookCategory[];
 }) {
-  const create = useCreatePlaybookItem();
-  const update = useUpdatePlaybookItem();
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState("");
+  const createItem = useCreatePlaybookItem();
+  const createCategory = useCreatePlaybookCategory();
+  const updateItem = useUpdatePlaybookItem();
+  const updateCategory = useUpdatePlaybookCategory();
+
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [categoryDraft, setCategoryDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const add = async () => {
-    const prompt = draft.trim();
-    if (!prompt) return;
+  const total = groups.reduce((n, g) => n + g.items.length, 0);
+
+  const addCategory = async () => {
+    const name = categoryDraft.trim();
+    if (!name) return;
     try {
-      await create.mutateAsync({ section: section.id, prompt });
-      setDraft("");
+      await createCategory.mutateAsync({ section: section.id, name });
+      setCategoryDraft("");
+      setAddingCategory(false);
       setError(null);
-      // The box stays open: adding one question is almost always adding three.
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add that");
+      setError(err instanceof Error ? err.message : "Could not add that heading");
     }
   };
 
   // Reordering swaps two rows' sort_order rather than renumbering the column.
   // Two writes instead of n, and a failure halfway leaves an order that is odd
-  // rather than an order that is wrong.
-  const move = async (id: string, direction: -1 | 1) => {
-    const pair = swapTargets(items, id, direction);
+  // rather than an order that is wrong. Prompts and headings both.
+  const moveItem = async (within: PlaybookItem[], id: string, direction: -1 | 1) => {
+    const pair = swapTargets(within, id, direction);
     if (!pair) return;
     try {
-      await update.mutateAsync({ id: pair.a.id, sortOrder: pair.b.sortOrder });
-      await update.mutateAsync({ id: pair.b.id, sortOrder: pair.a.sortOrder });
+      await updateItem.mutateAsync({ id: pair.a.id, sortOrder: pair.b.sortOrder });
+      await updateItem.mutateAsync({ id: pair.b.id, sortOrder: pair.a.sortOrder });
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not reorder that");
+    }
+  };
+
+  const moveCategory = async (id: string, direction: -1 | 1) => {
+    const pair = swapTargets(categories, id, direction);
+    if (!pair) return;
+    try {
+      await updateCategory.mutateAsync({ id: pair.a.id, sortOrder: pair.b.sortOrder });
+      await updateCategory.mutateAsync({ id: pair.b.id, sortOrder: pair.a.sortOrder });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not move that heading");
     }
   };
 
@@ -124,108 +158,331 @@ function SectionEditor({
           <h2 className="text-[13px] font-bold uppercase tracking-[0.08em] text-muted">
             {section.label}
           </h2>
-          <span className="text-[12px] font-semibold tabular-nums text-faint">{items.length}</span>
+          <span className="text-[12px] font-semibold tabular-nums text-faint">{total}</span>
         </div>
         <p className="mt-1.5 text-[12.5px] leading-snug text-faint">{section.blurb}</p>
       </header>
 
-      <div className="px-5 py-2">
-        {items.length === 0 && !adding && (
+      <div className="px-5">
+        {groups.length === 0 && (
           <p className="py-4 text-[12.5px] text-faint">
             Nothing here yet. This column will be empty on the call.
           </p>
         )}
 
-        {items.map((item, index) => (
-          <ItemEditor
-            key={item.id}
-            item={item}
-            placeholder={section.placeholder}
-            canMoveUp={index > 0}
-            canMoveDown={index < items.length - 1}
-            onMove={(direction) => void move(item.id, direction)}
+        {groups.map((group, groupIndex) => (
+          <GroupBlock
+            key={group.category?.id ?? "__loose"}
+            section={section}
+            group={group}
+            categories={categories}
+            canMoveUp={!!group.category && groupIndex > 0}
+            canMoveDown={
+              !!group.category &&
+              groupIndex < groups.length - 1 &&
+              // Never below the loose block: it is not a heading and has no
+              // position of its own, it is simply what is left.
+              !!groups[groupIndex + 1].category
+            }
+            onMoveCategory={(direction) =>
+              group.category && void moveCategory(group.category.id, direction)
+            }
+            onMoveItem={(id, direction) => void moveItem(group.items, id, direction)}
           />
         ))}
       </div>
 
       <footer className="border-t border-[var(--divider)] px-5 py-3">
-        {adding ? (
+        {addingCategory ? (
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              void add();
+              void addCategory();
             }}
           >
             <input
               className="pk-input !text-[13px]"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder={
-                section.id === "objections" ? "What they say back" : "The prompt itself"
-              }
-              aria-label={`New ${section.label} prompt`}
+              value={categoryDraft}
+              onChange={(e) => setCategoryDraft(e.target.value)}
+              placeholder="Heading, e.g. The money"
+              aria-label={`New ${section.label} heading`}
               autoFocus
             />
             <div className="mt-2 flex items-center gap-2">
               <button
                 type="submit"
                 className="pk-btn-save !px-4 !py-1.5 !text-[12.5px]"
-                disabled={!draft.trim() || create.isPending}
+                disabled={!categoryDraft.trim() || createCategory.isPending}
               >
-                {create.isPending ? "Adding..." : "Add"}
+                {createCategory.isPending ? "Adding..." : "Add heading"}
               </button>
               <button
                 type="button"
                 className="pk-btn-cancel !px-3 !py-1.5 !text-[12.5px]"
                 onClick={() => {
-                  setAdding(false);
-                  setDraft("");
+                  setAddingCategory(false);
+                  setCategoryDraft("");
                 }}
               >
-                Done
+                Cancel
               </button>
             </div>
           </form>
         ) : (
-          <button type="button" className="pk-link" onClick={() => setAdding(true)}>
-            <Plus size={14} aria-hidden />
-            Add a prompt
-          </button>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {/* Adding a prompt with no heading is still allowed and still
+                useful: it is how you catch a question mid-thought and file it
+                later. It lands in the loose block at the bottom. */}
+            <AddPrompt section={section.id} categoryId={null} label="Add a loose prompt" />
+            <button type="button" className="pk-link" onClick={() => setAddingCategory(true)}>
+              <FolderPlus size={14} aria-hidden />
+              Add a heading
+            </button>
+          </div>
         )}
 
         {error && <p className="mt-2 text-[12px] text-danger">{error}</p>}
+        {createItem.isError && (
+          <p className="mt-2 text-[12px] text-danger">Could not add that prompt.</p>
+        )}
       </footer>
     </section>
   );
 }
 
+// ===== One heading and the prompts under it =====
+
+function GroupBlock({
+  section,
+  group,
+  categories,
+  canMoveUp,
+  canMoveDown,
+  onMoveCategory,
+  onMoveItem,
+}: {
+  section: PlaybookSectionDef;
+  group: PlaybookGroup;
+  categories: PlaybookCategory[];
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveCategory: (direction: -1 | 1) => void;
+  onMoveItem: (id: string, direction: -1 | 1) => void;
+}) {
+  return (
+    <div className="border-b border-[var(--divider)] py-3 last:border-b-0">
+      {group.category ? (
+        <CategoryHeader
+          category={group.category}
+          canMoveUp={canMoveUp}
+          canMoveDown={canMoveDown}
+          onMove={onMoveCategory}
+        />
+      ) : (
+        <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-faint">
+          Not under a heading
+        </div>
+      )}
+
+      {group.items.length === 0 && (
+        <p className="py-1 text-[12px] text-faint">Empty. Add the first prompt under it.</p>
+      )}
+
+      {group.items.map((item, index) => (
+        <ItemEditor
+          key={item.id}
+          item={item}
+          section={section}
+          categories={categories}
+          canMoveUp={index > 0}
+          canMoveDown={index < group.items.length - 1}
+          onMove={(direction) => onMoveItem(item.id, direction)}
+        />
+      ))}
+
+      {group.category && (
+        <div className="mt-1">
+          <AddPrompt section={section.id} categoryId={group.category.id} label="Add a prompt" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The heading itself: renamed in place, moved as a block, deleted without
+// taking its prompts with it.
+function CategoryHeader({
+  category,
+  canMoveUp,
+  canMoveDown,
+  onMove,
+}: {
+  category: PlaybookCategory;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMove: (direction: -1 | 1) => void;
+}) {
+  const update = useUpdatePlaybookCategory();
+  const remove = useDeletePlaybookCategory();
+  const [name, setName] = useState(category.name);
+  const [error, setError] = useState<string | null>(null);
+  const saved = useRef(category.name);
+
+  useEffect(() => {
+    if (category.name !== saved.current) {
+      saved.current = category.name;
+      setName(category.name);
+    }
+  }, [category.name]);
+
+  const save = async () => {
+    const next = name.trim();
+    // An emptied heading is refused by the endpoint, so put the last saved name
+    // back rather than leaving a blank box that quietly is not stored.
+    if (!next) {
+      setName(saved.current);
+      return;
+    }
+    if (next === saved.current) return;
+    try {
+      const res = await update.mutateAsync({ id: category.id, name: next });
+      saved.current = res.category.name;
+      setName(res.category.name);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not rename that");
+    }
+  };
+
+  return (
+    <div className="mb-2">
+      <div className="flex items-center gap-1">
+        <input
+          className={[
+            "min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1.5 py-1",
+            "text-[11.5px] font-bold uppercase tracking-[0.08em] text-text",
+            "hover:border-[var(--border)] focus:border-[var(--brand)] focus:outline-none",
+          ].join(" ")}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => void save()}
+          aria-label="Heading name"
+        />
+        <IconButton label="Move heading up" disabled={!canMoveUp} onClick={() => onMove(-1)}>
+          <ChevronUp size={13} aria-hidden />
+        </IconButton>
+        <IconButton label="Move heading down" disabled={!canMoveDown} onClick={() => onMove(1)}>
+          <ChevronDown size={13} aria-hidden />
+        </IconButton>
+        <IconButton
+          label="Remove this heading. Its prompts stay, unfiled."
+          disabled={remove.isPending}
+          onClick={() => void remove.mutateAsync(category.id).catch(() => setError("Could not remove that"))}
+        >
+          <Trash2 size={13} aria-hidden />
+        </IconButton>
+      </div>
+      {error && <p className="mt-1 text-[11.5px] text-danger">{error}</p>}
+    </div>
+  );
+}
+
 // ===== One prompt =====
+
+function AddPrompt({
+  section,
+  categoryId,
+  label,
+}: {
+  section: PlaybookSectionId;
+  categoryId: string | null;
+  label: string;
+}) {
+  const create = useCreatePlaybookItem();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  const add = async () => {
+    const prompt = draft.trim();
+    if (!prompt) return;
+    await create.mutateAsync({ section, prompt, categoryId });
+    setDraft("");
+    // The box stays open: adding one question is almost always adding three.
+  };
+
+  if (!open) {
+    return (
+      <button type="button" className="pk-link" onClick={() => setOpen(true)}>
+        <Plus size={13} aria-hidden />
+        {label}
+      </button>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void add();
+      }}
+    >
+      <input
+        className="pk-input !py-1.5 !text-[12.5px]"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder="The prompt itself"
+        aria-label="New prompt"
+        autoFocus
+      />
+      <div className="mt-1.5 flex items-center gap-2">
+        <button
+          type="submit"
+          className="pk-btn-save !px-3 !py-1 !text-[12px]"
+          disabled={!draft.trim() || create.isPending}
+        >
+          {create.isPending ? "Adding..." : "Add"}
+        </button>
+        <button
+          type="button"
+          className="pk-btn-cancel !px-2.5 !py-1 !text-[12px]"
+          onClick={() => {
+            setOpen(false);
+            setDraft("");
+          }}
+        >
+          Done
+        </button>
+      </div>
+    </form>
+  );
+}
 
 // Saves on blur, and only when the text actually changed. The comparison is
 // against what the server last returned rather than against a mount-time
 // snapshot, so tabbing through a column without typing sends nothing at all.
 function ItemEditor({
   item,
-  placeholder,
+  section,
+  categories,
   canMoveUp,
   canMoveDown,
   onMove,
 }: {
   item: PlaybookItem;
-  placeholder: string;
+  section: PlaybookSectionDef;
+  categories: PlaybookCategory[];
   canMoveUp: boolean;
   canMoveDown: boolean;
   onMove: (direction: -1 | 1) => void;
 }) {
   const update = useUpdatePlaybookItem();
-  const remove = useDeletePlaybookItem();
 
   const [prompt, setPrompt] = useState(item.prompt);
   const [hint, setHint] = useState(item.hint);
   const [error, setError] = useState<string | null>(null);
 
-  // A reorder refetches the list, which re-renders this row with the same text.
-  // Without this, a row whose sort order moved would snap its boxes back to
+  // A reorder or a refile refetches the list, which re-renders this row with
+  // the same text. Without this, a row that moved would snap its boxes back to
   // whatever they held when it mounted.
   const serverPrompt = useRef(item.prompt);
   const serverHint = useRef(item.hint);
@@ -240,7 +497,12 @@ function ItemEditor({
     }
   }, [item.prompt, item.hint]);
 
-  const save = async (patch: { prompt?: string; hint?: string; archived?: boolean }) => {
+  const save = async (patch: {
+    prompt?: string;
+    hint?: string;
+    categoryId?: string | null;
+    archived?: boolean;
+  }) => {
     try {
       const res = await update.mutateAsync({ id: item.id, ...patch });
       serverPrompt.current = res.item.prompt;
@@ -276,7 +538,7 @@ function ItemEditor({
   };
 
   return (
-    <div className="border-b border-[var(--divider)] py-3 last:border-b-0">
+    <div className="border-t border-[var(--divider)] py-2.5 first:border-t-0">
       <div className="flex items-start gap-1.5">
         <div className="min-w-0 flex-1">
           <input
@@ -294,9 +556,30 @@ function ItemEditor({
             placeholder="The small grey line under it. Optional."
             aria-label="Hint"
           />
-          <p className="mt-1.5 text-[11px] text-faint">
-            On the call: <span className="italic">{placeholder}</span>
-          </p>
+
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            {/* Filing. Only offered when the column has a heading to file
+                under, so an unsorted column is not carrying a dropdown with
+                one useless option in it. */}
+            {categories.length > 0 && (
+              <select
+                className="pk-select !w-auto !py-1 !text-[11.5px]"
+                value={item.categoryId ?? ""}
+                onChange={(e) => void save({ categoryId: e.target.value || null })}
+                aria-label="Heading"
+              >
+                <option value="">Not under a heading</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            <span className="text-[11px] text-faint">
+              On the call: <span className="italic">{section.placeholder}</span>
+            </span>
+          </div>
         </div>
 
         {/* Up, down, retire. A stack rather than a row so a narrow column keeps
@@ -320,7 +603,7 @@ function ItemEditor({
               the mousedown blurs the box, and blur is what saves. */}
           <IconButton
             label="Retire this prompt"
-            disabled={update.isPending || remove.isPending}
+            disabled={update.isPending}
             onClick={() => void save({ archived: true })}
           >
             <Undo2 size={14} aria-hidden />
@@ -352,7 +635,7 @@ function IconButton({
       disabled={disabled}
       onClick={onClick}
       className={[
-        "grid h-6 w-6 place-items-center rounded-md text-muted transition-colors",
+        "grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted transition-colors",
         "hover:bg-surface-2 hover:text-text",
         "disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent",
       ].join(" ")}

@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  createSalesPlaybookCategory,
   createSalesPlaybookItem,
+  deleteSalesPlaybookCategory,
   deleteSalesPlaybookItem,
   getSalesPlaybook,
+  updateSalesPlaybookCategory,
   updateSalesPlaybookItem,
 } from "../lib/api";
 
@@ -53,6 +56,30 @@ export function useDeletePlaybookItem() {
     // different bug.
     retry: false,
     mutationFn: deleteSalesPlaybookItem,
+    onSuccess: invalidate,
+  });
+}
+
+// The headings inside a column (0075). Same cache key: they arrive on the same
+// read as the prompts, so they go stale together.
+
+export function useCreatePlaybookCategory() {
+  const invalidate = useInvalidate();
+  return useMutation({ mutationFn: createSalesPlaybookCategory, onSuccess: invalidate });
+}
+
+export function useUpdatePlaybookCategory() {
+  const invalidate = useInvalidate();
+  return useMutation({ mutationFn: updateSalesPlaybookCategory, onSuccess: invalidate });
+}
+
+export function useDeletePlaybookCategory() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    // Not retried, and it moves prompts: deleting a heading unfiles everything
+    // under it, so a blind second attempt is not a free action.
+    retry: false,
+    mutationFn: deleteSalesPlaybookCategory,
     onSuccess: invalidate,
   });
 }
