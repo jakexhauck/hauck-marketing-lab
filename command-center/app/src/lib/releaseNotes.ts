@@ -67,6 +67,18 @@ export const RELEASES: Release[] = [
     ],
   },
   {
+    id: "2026-07-31-schedule-on-a-phone",
+    date: "31 July 2026",
+    title: "The Schedule tab works on a phone now",
+    items: [
+      "Sales > Schedule: a job's buttons sit two by two on a phone instead of running off the side of the card. The fourth one, Payment, could not be reached at all before.",
+      "Month view: tapping a day now shows that day's work underneath the calendar. On a phone it used to do nothing. The squares carry a coloured dot per job rather than a name squeezed down to one letter.",
+      "Week view: the seven days are full width and slide sideways, three at a time, with the hours and the dates staying put as you scroll. Job names are readable instead of being cut to an initial.",
+      "The view switcher (Jobs, Month, Week, Agenda) spans the width on a phone, and the page's heading lines up with everything under it.",
+      "The bottom bar drops the Chat tab and centres the All button. Five tabs: Today, Sales, All, Chats, Contacts.",
+    ],
+  },
+  {
     id: "2026-07-31-client-app-chrome",
     date: "31 July 2026",
     title: "New page headers, a rebuilt Home, and account controls in the rail",
