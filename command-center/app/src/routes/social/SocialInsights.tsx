@@ -63,7 +63,7 @@ export default function SocialInsights() {
   return (
     <Shell>
       <div className={SOCIAL_CONTAINER}>
-        <PageBar tabs={SOCIAL_TABS} description="Last 30 days." />
+        <PageBar tabs={SOCIAL_TABS} />
 
         {!demo && !connected && (
           <NotConnectedNotice message="There are no results to show yet. Connect your social accounts and your performance will appear here in plain English." />

@@ -79,8 +79,7 @@ export default function AdsLeads() {
     <Shell>
       <div className={PAID_ADS_CONTAINER}>
         <PageHeader
-          title="Leads"
-          description="The real people your ads brought in. This is the payoff, the part that turns into jobs."
+          title="Leads"
         />
 
         {!demo && !hasLeads && (

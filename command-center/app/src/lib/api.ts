@@ -406,6 +406,10 @@ export interface AdminClient {
   // 500s at the endpoint until that migration is applied to the live DB.
   healthStatus: "healthy" | "warn" | "paused";
   healthNote: string | null;
+  // 'setup' until Go Live is pressed on Onboarding, 'live' after. What the
+  // Onboarding picker filters on, and what the middleware's onboarding gate
+  // reads to decide whether the client sees their app or the holding screen.
+  onboardingStatus: "setup" | "live";
 }
 
 // What POST /api/admin/clients answers with when the wizard creates a client.

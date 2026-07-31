@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { GripVertical, Plus, Trash2, X } from "lucide-react";
 import { Button } from "../../ui/Button";
+import { TAB_TRACK, TabButton } from "../../PageTabs";
 import {
   useArchiveSetupStep,
   useCreateSetupStep,
@@ -46,29 +47,17 @@ export default function OnboardingManagement() {
   const steps = useSetupSteps();
 
   return (
-    <div className="flex w-full max-w-[900px] flex-col gap-4">
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Management pages">
-        {SETUP_SECTIONS.map((s) => {
-          const on = s.id === section;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              onClick={() => setSection(s.id)}
-              className={[
-                "rounded-[var(--radius)] border px-3.5 py-2 text-[13px] font-semibold transition-colors",
-                on
-                  ? "border-brand bg-brand-tint text-brand-text"
-                  : "border-border bg-surface text-muted hover:text-text",
-              ].join(" ")}
-            >
-              {s.label} steps
-            </button>
-          );
-        })}
-      </div>
+    <div className="flex w-full flex-col gap-4">
+      {/* The same segmented track the page's own views use, one level down. */}
+      <nav aria-label="Management pages" className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+        <div className={TAB_TRACK}>
+          {SETUP_SECTIONS.map((s) => (
+            <TabButton key={s.id} active={s.id === section} onClick={() => setSection(s.id)}>
+              {s.label}
+            </TabButton>
+          ))}
+        </div>
+      </nav>
 
       {steps.data?.needsMigration ? (
         <section className="rounded-[var(--radius-lg)] border border-danger/40 bg-danger/5 p-5">

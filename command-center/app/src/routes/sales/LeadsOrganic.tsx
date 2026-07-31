@@ -30,8 +30,7 @@ export default function LeadsOrganic() {
     <Shell>
       <div className={PAGE_CONTAINER}>
         <PageBar
-          tabs={LEADS_TABS}
-          description="Estimate-form requests and website chats from your own channels."
+          tabs={LEADS_TABS}
         />
         {organic.length === 0 ? (
           <EmptyState message="When someone fills out a form or messages your chat widget, they show up here." />

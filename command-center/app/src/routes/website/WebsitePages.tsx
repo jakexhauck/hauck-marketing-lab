@@ -183,8 +183,7 @@ export default function WebsitePages() {
         <style>{CHANGE_PIN_CSS}</style>
         <PageBar
           tabs={WEBSITE_TABS}
-          count={demo ? SITE_PAGES.length : pages.length || undefined}
-          description="Every page on your live website. Pick one to see it exactly as your customers do, then point at anything you'd like changed and we'll handle the rest."
+          count={demo ? SITE_PAGES.length : pages.length || undefined}
         />
 
         {demo ? (

@@ -8,12 +8,12 @@ import {
 } from "./onboardingViews";
 
 describe("the views", () => {
-  it("ships exactly the three, in order", () => {
-    expect(ONBOARDING_VIEWS.map((v) => v.id)).toEqual(["pipeline", "setup", "management"]);
+  it("ships exactly the two, in order", () => {
+    expect(ONBOARDING_VIEWS.map((v) => v.id)).toEqual(["setup", "management"]);
   });
 
-  it("opens on the pipeline", () => {
-    expect(DEFAULT_ONBOARDING_VIEW).toBe("pipeline");
+  it("opens on the client's setup", () => {
+    expect(DEFAULT_ONBOARDING_VIEW).toBe("setup");
   });
 
   it("gives every view a label and a line about it", () => {
@@ -27,14 +27,19 @@ describe("the views", () => {
 describe("resolveOnboardingView", () => {
   it("takes the view the URL names", () => {
     expect(resolveOnboardingView("setup")).toBe("setup");
-    expect(resolveOnboardingView("pipeline")).toBe("pipeline");
+    expect(resolveOnboardingView("management")).toBe("management");
   });
 
   // A typed or stale ?view= lands somewhere real rather than on a blank page.
   it("falls back to the default for anything else", () => {
-    expect(resolveOnboardingView(null)).toBe("pipeline");
-    expect(resolveOnboardingView("")).toBe("pipeline");
-    expect(resolveOnboardingView("retired-view")).toBe("pipeline");
+    expect(resolveOnboardingView(null)).toBe("setup");
+    expect(resolveOnboardingView("")).toBe("setup");
+    expect(resolveOnboardingView("retired-view")).toBe("setup");
+  });
+
+  // The board is gone, and every link and bookmark to it still works.
+  it("lands an old pipeline link on the setup page", () => {
+    expect(resolveOnboardingView("pipeline")).toBe("setup");
   });
 });
 
@@ -59,6 +64,6 @@ describe("clientSetupPath", () => {
 describe("onboardingViewDef", () => {
   it("finds the definition, and never returns nothing", () => {
     expect(onboardingViewDef("setup").label).toBe("Client setup");
-    expect(onboardingViewDef("pipeline").label).toBe("Pipeline");
+    expect(onboardingViewDef("management").label).toBe("Management");
   });
 });

@@ -80,8 +80,7 @@ export default function AdsLeadTracker() {
     <Shell>
       <div className={PAID_ADS_CONTAINER}>
         <PageBar
-          tabs={PAID_ADS_TABS}
-          description="Every lead from your ads. Status follows your pipeline automatically; revenue fills in when a job is closed out."
+          tabs={PAID_ADS_TABS}
           actions={<Segmented options={RANGES} value={range} onChange={setRange} label="Date range" />}
           filters={
             <label className="relative flex-1 max-w-xs">

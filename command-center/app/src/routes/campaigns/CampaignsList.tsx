@@ -39,8 +39,7 @@ export default function CampaignsList() {
       <CampaignReportDialog campaign={report} onClose={() => setReport(null)} />
       <div className={CAMPAIGNS_CONTAINER}>
         <PageBar
-          tabs={COMMERCIAL_OUTREACH_TABS}
-          description="Every text and email we've sent for you."
+          tabs={COMMERCIAL_OUTREACH_TABS}
           filters={
             demo
               ? FILTERS.map((f) => (

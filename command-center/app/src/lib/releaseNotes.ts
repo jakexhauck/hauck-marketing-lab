@@ -26,6 +26,33 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-31-client-app-chrome",
+    date: "31 July 2026",
+    title: "New page headers, a rebuilt Home, and account controls in the rail",
+    items: [
+      "Every page now opens with a raised header panel instead of a title over a line, and the tabs inside it are a segmented control whose active pill slides between them.",
+      "Explanatory paragraphs under page titles are gone everywhere. The title and the tab names say what the page is.",
+      "Settings, light/dark and Sign out moved out of the top-right avatar menu and into the bottom of the sidebar, beside Team, matching this console. The top right is now just the notification bell.",
+      "Home is rebuilt as a two-column brief: the day on the left (what is booked, what is unread, what needs closing out) and the month on the right (leads, revenue, pipeline health). No more greeting banner taking the top third.",
+      "A client can no longer see our Cold Calling board anywhere in their app. The server stops sending it rather than the page hiding it.",
+      "Paid Ads: the Results row was being cut in half on shorter windows. Fixed, and the table now reads at a comfortable size.",
+      "Sales shows its page even on a day with no hand-offs, instead of collapsing to an empty message.",
+      "The Customers row was retired from the client sidebar.",
+    ],
+  },
+  {
+    id: "2026-07-31-onboarding-one-page",
+    date: "31 July 2026",
+    title: "Onboarding is one page, and it starts at the signature",
+    items: [
+      "The pipeline board is gone. Onboarding opens on a client and their checklist: pick whoever you are working on, tick your way down, press Go Live and they leave the page.",
+      'Two new sections above the old ones. "Kickoff" is the three things you do the moment they sign: book the call, send the welcome email with the agreement and the form, send the text. "Onboarding call" is the whole call, from their sub-account through their ads manager to their subdomain.',
+      "The picker shows the clients still being stood up. Tick the box beside it to reach someone who is already live.",
+      "A client you add by hand now starts in onboarding like everyone else, so they appear on this page. They see the holding screen until you press Go Live, same as a client who came through the form.",
+      "Go Live works. It was refusing every client on a count that no longer matched what a tick is saved against.",
+    ],
+  },
+  {
     id: "2026-07-30-onboarding-no-approve-step",
     date: "30 July 2026",
     title: "A finished intake form becomes a client on its own",

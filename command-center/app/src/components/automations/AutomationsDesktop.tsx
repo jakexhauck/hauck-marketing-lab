@@ -21,8 +21,7 @@ export default function AutomationsDesktop() {
 
   return (
     <DesktopPage
-      title="Automations"
-      subtitle="The follow-up engine working behind the scenes"
+      title="Automations"
       actions={
         <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-muted">
           <Lock size={12} aria-hidden="true" />

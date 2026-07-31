@@ -322,8 +322,7 @@ export default function ReviewsAll() {
       <div className={REVIEWS_CONTAINER}>
         <PageBar
           tabs={REVIEWS_TABS}
-          count={demo ? `${reviews.length}` : undefined}
-          description="Every Google review in one queue. Filter, then reply in your own words or send the suggested draft. Replying lifts your standing with customers and with Google."
+          count={demo ? `${reviews.length}` : undefined}
           filters={
             demo ? (
               <Segmented options={filterOptions} value={filter} onChange={setFilter} />

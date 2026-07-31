@@ -10,7 +10,6 @@ import { CampaignsTable } from "../components/ads/CampaignsTable";
 import PaidAdsDesktop from "../components/ads/PaidAdsDesktop";
 import { useAdsData } from "../hooks/useAds";
 import {
-  RANGE_LABEL,
   cpc,
   cpl,
   cpm,
@@ -94,7 +93,6 @@ export function PaidAds() {
       <PageHeader
         title="Paid Ads"
         count={`${data.campaigns.length} campaigns`}
-        description={`${data.account.platform} · ${data.account.name} · ${RANGE_LABEL[range]}`}
         actions={<Segmented options={RANGE_OPTIONS} value={range} onChange={setRange} />}
       />
 

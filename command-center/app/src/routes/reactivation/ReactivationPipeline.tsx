@@ -24,8 +24,7 @@ export default function ReactivationPipeline() {
     <Shell>
       <div className={PAGE_CONTAINER}>
         <PageBar
-          tabs={REACTIVATION_TABS}
-          description="Where everyone we reached out to sits right now. This view is read-only."
+          tabs={REACTIVATION_TABS}
           actions={
             populated ? (
               <Badge tone="neutral">

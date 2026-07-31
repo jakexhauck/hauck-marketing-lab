@@ -184,11 +184,6 @@ export default function DashboardDesktop() {
     });
   }, [stageFiltered, hasQuery, trimmedQuery]);
 
-  const inFlight = useMemo(
-    () => leads.filter((l) => l.status === "open").length,
-    [leads],
-  );
-
   const wonLabel = client.pipeline.wonLabel;
   const showRevenue = permissions.seeRevenue;
   const isRep = permissions.assignedOnly;
@@ -200,14 +195,10 @@ export default function DashboardDesktop() {
       : Math.round((stats.progressedMtd / stats.leadsMtd) * 100);
   const commission = Math.round(repWonValue * 0.1);
 
-  const subtitle = hasQuery
-    ? `${visible.length} of ${leads.length} ${leads.length === 1 ? "lead" : "leads"}`
-    : `${inFlight} ${inFlight === 1 ? "lead" : "leads"} in flight`;
-
   return (
     <DesktopPage
       title="Dashboard"
-      subtitle={subtitle}
+
     >
       {error ? (
         <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">

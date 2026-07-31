@@ -27,6 +27,8 @@ describe("the step list", () => {
 
   it("keeps the phases in the order the work happens", () => {
     expect(SETUP_PHASES.map((p) => p.key)).toEqual([
+      "kickoff",
+      "call",
       "ghl",
       "day1",
       "day2",

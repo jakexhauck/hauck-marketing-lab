@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Shell from "../../components/Shell";
-import { Segmented } from "../../components/ui";
+import PageBar from "../../components/PageBar";
+import { TAB_TRACK, TabButton } from "../../components/PageTabs";
 import { HandoffsBoard } from "../Handoffs";
 import { JobsBoard } from "./Jobs";
 import { useUpdateHandoff } from "../../hooks/useApi";
@@ -91,17 +92,25 @@ export default function Sales() {
   return (
     <Shell>
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center gap-3 px-[22px] pt-4 lg:px-6">
-          <Segmented<SalesTab>
-            options={[
-              { value: "leads", label: "Leads" },
-              { value: "schedule", label: "Schedule" },
-            ]}
-            value={tab}
-            onChange={select}
-          />
+        {/* The header panel every client page now opens with. Leads / Schedule
+            are real page switchers rather than filters, so they belong inside
+            the chrome beside the title, the same place a Marketing section's
+            route tabs sit. tabs={[]} because these switch state, not routes. */}
+        <div className="px-[22px] pt-5 lg:px-6">
+          <PageBar tabs={[]} section="Sales">
+            <div className={TAB_TRACK}>
+              <TabButton active={tab === "leads"} onClick={() => select("leads")}>
+                Leads
+              </TabButton>
+              <TabButton active={tab === "schedule"} onClick={() => select("schedule")}>
+                Schedule
+              </TabButton>
+            </div>
+          </PageBar>
         </div>
-        <div className="mt-1 flex min-h-0 flex-1 flex-col">
+        {/* PageBar's own mb-5 is the white space between the header and the
+            board; the board brings its own top padding on top of that. */}
+        <div className="flex min-h-0 flex-1 flex-col">
           {tab === "leads" ? (
             <HandoffsBoard onBook={startBooking} />
           ) : (

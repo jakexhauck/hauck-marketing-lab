@@ -10,6 +10,7 @@ import { usePipelinesQuery } from "../hooks/useApi";
 import { useAuth } from "./AuthContext";
 import { useClient } from "./ClientContext";
 import { getMockPipelinesForClient } from "../mock/pipelines";
+import { isAgencyPipeline } from "../../functions/lib/clientPipelines";
 import type { ApiPipelineSummary } from "../lib/api";
 
 interface PipelinesContextValue {
@@ -28,8 +29,13 @@ const PipelinesContext = createContext<PipelinesContextValue | null>(null);
 // Google Reviews pipelines are back-ends for their own Marketing surfaces
 // (Reactivation, Reviews), each of which resolves its pipeline BY NAME through
 // its own endpoint, so hiding them here is safe and does not touch those views.
+//
+// The agency's own "Cold Calling" board is excluded through the SAME predicate
+// the summary endpoint uses, imported rather than re-written, so the switcher
+// and the dashboard cannot disagree about what a client is allowed to see.
 function isSalesPipeline(name: string): boolean {
   const n = name.trim().toLowerCase();
+  if (isAgencyPipeline(n)) return false;
   return !(n.includes("reactivation") || n.includes("review"));
 }
 

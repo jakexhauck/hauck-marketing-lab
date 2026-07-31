@@ -133,7 +133,6 @@ export default function WebsiteInsights() {
       <div className={WEBSITE_CONTAINER}>
         <PageBar
           tabs={WEBSITE_TABS}
-          description="A plain-English read on how your website is performing this month, and where the work is actually coming from."
         />
 
         {!show && (

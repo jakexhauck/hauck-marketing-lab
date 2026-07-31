@@ -90,12 +90,8 @@ export default function ContactsDesktop() {
     });
   }, [segmented, trimmed]);
 
-  const countLabel = query.isLoading
-    ? "Loading..."
-    : `${contacts.length} ${contacts.length === 1 ? "contact" : "contacts"}`;
-
   return (
-    <DesktopPage title="Contacts" subtitle={countLabel}>
+    <DesktopPage title="Contacts">
       {/* Lifecycle segments (Smart Lists). Same underline treatment as the
           in-page tab bars so the app reads as one system. */}
       <nav

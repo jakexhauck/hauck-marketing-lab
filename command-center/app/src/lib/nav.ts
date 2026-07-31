@@ -6,7 +6,6 @@ import {
   UserCog,
   Contact,
   LayoutGrid,
-  Users,
   Handshake,
   type LucideIcon,
 } from "lucide-react";
@@ -94,16 +93,20 @@ export const NAV: NavEntry[] = [
   // tracking sheet it hosted was rebuilt tab-for-tab inside Paid Ads (Dashboard
   // / Lead Tracker / Meta Data / Pipeline Stats / How to Use).
   { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
-  // Past customers: the GHL Customers pipeline joined to the job history we
-  // own. Ungated like its Leads and Jobs neighbours: the revenue it shows is
-  // job values the team already sees on the board, not the invoice-level
-  // detail the `billing` capability was drawn around.
-  { to: "/customers", label: "Customers", icon: Users },
+  // No Customers row: retired from the nav 2026-07-31. The /customers and
+  // /customers/:contactId routes stay registered, so a bookmark still resolves
+  // and Close Out Job can still send you there after logging a job, but nothing
+  // navigates to it from the chrome any more.
   // No Revenue row: customer revenue lives on /customers now, built from real
   // logged jobs instead of the invoices + payments feed (which returns
   // internal_error against live Willis). The /billing route stays registered
   // so an existing bookmark does not 404, but nothing links to it.
-  { to: "/team", label: "Team", icon: UserCog, ownerOnly: true },
+  // Team is account administration, not a business surface, so the desktop rail
+  // renders it in the footer group beside Settings (matching the admin console)
+  // rather than in this list. sidebarHidden rather than deleted: the phone's
+  // "All features" grid and global search both read the flat list and still
+  // need it.
+  { to: "/team", label: "Team", icon: UserCog, ownerOnly: true, sidebarHidden: true },
   // The agency chat: a phone bottom-bar tab only. On desktop it lives in the
   // top-right ChatLauncher icon, so it is hidden from the sidebar.
   { to: "/comms", label: "Chat", shortLabel: "Chat", icon: MessagesSquare, bottomNav: true, sidebarHidden: true },

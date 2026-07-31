@@ -215,7 +215,6 @@ export default function AdminClientNew() {
   return (
     <DesktopPage
       title="New client"
-      subtitle="Stand up an account by hand, for a client with no intake form."
       actions={
         <Link to="/admin/delivery">
           <Button variant="ghost" size="sm">
@@ -511,8 +510,9 @@ function Review({
       <p className="mt-6 flex items-start gap-2 rounded-[var(--radius)] border border-border bg-surface-2 px-3.5 py-3 text-[13px] leading-snug text-muted">
         <FolderOpen size={15} className="mt-0.5 shrink-0" aria-hidden />
         <span>
-          Creating the client also creates their Google Drive folder, and the owner can sign in
-          with the email and password above straight away. Their own answers are not asked for
+          Creating the client also creates their Google Drive folder. The owner can sign in with
+          the email and password above, but they see the holding screen until you work through
+          their checklist on Onboarding and press Go Live. Their own answers are not asked for
           here: those come from the intake form.
         </span>
       </p>

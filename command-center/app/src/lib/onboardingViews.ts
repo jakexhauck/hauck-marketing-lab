@@ -1,12 +1,17 @@
 // The views inside Onboarding.
 //
-// Three questions, kept apart because they have different answers and different
-// audiences: who is coming through and where are they stuck (pipeline), what is
-// left to do for this one client (setup), and what the process itself should say
+// Two questions, kept apart because they have different answers: what is left to
+// do for this one client (setup), and what the process itself should say
 // (management). Naming them here keeps the tab strip, the URL and the redirects
 // agreeing.
+//
+// There was a third, a pipeline board of intake submissions waiting to be
+// approved. It went when the approval did: a finished funnel form now creates
+// the client on the spot, so the board was a queue of one state, showing clients
+// whose real work was on the setup page anyway. Old ?view=pipeline links land on
+// setup rather than on nothing.
 
-export type OnboardingView = "pipeline" | "setup" | "management";
+export type OnboardingView = "setup" | "management";
 
 export interface OnboardingViewDef {
   id: OnboardingView;
@@ -17,14 +22,9 @@ export interface OnboardingViewDef {
 
 export const ONBOARDING_VIEWS: OnboardingViewDef[] = [
   {
-    id: "pipeline",
-    label: "Pipeline",
-    blurb: "Every client we are standing up, and where each one has got to.",
-  },
-  {
     id: "setup",
     label: "Client setup",
-    blurb: "One client: their GoHighLevel build, their ads, and their wiring.",
+    blurb: "One client, from the day they sign to the day they go live.",
   },
   {
     id: "management",
@@ -33,7 +33,7 @@ export const ONBOARDING_VIEWS: OnboardingViewDef[] = [
   },
 ];
 
-export const DEFAULT_ONBOARDING_VIEW: OnboardingView = "pipeline";
+export const DEFAULT_ONBOARDING_VIEW: OnboardingView = "setup";
 
 /** The view named in the URL, or the default when it names nothing we ship. */
 export function resolveOnboardingView(raw: string | null): OnboardingView {

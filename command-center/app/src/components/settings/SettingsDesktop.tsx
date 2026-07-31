@@ -45,8 +45,7 @@ export default function SettingsDesktop() {
 
   return (
     <DesktopPage
-      title="Settings"
-      subtitle="Your account and preferences"
+      title="Settings"
     >
       <div className="fx-stagger mx-auto flex w-full max-w-3xl flex-col gap-8">
         {/* Account */}

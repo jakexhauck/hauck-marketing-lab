@@ -25,7 +25,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
   const { data: tenantRows, error } = await client
     .from("tenants")
     .select(
-      "id, slug, name, niche, brand_color, brand_initials, app_name, ghl_location_id, monthly_spend, created_at, health_status, health_note",
+      "id, slug, name, niche, brand_color, brand_initials, app_name, ghl_location_id, monthly_spend, created_at, health_status, health_note, onboarding_status",
     )
     .order("created_at", { ascending: true });
   if (error) return Response.json({ error: error.message }, { status: 500 });
@@ -43,6 +43,7 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     created_at: string;
     health_status: "healthy" | "warn" | "paused" | null;
     health_note: string | null;
+    onboarding_status: string | null;
   }[];
 
   // Active-staff count per tenant in one pass (small scale; no group-by RPC).
@@ -69,6 +70,9 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     createdAt: t.created_at,
     healthStatus: t.health_status ?? "healthy",
     healthNote: t.health_note ?? null,
+    // Onboarding filters its picker on this. A row from before the column
+    // existed is a client who has been running for months, so it reads as live.
+    onboardingStatus: t.onboarding_status === "setup" ? "setup" : "live",
   }));
 
   return Response.json({ clients, total: clients.length });
@@ -184,9 +188,12 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       ownerEmail: ownerEmail || undefined,
       ownerName: body.ownerName,
       ownerPasswordHash: ownerPassword ? await hashPassword(ownerPassword) : undefined,
-      // Stood up by hand rather than through the funnel, so there is no approval
-      // step and no holding screen: this client is live the moment it exists.
-      onboardingStatus: "live",
+      // Held at the setup screen, exactly like a client who came through the
+      // funnel. A client added by hand still has to be stood up: a sub-account,
+      // an ads manager, a calendar. Starting them live meant they never appeared
+      // on Onboarding at all, so the work was invisible and the app they could
+      // already open was wired to nothing. Go Live is what opens it.
+      onboardingStatus: "setup",
     });
   } catch (e) {
     if (!(e instanceof CreateTenantError)) throw e;

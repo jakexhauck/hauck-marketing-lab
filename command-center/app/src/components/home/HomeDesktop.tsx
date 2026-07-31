@@ -1,32 +1,29 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowUpRight,
-  CalendarDays,
-  ChevronRight,
-  Inbox,
-  MessageSquare,
-  TrendingUp,
-  Users,
-} from "lucide-react";
+import { CalendarDays, ClipboardCheck, MessageSquare } from "lucide-react";
 import DesktopPage from "../desktop/DesktopPage";
-import ClientHero, { type ClientHeroKpi } from "./ClientHero";
 import CloseOutBanner from "./CloseOutBanner";
-import EmptyState from "../EmptyState";
 import { useAuth } from "../../context/AuthContext";
-import { usePipelines } from "../../context/PipelinesContext";
 import { useNow } from "../../context/NowContext";
 import {
-  useActivityQuery,
+  useAdsTrackerQuery,
   useCalendarEventsQuery,
+  useCloseOutCountQuery,
   useSummaryQuery,
 } from "../../hooks/useApi";
-import { activityLabel } from "../../lib/activityLabels";
-import type { ApiActivity, PipelineSummary } from "../../lib/api";
+import { formatMoney } from "../../lib/formatMoney";
+import type { PipelineSummary } from "../../lib/api";
 
-// The Atelier desktop Home: a calm, airy command deck that sits beside the
-// Shell sidebar at lg+. The phone keeps its own (NavyHero) layout below lg;
-// this file is rendered only inside `hidden lg:flex` from Home.tsx.
+// The Atelier desktop Home: a two-column brief. The day on the left (what is
+// booked and what needs you), the month on the right (what the work produced).
+// Nothing is pushed below the fold on a normal window. The phone keeps its own
+// NavyHero layout below lg; this renders only inside `hidden lg:flex`.
+//
+// No header panel. The greeting is the page's heading, and a panel reading
+// "Home" directly above "Good afternoon" said the same thing twice.
+//
+// The agency's "Cold Calling" board is absent because the server never sends it
+// (functions/lib/clientPipelines.ts), not because this file hides it.
 
 function greeting(now: number): string {
   const h = new Date(now).getHours();
@@ -35,26 +32,11 @@ function greeting(now: number): string {
   return "Good evening";
 }
 
-function activityTitle(a: ApiActivity): string {
-  return a.payload?.summary ?? activityLabel(a.action);
-}
-
-function activityWhen(iso: string, now: number): string {
-  const then = new Date(iso).getTime();
-  if (!Number.isFinite(then)) return "";
-  const mins = Math.round((now - then) / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
-
 function shortName(name: string): string {
-  return name.replace(/\s+Pipeline$/i, "").trim();
+  return name
+    .replace(/\s+Pipeline$/i, "")
+    .replace(/^\d+\)\s*/, "")
+    .trim();
 }
 
 function isSameLocalDay(a: Date, b: Date): boolean {
@@ -65,20 +47,91 @@ function isSameLocalDay(a: Date, b: Date): boolean {
   );
 }
 
+function timeLabel(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+// A panel in the two-column brief. `action` is the one link out of it.
+function Card({
+  title,
+  actionLabel,
+  onAction,
+  children,
+}: {
+  title: string;
+  actionLabel: string;
+  onAction: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="flex flex-col rounded-[14px] border border-border bg-surface shadow-[var(--shadow-sm)]">
+      <div className="flex items-center justify-between px-[18px] pb-2.5 pt-3.5">
+        <h2 className="font-display text-[14.5px] font-semibold text-text">{title}</h2>
+        <button
+          type="button"
+          onClick={onAction}
+          className="text-[12.5px] font-semibold text-brand-text hover:underline"
+        >
+          {actionLabel}
+        </button>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+// One of the four small figures. `value` is already formatted; a null figure
+// prints "--" rather than a zero we did not measure.
+function Tile({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  tone?: "brand" | "warning" | "positive";
+}) {
+  const color =
+    tone === "brand"
+      ? "text-brand-text"
+      : tone === "warning"
+        ? "text-warning"
+        : tone === "positive"
+          ? "text-positive"
+          : "text-text";
+  return (
+    <div className="rounded-[11px] bg-surface-2 px-3.5 py-3">
+      <div className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-faint">
+        {label}
+      </div>
+      <div className={`mt-0.5 font-display text-[23px] font-bold tabular-nums ${color}`}>
+        {value}
+      </div>
+      <div className="text-[11px] text-muted">{sub}</div>
+    </div>
+  );
+}
+
 export default function HomeDesktop() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { setSelectedId } = usePipelines();
   const now = useNow();
   const useReal = Boolean(session);
 
   const summaryQuery = useSummaryQuery(useReal);
-  const activityQuery = useActivityQuery(useReal);
   const calendarQuery = useCalendarEventsQuery(useReal);
+  const closeOuts = useCloseOutCountQuery(useReal);
+  // The month's own figures, from the same tracker Paid Ads reads. Shared query
+  // key, so opening Paid Ads afterwards costs nothing.
+  const tracker = useAdsTrackerQuery("30", "ad", useReal);
 
   const summary = summaryQuery.data;
-  const activity = activityQuery.data?.activity ?? [];
   const events = calendarQuery.data?.events ?? [];
+  const kpis = tracker.data?.kpis;
 
   const today = new Date(now).toLocaleDateString("en-US", {
     weekday: "long",
@@ -86,239 +139,179 @@ export default function HomeDesktop() {
     day: "numeric",
   });
 
-  const openLeads = useMemo(
-    () => (summary?.pipelines ?? []).reduce((sum, p) => sum + p.open, 0),
-    [summary],
-  );
-
-  const appointmentsToday = useMemo(
+  // Today's appointments, earliest first, past ones dropped: this is a "what is
+  // left today" list, not a log of the morning.
+  const todaysAppointments = useMemo(
     () =>
-      events.filter(
-        (e) => e.startTime && isSameLocalDay(new Date(e.startTime), new Date(now)),
-      ).length,
+      events
+        .filter((e) => {
+          if (!e.startTime) return false;
+          const at = new Date(e.startTime);
+          return isSameLocalDay(at, new Date(now)) && at.getTime() >= now;
+        })
+        .sort((a, b) => (a.startTime! < b.startTime! ? -1 : 1))
+        .slice(0, 4),
     [events, now],
   );
 
-  const { featured, rest } = useMemo(() => {
-    const ps = summary?.pipelines ?? [];
-    if (ps.length === 0)
-      return { featured: null, rest: [] as PipelineSummary[] };
-    const sorted = [...ps].sort((a, b) => b.open - a.open);
-    return { featured: sorted[0], rest: sorted.slice(1) };
-  }, [summary]);
+  // Client-visible boards only; the server already dropped the agency's own.
+  const pipelines: PipelineSummary[] = useMemo(
+    () => [...(summary?.pipelines ?? [])].sort((a, b) => b.open - a.open).slice(0, 4),
+    [summary],
+  );
 
-  const openCard = (pipelineId: string) => {
-    setSelectedId(pipelineId);
-    navigate("/leads");
-  };
-
-  // The same four month-to-date figures the flat tiles showed, folded into the
-  // overview hero's KPI row.
-  const heroKpis: ClientHeroKpi[] = [
-    {
-      icon: ArrowUpRight,
-      label: "New leads today",
-      value: summary ? summary.newToday : "--",
-      sub: "across all pipelines",
-    },
-    {
-      icon: MessageSquare,
-      label: "Unread conversations",
-      value: summary ? summary.unreadConversations : "--",
-      sub:
-        summary && summary.unreadConversations > 0
-          ? "needs a reply"
-          : "all caught up",
-    },
-    {
-      icon: Users,
-      label: "Open leads",
-      value: summary ? openLeads : "--",
-      sub: "currently in pipeline",
-    },
-    {
-      icon: CalendarDays,
-      label: "Appointments today",
-      value: calendarQuery.isLoading ? "--" : appointmentsToday,
-      sub: "on the calendar",
-    },
-  ];
+  const unread = summary?.unreadConversations ?? null;
+  const closeOutCount = closeOuts.data?.count ?? null;
 
   return (
-    <DesktopPage title="Home">
-        {summaryQuery.isError ? (
-          <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
-            Failed to load your dashboard.{" "}
-            {(summaryQuery.error as Error | null)?.message ?? "Try again."}
-          </div>
-        ) : (
-          <>
-            <CloseOutBanner />
+    <DesktopPage>
+      {summaryQuery.isError ? (
+        <div className="rounded-[var(--radius-lg)] border border-danger/30 bg-danger-tint px-4 py-3 text-sm text-danger">
+          Failed to load your dashboard.{" "}
+          {(summaryQuery.error as Error | null)?.message ?? "Try again."}
+        </div>
+      ) : (
+        <>
+          <CloseOutBanner />
 
-            {/* Overview hero: greeting, date, and the four month-to-date KPIs,
-                glowing in the live client brand color. */}
-            <ClientHero greeting={greeting(now)} subtitle={today} kpis={heroKpis} />
+          <h1 className="font-display text-[20px] font-semibold tracking-[-0.02em] text-text">
+            {greeting(now)}
+          </h1>
+          <div className="mb-4 mt-0.5 text-[12.5px] text-faint">{today}</div>
 
-            {/* Two-column body */}
-            <div className="mt-7 grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_1fr]">
-              {/* Pipeline overview */}
-              <section className="rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-                <div className="flex items-center justify-between px-6 py-4">
-                  <h2 className="font-display text-[16px] font-semibold text-text">
-                    Pipeline overview
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/leads")}
-                    className="text-[13px] font-semibold text-brand-text hover:underline"
-                  >
-                    View all
-                  </button>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {/* ---------- Your day ---------- */}
+            <Card title="Your day" actionLabel="Calendar" onAction={() => navigate("/sales")}>
+              {calendarQuery.isLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div
+                    className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-brand"
+                    aria-hidden
+                  />
                 </div>
+              ) : todaysAppointments.length === 0 ? (
+                <div className="flex items-center gap-2.5 px-[18px] py-4 text-[13px] text-muted">
+                  <CalendarDays size={16} className="shrink-0 text-faint" aria-hidden />
+                  Nothing left on the calendar today.
+                </div>
+              ) : (
+                <ul>
+                  {todaysAppointments.map((e, i) => (
+                    <li
+                      key={e.id}
+                      className={
+                        "flex gap-3 px-[18px] py-2.5" +
+                        (i === 0 ? "" : " border-t border-divider")
+                      }
+                    >
+                      <span className="w-[58px] shrink-0 pt-px font-display text-[12.5px] font-bold tabular-nums text-brand-text">
+                        {timeLabel(e.startTime!)}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-[13px] font-semibold text-text">
+                          {e.title || "Appointment"}
+                        </div>
+                        {e.contactName && (
+                          <div className="truncate text-[11.5px] text-muted">
+                            {e.contactName}
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
+              <div className="mt-auto grid grid-cols-2 gap-2.5 px-[18px] pb-4 pt-3.5">
+                <button type="button" onClick={() => navigate("/conversations")} className="text-left">
+                  <Tile
+                    label="Unread"
+                    value={unread == null ? "--" : String(unread)}
+                    sub={unread ? "needs a reply" : "all caught up"}
+                    tone="brand"
+                  />
+                </button>
+                <button type="button" onClick={() => navigate("/sales")} className="text-left">
+                  <Tile
+                    label="To close out"
+                    value={closeOutCount == null ? "--" : String(closeOutCount)}
+                    sub={closeOutCount ? "jobs done" : "nothing waiting"}
+                    tone={closeOutCount ? "warning" : undefined}
+                  />
+                </button>
+              </div>
+            </Card>
+
+            {/* ---------- This month ---------- */}
+            <Card
+              title="This month"
+              actionLabel="Paid Ads"
+              onAction={() => navigate("/marketing/paid-ads")}
+            >
+              <div className="grid grid-cols-2 gap-2.5 px-[18px] pb-1">
+                <Tile
+                  label="Leads"
+                  value={kpis ? String(kpis.leads) : "--"}
+                  sub={kpis ? `${kpis.bookings} booked` : "last 30 days"}
+                />
+                <Tile
+                  label="Revenue"
+                  value={kpis ? formatMoney(kpis.revenue) : "--"}
+                  sub={kpis ? `${formatMoney(kpis.spend)} ad spend` : "last 30 days"}
+                  tone={kpis && kpis.revenue > 0 ? "positive" : undefined}
+                />
+              </div>
+
+              <div className="px-[18px] pb-4 pt-3">
                 {summaryQuery.isLoading ? (
-                  <div className="flex items-center justify-center py-16">
+                  <div className="flex items-center justify-center py-8">
                     <div
-                      className="h-7 w-7 animate-spin rounded-full border-2 border-border border-t-brand"
+                      className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-brand"
                       aria-hidden
                     />
                   </div>
-                ) : !summary || !featured ? (
-                  <div className="px-6 pb-6">
-                    <EmptyState
-                      title="No pipelines"
-                      message="Pipelines configured in your CRM will show up here."
-                    />
+                ) : pipelines.length === 0 ? (
+                  <div className="flex items-center gap-2.5 py-3 text-[13px] text-muted">
+                    <ClipboardCheck size={16} className="shrink-0 text-faint" aria-hidden />
+                    No pipelines to show yet.
                   </div>
                 ) : (
-                  <div className="px-6 pb-6">
-                    {/* Featured: busiest pipeline */}
-                    <button
-                      type="button"
-                      onClick={() => openCard(featured.id)}
-                      className="group block w-full rounded-[var(--radius-lg)] bg-brand-tint px-5 py-5 text-left transition-colors hover:bg-brand-tint-strong"
-                    >
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-text">
-                        <TrendingUp size={13} strokeWidth={2.5} />
-                        Most active
-                      </span>
-                      <div className="mt-3 flex items-end justify-between gap-4">
-                        <div className="min-w-0">
-                          <div className="font-display text-[20px] font-bold text-text">
-                            {shortName(featured.name)}
-                          </div>
-                          <div className="mt-1 text-[13px] font-medium text-muted">
-                            {featured.open} open of {featured.total} leads
-                          </div>
+                  pipelines.map((p) => {
+                    const pct = p.total > 0 ? Math.round((p.open / p.total) * 100) : 0;
+                    return (
+                      <div key={p.id} className="mb-2.5 last:mb-0">
+                        <div className="flex items-center justify-between text-[12.5px]">
+                          <span className="truncate font-semibold text-text">
+                            {shortName(p.name)}
+                          </span>
+                          <span className="shrink-0 tabular-nums text-muted">
+                            {p.open} open
+                          </span>
                         </div>
-                        <div className="stat-num text-[44px] text-brand-text">
-                          {featured.open}
+                        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
+                          <div
+                            className="h-full rounded-full"
+                            style={{ width: `${pct}%`, backgroundImage: "var(--grad-brand)" }}
+                          />
                         </div>
                       </div>
-                    </button>
-
-                    {/* The rest */}
-                    {rest.length > 0 && (
-                      <ul className="fx-stagger mt-2">
-                        {rest.map((p) => {
-                          const pct =
-                            p.total > 0
-                              ? Math.round((p.open / p.total) * 100)
-                              : 0;
-                          return (
-                            <li key={p.id} className="fx-item">
-                              <button
-                                type="button"
-                                onClick={() => openCard(p.id)}
-                                className="flex w-full items-center gap-4 rounded-[var(--radius)] px-2 py-3 text-left transition-colors hover:bg-surface-2"
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <div className="truncate text-[14px] font-semibold text-text">
-                                    {shortName(p.name)}
-                                  </div>
-                                  <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
-                                    <div
-                                      className="h-full rounded-full bg-brand/70"
-                                      style={{ width: `${pct}%` }}
-                                    />
-                                  </div>
-                                </div>
-                                <div className="font-data text-[15px] font-semibold text-text tabular-nums">
-                                  {p.open}
-                                </div>
-                                <ChevronRight
-                                  size={16}
-                                  className="text-faint"
-                                />
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
+                    );
+                  })
                 )}
-              </section>
+              </div>
 
-              {/* Recent activity */}
-              <section className="rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-                <div className="flex items-center justify-between px-6 py-4">
-                  <h2 className="font-display text-[16px] font-semibold text-text">
-                    Recent activity
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/activity")}
-                    className="text-[13px] font-semibold text-brand-text hover:underline"
-                  >
-                    View all
-                  </button>
-                </div>
-                <div className="px-6 pb-6">
-                  {activityQuery.isLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div
-                        className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-brand"
-                        aria-hidden
-                      />
-                    </div>
-                  ) : activity.length === 0 ? (
-                    <div className="flex items-center gap-3 rounded-[var(--radius)] bg-surface-2 px-4 py-5 text-[13px] text-muted">
-                      <Inbox size={18} className="text-faint" />
-                      No recent activity yet.
-                    </div>
-                  ) : (
-                    <ul className="fx-stagger -mt-1">
-                      {activity.slice(0, 8).map((a, idx, arr) => (
-                        <li key={a.id} className="fx-item">
-                          <div
-                            className={
-                              "flex items-center gap-3 py-3" +
-                              (idx === arr.length - 1
-                                ? ""
-                                : " border-b border-divider")
-                            }
-                          >
-                            <span
-                              className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand/60"
-                              aria-hidden
-                            />
-                            <div className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-text">
-                              {activityTitle(a)}
-                            </div>
-                            <span className="shrink-0 font-data text-[11.5px] text-faint tabular-nums">
-                              {activityWhen(a.created_at, now)}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </section>
-            </div>
-          </>
-        )}
+              <button
+                type="button"
+                onClick={() => navigate("/conversations")}
+                className="mt-auto flex items-center gap-2 border-t border-divider px-[18px] py-3 text-left text-[12.5px] font-semibold text-brand-text hover:underline"
+              >
+                <MessageSquare size={14} aria-hidden />
+                Open the inbox
+              </button>
+            </Card>
+          </div>
+        </>
+      )}
     </DesktopPage>
   );
 }

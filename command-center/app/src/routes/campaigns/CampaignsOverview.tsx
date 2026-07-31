@@ -50,7 +50,6 @@ export default function CampaignsOverview() {
       <div className={CAMPAIGNS_CONTAINER}>
         <PageBar
           tabs={COMMERCIAL_OUTREACH_TABS}
-          description="The right message to the right customers, at the right time. We handle every send."
         />
 
         {!demo && <NotConnectedNotice />}

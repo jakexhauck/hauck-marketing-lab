@@ -204,8 +204,7 @@ export default function SocialPosts() {
       />
       <div className={SOCIAL_CONTAINER}>
         <PageBar
-          tabs={SOCIAL_TABS}
-          description="Everything you've scheduled, drafted, and published."
+          tabs={SOCIAL_TABS}
           actions={
             <Button variant="primary" size="md" onClick={openNew}>
               <Plus size={16} /> New Post

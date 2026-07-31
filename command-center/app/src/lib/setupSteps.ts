@@ -9,9 +9,9 @@
 // Jake's real process instead of an empty page, and editing it afterwards never
 // fights with the code.
 
-import { SETUP_PHASES, SETUP_STEPS } from "./clientSetup";
+import { SETUP_PHASES, SETUP_STEPS, type SetupPhaseKey } from "./clientSetup";
 
-export type SetupSection = "ghl" | "ads";
+export type SetupSection = "kickoff" | "call" | "ghl" | "ads";
 
 export interface SetupSectionDef {
   id: SetupSection;
@@ -19,7 +19,19 @@ export interface SetupSectionDef {
   blurb: string;
 }
 
+// The order here is the order on the page, and it is the order the work happens
+// in: sign them, call them, build them, launch them.
 export const SETUP_SECTIONS: SetupSectionDef[] = [
+  {
+    id: "kickoff",
+    label: "Kickoff",
+    blurb: "The moment they sign, before anything is built.",
+  },
+  {
+    id: "call",
+    label: "Onboarding call",
+    blurb: "One sitting, with them on the phone.",
+  },
   {
     id: "ghl",
     label: "GoHighLevel",
@@ -32,8 +44,10 @@ export const SETUP_SECTIONS: SetupSectionDef[] = [
   },
 ];
 
+const SECTION_IDS = new Set<string>(SETUP_SECTIONS.map((s) => s.id));
+
 export function isSetupSection(value: unknown): value is SetupSection {
-  return value === "ghl" || value === "ads";
+  return typeof value === "string" && SECTION_IDS.has(value);
 }
 
 /** One step, as it comes back from the API. */
@@ -135,20 +149,41 @@ export interface SeedRow {
 }
 
 /**
- * The steps a fresh database starts with: Jake's own two processes.
+ * Which section a phase's steps land in.
  *
- * The GoHighLevel phase becomes the GHL section; every day of the seven-day
- * pipeline becomes the ads section, keeping the day as a subheading so the
- * shape of the week survives the move out of code.
+ * Kickoff, the call and the GoHighLevel build are each one section. The seven
+ * days of the ads pipeline are one section between them, because they are one
+ * run of work rather than seven, and the day survives as a subheading.
+ */
+const SECTION_BY_PHASE: Record<SetupPhaseKey, SetupSection> = {
+  kickoff: "kickoff",
+  call: "call",
+  ghl: "ghl",
+  day1: "ads",
+  day2: "ads",
+  day34: "ads",
+  day56: "ads",
+  day7: "ads",
+};
+
+/**
+ * The steps a section starts with: Jake's own processes.
+ *
+ * A section is seeded once, the first time it is asked for, and is the client's
+ * to edit from then on. See the GET handler: it compares the sections present in
+ * the table against these, so a section added here arrives on the next page load
+ * without a migration, and one already in the table is never re-seeded.
  */
 export function seedRows(): SeedRow[] {
   return SETUP_STEPS.map((step, index) => {
-    const isGhl = step.phase === "ghl";
+    const section = SECTION_BY_PHASE[step.phase];
     const phase = SETUP_PHASES.find((p) => p.key === step.phase);
     return {
-      section: isGhl ? "ghl" : "ads",
-      // The GHL section is one list; the ads section keeps its days.
-      group_label: isGhl ? null : (phase?.label ?? null),
+      section,
+      // A step may name its own subheading (the call, which moves between four
+      // systems in one sitting). Otherwise the ads section keeps its days, and
+      // the single-list sections have none.
+      group_label: step.group ?? (section === "ads" ? (phase?.label ?? null) : null),
       label: step.label,
       note: step.note ?? null,
       // Spaced so a step can be dropped between two without renumbering.
@@ -205,9 +240,31 @@ export function sectionProgress(
   };
 }
 
-/** Required steps not yet done, across both sections. Empty means ready. */
+/** Required steps not yet done, across every section. Empty means ready. */
 export function blockingSteps(steps: SetupStepRow[], doneIds: Set<string>): SetupStepRow[] {
   return steps.filter((s) => s.required && !doneIds.has(s.id));
+}
+
+/** The shape the Go Live gate needs, which the server reads straight off the table. */
+export interface GateStep {
+  id: string;
+  label: string;
+  required: boolean;
+  code: string | null;
+}
+
+/**
+ * What still stands between a client and Go Live, counted on the server.
+ *
+ * The same rule as blockingSteps with one deliberate difference: a step with a
+ * `code` is ticked by the live GoHighLevel checks, and this request cannot run
+ * those checks. Counting them here would mean a client could never go live,
+ * which is exactly the bug this replaced. The browser still gates on them, so
+ * the auto steps are a warning rather than a lock, and every step a human ticks
+ * is enforced.
+ */
+export function outstandingRequired(steps: GateStep[], doneIds: Set<string>): GateStep[] {
+  return steps.filter((s) => s.required && !s.code && !doneIds.has(s.id));
 }
 
 /** The next free position in a section, so a new step lands at the end. */

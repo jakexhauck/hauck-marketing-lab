@@ -4,8 +4,6 @@ import Shell from "../components/Shell";
 import PageBar from "../components/PageBar";
 import TestBanner from "../components/TestBanner";
 import SearchBar from "../components/SearchBar";
-import InboxTabStrip from "../components/conversations/InboxTabStrip";
-import TabStripRow from "../components/conversations/TabStripRow";
 import ConversationList from "../components/conversations/ConversationList";
 import EmptyState from "../components/EmptyState";
 import PullToRefresh from "../components/PullToRefresh";
@@ -23,13 +21,15 @@ export default function Conversations() {
   const useReal = Boolean(session);
   const query = useConversationsQuery(useReal);
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState(DEFAULT_INBOX_TAB);
   const isTest = mode === "test";
 
+  // One flat queue. There is no tab state because there is nothing to switch
+  // between: the strip was reduced to a single "Inbox" tab that matched every
+  // conversation, so it filtered nothing and only repeated the page title.
   const all: ApiConversation[] = query.data?.conversations ?? [];
   const list = useMemo(
-    () => conversationsForTab(all, tab, search),
-    [all, tab, search],
+    () => conversationsForTab(all, DEFAULT_INBOX_TAB, search),
+    [all, search],
   );
 
   return (
@@ -40,10 +40,6 @@ export default function Conversations() {
 
         <div className={PAGE_CONTAINER}>
           <PageBar tabs={[]} section="Inbox" />
-
-          <TabStripRow>
-            <InboxTabStrip active={tab} onSelect={setTab} />
-          </TabStripRow>
 
           <div className="mb-3">
             <SearchBar

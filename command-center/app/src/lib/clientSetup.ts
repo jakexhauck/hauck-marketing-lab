@@ -19,6 +19,8 @@
 // one loses that client's tick rather than corrupting anything.
 
 export type SetupPhaseKey =
+  | "kickoff"
+  | "call"
   | "ghl"
   | "day1"
   | "day2"
@@ -30,6 +32,14 @@ export interface SetupStep {
   key: string;
   label: string;
   phase: SetupPhaseKey;
+  /**
+   * Subheading this step sits under, where its phase needs more than one.
+   *
+   * Only the onboarding call has them: it is a single sitting that moves between
+   * four different systems, so the phase alone would be twenty items in a row.
+   * Everywhere else the phase is the heading.
+   */
+  group?: string;
   /** One line of detail, where the step name alone would not be enough. */
   note?: string;
   /**
@@ -57,6 +67,16 @@ export interface SetupPhase {
 }
 
 export const SETUP_PHASES: SetupPhase[] = [
+  {
+    key: "kickoff",
+    label: "Kickoff",
+    blurb: "The three things that happen the moment they sign, before anything is built.",
+  },
+  {
+    key: "call",
+    label: "Onboarding call",
+    blurb: "One sitting, on the call with them: their sub-account, their ads manager, their calendar.",
+  },
   {
     key: "ghl",
     label: "GoHighLevel build",
@@ -95,6 +115,182 @@ export const SETUP_PHASES: SetupPhase[] = [
 ];
 
 export const SETUP_STEPS: SetupStep[] = [
+  // --- Kickoff ---------------------------------------------------------------
+  //
+  // Between the signature and the call. Three messages, and the call itself in
+  // the diary. Nothing here is optional: a client who has not been booked, told
+  // what they signed, or made to feel good about it is a client who goes quiet.
+  {
+    key: "kick-book-call",
+    label: "Book the onboarding call",
+    phase: "kickoff",
+    required: true,
+  },
+  {
+    key: "kick-welcome-email",
+    label: "Send the welcome email with the service agreement and the onboarding form",
+    phase: "kickoff",
+    required: true,
+  },
+  {
+    key: "kick-text",
+    label: "Send them the exciting text message",
+    phase: "kickoff",
+    required: true,
+  },
+
+  // --- Onboarding call -------------------------------------------------------
+  //
+  // Transcribed from Jake's own onboarding checklist doc. The call moves between
+  // four systems, so it keeps the doc's own headings: their account, their ads
+  // manager, HighLevel, and the subdomain.
+  //
+  // The two steps the client has to do on their own machine are optional on
+  // purpose. They are real work, but they are not OUR work, and a client who is
+  // slow to press a button in their own Facebook settings must not be able to
+  // hold the launch hostage.
+  {
+    key: "call-subaccount",
+    label: "Create their sub-account from the snapshot",
+    phase: "call",
+    group: "Their account",
+    required: true,
+  },
+  {
+    key: "call-client-login",
+    label: "Create the client's login",
+    phase: "call",
+    group: "Their account",
+    required: true,
+  },
+
+  {
+    key: "call-ad-account-decide",
+    label: "Use their current ad account, or create a new one",
+    phase: "call",
+    group: "Ads manager",
+    required: true,
+  },
+  {
+    key: "call-fb-page",
+    label: "Connect their Facebook business page",
+    phase: "call",
+    group: "Ads manager",
+    required: true,
+  },
+  {
+    key: "call-ad-account-name",
+    label: "Name the ad account after their business",
+    phase: "call",
+    group: "Ads manager",
+    note: "Only when a new one is being created.",
+  },
+  {
+    key: "call-pixel",
+    label: "Create a new pixel and install it on the website",
+    phase: "call",
+    group: "Ads manager",
+    required: true,
+  },
+  {
+    key: "call-domain-verify",
+    label: "Verify their business domain",
+    phase: "call",
+    group: "Ads manager",
+    required: true,
+  },
+  {
+    key: "call-business-info",
+    label: "Fill in the business info, then verify the email address and the business",
+    phase: "call",
+    group: "Ads manager",
+    required: true,
+  },
+  {
+    key: "call-invite-admin",
+    label: "Invite us as an admin, with access to everything",
+    phase: "call",
+    group: "Ads manager",
+    note: "contact.jakehauck@gmail.com",
+    required: true,
+  },
+  {
+    key: "call-invite-partner",
+    label: "Invite Hauck Marketing as a partner",
+    phase: "call",
+    group: "Ads manager",
+    note: "A partner request is made against our Business Manager ID, not an email address.",
+    required: true,
+  },
+  {
+    key: "call-capi",
+    label: "Set up the Facebook Conversions API",
+    phase: "call",
+    group: "Ads manager",
+    required: true,
+  },
+
+  {
+    key: "call-highlevel",
+    label: "Walk them through HighLevel and the LeadConnector app",
+    phase: "call",
+    group: "HighLevel",
+    note: "The app is how they get notified on their phone. Watch them install it.",
+    required: true,
+  },
+  {
+    key: "call-send-login",
+    label: "Send them their HighLevel login",
+    phase: "call",
+    group: "HighLevel",
+    required: true,
+  },
+  {
+    key: "call-client-fb",
+    label: "They connect their Facebook page from their end",
+    phase: "call",
+    group: "HighLevel",
+    note: "Theirs to do, and it needs their own password. Chase it, do not wait on it.",
+  },
+  {
+    key: "call-client-gcal",
+    label: "They connect their Google Calendar from their end",
+    phase: "call",
+    group: "HighLevel",
+    note: "Theirs to do. The two-way connection is set up afterwards, under GoHighLevel.",
+  },
+  {
+    key: "call-staff",
+    label: "Add my staff to the sub-account",
+    phase: "call",
+    group: "HighLevel",
+    required: true,
+  },
+  {
+    key: "call-calendar",
+    label: "Create their calendar and assign it to them",
+    phase: "call",
+    group: "HighLevel",
+    required: true,
+  },
+  {
+    key: "call-availability",
+    label: "Set their availability, Monday to Sunday",
+    phase: "call",
+    group: "HighLevel",
+    note: "Ask for weekends explicitly. Most say no, and the ones who say yes are worth knowing about.",
+    required: true,
+  },
+
+  {
+    key: "call-subdomain",
+    label: "Point their subdomain at sites.ludicrous.cloud",
+    phase: "call",
+    group: "Subdomain",
+    note: "A CNAME record on their DNS.",
+    required: true,
+  },
+
   // --- GoHighLevel build ----------------------------------------------------
   {
     key: "ghl-subaccount",

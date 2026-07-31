@@ -8,9 +8,11 @@ import {
   isSetupSection,
   moveStep,
   nextPosition,
+  outstandingRequired,
   sectionProgress,
   seedRows,
   validateStepPatch,
+  type GateStep,
   type SetupStepRow,
 } from "./setupSteps";
 import { SETUP_STEPS } from "./clientSetup";
@@ -30,11 +32,14 @@ function step(over: Partial<SetupStepRow> = {}): SetupStepRow {
 }
 
 describe("the sections", () => {
-  it("ships the two Jake asked for", () => {
-    expect(SETUP_SECTIONS.map((s) => s.id)).toEqual(["ghl", "ads"]);
+  // The order is the order the work happens in, and the page draws them in it.
+  it("ships the four, in the order the work happens", () => {
+    expect(SETUP_SECTIONS.map((s) => s.id)).toEqual(["kickoff", "call", "ghl", "ads"]);
   });
 
   it("recognises its own sections and nothing else", () => {
+    expect(isSetupSection("kickoff")).toBe(true);
+    expect(isSetupSection("call")).toBe(true);
     expect(isSetupSection("ghl")).toBe(true);
     expect(isSetupSection("ads")).toBe(true);
     expect(isSetupSection("wiring")).toBe(false);
@@ -47,16 +52,41 @@ describe("the seed", () => {
     expect(seedRows()).toHaveLength(SETUP_STEPS.length);
   });
 
-  it("splits GoHighLevel from the ads pipeline", () => {
+  it("puts every step in a section this file knows", () => {
     const rows = seedRows();
-    const ghl = rows.filter((r) => r.section === "ghl");
-    const ads = rows.filter((r) => r.section === "ads");
-    expect(ghl.length).toBeGreaterThan(5);
-    expect(ads.length).toBeGreaterThan(5);
-    expect(ghl.length + ads.length).toBe(rows.length);
+    for (const section of SETUP_SECTIONS) {
+      expect(rows.filter((r) => r.section === section.id).length).toBeGreaterThan(0);
+    }
+    expect(rows.every((r) => isSetupSection(r.section))).toBe(true);
   });
 
-  it("keeps the days as subheadings on the ads side only", () => {
+  it("carries Jake's three kickoff steps, and only those", () => {
+    const kickoff = seedRows().filter((r) => r.section === "kickoff");
+    expect(kickoff).toHaveLength(3);
+    expect(kickoff.every((r) => r.required)).toBe(true);
+    expect(kickoff.every((r) => r.group_label === null)).toBe(true);
+  });
+
+  // The call moves between four systems in one sitting, so it is the one
+  // section whose steps name their own subheading.
+  it("keeps the call's own subheadings", () => {
+    const call = seedRows().filter((r) => r.section === "call");
+    expect(call.every((r) => Boolean(r.group_label))).toBe(true);
+    expect([...new Set(call.map((r) => r.group_label))]).toEqual([
+      "Their account",
+      "Ads manager",
+      "HighLevel",
+      "Subdomain",
+    ]);
+  });
+
+  // What the client has to do on their own machine cannot hold up a launch.
+  it("leaves the two client-side steps optional", () => {
+    const optional = seedRows().filter((r) => !r.required && r.section === "call");
+    expect(optional.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("keeps the days as subheadings on the ads side, and none on the GHL side", () => {
     const rows = seedRows();
     expect(rows.filter((r) => r.section === "ghl").every((r) => r.group_label === null)).toBe(true);
     expect(rows.filter((r) => r.section === "ads").every((r) => Boolean(r.group_label))).toBe(true);
@@ -176,6 +206,42 @@ describe("progress and blocking", () => {
   it("blocks only on required steps that are not done", () => {
     expect(blockingSteps(steps, new Set(["a"])).map((s) => s.id)).toEqual(["c"]);
     expect(blockingSteps(steps, new Set(["a", "c"]))).toEqual([]);
+  });
+});
+
+// The Go Live gate, as the server counts it. This is the one the client cannot
+// argue with, so it is tested on its own rather than through the page.
+describe("outstandingRequired", () => {
+  const gate = (over: Partial<GateStep> = {}): GateStep => ({
+    id: "g1",
+    label: "A step",
+    required: true,
+    code: null,
+    ...over,
+  });
+
+  it("holds a client back for a required step nobody ticked", () => {
+    const steps = [gate({ id: "a" }), gate({ id: "b" })];
+    expect(outstandingRequired(steps, new Set(["a"])).map((s) => s.id)).toEqual(["b"]);
+  });
+
+  it("lets them through once every required step is ticked", () => {
+    const steps = [gate({ id: "a" }), gate({ id: "b", required: false })];
+    expect(outstandingRequired(steps, new Set(["a"]))).toEqual([]);
+  });
+
+  // The auto steps are answered by a live GoHighLevel check the browser runs and
+  // this request cannot. Counting them meant Go Live could never be pressed.
+  it("does not hold them back for a step the live checks tick", () => {
+    const steps = [gate({ id: "auto", code: "token-connected" })];
+    expect(outstandingRequired(steps, new Set())).toEqual([]);
+  });
+
+  // A tick is saved against the step's row id, which is what the gate reads.
+  it("counts ticks by row id, not by anything else on the row", () => {
+    const steps = [gate({ id: "row-uuid", label: "token-connected" })];
+    expect(outstandingRequired(steps, new Set(["token-connected"]))).toHaveLength(1);
+    expect(outstandingRequired(steps, new Set(["row-uuid"]))).toHaveLength(0);
   });
 });
 

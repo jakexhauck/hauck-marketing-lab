@@ -30,7 +30,6 @@ export default function CampaignsAudiences() {
       <div className={CAMPAIGNS_CONTAINER}>
         <PageBar
           tabs={COMMERCIAL_OUTREACH_TABS}
-          description="The customer lists we can reach for you. We build these from your customer records."
         />
 
         {!connected && (

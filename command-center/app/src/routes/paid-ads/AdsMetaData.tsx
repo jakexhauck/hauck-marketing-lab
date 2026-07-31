@@ -47,8 +47,7 @@ export default function AdsMetaData() {
       <div className={PAID_ADS_CONTAINER}>
         <PageBar
           tabs={PAID_ADS_TABS}
-          count={rows.length ? `${rows.length} rows` : undefined}
-          description="Your raw daily ad numbers, straight from Meta, one row per ad per day. This is the source your dashboard is built from."
+          count={rows.length ? `${rows.length} rows` : undefined}
         />
 
         {query.isError ? (

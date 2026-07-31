@@ -39,8 +39,7 @@ export default function ReactivationData() {
     <Shell>
       <div className={PAGE_CONTAINER}>
         <PageBar
-          tabs={REACTIVATION_TABS}
-          description="The full breakdown of your win-back campaign."
+          tabs={REACTIVATION_TABS}
         />
 
         {/* Renders as zeros before the campaign starts and fills in as

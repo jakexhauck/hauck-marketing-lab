@@ -336,12 +336,8 @@ export default function BillingDesktop() {
     return trend;
   }, [trend, trendRange, now]);
 
-  const subtitle = invoicesQuery.isLoading
-    ? "Loading..."
-    : `${invoices.length} ${invoices.length === 1 ? "invoice" : "invoices"}`;
-
   return (
-    <DesktopPage title="Revenue" subtitle={subtitle}>
+    <DesktopPage title="Revenue">
       {/* KPI band. All four derive from the two live feeds. The MoM pill is
           hidden when there is no prior-month baseline to compare against. */}
       <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">

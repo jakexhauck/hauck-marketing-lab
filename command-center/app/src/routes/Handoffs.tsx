@@ -2,7 +2,6 @@ import { useState } from "react";
 import { AlertCircle } from "lucide-react";
 import Shell from "../components/Shell";
 import TestBanner from "../components/TestBanner";
-import EmptyState from "../components/EmptyState";
 import HandoffsList from "../components/handoffs/HandoffsList";
 import HandoffOutcomeModal from "../components/handoffs/HandoffOutcomeModal";
 import { useAuth } from "../context/AuthContext";
@@ -40,8 +39,13 @@ export function HandoffsBoard({
     <>
       {isTest && <TestBanner />}
       <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-[22px] pb-6 pt-4 lg:px-6">
-        {/* Scoreboard: the funnel at a glance, plus the accountability nudge. */}
-        {items.length > 0 && (
+        {/* Scoreboard: the funnel at a glance, plus the accountability nudge.
+            Shown even at zero so the page keeps its shape on a quiet day: an
+            empty board should read as "nothing handed over yet", not as a page
+            that failed to render. Hidden only while the numbers are unknown
+            (loading / error), since flashing zeros that then jump to real
+            figures is worse than showing nothing for a beat. */}
+        {!query.isLoading && !query.isError && (
           <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]">
             {ignoredCount > 0 && (
               <span className="inline-flex items-center gap-1 font-bold text-rose-600 dark:text-rose-400">
@@ -71,14 +75,23 @@ export function HandoffsBoard({
               aria-hidden
             />
           </div>
-        ) : items.length === 0 ? (
-          <EmptyState
-            title="No handoffs yet"
-            message="When a setter qualifies a lead and hands it to you, it shows up here."
-          />
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
-            <HandoffsList items={items} selectedId={openId} onOpen={setOpenId} />
+          // The board card renders whether or not there is anything in it, with
+          // the empty line sitting inside its own frame. An empty board only
+          // sizes to its message (no flex-1), so a quiet day reads as a small
+          // card rather than one tall blank rectangle.
+          <div
+            className={
+              "flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]" +
+              (items.length > 0 ? " flex-1" : "")
+            }
+          >
+            <HandoffsList
+              items={items}
+              selectedId={openId}
+              onOpen={setOpenId}
+              emptyLabel="No handoffs yet."
+            />
           </div>
         )}
       </div>

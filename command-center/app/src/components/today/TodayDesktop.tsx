@@ -270,18 +270,12 @@ export default function TodayDesktop() {
   const waitingCount = newLeads.length + followUpLeads.length;
   const firstName = currentUser?.name?.split(" ")[0] ?? "there";
 
-  const today = new Date(now).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-
   const onTap = (id: string) => navigate(`/lead/${id}`);
 
   return (
     <DesktopPage
       title="Today"
-      subtitle={today}
+
       actions={
         <>
           <Button variant="primary" onClick={() => navigate("/dashboard")}>

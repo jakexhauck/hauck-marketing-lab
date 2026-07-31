@@ -7,6 +7,7 @@ import {
 } from "../lib/ghl";
 import { startOfTodayMs } from "../lib/tz";
 import { makeInternalConversationFilter } from "../lib/internalRecipients";
+import { clientVisiblePipelines } from "../lib/clientPipelines";
 
 interface PipelinesResponse {
   pipelines: { id: string; name: string }[];
@@ -55,12 +56,20 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     if (Number.isFinite(created) && created >= todayMs) newToday += 1;
   }
 
-  const pipelines: PipelineSummary[] = (pipelinesData.pipelines ?? []).map(
-    (p) => {
-      const c = byPipeline.get(p.id) ?? { total: 0, open: 0 };
-      return { id: p.id, name: p.name, total: c.total, open: c.open };
-    },
-  );
+  // The agency's own "Cold Calling" board lives in the same location and must
+  // never reach a client dashboard. Filtered here, on the server, so it is not
+  // merely hidden in the UI: it never leaves the building.
+  //
+  // `newToday` above is deliberately still counted across every opportunity.
+  // Scoping it would mean a client's "new leads today" silently disagreed with
+  // their CRM, and the agency's prospects are not leads in their pipelines
+  // anyway (they are contacts we sourced, on a board they cannot see).
+  const pipelines: PipelineSummary[] = clientVisiblePipelines(
+    pipelinesData.pipelines ?? [],
+  ).map((p) => {
+    const c = byPipeline.get(p.id) ?? { total: 0, open: 0 };
+    return { id: p.id, name: p.name, total: c.total, open: c.open };
+  });
 
   let unreadConversations = 0;
   try {

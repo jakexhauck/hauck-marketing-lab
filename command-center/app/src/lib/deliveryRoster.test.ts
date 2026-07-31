@@ -17,6 +17,7 @@ function mk(overrides: Partial<AdminClient>): AdminClient {
     createdAt: "2026-01-01T00:00:00Z",
     healthStatus: "healthy",
     healthNote: null,
+    onboardingStatus: "live",
     ...overrides,
   };
 }

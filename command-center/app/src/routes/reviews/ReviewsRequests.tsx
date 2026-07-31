@@ -96,8 +96,7 @@ export default function ReviewsRequests() {
       <div className="flex min-h-0 w-full flex-1 flex-col px-5 pb-12 pt-5 lg:px-6">
         <PageBar
           tabs={REVIEWS_TABS}
-          count={contacts.length ? `${contacts.length}` : undefined}
-          description="Finished jobs. Tap Start Campaign to ask that customer for a Google review."
+          count={contacts.length ? `${contacts.length}` : undefined}
         />
 
         {configError ? (

@@ -598,8 +598,8 @@ export default function App() {
                   </AdminRoute>
                 }
               />
-              {/* Onboarding is one page in two views (?view=pipeline|setup), so
-                  the per-client addresses it used to have redirect into the
+              {/* Onboarding is one page in two views (?view=setup|management),
+                  so the per-client addresses it used to have redirect into the
                   setup view with that client selected. Old links, the pillar
                   lanes and anything bookmarked all still land. */}
               <Route

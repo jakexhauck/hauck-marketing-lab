@@ -204,11 +204,6 @@ export default function Customers() {
     return { count, cents };
   }, [columns]);
 
-  const visibleTotal = useMemo(
-    () => [...matches.values()].reduce((n, list) => n + list.length, 0),
-    [matches],
-  );
-
   // Phone only. Searching from a tab whose column holds no match would show
   // "No matches here" while the header above it says "1 of 9 customers", because
   // the hit is sitting in the other column. Land on a tab that actually has one.
@@ -220,17 +215,12 @@ export default function Customers() {
 
   const noCustomers = !query.isLoading && !query.isError && totals.count === 0;
 
-  const description = trimmed
-    ? `${visibleTotal} of ${totals.count} ${totals.count === 1 ? "customer" : "customers"}`
-    : `${formatMoney(centsToDollars(totals.cents))} lifetime`;
-
   return (
     <Shell>
       <div className={PAGE_CONTAINER}>
         <PageHeader
           title="Customers"
           count={totals.count > 0 ? totals.count : undefined}
-          description={totals.count > 0 ? description : undefined}
         />
 
         {query.isError ? (

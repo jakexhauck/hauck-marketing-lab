@@ -88,7 +88,9 @@ export default function WiringCard({ tenantId }: { tenantId: string }) {
       {secrets.isLoading ? (
         <p className="text-[13px] text-muted">Loading...</p>
       ) : (
-        <div className="flex flex-col gap-4">
+        // Two across on a wide screen: these are short credential fields, and a
+        // full-width input for a location id is mostly empty box.
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {FIELDS.map((field) => {
             const current = views.get(field.column);
             const isSet = Boolean(current?.configured);
@@ -121,7 +123,7 @@ export default function WiringCard({ tenantId }: { tenantId: string }) {
             );
           })}
 
-          <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+          <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4 lg:col-span-2">
             <Button variant="primary" disabled={!dirty} loading={save.isPending} onClick={submit}>
               Save wiring
             </Button>

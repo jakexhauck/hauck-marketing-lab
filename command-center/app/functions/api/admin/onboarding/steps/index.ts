@@ -40,10 +40,16 @@ function view(row: Row) {
 
 // GET — every live step, in order.
 //
-// Seeds itself. An empty table means this is the first time anyone has looked,
-// and the right starting point is Jake's real process rather than a blank page
-// he would have to type in from memory. Seeding once, here, is what lets the
-// code list stop being the source of truth without losing its content.
+// Seeds itself, per section. A section with no row at all has never been looked
+// at, and the right starting point is Jake's real process rather than a blank
+// page he would have to type in from memory.
+//
+// Per section, rather than only when the whole table is empty, so adding a
+// section to the code list arrives on the next page load instead of needing a
+// migration to carry twenty rows of English into SQL. A section already in the
+// table is never touched, including one whose steps have all been archived: the
+// test is whether any row has ever existed, so deleting a step you did not want
+// is permanent, as deleting should be.
 export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => {
   const client = getServiceClient(ctx.env);
   if (!client) return Response.json({ error: "supabase not configured" }, { status: 503 });
@@ -66,11 +72,16 @@ export const onRequestGet: PagesFunction<Env, string, ApiData> = async (ctx) => 
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  if ((data ?? []).length === 0) {
-    const { error: seedErr } = await client.from("setup_steps").insert(seedRows());
-    // A failed seed is not fatal: an empty list still renders, and the next
-    // read tries again. Only a seed that half-succeeded would be worth shouting
-    // about, and the insert is one statement.
+  // Archived rows count as "this section exists", so this reads the table
+  // unfiltered rather than reusing the list above.
+  const { data: everRows } = await client.from("setup_steps").select("section");
+  const seen = new Set(((everRows ?? []) as { section: string }[]).map((r) => r.section));
+  const missing = seedRows().filter((row) => !seen.has(row.section));
+
+  if (missing.length > 0) {
+    const { error: seedErr } = await client.from("setup_steps").insert(missing);
+    // A failed seed is not fatal: the list still renders and the next read tries
+    // again. The insert is one statement, so there is no half-seeded state.
     if (!seedErr) ({ data, error } = await read());
   }
 

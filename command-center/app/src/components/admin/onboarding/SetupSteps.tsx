@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Check, Megaphone, Rocket, Workflow } from "lucide-react";
+import { CalendarCheck, Check, Megaphone, PhoneCall, Rocket, Workflow } from "lucide-react";
 import { Button } from "../../ui/Button";
 import {
   useAdminOnboardingChecklistQuery,
@@ -19,7 +19,8 @@ import {
   type SetupStepRow,
 } from "../../../lib/setupSteps";
 
-// The two checkbox sections of Client setup: GoHighLevel, then Meta ads.
+// The checkbox sections of Client setup, in the order the work happens: Kickoff,
+// the onboarding call, the GoHighLevel build, then Meta ads.
 //
 // The steps are rows now, edited on Onboarding > Management, so this file draws
 // whatever the process currently says rather than a list baked into it.
@@ -28,6 +29,8 @@ import {
 // on `code`, never on their name, so renaming one in Management keeps its wiring.
 
 const SECTION_ICON: Record<SetupSection, typeof Workflow> = {
+  kickoff: CalendarCheck,
+  call: PhoneCall,
   ghl: Workflow,
   ads: Megaphone,
 };
@@ -76,7 +79,13 @@ export default function SetupSteps({ tenantId }: { tenantId: string }) {
 
   return (
     <>
-      {SETUP_SECTIONS.map((section) => {
+      {/* Columns, not a grid: the sections are wildly different lengths (three
+          steps of kickoff against twenty-two of ads), and a grid row is as tall
+          as its tallest cell, so the short ones would sit over a hole the height
+          of the long one. A column flow packs them, and a card never splits
+          across a break. */}
+      <div className="gap-4 xl:columns-2 2xl:columns-3">
+        {SETUP_SECTIONS.map((section) => {
         const progress = sectionProgress(steps, section.id, doneIds);
         const Icon = SECTION_ICON[section.id];
         const groups = groupSteps(steps, section.id);
@@ -84,7 +93,7 @@ export default function SetupSteps({ tenantId }: { tenantId: string }) {
         return (
           <section
             key={section.id}
-            className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)] sm:p-6"
+            className="mb-4 break-inside-avoid rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)] sm:p-6"
           >
             <header className="mb-4 flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-3">
@@ -143,7 +152,8 @@ export default function SetupSteps({ tenantId }: { tenantId: string }) {
             )}
           </section>
         );
-      })}
+        })}
+      </div>
 
       {status === "setup" && (
         <GoLive

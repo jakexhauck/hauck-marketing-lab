@@ -308,8 +308,7 @@ export function JobsBoard({
           <div className="flex justify-end pb-1 pt-1">{viewControls}</div>
         ) : (
           <PageHeader
-            title="Jobs"
-            description="Pick a day to see and work its jobs, or switch to a calendar view."
+            title="Jobs"
             actions={viewControls}
           />
         )}

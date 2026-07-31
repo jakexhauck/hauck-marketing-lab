@@ -8,8 +8,8 @@ import { cn } from "../lib/cn";
 // column capped at max-w-md, with each screen rendering its own bottom tab bar.
 // For authenticated sessions at lg+ it becomes the desktop layout: a persistent
 // sidebar rail beside a wide, uncapped content column (the bottom bar hides
-// itself at lg). The agency chat lives in the top-right ChatLauncher icon, so
-// there is no docked right rail. The login screen also renders inside Shell, so
+// itself at lg). There is no docked right rail: the top-right cluster is the
+// notification bell alone. The login screen also renders inside Shell, so
 // the wide layout is gated on a session: unauthenticated, it stays the centered
 // phone column.
 export default function Shell({ children }: { children: ReactNode }) {

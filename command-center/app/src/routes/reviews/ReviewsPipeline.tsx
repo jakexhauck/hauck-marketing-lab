@@ -22,8 +22,7 @@ export default function ReviewsPipeline() {
     <Shell>
       <div className={REVIEWS_CONTAINER}>
         <PageBar
-          tabs={REVIEWS_TABS}
-          description="How your recent customers move from being asked for a review to leaving one. This view is read-only."
+          tabs={REVIEWS_TABS}
         />
         <ReviewsFunnelView
           data={funnel.data}

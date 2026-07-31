@@ -15,13 +15,6 @@ import { usePipelineLeadsQuery } from "../../hooks/useApi";
 import type { ApiLead } from "../../lib/api";
 import type { LeadPipelineKind } from "../../lib/leadPipelines";
 
-const COPY: Record<LeadPipelineKind, string> = {
-  sales:
-    "Every lead in your sales pipeline. Drag a card to move a stage, or tap a card to open the conversation.",
-  trash:
-    "Leads that went cold, opted out, or were not a fit. Kept for the record and for reactivation.",
-};
-
 // One responsive board for the Sales or Trash pipeline: the section PageBar
 // (tabs, search, "New lead") over the shared kanban Board. Replaces the old
 // phone Leads.tsx hero/list and the separate LeadsDesktop component, which
@@ -77,7 +70,6 @@ export default function LeadsPipelinePage({ kind }: { kind: LeadPipelineKind }) 
         <PageBar
           tabs={LEADS_TABS}
           count={kind === "sales" ? `${openCount} open · ${formatMoney(openValue)}` : undefined}
-          description={COPY[kind]}
           actions={
             <Button variant="primary" size="sm" onClick={() => setShowNewLead(true)}>
               <Plus size={15} />

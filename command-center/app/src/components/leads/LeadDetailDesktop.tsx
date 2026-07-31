@@ -288,20 +288,6 @@ export default function LeadDetailDesktop() {
       ? activities
       : activities.slice(0, 8);
 
-  const subtitle = (
-    <span className="inline-flex items-center gap-2">
-      <span>{stageLabel}</span>
-      {lead.pipelineName && (
-        <>
-          <span aria-hidden className="text-faint">
-            ·
-          </span>
-          <span>{lead.pipelineName}</span>
-        </>
-      )}
-    </span>
-  );
-
   return (
     <>
       <DesktopPage
@@ -311,7 +297,7 @@ export default function LeadDetailDesktop() {
             <span className="truncate">{lead.name}</span>
           </span>
         }
-        subtitle={subtitle}
+
         flush
         actions={
           <Button variant="ghost" onClick={() => navigate("/sales/leads")}>

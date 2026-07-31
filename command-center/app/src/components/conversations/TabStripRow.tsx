@@ -11,7 +11,9 @@ export default function TabStripRow({ children }: { children: ReactNode }) {
   return (
     <nav
       aria-label="Stages"
-      className="mb-3 flex shrink-0 gap-5 overflow-x-auto border-b border-[var(--border)] lg:hidden"
+      // No border-b any more: the strip inside is a segmented track with its own
+      // container, so a rule under it would just be a second, competing edge.
+      className="mb-4 mt-1 flex shrink-0 overflow-x-auto lg:hidden"
       style={{ scrollbarWidth: "none" }}
     >
       {children}

@@ -80,8 +80,7 @@ export default function AdsInsights() {
     <Shell>
       <div className={PAID_ADS_CONTAINER}>
         <PageBar
-          tabs={PAID_ADS_TABS}
-          description="Every number behind your ads this month, in plain English. Read-only, straight from Facebook and Instagram."
+          tabs={PAID_ADS_TABS}
         />
 
         {!populated ? (

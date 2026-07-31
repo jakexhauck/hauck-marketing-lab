@@ -1,7 +1,7 @@
 import type { Env, ApiData } from "../../../../lib/env";
 import { getServiceClient } from "../../../../lib/supabase";
 import { logAdminAction } from "../../../../lib/adminAuth";
-import { CHECKLIST_TASKS } from "../../../../../src/lib/onboarding";
+import { outstandingRequired, type GateStep } from "../../../../../src/lib/setupSteps";
 
 // POST /api/admin/onboarding/:tenantId/go-live
 //
@@ -41,9 +41,23 @@ export const onRequestPost: PagesFunction<Env, "tenantId", ApiData> = async (ctx
       .filter((r) => r.done)
       .map((r) => r.task_key),
   );
-  // Counted over the tasks we ship, not over the rows that happen to exist: a
-  // saved row for a retired task must not stand in for a real one.
-  const outstanding = CHECKLIST_TASKS.filter((t) => !done.has(t.key));
+
+  // Counted over the steps the process currently ships, read from setup_steps,
+  // not over the rows that happen to exist: a saved tick for a step since
+  // deleted must not stand in for a real one.
+  //
+  // This used to count the old hardcoded list in src/lib/clientSetup.ts, whose
+  // keys stopped matching what a tick is saved against when the steps moved into
+  // the table. Every Go Live was refused. Ticks are keyed by row id now, and so
+  // is this.
+  const { data: stepRows, error: stepsErr } = await client
+    .from("setup_steps")
+    .select("id, label, required, code")
+    .eq("archived", false)
+    .eq("required", true);
+  if (stepsErr) return Response.json({ error: stepsErr.message }, { status: 500 });
+
+  const outstanding = outstandingRequired((stepRows ?? []) as GateStep[], done);
   if (outstanding.length > 0) {
     return Response.json(
       {

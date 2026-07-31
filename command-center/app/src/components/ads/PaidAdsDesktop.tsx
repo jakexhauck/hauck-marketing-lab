@@ -8,7 +8,6 @@ import { AdFunnel } from "./AdFunnel";
 import { CampaignsTable } from "./CampaignsTable";
 import { useAdsData } from "../../hooks/useAds";
 import {
-  RANGE_LABEL,
   cpc,
   cpl,
   cpm,
@@ -129,7 +128,6 @@ export default function PaidAdsDesktop() {
   return (
     <DesktopPage
       title="Paid Ads"
-      subtitle={`${data.account.platform} · ${data.account.name} · ${RANGE_LABEL[range]}`}
       actions={
         <>
           <Segmented options={RANGE_OPTIONS} value={range} onChange={setRange} />

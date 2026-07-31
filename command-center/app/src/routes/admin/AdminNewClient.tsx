@@ -41,8 +41,7 @@ export default function AdminNewClient() {
 
   return (
     <DesktopPage
-      title="Add a client"
-      subtitle="Send them the form, send the paperwork, book the call."
+      title="Add a client"
       actions={
         <Link to="/admin/onboarding">
           <Button variant="ghost" size="sm">

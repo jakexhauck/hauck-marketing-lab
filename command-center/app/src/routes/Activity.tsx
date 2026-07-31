@@ -70,8 +70,7 @@ export function Activity() {
       <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <div className="mx-auto w-full max-w-[760px]">
       <PageHeader
-        title="Activity"
-        description="Account events and notifications from your pipelines."
+        title="Activity"
         count={
           view === "notifications" && unreadCount > 0 ? (
             <Badge tone="brand">{unreadCount} unread</Badge>

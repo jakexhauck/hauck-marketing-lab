@@ -134,16 +134,10 @@ export default function NotificationsDesktop() {
     if (target) navigate(target);
   };
 
-  const subtitle = query.isLoading
-    ? "Loading..."
-    : unread > 0
-      ? `${unread} unread`
-      : "All caught up";
-
   return (
     <DesktopPage
       title="Notifications"
-      subtitle={subtitle}
+
       actions={
         <>
           {unread > 0 && (

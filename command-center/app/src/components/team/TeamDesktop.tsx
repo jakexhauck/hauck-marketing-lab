@@ -113,17 +113,12 @@ export default function TeamDesktop({
     });
   }, [staff, filter, search]);
 
-  const countLabel = loading
-    ? "Loading..."
-    : `${counts.total} ${counts.total === 1 ? "member" : "members"}`;
-
   // True when the form is open in add mode (lets the primary action toggle).
   const adding = showForm && !editing;
 
   return (
     <DesktopPage
       title="Team"
-      subtitle={countLabel}
       actions={
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={onManageRoles}>

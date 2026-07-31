@@ -50,8 +50,7 @@ export default function Reactivation() {
     <Shell>
       <div className={REACTIVATION_CONTAINER}>
         <PageBar
-          tabs={REACTIVATION_TABS}
-          description="Quietly win back customers who haven't booked in a while, on autopilot."
+          tabs={REACTIVATION_TABS}
           actions={
             populated ? (
               <Badge tone="positive">

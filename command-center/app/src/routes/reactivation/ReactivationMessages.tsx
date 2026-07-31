@@ -65,8 +65,7 @@ export default function ReactivationMessages() {
     <Shell>
       <div className={PAGE_CONTAINER}>
         <PageBar
-          tabs={REACTIVATION_TABS}
-          description="The texts and emails we send your customers to win them back. This view is read-only."
+          tabs={REACTIVATION_TABS}
           actions={
             populated ? (
               <Segmented options={filterOptions} value={filter} onChange={setFilter} size="sm" />

@@ -40,7 +40,7 @@ export default function ComingSoon({
 
       {/* Desktop layout (lg+): shared chrome, centered card. */}
       <div className="hidden min-h-dvh flex-1 lg:flex">
-        <DesktopPage title={title} subtitle="Coming soon">
+        <DesktopPage title={title}>
           <div className="flex min-h-[60vh] items-center justify-center">
             <ComingSoonCard title={title} blurb={blurb} />
           </div>

@@ -84,8 +84,7 @@ export default function SocialCalendar() {
       />
       <div className={SOCIAL_CONTAINER}>
         <PageBar
-          tabs={SOCIAL_TABS}
-          description="Your whole month of posts at a glance."
+          tabs={SOCIAL_TABS}
           actions={
             <Button variant="primary" size="md" onClick={() => openCompose()}>
               <Plus size={16} /> New post

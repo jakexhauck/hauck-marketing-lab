@@ -60,17 +60,10 @@ export default function ActivityDesktop() {
     );
   }
 
-  const subtitle =
-    view === "notifications"
-      ? unreadCount > 0
-        ? `${unreadCount} unread`
-        : "You are all caught up"
-      : "A read-only log of every account event";
-
   return (
     <DesktopPage
       title="Activity"
-      subtitle={subtitle}
+
     >
       {/* View toggle plus the one secondary action (mark all read). */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">

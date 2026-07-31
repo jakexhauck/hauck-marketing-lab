@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import PageBar from "../PageBar";
 import EmptyState from "../EmptyState";
 import InboxDetail from "./InboxDetail";
-import InboxTabStrip from "./InboxTabStrip";
 import ConversationList from "./ConversationList";
 import { useAuth } from "../../context/AuthContext";
 import { useConversationsQuery } from "../../hooks/useApi";
@@ -19,7 +18,6 @@ export default function ConversationsDesktop() {
   const query = useConversationsQuery(useReal);
 
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState(DEFAULT_INBOX_TAB);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const all: ApiConversation[] = useMemo(
@@ -27,9 +25,10 @@ export default function ConversationsDesktop() {
     [query.data],
   );
 
+  // One flat queue, so no tab state: see the header comment below.
   const list = useMemo(
-    () => conversationsForTab(all, tab, search),
-    [all, tab, search],
+    () => conversationsForTab(all, DEFAULT_INBOX_TAB, search),
+    [all, search],
   );
 
   // Keep a valid selection for the active tab: default to the top row, and if
@@ -48,14 +47,15 @@ export default function ConversationsDesktop() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      {/* Header alone. The Inbox has no sub-pages and no filters: the strip that
+          used to sit under here held a single "Inbox" tab matching every
+          conversation, so it filtered nothing and repeated the title.
+          PageBar's own mb-5 is the white space down to the panes. */}
       <div className="px-6 pt-5">
-        <PageBar tabs={[]} section="Inbox" flush>
-          <InboxTabStrip active={tab} onSelect={setTab} />
-        </PageBar>
+        <PageBar tabs={[]} section="Inbox" />
       </div>
 
-      {/* No border-t: PageBar's own border-b is the single rule above the panes */}
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 border-t border-border">
         {/* Active tab's queue */}
         <section className="flex w-[360px] shrink-0 flex-col border-r border-border bg-surface">
           <div className="px-4 pb-3 pt-3">

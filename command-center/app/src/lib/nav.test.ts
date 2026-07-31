@@ -33,10 +33,15 @@ describe("client nav structure", () => {
       "/conversations",
       "/apps",
       "/contacts",
-      "/customers",
       "/team",
       "/comms",
     ]);
+  });
+
+  it("does not link Customers: the row was retired from the nav", () => {
+    // Like /billing, the routes stay registered so a bookmark and Close Out
+    // Job's post-save redirect still work, but no surface may point at it.
+    expect(flattenNav(NAV).map((i) => i.to)).not.toContain("/customers");
   });
 
   it("does not link Revenue: customer revenue lives on the Customers page", () => {

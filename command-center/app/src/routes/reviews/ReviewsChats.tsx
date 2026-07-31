@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
+import { TAB_TRACK, TabButton } from "../../components/PageTabs";
 import EmptyState from "../../components/EmptyState";
 import SearchBar from "../../components/SearchBar";
 import ConversationList from "../../components/conversations/ConversationList";
@@ -136,7 +137,7 @@ export default function ReviewsChats() {
 // The four live Google Reviews stages. On desktop these are PageBar children, so
 // they sit on the section title's line after its page tabs, split off by a
 // divider. On mobile they get their own row (TabStripRow) and so need no divider.
-// Mirrors InboxTabStrip.
+// Built on the shared TAB_TRACK / TabButton from PageTabs.
 function ReviewsChatTabs({
   active,
   onSelect,
@@ -146,38 +147,18 @@ function ReviewsChatTabs({
   onSelect: (key: string) => void;
   mobile?: boolean;
 }) {
+  // Its own segmented track, matching TabLinks. On desktop it sits beside the
+  // section tabs inside the header panel, so the two read as two controls; the
+  // hand-drawn divider that used to separate them is no longer needed, because
+  // each track is now visibly its own container.
   return (
-    <>
-      {!mobile && (
-        <span className="my-2 w-px shrink-0 bg-[var(--border)]" aria-hidden="true" />
-      )}
-      {REVIEWS_CHAT_TABS.map((t) => {
-        const on = t.key === active;
-        return (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => onSelect(t.key)}
-            aria-current={on ? "page" : undefined}
-            className={[
-              "relative shrink-0 whitespace-nowrap px-0.5 pb-3 pt-2 text-[13.5px] transition-colors",
-              on
-                ? "font-semibold text-[var(--text)]"
-                : "font-medium text-[var(--text-muted)] hover:text-[var(--text)]",
-            ].join(" ")}
-          >
-            {t.label}
-            {on && (
-              <span
-                aria-hidden="true"
-                className="absolute inset-x-0 -bottom-px h-0.5 rounded-t-full"
-                style={{ backgroundImage: "var(--grad-brand)" }}
-              />
-            )}
-          </button>
-        );
-      })}
-    </>
+    <div className={TAB_TRACK + (mobile ? "" : " shrink-0")}>
+      {REVIEWS_CHAT_TABS.map((t) => (
+        <TabButton key={t.key} active={t.key === active} onClick={() => onSelect(t.key)}>
+          {t.label}
+        </TabButton>
+      ))}
+    </div>
   );
 }
 

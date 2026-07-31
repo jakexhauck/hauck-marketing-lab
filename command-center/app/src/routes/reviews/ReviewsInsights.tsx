@@ -86,8 +86,7 @@ export default function ReviewsInsights() {
     <Shell>
       <div className={REVIEWS_CONTAINER}>
         <PageBar
-          tabs={REVIEWS_TABS}
-          description="Your reputation over time, in plain English: your rating, how reviews are coming in, and what's driving them."
+          tabs={REVIEWS_TABS}
         />
 
         {!demo ? (

@@ -19,8 +19,7 @@ export default function SocialIdeas() {
       <NewIdeaDialog open={ideaOpen} onClose={() => setIdeaOpen(false)} />
       <div className={SOCIAL_CONTAINER}>
         <PageBar
-          tabs={SOCIAL_TABS}
-          description="Jot down post ideas to write later."
+          tabs={SOCIAL_TABS}
           actions={
             <Button variant="primary" size="md" onClick={() => setIdeaOpen(true)}>
               <Plus size={16} /> New Post Idea

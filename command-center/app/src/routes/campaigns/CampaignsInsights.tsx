@@ -31,7 +31,7 @@ export default function CampaignsInsights() {
   return (
     <Shell>
       <div className={CAMPAIGNS_CONTAINER}>
-        <PageBar tabs={COMMERCIAL_OUTREACH_TABS} description="Which messages turned into real, booked work." />
+        <PageBar tabs={COMMERCIAL_OUTREACH_TABS} />
 
         {!demo && (
           <NotConnectedNotice message="After your first few campaigns, we'll show what books the most jobs and the best time to send." />

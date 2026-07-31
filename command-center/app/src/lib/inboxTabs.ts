@@ -1,7 +1,12 @@
-// The Inbox tab strip. A single "Inbox" tab that shows every conversation. It
-// used to be a ten-tab strip that sliced the queue by Sales stage and by lead
-// source, but the Inbox now presents one flat queue, so there is just the one
-// tab here.
+// The Inbox queue: one flat list of every conversation, search-filtered and
+// sorted. It used to be a ten-tab strip slicing by Sales stage and lead source;
+// that collapsed to a single "Inbox" tab matching everything, and the strip was
+// then removed outright because a one-option control that repeated the page
+// title was pure noise.
+//
+// INBOX_TABS survives as the queue's match + sort definition, not as a UI
+// control. Nothing renders it. If per-stage filtering ever comes back, add the
+// entries here and a strip built on TAB_TRACK / TabButton from PageTabs.
 import { sortForQueue } from "./stageGroups";
 import type { ApiConversation } from "./api";
 
@@ -14,13 +19,6 @@ export interface InboxTab {
 export const INBOX_TABS: InboxTab[] = [
   { key: "all", label: "Inbox", match: () => true },
 ];
-
-// No source tabs anymore, so the strip never draws its old stage/source divider.
-// Kept (as -1) so InboxTabStrip's `i === FIRST_SOURCE_TAB_INDEX` check imports
-// cleanly and simply never matches.
-export const FIRST_SOURCE_TAB_INDEX = INBOX_TABS.findIndex((t) =>
-  t.key.startsWith("source:"),
-);
 
 export const DEFAULT_INBOX_TAB = INBOX_TABS[0].key;
 
