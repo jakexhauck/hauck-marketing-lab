@@ -208,16 +208,18 @@ export default function OperationsTasksTab({ fill = false }: { fill?: boolean } 
     if (dragIndex !== null && insertIndex !== null) {
       // Removing the dragged row first shifts every gap below it up by one.
       const target = insertIndex > dragIndex ? insertIndex - 1 : insertIndex;
-      void moveTask(dragIndex, target);
+      void moveTask(dragIndex, target, visibleIds);
     }
     endDrag();
   };
 
-  // The rows on screen. Under "All" this is the whole list, which is what makes
-  // the drag indices below safe: moveTask addresses the stored order, so
-  // reordering is only offered when what is rendered IS the stored order.
+  // The rows on screen. The drag indices below count these rows, not the stored
+  // order, which is why moveTask is handed the visible ids alongside them: it
+  // reorders the visible rows among themselves and leaves everything the filter
+  // is hiding exactly where it was. Reordering therefore works inside a
+  // category, not only under "All".
   const visible = filterTasksByCategory(tasks, filter);
-  const canReorder = filter.kind === "all";
+  const visibleIds = visible.map((t) => t.id);
   const counts = taskCounts(visible);
   const tally = tallyByCategory(tasks);
 
@@ -394,7 +396,7 @@ export default function OperationsTasksTab({ fill = false }: { fill?: boolean } 
                     ]
                       .filter(Boolean)
                       .join(" ") || undefined}
-                    draggable={canReorder && armedId === task.id}
+                    draggable={armedId === task.id}
                     onDragStart={(e) => {
                       e.dataTransfer.setData("text/plain", task.id);
                       e.dataTransfer.effectAllowed = "move";
@@ -405,19 +407,22 @@ export default function OperationsTasksTab({ fill = false }: { fill?: boolean } 
                     onDrop={onRowDrop}
                   >
                     <td className="otk-gripcol">
-                      {/* Reordering a filtered list would write the wrong
-                          order, so the grip is only offered under "All". */}
-                      {canReorder ? (
-                        <span
-                          className="otk-grip"
-                          title="Drag to reorder"
-                          aria-hidden="true"
-                          onMouseDown={() => setArmedId(task.id)}
-                          onMouseUp={() => setArmedId(null)}
-                        >
-                          <GripVertical size={15} strokeWidth={2.2} />
-                        </span>
-                      ) : null}
+                      {/* Always offered now, filter or no filter. A drag inside
+                          a category reorders that category and moves nothing
+                          it is hiding (moveWithinSubset). */}
+                      <span
+                        className="otk-grip"
+                        title={
+                          filter.kind === "all"
+                            ? "Drag to reorder"
+                            : "Drag to reorder within this category"
+                        }
+                        aria-hidden="true"
+                        onMouseDown={() => setArmedId(task.id)}
+                        onMouseUp={() => setArmedId(null)}
+                      >
+                        <GripVertical size={15} strokeWidth={2.2} />
+                      </span>
                     </td>
                     <td className="otk-donecol">
                       <button

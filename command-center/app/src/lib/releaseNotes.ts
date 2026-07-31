@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-31-reorder-inside-a-category",
+    date: "31 July 2026",
+    title: "Tasks can be reordered inside a category",
+    items: [
+      "Operations > Tasks: the drag handle used to disappear the moment you picked a category chip, so the only way to reorder was to go back to All and find the row among everything else. It stays now.",
+      "Dragging inside a category reorders that category and moves nothing the filter is hiding. The tasks you cannot see keep their positions exactly.",
+      "Reordering under All is unchanged.",
+    ],
+  },
+  {
     id: "2026-07-31-playbook-categories",
     date: "31 July 2026",
     title: "Headings inside the sales playbook",
