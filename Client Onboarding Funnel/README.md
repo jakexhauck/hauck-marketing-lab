@@ -4,9 +4,15 @@ The three pages a newly signed client walks through, built to paste into
 GoHighLevel. One visual language across all three, so it never feels like they
 have been handed off to a different company halfway along.
 
+> **Page 1 is no longer pasted in full.** It is a ten-line stub that loads
+> `command-center/app/public/funnel/intake.js` from the Command Center, so a
+> change to a question or a word ships by deploy and nobody reopens the GHL
+> builder. That JS file is the source; the HTML is just the pointer. Pages 2 and
+> 3 are still pasted in full, because neither has any logic worth hosting.
+
 | Order | File | Published at | What it does |
 |---|---|---|---|
-| 1 | `01-intake-form.html` | `/onboarding-form` | Seven-step intake form. Everything we need to stand the account up. |
+| 1 | `01-intake-form.html` (stub) | `/onboarding-form` | Seven-step intake form. Everything we need to stand the account up. |
 | 2 | `02-book-your-call.html` | `/onboarding-calendar` | The onboarding calendar, wrapped in the same card. |
 | 3 | `03-thank-you.html` | `/onboarding-thank-you` | Confirmation, what happens next, and one thing they can do now. |
 
@@ -101,20 +107,20 @@ Full detail: `command-center/app/docs/build-plans/onboarding-funnel-board.md`.
 
 ## Keeping the form and the server in step
 
-`01-intake-form.html` carries its own copy of the field schema. The server
-**silently drops any key it does not recognise**, so a typo here does not error,
-it just quietly bins that client's answer.
+`command-center/app/public/funnel/intake.js` carries its own copy of the field
+schema. The server **silently drops any key it does not recognise**, so a typo
+there does not error, it just quietly bins that client's answer.
 
 The two must stay identical. To check:
 
 ```bash
 node -e '
 const fs=require("fs");
-const html=fs.readFileSync("Client Onboarding Funnel/01-intake-form.html","utf8");
+const js=fs.readFileSync("command-center/app/public/funnel/intake.js","utf8");
 const ts=fs.readFileSync("command-center/app/src/lib/intake.ts","utf8");
 const b=ts.slice(ts.indexOf("export const INTAKE_FIELDS"));
 const tsKeys=[...b.slice(0,b.indexOf("\n];")).matchAll(/key: "([a-zA-Z]+)"/g)].map(m=>m[1]);
-const h=html.slice(html.indexOf("var FIELDS = ["));
+const h=js.slice(js.indexOf("var FIELDS = ["));
 const hKeys=[...h.slice(0,h.indexOf("\n  ];")).matchAll(/key: "([a-zA-Z]+)"/g)].map(m=>m[1]);
 const missing=tsKeys.filter(k=>!hKeys.includes(k)), extra=hKeys.filter(k=>!tsKeys.includes(k));
 console.log(missing.length||extra.length ? "MISMATCH "+[...missing,...extra].join(", ") : "schemas match ("+tsKeys.length+" fields)");

@@ -63,7 +63,12 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest}"],
         // Large brand source art is not offline-critical and blows past the
         // 2 MiB per-file precache cap; keep it out of the service worker.
-        globIgnores: ["**/hauck-mark.png"],
+        //
+        // funnel/intake.js is the client intake form, loaded by a GoHighLevel
+        // page on another origin. Nobody using this app ever requests it, and a
+        // cross-origin script tag is not served by our service worker anyway, so
+        // precaching it only costs every staff member a download they cannot use.
+        globIgnores: ["**/hauck-mark.png", "funnel/**"],
       },
     }),
   ],
