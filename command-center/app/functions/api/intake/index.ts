@@ -13,18 +13,35 @@ import {
   sanitizeAnswers,
   type SubmissionRow,
 } from "../../lib/intake";
+import { approveSubmission } from "../../lib/intakeApprove";
 import { REVIEW_STEP } from "../../../src/lib/intake";
 
 // POST /api/intake  (PUBLIC — no session, reachable by anyone)
 //
 // Creates or updates one intake submission. Called on every step advance, so
 // the client never loses work. Without a token this mints a new submission and
-// returns its resume token; with one it updates that submission and nothing
-// else.
+// returns its resume token; with one it updates that submission.
 //
-// Nothing here creates a tenant, a login, or anything else. A submission is
-// inert until Jake approves it in the admin queue. That is the whole reason
-// this endpoint can safely be public.
+// ON THE FINAL STEP IT APPROVES ITSELF. There used to be a queue: a finished
+// form waited for Jake to read it and press approve. He does not want that step,
+// so submitting now creates the tenant, the owner login, the setup record and
+// the Drive folder in the same request, and the client appears already being
+// set up.
+//
+// What keeps a PUBLIC endpoint that mints accounts from being reckless:
+//
+//   - The account it makes is held at onboarding_status='setup', so signing in
+//     shows the holding screen and nothing else. No client data is reachable.
+//   - Creating a submission is rate limited per IP.
+//   - The login email must be unused, checked here and again at approve.
+//
+// It is still true that anyone who fills the form in gets a tenant. That is the
+// trade Jake chose, and the holding screen is what makes it survivable.
+//
+// Approval failing does NOT fail the request. The client has finished and their
+// answers are saved; making them retype the lot because a Drive call timed out
+// would be punishing them for our outage. The submission simply stays
+// 'submitted', which is the one thing the board's exception column shows.
 
 interface Body {
   token?: string;
@@ -95,6 +112,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (error || !data) {
       return Response.json({ error: "could not save your answers" }, { status: 500 });
     }
+    if (body.submit) await autoApprove(ctx.env, client, data as SubmissionRow);
     return Response.json({ token: resumeToken, ...resumeView(data as SubmissionRow) });
   }
 
@@ -137,8 +155,32 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     return Response.json({ error: "could not save your answers" }, { status: 500 });
   }
 
+  if (body.submit) await autoApprove(ctx.env, client, saved as SubmissionRow);
+
   return Response.json({ token, ...resumeView(saved as SubmissionRow) });
 };
+
+// Approve on the spot, swallowing anything that goes wrong.
+//
+// The client has finished seven steps and their answers are saved. Turning our
+// failure into their error message would make them think the form ate their
+// work, and there is nothing they could do about it anyway. A refusal or a
+// throw leaves the submission at 'submitted', which is exactly what the board's
+// exception column exists to surface.
+async function autoApprove(
+  env: Env,
+  client: NonNullable<ReturnType<typeof getServiceClient>>,
+  row: SubmissionRow,
+): Promise<void> {
+  try {
+    const result = await approveSubmission(client, env, row, null);
+    if (!result.ok) {
+      console.error("[intake] auto-approve refused", row.id, result.error);
+    }
+  } catch (e) {
+    console.error("[intake] auto-approve failed", row.id, (e as Error).message);
+  }
+}
 
 // An email is taken if a real login already uses it, or if another live
 // submission has claimed it. A rejected submission releases its claim.

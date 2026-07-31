@@ -26,6 +26,18 @@ describe("the board's stages", () => {
   it("gives rejected no column, because it is an end state not a stage", () => {
     expect(STAGES.some((s) => s.key === "rejected")).toBe(false);
   });
+
+  // The funnel approves itself, so nothing should PAUSE at 'submitted' any more.
+  // The column survives only to catch the case where that failed. Deleting it
+  // would make a client who finished the form but never got an account appear
+  // nowhere at all, so this asserts it is still there and still reads as an
+  // exception rather than as a queue waiting to be worked.
+  it("keeps a column for a submission whose automatic setup failed", () => {
+    const stuck = STAGES.find((s) => s.key === "submitted");
+    expect(stuck, "the exception column must not be removed").toBeDefined();
+    expect(stuck!.label).not.toMatch(/waiting on you/i);
+    expect(stuck!.hint).toMatch(/did not go through|try again/i);
+  });
 });
 
 describe("groupByStage", () => {

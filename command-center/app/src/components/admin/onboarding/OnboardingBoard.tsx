@@ -10,6 +10,15 @@ import type { IntakeStatus, IntakeSubmissionSummary } from "../../../hooks/useIn
 //
 // 'rejected' has no column on purpose. It is an end state, not a stage, and
 // giving it equal weight would make the board look half full of failures.
+//
+// THE MIDDLE COLUMN SHOULD BE EMPTY. Finishing the form now creates the client
+// on the spot, so a submission moves from "Filling in" to "Being set up" without
+// stopping to be read. It stops in the middle only when that automatic step
+// failed, which is why the column survived the change: without it a client who
+// finished but never got an account would appear nowhere at all, and the first
+// anyone would know is the client asking why they cannot log in.
+//
+// Its card keeps the approve button, which is now a retry.
 
 export const STAGES: {
   key: IntakeStatus;
@@ -25,14 +34,14 @@ export const STAGES: {
   },
   {
     key: "submitted",
-    label: "Waiting on you",
-    hint: "Finished. Read it, then approve or reject.",
+    label: "Needs a hand",
+    hint: "Finished, but setting them up did not go through. Press approve to try again.",
     icon: Send,
   },
   {
     key: "approved",
     label: "Being set up",
-    hint: "Approved. Work the checklist, then Go Live.",
+    hint: "Work the checklist, then Go Live.",
     icon: Wrench,
   },
 ];
@@ -122,7 +131,7 @@ export default function OnboardingBoard({
                       <ProgressBar pct={s.completeness} />
                     ) : (
                       <span className="text-[11px] text-faint">
-                        {stage.key === "submitted" ? "Waiting " : "Since "}
+                        {stage.key === "submitted" ? "Stuck " : "Since "}
                         {ageLabel(s.createdAt)}
                       </span>
                     )}

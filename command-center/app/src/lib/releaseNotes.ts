@@ -26,6 +26,16 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-30-onboarding-no-approve-step",
+    date: "30 July 2026",
+    title: "A finished intake form becomes a client on its own",
+    items: [
+      'The "Waiting on you" column is gone. Finishing the form now creates the client, their login, their setup record and their Drive folder on the spot, so they land straight in "Being set up" with the checklist already seeded.',
+      'The middle column is now "Needs a hand", and it should always be empty. A client only appears there if that automatic setup failed, and the approve button on their card is the retry.',
+      "A new client still cannot see anything until you press Go Live. Signing in shows them the holding screen, exactly as before.",
+    ],
+  },
+  {
     id: "2026-07-30-sales-is-selling-only",
     date: "30 July 2026",
     title: "Sales is the selling now, and the dialing lives in one place",
