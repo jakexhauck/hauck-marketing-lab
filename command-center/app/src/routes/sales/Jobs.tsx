@@ -285,10 +285,17 @@ export function JobsBoard({
     }
   }
 
+  // Phone: the view switcher owns a full-width row of its own, with the Google
+  // Calendar link right-aligned on the row above it. Both on one row needs
+  // ~430px and the phone column has ~335, so they used to wrap into two ragged
+  // left-aligned rows. At lg they sit back on a single line together.
   const viewControls = (
-    <div className="flex flex-wrap items-center gap-2">
-      <GoogleCalendarLink />
+    <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:items-center">
+      <div className="flex justify-end lg:contents">
+        <GoogleCalendarLink />
+      </div>
       <Segmented<JobsView>
+        stretch
         options={[
           { value: "jobs", label: "Jobs" },
           { value: "month", label: "Month" },
@@ -305,10 +312,12 @@ export function JobsBoard({
     <>
       <div className={JOBS_CONTAINER}>
         {embedded ? (
-          <div className="flex justify-end pb-1 pt-1">{viewControls}</div>
+          // Block on the phone so the stacked controls above fill the column;
+          // a right-aligned flex row again at lg.
+          <div className="pb-1 pt-1 lg:flex lg:justify-end">{viewControls}</div>
         ) : (
           <PageHeader
-            title="Jobs"
+            title="Jobs"
             actions={viewControls}
           />
         )}
@@ -995,7 +1004,13 @@ function JobCard({ job, onAct }: { job: Job; onAct: (job: Job, label: string) =>
           </Badge>
         </div>
       </div>
-      <div className="flex gap-2 border-t border-divider bg-surface-2/50 px-4 py-2.5">
+      {/* Actions. A booked job carries four of these, and four side by side need
+          ~400px: more than the ~306px this row gets inside the phone column, so
+          they used to overflow and the last one ("Payment") was clipped away
+          entirely by the card's overflow-hidden. Two-up grid on the phone, one
+          row again at lg where there is room. A three-action job leaves the last
+          button half width on its own row, which reads fine. */}
+      <div className="grid grid-cols-2 gap-2 border-t border-divider bg-surface-2/50 px-4 py-2.5 lg:flex">
         {jobActions(job).map((a) => {
           const Icon = a.icon;
           return (
@@ -1004,14 +1019,16 @@ function JobCard({ job, onAct }: { job: Job; onAct: (job: Job, label: string) =>
               type="button"
               onClick={() => onAct(job, a.label)}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-[9px] border px-2 py-2 font-display text-[11.5px] font-semibold transition-colors",
+                // min-w-0 so flex-1 can actually shrink these at lg: a flex item
+                // defaults to min-width:auto and refuses to go below its label.
+                "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[9px] border px-2 py-2 font-display text-[11.5px] font-semibold transition-colors",
                 a.primary
                   ? "border-positive/40 bg-positive-tint text-positive hover:bg-positive-tint"
                   : "border-border bg-surface text-text hover:border-brand/40",
               )}
             >
-              <Icon size={13} />
-              {a.label}
+              <Icon size={13} className="shrink-0" />
+              <span className="truncate">{a.label}</span>
             </button>
           );
         })}

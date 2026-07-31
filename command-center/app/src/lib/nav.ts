@@ -84,11 +84,14 @@ export const NAV: NavEntry[] = [
   //   { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
   //   { to: "/marketing/reactivation", label: "Reactivation", icon: RotateCcw },
   { to: "/marketing/paid-ads", label: "Paid Ads", shortLabel: "Ads", icon: Megaphone },
-  { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
-  // Phone-only "app grid" launcher. Sidebar-hidden (desktop has the full
-  // sidebar), and placed here so the bottom-bar flatten order centres it:
-  // Today, Inbox, All, Contacts, Chat.
+  // Phone-only "app grid" launcher, and the raised FAB in the bottom bar. Its
+  // position in THIS list is what centres it: the bar renders the bottomNav
+  // items in flatten order, so with five tabs it must sit third. Right now that
+  // means between Sales and Inbox, giving Today, Sales, All, Chats, Contacts.
+  // Adding or removing a bottom-bar tab moves the centre, so re-place this row
+  // when you do. Sidebar-hidden (desktop has the full sidebar).
   { to: "/apps", label: "All features", shortLabel: "All", icon: LayoutGrid, bottomNav: true, sidebarHidden: true },
+  { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
   // No Leads row: the whole Leads section retired 2026-07-23. The client
   // tracking sheet it hosted was rebuilt tab-for-tab inside Paid Ads (Dashboard
   // / Lead Tracker / Meta Data / Pipeline Stats / How to Use).
@@ -107,9 +110,11 @@ export const NAV: NavEntry[] = [
   // "All features" grid and global search both read the flat list and still
   // need it.
   { to: "/team", label: "Team", icon: UserCog, ownerOnly: true, sidebarHidden: true },
-  // The agency chat: a phone bottom-bar tab only. On desktop it lives in the
-  // top-right ChatLauncher icon, so it is hidden from the sidebar.
-  { to: "/comms", label: "Chat", shortLabel: "Chat", icon: MessagesSquare, bottomNav: true, sidebarHidden: true },
+  // The agency chat. Off the phone bottom bar as of 2026-07-31 (it was the
+  // far-right tab); sidebar-hidden on desktop as it always was. The /comms
+  // route stays registered so a bookmark still resolves, but no chrome points
+  // at it. To put the tab back, add `bottomNav: true` here.
+  { to: "/comms", label: "Chat", shortLabel: "Chat", icon: MessagesSquare, sidebarHidden: true },
 ];
 
 // A single item's leaf pages: its children when it has them (the parent's own

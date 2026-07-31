@@ -43,9 +43,13 @@ export function MonthView({
   const selectedBusy = selectedIso ? itemsOnDay(busyItems, selectedIso) : [];
 
   return (
-    <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_300px]">
+    // Desktop: grid beside a 300px day panel, both filling the locked frame.
+    // Phone: one column that flows down the page, grid first at a fixed row
+    // height, then the same day panel underneath it. The panel used to be
+    // hidden below lg, which left tapping a day doing nothing visible at all.
+    <div className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[1fr_300px]">
       {/* Grid */}
-      <div className="flex min-h-0 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
+      <div className="flex shrink-0 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface lg:min-h-0 lg:shrink">
         <div className="grid grid-cols-7 border-b border-border bg-surface-2">
           {WEEKDAYS.map((w) => (
             <div
@@ -56,7 +60,9 @@ export function MonthView({
             </div>
           ))}
         </div>
-        <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6">
+        {/* Fixed 58px rows on the phone (the page scrolls past them); at lg the
+            six rows stretch to fill whatever height the frame gives them. */}
+        <div className="grid auto-rows-[58px] grid-cols-7 lg:min-h-0 lg:flex-1 lg:auto-rows-auto lg:grid-rows-6">
           {weeks.flat().map((cell) => {
             const dayItems = itemsOnDay(workItems, cell.iso);
             const busyCount = itemsOnDay(busyItems, cell.iso).length;
@@ -90,40 +96,46 @@ export function MonthView({
                     cell.day
                   )}
                 </span>
-                {dayItems.slice(0, 3).map((item) => {
-                  const meta = CALENDAR_SOURCE_META[item.source];
-                  return (
-                    <span
-                      key={item.id}
-                      className="flex items-center gap-1 truncate rounded-[5px] px-1.5 py-0.5 text-[10.5px] font-semibold"
-                      style={{
-                        background: `var(${meta.tintVar})`,
-                        color: `var(${meta.varName})`,
-                      }}
-                    >
+                {/* lg only: labelled pills. A phone cell is ~48px wide, which
+                    truncated every one of these to "8…" and told the client
+                    nothing. Dots below carry the same signal in the space that
+                    actually exists, and the day panel carries the words. */}
+                <span className="hidden min-h-0 flex-col gap-1 lg:flex">
+                  {dayItems.slice(0, 3).map((item) => {
+                    const meta = CALENDAR_SOURCE_META[item.source];
+                    return (
                       <span
-                        className="h-1 w-1 shrink-0 rounded-full"
-                        style={{ background: `var(${meta.varName})` }}
-                      />
-                      <span className="truncate">
-                        {item.timeLabel &&
-                          `${item.timeLabel.replace(":00", "")} `}
-                        {item.title}
+                        key={item.id}
+                        className="flex items-center gap-1 truncate rounded-[5px] px-1.5 py-0.5 text-[10.5px] font-semibold"
+                        style={{
+                          background: `var(${meta.tintVar})`,
+                          color: `var(${meta.varName})`,
+                        }}
+                      >
+                        <span
+                          className="h-1 w-1 shrink-0 rounded-full"
+                          style={{ background: `var(${meta.varName})` }}
+                        />
+                        <span className="truncate">
+                          {item.timeLabel &&
+                            `${item.timeLabel.replace(":00", "")} `}
+                          {item.title}
+                        </span>
                       </span>
+                    );
+                  })}
+                  {dayItems.length > 3 && (
+                    <span className="px-1 text-[10px] font-bold text-muted">
+                      +{dayItems.length - 3} more
                     </span>
-                  );
-                })}
-                {dayItems.length > 3 && (
-                  <span className="px-1 text-[10px] font-bold text-muted">
-                    +{dayItems.length - 3} more
-                  </span>
-                )}
+                  )}
+                </span>
                 {/* Pinned to the cell floor by mt-auto so it never competes with
                     the job pills, and only ever a count: the app reads
                     availability, so there is no title to show even here. */}
                 {busyCount > 0 && (
                   <span
-                    className="mt-auto flex items-center gap-1 px-1 text-[10px] font-semibold"
+                    className="mt-auto hidden items-center gap-1 px-1 text-[10px] font-semibold lg:flex"
                     style={{ color: "var(--source-busy)" }}
                   >
                     <span
@@ -133,14 +145,35 @@ export function MonthView({
                     {busyCount} busy
                   </span>
                 )}
+                {/* Phone: one dot per item, capped at four so a busy day cannot
+                    push the row taller than its neighbours. Busy time from the
+                    client's own calendar gets a single grey dot at the end. */}
+                <span className="mt-auto flex flex-wrap items-center gap-[3px] lg:hidden">
+                  {dayItems.slice(0, 4).map((item) => (
+                    <span
+                      key={item.id}
+                      className="h-[5px] w-[5px] rounded-full"
+                      style={{
+                        background: `var(${CALENDAR_SOURCE_META[item.source].varName})`,
+                      }}
+                    />
+                  ))}
+                  {busyCount > 0 && (
+                    <span
+                      className="h-[5px] w-[5px] rounded-full"
+                      style={{ background: "var(--source-busy)" }}
+                    />
+                  )}
+                </span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Day detail */}
-      <aside className="hidden min-h-0 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface lg:flex">
+      {/* Day detail. Visible at every width: on the phone this is the only place
+          a day's work is ever spelled out, since the cells above are dots. */}
+      <aside className="flex shrink-0 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface lg:min-h-0 lg:shrink">
         <div className="border-b border-divider px-4 py-3">
           <div className="font-display text-[14px] font-semibold text-text">
             {selectedIso ? formatLongDay(selectedIso) : "Pick a day"}
@@ -150,7 +183,9 @@ export function MonthView({
             {selectedBusy.length > 0 && `, ${selectedBusy.length} busy`}
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        {/* The phone lets this grow with its content and scrolls the page; at lg
+            it is a fixed-height column with its own scroll beside the grid. */}
+        <div className="p-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
           {selected.length === 0 ? (
             <p className="px-1 py-6 text-center text-[12.5px] text-faint">
               {selectedBusy.length > 0

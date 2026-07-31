@@ -13,12 +13,18 @@ export function Segmented<T extends string>({
   value,
   onChange,
   size = "md",
+  stretch = false,
   className,
 }: {
   options: SegmentOption<T>[];
   value: T;
   onChange: (v: T) => void;
   size?: "sm" | "md";
+  // Fill the width with equal segments in the phone column, and fall back to
+  // natural width at lg. A four-option control is ~275px, which fits the phone
+  // column but leaves anything beside it to wrap onto a ragged second row; a
+  // control that owns its row reads as a deliberate choice instead.
+  stretch?: boolean;
   className?: string;
 }) {
   const activeIndex = Math.max(
@@ -43,7 +49,8 @@ export function Segmented<T extends string>({
   return (
     <div
       className={cn(
-        "relative inline-flex items-center rounded-full border border-border bg-surface-2 p-1",
+        "relative items-center rounded-full border border-border bg-surface-2 p-1",
+        stretch ? "flex w-full lg:inline-flex lg:w-auto" : "inline-flex",
         className,
       )}
       role="tablist"
@@ -75,6 +82,9 @@ export function Segmented<T extends string>({
             className={cn(
               "relative z-10 inline-flex items-center justify-center gap-1.5 rounded-full font-medium transition-colors",
               size === "sm" ? "h-7 px-3 text-[12.5px]" : "h-8 px-3.5 text-[13px]",
+              // min-w-0 so equal segments can go narrower than their labels
+              // rather than pushing the control past its container.
+              stretch && "min-w-0 flex-1 lg:flex-none",
               active ? "text-white" : "text-muted hover:text-text",
             )}
           >

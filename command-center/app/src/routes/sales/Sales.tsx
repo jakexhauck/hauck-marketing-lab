@@ -96,7 +96,10 @@ export default function Sales() {
             are real page switchers rather than filters, so they belong inside
             the chrome beside the title, the same place a Marketing section's
             route tabs sit. tabs={[]} because these switch state, not routes. */}
-        <div className="px-[22px] pt-5 lg:px-6">
+        {/* px-5 (not the 22px this once used) so the header card's left edge
+            lines up exactly with the board below it, which sits in
+            PAGE_CONTAINER. The 2px difference read as a step down the page. */}
+        <div className="px-5 pt-5 lg:px-6">
           <PageBar tabs={[]} section="Sales">
             <div className={TAB_TRACK}>
               <TabButton active={tab === "leads"} onClick={() => select("leads")}>

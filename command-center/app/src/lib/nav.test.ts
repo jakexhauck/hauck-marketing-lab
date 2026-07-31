@@ -30,8 +30,8 @@ describe("client nav structure", () => {
       "/home",
       "/sales",
       "/marketing/paid-ads",
-      "/conversations",
       "/apps",
+      "/conversations",
       "/contacts",
       "/team",
       "/comms",
@@ -62,11 +62,33 @@ describe("client nav structure", () => {
     expect(bottom).toEqual([
       "/home",
       "/sales",
-      "/conversations",
       "/apps",
+      "/conversations",
       "/contacts",
-      "/comms",
     ]);
     expect(bottom).not.toContain("/sales/leads");
+  });
+
+  it("keeps the agency chat off the phone bottom bar", () => {
+    // Removed 2026-07-31: it was the far-right tab. The /comms route stays
+    // registered so a bookmark resolves, but no chrome links to it.
+    expect(
+      flattenNav(NAV)
+        .filter((i) => i.bottomNav)
+        .map((i) => i.to),
+    ).not.toContain("/comms");
+  });
+
+  it("centres the raised All features FAB in the bottom bar", () => {
+    // BottomNav renders the bottomNav items in flatten order and raises /apps
+    // into a FAB, so "centred" is purely a question of this list's ordering.
+    // An odd tab count with /apps at the midpoint is the only arrangement that
+    // puts it dead centre. Note this holds for an owner, who sees every tab; a
+    // staff member missing the inbox or contacts capability sees a shorter bar.
+    const bottom = flattenNav(NAV)
+      .filter((i) => i.bottomNav)
+      .map((i) => i.to);
+    expect(bottom.length % 2).toBe(1);
+    expect(bottom[(bottom.length - 1) / 2]).toBe("/apps");
   });
 });

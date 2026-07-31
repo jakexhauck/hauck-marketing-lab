@@ -22,7 +22,16 @@ const HOURS = Array.from(
   (_, i) => DAY_START_MIN + i * 60,
 );
 const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const GRID_COLS = "52px repeat(7, 1fr)";
+// Day columns are sized by a CSS variable so one breakpoint switches the whole
+// view. At lg each day is a 1fr share of the available width. On the phone a
+// seventh of ~283px is 40px, which rendered every job chip as "A…"; instead the
+// columns take a fixed readable width and the week scrolls sideways, showing
+// three days and a sliver of the fourth. See PHONE_COL_VARS below.
+const GRID_COLS = "52px repeat(7, var(--day-col))";
+const PHONE_COL_VARS = "[--day-col:96px] lg:[--day-col:minmax(0,1fr)]";
+// The gutter that carries the hour labels has to stay put while the days slide
+// under it, or a sideways scroll leaves you reading unlabelled blocks.
+const STICKY_GUTTER = "sticky left-0 z-10";
 
 // Bookable granularity for the optional empty-slot layer. Thirty minutes
 // matches the shortest appointment GHL calendars are configured for.
@@ -77,13 +86,25 @@ export function WeekView({
   const ppm = hourPx / 60;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
+    <div
+      className={`flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface ${PHONE_COL_VARS}`}
+    >
+      {/* ONE scroll box for both axes. The header, the all-day strip and the
+          timed grid have to slide sideways together, so they share a scroller
+          and the header sticks to its top rather than living outside it.
+          w-max lets the phone's fixed-width columns push past the viewport;
+          lg:w-full gives the 1fr columns the definite width they need. */}
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="w-max min-w-full lg:w-full">
+      {/* Day header + all-day strip: stuck to the top as one block, so the
+          vertical scroll never takes the dates away from the columns. */}
+      <div className="sticky top-0 z-20 bg-surface">
       {/* Day header row */}
       <div
         className="grid shrink-0 border-b border-border bg-surface-2"
         style={{ gridTemplateColumns: GRID_COLS }}
       >
-        <div />
+        <div className={`${STICKY_GUTTER} bg-surface-2`} />
         {isos.map((iso) => {
           const d = isoToLocalDate(iso);
           const today = iso === todayIso;
@@ -109,10 +130,12 @@ export function WeekView({
 
       {/* All-day strip */}
       <div
-        className="grid shrink-0 border-b border-divider"
+        className="grid shrink-0 border-b border-divider bg-surface"
         style={{ gridTemplateColumns: GRID_COLS }}
       >
-        <div className="py-1.5 pr-1 text-right text-[9px] font-semibold uppercase text-faint">
+        <div
+          className={`${STICKY_GUTTER} bg-surface py-1.5 pr-1 text-right text-[9px] font-semibold uppercase text-faint`}
+        >
           All day
         </div>
         {cols.map((col) => (
@@ -126,9 +149,9 @@ export function WeekView({
           </div>
         ))}
       </div>
+      </div>
 
-      {/* Scrollable timed grid */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      {/* Timed grid */}
         <div
           className="grid"
           style={{
@@ -136,7 +159,7 @@ export function WeekView({
             height: (DAY_END_MIN - DAY_START_MIN) * ppm,
           }}
         >
-          <div className="relative">
+          <div className={`${STICKY_GUTTER} relative bg-surface`}>
             {HOURS.map((min) => (
               <div
                 key={min}
@@ -252,6 +275,7 @@ export function WeekView({
               })}
             </div>
           ))}
+        </div>
         </div>
       </div>
     </div>
