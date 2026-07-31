@@ -111,21 +111,23 @@ Full detail: `command-center/app/docs/build-plans/onboarding-funnel-board.md`.
 schema. The server **silently drops any key it does not recognise**, so a typo
 there does not error, it just quietly bins that client's answer.
 
-The two must stay identical. To check:
+The two must stay identical, and that is now a TEST rather than something to
+remember to run:
 
 ```bash
-node -e '
-const fs=require("fs");
-const js=fs.readFileSync("command-center/app/public/funnel/intake.js","utf8");
-const ts=fs.readFileSync("command-center/app/src/lib/intake.ts","utf8");
-const b=ts.slice(ts.indexOf("export const INTAKE_FIELDS"));
-const tsKeys=[...b.slice(0,b.indexOf("\n];")).matchAll(/key: "([a-zA-Z]+)"/g)].map(m=>m[1]);
-const h=js.slice(js.indexOf("var FIELDS = ["));
-const hKeys=[...h.slice(0,h.indexOf("\n  ];")).matchAll(/key: "([a-zA-Z]+)"/g)].map(m=>m[1]);
-const missing=tsKeys.filter(k=>!hKeys.includes(k)), extra=hKeys.filter(k=>!tsKeys.includes(k));
-console.log(missing.length||extra.length ? "MISMATCH "+[...missing,...extra].join(", ") : "schemas match ("+tsKeys.length+" fields)");
-'
+cd command-center/app && npx vitest run src/lib/intakeFunnelParity.test.ts
 ```
+
+`src/lib/intakeFunnelParity.test.ts` reads the funnel script off disk and checks
+the field keys, the field labels, which fields are required, and the step
+headings and blurbs. It also checks the pasted stub still points at the hosted
+script and has not regrown a copy of the form.
+
+This used to be a shell snippet in this README that compared **field keys only**,
+and the gap bit immediately: step 2 gained the A2P questions, its blurb was
+updated on the server side, and the funnel went on telling clients the step was
+about "where you are based" until it turned up in a screenshot. A check covering
+part of the copy is worse than none, because it reads as a pass.
 
 ## Decisions worth remembering
 

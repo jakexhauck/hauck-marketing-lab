@@ -214,7 +214,7 @@ a.hm-btn{display:inline-block;text-decoration:none}
 
   var STEPS = [
     { n: 1, label: "Your business", blurb: "The basics, so we know who we are building for." },
-    { n: 2, label: "Contact details", blurb: "How we reach you, and where you are based." },
+    { n: 2, label: "Contact details", blurb: "How we reach you, and what we need to register your phone number." },
     { n: 3, label: "Your login", blurb: "Choose how you will sign in once your account is ready." },
     { n: 4, label: "Targeting", blurb: "Where your ads run, and how you want to hear about new leads." },
     { n: 5, label: "Your story", blurb: "What makes you different. This is the raw material for your ads." },
@@ -239,7 +239,7 @@ a.hm-btn{display:inline-block;text-decoration:none}
     // The A2P block. All four optional: a client who does not know their EIN
     // off-hand must still be able to finish. help renders as HTML (see
     // fieldHtml), which is what lets the EIN note carry a link out.
-    { key: "legalName", label: "Legal business name", type: "text", step: 2, placeholder: "Willis Exteriors LLC", help: "As registered with the IRS. Often your trading name plus LLC or Inc." },
+    { key: "legalName", label: "Legal business name", type: "text", step: 2, wide: true, placeholder: "Willis Exteriors LLC", help: "As registered with the IRS. Often your trading name plus LLC or Inc." },
     { key: "taxId", label: "Tax ID / EIN", type: "text", step: 2, wide: true, placeholder: "12-3456789",
       help: "We know this one is sensitive, so here is exactly why we ask. The mobile carriers will not let a business send texts until they have checked it is a real business, and the EIN is how they check. We use it for that registration and nothing else. " +
             '<a href="https://www.twilio.com/docs/messaging/compliance/a2p-10dlc" target="_blank" rel="noreferrer">Read what this registration is</a>' },
