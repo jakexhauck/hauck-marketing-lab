@@ -1698,6 +1698,53 @@ export async function deleteColdCallAsset(id: string): Promise<{ ok: true }> {
   });
 }
 
+// ===== Sales > Playbook (0074) =====
+//
+// The prompts worked through on Sales > On Call. Plain text throughout: the
+// pages render prompt and hint as text, never as markup, which is why there is
+// no html field anywhere near this.
+
+export type { PlaybookItem } from "../../functions/lib/salesPlaybook";
+
+export async function getSalesPlaybook(
+  includeArchived = false,
+): Promise<{ items: import("../../functions/lib/salesPlaybook").PlaybookItem[] }> {
+  return api("/api/admin/sales/playbook" + (includeArchived ? "?archived=1" : ""));
+}
+
+export async function createSalesPlaybookItem(input: {
+  section: string;
+  prompt: string;
+  hint?: string;
+}): Promise<{ item: import("../../functions/lib/salesPlaybook").PlaybookItem }> {
+  return api("/api/admin/sales/playbook", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateSalesPlaybookItem(input: {
+  id: string;
+  prompt?: string;
+  hint?: string;
+  sortOrder?: number;
+  archived?: boolean;
+}): Promise<{ item: import("../../functions/lib/salesPlaybook").PlaybookItem }> {
+  return api("/api/admin/sales/playbook", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+// A real delete, for the prompt added by mistake. Retiring is the softer move
+// and the page offers it first.
+export async function deleteSalesPlaybookItem(id: string): Promise<{ ok: true }> {
+  return api("/api/admin/sales/playbook", {
+    method: "DELETE",
+    body: JSON.stringify({ id }),
+  });
+}
+
 // A booked meeting and what became of it (0057). Created by the booking itself;
 // the outcome is filled in afterwards, by whoever ran the call.
 export interface SalesMeeting {

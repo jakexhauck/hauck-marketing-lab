@@ -10,6 +10,8 @@ import {
 } from "../../lib/adminPillars";
 import SalesDataTracker from "../../components/admin/tracker/SalesDataTracker";
 import SalesCallsSection from "../../components/admin/sales/SalesCallsSection";
+import OnCallSection from "../../components/admin/sales/OnCallSection";
+import PlaybookSection from "../../components/admin/sales/PlaybookSection";
 import SalesPipelineBoard from "../../components/admin/sales/SalesPipelineBoard";
 import BusinessHealthTab from "../../components/admin/operations/BusinessHealthTab";
 import ScalingCalculatorTab from "../../components/admin/operations/ScalingCalculatorTab";
@@ -154,6 +156,13 @@ function PillarTabBody({ tab }: { tab: PillarTabDef }) {
     // routed onto the Sales Pipeline.
     case "calls":
       return <SalesCallsSection />;
+    // The half hour between booking a meeting and recording its outcome: the
+    // playbook, worked live, ending in that same outcome.
+    case "on-call":
+      return <OnCallSection />;
+    // Where the words in those three columns are written.
+    case "playbook":
+      return <PlaybookSection />;
     // The board those outcomes land on, read live and read only.
     case "pipeline":
       return <SalesPipelineBoard />;

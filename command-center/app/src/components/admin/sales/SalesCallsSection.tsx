@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { CalendarRange } from "lucide-react";
 import { useSalesCallsQuery, useRecordSalesCallOutcome } from "../../../hooks/useSalesCalls";
 import { daysLate, groupFor, totalsFor } from "../../../../functions/lib/salesCalls";
+import type { SalesMeeting } from "../../../lib/api";
 import { Funnel, MeetingRow } from "./meetingUi";
 
 // Sales > Sales Calls.
@@ -29,6 +31,19 @@ import { Funnel, MeetingRow } from "./meetingUi";
 export default function SalesCallsSection() {
   const query = useSalesCallsQuery();
   const record = useRecordSalesCallOutcome();
+  const [, setParams] = useSearchParams();
+
+  // Start call: hand this meeting to the On Call cockpit next door. Pushed
+  // rather than replaced, so browser Back walks out of the call and lands on
+  // this list where it left off.
+  const startCall = (meeting: SalesMeeting) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", "on-call");
+      next.set("meeting", meeting.id);
+      return next;
+    });
+  };
 
   const data = query.data;
   const allMeetings = useMemo(() => data?.meetings ?? [], [data]);
@@ -132,7 +147,14 @@ export default function SalesCallsSection() {
               <div className="pk-list-sec-h">Due back ({dueBack.length})</div>
               <div className="pk-list">
                 {dueBack.map((m) => (
-                  <MeetingRow key={m.id} meeting={m} recordable record={record} showProvenance />
+                  <MeetingRow
+                    key={m.id}
+                    meeting={m}
+                    recordable
+                    record={record}
+                    showProvenance
+                    onStartCall={startCall}
+                  />
                 ))}
               </div>
             </>
@@ -143,7 +165,14 @@ export default function SalesCallsSection() {
               <div className="pk-list-sec-h">Needs an answer ({awaiting.length})</div>
               <div className="pk-list">
                 {awaiting.map((m) => (
-                  <MeetingRow key={m.id} meeting={m} recordable record={record} showProvenance />
+                  <MeetingRow
+                    key={m.id}
+                    meeting={m}
+                    recordable
+                    record={record}
+                    showProvenance
+                    onStartCall={startCall}
+                  />
                 ))}
               </div>
             </>
@@ -154,7 +183,13 @@ export default function SalesCallsSection() {
               <div className="pk-list-sec-h">Coming up</div>
               <div className="pk-list">
                 {upcoming.map((m) => (
-                  <MeetingRow key={m.id} meeting={m} record={record} showProvenance />
+                  <MeetingRow
+                    key={m.id}
+                    meeting={m}
+                    record={record}
+                    showProvenance
+                    onStartCall={startCall}
+                  />
                 ))}
               </div>
             </>

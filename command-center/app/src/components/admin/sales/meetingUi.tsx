@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { CalendarX, Check, CircleSlash, HandCoins, Repeat, ThumbsDown } from "lucide-react";
+import {
+  CalendarX,
+  Check,
+  CircleSlash,
+  HandCoins,
+  Headphones,
+  Repeat,
+  ThumbsDown,
+} from "lucide-react";
 import type { SalesMeeting } from "../../../lib/api";
 import { routeFor } from "../../../../functions/lib/salesPipeline";
 import { useToast } from "../../../context/ToastContext";
@@ -298,26 +306,30 @@ function draftFor(meeting: SalesMeeting): Draft {
   };
 }
 
-export function MeetingRow({
-  meeting,
-  recordable = false,
-  record,
-  // Drawn under the name on the Sales page: where this meeting came from and
-  // where its card ended up. Cold Call's own page leaves it off, because there
-  // every row came from the same place.
-  showProvenance = false,
-}: {
-  meeting: SalesMeeting;
-  recordable?: boolean;
-  record: RecordOutcome;
-  showProvenance?: boolean;
-}) {
+// Answering for one meeting: which outcome is mid-answer, what has been typed
+// into the panel, and the save.
+//
+// A hook rather than logic inside MeetingRow, because there are two places a
+// meeting is answered from now. The row on Sales Calls opens the panel inline;
+// the On Call page opens the same panel flat at the bottom of a live call. They
+// must send the identical PATCH, and two copies of this would eventually not.
+export interface OutcomeDraft {
+  pending: SalesCallOutcome | null;
+  draft: Draft;
+  set: (patch: Partial<Draft>) => void;
+  choose: (outcome: SalesCallOutcome) => void;
+  cancel: () => void;
+  // Resolves true when the outcome was actually recorded, so a caller can throw
+  // away whatever it was holding for that call. False on a refusal, where
+  // throwing anything away would lose work the server never took.
+  submit: (outcome: SalesCallOutcome) => Promise<boolean>;
+}
+
+export function useOutcomeDraft(meeting: SalesMeeting, record: RecordOutcome): OutcomeDraft {
   const { showToast } = useToast();
   // Which outcome is mid-answer. Null the rest of the time.
   const [pending, setPending] = useState<SalesCallOutcome | null>(null);
   const [draft, setDraft] = useState<Draft>(() => draftFor(meeting));
-
-  const meta = meeting.outcome ? SALES_CALL_OUTCOMES[meeting.outcome] : null;
 
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
@@ -341,8 +353,10 @@ export function MeetingRow({
       });
       showToast(`${meeting.prospectName || "Meeting"}: ${outcomeLabel(outcome)}`);
       setPending(null);
+      return true;
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Could not record that");
+      return false;
     }
   };
 
@@ -353,6 +367,32 @@ export function MeetingRow({
     setDraft(draftFor(meeting));
     setPending(outcome);
   };
+
+  return { pending, draft, set, choose, cancel: () => setPending(null), submit };
+}
+
+export function MeetingRow({
+  meeting,
+  recordable = false,
+  record,
+  // Drawn under the name on the Sales page: where this meeting came from and
+  // where its card ended up. Cold Call's own page leaves it off, because there
+  // every row came from the same place.
+  showProvenance = false,
+  // Open the On Call cockpit on this meeting. Only Sales Calls passes it; the
+  // caller's own Booked list has no such page, and a button that went nowhere
+  // is worse than no button.
+  onStartCall,
+}: {
+  meeting: SalesMeeting;
+  recordable?: boolean;
+  record: RecordOutcome;
+  showProvenance?: boolean;
+  onStartCall?: (meeting: SalesMeeting) => void;
+}) {
+  const { pending, draft, set, choose, cancel, submit } = useOutcomeDraft(meeting, record);
+
+  const meta = meeting.outcome ? SALES_CALL_OUTCOMES[meeting.outcome] : null;
 
   const cancelled = /cancel/i.test(meeting.appointmentStatus);
 
@@ -418,33 +458,64 @@ export function MeetingRow({
         </div>
       </div>
 
-      {recordable && pending === null && (
+      {(recordable || onStartCall) && pending === null && (
         // Two groups on one line: the four outcomes where somebody turned up,
         // then a rule, then the one where they did not. The labels no longer
         // carry the word "Showed", so the grouping is what keeps a show apart
         // from a no-show, which is the distinction the show rate rests on.
+        //
+        // Start call leads the row, ahead of the outcomes and separated from
+        // them, because it is the thing you press BEFORE the call and they are
+        // the things you press after it.
         <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-faint">
-            Showed
-          </span>
-          {SHOWED_CHOICES.map((c) => (
-            <OutcomeButton
-              key={c.outcome}
-              choice={c}
-              on={meeting.outcome === c.outcome}
-              disabled={record.isPending}
-              onPick={choose}
-            />
-          ))}
+          {onStartCall && (
+            <>
+              <button
+                type="button"
+                onClick={() => onStartCall(meeting)}
+                title="Open the call cockpit on this meeting"
+                className={[
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5",
+                  "border border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)]",
+                  "text-[12px] font-semibold leading-none text-[var(--brand)]",
+                  "transition-colors hover:bg-[color-mix(in_srgb,var(--brand)_20%,transparent)]",
+                ].join(" ")}
+              >
+                <Headphones size={13} aria-hidden />
+                Start call
+              </button>
+              {recordable && (
+                <span className="mx-1 h-5 w-px shrink-0 bg-[var(--border)]" aria-hidden />
+              )}
+            </>
+          )}
+          {recordable && (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-faint">
+              Showed
+            </span>
+          )}
+          {recordable && (
+            <>
+              {SHOWED_CHOICES.map((c) => (
+                <OutcomeButton
+                  key={c.outcome}
+                  choice={c}
+                  on={meeting.outcome === c.outcome}
+                  disabled={record.isPending}
+                  onPick={choose}
+                />
+              ))}
 
-          <span className="mx-1 h-5 w-px shrink-0 bg-[var(--border)]" aria-hidden />
+              <span className="mx-1 h-5 w-px shrink-0 bg-[var(--border)]" aria-hidden />
 
-          <OutcomeButton
-            choice={NO_SHOW_CHOICE}
-            on={meeting.outcome === NO_SHOW_CHOICE.outcome}
-            disabled={record.isPending}
-            onPick={choose}
-          />
+              <OutcomeButton
+                choice={NO_SHOW_CHOICE}
+                on={meeting.outcome === NO_SHOW_CHOICE.outcome}
+                disabled={record.isPending}
+                onPick={choose}
+              />
+            </>
+          )}
         </div>
       )}
 
@@ -456,7 +527,7 @@ export function MeetingRow({
           set={set}
           saving={record.isPending}
           onSave={() => void submit(pending)}
-          onCancel={() => setPending(null)}
+          onCancel={cancel}
         />
       )}
     </div>
@@ -502,7 +573,7 @@ function outcomeDetail(meeting: SalesMeeting): string {
 // different behaviours (two buttons that opened a field, two that fired
 // immediately, one that asked for a reason), which nobody could predict without
 // pressing them.
-function RecordPanel({
+export function RecordPanel({
   meeting,
   outcome,
   draft,

@@ -26,6 +26,21 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-07-31-on-call",
+    date: "31 July 2026",
+    title: "A page to work the sales call on, while you are on it",
+    items: [
+      'Sales has a new page, On Call. Every meeting on Sales Calls now has a "Start call" button that opens it on that prospect.',
+      "Three columns in the order the call runs: discovery, pitch, objection handling. Tick each prompt as you cover it and type what they said underneath. The heading counts how far through each column you are.",
+      "Who you are talking to sits along the top, with their number, when it was booked, where they came from, anything written on a previous call, and a clock counting the call.",
+      "The call ends where it always did: the same five outcomes, the same figures, the same tagging. Recording one clears the page and takes you back to the list.",
+      "Your ticks and notes survive a reload but stay in this browser. They are not saved to the meeting yet.",
+      'A second new page, Sales > Playbook, is where those three columns are written. Add a prompt, reword one, move it up or down, or retire it. Edits save as you leave the box and are live on the next call, with no deploy.',
+      "The playbook starts with a set of placeholder prompts so the page opens on something to edit rather than three empty headings. They are meant to be rewritten.",
+      "Retiring a prompt takes it off the call but keeps it readable, so a question pulled in March can still be looked at in June. Deleting outright is there for the one added by mistake.",
+    ],
+  },
+  {
     id: "2026-07-31-client-app-chrome",
     date: "31 July 2026",
     title: "New page headers, a rebuilt Home, and account controls in the rail",

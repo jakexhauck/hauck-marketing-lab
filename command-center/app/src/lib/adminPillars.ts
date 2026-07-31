@@ -64,10 +64,23 @@ export const ADMIN_PILLARS: PillarDef[] = [
     // same month, agency-wide, was already on Acquisition > Cold Call > Tracker
     // with the caller selector on "Agency", and one number with two pages is one
     // page too many. Sales is the selling now, calendar through to cash.
+    //
+    // On Call sits second, straight after the list it is opened from. It is not
+    // a page you browse to: Sales Calls has a Start call button on every row,
+    // and this tab is where that lands. It stays in the strip anyway so a
+    // reload, a bookmark or a second monitor can reach it directly, in which
+    // case it asks which call you are on.
+    //
+    // Playbook is last, and is deliberately not called Settings: it is one
+    // thing (the words said on a call), named for what it is, in the same way
+    // Cold Call's Management pages are. It sits at the end because writing the
+    // call is a thing you sit down to do, not a thing you open daily.
     tabs: [
       { id: "calls", label: "Sales Calls", ready: true },
+      { id: "on-call", label: "On Call", ready: true },
       { id: "pipeline", label: "Sales Pipeline", ready: true },
       { id: "sales-data", label: "Sales Data", ready: true },
+      { id: "playbook", label: "Playbook", ready: true },
     ],
   },
   {
