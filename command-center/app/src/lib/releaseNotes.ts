@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-01-booking-contact-details",
+    date: "1 August 2026",
+    title: "Booking a meeting asks who it is with",
+    items: [
+      "The booking panel now has First name, Phone and Email above the calendar. Scraped prospects arrive as a business with a switchboard number and no person on them, so the details you learn on the call had nowhere to go.",
+      "Whatever is already known is filled in for you. Leaving a field alone keeps what is there; clearing one does not wipe it, so a stray keystroke mid-call cannot delete the only number a prospect has.",
+      "A phone number can be typed the way anyone actually says it. (248) 555-0171, 248.555.0171 and 2485550171 are all the same number.",
+      "A number or address that is not usable is refused with a plain reason instead of being quietly ignored, which used to mean the meeting was booked against the old number and looked like it had worked.",
+      "What you type is saved back onto the prospect, so whoever opens them next sees the person rather than the switchboard, and the calendar invite carries their real name.",
+      "A prospect with no phone and no email at all can now be booked by typing one in. Before, there was no way to book them.",
+    ],
+  },
+  {
     id: "2026-08-01-cold-call-suite-finished",
     date: "1 August 2026",
     title: "Cold Calling reads from Google Docs, and the pipeline actually fills",

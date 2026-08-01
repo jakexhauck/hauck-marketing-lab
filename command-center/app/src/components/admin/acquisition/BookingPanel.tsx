@@ -23,6 +23,16 @@ import {
 
 // Booking a meeting on Hauck Marketing's own calendar, from the call.
 //
+// WHO the meeting is with is asked here, not assumed. A scraped prospect is a
+// BUSINESS: a company name and a switchboard number, no person and usually no
+// email. The name is learned while somebody is on the phone, which is the only
+// moment there is anyone to type it, so the three fields that matter to a
+// calendar invite sit above the grid and are prefilled from whatever is known.
+//
+// A field left alone keeps what is stored. What is typed is merged over it and
+// written back to the lead, so the next person to open this prospect sees the
+// person rather than the switchboard.
+//
 // Real slots, read live from GoHighLevel, because the alternative is a caller
 // offering a time that is already taken and then having to take it back. The
 // slots are the agency's actual availability, in the agency's timezone, and the
@@ -73,6 +83,13 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
   const [cursor, setCursor] = useState<MonthCursor>(() => cursorForToday(today));
   const [slot, setSlot] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Prefilled from the book, then owned by the caller. Held as separate state
+  // rather than read straight off `lead` so typing does not fight a refetch
+  // landing mid-sentence.
+  const [firstName, setFirstName] = useState(lead.firstName ?? "");
+  const [phone, setPhone] = useState(lead.phone ?? "");
+  const [email, setEmail] = useState(lead.email ?? "");
 
   const book = useBookColdCall();
   const slots = useColdCallSlotsQuery(calendarId);
@@ -128,6 +145,12 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
         calendarId,
         startTime: slot,
         endTime: endOf(slot),
+        // Sent as typed. The server normalises and validates them
+        // (functions/lib/bookingContact.ts), because the rules a booking is
+        // accepted on must not be enforceable only by the browser.
+        firstName,
+        phone,
+        email,
       });
       onBooked(res.appointmentDate);
     } catch (err) {
@@ -188,6 +211,53 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
           <span className="text-[12px] text-muted">Times in {slots.data.timezone}</span>
         )}
       </div>
+
+      {/* Who the invite is for. Above the calendar deliberately: it is the
+          thing being learned on the call, and burying it under the grid would
+          make it the step people skip. */}
+      <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-faint">
+            First name
+          </span>
+          <input
+            className="pk-input"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Who you spoke to"
+            autoComplete="off"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-faint">
+            Phone
+          </span>
+          <input
+            className="pk-input"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="(248) 555-0171"
+            inputMode="tel"
+            autoComplete="off"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-faint">
+            Email
+          </span>
+          <input
+            className="pk-input"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@company.com"
+            inputMode="email"
+            autoComplete="off"
+          />
+        </label>
+      </div>
+      <p className="mt-1.5 text-[12px] text-faint">
+        GoHighLevel sends the reminders to these, and they are saved back onto the prospect.
+      </p>
 
       {slots.isLoading ? (
         <p className="mt-3 text-[13px] text-muted">Reading the calendar...</p>

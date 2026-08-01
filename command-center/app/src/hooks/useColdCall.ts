@@ -218,12 +218,9 @@ export function useBookColdCall() {
   const qc = useQueryClient();
   return useMutation({
     retry: false,
-    mutationFn: (input: {
-      leadId: string;
-      calendarId: string;
-      startTime: string;
-      endTime: string;
-    }) => bookColdCall(input),
+    // Typed off the client function rather than restated, so adding a field to
+    // the booking body cannot leave this signature quietly behind.
+    mutationFn: (input: Parameters<typeof bookColdCall>[0]) => bookColdCall(input),
     onSuccess: (_res, input) => {
       qc.invalidateQueries({ queryKey: ["admin", "tracker", "leads"] });
       qc.invalidateQueries({ queryKey: ["admin", "cold-call", "slots", input.calendarId] });

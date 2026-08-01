@@ -6,6 +6,7 @@ import { ghlFetch } from "../../../lib/ghl";
 import { getAgencyGhlContext, AgencyGhlError } from "../../../lib/agencyGhl";
 import { createAppointment, isCalendarNotFound, listCalendars } from "../../lib/appointments";
 import { pushSalesCallTag } from "../../lib/salesCallPush";
+import { resolveBookingContact, type CleanContact } from "../../../lib/bookingContact";
 
 // POST /api/admin/cold-call/book  (admin-only)
 //
@@ -30,6 +31,18 @@ interface Body {
   calendarId?: string;
   startTime?: string;
   endTime?: string;
+  // Who the meeting is actually with, typed on the call.
+  //
+  // A scraped prospect is a BUSINESS: a company and a switchboard number, no
+  // person and usually no email. The name is learned while somebody is on the
+  // phone, which is the only moment there is anyone to type it, so the booking
+  // panel collects it and it is merged over the stored record here.
+  //
+  // Omitted or blank means "leave it alone". See resolveBookingContact.
+  firstName?: unknown;
+  lastName?: unknown;
+  phone?: unknown;
+  email?: unknown;
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}T/;
@@ -54,16 +67,20 @@ interface LeadRow {
 async function upsertContact(
   gctx: { locationId: string; token: string },
   lead: LeadRow,
+  // The merge of what is stored and what the caller typed. Passed in rather than
+  // read off `lead`, so the contact GoHighLevel gets is the person actually on
+  // the call and not the thin scraped record underneath them.
+  contact: CleanContact,
 ): Promise<{ ok: true; contactId: string } | { ok: false; status: number; body: string }> {
   const payload: Record<string, unknown> = {
     locationId: gctx.locationId,
-    firstName: lead.first_name || "Prospect",
-    lastName: lead.last_name || "",
+    firstName: contact.firstName || "Prospect",
+    lastName: contact.lastName || "",
     // Where this person came from, visible in GHL rather than only in our app.
     source: "Cold call",
   };
-  if (lead.phone) payload.phone = lead.phone;
-  if (lead.email) payload.email = lead.email;
+  if (contact.phone) payload.phone = contact.phone;
+  if (contact.email) payload.email = contact.email;
   // Only when we have one: sending "" would blank a company name already
   // corrected in GoHighLevel, which is where Jake works the board.
   if (lead.business_name) payload.companyName = lead.business_name;
@@ -180,20 +197,28 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const { data: leadRow } = await query.maybeSingle();
   const lead = leadRow as LeadRow | null;
   if (!lead) return Response.json({ error: "lead not found" }, { status: 404 });
-  if (!lead.phone && !lead.email) {
-    return Response.json(
-      { error: "That prospect has no phone or email, so GoHighLevel cannot hold a booking." },
-      { status: 422 },
-    );
+
+  // What the caller typed, merged over what the book holds. This also carries
+  // the "needs a phone or an email" rule, checked AFTER the merge so typing a
+  // number in the panel is a valid way to satisfy it for a prospect that had
+  // none. A field left blank means leave it alone; a field filled in badly is
+  // refused rather than silently falling back to the stored value, which would
+  // book the meeting against the wrong number and look like success.
+  const resolved = resolveBookingContact(lead, body);
+  if (resolved.error) {
+    return Response.json({ error: resolved.error }, { status: 422 });
   }
 
-  const contact = await upsertContact(gctx, lead);
+  const contact = await upsertContact(gctx, lead, resolved.contact);
   if (!contact.ok) {
     console.error("[cold-call/book] contact upsert failed", contact.status, contact.body);
     return Response.json({ error: "could not create the contact" }, { status: 502 });
   }
 
-  const name = `${lead.first_name} ${lead.last_name}`.trim() || "Cold call prospect";
+  const name =
+    `${resolved.contact.firstName} ${resolved.contact.lastName}`.trim() ||
+    lead.business_name ||
+    "Cold call prospect";
   const appt = await createAppointment(gctx, {
     calendarId,
     contactId: contact.contactId,
@@ -225,6 +250,14 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       last_contact: today,
       follow_up_date: null,
       updated_at: new Date().toISOString(),
+      // Whatever was learned on the call is now what the book holds, so the next
+      // person to open this prospect sees the person rather than the switchboard.
+      // Only the fields that actually changed: `changed` is empty when the caller
+      // typed nothing, and an unchanged field must not be restamped.
+      ...(resolved.changed.firstName !== undefined && { first_name: resolved.changed.firstName }),
+      ...(resolved.changed.lastName !== undefined && { last_name: resolved.changed.lastName }),
+      ...(resolved.changed.phone !== undefined && { phone: resolved.changed.phone }),
+      ...(resolved.changed.email !== undefined && { email: resolved.changed.email }),
     })
     .eq("id", leadId)
     .select("id")

@@ -1550,6 +1550,16 @@ export async function bookColdCall(input: {
   calendarId: string;
   startTime: string;
   endTime: string;
+  // Who the meeting is with, as typed on the call. A scraped prospect is a
+  // business with no person on it, so these are usually learned on the phone.
+  //
+  // Sent RAW. The server normalises and validates them (bookingContact.ts) and
+  // writes back only what changed; a blank field means leave the stored value
+  // alone rather than clear it.
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
 }): Promise<ColdCallBookResult> {
   return api("/api/admin/cold-call/book", {
     method: "POST",
