@@ -6,9 +6,7 @@ import { pushColdCallOutcome, type LeadForPush } from "../../../lib/agencyCrm";
 import { dateStringInZone } from "../../../lib/tz";
 import {
   DIAL_OUTCOMES,
-  NOT_INTERESTED_REASONS,
   isDialOutcome,
-  isNotInterestedReason,
 } from "../../../lib/coldCallDials";
 
 // POST /api/admin/cold-call/dials (admin session gated in _middleware.ts).
@@ -33,7 +31,6 @@ interface Body {
   outcome?: string;
   // Why they said no. Only sent with a no, and it DECIDES the outcome: the
   // client never gets to say whether a call reached the pitch.
-  reason?: string | null;
   note?: string | null;
   // The agreed callback date, "YYYY-MM-DD". Only sent with a callback, and what
   // turns it into a task on the contact in GHL.
@@ -52,13 +49,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const body = await readJsonBody<Body>(ctx.request);
   if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
 
-  const reason = body.reason ?? null;
-  if (reason !== null && !isNotInterestedReason(reason)) {
-    return Response.json({ error: "bad_reason" }, { status: 400 });
-  }
-  // A reason outranks whatever outcome was sent with it, so the pair can never
-  // disagree in the table.
-  const outcome = reason ? NOT_INTERESTED_REASONS[reason].outcome : body.outcome;
+  // The outcome IS the reason since 0078: the three ways a call ends in no are
+  // separate outcomes rather than one outcome plus a reason from a second list.
+  // `reason` is no longer accepted; the column stays for the rows that have one.
+  const outcome = body.outcome;
   if (!isDialOutcome(outcome)) {
     return Response.json({ error: "bad_outcome" }, { status: 400 });
   }
@@ -85,11 +79,10 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       spoke,
       pitched,
       outcome,
-      reason,
       note,
       script_id: scriptId,
     })
-    .select("id, day, outcome, reason, spoke, pitched")
+    .select("id, day, outcome, spoke, pitched")
     .single();
   if (error || !data) {
     return Response.json({ error: error?.message ?? "could not log dial" }, { status: 500 });

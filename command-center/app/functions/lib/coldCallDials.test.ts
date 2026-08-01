@@ -3,6 +3,7 @@ import {
   DIAL_OUTCOMES,
   formatObjections,
   isDialOutcome,
+  NO_OUTCOMES,
   mergeRecordedDays,
   rollUpDialsByDay,
   type DialRow,
@@ -27,19 +28,42 @@ function typedDay(over: Partial<TypedDay> = {}): TypedDay {
   };
 }
 
-describe("the five outcomes", () => {
+describe("the six outcomes", () => {
   it("pairs each outcome with what it counts as", () => {
-    expect(DIAL_OUTCOMES.no_answer).toEqual({ spoke: false, pitched: false });
-    expect(DIAL_OUTCOMES.brush_off).toEqual({ spoke: true, pitched: false });
-    expect(DIAL_OUTCOMES.not_interested).toEqual({ spoke: true, pitched: true });
-    expect(DIAL_OUTCOMES.callback).toEqual({ spoke: true, pitched: true });
-    expect(DIAL_OUTCOMES.booked).toEqual({ spoke: true, pitched: true });
+    const counts = (o: keyof typeof DIAL_OUTCOMES) => ({
+      spoke: DIAL_OUTCOMES[o].spoke,
+      pitched: DIAL_OUTCOMES[o].pitched,
+    });
+    expect(counts("no_answer")).toEqual({ spoke: false, pitched: false });
+    expect(counts("not_qualified")).toEqual({ spoke: true, pitched: false });
+    expect(counts("opener_no")).toEqual({ spoke: true, pitched: false });
+    expect(counts("pitch_no")).toEqual({ spoke: true, pitched: true });
+    expect(counts("callback")).toEqual({ spoke: true, pitched: true });
+    expect(counts("booked")).toEqual({ spoke: true, pitched: true });
   });
 
-  it("rejects anything else", () => {
+  it("counts only the no that actually reached the pitch as a pass-through", () => {
+    // The whole reason these are three outcomes rather than one. Pass-through
+    // measures whether the script survives contact, so grouping "would not
+    // engage" with "heard it all and declined" inflates the only number that
+    // says whether the pitch works.
+    expect(DIAL_OUTCOMES.not_qualified.pitched).toBe(false);
+    expect(DIAL_OUTCOMES.opener_no.pitched).toBe(false);
+    expect(DIAL_OUTCOMES.pitch_no.pitched).toBe(true);
+  });
+
+  it("counts every no as a pickup, because somebody answered", () => {
+    for (const o of NO_OUTCOMES) expect(DIAL_OUTCOMES[o].spoke).toBe(true);
+  });
+
+  it("rejects anything else, including the retired outcomes", () => {
     expect(isDialOutcome("booked")).toBe(true);
     expect(isDialOutcome("voicemail")).toBe(false);
     expect(isDialOutcome(undefined)).toBe(false);
+    // 0078 replaced these. A stale client sending one must be refused, not
+    // written under a name the CHECK constraint no longer allows.
+    expect(isDialOutcome("brush_off")).toBe(false);
+    expect(isDialOutcome("not_interested")).toBe(false);
   });
 });
 
@@ -130,24 +154,37 @@ describe("mergeRecordedDays", () => {
 });
 
 
-describe("reasons on the rollup", () => {
-  it("tallies why the day's nos were nos", () => {
+describe("nos on the rollup", () => {
+  it("tallies how far each of the day's nos got", () => {
     const counts = rollUpDialsByDay([
-      { day: "2026-07-26", spoke: true, pitched: true, outcome: "not_interested", reason: "has_agency" },
-      { day: "2026-07-26", spoke: true, pitched: false, outcome: "brush_off", reason: "no_engage" },
-      { day: "2026-07-26", spoke: true, pitched: true, outcome: "not_interested", reason: "has_agency" },
-      { day: "2026-07-26", spoke: false, pitched: false, outcome: "no_answer", reason: null },
+      { day: "2026-07-26", spoke: true, pitched: true, outcome: "pitch_no" },
+      { day: "2026-07-26", spoke: true, pitched: false, outcome: "opener_no" },
+      { day: "2026-07-26", spoke: true, pitched: true, outcome: "pitch_no" },
+      { day: "2026-07-26", spoke: false, pitched: false, outcome: "no_answer" },
     ]);
-    expect(counts["2026-07-26"].reasons).toEqual({ has_agency: 2, no_engage: 1 });
+    expect(counts["2026-07-26"].reasons).toEqual({ pitch_no: 2, opener_no: 1 });
     // A no-answer is still a call, and still not an objection.
     expect(counts["2026-07-26"].callsMade).toBe(4);
+    // And the pass-through split survives the rollup: two of the three answered
+    // calls reached the pitch.
+    expect(counts["2026-07-26"].pickups).toBe(3);
+    expect(counts["2026-07-26"].passThrough).toBe(2);
+  });
+
+  it("does not tally a booking or a callback as a no", () => {
+    const counts = rollUpDialsByDay([
+      { day: "2026-07-26", spoke: true, pitched: true, outcome: "booked" },
+      { day: "2026-07-26", spoke: true, pitched: true, outcome: "callback" },
+    ]);
+    expect(counts["2026-07-26"].reasons).toEqual({});
+    expect(counts["2026-07-26"].meetingsBooked).toBe(1);
   });
 });
 
 describe("formatObjections", () => {
   it("writes the day's objections commonest first", () => {
-    expect(formatObjections({ no_engage: 1, has_agency: 3 })).toBe(
-      "3 already has an agency, 1 would not engage",
+    expect(formatObjections({ opener_no: 1, pitch_no: 3 })).toBe(
+      "3 heard pitch, said no, 1 heard opener, said no",
     );
   });
 
@@ -156,13 +193,21 @@ describe("formatObjections", () => {
     expect(formatObjections(null)).toBe("");
   });
 
-  it("ignores a reason it does not know rather than printing a raw key", () => {
-    expect(formatObjections({ made_up: 4, bad_fit: 1 })).toBe("1 not a fit");
+  it("ignores an outcome it does not know rather than printing a raw key", () => {
+    expect(formatObjections({ made_up: 4, not_qualified: 1 })).toBe("1 not qualified");
   });
 
-  it("breaks ties in the order the reasons are declared, so the text is stable", () => {
-    expect(formatObjections({ bad_fit: 1, pitched_no: 1 })).toBe(
-      "1 heard the pitch, said no, 1 not a fit",
+  it("counts only the nos, never a booking or a callback", () => {
+    // These arrive in the same counts object; a day that booked four meetings
+    // must not report "4 booked" in the Objections column.
+    expect(formatObjections({ booked: 4, callback: 2, opener_no: 1 })).toBe(
+      "1 heard opener, said no",
+    );
+  });
+
+  it("breaks ties in the order the outcomes are declared, so the text is stable", () => {
+    expect(formatObjections({ pitch_no: 1, not_qualified: 1 })).toBe(
+      "1 not qualified, 1 heard pitch, said no",
     );
   });
 });

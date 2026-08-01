@@ -1607,10 +1607,14 @@ export async function getAgencyPipelines(
 // One attempt, appended the moment an outcome is pressed (0052). The server
 // decides the caller (always the session), the day and what the outcome counts
 // as, so this carries only what it alone knows: which prospect, and how it went.
+// Mirrors DIAL_OUTCOMES in functions/lib/coldCallDials.ts and the CHECK
+// constraint in migration 0078. The three nos differ by how far the call got:
+// only "pitch_no" reached the pitch, and only it counts toward pass-through.
 export type ColdCallDialOutcome =
   | "no_answer"
-  | "brush_off"
-  | "not_interested"
+  | "not_qualified"
+  | "opener_no"
+  | "pitch_no"
   | "callback"
   | "booked";
 
@@ -1618,10 +1622,6 @@ export async function logColdCallDial(input: {
   leadId: string | null;
   outcome: ColdCallDialOutcome;
   note?: string;
-  // Why they said no, from the fixed list in functions/lib/coldCallDials.ts.
-  // The server derives the outcome from it, so this and `outcome` can never
-  // disagree in the table.
-  reason?: string;
   // Sent with a callback: it becomes a task on the contact in GoHighLevel, due
   // at the agreed time.
   followUpDate?: string;

@@ -42,7 +42,7 @@ describe("summing the callers", () => {
       dial(),
       dial(),
       booked({ callerId: "ben" }),
-      dial({ callerId: "ben", spoke: true, outcome: "brush_off" }),
+      dial({ callerId: "ben", spoke: true, outcome: "opener_no" }),
     ]);
 
     expect(month.days).toHaveLength(1);
@@ -104,7 +104,7 @@ describe("typed cells, resolved per caller before the sum", () => {
     // Pickups typed, dials not: the dials stay measured.
     const month = aggregateAgencyMonth(
       [typed({ pickups: 9 })],
-      [dial(), dial({ spoke: true, outcome: "brush_off" })],
+      [dial(), dial({ spoke: true, outcome: "opener_no" })],
     );
 
     expect(month.days[0].recorded).toMatchObject({ callsMade: 2, pickups: 9 });
@@ -157,20 +157,17 @@ describe("typed cells, resolved per caller before the sum", () => {
 });
 
 describe("why they said no, across the roster", () => {
-  it("merges the reason counts", () => {
+  it("merges the no counts", () => {
     const month = aggregateAgencyMonth([], [
-      dial({ spoke: true, pitched: true, outcome: "not_interested", reason: "has_agency" }),
-      dial({ spoke: true, pitched: true, outcome: "not_interested", reason: "has_agency" }),
-      dial({
-        callerId: "ben",
-        spoke: true,
-        outcome: "brush_off",
-        reason: "no_engage",
-      }),
-      dial({ callerId: "ben", spoke: true, pitched: true, outcome: "not_interested", reason: "has_agency" }),
+      dial({ spoke: true, pitched: true, outcome: "pitch_no" }),
+      dial({ spoke: true, pitched: true, outcome: "pitch_no" }),
+      dial({ callerId: "ben", spoke: true, outcome: "opener_no" }),
+      dial({ callerId: "ben", spoke: true, pitched: true, outcome: "pitch_no" }),
     ]);
 
-    expect(month.days[0].recorded?.reasons).toEqual({ has_agency: 3, no_engage: 1 });
+    // Keyed by outcome since 0078: the outcome carries how far the call got, so
+    // the separate reason list it used to read is gone.
+    expect(month.days[0].recorded?.reasons).toEqual({ pitch_no: 3, opener_no: 1 });
   });
 
   it("keeps a caller with no id out of nobody's column", () => {

@@ -5,6 +5,8 @@ import {
   CalendarClock,
   CalendarCheck,
   Ban,
+  UserX,
+  ThumbsDown,
   ChevronRight,
   Moon,
   CheckCircle2,
@@ -25,11 +27,11 @@ import {
 import BookingPanel from "./BookingPanel";
 import CallbackPicker from "./CallbackPicker";
 import { stageAfterNoAnswer } from "../../../lib/coldCallStages";
-import {
-  NOT_INTERESTED_REASONS,
-  NOT_INTERESTED_REASON_KEYS,
-  type NotInterestedReason,
-} from "../../../../functions/lib/coldCallDials";
+import type { NO_OUTCOMES } from "../../../../functions/lib/coldCallDials";
+
+// One of the three ways a call ends in no. Named here rather than inlined so the
+// button handlers and sayNo cannot drift apart.
+type NoOutcome = (typeof NO_OUTCOMES)[number];
 
 // The calling workspace: a queue on the left, the one prospect being called on
 // the right, five buttons for how it went.
@@ -190,16 +192,12 @@ export default function CallWorkspace({
       followUpDate: null,
     });
 
-  // Every no lands in the same stage; what differs is why, and the why is what
-  // the reporting needs. The reason decides the outcome server-side, so nothing
-  // here can claim a call reached the pitch when it did not.
-  const sayNo = (lead: AdminLead, reason: NotInterestedReason) => {
-    logDial.mutate({
-      leadId: lead.id,
-      outcome: NOT_INTERESTED_REASONS[reason].outcome,
-      reason,
-      scriptId,
-    });
+  // Every no lands in the same stage; what differs is how far the call got, and
+  // that is what the reporting needs. spoke/pitched are derived from the outcome
+  // SERVER-side (DIAL_OUTCOMES), so nothing here can claim a call reached the
+  // pitch when it did not, which is the one rule the commission numbers rest on.
+  const sayNo = (lead: AdminLead, outcome: NoOutcome) => {
+    logDial.mutate({ leadId: lead.id, outcome, scriptId });
     updateLead.mutate({
       id: lead.id,
       status: "Not Interested",
@@ -394,12 +392,31 @@ export default function CallWorkspace({
             </div>
             <div className="flex flex-wrap gap-2">
               <OutcomeButton icon={PhoneOff} label="No answer" onClick={() => noAnswer(selected)} />
+              {/* The three ways a call ends in no, as buttons rather than one
+                  button that then asks why. Recording a no used to take two
+                  clicks and two vocabularies at the exact moment somebody has
+                  just been told no and wants the next number.
+
+                  They are ordered by how far the call got, so the row reads as a
+                  scale: never qualified, never pitched, pitched and declined.
+                  Only the last is a pass-through. */}
+              <OutcomeButton
+                icon={UserX}
+                label="Not qualified"
+                title="You spoke to them and they do not qualify. Not counted as a pitch."
+                onClick={() => sayNo(selected, "not_qualified")}
+              />
               <OutcomeButton
                 icon={Ban}
-                label="Not interested"
-                title="Asks why, so the no is counted rather than just recorded"
-                on={pending === "no"}
-                onClick={() => setPending(pending === "no" ? null : "no")}
+                label="Heard opener, said no"
+                title="They said no during the opener, so the pitch never happened. Not counted as a pitch."
+                onClick={() => sayNo(selected, "opener_no")}
+              />
+              <OutcomeButton
+                icon={ThumbsDown}
+                label="Heard pitch, said no"
+                title="They heard the whole pitch and declined. Counts as a pass-through."
+                onClick={() => sayNo(selected, "pitch_no")}
               />
               <OutcomeButton
                 icon={CalendarClock}
@@ -433,24 +450,6 @@ export default function CallWorkspace({
                 }}
                 onConfirm={() => confirmCallback(selected)}
               />
-            )}
-
-            {pending === "no" && (
-              <div className="mt-3">
-                <div className="mb-2 text-[12.5px] text-muted">Why were they not interested?</div>
-                <div className="flex flex-wrap gap-2">
-                  {NOT_INTERESTED_REASON_KEYS.map((key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className="rounded-full border border-border px-3.5 py-1.5 text-[12.5px] font-semibold text-muted transition-colors hover:border-brand hover:text-brand"
-                      onClick={() => sayNo(selected, key)}
-                    >
-                      {NOT_INTERESTED_REASONS[key].label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             )}
 
             {pending === "booked" && (

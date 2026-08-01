@@ -59,14 +59,23 @@ export const CC_TAG_PREFIX = "cc ";
 export const CC_TAGS = {
   noAnswerDay1: "cc no answer day 1",
   noAnswerDay2: "cc no answer day 2",
-  brushOff: "cc brush off",
   notInterested: "cc not interested",
   callBack: "cc call back",
 } as const;
 
+// A tag this app no longer applies but must still CLEAN OFF a contact.
+//
+// "cc brush off" named a stage that migration 0056 deleted, so a contact still
+// carrying it is carrying a pointer to a board column that does not exist.
+// Dropping it from CC_TAGS alone would have left it stuck on those contacts for
+// ever, because removeTags is built from the tags this app knows about: a tag it
+// stops knowing is a tag it stops tidying.
+export const RETIRED_CC_TAGS = ["cc brush off"] as const;
+
 // Every tag this app is allowed to write or remove. Anything outside this list
-// is somebody else's and is left alone.
-export const ALL_CC_TAGS: string[] = Object.values(CC_TAGS);
+// is somebody else's and is left alone. Retired tags are removable but never
+// applicable, which is the whole reason they are listed separately above.
+export const ALL_CC_TAGS: string[] = [...Object.values(CC_TAGS), ...RETIRED_CC_TAGS];
 
 export interface OutcomeTags {
   // The single tag this outcome leaves on the contact. Null for Booked: the
@@ -96,9 +105,16 @@ function tagForOutcome(outcome: string, attempt: number): string | null | undefi
   switch (outcome) {
     case "no_answer":
       return attempt >= 2 ? CC_TAGS.noAnswerDay2 : CC_TAGS.noAnswerDay1;
-    case "brush_off":
-      return CC_TAGS.brushOff;
-    case "not_interested":
+    // All three nos land on the same GoHighLevel stage, because Not Interested
+    // is the only terminal no column that board has. How far the call got is
+    // OURS to report on (pass-through is the number that measures the script)
+    // and is not something the CRM needs to model.
+    //
+    // Adding a tag per no would be inventing three automations Jake has not
+    // built, and a tag no workflow watches is a tag that silently does nothing.
+    case "not_qualified":
+    case "opener_no":
+    case "pitch_no":
       return CC_TAGS.notInterested;
     case "callback":
       return CC_TAGS.callBack;

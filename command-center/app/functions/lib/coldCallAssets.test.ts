@@ -58,11 +58,11 @@ describe("cleanName and cleanCategory", () => {
 describe("statsByScript", () => {
   it("counts dials, pickups and bookings per script", () => {
     const stats = statsByScript([
-      ...dials("v1", { no_answer: 20, brush_off: 5, booked: 5 }),
+      ...dials("v1", { no_answer: 20, opener_no: 5, booked: 5 }),
       ...dials("v2", { no_answer: 10 }),
     ]);
     expect(stats.v1.dials).toBe(30);
-    // brush_off and booked both spoke; no_answer did not.
+    // opener_no and booked both spoke; no_answer did not.
     expect(stats.v1.pickups).toBe(10);
     expect(stats.v1.booked).toBe(5);
     expect(stats.v2).toEqual({ dials: 10, pickups: 0, booked: 0, bookingRate: null });

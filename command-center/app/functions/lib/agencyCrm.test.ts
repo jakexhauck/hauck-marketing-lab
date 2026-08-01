@@ -77,10 +77,35 @@ describe("tagsForOutcome", () => {
     expect(tagsForOutcome("no_answer", 7)?.tag).toBe(CC_TAGS.noAnswerDay2);
   });
 
-  it("gives the talking outcomes their own tag", () => {
-    expect(tagsForOutcome("brush_off")?.tag).toBe(CC_TAGS.brushOff);
-    expect(tagsForOutcome("not_interested")?.tag).toBe(CC_TAGS.notInterested);
+  it("sends every kind of no to the one Not Interested column that exists", () => {
+    // The three nos differ by how far the call got, which is ours to report on.
+    // GoHighLevel has a single terminal no stage, and a tag per no would be
+    // three automations Jake has not built: a tag no workflow watches does
+    // nothing at all, silently.
+    expect(tagsForOutcome("not_qualified")?.tag).toBe(CC_TAGS.notInterested);
+    expect(tagsForOutcome("opener_no")?.tag).toBe(CC_TAGS.notInterested);
+    expect(tagsForOutcome("pitch_no")?.tag).toBe(CC_TAGS.notInterested);
     expect(tagsForOutcome("callback")?.tag).toBe(CC_TAGS.callBack);
+  });
+
+  it("refuses an outcome it does not know rather than leaving no tag", () => {
+    // The dangerous shape: tagsForOutcome returning null makes pushDialOutcome
+    // report a failure, which is right. Returning a tag of null would look like
+    // a booking and quietly clear the prospect's state instead.
+    expect(tagsForOutcome("brush_off")).toBeNull();
+    expect(tagsForOutcome("not_interested")).toBeNull();
+    expect(tagsForOutcome("invented")).toBeNull();
+  });
+
+  it("still cleans off the tag for a stage that no longer exists", () => {
+    // "cc brush off" named a column deleted in 0056. It is never applied now,
+    // but a contact still carrying it must have it taken off, so it stays in the
+    // removal list rather than being forgotten about entirely.
+    expect(ALL_CC_TAGS).toContain("cc brush off");
+    expect(tagsForOutcome("callback")!.removeTags).toContain("cc brush off");
+    for (const outcome of ["no_answer", "not_qualified", "opener_no", "pitch_no", "callback"]) {
+      expect(tagsForOutcome(outcome)!.tag).not.toBe("cc brush off");
+    }
   });
 
   it("leaves no tag on a booking, because the appointment is the state change", () => {
@@ -100,7 +125,7 @@ describe("tagsForOutcome", () => {
   });
 
   it("only ever touches tags the app owns", () => {
-    for (const outcome of ["no_answer", "brush_off", "not_interested", "callback", "booked"]) {
+    for (const outcome of ["no_answer", "not_qualified", "opener_no", "pitch_no", "callback", "booked"]) {
       const tags = tagsForOutcome(outcome)!;
       for (const tag of [...tags.removeTags, tags.tag].filter(Boolean)) {
         expect(tag as string).toMatch(/^cc /);
@@ -157,7 +182,7 @@ describe("pushColdCallOutcome", () => {
     mockGhl();
     await pushColdCallOutcome(env, {
       lead: lead({ ghlContactId: "contact_9" }),
-      outcome: "brush_off",
+      outcome: "opener_no",
     });
     expect(calls.some((c) => c.url.includes("/contacts/upsert"))).toBe(false);
     expect(tagCall("POST")?.url).toContain("contact_9");
@@ -251,7 +276,7 @@ describe("pushColdCallOutcome", () => {
 
   it("never deletes a contact, only tags", async () => {
     mockGhl();
-    for (const outcome of ["no_answer", "brush_off", "not_interested", "callback", "booked"]) {
+    for (const outcome of ["no_answer", "not_qualified", "opener_no", "pitch_no", "callback", "booked"]) {
       await pushColdCallOutcome(env, { lead: lead({ ghlContactId: "c" }), outcome });
     }
     const destructive = calls.filter((c) => c.method === "DELETE" && !c.url.endsWith("/tags"));
@@ -260,7 +285,7 @@ describe("pushColdCallOutcome", () => {
 
   it("never creates or moves an opportunity: the pipeline is Jake's to drive", async () => {
     mockGhl();
-    for (const outcome of ["no_answer", "brush_off", "not_interested", "callback", "booked"]) {
+    for (const outcome of ["no_answer", "not_qualified", "opener_no", "pitch_no", "callback", "booked"]) {
       await pushColdCallOutcome(env, { lead: lead({ ghlContactId: "c" }), outcome });
     }
     expect(calls.some((c) => c.url.includes("/opportunities"))).toBe(false);

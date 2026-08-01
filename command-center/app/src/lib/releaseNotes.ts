@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-01-cold-call-outcomes",
+    date: "1 August 2026",
+    title: "Three ways to say no, one press each",
+    items: [
+      "The call card now has six buttons: No answer, Not qualified, Heard opener said no, Heard pitch said no, Call back, Booked.",
+      "Recording a no used to take two clicks: press Not interested, then pick a reason from a list of five. The reason IS the outcome now, so it is one press at the moment you have just been told no and want the next number.",
+      "Only \"Heard pitch, said no\" counts as a pass-through, because that is the only one where the pitch actually happened. A disqualification or a no during the opener still counts as a pickup, but not as a pitch, so the number that measures the script stops being inflated.",
+      "The Objections column on the Tracker reads from these outcomes, so it says how far the calls got rather than which reason was picked.",
+      "Every no still moves the prospect to Not Interested in GoHighLevel exactly as before. How far the call got is reported here, not over there.",
+      "Dials already logged were converted using the reason recorded at the time, so nothing was guessed and no history was lost.",
+    ],
+  },
+  {
     id: "2026-08-01-booking-contact-details",
     date: "1 August 2026",
     title: "Booking a meeting asks who it is with",

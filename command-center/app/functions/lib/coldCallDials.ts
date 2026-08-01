@@ -6,43 +6,43 @@
 // grid (cold_calls) still exists, but its cells are now overrides: a day shows
 // what was typed if anything was, otherwise what was recorded.
 
-// The five buttons on the call card. spoke makes a pickup; pitched makes a
-// pass-through. Keeping the pairing in one table is what stops the UI and the
-// rollup from ever disagreeing about what a "pickup" is.
+// The six buttons on the call card, and what each one counts as.
+//
+// spoke makes a pickup; pitched makes a pass-through. Keeping the pairing in one
+// table is what stops the UI and the rollup from ever disagreeing about what a
+// "pickup" is, and it is why nothing outside this file decides either flag.
+//
+// The three ways a call ends in no are separate outcomes rather than one outcome
+// with a reason attached (0078). They are not shades of the same thing: only
+// pitch_no reached the pitch, so only pitch_no counts toward pass-through, which
+// is the number that measures whether the script survives contact. Recording
+// them used to take two clicks, an outcome then a reason, at the exact moment
+// somebody has just been told no and wants the next number.
+//
+// `label` is what the caller reads on the button. Changing one is safe; changing
+// a KEY means a migration on cold_call_dials.outcome and its CHECK constraint.
 export const DIAL_OUTCOMES = {
-  no_answer: { spoke: false, pitched: false },
-  brush_off: { spoke: true, pitched: false },
-  not_interested: { spoke: true, pitched: true },
-  callback: { spoke: true, pitched: true },
-  booked: { spoke: true, pitched: true },
+  no_answer: { spoke: false, pitched: false, label: "No answer" },
+  // Spoke to them and they do not qualify. Never pitched: disqualifying somebody
+  // is not the script being tested.
+  not_qualified: { spoke: true, pitched: false, label: "Not qualified" },
+  // Said no during the opener, so the pitch never happened.
+  opener_no: { spoke: true, pitched: false, label: "Heard opener, said no" },
+  // Heard the whole thing and declined. The only no that is a pass-through.
+  pitch_no: { spoke: true, pitched: true, label: "Heard pitch, said no" },
+  callback: { spoke: true, pitched: true, label: "Call back" },
+  booked: { spoke: true, pitched: true, label: "Booked" },
 } as const;
 
 export type DialOutcome = keyof typeof DIAL_OUTCOMES;
 
-// Why a prospect said no. Every reason carries the outcome it implies, so the
-// caller picks a sentence and the server decides spoke/pitched from it. That
-// keeps the one rule this table exists for: the numbers commission is paid
-// against are never asserted by the client.
-//
-// "Would not engage", "Not the decision maker" and "Not a fit" are brush_off:
-// the call was answered but never got as far as the pitch, and counting them as
-// pass-throughs would inflate the only number that measures the script.
-export const NOT_INTERESTED_REASONS = {
-  pitched_no: { label: "Heard the pitch, said no", outcome: "not_interested" },
-  no_engage: { label: "Would not engage", outcome: "brush_off" },
-  not_decision_maker: { label: "Not the decision maker", outcome: "brush_off" },
-  has_agency: { label: "Already has an agency", outcome: "not_interested" },
-  bad_fit: { label: "Not a fit", outcome: "brush_off" },
-} as const;
+// The outcomes that end the prospect's time in the dialing operation as a no.
+// All three land on the same GoHighLevel stage; what differs is how far the call
+// got, which is ours to report on rather than something the board tracks.
+export const NO_OUTCOMES = ["not_qualified", "opener_no", "pitch_no"] as const;
 
-export type NotInterestedReason = keyof typeof NOT_INTERESTED_REASONS;
-
-export const NOT_INTERESTED_REASON_KEYS = Object.keys(
-  NOT_INTERESTED_REASONS,
-) as NotInterestedReason[];
-
-export function isNotInterestedReason(value: unknown): value is NotInterestedReason {
-  return typeof value === "string" && value in NOT_INTERESTED_REASONS;
+export function isNoOutcome(value: unknown): value is (typeof NO_OUTCOMES)[number] {
+  return typeof value === "string" && (NO_OUTCOMES as readonly string[]).includes(value);
 }
 
 export const DIAL_OUTCOME_KEYS = Object.keys(DIAL_OUTCOMES) as DialOutcome[];
@@ -69,8 +69,9 @@ export interface RecordedCounts {
   pickups: number;
   passThrough: number;
   meetingsBooked: number;
-  // How many of the day's nos gave each reason. The Objections column is
-  // written from this, so "why we lose them" is counted rather than typed.
+  // How many of the day's calls ended in each kind of no, keyed by outcome. The
+  // Objections column is written from this, so "why we lose them" is counted
+  // rather than typed.
   reasons: Record<string, number>;
 }
 
@@ -98,7 +99,10 @@ export function rollUpDialsByDay(dials: DialRow[]): Record<string, RecordedCount
     if (dial.spoke) counts.pickups += 1;
     if (dial.pitched) counts.passThrough += 1;
     if (dial.outcome === "booked") counts.meetingsBooked += 1;
-    if (dial.reason) counts.reasons[dial.reason] = (counts.reasons[dial.reason] ?? 0) + 1;
+    // Keyed by outcome, not by the retired `reason` column (0078).
+    if (isNoOutcome(dial.outcome)) {
+      counts.reasons[dial.outcome] = (counts.reasons[dial.outcome] ?? 0) + 1;
+    }
   }
   return byDay;
 }
@@ -154,20 +158,23 @@ export function mergeRecordedDays(
 }
 
 
-// The Objections cell, written from the day's recorded reasons: "3 already has
-// an agency, 2 would not engage". Commonest first, and ties fall back to the
-// order the reasons are declared in so the sentence is stable between reads.
+// The Objections cell: "3 heard opener, said no, 2 not qualified". Commonest
+// first, ties falling back to declaration order so the sentence is stable
+// between reads.
 //
-// Empty string when nothing was recorded, which the grid renders as a blank
-// cell rather than as "0 objections".
-export function formatObjections(reasons: Record<string, number> | null | undefined): string {
-  if (!reasons) return "";
-  const order = NOT_INTERESTED_REASON_KEYS;
-  const parts = Object.entries(reasons)
-    .filter(([key, n]) => n > 0 && key in NOT_INTERESTED_REASONS)
-    .sort(([aKey, a], [bKey, b]) =>
-      b - a || order.indexOf(aKey as NotInterestedReason) - order.indexOf(bKey as NotInterestedReason),
-    )
-    .map(([key, n]) => `${n} ${NOT_INTERESTED_REASONS[key as NotInterestedReason].label.toLowerCase()}`);
-  return parts.join(", ");
+// Counted from the day's no OUTCOMES since 0078. It used to read a separate
+// `reason` column, which stopped being written when the reasons became the
+// outcomes; leaving it pointed there would have quietly blanked this column
+// rather than failing.
+//
+// Empty string when nothing was recorded, which the grid renders as a blank cell
+// rather than as "0 objections".
+export function formatObjections(counts: Record<string, number> | null | undefined): string {
+  if (!counts) return "";
+  const order = NO_OUTCOMES as readonly string[];
+  return Object.entries(counts)
+    .filter(([key, n]) => n > 0 && isNoOutcome(key))
+    .sort(([aKey, a], [bKey, b]) => b - a || order.indexOf(aKey) - order.indexOf(bKey))
+    .map(([key, n]) => `${n} ${DIAL_OUTCOMES[key as DialOutcome].label.toLowerCase()}`)
+    .join(", ");
 }
