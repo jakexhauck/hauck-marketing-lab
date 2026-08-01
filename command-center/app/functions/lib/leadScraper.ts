@@ -11,6 +11,15 @@
 // these two ever drift, one path hands out numbers the other rejects.
 export const EXPORT_THRESHOLD = 50;
 
+// The one tag that MOVES a prospect: a GoHighLevel workflow watches for it and
+// creates the opportunity on the Cold Calling pipeline at New Lead. Every other
+// tag this module writes is descriptive.
+//
+// It lives here, in the pure module, because this file owns the tag scheme and
+// is where that scheme is unit tested. agencyCrm imports it rather than spelling
+// it again: two spellings is one pipeline that quietly stops filling.
+export const NEW_LEAD_TAG = "cc new lead";
+
 export type Channel = "cold_call" | "sms";
 
 export interface ScrapedLead {
@@ -83,6 +92,13 @@ export function batchDate(iso: string | null | undefined): string {
  *
  * Empty parts are dropped rather than tagged blank: "city-" on a lead whose city
  * Google did not return is a tag that means nothing and matches everything.
+ *
+ * A cold-call lead also gets NEW_LEAD_TAG, and that is the one that MOVES it.
+ * The rest are descriptive: they say what the lead is, and no workflow watches
+ * them. Without it a lead sent from the Leads tab became a GoHighLevel contact
+ * and never reached the Cold Calling board at all, while the same business
+ * pushed from Assign leads did, because pushImportedLead has always applied it.
+ * Two send paths, two different outcomes, and the quiet one was the default.
  */
 export function tagsForLead(lead: ScrapedLead, run: RunForTags, channel: Channel): string[] {
   const tags = ["source-scraper"];
@@ -101,6 +117,10 @@ export function tagsForLead(lead: ScrapedLead, run: RunForTags, channel: Channel
 
   tags.push(`score-${scoreBand(lead.icpScore)}`);
   tags.push(channel === "cold_call" ? "channel-cold-call" : "channel-sms");
+
+  // The tag a GoHighLevel workflow watches for, to create the opportunity on the
+  // Cold Calling pipeline at New Lead.
+  if (channel === "cold_call") tags.push(NEW_LEAD_TAG);
 
   // De-duplicated but order-stable: the tag list reads the same on every contact,
   // which matters when you are eyeballing two of them side by side.

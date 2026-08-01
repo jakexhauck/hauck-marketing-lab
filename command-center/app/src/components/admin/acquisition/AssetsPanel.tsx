@@ -5,9 +5,10 @@ import {
   useColdCallAssetsQuery,
   useCreateColdCallAsset,
   useDeleteColdCallAsset,
+  useUpdateColdCallAsset,
 } from "../../../hooks/useColdCallAssets";
 import { groupByCategory } from "../../../../functions/lib/coldCallAssets";
-import AssetEditor from "./AssetEditor";
+import SopDocPicker, { type SopDocChoice } from "./SopDocPicker";
 
 // Cold Call > Management: the owner writing what a caller reads.
 //
@@ -32,17 +33,7 @@ import AssetEditor from "./AssetEditor";
 // The wording per kind. Kept beside the component rather than passed in from
 // every call site, so the two pages cannot drift into describing the same
 // mechanism two different ways.
-const DEFAULT_COPY: Record<"asset" | "sop", AssetsPanelCopy> = {
-  asset: {
-    heading: "Objection handling and everything else",
-    blurb:
-      "Anything a caller needs to reach for mid-call. It opens in the same floating panel as the script, so nobody leaves the call to find it. Name the sections whatever you want.",
-    addLabel: "Add a document",
-    namePlaceholder: 'Name it, e.g. "We already have an agency"',
-    categoryPlaceholder: "Section, e.g. Objection handling",
-    emptyText: "Nothing here yet. Objection handling is the usual first one.",
-    editorSubtitle: "Read from the floating panel mid-call. Saves as you type.",
-  },
+const DEFAULT_COPY: Record<"sop", AssetsPanelCopy> = {
   sop: {
     heading: "Standard operating procedures",
     blurb:
@@ -51,9 +42,9 @@ const DEFAULT_COPY: Record<"asset" | "sop", AssetsPanelCopy> = {
     namePlaceholder: 'Name it, e.g. "Logging a call outcome"',
     categoryPlaceholder: "Section, e.g. Daily routine",
     emptyText:
-      "No SOPs yet. The first one is usually how to work the day's list start to finish.",
+      "No SOPs listed yet. Add one and point it at a document in the SOP Hub.",
     editorSubtitle:
-      "Visible on the team's SOPs page as soon as it saves. Saves as you type.",
+      "Visible on the team's SOPs page the moment you point it at a document.",
   },
 };
 
@@ -68,15 +59,19 @@ export interface AssetsPanelCopy {
 }
 
 export default function AssetsPanel({
-  kind = "asset",
+  kind = "sop",
   copy,
 }: {
-  kind?: "asset" | "sop";
+  // Only SOPs now. This took an `asset` kind too (the call shelf), which 0077
+  // retired: it held one document, objection handling, and that is edited on the
+  // Scripts page where it is read.
+  kind?: "sop";
   copy?: Partial<AssetsPanelCopy>;
 }) {
   const text: AssetsPanelCopy = { ...DEFAULT_COPY[kind], ...copy };
   const query = useColdCallAssetsQuery();
   const create = useCreateColdCallAsset();
+  const update = useUpdateColdCallAsset();
   const remove = useDeleteColdCallAsset();
 
   const [adding, setAdding] = useState(false);
@@ -111,6 +106,20 @@ export default function AssetsPanel({
       setOpenId(res.asset.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add that");
+    }
+  };
+
+  // Point an SOP at a Doc, or clear it back to whatever text it already had.
+  const point = async (asset: ColdCallAsset, choice: SopDocChoice | null) => {
+    try {
+      await update.mutateAsync({
+        id: asset.id,
+        driveFileId: choice?.fileId ?? null,
+        driveTitle: choice?.title ?? null,
+      });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save that");
     }
   };
 
@@ -217,11 +226,19 @@ export default function AssetsPanel({
                     </button>
                   </div>
                   {openId === asset.id && (
-                    <AssetEditor
-                      asset={asset}
-                      subtitle={text.editorSubtitle}
-                      onDone={() => setOpenId(null)}
-                    />
+                    <div className="mt-2 rounded-[var(--radius)] border border-brand/40 bg-[var(--surface-2)] px-4 py-3.5">
+                      <SopDocPicker
+                        label="Reads from"
+                        value={asset.driveFileId}
+                        valueTitle={asset.driveTitle}
+                        emptyLabel={
+                          asset.html.trim()
+                            ? "Still using the text typed into this app"
+                            : "Nothing picked yet"
+                        }
+                        onChange={(choice) => void point(asset, choice)}
+                      />
+                    </div>
                   )}
                 </li>
               ))}

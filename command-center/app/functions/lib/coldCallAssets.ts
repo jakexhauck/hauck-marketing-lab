@@ -5,23 +5,50 @@ import { DIAL_OUTCOMES, isDialOutcome } from "./coldCallDials";
 // live in exactly one place.
 //
 // A "script" is a variation of the pitch and is the unit of the A/B test.
-// An "asset" is any other document, filed under a heading Jake names himself.
 // An "sop" is how the job is done, read before and between calls rather than
 // during one, so it gets a page instead of the floating panel (0061).
-// They share a table because they are the same thing to everyone except the
-// dial that references one.
+// "objections" is the single document reached for mid-sentence while somebody is
+// talking. There is exactly one (0077 enforces it with a partial unique index),
+// and it renders inside the script panel rather than behind a button of its own.
+//
+// They share a table because they are the same thing to everyone except the dial
+// that references one.
+//
+// "asset" was the call shelf: "anything else read mid-call". In practice it held
+// one document, objection handling, so 0077 gave that its own kind and archived
+// the rest. The kind survives here ONLY so those archived rows still parse; it is
+// not creatable, which is what CREATABLE_KINDS below is for.
 
-export const ASSET_KINDS = ["script", "asset", "sop"] as const;
+export const ASSET_KINDS = ["script", "sop", "objections", "asset"] as const;
 export type AssetKind = (typeof ASSET_KINDS)[number];
 
-// The kinds filed under an owner-named heading. A script has no category: it is
-// one flat list, because the A/B test compares all of them against each other.
+// What the API will accept on a create. The retired shelf kind is absent, so a
+// stale client cannot quietly repopulate a page that no longer exists.
+export const CREATABLE_KINDS = ["script", "sop", "objections"] as const;
+
+// The kinds filed under an owner-named heading. A script has no category (it is
+// one flat list, because the A/B test compares all of them against each other),
+// and neither does the objections document, of which there is one.
 export function usesCategory(kind: AssetKind): boolean {
-  return kind === "asset" || kind === "sop";
+  return kind === "sop" || kind === "asset";
 }
 
 export function isAssetKind(value: unknown): value is AssetKind {
   return typeof value === "string" && (ASSET_KINDS as readonly string[]).includes(value);
+}
+
+export function isCreatableKind(value: unknown): value is (typeof CREATABLE_KINDS)[number] {
+  return typeof value === "string" && (CREATABLE_KINDS as readonly string[]).includes(value);
+}
+
+// A Google Drive file id, as the SOP Hub reports them. Deliberately the same
+// shape check the doc endpoint applies (functions/lib/driveDirect.ts), so a value
+// this accepts is one that endpoint will also accept rather than 400 on later.
+//
+// Empty string means "clear the pointer and go back to the stored html", which is
+// a legitimate thing to save, so it is handled by the caller rather than here.
+export function isDriveFileId(value: unknown): value is string {
+  return typeof value === "string" && /^[a-zA-Z0-9_-]{10,200}$/.test(value);
 }
 
 // Long enough for "Pattern interrupt, short version"; short enough that a name

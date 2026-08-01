@@ -7,6 +7,8 @@ import {
   cleanCategory,
   cleanName,
   isAssetKind,
+  isCreatableKind,
+  isDriveFileId,
   statsByScript,
   usesCategory,
   type ScriptDialRow,
@@ -36,7 +38,7 @@ import {
 // type a number next to their favourite script.
 
 const SELECT =
-  "id, kind, category, name, html, sort_order, archived_at, updated_at";
+  "id, kind, category, name, html, drive_file_id, drive_title, sort_order, archived_at, updated_at";
 
 interface AssetRow {
   id: string;
@@ -44,6 +46,8 @@ interface AssetRow {
   category: string;
   name: string;
   html: string;
+  drive_file_id: string | null;
+  drive_title: string | null;
   sort_order: number;
   archived_at: string | null;
   updated_at: string;
@@ -56,6 +60,12 @@ function shape(row: AssetRow, stats: ReturnType<typeof statsByScript>) {
     category: row.category,
     name: row.name,
     html: row.html,
+    // Where the words actually live. When this is set the reader renders the
+    // Drive document and IGNORES `html`; when it is null the stored markup is
+    // still the document. That fallback is what let 0077 ship without blanking
+    // the panel a caller reads mid-call.
+    driveFileId: row.drive_file_id,
+    driveTitle: row.drive_title,
     sortOrder: row.sort_order,
     archivedAt: row.archived_at,
     updatedAt: row.updated_at,
@@ -116,6 +126,29 @@ interface PostBody {
   name?: unknown;
   category?: unknown;
   html?: unknown;
+  driveFileId?: unknown;
+  driveTitle?: unknown;
+}
+
+// The Drive pointer off a create or update body.
+//
+// Three distinct answers, and they must stay distinct: undefined means "the
+// caller did not mention it, leave it alone", null means "clear it and go back to
+// the stored html", and a string is a file to render. Collapsing the first two
+// would make every rename silently unlink a document from its Doc.
+function readDrivePointer(
+  body: { driveFileId?: unknown; driveTitle?: unknown },
+): { fileId: string | null; title: string | null } | undefined | "invalid" {
+  if (body.driveFileId === undefined) return undefined;
+  if (body.driveFileId === null || body.driveFileId === "") {
+    return { fileId: null, title: null };
+  }
+  if (!isDriveFileId(body.driveFileId)) return "invalid";
+  return {
+    fileId: body.driveFileId,
+    // Display only, and capped like any other name: it is echoed into a picker.
+    title: cleanName(body.driveTitle) || null,
+  };
 }
 
 export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) => {
@@ -125,18 +158,26 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
   const body = await readJsonBody<PostBody>(ctx.request);
   if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
 
-  if (!isAssetKind(body.kind)) return Response.json({ error: "bad_kind" }, { status: 400 });
+  // isCreatableKind, not isAssetKind: 'asset' (the retired call shelf) still
+  // parses so its archived rows can be read, but nothing may make a new one.
+  if (!isCreatableKind(body.kind)) return Response.json({ error: "bad_kind" }, { status: 400 });
   const name = cleanName(body.name);
   if (!name) {
     return Response.json({ error: "Give it a name so it can be told apart." }, { status: 400 });
   }
-  // A script belongs to the test, not to a folder, so it never carries one.
-  // Assets and SOPs are both filed under a heading the owner types.
+  // A script belongs to the test, not to a folder, so it never carries one, and
+  // there is only ever one objections document. SOPs are filed under a heading
+  // the owner types.
   const category = usesCategory(body.kind) ? cleanCategory(body.category) : "";
 
   const html = typeof body.html === "string" ? body.html : "";
   if (html.length > MAX_SCRIPT_HTML) {
     return Response.json({ error: "too_long" }, { status: 400 });
+  }
+
+  const drive = readDrivePointer(body);
+  if (drive === "invalid") {
+    return Response.json({ error: "That is not a Drive file id." }, { status: 400 });
   }
 
   const client = getServiceClient(ctx.env);
@@ -162,6 +203,8 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
       category,
       name,
       html: await sanitizeScriptHtml(html),
+      drive_file_id: drive?.fileId ?? null,
+      drive_title: drive?.title ?? null,
       sort_order: sortOrder,
       updated_by: adminId,
     })
@@ -185,6 +228,9 @@ interface PatchBody {
   name?: unknown;
   category?: unknown;
   html?: unknown;
+  // A Drive file id to render from, or null to go back to the stored html.
+  driveFileId?: unknown;
+  driveTitle?: unknown;
   sortOrder?: unknown;
   // true archives, false restores. Absent leaves it alone.
   archived?: unknown;
@@ -224,8 +270,19 @@ export const onRequestPatch: PagesFunction<Env, string, ApiData> = async (ctx) =
     }
     patch.name = name;
   }
-  if (body.category !== undefined && current.kind === "asset") {
+  // Only the kinds that are filed under a heading may be given one. This used to
+  // read `current.kind === "asset"`, which quietly ignored every category edit on
+  // an SOP even though the SOPs page offers the field.
+  if (body.category !== undefined && isAssetKind(current.kind) && usesCategory(current.kind)) {
     patch.category = cleanCategory(body.category);
+  }
+  const drive = readDrivePointer(body);
+  if (drive === "invalid") {
+    return Response.json({ error: "That is not a Drive file id." }, { status: 400 });
+  }
+  if (drive !== undefined) {
+    patch.drive_file_id = drive.fileId;
+    patch.drive_title = drive.title;
   }
   if (body.html !== undefined) {
     if (typeof body.html !== "string") {

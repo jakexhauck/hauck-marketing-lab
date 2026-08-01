@@ -18,8 +18,8 @@ import { GripHorizontal, ScrollText, X } from "lucide-react";
 // passed to this component.
 
 // Cold calling's extra: several script variations to choose between, and the
-// other documents a caller reaches for mid-call. Optional, so the Setter Suite
-// passes none of it and behaves exactly as it always has.
+// objection handling read alongside them. Optional, so the Setter Suite passes
+// none of it and behaves exactly as it always has.
 export interface ScriptShelf {
   // The live dialing variations, in the owner's order.
   scripts: { id: string; name: string; html: string }[];
@@ -27,8 +27,14 @@ export interface ScriptShelf {
   // dial, so it changes only when they say so.
   selectedId: string | null;
   onSelect: (id: string) => void;
-  // Everything else, grouped under the owner's own headings.
-  groups: { category: string; items: { id: string; name: string; html: string }[] }[];
+  // The one objections document, rendered UNDER the script in the same scroll
+  // rather than behind a button of its own.
+  //
+  // This replaced a second floating panel on the other side of the screen. Two
+  // panels meant the answer to what was just said was one click and one glance
+  // away at the exact moment neither is free, and it only ever held this one
+  // document anyway. Under the script, it is already on screen.
+  objections?: { name: string; html: string; empty: string } | null;
 }
 
 interface Props {
@@ -65,19 +71,12 @@ export default function ScriptPanel({
   dock = "left",
   title = "Dialing script",
 }: Props) {
-  // Which document the panel is SHOWING, which is not the same question as which
-  // script is being dialed from. Reading an objection walkthrough mid-call must
-  // not re-attribute the call to it, so looking and choosing are two states.
-  // Null means "show the selected script".
-  const [viewingAssetId, setViewingAssetId] = useState<string | null>(null);
-
-  const shelfAssets = shelf?.groups.flatMap((g) => g.items) ?? [];
-  const viewingAsset = shelfAssets.find((a) => a.id === viewingAssetId) ?? null;
   const selectedScript = shelf?.scripts.find((s) => s.id === shelf.selectedId) ?? null;
 
   // The shelf, when present, is the source of what to render; `html` remains the
   // Setter Suite's single document.
-  const body = shelf ? (viewingAsset?.html ?? selectedScript?.html ?? "") : html;
+  const body = shelf ? (selectedScript?.html ?? "") : html;
+  const objections = shelf?.objections ?? null;
   // Panel position, dragged by the header. Starts docked bottom-left-ish, clear
   // of anything docked to the right.
   const [pos, setPos] = useState(() => ({
@@ -163,10 +162,7 @@ export default function ScriptPanel({
                   <button
                     key={s.id}
                     type="button"
-                    onClick={() => {
-                      shelf.onSelect(s.id);
-                      setViewingAssetId(null);
-                    }}
+                    onClick={() => shelf.onSelect(s.id)}
                     className={[
                       "rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition-colors",
                       on
@@ -182,43 +178,6 @@ export default function ScriptPanel({
             )}
           </div>
 
-          {shelf.groups.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <span className="mr-0.5 text-[11px] font-semibold uppercase tracking-wider text-faint">
-                Look up
-              </span>
-              {viewingAsset && (
-                <button
-                  type="button"
-                  onClick={() => setViewingAssetId(null)}
-                  className="rounded-full border border-border px-2.5 py-1 text-[11.5px] font-semibold text-muted hover:text-text"
-                >
-                  Back to the script
-                </button>
-              )}
-              {shelf.groups.map((group) =>
-                group.items.map((item) => {
-                  const on = item.id === viewingAssetId;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setViewingAssetId(on ? null : item.id)}
-                      title={group.category}
-                      className={[
-                        "rounded-full border px-2.5 py-1 text-[11.5px] transition-colors",
-                        on
-                          ? "border-brand bg-brand/10 font-semibold text-brand"
-                          : "border-border text-muted hover:text-text",
-                      ].join(" ")}
-                    >
-                      {item.name}
-                    </button>
-                  );
-                }),
-              )}
-            </div>
-          )}
         </div>
       )}
 
@@ -227,15 +186,34 @@ export default function ScriptPanel({
           <p className="text-[13px] text-muted">Loading script...</p>
         ) : isError ? (
           <p className="text-[13px] text-danger">Could not load the script. Close and retry.</p>
-        ) : body.trim() === "" ? (
-          <p className="text-[13px] text-faint">
-            {/* The hint the section passed is about the SCRIPT. When the reader
-                has flipped to an empty look-up document, that hint would send
-                them to fix the wrong thing. */}
-            {viewingAsset ? `"${viewingAsset.name}" has nothing in it yet.` : emptyHint}
-          </p>
         ) : (
-          <div className="script-doc" dangerouslySetInnerHTML={{ __html: body }} />
+          <>
+            {body.trim() === "" ? (
+              <p className="text-[13px] text-faint">{emptyHint}</p>
+            ) : (
+              <div className="script-doc" dangerouslySetInnerHTML={{ __html: body }} />
+            )}
+
+            {/* Objection handling, under the pitch and separated by a rule so it
+                reads as a second document rather than as more script. Rendered
+                even when the script above it is empty: a caller with no script
+                still gets asked the same questions. */}
+            {objections && (
+              <section className="mt-6 border-t border-divider pt-4">
+                <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-faint">
+                  {objections.name}
+                </h3>
+                {objections.html.trim() === "" ? (
+                  <p className="text-[13px] text-faint">{objections.empty}</p>
+                ) : (
+                  <div
+                    className="script-doc"
+                    dangerouslySetInnerHTML={{ __html: objections.html }}
+                  />
+                )}
+              </section>
+            )}
+          </>
         )}
       </div>
     </section>

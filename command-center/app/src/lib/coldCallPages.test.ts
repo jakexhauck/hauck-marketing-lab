@@ -18,7 +18,6 @@ describe("coldCallPagesFor", () => {
       "second-dial",
       "call-back",
       "booked",
-      "not-interested",
       "tracker",
       "availability",
       "sops",
@@ -26,17 +25,22 @@ describe("coldCallPagesFor", () => {
     ]);
   });
 
-  it("gives a caller every stage, his own tracker and his own availability", () => {
-    // All of it is his job: hiding a stage would hide part of the work, hiding
+  it("gives a caller every worked stage, his own tracker and his own availability", () => {
+    // All of the WORK is his job: hiding a stage would hide part of it, hiding
     // the tracker would hide the numbers he is measured on, and hiding
     // availability would leave his hours to be guessed at by someone else.
     const ids = coldCallPagesFor(false).map((p) => p.id);
-    for (const stage of COLD_CALL_STAGES) expect(ids).toContain(stage.id);
+    for (const stage of COLD_CALL_STAGES.filter((s) => s.page)) {
+      expect(ids).toContain(stage.id);
+    }
     expect(ids).toContain("tracker");
     expect(ids).toContain("availability");
     // The SOPs are written FOR him. A caller who cannot read how the job is
     // done is the one person who needed the page.
     expect(ids).toContain("sops");
+    // Not Interested is a stage without a page. Nobody works a list of hard
+    // noes, so it is recorded and tagged but never rendered as a tab.
+    expect(ids).not.toContain("not-interested");
   });
 
   it("keeps management owner-only, and it is the only owner-side tab", () => {
@@ -82,7 +86,6 @@ describe("coldCallSides", () => {
       "second-dial",
       "call-back",
       "booked",
-      "not-interested",
       "tracker",
       "availability",
       "sops",
@@ -142,9 +145,17 @@ describe("resolveManagementPage", () => {
     expect(resolveManagementPage("assign")).toBe("assign");
     expect(resolveManagementPage("availability")).toBe("availability");
     expect(resolveManagementPage("scripts")).toBe("scripts");
-    expect(resolveManagementPage("assets")).toBe("assets");
     expect(resolveManagementPage("sops")).toBe("sops");
     expect(resolveManagementPage("stages")).toBe("stages");
+  });
+
+  it("sends the retired Call shelf to the page that now holds its document", () => {
+    // The shelf held exactly one document, objection handling, which is edited
+    // on Scripts because that is where it is read. A bookmark to ?manage=assets
+    // must land there rather than silently dropping onto the default page, which
+    // would look like the link simply did nothing.
+    expect(resolveManagementPage("assets")).toBe("scripts");
+    expect(MANAGEMENT_PAGES.map((p) => p.id)).not.toContain("assets");
   });
 
   it("writing SOPs is a Management page, reading them is a strip page", () => {
@@ -160,8 +171,11 @@ describe("resolveManagementPage", () => {
   it("holds everything the retired Settings page held", () => {
     // Settings stacked three panels on one page. Losing one of them in the move
     // would be silent: nothing else in the app links to them.
+    //
+    // The shelf is absent on purpose and covered by the test above: its one
+    // document moved onto Scripts rather than being dropped.
     const ids = MANAGEMENT_PAGES.map((p) => p.id);
-    for (const page of ["scripts", "assets", "stages"]) expect(ids).toContain(page);
+    for (const page of ["scripts", "stages"]) expect(ids).toContain(page);
   });
 
   it("has no page called settings", () => {

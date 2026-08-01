@@ -1,4 +1,5 @@
 import OperationsTasksTab from "../../components/admin/OperationsTasksTab";
+import AdminPage from "../../components/admin/AdminPage";
 
 // Command home: the agency task list, and nothing else.
 //
@@ -17,8 +18,9 @@ export default function AdminCommand() {
   return (
     <div className="pk-root cmd-root">
       <CommandStyle />
-      <h1 className="pk-title">Tasks</h1>
-      <OperationsTasksTab fill />
+      <AdminPage section="Tasks">
+        <OperationsTasksTab fill />
+      </AdminPage>
     </div>
   );
 }
@@ -30,7 +32,9 @@ function CommandStyle() {
         display: flex; flex-direction: column; gap: 14px;
         flex: 1 1 auto; min-height: 0; padding-bottom: 24px;
       }
-      .pk-kit .cmd-root .pk-title { flex: 0 0 auto; }
+      /* The header panel is fixed height; the task card below does the
+         stretching, so nothing else in this column may grow. */
+      .pk-kit .cmd-root > div:not(.otk-card) { flex: 0 0 auto; }
       /* The controls row keeps its own margin; the card below it does the
          stretching, so nothing else in the column may grow. */
       .pk-kit .cmd-root .otk-controls { flex: 0 0 auto; }

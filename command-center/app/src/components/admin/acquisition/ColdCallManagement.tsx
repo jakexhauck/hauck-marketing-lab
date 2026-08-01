@@ -9,6 +9,7 @@ import ColdCallTeamAvailability from "./ColdCallTeamAvailability";
 import ScriptsPanel from "./ScriptsPanel";
 import AssetsPanel from "./AssetsPanel";
 import StagesPanel from "./StagesPanel";
+import { TAB_TRACK, TabButton } from "../../PageTabs";
 
 // Cold Call > Management: the owner's half of the operation, behind one tab.
 //
@@ -39,22 +40,22 @@ export default function ColdCallManagement({ callerId = "" }: { callerId?: strin
 
   return (
     <div className="ccm">
-      <ManagementStyle />
-
-      <div className="ccm-tabs" role="tablist" aria-label="Management pages">
-        {MANAGEMENT_PAGES.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            role="tab"
-            aria-selected={page === p.id}
-            className={`ccm-tab${page === p.id ? " on" : ""}`}
-            onClick={() => setPage(p.id)}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
+      {/* The third and deepest level of nav, in the same segmented track as the
+          two above it. It used to be a row of outlined pills, which made three
+          nested levels read as three unrelated controls. */}
+      <nav
+        aria-label="Management pages"
+        className="mb-[18px] flex shrink-0 overflow-x-auto"
+        style={{ scrollbarWidth: "none" }}
+      >
+        <div className={TAB_TRACK}>
+          {MANAGEMENT_PAGES.map((p) => (
+            <TabButton key={p.id} active={page === p.id} onClick={() => setPage(p.id)}>
+              {p.label}
+            </TabButton>
+          ))}
+        </div>
+      </nav>
 
       <ManagementBody page={page} callerId={callerId} />
     </div>
@@ -65,13 +66,13 @@ function ManagementBody({ page, callerId }: { page: string; callerId: string }) 
   switch (page) {
     case "availability":
       return <ColdCallTeamAvailability />;
+    // The pitch variations and, beneath them, the objection handling read
+    // alongside. "Call shelf" used to be a page here and held only that one
+    // document; ?manage=assets now resolves to this page.
     case "scripts":
       return <ScriptsPanel />;
-    case "assets":
-      return <AssetsPanel kind="asset" />;
     case "sops":
-      // Same panel, different kind and wording. What the team reads on their
-      // own SOPs page is written here.
+      // Which SOP Hub documents the team reads on their own SOPs page.
       return <AssetsPanel kind="sop" />;
     case "stages":
       return <StagesPanel />;
@@ -83,15 +84,3 @@ function ManagementBody({ page, callerId }: { page: string; callerId: string }) 
   }
 }
 
-function ManagementStyle() {
-  return (
-    <style>{`
-      /* A quieter strip than the section's own: these are pages inside a page,
-         and two tab rows shouting at the same weight reads as one confused row. */
-      .ccm-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
-      .ccm-tab { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--text-muted); cursor: pointer; }
-      .ccm-tab:hover { border-color: var(--brand); color: var(--brand-text); }
-      .ccm-tab.on { background: var(--brand-tint); border-color: var(--brand); color: var(--brand-text); }
-    `}</style>
-  );
-}

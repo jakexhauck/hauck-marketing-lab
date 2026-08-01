@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { BookOpen } from "lucide-react";
 import { useColdCallAssetsQuery } from "../../../hooks/useColdCallAssets";
 import { groupByCategory } from "../../../../functions/lib/coldCallAssets";
+import { assetHtml, useDriveDocs } from "../../../hooks/useDriveDoc";
 
 // Cold Call > SOPs: how the job is done, for whoever is doing it.
 //
@@ -20,6 +21,11 @@ import { groupByCategory } from "../../../../functions/lib/coldCallAssets";
 // contents rail down the side. An SOP is read start to finish, so the reading
 // surface gets the whole column and the navigation costs one click only when
 // somebody actually wants a different document.
+//
+// Since 0077 the words come from Google Docs. Jake lists which documents belong
+// here under Management > SOPs; this page renders them through the SOP Hub's own
+// doc endpoint. A document he has not repointed yet still shows the text it
+// already had, which is why nothing here went blank on the day that shipped.
 export default function ColdCallSops() {
   const query = useColdCallAssetsQuery();
   const [openId, setOpenId] = useState<string | null>(null);
@@ -29,10 +35,12 @@ export default function ColdCallSops() {
     [query.data],
   );
   const groups = useMemo(() => groupByCategory(sops), [sops]);
+  const driveDocs = useDriveDocs(sops.map((s) => s.driveFileId));
 
   // Default to the first document rather than to an empty pane: landing on
   // "pick something" wastes the one click that matters.
   const selected = sops.find((s) => s.id === openId) ?? sops[0] ?? null;
+  const doc = assetHtml(selected, driveDocs);
 
   if (query.isLoading) return <div className="pk-empty">Loading SOPs...</div>;
   if (query.isError) {
@@ -41,7 +49,7 @@ export default function ColdCallSops() {
   if (sops.length === 0) {
     return (
       <div className="pk-empty">
-        No SOPs yet. Jake writes these, and they appear here the moment he saves one.
+        No SOPs yet. Jake lists them under Management &gt; SOPs and they appear here.
       </div>
     );
   }
@@ -88,17 +96,21 @@ export default function ColdCallSops() {
             <h2 className="ccsop-title">{selected.name}</h2>
           </header>
 
-          {selected.html.trim() ? (
-            // Sanitized server-side on every write (functions/lib/setterScript.ts),
-            // which is the same boundary the dialing script and the mid-call
-            // shelf are rendered through.
-            <div
-              className="ccsop-body"
-              dangerouslySetInnerHTML={{ __html: selected.html }}
-            />
+          {doc.loading ? (
+            <p className="ccsop-blank">Opening the document...</p>
+          ) : doc.error ? (
+            <p className="ccsop-blank">
+              Could not open this one from Google Drive. It may have been renamed
+              or moved out of the SOP folder.
+            </p>
+          ) : doc.html.trim() ? (
+            // Sanitized server-side either way: the stored column through
+            // setterScript.ts on write, a Drive export through sopHtml.ts on
+            // render. Nothing reaches here that has not been through one of them.
+            <div className="ccsop-body" dangerouslySetInnerHTML={{ __html: doc.html }} />
           ) : (
             <p className="ccsop-blank">
-              This one has not been written yet. Jake writes these.
+              This one has not been pointed at a document yet. Jake does that.
             </p>
           )}
         </article>

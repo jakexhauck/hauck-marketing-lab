@@ -11,17 +11,23 @@ import { logAdminAction } from "../../../lib/adminAuth";
 // reads from GHL or Meta.
 
 // Mirrors LEAD_STATUSES in src/lib/adminLeads.ts and the CHECK constraint in
-// migration 0055_lead_stage_vocabulary.sql. All three must stay in step; the unit test guards
-// the client copy.
+// migration 0076_cold_call_stage_names.sql. All three must stay in step; the unit
+// test guards the client copy.
 //
 // Exported for the GoHighLevel sync (./leads/sync-ghl.ts), which matches these
-// names against the live board's stages: a status this list does not contain is
-// one the CHECK constraint would reject.
+// names against the live board's stages VERBATIM: a status this list does not
+// contain is one the CHECK constraint would reject, so the sync skips the card
+// rather than importing something the insert would refuse.
+//
+// Every name except "Booked" is a live stage on the agency's Cold Calling
+// pipeline. "Brushed Off" used to be here and was wrong twice over: 0056 deleted
+// the stage, so the sync was accepting a name the constraint would then reject.
+// "Booked" is app-side only, because a booked demo moves to the Sales pipeline;
+// it stays in the vocabulary so the book can record that a lead has left dialing.
 export const LEAD_STATUSES = [
   "New Lead",
-  "1st Dial (Day 1)",
-  "2nd Dial (Day 2)",
-  "Brushed Off",
+  "No Answer Day 1",
+  "No Answer Day 2",
   "Call Back",
   "Booked",
   "Not Interested",

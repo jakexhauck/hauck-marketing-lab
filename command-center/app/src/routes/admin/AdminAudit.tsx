@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import AdminPage from "../../components/admin/AdminPage";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
 import { useAdminAuditQuery, useAdminClientsQuery } from "../../hooks/useApi";
 import {
@@ -72,12 +73,18 @@ export default function AdminAudit() {
 
   return (
     <div className="pk-root">
-      <h1 className="pk-title">Admin Audit Log</h1>
-
-      <Link to="/admin/settings" className="pk-link mb-4 font-[inherit]">
-        <ArrowLeft size={14} aria-hidden />
-        Back to Settings
-      </Link>
+      {/* Back to Settings sits in the header's action slot rather than as a
+          loose link under the title: it is chrome, and it belongs with the
+          chrome. */}
+      <AdminPage
+        section="Admin Audit Log"
+        actions={
+          <Link to="/admin/settings" className="pk-link font-[inherit]">
+            <ArrowLeft size={14} aria-hidden />
+            Back to Settings
+          </Link>
+        }
+      />
 
       {/* The honesty notice. Do not soften this: a reader who assumes the
           Account column names a person will draw the wrong conclusion from

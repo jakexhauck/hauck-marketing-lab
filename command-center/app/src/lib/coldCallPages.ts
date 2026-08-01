@@ -32,7 +32,10 @@ export interface ColdCallPageDef {
 }
 
 export const COLD_CALL_PAGES: ColdCallPageDef[] = [
-  ...COLD_CALL_STAGES.map((stage) => ({
+  // Only the stages worth reading. Not Interested is a stage but not a page:
+  // see ColdCallStage.page. The outcome, the tag and the GoHighLevel move all
+  // still happen; there is simply no tab onto a list nobody works.
+  ...COLD_CALL_STAGES.filter((stage) => stage.page).map((stage) => ({
     id: stage.id,
     label: stage.short,
     side: "left" as ColdCallSide,
@@ -70,16 +73,21 @@ export interface ManagementPageDef {
 export const MANAGEMENT_PAGES: ManagementPageDef[] = [
   { id: "assign", label: "Assign leads" },
   { id: "availability", label: "Team availability" },
+  // The pitch variations AND the objection handling read alongside them. Those
+  // were two pages; objection handling was the only thing the second one held,
+  // and it is read in the same breath as the script, so it is now a section of
+  // this page rather than a tab of its own.
   { id: "scripts", label: "Scripts" },
-  { id: "assets", label: "Call shelf" },
-  // Writing the SOPs the team reads on their own SOPs page.
+  // Choosing which SOP Hub documents the team reads on their own SOPs page.
   { id: "sops", label: "SOPs" },
   { id: "stages", label: "Stage check" },
 ];
 
 export function resolveManagementPage(param: string | null | undefined): string {
   const hit = MANAGEMENT_PAGES.find((p) => p.id === param);
-  return hit ? hit.id : MANAGEMENT_PAGES[0].id;
+  if (hit) return hit.id;
+  if (param && RETIRED_MANAGEMENT_PAGES[param]) return RETIRED_MANAGEMENT_PAGES[param];
+  return MANAGEMENT_PAGES[0].id;
 }
 
 // Pages that used to be their own entry in the strip, and where they went. A
@@ -91,6 +99,15 @@ const MOVED_INTO_MANAGEMENT: Record<string, string> = {
   // them rather than on Management's default, so an old link still lands on
   // something it used to show.
   settings: "scripts",
+};
+
+// Management pages that no longer exist, and where their content went. Read by
+// resolveManagementPage so a bookmark to ?manage=assets opens the page that now
+// holds objection handling rather than silently dropping onto Assign leads.
+const RETIRED_MANAGEMENT_PAGES: Record<string, string> = {
+  // The call shelf held exactly one document, objection handling, which now sits
+  // under Scripts because that is where it is read from.
+  assets: "scripts",
 };
 
 // The Management sub-page a retired top-level view maps to, or null when the

@@ -34,6 +34,7 @@ import { ConnectionsStyle } from "../../components/admin/settings/ConnectionsSty
 import { SecretsTab } from "../../components/admin/settings/SecretsTab";
 import { ActionBoard } from "../../components/admin/settings/ActionBoard";
 import { buildActionBoard, type ActionItem } from "../../lib/settingsActions";
+import AdminPage from "../../components/admin/AdminPage";
 
 // /admin/settings: the connection control room.
 //
@@ -126,21 +127,20 @@ export default function AdminSettings() {
 
   return (
     <div className="pk-root">
-      <div className="cx-head">
-        <div>
-          <h1 className="pk-title">Agency Settings</h1>
-          <p className="cx-sub">What needs your attention, and what is quietly working.</p>
-        </div>
-        <button
-          type="button"
-          className="cx-refresh"
-          onClick={() => void refetch()}
-          disabled={isFetching}
-        >
-          <RefreshCw size={14} className={isFetching ? "cx-spin" : ""} aria-hidden />
-          {isFetching ? "Checking" : "Re-check"}
-        </button>
-      </div>
+      <AdminPage
+        section="Agency Settings"
+        actions={
+          <button
+            type="button"
+            className="cx-refresh"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+          >
+            <RefreshCw size={14} className={isFetching ? "cx-spin" : ""} aria-hidden />
+            {isFetching ? "Checking" : "Re-check"}
+          </button>
+        }
+      />
 
       {data?.environment === "local" && (
         <div className="cx-note cx-note-warn">

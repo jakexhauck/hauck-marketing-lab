@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { MessagesSquare, ScrollText } from "lucide-react";
+import { ScrollText } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { effectiveAdminRole } from "../../../lib/adminRoles";
 import {
@@ -10,11 +10,12 @@ import {
 } from "../../../lib/coldCallPages";
 import { stageById } from "../../../lib/coldCallStages";
 import { useColdCallAssetsQuery } from "../../../hooks/useColdCallAssets";
-import { groupByCategory } from "../../../../functions/lib/coldCallAssets";
+import { assetHtml, useDriveDocs } from "../../../hooks/useDriveDoc";
 import { resolveScriptId, setSelectedScriptId, useSelectedScriptId } from "../../../lib/selectedScript";
 import { useAssignableCallersQuery } from "../../../hooks/useLeadAssignment";
 import { useSyncAdminLeadsFromGhl } from "../../../hooks/useAdminLeads";
 import ScriptPanel from "../script/ScriptPanel";
+import { TAB_TRACK, TabButton } from "../../PageTabs";
 import { TrackerMonthNav } from "../tracker/DailyTracker";
 import { cursorForToday, type MonthCursor, type TodayRef } from "../../../lib/trackerMonth";
 import ColdCallSurface, { AGENCY_CALLER_ID } from "./ColdCallSurface";
@@ -41,9 +42,6 @@ export default function ColdCallSection() {
   const isOwner = effectiveAdminRole(admin?.role) === "owner";
   const [searchParams, setSearchParams] = useSearchParams();
   const [scriptOpen, setScriptOpen] = useState(false);
-  // Its own state, so the two panels are independent: reading an objection does
-  // not close the script somebody is halfway through.
-  const [objectionsOpen, setObjectionsOpen] = useState(false);
 
   // The tracker's month lives here rather than inside the tracker, so its
   // stepper can sit in this header row beside the Dialing script button instead
@@ -117,25 +115,25 @@ export default function ColdCallSection() {
     () => shelfAssets.filter((a) => a.kind === "script" && !a.archivedAt),
     [shelfAssets],
   );
-  const assetGroups = useMemo(
-    () => groupByCategory(shelfAssets.filter((a) => a.kind === "asset" && !a.archivedAt)),
+  // Objection handling. Its own kind since 0077, so it is found by what it IS
+  // rather than by a name matching /objection/i, which was how a document got
+  // promoted to "the objections document" by being named well.
+  //
+  // It renders inside the script panel underneath the pitch rather than behind a
+  // button of its own: it is reached for mid-sentence, while somebody is talking,
+  // and a click at that moment is a click too many.
+  const objections = useMemo(
+    () => shelfAssets.find((a) => a.kind === "objections" && !a.archivedAt) ?? null,
     [shelfAssets],
   );
 
-  // Objection handling gets its own button and its own panel, because it is not
-  // read like the rest of the shelf. It is reached for at one specific moment,
-  // mid-sentence, while somebody is talking, and digging two levels into a
-  // panel to find it is two levels too many at that moment.
-  //
-  // Found by name rather than by a fixed id, so Jake can rewrite the document
-  // (or replace it entirely) from Management without anything here changing.
-  const objections = useMemo(
-    () =>
-      shelfAssets.find(
-        (a) => a.kind === "asset" && !a.archivedAt && /objection/i.test(a.name),
-      ) ?? null,
-    [shelfAssets],
-  );
+  // Every document these panels might show, resolved against Drive in one go.
+  // A script and the objections document are pointers now; a row not yet pointed
+  // anywhere still renders the text it already had. assetHtml owns that rule.
+  const driveDocs = useDriveDocs([
+    ...scripts.map((s) => s.driveFileId),
+    objections?.driveFileId ?? null,
+  ]);
 
   // What the caller picked, corrected against what still exists.
   const picked = useSelectedScriptId();
@@ -155,34 +153,36 @@ export default function ColdCallSection() {
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <nav className="pk-subtabs !m-0 flex items-center" aria-label="Cold call pages">
-          {left.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className={`pk-subtab${view === p.id ? " on" : ""}`}
-              onClick={() => setView(p.id)}
-            >
-              {p.label}
-            </button>
-          ))}
+        {/* The section's own pages, in the same segmented track the header
+            panel above uses. Two groups in ONE track, split by a divider: the
+            work on the left, the running of it on the right.
 
-          {right.length > 0 && (
-            <>
-              {/* The work on one side, the running of it on the other. */}
-              <span aria-hidden className="mx-2 h-5 w-px shrink-0 bg-border" />
-              {right.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={`pk-subtab${view === p.id ? " on" : ""}`}
-                  onClick={() => setView(p.id)}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </>
-          )}
+            Deliberately not the sliding-indicator variant. A track whose pill
+            slides across a seam reads as broken rather than smooth, which is
+            exactly why TabButton exists alongside TabLinks. */}
+        <nav
+          aria-label="Cold call pages"
+          className="flex min-w-0 shrink-0 overflow-x-auto"
+          style={{ scrollbarWidth: "none" }}
+        >
+          <div className={TAB_TRACK}>
+            {left.map((p) => (
+              <TabButton key={p.id} active={view === p.id} onClick={() => setView(p.id)}>
+                {p.label}
+              </TabButton>
+            ))}
+
+            {right.length > 0 && (
+              <>
+                <span aria-hidden className="mx-1.5 my-1 w-px shrink-0 bg-border" />
+                {right.map((p) => (
+                  <TabButton key={p.id} active={view === p.id} onClick={() => setView(p.id)}>
+                    {p.label}
+                  </TabButton>
+                ))}
+              </>
+            )}
+          </div>
         </nav>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -214,15 +214,6 @@ export default function ColdCallSection() {
           >
             <ScrollText aria-hidden />
             Dialing script
-          </button>
-          <button
-            type="button"
-            className="pk-link"
-            onClick={() => setObjectionsOpen((s) => !s)}
-            aria-pressed={objectionsOpen}
-          >
-            <MessagesSquare aria-hidden />
-            Objections
           </button>
         </div>
       </div>
@@ -263,41 +254,26 @@ export default function ColdCallSection() {
           }
           onClose={() => setScriptOpen(false)}
           shelf={{
-            scripts: scripts.map((s) => ({ id: s.id, name: s.name, html: s.html })),
+            scripts: scripts.map((s) => ({
+              id: s.id,
+              name: s.name,
+              html: assetHtml(s, driveDocs).html,
+            })),
             selectedId: selectedScriptId,
             onSelect: setSelectedScriptId,
-            groups: assetGroups.map((g) => ({
-              category: g.category,
-              items: g.items.map((a) => ({ id: a.id, name: a.name, html: a.html })),
-            })),
+            objections: objections
+              ? {
+                  name: objections.name,
+                  html: assetHtml(objections, driveDocs).html,
+                  empty: isOwner
+                    ? "Point this at a document under Management > Scripts."
+                    : "Not written yet. Jake writes this one.",
+                }
+              : null,
           }}
         />
       )}
 
-      {/* Objection handling, on the other side of the screen so both can be
-          open at once: the script being worked from on the left, the answer to
-          what was just said on the right. No shelf, because this panel is one
-          document and a picker on it would only be a way to lose it. */}
-      {objectionsOpen && (
-        <ScriptPanel
-          title="Objection handling"
-          dock="right"
-          html={objections?.html ?? ""}
-          subtitle={objections?.name ?? "Agency cold calling"}
-          isLoading={shelfQuery.isLoading}
-          isError={shelfQuery.isError}
-          emptyHint={
-            !objections
-              ? isOwner
-                ? 'Nothing here yet. Add a shelf document with "objection" in its name under Management > Shelf and it opens from this button.'
-                : "No objection handling written yet. Jake writes this one."
-              : isOwner
-                ? `"${objections.name}" has nothing in it yet. Write it under Management > Shelf.`
-                : "This has not been written yet. Jake writes these."
-          }
-          onClose={() => setObjectionsOpen(false)}
-        />
-      )}
     </>
   );
 }

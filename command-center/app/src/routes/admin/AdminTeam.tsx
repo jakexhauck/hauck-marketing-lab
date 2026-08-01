@@ -7,10 +7,10 @@ import {
   RefreshCw,
   ShieldCheck,
   UserPlus,
-  Users,
 } from "lucide-react";
 import { api, ApiError } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import AdminPage from "../../components/admin/AdminPage";
 import { useToast } from "../../context/ToastContext";
 import {
   suggestUsername,
@@ -172,7 +172,7 @@ export default function AdminTeam() {
   if (myRole !== "owner") {
     return (
       <div className="pk-root">
-        <h1 className="pk-title">Team</h1>
+        <AdminPage section="Team" />
         <div className="pk-empty">Only an owner can manage logins.</div>
       </div>
     );
@@ -180,31 +180,25 @@ export default function AdminTeam() {
 
   return (
     <div className="pk-root">
-      <div className="pk-head">
-        <div className="pk-head-ic">
-          <Users aria-hidden />
-        </div>
-        <div className="pk-head-body">
-          <h1 className="pk-title">Team</h1>
-          <p className="pk-goal">
-            Everyone with a login to this console. A role decides what opens when they sign in,
-            and it is enforced on the server, so hiding a tab is not the only thing standing
-            between a new hire and your clients.
-          </p>
-        </div>
-        <div className="pk-head-side">
-          <button type="button" className="pk-btn-save" onClick={openAdd}>
-            <UserPlus size={15} aria-hidden style={{ marginRight: 7, verticalAlign: -3 }} />
-            Add team member
-          </button>
-          <div className="pk-scoreboard">
-            <div className="pk-score">
-              <div className="pk-score-val">{active.length}</div>
-              <div className="pk-score-label">Active logins</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* The icon, the goal paragraph and the standalone title are gone: the
+          header panel is the same object on every admin page now, and an
+          explanatory paragraph under a header is banned across the product. The
+          count moves into the panel beside the section name, where a number
+          belongs, and Add team member becomes the page's action. */}
+      <AdminPage
+        section="Team"
+        actions={
+          <>
+            <span className="font-data text-[12px] text-faint tnum">
+              {active.length} active {active.length === 1 ? "login" : "logins"}
+            </span>
+            <button type="button" className="pk-btn-save" onClick={openAdd}>
+              <UserPlus size={15} aria-hidden style={{ marginRight: 7, verticalAlign: -3 }} />
+              Add team member
+            </button>
+          </>
+        }
+      />
 
       {handoff && (
         <HandoffCard handoff={handoff} onDismiss={() => setHandoff(null)} />

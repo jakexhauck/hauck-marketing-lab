@@ -1,5 +1,6 @@
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import { PILLAR_TITLE_ACTIONS_ID } from "../../components/pillars/PillarKit";
+import AdminPage from "../../components/admin/AdminPage";
 import { useAuth } from "../../context/AuthContext";
 import { effectiveAdminRole } from "../../lib/adminRoles";
 import {
@@ -28,11 +29,10 @@ import LeadsSurface from "../../components/admin/acquisition/LeadsSurface";
 // once by AdminLayout, so this page only renders .pk-root and the shared pk-*
 // classes.
 //
-// On desktop the sidebar dropdown is the only place the sibling pages are
-// listed. This page therefore shows the pillar as a kicker and the PAGE as the
-// title, which leaves the strip beneath the title free for that page's own
-// sub-pages (use .pk-subtabs inside the surface). Cold Call is about to need
-// exactly that.
+// The header is the shared <AdminPage> panel: the pillar name, its pages as a
+// segmented switcher, and a slot for the surface's own controls. A page with
+// sub-pages of its own (Cold Call has several) renders those as a second,
+// nested strip inside its body via <AdminPage bare>.
 //
 // A tab body is an honest placeholder until its surface plan swaps in the real
 // one (Leads, Cold Call, SMS and Sales Data are built; Calculator, Time Audit
@@ -92,44 +92,27 @@ export default function PillarPage() {
 
   return (
     <div className="pk-root">
-      {/* The page is the tab, not the pillar: the pillar is the address, shown
-          as a kicker above it. This matters because the strip under the title
-          belongs to THIS page's own sub-pages (Cold Call will have several), so
-          it cannot also be carrying its siblings. */}
-      {/* The title line carries a slot at its right end, so a surface can put
-          its own controls (Sales Data's month stepper) up here instead of
-          spending a whole band on them. See PillarTitleActions. */}
-      <div className="pk-titlerow">
-        <div>
-          <div className="pk-section-h" style={{ margin: "0 0 2px" }}>
-            {pillar.label}
-          </div>
-          <h1 className="pk-title">{active.label}</h1>
+      {/* The floating header panel, identical to the client app's: pillar name
+          on the left, its pages as a segmented sliding switcher beside it, and
+          the page's own controls (Sales Data's month stepper) pinned right
+          through the PillarTitleActions portal.
+
+          This replaced a 26px display title with the pillar as a kicker above it
+          and a bottom-ruled tab row underneath. The switcher now carries the
+          siblings at EVERY width, so the separate lg:hidden strip is gone: the
+          sidebar dropdown and this control say the same thing, and the phone no
+          longer gets a second, differently-styled copy of the same list. */}
+      <AdminPage
+        section={pillar.label}
+        tabs={visibleTabs.map((t) => ({ id: t.id, label: t.label }))}
+        active={activeTab}
+        onSelect={setTab}
+        actions={<div id={PILLAR_TITLE_ACTIONS_ID} className="flex items-center gap-3" />}
+      >
+        <div className="pk-section">
+          <PillarTabBody tab={active} />
         </div>
-        <div id={PILLAR_TITLE_ACTIONS_ID} className="pk-titleactions" />
-      </div>
-
-      {/* Sibling pages, on the phone only. The desktop rail's dropdown already
-          does this job, and repeating it here would take the space this page's
-          own sub-pages need. Below lg there is no rail, so it stays. */}
-      <div className="lg:hidden">
-        <nav className="pk-tabs" aria-label={`${pillar.label} sections`}>
-          {visibleTabs.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className={`pk-tab${activeTab === t.id ? " on" : ""}`}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      <div className="pk-section" style={{ marginTop: 20 }}>
-        <PillarTabBody tab={active} />
-      </div>
+      </AdminPage>
     </div>
   );
 }

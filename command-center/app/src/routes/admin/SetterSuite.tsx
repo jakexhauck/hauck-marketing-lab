@@ -36,6 +36,7 @@ import {
   type AutomationLock,
 } from "../../lib/setterAutomationLock";
 import { dialCheckKey, orderByNumberPrefix } from "../../lib/setterModel";
+import AdminPage from "../../components/admin/AdminPage";
 import {
   appointmentFor,
   isApptTracked,
@@ -279,45 +280,34 @@ export default function SetterSuite() {
           picker inline on the right. The view tabs sit on their own row below,
           so on a phone the title and client picker read as one clean header and
           the tabs get the full width to scroll. */}
-      <div className="flex items-center gap-3">
-        <h1 className="pk-title setter-title">Setter Suite</h1>
+      {/* Title, views and controls were three stacked rows; they are one panel
+          now, the same one every other admin page opens with. The view icons are
+          dropped with the old strip: the segmented control is a compact object
+          already, and icons inside it fought the sliding pill for space. */}
+      <AdminPage
+        section="Setter Suite"
+        tabs={SETTER_VIEWS.map((v) => ({ id: v.value, label: v.label }))}
+        active={view}
+        onSelect={(id) => selectView(id as (typeof SETTER_VIEWS)[number]["value"])}
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => setScriptOpen(true)}
+              disabled={!activeTenantId}
+              className="setter-scriptbtn inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-muted transition-colors hover:border-brand/40 hover:text-brand-text disabled:opacity-50"
+              aria-label="Dialing script"
+            >
+              <ScrollText size={14} aria-hidden />
+              <span className="setter-scriptlabel">Dialing script</span>
+            </button>
 
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setScriptOpen(true)}
-            disabled={!activeTenantId}
-            className="setter-scriptbtn inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-surface px-3 py-1.5 text-[12.5px] font-semibold text-muted transition-colors hover:border-brand/40 hover:text-brand-text disabled:opacity-50"
-            aria-label="Dialing script"
-          >
-            <ScrollText size={14} aria-hidden />
-            <span className="setter-scriptlabel">Dialing script</span>
-          </button>
-
-          {clients.length > 0 && (
-            <ClientPicker clients={clients} activeId={activeTenantId} onSelect={selectClient} />
-          )}
-        </div>
-      </div>
-
-      <nav
-        className="pk-tabs setter-toptabs"
-        style={{ margin: "12px 0 0", borderBottom: "none" }}
-        aria-label="Setter view"
-      >
-        {SETTER_VIEWS.map((v) => (
-          <button
-            key={v.value}
-            type="button"
-            className={`pk-tab${view === v.value ? " on" : ""}`}
-            onClick={() => selectView(v.value)}
-            aria-current={view === v.value ? "page" : undefined}
-          >
-            <v.icon size={15} aria-hidden />
-            {v.label}
-          </button>
-        ))}
-      </nav>
+            {clients.length > 0 && (
+              <ClientPicker clients={clients} activeId={activeTenantId} onSelect={selectClient} />
+            )}
+          </>
+        }
+      />
 
       {clientsQuery.isLoading ? (
         <div className="pk-empty">Loading clients...</div>

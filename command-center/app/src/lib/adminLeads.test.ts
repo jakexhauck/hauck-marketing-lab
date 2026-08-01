@@ -49,7 +49,7 @@ const mixed: AdminLead[] = [
   lead({ id: "1", status: "New Lead" }),
   lead({ id: "2", status: "New Lead" }),
   lead({ id: "3", status: "Call Back" }),
-  lead({ id: "4", status: "1st Dial (Day 1)" }),
+  lead({ id: "4", status: "No Answer Day 1" }),
   lead({ id: "5", status: "Booked" }),
   lead({ id: "6", status: "Not Interested" }),
 ];
@@ -59,9 +59,9 @@ describe("countByStatus / totalCount", () => {
     const counts = countByStatus(mixed);
     expect(counts["New Lead"]).toBe(2);
     expect(counts["Call Back"]).toBe(1);
-    expect(counts["1st Dial (Day 1)"]).toBe(1);
+    expect(counts["No Answer Day 1"]).toBe(1);
     expect(counts.Booked).toBe(1);
-    expect(counts["2nd Dial (Day 2)"]).toBe(0);
+    expect(counts["No Answer Day 2"]).toBe(0);
     expect(counts["Not Interested"]).toBe(1);
     expect(totalCount(mixed)).toBe(6);
   });

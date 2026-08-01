@@ -8,6 +8,7 @@ import PaidAdsTab from "../../components/admin/cockpit/paidads/PaidAdsTab";
 import SoftwareTab from "../../components/admin/cockpit/software/SoftwareTab";
 import { useAuth } from "../../context/AuthContext";
 import { useSelectedClient } from "../../hooks/useSelectedClient";
+import AdminPage from "../../components/admin/AdminPage";
 import {
   DEFAULT_FULFILLMENT_PAGE,
   fulfillmentPath,
@@ -78,54 +79,44 @@ export default function FulfillmentPage() {
 
   return (
     <div className="pk-root">
-      <div className="pk-titlerow">
-        <div>
-          <div className="pk-section-h" style={{ margin: "0 0 2px" }}>
-            Fulfillment
-          </div>
-          <h1 className="pk-title">{page.label}</h1>
-        </div>
+      {/* Section name is the PAGE, not "Fulfillment": the pages here are chosen
+          by route from the sidebar, so they cannot also be this panel's switcher.
+          What switches in place is the page's own sections, which is exactly the
+          shape the client app's Sales page has. The "Fulfillment" kicker is gone
+          for the same reason PillarPage dropped its own: the rail already says
+          where you are. */}
+      <AdminPage
+        section={page.label}
+        tabs={subs.map((sub) => ({ id: sub.id, label: sub.label }))}
+        active={activeSub ?? undefined}
+        onSelect={setSub}
+        actions={
+          <>
+            <ClientPicker
+              clients={clients}
+              selected={selected}
+              loading={isLoading}
+              error={isError}
+              onSelect={setClient}
+            />
+            {tenantId && (
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  type="button"
+                  onClick={() => void enterLiveApp()}
+                  disabled={previewBusy}
+                  className="inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-surface px-3 py-2 text-[12.5px] font-semibold text-text transition-colors hover:border-brand disabled:opacity-60"
+                >
+                  <Eye size={15} /> {previewBusy ? "Opening..." : "Enter live app"}
+                </button>
+                {previewErr && <span className="text-[12px] text-danger">{previewErr}</span>}
+              </div>
+            )}
+          </>
+        }
+      />
 
-        <div className="pk-titleactions">
-          <ClientPicker
-            clients={clients}
-            selected={selected}
-            loading={isLoading}
-            error={isError}
-            onSelect={setClient}
-          />
-          {tenantId && (
-            <div className="flex flex-col items-end gap-1">
-              <button
-                type="button"
-                onClick={() => void enterLiveApp()}
-                disabled={previewBusy}
-                className="inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-surface px-3.5 py-2.5 text-[13px] font-semibold text-text transition-colors hover:border-brand disabled:opacity-60"
-              >
-                <Eye size={15} /> {previewBusy ? "Opening..." : "Enter live app"}
-              </button>
-              {previewErr && <span className="text-[12px] text-danger">{previewErr}</span>}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {subs.length > 0 && (
-        <nav className="pk-tabs" aria-label={`${page.label} sections`}>
-          {subs.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              className={`pk-tab${activeSub === s.id ? " on" : ""}`}
-              onClick={() => setSub(s.id)}
-            >
-              {s.label}
-            </button>
-          ))}
-        </nav>
-      )}
-
-      <div className="pk-section" style={{ marginTop: subs.length > 0 ? 0 : 20 }}>
+      <div className="pk-section">
         <PageBody
           page={page}
           tenantId={tenantId}

@@ -11,8 +11,8 @@ import type { RawOpportunity } from "./agencyPipelines";
 // The console's six statuses, as migration 0055 defines them.
 const STATUSES = [
   "New Lead",
-  "1st Dial (Day 1)",
-  "2nd Dial (Day 2)",
+  "No Answer Day 1",
+  "No Answer Day 2",
   "Call Back",
   "Booked",
   "Not Interested",
@@ -24,8 +24,8 @@ const COLD_CALLING = {
   name: "Cold Calling",
   stages: [
     { id: "s-new", name: "New Lead" },
-    { id: "s-d1", name: "1st Dial (Day 1)" },
-    { id: "s-d2", name: "2nd Dial (Day 2)" },
+    { id: "s-d1", name: "No Answer Day 1" },
+    { id: "s-d2", name: "No Answer Day 2" },
     { id: "s-cb", name: "Call Back" },
     { id: "s-bk", name: "Booked" },
     { id: "s-ni", name: "Not Interested" },

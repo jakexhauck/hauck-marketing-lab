@@ -262,10 +262,15 @@ export function readableError(err: unknown): string {
 }
 
 
-// The tag every imported prospect gets. GoHighLevel decides what it means: a
-// workflow over there is what moves the contact onto the Cold Calling board.
-// This app only ever writes the tag, exactly as it does for the call outcomes.
-export const NEW_LEAD_TAG = "cc new lead";
+// The tag every prospect gets on its way in, whichever path it arrives by.
+// GoHighLevel decides what it means: a workflow over there is what moves the
+// contact onto the Cold Calling board. This app only ever writes the tag,
+// exactly as it does for the call outcomes.
+//
+// Defined in leadScraper (the pure module that owns the tag scheme) and
+// re-exported here so both push paths and their tests read one constant.
+import { NEW_LEAD_TAG } from "./leadScraper";
+export { NEW_LEAD_TAG };
 
 // Put an imported prospect into GoHighLevel and mark it new.
 //

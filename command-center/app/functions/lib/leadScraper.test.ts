@@ -8,6 +8,7 @@ import {
   scoreBand,
   slugify,
   tagsForLead,
+  NEW_LEAD_TAG,
   toCsv,
   zoneForState,
   type ScrapedLead,
@@ -65,11 +66,27 @@ describe("tags", () => {
       "scrape-2026-07-30",
       "score-high",
       "channel-cold-call",
+      "cc new lead",
     ]);
   });
 
   it("marks which channel the lead was handed to", () => {
     expect(tagsForLead(lead(), run, "sms")).toContain("channel-sms");
+  });
+
+  it("gives a cold-call lead the tag that actually moves it", () => {
+    // Every other tag here is descriptive and nothing watches it. This one is
+    // what a GoHighLevel workflow triggers on to create the opportunity at New
+    // Lead, so without it a lead sent from the Leads tab becomes a contact and
+    // never reaches the board. That is exactly what used to happen: the Assign
+    // leads push applied it and this one did not.
+    expect(tagsForLead(lead(), run, "cold_call")).toContain(NEW_LEAD_TAG);
+  });
+
+  it("does not put an SMS lead on the cold calling board", () => {
+    // The same workflow must not fire for a prospect being texted, or the SMS
+    // channel quietly fills the dialing queue.
+    expect(tagsForLead(lead(), run, "sms")).not.toContain(NEW_LEAD_TAG);
   });
 
   it("drops a part rather than tagging it blank", () => {
@@ -84,9 +101,21 @@ describe("tags", () => {
     expect(tags).toContain("city-st-louis-park");
   });
 
-  it("never emits an uppercase or spaced tag", () => {
+  it("never emits an uppercase or spaced tag from a slugified part", () => {
+    // The DESCRIPTIVE tags are built by slugifying free text (a city, a niche),
+    // so they must come out lowercase and hyphenated or a filter on "city-"
+    // stops matching.
+    //
+    // NEW_LEAD_TAG is exempt, and deliberately: it is not slugified, it is a
+    // fixed string that has to equal what the GoHighLevel workflow triggers on
+    // verbatim. The live account spells its cold-call tags with spaces ("cc new
+    // lead", "cc no answer day 1"), so hyphenating this one to satisfy the rule
+    // would silently stop the pipeline filling. Same reason coldCallStages.ts
+    // carries spaced tags.
     const tags = tagsForLead(lead({ city: "Fair Oaks Ranch" }), run, "cold_call");
-    for (const tag of tags) expect(tag).toMatch(/^[a-z0-9-]+$/);
+    for (const tag of tags.filter((t) => t !== NEW_LEAD_TAG)) {
+      expect(tag).toMatch(/^[a-z0-9-]+$/);
+    }
   });
 
   it("returns a blank batch date rather than guessing at today", () => {

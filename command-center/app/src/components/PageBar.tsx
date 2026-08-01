@@ -22,6 +22,11 @@ export default function PageBar({
   filters,
   children,
   flush,
+  // The client app's global cluster (the notification bell). Off for the admin
+  // console, which has its own rail and no client session to ring a bell for:
+  // rendering it there was an empty box holding open 
+  // space at the end of every admin header.
+  globalControls = true,
 }: {
   tabs: PageTab[];
   // Defaults to the label mapped from `tabs` (sidebar section name). Pass to
@@ -37,6 +42,7 @@ export default function PageBar({
   // Drops the bottom margin, for pages whose content owns the space under the
   // panel (the two-pane inboxes butt their panes straight against it).
   flush?: boolean;
+  globalControls?: boolean;
 }) {
   const label = section ?? sectionLabel(tabs);
   return (
@@ -64,9 +70,11 @@ export default function PageBar({
 
         {/* Page actions (all sizes) + global controls (desktop only), pinned right */}
         {actions && <div className="flex shrink-0 items-center gap-2.5">{actions}</div>}
-        <div className="shrink-0">
-          <GlobalControls />
-        </div>
+        {globalControls && (
+          <div className="shrink-0">
+            <GlobalControls />
+          </div>
+        )}
       </div>
 
       {filters && <div className="mt-4 flex flex-wrap items-center gap-2">{filters}</div>}

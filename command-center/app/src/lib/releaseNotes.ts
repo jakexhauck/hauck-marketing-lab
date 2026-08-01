@@ -26,6 +26,20 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-01-cold-call-suite-finished",
+    date: "1 August 2026",
+    title: "Cold Calling reads from Google Docs, and the pipeline actually fills",
+    items: [
+      "The stages in the app now carry the same names as the board in GoHighLevel: No Answer Day 1 and No Answer Day 2, not 1st Dial and 2nd Dial. They had drifted apart, and because the sync matches a stage by its exact name, every prospect sitting in a No Answer stage was being skipped instead of pulled into the list. Those come in now.",
+      "Sending leads to Cold Call from the Leads tab tags them so GoHighLevel puts them on the board. Handing leads out from Assign leads always did this; sending them from Leads did not, so a batch became contacts over there and never reached the pipeline.",
+      "Scripts, SOPs and objection handling are now pointed at a document in the SOP Hub instead of being typed into this app twice. Open Management > Scripts, pick the Google Doc, and edit the words in Docs from then on. Anything not pointed at a document yet still shows the text it already had.",
+      "Objection handling appears underneath the script in the same panel, so it is on screen for every call. The separate Objections button is gone, and so is the Call shelf page it was filed under.",
+      "The Not Interested tab is gone. Marking somebody not interested still records it and still moves them in GoHighLevel; there is simply no page listing a queue nobody works.",
+      "Every page in the admin console now opens with the same header panel as the client app: the section name, its pages as a sliding switcher beside it, and the page's buttons on the right.",
+      "The test leads have been deleted, here and in GoHighLevel, including the ones that had booked calls. The dialing numbers and the script booking rates start from real dials only.",
+    ],
+  },
+  {
     id: "2026-07-31-reorder-inside-a-category",
     date: "31 July 2026",
     title: "Tasks can be reordered inside a category",

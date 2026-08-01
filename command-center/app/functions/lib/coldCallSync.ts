@@ -97,8 +97,8 @@ export interface SyncPlan {
 // would put a prospect who has been chased for two days at the front of a
 // fresh queue.
 const DIAL_COUNTS: Record<string, number> = {
-  "1st Dial (Day 1)": 1,
-  "2nd Dial (Day 2)": 2,
+  "No Answer Day 1": 1,
+  "No Answer Day 2": 2,
 };
 
 // Split a display name into first + rest, so "Ana Maria Del Toro" keeps the

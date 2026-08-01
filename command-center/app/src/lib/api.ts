@@ -1091,12 +1091,15 @@ export async function tagTimeAuditBlock(
 // ---------------------------------------------------------------------------
 
 // Leads (Acquisition > Leads): the hand-kept agency prospect book.
-// Mirrors the CHECK constraint in migration 0030; LEAD_STATUSES in
-// src/lib/adminLeads.ts is the ordered runtime copy.
+// Mirrors the CHECK constraint in migration 0076_cold_call_stage_names.sql;
+// COLD_CALL_STAGES in src/lib/coldCallStages.ts is the ordered runtime copy.
+//
+// Every name except "Booked" is a live stage on the agency's Cold Calling
+// pipeline in GoHighLevel, and the sync matches on it verbatim.
 export type AdminLeadStatus =
   | "New Lead"
-  | "1st Dial (Day 1)"
-  | "2nd Dial (Day 2)"
+  | "No Answer Day 1"
+  | "No Answer Day 2"
   | "Call Back"
   | "Booked"
   | "Not Interested";
@@ -1635,12 +1638,23 @@ export async function logColdCallDial(input: {
 export interface ColdCallAsset {
   id: string;
   // "script" is a variation of the pitch and the unit of the A/B test.
-  // "asset" is any other document read mid-call, filed under `category`.
   // "sop" is how the job is done, read before and between calls (0061).
-  kind: "script" | "asset" | "sop";
+  // "objections" is the one document reached for mid-sentence; it renders inside
+  // the script panel rather than behind a button of its own (0077).
+  // "asset" was the call shelf. Retired in 0077 and only ever seen on an
+  // archived row; nothing creates one.
+  kind: "script" | "sop" | "objections" | "asset";
   category: string;
-  name: string;
+  // The stored markup. Only the document when driveFileId is null: a row with a
+  // Drive pointer renders that instead, and this is the pre-0077 fallback.
   html: string;
+  name: string;
+  // The Google Drive file this row points at, in the agency's SOP folder, or
+  // null when the words still live in `html`. Rendered through the SOP Hub's own
+  // endpoint, so a script and an SOP are read through exactly one code path.
+  driveFileId: string | null;
+  // The Drive title as it was when picked. Display only; driveFileId is identity.
+  driveTitle: string | null;
   sortOrder: number;
   archivedAt: string | null;
   updatedAt: string;
@@ -1662,10 +1676,12 @@ export async function getColdCallAssets(
 }
 
 export async function createColdCallAsset(input: {
-  kind: "script" | "asset" | "sop";
+  kind: "script" | "sop" | "objections";
   name: string;
   category?: string;
   html?: string;
+  driveFileId?: string | null;
+  driveTitle?: string | null;
 }): Promise<{ asset: ColdCallAsset }> {
   return api("/api/admin/cold-call/assets", {
     method: "POST",
@@ -1680,6 +1696,11 @@ export async function updateColdCallAsset(input: {
   name?: string;
   category?: string;
   html?: string;
+  // A Drive file id to render from, or null to fall back to the stored html.
+  // Omit to leave the pointer exactly as it is: sending undefined and sending
+  // null mean different things on the server.
+  driveFileId?: string | null;
+  driveTitle?: string | null;
   sortOrder?: number;
   archived?: boolean;
 }): Promise<{ asset: ColdCallAsset }> {

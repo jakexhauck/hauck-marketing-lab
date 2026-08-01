@@ -3,7 +3,7 @@ import { groupByStage, shapeOpportunity, type PipelineCard } from "./agencyPipel
 
 const stages = [
   { id: "s1", name: "New Lead" },
-  { id: "s2", name: "1st Dial (Day 1)" },
+  { id: "s2", name: "No Answer Day 1" },
 ];
 
 function card(over: Partial<PipelineCard> = {}): PipelineCard {
@@ -63,7 +63,7 @@ describe("shapeOpportunity", () => {
 describe("groupByStage", () => {
   it("puts each card under its stage, in pipeline order", () => {
     const columns = groupByStage(stages, [card(), card({ id: "o2", stageId: "s2" })]);
-    expect(columns.map((c) => c.name)).toEqual(["New Lead", "1st Dial (Day 1)"]);
+    expect(columns.map((c) => c.name)).toEqual(["New Lead", "No Answer Day 1"]);
     expect(columns[0].cards.map((c) => c.id)).toEqual(["o1"]);
     expect(columns[1].cards.map((c) => c.id)).toEqual(["o2"]);
   });

@@ -7,9 +7,10 @@ import {
   useUpdateColdCallAsset,
 } from "../../../hooks/useColdCallAssets";
 import { MIN_DIALS_FOR_RATE, leadingScript } from "../../../../functions/lib/coldCallAssets";
-import AssetEditor from "./AssetEditor";
+import SopDocPicker, { type SopDocChoice } from "./SopDocPicker";
 
-// Cold Call > Settings: the dialing scripts, and how each one is doing.
+// Cold Call > Management > Scripts: the dialing scripts, how each one is doing,
+// and the objection handling read alongside them.
 //
 // Four variations of one pitch running against each other. Every number on this
 // page is derived from recorded dials (0052 + 0058), so there is deliberately
@@ -23,6 +24,16 @@ import AssetEditor from "./AssetEditor";
 // percentage. One booking in four calls is 25% in exactly the way that means
 // nothing, and rendering it beside a real rate would let a hunch borrow the
 // typography of a result.
+//
+// Since 0077 a variation is a POINTER at a Google Doc rather than a rich-text box
+// on this page. The row keeps its id, so every dial ever recorded against it still
+// attributes and the table above is unaffected; only where the words live has
+// changed. A variation that has not been pointed anywhere yet still renders the
+// text it already had, which is why there is no migration deadline on this.
+//
+// Objection handling is at the bottom of this page rather than on a "Call shelf"
+// page of its own, because the shelf held exactly one document and it is read in
+// the same breath as the script.
 
 export default function ScriptsPanel() {
   const [showArchived, setShowArchived] = useState(false);
@@ -66,6 +77,22 @@ export default function ScriptsPanel() {
     }
   };
 
+  // Point a variation at a Doc, or clear it back to whatever it already held.
+  // Sending driveFileId: null is meaningful (see readDrivePointer on the server),
+  // which is why this never omits the field.
+  const point = async (asset: ColdCallAsset, choice: SopDocChoice | null) => {
+    try {
+      await update.mutateAsync({
+        id: asset.id,
+        driveFileId: choice?.fileId ?? null,
+        driveTitle: choice?.title ?? null,
+      });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save that");
+    }
+  };
+
   const setArchived = async (asset: ColdCallAsset, archived: boolean) => {
     try {
       await update.mutateAsync({ id: asset.id, archived });
@@ -77,7 +104,8 @@ export default function ScriptsPanel() {
   };
 
   return (
-    <section className="rounded-[var(--radius-lg)] border border-border p-5">
+    <>
+      <section className="rounded-[var(--radius-lg)] border border-border p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-[15px] font-semibold">Dialing scripts</h3>
@@ -141,11 +169,19 @@ export default function ScriptsPanel() {
                   onArchive={() => void setArchived(script, true)}
                 />
                 {openId === script.id && (
-                  <AssetEditor
-                    asset={script}
-                    subtitle="What the caller reads on the phone. Saves as you type."
-                    onDone={() => setOpenId(null)}
-                  />
+                  <div className="mt-2 rounded-[var(--radius)] border border-brand/40 bg-[var(--surface-2)] px-4 py-3.5">
+                    <SopDocPicker
+                      label="Reads from"
+                      value={script.driveFileId}
+                      valueTitle={script.driveTitle}
+                      emptyLabel={
+                        script.html.trim()
+                          ? "Still using the text typed into this app"
+                          : "Nothing written yet"
+                      }
+                      onChange={(choice) => void point(script, choice)}
+                    />
+                  </div>
                 )}
               </li>
             ))}
@@ -178,6 +214,77 @@ export default function ScriptsPanel() {
           )}
         </>
       )}
+      </section>
+
+      <ObjectionsCard />
+    </>
+  );
+}
+
+// The one document a caller reaches for mid-sentence, while somebody is talking.
+//
+// There is exactly one of these (0077 enforces it with a partial unique index),
+// so this is a single picker rather than a list: "which document" is the whole
+// question. It renders inside the script panel underneath whichever variation is
+// open, so it is on screen for every call without a second thing to open.
+function ObjectionsCard() {
+  const query = useColdCallAssetsQuery();
+  const create = useCreateColdCallAsset();
+  const update = useUpdateColdCallAsset();
+  const [error, setError] = useState<string | null>(null);
+
+  const doc = useMemo(
+    () => (query.data?.assets ?? []).find((a) => a.kind === "objections" && !a.archivedAt) ?? null,
+    [query.data],
+  );
+
+  // No row yet means nobody has ever set this up, so the first pick creates it.
+  // Creating an empty row on page load instead would leave a permanent blank
+  // record behind for anyone who merely looked at the page.
+  const choose = async (choice: SopDocChoice | null) => {
+    try {
+      if (doc) {
+        await update.mutateAsync({
+          id: doc.id,
+          driveFileId: choice?.fileId ?? null,
+          driveTitle: choice?.title ?? null,
+        });
+      } else if (choice) {
+        await create.mutateAsync({
+          kind: "objections",
+          name: "Objection handling",
+          driveFileId: choice.fileId,
+          driveTitle: choice.title,
+        });
+      }
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save that");
+    }
+  };
+
+  return (
+    <section className="mt-4 rounded-[var(--radius-lg)] border border-border p-5">
+      <h3 className="text-[15px] font-semibold">Objection handling</h3>
+      <p className="mt-1 max-w-[62ch] text-[13px] text-muted">
+        One document, read underneath whichever script is open. It is reached for
+        mid-sentence while somebody is talking, so it sits in the same panel
+        rather than behind a button of its own.
+      </p>
+
+      <div className="mt-4">
+        <SopDocPicker
+          label="Reads from"
+          value={doc?.driveFileId ?? null}
+          valueTitle={doc?.driveTitle ?? null}
+          emptyLabel={
+            doc?.html.trim() ? "Still using the text typed into this app" : "Nothing picked yet"
+          }
+          onChange={(choice) => void choose(choice)}
+        />
+      </div>
+
+      {error && <p className="mt-3 text-[12.5px] text-danger">{error}</p>}
     </section>
   );
 }
