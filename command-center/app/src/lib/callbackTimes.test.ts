@@ -5,6 +5,7 @@ import {
   describeCallback,
   formatTime,
   normalizeTime,
+  takenTimesOn,
   parseTime,
 } from "./callbackTimes";
 
@@ -84,5 +85,44 @@ describe("describeCallback", () => {
 
   it("is empty without a date, whatever the time says", () => {
     expect(describeCallback(null, "14:30")).toBe("");
+  });
+});
+
+describe("takenTimesOn", () => {
+  const taken = [
+    { leadId: "a", date: "2026-08-03", time: "13:00", name: "Ayar Heating" },
+    { leadId: "b", date: "2026-08-03", time: "14:30:00", name: "TJ Air" },
+    { leadId: "c", date: "2026-08-04", time: "13:00", name: "Emerald" },
+    // A callback with no time is a DAY, not a slot.
+    { leadId: "d", date: "2026-08-03", time: "", name: "Ventcraft" },
+  ];
+
+  it("blocks only the times promised on that day", () => {
+    const map = takenTimesOn(taken, "2026-08-03");
+    expect([...map.keys()].sort()).toEqual(["13:00", "14:30"]);
+    expect(map.get("13:00")).toBe("Ayar Heating");
+  });
+
+  it("normalises what Postgres returns, so 14:30:00 blocks 14:30", () => {
+    expect(takenTimesOn(taken, "2026-08-03").has("14:30")).toBe(true);
+  });
+
+  it("does not let a dayless callback block an hour nobody agreed to", () => {
+    // "Call me Thursday" is a day. Treating it as a slot would grey out a time
+    // the prospect never named.
+    const map = takenTimesOn(taken, "2026-08-03");
+    expect(map.size).toBe(2);
+  });
+
+  it("never reports a prospect's own slot as taken from itself", () => {
+    // Re-opening a callback to move the day must not say the time you already
+    // hold is unavailable.
+    const map = takenTimesOn(taken, "2026-08-03", "a");
+    expect(map.has("13:00")).toBe(false);
+    expect(map.has("14:30")).toBe(true);
+  });
+
+  it("is empty with no day picked", () => {
+    expect(takenTimesOn(taken, "").size).toBe(0);
   });
 });

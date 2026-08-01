@@ -26,6 +26,20 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-01-callback-clash",
+    date: "1 August 2026",
+    title: "A callback time already promised cannot be promised twice",
+    items: [
+      "Picking a callback time now strikes through any time already agreed with another prospect on that day, and hovering it says who has it.",
+      "It reads every caller's callbacks, not just your own, because two people on the phones agreeing the same 1pm is the version of this that actually happens.",
+      "Blocked times are shown struck through rather than removed, so you can see the clash and offer the half hour either side instead of wondering why the list looks short.",
+      "A callback with no time still blocks nothing. \"Call me Thursday\" is a day, not a slot.",
+      "Re-opening a prospect to move their callback still shows the time they already hold as available, since it is not a clash with themselves.",
+      "If a callback turns into a booked demo, that time frees up again.",
+      "Booking a demo was never affected: GoHighLevel owns those slots and stops offering one the moment it is taken. Callbacks live only in this book, which is why nothing was stopping a double-booking until now.",
+    ],
+  },
+  {
     id: "2026-08-01-cold-call-outcomes",
     date: "1 August 2026",
     title: "Three ways to say no, one press each",

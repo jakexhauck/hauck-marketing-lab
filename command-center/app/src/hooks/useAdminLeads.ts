@@ -92,6 +92,10 @@ export function useAddAdminLead() {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: KEY });
+      // Agreeing (or moving, or clearing) a callback changes which times are
+      // spoken for. Without this the picker keeps offering a slot that was taken
+      // thirty seconds ago, which is the whole thing it exists to prevent.
+      qc.invalidateQueries({ queryKey: ["admin", "cold-call", "callback-slots"] });
     },
   });
 }

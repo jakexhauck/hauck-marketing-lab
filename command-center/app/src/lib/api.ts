@@ -1567,6 +1567,14 @@ export async function bookColdCall(input: {
   });
 }
 
+// Every callback already promised, agency-wide, so the picker can refuse to
+// agree two prospects the same time. See functions/api/admin/cold-call/callback-slots.ts.
+export async function getColdCallCallbackSlots(): Promise<{
+  taken: { leadId: string; date: string; time: string; name: string }[];
+}> {
+  return api("/api/admin/cold-call/callback-slots");
+}
+
 // The agency's own GoHighLevel boards (Cold Call > Pipelines), read live.
 export interface AgencyPipeline {
   id: string;

@@ -77,3 +77,45 @@ export function describeCallback(
   const at = formatTime(time);
   return at ? `${day}, ${at}` : day;
 }
+
+
+// --- what is already promised ------------------------------------------------
+
+// One callback already agreed with somebody else. The lead id rides along so a
+// prospect's OWN slot is never shown as taken from itself: re-opening a callback
+// to change the day must not report the time you already hold as unavailable.
+export interface TakenCallback {
+  leadId: string;
+  date: string; // "YYYY-MM-DD"
+  time: string; // "HH:MM", normalised
+  // Who holds it, for the tooltip. A blocked slot that will not say who has it
+  // is a slot somebody overrides by clicking around it.
+  name: string;
+}
+
+/**
+ * The times already promised on one day, keyed by "HH:MM".
+ *
+ * Callbacks with no time do not block anything: "call me Thursday" is a day, not
+ * a slot, and treating it as one would grey out an hour nobody agreed to.
+ *
+ * `exceptLeadId` is the prospect being edited, whose own slot is not a clash.
+ */
+export function takenTimesOn(
+  taken: readonly TakenCallback[],
+  date: string,
+  exceptLeadId?: string | null,
+): Map<string, string> {
+  const out = new Map<string, string>();
+  if (!date) return out;
+  for (const t of taken) {
+    if (t.date !== date) continue;
+    if (exceptLeadId && t.leadId === exceptLeadId) continue;
+    const at = normalizeTime(t.time);
+    if (!at) continue;
+    // First writer wins, so the name shown is stable between renders rather than
+    // flipping with whatever order the rows arrived in.
+    if (!out.has(at)) out.set(at, t.name);
+  }
+  return out;
+}

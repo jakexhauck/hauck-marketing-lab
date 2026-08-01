@@ -10,7 +10,13 @@ import {
   type MonthCursor,
   type TodayRef,
 } from "../../../lib/trackerMonth";
-import { CALLBACK_TIMES, formatTime, normalizeTime } from "../../../lib/callbackTimes";
+import {
+  CALLBACK_TIMES,
+  formatTime,
+  normalizeTime,
+  takenTimesOn,
+  type TakenCallback,
+} from "../../../lib/callbackTimes";
 
 // When to call them back: a month grid and the times beside it.
 //
@@ -23,6 +29,13 @@ import { CALLBACK_TIMES, formatTime, normalizeTime } from "../../../lib/callback
 // The time is OPTIONAL and stays optional. "Call me Thursday" is a real thing a
 // prospect says; making the caller invent 2pm to get past this panel would put
 // an appointment on the screen that nobody agreed to.
+//
+// A time already promised to somebody else is DISABLED and says who has it.
+// Booking a demo cannot collide, because GoHighLevel owns those slots and stops
+// offering one the moment it is taken; a callback lives only in this book, so
+// until now nothing stopped two prospects being given the same 1pm. Disabled
+// rather than hidden: a caller who can see the clash can offer the half hour
+// either side, where a missing button just looks like a shorter list.
 
 interface Props {
   date: string;
@@ -31,6 +44,14 @@ interface Props {
   onConfirm: () => void;
   confirmLabel?: string;
   busy?: boolean;
+  // Every callback already promised, agency-wide. Two callers on the phones
+  // agreeing the same time is the commonest version of this clash, so it is
+  // deliberately not scoped to the signed-in caller.
+  taken?: readonly TakenCallback[];
+  // The prospect being booked. Its own slot is not a clash with itself, or
+  // re-opening a callback to move the day would report the time you already hold
+  // as unavailable.
+  leadId?: string;
 }
 
 export default function CallbackPicker({
@@ -40,6 +61,8 @@ export default function CallbackPicker({
   onConfirm,
   confirmLabel = "Save and next",
   busy,
+  taken = [],
+  leadId,
 }: Props) {
   const today = useMemo<TodayRef>(() => {
     const now = new Date();
@@ -61,6 +84,12 @@ export default function CallbackPicker({
 
   const chosenTime = normalizeTime(time);
   const todayIso = isoOf(today.year, today.month, today.day);
+
+  // "HH:MM" -> who holds it, for the day on screen.
+  const takenToday = useMemo(
+    () => takenTimesOn(taken, date, leadId),
+    [taken, date, leadId],
+  );
 
   return (
     <div className="mt-3 rounded-[var(--radius-lg)] border border-border p-4">
@@ -148,18 +177,26 @@ export default function CallbackPicker({
           <div className="grid max-h-[196px] grid-cols-3 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-4">
             {CALLBACK_TIMES.map((t) => {
               const on = t === chosenTime;
+              const heldBy = takenToday.get(t);
+              const blocked = Boolean(heldBy);
               return (
                 <button
                   key={t}
                   type="button"
-                  disabled={!date}
+                  disabled={!date || blocked}
                   aria-pressed={on}
+                  title={blocked ? `Already calling ${heldBy} back at this time` : undefined}
                   onClick={() => onChange({ date, time: on ? "" : t })}
                   className={[
                     "rounded-full border px-2 py-1.5 text-[12px] font-semibold transition-colors",
                     on
                       ? "border-brand bg-brand text-white"
-                      : "border-border text-muted hover:border-brand hover:text-brand",
+                      : blocked
+                        ? // Struck through rather than merely faded: a dimmed
+                          // pill reads as "not loaded yet", and a caller mid-call
+                          // clicks it again to be sure.
+                          "cursor-not-allowed border-border/60 text-faint line-through opacity-60"
+                        : "border-border text-muted hover:border-brand hover:text-brand",
                     !date ? "cursor-not-allowed opacity-45" : "",
                   ].join(" ")}
                 >
@@ -171,6 +208,8 @@ export default function CallbackPicker({
 
           <p className="mt-2 text-[11.5px] text-faint">
             A time is optional. Without one the callback is just that day.
+            {takenToday.size > 0 &&
+              ` ${takenToday.size} ${takenToday.size === 1 ? "time is" : "times are"} already promised on this day.`}
           </p>
         </div>
       </div>

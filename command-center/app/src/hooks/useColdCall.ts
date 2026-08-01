@@ -5,6 +5,7 @@ import {
   getAgencyPipelines,
   getColdCallCalendars,
   getColdCallSlots,
+  getColdCallCallbackSlots,
   getSalesMeetings,
   logColdCallDial,
   recordMeetingOutcome,
@@ -213,6 +214,19 @@ export function useColdCallSlotsQuery(calendarId: string, enabled = true) {
   });
 }
 
+// Callbacks already promised, so the picker can grey out a time somebody else
+// holds. Short staleTime for the same reason free slots have one: two callers on
+// the phones at once is exactly the clash this prevents, so a list a minute out
+// of date would let the collision straight through.
+export function useColdCallCallbackSlots(enabled = true) {
+  return useQuery({
+    queryKey: ["admin", "cold-call", "callback-slots"],
+    enabled,
+    staleTime: 30_000,
+    queryFn: getColdCallCallbackSlots,
+  });
+}
+
 // Books for real. Never retried: a resent POST double-books a live calendar.
 export function useBookColdCall() {
   const qc = useQueryClient();
@@ -224,6 +238,8 @@ export function useBookColdCall() {
     onSuccess: (_res, input) => {
       qc.invalidateQueries({ queryKey: ["admin", "tracker", "leads"] });
       qc.invalidateQueries({ queryKey: ["admin", "cold-call", "slots", input.calendarId] });
+      // A booked prospect no longer holds its callback slot, so that time frees.
+      qc.invalidateQueries({ queryKey: ["admin", "cold-call", "callback-slots"] });
       // The booking wrote the meeting's own row too, so Booked is stale.
       qc.invalidateQueries({ queryKey: ["admin", "cold-call", "meetings"] });
     },

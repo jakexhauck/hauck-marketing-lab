@@ -16,7 +16,7 @@ import {
 import type { AdminLead, ColdCallDialOutcome } from "../../../lib/api";
 import { metaFor } from "../../../lib/adminLeads";
 import { useUpdateAdminLead } from "../../../hooks/useAdminLeads";
-import { useLogColdCallDial } from "../../../hooks/useColdCall";
+import { useColdCallCallbackSlots, useLogColdCallDial } from "../../../hooks/useColdCall";
 import { useColdCallScripts } from "../../../hooks/useColdCallAssets";
 import { resolveScriptId, useSelectedScriptId } from "../../../lib/selectedScript";
 import {
@@ -109,6 +109,10 @@ export default function CallWorkspace({
 }: Props) {
   const updateLead = useUpdateAdminLead();
   const logDial = useLogColdCallDial();
+  // Loaded with the workspace rather than when the panel opens: the picker
+  // appears on a click mid-call, and a spinner where the times should be is a
+  // pause in a conversation.
+  const callbackSlots = useColdCallCallbackSlots();
 
   // Which dialing variation this call is being made from (0058). Read here
   // rather than passed down, so no component between this and the script panel
@@ -442,6 +446,9 @@ export default function CallWorkspace({
 
             {pending === "callback" && (
               <CallbackPicker
+                // Agency-wide, so two callers cannot promise the same 1pm.
+                taken={callbackSlots.data?.taken ?? []}
+                leadId={selected.id}
                 date={pendingDate}
                 time={pendingTime}
                 onChange={({ date, time }) => {
