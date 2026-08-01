@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-01-phone-format",
+    date: "1 August 2026",
+    title: "Phone numbers read the way you dial them",
+    items: [
+      "Numbers in the cold calling suite now show as 248-555-0171 instead of +12485550171. The country code is dropped and the digits are grouped three, three, four.",
+      "Applies on the calling queue, the number on the call card, the Leads sourcing table and the phone box on the booking panel.",
+      "Only what you see changed. The full number is still stored and still sent to GoHighLevel, so dialling and reminders are untouched.",
+      "A number that is not a US one is left exactly as it is rather than being squeezed into that shape.",
+    ],
+  },
+  {
     id: "2026-08-01-callback-clash",
     date: "1 August 2026",
     title: "A callback time already promised cannot be promised twice",

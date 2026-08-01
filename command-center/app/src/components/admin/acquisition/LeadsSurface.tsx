@@ -14,6 +14,7 @@ import {
   Table2,
 } from "lucide-react";
 import { PillarTitleActions } from "../../pillars/PillarKit";
+import { formatPhoneDashed } from "../../../lib/phone";
 import {
   RUN_SIZES,
   canSend,
@@ -515,7 +516,7 @@ function LeadRow({
           <button type="button" className="ls-name" onClick={onExpand} title="Why it scored what it did">
             {lead.businessName ?? "(no name)"}
           </button>
-          <div className="ls-phone">{lead.phoneE164}</div>
+          <div className="ls-phone">{formatPhoneDashed(lead.phoneE164)}</div>
         </td>
         <td>
           <span className={`ls-score ${lead.scoreBand}`}>{formatScore(lead.icpScore)}</span>

@@ -28,6 +28,7 @@ import BookingPanel from "./BookingPanel";
 import CallbackPicker from "./CallbackPicker";
 import { stageAfterNoAnswer } from "../../../lib/coldCallStages";
 import type { NO_OUTCOMES } from "../../../../functions/lib/coldCallDials";
+import { formatPhoneDashed } from "../../../lib/phone";
 
 // One of the three ways a call ends in no. Named here rather than inlined so the
 // button handlers and sayNo cannot drift apart.
@@ -274,7 +275,7 @@ export default function CallWorkspace({
                         {lead.businessName || fullName(lead)}
                       </span>
                       <span className="block truncate font-mono text-[12px] text-muted">
-                        {lead.phone || "No number"}
+                        {formatPhoneDashed(lead.phone) || "No number"}
                       </span>
                     </span>
                     {badge && (
@@ -341,7 +342,7 @@ export default function CallWorkspace({
             className="mt-4 inline-flex items-center gap-3 font-mono text-[30px] font-semibold tracking-tight text-brand hover:underline"
           >
             <Phone size={22} aria-hidden />
-            {selected.phone || "No number on file"}
+            {formatPhoneDashed(selected.phone) || "No number on file"}
           </a>
 
           {selected.email && (

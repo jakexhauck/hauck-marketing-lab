@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CalendarCheck, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import type { AdminLead } from "../../../lib/api";
+import { formatPhoneDashed } from "../../../lib/phone";
 import {
   useBookColdCall,
   useColdCallCalendarsQuery,
@@ -88,7 +89,11 @@ export default function BookingPanel({ lead, onBooked, onCancel }: Props) {
   // rather than read straight off `lead` so typing does not fight a refetch
   // landing mid-sentence.
   const [firstName, setFirstName] = useState(lead.firstName ?? "");
-  const [phone, setPhone] = useState(lead.phone ?? "");
+  // Prefilled in the shape a person reads, not the shape it is stored in. Safe
+  // because the server normalises whatever comes back and resolveBookingContact
+  // compares the NORMALISED value, so leaving this untouched is still "no
+  // change" rather than a rewrite of the column.
+  const [phone, setPhone] = useState(formatPhoneDashed(lead.phone));
   const [email, setEmail] = useState(lead.email ?? "");
 
   const book = useBookColdCall();
