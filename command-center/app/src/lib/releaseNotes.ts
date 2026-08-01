@@ -37,6 +37,7 @@ export const RELEASES: Release[] = [
       "The Not Interested tab is gone. Marking somebody not interested still records it and still moves them in GoHighLevel; there is simply no page listing a queue nobody works.",
       "Every page in the admin console now opens with the same header panel as the client app: the section name, its pages as a sliding switcher beside it, and the page's buttons on the right.",
       "The test leads have been deleted, here and in GoHighLevel, including the ones that had booked calls. The dialing numbers and the script booking rates start from real dials only.",
+      "Pulling prospects in from GoHighLevel now reads the whole board rather than the first hundred cards. Sending a batch of 200 used to bring back 100 and look like it had finished.",
     ],
   },
   {
