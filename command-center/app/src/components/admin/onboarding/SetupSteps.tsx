@@ -79,79 +79,107 @@ export default function SetupSteps({ tenantId }: { tenantId: string }) {
 
   return (
     <>
-      {/* Columns, not a grid: the sections are wildly different lengths (three
-          steps of kickoff against twenty-two of ads), and a grid row is as tall
-          as its tallest cell, so the short ones would sit over a hole the height
-          of the long one. A column flow packs them, and a card never splits
-          across a break. */}
-      <div className="gap-4 xl:columns-2 2xl:columns-3">
-        {SETUP_SECTIONS.map((section) => {
-        const progress = sectionProgress(steps, section.id, doneIds);
-        const Icon = SECTION_ICON[section.id];
-        const groups = groupSteps(steps, section.id);
+      {/* One section per row, full width, in the order the work happens, each
+          carrying its number. The sections used to flow in page columns, which
+          packed them tightly but said nothing about sequence: Kickoff and the
+          call could end up side by side, and which came first was a guess.
+          Order is the thing this page is FOR, so the page is a single stack and
+          the width is used INSIDE each card instead. */}
+      <div className="flex flex-col gap-4">
+        {SETUP_SECTIONS.map((section, index) => {
+          const progress = sectionProgress(steps, section.id, doneIds);
+          const Icon = SECTION_ICON[section.id];
+          const groups = groupSteps(steps, section.id);
+          const done = progress.total > 0 && progress.done === progress.total;
+          // A section with one unnamed group is a plain list, so its STEPS flow
+          // across the card. A section with subheadings flows its GROUPS
+          // instead, because a heading must stay with what it heads.
+          const flat = groups.length === 1 && !groups[0].label;
 
-        return (
-          <section
-            key={section.id}
-            className="mb-4 break-inside-avoid rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)] sm:p-6"
-          >
-            <header className="mb-4 flex items-start justify-between gap-4">
-              <div className="flex min-w-0 items-start gap-3">
-                <span
-                  className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius)] bg-brand-tint text-brand-text"
-                  aria-hidden
-                >
-                  <Icon size={16} />
-                </span>
-                <div className="min-w-0">
-                  <h2 className="font-display text-[16.5px] font-semibold text-text">
-                    {section.label}
-                  </h2>
-                  <p className="mt-0.5 text-[13px] leading-snug text-muted">{section.blurb}</p>
-                </div>
-              </div>
-              <span
-                className={`shrink-0 text-[12.5px] font-semibold ${
-                  progress.total > 0 && progress.done === progress.total
-                    ? "text-positive"
-                    : "text-faint"
-                }`}
-              >
-                {progress.done}/{progress.total}
-              </span>
-            </header>
-
-            {stepsQuery.isLoading ? (
-              <p className="text-[13px] text-muted">Loading the steps...</p>
-            ) : groups.length === 0 ? (
-              <p className="text-[13px] text-muted">
-                No steps in this section yet. Add them on Management.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {groups.map((group, i) => (
-                  <div key={`${group.label ?? "none"}-${i}`}>
-                    {group.label && <p className="label-cap mb-2">{group.label}</p>}
-                    <ul className="flex flex-col gap-2">
-                      {group.steps.map((step) => (
-                        <li key={step.id}>
-                          <StepRow
-                            step={step}
-                            done={doneIds.has(step.id)}
-                            busy={toggle.isPending}
-                            onToggle={(next) =>
-                              toggle.mutate({ taskKey: step.id, done: next })
-                            }
-                          />
-                        </li>
-                      ))}
-                    </ul>
+          return (
+            <section
+              key={section.id}
+              className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)] sm:p-6"
+            >
+              <header className="mb-4 flex items-start justify-between gap-4">
+                <div className="flex min-w-0 items-start gap-3">
+                  {/* The step number, which is the order of the work. Turns
+                      positive once the section is finished, so a glance down
+                      the page says how far along this client is. */}
+                  <span
+                    className={[
+                      "mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-[var(--radius)] font-display text-[14px] font-semibold",
+                      done ? "bg-positive text-white" : "bg-brand-tint text-brand-text",
+                    ].join(" ")}
+                    aria-hidden
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="font-display text-[16.5px] font-semibold text-text">
+                      <span className="sr-only">{`Step ${index + 1} of ${SETUP_SECTIONS.length}: `}</span>
+                      {section.label}
+                    </h2>
+                    <p className="mt-0.5 text-[13px] leading-snug text-muted">{section.blurb}</p>
                   </div>
-                ))}
-              </div>
-            )}
-          </section>
-        );
+                </div>
+                <span className="flex shrink-0 items-center gap-2">
+                  <Icon size={15} className="text-faint" aria-hidden />
+                  <span
+                    className={`text-[12.5px] font-semibold ${done ? "text-positive" : "text-faint"}`}
+                  >
+                    {progress.done}/{progress.total}
+                  </span>
+                </span>
+              </header>
+
+              {stepsQuery.isLoading ? (
+                <p className="text-[13px] text-muted">Loading the steps...</p>
+              ) : groups.length === 0 ? (
+                <p className="text-[13px] text-muted">
+                  No steps in this section yet. Add them on Management.
+                </p>
+              ) : flat ? (
+                <ul className="gap-x-5 md:columns-2 2xl:columns-3">
+                  {groups[0].steps.map((step) => (
+                    <li key={step.id} className="mb-2 break-inside-avoid">
+                      <StepRow
+                        step={step}
+                        done={doneIds.has(step.id)}
+                        busy={toggle.isPending}
+                        onToggle={(next) => toggle.mutate({ taskKey: step.id, done: next })}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="gap-x-5 md:columns-2 2xl:columns-3">
+                  {groups.map((group, i) => (
+                    <div
+                      key={`${group.label ?? "none"}-${i}`}
+                      className="mb-4 break-inside-avoid"
+                    >
+                      {group.label && <p className="label-cap mb-2">{group.label}</p>}
+                      <ul className="flex flex-col gap-2">
+                        {group.steps.map((step) => (
+                          <li key={step.id}>
+                            <StepRow
+                              step={step}
+                              done={doneIds.has(step.id)}
+                              busy={toggle.isPending}
+                              onToggle={(next) =>
+                                toggle.mutate({ taskKey: step.id, done: next })
+                              }
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          );
         })}
       </div>
 
