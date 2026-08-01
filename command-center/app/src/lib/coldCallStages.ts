@@ -38,9 +38,11 @@ export interface ColdCallStage {
   // Does this stage get a page in the strip? Not Interested does not: it is a
   // dead list nobody works, and a tab for it was a page opened by accident.
   //
-  // The OUTCOME is untouched. "Not interested" is still a button on the call
-  // card, still tags the contact, and GoHighLevel still moves it into that
-  // stage. This flag decides what is worth reading, not what is worth recording.
+  // The OUTCOMES are untouched. The call card has three ways to record a no
+  // (not qualified, said no at the opener, said no after the pitch, see
+  // DIAL_OUTCOMES), every one of them tags the contact, and GoHighLevel still
+  // moves it into this stage. This flag decides what is worth READING, not what
+  // is worth recording.
   page: boolean;
   // Has the lead left the dialing operation? Booked and Not Interested have;
   // everything else is still work in progress.
