@@ -87,6 +87,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   }
 
   const passwordHash = clean.password ? await hashPassword(clean.password) : null;
+  // Kept readable alongside the hash so Jake can tell a client what they chose
+  // rather than reset it. Deliberate, and confined: see migration 0081.
+  const passwordPlain = clean.password ?? null;
 
   if (!token) {
     const ip = clientIp(ctx.request);
@@ -105,6 +108,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         status: body.submit ? "submitted" : "in_progress",
         login_email: loginEmail || null,
         password_hash: passwordHash,
+        password_plain: passwordPlain,
         submitted_at: body.submit ? new Date().toISOString() : null,
       })
       .select(SELECT)
@@ -137,8 +141,14 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     updated_at: new Date().toISOString(),
   };
   if (loginEmail) update.login_email = loginEmail;
-  // A resumed funnel sends no password, and that must not wipe the stored hash.
-  if (passwordHash) update.password_hash = passwordHash;
+  // A resumed funnel sends no password, and that must not wipe what is stored.
+  // The two move together: a hash and a plaintext that disagreed would be worse
+  // than having neither, since the one Jake reads out would not be the one that
+  // signs them in.
+  if (passwordHash) {
+    update.password_hash = passwordHash;
+    update.password_plain = passwordPlain;
+  }
   if (body.submit) {
     update.status = "submitted";
     update.furthest_step = REVIEW_STEP;

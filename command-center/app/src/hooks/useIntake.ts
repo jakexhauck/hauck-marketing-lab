@@ -35,6 +35,12 @@ export interface IntakeDetail {
   completeness: number;
   loginEmail: string | null;
   hasPassword: boolean;
+  /**
+   * The password the client typed, as they typed it. Null for anything
+   * submitted before migration 0081, and null when they have not reached the
+   * login step. This is the only place in the app it is ever returned.
+   */
+  password: string | null;
   tenantId: string | null;
   /** Why this cannot be approved, or null when it can. Straight from the server. */
   blocker: string | null;

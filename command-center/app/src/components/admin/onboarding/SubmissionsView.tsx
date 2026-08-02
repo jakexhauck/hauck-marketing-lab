@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, Inbox } from "lucide-react";
+import { Check, ChevronRight, Copy, Eye, EyeOff, Inbox } from "lucide-react";
 import IntakeAnswerList from "./IntakeAnswerList";
 import { Button } from "../../ui/Button";
 import {
@@ -198,6 +198,8 @@ function Detail({ submission }: { submission: IntakeSubmissionSummary }) {
         <p className="text-[13px] text-danger">Could not load this submission.</p>
       ) : (
         <>
+          <LoginCard email={data.loginEmail} password={data.password} hasPassword={data.hasPassword} />
+
           <IntakeAnswerList answers={data.answers} />
 
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
@@ -268,6 +270,82 @@ function Detail({ submission }: { submission: IntakeSubmissionSummary }) {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// What they will sign in with: the email, and the password as they typed it.
+//
+// Hidden behind a Show button rather than printed on open. Not security (the
+// value is already in the browser by the time this renders) but shoulder
+// safety: this panel gets opened on shared screens, and a password should not
+// be sitting in the open every time somebody reads a submission.
+//
+// Null password with hasPassword true means they chose one before the app
+// started keeping it. Nothing can recover that, so the card says so and points
+// at the fix instead of showing an empty box.
+function LoginCard({
+  email,
+  password,
+  hasPassword,
+}: {
+  email: string | null;
+  password: string | null;
+  hasPassword: boolean;
+}) {
+  const [shown, setShown] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const copy = (): void => {
+    if (!password) return;
+    void navigator.clipboard.writeText(password).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    });
+  };
+
+  return (
+    <div className="mb-4 rounded-[var(--radius)] border border-border bg-surface px-4 py-3">
+      <p className="label-cap mb-2">Their login</p>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <span className="min-w-0">
+          <span className="block text-[11.5px] text-faint">Email</span>
+          <span className="block truncate text-[13.5px] text-text">{email ?? "Not chosen yet"}</span>
+        </span>
+
+        <span className="min-w-0">
+          <span className="block text-[11.5px] text-faint">Password</span>
+          {password ? (
+            <span className="flex items-center gap-2">
+              <span className="font-mono text-[13.5px] text-text">
+                {shown ? password : "•".repeat(Math.min(password.length, 14))}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShown((v) => !v)}
+                aria-label={shown ? "Hide the password" : "Show the password"}
+                className="text-faint transition-colors hover:text-text"
+              >
+                {shown ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+              <button
+                type="button"
+                onClick={copy}
+                aria-label="Copy the password"
+                className="text-faint transition-colors hover:text-text"
+              >
+                {copied ? <Check size={14} className="text-positive" /> : <Copy size={14} />}
+              </button>
+            </span>
+          ) : (
+            <span className="block text-[13px] text-muted">
+              {hasPassword
+                ? "Chosen before the app kept these, so it cannot be shown. Set them a new one in the client's Team card."
+                : "Not chosen yet. They have not reached the login step."}
+            </span>
+          )}
+        </span>
+      </div>
     </div>
   );
 }

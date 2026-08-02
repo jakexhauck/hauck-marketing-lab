@@ -269,6 +269,18 @@ describe("resumeView", () => {
     expect(view).not.toContain("hashed");
   });
 
+  // The app now keeps the password as the client typed it, so an admin can read
+  // it back (migration 0081). This is the boundary that keeps that decision from
+  // becoming a leak: resumeView is what the PUBLIC funnel endpoint returns, to
+  // anyone holding a resume token. It is a whitelist, and the plaintext must
+  // never be added to it.
+  it("never carries the plaintext password, whoever holds the resume token", () => {
+    const view = resumeView(submission({ password_plain: "correcthorse" }));
+    expect(JSON.stringify(view)).not.toContain("correcthorse");
+    expect("password" in view).toBe(false);
+    expect("password_plain" in view).toBe(false);
+  });
+
   it("says whether a password is already set, without revealing it", () => {
     expect(resumeView(submission()).hasPassword).toBe(true);
     expect(resumeView(submission({ password_hash: null })).hasPassword).toBe(false);

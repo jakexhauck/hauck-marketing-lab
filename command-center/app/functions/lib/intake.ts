@@ -34,6 +34,15 @@ export interface SubmissionRow {
   status: SubmissionStatus;
   login_email: string | null;
   password_hash: string | null;
+  /**
+   * The password as the client typed it, kept so an admin can read it back.
+   *
+   * Never authenticates anything: password_hash does that, here and at approve.
+   * Only GET /api/admin/intake/:id returns it, and resumeView() below must
+   * never carry it, because that is what the PUBLIC funnel gets back. See
+   * migration 0081.
+   */
+  password_plain?: string | null;
   tenant_id: string | null;
 }
 

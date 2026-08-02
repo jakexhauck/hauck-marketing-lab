@@ -9,7 +9,7 @@ import { completeness } from "../../../../src/lib/intake";
 // Admin-only, gated in _middleware.ts.
 
 const SELECT =
-  "id, resume_token, answers, furthest_step, status, login_email, password_hash, tenant_id, submitted_at, created_at";
+  "id, resume_token, answers, furthest_step, status, login_email, password_hash, password_plain, tenant_id, submitted_at, created_at";
 
 async function load(
   client: NonNullable<ReturnType<typeof getServiceClient>>,
@@ -31,8 +31,14 @@ export const onRequestGet: PagesFunction<Env, "id", ApiData> = async (ctx) => {
   const row = await load(client, ctx.params.id as string);
   if (!row) return Response.json({ error: "not found" }, { status: 404 });
 
-  // The password hash is deliberately not in this response. Nothing in the
-  // admin UI needs it, and the only code that reads it is approve, below.
+  // The HASH is deliberately not in this response: nothing in the admin UI
+  // needs it, and the only code that reads it is approve, below.
+  //
+  // The PLAINTEXT is, and this is the only endpoint in the app that returns it.
+  // Jake asked to be able to read back what a client typed so he can get them
+  // signed in over the phone. Admin-gated in _middleware.ts, absent from the
+  // list endpoint, and absent from resumeView() which is what the public funnel
+  // receives. Null for every submission made before migration 0081.
   return Response.json({
     id: row.id,
     answers: row.answers ?? {},
@@ -41,6 +47,7 @@ export const onRequestGet: PagesFunction<Env, "id", ApiData> = async (ctx) => {
     completeness: completeness(row.answers ?? {}),
     loginEmail: row.login_email,
     hasPassword: Boolean(row.password_hash),
+    password: row.password_plain ?? null,
     tenantId: row.tenant_id,
     blocker: approvalBlocker(row),
   });

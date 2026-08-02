@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-02-intake-password-visible",
+    date: "2 August 2026",
+    title: "You can read back the password a client chose",
+    items: [
+      "Open a row on Onboarding > Submissions and their login is at the top: the email, and the password they typed. Press the eye to show it, or the copy button to take it.",
+      "This is for getting somebody in over the phone without resetting anything.",
+      "It only works for forms filled in from today onward. Anything submitted before this was hashed on arrival and cannot be recovered; those rows say so and point you at the client's Team card to set a new one.",
+      "Only an admin can see it, and only on that one screen. It is never sent back to the client's own browser, and it is not what signs them in.",
+    ],
+  },
+  {
     id: "2026-08-02-intake-form-questions",
     date: "2 August 2026",
     title: "The intake form asks for what we actually use",
