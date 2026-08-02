@@ -21,6 +21,7 @@ import { useClient } from "../context/ClientContext";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useCloseOutCountQuery } from "../hooks/useApi";
+import { useNavDataGates } from "../hooks/useNavDataGates";
 
 // A single page row. Used for the standalone Home button and for the children of
 // the open section in the lower zone, so the active (gradient) and hover
@@ -197,7 +198,8 @@ export default function Sidebar() {
   const closeOutCount = closeOuts.data?.count ?? 0;
   const isLight = resolved === "light";
 
-  const navEntries = visibleNav(NAV, { isOwner, can });
+  const hasData = useNavDataGates(Boolean(session));
+  const navEntries = visibleNav(NAV, { isOwner, can, hasData });
   const sections = navEntries.filter(isNavSection);
   const standalone = navEntries.filter(
     (e): e is NavItem => !isNavSection(e),

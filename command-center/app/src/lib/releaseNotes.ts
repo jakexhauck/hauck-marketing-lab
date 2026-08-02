@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-02-organic-page",
+    date: "2 August 2026",
+    title: "Website leads have their own page",
+    items: [
+      "New Organic page in the client app: the leads their own website produced, next to the ads leads that already had a page.",
+      "Two columns, Estimate Form and Chat Widget, matching the two stages of the Organic pipeline in GoHighLevel.",
+      "Click a lead to read the message they actually sent and whatever they typed into the form.",
+      "The page only appears for clients who have an Organic pipeline, so a client whose website we do not manage never sees an empty tab.",
+      "Read only: these leads are called back, not messaged from the app.",
+    ],
+  },
+  {
     id: "2026-08-02-intake-services-step",
     date: "2 August 2026",
     title: "The intake form asks what services they sell",

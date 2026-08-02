@@ -11,6 +11,7 @@ import { ESTIMATE_LEADS } from "../lib/estimateForms";
 import { CHAT_LEADS } from "../lib/chatWidget";
 import { DEMO_LEADS as HUB_DEMO } from "../lib/leadsHub";
 import { demoAdsInsights } from "../lib/adsInsights";
+import { demoOrganicDetail, demoOrganicLeads } from "./organic";
 import { demoRoutes } from "./handlers";
 import * as store from "./store";
 
@@ -87,6 +88,18 @@ export async function handleDemoRequest<T>(
           ? ESTIMATE_LEADS
           : [...ESTIMATE_LEADS, ...CHAT_LEADS];
     return r({ submissions, total: submissions.length });
+  }
+  // Organic (website form + chat widget). The probe answers true so the demo
+  // client gets the nav row; a real tenant only gets it if GHL says so.
+  if (clean === "/api/organic") {
+    if (queryParam(path, "probe") === "1") return r({ available: true });
+    const leads = demoOrganicLeads();
+    return r({ available: true, stages: ["Chat Widget", "Estimate Form"], leads });
+  }
+  if (clean.startsWith("/api/organic/")) {
+    const detail = demoOrganicDetail(clean.slice("/api/organic/".length));
+    if (!detail) throw new ApiError(404, "Organic lead not found", null);
+    return r(detail);
   }
   if (clean === "/api/sales/leads") {
     if (method === "POST") return r({ ok: true, id: "demo-opp-1" });

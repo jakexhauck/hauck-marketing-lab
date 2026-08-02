@@ -10,9 +10,22 @@ import {
   ClipboardList,
   Database,
   FolderOpen,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
+
+// Data-driven surfaces: see NavItem.dataGate.
+export type DataGate = "organic";
+
+// What the nav needs to know to decide which rows exist. `can` is permissions,
+// `hasData` is the client's own setup. Both default to hiding rather than
+// showing, so a slow answer never leaks a surface the client should not have.
+export interface NavGateOpts {
+  isOwner: boolean;
+  can: (c: Capability, a?: "view" | "edit") => boolean;
+  hasData?: (gate: DataGate) => boolean;
+}
 
 export interface NavItem {
   to: string;
@@ -27,9 +40,27 @@ export interface NavItem {
   capability?: Capability;
   // Owner-only surfaces (e.g. Team management). Hidden from staff entirely.
   ownerOnly?: boolean;
-  // Whether this item shows in the phone bottom tab bar. The bar holds the
-  // day-to-day surfaces; everything else lives in the desktop sidebar only.
-  bottomNav?: boolean;
+  // A surface that only exists for SOME clients, decided by their data rather
+  // than by their permissions. `capability` answers "is this person allowed to
+  // see it"; this answers "does this client have one at all".
+  //
+  // Organic is the first: the page reads a GHL pipeline named "Organic", which
+  // only exists for a client whose website we manage. Rather than a per-client
+  // toggle somebody has to remember to flip, the row appears when the pipeline
+  // does. Gates default to FALSE while unknown, so a row never flashes in and
+  // then disappears on load.
+  dataGate?: DataGate;
+  // This item's slot in the phone bottom tab bar, 1-based left to right. Absent
+  // means it is not in the bar at all; the bar holds the day-to-day surfaces and
+  // everything else lives in the desktop sidebar and the /apps grid.
+  //
+  // An explicit slot rather than a boolean, because the bar used to render in
+  // nav-list order, which quietly coupled two unrelated things: where a row sits
+  // in the SIDEBAR and where its tab sits on the PHONE. Putting Ads Dashboard
+  // beside Lead Tracker in the rail (where it belongs) would have shoved the
+  // raised "All" FAB off centre, and nothing in the code said so. Now the bar
+  // order is stated here and the sidebar can be reordered freely.
+  bottomNav?: number;
   // A skeleton surface that renders the shared "coming soon" screen. Purely
   // informational here (the route decides what to render); kept so the sidebar
   // and docs share one source of truth for what is still stubbed.
@@ -96,10 +127,15 @@ export const NAV: NavEntry[] = [
   //
   // Creatives sits last: it is the reference page of the group, opened when
   // somebody wants to look at or hand over an ad, not every morning.
-  { to: "/marketing/paid-ads/leads", label: "Lead Tracker", icon: ClipboardList, bottomNav: true },
-  { to: "/marketing/paid-ads", label: "Ads Dashboard", shortLabel: "Ads", icon: Megaphone },
+  { to: "/marketing/paid-ads/leads", label: "Lead Tracker", icon: ClipboardList, bottomNav: 1 },
+  { to: "/marketing/paid-ads", label: "Ads Dashboard", shortLabel: "Ads", icon: Megaphone, bottomNav: 2 },
   { to: "/marketing/paid-ads/meta", label: "Meta Data", icon: Database },
   { to: "/marketing/paid-ads/creatives", label: "Creatives", icon: FolderOpen },
+  // Organic sits directly under the Paid Ads group because it is the same
+  // question asked of the other half of the business: Lead Tracker is what the
+  // ads produced, Organic is what the website produced. Only clients whose
+  // website we manage have the pipeline behind it, so the row is data-gated.
+  { to: "/organic", label: "Organic", icon: Globe, dataGate: "organic" },
   // Sales was one row with two in-page tabs. It is two rows now: the pages are
   // opened independently all day and a tab strip made the second one invisible
   // until you had already arrived at the first.
@@ -108,10 +144,10 @@ export const NAV: NavEntry[] = [
   // between them does not unmount it and a booking begun on Leads survives the
   // jump to Schedule to pick a slot.
   //
-  // Only Leads keeps bottomNav. The phone bar holds five items with the raised
+  // Only Leads takes a bar slot. The phone bar holds five items with the raised
   // "All" FAB dead centre, so a sixth would push the FAB off centre; Schedule is
   // a desktop job anyway. See the comment on /apps below.
-  { to: "/sales", label: "Leads", shortLabel: "Sales", icon: Handshake, bottomNav: true },
+  { to: "/sales", label: "Leads", shortLabel: "Sales", icon: Handshake, bottomNav: 4 },
   { to: "/sales/schedule", label: "Schedule", icon: CalendarDays },
   // Only the services we actively sell get a row. Six channels are
   // back-burnered (hidden here, routes still registered in App.tsx): to
@@ -123,19 +159,22 @@ export const NAV: NavEntry[] = [
   //   { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
   //   { to: "/marketing/reactivation", label: "Reactivation", icon: RotateCcw },
   // Phone-only "app grid" launcher, and the raised FAB in the bottom bar. Its
-  // position in THIS list is what centres it: the bar renders the bottomNav
-  // items in flatten order, so with five tabs it must sit third. Right now that
-  // means between Leads and Inbox, giving Leads, Sales, All, Chats, Contacts.
-  // Adding or removing a bottom-bar tab moves the centre, so re-place this row
-  // when you do. Retiring Home is why Lead Tracker took its bottomNav slot: the
-  // bar would otherwise have dropped to four and the FAB would sit off centre.
+  // bottomNav SLOT is what centres it: the bar sorts by slot, so with five tabs
+  // it must be slot 3. The bar reads Leads, Ads, All, Sales, Contacts.
+  // Adding or removing a bar tab moves the centre, so re-slot this row when you
+  // do; nav.test.ts fails if the FAB stops being the midpoint.
   // Sidebar-hidden (desktop has the full sidebar).
-  { to: "/apps", label: "All features", shortLabel: "All", icon: LayoutGrid, bottomNav: true, sidebarHidden: true },
-  { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
+  { to: "/apps", label: "All features", shortLabel: "All", icon: LayoutGrid, bottomNav: 3, sidebarHidden: true },
+  // Inbox came off the phone bar 2026-08-02 and Ads Dashboard took its slot: the
+  // client opens the app to read ad results, and Chats was the tab nobody
+  // pressed. Still on the /apps grid and still in the desktop sidebar, so it
+  // costs one tap rather than being hidden. To put the tab back, give this row a
+  // bottomNav slot and re-slot the rest so /apps stays the midpoint.
+  { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox" },
   // No Leads row: the whole Leads section retired 2026-07-23. The client
   // tracking sheet it hosted was rebuilt tab-for-tab inside Paid Ads (Dashboard
   // / Lead Tracker / Meta Data / Pipeline Stats / How to Use).
-  { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: true },
+  { to: "/contacts", label: "Contacts", icon: Contact, capability: "contacts", bottomNav: 5 },
   // No Customers row: retired from the nav 2026-07-31. The /customers and
   // /customers/:contactId routes stay registered, so a bookmark still resolves
   // and Close Out Job can still send you there after logging a job, but nothing
@@ -153,7 +192,7 @@ export const NAV: NavEntry[] = [
   // The agency chat. Off the phone bottom bar as of 2026-07-31 (it was the
   // far-right tab); sidebar-hidden on desktop as it always was. The /comms
   // route stays registered so a bookmark still resolves, but no chrome points
-  // at it. To put the tab back, add `bottomNav: true` here.
+  // at it. To put the tab back, give this row a bottomNav slot.
   { to: "/comms", label: "Chat", shortLabel: "Chat", icon: MessagesSquare, sidebarHidden: true },
 ];
 
@@ -173,16 +212,26 @@ export function flattenNav(entries: NavEntry[]): NavItem[] {
   );
 }
 
+// The phone bottom bar's tabs, left to right: every item carrying a slot,
+// ordered by it. Exported so the bar and its tests read the same ordering rather
+// than each re-deriving it (the bar used to sort implicitly, by nav-list order,
+// and the tests asserted that order by hand).
+export function bottomNavItems(entries: NavEntry[]): NavItem[] {
+  return flattenNav(entries)
+    .filter((item) => item.bottomNav !== undefined)
+    .sort((a, b) => a.bottomNav! - b.bottomNav!);
+}
+
 // Permission gate for a flat list of items: owner-only items need owner;
 // capability items need view access; the rest (incl. coming-soon placeholders)
 // are always shown. Owners pass every check via can(). Used by the bottom bar
 // and inside visibleNav.
-export function filterNav(
-  items: NavItem[],
-  opts: { isOwner: boolean; can: (c: Capability, a?: "view" | "edit") => boolean },
-): NavItem[] {
+export function filterNav(items: NavItem[], opts: NavGateOpts): NavItem[] {
   return items.filter((item) => {
-    if (item.ownerOnly) return opts.isOwner;
+    if (item.ownerOnly && !opts.isOwner) return false;
+    // A data gate applies to owners too: an owner whose client has no Organic
+    // pipeline has no Organic page to open either. This is not a permission.
+    if (item.dataGate && !(opts.hasData?.(item.dataGate) ?? false)) return false;
     if (item.capability) return opts.can(item.capability, "view");
     return true;
   });
@@ -192,10 +241,7 @@ export function filterNav(
 // sidebar-hidden ones, e.g. the agency chat, drop out), and each section is
 // filtered to its visible items. A section whose items are all hidden drops out
 // entirely so the sidebar never shows an empty header.
-export function visibleNav(
-  entries: NavEntry[],
-  opts: { isOwner: boolean; can: (c: Capability, a?: "view" | "edit") => boolean },
-): NavEntry[] {
+export function visibleNav(entries: NavEntry[], opts: NavGateOpts): NavEntry[] {
   const out: NavEntry[] = [];
   for (const entry of entries) {
     if (isNavSection(entry)) {

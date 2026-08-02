@@ -370,24 +370,26 @@ export async function fetchAllContacts(
   return all;
 }
 
-// Resolve the location's custom-field ids to their fieldKeys (e.g.
-// "contact.utm_source"), cached in-memory for an hour. Contact records only
-// carry {id, value} pairs; this map is what makes them readable.
-interface CustomFieldDef {
+// One custom-field definition as the location declares it: the fieldKey for
+// machine matching (e.g. "contact.utm_source"), the name for display.
+export interface CustomFieldDef {
   id: string;
   fieldKey?: string;
   name?: string;
 }
 interface CustomFieldsCacheEntry {
-  data: Map<string, string>;
+  data: CustomFieldDef[];
   expiresAt: number;
 }
 const customFieldsCache = new Map<string, CustomFieldsCacheEntry>();
 const CUSTOM_FIELDS_TTL_MS = 60 * 60_000;
 
-export async function customFieldKeyMap(
-  ctx: GhlContext,
-): Promise<Map<string, string>> {
+// The location's custom-field definitions, in the order GHL lists them, cached
+// in-memory for an hour. Contact records only carry {id, value} pairs, so this
+// is what makes them readable: the key for machine matching, the name for
+// display. One fetch backs both customFieldKeyMap and any surface that needs the
+// human labels (see api/organic).
+export async function customFieldDefs(ctx: GhlContext): Promise<CustomFieldDef[]> {
   const key = `customFields:${ctx.locationId}`;
   const hit = customFieldsCache.get(key);
   if (hit && hit.expiresAt > Date.now()) return hit.data;
@@ -396,14 +398,24 @@ export async function customFieldKeyMap(
     ctx,
     `/locations/${encodeURIComponent(ctx.locationId)}/customFields`,
   );
-  const map = new Map<string, string>();
-  for (const f of data.customFields ?? []) {
-    if (f.id && f.fieldKey) map.set(f.id, f.fieldKey);
-  }
+  const defs = (data.customFields ?? []).filter((f) => Boolean(f.id));
   customFieldsCache.set(key, {
-    data: map,
+    data: defs,
     expiresAt: Date.now() + CUSTOM_FIELDS_TTL_MS,
   });
+  return defs;
+}
+
+// Resolve the location's custom-field ids to their fieldKeys (e.g.
+// "contact.utm_source").
+export async function customFieldKeyMap(
+  ctx: GhlContext,
+): Promise<Map<string, string>> {
+  const defs = await customFieldDefs(ctx);
+  const map = new Map<string, string>();
+  for (const f of defs) {
+    if (f.id && f.fieldKey) map.set(f.id, f.fieldKey);
+  }
   return map;
 }
 

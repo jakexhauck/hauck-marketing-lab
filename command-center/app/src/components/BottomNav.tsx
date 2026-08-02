@@ -1,29 +1,42 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { NAV, filterNav, flattenNav } from "../lib/nav";
+import { NAV, bottomNavItems, filterNav } from "../lib/nav";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsQuery } from "../hooks/useApi";
+import { useNavDataGates } from "../hooks/useNavDataGates";
 import { haptic } from "../lib/haptics";
 
 export default function BottomNav() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { isOwner, can, session } = useAuth();
-  // Only the bottom-bar surfaces, then only the ones this user may see.
-  const items = filterNav(
-    flattenNav(NAV).filter((item) => item.bottomNav),
-    { isOwner, can },
-  );
-  // Active tab derives from the URL: exact match or a nested route under it.
-  // Coming-soon pages sit under no tab, so nothing highlights there.
-  const isActiveRoute = (to: string) =>
-    pathname === to || pathname.startsWith(to + "/");
+  // The bar's surfaces in slot order, then only the ones this user may see. A
+  // staff member missing a capability simply sees a shorter bar.
+  const hasData = useNavDataGates(Boolean(session));
+  const items = filterNav(bottomNavItems(NAV), { isOwner, can, hasData });
+  // Active tab derives from the URL. Exact match, or nested underneath, EXCEPT
+  // where another tab owns the nested route: Lead Tracker lives at
+  // /marketing/paid-ads/leads, which is nested under the Ads tab's
+  // /marketing/paid-ads, so a plain prefix test lights both. Same rule the
+  // sidebar applies via needsExactMatch, kept local because the bar's tab set is
+  // not the sidebar's.
+  const isActiveRoute = (to: string) => {
+    if (pathname === to) return true;
+    if (!pathname.startsWith(to + "/")) return false;
+    return !items.some((other) => other.to !== to && other.to.startsWith(to + "/"));
+  };
 
   // Reuse the Conversations route's cached ["conversations"] query (same key +
   // fetcher) so this badge shares its data and 30s refetch cycle rather than
   // adding a new network dependency. When the user reads messages the query
   // refetches and the badge updates via react-query's cache subscription.
   // No data yet means no badge (we never fabricate a count).
-  const conversations = useConversationsQuery(Boolean(session));
+  //
+  // Gated on the Inbox tab actually being in the bar. It came out 2026-08-02, so
+  // without this the app would keep polling every 30s on every phone page to
+  // feed a badge that can no longer render. Re-slot Inbox in nav.ts and the poll
+  // (and the badge) come back on their own.
+  const hasInboxTab = items.some((item) => item.to === "/conversations");
+  const conversations = useConversationsQuery(Boolean(session) && hasInboxTab);
   const unreadConversations = (conversations.data?.conversations ?? []).reduce(
     (n, c) => n + (c.unreadCount > 0 ? c.unreadCount : 0),
     0,

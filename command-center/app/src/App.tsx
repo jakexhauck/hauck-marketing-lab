@@ -51,6 +51,7 @@ import AdsDashboard from "./routes/paid-ads/AdsDashboard";
 import AdsLeadTracker from "./routes/paid-ads/AdsLeadTracker";
 import AdsMetaData from "./routes/paid-ads/AdsMetaData";
 import AdsCreatives from "./routes/paid-ads/AdsCreatives";
+import Organic from "./routes/organic/Organic";
 import Reactivation from "./routes/sales/Reactivation";
 import CampaignsAudiences from "./routes/campaigns/CampaignsAudiences";
 import OutreachOverview from "./routes/outreach/OutreachOverview";
@@ -476,6 +477,11 @@ export default function App() {
               {/* Creatives points at the client's Drive folder. This path used to
                   redirect to the dashboard; it is a real page again. */}
               <Route path="/marketing/paid-ads/creatives" element={<ProtectedRoute><AdsCreatives /></ProtectedRoute>} />
+              {/* Website leads. The nav row is data-gated (see NavItem.dataGate)
+                  but the route stays registered for everyone: a client without an
+                  Organic pipeline simply gets the empty state if they land here
+                  from a bookmark, rather than a dead URL. */}
+              <Route path="/organic" element={<ProtectedRoute><Organic /></ProtectedRoute>} />
               {/* Old Paid Ads URLs fold into the current tabs. */}
               <Route path="/marketing/paid-ads/media" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/pipeline-stats" element={<Navigate to="/marketing/paid-ads" replace />} />
