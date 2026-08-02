@@ -1,0 +1,42 @@
+<!--
+  HAUCK MARKETING SALES FUNNEL: PRE-CALL PAGE
+
+  THIS IS THE WHOLE THING. Paste it into the GoHighLevel step and never come
+  back. The page itself is served from the Command Center, so every future
+  change to a word, a screenshot, the video or the text number ships by deploy.
+
+  GHL holds a pointer, not a copy. That distinction is the entire point: when a
+  page is pasted in full, GHL owns a snapshot, editing the repo changes nothing
+  until somebody re-pastes, and the two drift apart every single time.
+
+  The real file:
+    command-center/app/public/funnel/precall.js
+
+  Everything you would want to change sits in the CONFIG block at the top of it:
+  the SMS number, the video embed url, and the list of result screenshots.
+  Screenshots themselves live in:
+    command-center/app/public/funnel/precall/
+
+  Where this page sits: a PROSPECT lands here straight after booking a demo.
+  Not the same as Client Onboarding Funnel/03-thank-you.html, which is where an
+  already-signed CLIENT lands and deliberately asks for nothing.
+
+  HOW TO USE IT IN GHL
+  1. Funnel > add a step after the booking page > Custom JS/HTML element.
+  2. Paste everything below.
+  3. Set the step to full width and remove GHL's own padding, or the page sits
+     in a narrower column than it was designed for.
+  4. Calendar settings > on booking, redirect to this step's URL. Skip this and
+     GHL shows its own generic confirmation, and the prospect finishes the flow
+     on someone else's page.
+
+  This is the same pattern the intake form uses, so it is proven on these pages:
+  a script tag survives the builder, a <link> tag does not.
+
+  NOTHING HERE GOES LIVE UNTIL THE COMMAND CENTER IS DEPLOYED. The stub loads
+  precall.js from app.hauckmarketing.com, so until that deploy runs, the GHL step
+  renders an empty div.
+-->
+
+<div id="hm-precall-root"></div>
+<script src="https://app.hauckmarketing.com/funnel/precall.js"></script>
