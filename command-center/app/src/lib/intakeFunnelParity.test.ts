@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { INTAKE_FIELDS, INTAKE_STEPS } from "./intake";
+import { INTAKE_FIELDS, INTAKE_STEPS, MIN_PASSWORD_LEN, PASSWORD_RULES, passwordProblems } from "./intake";
 // ?raw pulls both files in as source text. Vite resolves them, so this needs no
 // node:fs and no @types/node, which this project's tsconfig does not carry.
 import FUNNEL from "../../public/funnel/intake.js?raw";
@@ -76,6 +76,45 @@ describe("the funnel script and the shared schema", () => {
       .map((e) => e.key);
     const schemaRequired = INTAKE_FIELDS.filter((f) => f.required).map((f) => f.key);
     expect(funnelRequired).toEqual(schemaRequired);
+  });
+
+  // The password rule is stated in the funnel's own words and enforced by the
+  // server. If those two disagree, a client passes the form and is then bounced
+  // by the API with a rule they were never shown, which is the worst version of
+  // this to debug. So the funnel must carry the same number and the same three
+  // lines, and its checker must reach the same verdict as ours.
+  it("states the same password rule the server enforces", () => {
+    expect(FUNNEL).toContain(`var MIN_PASSWORD_LEN = ${MIN_PASSWORD_LEN};`);
+    for (const rule of PASSWORD_RULES) {
+      expect(FUNNEL, `the funnel should say "${rule}"`).toContain(`<li>${rule}`);
+    }
+  });
+
+  it("checks passwords the same way the server does", () => {
+    // The funnel's checker, lifted out of the script and run against the same
+    // inputs. A copy that drifted would disagree on one of these.
+    const source = FUNNEL.slice(
+      FUNNEL.indexOf("function passwordProblems(p)"),
+      FUNNEL.indexOf("var STEPS = ["),
+    );
+    expect(source.length, "passwordProblems not found in the funnel").toBeGreaterThan(0);
+    const funnelCheck = new Function(
+      `var MIN_PASSWORD_LEN = ${MIN_PASSWORD_LEN}; ${source} return passwordProblems;`,
+    )() as (p: string) => string[];
+
+    for (const candidate of [
+      "Roofing-Rules9",
+      "roofing-rules9",
+      "ROOFING-RULES9",
+      "RoofingRulesNine",
+      "Roofing-Rules",
+      "Roof-9",
+      "",
+    ]) {
+      expect(funnelCheck(candidate), `disagreed on "${candidate}"`).toEqual(
+        passwordProblems(candidate),
+      );
+    }
   });
 
   // The stub in GHL is the one thing nobody can redeploy. If the URL it points

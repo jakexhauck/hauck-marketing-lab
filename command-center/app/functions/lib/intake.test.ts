@@ -73,14 +73,14 @@ describe("sanitizeAnswers", () => {
   });
 
   it("never returns the password fields for storage", () => {
-    const result = sanitizeAnswers({ password: "correcthorse", passwordConfirm: "correcthorse" });
+    const result = sanitizeAnswers({ password: "Roofing-Rules9", passwordConfirm: "Roofing-Rules9" });
     expect(result.answers.password).toBeUndefined();
     expect(result.answers.passwordConfirm).toBeUndefined();
   });
 
   it("hands the password back separately so the caller can hash it", () => {
-    const result = sanitizeAnswers({ password: "correcthorse", passwordConfirm: "correcthorse" });
-    expect(result.password).toBe("correcthorse");
+    const result = sanitizeAnswers({ password: "Roofing-Rules9", passwordConfirm: "Roofing-Rules9" });
+    expect(result.password).toBe("Roofing-Rules9");
   });
 
   it("reports no password when none was sent", () => {
@@ -88,15 +88,26 @@ describe("sanitizeAnswers", () => {
   });
 
   it("refuses a password that does not match its confirmation", () => {
-    const result = sanitizeAnswers({ password: "correcthorse", passwordConfirm: "nope" });
+    const result = sanitizeAnswers({ password: "Roofing-Rules9", passwordConfirm: "nope" });
     expect(result.password).toBeNull();
     expect(result.error).toBeTruthy();
   });
 
-  it("refuses a password under eight characters", () => {
-    const result = sanitizeAnswers({ password: "short7", passwordConfirm: "short7" });
-    expect(result.password).toBeNull();
-    expect(result.error).toBeTruthy();
+  // The funnel states the rule on the field and checks it in the browser. This
+  // is the check that MATTERS: anyone can post straight to /api/intake, so a
+  // password that never passed through the form still has to satisfy it.
+  it("refuses a password that breaks the rule, whatever the browser allowed", () => {
+    for (const weak of ["short7", "alllowercase99!", "NoSymbolsHere99", "No-Numbers-Here!"]) {
+      const result = sanitizeAnswers({ password: weak, passwordConfirm: weak });
+      expect(result.password, `${weak} should be refused`).toBeNull();
+      expect(result.error, `${weak} should be refused`).toBeTruthy();
+    }
+  });
+
+  it("names the rule that was broken rather than a generic refusal", () => {
+    expect(sanitizeAnswers({ password: "roofing-rules9" }).error).toMatch(/upper and lower/i);
+    expect(sanitizeAnswers({ password: "RoofingRulesNine" }).error).toMatch(/symbol and one number/i);
+    expect(sanitizeAnswers({ password: "Roof-9" }).error).toMatch(/12 characters/i);
   });
 
   it("caps a single oversized answer", () => {
@@ -275,8 +286,8 @@ describe("resumeView", () => {
   // anyone holding a resume token. It is a whitelist, and the plaintext must
   // never be added to it.
   it("never carries the plaintext password, whoever holds the resume token", () => {
-    const view = resumeView(submission({ password_plain: "correcthorse" }));
-    expect(JSON.stringify(view)).not.toContain("correcthorse");
+    const view = resumeView(submission({ password_plain: "Roofing-Rules9" }));
+    expect(JSON.stringify(view)).not.toContain("Roofing-Rules9");
     expect("password" in view).toBe(false);
     expect("password_plain" in view).toBe(false);
   });

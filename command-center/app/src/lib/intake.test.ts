@@ -49,8 +49,9 @@ function step2(overrides: IntakeAnswers = {}): IntakeAnswers {
 function step3(overrides: IntakeAnswers = {}): IntakeAnswers {
   return {
     loginEmail: "jim@willisexteriors.com",
-    password: "correcthorse",
-    passwordConfirm: "correcthorse",
+    // Satisfies the funnel's rule: upper, lower, number, symbol, 12+.
+    password: "Roofing-Rules9",
+    passwordConfirm: "Roofing-Rules9",
     ...overrides,
   };
 }
@@ -286,15 +287,28 @@ describe("step 3, the login they choose", () => {
     expect(result.errors.passwordConfirm).toBeTruthy();
   });
 
-  it("enforces the same eight character floor as the API", () => {
-    const result = validateStep(3, step3({ password: "short7", passwordConfirm: "short7" }));
+  it("enforces the same password rule as the API", () => {
+    const weak = "short7";
+    const result = validateStep(3, step3({ password: weak, passwordConfirm: weak }));
     expect(result.ok).toBe(false);
     expect(result.errors.password).toBeTruthy();
   });
 
-  it("accepts exactly eight characters", () => {
-    const result = validateStep(3, step3({ password: "eightchr", passwordConfirm: "eightchr" }));
+  it("accepts a password that satisfies every rule", () => {
+    const good = "Roofing-Rules9";
+    const result = validateStep(3, step3({ password: good, passwordConfirm: good }));
     expect(result.ok).toBe(true);
+  });
+
+  // Each rule on its own, so a change to one is a named failing test rather
+  // than "the password test broke".
+  it("names the one rule that is broken, and only that one", () => {
+    const bad = (pw: string): string | undefined =>
+      validateStep(3, step3({ password: pw, passwordConfirm: pw })).errors.password;
+
+    expect(bad("roofing-rules9")).toMatch(/upper and lower/i);
+    expect(bad("RoofingRulesNine")).toMatch(/symbol and one number/i);
+    expect(bad("Roof-9")).toMatch(/12 characters/i);
   });
 
   it("rejects a malformed login email", () => {

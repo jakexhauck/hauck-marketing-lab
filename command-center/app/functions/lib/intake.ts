@@ -13,7 +13,15 @@
 //
 // See docs/build-plans/client-onboarding-full.md.
 
-import { INTAKE_FIELDS, REVIEW_STEP, type IntakeAnswers } from "../../src/lib/intake";
+import {
+  INTAKE_FIELDS,
+  MIN_PASSWORD_LEN,
+  REVIEW_STEP,
+  passwordProblems,
+  type IntakeAnswers,
+} from "../../src/lib/intake";
+
+export { MIN_PASSWORD_LEN };
 
 // Long enough for a rambling "anything else we should know", short enough that
 // nobody is storing a novel in a jsonb column.
@@ -22,7 +30,6 @@ export const MAX_ANSWER_LEN = 4000;
 // The whole payload, serialised. Roughly ten times a realistic submission.
 export const MAX_ANSWERS_BYTES = 64_000;
 
-export const MIN_PASSWORD_LEN = 8;
 
 export type SubmissionStatus = "in_progress" | "submitted" | "approved" | "rejected";
 
@@ -109,8 +116,12 @@ export function sanitizeAnswers(
   if (!password) {
     return { answers, password: null, error: null };
   }
-  if (password.length < MIN_PASSWORD_LEN) {
-    return { answers, password: null, error: "Password must be at least 8 characters." };
+  // The same rule the funnel states on the field. Enforced here too, because
+  // the funnel's check is client-side and anyone can post straight to this
+  // endpoint. Reported one rule at a time, matching what the form says.
+  const problems = passwordProblems(password);
+  if (problems.length > 0) {
+    return { answers, password: null, error: `${problems[0]}.` };
   }
   if (confirm && password !== confirm) {
     return { answers, password: null, error: "The two passwords do not match." };

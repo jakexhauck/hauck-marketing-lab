@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-02-intake-password-rule",
+    date: "2 August 2026",
+    title: "The intake form asks for a real password",
+    items: [
+      "Step 3 now states the rule on the field: upper and lower case, at least one symbol and number, at least 12 characters.",
+      "It is checked when they press Continue and again on our side, so a weak one cannot get through by posting around the form.",
+      "They are told one thing to fix at a time rather than all three at once.",
+      "This applies to the client intake form only. Passwords you set for staff in Team are unchanged.",
+    ],
+  },
+  {
     id: "2026-08-02-intake-password-visible",
     date: "2 August 2026",
     title: "You can read back the password a client chose",

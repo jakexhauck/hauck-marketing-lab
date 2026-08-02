@@ -134,6 +134,53 @@ const ENTITY_OPTIONS: IntakeOption[] = [
   { value: "non_profit", label: "Non-profit" },
 ];
 
+// --- The password rule -------------------------------------------------------
+//
+// This account is the client's way into their own business data, and it is
+// chosen once, on a public form, by somebody who will never think about it
+// again. So the rule is stated up front on the field rather than sprung on them
+// as an error, and it is enforced on the SERVER as well as in the funnel: a
+// rule that only lives in the browser is a suggestion.
+//
+// Deliberately STRICTER than the eight-character floor the admin-side staff and
+// owner forms use. Those are Jake typing a password for somebody he is on the
+// phone with; this is a stranger choosing their own.
+
+export const MIN_PASSWORD_LEN = 12;
+
+/** The rule as the client reads it, one line per requirement. */
+export const PASSWORD_RULES: string[] = [
+  "Include both upper and lower case characters",
+  "Include at least one symbol and number",
+  `Be at least ${MIN_PASSWORD_LEN} characters long`,
+];
+
+// A symbol is anything that is not a letter, a number or a space. Defined by
+// exclusion on purpose: an allow-list of punctuation always misses the one
+// character somebody actually typed.
+const HAS_LOWER = /[a-z]/;
+const HAS_UPPER = /[A-Z]/;
+const HAS_NUMBER = /[0-9]/;
+const HAS_SYMBOL = /[^a-zA-Z0-9\s]/;
+
+/**
+ * Every rule this password breaks, in the order the form lists them. Empty
+ * means it passes. The funnel shows the first one; the server rejects on any.
+ */
+export function passwordProblems(password: string): string[] {
+  const problems: string[] = [];
+  if (!HAS_LOWER.test(password) || !HAS_UPPER.test(password)) {
+    problems.push("Use both upper and lower case characters");
+  }
+  if (!HAS_NUMBER.test(password) || !HAS_SYMBOL.test(password)) {
+    problems.push("Use at least one symbol and one number");
+  }
+  if (password.length < MIN_PASSWORD_LEN) {
+    problems.push(`Use at least ${MIN_PASSWORD_LEN} characters`);
+  }
+  return problems;
+}
+
 export const INTAKE_FIELDS: IntakeField[] = [
   // 1 - Your business
   {
@@ -272,7 +319,9 @@ export const INTAKE_FIELDS: IntakeField[] = [
     type: "password",
     step: 3,
     required: true,
-    help: "At least 8 characters.",
+    // Plain text here (the admin record escapes help); the funnel's own copy
+    // renders the same three rules as a list.
+    help: `Your password needs to: ${PASSWORD_RULES.join("; ").toLowerCase()}.`,
   },
   {
     key: "passwordConfirm",
@@ -439,14 +488,17 @@ export function validateStep(step: number, answers: IntakeAnswers): StepValidati
     }
   }
 
-  // The login step has rules the field types cannot express. The 8-character
-  // floor mirrors POST /api/admin/clients, so a funnel that passes here will not
-  // be bounced when the submission is approved.
+  // The login step has rules the field types cannot express. Same rule the
+  // server enforces (passwordProblems), so a funnel that passes here is never
+  // bounced by the API afterwards.
   if (step === 3) {
     const password = textValue(answers, "password");
     const confirm = textValue(answers, "passwordConfirm");
-    if (password && password.length < 8) {
-      errors.password = "At least 8 characters";
+    const problems = password ? passwordProblems(password) : [];
+    if (problems.length > 0) {
+      // One at a time. A field that lists three faults at once reads as a
+      // telling-off; fixing them one by one reads as progress.
+      errors.password = problems[0];
     }
     if (password && confirm && password !== confirm) {
       errors.passwordConfirm = "The two passwords do not match";

@@ -94,6 +94,13 @@
 .hm-funnel .hm-help .hm-mark-em{color:var(--hm-ink);font-weight:600;
   background:rgba(77,187,131,.18);border-radius:4px;padding:1px 4px;
   box-decoration-break:clone;-webkit-box-decoration-break:clone}
+/* The password rule, as a list. Marker drawn by ::before rather than a real
+   list-style, because GHL's page CSS resets list markers on custom blocks and
+   a rule with invisible bullets reads as one run-on sentence. */
+.hm-funnel .hm-rules{list-style:none;margin:5px 0 0;padding:0}
+.hm-funnel .hm-rules li{position:relative;padding-left:14px;line-height:1.55}
+.hm-funnel .hm-rules li::before{content:"";position:absolute;left:3px;top:7px;
+  width:4px;height:4px;border-radius:50%;background:var(--hm-green)}
 .hm-err{font-size:11.5px;line-height:1.45;color:#C2492F}
 .hm-check{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
 .hm-check input{width:17px;height:17px;margin-top:1px;flex:none;accent-color:var(--hm-green)}
@@ -222,6 +229,32 @@ a.hm-btn{display:inline-block;text-decoration:none}
     '<b class="hm-mark-em">set it so anyone with the link can view it</b>. ' +
     "If you are not sure how, leave it blank and message Jake, who will sort it out with you.";
 
+  // The password rule, mirroring MIN_PASSWORD_LEN / PASSWORD_RULES /
+  // passwordProblems in src/lib/intake.ts. Stated on the field rather than
+  // sprung as an error, and checked again on the server, which is what makes it
+  // a rule rather than a suggestion.
+  var MIN_PASSWORD_LEN = 12;
+  // Written out rather than built from MIN_PASSWORD_LEN: the parity test reads
+  // this file as TEXT, so an interpolated number is invisible to it. Both the
+  // number above and these three lines are checked against src/lib/intake.ts.
+  var PASSWORD_HELP =
+    "Your password needs to:" +
+    '<ul class="hm-rules">' +
+    "<li>Include both upper and lower case characters</li>" +
+    "<li>Include at least one symbol and number</li>" +
+    "<li>Be at least 12 characters long</li>" +
+    "</ul>";
+
+  // Every rule the password breaks, in the order the list shows them. A symbol
+  // is anything that is not a letter, a number or a space.
+  function passwordProblems(p) {
+    var out = [];
+    if (!/[a-z]/.test(p) || !/[A-Z]/.test(p)) out.push("Use both upper and lower case characters");
+    if (!/[0-9]/.test(p) || !/[^a-zA-Z0-9\s]/.test(p)) out.push("Use at least one symbol and one number");
+    if (p.length < MIN_PASSWORD_LEN) out.push("Use at least " + MIN_PASSWORD_LEN + " characters");
+    return out;
+  }
+
   var STEPS = [
     { n: 1, label: "Your business", blurb: "The basics, so we know who we are building for." },
     { n: 2, label: "Contact details", blurb: "How we reach you, and what we need to register your phone number." },
@@ -264,7 +297,7 @@ a.hm-btn{display:inline-block;text-decoration:none}
 
     // 3 Your login
     { key: "loginEmail", label: "Login email", type: "email", step: 3, required: true, wide: true, help: "Prefilled from the email above. Change it if you would rather sign in with another." },
-    { key: "password", label: "Choose a password", type: "password", step: 3, required: true, help: "At least 8 characters." },
+    { key: "password", label: "Choose a password", type: "password", step: 3, required: true, help: PASSWORD_HELP },
     { key: "passwordConfirm", label: "Confirm password", type: "password", step: 3, required: true },
 
     // 4 Targeting
@@ -322,7 +355,9 @@ a.hm-btn{display:inline-block;text-decoration:none}
     });
     if (step === 3) {
       var p = txt("password"), c = txt("passwordConfirm");
-      if (p && p.length < 8) errs.password = "At least 8 characters";
+      // One rule at a time: a field listing three faults at once reads as a
+      // telling-off, fixing them one by one reads as progress.
+      if (p && passwordProblems(p).length) errs.password = passwordProblems(p)[0];
       if (p && c && p !== c) errs.passwordConfirm = "The two passwords do not match";
     }
     return errs;
@@ -418,8 +453,13 @@ a.hm-btn{display:inline-block;text-decoration:none}
         }
         state.step = Math.min(data.furthestStep || 1, REVIEW_STEP);
         if (data.hasPassword) {
+          // This used to say we do not store the password in a readable form.
+          // That stopped being true when Jake asked to be able to read it back
+          // (migration 0081), and a line about somebody's credentials is not a
+          // line to leave wrong. It now says only what the client can observe:
+          // the funnel never sends it back to them.
           state.banner = { tone: "info", text:
-            "Welcome back. For your security we do not store your password in a readable form, so if you change it on step 3 you will need to type it twice again." };
+            "Welcome back. Your password is not shown back to you here, so if you go to step 3 you will need to type it twice again." };
         }
         render();
       })
