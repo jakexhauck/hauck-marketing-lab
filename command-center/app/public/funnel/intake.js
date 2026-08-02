@@ -260,12 +260,13 @@ a.hm-btn{display:inline-block;text-decoration:none}
     { n: 2, label: "Contact details", blurb: "How we reach you, and what we need to register your phone number." },
     { n: 3, label: "Your login", blurb: "Choose how you will sign in once your account is ready." },
     { n: 4, label: "Targeting", blurb: "Where your ads run, and the hours you would like to be booked in." },
-    { n: 5, label: "Your story", blurb: "What makes you different. This is the raw material for your ads." },
-    { n: 6, label: "Assets", blurb: "Photos and a logo we can use in your marketing. All three are optional." },
-    { n: 7, label: "Review", blurb: "Check it over, then send it to us." }
+    { n: 5, label: "Your services", blurb: "One service per box, in the words your customers use for them." },
+    { n: 6, label: "Your story", blurb: "What makes you different. This is the raw material for your ads." },
+    { n: 7, label: "Assets", blurb: "Photos and a logo we can use in your marketing. All three are optional." },
+    { n: 8, label: "Review", blurb: "Check it over, then send it to us." }
   ];
-  var LAST_INPUT_STEP = 6;
-  var REVIEW_STEP = 7;
+  var LAST_INPUT_STEP = 7;
+  var REVIEW_STEP = 8;
 
   var FIELDS = [
     // 1 Your business
@@ -313,15 +314,24 @@ a.hm-btn{display:inline-block;text-decoration:none}
     { key: "hoursSaturday", label: "Saturday", type: "text", step: 4, placeholder: "10am - 2pm" },
     { key: "hoursSunday", label: "Sunday", type: "text", step: 4, placeholder: "Closed" },
 
-    // 5 Your story
-    { key: "usp", label: "Do you have a unique selling proposition?", type: "textarea", step: 5, wide: true, placeholder: "We guarantee a home sale in 30 days or pay the seller $10k" },
-    { key: "whySignedUp", label: "What made you want to work with Hauck Marketing?", type: "textarea", step: 5, wide: true },
-    { key: "notes", label: "Anything else we should know?", type: "textarea", step: 5, wide: true },
+    // 5 Your services. One box per service: a comma-separated sentence has to be
+    // split by hand afterwards, and the split is a guess.
+    { key: "service1", label: "Service 1", type: "text", step: 5, required: true, placeholder: "Paver patios", help: "One service per box, named the way your customers ask for it. Leave the rest blank if you offer fewer." },
+    { key: "service2", label: "Service 2", type: "text", step: 5, required: true, placeholder: "Retaining walls" },
+    { key: "service3", label: "Service 3", type: "text", step: 5, placeholder: "Landscape design" },
+    { key: "service4", label: "Service 4", type: "text", step: 5, placeholder: "Lawn maintenance" },
+    { key: "service5", label: "Service 5", type: "text", step: 5, placeholder: "Drainage" },
+    { key: "service6", label: "Service 6", type: "text", step: 5, placeholder: "Snow removal" },
 
-    // 6 Assets
-    { key: "logoUrl", label: "Your logo", type: "url", step: 6, wide: true, help: ASSET_HELP },
-    { key: "headshotUrl", label: "A clear headshot of yourself", type: "url", step: 6, wide: true, help: ASSET_HELP },
-    { key: "pastWorkUrl", label: "Photos of your past work", type: "url", step: 6, wide: true, help: ASSET_HELP }
+    // 6 Your story
+    { key: "usp", label: "Do you have a unique selling proposition?", type: "textarea", step: 6, wide: true, placeholder: "We guarantee a home sale in 30 days or pay the seller $10k" },
+    { key: "whySignedUp", label: "What made you want to work with Hauck Marketing?", type: "textarea", step: 6, wide: true },
+    { key: "notes", label: "Anything else we should know?", type: "textarea", step: 6, wide: true },
+
+    // 7 Assets
+    { key: "logoUrl", label: "Your logo", type: "url", step: 7, wide: true, help: ASSET_HELP },
+    { key: "headshotUrl", label: "A clear headshot of yourself", type: "url", step: 7, wide: true, help: ASSET_HELP },
+    { key: "pastWorkUrl", label: "Photos of your past work", type: "url", step: 7, wide: true, help: ASSET_HELP }
   ];
 
   // ------------------------------------------------------------------ state

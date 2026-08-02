@@ -35,7 +35,9 @@ function matchAll(source: string, re: RegExp): string[] {
 
 describe("the funnel script and the shared schema", () => {
   it("asks exactly the same questions, in the same order", () => {
-    const funnelKeys = matchAll(block("FIELDS"), /key: "([a-zA-Z]+)"/g);
+    // Digits allowed: service1..service6 are keys too, and a letters-only
+    // pattern silently skipped them, which is exactly the drift this catches.
+    const funnelKeys = matchAll(block("FIELDS"), /key: "([a-zA-Z0-9]+)"/g);
     expect(funnelKeys).toEqual(INTAKE_FIELDS.map((f) => f.key));
   });
 
@@ -69,7 +71,7 @@ describe("the funnel script and the shared schema", () => {
     const entries = block("FIELDS").split(/\n\s*\{ key: |\n\s*\{ key:/).slice(1);
     const funnelRequired = entries
       .map((e) => ({
-        key: /^"([a-zA-Z]+)"/.exec(e.trim())?.[1] ?? "",
+        key: /^"([a-zA-Z0-9]+)"/.exec(e.trim())?.[1] ?? "",
         required: /required: true/.test(e),
       }))
       .filter((e) => e.required)

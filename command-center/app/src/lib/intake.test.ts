@@ -64,9 +64,13 @@ function step4(overrides: IntakeAnswers = {}): IntakeAnswers {
   };
 }
 
+function step5(overrides: IntakeAnswers = {}): IntakeAnswers {
+  return { service1: "Paver patios", service2: "Retaining walls", ...overrides };
+}
+
 // Everything required, across every input step. The baseline for completeness.
 function fullAnswers(): IntakeAnswers {
-  return { ...step1(), ...step2(), ...step3(), ...step4() };
+  return { ...step1(), ...step2(), ...step3(), ...step4(), ...step5() };
 }
 
 describe("the schema itself", () => {
@@ -177,6 +181,35 @@ describe("the schema itself", () => {
     expect(hours.map((f) => f.label)).toEqual(days);
     for (const field of hours) {
       expect(field.required ?? false, `${field.key} must not be required`).toBe(false);
+    }
+  });
+
+  // One box per service, not one box listing them all: a comma-separated
+  // sentence has to be split by hand and the split is a guess.
+  it("asks for services one at a time, with room for six", () => {
+    const services = INTAKE_FIELDS.filter((f) => f.key.startsWith("service"));
+    expect(services).toHaveLength(6);
+    expect(services.map((f) => f.label)).toEqual([
+      "Service 1",
+      "Service 2",
+      "Service 3",
+      "Service 4",
+      "Service 5",
+      "Service 6",
+    ]);
+    for (const field of services) {
+      expect(field.type, `${field.key} should be a single text box`).toBe("text");
+    }
+    // Two required: every business has at least a couple, and nobody has six.
+    expect(services.filter((f) => f.required).map((f) => f.key)).toEqual(["service1", "service2"]);
+  });
+
+  // The password rule is keyed to "step 3" by number in this file AND in the
+  // funnel's own copy, so a step inserted before the login step would silently
+  // move it out from under that check.
+  it("keeps the login on step 3, which the password rule is keyed to", () => {
+    for (const key of ["loginEmail", "password", "passwordConfirm"]) {
+      expect(INTAKE_FIELDS.find((f) => f.key === key)?.step, `${key} must stay on step 3`).toBe(3);
     }
   });
 

@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-02-intake-services-step",
+    date: "2 August 2026",
+    title: "The intake form asks what services they sell",
+    items: [
+      "A new step between Targeting and Your story: six boxes, one service per box.",
+      "Separate boxes on purpose. A single line reading \"landscaping, design and build\" has to be split by hand afterwards, and the split is a guess.",
+      "The first two are required, the rest are for whoever offers more.",
+      "They show up per service on the client's answers card, ready to build ads and pages around.",
+      "The form is eight screens now instead of seven.",
+    ],
+  },
+  {
     id: "2026-08-02-intake-password-rule",
     date: "2 August 2026",
     title: "The intake form asks for a real password",

@@ -13,7 +13,7 @@ import {
   sanitizeAnswers,
   type SubmissionRow,
 } from "./intake";
-import { INTAKE_FIELDS } from "../../src/lib/intake";
+import { INTAKE_FIELDS, REVIEW_STEP } from "../../src/lib/intake";
 
 function submission(overrides: Partial<SubmissionRow> = {}): SubmissionRow {
   return {
@@ -182,7 +182,8 @@ describe("clampStep", () => {
   });
 
   it("ceilings at the review step", () => {
-    expect(clampStep(999)).toBe(7);
+    // The review screen, whatever number it currently is.
+    expect(clampStep(999)).toBe(REVIEW_STEP);
   });
 
   it("survives nonsense", () => {

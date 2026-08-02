@@ -98,14 +98,23 @@ export const INTAKE_STEPS: IntakeStep[] = [
     label: "Targeting",
     blurb: "Where your ads run, and the hours you would like to be booked in.",
   },
+  // Services sits here, not up with "Your business", because inserting a step
+  // before the login step would move it out from under the password rule, which
+  // both this file and the funnel key to "step 3" by number.
   {
     n: 5,
+    key: "services",
+    label: "Your services",
+    blurb: "One service per box, in the words your customers use for them.",
+  },
+  {
+    n: 6,
     key: "story",
     label: "Your story",
     blurb: "What makes you different. This is the raw material for your ads.",
   },
   {
-    n: 6,
+    n: 7,
     key: "assets",
     label: "Assets",
     blurb: "Photos and a logo we can use in your marketing. All three are optional.",
@@ -376,12 +385,41 @@ export const INTAKE_FIELDS: IntakeField[] = [
   { key: "hoursSaturday", label: "Saturday", type: "text", step: 4, placeholder: "10am - 2pm" },
   { key: "hoursSunday", label: "Sunday", type: "text", step: 4, placeholder: "Closed" },
 
-  // 5 - Your story (source form Q12, Q15, Q16)
+  // 5 - Your services
+  //
+  // One box per service rather than one box listing them all. A comma-separated
+  // sentence has to be split by hand before anything can be built from it, and
+  // the split is a guess: "landscaping, design and build" is either two services
+  // or three. Six slots because that is what a contractor's list runs to; the
+  // first two are required and the rest are for whoever has more.
+  {
+    key: "service1",
+    label: "Service 1",
+    type: "text",
+    step: 5,
+    required: true,
+    placeholder: "Paver patios",
+    help: "One service per box, named the way your customers ask for it. Leave the rest blank if you offer fewer.",
+  },
+  {
+    key: "service2",
+    label: "Service 2",
+    type: "text",
+    step: 5,
+    required: true,
+    placeholder: "Retaining walls",
+  },
+  { key: "service3", label: "Service 3", type: "text", step: 5, placeholder: "Landscape design" },
+  { key: "service4", label: "Service 4", type: "text", step: 5, placeholder: "Lawn maintenance" },
+  { key: "service5", label: "Service 5", type: "text", step: 5, placeholder: "Drainage" },
+  { key: "service6", label: "Service 6", type: "text", step: 5, placeholder: "Snow removal" },
+
+  // 6 - Your story (source form Q12, Q15, Q16)
   {
     key: "usp",
     label: "Do you have a unique selling proposition?",
     type: "textarea",
-    step: 5,
+    step: 6,
     wide: true,
     placeholder: "We guarantee a home sale in 30 days or pay the seller $10k",
   },
@@ -389,18 +427,18 @@ export const INTAKE_FIELDS: IntakeField[] = [
     key: "whySignedUp",
     label: "What made you want to work with Hauck Marketing?",
     type: "textarea",
-    step: 5,
+    step: 6,
     wide: true,
   },
   {
     key: "notes",
     label: "Anything else we should know?",
     type: "textarea",
-    step: 5,
+    step: 6,
     wide: true,
   },
 
-  // 6 - Assets (source form Q13-Q14, plus a logo)
+  // 7 - Assets (source form Q13-Q14, plus a logo)
   // Links rather than uploads in v1: a public unauthenticated upload endpoint is
   // a storage-bombing target, and the app has no storage bucket yet.
   //
@@ -409,12 +447,12 @@ export const INTAKE_FIELDS: IntakeField[] = [
   // they cannot fill abandons the form rather than asking. The funnel's copy of
   // ASSET_HELP renders the "anyone with the link" sentence as HTML so it can be
   // emphasised; this one is plain text, for the admin record.
-  { key: "logoUrl", label: "Your logo", type: "url", step: 6, wide: true, help: ASSET_HELP },
+  { key: "logoUrl", label: "Your logo", type: "url", step: 7, wide: true, help: ASSET_HELP },
   {
     key: "headshotUrl",
     label: "A clear headshot of yourself",
     type: "url",
-    step: 6,
+    step: 7,
     wide: true,
     help: ASSET_HELP,
   },
@@ -422,7 +460,7 @@ export const INTAKE_FIELDS: IntakeField[] = [
     key: "pastWorkUrl",
     label: "Photos of your past work",
     type: "url",
-    step: 6,
+    step: 7,
     wide: true,
     help: ASSET_HELP,
   },
