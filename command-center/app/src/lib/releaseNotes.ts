@@ -26,6 +26,17 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-02-cold-call-calendar-titles",
+    date: "2 August 2026",
+    title: "A meeting booked from the app is named by the calendar, like any other",
+    items: [
+      "Booking a cold call prospect no longer renames the appointment. GoHighLevel's cold call calendar names its own events, and a booking made here now gets that same name.",
+      "Before this, the app forced every one of them to \"Discovery call - ...\", so the same meeting read one way when you booked it in GoHighLevel and another when you booked it from the app.",
+      "It also built that name from the prospect's first and last name. A scraped business arrives with its company split across those two boxes, so typing the person's first name on the call produced titles like \"Discovery call - Mohamad Heating & Cooling\" for a company actually called \"BM Heating & Cooling\".",
+      "If you want the meetings named differently, change the event title on the calendar in GoHighLevel. Every booking follows it, from either side.",
+    ],
+  },
+  {
     id: "2026-08-01-client-nav-and-meta",
     date: "1 August 2026",
     title: "Every page has its own row, and Meta Data reads a day at a time",

@@ -141,6 +141,14 @@ export type ApptWriteResult =
 // Create an appointment on a calendar. Confirmed shape (Willis live test):
 // POST /calendars/events/appointments { calendarId, locationId, contactId,
 // startTime, endTime, title? } -> 201 { id, status, appointmentStatus }.
+//
+// `title` is optional and OMITTING IT IS A CHOICE, not a shortcut. Every GHL
+// calendar has its own event title (the agency's cold call calendar uses
+// "{{contact.name}} x Hauck Marketing"), and a booking with no title of its own
+// gets that name, exactly as a booking made inside GoHighLevel does. Sending one
+// overrides the calendar for that appointment only, which is right for the
+// surfaces that book a specific kind of job (Jobs, handoffs, onboarding) and
+// wrong for cold call, where the app is standing in for GHL's own booker.
 export async function createAppointment(
   gctx: GhlContext,
   input: {

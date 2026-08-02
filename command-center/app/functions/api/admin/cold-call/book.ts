@@ -215,16 +215,32 @@ export const onRequestPost: PagesFunction<Env, string, ApiData> = async (ctx) =>
     return Response.json({ error: "could not create the contact" }, { status: 502 });
   }
 
+  // Who the meeting is with, for OUR record of it below. Not for the calendar:
+  // see the appointment title note under createAppointment.
   const name =
     `${resolved.contact.firstName} ${resolved.contact.lastName}`.trim() ||
     lead.business_name ||
     "Cold call prospect";
+
+  // No title. The calendar names its own events.
+  //
+  // Every GoHighLevel calendar carries an event title ("{{contact.name}} x Hauck
+  // Marketing" on the cold call one), and a booking made inside GHL gets it.
+  // This route used to send "Discovery call - <name>", which overrode it, so the
+  // same meeting read one way when Jake booked it and another when the app did.
+  // Worse, <name> was first + last off the lead, and a scraped business arrives
+  // with its company split across those two columns: typing the person's first
+  // name on the call produced "Discovery call - Mohamad Heating & Cooling" for a
+  // company called "BM Heating & Cooling", a name belonging to nobody.
+  //
+  // A booking from this app is now indistinguishable from one made in GHL. If
+  // the title should change, it changes on the calendar, once, and every booking
+  // follows.
   const appt = await createAppointment(gctx, {
     calendarId,
     contactId: contact.contactId,
     startTime,
     endTime,
-    title: `Discovery call - ${name}`,
   });
 
   if (!appt.ok) {

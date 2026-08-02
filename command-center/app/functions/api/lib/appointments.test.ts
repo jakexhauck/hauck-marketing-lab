@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ghlJson } from "../../lib/ghl";
-import { listCalendarEvents } from "./appointments";
+import { createAppointment, listCalendarEvents } from "./appointments";
 
 // The GHL transport is mocked one level BELOW listCalendars (ghlJson, not the
 // appointments module itself) so the active-only calendar filter and the
@@ -44,6 +44,64 @@ const E2 = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+// Who names the appointment.
+//
+// Every GoHighLevel calendar carries its own event title, and a booking made
+// inside GHL gets that name. The cold call calendar's is
+// "{{contact.name}} x Hauck Marketing". Sending a title of our own overrides it,
+// so the same meeting was called one thing when Jake booked it and another when
+// the app did. Omitting the field is what hands the naming back to the calendar,
+// which is why "no title in the payload" is a contract and not an accident.
+describe("createAppointment titling", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ id: "appt_1" }), {
+          status: 201,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function sentBody(): Record<string, unknown> {
+    return JSON.parse(String(fetchMock.mock.calls[0][1].body));
+  }
+
+  const INPUT = {
+    calendarId: "cal_cold",
+    contactId: "k1",
+    startTime: "2026-08-03T15:00:00-04:00",
+    endTime: "2026-08-03T15:30:00-04:00",
+  };
+
+  it("sends no title at all when the caller does not name the meeting", async () => {
+    const result = await createAppointment(GCTX, INPUT);
+    expect(result).toEqual({ ok: true, id: "appt_1" });
+    // Not "title: undefined" and not an empty string: the key must be absent, or
+    // GHL takes it as the name and the calendar's own template never applies.
+    expect(sentBody()).not.toHaveProperty("title");
+  });
+
+  it("still sends a title when a caller has one, so client bookings are unchanged", async () => {
+    // Jobs, handoffs and onboarding name their own appointments on purpose. This
+    // helper is shared, so dropping the cold call title must not silence them.
+    await createAppointment(GCTX, { ...INPUT, title: "Home Estimate - Ruth Okafor" });
+    expect(sentBody().title).toBe("Home Estimate - Ruth Okafor");
+  });
+
+  it("treats an empty title as no title rather than as a blank name", async () => {
+    await createAppointment(GCTX, { ...INPUT, title: "" });
+    expect(sentBody()).not.toHaveProperty("title");
+  });
 });
 
 describe("listCalendarEvents", () => {
