@@ -61,7 +61,9 @@ import {
   type AdminProvisionResponse,
   type AdTrackerLevel,
   type AdTrackerRange,
-  type AdTrackerResponse,
+  type CreativesBrowseResponse,
+  type CreativesFolderResponse,
+  type LeadCitiesResponse,
   type LeadTrackerResponse,
   type MetaDataResponse,
   type ApiReviewsResponse,
@@ -1482,6 +1484,10 @@ export function useAdsMetaDataQuery(enabled = true) {
   });
 }
 
+// The cockpit's view of one client's tracker. Same payload as the client's own
+// useAdsTrackerQuery (both routes share functions/lib/adsTrackerResponse.ts), so
+// it carries the lead rows too and the cockpit can render the client's own Lead
+// Tracker table rather than a second interpretation of it.
 export function useAdminAdTrackerQuery(
   tenantId: string,
   range: AdTrackerRange,
@@ -1493,9 +1499,96 @@ export function useAdminAdTrackerQuery(
     staleTime: 60_000,
     placeholderData: (prev) => prev,
     queryFn: () =>
-      api<AdTrackerResponse>(
+      api<LeadTrackerResponse>(
         `/api/admin/clients/${tenantId}/ad-tracker?range=${range}&level=${level}`,
       ),
+  });
+}
+
+// Where this client's ad creatives live in Drive, as the CLIENT sees it: read
+// only, scoped to their own session.
+export function useAdsCreativesFolderQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["ads-creatives-folder"],
+    enabled,
+    staleTime: 5 * 60_000,
+    queryFn: () => api<CreativesFolderResponse>(`/api/ads/creatives-folder`),
+  });
+}
+
+// The same mapping as the operator sees it, for the client in the picker.
+export function useAdminCreativesFolderQuery(tenantId: string) {
+  return useQuery({
+    queryKey: ["admin", "creatives-folder", tenantId],
+    enabled: !!tenantId,
+    staleTime: 5 * 60_000,
+    queryFn: () =>
+      api<CreativesFolderResponse>(`/api/admin/clients/${tenantId}/ads/creatives-folder`),
+  });
+}
+
+// The city list with its coverage. Re-fetched per niche, because "scraped for
+// HVAC" is a different question from "scraped at all" and the counts behind it
+// are different rows.
+export function useLeadCities(niche: string) {
+  return useQuery({
+    queryKey: ["admin", "lead-cities", niche],
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
+    queryFn: () =>
+      api<LeadCitiesResponse>(
+        niche
+          ? `/api/admin/leads/cities?niche=${encodeURIComponent(niche)}`
+          : `/api/admin/leads/cities`,
+      ),
+  });
+}
+
+// One level of the agency Drive, for the folder picker. `parent` is a folder id
+// or Drive's "root" alias; a non-empty `q` searches by name instead of browsing.
+export function useCreativesBrowseQuery(parent: string, q: string, enabled = true) {
+  const search = q.trim();
+  return useQuery({
+    queryKey: ["admin", "creatives-browse", search ? `q:${search}` : parent],
+    enabled,
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
+    queryFn: () =>
+      api<CreativesBrowseResponse>(
+        search
+          ? `/api/admin/ads/creatives-browse?q=${encodeURIComponent(search)}`
+          : `/api/admin/ads/creatives-browse?parent=${encodeURIComponent(parent)}`,
+      ),
+  });
+}
+
+// Point a client at a Drive folder, or clear it by saving nothing. Pass a
+// folderId from the picker, or a folderUrl from the paste box.
+export function useSetCreativesFolder(tenantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { folderId?: string; folderUrl?: string }) =>
+      api<CreativesFolderResponse>(`/api/admin/clients/${tenantId}/ads/creatives-folder`, {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }),
+    onSuccess: (data) => {
+      // Seed rather than invalidate: the response IS the new state, so this
+      // avoids a refetch that would briefly show the old link.
+      qc.setQueryData(["admin", "creatives-folder", tenantId], data);
+      // The client's own page reads a different key off a different route.
+      qc.invalidateQueries({ queryKey: ["ads-creatives-folder"] });
+    },
+  });
+}
+
+// The cockpit's view of one client's Meta Data tab.
+export function useAdminAdsMetaDataQuery(tenantId: string) {
+  return useQuery({
+    queryKey: ["admin", "ads-meta-data", tenantId],
+    enabled: !!tenantId,
+    staleTime: 60_000,
+    queryFn: () => api<MetaDataResponse>(`/api/admin/clients/${tenantId}/ads/meta-data`),
   });
 }
 
@@ -1515,6 +1608,7 @@ export function useAdsSyncMutation() {
     // the admin panel has to move the client's own page too.
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "ad-tracker"] });
+      qc.invalidateQueries({ queryKey: ["admin", "ads-meta-data"] });
       qc.invalidateQueries({ queryKey: ["ads-tracker"] });
       qc.invalidateQueries({ queryKey: ["ads-meta-data"] });
     },

@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { formatMoney, formatMoneyExact } from "../../lib/formatMoney";
 import type { AdTrackerLevel, AdTrackerRange, LeadTrackerStatus } from "../../lib/api";
@@ -117,6 +118,61 @@ export function Segmented<T extends string>({
       ))}
     </div>
   );
+}
+
+// The Lead Tracker's search box. Shared so the client page and the admin
+// cockpit render the same control, even though each mounts it into its own
+// page chrome.
+export function LeadSearch({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+}) {
+  return (
+    <label className={cn("relative max-w-xs flex-1", className)}>
+      <Search
+        size={15}
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"
+      />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Search leads or ads"
+        aria-label="Search leads"
+        className="w-full rounded-[var(--radius)] border border-border bg-surface py-2 pl-9 pr-3 text-[13.5px] text-text placeholder:text-faint focus:border-brand focus:outline-none"
+      />
+    </label>
+  );
+}
+
+// Filter a lead list by name, email, ad, campaign or phone digits. Shared so
+// the two surfaces cannot disagree about what "matches".
+export function filterLeads<
+  T extends {
+    name: string;
+    email: string;
+    phone: string;
+    adName: string | null;
+    campaignName: string | null;
+  },
+>(leads: T[], search: string): T[] {
+  const trimmed = search.trim();
+  if (!trimmed) return leads;
+  const q = trimmed.toLowerCase();
+  const qDigits = trimmed.replace(/\D+/g, "");
+  return leads.filter((l) => {
+    if (l.name.toLowerCase().includes(q)) return true;
+    if (l.email.toLowerCase().includes(q)) return true;
+    if ((l.adName ?? "").toLowerCase().includes(q)) return true;
+    if ((l.campaignName ?? "").toLowerCase().includes(q)) return true;
+    if (qDigits.length > 0 && l.phone.replace(/\D+/g, "").includes(qDigits)) return true;
+    return false;
+  });
 }
 
 export function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {

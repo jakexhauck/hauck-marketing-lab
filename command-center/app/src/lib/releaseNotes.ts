@@ -26,6 +26,19 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-02-leads-cities",
+    date: "2 August 2026",
+    title: "Leads has a Cities tab that knows where you have already been",
+    items: [
+      "Leads > Cities lists the 1000 biggest US cities with population and growth, and marks what you have already done in each.",
+      "Two separate counts, not one \"scraped\" tick: Runs is how many scrapes named that city, Leads is how many businesses you actually hold from it.",
+      "They are kept apart because they disagree. A city you ran and got nothing from reads \"Ran, nothing found\", which is the row worth looking at before you spend another run there.",
+      "Filter to \"Ran, no leads\" to find exactly those, or \"Never touched\" to plan the next scrape.",
+      "Narrow by niche to ask a different question: a city worked for roofing is untouched for HVAC, and the tab will say so.",
+      "Search, sort by any column, and filter by state. Nothing is typed in by hand and nothing needs updating: the marks are worked out from your run history every time the page loads.",
+    ],
+  },
+  {
     id: "2026-08-02-cold-call-calendar-titles",
     date: "2 August 2026",
     title: "A meeting booked from the app is named by the calendar, like any other",
@@ -34,6 +47,24 @@ export const RELEASES: Release[] = [
       "Before this, the app forced every one of them to \"Discovery call - ...\", so the same meeting read one way when you booked it in GoHighLevel and another when you booked it from the app.",
       "It also built that name from the prospect's first and last name. A scraped business arrives with its company split across those two boxes, so typing the person's first name on the call produced titles like \"Discovery call - Mohamad Heating & Cooling\" for a company actually called \"BM Heating & Cooling\".",
       "If you want the meetings named differently, change the event title on the calendar in GoHighLevel. Every booking follows it, from either side.",
+    ],
+  },
+  {
+    id: "2026-08-02-cockpit-paid-ads-matches-client",
+    date: "2 August 2026",
+    title: "Paid Ads in the cockpit is now the client's own Paid Ads",
+    items: [
+      "Fulfillment > Paid Ads shows the client's own pages for whichever client is in the picker: Dashboard, Lead Tracker and Meta Data, laid out exactly as the client sees them.",
+      "Meta Data is new to the cockpit. Checking a client's raw daily spend no longer means entering their live app.",
+      "Lead Tracker is new to the cockpit too, with the same search and date range the client has.",
+      "Ad Tracking, Data & Leads and Campaigns are gone. The first two were the same numbers drawn a second way, and Campaigns is covered by the Dashboard's \"View by: Campaign\".",
+      "Ad Library is now Creatives, and points at a Google Drive folder instead of holding its own copy.",
+      "Pick the folder by walking your actual Drive, or by searching it by name. No pasting links, so a typo can no longer send a client to a folder that does not exist.",
+      "The files in the folder are shown as a grid, with the picture on each one where Google gives us it. Clicking any of them opens it in Drive.",
+      "Clients get a Creatives row in their own sidebar, showing only their own folder. They cannot change which folder it points at; that is yours alone.",
+      "A client with no folder set yet is told so plainly rather than shown an empty gallery.",
+      "The \"Refresh spend\" button and the \"spend is N days behind\" warning are still yours only, sitting above the sheet. Clients never see either.",
+      "An old Paid Ads link that pointed at one of the retired tabs now opens the Dashboard instead of a dead view.",
     ],
   },
   {

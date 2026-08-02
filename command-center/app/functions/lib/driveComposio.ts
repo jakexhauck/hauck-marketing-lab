@@ -353,6 +353,79 @@ export async function listChildrenOfMany(
   return out;
 }
 
+/**
+ * The SUB-FOLDERS of one folder, for a folder picker.
+ *
+ * Separate from listChildrenOfMany because a picker wants one level, folders
+ * only, and never the files: a creatives folder with 300 images in it would
+ * otherwise send 300 rows down the wire to draw a list of four folders.
+ *
+ * `parentId` accepts Drive's "root" alias, which is how the picker starts at My
+ * Drive without having to look its id up first.
+ */
+export async function listFolders(
+  env: Env,
+  accountId: string,
+  parentId: string,
+): Promise<{ id: string; name: string }[]> {
+  if (!isValidFileId(parentId)) throw new Error(`invalid folder id: ${parentId}`);
+
+  const out: { id: string; name: string }[] = [];
+  let pageToken: string | undefined;
+  do {
+    const params = new URLSearchParams({
+      q: `'${parentId}' in parents and mimeType = '${FOLDER_MIME}' and trashed = false`,
+      fields: "nextPageToken,files(id,name)",
+      orderBy: "name",
+      pageSize: PAGE_SIZE,
+      supportsAllDrives: "true",
+      includeItemsFromAllDrives: "true",
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+    const data = asObject(await proxyGet(env, accountId, `/files?${params}`), "list folders");
+    const parsed = data as { files?: { id: string; name: string }[]; nextPageToken?: string };
+    for (const f of parsed.files ?? []) out.push({ id: f.id, name: f.name });
+    pageToken = parsed.nextPageToken;
+  } while (pageToken);
+
+  return out;
+}
+
+/**
+ * Folders anywhere in the account whose name matches, for the picker's search.
+ *
+ * Drive has no "search within this subtree" operator, so this is account-wide by
+ * necessity. That is the useful behaviour anyway: the reason to type a name is
+ * that you do not want to walk to it.
+ */
+export async function searchFolders(
+  env: Env,
+  accountId: string,
+  query: string,
+): Promise<{ id: string; name: string }[]> {
+  const clean = query.trim();
+  if (!clean) return [];
+  // Escaping matters: an apostrophe in a folder name would otherwise close the
+  // quoted literal and make Drive reject the whole query as malformed.
+  const escaped = clean.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+
+  const params = new URLSearchParams({
+    q: `name contains '${escaped}' and mimeType = '${FOLDER_MIME}' and trashed = false`,
+    fields: "files(id,name)",
+    orderBy: "name",
+    // One page only. A picker showing 200 same-named folders has not helped
+    // anyone; typing more letters has.
+    pageSize: "50",
+    supportsAllDrives: "true",
+    includeItemsFromAllDrives: "true",
+  });
+  const data = asObject(await proxyGet(env, accountId, `/files?${params}`), "search folders");
+  return ((data as { files?: { id: string; name: string }[] }).files ?? []).map((f) => ({
+    id: f.id,
+    name: f.name,
+  }));
+}
+
 export async function getFileMeta(
   env: Env,
   accountId: string,

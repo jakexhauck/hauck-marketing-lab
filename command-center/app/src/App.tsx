@@ -50,6 +50,7 @@ import WebsiteInsights from "./routes/website/WebsiteInsights";
 import AdsDashboard from "./routes/paid-ads/AdsDashboard";
 import AdsLeadTracker from "./routes/paid-ads/AdsLeadTracker";
 import AdsMetaData from "./routes/paid-ads/AdsMetaData";
+import AdsCreatives from "./routes/paid-ads/AdsCreatives";
 import Reactivation from "./routes/sales/Reactivation";
 import CampaignsAudiences from "./routes/campaigns/CampaignsAudiences";
 import OutreachOverview from "./routes/outreach/OutreachOverview";
@@ -472,11 +473,13 @@ export default function App() {
               <Route path="/marketing/paid-ads" element={<ProtectedRoute><AdsDashboard /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/leads" element={<ProtectedRoute><AdsLeadTracker /></ProtectedRoute>} />
               <Route path="/marketing/paid-ads/meta" element={<ProtectedRoute><AdsMetaData /></ProtectedRoute>} />
+              {/* Creatives points at the client's Drive folder. This path used to
+                  redirect to the dashboard; it is a real page again. */}
+              <Route path="/marketing/paid-ads/creatives" element={<ProtectedRoute><AdsCreatives /></ProtectedRoute>} />
               {/* Old Paid Ads URLs fold into the current tabs. */}
               <Route path="/marketing/paid-ads/media" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/pipeline-stats" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/how-to" element={<Navigate to="/marketing/paid-ads" replace />} />
-              <Route path="/marketing/paid-ads/creatives" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/stats" element={<Navigate to="/marketing/paid-ads" replace />} />
               <Route path="/marketing/paid-ads/funnel" element={<Navigate to="/marketing/paid-ads" replace />} />
               {/* Overview retired; Google Reviews opens on the Review Pipeline. */}

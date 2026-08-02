@@ -119,9 +119,19 @@ describe("subTabsFor / resolveSubTab", () => {
   });
 
   it("keeps a valid sub-tab and falls back to the first otherwise", () => {
-    expect(resolveSubTab("paid-ads", "ad-library")).toBe("ad-library");
-    expect(resolveSubTab("paid-ads", "not-a-sub")).toBe("campaigns");
-    expect(resolveSubTab("paid-ads", null)).toBe("campaigns");
+    expect(resolveSubTab("paid-ads", "creatives")).toBe("creatives");
+    expect(resolveSubTab("paid-ads", "not-a-sub")).toBe("dashboard");
+    expect(resolveSubTab("paid-ads", null)).toBe("dashboard");
+  });
+
+  // The retired ids (campaigns, ad-tracking, data-leads, ad-library) must not
+  // resolve to themselves: a bookmark or a stale link lands on Dashboard rather
+  // than the cockpit's "still building this view" dead end.
+  it("lands a retired sub-tab id on Dashboard", () => {
+    expect(resolveSubTab("paid-ads", "campaigns")).toBe("dashboard");
+    expect(resolveSubTab("paid-ads", "ad-tracking")).toBe("dashboard");
+    expect(resolveSubTab("paid-ads", "data-leads")).toBe("dashboard");
+    expect(resolveSubTab("paid-ads", "ad-library")).toBe("dashboard");
   });
 
   it("resolves against an unknown page as if it had no sub-tabs", () => {
@@ -139,8 +149,8 @@ describe("fulfillmentPath", () => {
     expect(fulfillmentPath("management", "t1")).toBe(
       "/admin/fulfillment/management?client=t1",
     );
-    expect(fulfillmentPath("paid-ads", "t1", "ad-tracking")).toBe(
-      "/admin/fulfillment/paid-ads?client=t1&sub=ad-tracking",
+    expect(fulfillmentPath("paid-ads", "t1", "meta-data")).toBe(
+      "/admin/fulfillment/paid-ads?client=t1&sub=meta-data",
     );
   });
 

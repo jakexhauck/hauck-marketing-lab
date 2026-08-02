@@ -20,6 +20,7 @@ describe("client nav structure", () => {
       "/marketing/paid-ads/leads",
       "/marketing/paid-ads",
       "/marketing/paid-ads/meta",
+      "/marketing/paid-ads/creatives",
     ]);
     expect(allRoutes).not.toContain("/marketing/social");
     expect(allRoutes).not.toContain("/marketing/outreach");
@@ -34,6 +35,7 @@ describe("client nav structure", () => {
       "/marketing/paid-ads/leads",
       "/marketing/paid-ads",
       "/marketing/paid-ads/meta",
+      "/marketing/paid-ads/creatives",
       "/sales",
       "/sales/schedule",
       "/apps",

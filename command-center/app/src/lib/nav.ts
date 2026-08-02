@@ -9,6 +9,7 @@ import {
   CalendarDays,
   ClipboardList,
   Database,
+  FolderOpen,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -89,12 +90,16 @@ export const NAV: NavEntry[] = [
   // and the product tour still resolve, but no chrome points at it.
   //
   // Paid Ads leads the rail, Lead Tracker first within it: it is the page opened
-  // every morning and the one the client app now opens ON. The three stay
+  // every morning and the one the client app now opens ON. The four stay
   // adjacent rather than Lead Tracker being lifted out on its own, so the
   // section still reads as a section.
+  //
+  // Creatives sits last: it is the reference page of the group, opened when
+  // somebody wants to look at or hand over an ad, not every morning.
   { to: "/marketing/paid-ads/leads", label: "Lead Tracker", icon: ClipboardList, bottomNav: true },
   { to: "/marketing/paid-ads", label: "Ads Dashboard", shortLabel: "Ads", icon: Megaphone },
   { to: "/marketing/paid-ads/meta", label: "Meta Data", icon: Database },
+  { to: "/marketing/paid-ads/creatives", label: "Creatives", icon: FolderOpen },
   // Sales was one row with two in-page tabs. It is two rows now: the pages are
   // opened independently all day and a tab strip made the second one invisible
   // until you had already arrived at the first.

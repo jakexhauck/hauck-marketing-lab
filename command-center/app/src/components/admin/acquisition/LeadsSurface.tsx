@@ -8,12 +8,14 @@ import {
   Loader2,
   Phone,
   Play,
+  MapPin,
   Radar,
   Search,
   MessageSquare,
   Table2,
 } from "lucide-react";
 import { PillarTitleActions } from "../../pillars/PillarKit";
+import CitiesTable from "./CitiesTable";
 import { formatPhoneDashed } from "../../../lib/phone";
 import {
   RUN_SIZES,
@@ -65,7 +67,7 @@ import {
 // Nothing here fabricates a number. Every score, reason, rating and count is read
 // from what the qualifier actually wrote.
 
-type View = "leads" | "new" | "runs";
+type View = "leads" | "new" | "runs" | "cities";
 
 export default function LeadsSurface() {
   const [view, setView] = useState<View>("leads");
@@ -87,6 +89,9 @@ export default function LeadsSurface() {
           <SubTab id="leads" view={view} onSelect={setView} icon={<Table2 size={15} />} label="Leads" count={leadsQuery.data?.total} />
           <SubTab id="new" view={view} onSelect={setView} icon={<Radar size={15} />} label="New scrape" />
           <SubTab id="runs" view={view} onSelect={setView} icon={<History size={15} />} label="Runs" count={runs.length || undefined} />
+          {/* Cities sits last: it is the planning view, read before starting a
+              scrape rather than while working the list. */}
+          <SubTab id="cities" view={view} onSelect={setView} icon={<MapPin size={15} />} label="Cities" />
         </nav>
       </PillarTitleActions>
 
@@ -112,6 +117,7 @@ export default function LeadsSurface() {
         />
       )}
       {view === "runs" && <RunHistory runs={runs} loading={runsQuery.isLoading} />}
+      {view === "cities" && <CitiesTable />}
     </div>
   );
 }

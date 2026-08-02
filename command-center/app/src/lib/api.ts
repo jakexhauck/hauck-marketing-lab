@@ -649,7 +649,6 @@ export interface AdTrackerResponse {
   unattributed: number;
   currency: string;
   meta: {
-    pipelines: number;
     opportunities: number;
     spendDays: number;
     // No snapshot has ever been taken, which looks identical to "no spend".
@@ -733,6 +732,71 @@ export interface MetaDataRow {
 export interface MetaDataResponse {
   rows: MetaDataRow[];
   currency: string;
+}
+
+// Where this client's ad creatives live in Google Drive, and what is in there.
+// Both folder fields are null until an operator maps one, and `url` is rebuilt
+// server-side from the id rather than stored.
+export type CreativeKind = "image" | "video" | "pdf" | "sheet" | "zip" | "doc";
+
+export interface CreativeFile {
+  id: string;
+  name: string;
+  kind: CreativeKind;
+  webViewLink: string | null;
+  modifiedTime: string | null;
+  size: number | null;
+  // Drive's own short-lived thumbnail URL, loaded by the browser directly.
+  // Composio's transport cannot move file bytes, so there is no proxied path to
+  // an image; a tile whose thumbnail fails falls back to a type icon.
+  thumbnailUrl: string | null;
+}
+
+// One of the 1000 biggest US cities, with what we have already done there.
+// `runs` and `leads` are deliberately separate: a city can be worked and yield
+// nothing, or hold leads that arrived without a run naming it, and one merged
+// "scraped" flag would hide both.
+export interface LeadCity {
+  rank: number;
+  city: string;
+  stateName: string;
+  stateCode: string;
+  population: number | null;
+  growthPct: number | null;
+  // How many scrape runs named this city.
+  runs: number;
+  lastRunAt: string | null;
+  // How many leads in the book carry it.
+  leads: number;
+}
+
+export interface LeadCitiesResponse {
+  cities: LeadCity[];
+  // The niches present in the run history, for the filter.
+  niches: string[];
+  niche: string | null;
+}
+
+// One level of the Drive folder picker.
+export interface CreativesBrowseResponse {
+  connected: boolean;
+  // Which Google account is being browsed. Display only.
+  email: string | null;
+  folders: { id: string; name: string }[];
+  error: string | null;
+}
+
+export interface CreativesFolderResponse {
+  folderId: string | null;
+  url: string | null;
+  // False means the agency Google account has never been connected, so the
+  // folder link works but its contents cannot be listed. Distinct from an empty
+  // folder, and shown differently.
+  connected: boolean;
+  files: CreativeFile[];
+  // Drive answered badly (folder deleted, access revoked, quota). Surfaced
+  // rather than rendered as an empty folder.
+  error: string | null;
 }
 
 

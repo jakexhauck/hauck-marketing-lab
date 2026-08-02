@@ -42,11 +42,14 @@ export const FULFILLMENT_PAGES: FulfillmentPageDef[] = [
     id: "paid-ads",
     label: "Paid Ads",
     ready: true,
+    // All four are the client's own Paid Ads pages, rendered for the client in
+    // the picker, in the order the client's sidebar lists them. Creatives is the
+    // only one carrying an operator-only control: setting the Drive folder.
     subTabs: [
-      { id: "campaigns", label: "Campaigns", ready: true },
-      { id: "ad-library", label: "Ad Library", ready: true },
-      { id: "ad-tracking", label: "Ad Tracking", ready: true },
-      { id: "data-leads", label: "Data & Leads", ready: true },
+      { id: "dashboard", label: "Dashboard", ready: true },
+      { id: "leads", label: "Lead Tracker", ready: true },
+      { id: "meta-data", label: "Meta Data", ready: true },
+      { id: "creatives", label: "Creatives", ready: true },
     ],
   },
   // Management is the client's paperwork in one place: the commercial record
