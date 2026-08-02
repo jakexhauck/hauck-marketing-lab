@@ -26,6 +26,18 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-02-client-app-on-a-phone",
+    date: "2 August 2026",
+    title: "The client app works properly on a phone",
+    items: [
+      "The tab bar at the bottom now opens the Ads Dashboard where Chats used to be. Chats has not gone anywhere: it is under All features, one tap away.",
+      "Lead Tracker, Ads Dashboard and Meta Data used to be wide tables you had to drag sideways to read. On a phone each is now a stack of cards, so a lead's name and its status are on screen together.",
+      "Tap a lead's phone number or email on a phone to call or write to them.",
+      "All features now lists every page in the account. Four pages (Lead Tracker, Meta Data, Creatives and Schedule) were missing from it, which on a phone meant there was no way to open them at all.",
+      "Settings, dark mode and Sign out are now on the All features page. On a phone there had been no way to reach any of the three.",
+    ],
+  },
+  {
     id: "2026-08-02-organic-page",
     date: "2 August 2026",
     title: "Website leads have their own page",
