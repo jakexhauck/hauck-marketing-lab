@@ -26,6 +26,21 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-01-client-nav-and-meta",
+    date: "1 August 2026",
+    title: "Every page has its own row, and Meta Data reads a day at a time",
+    items: [
+      "Sales and Paid Ads no longer hide their pages behind tabs. Leads, Schedule, Lead Tracker, Ads Dashboard and Meta Data are each their own row in the sidebar.",
+      "Home is gone and the app opens on the Lead Tracker. Home was a stop on the way to the page you actually wanted.",
+      "Meta Data now shows one row per day instead of one row per ad. Click any day to open it and see each ad underneath, biggest spender first.",
+      "A day's reach is marked with a \"less than or equal to\" sign when more than one ad ran. Reach counts people rather than views, so adding two ads together counts anyone who saw both of them twice, and only Meta can work out the real figure.",
+      "CTR and CPM on a day are worked out from that day's totals, so a nearly-dead ad with six impressions no longer pulls the day's numbers around.",
+      "Sending leads to Cold Call or SMS now marks each one the moment it lands, rather than all of them at the end. A batch that was interrupted used to leave every lead in it looking unsent, so the same businesses could be sent and dialled a second time.",
+      "A lead already in the call list is skipped and marked, so it stops reappearing on the Leads page.",
+      "200 leads that had already been sent but still showed as pending have been corrected.",
+    ],
+  },
+  {
     id: "2026-08-01-phone-format",
     date: "1 August 2026",
     title: "Phone numbers read the way you dial them",
