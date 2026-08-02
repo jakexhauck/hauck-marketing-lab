@@ -3,7 +3,6 @@ import { Search } from "lucide-react";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { PAID_ADS_CONTAINER } from "./shared";
-import { PAID_ADS_TABS } from "../../lib/pageTabs";
 import { cn } from "../../lib/cn";
 import { formatMoneyExact } from "../../lib/formatMoney";
 import { useAuth } from "../../context/AuthContext";
@@ -80,7 +79,9 @@ export default function AdsLeadTracker() {
     <Shell>
       <div className={PAID_ADS_CONTAINER}>
         <PageBar
-          tabs={PAID_ADS_TABS}
+          tabs={[]}
+          section="Lead Tracker"
+
           actions={<Segmented options={RANGES} value={range} onChange={setRange} label="Date range" />}
           filters={
             <label className="relative flex-1 max-w-xs">

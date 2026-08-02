@@ -4,6 +4,7 @@ import Shell from "../components/Shell";
 import NavyHero from "../components/NavyHero";
 import DesktopPage from "../components/desktop/DesktopPage";
 import { HeroIconButton } from "../components/HeroUi";
+import { CLIENT_HOME } from "../lib/nav";
 
 // One reusable placeholder for every skeleton surface. The product has a home
 // for the feature (sidebar row + route) before the feature itself exists; this
@@ -24,7 +25,7 @@ export default function ComingSoon({
       <div className="flex min-h-dvh flex-col lg:hidden">
         <NavyHero>
           <div className="flex items-center gap-2.5">
-            <HeroIconButton label="Back to home" onClick={() => navigate("/home")}>
+            <HeroIconButton label="Back to home" onClick={() => navigate(CLIENT_HOME)}>
               <ChevronLeft size={20} />
             </HeroIconButton>
             <div className="min-w-0">

@@ -12,6 +12,7 @@ import { Loader2, Check, UserPlus, DownloadCloud, Pencil, X, Eye } from "lucide-
 import { Button } from "../ui/Button";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import { CLIENT_HOME } from "../../lib/nav";
 import {
   CAPABILITIES,
   defaultGrantsForRole,
@@ -203,7 +204,9 @@ function ViewAsButton({ tenantId, staffId }: { tenantId: string; staffId: string
     setErr(null);
     const res = await previewClient(tenantId, staffId);
     if (res.ok) {
-      navigate("/home", { replace: true });
+      // The client app's landing page. Home was retired from the nav, so
+      // dropping an operator there showed them a surface no client can reach.
+      navigate(CLIENT_HOME, { replace: true });
     } else {
       setErr(res.error ?? "Could not start preview");
       setBusy(false);

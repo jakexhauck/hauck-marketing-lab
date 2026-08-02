@@ -1,6 +1,5 @@
 import { NAV, flattenNav, isNavSection, type NavEntry, type NavItem } from "./nav";
 import {
-  PAID_ADS_TABS,
   REVIEWS_TABS,
   WEBSITE_TABS,
   REACTIVATION_TABS,
@@ -47,17 +46,24 @@ export type RecordKind = "lead" | "contact" | "customer" | "conversation";
 
 // Which in-page tab bar belongs to which sidebar row. Keyed by the sidebar
 // row's path so the pairing survives a label change on either side.
+//
+// Paid Ads is deliberately absent: its three pages are sidebar rows in their own
+// right now, so listing their tab bar here too would enter each of them twice.
+// The same is true of Sales, whose Leads and Schedule are rows rather than tabs.
 const TABS_BY_PARENT: Record<string, PageTab[]> = {
-  "/marketing/paid-ads": PAID_ADS_TABS,
   "/marketing/website": WEBSITE_TABS,
   "/marketing/reviews": REVIEWS_TABS,
   "/marketing/reactivation": REACTIVATION_TABS,
   "/sales/leads": LEADS_TABS,
 };
 
-// The Sales page's Schedule tab hosts a Jobs/Month/Week/Agenda switcher whose
-// state is local, so these are not routes in App.tsx. Sales reads ?tab= and
-// Jobs.tsx reads ?view=, so a view is linked as /sales?tab=schedule&view=<id>.
+// The Schedule page hosts a Jobs/Month/Week/Agenda switcher whose state is
+// local, so these are not routes in App.tsx. Jobs.tsx reads ?view=, so a view is
+// linked as /sales/schedule?view=<id>.
+//
+// They hang off SCHEDULE, not Leads. They were children of /sales while Schedule
+// was a tab of it; once Schedule became its own sidebar row, leaving them there
+// filed the calendar's views under the leads board.
 const JOBS_VIEWS: { id: string; label: string }[] = [
   { id: "jobs", label: "Jobs" },
   { id: "month", label: "Month" },
@@ -107,12 +113,12 @@ function expand(item: NavItem): SoftwarePage[] {
     }
   }
 
-  if (item.to === "/sales") {
+  if (item.to === "/sales/schedule") {
     for (const view of JOBS_VIEWS) {
       out.push({
-        id: `/sales?tab=schedule&view=${view.id}`,
+        id: `/sales/schedule?view=${view.id}`,
         label: view.label,
-        path: `/sales?tab=schedule&view=${view.id}`,
+        path: `/sales/schedule?view=${view.id}`,
         child: true,
       });
     }

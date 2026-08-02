@@ -6,6 +6,7 @@ import { HeroIconButton } from "../components/HeroUi";
 import AutomationsDesktop from "../components/automations/AutomationsDesktop";
 import AutomationCard from "../components/automations/AutomationCard";
 import { FOLLOW_UPS, REACTIVATIONS } from "../lib/automations";
+import { CLIENT_HOME } from "../lib/nav";
 
 // Automations: a read-only view of the follow-up sequences and database
 // reactivation campaigns the agency runs for the client. Desktop is the rich
@@ -20,7 +21,7 @@ export default function Automations() {
       <div className="flex min-h-dvh flex-col lg:hidden">
         <NavyHero>
           <div className="flex items-center gap-2.5">
-            <HeroIconButton label="Back to home" onClick={() => navigate("/home")}>
+            <HeroIconButton label="Back to home" onClick={() => navigate(CLIENT_HOME)}>
               <ChevronLeft size={20} />
             </HeroIconButton>
             <div className="min-w-0">

@@ -9,6 +9,7 @@ import SoftwareTab from "../../components/admin/cockpit/software/SoftwareTab";
 import { useAuth } from "../../context/AuthContext";
 import { useSelectedClient } from "../../hooks/useSelectedClient";
 import AdminPage from "../../components/admin/AdminPage";
+import { CLIENT_HOME } from "../../lib/nav";
 import {
   DEFAULT_FULFILLMENT_PAGE,
   fulfillmentPath,
@@ -65,7 +66,7 @@ export default function FulfillmentPage() {
     setPreviewErr(null);
     const res = await previewClient(tenantId);
     if (res.ok) {
-      navigate("/home", { replace: true });
+      navigate(CLIENT_HOME, { replace: true });
     } else {
       setPreviewErr(res.error ?? "Could not open the live app");
       setPreviewBusy(false);

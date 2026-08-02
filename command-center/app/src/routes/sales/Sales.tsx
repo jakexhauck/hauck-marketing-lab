@@ -1,18 +1,23 @@
 import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
-import { TAB_TRACK, TabButton } from "../../components/PageTabs";
 import { HandoffsBoard } from "../Handoffs";
 import { JobsBoard } from "./Jobs";
 import { useUpdateHandoff } from "../../hooks/useApi";
 import type { ApiHandoff } from "../../lib/api";
 
-// The combined Sales surface: one page, two tabs. "Leads" is the handoff
-// outcomes board; "Schedule" is the jobs calendar. Booking an Estimate or Job
-// from a lead sends the owner to the Schedule tab to pick a real open slot, then
-// books it and moves the lead, so the whole journey lives under one roof.
+// Leads and Schedule. "Leads" is the handoff outcomes board; "Schedule" is the
+// jobs calendar. Booking an Estimate or Job from a lead sends the owner to
+// Schedule to pick a real open slot, then books it and moves the lead, so the
+// whole journey lives under one roof.
+//
+// They are SIDEBAR ROWS now, not tabs, but still ONE component mounted at
+// /sales/*. That is deliberate and load-bearing: `booking` below is the state
+// carrying a half-finished booking from one page to the other, and two separate
+// routes would unmount this component on the jump and throw it away. The URL is
+// the tab.
 type SalesTab = "leads" | "schedule";
-const TAB_KEY = "hml_sales_tab";
 
 export interface BookingRequest {
   handoffId: string;
@@ -24,12 +29,16 @@ export interface BookingRequest {
   prefillService: string;
 }
 
-function initialTab(): SalesTab {
+// Which page the URL is asking for. /sales/schedule is Schedule; everything
+// else under /sales is Leads.
+//
+// ?tab=schedule is still honoured: it was the old in-page tab's URL and is what
+// the retired /sales/jobs route redirected to, so a bookmark from before this
+// change still lands where it names.
+function tabFromLocation(pathname: string, search: string): SalesTab {
+  if (pathname.startsWith("/sales/schedule")) return "schedule";
   try {
-    const fromUrl = new URLSearchParams(window.location.search).get("tab");
-    if (fromUrl === "leads" || fromUrl === "schedule") return fromUrl;
-    const saved = window.localStorage.getItem(TAB_KEY);
-    if (saved === "leads" || saved === "schedule") return saved;
+    if (new URLSearchParams(search).get("tab") === "schedule") return "schedule";
   } catch {
     /* ignore */
   }
@@ -37,17 +46,17 @@ function initialTab(): SalesTab {
 }
 
 export default function Sales() {
-  const [tab, setTab] = useState<SalesTab>(initialTab);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tab = tabFromLocation(location.pathname, location.search);
   const [booking, setBooking] = useState<BookingRequest | null>(null);
   const update = useUpdateHandoff();
 
+  // The URL is the tab, so switching pages is a navigation. replace: true so
+  // the booking journey (Leads -> Schedule -> back to Leads) does not leave
+  // three entries in the history for one job.
   const select = (t: SalesTab) => {
-    setTab(t);
-    try {
-      window.localStorage.setItem(TAB_KEY, t);
-    } catch {
-      /* ignore */
-    }
+    navigate(t === "schedule" ? "/sales/schedule" : "/sales", { replace: true });
   };
 
   // Lead -> "book an estimate/job": jump to the Schedule tab in booking mode.
@@ -92,24 +101,14 @@ export default function Sales() {
   return (
     <Shell>
       <div className="flex min-h-0 flex-1 flex-col">
-        {/* The header panel every client page now opens with. Leads / Schedule
-            are real page switchers rather than filters, so they belong inside
-            the chrome beside the title, the same place a Marketing section's
-            route tabs sit. tabs={[]} because these switch state, not routes. */}
+        {/* The header panel every client page opens with. No tab strip any more:
+            Leads and Schedule are sidebar rows, so the section name is the page
+            name and repeating the pair here would be a second copy of the nav. */}
         {/* px-5 (not the 22px this once used) so the header card's left edge
             lines up exactly with the board below it, which sits in
             PAGE_CONTAINER. The 2px difference read as a step down the page. */}
         <div className="px-5 pt-5 lg:px-6">
-          <PageBar tabs={[]} section="Sales">
-            <div className={TAB_TRACK}>
-              <TabButton active={tab === "leads"} onClick={() => select("leads")}>
-                Leads
-              </TabButton>
-              <TabButton active={tab === "schedule"} onClick={() => select("schedule")}>
-                Schedule
-              </TabButton>
-            </div>
-          </PageBar>
+          <PageBar tabs={[]} section={tab === "schedule" ? "Schedule" : "Leads"} />
         </div>
         {/* PageBar's own mb-5 is the white space between the header and the
             board; the board brings its own top padding on top of that. */}

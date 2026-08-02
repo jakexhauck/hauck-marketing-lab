@@ -20,6 +20,7 @@ import {
 import { freshnessLabel } from "../lib/freshness";
 import { outstandingTotal, revenueThisMonth } from "../lib/revenue";
 import type { ApiInvoice } from "../lib/api";
+import { CLIENT_HOME } from "../lib/nav";
 
 const money = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -118,7 +119,7 @@ export default function Billing() {
       <NavyHero flushTop={isTest}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <HeroIconButton label="Back to home" onClick={() => navigate("/home")}>
+            <HeroIconButton label="Back to home" onClick={() => navigate(CLIENT_HOME)}>
               <ChevronLeft size={20} />
             </HeroIconButton>
             <div className="min-w-0">

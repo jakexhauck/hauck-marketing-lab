@@ -23,10 +23,24 @@ function registeredRoutes(): string[] {
   return [...appSource.matchAll(/path="([^"]+)"/g)].map((m) => m[1]);
 }
 
-// Does a concrete path match a route pattern, allowing for :params?
+// Does a concrete path match a route pattern, allowing for :params and a
+// trailing splat?
+//
+// The splat matters: /sales/* serves /sales AND /sales/schedule, and this helper
+// predates the app having one, so it reported both as pointing at a route the
+// router does not serve.
 function matchesRoute(path: string, route: string): boolean {
   const p = path.split("?")[0].split("/").filter(Boolean);
   const r = route.split("/").filter(Boolean);
+
+  if (r[r.length - 1] === "*") {
+    // A splat matches its own prefix and anything below it, so the concrete
+    // path must be at least as long as the segments before the star.
+    const prefix = r.slice(0, -1);
+    if (p.length < prefix.length) return false;
+    return prefix.every((seg, i) => seg.startsWith(":") || seg === p[i]);
+  }
+
   if (p.length !== r.length) return false;
   return r.every((seg, i) => seg.startsWith(":") || seg === p[i]);
 }
@@ -54,18 +68,44 @@ describe("software map coverage", () => {
     expect(orphans.map((o) => o.path)).toEqual([]);
   });
 
-  it("expands in-page tabs as children of their parent page", () => {
-    const metaData = pages.find((p) => p.path === "/marketing/paid-ads/meta");
-    expect(metaData?.child).toBe(true);
+  it("expands a page's in-place views as children of it", () => {
+    // The Jobs calendar's four views are component state rather than routes, so
+    // they are the remaining example of this mechanism.
+    const month = pages.find((p) => p.path === "/sales/schedule?view=month");
+    expect(month?.child).toBe(true);
     // The parent's own row is not a child, and is listed exactly once.
-    expect(pages.filter((p) => p.path === "/marketing/paid-ads")).toHaveLength(1);
-    expect(pages.find((p) => p.path === "/marketing/paid-ads")?.child).toBeUndefined();
+    expect(pages.filter((p) => p.path === "/sales/schedule")).toHaveLength(1);
+    expect(pages.find((p) => p.path === "/sales/schedule")?.child).toBeUndefined();
   });
 
-  it("lists the Jobs calendar views, which are not routes", () => {
-    const labels = pages.filter((p) => p.path.startsWith("/sales?")).map((p) => p.label);
-    expect(labels).toEqual(["Jobs", "Month", "Week", "Agenda"]);
+  it("files the calendar views under Schedule, not under Leads", () => {
+    // They were children of /sales while Schedule was a tab of it. Now that
+    // Schedule is its own sidebar row, leaving them behind would file the
+    // calendar's views under the leads board.
+    const views = pages.filter((p) => p.path.startsWith("/sales/schedule?"));
+    expect(views.map((v) => v.label)).toEqual(["Jobs", "Month", "Week", "Agenda"]);
+    expect(pages.filter((p) => p.path.startsWith("/sales?"))).toEqual([]);
   });
+
+  it("lists a page promoted to the sidebar once, and not as somebody's child", () => {
+    // Paid Ads and Sales lost their in-page tab bars when their pages became
+    // sidebar rows. Leaving them in TABS_BY_PARENT would have entered each page
+    // twice: once as its own row and once as a child of the row it used to sit
+    // under.
+    for (const path of [
+      "/marketing/paid-ads",
+      "/marketing/paid-ads/leads",
+      "/marketing/paid-ads/meta",
+      "/sales",
+      "/sales/schedule",
+    ]) {
+      const hits = pages.filter((p) => p.path === path);
+      expect(hits, `${path} should appear exactly once`).toHaveLength(1);
+      expect(hits[0].child, `${path} is a sidebar row, not a child`).toBeUndefined();
+    }
+  });
+
+
 
   it("groups pages, leading with Main and trailing with record pages", () => {
     // The nav is currently one flat list (no sections), so every sidebar row
@@ -93,7 +133,11 @@ describe("record paths", () => {
   });
 
   it("leaves ordinary pages untouched", () => {
-    const home = pages.find((p) => p.path === "/home") as SoftwarePage;
-    expect(resolveRecordPath(home, {})).toBe("/home");
+    // The landing page, which is the Lead Tracker since Home was retired.
+    const landing = pages.find(
+      (p) => p.path === "/marketing/paid-ads/leads",
+    ) as SoftwarePage;
+    expect(landing).toBeDefined();
+    expect(resolveRecordPath(landing, {})).toBe("/marketing/paid-ads/leads");
   });
 });

@@ -17,6 +17,7 @@ import {
   type StaffRole,
 } from "../lib/capabilities";
 import { useChatRoles, useChannels } from "../hooks/useChat";
+import { CLIENT_HOME } from "../lib/nav";
 
 type GrantMap = Record<Capability, { view: boolean; edit: boolean }>;
 
@@ -46,7 +47,7 @@ export default function Team() {
   // Only owners manage staff. A staff session that lands here is bounced home
   // (the backend also enforces owner-only, this just avoids a broken screen).
   useEffect(() => {
-    if (!isOwner) navigate("/home", { replace: true });
+    if (!isOwner) navigate(CLIENT_HOME, { replace: true });
   }, [isOwner, navigate]);
 
   const refresh = useCallback(async () => {

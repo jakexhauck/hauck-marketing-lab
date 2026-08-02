@@ -2,7 +2,6 @@ import { useState } from "react";
 import Shell from "../../components/Shell";
 import PageBar from "../../components/PageBar";
 import { PAID_ADS_CONTAINER } from "./shared";
-import { PAID_ADS_TABS } from "../../lib/pageTabs";
 import { useAuth } from "../../context/AuthContext";
 import { useAdsTrackerQuery } from "../../hooks/useApi";
 import type { AdTrackerLevel, AdTrackerRange, AdTrackerBreakdownRow } from "../../lib/api";
@@ -118,7 +117,7 @@ export default function AdsDashboard() {
   return (
     <Shell>
       <div className={PAID_ADS_CONTAINER}>
-        <PageBar tabs={PAID_ADS_TABS} />
+        <PageBar tabs={[]} section="Ads Dashboard" />
 
         {query.isError ? (
           <ErrorNote message={(query.error as Error | null)?.message} />

@@ -93,6 +93,7 @@ import { ChatProvider } from "./context/ChatContext";
 import { TourProvider } from "./context/TourContext";
 import TourOverlay from "./components/tour/TourOverlay";
 import type { ReactNode } from "react";
+import { CLIENT_HOME } from "./lib/nav";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { status, currentUser, needsIdentity, setIdentity, isAdmin, onboardingStatus } =
@@ -192,12 +193,12 @@ function RootRedirect() {
   // Offline grace: nobody can sign in without a network, so any plausible
   // previous session (either mode) goes to the cached dashboard, not /login.
   if (status === "authenticated-offline") {
-    return <Navigate to="/home" replace />;
+    return <Navigate to={CLIENT_HOME} replace />;
   }
   // Live sessions (clients) stay logged in and skip straight to the
   // dashboard. Test sessions (internal) always land on the login screen.
   if (status === "authenticated" && mode === "live") {
-    return <Navigate to="/home" replace />;
+    return <Navigate to={CLIENT_HOME} replace />;
   }
   return <Navigate to="/login" replace />;
 }
@@ -281,15 +282,23 @@ export default function App() {
               <Route path="/sales/forms" element={<Navigate to="/marketing/paid-ads/leads" replace />} />
               <Route path="/sales/chat" element={<Navigate to="/marketing/paid-ads/leads" replace />} />
               <Route path="/sales/paid-ads" element={<Navigate to="/marketing/paid-ads" replace />} />
+              {/* ONE route with a splat, not two. Leads and Schedule are
+                  separate sidebar rows but the same mounted component: a
+                  half-finished booking lives in <Sales>'s state and is carried
+                  from Leads to Schedule to pick a slot, and two sibling routes
+                  would unmount it on the way and lose the booking.
+
+                  The static /sales/* redirects above outrank this: React Router
+                  ranks a literal segment over a splat regardless of order. */}
               <Route
-                path="/sales"
+                path="/sales/*"
                 element={
                   <ProtectedRoute>
                     <Sales />
                   </ProtectedRoute>
                 }
               />
-              <Route path="/sales/jobs" element={<Navigate to="/sales?tab=schedule" replace />} />
+              <Route path="/sales/jobs" element={<Navigate to="/sales/schedule" replace />} />
               <Route
                 path="/dashboard"
                 element={

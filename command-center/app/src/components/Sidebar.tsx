@@ -13,6 +13,8 @@ import {
   NAV,
   visibleNav,
   isNavSection,
+  needsExactMatch,
+  flattenNav,
   type NavItem,
 } from "../lib/nav";
 import { useClient } from "../context/ClientContext";
@@ -200,6 +202,10 @@ export default function Sidebar() {
   const standalone = navEntries.filter(
     (e): e is NavItem => !isNavSection(e),
   );
+  // Every row the sidebar is about to draw, standalone and sectioned alike.
+  // needsExactMatch compares a row against ALL of them: a parent in the
+  // standalone list can perfectly well have its child inside a section.
+  const allRows = flattenNav(navEntries);
 
   // No rail before sign-in: the login screen also renders inside Shell, and an
   // unauthenticated session would otherwise show a full (owner-default) nav.
@@ -241,9 +247,12 @@ export default function Sidebar() {
             <NavItemLink
               key={item.to}
               item={item}
+              // Exact match when another row sits underneath this one, or the
+              // parent stays lit on the child's page. See needsExactMatch.
+              end={needsExactMatch(item, allRows)}
               // Jobs finished but never recorded. On Leads because that is
               // where the close-out queue lives (Sales / Job Completed).
-              badge={item.to === "/sales/leads" ? closeOutCount : undefined}
+              badge={item.to === "/sales" ? closeOutCount : undefined}
             />
           ),
         )}
@@ -259,9 +268,10 @@ export default function Sidebar() {
                 <NavItemLink
                   key={item.to}
                   item={item}
+                  end={needsExactMatch(item, allRows)}
                   // Jobs finished but never recorded. On Leads because that is
                   // where the close-out queue lives (Sales / Job Completed).
-                  badge={item.to === "/sales/leads" ? closeOutCount : undefined}
+                  badge={item.to === "/sales" ? closeOutCount : undefined}
                 />
               ),
             )}

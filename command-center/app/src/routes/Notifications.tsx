@@ -29,6 +29,7 @@ import { useNow } from "../context/NowContext";
 import { activityLabel } from "../lib/activityLabels";
 import { groupByDayKey } from "../lib/dayGroups";
 import type { ApiNotification } from "../lib/api";
+import { CLIENT_HOME } from "../lib/nav";
 
 // One icon per webhook action (see functions/api/webhook.ts); labels come
 // from the shared activityLabels map, which humanizes unknown kinds.
@@ -133,7 +134,7 @@ export default function Notifications() {
 
       <NavyHero flushTop={isTest}>
         <div className="flex items-center gap-2.5">
-          <HeroIconButton label="Back to home" onClick={() => navigate("/home")}>
+          <HeroIconButton label="Back to home" onClick={() => navigate(CLIENT_HOME)}>
             <ChevronLeft size={20} />
           </HeroIconButton>
           <div className="min-w-0 flex-1">

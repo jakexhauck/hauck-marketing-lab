@@ -17,6 +17,7 @@ import { useClient } from "../context/ClientContext";
 import { roleLabel } from "../lib/rolePermissions";
 import { APP_BRAND } from "../lib/appBrand";
 import { api } from "../lib/api";
+import { CLIENT_HOME } from "../lib/nav";
 
 type Audience = "everyone" | "assigned";
 
@@ -130,7 +131,7 @@ export default function Settings() {
       <div className="flex min-h-0 flex-1 flex-col lg:hidden">
       <NavyHero>
         <div className="flex items-center gap-2.5">
-          <HeroIconButton label="Back to home" onClick={() => navigate("/home")}>
+          <HeroIconButton label="Back to home" onClick={() => navigate(CLIENT_HOME)}>
             <ChevronLeft size={20} />
           </HeroIconButton>
           <div className="font-display text-[17px] font-bold text-white">

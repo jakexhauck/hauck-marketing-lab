@@ -41,20 +41,24 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "welcome",
     version: 1,
-    route: "/home",
+    route: "/marketing/paid-ads/leads",
     target: { desktop: null, mobile: null },
     title: "Welcome to your command center",
     body: "This is where every lead, conversation, and dollar from your ads lives. Give me sixty seconds and you will know your way around the whole thing.",
     placement: "center",
   },
   {
+    // Home was retired from the nav on 2026-08-01, so this step became Lead
+    // Tracker: the page the app now opens on, and the one it describes.
     id: "home",
     version: 1,
-    route: "/home",
-    target: { desktop: "[data-tour='nav-home']", mobile: "[data-tour='bottomnav-home']" },
-    title: "Home",
-    body: "Your daily snapshot: new leads, what needs a reply, and how the numbers are tracking. Start here every morning.",
-    capability: "overview",
+    route: "/marketing/paid-ads/leads",
+    target: {
+      desktop: "[data-tour='nav-marketing/paid-ads/leads']",
+      mobile: "[data-tour='bottomnav-marketing/paid-ads/leads']",
+    },
+    title: "Lead Tracker",
+    body: "Every lead your ads bring in, newest first. This is where the app opens and where most mornings start.",
     placement: "right",
   },
   {
@@ -130,7 +134,7 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "finish",
     version: 1,
-    route: "/home",
+    route: "/marketing/paid-ads/leads",
     target: { desktop: null, mobile: null },
     title: "That is the lot",
     body: "You have seen the whole command center. Want a refresher later? Replay this tour any time from Settings.",

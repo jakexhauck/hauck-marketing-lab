@@ -1,5 +1,4 @@
 import {
-  Home,
   Megaphone,
   MessageSquare,
   MessagesSquare,
@@ -7,6 +6,9 @@ import {
   Contact,
   LayoutGrid,
   Handshake,
+  CalendarDays,
+  ClipboardList,
+  Database,
   type LucideIcon,
 } from "lucide-react";
 import type { Capability } from "./capabilities";
@@ -56,6 +58,17 @@ export interface NavSection {
 
 export type NavEntry = NavItem | NavSection;
 
+// Where a signed-in client lands, and where every "back to home" control points.
+//
+// One constant because there are seven of those controls and a sign-in redirect,
+// and the last time this moved they did not all move with it: Home was taken out
+// of the nav while Login still sent people to it, which quietly undid the change
+// for anybody who signed in rather than following a bookmark.
+//
+// The /home route itself stays registered (App.tsx) so an old bookmark and the
+// product tour still resolve. It is simply not somewhere the app sends you.
+export const CLIENT_HOME = "/marketing/paid-ads/leads";
+
 export function isNavSection(entry: NavEntry): entry is NavSection {
   return "items" in entry;
 }
@@ -70,10 +83,31 @@ export function isNavSection(entry: NavEntry): entry is NavSection {
 // Every channel is a single flat row; its sub-pages live inside the page as a
 // <PageTabs> bar, not as sidebar children.
 export const NAV: NavEntry[] = [
-  { to: "/home", label: "Home", shortLabel: "Today", icon: Home, capability: "overview", bottomNav: true },
-  // Sales: the handed-off leads (Leads tab, outcomes board) and the jobs
-  // calendar (Schedule tab), combined into one surface.
-  { to: "/sales", label: "Sales", shortLabel: "Sales", icon: Handshake, bottomNav: true },
+  // No Home row: retired 2026-08-01. Lead Tracker is the landing page now, and
+  // a Home that summarised the pages either side of it was a stop on the way to
+  // the page you actually wanted. The /home route stays registered so a bookmark
+  // and the product tour still resolve, but no chrome points at it.
+  //
+  // Paid Ads leads the rail, Lead Tracker first within it: it is the page opened
+  // every morning and the one the client app now opens ON. The three stay
+  // adjacent rather than Lead Tracker being lifted out on its own, so the
+  // section still reads as a section.
+  { to: "/marketing/paid-ads/leads", label: "Lead Tracker", icon: ClipboardList, bottomNav: true },
+  { to: "/marketing/paid-ads", label: "Ads Dashboard", shortLabel: "Ads", icon: Megaphone },
+  { to: "/marketing/paid-ads/meta", label: "Meta Data", icon: Database },
+  // Sales was one row with two in-page tabs. It is two rows now: the pages are
+  // opened independently all day and a tab strip made the second one invisible
+  // until you had already arrived at the first.
+  //
+  // Both still render the same <Sales> component behind /sales/*, so switching
+  // between them does not unmount it and a booking begun on Leads survives the
+  // jump to Schedule to pick a slot.
+  //
+  // Only Leads keeps bottomNav. The phone bar holds five items with the raised
+  // "All" FAB dead centre, so a sixth would push the FAB off centre; Schedule is
+  // a desktop job anyway. See the comment on /apps below.
+  { to: "/sales", label: "Leads", shortLabel: "Sales", icon: Handshake, bottomNav: true },
+  { to: "/sales/schedule", label: "Schedule", icon: CalendarDays },
   // Only the services we actively sell get a row. Six channels are
   // back-burnered (hidden here, routes still registered in App.tsx): to
   // re-enable one, add its row back (and re-import its icon):
@@ -83,13 +117,14 @@ export const NAV: NavEntry[] = [
   //   { to: "/marketing/website", label: "Website", icon: Globe },
   //   { to: "/marketing/reviews", label: "Google Reviews", shortLabel: "Reviews", icon: Star },
   //   { to: "/marketing/reactivation", label: "Reactivation", icon: RotateCcw },
-  { to: "/marketing/paid-ads", label: "Paid Ads", shortLabel: "Ads", icon: Megaphone },
   // Phone-only "app grid" launcher, and the raised FAB in the bottom bar. Its
   // position in THIS list is what centres it: the bar renders the bottomNav
   // items in flatten order, so with five tabs it must sit third. Right now that
-  // means between Sales and Inbox, giving Today, Sales, All, Chats, Contacts.
+  // means between Leads and Inbox, giving Leads, Sales, All, Chats, Contacts.
   // Adding or removing a bottom-bar tab moves the centre, so re-place this row
-  // when you do. Sidebar-hidden (desktop has the full sidebar).
+  // when you do. Retiring Home is why Lead Tracker took its bottomNav slot: the
+  // bar would otherwise have dropped to four and the FAB would sit off centre.
+  // Sidebar-hidden (desktop has the full sidebar).
   { to: "/apps", label: "All features", shortLabel: "All", icon: LayoutGrid, bottomNav: true, sidebarHidden: true },
   { to: "/conversations", label: "Inbox", shortLabel: "Chats", icon: MessageSquare, capability: "inbox", bottomNav: true },
   // No Leads row: the whole Leads section retired 2026-07-23. The client
@@ -166,4 +201,18 @@ export function visibleNav(
     }
   }
   return out;
+}
+
+// Does this row need an EXACT route match to count as active?
+//
+// react-router's NavLink prefix-matches by default, so a row whose path is the
+// start of another row's path stays lit on that other page: with /sales (Leads)
+// and /sales/schedule both in the sidebar, opening Schedule highlighted BOTH.
+//
+// Derived from the list rather than flagged by hand on each row, because the
+// pairs that need it are created by adding a row, and a hand-set flag is exactly
+// the thing nobody remembers to set. Adding /marketing/paid-ads/meta is what
+// makes /marketing/paid-ads need this, and neither line says so.
+export function needsExactMatch(item: NavItem, all: readonly NavItem[]): boolean {
+  return all.some((other) => other !== item && other.to.startsWith(`${item.to}/`));
 }
