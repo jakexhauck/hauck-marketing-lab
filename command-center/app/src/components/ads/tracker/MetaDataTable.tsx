@@ -47,6 +47,25 @@ function displayDate(iso: string): string {
   });
 }
 
+// One labelled figure on a phone card. A <dl> pair rather than two spans,
+// because the label is the only thing saying what the number is once the column
+// header is gone.
+function MetaStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] text-faint">{label}</dt>
+      <dd
+        className={`truncate text-text tnum ${
+          hint ? "cursor-help decoration-dotted underline-offset-[3px] [text-decoration-line:underline]" : ""
+        }`}
+        title={hint}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 export default function MetaDataTable({
   rows,
   // The client page insets the sheet from the page gutter so it reads as an
@@ -79,12 +98,116 @@ export default function MetaDataTable({
   }
 
   return (
-    // shrink-0 on this wrapper is not optional. The client's PAGE_CONTAINER is a
-    // flex column with flex-1, and a direct child carrying overflow-x-auto gets
-    // CLIPPED by flex-shrink rather than scrolling. That is what once rendered
-    // Paid Ads Results sliced in half.
+    <>
+      {/* Phone: a card per day, tapping one opens its ads, same as the row does.
+          The table is nine columns at min-w-[880px] in a ~408px column, so on a
+          phone it was a sheet you dragged sideways to read one figure at a time.
+          Spend leads because it is the number the day is opened for; the rest
+          sit under it as a labelled grid, since a card has no column header to
+          say which figure is which. */}
+      <div className="flex shrink-0 flex-col gap-2 lg:hidden">
+        {days.map((day) => {
+          const isOpen = open.has(day.date);
+          const exact = reachIsExact(day);
+          return (
+            <div key={day.date} className="rounded-lg border border-border bg-surface">
+              <button
+                type="button"
+                onClick={() => toggle(day.date)}
+                aria-expanded={isOpen}
+                className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left"
+              >
+                <span className="min-w-0">
+                  <span className="block text-[14px] font-semibold text-text">
+                    {displayDate(day.date)}
+                  </span>
+                  <span className="block text-[12px] text-faint">
+                    {weekday(day.date)} · {day.ads.length} ad{day.ads.length === 1 ? "" : "s"}
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <span className="text-[15px] font-semibold text-text tnum">
+                    {formatMoneyExact(day.spend)}
+                  </span>
+                  <ChevronRight
+                    size={15}
+                    aria-hidden
+                    className={`shrink-0 text-faint transition-transform ${
+                      isOpen ? "rotate-90" : ""
+                    }`}
+                  />
+                </span>
+              </button>
+
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border/60 px-3.5 py-2.5 text-[12.5px]">
+                <MetaStat label="Impressions" value={day.impressions.toLocaleString()} />
+                <MetaStat
+                  label="Reach"
+                  value={exact ? day.reach.toLocaleString() : `≤ ${day.reach.toLocaleString()}`}
+                  hint={
+                    exact
+                      ? undefined
+                      : `Up to ${day.reach.toLocaleString()}. Reach counts people, not views, so adding ${day.ads.length} ads together counts anyone who saw more than one of them twice. Only Meta can de-duplicate it.`
+                  }
+                />
+                <MetaStat label="Link clicks" value={day.linkClicks.toLocaleString()} />
+                <MetaStat label="CTR" value={ctr(day.linkClicks, day.impressions)} />
+                <MetaStat label="CPM" value={cpm(day.spend, day.impressions)} />
+              </dl>
+
+              {isOpen && (
+                <div className="flex flex-col gap-2 border-t border-border bg-surface-2/40 px-3.5 py-3">
+                  {day.ads.map((ad, i) => (
+                    <div key={`${day.date}-${ad.adId}-${i}`} className="text-[12px]">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="min-w-0 flex-1 truncate font-medium text-text">
+                          {ad.adName || "-"}
+                        </span>
+                        <span className="shrink-0 font-semibold text-text tnum">
+                          {formatMoneyExact(ad.spend)}
+                        </span>
+                      </div>
+                      {ad.adsetName && (
+                        <div className="truncate text-[11px] text-faint">{ad.adsetName}</div>
+                      )}
+                      <div className="mt-0.5 text-[11px] text-muted tnum">
+                        {ad.impressions.toLocaleString()} impressions ·{" "}
+                        {ad.linkClicks.toLocaleString()} clicks ·{" "}
+                        {ctr(ad.linkClicks, ad.impressions)} CTR
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* The table's tfoot, as a card. Reach is omitted rather than shown as
+            "-": on a card there is no column to hold a dash, and a labelled
+            "Reach -" reads as a missing figure rather than as one that cannot
+            be added up. */}
+        <div className="rounded-lg border border-border bg-surface-2/60 px-3.5 py-3">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-faint">
+            Total · {rows.length} ad day{rows.length === 1 ? "" : "s"}
+          </div>
+          <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-[12.5px]">
+            <MetaStat label="Spend" value={formatMoneyExact(totals.spend)} />
+            <MetaStat label="Impressions" value={totals.impressions.toLocaleString()} />
+            <MetaStat label="Link clicks" value={totals.linkClicks.toLocaleString()} />
+            <MetaStat label="CTR" value={ctr(totals.linkClicks, totals.impressions)} />
+            <MetaStat label="CPM" value={cpm(totals.spend, totals.impressions)} />
+          </dl>
+        </div>
+      </div>
+
+      {/* Desktop: the sheet's table, unchanged.
+          shrink-0 on this wrapper is not optional. The client's PAGE_CONTAINER is a
+          flex column with flex-1, and a direct child carrying overflow-x-auto gets
+          CLIPPED by flex-shrink rather than scrolling. That is what once rendered
+          Paid Ads Results sliced in half. */}
     <div
-      className={`shrink-0 overflow-x-auto rounded-lg border border-border ${
+      className={`hidden shrink-0 overflow-x-auto rounded-lg border border-border lg:block ${
         inset ? "sm:mx-4 lg:mx-10" : ""
       }`}
     >
@@ -243,5 +366,6 @@ export default function MetaDataTable({
         </tfoot>
       </table>
     </div>
+    </>
   );
 }

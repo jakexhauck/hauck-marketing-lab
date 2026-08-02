@@ -107,6 +107,54 @@ const RESULT_TH =
   "border border-border bg-surface-2 px-4 py-3.5 text-[12.5px] font-semibold text-muted";
 const RESULT_TD = "border border-border px-4 py-6 text-[16px] text-text tnum";
 
+// One figure on a phone card, with its label above it. The sheet's tables carry
+// their labels in a header row; a card has no header row, so each figure has to
+// name itself.
+function Stat({
+  label,
+  value,
+  strong = false,
+  wide = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  wide?: boolean;
+}) {
+  return (
+    // bg-surface over the grid's bg-border, so the 1px gap between cells IS the
+    // rule. Bordering each cell instead would double every interior line to 2px
+    // while the outer edge stayed 1px.
+    <div className={`min-w-0 bg-surface px-3 py-2.5 ${wide ? "col-span-2" : ""}`}>
+      <div className="truncate text-[11px] text-muted" title={label}>
+        {label}
+      </div>
+      <div className={`truncate text-[16px] text-text tnum ${strong ? "font-semibold" : ""}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+// A Breakdown figure on a phone card. Denser than Stat: Breakdown is a list,
+// sometimes a long one, so its cards stay compact the way its table does.
+function BreakdownStat({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="truncate text-[11px] text-faint">{label}</dt>
+      <dd className={`truncate text-text tnum ${strong ? "font-semibold" : ""}`}>{value}</dd>
+    </div>
+  );
+}
+
 export default function DashboardSheet({
   data,
   range,
@@ -143,7 +191,31 @@ export default function DashboardSheet({
 
           No bottom margin: the two bands butt straight together so the page
           reads as one continuous sheet, the way the workbook does. */}
-      <div className="shrink-0 overflow-x-auto">
+      {/* Phone: the same eleven figures as a grid, plus the range picker above
+          them. Twelve columns at min-w-[900px] in a ~408px column meant the
+          client saw Leads and Pickups and had to drag for the rest, including
+          ROAS, which is the number the page exists for. The grid keeps the
+          sheet's ruled-cell look so it still reads as the workbook. */}
+      <div className="shrink-0 border border-b-0 border-border px-3 py-2.5 lg:hidden">
+        <Picker options={RANGES} value={range} onChange={onRange} label="Date range" />
+      </div>
+      <div className="grid shrink-0 grid-cols-2 gap-px border-y border-border bg-border lg:hidden">
+        <Stat label="Leads" value={String(data.kpis.leads)} />
+        <Stat label="Pickups" value={String(data.kpis.pickups)} />
+        <Stat label="Pickup Rate" value={pct(data.kpis.pickupRate)} />
+        <Stat label="Bookings" value={String(data.kpis.bookings)} />
+        <Stat label="Booking Rate" value={pct(data.kpis.bookingRate)} />
+        <Stat label="Sales" value={String(data.kpis.sales)} />
+        <Stat label="Sales % (of leads)" value={pct(data.kpis.salesPct)} />
+        <Stat label="Close Rate (of bookings)" value={pct(data.kpis.closeRate)} />
+        <Stat label="Revenue" value={money0(data.kpis.revenue)} />
+        <Stat label="Ad Spend" value={money0(data.kpis.spend)} />
+        {/* Full width, and last: eleven figures leave an odd one out, and ROAS
+            is the one worth giving the whole row to. */}
+        <Stat label="ROAS" value={roas(data.kpis.roas)} strong wide />
+      </div>
+
+      <div className="hidden shrink-0 overflow-x-auto lg:block">
         <table className="w-full min-w-[900px] border-collapse text-center">
           <thead>
             <tr>
@@ -203,9 +275,44 @@ export default function DashboardSheet({
             : "No ad spend in this range."}
         </div>
       ) : (
-        // shrink-0 for the same reason as Results above: without it this table
-        // is squashed and clipped rather than scrolled to.
-        <div className="shrink-0 overflow-x-auto">
+        <>
+        {/* Phone: a card per campaign / ad set / ad. Ten columns at
+            min-w-[980px] is the widest table on the page, and the row's NAME
+            (the thing that tells you which ad you are reading) sat in the
+            leftmost column with the figures dragged off to the right of it. */}
+        <div className="flex shrink-0 flex-col gap-2 border border-t-0 border-border p-3 lg:hidden">
+          {rows.map((r) => (
+            <div key={r.id} className="rounded-lg border border-border bg-surface px-3.5 py-3">
+              <div className="flex items-start gap-2">
+                {r.live && (
+                  <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-positive-tint px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-positive">
+                    <span className="h-1.5 w-1.5 rounded-full bg-positive" />
+                    Live
+                  </span>
+                )}
+                <span className="min-w-0 flex-1 text-[13.5px] font-semibold text-text">
+                  {r.name || "-"}
+                </span>
+              </div>
+              <div className="mt-0.5 truncate text-[11px] text-faint tnum">{r.id}</div>
+
+              <dl className="mt-2.5 grid grid-cols-3 gap-x-3 gap-y-2 border-t border-border/60 pt-2.5 text-[12.5px]">
+                <BreakdownStat label="Spend" value={money0(r.spend)} />
+                <BreakdownStat label="Leads" value={String(r.leads)} />
+                <BreakdownStat label="Bookings" value={String(r.bookings)} />
+                <BreakdownStat label="Sales" value={String(r.sales)} />
+                <BreakdownStat label="Revenue" value={money0(r.revenue)} />
+                <BreakdownStat label="ROAS" value={roas(r.roas)} strong />
+                <BreakdownStat label="Cost / lead" value={money2(r.costPerLead)} />
+                <BreakdownStat label="Cost / booking" value={money2(r.costPerBooking)} />
+              </dl>
+            </div>
+          ))}
+        </div>
+
+        {/* shrink-0 for the same reason as Results above: without it this table
+            is squashed and clipped rather than scrolled to. */}
+        <div className="hidden shrink-0 overflow-x-auto lg:block">
           <table className="w-full min-w-[980px] border-collapse text-center">
             <thead>
               <tr>
@@ -248,6 +355,7 @@ export default function DashboardSheet({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </>
   );
