@@ -38,7 +38,10 @@ function step2(overrides: IntakeAnswers = {}): IntakeAnswers {
     contactEmail: "jim@willisexteriors.com",
     contactPhone: "313-555-0134",
     timezone: "America/Detroit",
-    businessAddress: "123 Ford Rd, Garden City, MI",
+    addressStreet: "123 Ford Rd",
+    addressCity: "Garden City",
+    addressState: "MI",
+    addressZip: "48135",
     ...overrides,
   };
 }
@@ -54,8 +57,8 @@ function step3(overrides: IntakeAnswers = {}): IntakeAnswers {
 
 function step4(overrides: IntakeAnswers = {}): IntakeAnswers {
   return {
-    targetAreas: "48135, Wayne County, Garden City",
-    areaCallout: "Detroit area",
+    targetZips: "48135, 48150, 48154",
+    areaCallout: "Metro Detroit",
     ...overrides,
   };
 }
@@ -96,29 +99,91 @@ describe("the schema itself", () => {
     }
   });
 
-  it("keeps all sixteen questions from the source form", () => {
+  it("keeps every question from the source form that still earns its place", () => {
     const keys = new Set(INTAKE_FIELDS.map((f) => f.key));
     const fromSourceForm = [
       "contactName",
       "contactEmail",
       "contactPhone",
       "timezone",
-      "businessAddress",
       "taxId",
-      "targetAreas",
       "areaCallout",
-      "notifyPreference",
-      "calendarAvailability",
-      "leadConnectorInstalled",
       "usp",
       "headshotUrl",
       "pastWorkUrl",
       "whySignedUp",
       "notes",
     ];
-    expect(fromSourceForm).toHaveLength(16);
     for (const key of fromSourceForm) {
       expect(keys.has(key), `${key} is missing from the funnel`).toBe(true);
+    }
+  });
+
+  // Five questions the form used to ask and no longer does. Asserted by key
+  // rather than by count, because each was dropped for its own reason and a
+  // reappearance would be someone reinstating it without knowing why it went.
+  //
+  //   businessAddress / targetAreas - replaced by fields that ask for the parts
+  //     we actually use (street/city/state/zip, and zip codes to target).
+  //   notifyPreference - leads reach a client by SMS and in the app. There is
+  //     no other setting to honour, so there is no question to ask.
+  //   calendarAvailability - one free-text box became seven day fields.
+  //   leadConnectorInstalled - clients do not need that app.
+  it("no longer asks the five questions that were cut", () => {
+    const keys = new Set(INTAKE_FIELDS.map((f) => f.key));
+    for (const key of [
+      "businessAddress",
+      "targetAreas",
+      "notifyPreference",
+      "calendarAvailability",
+      "leadConnectorInstalled",
+    ]) {
+      expect(keys.has(key), `${key} was cut and must stay off the funnel`).toBe(false);
+    }
+  });
+
+  // A single address box came back as "Garden City" as often as it came back as
+  // an address, and A2P registration needs the pieces separately.
+  it("asks for the address in parts, and needs all of them but the suite", () => {
+    const required = (key: string): boolean =>
+      INTAKE_FIELDS.find((f) => f.key === key)?.required ?? false;
+    for (const key of ["addressStreet", "addressCity", "addressState", "addressZip"]) {
+      expect(required(key), `${key} should be required`).toBe(true);
+    }
+    expect(required("addressUnit")).toBe(false);
+  });
+
+  it("asks for zip codes to target, and will not move on without them", () => {
+    const field = INTAKE_FIELDS.find((f) => f.key === "targetZips");
+    expect(field?.required).toBe(true);
+    expect(field?.label.toLowerCase()).toContain("zip");
+  });
+
+  // Every day, in week order, and none of them required: these are the hours a
+  // client would LIKE to be booked in, so a blank day is a day off rather than
+  // an unfinished form.
+  it("asks for hours a day at a time, Monday to Sunday, none required", () => {
+    const days = [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ];
+    const hours = INTAKE_FIELDS.filter((f) => f.key.startsWith("hours"));
+    expect(hours.map((f) => f.label)).toEqual(days);
+    for (const field of hours) {
+      expect(field.required ?? false, `${field.key} must not be required`).toBe(false);
+    }
+  });
+
+  // A contractor who has never shared a Drive folder must still be able to
+  // finish. The help says to ask Jake; the schema must not contradict it.
+  it("never blocks the form on an asset link", () => {
+    for (const key of ["logoUrl", "headshotUrl", "pastWorkUrl"]) {
+      expect(INTAKE_FIELDS.find((f) => f.key === key)?.required ?? false).toBe(false);
     }
   });
 
@@ -151,10 +216,6 @@ describe("the schema itself", () => {
     }
   });
 
-  it("offers Both as a notification preference, not just text and email", () => {
-    const field = INTAKE_FIELDS.find((f) => f.key === "notifyPreference");
-    expect(field?.options?.map((o) => o.value)).toEqual(["text", "email", "both"]);
-  });
 });
 
 describe("missingRequired", () => {

@@ -8,10 +8,17 @@ import {
 } from "./onboardingViews";
 
 describe("the views", () => {
-  it("ships exactly the three, in order", () => {
-    // Keys is agency-wide rather than per client, and sits here anyway: standing
-    // a client up is when a missing key gets discovered.
-    expect(ONBOARDING_VIEWS.map((v) => v.id)).toEqual(["setup", "management", "keys"]);
+  it("ships exactly the four, in order", () => {
+    // Submissions sits next to setup because that is the order the work happens
+    // in: a form arrives, then it becomes a client being stood up. Keys is
+    // agency-wide rather than per client, and sits here anyway: standing a
+    // client up is when a missing key gets discovered.
+    expect(ONBOARDING_VIEWS.map((v) => v.id)).toEqual([
+      "setup",
+      "submissions",
+      "management",
+      "keys",
+    ]);
   });
 
   it("opens on the client's setup", () => {
@@ -29,6 +36,7 @@ describe("the views", () => {
 describe("resolveOnboardingView", () => {
   it("takes the view the URL names", () => {
     expect(resolveOnboardingView("setup")).toBe("setup");
+    expect(resolveOnboardingView("submissions")).toBe("submissions");
     expect(resolveOnboardingView("management")).toBe("management");
   });
 
@@ -66,6 +74,7 @@ describe("clientSetupPath", () => {
 describe("onboardingViewDef", () => {
   it("finds the definition, and never returns nothing", () => {
     expect(onboardingViewDef("setup").label).toBe("Client setup");
+    expect(onboardingViewDef("submissions").label).toBe("Submissions");
     expect(onboardingViewDef("management").label).toBe("Management");
   });
 });

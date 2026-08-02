@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from "react-router-dom";
 import ClientSetupView from "../../components/admin/onboarding/ClientSetupView";
 import OnboardingManagement from "../../components/admin/onboarding/OnboardingManagement";
+import SubmissionsView from "../../components/admin/onboarding/SubmissionsView";
 import KeysPanel from "../../components/admin/secrets/KeysPanel";
 import {
   ONBOARDING_VIEWS,
@@ -63,6 +64,8 @@ export default function AdminOnboarding() {
     >
       {view === "keys" ? (
         <KeysPanel />
+      ) : view === "submissions" ? (
+        <SubmissionsView />
       ) : view === "management" ? (
         <OnboardingManagement />
       ) : (

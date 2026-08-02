@@ -88,6 +88,12 @@
 .hm-funnel .hm-help a{color:var(--hm-green-deep);font-weight:500;
   text-decoration:underline;text-underline-offset:2px}
 .hm-funnel .hm-help a:hover{color:var(--hm-ink)}
+/* The one line in a help note that people skip and then get wrong: sharing
+   permissions on an asset link, and the wording the ad call-out wants. Marked
+   rather than merely bolded, because at 11.5px bold alone barely reads. */
+.hm-funnel .hm-help .hm-mark-em{color:var(--hm-ink);font-weight:600;
+  background:rgba(77,187,131,.18);border-radius:4px;padding:1px 4px;
+  box-decoration-break:clone;-webkit-box-decoration-break:clone}
 .hm-err{font-size:11.5px;line-height:1.45;color:#C2492F}
 .hm-check{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
 .hm-check input{width:17px;height:17px;margin-top:1px;flex:none;accent-color:var(--hm-green)}
@@ -210,15 +216,19 @@ a.hm-btn{display:inline-block;text-decoration:none}
     ["America/Toronto", "Eastern - Toronto (ET)"]
   ];
 
-  var ASSET_HELP = "Paste a Google Drive, Dropbox or iCloud link. Make sure it is shared.";
+  // help renders as HTML (see fieldHtml), so the one instruction people get
+  // wrong is emphasised rather than buried in the middle of a sentence.
+  var ASSET_HELP = "Optional. Paste a Google Drive, Dropbox or iCloud link, and " +
+    '<b class="hm-mark-em">set it so anyone with the link can view it</b>. ' +
+    "If you are not sure how, leave it blank and message Jake, who will sort it out with you.";
 
   var STEPS = [
     { n: 1, label: "Your business", blurb: "The basics, so we know who we are building for." },
     { n: 2, label: "Contact details", blurb: "How we reach you, and what we need to register your phone number." },
     { n: 3, label: "Your login", blurb: "Choose how you will sign in once your account is ready." },
-    { n: 4, label: "Targeting", blurb: "Where your ads run, and how you want to hear about new leads." },
+    { n: 4, label: "Targeting", blurb: "Where your ads run, and the hours you would like to be booked in." },
     { n: 5, label: "Your story", blurb: "What makes you different. This is the raw material for your ads." },
-    { n: 6, label: "Assets", blurb: "Photos and a logo we can use in your marketing." },
+    { n: 6, label: "Assets", blurb: "Photos and a logo we can use in your marketing. All three are optional." },
     { n: 7, label: "Review", blurb: "Check it over, then send it to us." }
   ];
   var LAST_INPUT_STEP = 6;
@@ -235,7 +245,13 @@ a.hm-btn{display:inline-block;text-decoration:none}
     { key: "contactEmail", label: "Email", type: "email", step: 2, required: true, placeholder: "jim@willisexteriors.com" },
     { key: "contactPhone", label: "Phone", type: "tel", step: 2, required: true, placeholder: "(313) 555 0134" },
     { key: "timezone", label: "Timezone", type: "select", step: 2, required: true, options: TIMEZONES, help: "This sets the times on your booking calendar, so please get it right." },
-    { key: "businessAddress", label: "Business address", type: "textarea", step: 2, required: true, wide: true, placeholder: "123 Ford Rd, Garden City, MI 48135" },
+    // The address in parts. One box came back as "Garden City" as often as it
+    // came back as an address, and the A2P registration needs the pieces.
+    { key: "addressStreet", label: "Street address", type: "text", step: 2, required: true, wide: true, placeholder: "123 Ford Rd" },
+    { key: "addressUnit", label: "Suite, unit or floor", type: "text", step: 2, placeholder: "Suite 200", help: "Leave blank if there is not one." },
+    { key: "addressCity", label: "City", type: "text", step: 2, required: true, placeholder: "Garden City" },
+    { key: "addressState", label: "State", type: "text", step: 2, required: true, placeholder: "MI", help: "The two-letter state, like MI or TX." },
+    { key: "addressZip", label: "ZIP code", type: "text", step: 2, required: true, placeholder: "48135" },
     // The A2P block. All four optional: a client who does not know their EIN
     // off-hand must still be able to finish. help renders as HTML (see
     // fieldHtml), which is what lets the EIN note carry a link out.
@@ -252,11 +268,17 @@ a.hm-btn{display:inline-block;text-decoration:none}
     { key: "passwordConfirm", label: "Confirm password", type: "password", step: 3, required: true },
 
     // 4 Targeting
-    { key: "targetAreas", label: "Areas to target for your ads", type: "textarea", step: 4, required: true, wide: true, placeholder: "78704, Travis County, Downtown Austin, Round Rock", help: "Any combination of zip codes, counties, neighbourhoods or cities." },
-    { key: "areaCallout", label: "How should the ads name your area?", type: "text", step: 4, required: true, wide: true, placeholder: "Detroit area", help: '"Westlake County and Surrounding Areas", for example.' },
-    { key: "notifyPreference", label: "How would you like to hear about new leads and appointments?", type: "radio", step: 4, wide: true, options: [["text", "Text"], ["email", "Email"], ["both", "Both"]] },
-    { key: "calendarAvailability", label: "Your preferred calendar availability", type: "textarea", step: 4, wide: true, placeholder: "Mon-Fri 9am-5pm, Saturday 12-3pm, Sunday off" },
-    { key: "leadConnectorInstalled", label: "I have installed the LeadConnector app on my phone", type: "checkbox", step: 4, wide: true },
+    { key: "targetZips", label: "Zip codes to target for your ads", type: "textarea", step: 4, required: true, wide: true, placeholder: "48135, 48150, 48154, 48185", help: "Zip codes only please, separated by commas. If you are not sure which ones cover your area, put the ones you work in most and we will build out from there." },
+    { key: "areaCallout", label: "What should the call-out name of your area for the ads be?", type: "text", step: 4, required: true, wide: true, placeholder: "Metro Detroit", help: 'This is what the ad calls the people it is shown to: <b class="hm-mark-em">"Metro Detroit Homeowners..."</b>. Give us the name locals actually use.' },
+    // Their hours, a day at a time. Ideal hours, not a promise: a blank day is a
+    // day off, which is why none of them are required.
+    { key: "hoursMonday", label: "Monday", type: "text", step: 4, placeholder: "9am - 5pm", help: "Your ideal hours, not a commitment. Leave a day blank to take it off." },
+    { key: "hoursTuesday", label: "Tuesday", type: "text", step: 4, placeholder: "9am - 5pm" },
+    { key: "hoursWednesday", label: "Wednesday", type: "text", step: 4, placeholder: "9am - 5pm" },
+    { key: "hoursThursday", label: "Thursday", type: "text", step: 4, placeholder: "9am - 5pm" },
+    { key: "hoursFriday", label: "Friday", type: "text", step: 4, placeholder: "9am - 5pm" },
+    { key: "hoursSaturday", label: "Saturday", type: "text", step: 4, placeholder: "10am - 2pm" },
+    { key: "hoursSunday", label: "Sunday", type: "text", step: 4, placeholder: "Closed" },
 
     // 5 Your story
     { key: "usp", label: "Do you have a unique selling proposition?", type: "textarea", step: 5, wide: true, placeholder: "We guarantee a home sale in 30 days or pay the seller $10k" },
@@ -268,11 +290,6 @@ a.hm-btn{display:inline-block;text-decoration:none}
     { key: "headshotUrl", label: "A clear headshot of yourself", type: "url", step: 6, wide: true, help: ASSET_HELP },
     { key: "pastWorkUrl", label: "Photos of your past work", type: "url", step: 6, wide: true, help: ASSET_HELP }
   ];
-
-  var LEADCONNECTOR = {
-    ios: "https://apps.apple.com/us/app/lead-connector/id1564302502",
-    android: "https://play.google.com/store/apps/details?id=com.LeadConnector&hl=en_US"
-  };
 
   // ------------------------------------------------------------------ state
   var state = { step: 1, answers: {}, errors: {}, token: null, saving: false,
@@ -468,13 +485,6 @@ a.hm-btn{display:inline-block;text-decoration:none}
     if (err) h += '<p class="hm-err">' + esc(err) + "</p>";
     else if (f.help) h += '<p class="hm-help">' + f.help + "</p>";
 
-    // The LeadConnector question is a task, not a question, so the store links
-    // belong right beside it.
-    if (f.key === "leadConnectorInstalled") {
-      h += '<p class="hm-help">Get the app: ' +
-           '<a href="' + LEADCONNECTOR.ios + '" target="_blank" rel="noreferrer">iPhone</a> or ' +
-           '<a href="' + LEADCONNECTOR.android + '" target="_blank" rel="noreferrer">Android</a></p>';
-    }
     return h + "</div>";
   }
 
@@ -558,13 +568,12 @@ a.hm-btn{display:inline-block;text-decoration:none}
 
     slot.innerHTML = h;
 
-    // Nothing under the card on the input steps. The ticks show progress and the
+    // Nothing under the card, on any step. The ticks show progress and the
     // footer shows the save state; saying either again in prose was noise on
-    // every single screen. The review step gets one line, because "what happens
-    // when I press this" is a real question and only asked once.
-    reassure.textContent = onReview
-      ? "Once you send this, we will start setting your account up."
-      : "";
+    // every screen. The review step used to add a line about what pressing send
+    // would do, which Jake cut: the button says "Send it in", and the screen
+    // after it says what happens next.
+    reassure.textContent = "";
 
     wire();
   }

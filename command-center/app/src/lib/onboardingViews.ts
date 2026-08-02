@@ -5,13 +5,18 @@
 // (management). Naming them here keeps the tab strip, the URL and the redirects
 // agreeing.
 //
-// There was a third, a pipeline board of intake submissions waiting to be
-// approved. It went when the approval did: a finished funnel form now creates
-// the client on the spot, so the board was a queue of one state, showing clients
-// whose real work was on the setup page anyway. Old ?view=pipeline links land on
-// setup rather than on nothing.
+// There was a pipeline board of intake submissions waiting to be approved. It
+// went when the approval did: a finished funnel form now creates the client on
+// the spot, so the board was a queue of one state, showing clients whose real
+// work was on the setup page anyway. Old ?view=pipeline links land on setup
+// rather than on nothing.
+//
+// Submissions is not that board back. The board was a queue of things to
+// action; this is the record of what the funnel has received, including the
+// ones still being typed and the ones that never became a client, which
+// nothing in the app could show once the board went.
 
-export type OnboardingView = "setup" | "management" | "keys";
+export type OnboardingView = "setup" | "submissions" | "management" | "keys";
 
 export interface OnboardingViewDef {
   id: OnboardingView;
@@ -25,6 +30,11 @@ export const ONBOARDING_VIEWS: OnboardingViewDef[] = [
     id: "setup",
     label: "Client setup",
     blurb: "One client, from the day they sign to the day they go live.",
+  },
+  {
+    id: "submissions",
+    label: "Submissions",
+    blurb: "Every intake form the funnel has taken, finished or still being typed.",
   },
   {
     id: "management",

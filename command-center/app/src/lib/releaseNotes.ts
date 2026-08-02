@@ -26,6 +26,32 @@ export interface Release {
 // Newest FIRST. The list is the source of truth for the popup and its order.
 export const RELEASES: Release[] = [
   {
+    id: "2026-08-02-intake-form-questions",
+    date: "2 August 2026",
+    title: "The intake form asks for what we actually use",
+    items: [
+      "The address is asked in parts now: street, suite, city, state and ZIP, instead of one box that came back as a city name half the time.",
+      "Targeting asks for ZIP CODES, not \"areas\". No more turning \"the west side\" into an ad set by hand.",
+      "The area call-out question says what it is for: what the ad calls the people who see it, like \"Metro Detroit Homeowners...\".",
+      "Availability is one line per day, Monday to Sunday, asking the hours they would LIKE to be booked in. A blank day is a day off.",
+      "Two questions are gone. \"How would you like to hear about new leads?\" (it is SMS and the app, so there was nothing to choose) and \"I have installed the LeadConnector app\" (clients do not need it).",
+      "The three asset links are clearly optional, and the instruction to make the link viewable by anyone is now highlighted, with a line telling them to message Jake rather than give up.",
+      "The line under the review screen about what happens when they send it is gone.",
+    ],
+  },
+  {
+    id: "2026-08-02-onboarding-submissions",
+    date: "2 August 2026",
+    title: "You can read what a client wrote on the intake form again",
+    items: [
+      "Onboarding > Client setup opens with What the client told us: every answer they gave on the intake form, sat above the checklist you work from.",
+      "Onboarding has a new Submissions tab listing every form the funnel has taken, including the ones somebody is halfway through typing right now.",
+      "Open any row to read the whole form. Nothing about a submission was visible in the app before this, so a half-finished one was invisible until the person came back and finished it.",
+      "A finished form is supposed to create the client on the spot. If that did not happen the tab says so at the top, and Create the client on that row finishes the job.",
+      "The answers are read-only wherever they appear. What the client typed stays what the client typed; the values we push to their GoHighLevel are edited separately, as before.",
+    ],
+  },
+  {
     id: "2026-08-02-leads-cities",
     date: "2 August 2026",
     title: "Leads has a Cities tab that knows where you have already been",

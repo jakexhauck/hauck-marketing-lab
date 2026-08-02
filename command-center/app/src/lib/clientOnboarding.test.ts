@@ -34,7 +34,6 @@ function step4(overrides: DraftValues = {}): DraftValues {
     contactEmail: "jim@willisexteriors.com",
     contactPhone: "313-555-0134",
     timezone: "America/Detroit",
-    businessAddress: "123 Ford Rd, Garden City, MI",
     ...overrides,
   };
 }
@@ -75,7 +74,7 @@ describe("the field schema", () => {
   // would land in the wrong half of the onboarding record.
   it("asks nothing the client should be answering themselves", () => {
     const keys = ONBOARDING_FIELDS.map((f) => f.key);
-    for (const clientKey of ["contactName", "targetAreas", "usp", "timezone", "headshotUrl"]) {
+    for (const clientKey of ["contactName", "targetZips", "usp", "timezone", "headshotUrl"]) {
       expect(keys).not.toContain(clientKey);
     }
   });

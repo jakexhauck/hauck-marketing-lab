@@ -13,6 +13,7 @@ import {
   sanitizeAnswers,
   type SubmissionRow,
 } from "./intake";
+import { INTAKE_FIELDS } from "../../src/lib/intake";
 
 function submission(overrides: Partial<SubmissionRow> = {}): SubmissionRow {
   return {
@@ -105,7 +106,7 @@ describe("sanitizeAnswers", () => {
 
   it("rejects a payload that is oversized in total", () => {
     const raw: Record<string, string> = {};
-    for (const key of ["notes", "usp", "whySignedUp", "targetAreas", "businessAddress"]) {
+    for (const key of ["notes", "usp", "whySignedUp", "targetZips", "addressStreet"]) {
       raw[key] = "x".repeat(MAX_ANSWER_LEN);
     }
     const result = sanitizeAnswers(raw, { maxBytes: 1000 });
@@ -118,10 +119,32 @@ describe("sanitizeAnswers", () => {
     expect(MAX_ANSWERS_BYTES).toBeGreaterThan(10000);
   });
 
+  // The funnel has no checkbox question today (the LeadConnector one was cut),
+  // so this asserts the sanitizer's checkbox handling against the schema rather
+  // than against a hardcoded key: whichever checkbox is added next, its boolean
+  // must survive, and if there is none the test says so instead of passing on a
+  // key that no longer exists.
   it("keeps a checkbox as a boolean", () => {
-    expect(sanitizeAnswers({ leadConnectorInstalled: true }).answers.leadConnectorInstalled).toBe(
-      true,
-    );
+    const checkbox = INTAKE_FIELDS.find((f) => f.type === "checkbox");
+    if (!checkbox) {
+      expect(INTAKE_FIELDS.some((f) => f.type === "checkbox")).toBe(false);
+      return;
+    }
+    expect(sanitizeAnswers({ [checkbox.key]: true }).answers[checkbox.key]).toBe(true);
+  });
+
+  // A question that was cut is a key the server must stop accepting. Anything
+  // still posting it (a cached copy of the funnel script, say) has its answer
+  // dropped rather than stored under a question nobody asks any more.
+  it("drops an answer to a question that was cut", () => {
+    const result = sanitizeAnswers({
+      leadConnectorInstalled: true,
+      notifyPreference: "both",
+      businessAddress: "123 Ford Rd, Garden City, MI",
+    });
+    expect(result.answers.leadConnectorInstalled).toBeUndefined();
+    expect(result.answers.notifyPreference).toBeUndefined();
+    expect(result.answers.businessAddress).toBeUndefined();
   });
 
   it("ignores a boolean sent for a text field", () => {

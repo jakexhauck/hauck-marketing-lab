@@ -118,7 +118,7 @@ describe("intake", () => {
 
   it("exposes every intake field key and no shell keys", () => {
     expect(INTAKE_KEYS).toContain("contactName");
-    expect(INTAKE_KEYS).toContain("targetAreas");
+    expect(INTAKE_KEYS).toContain("targetZips");
     // Jake's own technical fields are never on the funnel, so they can never
     // arrive as an intake answer either.
     expect(INTAKE_KEYS).not.toContain("subdomain");

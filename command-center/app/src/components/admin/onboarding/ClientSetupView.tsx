@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Rocket } from "lucide-react";
 import ClientPicker from "../ClientPicker";
 import PickPrompt from "../PickPrompt";
+import IntakeAnswersCard from "./IntakeAnswersCard";
 import SetupSteps from "./SetupSteps";
 import WiringCard from "./WiringCard";
 import { useSelectedClient } from "../../../hooks/useSelectedClient";
@@ -78,6 +79,9 @@ export default function ClientSetupView() {
         // Keyed by tenant so switching client remounts both halves rather than
         // leaving one client's half-typed values on another's record.
         <div key={tenantId} className="flex w-full flex-col gap-4">
+          {/* Their answers first: working a setup step usually means reading
+              one, and this is the only screen in the app that shows them. */}
+          <IntakeAnswersCard tenantId={tenantId} />
           <SetupSteps tenantId={tenantId} />
           <WiringCard tenantId={tenantId} />
         </div>

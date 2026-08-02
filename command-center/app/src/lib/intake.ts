@@ -1,10 +1,15 @@
 // The client intake funnel, declared as data.
 //
 // This is the public form at /onboarding-form: no login, filled in by the client
-// themselves between paying and the kickoff call. It carries all sixteen
-// questions from Jake's Google Form, plus the three things the form could not
-// do: the business basics needed to create an account, the login they choose,
-// and a review screen.
+// themselves between paying and the kickoff call. It grew out of Jake's Google
+// Form and still asks most of it, plus the three things that form could not do:
+// the business basics needed to create an account, the login they choose, and a
+// review screen.
+//
+// Where it now differs from the Google Form, it differs on purpose: the address
+// is asked in parts, targeting asks for zip codes rather than "areas", hours are
+// asked a day at a time, and the notification-preference and LeadConnector
+// questions are gone. Each is noted at the question it replaced.
 //
 // THE LEGAL BLOCK ON STEP 2 (legalName, taxId, entityType, contactTitle) exists
 // for one reason: A2P 10DLC. A carrier will not register a business texting
@@ -91,7 +96,7 @@ export const INTAKE_STEPS: IntakeStep[] = [
     n: 4,
     key: "targeting",
     label: "Targeting",
-    blurb: "Where your ads run, and how you want to hear about new leads.",
+    blurb: "Where your ads run, and the hours you would like to be booked in.",
   },
   {
     n: 5,
@@ -103,22 +108,20 @@ export const INTAKE_STEPS: IntakeStep[] = [
     n: 6,
     key: "assets",
     label: "Assets",
-    blurb: "Photos and a logo we can use in your marketing.",
+    blurb: "Photos and a logo we can use in your marketing. All three are optional.",
   },
 ];
 
 export const LAST_INPUT_STEP = INTAKE_STEPS.length;
 export const REVIEW_STEP = LAST_INPUT_STEP + 1;
 
-const NOTIFY_OPTIONS: IntakeOption[] = [
-  { value: "text", label: "Text" },
-  { value: "email", label: "Email" },
-  // Not in the source Google Form, which offered text or email only. Kept
-  // because plenty of owners want both and had no way to say so.
-  { value: "both", label: "Both" },
-];
+// The source Google Form asked how they wanted to hear about new leads (text,
+// email or both). It is gone: leads reach a client by SMS and in the app, and
+// asking a question whose answer changes nothing invites an answer we cannot
+// honour.
 
-const ASSET_HELP = "Paste a Google Drive, Dropbox or iCloud link. Make sure it is shared.";
+const ASSET_HELP =
+  "Optional. Paste a Google Drive, Dropbox or iCloud link, and set it so anyone with the link can view it. If you are not sure how, leave it blank and message Jake, who will sort it out with you.";
 
 // How the business is registered. The carriers' own list for 10DLC brand
 // registration, in their wording, so an answer here transfers to the form Jake
@@ -171,13 +174,51 @@ export const INTAKE_FIELDS: IntakeField[] = [
     options: TIMEZONES,
     help: "This sets the times on your booking calendar, so please get it right.",
   },
+  // The address, in parts rather than as one box. A single textarea came back as
+  // "Garden City" as often as it came back as an address, and every downstream
+  // use (the A2P registration, the Google profile, the ad's service area) needs
+  // the pieces separately anyway.
   {
-    key: "businessAddress",
-    label: "Business address",
-    type: "textarea",
+    key: "addressStreet",
+    label: "Street address",
+    type: "text",
     step: 2,
     required: true,
     wide: true,
+    placeholder: "123 Ford Rd",
+  },
+  {
+    key: "addressUnit",
+    label: "Suite, unit or floor",
+    type: "text",
+    step: 2,
+    placeholder: "Suite 200",
+    help: "Leave blank if there is not one.",
+  },
+  {
+    key: "addressCity",
+    label: "City",
+    type: "text",
+    step: 2,
+    required: true,
+    placeholder: "Garden City",
+  },
+  {
+    key: "addressState",
+    label: "State",
+    type: "text",
+    step: 2,
+    required: true,
+    placeholder: "MI",
+    help: "The two-letter state, like MI or TX.",
+  },
+  {
+    key: "addressZip",
+    label: "ZIP code",
+    type: "text",
+    step: 2,
+    required: true,
+    placeholder: "48135",
   },
   // The A2P block. Optional on purpose: see the note at the top of this file.
   {
@@ -242,49 +283,49 @@ export const INTAKE_FIELDS: IntakeField[] = [
   },
 
   // 4 - Targeting (source form Q7-Q11)
+  //
+  // Zip codes, not "areas". The old question took any mix of counties,
+  // neighbourhoods and cities, and every answer then had to be turned into zip
+  // codes by hand before the ad set could be built. Asking for the thing we
+  // actually type in saves that round trip and the guesswork in it.
   {
-    key: "targetAreas",
-    label: "Areas to target for your ads",
+    key: "targetZips",
+    label: "Zip codes to target for your ads",
     type: "textarea",
     step: 4,
     required: true,
     wide: true,
-    placeholder: "78704, Travis County, Downtown Austin, Round Rock",
-    help: "Any combination of zip codes, counties, neighbourhoods or cities.",
+    placeholder: "48135, 48150, 48154, 48185",
+    help: "Zip codes only please, separated by commas. If you are not sure which ones cover your area, put the ones you work in most and we will build out from there.",
   },
   {
     key: "areaCallout",
-    label: "How should the ads name your area?",
+    label: "What should the call-out name of your area for the ads be?",
     type: "text",
     step: 4,
     required: true,
     wide: true,
-    placeholder: "Detroit area",
-    help: '"Westlake County and Surrounding Areas", for example.',
+    placeholder: "Metro Detroit",
+    help: 'This is what the ad calls the people it is shown to: "Metro Detroit Homeowners...". Give us the name locals actually use.',
   },
+  // Their hours, a day at a time. Not a promise and not their real calendar:
+  // it is the shape of a normal week, so the booking calendar starts somewhere
+  // sensible instead of nine-to-five on a day they never work. A blank day is
+  // a day off, which is why none of these are required.
   {
-    key: "notifyPreference",
-    label: "How would you like to hear about new leads and appointments?",
-    type: "radio",
+    key: "hoursMonday",
+    label: "Monday",
+    type: "text",
     step: 4,
-    options: NOTIFY_OPTIONS,
-    wide: true,
+    placeholder: "9am - 5pm",
+    help: "Your ideal hours, not a commitment. Leave a day blank to take it off.",
   },
-  {
-    key: "calendarAvailability",
-    label: "Your preferred calendar availability",
-    type: "textarea",
-    step: 4,
-    wide: true,
-    placeholder: "Mon-Fri 9am-5pm, Saturday 12-3pm, Sunday off",
-  },
-  {
-    key: "leadConnectorInstalled",
-    label: "I have installed the LeadConnector app on my phone",
-    type: "checkbox",
-    step: 4,
-    wide: true,
-  },
+  { key: "hoursTuesday", label: "Tuesday", type: "text", step: 4, placeholder: "9am - 5pm" },
+  { key: "hoursWednesday", label: "Wednesday", type: "text", step: 4, placeholder: "9am - 5pm" },
+  { key: "hoursThursday", label: "Thursday", type: "text", step: 4, placeholder: "9am - 5pm" },
+  { key: "hoursFriday", label: "Friday", type: "text", step: 4, placeholder: "9am - 5pm" },
+  { key: "hoursSaturday", label: "Saturday", type: "text", step: 4, placeholder: "10am - 2pm" },
+  { key: "hoursSunday", label: "Sunday", type: "text", step: 4, placeholder: "Closed" },
 
   // 5 - Your story (source form Q12, Q15, Q16)
   {
@@ -313,6 +354,12 @@ export const INTAKE_FIELDS: IntakeField[] = [
   // 6 - Assets (source form Q13-Q14, plus a logo)
   // Links rather than uploads in v1: a public unauthenticated upload endpoint is
   // a storage-bombing target, and the app has no storage bucket yet.
+  //
+  // All three optional, and the help says so. Sharing a Drive folder is not
+  // obvious if you have never done it, and a client stuck on a required field
+  // they cannot fill abandons the form rather than asking. The funnel's copy of
+  // ASSET_HELP renders the "anyone with the link" sentence as HTML so it can be
+  // emphasised; this one is plain text, for the admin record.
   { key: "logoUrl", label: "Your logo", type: "url", step: 6, wide: true, help: ASSET_HELP },
   {
     key: "headshotUrl",
