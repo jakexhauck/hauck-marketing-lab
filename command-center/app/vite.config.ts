@@ -64,11 +64,13 @@ export default defineConfig({
         // Large brand source art is not offline-critical and blows past the
         // 2 MiB per-file precache cap; keep it out of the service worker.
         //
-        // funnel/intake.js is the client intake form, loaded by a GoHighLevel
-        // page on another origin. Nobody using this app ever requests it, and a
-        // cross-origin script tag is not served by our service worker anyway, so
-        // precaching it only costs every staff member a download they cannot use.
-        globIgnores: ["**/hauck-mark.png", "funnel/**"],
+        // funnel/** and sites/** are pages loaded by GoHighLevel steps on
+        // another origin: the intake and pre-call funnels, and whole client
+        // websites like Made Better LC. Nobody using this app ever requests
+        // them, and a cross-origin script tag is not served by our service
+        // worker anyway, so precaching them only costs every staff member a
+        // download they cannot use.
+        globIgnores: ["**/hauck-mark.png", "funnel/**", "sites/**"],
       },
     }),
   ],

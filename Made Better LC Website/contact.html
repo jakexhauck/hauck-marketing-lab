@@ -1,0 +1,34 @@
+<!--
+  MADE BETTER LC — Contact
+  GHL step: /contact
+
+  THIS IS THE WHOLE THING. Paste both lines below into the GoHighLevel step and
+  never come back. The page itself is served from the Command Center, so every
+  future change to a word, a photo, a phone number or a colour ships by deploy.
+
+  GHL holds a pointer, not a copy. That distinction is the entire point: when a
+  page is pasted in full, GHL owns a snapshot, editing the repo changes nothing
+  until somebody re-pastes, and the two drift apart every single time.
+
+  The real file:
+    command-center/app/public/sites/made-better/site.js
+
+  ONE file draws all seven pages. Which one it draws is read from data-page
+  below, so the seven steps differ by a single word. The things you are most
+  likely to change (phone, email, logo, the estimate webhook) sit in the CONFIG
+  block at the top of that file and are edited exactly once for the whole site.
+
+  HOW TO USE IT IN GHL
+  1. The funnel or website > this step > Custom JS/HTML element.
+  2. Delete whatever is in there and paste everything below.
+  3. Set the step to full width and remove GHL's own padding, or the page sits
+     in a narrower column than it was designed for.
+  4. Publish, then open the page.
+
+  NOTHING HERE GOES LIVE UNTIL THE COMMAND CENTER IS DEPLOYED. The stub loads
+  site.js from app.hauckmarketing.com, so until that deploy runs, the GHL step
+  renders an empty div.
+-->
+
+<div id="mb" data-page="contact"></div>
+<script src="https://app.hauckmarketing.com/sites/made-better/site.js"></script>
